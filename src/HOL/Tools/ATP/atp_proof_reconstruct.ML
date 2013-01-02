@@ -77,8 +77,13 @@ fun metis_call type_enc lam_trans =
                   |> lam_trans <> metis_default_lam_trans ? cons lam_trans
   in metisN ^ (if null opts then "" else " (" ^ commas opts ^ ")") end
 
-fun forall_of v t = HOLogic.all_const (fastype_of v) $ lambda v t
-fun exists_of v t = HOLogic.exists_const (fastype_of v) $ lambda v t
+fun term_name' (Var ((s, _), _)) = perhaps (try Name.dest_skolem) s
+  | term_name' t = ""
+
+fun lambda' v = Term.lambda_name (term_name' v, v)
+
+fun forall_of v t = HOLogic.all_const (fastype_of v) $ lambda' v t
+fun exists_of v t = HOLogic.exists_const (fastype_of v) $ lambda' v t
 
 fun make_tfree ctxt w =
   let val ww = "'" ^ w in
@@ -123,10 +128,10 @@ fun add_type_constraint false (cl, TFree (a ,_)) = add_var ((a, ~1), cl)
   | add_type_constraint false (cl, TVar (ix, _)) = add_var (ix, cl)
   | add_type_constraint _ _ = I
 
-fun repair_variable_name f s =
+fun repair_var_name s =
   let
     fun subscript_name s n = s ^ nat_subscript n
-    val s = String.map f s
+    val s = String.map Char.toLower s
   in
     case space_explode "_" s of
       [_] => (case take_suffix Char.isDigit (String.explode s) of
@@ -235,6 +240,8 @@ fun term_from_atp ctxt textual sym_tab =
           end
         | NONE => (* a free or schematic variable *)
           let
+            fun fresh_up s =
+              [(s, ())] |> Variable.variant_frees ctxt [] |> hd |> fst
             val term_ts = map (do_term [] NONE) us
             val ts = term_ts @ extra_ts
             val T =
@@ -248,8 +255,10 @@ fun term_from_atp ctxt textual sym_tab =
                 case unprefix_and_unascii schematic_var_prefix s of
                   SOME s => Var ((s, var_index), T)
                 | NONE =>
-                  Var ((s |> textual ? repair_variable_name Char.toLower,
-                        var_index), T)
+                  if textual andalso not (is_tptp_variable s) then
+                    Free (s |> textual ? (repair_var_name #> fresh_up), T)
+                  else
+                    Var ((s |> textual ? repair_var_name, var_index), T)
           in list_comb (t, ts) end
   in do_term [] end
 
@@ -294,7 +303,7 @@ fun prop_from_atp ctxt textual sym_tab phi =
         (* FIXME: TFF *)
         #>> quantify_over_var
               (case q of AForall => forall_of | AExists => exists_of)
-              (s |> textual ? repair_variable_name Char.toLower)
+              (s |> textual ? repair_var_name)
       | AConn (ANot, [phi']) => do_formula (not pos) phi' #>> s_not
       | AConn (c, [phi1, phi2]) =>
         do_formula (pos |> c = AImplies ? not) phi1
