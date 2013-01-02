@@ -30,6 +30,7 @@ declare -a SOURCES=(
   Isar/outer_syntax.scala
   Isar/parse.scala
   Isar/token.scala
+  ML/ml_statistics.scala
   PIDE/command.scala
   PIDE/document.scala
   PIDE/markup.scala
@@ -38,8 +39,6 @@ declare -a SOURCES=(
   PIDE/text.scala
   PIDE/xml.scala
   PIDE/yxml.scala
-  System/build.scala
-  System/build_dialog.scala
   System/color_value.scala
   System/command_line.scala
   System/event_bus.scala
@@ -63,6 +62,8 @@ declare -a SOURCES=(
   Thy/thy_info.scala
   Thy/thy_load.scala
   Thy/thy_syntax.scala
+  Tools/build.scala
+  Tools/build_dialog.scala
   library.scala
   package.scala
   term.scala
