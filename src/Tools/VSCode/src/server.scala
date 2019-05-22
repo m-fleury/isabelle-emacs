@@ -548,6 +548,32 @@ class Server(
     channel.write(Protocol.DocumentHighlights.reply(id, result))
   }
 
+  /* progress reports */
+  def session_progress() : isabelle.JSON.T = {
+    val snapshot = session.snapshot()
+    val nodes = snapshot.version.nodes
+
+    var nodes_status1 : Map[isabelle.Document.Node.Name, isabelle.Document_Status.Node_Status] = Map.empty
+    for (name <- nodes.domain.iterator) {
+      if (resources.is_hidden(name) ||
+        resources.is_hidden(name) ||
+        resources.session_base.loaded_theory(name) ||
+        nodes(name).is_empty) ()
+      else {
+        val st = isabelle.Document_Status.Node_Status.make(snapshot.state, snapshot.version, name)
+        nodes_status1 = nodes_status1 + (name -> st)
+      }
+    }
+
+    val nodes_status2 =
+      nodes_status1 -- nodes_status1.keysIterator.filter(nodes.is_suppressed(_))
+
+    val sorted_nodes = nodes.topological_order.filter(nodes_status1.isDefinedAt(_))
+      .map{x => Protocol.Progress_Node(x.path.implode, nodes_status1(x))}
+
+    Protocol.Progress_Nodes(sorted_nodes)
+  }
+
 
   /* main loop */
 
@@ -587,7 +613,8 @@ class Server(
           case Protocol.Preview_Request(file, column) => request_preview(file, column)
           case Protocol.Document_Symbols_Request(id, file) => channel.write(get_symbols(id, file))
           case Protocol.Symbols_Request(()) => channel.write(Protocol.Symbols())
-          case _ => if (!Protocol.ResponseMessage.is_empty(json)) log("### IGNORED")
+          case Protocol.Progress_Node_Request(()) => channel.write(session_progress())
+          case ignored => if (!Protocol.ResponseMessage.is_empty(json)) log("### IGNORED: " + ignored)
         }
       }
       catch { case exn: Throwable => channel.log_error_message(Exn.message(exn)) }
