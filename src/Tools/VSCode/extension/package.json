@@ -218,6 +218,7 @@
                     "default": "",
                     "description": "Cygwin installation on Windows (only relevant when running directly from the Isabelle repository)."
                 },
+
                 "isabelle.unprocessed_light_color": { "type": "string", "default": "rgba(255, 160, 160, 1.00)" },
                 "isabelle.unprocessed_dark_color": { "type": "string", "default": "rgba(97, 0, 97, 1.00)" },
                 "isabelle.unprocessed1_light_color": { "type": "string", "default": "rgba(255, 160, 160, 0.20)" },
