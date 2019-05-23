@@ -1,0 +1,122 @@
+#+TITLE: Isabelle layer
+
+[[file:img/isabelle.png]]
+
+* Table of Contents                                        :TOC_4_gh:noexport:
+- [[#description][Description]]
+- [[#install][Install]]
+  - [[#current-process][Current process]]
+    - [[#download-isabelle2018-vsce][Download Isabelle2018-vsce]]
+    - [[#download-the-isar-mode-package][Download the isar-mode package]]
+    - [[#install-isabelle2018-vsce][Install Isabelle2018-vsce]]
+    - [[#create-the-private-layer-isabelle][Create the private layer Isabelle]]
+    - [[#create-the-private-layer-lsp-mode][Create the private layer lsp-mode]]
+    - [[#add-the-isabelle-layer-to-spacemacs-and-configure-it][Add the isabelle layer to spacemacs and configure it]]
+    - [[#adding-the-afp][Adding the AFP]]
+- [[#key-bindings][Key bindings]]
+
+* TODO Description
+This layer allows for editing isabelle theory files. It includes:
+  - syntax highlighting via isar-mode
+  - pretty symbols rewriting
+  - processing via isar-lsp
+  - some other things
+
+* Install
+** Current process
+*** Download Isabelle2018-vsce
+    - The version of Isabelle2018 to download is isabelle2018-vsce available at:
+https://bitbucket.org/zmaths/isabelle2018-vsce
+
+#+BEGIN_SRC sh
+  hg clone https://bitbucket.org/zmaths/isabelle2018-vsce
+#+END_SRC
+
+*** Download the isar-mode package
+#+BEGIN_SRC sh
+  git clone https://github.com/m-fleury/simp-isar-mode.git
+#+END_SRC
+In the remainder of these instructions, I assume you have cloned these repos directly in your home directory. The following commands must be adapted with the correct paths otherwise.
+
+*** Install Isabelle2018-vsce
+    - Go to the main directory of Isabelle2018-vsce
+#+BEGIN_SRC sh
+  cd ~/isabelle2018-vsce
+#+END_SRC
+   - Go to the isabelle2018-more-vscode branch of the repository
+#+BEGIN_SRC sh
+  hg checkout isabelle2018-more-vscode
+#+END_SRC
+    - Initialize Isabelle (note that the second and third commands can take a while)
+#+BEGIN_SRC sh
+  ./bin/isabelle components -I
+  ./bin/isabelle components -a
+  ./bin/isabelle build -b HOL
+#+END_SRC
+
+*** Create the private layer Isabelle
+    - Go to the private directory in your .emacs.d
+#+BEGIN_SRC sh
+  cd ~/.emacs.d/private
+#+END_SRC
+    - Create an Isabelle directory and go to it
+#+BEGIN_SRC sh
+  mkdir isabelle
+  cd local
+#+END_SRC
+    - Create symbolic links to the layer files
+#+BEGIN_SRC sh
+  ln -s ~/isabelle2018-vsce/src/Tools/emacs-lsp/spacemacs_layers/isabelle/layers.el layers.el
+  ln -s ~/isabelle2018-vsce/src/Tools/emacs-lsp/spacemacs_layers/isabelle/packages.el packages.el
+  ln -s ~/isabelle2018-vsce/src/Tools/emacs-lsp/spacemacs_layers/isabelle/funcs.el funcs.el
+#+END_SRC
+    - Create a local folder and go to it
+#+BEGIN_SRC sh
+  mkdir local
+  cd local
+#+END_SRC
+    - Create symbolic links to local packages
+#+BEGIN_SRC sh
+  ln -s ~/isabelle2018-vsce/src/Tools/emacs-lsp/lsp-isar/ lsp-isar 
+  ln -s ~/simp-isar-mode/ isar-mode
+#+END_SRC
+
+*** Create the private layer lsp-mode
+    - Go to the private folder of your .emacs.d
+#+BEGIN_SRC sh
+  cd ../..
+#+END_SRC
+    - Create an lsp-mode folder and go to it
+#+BEGIN_SRC sh
+  mkdir lsp-mode
+  cd lsp-mode
+#+END_SRC
+    - Create a symbolic link to the layer file
+#+BEGIN_SRC sh
+  ln -s ~/isabelle2018-vsce/src/Tools/emacs-lsp/spacemacs_layers/lsp-mode/packages.el packages.el
+#+END_SRC
+
+*** Add the isabelle layer to spacemacs and configure it
+To use this configuration layer, add it to your =~/.spacemacs=. You will need to
+add =isabelle= to the existing =dotspacemacs-configuration-layers= list in this
+file.
+
+Then you need to add the following lines in the =dotspacemacs/user-init= function of your =~/.spacemacs= file.
+#+BEGIN_SRC elisp
+  (setq lsp-isar-path-to-isabelle "~/isabelle2018-vsce")
+  (setq lsp-isabelle-options (list "-d" "~/Example_Dir/Example_Session_Dir" "-S" "Example_Session"))
+#+END_SRC
+Note that the second line contains the command options to start isabelle from the
+command line and must be adapted to each use (see the Isabelle manual for the list of options).
+
+Using the option "-S" (especially if you are importing the AFP in your theories), will speed up the start-up time.
+Note that this option can only be used if a ROOT file is declared for the corresponding session (see the isabelle documentation).
+
+*** TODO Adding the AFP
+ 
+
+
+
+* TODO Key bindings
+
+
