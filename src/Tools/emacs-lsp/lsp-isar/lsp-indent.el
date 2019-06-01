@@ -367,4 +367,5 @@
     (message "cur-indent: %s" cur-indent)
     (indent-line-to cur-indent)))
 
-; (set (make-local-variable 'indent-line-function) 'isar-indent-line)
+
+(provide 'lsp-indentation)
