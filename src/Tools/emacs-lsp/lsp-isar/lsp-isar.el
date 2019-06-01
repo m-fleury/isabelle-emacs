@@ -29,6 +29,7 @@
 (require 'lsp-output)
 (require 'lsp-progress)
 (require 'lsp-decorations)
+(require 'lsp-indentation)
 
 (defcustom lsp-isar-init-hook nil
    "List of functions to be called after Isabelle has been started."
@@ -164,5 +165,13 @@ the output buffer, and the initial hooks.")
 ;; although the communication to the LSP server is done using utf-16,
 ;; we can only use utf-18
 (modify-coding-system-alist 'file "\\.thy\\'" 'utf-8-auto)
+
+
+(defvar lsp-isar-expiremental nil
+  "experimental settings")
+
+(if lsp-isar-expiremental
+    (add-hook 'isar-mode-hook
+	      '(lambda () (set (make-local-variable 'indent-line-function) 'isar-indent-line))))
 
 (provide 'lsp-isar)
