@@ -218,6 +218,7 @@
                     "default": "",
                     "description": "Cygwin installation on Windows (only relevant when running directly from the Isabelle repository)."
                 },
+
                 "isabelle.unprocessed_light_color": { "type": "string", "default": "rgba(255, 160, 160, 1.00)" },
                 "isabelle.unprocessed_dark_color": { "type": "string", "default": "rgba(97, 0, 97, 1.00)" },
                 "isabelle.unprocessed1_light_color": { "type": "string", "default": "rgba(255, 160, 160, 0.20)" },
@@ -314,12 +315,12 @@
     },
     "devDependencies": {
         "@types/mocha": "^2.2.48",
-        "@types/node": "^7.0.66",
+        "@types/node": "^7.10.5",
         "mocha": "^3.5.3",
         "typescript": "^2.9.2",
-        "vscode": "^1.1.18"
+        "vscode": "^1.1.32"
     },
     "dependencies": {
-        "vscode-languageclient": "~3.2.2"
+        "vscode-languageclient": "~5.0.1"
     }
 }
