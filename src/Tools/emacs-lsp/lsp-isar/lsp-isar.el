@@ -167,11 +167,13 @@ the output buffer, and the initial hooks.")
 (modify-coding-system-alist 'file "\\.thy\\'" 'utf-8-auto)
 
 
-(defvar lsp-isar-expiremental nil
+(defvar lsp-isar-expiremental t
   "experimental settings")
 
 (if lsp-isar-expiremental
-    (add-hook 'isar-mode-hook
-	      '(lambda () (set (make-local-variable 'indent-line-function) 'isar-indent-line))))
+    (progn
+      (message "activating experimental feature is lsp-isar. Set lsp-isar-expiremental to nil to avoid it")
+      (add-hook 'isar-mode-hook
+		'(lambda () (set (make-local-variable 'indent-line-function) 'isar-indent-line)))))
 
 (provide 'lsp-isar)
