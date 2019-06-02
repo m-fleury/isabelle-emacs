@@ -29,7 +29,7 @@
 (require 'lsp-output)
 (require 'lsp-progress)
 (require 'lsp-decorations)
-(require 'lsp-indentation)
+(require 'lsp-indent)
 
 (defcustom lsp-isar-init-hook nil
    "List of functions to be called after Isabelle has been started."
