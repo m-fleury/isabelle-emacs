@@ -522,9 +522,10 @@ classes."
 
 ;; recycle by batch of a small number of elements.
 (defun recycle-batch (file)
-  (let
+  (let*
       ((recycled-overlays (gethash file isar--recycled-overlays nil))
        (deleted-overlays (gethash file isar--deleted-overlays nil))
+       (m (length recycled-overlays))
        (n 0))
     (with-timeout (0.1 nil)
       (while
@@ -533,7 +534,7 @@ classes."
 	   deleted-overlays)
 	(let ((ov (pop deleted-overlays)))
 	  (delete-overlay ov)
-	  (push ov recycled-overlays)
+	  (if (< m 1000) (push ov recycled-overlays))
 	  (setq n (1+ n)))))
     (puthash file deleted-overlays isar--deleted-overlays)
     (puthash file recycled-overlays isar--recycled-overlays)))
