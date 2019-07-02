@@ -98,7 +98,6 @@ the output buffer, and the initial hooks.")
   "Isabelle's LSP server options")
 
 (defun lsp-full-isabelle-path ()
-  "full isabelle command"
   (append
    (list (concat lsp-isar-path-to-isabelle "/bin/isabelle")
 	 "vscode_server")
@@ -108,28 +107,6 @@ the output buffer, and the initial hooks.")
 
 (defvar lsp-isar-already-defined-client nil)
 
-(defun lsp-isar-define-client ()
-  "defines the lsp-isar-client"
-  (lsp-register-client
-   (make-lsp-client
-    :new-connection (lsp-stdio-connection ((lambda () (lsp-full-isabelle-path))))
-    :major-modes '(isar-mode)
-    :server-id 'lsp-isar
-    :priority 1
-    ;;  :use-native-json t
-    :notification-handlers
-    (lsp-ht
-     ("PIDE/decoration" 'isar-update-and-reprint)
-     ("PIDE/dynamic_output" (lambda (w _p) (isar-update-output-buffer (gethash "content" _p))))
-     ("PIDE/progress" (lambda (w _p) (isar-update-progress-buffer (gethash "nodes_status" _p)))))
-    )))
-
-(defun lsp-isar-define-client-and-start ()
-  (unless lsp-isar-already-defined-client
-      (progn
-	(lsp-isar-define-client)
-	(setq lsp-isar-already-defined-client t)))
-  (lsp))
 
 ;; declare the lsp mode
 (setq lsp-language-id-configuration
@@ -139,28 +116,59 @@ the output buffer, and the initial hooks.")
 
 (defcustom lsp-remote-isabelle-options (list "-m" "do_notation") "Isabelle options (e.g, AFP)")
 
-(defvar lsp-full-remote-isabelle-path
+(defun lsp-full-remote-isabelle-path ()
+  "full remote isabelle command"
   (append
    (list (concat lsp-isar-remote-path-to-isabelle "/bin/isabelle")
 	 "vscode_server")
    lsp-vscode-options
-   lsp-remote-isabelle-options)
-  "full remote isabelle command")
+   lsp-remote-isabelle-options))
 
-;; (lsp-register-client
-;;  (make-lsp-client
-;;   :new-connection (lsp-tramp-connection lsp-full-remote-isabelle-path)
-;;   :major-modes '(isar-mode)
-;;   :server-id 'lsp-isar
-;;   :remote? t
-;;   :notification-handlers
-;;   (lsp-ht
-;;    ("PIDE/decoration" 'isar-update-and-reprint)
-;;    ("PIDE/dynamic_output" (lambda (w _p) (isar-update-output-buffer (gethash "content" _p))))
-;;    ("PIDE/progress" (lambda (w _p) (isar-update-progress-buffer (gethash "nodes_status" _p)))))
-;;   ;:library-folders-fn (lambda (_workspace) lsp-clients-isabelle-library-directories)
-;;   ))
 
+(defvar lsp-isar-tramp nil "Remote config")
+
+(defun lsp-isar-define-client ()
+  "defines the lsp-isar-client"
+  (if lsp-isar-tramp
+      (lsp-register-client
+       (make-lsp-client
+	:new-connection
+	(lsp-tramp-connection ((lambda () (lsp-full-remote-isabelle-path))))
+	:major-modes '(isar-mode)
+	:server-id 'lsp-isar
+	:priority 1
+	:remote? t
+	;;    :use-native-json t
+	:notification-handlers
+	(lsp-ht
+	 ("PIDE/decoration" 'isar-update-and-reprint)
+	 ("PIDE/dynamic_output" (lambda (w _p) (isar-update-output-buffer (gethash "content" _p))))
+	 ("PIDE/progress" (lambda (w _p) (isar-update-progress-buffer (gethash "nodes_status" _p)))))
+	))
+    (lsp-register-client
+     (make-lsp-client
+      :new-connection
+      (lsp-stdio-connection ((lambda () (lsp-full-isabelle-path))))
+      :major-modes '(isar-mode)
+      :server-id 'lsp-isar
+      :priority 1
+      ;;    :remote? lsp-isar-tramp
+      ;;    :use-native-json t
+      :notification-handlers
+      (lsp-ht
+       ("PIDE/decoration" 'isar-update-and-reprint)
+       ("PIDE/dynamic_output" (lambda (w _p) (isar-update-output-buffer (gethash "content" _p))))
+       ("PIDE/progress" (lambda (w _p) (isar-update-progress-buffer (gethash "nodes_status" _p)))))
+      ))
+    ))
+
+
+(defun lsp-isar-define-client-and-start ()
+  (unless lsp-isar-already-defined-client
+      (progn
+        (lsp-isar-define-client)
+	(setq lsp-isar-already-defined-client t)))
+  (lsp))
 
 ;; although the communication to the LSP server is done using utf-16,
 ;; we can only use utf-18

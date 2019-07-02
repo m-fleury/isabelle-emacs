@@ -764,7 +764,7 @@ classes."
       (let ((timer (gethash file isar--recyclers)))
 	  (unless timer
 	    (progn
-	      (let ((timer (run-with-timer 0 0.3 'recycle-timer file)))
+	      (let ((timer (run-with-timer 0 0.5 'recycle-timer file)))
 		(puthash file timer isar--recyclers))))))))
 
 (defun isar-update-and-reprint (_workspace params)
