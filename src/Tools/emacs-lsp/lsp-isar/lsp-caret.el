@@ -51,6 +51,18 @@ interface Caret_Update {
 (define-inline lsp-cur-column ()
   (inline-quote (- (point) (line-beginning-position))))
 
+(defun lsp--buffer-uri ()
+  "Return URI of the current buffer."
+  (or lsp-buffer-uri
+      (lsp--path-to-uri
+       (or buffer-file-name (ignore-errors (buffer-file-name (buffer-base-buffer)))))))
+
+(defun lsp--path-to-uri (path)
+  "Convert PATH to a uri."
+  (concat lsp--uri-file-prefix
+          (url-hexify-string (replace-regexp-in-string (regexp-quote "/home/salt") "/local/home/salt" (expand-file-name path) nil 'literal)
+                             url-path-allowed-chars)))
+
 (define-inline lsp-cur-caret_update ()
   "Make a Caret_Update object for the current point."
   (inline-quote
