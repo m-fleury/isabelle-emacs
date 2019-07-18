@@ -84,9 +84,9 @@ Each entry is either:
     (setq lsp-prefer-flymake nil)
     )
   (add-hook 'isar-mode-hook 'flycheck-mode)
-  ;;(add-hook 'isar-mode-hook 'lsp-isar-define-client-and-start)
+  (add-hook 'isar-mode-hook 'lsp-isar-define-client-and-start)
 
-  ;;(add-hook 'lsp-isar-init-hook 'lsp-isar-open-output-and-progress-right-spacemacs)
+  (add-hook 'lsp-isar-init-hook 'lsp-isar-open-output-and-progress-right-spacemacs)
  )
 
 
