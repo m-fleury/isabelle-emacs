@@ -21,6 +21,7 @@
 ;; SOFTWARE.
 
 ;;; Code:
+(require 'isar-goal-mode)
 
 (defvar isar-output-buffer nil)
 (defvar isar-proof-cases-content nil)
@@ -41,7 +42,8 @@
   (setq isar-output-buffer (get-buffer-create "*isar-output*"))
   (save-excursion
     (with-current-buffer isar-output-buffer
-      (read-only-mode t))))
+      (read-only-mode t)
+      (isar-goal-mode))))
 
 (defun lsp-isar-insert-cases ()
     "insert the last seen outline"
