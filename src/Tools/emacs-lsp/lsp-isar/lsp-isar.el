@@ -178,10 +178,12 @@ the output buffer, and the initial hooks.")
 (defvar lsp-isar-experimental t
   "experimental settings")
 
-(if lsp-isar-experimental
-    (progn
-      (message "activating experimental feature is lsp-isar. Set lsp-isar-experimental to nil to avoid it")
-      (add-hook 'isar-mode-hook
-		'(lambda () (set (make-local-variable 'indent-line-function) 'isar-indent-line)))))
+(defun lsp-isar-activate-experimental-features ()
+  (if lsp-isar-experimental
+      (progn
+	(message "activating experimental feature is lsp-isar. Set lsp-isar-experimental to nil to avoid it")
+	(set (make-local-variable 'indent-line-function) 'isar-indent-line))))
+
+(add-hook 'isar-mode-hook #'lsp-isar-activate-experimental-features)
 
 (provide 'lsp-isar)

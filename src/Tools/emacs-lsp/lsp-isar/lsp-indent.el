@@ -59,6 +59,13 @@
 (setq lsp-isar--keyw-theory
       (create-regex-from-words lsp-isar-keyw-theory))
 
+(setq lsp-isar-trace-indent t)
+
+
+(defun lsp-isar-trace-indent (&rest args)
+  (if lsp-isar-trace-indent
+    (apply 'message args)))
+
 (setq lsp-isar-keyw-diag
       (list
        "export_generated_files" "ML_val" "ML_command" "print_bundles" "help"
@@ -223,12 +230,13 @@
 ;; looking-at-p can match the next line...
 (defun looking-at-p-nonempty (a)
   (and
+   (current-line-empty-p)
    (/= 0 (current-line-empty-p))
    (word-at-point)
    (string-match-p a (word-at-point))))
 
 (defun move-to-first-word-on-the-line ()
-  (message "move-to-first-word-on-the-line %s" (word-at-point))
+  (lsp-isar-trace-indent "move-to-first-word-on-the-line %s" (word-at-point))
   (if (and (not (word-at-point)) (not (looking-at "[[:space:]]*$")))
       (right-word)))
 
@@ -271,7 +279,7 @@
     0))
 
 (defun indent_brackets ()
-  (message "indent_brackets")
+  (lsp-isar-trace-indent "indent_brackets")
   (setq finished nil)
   (save-excursion
     (setq depth 0)
@@ -287,7 +295,7 @@
   depth)
 
 (defun indent_extra ()
-  (message "indent_extra")
+  (lsp-isar-trace-indent "indent_extra")
   (setq finished nil)
   (setq depth 0)
   (save-excursion
@@ -300,7 +308,7 @@
   depth)
 
 (defun indent_structure ()
-  (message "indent_structure")
+  (lsp-isar-trace-indent "indent_structure")
   (interactive)
   (setq finished nil)
   ;; TODO only for debugging
@@ -314,39 +322,39 @@
 	  (forward-line -1)
 	(progn
 	  (move-to-first-word-on-the-line)
-	  (message "indent_structure %s %s, indent at: %s" (word-at-point) depth (indent_indent))
+	  (lsp-isar-trace-indent "indent_structure '%s' '%s', indent at: '%s'" (word-at-point) depth (indent_indent))
 	  (setq depth (+ depth (indent_indent)))
-          (message "indent_structure %s" depth)
+          (lsp-isar-trace-indent "indent_structure %s" depth)
 	  (if (and
 	       (looking-at-p-nonempty lsp-isar--keyw-begin-or-command)
 	       (not (looking-at-p-nonempty lsp-isar--keyw-proof-script)))
 	      (progn
 		(setq finished t)
-                (message "indent_structure %s with %s: %s " depth (indent_offset_creates_indent) (+ depth (indent_offset_creates_indent)))
+                (lsp-isar-trace-indent "indent_structure %s with %s: %s " depth (indent_offset_creates_indent) (+ depth (indent_offset_creates_indent)))
 		(setq depth (+ depth (current-indentation) (indent_offset_creates_indent)))
-		(message "indent_structure set to %s" depth))
+		(lsp-isar-trace-indent "indent_structure set to %s" depth))
 	      (forward-line -1)))))
-    (message "indent_structure finl: %s" depth)
+    (lsp-isar-trace-indent "indent_structure finl: %s" depth)
     depth))
 
 (defun goto-prev-line-command ()
-  (message "goto-prev-line-command")
+  (lsp-isar-trace-indent "goto-prev-line-command")
   (setq finished nil)
   (while (and (not finished) (not (= (point) (point-min))))
     (move-to-first-word-on-the-line)
-    (message "goto-prev-line-command: %s" (word-at-point))
+    (lsp-isar-trace-indent "goto-prev-line-command: %s" (word-at-point))
     (if (looking-at-p-nonempty lsp-isar--keyw-begin-or-command)
 	(setq finished t)
       (forward-line -1)))
   depth)
 
 (defun indentation_depth (indent_structure indent_brackets)
-  (message "indentation_depth")
+  (lsp-isar-trace-indent "indentation_depth")
   (save-excursion
     (move-to-first-word-on-the-line)
-    (message "indentation_depth, init word: %s, command? %s" (word-at-point)
+    (lsp-isar-trace-indent "indentation_depth, init word: %s, command? %s" (word-at-point)
 	     (and (word-at-point) (string-match-p lsp-isar--keyw-begin-or-command (word-at-point))))
-    (if (/= 0 (current-line-empty-p))
+    (if (and (current-line-empty-p) (/= 0 (current-line-empty-p)))
 	(if (or
 	     (looking-at-p-nonempty lsp-isar--keyw-begin)
 	     (looking-at-p-nonempty lsp-isar--keyw-before-command)
@@ -354,23 +362,23 @@
 	    0
 	  (if (or (looking-at-p-nonempty lsp-isar--keyw-proof-enclose))
               (progn
-		(message "command enclose")
+		(lsp-isar-trace-indent "command enclose")
 		(- indent_structure (indent_offset_current_line)))
 	    (if (looking-at-p-nonempty lsp-isar--keyw-proof)
 		(progn
-		  (message "command proof %s %s %s"  indent_structure (script_indent) (indent_offset))
+		  (lsp-isar-trace-indent "command proof %s %s %s"  indent_structure (script_indent) (indent_offset))
 		  (max (+ indent_structure (indent_indent_current_line) (- (indent_offset))) 0))
 	      (progn
 		(if (looking-at-p-nonempty lsp-isar--keyw-command)
 		    (progn
-		      (message "command")
+		      (lsp-isar-trace-indent "command")
 		      (+ indent_structure (- (indent_offset))))
 		  (if (looking-at-p-nonempty lsp-isar--keyw-proof-enclose)
 		      (progn
-			(message "lsp-isar--keyw-proof-enclose")
+			(lsp-isar-trace-indent "lsp-isar--keyw-proof-enclose")
 			(max (- indent_structure indent_offset) indent_offset))
 		    (progn
-		      (message "command+no enclose")
+		      (lsp-isar-trace-indent "command+no enclose")
 		      (let ((curr_quasi (looking-at-p-nonempty lsp-isar--keyw-quasi-command)))
 		        (goto-prev-line-command)
 			(move-to-first-word-on-the-line)
@@ -382,21 +390,21 @@
 				  (if (or (and curr_quasi (not prev_quasi)))
 				      (- (indent_extra))
 				    (indent_extra)))))
-			  (message "extra %s %s %s" extra prev_quasi curr_quasi)
+			  (lsp-isar-trace-indent "extra %s %s %s" extra prev_quasi curr_quasi)
 			  (+ indent_structure indent_brackets extra (- (indent_offset))))))))))))
       ;; no command at the head
       (progn
-	(message "indentation_depth/no command")
-	(message "word at point: %s" (word-at-point))
+	(lsp-isar-trace-indent "indentation_depth/no command")
+	(lsp-isar-trace-indent "word at point: %s" (word-at-point))
 	(goto-prev-line-command)
-	(message "word at point: %s" (word-at-point))
-	(message "indent-indent: %s; indent_offset: %s; command: %s"  (indent_indent)
+	(lsp-isar-trace-indent "word at point: %s" (word-at-point))
+	(lsp-isar-trace-indent "indent-indent: %s; indent_offset: %s; command: %s"  (indent_indent)
 		 (indent_offset) (looking-at-p-nonempty lsp-isar--keyw-command))
 	(if (looking-at-p-nonempty lsp-isar--keyw-command)
 	    (+ indent_structure indent_brackets indent_offset
 	       (- (indent_indent)) (- (indent_offset)))
 	  (let ((extra (if (looking-at-p-nonempty lsp-isar--keyw-quasi-command) (indent_extra) 0)))
-	    (message "indent_structure: %s; indent_brackets: %s; extra: %s; indent_offset: %s"
+	    (lsp-isar-trace-indent "indent_structure: %s; indent_brackets: %s; extra: %s; indent_offset: %s"
 		     indent_structure indent_brackets extra indent_offset)
 	    (+ indent_structure indent_brackets extra indent_offset)))))))
 
@@ -404,16 +412,16 @@
   "Indent current line as Isar code"
   (interactive)
   (beginning-of-line)
-  (message "************************")
+  (lsp-isar-trace-indent "************************")
   (let* (
 	 (cur-struct-indent (indent_structure))
 	 (cur-bracket-indent (indent_brackets))
 	 (cur-indent (max 0 (indentation_depth cur-struct-indent cur-bracket-indent ))))
     ;;(if cur-indent
     ;;(indent-line-to cur-indent)
-    (message "cur-struct-indent: %s" cur-struct-indent)
-    (message "cur-bracket-indent: %s" cur-bracket-indent)
-    (message "cur-indent: %s" cur-indent)
+    (lsp-isar-trace-indent "cur-struct-indent: %s" cur-struct-indent)
+    (lsp-isar-trace-indent "cur-bracket-indent: %s" cur-bracket-indent)
+    (lsp-isar-trace-indent "cur-indent: %s" cur-indent)
     (indent-line-to cur-indent)))
 
 
