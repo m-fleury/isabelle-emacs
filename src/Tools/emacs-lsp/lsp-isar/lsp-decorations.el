@@ -65,7 +65,11 @@
 ;; minutes on a large buffer).
 ;;
 ;; TODO:
+;;
 ;;   - how the hell does define-inline work?
+;;
+;;   - when clausing overlays, we let the GC do its job, but it might
+;;   be worth using a timer as for the recyling.
 ;;
 ;;
 ;; Some comments on the faces:
@@ -103,7 +107,7 @@
 						       'equal) "decoration overlays that can be reused.")
 
 ;; file -> timer
-(defvar-local isar--recyclers (make-hash-table :test 'equal) "timers that recycle overlays.")
+(defvar-local isar--recyclers (make-hash-table :test 'equal) "timers that recycle overlays or delete them when a buffer is closed.")
 
 ;; prettifyng the source
 (defgroup isar-sem nil
@@ -548,9 +552,6 @@ classes."
 	(cancel-timer timer)
 	(puthash file nil isar--recyclers)))))
 
-
-
-
 ;; started as a the equivalent of the cquery version. Later changed a lot.
 ;; ASSUMPTIONS:
 ;;  * old-overlays it sorted (for performance reasion).
@@ -628,10 +629,12 @@ classes."
 
     (if (not buffer) ;; buffer was closed/not found
 	(let ((timer (gethash file isar--recyclers)))
-	  (unless timer
-	    (progn
-	      (let ((timer (run-with-timer 0 0.5 'recycle-timer file)))
-		(puthash file timer isar--recyclers)))))
+	  (if timer
+	      (cancel-timer timer))
+	  (puthash file nil isar--recyclers)
+	  ;; let the GC kill the decorations for us:
+	  (puthash file nil isar--deleted-overlays)
+	  (puthash file nil isar--recycled-overlays))
 
       ;; faster adding and deleting of overlays
       (overlay-recenter (point))
