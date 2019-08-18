@@ -39,48 +39,59 @@
 
 ;; TODO requires to iterate over the result
 (defun isar-update-progress-buffer (status)
-  "Updates the progress buffer"
+  "Updates the progress buffer and centers it on the current edited buffer"
   (setq isar--progress-request-delay 0)
-  (let ((inhibit-read-only t))
+  (let ((inhibit-read-only t) (current-thy-name (file-name-base)))
     (save-excursion
       (with-current-buffer isar-progress-buffer
-	(progn
-	  (setq current-point (point))
-	  (setf (buffer-string) "")
-	  (seq-doseq (theory_status status)
-	    (progn
-	      (let*
-		  ((theory (gethash "name" theory_status))
-		   (unprocessed (gethash "unprocessed" theory_status theory_status))
-		   (initialized (gethash "initialized" theory_status))
-		   (running (gethash "running" theory_status))
-		   (finished (gethash "finished" theory_status))
-		   (failed (gethash "failed" theory_status))
-		   (consolidated (gethash "consolidated" theory_status)))
-		(progn
-		  (let* ((warned (gethash "warned" theory_status))
-			 (total (+ unprocessed running warned failed finished))
-			 (processed (+ warned finished)))
-		    (progn
-		      (setq s (concat (file-name-base  theory)
-				      " "
-				      (number-to-string processed)
-				      " / " (number-to-string total)
-				      ", ✖: " (number-to-string failed)
-				      ", ⌛:" (number-to-string running)
-				      "\n"))
-		      (if (and consolidated (= unprocessed 0) (= failed 0) (= running 0))
-			  (insert (propertize s 'font-lock-face '(:foreground "LightSalmon4")))
-			(if (/= failed 0)
+	(setq current-thy-point (point))
+	(setq current-thy-line 0)
+	(setq current-thy-line-found nil)
+	(setf (buffer-string) "")
+	(seq-doseq (theory_status status)
+	  (progn
+	    (let*
+		((theory (gethash "name" theory_status))
+		 (unprocessed (gethash "unprocessed" theory_status theory_status))
+		 (initialized (gethash "initialized" theory_status))
+		 (running (gethash "running" theory_status))
+		 (finished (gethash "finished" theory_status))
+		 (failed (gethash "failed" theory_status))
+		 (consolidated (gethash "consolidated" theory_status)))
+	      (progn
+		(let* ((warned (gethash "warned" theory_status))
+		       (total (+ unprocessed running warned failed finished))
+		       (processed (+ warned finished)))
+		  (progn
+		    (if (or current-thy-line-found
+			    (string= (file-name-base theory) current-thy-name))
+			(progn
+			  (setq current-thy-line-found t)
+			  (setq current-thy-point (+ (point)))))
+		    (unless current-thy-line-found
+		      (setq current-thy-line (+ 1 current-thy-line)))
+		    (setq s (concat (file-name-base theory)
+				    " "
+				    (number-to-string processed)
+				    " / " (number-to-string total)
+				    ", ✖: " (number-to-string failed)
+				    ", ⌛:" (number-to-string running)
+				    "\n"))
+		    (if (and consolidated (= unprocessed 0) (= failed 0) (= running 0))
+			(insert (propertize s 'font-lock-face '(:foreground "LightSalmon4")))
+		      (if (/= failed 0)
+			  (progn
+			    (setq coloured_text (propertize s 'font-lock-face '(:background "saddle brown")))
+			    (insert coloured_text))
+			(if (/= running 0)
 			    (progn
-			      (setq coloured_text (propertize s 'font-lock-face '(:background "saddle brown")))
+			      (setq coloured_text (propertize s 'font-lock-face '(:background "medium sea green" :foreground "black")))
 			      (insert coloured_text))
-			  (if (/= running 0)
-			      (progn
-				(setq coloured_text (propertize s 'font-lock-face '(:background "medium sea green" :foreground "black")))
-				(insert coloured_text))
-			    (insert s))))))))))
-	  (goto-char current-point))))))
+			  (insert s))))))))))
+	(when (get-buffer-window isar-progress-buffer 'visible)
+	  (with-selected-window (get-buffer-window isar-progress-buffer)
+	    (goto-line current-thy-line)))
+	))))
 
 
 (defun isar-request-buffer ()
