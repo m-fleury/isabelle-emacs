@@ -41,7 +41,8 @@
 (defun isar-update-progress-buffer (status)
   "Updates the progress buffer and centers it on the current edited buffer"
   (setq isar--progress-request-delay 0)
-  (let ((inhibit-read-only t) (current-thy-name (file-name-base)))
+  (let ((inhibit-read-only t)
+	(current-thy-name (if (buffer-file-name) (file-name-base) nil)))
     (save-excursion
       (with-current-buffer isar-progress-buffer
 	(setq current-thy-point (point))
