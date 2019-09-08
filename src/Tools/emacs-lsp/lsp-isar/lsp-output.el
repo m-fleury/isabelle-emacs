@@ -30,7 +30,7 @@
 (defvar isar-proof-cases-content nil)
 
 (defun isar-parse-output (content)
- ;; (message "content = %s" content)
+  ;;(message "content = %s" content)
   (cond
    ((not content) nil)
    ((stringp content)
@@ -69,11 +69,11 @@
 	(concat "\n" (mapconcat 'isar-parse-output children "") "\n"))
 
        ((eq node 'information_message)
-	(propertize (concat "info: " (mapconcat 'isar-parse-output children "") "\n")
+	(propertize (concat (mapconcat 'isar-parse-output children "") "\n")
 		    'font-lock-face (cdr (assoc "dotted_information" isar-get-font))))
 
        ((eq node 'error_message)
-	(propertize (concat "info: " (mapconcat 'isar-parse-output children "") "\n")
+	(propertize (concat (mapconcat 'isar-parse-output children "") "\n")
 		    'font-lock-face (cdr (assoc "text_overview_error" isar-get-font))))
 
        ((eq node 'text_fold)
@@ -97,7 +97,7 @@
 
        ((eq node 'keyword2)
 	(propertize (isar-parse-output (last children))
-		    'font-lock-face (cdr (assoc "text_keyword1" isar-get-font))))
+		    'font-lock-face (cdr (assoc "text_keyword2" isar-get-font))))
 
        ((eq node 'keyword3)
 	(propertize (isar-parse-output (last children))
@@ -138,8 +138,12 @@
 	(concat (isar-parse-output (last children))))
 
        ((or (eq node 'language) (eq node 'delimiter)
-	    (eq node 'entity) (eq node 'literal))
+	    (eq node 'literal))
 	(isar-parse-output (last children)))
+
+       ((or (eq node 'entity))
+	(concat (isar-parse-output (last children))
+		(if (equal (dom-attr content 'kind) "type_name") " " "")))
 
        ((or (eq node 'writeln_message))
 	(propertize (concat (mapconcat 'isar-parse-output children "") "\n")
@@ -148,11 +152,14 @@
        ((eq node 'paragraph)
 	(concat "\n" (mapconcat 'isar-parse-output children "") "\n"))
 
+       ((eq node 'item)
+	(concat (mapconcat 'isar-parse-output children "") "\n"))
+
        ((eq node 'break)
 	(cond ((dom-attr content 'width) " ")
 	      (t "")))
 
-       ((or (eq node 'xml_elem)) (isar-parse-output (last children)))
+       ((or (eq node 'xml_elem)) (concat (isar-parse-output (last children)) " "))
 
        ((or (eq node 'sub)) (format "%s" (last children))) ;; TODO sub deserves proper support
 
@@ -164,7 +171,7 @@
 	       (format "%s" node)
 	       (mapconcat 'isar-parse-output children "")))
 	  (progn
-;;	    (message "unrecognised content %s; node is: %s" content node)
+	    (message "unrecognised content %s; node is: %s" content node)
 	    (concat (format "%s" node) (format "%s" content))))
 	)
        )
@@ -178,12 +185,24 @@
       (with-current-buffer isar-output-buffer
 	(setq parsed-content
 	      (with-temp-buffer
-		(insert content)
-;;		(message "%s"(libxml-parse-html-region  (point-min) (point-max)))
-	        (setq parsed-content (if content (libxml-parse-html-region  (point-min) (point-max)) nil))
+		(if content
+		    (progn
+		      (insert content)
+		      ;;(message "%s"(libxml-parse-html-region  (point-min) (point-max)))
+	              (setq parsed-content (libxml-parse-html-region  (point-min) (point-max)))))
 		))
-	(message  "parsed output = %s" (isar-parse-output parsed-content))
+;;	(message  "parsed output = %s" (isar-parse-output parsed-content))
 	(setf (buffer-string) (isar-parse-output parsed-content))
+	(if (buffer-string)
+	    (progn
+	      (beginning-of-buffer)
+	      (replace-string "  " " ")
+	      (beginning-of-buffer)
+	      (replace-string "( " "(")
+	      (beginning-of-buffer)
+	      (replace-string "  )" ")")
+	      (beginning-of-buffer)
+	      (replace-string "  )" ")")))
 	(beginning-of-buffer)
 	(ignore-errors
 	  (progn

@@ -461,7 +461,7 @@ classes."
     ("background_markdown_bullet1"  . isar-font-background-markdown-bullet1)
     ("background_markdown_bullet2"  . isar-font-background-markdown-bullet2)
     ("background_markdown_bullet3"  . isar-font-background-markdown-bullet3)
-    ("background_markdown_bullet4"  . isar-font-background-markdown-bullet4
+    ("background_markdown_bullet4"  . isar-font-background-markdown-bullet4)
 
 
     ("foreground_quoted"  . isar-font-foreground-quoted)
