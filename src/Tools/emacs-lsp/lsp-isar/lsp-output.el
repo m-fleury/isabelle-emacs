@@ -69,7 +69,12 @@
 	(concat "\n" (mapconcat 'isar-parse-output children "") "\n"))
 
        ((eq node 'information_message)
-	(concat "info: " (mapconcat 'isar-parse-output children "") "\n"))
+	(propertize (concat "info: " (mapconcat 'isar-parse-output children "") "\n")
+		    'font-lock-face (cdr (assoc "dotted_information" isar-get-font))))
+
+       ((eq node 'error_message)
+	(propertize (concat "info: " (mapconcat 'isar-parse-output children "") "\n")
+		    'font-lock-face (cdr (assoc "text_overview_error" isar-get-font))))
 
        ((eq node 'text_fold)
 	(mapconcat 'isar-parse-output children ""))
@@ -87,7 +92,20 @@
 	(isar-parse-output (last children)))
 
        ((eq node 'keyword1)
-	(isar-parse-output (last children)))
+	(propertize (isar-parse-output (last children))
+		    'font-lock-face (cdr (assoc "text_keyword1" isar-get-font))))
+
+       ((eq node 'keyword2)
+	(propertize (isar-parse-output (last children))
+		    'font-lock-face (cdr (assoc "text_keyword1" isar-get-font))))
+
+       ((eq node 'keyword3)
+	(propertize (isar-parse-output (last children))
+		    'font-lock-face (cdr (assoc "text_keyword3" isar-get-font))))
+
+       ((eq node 'keyword4)
+	(propertize (isar-parse-output (last children))
+		    'font-lock-face (cdr (assoc "text_keyword4" isar-get-font))))
 
        ((eq node 'fixed)
 	(isar-parse-output (last children)))
@@ -161,7 +179,8 @@
 	(setq parsed-content
 	      (with-temp-buffer
 		(insert content)
-	        (setq parsed-content (libxml-parse-html-region  (point-min) (point-max)))
+;;		(message "%s"(libxml-parse-html-region  (point-min) (point-max)))
+	        (setq parsed-content (if content (libxml-parse-html-region  (point-min) (point-max)) nil))
 		))
 	(message  "parsed output = %s" (isar-parse-output parsed-content))
 	(setf (buffer-string) (isar-parse-output parsed-content))
