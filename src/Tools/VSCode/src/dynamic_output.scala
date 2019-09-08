@@ -12,7 +12,7 @@ import isabelle._
 
 object Dynamic_Output
 {
-  sealed case class State(do_update: Boolean = true, output: List[XML.Tree] = Nil)
+  sealed case class State(val server: Server, do_update: Boolean = true, output: List[XML.Tree] = Nil)
   {
     def handle_update(
       resources: VSCode_Resources, channel: Channel, restriction: Option[Set[Command]]): State =
@@ -26,17 +26,23 @@ object Dynamic_Output
               snapshot.current_command(caret.node_name, caret.offset) match {
                 case None => copy(output = Nil)
                 case Some(command) =>
-                  copy(output =
+                  val text = 
                     if (!restriction.isDefined || restriction.get.contains(command))
+                      //server.resources.output_pretty_message(snapshot.command_results(command))
                       Rendering.output_messages(snapshot.command_results(command))
-                    else output)
+                    else output
+                  copy(output = text)
               }
             }
             else this
         }
       if (st1.output != output) {
-        channel.write(Protocol.Dynamic_Output(
-          resources.output_pretty_message(Pretty.separate(st1.output))))
+        val content =
+          HTML.output_document(
+            Nil,
+            List(HTML.source(st1.output)),
+            css = "isabelle.css", structural = true)
+        channel.write(Protocol.Dynamic_Output(content))
       }
       st1
     }
@@ -48,7 +54,7 @@ object Dynamic_Output
 
 class Dynamic_Output private(server: Server)
 {
-  private val state = Synchronized(Dynamic_Output.State())
+  private val state = Synchronized(Dynamic_Output.State(server))
 
   private def handle_update(restriction: Option[Set[Command]])
   { state.change(_.handle_update(server.resources, server.channel, restriction)) }

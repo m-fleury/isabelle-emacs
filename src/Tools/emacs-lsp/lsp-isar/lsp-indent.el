@@ -22,8 +22,6 @@
 
 ;;; Code:
 
-(require 'cl)
-
 (defun current-line-empty-p ()
   (or (not (thing-at-point 'line)) (string-match-p "^\\s-*$" (thing-at-point 'line))))
 
