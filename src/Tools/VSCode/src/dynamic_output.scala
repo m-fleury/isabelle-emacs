@@ -40,7 +40,7 @@ object Dynamic_Output
         val content =
           HTML.output_document(
             Nil,
-            List(HTML.source(st1.output)),
+            List(HTML.source(Pretty.formatted(st1.output))),
             css = "isabelle.css", structural = true)
         channel.write(Protocol.Dynamic_Output(content))
       }

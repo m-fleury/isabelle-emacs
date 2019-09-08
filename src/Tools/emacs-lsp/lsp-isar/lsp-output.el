@@ -37,7 +37,7 @@
    ;; (message "stringp %s" content)
     content)
    ((not (listp content))
-    ;;(message "listp content")
+    (message "unrecognised")
     (format "%s" content))
    (t
     (let
@@ -46,12 +46,12 @@
       (cond
        ((not node) content)
        ((eq node 'html)
-	(isar-parse-output (last children)))
-       ((eq node 'xmlns) nil)
+	(isar-parse-output (car (last children))))
+       ((or (eq node 'xmlns) (eq node 'meta) (eq node 'link)) nil)
        ((eq node 'head)
-	(isar-parse-output (children)))
+	(isar-parse-output (car (last children))))
        ((eq node 'body)
-	(isar-parse-output (cadr children)))
+	(mapconcat 'isar-parse-output children ""))
 
        ((eq node 'block)
 	(concat
@@ -72,78 +72,86 @@
 	(propertize (concat (mapconcat 'isar-parse-output children "") "\n")
 		    'font-lock-face (cdr (assoc "dotted_information" isar-get-font))))
 
-       ((eq node 'error_message)
+       ((eq node 'warning_message)
 	(propertize (concat (mapconcat 'isar-parse-output children "") "\n")
 		    'font-lock-face (cdr (assoc "text_overview_error" isar-get-font))))
 
-       ((eq node 'text_fold)
-	(mapconcat 'isar-parse-output children ""))
+       ((eq node 'error_message)
+	(propertize (concat (mapconcat 'isar-parse-output children "") "\n")
+		    'font-lock-face (cdr (assoc "dotted_warning" isar-get-font))))
 
-       ((eq node 'keyword)
-	(mapconcat 'isar-parse-output children ""))
+       ((eq node 'text_fold)
+	(concat
+	 (if (< 1 (length children)) "\n" "")
+	 (mapconcat 'isar-parse-output children "")))
 
        ((eq node 'subgoal)
 	(concat "\n" (mapconcat 'isar-parse-output children "")))
 
        ((eq node 'span)
-	(format "%s" (last children)))
+	(format "%s" (car (last children))))
 
        ((or (eq node 'position))
-	(isar-parse-output (last children)))
+	(isar-parse-output (car (last children))))
 
        ((eq node 'keyword1)
-	(propertize (isar-parse-output (last children))
+	(propertize (isar-parse-output (car (last children)))
 		    'font-lock-face (cdr (assoc "text_keyword1" isar-get-font))))
 
        ((eq node 'keyword2)
-	(propertize (isar-parse-output (last children))
+	(propertize (isar-parse-output (car (last children)))
 		    'font-lock-face (cdr (assoc "text_keyword2" isar-get-font))))
 
        ((eq node 'keyword3)
-	(propertize (isar-parse-output (last children))
+	(propertize (isar-parse-output (car (last children)))
 		    'font-lock-face (cdr (assoc "text_keyword3" isar-get-font))))
 
        ((eq node 'keyword4)
-	(propertize (isar-parse-output (last children))
+	(propertize (isar-parse-output (car (last children)))
 		    'font-lock-face (cdr (assoc "text_keyword4" isar-get-font))))
 
        ((eq node 'fixed)
-	(isar-parse-output (last children)))
+	(isar-parse-output (car (last children))))
 
        ((eq node 'free)
-	(propertize (isar-parse-output (last children))
+	(propertize (format "%s" (car (last children)))
 		    'font-lock-face (cdr (assoc "text_free" isar-get-font))))
 
        ((eq node 'tfree)
-	(propertize (isar-parse-output (last children))
+	(propertize (format "%s" (car (last children)))
 		    'font-lock-face (cdr (assoc "text_tfree" isar-get-font))))
 
        ((eq node 'tvar)
-	(propertize (isar-parse-output (last children))
+	(propertize (format "%s" (car (last children)))
 		    'font-lock-face (cdr (assoc "text_tvar" isar-get-font))))
 
        ((eq node 'var)
-	(propertize (isar-parse-output (last children))
+	(propertize (format "%s" (car (last children)))
 		    'font-lock-face (cdr (assoc "text_var" isar-get-font))))
 
        ((eq node 'bound)
-	(propertize (isar-parse-output (last children))
+	(propertize (format "%s" (car (last children)))
 		    'font-lock-face (cdr (assoc "text_bound" isar-get-font))))
 
        ((eq node 'skolem)
-	(propertize (isar-parse-output (last children))
+	(propertize (isar-parse-output (car (last children)))
 		    'font-lock-face (cdr (assoc "text_skolem" isar-get-font))))
 
        ((eq node 'sendback)
-	(concat (isar-parse-output (last children))))
+	(concat (isar-parse-output (car (last children)))))
 
-       ((or (eq node 'language) (eq node 'delimiter)
+       ((eq node 'bullet)
+	(concat "\n- " (mapconcat 'isar-parse-output children "") "")) ;; TODO proper utf8
+
+       ((or (eq node 'language)
 	    (eq node 'literal))
-	(isar-parse-output (last children)))
+	(mapconcat 'isar-parse-output children ""))
+
+       ((or (eq node 'delimiter))
+	(concat (mapconcat 'isar-parse-output children "") " "))
 
        ((or (eq node 'entity))
-	(concat (isar-parse-output (last children))
-		(if (equal (dom-attr content 'kind) "type_name") " " "")))
+        (concat (mapconcat 'isar-parse-output children " ") " "))
 
        ((or (eq node 'writeln_message))
 	(propertize (concat (mapconcat 'isar-parse-output children "") "\n")
@@ -153,15 +161,20 @@
 	(concat "\n" (mapconcat 'isar-parse-output children "") "\n"))
 
        ((eq node 'item)
+	(message "%s" (mapconcat 'isar-parse-output children ""))
 	(concat (mapconcat 'isar-parse-output children "") "\n"))
 
        ((eq node 'break)
 	(cond ((dom-attr content 'width) " ")
+	      ((dom-attr content 'line) "\n")
 	      (t "")))
 
-       ((or (eq node 'xml_elem)) (concat (isar-parse-output (last children)) " "))
+       ((or (eq node 'xml_elem))
+	(mapconcat 'isar-parse-output children ""))
 
-       ((or (eq node 'sub)) (format "%s" (last children))) ;; TODO sub deserves proper support
+       ((or (eq node 'xml_body)) "")
+
+       ((or (eq node 'sub)) (format "%s" (car (last children)))) ;; TODO sub deserves proper support
 
        (t
 	(if (and (listp node))
@@ -172,7 +185,7 @@
 	       (mapconcat 'isar-parse-output children "")))
 	  (progn
 	    (message "unrecognised content %s; node is: %s" content node)
-	    (concat (format "%s" node) (format "%s" content))))
+	    (concat (format "%s" node))))
 	)
        )
       ))))
@@ -188,6 +201,9 @@
 		(if content
 		    (progn
 		      (insert content)
+		      (beginning-of-buffer)
+		      (replace-match "\n" "<break line = 1></break>")
+		      ;;(message content)
 		      ;;(message "%s"(libxml-parse-html-region  (point-min) (point-max)))
 	              (setq parsed-content (libxml-parse-html-region  (point-min) (point-max)))))
 		))
