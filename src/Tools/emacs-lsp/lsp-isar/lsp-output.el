@@ -165,9 +165,11 @@
 	(concat (mapconcat 'isar-parse-output children "") "\n"))
 
        ((eq node 'break)
-	(cond ((dom-attr content 'width) " ")
+	(concat
+	 (cond ((dom-attr content 'width) " ")
 	      ((dom-attr content 'line) "\n")
-	      (t "")))
+	      (t ""))
+	 (mapconcat 'isar-parse-output children "")))
 
        ((or (eq node 'xml_elem))
 	(mapconcat 'isar-parse-output children ""))
@@ -202,11 +204,19 @@
 		    (progn
 		      (insert content)
 		      (beginning-of-buffer)
-		      (replace-match "\n" "<break line = 1></break>")
+		      (replace-regexp "\n\\( *\\)" "<break line = 1>'\\1'</break>")
 		      ;;(message content)
 		      ;;(message "%s"(libxml-parse-html-region  (point-min) (point-max)))
-	              (setq parsed-content (libxml-parse-html-region  (point-min) (point-max)))))
-		))
+	              (setq parsed-content (libxml-parse-html-region  (point-min) (point-max)))
+		      ;; ;; (with-current-buffer "*scratch*"
+		      ;; ;; 	(beginning-of-buffer)
+		      ;; ;; 	(insert content)
+		      ;; ;; 	(beginning-of-buffer)
+		      ;; ;; (replace-regexp "\n\\( *\\)" "<break line = 1>'\\1'</break>")
+		      ;; ;; 	  )
+		  )
+		
+		)))
 ;;	(message  "parsed output = %s" (isar-parse-output parsed-content))
 	(setf (buffer-string) (isar-parse-output parsed-content))
 	(if (buffer-string)
