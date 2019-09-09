@@ -26,6 +26,8 @@
 (require 'lsp-decorations)
 
 (require 'dom)
+(eval-when-compile (require 'subr-x))
+
 (defvar isar-output-buffer nil)
 (defvar isar-proof-cases-content nil)
 
@@ -165,11 +167,12 @@
 	(concat (mapconcat 'isar-parse-output children "") "\n"))
 
        ((eq node 'break)
-	(concat
+	(let ((children (mapcar (lambda (a) (string-remove-suffix "'" (string-remove-prefix "'" a))) children)))
+	 (concat
 	 (cond ((dom-attr content 'width) " ")
 	      ((dom-attr content 'line) "\n")
 	      (t ""))
-	 (mapconcat 'isar-parse-output children "")))
+	 (mapconcat 'isar-parse-output children ""))))
 
        ((or (eq node 'xml_elem))
 	(mapconcat 'isar-parse-output children ""))
