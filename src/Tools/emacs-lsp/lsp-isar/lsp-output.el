@@ -100,6 +100,10 @@
 	(propertize (isar-parse-output (car (last children)))
 		    'font-lock-face (cdr (assoc "text_keyword1" isar-get-font))))
 
+       ((eq node 'intensify)
+	(propertize (isar-parse-output (car (last children)))
+		    'font-lock-face (cdr (assoc "background_intensify" isar-get-font))))
+
        ((eq node 'keyword2)
 	(propertize (isar-parse-output (car (last children)))
 		    'font-lock-face (cdr (assoc "text_keyword2" isar-get-font))))
@@ -150,10 +154,10 @@
 	(mapconcat 'isar-parse-output children ""))
 
        ((or (eq node 'delimiter))
-	(concat (mapconcat 'isar-parse-output children "") " "))
+	(concat (mapconcat 'isar-parse-output children "") ""))
 
        ((or (eq node 'entity))
-        (concat (mapconcat 'isar-parse-output children " ") " "))
+        (concat (mapconcat 'isar-parse-output children "") ""))
 
        ((or (eq node 'writeln_message))
 	(propertize (concat (mapconcat 'isar-parse-output children "") "\n")
@@ -195,6 +199,11 @@
        )
       ))))
 
+(defun replace-regexp-lisp (REGEXP TO-STRING)
+  "replace-regexp as indicated in the help"
+   (while (re-search-forward REGEXP nil t)
+    (replace-match TO-STRING nil nil)))
+
 (defun isar-update-output-buffer (content)
   "Updates the output progress"
   (setq parsed-content nil)
@@ -207,31 +216,30 @@
 		    (progn
 		      (insert content)
 		      (beginning-of-buffer)
-		      (replace-regexp "\n\\( *\\)" "<break line = 1>'\\1'</break>")
+		      (replace-regexp-lisp "\n\\( *\\)" "<break line = 1>'\\1'</break>")
+		      (beginning-of-buffer)
+		      (replace-regexp-lisp ">\\( *\\)<entity" "><break>'\\1'</break><entity")
+		      (beginning-of-buffer)
+		      (replace-regexp-lisp ">\\( *\\)<xml" "><break>'\\1'</break><xml")
+		      (beginning-of-buffer)
+		      (replace-regexp-lisp "xml_elem>\\( *\\)<" "xml_elem><break>'\\1'</break><")
+		      (message (buffer-string))
 		      ;;(message content)
 		      ;;(message "%s"(libxml-parse-html-region  (point-min) (point-max)))
 	              (setq parsed-content (libxml-parse-html-region  (point-min) (point-max)))
-		      ;; ;; (with-current-buffer "*scratch*"
-		      ;; ;; 	(beginning-of-buffer)
-		      ;; ;; 	(insert content)
-		      ;; ;; 	(beginning-of-buffer)
-		      ;; ;; (replace-regexp "\n\\( *\\)" "<break line = 1>'\\1'</break>")
-		      ;; ;; 	  )
+		      ;; (with-current-buffer "*scratch*"
+		      ;; 	(beginning-of-buffer)
+		      ;; 	(insert content)
+		      ;; 	(beginning-of-buffer)
+		      ;; (replace-regexp "\n\\( *\\)" "<break line = 1>'\\1'</break>")
+		      ;; 	  )
 		  )
 		
 		)))
 ;;	(message  "parsed output = %s" (isar-parse-output parsed-content))
 	(setf (buffer-string) (isar-parse-output parsed-content))
 	(if (buffer-string)
-	    (progn
-	      (beginning-of-buffer)
-	      (replace-string "  " " ")
-	      (beginning-of-buffer)
-	      (replace-string "( " "(")
-	      (beginning-of-buffer)
-	      (replace-string "  )" ")")
-	      (beginning-of-buffer)
-	      (replace-string "  )" ")")))
+	    (progn))
 	(beginning-of-buffer)
 	(ignore-errors
 	  (progn
