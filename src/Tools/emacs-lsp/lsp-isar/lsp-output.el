@@ -1,6 +1,6 @@
 ;;; -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2018 Mathias Fleury
+;; Copyright (C) 2018-2019 Mathias Fleury
 
 ;; Permission is hereby granted, free of charge, to any person obtaining a copy
 ;; of this software and associated documentation files (the "Software"), to deal
@@ -48,7 +48,7 @@
       (cond
        ((not node) content)
        ((eq node 'html)
-	(isar-parse-output (car (last children))))
+	 (mapconcat 'isar-parse-output children ""))
        ((or (eq node 'xmlns) (eq node 'meta) (eq node 'link)) nil)
        ((eq node 'head)
 	(isar-parse-output (car (last children))))
@@ -71,6 +71,10 @@
 	(concat "\n" (mapconcat 'isar-parse-output children "") "\n"))
 
        ((eq node 'information_message)
+	(propertize (concat (mapconcat 'isar-parse-output children "") "\n")
+		    'font-lock-face (cdr (assoc "dotted_information" isar-get-font))))
+
+       ((eq node 'tracing_message) ;; TODO Proper colour
 	(propertize (concat (mapconcat 'isar-parse-output children "") "\n")
 		    'font-lock-face (cdr (assoc "dotted_information" isar-get-font))))
 
@@ -143,8 +147,8 @@
 	(propertize (isar-parse-output (car (last children)))
 		    'font-lock-face (cdr (assoc "text_skolem" isar-get-font))))
 
-       ((eq node 'sendback)
-	(concat (isar-parse-output (car (last children)))))
+       ((eq node 'sendback) ;; TODO handle properly
+	(concat (mapconcat 'isar-parse-output children "") ""))
 
        ((eq node 'bullet)
 	(concat "\n- " (mapconcat 'isar-parse-output children "") "")) ;; TODO proper utf8
@@ -167,7 +171,7 @@
 	(concat "\n" (mapconcat 'isar-parse-output children "") "\n"))
 
        ((eq node 'item)
-	(message "%s" (mapconcat 'isar-parse-output children ""))
+	;;(message "%s" (mapconcat 'isar-parse-output children ""))
 	(concat (mapconcat 'isar-parse-output children "") "\n"))
 
        ((eq node 'break)
@@ -181,9 +185,10 @@
        ((or (eq node 'xml_elem))
 	(mapconcat 'isar-parse-output children ""))
 
-       ((or (eq node 'xml_body)) "")
+       ((or (eq node 'xml_body) (eq node 'path)) "")
 
-       ((or (eq node 'sub)) (format "%s" (car (last children)))) ;; TODO sub deserves proper support
+       ((or (eq node 'sub)) (format "\\<^sub>%s" (car (last children))))
+       ((or (eq node 'sub)) (format "\\<^sub>%s" (car (last children))))
 
        (t
 	(if (and (listp node))
@@ -204,6 +209,7 @@
    (while (re-search-forward REGEXP nil t)
     (replace-match TO-STRING nil nil)))
 
+
 (defun isar-update-output-buffer (content)
   "Updates the output progress"
   (setq parsed-content nil)
@@ -223,10 +229,13 @@
 		      (replace-regexp-lisp ">\\( *\\)<xml" "><break>'\\1'</break><xml")
 		      (beginning-of-buffer)
 		      (replace-regexp-lisp "xml_elem>\\( *\\)<" "xml_elem><break>'\\1'</break><")
-		      (message (buffer-string))
+		      (beginning-of-buffer)
+		      (replace-regexp-lisp "<break line = 1>''</break><body><break line = 1>''</break><pre" "<pre")
+		      ;;(message (buffer-string))
 		      ;;(message content)
 		      ;;(message "%s"(libxml-parse-html-region  (point-min) (point-max)))
 	              (setq parsed-content (libxml-parse-html-region  (point-min) (point-max)))
+		      ;;(message "%s" parsed-content)
 		      ;; (with-current-buffer "*scratch*"
 		      ;; 	(beginning-of-buffer)
 		      ;; 	(insert content)

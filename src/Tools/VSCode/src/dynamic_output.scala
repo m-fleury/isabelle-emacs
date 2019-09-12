@@ -38,10 +38,9 @@ object Dynamic_Output
         }
       if (st1.output != output) {
         val content =
-          HTML.output_document(
-            Nil,
-            List(HTML.source(Pretty.formatted(st1.output))),
-            css = "isabelle.css", structural = true)
+          cat_lines(
+            List(HTML.output(XML.elem("body", List(HTML.source(Pretty.formatted(st1.output)))),
+            hidden = false, structural = true)))
         channel.write(Protocol.Dynamic_Output(content))
       }
       st1
