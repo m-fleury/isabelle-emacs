@@ -221,15 +221,15 @@
 		(if content
 		    (progn
 		      (insert content)
-		      (beginning-of-buffer)
+		      (goto-char (point-min))
 		      (replace-regexp-lisp "\n\\( *\\)" "<break line = 1>'\\1'</break>")
-		      (beginning-of-buffer)
+		      (goto-char (point-min))
 		      (replace-regexp-lisp ">\\( *\\)<entity" "><break>'\\1'</break><entity")
-		      (beginning-of-buffer)
+		      (goto-char (point-min))
 		      (replace-regexp-lisp ">\\( *\\)<xml" "><break>'\\1'</break><xml")
-		      (beginning-of-buffer)
+		      (goto-char (point-min))
 		      (replace-regexp-lisp "xml_elem>\\( *\\)<" "xml_elem><break>'\\1'</break><")
-		      (beginning-of-buffer)
+		      (goto-char (point-min))
 		      (replace-regexp-lisp "<break line = 1>''</break><body><break line = 1>''</break><pre" "<pre")
 		      ;;(message (buffer-string))
 		      ;;(message content)
@@ -237,9 +237,9 @@
 	              (setq parsed-content (libxml-parse-html-region  (point-min) (point-max)))
 		      ;;(message "%s" parsed-content)
 		      ;; (with-current-buffer "*scratch*"
-		      ;; 	(beginning-of-buffer)
+		      ;; 	(goto-char (point-min))
 		      ;; 	(insert content)
-		      ;; 	(beginning-of-buffer)
+		      ;; 	(goto-char (point-min))
 		      ;; (replace-regexp "\n\\( *\\)" "<break line = 1>'\\1'</break>")
 		      ;; 	  )
 		  )
@@ -249,7 +249,7 @@
 	(setf (buffer-string) (isar-parse-output parsed-content))
 	(if (buffer-string)
 	    (progn))
-	(beginning-of-buffer)
+	(goto-char (point-min))
 	(ignore-errors
 	  (progn
 	    (search-forward "Proof outline with cases:")

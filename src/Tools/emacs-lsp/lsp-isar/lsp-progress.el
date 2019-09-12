@@ -91,7 +91,8 @@
 			  (insert s))))))))))
 	(when (get-buffer-window isar-progress-buffer 'visible)
 	  (with-selected-window (get-buffer-window isar-progress-buffer)
-	    (goto-line current-thy-line)))
+	    (goto-char (point-min))
+	    (forward-line (1- current-thy-line))))
 	))))
 
 
