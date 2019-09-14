@@ -156,7 +156,7 @@ functions adds up. So any optimisation would help."
       ('error_message
        (lsp-isar--parse-output-print-all-children-in-output
 	content
-	(cdr (assoc "dotted_warning" lsp-isar-get-font))))
+	(cdr (assoc "text_overview_error" lsp-isar-get-font))))
 
       ('text_fold
        (mapc 'lsp-isar-parse-output (dom-children content)))

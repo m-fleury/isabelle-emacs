@@ -231,8 +231,8 @@
 
 
 (defface lsp-isar-font-dotted-warning
-  '((((class color) (background dark)) :underline t)
-    (((class color) (background light)) :underline t)
+  '((((class color) (background dark)) :underline nil)
+    (((class color) (background light)) :underline nil)
     (t :priority 2))
   ""
   :group 'lsp-isar-sem)
@@ -540,7 +540,7 @@ CAUTION: this can be slow."
 
 (defun lsp-isar-kill-all-unused-overlays ()
   (interactive)
-  (message "Cleaning all decorations. Set lsp-isar-cleaner-timer increase the delay two of them.")
+  (message "Cleaning all decorations. Set lsp-isar-cleaner-timer increase the delay between two of them.")
   (maphash (lambda (file _v) (lsp-isar-kill-all-unused-overlays-file file)) lsp-isar--deleted-overlays))
 
 (defcustom lsp-isar-full-clean-ran-every 120
