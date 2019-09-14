@@ -28,7 +28,9 @@
 (require 'dom)
 (eval-when-compile (require 'subr-x))
 
-(defvar isar-output-buffer nil)
+(defvar isar-state-buffer nil "Isabelle state buffer")
+(defvar isar-output-buffer nil "Isabelle output buffer")
+
 (defvar isar-proof-cases-content nil)
 
 (define-inline remove-quotes-from-string (obj)
@@ -89,6 +91,7 @@ functions adds up. So any optimisation would help."
 
       ('head
        (isar-parse-output (car (last (dom-children content)))))
+
       ('body
        (mapconcat 'isar-parse-output (dom-children content) ""))
 
@@ -99,6 +102,7 @@ functions adds up. So any optimisation would help."
 
       ('class
        (mapconcat 'isar-parse-output (dom-children content) ""))
+
       ('pre
        (mapconcat 'isar-parse-output (dom-children content) ""))
 
@@ -106,22 +110,25 @@ functions adds up. So any optimisation would help."
        (mapconcat 'isar-parse-output (dom-children content) ""))
 
       ('information_message
-       (concat "\n\n"
+       (with-current-buffer isar-output-buffer
+	 (insert (concat "\n\n"
 	       (propertize (concat (mapconcat 'isar-parse-output (dom-children content) "") "\n")
-			   'font-lock-face (cdr (assoc "dotted_information" isar-get-font)))))
+			   'font-lock-face (cdr (assoc "dotted_information" isar-get-font)))))))
 
       ('tracing_message ;; TODO Proper colour
-       (propertize (concat (mapconcat 'isar-parse-output (dom-children content) "") "\n")
-		   'font-lock-face (cdr (assoc "dotted_information" isar-get-font))))
+       (with-current-buffer isar-output-buffer
+	 (insert (propertize (concat (mapconcat 'isar-parse-output (dom-children content) "") "\n")
+		   'font-lock-face (cdr (assoc "dotted_information" isar-get-font))))))
 
       ('warning_message
-       (propertize (concat (mapconcat 'isar-parse-output (dom-children content) "") "\n")
-		   'font-lock-face (cdr (assoc "dotted_warning" isar-get-font))))
+       (with-current-buffer isar-output-buffer
+	 (insert (propertize (concat (mapconcat 'isar-parse-output (dom-children content) "") "\n")
+		   'font-lock-face (cdr (assoc "dotted_warning" isar-get-font))))))
 
       ('error_message
-       (concat "\n"
-	       (propertize (concat (mapconcat 'isar-parse-output (dom-children content) "") "\n")
-		   'font-lock-face (cdr (assoc "dotted_warning" isar-get-font)))))
+       (with-current-buffer isar-output-buffer
+	 (insert (propertize (concat (mapconcat 'isar-parse-output (dom-children content) "") "\n")
+			      'font-lock-face (cdr (assoc "dotted_warning" isar-get-font))))))
 
       ('text_fold
        (mapconcat 'isar-parse-output (dom-children content) ""))
@@ -135,13 +142,13 @@ functions adds up. So any optimisation would help."
       ('position
        (isar-parse-output (car (last (dom-children content)))))
 
-      ('keyword1
-       (propertize (isar-parse-output (car (last (dom-children content))))
-		   'font-lock-face (cdr (assoc "text_keyword1" isar-get-font))))
-
       ('intensify
        (propertize (isar-parse-output (car (last (dom-children content))))
 		   'font-lock-face (cdr (assoc "background_intensify" isar-get-font))))
+
+      ('keyword1
+       (propertize (isar-parse-output (car (last (dom-children content))))
+		   'font-lock-face (cdr (assoc "text_keyword1" isar-get-font))))
 
       ('keyword2
        (propertize (isar-parse-output (car (last (dom-children content))))
@@ -221,6 +228,7 @@ functions adds up. So any optimisation would help."
        (mapconcat 'isar-parse-output (dom-children content) ""))
 
       ('sub (format "\\<^sub>%s" (car (last (dom-children content)))))
+
       ('sup (format "\\<^sup>%s" (car (last (dom-children content)))))
 
       (_
@@ -240,12 +248,14 @@ functions adds up. So any optimisation would help."
     (replace-match TO-STRING nil nil)))
 
 
-(defun isar-update-output-buffer (content)
-  "Updates the output progress"
+(defun isar-update-state-and-output-buffer (content)
+  "Updates state and output buffers"
   (setq parsed-content nil)
   (let ((inhibit-read-only t))
     (save-excursion
       (with-current-buffer isar-output-buffer
+	(setf (buffer-string) ""))
+      (with-current-buffer isar-state-buffer
 	(setq parsed-content
 	      (with-temp-buffer
 		(if content
@@ -272,8 +282,12 @@ functions adds up. So any optimisation would help."
 	    (setq isar-proof-cases-content (buffer-substring (point) (point-max)))))))))
 
 (defun lsp-isar-initialize-output-buffer ()
+  (setq isar-state-buffer (get-buffer-create "*isar-state*"))
   (setq isar-output-buffer (get-buffer-create "*isar-output*"))
   (save-excursion
+    (with-current-buffer isar-state-buffer
+      (read-only-mode t)
+      (isar-goal-mode))
     (with-current-buffer isar-output-buffer
       (read-only-mode t)
       (isar-goal-mode))))

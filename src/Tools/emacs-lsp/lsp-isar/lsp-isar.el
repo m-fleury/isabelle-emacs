@@ -63,14 +63,17 @@ the output buffer, and the initial hooks.")
    (interactive)
    (split-window-right)
    (other-window 1)
+   (switch-to-buffer "*isar-state*")
+   (split-window-below)
+   (other-window 1)
    (switch-to-buffer "*isar-output*")
    (split-window-below)
    (other-window 1)
    (switch-to-buffer "*isar-progress*")
-   (other-window -2))
+   (other-window -3))
 
 ;; split the window 2 seconds later (the timeout is necessary to give
-;; enough time to spacemacs to jump to the theory file) It can be used
+;; enough time to spacemacs to jump to the theory file). It can be used
 ;; for example by ``(add-hook 'lsp-isar-init-hook
 ;; 'lsp-isar-open-output-and-progress-right-spacemacs)''
 (defun lsp-isar-open-output-and-progress-right-spacemacs ()
@@ -142,7 +145,7 @@ the output buffer, and the initial hooks.")
 	:notification-handlers
 	(lsp-ht
 	 ("PIDE/decoration" 'isar-update-and-reprint)
-	 ("PIDE/dynamic_output" (lambda (w _p) (isar-update-output-buffer (gethash "content" _p))))
+	 ("PIDE/dynamic_output" (lambda (w _p) (isar-update-state-and-output-buffer (gethash "content" _p))))
 	 ("PIDE/progress" (lambda (w _p) (isar-update-progress-buffer (gethash "nodes_status" _p)))))
 	))
     (lsp-register-client
@@ -157,7 +160,7 @@ the output buffer, and the initial hooks.")
       :notification-handlers
       (lsp-ht
        ("PIDE/decoration" 'isar-update-and-reprint)
-       ("PIDE/dynamic_output" (lambda (w _p) (isar-update-output-buffer (gethash "content" _p))))
+       ("PIDE/dynamic_output" (lambda (w _p) (isar-update-state-and-output-buffer (gethash "content" _p))))
        ("PIDE/progress" (lambda (w _p) (isar-update-progress-buffer (gethash "nodes_status" _p)))))
       ))
     ))
