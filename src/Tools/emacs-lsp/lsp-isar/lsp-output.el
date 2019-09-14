@@ -31,6 +31,9 @@
 (defvar isar-output-buffer nil)
 (defvar isar-proof-cases-content nil)
 
+(define-inline remove-quotes-from-string (obj)
+  (inline-letevals (obj)
+    (inline-quote (string-remove-suffix "'" (string-remove-prefix "'" ,obj)))))
 
 ;; TODO
 ;;
@@ -116,8 +119,9 @@ functions adds up. So any optimisation would help."
 		   'font-lock-face (cdr (assoc "dotted_warning" isar-get-font))))
 
       ('error_message
-       (propertize (concat (mapconcat 'isar-parse-output (dom-children content) "") "\n")
-		   'font-lock-face (cdr (assoc "dotted_warning" isar-get-font))))
+       (concat "\n"
+	       (propertize (concat (mapconcat 'isar-parse-output (dom-children content) "") "\n")
+		   'font-lock-face (cdr (assoc "dotted_warning" isar-get-font)))))
 
       ('text_fold
        (mapconcat 'isar-parse-output (dom-children content) ""))
@@ -207,7 +211,7 @@ functions adds up. So any optimisation would help."
        (concat (mapconcat 'isar-parse-output (dom-children content) "") "\n"))
 
       ('break
-       (let ((children (mapcar (lambda (a) (string-remove-suffix "'" (string-remove-prefix "'" a))) (dom-children content))))
+       (let ((children (mapcar 'remove-quotes-from-string (dom-children content))))
 	 (concat
 	  (if (dom-attr content 'width) " " "")
 	  (if (dom-attr content 'line) "\n" "")
