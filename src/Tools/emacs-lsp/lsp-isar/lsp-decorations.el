@@ -521,10 +521,33 @@ classes."
 	 )))
 
 
+(defun lsp-isar-kill-all-unused-overlays-file (file)
+  "Remove all overlays that are deleted or recycled: They are
+deleted from the buffer and from the hashtables where they appear
+and should be GC-ed by emacs.
 
+CAUTION: this can be slow."
+  (let*
+      ((recycled-overlays (gethash file isar--recycled-overlays nil))
+       (deleted-overlays (gethash file isar--deleted-overlays nil))
+       )
+    (dolist (ov deleted-overlays) (delete-overlay ov))
+    (dolist (ov recycled-overlays) (delete-overlay ov))
+    (puthash file nil isar--deleted-overlays)
+    (puthash file nil isar--recycled-overlays)))
+
+(defun lsp-isar-kill-all-unused-overlays ()
+  (interactive)
+  (maphash (lambda (file _v) (lsp-isar-kill-all-unused-overlays-file file)) isar--deleted-overlays))
+
+(defvar isar-cleaner-timer nil
+  "Timer to clean all elements")
+
+(setq lsp-isar-cleaner-timer
+      (run-with-idle-timer 120 nil 'lsp-isar-kill-all-unused-overlays))
 
 ;; recycle by batch of a small number of elements.
-(defun recycle-batch (file)
+(defun lsp-isar-recycle-batch (file)
   (let*
       ((recycled-overlays (gethash file isar--recycled-overlays nil))
        (deleted-overlays (gethash file isar--deleted-overlays nil))
@@ -542,8 +565,8 @@ classes."
     (puthash file deleted-overlays isar--deleted-overlays)
     (puthash file recycled-overlays isar--recycled-overlays)))
 
-(defun recycle-timer (file)
-  (recycle-batch file)
+(defun lsp-isar-recycle-timer (file)
+  (lsp-isar-recycle-batch file)
   (let ((deleted-ov (gethash file isar--deleted-overlays))
 	(timer (gethash file isar--recyclers)))
     (unless deleted-ov
@@ -615,7 +638,7 @@ classes."
 ;;    2. then deleted from the overlays
 ;;    3. added to isar--recycled-overlays to be reused
 ;;
-;; 2 and 3 are run in recycle-timer. It is run by a timer to avoid
+;; 2 and 3 are run in lsp-isar-recycle-timer. It is run by a timer to avoid
 ;; blocking emacs. It then cancels itself when there is nothing to do.
 (defun isar-update-cached-decorations-overlays (params)
   (let* ((file (replace-regexp-in-string (regexp-quote "/local/local") "/local" (lsp--uri-to-path (gethash "uri" params)) nil 'literal))
@@ -773,7 +796,7 @@ classes."
 	(let ((timer (gethash file isar--recyclers)))
 	  (unless timer
 	    (progn
-	      (let ((timer (run-with-timer 0 0.5 'recycle-timer file)))
+	      (let ((timer (run-with-timer 0 0.5 'lsp-isar-recycle-timer file)))
 		(puthash file timer isar--recyclers)))))))))
 
 (defun isar-update-and-reprint (_workspace params)
