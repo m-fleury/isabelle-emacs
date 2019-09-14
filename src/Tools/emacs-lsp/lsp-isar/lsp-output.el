@@ -223,8 +223,8 @@ functions adds up. So any optimisation would help."
        (mapc 'lsp-isar-parse-output (dom-children content)))
 
       ('bullet
-       (insert "\n-")
-       (mapc 'lsp-isar-parse-output (dom-children content))) ;; TODO proper utf8
+       (insert "•")
+       (mapc 'lsp-isar-parse-output (dom-children content)))
 
       ('language
        (mapc 'lsp-isar-parse-output (dom-children content)))
