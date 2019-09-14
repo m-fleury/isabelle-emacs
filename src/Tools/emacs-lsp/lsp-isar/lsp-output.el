@@ -76,162 +76,159 @@ functions adds up. So any optimisation would help."
     (message "unrecognised")
     (format "%s" content))
    (t
-    (let ((node (dom-tag content)))
-      (cond
-       ((eq node nil) content)
-       ((eq node 'html)
-	(mapconcat 'isar-parse-output (dom-children content) ""))
-       ((eq node 'xmlns) "")
-       ((eq node 'meta) "")
-       ((eq node 'link) "")
-       ((eq node 'xml_body) "")
-       ((eq node 'xml_body) "")
+    (pcase (dom-tag content)
+      ('html
+       (mapconcat 'isar-parse-output (dom-children content) ""))
+      ('xmlns "")
+      ('meta "")
+      ('link "")
+      ('xml_body "")
 
-       ((eq node 'head)
-	(isar-parse-output (car (last (dom-children content)))))
-       ((eq node 'body)
-	(mapconcat 'isar-parse-output (dom-children content) ""))
+      ('head
+       (isar-parse-output (car (last (dom-children content)))))
+      ('body
+       (mapconcat 'isar-parse-output (dom-children content) ""))
 
-       ((eq node 'block)
-	(concat
-	 (if (dom-attr content 'indent) " " "")
-	 (mapconcat 'isar-parse-output (dom-children content) "")))
+      ('block
+       (concat
+	(if (dom-attr content 'indent) " " "")
+	(mapconcat 'isar-parse-output (dom-children content) "")))
 
-       ((eq node 'class)
-	(mapconcat 'isar-parse-output (dom-children content) ""))
-       ((eq node 'pre)
-	(mapconcat 'isar-parse-output (dom-children content) ""))
+      ('class
+       (mapconcat 'isar-parse-output (dom-children content) ""))
+      ('pre
+       (mapconcat 'isar-parse-output (dom-children content) ""))
 
-       ((eq node 'state_message)
-        (mapconcat 'isar-parse-output (dom-children content) ""))
+      ('state_message
+       (mapconcat 'isar-parse-output (dom-children content) ""))
 
-       ((eq node 'information_message)
-	(concat "\n\n"
-		(propertize (concat (mapconcat 'isar-parse-output (dom-children content) "") "\n")
-			    'font-lock-face (cdr (assoc "dotted_information" isar-get-font)))))
+      ('information_message
+       (concat "\n\n"
+	       (propertize (concat (mapconcat 'isar-parse-output (dom-children content) "") "\n")
+			   'font-lock-face (cdr (assoc "dotted_information" isar-get-font)))))
 
-       ((eq node 'tracing_message) ;; TODO Proper colour
-	(propertize (concat (mapconcat 'isar-parse-output (dom-children content) "") "\n")
-		    'font-lock-face (cdr (assoc "dotted_information" isar-get-font))))
+      ('tracing_message ;; TODO Proper colour
+       (propertize (concat (mapconcat 'isar-parse-output (dom-children content) "") "\n")
+		   'font-lock-face (cdr (assoc "dotted_information" isar-get-font))))
 
-       ((eq node 'warning_message)
-	(propertize (concat (mapconcat 'isar-parse-output (dom-children content) "") "\n")
-		    'font-lock-face (cdr (assoc "dotted_warning" isar-get-font))))
+      ('warning_message
+       (propertize (concat (mapconcat 'isar-parse-output (dom-children content) "") "\n")
+		   'font-lock-face (cdr (assoc "dotted_warning" isar-get-font))))
 
-       ((eq node 'error_message)
-	(propertize (concat (mapconcat 'isar-parse-output (dom-children content) "") "\n")
-		    'font-lock-face (cdr (assoc "dotted_warning" isar-get-font))))
+      ('error_message
+       (propertize (concat (mapconcat 'isar-parse-output (dom-children content) "") "\n")
+		   'font-lock-face (cdr (assoc "dotted_warning" isar-get-font))))
 
-       ((eq node 'text_fold)
-        (mapconcat 'isar-parse-output (dom-children content) ""))
+      ('text_fold
+       (mapconcat 'isar-parse-output (dom-children content) ""))
 
-       ((eq node 'subgoal)
-        (mapconcat 'isar-parse-output (dom-children content) ""))
+      ('subgoal
+       (mapconcat 'isar-parse-output (dom-children content) ""))
 
-       ((eq node 'span)
-	(format "%s" (car (last (dom-children content)))))
+      ('span
+       (format "%s" (car (last (dom-children content)))))
 
-       ((eq node 'position)
-	(isar-parse-output (car (last (dom-children content)))))
+      ('position
+       (isar-parse-output (car (last (dom-children content)))))
 
-       ((eq node 'keyword1)
-	(propertize (isar-parse-output (car (last (dom-children content))))
-		    'font-lock-face (cdr (assoc "text_keyword1" isar-get-font))))
+      ('keyword1
+       (propertize (isar-parse-output (car (last (dom-children content))))
+		   'font-lock-face (cdr (assoc "text_keyword1" isar-get-font))))
 
-       ((eq node 'intensify)
-	(propertize (isar-parse-output (car (last (dom-children content))))
-		    'font-lock-face (cdr (assoc "background_intensify" isar-get-font))))
+      ('intensify
+       (propertize (isar-parse-output (car (last (dom-children content))))
+		   'font-lock-face (cdr (assoc "background_intensify" isar-get-font))))
 
-       ((eq node 'keyword2)
-	(propertize (isar-parse-output (car (last (dom-children content))))
-		    'font-lock-face (cdr (assoc "text_keyword2" isar-get-font))))
+      ('keyword2
+       (propertize (isar-parse-output (car (last (dom-children content))))
+		   'font-lock-face (cdr (assoc "text_keyword2" isar-get-font))))
 
-       ((eq node 'keyword3)
-	(propertize (isar-parse-output (car (last (dom-children content))))
-		    'font-lock-face (cdr (assoc "text_keyword3" isar-get-font))))
+      ('keyword3
+       (propertize (isar-parse-output (car (last (dom-children content))))
+		   'font-lock-face (cdr (assoc "text_keyword3" isar-get-font))))
 
-       ((eq node 'keyword4)
-	(propertize (isar-parse-output (car (last (dom-children content))))
-		    'font-lock-face (cdr (assoc "text_keyword4" isar-get-font))))
+      ('keyword4
+       (propertize (isar-parse-output (car (last (dom-children content))))
+		   'font-lock-face (cdr (assoc "text_keyword4" isar-get-font))))
 
-       ((eq node 'fixed) ;; this is used to enclose other variables
-        (mapconcat 'isar-parse-output (dom-children content) ""))
+      ('fixed ;; this is used to enclose other variables
+       (mapconcat 'isar-parse-output (dom-children content) ""))
 
-       ((eq node 'free)
-	(propertize (mapconcat 'isar-parse-output (dom-children content) "")
-		    'font-lock-face (cdr (assoc "text_free" isar-get-font))))
+      ('free
+       (propertize (mapconcat 'isar-parse-output (dom-children content) "")
+		   'font-lock-face (cdr (assoc "text_free" isar-get-font))))
 
-       ((eq node 'tfree)
-	(propertize (mapconcat 'isar-parse-output (dom-children content) "")
-		    'font-lock-face (cdr (assoc "text_tfree" isar-get-font))))
+      ('tfree
+       (propertize (mapconcat 'isar-parse-output (dom-children content) "")
+		   'font-lock-face (cdr (assoc "text_tfree" isar-get-font))))
 
-       ((eq node 'tvar)
-	(propertize (mapconcat 'isar-parse-output (dom-children content) "")
-		    'font-lock-face (cdr (assoc "text_tvar" isar-get-font))))
+      ('tvar
+       (propertize (mapconcat 'isar-parse-output (dom-children content) "")
+		   'font-lock-face (cdr (assoc "text_tvar" isar-get-font))))
 
-       ((eq node 'var)
-	(propertize (mapconcat 'isar-parse-output (dom-children content) "")
-		    'font-lock-face (cdr (assoc "text_var" isar-get-font))))
+      ('var
+       (propertize (mapconcat 'isar-parse-output (dom-children content) "")
+		   'font-lock-face (cdr (assoc "text_var" isar-get-font))))
 
-       ((eq node 'bound)
-	(propertize (mapconcat 'isar-parse-output (dom-children content) "")
-		    'font-lock-face (cdr (assoc "text_bound" isar-get-font))))
+      ('bound
+       (propertize (mapconcat 'isar-parse-output (dom-children content) "")
+		   'font-lock-face (cdr (assoc "text_bound" isar-get-font))))
 
-       ((eq node 'skolem)
-	(propertize (mapconcat 'isar-parse-output (dom-children content) "")
-		    'font-lock-face (cdr (assoc "text_skolem" isar-get-font))))
+      ('skolem
+       (propertize (mapconcat 'isar-parse-output (dom-children content) "")
+		   'font-lock-face (cdr (assoc "text_skolem" isar-get-font))))
 
-       ((eq node 'sendback) ;; TODO handle properly
-	(concat (mapconcat 'isar-parse-output (dom-children content) "") ""))
+      ('sendback ;; TODO handle properly
+       (concat (mapconcat 'isar-parse-output (dom-children content) "") ""))
 
-       ((eq node 'bullet)
-	(concat "\n- " (mapconcat 'isar-parse-output (dom-children content) "") "")) ;; TODO proper utf8
+      ('bullet
+       (concat "\n- " (mapconcat 'isar-parse-output (dom-children content) "") "")) ;; TODO proper utf8
 
-       ((eq node 'language)
-	(mapconcat 'isar-parse-output (dom-children content) ""))
-       ((eq node 'literal)
-	(mapconcat 'isar-parse-output (dom-children content) ""))
+      ('language
+       (mapconcat 'isar-parse-output (dom-children content) ""))
+      ('literal
+       (mapconcat 'isar-parse-output (dom-children content) ""))
 
-       ((eq node 'delimiter)
-	(concat (mapconcat 'isar-parse-output (dom-children content) "") ""))
+      ('delimiter
+       (concat (mapconcat 'isar-parse-output (dom-children content) "") ""))
 
-       ((eq node 'entity)
-        (concat (mapconcat 'isar-parse-output (dom-children content) "") ""))
+      ('entity
+       (concat (mapconcat 'isar-parse-output (dom-children content) "") ""))
 
-       ((eq node 'writeln_message)
-	(propertize (concat (mapconcat 'isar-parse-output (dom-children content) "") "\n")
-		    'font-lock-face (cdr (assoc "dotted_writeln" isar-get-font))))
+      ('writeln_message
+       (propertize (concat (mapconcat 'isar-parse-output (dom-children content) "") "\n")
+		   'font-lock-face (cdr (assoc "dotted_writeln" isar-get-font))))
 
-       ((eq node 'paragraph)
-	(concat "" (mapconcat 'isar-parse-output (dom-children content) "") ""))
+      ('paragraph
+       (concat "" (mapconcat 'isar-parse-output (dom-children content) "") ""))
 
-       ((eq node 'item)
-	;;(message "%s" (mapconcat 'isar-parse-output (dom-children content) ""))
-	(concat (mapconcat 'isar-parse-output (dom-children content) "") "\n"))
+      ('item
+       ;;(message "%s" (mapconcat 'isar-parse-output (dom-children content) ""))
+       (concat (mapconcat 'isar-parse-output (dom-children content) "") "\n"))
 
-       ((eq node 'break)
-	(let ((children (mapcar (lambda (a) (string-remove-suffix "'" (string-remove-prefix "'" a))) (dom-children content))))
-	  (concat
-	   (if (dom-attr content 'width) " " "")
-	   (if (dom-attr content 'line) "\n" "")
-	   (mapconcat 'isar-parse-output children ""))))
+      ('break
+       (let ((children (mapcar (lambda (a) (string-remove-suffix "'" (string-remove-prefix "'" a))) (dom-children content))))
+	 (concat
+	  (if (dom-attr content 'width) " " "")
+	  (if (dom-attr content 'line) "\n" "")
+	  (mapconcat 'isar-parse-output children ""))))
 
-       ((eq node 'xml_elem)
-	(mapconcat 'isar-parse-output (dom-children content) ""))
+      ('xml_elem
+       (mapconcat 'isar-parse-output (dom-children content) ""))
 
-       ((eq node 'sub) (format "\\<^sub>%s" (car (last (dom-children content)))))
-       ((eq node 'sup) (format "\\<^sup>%s" (car (last (dom-children content)))))
+      ('sub (format "\\<^sub>%s" (car (last (dom-children content)))))
+      ('sup (format "\\<^sup>%s" (car (last (dom-children content)))))
 
-       (t
-	(if (listp node)
-	    (progn
-	      (message "unrecognised node %s" node)
-	      (concat
-	       (format "%s" node)
-	       (mapconcat 'isar-parse-output (dom-children content) "")))
-	  (progn
-	    (message "unrecognised content %s; node is: %s" content node)
-	    (concat (format "%s" node))))))))))
+      (_
+       (if (listp (dom-tag content))
+	   (progn
+	     (message "unrecognised node %s" (dom-tag content))
+	     (concat
+	      (format "%s" (dom-tag content))
+	      (mapconcat 'isar-parse-output (dom-children content) "")))
+	 (progn
+	   (message "unrecognised content %s; node is: %s" content (dom-tag content))
+	   (concat (format "%s" (dom-tag content))))))))))
 
 (defun replace-regexp-lisp (REGEXP TO-STRING)
   "replace-regexp as indicated in the help"
