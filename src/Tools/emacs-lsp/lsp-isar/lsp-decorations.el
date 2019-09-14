@@ -92,22 +92,24 @@
 (setq lexical-binding 't)
 
 ;; file -> type -> [range, decoration] list
-(defvar-local lsp-isar--sem-overlays (make-hash-table :test 'equal) "decoration cache.")
+(defvar-local lsp-isar--sem-overlays (make-hash-table :test 'equal)
+  "decoration cache.")
 
 ;; file -> overlays list
-(defvar-local lsp-isar--deleted-overlays (make-hash-table :test
-						      'equal) "decoration overlays that have to be recycled.")
+(defvar-local lsp-isar--deleted-overlays (make-hash-table :test 'equal)
+  "decoration overlays that have to be recycled.")
 
 ;; file -> overlays list
-(defvar-local lsp-isar--recycled-overlays (make-hash-table :test
-						       'equal) "decoration overlays that can be reused.")
+(defvar-local lsp-isar--recycled-overlays (make-hash-table :test 'equal)
+  "decoration overlays that can be reused.")
 
 ;; file -> timer
-(defvar-local lsp-isar--recyclers (make-hash-table :test 'equal) "timers that recycle overlays or delete them when a buffer is closed.")
+(defvar-local lsp-isar--recyclers (make-hash-table :test 'equal)
+  "timers that recycle overlays or delete them when a buffer is closed.")
 
 ;; prettifyng the source
 (defgroup lsp-isar-sem nil
-  "isabelle semantic highlighting."
+  "Isabelle semantic highlighting."
   :group 'tools)
 
 
@@ -144,56 +146,56 @@
 
 
 (defface lsp-isar-font-background-intensify
-  '((((class color) (background dark)) :foreground "#cc8800" )
-    (((class color) (background light)) :foreground "#cc8800" )
+  '((((class color) (background dark)) :foreground "#cc8800")
+    (((class color) (background light)) :foreground "#cc8800")
     (t :priority 0))
   ""
   :group 'lsp-isar-sem)
 
 
 (defface lsp-isar-font-background-quoted
-  '((((class color) (background dark)) :foreground "#969696" )
-    (((class color) (background light)) :foreground "#eee8d5" )
+  '((((class color) (background dark)) :foreground "#969696")
+    (((class color) (background light)) :foreground "#eee8d5")
     (t :priority 0))
   ""
   :group 'lsp-isar-sem)
 
 
 (defface lsp-isar-font-background-antiquoted
-  '((((class color) (background dark)) :foreground "#ffd666" )
-    (((class color) (background light)) :foreground "#ffd666" )
+  '((((class color) (background dark)) :foreground "#ffd666")
+    (((class color) (background light)) :foreground "#ffd666")
     (t :priority 0))
   ""
   :group 'lsp-isar-sem)
 
 
 (defface lsp-isar-font-background-markdown-bullet1
-  '((((class color) (background dark)) :foreground "#05c705" )
-    (((class color) (background light)) :foreground "#268bd2" )
+  '((((class color) (background dark)) :foreground "#05c705")
+    (((class color) (background light)) :foreground "#268bd2")
     (t :priority 0 :inherit true))
   ""
   :group 'lsp-isar-sem)
 
 
 (defface lsp-isar-font-background-markdown-bullet2
-  '((((class color) (background dark)) :foreground "#cc8f00" )
-    (((class color) (background light)) :foreground "#2aa198" )
+  '((((class color) (background dark)) :foreground "#cc8f00")
+    (((class color) (background light)) :foreground "#2aa198")
     (t :priority 0))
   ""
   :group 'lsp-isar-sem)
 
 
 (defface lsp-isar-font-background-markdown-bullet3
-  '((((class color) (background dark)) :foreground "#0000cc" )
-    (((class color) (background light)) :foreground "#859900" )
+  '((((class color) (background dark)) :foreground "#0000cc")
+    (((class color) (background light)) :foreground "#859900")
     (t :priority 0))
   ""
   :group 'lsp-isar-sem)
 
 
 (defface lsp-isar-font-background-markdown-bullet4
-  '((((class color) (background dark)) :foreground "#cc0069" )
-    (((class color) (background light)) :foreground "#cb4b16" )
+  '((((class color) (background dark)) :foreground "#cc0069")
+    (((class color) (background light)) :foreground "#cb4b16")
     (t :priority 0))
   ""
   :group 'lsp-isar-sem)
@@ -248,160 +250,160 @@ classes."
 
 
 (defface lsp-isar-font-text-main
-  '((((class color) (background dark)) :foreground "#d4d4d4" )
-    (((class color) (background light)) :foreground "#657b83" )
+  '((((class color) (background dark)) :foreground "#d4d4d4")
+    (((class color) (background light)) :foreground "#657b83")
     (t :priority 0))
   ""
   :group 'lsp-isar-sem)
 
 
 (defface lsp-isar-font-text-keyword1
-  '((((class color) (background dark)) :foreground "#c586c0" )
-    (((class color) (background light)) :foreground "#268bd2" )
+  '((((class color) (background dark)) :foreground "#c586c0")
+    (((class color) (background light)) :foreground "#268bd2")
     (t :priority 0))
   ""
   :group 'lsp-isar-sem)
 
 
 (defface lsp-isar-font-text-keyword2
-  '((((class color) (background dark)) :foreground "#b5cea8" )
-    (((class color) (background light)) :foreground "#2aa198" )
+  '((((class color) (background dark)) :foreground "#b5cea8")
+    (((class color) (background light)) :foreground "#2aa198")
     (t :priority 0))
   ""
   :group 'lsp-isar-sem)
 
 
 (defface lsp-isar-font-text-keyword3
-  '((((class color) (background dark)) :foreground "#4ec9b0" )
-    (((class color) (background light)) :foreground "#cb4b16" )
+  '((((class color) (background dark)) :foreground "#4ec9b0")
+    (((class color) (background light)) :foreground "#cb4b16")
     (t :priority 0))
   ""
   :group 'lsp-isar-sem)
 
 
 (defface lsp-isar-font-text-quasi_keyword
-  '((((class color) (background dark)) :foreground "#cd3131" )
-    (((class color) (background light)) :foreground "#859900" )
+  '((((class color) (background dark)) :foreground "#cd3131")
+    (((class color) (background light)) :foreground "#859900")
     (t :priority 0))
   ""
   :group 'lsp-isar-sem)
 
 
 (defface lsp-isar-font-text-improper
-  '((((class color) (background dark)) :foreground "#f44747" )
-    (((class color) (background light)) :foreground "#d33682" )
+  '((((class color) (background dark)) :foreground "#f44747")
+    (((class color) (background light)) :foreground "#d33682")
     (t :priority 0))
   ""
   :group 'lsp-isar-sem)
 
 
 (defface lsp-isar-font-text-operator
-  '((((class color) (background dark)) :foreground "#d4d4d4" )
-    (((class color) (background light)) :foreground "#b58900" )
+  '((((class color) (background dark)) :foreground "#d4d4d4")
+    (((class color) (background light)) :foreground "#b58900")
     (t :priority 0))
   ""
   :group 'lsp-isar-sem)
 
 
 (defface lsp-isar-font-text-tfree
-  '((((class color) (background dark)) :foreground "#a020f0" )
-    (((class color) (background light)) :foreground "#a020f0" )
+  '((((class color) (background dark)) :foreground "#a020f0")
+    (((class color) (background light)) :foreground "#a020f0")
     (t :priority 0))
   ""
   :group 'lsp-isar-sem)
 
 
 (defface lsp-isar-font-text-tvar
-  '((((class color) (background dark)) :foreground "#a020f0" )
-    (((class color) (background light)) :foreground "#a020f0" )
+  '((((class color) (background dark)) :foreground "#a020f0")
+    (((class color) (background light)) :foreground "#a020f0")
     (t :priority 0))
   ""
   :group 'lsp-isar-sem)
 
 
 (defface lsp-isar-font-text-free
-  '((((class color) (background dark)) :foreground "#569cd6" )
-    (((class color) (background light)) :foreground "#2aa198" )
+  '((((class color) (background dark)) :foreground "#569cd6")
+    (((class color) (background light)) :foreground "#2aa198")
     (t :priority 0))
   ""
   :group 'lsp-isar-sem)
 
 
 (defface lsp-isar-font-text-skolem
-  '((((class color) (background dark)) :foreground "#d2691e" )
-    (((class color) (background light)) :foreground "#d2691e" )
+  '((((class color) (background dark)) :foreground "#d2691e")
+    (((class color) (background light)) :foreground "#d2691e")
     (t :priority 0))
   ""
   :group 'lsp-isar-sem)
 
 
 (defface lsp-isar-font-text-bound
-  '((((class color) (background dark)) :foreground "#608b4e" )
-    (((class color) (background light)) :foreground "#608b4e" )
+  '((((class color) (background dark)) :foreground "#608b4e")
+    (((class color) (background light)) :foreground "#608b4e")
     (t :priority 0))
   ""
   :group 'lsp-isar-sem)
 
 
 (defface lsp-isar-font-text-var
-  '((((class color) (background dark)) :foreground "#9cdcfe" )
-    (((class color) (background light)) :foreground "#268bd2" )
+  '((((class color) (background dark)) :foreground "#9cdcfe")
+    (((class color) (background light)) :foreground "#268bd2")
     (t :priority 0))
   ""
   :group 'lsp-isar-sem)
 
 
 (defface lsp-isar-font-text-inner_numeral
-  '((((class color) (background dark)) :foreground "#b5cea8" )
-    (((class color) (background light)) :foreground "#b5cea8" )
+  '((((class color) (background dark)) :foreground "#b5cea8")
+    (((class color) (background light)) :foreground "#b5cea8")
     (t :priority 0))
   ""
   :group 'lsp-isar-sem)
 
 
 (defface lsp-isar-font-text-inner_quoted
-  '((((class color) (background dark)) :foreground "#ce9178" )
-    (((class color) (background light)) :foreground "#ce9178" )
+  '((((class color) (background dark)) :foreground "#ce9178")
+    (((class color) (background light)) :foreground "#ce9178")
     (t :priority 0))
   ""
   :group 'lsp-isar-sem)
 
 
 (defface lsp-isar-font-text-inner_cartouche
-  '((((class color) (background dark)) :foreground "#d16969" )
-    (((class color) (background light)) :foreground "#d16969" )
+  '((((class color) (background dark)) :foreground "#d16969")
+    (((class color) (background light)) :foreground "#d16969")
     (t :priority 0 :inherit default))
   ""
   :group 'lsp-isar-sem)
 
 
 (defface lsp-isar-font-text-inner_comment
-  '((((class color) (background dark)) :foreground "#608b4e" )
-    (((class color) (background light)) :foreground "#608b4e" )
+  '((((class color) (background dark)) :foreground "#608b4e")
+    (((class color) (background light)) :foreground "#608b4e")
     (t :priority 0))
   ""
   :group 'lsp-isar-sem)
 
 
 (defface lsp-isar-font-text-dynamic
-  '((((class color) (background dark)) :foreground "#dcdcaa" )
-    (((class color) (background light)) :foreground "#dcdcaa" )
+  '((((class color) (background dark)) :foreground "#dcdcaa")
+    (((class color) (background light)) :foreground "#dcdcaa")
     (t :priority 0))
   ""
   :group 'lsp-isar-sem)
 
 
 (defface lsp-isar-font-text-class_parameter
-  '((((class color) (background dark)) :foreground "#d2691e" )
-    (((class color) (background light)) :foreground "#d2691e" )
+  '((((class color) (background dark)) :foreground "#d2691e")
+    (((class color) (background light)) :foreground "#d2691e")
     (t :priority 0))
   ""
   :group 'lsp-isar-sem)
 
 
 (defface lsp-isar-font-text-antiquote
-  '((((class color) (background dark)) :foreground "#c586c0" )
-    (((class color) (background light)) :foreground "#c586c0" )
+  '((((class color) (background dark)) :foreground "#c586c0")
+    (((class color) (background light)) :foreground "#c586c0")
     (t :priority 0))
   ""
   :group 'lsp-isar-sem)
@@ -518,6 +520,9 @@ classes."
 	 )))
 
 
+;; This is a full cleaning of all buffers.  This is too costly to run
+;; regularly. Therefore, we run it after some time of idling.
+;; Remark that this is still important to run.
 (defun lsp-isar-kill-all-unused-overlays-file (file)
   "Remove all overlays that are deleted or recycled: They are
 deleted from the buffer and from the hashtables where they appear
@@ -526,22 +531,27 @@ and should be GC-ed by emacs.
 CAUTION: this can be slow."
   (let*
       ((recycled-overlays (gethash file lsp-isar--recycled-overlays nil))
-       (deleted-overlays (gethash file lsp-isar--deleted-overlays nil))
-       )
-    (dolist (ov deleted-overlays) (delete-overlay ov))
-    (dolist (ov recycled-overlays) (delete-overlay ov))
+       (deleted-overlays (gethash file lsp-isar--deleted-overlays nil)))
     (puthash file nil lsp-isar--deleted-overlays)
-    (puthash file nil lsp-isar--recycled-overlays)))
+    (puthash file nil lsp-isar--recycled-overlays)
+    ;; to allow interuptions.
+    (dolist (ov deleted-overlays) (delete-overlay ov))
+    (dolist (ov recycled-overlays) (delete-overlay ov))))
 
 (defun lsp-isar-kill-all-unused-overlays ()
   (interactive)
+  (message "Cleaning all decorations. Set lsp-isar-cleaner-timer increase the delay two of them.")
   (maphash (lambda (file _v) (lsp-isar-kill-all-unused-overlays-file file)) lsp-isar--deleted-overlays))
 
-(defvar lsp-isar-cleaner-timer (run-with-idle-timer 120 nil 'lsp-isar-kill-all-unused-overlays)
-  "Timer to clean all elements")
+(defcustom lsp-isar-full-clean-ran-every 120
+  "Full clean every some many seconds. Use nil to deactivate it.")
+
+(defvar lsp-isar--cleaner-timer nil
+  "Timer to clean all elements. Set lsp-isar-cleaner-ran-every so to never start the timer.")
 
 
-;; recycle by batch of a small number of elements.
+;; recycle by batch of a small number of elements. This is run on a
+;; regural basis.
 (defun lsp-isar-recycle-batch (file)
   (let*
       ((recycled-overlays (gethash file lsp-isar--recycled-overlays nil))
@@ -797,5 +807,12 @@ CAUTION: this can be slow."
 (defun lsp-isar-update-and-reprint (_workspace params)
   "Updates the decoration cach and the reprint all decorations"
   (lsp-isar-update-cached-decorations-overlays params))
+
+
+;; This function can be called several times!
+(defun lsp-isar--init-decorations ()
+  "Initialise all elements required for the decorations."
+  (if (and (> lsp-isar-full-clean-ran-every 0) (not lsp-isar--cleaner-timer))
+    (setq lsp-isar--cleaner-timer (run-with-idle-timer lsp-isar-full-clean-ran-every t 'lsp-isar-kill-all-unused-overlays))))
 
 (provide 'lsp-decorations)

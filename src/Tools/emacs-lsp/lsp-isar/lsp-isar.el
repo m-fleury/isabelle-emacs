@@ -51,6 +51,7 @@ the output buffer, and the initial hooks.")
 		    (progn
 		      (lsp-isar-initialize-output-buffer)
 		      (lsp-isar-activate-progress-update)
+		      (lsp-isar--init-decorations)
 		      (run-hooks 'lsp-isar-init-hook)
 		      (setq lsp-isar-already-initialised t)))))))
 
