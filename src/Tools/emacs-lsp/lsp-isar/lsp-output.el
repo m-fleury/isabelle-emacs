@@ -63,8 +63,9 @@ must be printed in Emacs with the syntax highlighting.
 
 This is function is important for performance (not as critical as
 the decorations), because goals can become arbitrary long. Remark
-that I have not really tried to optimise it yet, but emacs is
-single threaded and all these functions adds up."
+that I have not really tried to optimise it yet. Even if the
+function is less critical, emacs is single threaded and all these
+functions adds up. So any optimisation would help."
   ;;(message "content = %s" content)
   (cond
    ((eq content nil) nil)
