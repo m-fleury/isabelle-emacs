@@ -91,416 +91,413 @@
 ;; Because we need tail call optimisation:
 (setq lexical-binding 't)
 
-;; file -> type -> decoration list
-(defvar-local isar-decorations (make-hash-table :test 'equal) "ranges of the decorations")
-
 ;; file -> type -> [range, decoration] list
-(defvar-local isar--sem-overlays (make-hash-table :test 'equal) "decoration cache.")
+(defvar-local lsp-isar--sem-overlays (make-hash-table :test 'equal) "decoration cache.")
 
 ;; file -> overlays list
-(defvar-local isar--deleted-overlays (make-hash-table :test
+(defvar-local lsp-isar--deleted-overlays (make-hash-table :test
 						      'equal) "decoration overlays that have to be recycled.")
 
 ;; file -> overlays list
-(defvar-local isar--recycled-overlays (make-hash-table :test
+(defvar-local lsp-isar--recycled-overlays (make-hash-table :test
 						       'equal) "decoration overlays that can be reused.")
 
 ;; file -> timer
-(defvar-local isar--recyclers (make-hash-table :test 'equal) "timers that recycle overlays or delete them when a buffer is closed.")
+(defvar-local lsp-isar--recyclers (make-hash-table :test 'equal) "timers that recycle overlays or delete them when a buffer is closed.")
 
 ;; prettifyng the source
-(defgroup isar-sem nil
+(defgroup lsp-isar-sem nil
   "isabelle semantic highlighting."
   :group 'tools)
 
 
-(defface isar-font-background-unprocessed1
+(defface lsp-isar-font-background-unprocessed1
   '((((class color) (background dark)) :background "#610061")
     (((class color) (background light)) :background "#002b36")
     (t :priority 0))
   "The face used to mark inactive regions."
-  :group 'isar-sem)
+  :group 'lsp-isar-sem)
 
 
-(defface isar-font-background-unprocessed
+(defface lsp-isar-font-background-unprocessed
   '((((class color) (background dark)) :background "#ffa000")
     (((class color) (background light)) :background "#002b36")
     (t :priority 0))
   ""
-  :group 'isar-sem)
+  :group 'lsp-isar-sem)
 
 
-(defface isar-font-background-running1
+(defface lsp-isar-font-background-running1
   '((((class color) (background dark)) :background "#ffa0a0")
     (((class color) (background light)) :background "#eee8d5")
     (t :priority 0))
   ""
-  :group 'isar-sem)
+  :group 'lsp-isar-sem)
 
 
-(defface isar-font-background-bad
+(defface lsp-isar-font-background-bad
   '((((class color) (background dark)) :background "#ee7621")
     (((class color) (background light)) :background "#dc322f")
     (t :priority 5))
   ""
-  :group 'isar-sem)
+  :group 'lsp-isar-sem)
 
 
-(defface isar-font-background-intensify
+(defface lsp-isar-font-background-intensify
   '((((class color) (background dark)) :foreground "#cc8800" )
     (((class color) (background light)) :foreground "#cc8800" )
     (t :priority 0))
   ""
-  :group 'isar-sem)
+  :group 'lsp-isar-sem)
 
 
-(defface isar-font-background-quoted
+(defface lsp-isar-font-background-quoted
   '((((class color) (background dark)) :foreground "#969696" )
     (((class color) (background light)) :foreground "#eee8d5" )
     (t :priority 0))
   ""
-  :group 'isar-sem)
+  :group 'lsp-isar-sem)
 
 
-(defface isar-font-background-antiquoted
+(defface lsp-isar-font-background-antiquoted
   '((((class color) (background dark)) :foreground "#ffd666" )
     (((class color) (background light)) :foreground "#ffd666" )
     (t :priority 0))
   ""
-  :group 'isar-sem)
+  :group 'lsp-isar-sem)
 
 
-(defface isar-font-background-markdown-bullet1
+(defface lsp-isar-font-background-markdown-bullet1
   '((((class color) (background dark)) :foreground "#05c705" )
     (((class color) (background light)) :foreground "#268bd2" )
     (t :priority 0 :inherit true))
   ""
-  :group 'isar-sem)
+  :group 'lsp-isar-sem)
 
 
-(defface isar-font-background-markdown-bullet2
+(defface lsp-isar-font-background-markdown-bullet2
   '((((class color) (background dark)) :foreground "#cc8f00" )
     (((class color) (background light)) :foreground "#2aa198" )
     (t :priority 0))
   ""
-  :group 'isar-sem)
+  :group 'lsp-isar-sem)
 
 
-(defface isar-font-background-markdown-bullet3
+(defface lsp-isar-font-background-markdown-bullet3
   '((((class color) (background dark)) :foreground "#0000cc" )
     (((class color) (background light)) :foreground "#859900" )
     (t :priority 0))
   ""
-  :group 'isar-sem)
+  :group 'lsp-isar-sem)
 
 
-(defface isar-font-background-markdown-bullet4
+(defface lsp-isar-font-background-markdown-bullet4
   '((((class color) (background dark)) :foreground "#cc0069" )
     (((class color) (background light)) :foreground "#cb4b16" )
     (t :priority 0))
   ""
-  :group 'isar-sem)
+  :group 'lsp-isar-sem)
 
 
-(defface isar-font-foreground-quoted
+(defface lsp-isar-font-foreground-quoted
   '((((class color) (background dark)) :background "#402b36")
     (t :priority 0))
   "Font used inside quotes and cartouches"
-  :group 'isar-sem)
+  :group 'lsp-isar-sem)
 
 
-(defface isar-font-foreground-antiquoted
+(defface lsp-isar-font-foreground-antiquoted
   '((t :priority 0))
   ""
-  :group 'isar-sem)
+  :group 'lsp-isar-sem)
 
 
-(defface isar-font-dotted-writeln
+(defface lsp-isar-font-dotted-writeln
   '((((class color) (background dark)) :underline "#c0c0c0")
     (((class color) (background light)) :underline "#c0c0c0")
     (t :priority 2))
   ""
-  :group 'isar-sem)
+  :group 'lsp-isar-sem)
 
 
-(defface isar-font-dotted-information
+(defface lsp-isar-font-dotted-information
   '((((class color) (background dark)) :underline "#c1dfee")
     (((class color) (background light)) :underline "#c1dfee")
     (t :priority 2))
   ""
-  :group 'isar-sem)
+  :group 'lsp-isar-sem)
 
 
-(defface isar-font-dotted-warning
+(defface lsp-isar-font-dotted-warning
   '((((class color) (background dark)) :underline t)
     (((class color) (background light)) :underline t)
     (t :priority 2))
   ""
-  :group 'isar-sem)
+  :group 'lsp-isar-sem)
 
 
 ;; this font does not exist,but should allow to discover if
 ;; some new font was added to isabelle
-(defface isar-font-default
+(defface lsp-isar-font-default
   '((((class color) (background dark)) :foreground "green" :underline t)
     (((class color) (background light)) :foreground "#657b83" :underline t)
     (t :priority 0))
   "Unused default font: useful to see if Isabelle uses new font
 classes."
-  :group 'isar-sem)
+  :group 'lsp-isar-sem)
 
 
-(defface isar-font-text-main
+(defface lsp-isar-font-text-main
   '((((class color) (background dark)) :foreground "#d4d4d4" )
     (((class color) (background light)) :foreground "#657b83" )
     (t :priority 0))
   ""
-  :group 'isar-sem)
+  :group 'lsp-isar-sem)
 
 
-(defface isar-font-text-keyword1
+(defface lsp-isar-font-text-keyword1
   '((((class color) (background dark)) :foreground "#c586c0" )
     (((class color) (background light)) :foreground "#268bd2" )
     (t :priority 0))
   ""
-  :group 'isar-sem)
+  :group 'lsp-isar-sem)
 
 
-(defface isar-font-text-keyword2
+(defface lsp-isar-font-text-keyword2
   '((((class color) (background dark)) :foreground "#b5cea8" )
     (((class color) (background light)) :foreground "#2aa198" )
     (t :priority 0))
   ""
-  :group 'isar-sem)
+  :group 'lsp-isar-sem)
 
 
-(defface isar-font-text-keyword3
+(defface lsp-isar-font-text-keyword3
   '((((class color) (background dark)) :foreground "#4ec9b0" )
     (((class color) (background light)) :foreground "#cb4b16" )
     (t :priority 0))
   ""
-  :group 'isar-sem)
+  :group 'lsp-isar-sem)
 
 
-(defface isar-font-text-quasi_keyword
+(defface lsp-isar-font-text-quasi_keyword
   '((((class color) (background dark)) :foreground "#cd3131" )
     (((class color) (background light)) :foreground "#859900" )
     (t :priority 0))
   ""
-  :group 'isar-sem)
+  :group 'lsp-isar-sem)
 
 
-(defface isar-font-text-improper
+(defface lsp-isar-font-text-improper
   '((((class color) (background dark)) :foreground "#f44747" )
     (((class color) (background light)) :foreground "#d33682" )
     (t :priority 0))
   ""
-  :group 'isar-sem)
+  :group 'lsp-isar-sem)
 
 
-(defface isar-font-text-operator
+(defface lsp-isar-font-text-operator
   '((((class color) (background dark)) :foreground "#d4d4d4" )
     (((class color) (background light)) :foreground "#b58900" )
     (t :priority 0))
   ""
-  :group 'isar-sem)
+  :group 'lsp-isar-sem)
 
 
-(defface isar-font-text-tfree
+(defface lsp-isar-font-text-tfree
   '((((class color) (background dark)) :foreground "#a020f0" )
     (((class color) (background light)) :foreground "#a020f0" )
     (t :priority 0))
   ""
-  :group 'isar-sem)
+  :group 'lsp-isar-sem)
 
 
-(defface isar-font-text-tvar
+(defface lsp-isar-font-text-tvar
   '((((class color) (background dark)) :foreground "#a020f0" )
     (((class color) (background light)) :foreground "#a020f0" )
     (t :priority 0))
   ""
-  :group 'isar-sem)
+  :group 'lsp-isar-sem)
 
 
-(defface isar-font-text-free
+(defface lsp-isar-font-text-free
   '((((class color) (background dark)) :foreground "#569cd6" )
     (((class color) (background light)) :foreground "#2aa198" )
     (t :priority 0))
   ""
-  :group 'isar-sem)
+  :group 'lsp-isar-sem)
 
 
-(defface isar-font-text-skolem
+(defface lsp-isar-font-text-skolem
   '((((class color) (background dark)) :foreground "#d2691e" )
     (((class color) (background light)) :foreground "#d2691e" )
     (t :priority 0))
   ""
-  :group 'isar-sem)
+  :group 'lsp-isar-sem)
 
 
-(defface isar-font-text-bound
+(defface lsp-isar-font-text-bound
   '((((class color) (background dark)) :foreground "#608b4e" )
     (((class color) (background light)) :foreground "#608b4e" )
     (t :priority 0))
   ""
-  :group 'isar-sem)
+  :group 'lsp-isar-sem)
 
 
-(defface isar-font-text-var
+(defface lsp-isar-font-text-var
   '((((class color) (background dark)) :foreground "#9cdcfe" )
     (((class color) (background light)) :foreground "#268bd2" )
     (t :priority 0))
   ""
-  :group 'isar-sem)
+  :group 'lsp-isar-sem)
 
 
-(defface isar-font-text-inner_numeral
+(defface lsp-isar-font-text-inner_numeral
   '((((class color) (background dark)) :foreground "#b5cea8" )
     (((class color) (background light)) :foreground "#b5cea8" )
     (t :priority 0))
   ""
-  :group 'isar-sem)
+  :group 'lsp-isar-sem)
 
 
-(defface isar-font-text-inner_quoted
+(defface lsp-isar-font-text-inner_quoted
   '((((class color) (background dark)) :foreground "#ce9178" )
     (((class color) (background light)) :foreground "#ce9178" )
     (t :priority 0))
   ""
-  :group 'isar-sem)
+  :group 'lsp-isar-sem)
 
 
-(defface isar-font-text-inner_cartouche
+(defface lsp-isar-font-text-inner_cartouche
   '((((class color) (background dark)) :foreground "#d16969" )
     (((class color) (background light)) :foreground "#d16969" )
     (t :priority 0 :inherit default))
   ""
-  :group 'isar-sem)
+  :group 'lsp-isar-sem)
 
 
-(defface isar-font-text-inner_comment
+(defface lsp-isar-font-text-inner_comment
   '((((class color) (background dark)) :foreground "#608b4e" )
     (((class color) (background light)) :foreground "#608b4e" )
     (t :priority 0))
   ""
-  :group 'isar-sem)
+  :group 'lsp-isar-sem)
 
 
-(defface isar-font-text-dynamic
+(defface lsp-isar-font-text-dynamic
   '((((class color) (background dark)) :foreground "#dcdcaa" )
     (((class color) (background light)) :foreground "#dcdcaa" )
     (t :priority 0))
   ""
-  :group 'isar-sem)
+  :group 'lsp-isar-sem)
 
 
-(defface isar-font-text-class_parameter
+(defface lsp-isar-font-text-class_parameter
   '((((class color) (background dark)) :foreground "#d2691e" )
     (((class color) (background light)) :foreground "#d2691e" )
     (t :priority 0))
   ""
-  :group 'isar-sem)
+  :group 'lsp-isar-sem)
 
 
-(defface isar-font-text-antiquote
+(defface lsp-isar-font-text-antiquote
   '((((class color) (background dark)) :foreground "#c586c0" )
     (((class color) (background light)) :foreground "#c586c0" )
     (t :priority 0))
   ""
-  :group 'isar-sem)
+  :group 'lsp-isar-sem)
 
 
-(defface isar-font-text-overview-unprocessed
+(defface lsp-isar-font-text-overview-unprocessed
   '((((class color) (background dark)) :background "#610061")
     (((class color) (background light)) :background "#839496")
     (t :priority 5))
   ""
-  :group 'isar-sem)
+  :group 'lsp-isar-sem)
 
-(defface isar-font-text-overview-running
+(defface lsp-isar-font-text-overview-running
   '((((class color) (background dark)))
     (((class color) (background light)))
     (t :priority 5 :box t))
   ""
-  :group 'isar-sem)
+  :group 'lsp-isar-sem)
 
-(defface isar-font-text-overview-error
+(defface lsp-isar-font-text-overview-error
   '((((class color) (background dark)) :background  "#b22222")
     (((class color) (background light)) :background "#b22222" )
     (t :priority 5))
   ""
-  :group 'isar-sem)
+  :group 'lsp-isar-sem)
 
-(defface isar-font-text-overview-warning
+(defface lsp-isar-font-text-overview-warning
   '((((class color) (background dark)) :foreground "#ff8c00")
     (((class color) (background light)) :foreground "#ff8c00")
     (t :priority 5))
   ""
-  :group 'isar-sem)
+  :group 'lsp-isar-sem)
 
-(defface isar-font-spell-checker
+(defface lsp-isar-font-spell-checker
   '((((class color) (background dark)) :foreground "#569cd6")
     (((class color) (background light)) :foreground "#569cd6")
     (t :priority 5))
   ""
-  :group 'isar-sem)
+  :group 'lsp-isar-sem)
 
-(defface isar-font-nothing
+(defface lsp-isar-font-nothing
   '((t :priority 0))
   ""
-  :group 'isar-sem)
+  :group 'lsp-isar-sem)
 
 
-(defvar-local isar-get-font
-  '(("background_unprocessed1"  . isar-font-background-unprocessed1)
-    ("background_running1"  . isar-font-background-running1)
-    ("background_bad"  . isar-font-background-bad)
-    ("background_intensify"  . isar-font-background-intensify)
-    ("background_quoted"  . isar-font-background-quoted)
-    ("background_antiquoted"  . isar-font-background-antiquoted)
-    ("background_markdown_bullet1"  . isar-font-background-markdown-bullet1)
-    ("background_markdown_bullet2"  . isar-font-background-markdown-bullet2)
-    ("background_markdown_bullet3"  . isar-font-background-markdown-bullet3)
-    ("background_markdown_bullet4"  . isar-font-background-markdown-bullet4)
+(defvar-local lsp-isar-get-font
+  '(("background_unprocessed1"  . lsp-isar-font-background-unprocessed1)
+    ("background_running1"  . lsp-isar-font-background-running1)
+    ("background_bad"  . lsp-isar-font-background-bad)
+    ("background_intensify"  . lsp-isar-font-background-intensify)
+    ("background_quoted"  . lsp-isar-font-background-quoted)
+    ("background_antiquoted"  . lsp-isar-font-background-antiquoted)
+    ("background_markdown_bullet1"  . lsp-isar-font-background-markdown-bullet1)
+    ("background_markdown_bullet2"  . lsp-isar-font-background-markdown-bullet2)
+    ("background_markdown_bullet3"  . lsp-isar-font-background-markdown-bullet3)
+    ("background_markdown_bullet4"  . lsp-isar-font-background-markdown-bullet4)
 
 
-    ("foreground_quoted"  . isar-font-foreground-quoted)
-    ("foreground_antiquoted"  . isar-font-foreground-antiquoted)
-    ("dotted_writeln"  . isar-font-dotted-writeln)
+    ("foreground_quoted"  . lsp-isar-font-foreground-quoted)
+    ("foreground_antiquoted"  . lsp-isar-font-foreground-antiquoted)
+    ("dotted_writeln"  . lsp-isar-font-dotted-writeln)
 
-    ("dotted_information"  . isar-font-dotted-information)
-    ("dotted_warning"  . isar-font-dotted-warning)
+    ("dotted_information"  . lsp-isar-font-dotted-information)
+    ("dotted_warning"  . lsp-isar-font-dotted-warning)
 
 
-    ("text_main"  . isar-font-text-main)
+    ("text_main"  . lsp-isar-font-text-main)
 
-    ("text_keyword1"  . isar-font-text-keyword1)
+    ("text_keyword1"  . lsp-isar-font-text-keyword1)
 
-    ("text_keyword2"  . isar-font-text-keyword2)
-    ("text_keyword3"  . isar-font-text-keyword3)
-    ("text_quasi_keyword"  . isar-font-text-quasi_keyword)
-    ("text_improper"  . isar-font-text-improper)
-    ("text_operator"  . isar-font-text-operator)
-    ("text_tfree"  . isar-font-text-tfree)
-    ("text_tvar"  . isar-font-text-tvar)
-    ("text_free"  . isar-font-text-free)
-    ("text_skolem"  . isar-font-text-skolem)
-    ("text_bound"  . isar-font-text-bound)
-    ("text_var"  . isar-font-text-var)
-    ("text_inner_numeral"  . isar-font-text-inner_numeral)
-    ("text_inner_quoted"  . isar-font-text-inner_quoted)
-    ("text_inner_cartouche"  . isar-font-text-inner_cartouche)
-    ("text_inner_comment"  . isar-font-text-inner_comment)
-    ("text_dynamic"  . isar-font-text-dynamic)
-    ("text_class_parameter"  . isar-font-text-class_parameter)
-    ("text_antiquote"  . isar-font-text-antiquote)
+    ("text_keyword2"  . lsp-isar-font-text-keyword2)
+    ("text_keyword3"  . lsp-isar-font-text-keyword3)
+    ("text_quasi_keyword"  . lsp-isar-font-text-quasi_keyword)
+    ("text_improper"  . lsp-isar-font-text-improper)
+    ("text_operator"  . lsp-isar-font-text-operator)
+    ("text_tfree"  . lsp-isar-font-text-tfree)
+    ("text_tvar"  . lsp-isar-font-text-tvar)
+    ("text_free"  . lsp-isar-font-text-free)
+    ("text_skolem"  . lsp-isar-font-text-skolem)
+    ("text_bound"  . lsp-isar-font-text-bound)
+    ("text_var"  . lsp-isar-font-text-var)
+    ("text_inner_numeral"  . lsp-isar-font-text-inner_numeral)
+    ("text_inner_quoted"  . lsp-isar-font-text-inner_quoted)
+    ("text_inner_cartouche"  . lsp-isar-font-text-inner_cartouche)
+    ("text_inner_comment"  . lsp-isar-font-text-inner_comment)
+    ("text_dynamic"  . lsp-isar-font-text-dynamic)
+    ("text_class_parameter"  . lsp-isar-font-text-class_parameter)
+    ("text_antiquote"  . lsp-isar-font-text-antiquote)
 
-    ("text_overview_unprocessed"  . isar-font-text-overview-unprocessed)
-    ("text_overview_running"  . isar-font-text-overview-running)
-    ("text_overview_error"  . isar-font-text-overview-error)
-    ("text_overview_warning"  . isar-font-text-overview-warning)
+    ("text_overview_unprocessed"  . lsp-isar-font-text-overview-unprocessed)
+    ("text_overview_running"  . lsp-isar-font-text-overview-running)
+    ("text_overview_error"  . lsp-isar-font-text-overview-error)
+    ("text_overview_warning"  . lsp-isar-font-text-overview-warning)
 
-    ("spell_checker"  . isar-font-spell-checker)))
+    ("spell_checker"  . lsp-isar-font-spell-checker)))
 
 (defsubst ranges-are-equal (r1 r2)
   (let ((r2p (car r2))) ;; ignore the overlay
@@ -528,29 +525,27 @@ and should be GC-ed by emacs.
 
 CAUTION: this can be slow."
   (let*
-      ((recycled-overlays (gethash file isar--recycled-overlays nil))
-       (deleted-overlays (gethash file isar--deleted-overlays nil))
+      ((recycled-overlays (gethash file lsp-isar--recycled-overlays nil))
+       (deleted-overlays (gethash file lsp-isar--deleted-overlays nil))
        )
     (dolist (ov deleted-overlays) (delete-overlay ov))
     (dolist (ov recycled-overlays) (delete-overlay ov))
-    (puthash file nil isar--deleted-overlays)
-    (puthash file nil isar--recycled-overlays)))
+    (puthash file nil lsp-isar--deleted-overlays)
+    (puthash file nil lsp-isar--recycled-overlays)))
 
 (defun lsp-isar-kill-all-unused-overlays ()
   (interactive)
-  (maphash (lambda (file _v) (lsp-isar-kill-all-unused-overlays-file file)) isar--deleted-overlays))
+  (maphash (lambda (file _v) (lsp-isar-kill-all-unused-overlays-file file)) lsp-isar--deleted-overlays))
 
-(defvar isar-cleaner-timer nil
+(defvar lsp-isar-cleaner-timer (run-with-idle-timer 120 nil 'lsp-isar-kill-all-unused-overlays)
   "Timer to clean all elements")
 
-(setq lsp-isar-cleaner-timer
-      (run-with-idle-timer 120 nil 'lsp-isar-kill-all-unused-overlays))
 
 ;; recycle by batch of a small number of elements.
 (defun lsp-isar-recycle-batch (file)
   (let*
-      ((recycled-overlays (gethash file isar--recycled-overlays nil))
-       (deleted-overlays (gethash file isar--deleted-overlays nil))
+      ((recycled-overlays (gethash file lsp-isar--recycled-overlays nil))
+       (deleted-overlays (gethash file lsp-isar--deleted-overlays nil))
        (m (length recycled-overlays))
        (n 0))
     (with-timeout (0.1 nil)
@@ -562,17 +557,17 @@ CAUTION: this can be slow."
 	  (delete-overlay ov)
 	  (if (< m 1000) (push ov recycled-overlays))
 	  (setq n (1+ n)))))
-    (puthash file deleted-overlays isar--deleted-overlays)
-    (puthash file recycled-overlays isar--recycled-overlays)))
+    (puthash file deleted-overlays lsp-isar--deleted-overlays)
+    (puthash file recycled-overlays lsp-isar--recycled-overlays)))
 
 (defun lsp-isar-recycle-timer (file)
   (lsp-isar-recycle-batch file)
-  (let ((deleted-ov (gethash file isar--deleted-overlays))
-	(timer (gethash file isar--recyclers)))
+  (let ((deleted-ov (gethash file lsp-isar--deleted-overlays))
+	(timer (gethash file lsp-isar--recyclers)))
     (unless deleted-ov
       (progn
 	(cancel-timer timer)
-	(puthash file nil isar--recyclers)))))
+	(puthash file nil lsp-isar--recyclers)))))
 
 ;; started as a the equivalent of the cquery version. Later changed a lot.
 ;; ASSUMPTIONS:
@@ -634,29 +629,29 @@ CAUTION: this can be slow."
 ;; the time.
 ;;
 ;; Removed overlays are:
-;;    1. first moved to isar--deleted-overlays
+;;    1. first moved to lsp-isar--deleted-overlays
 ;;    2. then deleted from the overlays
-;;    3. added to isar--recycled-overlays to be reused
+;;    3. added to lsp-isar--recycled-overlays to be reused
 ;;
 ;; 2 and 3 are run in lsp-isar-recycle-timer. It is run by a timer to avoid
 ;; blocking emacs. It then cancels itself when there is nothing to do.
-(defun isar-update-cached-decorations-overlays (params)
+(defun lsp-isar-update-cached-decorations-overlays (params)
   (let* ((file (replace-regexp-in-string (regexp-quote "/local/local") "/local" (lsp--uri-to-path (gethash "uri" params)) nil 'literal))
          (buffer (find-buffer-visiting file))
          (pranges (gethash "content" params nil))
 	 (typ (gethash "type" params "default"))
-	 (face (cdr (assoc typ isar-get-font)))
+	 (face (cdr (assoc typ lsp-isar-get-font)))
 	 (end_char_offset (if (or (equal typ "text_overview_error") (equal typ "text_overview_running")) 1 0))
 	 )
 
     (if (not buffer) ;; buffer was closed/not found
-	(let ((timer (gethash file isar--recyclers)))
+	(let ((timer (gethash file lsp-isar--recyclers)))
 	  (if timer
 	      (cancel-timer timer))
-	  (puthash file nil isar--recyclers)
+	  (puthash file nil lsp-isar--recyclers)
 	  ;; let the GC kill the decorations for us:
-	  (puthash file nil isar--deleted-overlays)
-	  (puthash file nil isar--recycled-overlays))
+	  (puthash file nil lsp-isar--deleted-overlays)
+	  (puthash file nil lsp-isar--recycled-overlays))
 
       ;; faster adding and deleting of overlays
       (overlay-recenter (point))
@@ -664,7 +659,7 @@ CAUTION: this can be slow."
       ;; extract the ranges
       (let (ranges point0 point1 (line 0) (curoverlays nil)
 		   (inhibit-field-text-motion t))
-	(if (equal face 'isar-font-default)
+	(if (equal face 'lsp-isar-font-default)
 	    (message "unrecognised color %s" typ))
 	(seq-doseq (range pranges)
 	  (-let ((cr (gethash "range" range)))
@@ -684,10 +679,10 @@ CAUTION: this can be slow."
 
 	;; reprint
 	(-let*
-	    ((current-file-overlays (gethash file isar--sem-overlays (make-hash-table :test 'equal)))
+	    ((current-file-overlays (gethash file lsp-isar--sem-overlays (make-hash-table :test 'equal)))
 	     (old-overlays (gethash typ current-file-overlays nil))
-	     (recycled-overlays (gethash file isar--recycled-overlays nil))
-	     (deleted-overlays (gethash file isar--deleted-overlays nil)))
+	     (recycled-overlays (gethash file lsp-isar--recycled-overlays nil))
+	     (deleted-overlays (gethash file lsp-isar--deleted-overlays nil)))
 
 	  ;; recycle an old overlay by moving and updating it,
 	  ;; otherwise, create a new one
@@ -736,7 +731,7 @@ CAUTION: this can be slow."
 		    (overlay-recenter (point-max))
 		    (dolist (x olds)
 		      ;;(delete-overlay (cadr x))
-		      (overlay-put (cadr x) 'face 'isar-font-nothing)
+		      (overlay-put (cadr x) 'face 'lsp-isar-font-nothing)
 		      (push (cadr x) deleted-overlays))
 		    (setq olds nil))
 		(if (not olds)
@@ -765,7 +760,7 @@ CAUTION: this can be slow."
 				(overlay-recenter (point-max))
 				(cl-loop for x in olds do
 					 ;;(delete-overlay (cadr x))
-					 (overlay-put (cadr x) 'face 'isar-font-nothing)
+					 (overlay-put (cadr x) 'face 'lsp-isar-font-nothing)
 					 (push (cadr x) deleted-overlays))
 				(setq news nil)
 				(setq olds nil))))
@@ -775,7 +770,7 @@ CAUTION: this can be slow."
 			  ;;(message "number of elts in olds: %s" (length olds))
 			  ;;(message "wanted to print: %s skipped: %s" r1 r2)
 			  ;;(delete-overlay (cadr r2))
-			  (overlay-put (cadr r2) 'face 'isar-font-nothing)
+			  (overlay-put (cadr r2) 'face 'lsp-isar-font-nothing)
 			  (push (cadr r2) deleted-overlays)
 			  (setq olds (cdr olds))))))))))
 
@@ -790,17 +785,17 @@ CAUTION: this can be slow."
 
 		;; the curoverlays are sorted in reversed order
 		(puthash typ (nreverse curoverlays) current-file-overlays)
-		(puthash file current-file-overlays isar--sem-overlays)
-		(puthash file recycled-overlays isar--recycled-overlays)
-		(puthash file deleted-overlays isar--deleted-overlays)))))
-	(let ((timer (gethash file isar--recyclers)))
+		(puthash file current-file-overlays lsp-isar--sem-overlays)
+		(puthash file recycled-overlays lsp-isar--recycled-overlays)
+		(puthash file deleted-overlays lsp-isar--deleted-overlays)))))
+	(let ((timer (gethash file lsp-isar--recyclers)))
 	  (unless timer
 	    (progn
 	      (let ((timer (run-with-timer 0 0.5 'lsp-isar-recycle-timer file)))
-		(puthash file timer isar--recyclers)))))))))
+		(puthash file timer lsp-isar--recyclers)))))))))
 
-(defun isar-update-and-reprint (_workspace params)
+(defun lsp-isar-update-and-reprint (_workspace params)
   "Updates the decoration cach and the reprint all decorations"
-  (isar-update-cached-decorations-overlays params))
+  (lsp-isar-update-cached-decorations-overlays params))
 
 (provide 'lsp-decorations)

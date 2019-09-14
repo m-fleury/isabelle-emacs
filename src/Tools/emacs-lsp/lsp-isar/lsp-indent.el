@@ -406,7 +406,7 @@
 		     indent_structure indent_brackets extra indent_offset)
 	    (+ indent_structure indent_brackets extra indent_offset)))))))
 
-(defun isar-indent-line ()
+(defun lsp-isar-indent-line ()
   "Indent current line as Isar code"
   (interactive)
   (beginning-of-line)

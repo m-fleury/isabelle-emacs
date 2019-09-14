@@ -35,7 +35,7 @@
    "List of functions to be called after Isabelle has been started."
    :type 'hook)
 
-(defvar lsp-isar--already-initialised nil
+(defvar lsp-isar-already-initialised nil
   "boolean to indicate if we have already initialised progress updates,
 the output buffer, and the initial hooks.")
 
@@ -47,29 +47,29 @@ the output buffer, and the initial hooks.")
 	    (if (equal major-mode 'isar-mode)
 		(progn
 		  (lsp-isar-activate-caret-update)
-		  (unless lsp-isar--already-initialised
+		  (unless lsp-isar-already-initialised
 		    (progn
 		      (lsp-isar-initialize-output-buffer)
 		      (lsp-isar-activate-progress-update)
 		      (run-hooks 'lsp-isar-init-hook)
-		      (setq lsp-isar--already-initialised t)))))))
+		      (setq lsp-isar-already-initialised t)))))))
 
 (defvar lsp-isar--already-split nil
   "boolean to indicate if we have already split the window")
 
 ;; unconditionnaly split the window
 (defun lsp-isar-open-output-and-progress-right ()
-   "opens the *isar-output* and *isar-progress* buffers on the right"
+   "opens the *lsp-isar-output* and *lsp-isar-progress* buffers on the right"
    (interactive)
    (split-window-right)
    (other-window 1)
-   (switch-to-buffer "*isar-state*")
+   (switch-to-buffer "*lsp-isar-state*")
    (split-window-below)
    (other-window 1)
-   (switch-to-buffer "*isar-output*")
+   (switch-to-buffer "*lsp-isar-output*")
    (split-window-below)
    (other-window 1)
-   (switch-to-buffer "*isar-progress*")
+   (switch-to-buffer "*lsp-isar-progress*")
    (other-window -3))
 
 ;; split the window 2 seconds later (the timeout is necessary to give
@@ -80,12 +80,13 @@ the output buffer, and the initial hooks.")
   (run-at-time 2 nil (lambda () (lsp-isar-open-output-and-progress-right))))
 
 (defun lsp-isar--initialize-client (client)
-  (lsp-client-on-notification client "PIDE/decoration" 'isar-update-and-reprint)
+  (lsp-client-on-notification client "PIDE/decoration" 'lsp-isar-update-and-reprint)
   (lsp-client-on-notification client "PIDE/dynamic_output"
-			      (lambda (w _p) (isar-update-output-buffer (gethash "content" _p))))
+			      (lambda (w _p)
+				(lsp-isar--update-state-and-output-buffer (gethash "content" _p))))
   (lsp-client-on-notification client "PIDE/progress"
 			      (lambda (w _p)
-				(isar-update-progress-buffer (gethash "nodes_status" _p)))))
+				(lsp-isar--update-progress-buffer (gethash "nodes_status" _p)))))
 
 (defcustom lsp-isar-path-to-isabelle "/home/zmaths/Documents/isabelle/isabelle2018-vsce"
   "default path to Isabelle (e.g., /path/to/isabelle/folder)")
@@ -112,8 +113,7 @@ the output buffer, and the initial hooks.")
 
 
 ;; declare the lsp mode
-(setq lsp-language-id-configuration
-      (cons '(isar-mode . "isabelle") lsp-language-id-configuration))
+(push  '(isar-mode . "isabelle") lsp-language-id-configuration)
 
 (defcustom lsp-isar-remote-path-to-isabelle "/home/zmaths/Documents/isabelle/isabelle2018-vsce" "default path to Isabelle (e.g., /path/to/isabelle/folder)")
 
@@ -144,9 +144,9 @@ the output buffer, and the initial hooks.")
 	;;    :use-native-json t
 	:notification-handlers
 	(lsp-ht
-	 ("PIDE/decoration" 'isar-update-and-reprint)
-	 ("PIDE/dynamic_output" (lambda (w _p) (isar-update-state-and-output-buffer (gethash "content" _p))))
-	 ("PIDE/progress" (lambda (w _p) (isar-update-progress-buffer (gethash "nodes_status" _p)))))
+	 ("PIDE/decoration" 'lsp-isar-update-and-reprint)
+	 ("PIDE/dynamic_output" (lambda (w _p) (lsp-isar--update-state-and-output-buffer (gethash "content" _p))))
+	 ("PIDE/progress" (lambda (w _p) (lsp-isar--update-progress-buffer (gethash "nodes_status" _p)))))
 	))
     (lsp-register-client
      (make-lsp-client
@@ -159,9 +159,9 @@ the output buffer, and the initial hooks.")
       ;;    :use-native-json t
       :notification-handlers
       (lsp-ht
-       ("PIDE/decoration" 'isar-update-and-reprint)
-       ("PIDE/dynamic_output" (lambda (w _p) (isar-update-state-and-output-buffer (gethash "content" _p))))
-       ("PIDE/progress" (lambda (w _p) (isar-update-progress-buffer (gethash "nodes_status" _p)))))
+       ("PIDE/decoration" 'lsp-isar-update-and-reprint)
+       ("PIDE/dynamic_output" (lambda (w _p) (lsp-isar--update-state-and-output-buffer (gethash "content" _p))))
+       ("PIDE/progress" (lambda (w _p) (lsp-isar--update-progress-buffer (gethash "nodes_status" _p)))))
       ))
     ))
 
@@ -185,7 +185,7 @@ the output buffer, and the initial hooks.")
   (if lsp-isar-experimental
       (progn
 	(message "activating experimental feature is lsp-isar. Set lsp-isar-experimental to nil to avoid it")
-	(set (make-local-variable 'indent-line-function) 'isar-indent-line))))
+	(set (make-local-variable 'indent-line-function) 'lsp-isar-indent-line))))
 
 (add-hook 'isar-mode-hook #'lsp-isar-activate-experimental-features)
 
