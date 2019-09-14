@@ -68,11 +68,12 @@
 	(mapconcat 'isar-parse-output children ""))
 
        ((eq node 'state_message)
-	(concat "\n" (mapconcat 'isar-parse-output children "") "\n"))
+        (mapconcat 'isar-parse-output children ""))
 
        ((eq node 'information_message)
-	(propertize (concat (mapconcat 'isar-parse-output children "") "\n")
-		    'font-lock-face (cdr (assoc "dotted_information" isar-get-font))))
+	(concat "\n\n"
+		(propertize (concat (mapconcat 'isar-parse-output children "") "\n")
+		    'font-lock-face (cdr (assoc "dotted_information" isar-get-font)))))
 
        ((eq node 'tracing_message) ;; TODO Proper colour
 	(propertize (concat (mapconcat 'isar-parse-output children "") "\n")
@@ -80,19 +81,17 @@
 
        ((eq node 'warning_message)
 	(propertize (concat (mapconcat 'isar-parse-output children "") "\n")
-		    'font-lock-face (cdr (assoc "text_overview_error" isar-get-font))))
+		    'font-lock-face (cdr (assoc "dotted_warning" isar-get-font))))
 
        ((eq node 'error_message)
 	(propertize (concat (mapconcat 'isar-parse-output children "") "\n")
 		    'font-lock-face (cdr (assoc "dotted_warning" isar-get-font))))
 
        ((eq node 'text_fold)
-	(concat
-	 (if (< 1 (length children)) "\n" "")
-	 (mapconcat 'isar-parse-output children "")))
+        (mapconcat 'isar-parse-output children ""))
 
        ((eq node 'subgoal)
-	(concat "\n" (mapconcat 'isar-parse-output children "")))
+        (mapconcat 'isar-parse-output children ""))
 
        ((eq node 'span)
 	(format "%s" (car (last children))))
@@ -120,31 +119,31 @@
 	(propertize (isar-parse-output (car (last children)))
 		    'font-lock-face (cdr (assoc "text_keyword4" isar-get-font))))
 
-       ((eq node 'fixed)
-	(isar-parse-output (car (last children))))
+       ((eq node 'fixed) ;; this is used to enclose other variables
+        (mapconcat 'isar-parse-output children ""))
 
        ((eq node 'free)
-	(propertize (format "%s" (car (last children)))
+	(propertize (mapconcat 'isar-parse-output children "")
 		    'font-lock-face (cdr (assoc "text_free" isar-get-font))))
 
        ((eq node 'tfree)
-	(propertize (format "%s" (car (last children)))
+	(propertize (mapconcat 'isar-parse-output children "")
 		    'font-lock-face (cdr (assoc "text_tfree" isar-get-font))))
 
        ((eq node 'tvar)
-	(propertize (format "%s" (car (last children)))
+	(propertize (mapconcat 'isar-parse-output children "")
 		    'font-lock-face (cdr (assoc "text_tvar" isar-get-font))))
 
        ((eq node 'var)
-	(propertize (format "%s" (car (last children)))
+	(propertize (mapconcat 'isar-parse-output children "")
 		    'font-lock-face (cdr (assoc "text_var" isar-get-font))))
 
        ((eq node 'bound)
-	(propertize (format "%s" (car (last children)))
+	(propertize (mapconcat 'isar-parse-output children "")
 		    'font-lock-face (cdr (assoc "text_bound" isar-get-font))))
 
        ((eq node 'skolem)
-	(propertize (isar-parse-output (car (last children)))
+	(propertize (mapconcat 'isar-parse-output children "")
 		    'font-lock-face (cdr (assoc "text_skolem" isar-get-font))))
 
        ((eq node 'sendback) ;; TODO handle properly
@@ -168,7 +167,7 @@
 		    'font-lock-face (cdr (assoc "dotted_writeln" isar-get-font))))
 
        ((eq node 'paragraph)
-	(concat "\n" (mapconcat 'isar-parse-output children "") "\n"))
+	(concat "" (mapconcat 'isar-parse-output children "") ""))
 
        ((eq node 'item)
 	;;(message "%s" (mapconcat 'isar-parse-output children ""))
@@ -176,11 +175,11 @@
 
        ((eq node 'break)
 	(let ((children (mapcar (lambda (a) (string-remove-suffix "'" (string-remove-prefix "'" a))) children)))
-	 (concat
-	 (cond ((dom-attr content 'width) " ")
-	      ((dom-attr content 'line) "\n")
-	      (t ""))
-	 (mapconcat 'isar-parse-output children ""))))
+	  (concat
+	   (cond ((dom-attr content 'width) " ")
+		 ((dom-attr content 'line) "\n")
+		 (t ""))
+	   (mapconcat 'isar-parse-output children ""))))
 
        ((or (eq node 'xml_elem))
 	(mapconcat 'isar-parse-output children ""))
@@ -231,6 +230,8 @@
 		      (replace-regexp-lisp "xml_elem>\\( *\\)<" "xml_elem><break>'\\1'</break><")
 		      (goto-char (point-min))
 		      (replace-regexp-lisp "<break line = 1>''</break><body><break line = 1>''</break><pre" "<pre")
+		      (goto-char (point-min))
+		      (replace-regexp-lisp "</entity>\\( *\\)<" "</entity><break>'\\1'</break><")
 		      ;;(message (buffer-string))
 		      ;;(message content)
 		      ;;(message "%s"(libxml-parse-html-region  (point-min) (point-max)))
