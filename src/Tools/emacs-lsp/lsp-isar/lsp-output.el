@@ -173,8 +173,8 @@ functions adds up. So any optimisation would help."
       ('intensify
        (let ((start-point (point)))
 	 (lsp-isar-parse-output (car (last (dom-children content))))
-	 (add-text-properties start-point (point)
-			      'font-lock-face (cdr (assoc "background_intensify" lsp-isar-get-font)))))
+	 (let ((ov (make-overlay start-point (point))))
+	     (overlay-put ov 'face (cdr (assoc "background_intensify" lsp-isar-get-font))))))
 
       ('keyword1
        (lsp-isar--parse-output-print-last-children-in-output content
@@ -293,6 +293,7 @@ functions adds up. So any optimisation would help."
 		    (progn
 		      (insert "$")
 		      (insert content)
+		      ;;(message (buffer-string))
 		      ;; Isabelle's HTML and emacs's HMTL disagree, so
 		      ;; we preprocess the output.
 
