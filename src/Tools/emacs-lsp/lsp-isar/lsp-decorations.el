@@ -536,9 +536,7 @@ CAUTION: this can be slow."
        (deleted-overlays (gethash file lsp-isar--deleted-overlays nil)))
     (with-silent-modifications
       (message "Cleaning file %s (%s overlays to delete) [use C-g to abort]" file (length deleted-overlays))
-      (overlay-recenter (point-max))
-      (dolist (ov deleted-overlays) (delete-overlay ov))
-      (dolist (ov recycled-overlays) (delete-overlay ov))
+      (remove-overlays (point-min) (point-max) 'face 'lsp-isar-font-nothing)
       (puthash file nil lsp-isar--deleted-overlays)
       (puthash file nil lsp-isar--recycled-overlays))))
 
