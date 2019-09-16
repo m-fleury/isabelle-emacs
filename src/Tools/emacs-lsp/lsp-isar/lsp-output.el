@@ -72,17 +72,16 @@
   (inline-letevals (content face)
     (inline-quote
      (with-current-buffer lsp-isar-output-buffer
-       (let ((inhibit-read-only t))
-	 (let ((start-point (point)))
+       (let ((start-point (point)))
 	   (mapc 'lsp-isar-parse-output (dom-children ,content))
 	   (insert "\n")
 	   (let ((ov (make-overlay start-point (point))))
-	     (overlay-put ov 'face ,face))))))))
+	     (overlay-put ov 'face ,face)))))))
 
 (define-inline lsp-isar--parse-output-print-last-children-in-output (content face)
   (inline-letevals (content face)
     (inline-quote
-     (let ((inhibit-read-only t) (start-point (point)))
+     (let ((start-point (point)))
        (mapc 'lsp-isar-parse-output (dom-children ,content))
        (let ((ov (make-overlay start-point (point))))
 	 (overlay-put ov 'face ,face))))))
@@ -281,55 +280,59 @@ functions adds up. So any optimisation would help."
 
 (defun lsp-isar--update-state-and-output-buffer (content)
   "Updates state and output buffers"
-  (setq parsed-content nil)
-  (let ((inhibit-read-only t))
+  (let ((parsed-content nil))
     (save-excursion
       (with-current-buffer lsp-isar-output-buffer
+	(read-only-mode -1)
 	(setf (buffer-string) ""))
+      (with-temp-buffer
+	(if content
+	    (progn
+	      (insert "$")
+	      (insert content)
+	      ;;(message (buffer-string))
+	      ;; Isabelle's HTML and emacs's HMTL disagree, so
+	      ;; we preprocess the output.
+
+	      ;; remove line breaks at beginning
+	      (replace-regexp-all-occs "\\$\n*<body>\n" "<body>")
+
+	      ;; make sure there is no "$" left
+	      (replace-regexp-all-occs "\\$" "")
+
+	      ;; protect spaces and line breaks
+	      (replace-regexp-all-occs "\n\\( *\\)"
+				       "<break line = 1>'\\1'</break>")
+	      (replace-regexp-all-occs "\\(\\w\\)>\\( *\\)<"
+				       "\\1><break>'\\2'</break><")
+
+	      ;;(message (buffer-string))
+	      ;;(message "%s"(libxml-parse-html-region  (point-min) (point-max)))
+	      (setq parsed-content (libxml-parse-html-region (point-min) (point-max))))))
       (with-current-buffer lsp-isar-state-buffer
-	(setq parsed-content
-	      (with-temp-buffer
-		(if content
-		    (progn
-		      (insert "$")
-		      (insert content)
-		      ;;(message (buffer-string))
-		      ;; Isabelle's HTML and emacs's HMTL disagree, so
-		      ;; we preprocess the output.
+	(let ((inhibit-read-only t))
+	  (setf (buffer-string) "")
+	  (lsp-isar-parse-output parsed-content)
+	  (goto-char (point-min))
+	  (ignore-errors
+	    (search-forward "Proof outline with cases:") ;; TODO this should go to lsp-isar-parse-output
+	    (setq lsp-isar-proof-cases-content (buffer-substring (point) (point-max))))))
+      (with-current-buffer lsp-isar-output-buffer
+	(read-only-mode t)))))
 
-		      ;; remove line breaks at beginning
-		      (replace-regexp-all-occs "\\$\n*<body>\n" "<body>")
-
-		      ;; make sure there is no "$" left
-		      (replace-regexp-all-occs "\\$" "")
-
-		      ;; protect spaces and line breaks
-		      (replace-regexp-all-occs "\n\\( *\\)"
-					       "<break line = 1>'\\1'</break>")
-		      (replace-regexp-all-occs "\\(\\w\\)>\\( *\\)<"
-					       "\\1><break>'\\2'</break><")
-
-		      ;;(message (buffer-string))
-		      ;;(message "%s"(libxml-parse-html-region  (point-min) (point-max)))
-	              (setq parsed-content (libxml-parse-html-region  (point-min) (point-max)))))))
-
-	(setf (buffer-string) "")
-	(lsp-isar-parse-output parsed-content)
-	(goto-char (point-min))
-	(ignore-errors
-	  (search-forward "Proof outline with cases:") ;; TODO this should go to lsp-isar-parse-output
-	  (setq lsp-isar-proof-cases-content (buffer-substring (point) (point-max))))))))
-
+;; deactivate font-lock-mode because we to the fontification ourselves anyway.
 (defun lsp-isar-initialize-output-buffer ()
   (setq lsp-isar-state-buffer (get-buffer-create "*lsp-isar-state*"))
   (setq lsp-isar-output-buffer (get-buffer-create "*lsp-isar-output*"))
   (save-excursion
     (with-current-buffer lsp-isar-state-buffer
       (read-only-mode t)
-      (isar-goal-mode))
+      (isar-goal-mode)
+      (font-lock-mode nil))
     (with-current-buffer lsp-isar-output-buffer
       (read-only-mode t)
-      (isar-goal-mode))))
+      (isar-goal-mode)
+      (font-lock-mode nil))))
 
 (defun lsp-isar-insert-cases ()
   "insert the last seen outline"
