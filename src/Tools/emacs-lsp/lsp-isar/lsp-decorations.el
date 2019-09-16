@@ -64,6 +64,9 @@
 ;; thread. It is done in small batches (recycling can take a few
 ;; minutes on a large buffer).
 ;;
+;; (iv) after some minutes of inactivity, we delete all unused
+;; overlays.
+;;
 ;; TODO:
 ;;
 ;;   - how the hell does define-inline work?
@@ -92,20 +95,19 @@
 (setq lexical-binding 't)
 
 ;; file -> type -> [range, decoration] list
-(defvar-local lsp-isar--sem-overlays (make-hash-table :test 'equal)
+(defvar lsp-isar--sem-overlays (make-hash-table :test 'equal)
   "decoration cache.")
 
 ;; file -> overlays list
-(defvar-local lsp-isar--deleted-overlays (make-hash-table :test 'equal)
+(defvar lsp-isar--deleted-overlays (make-hash-table :test 'equal)
   "decoration overlays that have to be recycled.")
 
 ;; file -> overlays list
-(defvar-local lsp-isar--recycled-overlays (make-hash-table :test 'equal)
+(defvar lsp-isar--recycled-overlays (make-hash-table :test 'equal)
   "decoration overlays that can be reused.")
 
 ;; file -> timer
-(defvar-local lsp-isar--recyclers (make-hash-table :test 'equal)
-  "timers that recycle overlays or delete them when a buffer is closed.")
+(defvar lsp-isar--recycler nil "Timer to slowly recycle overlays from the last opened buffer.")
 
 ;; prettifyng the source
 (defgroup lsp-isar-sem nil
@@ -532,18 +534,20 @@ CAUTION: this can be slow."
   (let*
       ((recycled-overlays (gethash file lsp-isar--recycled-overlays nil))
        (deleted-overlays (gethash file lsp-isar--deleted-overlays nil)))
-    (puthash file nil lsp-isar--deleted-overlays)
-    (puthash file nil lsp-isar--recycled-overlays)
-    ;; to allow interuptions.
-    (dolist (ov deleted-overlays) (delete-overlay ov))
-    (dolist (ov recycled-overlays) (delete-overlay ov))))
+    (with-silent-modifications
+      (message "Cleaning file %s (%s overlays to delete) [use C-g to abort]" file (length deleted-overlays))
+      (overlay-recenter (point-max))
+      (dolist (ov deleted-overlays) (delete-overlay ov))
+      (dolist (ov recycled-overlays) (delete-overlay ov))
+      (puthash file nil lsp-isar--deleted-overlays)
+      (puthash file nil lsp-isar--recycled-overlays))))
 
 (defun lsp-isar-kill-all-unused-overlays ()
   (interactive)
-  (message "Cleaning all decorations. Set lsp-isar-cleaner-timer increase the delay between two of them.")
+  (message "Cleaning all decorations. Set lsp-isar-cleaner-timer increase the delay between two of them...")
   (maphash (lambda (file _v) (lsp-isar-kill-all-unused-overlays-file file)) lsp-isar--deleted-overlays))
 
-(defcustom lsp-isar-full-clean-ran-every 120
+(defcustom lsp-isar-full-clean-ran-every 600
   "Full clean every some many seconds. Use nil to deactivate it.")
 
 (defvar lsp-isar--cleaner-timer nil
@@ -552,36 +556,32 @@ CAUTION: this can be slow."
 
 ;; recycle by batch of a small number of elements. This is run on a
 ;; regural basis.
-(defun lsp-isar-recycle-batch (file)
-  (let*
-      ((recycled-overlays (gethash file lsp-isar--recycled-overlays nil))
-       (deleted-overlays (gethash file lsp-isar--deleted-overlays nil))
-       (m (length recycled-overlays))
-       (n 0))
-    (with-timeout (0.1 nil)
-      (while
-	  (and
-	   (< n 10)
-	   deleted-overlays)
-	(let ((ov (pop deleted-overlays)))
-	  (delete-overlay ov)
-	  (if (< m 1000) (push ov recycled-overlays))
-	  (setq n (1+ n)))))
-    (puthash file deleted-overlays lsp-isar--deleted-overlays)
-    (puthash file recycled-overlays lsp-isar--recycled-overlays)))
+(defvar lsp-isar--last-updated-file nil
+  "Last updated file")
 
-(defun lsp-isar-recycle-timer (file)
-  (lsp-isar-recycle-batch file)
-  (let ((deleted-ov (gethash file lsp-isar--deleted-overlays))
-	(timer (gethash file lsp-isar--recyclers)))
-    (unless deleted-ov
-      (progn
-	(cancel-timer timer)
-	(puthash file nil lsp-isar--recyclers)))))
+(defun lsp-isar-recycle-batch (_w)
+  (unless lsp-isar--last-updated-file
+    (let*
+	((recycled-overlays (gethash lsp-isar--last-updated-file lsp-isar--recycled-overlays nil))
+	 (deleted-overlays (gethash lsp-isar--last-updated-file lsp-isar--deleted-overlays nil))
+	 (m (length recycled-overlays))
+	 (n 0))
+      (with-timeout (0.1 nil)
+	(while
+	    (and
+	     (< n 10)
+	     deleted-overlays)
+	  (let ((ov (pop deleted-overlays)))
+	    (delete-overlay ov)
+	    (if (< m 1000) (push ov recycled-overlays))
+	    (setq n (1+ n)))))
+      (puthash lsp-isar--last-updated-file deleted-overlays lsp-isar--deleted-overlays)
+      (puthash lsp-isar--last-updated-file recycled-overlays lsp-isar--recycled-overlays))))
+
 
 ;; started as a the equivalent of the cquery version. Later changed a lot.
 ;; ASSUMPTIONS:
-;;  * old-overlays it sorted (for performance reasion).
+;;  * old-overlays is sorted (for performance reasion).
 ;;  * old-overlays contains all decorations corresponding to 'typ'
 ;;    in 'buffer' and they have not already been deleted.
 ;;
@@ -654,15 +654,11 @@ CAUTION: this can be slow."
 	 (end_char_offset (if (or (equal typ "text_overview_error") (equal typ "text_overview_running")) 1 0))
 	 )
 
-    (if (not buffer) ;; buffer was closed/not found
-	(let ((timer (gethash file lsp-isar--recyclers)))
-	  (if timer
-	      (cancel-timer timer))
-	  (puthash file nil lsp-isar--recyclers)
-	  ;; let the GC kill the decorations for us:
-	  (puthash file nil lsp-isar--deleted-overlays)
-	  (puthash file nil lsp-isar--recycled-overlays))
-
+    (if (not buffer)
+	;; buffer was closed
+	;; the rest will be deleted during the next round of full cleaning
+	(puthash file nil lsp-isar--sem-overlays)
+    (progn
       ;; faster adding and deleting of overlays
       (overlay-recenter (point))
 
@@ -798,11 +794,7 @@ CAUTION: this can be slow."
 		(puthash file current-file-overlays lsp-isar--sem-overlays)
 		(puthash file recycled-overlays lsp-isar--recycled-overlays)
 		(puthash file deleted-overlays lsp-isar--deleted-overlays)))))
-	(let ((timer (gethash file lsp-isar--recyclers)))
-	  (unless timer
-	    (progn
-	      (let ((timer (run-with-timer 0 0.5 'lsp-isar-recycle-timer file)))
-		(puthash file timer lsp-isar--recyclers)))))))))
+	(setq lsp-isar--last-updated-file file))))))
 
 (defun lsp-isar-update-and-reprint (_workspace params)
   "Updates the decoration cach and the reprint all decorations"
@@ -812,6 +804,8 @@ CAUTION: this can be slow."
 ;; This function can be called several times!
 (defun lsp-isar--init-decorations ()
   "Initialise all elements required for the decorations."
+  (unless lsp-isar--recycler
+      (setq lsp-isar--recycler (run-with-timer 0 0.5 'lsp-isar-recycle-batch nil)))
   (if (and (> lsp-isar-full-clean-ran-every 0) (not lsp-isar--cleaner-timer))
     (setq lsp-isar--cleaner-timer (run-with-idle-timer lsp-isar-full-clean-ran-every t 'lsp-isar-kill-all-unused-overlays))))
 

@@ -112,6 +112,7 @@ functions adds up. So any optimisation would help."
       ('meta nil)
       ('link nil)
       ('xml_body nil)
+      ('path nil)
 
       ('head
        (lsp-isar-parse-output (car (last (dom-children content)))))
@@ -240,6 +241,9 @@ functions adds up. So any optimisation would help."
       ('paragraph
        (mapc 'lsp-isar-parse-output (dom-children content)))
 
+      ('dynamic_fact
+       (mapc 'lsp-isar-parse-output (dom-children content)))
+
       ('item
        ;;(message "%s" (mapconcat 'lsp-isar-parse-output (dom-children content) ""))
        (mapc 'lsp-isar-parse-output (dom-children content))
@@ -305,6 +309,7 @@ functions adds up. So any optimisation would help."
 				       "<break line = 1>'\\1'</break>")
 	      (replace-regexp-all-occs "\\(\\w\\)>\\( *\\)<"
 				       "\\1><break>'\\2'</break><")
+	      ;;(replace-regexp-all-occs "\\(\\w\\)>\"" "\\1>\\\"")
 
 	      ;;(message (buffer-string))
 	      ;;(message "%s"(libxml-parse-html-region  (point-min) (point-max)))
