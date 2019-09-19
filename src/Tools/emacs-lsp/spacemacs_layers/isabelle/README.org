@@ -7,10 +7,10 @@
 - [[#install][Install]]
   - [[#current-process][Current process]]
     - [[#download-isabelle2018-vsce][Download Isabelle2018-vsce]]
-    - [[#download-the-isar-mode-package][Download the isar-mode package]]
+    - [[#download-the-iyar-mode-package][Download the Iyar-mode package]]
     - [[#install-isabelle2018-vsce][Install Isabelle2018-vsce]]
     - [[#create-the-private-layer-isabelle][Create the private layer Isabelle]]
-    - [[#create-the-private-layer-lsp-mode][Create the private layer lsp-mode]]
+    - [[#create-the-private-layer-lisp-mode][Create the private layer lisp-mode]]
     - [[#add-the-isabelle-layer-to-spacemacs-and-configure-it][Add the isabelle layer to spacemacs and configure it]]
     - [[#adding-the-afp][Adding the AFP]]
 - [[#key-bindings][Key bindings]]
@@ -32,7 +32,7 @@ https://bitbucket.org/zmaths/isabelle2018-vsce
   hg clone https://bitbucket.org/zmaths/isabelle2018-vsce
 #+END_SRC
 
-*** Download the isar-mode package
+*** Download the Iyar-mode package
 #+BEGIN_SRC sh
   git clone https://github.com/m-fleury/simp-isar-mode.git
 #+END_SRC
@@ -81,7 +81,7 @@ In the remainder of these instructions, I assume you have cloned these repos dir
   ln -s ~/simp-isar-mode/ isar-mode
 #+END_SRC
 
-*** Create the private layer lsp-mode
+*** Create the private layer lisp-mode
     - Go to the private folder of your .emacs.d
 #+BEGIN_SRC sh
   cd ../..

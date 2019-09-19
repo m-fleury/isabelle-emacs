@@ -34,6 +34,7 @@
     dash
     yasnippet
     (isar-mode :location local)
+    (isar-goal-mode :location local)
     (lsp-isar :location local))
   "The list of Lisp packages required by the isabelle layer.
 
@@ -72,10 +73,18 @@ Each entry is either:
 
 (defun isabelle/init-isar-mode ()
   (use-package isar-mode
-    :mode ("\\.thy\\'" . isar-mode)))
+    :mode ("\\.thy\\'" . isar-mode))
+  (use-package isar-goal-mode
+    :after isar-mode))
+
+
+(defun isabelle/init-isar-goal-mode ()
+  (use-package isar-goal-mode
+    :after isar-mode))
 
 (defun isabelle/init-lsp-isar ()
   (use-package lsp-isar
+    :after isar-mode isar-goal-mode
     ;:hook
     ;((isar-mode-hook . lsp-isar-enable))
     :config

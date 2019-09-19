@@ -558,8 +558,9 @@ CAUTION: this can be slow."
   "Last updated file")
 
 (defun lsp-isar-recycle-batch (_w)
-  (unless lsp-isar--last-updated-file
-    (let*
+  (if lsp-isar--last-updated-file
+      (with-silent-modifications
+	(let*
 	((recycled-overlays (gethash lsp-isar--last-updated-file lsp-isar--recycled-overlays nil))
 	 (deleted-overlays (gethash lsp-isar--last-updated-file lsp-isar--deleted-overlays nil))
 	 (m (length recycled-overlays))
@@ -574,7 +575,7 @@ CAUTION: this can be slow."
 	    (if (< m 1000) (push ov recycled-overlays))
 	    (setq n (1+ n)))))
       (puthash lsp-isar--last-updated-file deleted-overlays lsp-isar--deleted-overlays)
-      (puthash lsp-isar--last-updated-file recycled-overlays lsp-isar--recycled-overlays))))
+      (puthash lsp-isar--last-updated-file recycled-overlays lsp-isar--recycled-overlays)))))
 
 
 ;; started as a the equivalent of the cquery version. Later changed a lot.

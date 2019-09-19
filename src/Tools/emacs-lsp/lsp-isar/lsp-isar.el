@@ -179,7 +179,7 @@ the output buffer, and the initial hooks.")
 (modify-coding-system-alist 'file "\\.thy\\'" 'utf-8-auto)
 
 
-(defvar lsp-isar-experimental t
+(defvar lsp-isar-experimental nil
   "experimental settings")
 
 (defun lsp-isar-activate-experimental-features ()
