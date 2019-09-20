@@ -32,6 +32,11 @@
 (defvar lsp-isar-output-buffer nil "Isabelle output buffer")
 
 (defvar lsp-isar-proof-cases-content nil)
+(defvar lsp-isar-proof-thread nil "Current thread rendering the HTML")
+(defcustom lsp-isar-maximal-time 3 "Maximal time in seconds printing can take")
+(defvar lsp-isar--last-start nil "Last start time in seconds")
+
+(define-error 'abort-rendering "Abort the rendering of the state and output buffer")
 
 (define-inline remove-quotes-from-string (obj)
   (inline-letevals (obj)
@@ -106,6 +111,8 @@ function is less critical, emacs is single threaded and all these
 functions adds up. So any optimisation would help."
   ;; (message "content = %s" content)
   (cond
+   ((> (- (time-to-seconds) lsp-isar--last-start) lsp-isar-maximal-time)
+    (error 'abort-rendering))
    ((eq content nil) nil)
    ((stringp content) (insert content))
    ((not (listp content))
@@ -290,46 +297,50 @@ functions adds up. So any optimisation would help."
 
 (defun lsp-isar--update-state-and-output-buffer (content)
   "Updates state and output buffers"
-  (let ((parsed-content nil))
-    (save-excursion
-      (with-current-buffer lsp-isar-output-buffer
-	(read-only-mode -1)
-	(setf (buffer-string) ""))
-      (with-temp-buffer
-	(if content
-	    (progn
-	      (insert "$")
-	      (insert content)
-	      ;; (message (buffer-string))
-	      ;; Isabelle's HTML and emacs's HMTL disagree, so
-	      ;; we preprocess the output.
+  (condition-case nil
+      (let ((parsed-content nil))
+	(save-excursion
+	  (message "lsp-isar--update-state-and-output-buffer here")
+	  (with-current-buffer lsp-isar-output-buffer
+	    (read-only-mode -1)
+	    (setf (buffer-string) ""))
+	  (with-temp-buffer
+	    (if content
+		(progn
+		  (insert "$")
+		  (insert content)
+		  ;; (message (buffer-string))
+		  ;; Isabelle's HTML and emacs's HMTL disagree, so
+		  ;; we preprocess the output.
 
-	      ;; remove line breaks at beginning
-	      (replace-regexp-all-occs "\\$\n*<body>\n" "<body>")
+		  ;; remove line breaks at beginning
+		  (replace-regexp-all-occs "\\$\n*<body>\n" "<body>")
 
-	      ;; make sure there is no "$" left
-	      (replace-regexp-all-occs "\\$" "")
+		  ;; make sure there is no "$" left
+		  (replace-regexp-all-occs "\\$" "")
 
-	      ;; protect spaces and line breaks
-	      (replace-regexp-all-occs "\n\\( *\\)"
-				       "<break line = 1>'\\1'</break>")
-	      (replace-regexp-all-occs "\\(\\w\\)>\\( *\\)<"
-				       "\\1><break>'\\2'</break><")
-	      ;;(replace-regexp-all-occs "\\(\\w\\)>\"" "\\1>\\\"")
+		  ;; protect spaces and line breaks
+		  (replace-regexp-all-occs "\n\\( *\\)"
+					   "<break line = 1>'\\1'</break>")
+		  (replace-regexp-all-occs "\\(\\w\\)>\\( *\\)<"
+					   "\\1><break>'\\2'</break><")
+		  ;;(replace-regexp-all-occs "\\(\\w\\)>\"" "\\1>\\\"")
 
-	      ;;(message (buffer-string))
-	      ;;(message "%s"(libxml-parse-html-region  (point-min) (point-max)))
-	      (setq parsed-content (libxml-parse-html-region (point-min) (point-max))))))
-      (with-current-buffer lsp-isar-state-buffer
-	(let ((inhibit-read-only t))
-	  (setf (buffer-string) "")
-	  (lsp-isar-parse-output parsed-content)
-	  (goto-char (point-min))
-	  (ignore-errors
-	    (search-forward "Proof outline with cases:") ;; TODO this should go to lsp-isar-parse-output
-	    (setq lsp-isar-proof-cases-content (buffer-substring (point) (point-max))))))
-      (with-current-buffer lsp-isar-output-buffer
-	(read-only-mode t)))))
+		  ;;(message (buffer-string))
+		  ;;(message "%s"(libxml-parse-html-region  (point-min) (point-max)))
+		  (setq parsed-content (libxml-parse-html-region (point-min) (point-max))))))
+	  (with-current-buffer lsp-isar-state-buffer
+	    (let ((inhibit-read-only t))
+	      (setf (buffer-string) "")
+	      (lsp-isar-parse-output parsed-content)
+	      (goto-char (point-min))
+	      (ignore-errors
+		(search-forward "Proof outline with cases:") ;; TODO this should go to lsp-isar-parse-output
+		(setq lsp-isar-proof-cases-content (buffer-substring (point) (point-max))))))
+	  (with-current-buffer lsp-isar-output-buffer
+	    (read-only-mode t))))
+    ('abort-rendering
+     (message "interrupted"))))
 
 ;; deactivate font-lock-mode because we to the fontification ourselves anyway.
 (defun lsp-isar-initialize-output-buffer ()
@@ -349,6 +360,14 @@ functions adds up. So any optimisation would help."
   "insert the last seen outline"
   (interactive)
   (insert lsp-isar-proof-cases-content))
+
+(defun lsp-isar-update-state-and-output-buffer (content)
+  "Launch the thread to update the state and the output panel"
+
+  (message "launching new thread")
+  ;;(lsp-isar--update-state-and-output-buffer content)
+  (setq lsp-isar--last-start (time-to-seconds))
+  (lsp-isar--update-state-and-output-buffer content))
 
 
 (modify-coding-system-alist 'file "*lsp-isar-output*" 'utf-8-auto)

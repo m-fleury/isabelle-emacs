@@ -84,10 +84,10 @@ the output buffer, and the initial hooks.")
   (lsp-client-on-notification client "PIDE/decoration" 'lsp-isar-update-and-reprint)
   (lsp-client-on-notification client "PIDE/dynamic_output"
 			      (lambda (w _p)
-				(lsp-isar--update-state-and-output-buffer (gethash "content" _p))))
+				(lsp-isar-update-state-and-output-buffer (gethash "content" _p))))
   (lsp-client-on-notification client "PIDE/progress"
 			      (lambda (w _p)
-				(lsp-isar--update-progress-buffer (gethash "nodes_status" _p)))))
+				(lsp-isar-update-progress-buffer (gethash "nodes_status" _p)))))
 
 (defcustom lsp-isar-path-to-isabelle "/home/zmaths/Documents/isabelle/isabelle2018-vsce"
   "default path to Isabelle (e.g., /path/to/isabelle/folder)")
@@ -146,7 +146,7 @@ the output buffer, and the initial hooks.")
 	:notification-handlers
 	(lsp-ht
 	 ("PIDE/decoration" 'lsp-isar-update-and-reprint)
-	 ("PIDE/dynamic_output" (lambda (w _p) (lsp-isar--update-state-and-output-buffer (gethash "content" _p))))
+	 ("PIDE/dynamic_output" (lambda (w _p) (lsp-isar-update-state-and-output-buffer (gethash "content" _p))))
 	 ("PIDE/progress" (lambda (w _p) (lsp-isar--update-progress-buffer (gethash "nodes_status" _p)))))
 	))
     (lsp-register-client
@@ -161,7 +161,7 @@ the output buffer, and the initial hooks.")
       :notification-handlers
       (lsp-ht
        ("PIDE/decoration" 'lsp-isar-update-and-reprint)
-       ("PIDE/dynamic_output" (lambda (w _p) (lsp-isar--update-state-and-output-buffer (gethash "content" _p))))
+       ("PIDE/dynamic_output" (lambda (w _p) (lsp-isar-update-state-and-output-buffer (gethash "content" _p))))
        ("PIDE/progress" (lambda (w _p) (lsp-isar--update-progress-buffer (gethash "nodes_status" _p)))))
       ))
     ))
