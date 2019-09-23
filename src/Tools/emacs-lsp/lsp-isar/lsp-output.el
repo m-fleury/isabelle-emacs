@@ -33,8 +33,9 @@
 
 (defvar lsp-isar-proof-cases-content nil)
 (defvar lsp-isar-proof-thread nil "Current thread rendering the HTML")
-(defcustom lsp-isar-maximal-time 3 "Maximal time in seconds printing can take")
+(defcustom lsp-isar-maximal-time 3 "Maximal time in seconds printing can take. Use nil for infinity")
 (defvar lsp-isar--last-start nil "Last start time in seconds")
+(defvar lsp-isar--previous-goal nil "predous outputted goal")
 
 (define-error 'abort-rendering "Abort the rendering of the state and output buffer")
 
@@ -89,7 +90,7 @@ functions adds up. So any optimisation would help."
     (let ((content (pop contents)))
       ;;(message "content = %s" content)
       (cond
-	((> (- (time-to-seconds) lsp-isar--last-start) lsp-isar-maximal-time)
+	((and lsp-isar-maximal-time (> (- (time-to-seconds) lsp-isar--last-start) lsp-isar-maximal-time))
 	 (error "abort-rendering too slow"))
 	((eq content nil) nil)
 	((eq content 'html) nil)
@@ -294,11 +295,20 @@ functions adds up. So any optimisation would help."
   (while (re-search-forward REGEXP nil t)
     (replace-match TO-STRING nil nil)))
 
+(defun lsp-isar-update-goal-without-deadline ()
+    "Updates the goal without time limit"
+  (interactive)
+  (setq old-timeout lsp-isar-maximal-time)
+  (setq lsp-isar-maximal-time nil)
+  (lsp-isar--update-state-and-output-buffer lsp-isar--previous-goal)
+  (setq lsp-isar-maximal-time old-timeout))
+
 
 (defun lsp-isar--update-state-and-output-buffer (content)
   "Updates state and output buffers"
   (condition-case nil
       (let ((parsed-content nil))
+	(setq lsp-isar--previous-goal content)
 	(save-excursion
 	  (with-current-buffer lsp-isar-output-buffer
 	    (read-only-mode -1)
