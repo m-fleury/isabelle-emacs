@@ -32,10 +32,11 @@
 (defvar lsp-isar-output-buffer nil "Isabelle output buffer")
 
 (defvar lsp-isar-proof-cases-content nil)
-(defvar lsp-isar-proof-thread nil "Current thread rendering the HTML")
+(defvar lsp-isar-proof-timer nil "Current timer rendering the HTML")
 (defcustom lsp-isar-maximal-time 3 "Maximal time in seconds printing can take. Use nil for infinity")
 (defvar lsp-isar--last-start nil "Last start time in seconds")
-(defvar lsp-isar--previous-goal nil "predous outputted goal")
+(defvar lsp-isar--previous-goal nil "previous outputted goal")
+(defcustom lsp-isar-time-before-printing-goal 0.3 "Time before printing goal. Use nil to avoid printing goals.")
 
 (define-error 'abort-rendering "Abort the rendering of the state and output buffer")
 
@@ -373,10 +374,17 @@ functions adds up. So any optimisation would help."
 
 (defun lsp-isar-update-state-and-output-buffer (content)
   "Launch the thread to update the state and the output panel"
+  (if lsp-isar-proof-timer
+      (cancel-timer lsp-isar-proof-timer))
 
-  ;;(lsp-isar--update-state-and-output-buffer content)
-  (setq lsp-isar--last-start (time-to-seconds))
-  (lsp-isar--update-state-and-output-buffer content))
+  (if lsp-isar-time-before-printing-goal
+      (setq lsp-isar-proof-timer
+	    (run-at-time lsp-isar-time-before-printing-goal nil
+			 (lamda (content)
+				(progn
+				  (setq lsp-isar--last-start (time-to-seconds))
+				  (lsp-isar--update-state-and-output-buffer content)))
+			 content))))
 
 
 (modify-coding-system-alist 'file "*lsp-isar-output*" 'utf-8-auto)
