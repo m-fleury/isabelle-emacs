@@ -34,6 +34,9 @@
 (defvar last-post-command-word ""
   "Holds the cursor position from the last run of post-command-hooks.")
 
+(defvar lsp-isar--caret-timer nil
+  "Holds the timer that should update the cursor")
+
 (define-inline lsp-caret_update (uri line char focus)
   "Make a Caret_Update object for the given LINE and CHAR.
 
@@ -79,6 +82,8 @@ interface Caret_Update {
     (lsp-send-notification my-message)))
 
 (defun lsp-isar-update-caret ()
+  "Test if the position has changed. If it has changed, then
+launch the timer to update send the notification in the near future."
   (let ((my-current-word (thing-at-point 'word)))
     (if (and (boundp 'lsp--cur-workspace)
 	     (not (equal (point) last-post-command-position))
@@ -93,7 +98,10 @@ interface Caret_Update {
 	       (< (point) last-post-command-position)
 	       (< (- last-post-command-position (point)) 80))))
 	(progn
-	  (lsp--isar-send-caret-update)
+	  (if lsp-isar--caret-timer
+	    (cancel-timer lsp-isar--caret-timer))
+	  (setq lsp-isar--caret-timer
+		(run-at-time 0.2 nil 'lsp--isar-send-caret-update))
 	  (setq last-post-command-position (point))
 	  (setq last-post-command-word my-current-word)))))
 
