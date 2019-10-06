@@ -91,10 +91,9 @@ the decorations), because goals can become arbitrary long. Remark
 that I have not really tried to optimise it yet. Even if the
 function is less critical, emacs is single threaded and all these
 functions adds up. So any optimisation would help."
-  ;; (message "content = %s" content)
   (while contents
     (let ((content (pop contents)))
-      ;;(message "content = %s" content)
+      ;; (message "content = %s" content)
       (cond
 	((and lsp-isar-maximal-time (> (- (time-to-seconds) lsp-isar--last-start) lsp-isar-maximal-time))
 	 (signal 'abort-rendering nil))
@@ -279,10 +278,14 @@ functions adds up. So any optimisation would help."
 	    (setq contents (append (dom-children content) contents)))
 
 	   ('sub
-	    (insert (format "\\<^sub>%s" (car (last (dom-children content))))))
+	    (insert "\\<^bsub>")
+	    (push "\\<^esub>" contents)
+	    (setq contents (append (dom-children content) contents)))
 
 	   ('sup
-	    (insert (format "\\<^sup>%s" (car (last (dom-children content))))))
+	    (insert "\\<^bsup>")
+	    (push "\\<^esup>" contents)
+	    (setq contents (append (dom-children content) contents)))
 
 	   (_
 	    (if (listp (dom-tag content))
