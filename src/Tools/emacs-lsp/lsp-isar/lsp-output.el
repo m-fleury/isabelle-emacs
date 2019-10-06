@@ -277,15 +277,27 @@ functions adds up. So any optimisation would help."
 	   ('xml_elem
 	    (setq contents (append (dom-children content) contents)))
 
-	   ('sub
-	    (insert "\\<^bsub>")
-	    (push "\\<^esub>" contents)
-	    (setq contents (append (dom-children content) contents)))
+	   ('sub ;; Heuristically find the difference between sub and bsub...esub
+	    (let ((children (dom-children content)))
+	      (if (and
+		   (not (cdr children))
+		   (stringp (car children)))
+		  (insert (format "\\<^sub>%s" (car children)))
+		(progn
+		  (insert "\\<^bsub>")
+		  (push "\\<^esub>" contents))
+		(setq contents (append children contents)))))
 
-	   ('sup
-	    (insert "\\<^bsup>")
-	    (push "\\<^esup>" contents)
-	    (setq contents (append (dom-children content) contents)))
+	   ('sup ;; Heuristically find the difference between sup and bsup...esup
+	    (let ((children (dom-children content)))
+	      (if (and
+		   (not (cdr children))
+		   (stringp (car children)))
+		  (insert (format "\\<^sup>%s" (car children)))
+		(progn
+		  (insert "\\<^bsup>")
+		  (push "\\<^esup>" contents))
+		(setq contents (append children contents)))))
 
 	   (_
 	    (if (listp (dom-tag content))
