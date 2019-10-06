@@ -756,10 +756,7 @@ CAUTION: this can be slow."
 	      (if (not news)
 		  ;; no news: discard all old decorations
 		  (progn
-		    ;; faster adding and deleting of overlays
-		    (overlay-recenter (point-max))
 		    (dolist (x olds)
-		      ;;(delete-overlay (cadr x))
 		      (overlay-put (cadr x) 'face 'lsp-isar-font-nothing)
 		      (push (cadr x) overlays-to-reuse))
 		    (setq olds nil))
@@ -785,10 +782,7 @@ CAUTION: this can be slow."
 				(setq news (cdr news))
 			      ;; else the content is not valid anymore:
 			      (progn
-				;; faster adding and deleting of overlays
-				(overlay-recenter (point-max))
 				(cl-loop for x in olds do
-					 ;;(delete-overlay (cadr x))
 					 (overlay-put (cadr x) 'face 'lsp-isar-font-nothing)
 					 (push (cadr x) overlays-to-reuse))
 				(setq news nil)
