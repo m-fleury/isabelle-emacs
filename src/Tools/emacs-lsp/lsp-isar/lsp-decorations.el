@@ -555,8 +555,8 @@ CAUTION: this can be slow."
 
 (defun lsp-isar-kill-all-unused-overlays ()
   (interactive)
-  (message "Cleaning all decorations. Set lsp-isar-cleaner-timer \
-  increase the delay between two of them...")
+  (message "Cleaning all decorations. Set lsp-isar-full-clean-ran-every \
+  increase the delay between two of them, if you have called the function.")
   (maphash 'lsp-isar-kill-all-unused-overlays-file lsp-isar--overlays-to-reuse))
 
 (defcustom lsp-isar-full-clean-ran-every 600
