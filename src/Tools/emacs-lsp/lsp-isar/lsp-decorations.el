@@ -684,8 +684,11 @@ CAUTION: this can be slow."
 	;; the rest will be deleted during the next round of full cleaning
 	(puthash file nil lsp-isar--sem-overlays)
     (progn
-      ;; faster adding and deleting of overlays
-      (overlay-recenter (point))
+
+      ;; faster adding (and deleting) of overlays see for example
+      ;; discussion on
+      ;; https://github.com/flycheck/flycheck/issues/1168
+      (overlay-recenter (point-max))
 
       ;; extract the ranges
       (let (ranges point0 point1 (line 0) (curoverlays nil)
@@ -792,7 +795,6 @@ CAUTION: this can be slow."
 			(progn
 			  ;;(message "number of elts in olds: %s" (length olds))
 			  ;;(message "wanted to print: %s skipped: %s" r1 r2)
-			  ;;(delete-overlay (cadr r2))
 			  (overlay-put (cadr r2) 'face 'lsp-isar-font-nothing)
 			  (push (cadr r2) overlays-to-reuse)
 			  (setq olds (cdr olds))))))))))
