@@ -664,8 +664,14 @@ CAUTION: this can be slow."
 ;;
 ;; 2 are run in lsp-isar-recycle-timer. It is run by a timer to avoid
 ;; blocking emacs. It then cancels itself when there is nothing to do.
+
+;; The work-around for Sophie:
+(define-inline normalise-path (path)
+  (inline-letevals (path)
+    (inline-quote (replace-regexp-in-string (regexp-quote "/local/local") "/local" ,path nil 'literal))))
+
 (defun lsp-isar-update-cached-decorations-overlays (params)
-  (let* ((file (replace-regexp-in-string (regexp-quote "/local/local") "/local" (lsp--uri-to-path (gethash "uri" params)) nil 'literal))
+  (let* ((file (normalise-path (lsp--uri-to-path (gethash "uri" params))))
          (buffer (find-buffer-visiting file))
          (pranges (gethash "content" params nil))
 	 (typ (gethash "type" params "default"))
