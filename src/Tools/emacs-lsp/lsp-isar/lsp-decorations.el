@@ -782,9 +782,9 @@ CAUTION: this can be slow."
 				(setq news (cdr news))
 			      ;; else the content is not valid anymore:
 			      (progn
-				(cl-loop for x in olds do
-					 (overlay-put (cadr x) 'face 'lsp-isar-font-nothing)
-					 (push (cadr x) overlays-to-reuse))
+				(dolist (x olds)
+				  (overlay-put (cadr x) 'face 'lsp-isar-font-nothing)
+				  (push (cadr x) overlays-to-reuse))
 				(setq news nil)
 				(setq olds nil))))
 			;; otherwise, r1 is after the beginng of r2,
