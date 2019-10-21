@@ -44,8 +44,13 @@
   (let ((inhibit-read-only t)
 	(current-thy-name (if (buffer-file-name) (file-name-base) nil)))
     (save-excursion
+
+      ;; if the cursor was already in the buffer store the
+      ;; position.
+      (if (eq (current-buffer) lsp-isar-progress-buffer)
+	  (setq current-thy-point (point))
+	(setq current-thy-point nil))
       (with-current-buffer lsp-isar-progress-buffer
-	(setq current-thy-point (point))
 	(setq current-thy-line 0)
 	(setq current-thy-line-found nil)
 	(setf (buffer-string) "")
@@ -67,8 +72,7 @@
 		    (if (or current-thy-line-found
 			    (string= (file-name-base theory) current-thy-name))
 			(progn
-			  (setq current-thy-line-found t)
-			  (setq current-thy-point (+ (point)))))
+			  (setq current-thy-line-found t)))
 		    (unless current-thy-line-found
 		      (setq current-thy-line (+ 1 current-thy-line)))
 		    (setq s (concat (file-name-base theory)
@@ -92,7 +96,9 @@
 	(when (get-buffer-window lsp-isar-progress-buffer 'visible)
 	  (with-selected-window (get-buffer-window lsp-isar-progress-buffer)
 	    (goto-char (point-min))
-	    (forward-line (1- current-thy-line))))
+	    (if current-thy-point
+		(goto-char current-thy-point)
+	    (forward-line (1- current-thy-line)))))
 	))))
 
 
