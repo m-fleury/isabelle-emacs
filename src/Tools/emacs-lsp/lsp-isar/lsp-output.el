@@ -44,6 +44,9 @@
   (inline-letevals (obj)
     (inline-quote (string-remove-suffix "'" (string-remove-prefix "'" ,obj)))))
 
+(define-inline remove-parentheses-from-string (obj)
+  (inline-letevals (obj)
+    (inline-quote (string-remove-suffix "(" (string-remove-prefix ")" ,obj)))))
 
 ;; The function iterates over the HTML as parsed by the HTML
 ;; library. As a side effect, it fills the state buffer and the output
@@ -136,6 +139,7 @@ functions adds up. So any optimisation would help."
 	    (setq contents (append (dom-children content) contents)))
 
 	   ('state_message
+	    (push (dom-node 'break `(('line . 1)) "\n") contents)
 	    (setq contents (append (dom-children content) contents)))
 
 	   ('information_message
@@ -241,6 +245,7 @@ functions adds up. So any optimisation would help."
 	      (setq contents (append (dom-children content) contents))))
 
 	   ('sendback ;; TODO handle properly
+	    (setq lsp-isar-proof-cases-content (remove-parentheses-from-string (format "%s" (dom-children content))))
 	    (setq contents (append (dom-children content) contents)))
 
 	   ('bullet
@@ -357,7 +362,7 @@ functions adds up. So any optimisation would help."
 					   "\\1><break>'\\2'</break><")
 		  ;;(replace-regexp-all-occs "\\(\\w\\)>\"" "\\1>\\\"")
 
-		  ;;(message (buffer-string))
+		  ;; (message (buffer-string))
 		  ;;(message "%s"(libxml-parse-html-region  (point-min) (point-max)))
 		  (setq parsed-content (libxml-parse-html-region (point-min) (point-max))))))
 	  (with-current-buffer lsp-isar-state-buffer
