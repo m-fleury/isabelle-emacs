@@ -156,7 +156,8 @@ functions adds up. So any optimisation would help."
 
 	   ('warning_message
 	    (set-buffer lsp-isar-output-buffer)
-	    (let ((start-point (point)) (face (cdr (assoc "dotted_warning" lsp-isar-get-font))))
+	    (let ((start-point (point)) (face (cdr (assoc "text_overview_warning" lsp-isar-get-font))))
+	      (push (dom-node 'break `(('line . 1)) "\n") contents)
 	      (push (dom-node 'lsp-isar-fontification `((start-point . ,start-point) (face . ,face)) nil) contents)
 	      (setq contents (append (dom-children content) contents))))
 
