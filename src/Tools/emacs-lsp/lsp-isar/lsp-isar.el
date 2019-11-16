@@ -58,8 +58,15 @@ the output buffer, and the initial hooks.")
 (defvar lsp-isar--already-split nil
   "boolean to indicate if we have already split the window")
 
+(defvar lsp-isar-split-pattern-three-columns "three columns");;
+(defvar lsp-isar-split-pattern-two-columns "three columns");;
+
+(defcustom lsp-isar-split-pattern lsp-isar-split-pattern-two-columns
+  "split motif for the columns. Use either lsp-isar-split-pattern-two-columns or
+lsp-isar-split-pattern-three-columns.");;
+
 ;; unconditionnaly split the window
-(defun lsp-isar-open-output-and-progress-right ()
+(defun lsp-isar-open-output-and-progress-right-two-columns ()
    "opens the *lsp-isar-output* and *lsp-isar-progress* buffers on the right"
    (interactive)
    (split-window-right)
@@ -72,6 +79,33 @@ the output buffer, and the initial hooks.")
    (other-window 1)
    (switch-to-buffer "*lsp-isar-progress*")
    (other-window -3))
+
+(defun lsp-isar-open-output-and-progress-right-three-columns ()
+   "opens the *lsp-isar-output* and *lsp-isar-progress* buffers on the right"
+   (interactive)
+
+   ;; split first
+   (split-window-right)
+   (other-window 1)
+
+   ;; split second
+   (split-window-right)
+   (other-window 1)
+   (switch-to-buffer "*lsp-isar-progress*")
+
+   (other-window -1)
+   (switch-to-buffer "*lsp-isar-state*")
+   (split-window-below)
+   (other-window 1)
+   (switch-to-buffer "*lsp-isar-output*")
+   (other-window -3))
+
+(defun lsp-isar-open-output-and-progress-right ()
+  "opens the *lsp-isar-output* and *lsp-isar-progress* buffers on the right"
+  (cond
+    ((eq lsp-isar-split-pattern lsp-isar-split-pattern-two-columns) (lsp-isar-open-output-and-progress-right-two-columns))
+    ((eq lsp-isar-split-pattern lsp-isar-split-pattern-three-columns) (lsp-isar-open-output-and-progress-right-three-columns))
+    (t (message "unrecognised motif to split window."))))
 
 ;; split the window 2 seconds later (the timeout is necessary to give
 ;; enough time to spacemacs to jump to the theory file). It can be used
@@ -116,7 +150,7 @@ the output buffer, and the initial hooks.")
 ;; declare the lsp mode
 (push  '(isar-mode . "isabelle") lsp-language-id-configuration)
 
-(defcustom lsp-isar-remote-path-to-isabelle "/home/zmaths/Documents/isabelle/isabelle2018-vsce" "default path to Isabelle (e.g., /path/to/isabelle/folder)")
+(defcustom lsp-isar-remote-path-to-isabelle "/home/zmaths/Documents/isabelle-release" "default path to Isabelle (e.g., /path/to/isabelle/folder)")
 
 (defcustom lsp-remote-isabelle-options (list "-m" "do_notation") "Isabelle options (e.g, AFP)")
 
