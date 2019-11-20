@@ -682,7 +682,9 @@ CAUTION: this can be slow."
     (if (not buffer)
 	;; buffer was closed
 	;; the rest will be deleted during the next round of full cleaning
-	(puthash file nil lsp-isar--sem-overlays)
+	(progn
+	  (message "buffer not found")
+	 (puthash file nil lsp-isar--sem-overlays))
     (progn
 
       ;; faster adding (and deleting) of overlays see for example

@@ -86,24 +86,16 @@ interface Caret_Update {
 launch the timer to update send the notification in the near future."
   (let ((my-current-word (thing-at-point 'word)))
     (if (and (boundp 'lsp--cur-workspace)
-	     (not (equal (point) last-post-command-position))
-	     (or
-	      (not lsp-isar-limit-position-updates)
-	      (equal my-current-word nil)
-	      (not (equal my-current-word last-post-command-word)) ; the word has changed
-	      (and
-	       (> (point) last-post-command-position)
-	       (> (- (point) last-post-command-position) 80)) ; or we have moved from around one line
-	      (and
-	       (< (point) last-post-command-position)
-	       (< (- last-post-command-position (point)) 80))))
+	     (not (equal (point) last-post-command-position)))
 	(progn
-	  (if lsp-isar--caret-timer
-	    (cancel-timer lsp-isar--caret-timer))
-	  (setq lsp-isar--caret-timer
-		(run-at-time 0.2 nil 'lsp--isar-send-caret-update))
-	  (setq last-post-command-position (point))
-	  (setq last-post-command-word my-current-word)))))
+	  (lsp--isar-send-caret-update)
+	  ;; (if lsp-isar--caret-timer
+	  ;;   (cancel-timer lsp-isar--caret-timer))
+	  ;; (setq lsp-isar--caret-timer
+	  ;; 	(run-at-time 0.2 nil 'lsp--isar-send-caret-update))
+	  ;; (setq last-post-command-position (point))
+	  ;; (setq last-post-command-word my-current-word)
+	  ))))
 
 
 ;; https://stackoverflow.com/questions/26544696/an-emacs-cursor-movement-hook-like-the-javascript-mousemove-event

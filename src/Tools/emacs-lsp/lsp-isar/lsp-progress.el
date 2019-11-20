@@ -74,7 +74,7 @@
 			(progn
 			  (setq current-thy-line-found t)))
 		    (unless current-thy-line-found
-		      (setq current-thy-line (+ 1 current-thy-line)))
+		      (setq current-thy-line (1+ current-thy-line)))
 		    (setq s (concat (file-name-base theory)
 				    " "
 				    (number-to-string processed)
@@ -98,7 +98,7 @@
 	    (goto-char (point-min))
 	    (if current-thy-point
 		(goto-char current-thy-point)
-	    (forward-line (1- current-thy-line)))))
+	    (forward-line current-thy-line))))
 	))))
 
 

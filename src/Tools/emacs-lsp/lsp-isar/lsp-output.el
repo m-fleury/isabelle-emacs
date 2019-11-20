@@ -186,7 +186,7 @@ functions adds up. So any optimisation would help."
 	    (setq contents (append (dom-children content) contents)))
 
 	   ('subgoal
-	    (set-buffer lsp-isar-state-buffer)
+	    ;;(set-buffer lsp-isar-state-buffer)
 	    (setq contents (append (dom-children content) contents)))
 
 	   ('span
@@ -227,6 +227,9 @@ functions adds up. So any optimisation would help."
 	    (let ((start-point (point)) (face (cdr (assoc "text_free" lsp-isar-get-font))))
 	      (push (dom-node 'lsp-isar-fontification `((start-point . ,start-point) (face . ,face)) nil) contents)
 	      (setq contents (append (dom-children content) contents))))
+
+	   ('inner_string ;; TODO font
+	    (setq contents (append (dom-children content) contents)))
 
 	   ('tfree
 	    (let ((start-point (point)) (face (cdr (assoc "text_tfree" lsp-isar-get-font))))
