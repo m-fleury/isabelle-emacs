@@ -63,7 +63,7 @@ interface Caret_Update {
 (defun lsp--path-to-uri (path)
   "Convert PATH to a uri."
   (concat lsp--uri-file-prefix
-          (url-hexify-string (replace-regexp-in-string (regexp-quote "/home/salt") "/local/home/salt" (expand-file-name path) nil 'literal)
+          (url-hexify-string (replace-regexp-in-string (regexp-quote "^/home/salt") "/local/home/salt" (expand-file-name path) nil 'literal)
                              url-path-allowed-chars)))
 
 (define-inline lsp-cur-caret_update ()
