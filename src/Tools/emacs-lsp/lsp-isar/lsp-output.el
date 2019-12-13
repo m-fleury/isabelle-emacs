@@ -367,11 +367,19 @@ functions adds up. So any optimisation would help."
 		  ;; make sure there is no "$" left
 		  (replace-regexp-all-occs "\\$" "")
 
+
+		  ;; add some missing line breaks between error message
+		  (replace-regexp-all-occs "</error_message><error_message"
+					   "</error_message>\n<error_message")
+
 		  ;; protect spaces and line breaks
 		  (replace-regexp-all-occs "\n\\( *\\)"
 					   "<break line = 1>'\\1'</break>")
+
+
 		  (replace-regexp-all-occs "\\(\\w\\)>\\( *\\)<"
 					   "\\1><break>'\\2'</break><")
+
 		  ;;(replace-regexp-all-occs "\\(\\w\\)>\"" "\\1>\\\"")
 
 		  ;; (message (buffer-string))
