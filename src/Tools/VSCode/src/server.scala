@@ -556,7 +556,6 @@ class Server(
     var nodes_status1 : Map[isabelle.Document.Node.Name, isabelle.Document_Status.Node_Status] = Map.empty
     for (name <- nodes.domain.iterator) {
       if (resources.is_hidden(name) ||
-        resources.is_hidden(name) ||
         resources.session_base.loaded_theory(name) ||
         nodes(name).is_empty) ()
       else {
