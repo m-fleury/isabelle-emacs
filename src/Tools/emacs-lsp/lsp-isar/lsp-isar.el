@@ -33,7 +33,8 @@
 
 (defcustom lsp-isar-init-hook nil
    "List of functions to be called after Isabelle has been started."
-   :type 'hook)
+   :type 'hook
+   :group 'isabelle)
 
 (defvar lsp-isar-already-initialised nil
   "boolean to indicate if we have already initialised progress updates,
@@ -63,7 +64,9 @@ the output buffer, and the initial hooks.")
 
 (defcustom lsp-isar-split-pattern lsp-isar-split-pattern-two-columns
   "split motif for the columns. Use either lsp-isar-split-pattern-two-columns or
-lsp-isar-split-pattern-three-columns.");;
+lsp-isar-split-pattern-three-columns."
+  :type 'string
+  :group 'isabelle);;
 
 ;; unconditionnaly split the window
 (defun lsp-isar-open-output-and-progress-right-two-columns ()
@@ -114,27 +117,24 @@ lsp-isar-split-pattern-three-columns.");;
 (defun lsp-isar-open-output-and-progress-right-spacemacs ()
   (run-at-time 2 nil (lambda () (lsp-isar-open-output-and-progress-right))))
 
-(defun lsp-isar--initialize-client (client)
-  (lsp-client-on-notification client "PIDE/decoration" 'lsp-isar-update-and-reprint)
-  (lsp-client-on-notification client "PIDE/dynamic_output"
-			      (lambda (w _p)
-				(lsp-isar-update-state-and-output-buffer (gethash "content" _p))))
-  (lsp-client-on-notification client "PIDE/progress"
-			      (lambda (w _p)
-				(lsp-isar-update-progress-buffer (gethash "nodes_status" _p)))))
-
 (defcustom lsp-isar-path-to-isabelle "/home/zmaths/Documents/isabelle/isabelle2018-vsce"
-  "default path to Isabelle (e.g., /path/to/isabelle/folder)")
+  "default path to Isabelle (e.g., /path/to/isabelle/folder)"
+  :type 'string
+  :group 'isabelle)
 
 (defcustom lsp-isabelle-options (list "-m" "do_notation")
-  "Isabelle options (e.g, AFP)")
+  "Isabelle options (e.g, AFP)"
+  :type '(list string)
+  :group 'isabelle)
 
 (defcustom lsp-vscode-options
   (list
    "-o" "vscode_unicode_symbols"
    "-o" "vscode_pide_extensions"
    "-o" "vscode_caret_perspective=10")
-  "Isabelle's LSP server options")
+  "Isabelle's LSP server options"
+  :type '(list string)
+  :group 'isabelle)
 
 (defun lsp-full-isabelle-path ()
   (append
@@ -150,9 +150,15 @@ lsp-isar-split-pattern-three-columns.");;
 ;; declare the lsp mode
 (push  '(isar-mode . "isabelle") lsp-language-id-configuration)
 
-(defcustom lsp-isar-remote-path-to-isabelle "/home/zmaths/Documents/isabelle-release" "default path to Isabelle (e.g., /path/to/isabelle/folder)")
+(defcustom lsp-isar-remote-path-to-isabelle
+  "/home/zmaths/Documents/isabelle-release"
+  "default path to Isabelle (e.g., /path/to/isabelle/folder)"
+  :type '(string)
+  :group 'isabelle)
 
-(defcustom lsp-remote-isabelle-options (list "-m" "do_notation") "Isabelle options (e.g, AFP)")
+(defcustom lsp-remote-isabelle-options (list "-m" "do_notation") "Isabelle options (e.g, AFP)"
+  :type '(list string)
+  :group 'isabelle)
 
 (defun lsp-full-remote-isabelle-path ()
   "full remote isabelle command"
@@ -160,7 +166,9 @@ lsp-isar-split-pattern-three-columns.");;
    (list (concat lsp-isar-remote-path-to-isabelle "/bin/isabelle")
 	 "vscode_server")
    lsp-vscode-options
-   lsp-remote-isabelle-options))
+   lsp-remote-isabelle-options)
+  :type '(string)
+  :group 'isabelle)
 
 
 (defvar lsp-isar-tramp nil "Remote config")

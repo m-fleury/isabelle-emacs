@@ -33,10 +33,18 @@
 
 (defvar lsp-isar-proof-cases-content nil)
 (defvar lsp-isar-proof-timer nil "Current timer rendering the HTML")
-(defcustom lsp-isar-maximal-time 3 "Maximal time in seconds printing can take. Use nil for infinity")
+
+(defcustom lsp-isar-maximal-time 3 "Maximal time in seconds printing can take. Use nil for infinity"
+  :type '(number)
+  :group 'isabelle)
+
 (defvar lsp-isar--last-start nil "Last start time in seconds")
 (defvar lsp-isar--previous-goal nil "previous outputted goal")
-(defcustom lsp-isar-time-before-printing-goal 0.3 "Time before printing goal. Use nil to avoid printing goals.")
+
+(defcustom lsp-isar-time-before-printing-goal 0.3
+  "Time before printing goal. Use nil to avoid printing goals."
+  :type '(number)
+  :group 'isabelle)
 
 (define-error 'abort-rendering "Abort the rendering of the state and output buffer")
 
@@ -337,10 +345,10 @@ functions adds up. So any optimisation would help."
 (defun lsp-isar-update-goal-without-deadline ()
     "Updates the goal without time limit"
   (interactive)
-  (setq old-timeout lsp-isar-maximal-time)
-  (setq lsp-isar-maximal-time nil)
-  (lsp-isar--update-state-and-output-buffer lsp-isar--previous-goal)
-  (setq lsp-isar-maximal-time old-timeout))
+  (let ((old-timeout lsp-isar-maximal-time))
+    (setq lsp-isar-maximal-time nil)
+    (lsp-isar--update-state-and-output-buffer lsp-isar--previous-goal)
+    (setq lsp-isar-maximal-time old-timeout)))
 
 
 (defun lsp-isar--update-state-and-output-buffer (content)

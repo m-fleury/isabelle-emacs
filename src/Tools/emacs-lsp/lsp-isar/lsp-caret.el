@@ -26,7 +26,9 @@
 (require 'lsp-mode)
 
 (defcustom lsp-isar-limit-position-updates nil
-  "don't send caret updates when the cursor stays in the same word.")
+  "don't send caret updates when the cursor stays in the same word."
+  :type '(boolean)
+  :group 'isabelle)
 
 (defvar last-post-command-position 0
   "Holds the cursor position from the last run of post-command-hooks.")
@@ -84,8 +86,7 @@ interface Caret_Update {
 (defun lsp-isar-update-caret ()
   "Test if the position has changed. If it has changed, then
 launch the timer to update send the notification in the near future."
-  (let ((my-current-word (thing-at-point 'word)))
-    (if (and (boundp 'lsp--cur-workspace)
+  (if (and (boundp 'lsp--cur-workspace)
 	     (not (equal (point) last-post-command-position)))
 	(progn
 	  (lsp--isar-send-caret-update)
@@ -95,7 +96,7 @@ launch the timer to update send the notification in the near future."
 	  ;; 	(run-at-time 0.2 nil 'lsp--isar-send-caret-update))
 	  ;; (setq last-post-command-position (point))
 	  ;; (setq last-post-command-word my-current-word)
-	  ))))
+	  )))
 
 
 ;; https://stackoverflow.com/questions/26544696/an-emacs-cursor-movement-hook-like-the-javascript-mousemove-event

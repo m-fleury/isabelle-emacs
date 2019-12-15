@@ -110,6 +110,8 @@
 ;; More efficient LISP code:
 ;; https://nullprogram.com/blog/2017/01/30/
 
+(require 'dash)
+
 ;; file -> type -> [range, decoration] list
 (defvar lsp-isar--sem-overlays (make-hash-table :test 'equal)
   "decoration cache.")
@@ -560,7 +562,9 @@ CAUTION: this can be slow."
   (maphash 'lsp-isar-kill-all-unused-overlays-file lsp-isar--overlays-to-reuse))
 
 (defcustom lsp-isar-full-clean-ran-every 600
-  "Full clean every some many seconds. Use nil to deactivate it.")
+  "Full clean every some many seconds. Use nil to deactivate it."
+  :type '(number)
+  :group 'isabelle)
 
 (defvar lsp-isar--cleaner-timer nil
   "Timer to clean all elements. Set lsp-isar-cleaner-ran-every to
@@ -748,7 +752,6 @@ CAUTION: this can be slow."
 		(setq line l1)
 
 		(let ((ov (new-or-recycle-overlay point0 point1 face)))
-		  (assert (overlayp ov))
 		  (push (list (list l0 c0 l1 c1) ov) curoverlays))
 		t)))
 
