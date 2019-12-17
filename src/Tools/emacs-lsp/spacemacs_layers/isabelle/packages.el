@@ -68,6 +68,9 @@ Each entry is either:
   (use-package dash
     :defer t))
 
+(defun isabelle/init-yasnippet ()
+  (use-package yasnippet))
+
 (defun isabelle/post-init-yasnippet ()
   (push (concat lsp-isar-path-to-isabelle "/src/Tools/emacs-lsp/yasnippet") yas-snippet-dirs))
 
