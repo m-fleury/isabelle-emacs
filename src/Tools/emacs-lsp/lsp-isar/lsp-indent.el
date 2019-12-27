@@ -238,10 +238,7 @@
 
 (defun move-to-first-word-on-the-line ()
   (lsp-isar-trace-indent "move-to-first-word-on-the-line, initially looking at %s" (word-at-point))
-  (if
-      (and (not (word-at-point))
-	   (not (looking-at "[[:space:]]*$")))
-      (forward-word))
+  (back-to-indentation)
   (lsp-isar-trace-indent "move-to-first-word-on-the-line, now looking at %s" (word-at-point)))
 
 (defun indent_indent ()
@@ -289,13 +286,21 @@
 
 (defun previous-line-with-word ()
   (lsp-isar-trace-indent "previous-line-with-word, looking at %s" (word-at-point))
+  (forward-line -1)
   (let ((finished nil))
     (while (and (not finished)
 		(not (= (point) (point-min))))
-      (if  (looking-at "[[:space:]][[:word]]")
+      (lsp-isar-trace-indent "previous-line-with-word beginning of line, looking at %s, line %s" (word-at-point)
+			     (line-number-at-pos))
+      (back-to-indentation) ;; move to first word of the line
+      (lsp-isar-trace-indent "previous-line-with-word, looking at %s, line %s" (word-at-point)
+			     (line-number-at-pos))
+      (if (word-at-point)
 	  (setq finished t)
-	(forward-line -1))))
-  (lsp-isar-trace-indent "previous-line-with-word, looking at %s, line %s" (word-at-point)
+	(progn
+	  (forward-line -1)
+	  (beginning-of-line)))))
+  (lsp-isar-trace-indent "previous-line-with-word found, looking at %s, line %s" (word-at-point)
 			 (line-number-at-pos)))
 
 
