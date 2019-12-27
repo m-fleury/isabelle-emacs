@@ -345,9 +345,7 @@
     (setq depth 0)
     (while (and (not finished) (not (= (point) (point-min))))
       (beginning-of-line)
-      (if (not (looking-at "[[:word:]]"));; if there is no word, skip line, e.g. "}"
-	  (previous-line-with-word)
-	(progn
+      (progn
 	  (move-to-first-word-on-the-line)
 	  (lsp-isar-trace-indent "\tindent_structure '%s' '%s', indent at: '%s'" (word-at-point) depth (indent_indent))
 	  (setq depth (+ depth (indent_indent)))
@@ -362,7 +360,7 @@
 				       (+ depth (indent_offset_creates_indent)))
 		(setq depth (+ depth (current-indentation) (indent_offset_creates_indent)))
 		(lsp-isar-trace-indent "\tindent_structure set to %s" depth))
-	    (previous-line-with-word)))))
+	    (previous-line-with-word))))
     (lsp-isar-trace-indent "\tindent_structure final: %s" depth)
     depth))
 
@@ -385,7 +383,8 @@
 	     (and (word-at-point) (string-match-p lsp-isar--keyw-begin-or-command (word-at-point))))
     (if (and (current-line-empty-p)
 	     (/= 0 (current-line-empty-p))
-	     (looking-at "[[:word:]]"))
+	     (looking-at "[[:word:]]")
+	     (looking-at-p-nonempty lsp-isar--keyw-command))
 	(if (or
 	     (looking-at-p-nonempty lsp-isar--keyw-begin)
 	     (looking-at-p-nonempty lsp-isar--keyw-before-command)
