@@ -364,12 +364,12 @@
     (lsp-isar-trace-indent "\tindent_structure final: %s" depth)
     depth))
 
-(defun goto-prev-line-command ()
-  (lsp-isar-trace-indent "goto-prev-line-command")
+(defun goto-previous-line-with-command ()
+  (lsp-isar-trace-indent "goto-previous-line-with-command")
   (setq finished nil)
   (while (and (not finished) (not (= (point) (point-min))))
     (move-to-first-word-on-the-line)
-    (lsp-isar-trace-indent "goto-prev-line-command: %s" (word-at-point))
+    (lsp-isar-trace-indent "goto-previous-line-with-command: %s" (word-at-point))
     (if (looking-at-p-nonempty lsp-isar--keyw-begin-or-command)
 	(setq finished t)
       (previous-line-with-word)))
@@ -414,7 +414,7 @@
 		    (progn
 		      (lsp-isar-trace-indent "\tcommand+no enclose")
 		      (let ((curr_quasi (looking-at-p-nonempty lsp-isar--keyw-quasi-command)))
-		        (goto-prev-line-command)
+		        (goto-previous-line-with-command)
 			(move-to-first-word-on-the-line)
 			(let* ((prev_quasi (looking-at-p-nonempty lsp-isar--keyw-quasi-command))
 			       (extra
@@ -430,7 +430,7 @@
       (progn
 	(lsp-isar-trace-indent "\tindentation_depth/no command")
 	(lsp-isar-trace-indent "\tword at point: %s" (word-at-point))
-	(goto-prev-line-command)
+	(goto-previous-line-with-command)
 	(lsp-isar-trace-indent "\tword at point: %s" (word-at-point))
 	(lsp-isar-trace-indent "\tindent-indent: %s; indent_offset: %s; command: %s"  (indent_indent)
 		 (indent_offset) (looking-at-p-nonempty lsp-isar--keyw-command))

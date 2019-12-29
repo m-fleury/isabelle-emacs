@@ -435,9 +435,9 @@ functions adds up. So any optimisation would help."
       (setq lsp-isar-proof-timer
 	    (run-at-time lsp-isar-time-before-printing-goal nil
 			 (lambda (content)
-				(progn
-				  (setq lsp-isar--last-start (time-to-seconds))
-				  (lsp-isar--update-state-and-output-buffer content)))
+			   (progn
+			     (setq lsp-isar--last-start (time-to-seconds))
+			     (lsp-isar--update-state-and-output-buffer content)))
 			 content))))
 
 
