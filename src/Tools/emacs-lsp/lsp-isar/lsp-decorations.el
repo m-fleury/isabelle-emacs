@@ -550,21 +550,26 @@ CAUTION: this can be slow."
       ((overlays-to-reuse (gethash file lsp-isar--overlays-to-reuse nil))
        (m (length overlays-to-reuse)))
     (with-silent-modifications
-      (message "Cleaning file %s (around %s overlays to delete) [use C-g to abort]" file m)
+      (message "Cleaning file %s (%s overlays to delete) [use C-g to abort]" file m)
       (remove-overlays (point-min) (point-max) 'face 'lsp-isar-font-nothing)
       (puthash file nil lsp-isar--overlays-to-reuse))))
 
 
 (defun lsp-isar-kill-all-unused-overlays ()
   (interactive)
-  (message "Cleaning all decorations. Set lsp-isar-full-clean-ran-every \
+  (message "Cleaning all decorations. Set lsp-isar-full-clean-after-inactivity \
   increase the delay between two of them, if you have called the function.")
   (maphash 'lsp-isar-kill-all-unused-overlays-file lsp-isar--overlays-to-reuse))
 
-(defcustom lsp-isar-full-clean-ran-every 600
+
+(defcustom lsp-isar-full-clean-after-inactivity 600
   "Full clean every some many seconds. Use nil to deactivate it."
   :type '(number)
   :group 'isabelle)
+
+(defalias lsp-isar-full-clean-ran-every lsp-isar-full-clean-after-inactivity)
+(make-obsolete lsp-isar-full-clean-ran-every lsp-isar-full-clean-after-inactivity "december 2019")
+
 
 (defvar lsp-isar--cleaner-timer nil
   "Timer to clean all elements. Set lsp-isar-cleaner-ran-every to
@@ -625,8 +630,8 @@ CAUTION: this can be slow."
 ;; we assume that the ranges are sorted and align them as shown. We
 ;; iterate over the two lists and there are several cases:
 ;;   1. A = A: nothing to do.
-;;   2. there are more old: delete the remaining;
-;;   3. there are more new: just print them;
+;;   2. there are no more new: delete the remaining;
+;;   3. there are no more old: just print them;
 ;;   4. D < E: we delete D and continue the iteration (keeping E
 ;;   in the new decorations);
 ;;   5. otherwise, the ranges intersect: we delete H' and add H.
@@ -781,8 +786,8 @@ CAUTION: this can be slow."
 		    (if (ranges-are-equal r1 r2)
 			(progn
 			  (push r2 curoverlays)
-			  (setq news (cdr news))
-			  (setq olds (cdr olds)))
+			  (pop news)
+			  (pop olds))
 		      ;; if r1 < r2, print r1 and continue iteration
 		      (if (range-is-before r1 r2)
 			  (progn
@@ -802,7 +807,7 @@ CAUTION: this can be slow."
 			  ;;(message "wanted to print: %s skipped: %s" r1 r2)
 			  (overlay-put (cadr r2) 'face 'lsp-isar-font-nothing)
 			  (push (cadr r2) overlays-to-reuse)
-			  (setq olds (cdr olds))))))))))
+			  (pop olds)))))))))
 
 
 	  (save-excursion
@@ -831,10 +836,10 @@ CAUTION: this can be slow."
       (setq lsp-isar--recycler (run-with-timer 0 0.5 'lsp-isar-recycle-batch nil)))
   (if (and
        (not lsp-isar--cleaner-timer)
-       lsp-isar-full-clean-ran-every
-       (> lsp-isar-full-clean-ran-every 0))
+       lsp-isar-full-clean-after-inactivity
+       (> lsp-isar-full-clean-after-inactivity 0))
       (setq lsp-isar--cleaner-timer
-	    (run-with-idle-timer lsp-isar-full-clean-ran-every t
+	    (run-with-idle-timer lsp-isar-full-clean-after-inactivity t
 				 'lsp-isar-kill-all-unused-overlays))))
 
 (provide 'lsp-decorations)

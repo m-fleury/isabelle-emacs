@@ -48,6 +48,14 @@
 
 (define-error 'abort-rendering "Abort the rendering of the state and output buffer")
 
+
+(defcustom lsp-isar-output-cach-size 500
+  "Number of elements to cach when outputting elements"
+  :type '(number)
+  :group 'isabelle)
+
+(defvar lsp-isar--output-cach (make-ring lsp-isar-output-cach-size))
+
 (define-inline remove-quotes-from-string (obj)
   (inline-letevals (obj)
     (inline-quote (string-remove-suffix "'" (string-remove-prefix "'" ,obj)))))
@@ -56,9 +64,9 @@
   (inline-letevals (obj)
     (inline-quote (string-remove-suffix "(" (string-remove-prefix ")" ,obj)))))
 
-;; The function iterates over the HTML as parsed by the HTML
-;; library. As a side effect, it fills the state buffer and the output
-;; buffer with the correct faces.
+;; The function iterates over the HTML as parsed by the HTML library. As a side effect, it fills the
+;; state buffer and the output buffer with the correct faces. We cannot make the function recursive,
+;; as recursive is slower and fail for deep goals.
 ;;
 ;; To shorten the code, we use the define-inline which is inlined
 ;; during compilation.
@@ -78,11 +86,11 @@
 ;; duplicate entries.
 ;;
 ;;
-;; RESULT OF SOME INVESTIGATION
+;; RESULT OF SOME INVESTIGATIONS
 ;;
 ;;   - parsing the goal is not slow during testing but can beome a
 ;; huge issue on Isabelle theories. And profiling in emacs is as usual
-;; entirely useless.
+;; entirely useless to find the problem.
 ;;
 ;;  - the goal has to be simplified (or preprocessed outside of the
 ;; emacs main thread), but it is not clear how to achieve this.
@@ -315,6 +323,7 @@ functions adds up. So any optimisation would help."
 		(setq contents (append children contents)))))
 
 	   ('sup ;; Heuristically find the difference between sup and bsup...esup
+	    ;; but we cannot do better as the information is not transmitted
 	    (let ((children (dom-children content)))
 	      (if (and
 		   (not (cdr children))
