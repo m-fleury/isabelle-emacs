@@ -567,9 +567,6 @@ CAUTION: this can be slow."
   :type '(number)
   :group 'isabelle)
 
-(defalias lsp-isar-full-clean-ran-every lsp-isar-full-clean-after-inactivity)
-(make-obsolete lsp-isar-full-clean-ran-every lsp-isar-full-clean-after-inactivity "december 2019")
-
 
 (defvar lsp-isar--cleaner-timer nil
   "Timer to clean all elements. Set lsp-isar-cleaner-ran-every to
