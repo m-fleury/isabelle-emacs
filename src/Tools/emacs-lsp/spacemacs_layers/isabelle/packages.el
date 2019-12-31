@@ -32,6 +32,7 @@
 (defconst isabelle-packages
   '(
     dash
+    async
     yasnippet
     (isar-mode :location local)
     (isar-goal-mode :location local)
@@ -66,6 +67,11 @@ Each entry is either:
 
 (defun isabelle/init-dash ()
   (use-package dash
+    :defer t))
+
+
+(defun isabelle/init-async ()
+  (use-package async
     :defer t))
 
 (defun isabelle/init-yasnippet ()
