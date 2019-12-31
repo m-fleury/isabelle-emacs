@@ -391,10 +391,6 @@ functions adds up. So any optimisation would help."
 		  ;; remove line breaks at beginning
 		  (replace-regexp-all-occs "\\$\n*<body>\n" "<body>")
 
-		  ;; make sure there is no "$" left
-		  (replace-regexp-all-occs "\\$" "")
-
-
 		  ;; add some missing line breaks between error message
 		  (replace-regexp-all-occs "</error_message><error_message"
 					   "</error_message>\n<error_message")
@@ -737,10 +733,6 @@ It generates the text in the buffers and (in two separate lists) the decorations
 
 		     ;; remove line breaks at beginning
 		     (replace-regexp-all-occs "\\$\n*<body>\n" "<body>")
-
-		     ;; make sure there is no "$" left
-		     (replace-regexp-all-occs "\\$" "")
-
 
 		     ;; add some missing line breaks between error message
 		     (replace-regexp-all-occs "</error_message><error_message"
