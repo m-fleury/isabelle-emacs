@@ -1,6 +1,11 @@
-;;; -*- lexical-binding: t; -*-
+;;; lsp-isar-indent.el --- Indentation of isar files -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2018-2020 Mathias Fleury
+;; Author: Mathias Fleury <mathias.fleury@protonmail.com>
+;; URL: https://bitbucket.org/zmaths/isabelle2019-vsce/
+
+;; Keywords: lisp
+;; Version: 0
+;; Package-Requires: ((emacs "25.1"))
 
 ;; Permission is hereby granted, free of charge, to any person obtaining a copy
 ;; of this software and associated documentation files (the "Software"), to deal
@@ -19,6 +24,10 @@
 ;; LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 ;; OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 ;; SOFTWARE.
+
+;;; Commentary:
+
+;; blabal
 
 ;;; Code:
 
@@ -459,4 +468,6 @@
     (indent-line-to cur-indent)))
 
 
-(provide 'lsp-indent)
+(provide 'lsp-isar-indent)
+
+;;; lsp-isar-indent.el ends here

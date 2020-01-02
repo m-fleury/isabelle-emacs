@@ -1,6 +1,13 @@
-;;; -*- lexical-binding: t; -*-
+
+;;; lsp-isar.el --- Initialise and setup LSP protocol for Isabelle -*- lexical-binding: t -*-
+
 
 ;; Copyright (C) 2018-2020 Mathias Fleury
+;; URL: https://bitbucket.org/zmaths/isabelle2019-vsce/
+
+;; Keywords: lisp
+;; Version: 0
+;; Package-Requires: ((emacs "25.1") (lsp-mode "6.0"))
 
 ;; Permission is hereby granted, free of charge, to any person obtaining a copy
 ;; of this software and associated documentation files (the "Software"), to deal
@@ -20,16 +27,19 @@
 ;; OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 ;; SOFTWARE.
 
+;;; Commentary:
+
+;; blabla
+
 ;;; Code:
 
 
 (require 'lsp-mode)
-(require 'lsp-output)
-(require 'lsp-caret)
-(require 'lsp-output)
-(require 'lsp-progress)
-(require 'lsp-decorations)
-(require 'lsp-indent)
+(require 'lsp-isar-caret)
+(require 'lsp-isar-output)
+(require 'lsp-isar-progress)
+(require 'lsp-isar-decorations)
+(require 'lsp-isar-indent)
 
 (defcustom lsp-isar-init-hook nil
    "List of functions to be called after Isabelle has been started."
@@ -47,11 +57,11 @@ the output buffer, and the initial hooks.")
 	  (lambda()
 	    (if (equal major-mode 'isar-mode)
 		(progn
-		  (lsp-isar-activate-caret-update)
+		  (lsp-isar-caret-activate-caret-update)
 		  (unless lsp-isar-already-initialised
 		    (progn
-		      (lsp-isar-initialize-output-buffer)
-		      (lsp-isar-activate-progress-update)
+		      (lsp-isar-output-initialize-output-buffer)
+		      (lsp-isar-progress-activate-progress-update)
 		      (lsp-isar--init-decorations)
 		      (run-hooks 'lsp-isar-init-hook)
 		      (setq lsp-isar-already-initialised t)))))))
@@ -106,9 +116,11 @@ lsp-isar-split-pattern-three-columns."
 (defun lsp-isar-open-output-and-progress-right ()
   "opens the *lsp-isar-output* and *lsp-isar-progress* buffers on the right"
   (cond
-    ((eq lsp-isar-split-pattern lsp-isar-split-pattern-two-columns) (lsp-isar-open-output-and-progress-right-two-columns))
-    ((eq lsp-isar-split-pattern lsp-isar-split-pattern-three-columns) (lsp-isar-open-output-and-progress-right-three-columns))
-    (t (message "unrecognised motif to split window."))))
+   ((eq lsp-isar-split-pattern lsp-isar-split-pattern-two-columns)
+    (lsp-isar-open-output-and-progress-right-two-columns))
+   ((eq lsp-isar-split-pattern lsp-isar-split-pattern-three-columns)
+    (lsp-isar-open-output-and-progress-right-three-columns))
+   (t (message "unrecognised motif to split window."))))
 
 ;; split the window 2 seconds later (the timeout is necessary to give
 ;; enough time to spacemacs to jump to the theory file). It can be used
@@ -141,8 +153,7 @@ lsp-isar-split-pattern-three-columns."
    (list (concat lsp-isar-path-to-isabelle "/bin/isabelle")
 	 "vscode_server")
    lsp-vscode-options
-   lsp-isabelle-options
-   ))
+   lsp-isabelle-options))
 
 (defvar lsp-isar-already-defined-client nil)
 
@@ -188,9 +199,8 @@ lsp-isar-split-pattern-three-columns."
 	:notification-handlers
 	(lsp-ht
 	 ("PIDE/decoration" 'lsp-isar-update-and-reprint)
-	 ("PIDE/dynamic_output" (lambda (w _p) (lsp-isar-update-state-and-output-buffer (gethash "content" _p))))
-	 ("PIDE/progress" (lambda (w _p) (lsp-isar--update-progress-buffer (gethash "nodes_status" _p)))))
-	))
+	 ("PIDE/dynamic_output" (lambda (w _p) (lsp-isar-output-update-state-and-output-buffer (gethash "content" _p))))
+	 ("PIDE/progress" (lambda (w _p) (lsp-isar-progress--update-buffer (gethash "nodes_status" _p)))))))
     (lsp-register-client
      (make-lsp-client
       :new-connection
@@ -203,10 +213,8 @@ lsp-isar-split-pattern-three-columns."
       :notification-handlers
       (lsp-ht
        ("PIDE/decoration" 'lsp-isar-update-and-reprint)
-       ("PIDE/dynamic_output" (lambda (w _p) (lsp-isar-update-state-and-output-buffer (gethash "content" _p))))
-       ("PIDE/progress" (lambda (w _p) (lsp-isar--update-progress-buffer (gethash "nodes_status" _p)))))
-      ))
-    ))
+       ("PIDE/dynamic_output" (lambda (w _p) (lsp-isar-output-update-state-and-output-buffer (gethash "content" _p))))
+       ("PIDE/progress" (lambda (w _p) (lsp-isar-progress--update-buffer (gethash "nodes_status" _p)))))))))
 
 
 (defun lsp-isar-define-client-and-start ()
@@ -233,3 +241,5 @@ lsp-isar-split-pattern-three-columns."
 (add-hook 'isar-mode-hook #'lsp-isar-activate-experimental-features)
 
 (provide 'lsp-isar)
+
+;;; lsp-isar.el ends here

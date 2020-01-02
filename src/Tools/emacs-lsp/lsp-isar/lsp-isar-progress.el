@@ -1,6 +1,13 @@
-;;; -*- lexical-binding: t; -*-
+;;; lsp-isar-progress.el --- Progress buffer for Isabelle ;;; -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2018-2020 Mathias Fleury
+
+;; URL: https://bitbucket.org/zmaths/isabelle2019-vsce/
+
+;; Keywords: lisp
+;; Version: 0
+;; Package-Requires: ((emacs "25.1"))
+
 
 ;; Permission is hereby granted, free of charge, to any person obtaining a copy
 ;; of this software and associated documentation files (the "Software"), to deal
@@ -29,18 +36,22 @@
 ;; ``lsp-isar-progress-request-max-delay'' seconds
 ;;
 
+;;; Commentary:
+
+;; blabla
+
 ;;; Code:
 
 
 ;; progress
 (defvar lsp-isar-progress-buffer nil "Contains the buffer to that contains the progress")
 (defvar lsp-isar-progress-request-max-delay 3)
-(defvar lsp-isar--progress-request-delay 0)
+(defvar lsp-isar-progress--request-delay 0)
 
 ;; TODO requires to iterate over the result
-(defun lsp-isar--update-progress-buffer (status)
+(defun lsp-isar-progress--update-buffer (status)
   "Updates the progress buffer and centers it on the current edited buffer"
-  (setq lsp-isar--progress-request-delay 0)
+  (setq lsp-isar-progress--request-delay 0)
   (let ((inhibit-read-only t)
 	(current-thy-name (if (buffer-file-name) (file-name-base) nil)))
     (save-excursion
@@ -98,31 +109,30 @@
 	    (goto-char (point-min))
 	    (if current-thy-point
 		(goto-char current-thy-point)
-	    (forward-line current-thy-line))))
-	))))
+	    (forward-line current-thy-line))))))))
 
 
 (defun lsp-isar--request-buffer ()
    (with-demoted-errors
        (progn
-	 (if (<= lsp-isar--progress-request-delay 0)
+	 (if (<= lsp-isar-progress--request-delay 0)
 	   (let ((my-message (lsp-make-notification "PIDE/progress_request" nil)))
 	     (lsp-send-notification my-message)
-	     (setq lsp-isar--progress-request-delay lsp-isar-progress-request-max-delay)))
-	 (setq lsp-isar--progress-request-delay  (- lsp-isar--progress-request-delay 1))) 
-     ))
+	     (setq lsp-isar-progress--request-delay lsp-isar-progress-request-max-delay)))
+	 (setq lsp-isar-progress--request-delay  (- lsp-isar-progress--request-delay 1)))))
 
-(defun lsp-isar-activate-progress-update ()
+(defun lsp-isar-progress-activate-progress-update ()
   "Activate the progress request"
   (setq lsp-isar-progress-buffer (get-buffer-create "*lsp-isar-progress*"))
   (save-excursion
     (with-current-buffer lsp-isar-progress-buffer
       (font-lock-mode)
       (read-only-mode t)))
-  (run-at-time 0 1 #'lsp-isar--request-buffer)
-  )
+  (run-at-time 0 1 #'lsp-isar--request-buffer))
 
 
 (modify-coding-system-alist 'file "*lsp-isar-progress*" 'utf-8-auto)
 
-(provide 'lsp-progress)
+(provide 'lsp-isar-progress)
+
+;;; lsp-isar-progress.el ends here

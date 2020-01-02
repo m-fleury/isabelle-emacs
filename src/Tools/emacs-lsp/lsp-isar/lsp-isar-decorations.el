@@ -1,6 +1,12 @@
-;;; -*- lexical-binding: t; -*-
+;;; lsp-isar-decorations.el --- Add syntax highlighting -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2018-2020 Mathias Fleury
+;; Author: Mathias Fleury <mathias.fleury@protonmail.com>
+;; URL: https://bitbucket.org/zmaths/isabelle2019-vsce/
+
+;; Keywords: lisp
+;; Version: 0
+;; Package-Requires: ((emacs "25.1"))
+
 
 ;; Permission is hereby granted, free of charge, to any person obtaining a copy
 ;; of this software and associated documentation files (the "Software"), to deal
@@ -22,7 +28,10 @@
 ;;
 ;;
 ;;
-;;; Code based on
+
+;;; Commentary:
+
+;; Code based on
 ;; https://github.com/cquery-project/emacs-cquery/blob/master/cquery-semantic-highlighting.el
 ;; especially cquery--publish-semantic-highlighting
 ;;
@@ -109,6 +118,8 @@
 ;;
 ;; More efficient LISP code:
 ;; https://nullprogram.com/blog/2017/01/30/
+
+;;; Code:
 
 (require 'dash)
 
@@ -467,7 +478,7 @@ classes."
   :group 'lsp-isar-sem)
 
 
-(defvar-local lsp-isar-get-font
+(defvar-local lsp-isar-decorations-get-font
   '(("background_unprocessed1"  . lsp-isar-font-background-unprocessed1)
     ("background_running1"  . lsp-isar-font-background-running1)
     ("background_bad"  . lsp-isar-font-background-bad)
@@ -681,7 +692,7 @@ CAUTION: this can be slow."
          (buffer (find-buffer-visiting file))
          (pranges (gethash "content" params nil))
 	 (typ (gethash "type" params "default"))
-	 (face (cdr (assoc typ lsp-isar-get-font)))
+	 (face (cdr (assoc typ lsp-isar-decorations-get-font)))
 	 (end_char_offset (if (or (equal typ "text_overview_error") (equal typ "text_overview_running")) 1 0))
 	 )
 
@@ -839,4 +850,7 @@ CAUTION: this can be slow."
 	    (run-with-idle-timer lsp-isar-full-clean-after-inactivity t
 				 'lsp-isar-kill-all-unused-overlays))))
 
-(provide 'lsp-decorations)
+(provide 'lsp-isar-decorations)
+
+
+;;; lsp-isar-decorations.el ends here
