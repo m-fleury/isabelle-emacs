@@ -836,11 +836,6 @@ It generates the text in the buffers and (in two separate lists) the decorations
       (isar-goal-mode)
       (font-lock-mode nil))))
 
-(defun lsp-isar-output-insert-cases ()
-  "insert the last seen outline"
-  (interactive)
-  (insert lsp-isar-output-proof-cases-content))
-
 (defun lsp-isar-output-update-state-and-output-buffer (content)
   "Launch the thread or timer to update the state and the output panel."
   (setq lsp-isar-output--previous-goal content)

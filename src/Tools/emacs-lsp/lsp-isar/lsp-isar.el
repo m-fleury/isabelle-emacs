@@ -240,6 +240,13 @@ lsp-isar-split-pattern-three-columns."
 
 (add-hook 'isar-mode-hook #'lsp-isar-activate-experimental-features)
 
+
+(defun lsp-isar-insert-cases ()
+  "insert the last seen outline"
+  (interactive)
+  (insert lsp-isar-output-proof-cases-content))
+
+
 (provide 'lsp-isar)
 
 ;;; lsp-isar.el ends here
