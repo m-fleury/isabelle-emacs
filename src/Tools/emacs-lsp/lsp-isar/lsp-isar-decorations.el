@@ -121,8 +121,6 @@
 
 ;;; Code:
 
-(require 'dash)
-
 ;; file -> type -> [range, decoration] list
 (defvar lsp-isar--sem-overlays (make-hash-table :test 'equal)
   "decoration cache.")

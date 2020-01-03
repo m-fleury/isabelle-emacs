@@ -792,27 +792,17 @@ It generates the text in the buffers and (in two separate lists) the decorations
 	    (lsp-isar-output-proof-cases-content-1 (caddr result))
 	    (lsp-isar-output-state-deco  (cadddr result))
 	    (lsp-isar-output-deco (caddddr result)))
-	(message "result %s" result)
-	(message "as %s; %s; %s" lsp-isar-output-state
-		 lsp-isar-output-output
-		 lsp-isar-output-proof-cases-content-1)
-	(message "id = %s, global id = %s, eq = %s" lsp-isar-output-current-output-number
-		 lsp-isar-output-current-output-number-res
-		 (= lsp-isar-output-current-output-number lsp-isar-output-current-output-number-res))
 	(setq lsp-isar-output-proof-cases-content lsp-isar-output-proof-cases-content-1)
 	(if (= lsp-isar-output-current-output-number lsp-isar-output-current-output-number-res)
 	    (progn
-	      (message "lsp-isar-output-output = %s" lsp-isar-output-output)
 	      (if lsp-isar-output-output
 		  (with-current-buffer lsp-isar-output-buffer
 		    (read-only-mode -1)
-		    (message "%s" lsp-isar-output-output)
 		    (setf (buffer-string) lsp-isar-output-output)
 		    (read-only-mode t)))
 	      (if lsp-isar-output-state
 		  (with-current-buffer lsp-isar-output-state-buffer
 		    (read-only-mode -1)
-		    (message " lsp-isar-output-state %s" lsp-isar-output-state)
 		    (setf (buffer-string) lsp-isar-output-state)
 		    (read-only-mode t)))))
 	(with-current-buffer lsp-isar-output-state-buffer
