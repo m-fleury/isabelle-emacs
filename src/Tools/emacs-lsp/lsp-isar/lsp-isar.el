@@ -263,6 +263,11 @@ lsp-isar-split-pattern-three-columns."
 (global-set-key (kbd "s-k w") 'my-kill-word-at-point)
 
 (defun lsp-isar-insert-sledgehammer (&optional prover isar)
+  "Looks at the last sledgehammer result, removes the word
+  \"sledgehammer\" if pointed at, then inserts the proofs.
+
+The first parameter is the prover name (or a subset of it) and
+the second is t if the Isar proof version should be taken."
   (interactive "P")
   ;;(message "word-at-point= %s %s" (word-at-point) (eq (word-at-point) "sledgehammer"))
   (if (string= (word-at-point) "sledgehammer")
