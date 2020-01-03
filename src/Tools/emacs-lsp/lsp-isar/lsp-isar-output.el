@@ -464,6 +464,7 @@ functions adds up. So any optimisation would help."
 	 (setq lsp-isar-output-state-buffer (get-buffer-create "*lsp-isar-state*"))
 	 (setq lsp-isar-output-buffer (get-buffer-create "*lsp-isar-output*"))
 	 (setq lsp-isar-output-proof-cases-content nil)
+	 (setq lsp-isar-output-last-seen-prover nil)
 
 	 (set-buffer lsp-isar-output-state-buffer)
 
@@ -502,10 +503,7 @@ It generates the text in the buffers and (in two separate lists) the decorations
 			(push (list start-point (point) face) lsp-isar-output-deco))))
 		   ('lsp-isar-output-save-sendback
 		    (let ((start-point (dom-attr content 'start-point)))
-		      (setq lsp-isar-output-proof-cases-content
-			    (concat
-			     lsp-isar-output-proof-cases-content
-			     (buffer-substring start-point (point))))))
+		      (push (list lsp-isar-output-last-seen-prover (buffer-substring start-point (point))) lsp-isar-output-proof-cases-content)))
 		   ('html
 		    (setq contents (append (dom-children content) contents)))
 		   ('xmlns nil)
@@ -662,6 +660,13 @@ It generates the text in the buffers and (in two separate lists) the decorations
 
 		 ('sendback ;; TODO handle properly
 		  (let ((start-point (point)))
+		    (save-excursion
+		      (beginning-of-line)
+		      (let ((str (buffer-substring (point) start-point)))
+			(if (and str (cl-search "Try" str))
+			    (setq lsp-isar-output-last-seen-prover str)
+			  (setq lsp-isar-output-last-seen-prover
+				(concat lsp-isar-output-last-seen-prover "Isar")))))
 		    (push (dom-node 'lsp-isar-output-save-sendback `((start-point . ,start-point) nil)) contents)
 		    (setq contents (append (dom-children content) contents))))
 

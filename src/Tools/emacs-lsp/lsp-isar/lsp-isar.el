@@ -247,6 +247,37 @@ lsp-isar-split-pattern-three-columns."
   (insert lsp-isar-output-proof-cases-content))
 
 
+;; https://stackoverflow.com/questions/33442027/how-to-deleteor-kill-the-current-word-in-emacs
+(defun my-kill-thing-at-point (thing)
+  "Kill the `thing-at-point' for the specified kind of THING."
+  (let ((bounds (bounds-of-thing-at-point thing)))
+    (if bounds
+        (kill-region (car bounds) (cdr bounds))
+      (error "No %s at point" thing))))
+
+(defun my-kill-word-at-point ()
+  "Kill the word at point."
+  (interactive)
+  (my-kill-thing-at-point 'word))
+
+(global-set-key (kbd "s-k w") 'my-kill-word-at-point)
+
+(defun lsp-isar-insert-sledgehammer (&optional prover isar)
+  (interactive "P")
+  ;;(message "word-at-point= %s %s" (word-at-point) (eq (word-at-point) "sledgehammer"))
+  (if (string= (word-at-point) "sledgehammer")
+      (my-kill-word-at-point))
+  (let* ((prover (if prover prover "cvc4"))
+	 (sh (alist-get prover lsp-isar-output-proof-cases-content
+			nil nil
+			(lambda (key prover)
+			  (if isar
+			      (and (cl-search prover key) (cl-search "Isar" key))
+			    (cl-search prover key))))))
+    ;;(message "looking for %s in %s, found: %s" prover lsp-isar-output-proof-cases-content sh)
+    (if sh
+	(insert (car sh)))))
+
 (provide 'lsp-isar)
 
 ;;; lsp-isar.el ends here
