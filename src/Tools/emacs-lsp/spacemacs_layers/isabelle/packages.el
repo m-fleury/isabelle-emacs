@@ -28,6 +28,9 @@
   (use-package dash
     :defer t))
 
+(defun isabelle/init-yasnippet ()
+  (use-package yasnippet))
+
 (defun isabelle/init-isar-mode ()
   (use-package isar-mode
     :mode ("\\.thy\\'" . isar-mode))
