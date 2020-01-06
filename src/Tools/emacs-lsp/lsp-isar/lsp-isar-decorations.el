@@ -694,12 +694,11 @@ CAUTION: this can be slow."
 	 (end_char_offset (if (or (equal typ "text_overview_error") (equal typ "text_overview_running")) 1 0))
 	 )
 
-    (if (not buffer)
+    (when (not buffer)
 	;; buffer was closed
 	;; the rest will be deleted during the next round of full cleaning
-	(progn
-	  (message "buffer not found")
-	 (puthash file nil lsp-isar--sem-overlays))
+        (message "buffer not found")
+	(puthash file nil lsp-isar--sem-overlays))
     (progn
 
       ;; faster adding (and deleting) of overlays see for example
@@ -713,7 +712,7 @@ CAUTION: this can be slow."
 	(if (equal face 'lsp-isar-font-default)
 	    (message "unrecognised color %s" typ))
 	(seq-doseq (range pranges)
-	  (-let ((cr (gethash "range" range)))
+	  (let ((cr (gethash "range" range)))
 	    (push cr ranges)))
 
 	;; Sort by start-line ASC, start-character ASC.
@@ -729,7 +728,7 @@ CAUTION: this can be slow."
 	(setq pranges (append pranges nil))
 
 	;; reprint
-	(-let*
+	(let*
 	    ((current-file-overlays (gethash file lsp-isar--sem-overlays (make-hash-table :test 'equal)))
 	     (old-overlays (gethash typ current-file-overlays nil))
 	     (overlays-to-reuse (gethash file lsp-isar--overlays-to-reuse nil)))
@@ -828,7 +827,7 @@ CAUTION: this can be slow."
 		(puthash typ (nreverse curoverlays) current-file-overlays)
 		(puthash file current-file-overlays lsp-isar--sem-overlays)
 		(puthash file overlays-to-reuse lsp-isar--overlays-to-reuse)))))
-	(setq lsp-isar--last-updated-file file))))))
+	(setq lsp-isar--last-updated-file file)))))
 
 (defun lsp-isar-update-and-reprint (_workspace params)
   "Updates the decoration cach and the reprint all decorations"
