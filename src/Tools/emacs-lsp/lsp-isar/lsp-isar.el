@@ -59,7 +59,7 @@ the output buffer, and the initial hooks.")
 	  (progn
 	    (lsp-isar-output-initialize-output-buffer)
 	    (lsp-isar-progress-activate-progress-update)
-	    (lsp-isar--init-decorations)
+	    (lsp-isar-decorations--init-decorations)
 	    (run-hooks 'lsp-isar-init-hook)
 	    (setq lsp-isar-already-initialised t))))))
 
@@ -198,7 +198,7 @@ lsp-isar-split-pattern-three-columns."
 	;;    :use-native-json t
 	:notification-handlers
 	(lsp-ht
-	 ("PIDE/decoration" 'lsp-isar-update-and-reprint)
+	 ("PIDE/decoration" 'lsp-isar-decorations-update-and-reprint)
 	 ("PIDE/dynamic_output" (lambda (_w p) (lsp-isar-output-update-state-and-output-buffer (gethash "content" p))))
 	 ("PIDE/progress" (lambda (_w p) (lsp-isar-progress--update-buffer (gethash "nodes_status" p)))))))
     (lsp-register-client
@@ -212,7 +212,7 @@ lsp-isar-split-pattern-three-columns."
       ;;    :use-native-json t
       :notification-handlers
       (lsp-ht
-       ("PIDE/decoration" 'lsp-isar-update-and-reprint)
+       ("PIDE/decoration" 'lsp-isar-decorations-update-and-reprint)
        ("PIDE/dynamic_output" (lambda (_w p) (lsp-isar-output-update-state-and-output-buffer (gethash "content" p))))
        ("PIDE/progress" (lambda (_w p) (lsp-isar-progress--update-buffer (gethash "nodes_status" p)))))))))
 

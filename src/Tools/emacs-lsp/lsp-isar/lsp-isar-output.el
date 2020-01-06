@@ -476,7 +476,7 @@ functions adds up. So any optimisation would help."
 	   (goto-char (point-min))
 	   (while (re-search-forward REGEXP nil t)
 	     (replace-match TO-STRING nil nil)))
-	 (cl-flet
+	 (cl-labels
 	     ((lsp-isar-output-parse-output (contents)
 					    (while contents
 					      (let ((content (pop contents)))
