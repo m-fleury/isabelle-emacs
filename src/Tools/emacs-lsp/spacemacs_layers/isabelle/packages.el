@@ -3,29 +3,13 @@
 ;; Copyright (c) 2018-2020 Mathias Fleury
 ;;
 ;; Author: Mathias Fleury, Sophie
-;; URL: https://github.com/syl20bnr/spacemacshttps://bitbucket.org/zmaths/isabelle2019-vsce/
+;; URL: https://bitbucket.org/zmaths/isabelle2019-vsce/
 ;;
-;;; License: GPLv3
+;;; License: Golf3
 
 ;;; Commentary:
 
-;; See the Spacemacs documentation and FAQs for instructions on how to implement
-;; a new layer:
-;;
-;;   SPC h SPC layers RET
-;;
-;;
-;; Briefly, each package to be installed or configured by this layer should be
-;; added to `isabelle-packages'. Then, for each package PACKAGE:
-;;
-;; - If PACKAGE is not referenced by any other Spacemacs layer, define a
-;;   function `isabelle/init-PACKAGE' to load and initialize the package.
-
-;; - Otherwise, PACKAGE is already referenced by another Spacemacs layer, so
-;;   define the functions `isabelle/pre-init-PACKAGE' and/or
-;;   `isabelle/post-init-PACKAGE' to customize the package as it is loaded.
-
-;; async and yasnippet are already included somewhere else
+;; load all lsp-isar related files.
 
 ;;; Code:
 
@@ -68,6 +52,5 @@
   (add-hook 'isar-mode-hook 'flycheck-mode)
   (add-hook 'isar-mode-hook 'lsp-isar-define-client-and-start)
   (add-hook 'lsp-isar-init-hook 'lsp-isar-open-output-and-progress-right-spacemacs))
-
 
 ;;; packages.el ends here
