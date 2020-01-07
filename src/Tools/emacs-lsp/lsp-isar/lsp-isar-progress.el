@@ -69,45 +69,44 @@
 	(setq current-thy-line-found nil)
 	(setf (buffer-string) "")
 	(seq-doseq (theory_status status)
-	  (progn
-	    (let*
-		((theory (gethash "name" theory_status))
-		 (unprocessed (gethash "unprocessed" theory_status theory_status))
-		 (running (gethash "running" theory_status))
-		 (finished (gethash "finished" theory_status))
-		 (failed (gethash "failed" theory_status))
-		 (consolidated (gethash "consolidated" theory_status)))
-	      (progn
-		(let* ((warned (gethash "warned" theory_status))
-		       (total (+ unprocessed running warned failed finished))
-		       (processed (+ warned finished)))
-		  (progn
-		    (if (or current-thy-line-found
-			    (string= (file-name-base theory) current-thy-name))
-			(progn
-			  (setq current-thy-line-found t)))
-		    (unless current-thy-line-found
-		      (setq current-thy-line (1+ current-thy-line)))
-		    (setq s (concat (file-name-base theory)
-				    " "
-				    (number-to-string processed)
-				    " / " (number-to-string total)
-				    ", ✖: " (number-to-string failed)
-				    ", ⌛:" (number-to-string running)
-				    "\n"))
-		    (if (and consolidated (= unprocessed 0) (= failed 0) (= running 0))
-			(insert (propertize s 'font-lock-face '(:foreground "LightSalmon4")))
-		      (if (/= failed 0)
-			  (insert (propertize s 'font-lock-face '(:background "saddle brown")))
-			(if (/= running 0)
-			    (insert (propertize s 'font-lock-face '(:background "medium sea green" :foreground "black"))))
-			  (insert s)))))))))
+	  (let*
+	      ((theory (gethash "name" theory_status))
+	       (unprocessed (gethash "unprocessed" theory_status theory_status))
+	       (running (gethash "running" theory_status))
+	       (finished (gethash "finished" theory_status))
+	       (failed (gethash "failed" theory_status))
+	       (consolidated (gethash "consolidated" theory_status)))
+	    (progn
+	      (let* ((warned (gethash "warned" theory_status))
+		     (total (+ unprocessed running warned failed finished))
+		     (processed (+ warned finished)))
+		(progn
+		  (if (or current-thy-line-found
+			  (string= (file-name-base theory) current-thy-name))
+		      (progn
+			(setq current-thy-line-found t)))
+		  (unless current-thy-line-found
+		    (setq current-thy-line (1+ current-thy-line)))
+		  (setq s (concat (file-name-base theory)
+				  " "
+				  (number-to-string processed)
+				  " / " (number-to-string total)
+				  ", ✖: " (number-to-string failed)
+				  ", ⌛:" (number-to-string running)
+				  "\n"))
+		  (if (and consolidated (= unprocessed 0) (= failed 0) (= running 0))
+		      (insert (propertize s 'font-lock-face '(:foreground "LightSalmon4")))
+		    (if (/= failed 0)
+			(insert (propertize s 'font-lock-face '(:background "saddle brown")))
+		      (if (/= running 0)
+			  (insert (propertize s 'font-lock-face '(:background "medium sea green" :foreground "black")))
+			(insert s)))))))))
 	(when (get-buffer-window lsp-isar-progress-buffer 'visible)
 	  (with-selected-window (get-buffer-window lsp-isar-progress-buffer)
 	    (goto-char (point-min))
 	    (if current-thy-point
 		(goto-char current-thy-point)
-	    (forward-line current-thy-line))))))))
+	      (forward-line current-thy-line))))))))
 
 
 (defun lsp-isar--request-buffer ()
