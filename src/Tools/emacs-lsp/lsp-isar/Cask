@@ -1,5 +1,6 @@
 (source gnu)
 (source melpa)
+
 (package-file "lsp-isar.el")
 (files "*.el")
 
@@ -9,4 +10,4 @@
  (depends-on "lsp-mode")
  (depends-on "isar-goal-mode")
  (depends-on "isar-mode" :git "https://github.com/m-fleury/simp-isar-mode.git")
- (depends-on "isar-goal-mode" :git "https://github.com/m-fleury/simp-isar-mode.git")	)
+ (depends-on "isar-goal-mode" :git "https://github.com/m-fleury/simp-isar-mode.git"))

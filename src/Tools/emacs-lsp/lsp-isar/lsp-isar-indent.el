@@ -31,6 +31,8 @@
 
 ;;; Code:
 
+(require 'thingatpt)
+
 (defun lsp-isar-indent-current-line-empty-p ()
   (or (not (thing-at-point 'line)) (string-match-p "^\\s-*$" (thing-at-point 'line))))
 
