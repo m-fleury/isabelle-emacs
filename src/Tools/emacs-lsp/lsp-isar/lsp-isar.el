@@ -71,13 +71,16 @@ the output buffer, and the initial hooks.")
 (defvar lsp-isar--already-split nil
   "boolean to indicate if we have already split the window")
 
-(defvar lsp-isar-split-pattern-three-columns "Split into three columns")
-(defvar lsp-isar-split-pattern-two-columns "Split into three columns")
+(defvar lsp-isar-split-pattern-three-columns 'lsp-isar-split-pattern-three-columns)
+(defvar lsp-isar-split-pattern-two-columns 'lsp-isar-split-pattern-two-columns)
 
-(defcustom lsp-isar-split-pattern lsp-isar-split-pattern-two-columns
-  "split motif for the columns. Use either lsp-isar-split-pattern-two-columns or
-lsp-isar-split-pattern-three-columns."
-  :type 'string
+(defcustom lsp-isar-split-pattern 'lsp-isar-split-pattern-two-columns
+  "split motif for the columns.."
+  :type
+  '(alist
+   :key-type
+   (choice (const :tag "Split in two columns" 'lsp-isar-split-pattern-two-columns)
+	  (const :tag "Split in three columns (with progress on the right)" 'lsp-isar-split-pattern-three-columns)))
   :group 'isabelle);;
 
 ;; unconditionnaly split the window
@@ -98,7 +101,6 @@ lsp-isar-split-pattern-three-columns."
 (defun lsp-isar-open-output-and-progress-right-three-columns ()
   "opens the *lsp-isar-output* and *lsp-isar-progress* buffers on the right"
   (interactive)
-
   ;; split first
   (split-window-right)
   (other-window 1)
@@ -113,21 +115,23 @@ lsp-isar-split-pattern-three-columns."
   (split-window-below)
   (other-window 1)
   (switch-to-buffer "*lsp-isar-output*")
-  (other-window -3))
+  (other-window -2))
+
 
 (defun lsp-isar-open-output-and-progress-right ()
-  "opens the *lsp-isar-output* and *lsp-isar-progress* buffers on the right"
+  "opens the *lsp-isar-output* and *lsp-isar-progress* buffers on the right.
+
+It can be used for example by ``(add-hook 'lsp-isar-init-hook
+'lsp-isar-open-output-and-progress-right-spacemacs)'"
   (cond
-   ((eq lsp-isar-split-pattern lsp-isar-split-pattern-two-columns)
+   ((eq lsp-isar-split-pattern 'lsp-isar-split-pattern-two-columns)
     (lsp-isar-open-output-and-progress-right-two-columns))
-   ((eq lsp-isar-split-pattern lsp-isar-split-pattern-three-columns)
+   ((eq lsp-isar-split-pattern 'lsp-isar-split-pattern-three-columns)
     (lsp-isar-open-output-and-progress-right-three-columns))
-   (t (message "unrecognised motif to split window."))))
+   (t (message "unrecognised motif to split window. See variable `lsp-isar-split-pattern'"))))
 
 ;; split the window 2 seconds later (the timeout is necessary to give
-;; enough time to spacemacs to jump to the theory file). It can be used
-;; for example by ``(add-hook 'lsp-isar-init-hook
-;; 'lsp-isar-open-output-and-progress-right-spacemacs)''
+;; enough time to spacemacs to jump to the theory file).
 (defun lsp-isar-open-output-and-progress-right-spacemacs ()
   (run-at-time 2 nil (lambda () (lsp-isar-open-output-and-progress-right))))
 
@@ -146,21 +150,32 @@ lsp-isar-split-pattern-three-columns."
    "-o" "vscode_unicode_symbols"
    "-o" "vscode_pide_extensions"
    "-o" "vscode_caret_perspective=10")
-  "Isabelle's LSP server options"
+  "Isabelle's LSP server options.
+
+Please refer to the documentation of Isabelle for the full set of
+options. In most cases, you should keep the options
+`(list \"-o\" \"vscode_unicode_symbols\" \"-o\"
+   \"vscode_pide_extensions\")'.
+
+Set `lsp-isabelle-options' for other options (like importing the AFP).
+"
   :type '(list string)
   :group 'isabelle)
 
 (defun lsp-full-isabelle-path ()
+  "Calculate the full path and the options for Isabelle."
   (append
    (list (concat lsp-isar-path-to-isabelle "/bin/isabelle")
 	 "vscode_server")
    lsp-vscode-options
    lsp-isabelle-options))
 
-(defvar lsp-isar-already-defined-client nil)
+(defvar lsp-isar--already-defined-client nil
+  "Variable testing if the LSP client has already been defined")
 
 
 ;; declare the lsp mode
+;;;###autoload
 (push  '(isar-mode . "isabelle") lsp-language-id-configuration)
 
 (defcustom lsp-isar-remote-path-to-isabelle
@@ -185,7 +200,14 @@ lsp-isar-split-pattern-three-columns."
 (defvar lsp-isar-tramp nil "Use Tramp to edit remote files")
 
 (defun lsp-isar-define-client ()
-  "defines the lsp-isar-client"
+  "defines the LSP client for isar mode.
+
+If `lsp-isar-tramp' is t, then the lsp client is registered as
+remote in order to edit files remotely over tramp. Remember that
+`lsp-isar-tramp' uses a different configuration.
+
+Set `lsp-remote-isabelle-options' and `lsp-isabelle-options' to
+the AFP and other options."
   (if lsp-isar-tramp
       (lsp-register-client
        (make-lsp-client
@@ -195,12 +217,12 @@ lsp-isar-split-pattern-three-columns."
 	:server-id 'lsp-isar
 	:priority 1
 	:remote? t
-	;;    :use-native-json t
 	:notification-handlers
 	(lsp-ht
 	 ("PIDE/decoration" 'lsp-isar-decorations-update-and-reprint)
 	 ("PIDE/dynamic_output" (lambda (_w p) (lsp-isar-output-update-state-and-output-buffer (gethash "content" p))))
 	 ("PIDE/progress" (lambda (_w p) (lsp-isar-progress--update-buffer (gethash "nodes_status" p)))))))
+
     (lsp-register-client
      (make-lsp-client
       :new-connection
@@ -208,8 +230,6 @@ lsp-isar-split-pattern-three-columns."
       :major-modes '(isar-mode)
       :server-id 'lsp-isar
       :priority 1
-      ;;    :remote? lsp-isar-tramp
-      ;;    :use-native-json t
       :notification-handlers
       (lsp-ht
        ("PIDE/decoration" 'lsp-isar-decorations-update-and-reprint)
@@ -217,15 +237,23 @@ lsp-isar-split-pattern-three-columns."
        ("PIDE/progress" (lambda (_w p) (lsp-isar-progress--update-buffer (gethash "nodes_status" p)))))))))
 
 
+
+;;;###autoload
 (defun lsp-isar-define-client-and-start ()
-  (unless lsp-isar-already-defined-client
+  "Setup the LSP client if required and starts lsp in the current buffer.
+
+This is the main entry point of the lsp-isar client. To start the
+mode automically, use `(add-hook 'isar-mode-hook
+#'lsp-isar-define-client-and-start)'"
+  (unless lsp-isar--already-defined-client
     (progn
       (lsp-isar-define-client)
-      (setq lsp-isar-already-defined-client t)))
+      (setq lsp-isar--already-defined-client t)))
   (lsp))
 
+
 ;; although the communication to the LSP server is done using utf-16,
-;; we can only use utf-18
+;; we can only use utf-8
 (modify-coding-system-alist 'file "\\.thy\\'" 'utf-8-auto)
 
 
