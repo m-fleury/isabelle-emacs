@@ -797,34 +797,33 @@ functions adds up. So any optimisation would help."
 	   (lsp-isar-output-state-deco  (cadddr result))
 	   (lsp-isar-output-deco (caddddr result)))
        (setq lsp-isar-output-proof-cases-content lsp-isar-output-proof-cases-content-1)
-       (if (= lsp-isar-output-current-output-number lsp-isar-output-current-output-number-res)
-	   (progn
-	     (if lsp-isar-output-output
-		 (with-current-buffer lsp-isar-output-buffer
-		   (read-only-mode -1)
-		   (setf (buffer-string) lsp-isar-output-output)
-		   (read-only-mode t)))
-	     (if lsp-isar-output-state
-		 (with-current-buffer lsp-isar-output-state-buffer
-		   (read-only-mode -1)
-		   (setf (buffer-string) lsp-isar-output-state)
-		   (read-only-mode t)))))
-       (with-current-buffer lsp-isar-output-state-buffer
-	 (dolist (deco lsp-isar-output-state-deco)
-	   (let* ((point0 (car deco))
-		  (point1 (cadr deco))
-		  (font (caddr deco))
-		  (face (cdr (assoc font lsp-isar-decorations-get-font)))
-		  (ov (make-overlay point0 point1)))
-	     (overlay-put ov 'face face))))
-       (with-current-buffer lsp-isar-output-buffer
-	 (dolist (deco lsp-isar-output-deco)
-	   (let* ((point0 (car deco))
-		  (point1 (cadr deco))
-		  (font (caddr deco))
-		  (face (cdr (assoc font lsp-isar-decorations-get-font)))
-		  (ov (make-overlay point0 point1)))
-	     (overlay-put ov 'face face))))))))
+       (when (= lsp-isar-output-current-output-number lsp-isar-output-current-output-number-res)
+	 (if lsp-isar-output-output
+	     (with-current-buffer lsp-isar-output-buffer
+	       (read-only-mode -1)
+	       (setf (buffer-string) lsp-isar-output-output)
+	       (read-only-mode t)))
+	 (if lsp-isar-output-state
+	     (with-current-buffer lsp-isar-output-state-buffer
+	       (read-only-mode -1)
+	       (setf (buffer-string) lsp-isar-output-state)
+	       (read-only-mode t)))
+	 (with-current-buffer lsp-isar-output-state-buffer
+	   (dolist (deco lsp-isar-output-state-deco)
+	     (let* ((point0 (car deco))
+		    (point1 (cadr deco))
+		    (font (caddr deco))
+		    (face (cdr (assoc font lsp-isar-decorations-get-font)))
+		    (ov (make-overlay point0 point1)))
+	       (overlay-put ov 'face face))))
+	 (with-current-buffer lsp-isar-output-buffer
+	   (dolist (deco lsp-isar-output-deco)
+	     (let* ((point0 (car deco))
+		    (point1 (cadr deco))
+		    (font (caddr deco))
+		    (face (cdr (assoc font lsp-isar-decorations-get-font)))
+		    (ov (make-overlay point0 point1)))
+	       (overlay-put ov 'face face)))))))))
 
 ;; deactivate font-lock-mode because we to the fontification ourselves anyway.
 (defun lsp-isar-output-initialize-output-buffer ()
