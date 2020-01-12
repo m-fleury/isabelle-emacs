@@ -6,7 +6,7 @@
 
 ;; Keywords: lisp
 ;; Version: 0
-;; Package-Requires: ((emacs "25.1") (lsp-mode "6.0"))
+;; Package-Requires: ((emacs "25.1") (lsp-mode "6.0") (transient "0.1.0"))
 
 ;; Permission is hereby granted, free of charge, to any person obtaining a copy
 ;; of this software and associated documentation files (the "Software"), to deal
@@ -308,10 +308,69 @@ the second is t if the Isar proof version should be taken."
 			(lambda (key prover)
 			  (if isar
 			      (and (cl-search prover key) (cl-search "Isar" key))
-			    (cl-search prover key))))))
-    ;;(message "looking for %s in %s, found: %s" prover lsp-isar-output-proof-cases-content sh)
+			    (cl-search prover key)))))
+	 ;; if no proof was found try to find it with the opposite Isar value
+	 (sh (if sh
+		 sh
+	       (alist-get prover lsp-isar-output-proof-cases-content
+			  nil nil
+			  (lambda (key prover)
+			    (if (not isar)
+				(and (cl-search prover key) (cl-search "Isar" key))
+			      (cl-search prover key)))))))
+    ;; (message "looking for %s in %s (isar? %s), found: %s" prover lsp-isar-output-proof-cases-content isar sh)
     (if sh
 	(insert (car sh)))))
+
+
+(require 'transient)
+
+(defun lsp-isar-is-isar (transient)
+  (--if-let (--first (string-prefix-p "--isar" it)
+                     (transient-args transient))
+      t
+    nil))
+
+(defun lsp-isar-insert-sledgehammer-cvc4 (isar)
+  (interactive
+   (list (lsp-isar-is-isar 'lsp-isar-sledgehammer)))
+  (lsp-isar-insert-sledgehammer "cvc4" isar))
+
+(defun lsp-isar-insert-sledgehammer-z3 (isar)
+  (interactive
+   (list (lsp-isar-is-isar 'lsp-isar-sledgehammer)))
+  (lsp-isar-insert-sledgehammer "z3" isar))
+
+(defun lsp-isar-insert-sledgehammer-SPASS (isar)
+  (interactive
+   (list (lsp-isar-is-isar 'lsp-isar-sledgehammer)))
+  (lsp-isar-insert-sledgehammer "SPASS" isar))
+
+(defun lsp-isar-insert-sledgehammer-vampire (isar)
+  (interactive
+   (list (lsp-isar-is-isar 'lsp-isar-sledgehammer)))
+  (lsp-isar-insert-sledgehammer "vampire" isar))
+
+(defun lsp-isar-insert-sledgehammer-E (isar)
+  (interactive
+   (list (lsp-isar-is-isar 'lsp-isar-sledgehammer)))
+  (lsp-isar-insert-sledgehammer "E" isar))
+
+(defun lsp-isar-insert-sledgehammer-veriT (prefix)
+  (interactive
+   (list (lsp-isar-is-isar 'lsp-isar-sledgehammer)))
+  (lsp-isar-insert-sledgehammer "veriT" isar))
+
+(define-transient-command lsp-isar-sledgehammer ()
+  "Insert Sledgehammer commands"
+  ["Options"
+   ("i" "Insert Isar proof" "--isar")]
+  ["Insert calls"
+   ("c" "CVC4 proofs" lsp-isar-insert-sledgehammer-cvc4)
+   ("e" "E proofs" lsp-isar-insert-sledgehammer-E)
+   ("s" "SPASS proofs" lsp-isar-insert-sledgehammer-SPASS)
+   ("t" "veriT proofs" lsp-isar-insert-sledgehammer-veriT)
+   ("z" "Z3 proofs" lsp-isar-insert-sledgehammer-z3)])
 
 (provide 'lsp-isar)
 
