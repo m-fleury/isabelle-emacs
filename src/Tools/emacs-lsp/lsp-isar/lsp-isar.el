@@ -326,43 +326,55 @@ the second is t if the Isar proof version should be taken."
 (require 'transient)
 
 (defun lsp-isar-is-isar (transient)
+  "find out if the --isar option is set"
   (--if-let (--first (string-prefix-p "--isar" it)
                      (transient-args transient))
       t
     nil))
 
 (defun lsp-isar-insert-sledgehammer-cvc4 (isar)
+  "Insert CVC4 proofs"
   (interactive
    (list (lsp-isar-is-isar 'lsp-isar-sledgehammer)))
   (lsp-isar-insert-sledgehammer "cvc4" isar))
 
 (defun lsp-isar-insert-sledgehammer-z3 (isar)
+  "Insert Z3 proofs"
   (interactive
    (list (lsp-isar-is-isar 'lsp-isar-sledgehammer)))
   (lsp-isar-insert-sledgehammer "z3" isar))
 
 (defun lsp-isar-insert-sledgehammer-SPASS (isar)
+  "Insert SPASS proofs"
   (interactive
    (list (lsp-isar-is-isar 'lsp-isar-sledgehammer)))
   (lsp-isar-insert-sledgehammer "SPASS" isar))
 
 (defun lsp-isar-insert-sledgehammer-vampire (isar)
+  "Insert vampire proofs"
   (interactive
    (list (lsp-isar-is-isar 'lsp-isar-sledgehammer)))
   (lsp-isar-insert-sledgehammer "vampire" isar))
 
 (defun lsp-isar-insert-sledgehammer-E (isar)
+  "Insert E proofs"
   (interactive
    (list (lsp-isar-is-isar 'lsp-isar-sledgehammer)))
   (lsp-isar-insert-sledgehammer "E" isar))
 
 (defun lsp-isar-insert-sledgehammer-veriT (prefix)
+  "Insert veriT proofs"
   (interactive
    (list (lsp-isar-is-isar 'lsp-isar-sledgehammer)))
   (lsp-isar-insert-sledgehammer "veriT" isar))
 
 (define-transient-command lsp-isar-sledgehammer ()
-  "Insert Sledgehammer commands"
+  "Interface to insert sledgehammer commands to the theory
+  buffer.
+
+The options `--isar' is set automatically set if there only one
+choice for the given prover."
+
   ["Options"
    ("i" "Insert Isar proof" "--isar")]
   ["Insert calls"
