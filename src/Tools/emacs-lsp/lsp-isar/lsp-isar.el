@@ -403,9 +403,8 @@ choice for the given prover."
    ("z" "Z3 proofs" lsp-isar-insert-sledgehammer-z3)])
 
 
-(add-hook 'isar-mode-hook
-	  (lambda ()
-            (local-set-key (kbd "C-c s") 'lsp-isar-sledgehammer)))
+(define-key isar-mode-map (kbd "C-c s") 'lsp-isar-sledgehammer)
+
 
 (provide 'lsp-isar)
 
