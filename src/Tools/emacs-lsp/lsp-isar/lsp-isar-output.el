@@ -353,6 +353,8 @@ functions adds up. So any optimisation would help."
 		  (insert "\\<^bsup>")
 		  (push "\\<^esup>" contents))
 		(setq contents (append children contents)))))
+           ('p ;; libxml odd behaviour
+	    nil)
 
 	   (_
 	    (if (listp (dom-tag content))
@@ -401,6 +403,7 @@ functions adds up. So any optimisation would help."
 
 		  ;; remove line breaks at beginning
 		  (replace-regexp-all-occs "\\$\n*<body>\n" "<body>")
+
 
 		  ;; add some missing line breaks between error message
 		  (replace-regexp-all-occs "</error_message><error_message"
@@ -725,6 +728,8 @@ functions adds up. So any optimisation would help."
 							   (insert "\\<^bsup>")
 							   (push "\\<^esup>" contents))
 							 (setq contents (append children contents)))))
+						    ('p ;; libxml odd behaviour
+						     nil)
 
 						    (_
 						     (if (listp (dom-tag content))
