@@ -28,8 +28,8 @@
   (use-package dash
     :defer t))
 
-(defun isabelle/init-yasnippet ()
-  (use-package yasnippet))
+;;(defun isabelle/init-yasnippet ()
+;;  (use-package yasnippet))
 
 (defun isabelle/init-isar-mode ()
   (use-package isar-mode
@@ -54,6 +54,7 @@
     (setq lsp-prefer-flymake nil))
   (add-hook 'isar-mode-hook 'flycheck-mode)
   (add-hook 'isar-mode-hook 'lsp-isar-define-client-and-start)
-  (add-hook 'lsp-isar-init-hook 'lsp-isar-open-output-and-progress-right-spacemacs))
+  (add-hook 'lsp-isar-init-hook 'lsp-isar-open-output-and-progress-right-spacemacs)
+  (spacemacs/add-to-hooks 'spacemacs/load-yasnippet '(isar-mode-hook)))
 
 ;;; packages.el ends here
