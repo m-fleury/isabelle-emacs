@@ -150,6 +150,9 @@ functions adds up. So any optimisation would help."
 		  (face (dom-attr content 'face)))
 	      (let ((ov (make-overlay start-point (point))))
 		(overlay-put ov 'face face))))
+	   ('lsp-isar-output-save-sendback
+	    (let ((start-point (dom-attr content 'start-point)))
+	      (push (list lsp-isar-output-last-seen-prover (buffer-substring start-point (point))) lsp-isar-output-proof-cases-content)))
 	   ('html
 	    (setq contents (append (dom-children content) contents)))
 	   ('xmlns nil)
@@ -293,9 +296,16 @@ functions adds up. So any optimisation would help."
 	      (setq contents (append (dom-children content) contents))))
 
 	   ('sendback ;; TODO handle properly
-	    (setq lsp-isar-output-proof-cases-content (remove-parentheses-from-string (format "%s" (dom-children content))))
-	    (setq contents (append (dom-children content) contents)))
-
+	    (let ((start-point (point)))
+	      (save-excursion
+		(beginning-of-line)
+		(let ((str (buffer-substring (point) start-point)))
+		  (if (and str (cl-search "Try" str))
+		      (setq lsp-isar-output-last-seen-prover str)
+		    (setq lsp-isar-output-last-seen-prover
+			  (concat lsp-isar-output-last-seen-prover "Isar")))))
+	      (push (dom-node 'lsp-isar-output-save-sendback `((start-point . ,start-point) nil)) contents)
+	      (setq contents (append (dom-children content) contents))))
 	   ('bullet
 	    (insert "•")
 	    (setq contents (append (dom-children content) contents)))
@@ -425,6 +435,7 @@ functions adds up. So any optimisation would help."
 	  (with-current-buffer lsp-isar-output-state-buffer
 	    (let ((inhibit-read-only t))
 	      (setf (buffer-string) "")
+	      (setq lsp-isar-output-proof-cases-content nil)
 	      (lsp-isar-output-parse-output parsed-content)
 	      (goto-char (point-min))
 	      (ignore-errors
