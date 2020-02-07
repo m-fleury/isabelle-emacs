@@ -378,14 +378,14 @@ the second is t if the Isar proof version should be taken."
 	 (lsp-isar-keep-sledgehammer 'lsp-isar-sledgehammer)))
   (lsp-isar-insert-sledgehammer "e" isar keep-sledgehammer))
 
-(defun lsp-isar-insert-sledgehammer-veriT (prefix keep-sledgehammer)
+(defun lsp-isar-insert-sledgehammer-veriT (isar keep-sledgehammer)
   "Insert veriT proofs"
   (interactive
    (list (lsp-isar-is-isar 'lsp-isar-sledgehammer)
 	 (lsp-isar-keep-sledgehammer 'lsp-isar-sledgehammer)))
   (lsp-isar-insert-sledgehammer "veriT" isar keep-sledgehammer))
 
-(defun lsp-isar-insert-sledgehammer-vampire (prefix keep-sledgehammer)
+(defun lsp-isar-insert-sledgehammer-vampire (isar keep-sledgehammer)
   "Insert vampire proofs"
   (interactive
    (list (lsp-isar-is-isar 'lsp-isar-sledgehammer)
