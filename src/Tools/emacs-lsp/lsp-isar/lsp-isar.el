@@ -174,9 +174,6 @@ Set `lsp-isabelle-options' for other options (like importing the AFP).
   "Variable testing if the LSP client has already been defined")
 
 
-;; declare the lsp mode
-(push  '(isar-mode . "isabelle") lsp-language-id-configuration)
-
 (defcustom lsp-isar-remote-path-to-isabelle
   "/home/zmaths/Documents/isabelle-release"
   "default path to Isabelle (e.g., /path/to/isabelle/folder)"
@@ -207,6 +204,9 @@ remote in order to edit files remotely over tramp. Remember that
 
 Set `lsp-remote-isabelle-options' and `lsp-isabelle-options' to
 the AFP and other options."
+  ;; declare the lsp mode
+  (push  '(isar-mode . "isabelle") lsp-language-id-configuration)
+
   (if lsp-isar-tramp
       (lsp-register-client
        (make-lsp-client
