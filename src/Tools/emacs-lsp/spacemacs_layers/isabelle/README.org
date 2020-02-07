@@ -22,38 +22,99 @@ This layer allows for editing isabelle theory files. It includes:
   - processing via isar-lsp
   - some other things
 
-* Install
-** Current process
-*** Download Isabelle2018-vsce
-    - The version of Isabelle2018 to download is isabelle2018-vsce available at:
-https://bitbucket.org/zmaths/isabelle2018-vsce
+* Preparation
+*** Download Isabelle2019-vsce
+    - The version of Isabelle2019 to download is isabelle2019-vsce and available at 
+https://github.com/m-fleury/isabelle-release in the isabelle2019-more-vscode branch
 
 #+BEGIN_SRC sh
-  hg clone https://bitbucket.org/zmaths/isabelle2018-vsce
-#+END_SRC
-
-*** Download the Iyar-mode package
-#+BEGIN_SRC sh
-  git clone https://github.com/m-fleury/simp-isar-mode.git
-#+END_SRC
-In the remainder of these instructions, I assume you have cloned these repos directly in your home directory. The following commands must be adapted with the correct paths otherwise.
-
-*** Install Isabelle2018-vsce
-    - Go to the main directory of Isabelle2018-vsce
-#+BEGIN_SRC sh
-  cd ~/isabelle2018-vsce
-#+END_SRC
-   - Go to the isabelle2018-more-vscode branch of the repository
-#+BEGIN_SRC sh
-  hg checkout isabelle2018-more-vscode
+git clone git@github.com:m-fleury/isabelle-release.git
+cd isabelle-release
+git co https://github.com/m-fleury/isabelle-release
 #+END_SRC
     - Initialize Isabelle (note that the second and third commands can take a while)
 #+BEGIN_SRC sh
   ./bin/isabelle components -I
   ./bin/isabelle components -a
   ./bin/isabelle build -b HOL
+#+END_SRCk
+
+There is no difference between the standard Isabelle and this Isabelle version, except for some extensions in the LSP server that does not impact Isabelle.
+
+* Install (as a non-developer)
+** standard emacs
+Add the following to your =.emacs=:
+#+BEGIN_SRC lisp
+;; initialisation of package
+(package-initialize)
+
+(add-to-list 'package-archives '("org" . "http://orgmode.org/elpa/") t)
+(add-to-list 'package-archives '("melpa" . "http://melpa.milkbox.net/packages/") t)
+
+(unless (package-installed-p 'use-package)
+  (message "installing package use-package")
+  (package-refresh-contents)
+  (package-install 'use-package)
+
+  (unless (package-installed-p 'use-package)
+    (error "failed to install use-package"))
+  )
+
+;; install quelpa
+(use-package quelpa
+  :ensure t)
+
+(quelpa
+ '(quelpa-use-package
+   :fetcher git
+   :url "https://github.com/quelpa/quelpa-use-package.git"))
+
+(require 'quelpa-use-package)
+
+
+(use-package lsp-mode
+  :ensure t)
+
+(use-package isar-mode
+  :ensure t
+  :mode "\\.thy\\'"
+  :quelpa (isar-mode :fetcher github
+		     :repo "m-fleury/isar-mode")
+  )
+
+(use-package isar-goal-mode
+  :ensure t
+  :quelpa (isar-goal-mode :fetcher github
+			  :repo "m-fleury/simp-isar-mode"))
+
+(use-package lsp-isar
+	     :ensure t
+	     :quelpa ((lsp-isar :fetcher github
+				:repo "m-fleury/isabelle-release"
+				:branch "isabelle2019-more-vscode"
+				:files ("src/Tools/emacs-lsp/lsp-isar/*.el"))
+				:upgrade t)
+  :after lsp-mode
+  :commands lsp-isar-define-client-and-start
+  :defer t
+  :init
+  (add-hook 'isar-mode-hook #'lsp-isar-define-client-and-start)
+  (add-hook 'lsp-isar-init-hook 'lsp-isar-open-output-and-progress-right-spacemacs)
+  :config
+
+  ;; CHANGE HERE: path to isabelle-release repo
+  (setq lsp-isar-path-to-isabelle "~/Documents/isabelle/isabelle-release")
+
+  )
 #+END_SRC
 
+Change the =CHANGE HERE= part with the correct path to the =isabelle-release= clone.
+** spacemacs
+*** Download the Isar-mode package
+#+BEGIN_SRC sh
+  git clone https://github.com/m-fleury/simp-isar-mode.git
+#+END_SRC
+In the remainder of these instructions, I assume you have cloned these repos directly in your home directory. The following commands must be adapted with the correct paths otherwise.
 *** Create the private layer Isabelle
     - Go to the private directory in your .emacs.d
 #+BEGIN_SRC sh
@@ -66,9 +127,9 @@ In the remainder of these instructions, I assume you have cloned these repos dir
 #+END_SRC
     - Create symbolic links to the layer files
 #+BEGIN_SRC sh
-  ln -s ~/isabelle2018-vsce/src/Tools/emacs-lsp/spacemacs_layers/isabelle/layers.el layers.el
-  ln -s ~/isabelle2018-vsce/src/Tools/emacs-lsp/spacemacs_layers/isabelle/packages.el packages.el
-  ln -s ~/isabelle2018-vsce/src/Tools/emacs-lsp/spacemacs_layers/isabelle/funcs.el funcs.el
+  ln -s ~/isabelle-release/src/Tools/emacs-lsp/spacemacs_layers/isabelle/layers.el layers.el
+  ln -s ~/isabelle-release/src/Tools/emacs-lsp/spacemacs_layers/isabelle/packages.el packages.el
+  ln -s ~/isabelle-release/src/Tools/emacs-lsp/spacemacs_layers/isabelle/funcs.el funcs.el
 #+END_SRC
     - Create a local folder and go to it
 #+BEGIN_SRC sh
@@ -77,7 +138,7 @@ In the remainder of these instructions, I assume you have cloned these repos dir
 #+END_SRC
     - Create symbolic links to local packages
 #+BEGIN_SRC sh
-  ln -s ~/isabelle2018-vsce/src/Tools/emacs-lsp/lsp-isar/ lsp-isar 
+  ln -s ~/isabelle-release/src/Tools/emacs-lsp/lsp-isar/ lsp-isar 
   ln -s ~/simp-isar-mode/ isar-mode
 #+END_SRC
 
@@ -93,7 +154,7 @@ In the remainder of these instructions, I assume you have cloned these repos dir
 #+END_SRC
     - Create a symbolic link to the layer file
 #+BEGIN_SRC sh
-  ln -s ~/isabelle2018-vsce/src/Tools/emacs-lsp/spacemacs_layers/lsp-mode/packages.el packages.el
+  ln -s ~/isabelle-release/src/Tools/emacs-lsp/spacemacs_layers/lsp-mode/packages.el packages.el
 #+END_SRC
 
 *** Add the isabelle layer to spacemacs and configure it
@@ -103,7 +164,7 @@ file.
 
 Then you need to add the following lines in the =dotspacemacs/user-init= function of your =~/.spacemacs= file.
 #+BEGIN_SRC elisp
-  (setq lsp-isar-path-to-isabelle "~/isabelle2018-vsce")
+  (setq lsp-isar-path-to-isabelle "~/isabelle-release")
   (setq lsp-isabelle-options (list "-d" "~/Example_Dir/Example_Session_Dir" "-S" "Example_Session"))
 #+END_SRC
 Note that the second line contains the command options to start isabelle from the
@@ -113,8 +174,6 @@ Using the option "-S" (especially if you are importing the AFP in your theories)
 Note that this option can only be used if a ROOT file is declared for the corresponding session (see the isabelle documentation).
 
 *** TODO Adding the AFP
- 
-
 
 
 * TODO Key bindings
