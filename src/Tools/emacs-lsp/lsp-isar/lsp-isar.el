@@ -306,21 +306,21 @@ the second is t if the Isar proof version should be taken."
       (end-of-line)
       (insert "\n")))
   (let* ((prover (if prover prover "cvc4"))
-	 (sh (alist-get prover lsp-isar-output-proof-cases-content
+	 (sh1 (alist-get prover lsp-isar-output-proof-cases-content
 			nil nil
 			(lambda (key prover)
 			  (if isar
 			      (and (cl-search prover key) (cl-search "Isar" key))
-			    (cl-search prover key)))))
+			    (and (cl-search prover key) (not (cl-search "Isar" key)))))))
 	 ;; if no proof was found try to find it with the opposite Isar value
-	 (sh (if sh
-		 sh
+	 (sh (if sh1
+		 sh1
 	       (alist-get prover lsp-isar-output-proof-cases-content
 			  nil nil
 			  (lambda (key prover)
 			    (if (not isar)
 				(and (cl-search prover key) (cl-search "Isar" key))
-			      (cl-search prover key)))))))
+			    (and (cl-search prover key) (not (cl-search "Isar" key)))))))))
     ;; (message "looking for %s in %s (isar? %s), found: %s" prover lsp-isar-output-proof-cases-content isar sh)
     (if sh
 	(insert (car sh)))))
