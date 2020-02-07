@@ -385,6 +385,13 @@ the second is t if the Isar proof version should be taken."
 	 (lsp-isar-keep-sledgehammer 'lsp-isar-sledgehammer)))
   (lsp-isar-insert-sledgehammer "veriT" isar keep-sledgehammer))
 
+(defun lsp-isar-insert-sledgehammer-vampire (prefix keep-sledgehammer)
+  "Insert vampire proofs"
+  (interactive
+   (list (lsp-isar-is-isar 'lsp-isar-sledgehammer)
+	 (lsp-isar-keep-sledgehammer 'lsp-isar-sledgehammer)))
+  (lsp-isar-insert-sledgehammer "vampire" isar keep-sledgehammer))
+
 (define-transient-command lsp-isar-sledgehammer ()
   "Interface to insert sledgehammer commands to the theory
   buffer.
@@ -400,6 +407,7 @@ choice for the given prover."
    ("e" "E proofs" lsp-isar-insert-sledgehammer-E)
    ("s" "SPASS proofs" lsp-isar-insert-sledgehammer-SPASS)
    ("t" "veriT proofs" lsp-isar-insert-sledgehammer-veriT)
+   ("v" "vampire proofs" lsp-isar-insert-sledgehammer-vampire)
    ("z" "Z3 proofs" lsp-isar-insert-sledgehammer-z3)])
 
 
