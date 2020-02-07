@@ -413,6 +413,14 @@ choice for the given prover."
 
 (define-key isar-mode-map (kbd "C-c s") 'lsp-isar-sledgehammer)
 
+(defun lsp-isar-insert-sledgehammer-and-call ()
+  "insert sledgehammer and open the interface."
+  (interactive)
+  (insert "sledgehammer")
+  (lsp-isar-sledgehammer))
+
+(define-key isar-mode-map (kbd "C-c C-s")
+  'lsp-isar-insert-sledgehammer-and-call)
 
 (provide 'lsp-isar)
 
