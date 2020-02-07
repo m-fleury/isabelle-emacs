@@ -175,7 +175,6 @@ Set `lsp-isabelle-options' for other options (like importing the AFP).
 
 
 ;; declare the lsp mode
-;;;###autoload
 (push  '(isar-mode . "isabelle") lsp-language-id-configuration)
 
 (defcustom lsp-isar-remote-path-to-isabelle
