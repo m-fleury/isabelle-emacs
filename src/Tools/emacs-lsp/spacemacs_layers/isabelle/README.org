@@ -1,6 +1,6 @@
 #+TITLE: Isabelle layer
 
-[[file:img/isabelle.png]]
+[[file:img/normal_emacs_isabelle.png]]
 
 * Heading
 :PROPERTIES:
