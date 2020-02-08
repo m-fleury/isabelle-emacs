@@ -2,6 +2,11 @@
 Here is a screenshot of Isabelle in emacs:
 [[file:img/normal_emacs_isabelle.png]]
 
+Here is a screenshot of Isabelle in emacs:
+[[file:img/spacemacs_isabelle.png]]
+
+(with the sledgehammer interface).
+
 * Heading
 :PROPERTIES:
 :TOC:      this
@@ -239,7 +244,7 @@ In the remainder of these instructions, I assume you have cloned these repos dir
 *** Add the isabelle layer to spacemacs and configure it
 Same as non-developer version
 * Post-Installation
-*** Adding the AFP
+** Adding the AFP
 Append to the file =~/.isabelle/Isabelle2019/etc/settings=
 #+BEGIN_src sh
 AFP=/path/to/AFP/thys
@@ -250,6 +255,22 @@ Then change in the emacs/spacemacs configuration
   (setq lsp-isabelle-options (list "-d" "\$AFP"))
 #+END_src
 This is also the place to include further paths. Remember, however, that including more paths, makes Isabelle slower to start.
+** Configuration
+Splitting is possible in two or three columns (see the screenshot on top). This can be controlled by
+#+BEGIN_src elisp
+(setq lsp-isar-split-pattern 'lsp-isar-split-pattern-three-columns)
+#+END_src
+or
+#+BEGIN_src elisp
+(setq lsp-isar-split-pattern 'lsp-isar-split-pattern-two-columns)
+#+END_src
+
+
+If you want to split the screen differently, you just remove the hook from =isar-mode-hooks= (the line looks like):
+#+BEGIN_src elisp
+(add-hook 'isar-mode-hook #'lsp-isar-define-client-and-start)
+#+END_src
+and add your own function to the hook instead!
 
 * TODO Key bindings
 
