@@ -2,18 +2,22 @@
 
 [[file:img/isabelle.png]]
 
-* Table of Contents                                        :TOC_4_gh:noexport:
-- [[#description][Description]]
-- [[#install][Install]]
-  - [[#current-process][Current process]]
-    - [[#download-isabelle2019-vsce][Download Isabelle2019-vsce]]
-    - [[#download-the-iyar-mode-package][Download the Iyar-mode package]]
-    - [[#install-isabelle2018-vsce][Install Isabelle2018-vsce]]
-    - [[#create-the-private-layer-isabelle][Create the private layer Isabelle]]
-    - [[#create-the-private-layer-lisp-mode][Create the private layer lisp-mode]]
-    - [[#add-the-isabelle-layer-to-spacemacs-and-configure-it][Add the isabelle layer to spacemacs and configure it]]
-    - [[#adding-the-afp][Adding the AFP]]
-- [[#key-bindings][Key bindings]]
+* Heading
+:PROPERTIES:
+:TOC:      this
+:END:
+-  [[#description][Description]]
+-  [[#preparation][Preparation]]
+    -  [[#clone-isabelle2019-vsce][Clone Isabelle2019-vsce]]
+-  [[#install][Install]]
+  -  [[#standard-emacs-as-a-non-developer][standard emacs (as a non-developer)]]
+  -  [[#spacemacs][spacemacs]]
+    -  [[#download-the-isar-mode-package][Download the Isar-mode package]]
+    -  [[#create-the-private-layer-isabelle][Create the private layer Isabelle]]
+    -  [[#create-the-private-layer-lisp-mode][Create the private layer lisp-mode]]
+    -  [[#add-the-isabelle-layer-to-spacemacs-and-configure-it][Add the isabelle layer to spacemacs and configure it]]
+    -  [[#adding-the-afp][Adding the AFP]]
+-  [[#key-bindings][Key bindings]]
 
 * TODO Description
 This layer allows for editing isabelle theory files. It includes:
@@ -23,7 +27,7 @@ This layer allows for editing isabelle theory files. It includes:
   - some other things
 
 * Preparation
-*** Download Isabelle2019-vsce
+*** Clone Isabelle2019-vsce
     - The version of Isabelle2019 to download is isabelle2019-vsce and available at https://github.com/m-fleury/isabelle-release in the isabelle2019-more-vscode branch
 
 #+BEGIN_SRC sh
@@ -116,7 +120,60 @@ Change the =CHANGE HERE= part with the correct path to the =isabelle-release= cl
 
 
 ** spacemacs
+*** Create the private layer Isabelle
+    - Go to the private directory in your .emacs.d
+#+BEGIN_SRC sh
+  cd ~/.emacs.d/private
+#+END_SRC
+    - Create an Isabelle directory and go to it
+#+BEGIN_SRC sh
+  mkdir isabelle
+  cd local
+#+END_SRC
+    - Create symbolic links to the layer files
+#+BEGIN_SRC sh
+  ln -s ~/isabelle-release/src/Tools/emacs-lsp/spacemacs_layers/isabelle/layers.el layers.el
+  ln -s ~/isabelle-release/src/Tools/emacs-lsp/spacemacs_layers/isabelle/packages.el packages.el
+  ln -s ~/isabelle-release/src/Tools/emacs-lsp/spacemacs_layers/isabelle/funcs.el funcs.el
+#+END_SRC
+    - Replace the imports by
+#+BEGIN_SRC elisp
+(defconst isabelle-packages
+  '(
+    ;; async is in spacemacs-core
+    dash
+    (isar-mode :location (recipe
+                             :fetcher github
+                             :repo "m-fleury/isar-mode"))
+    (isar-goal-mode :location (recipe
+                             :fetcher github
+                             :repo "m-fleury/simp-isar-mode"))
+    (lsp-isar :location (recipe
+                             :fetcher github
+                             :repo "m-fleury/emacs-isabelle"
+                 :files ("src/Tools/emacs-lsp/lsp-isar/*.el")))
+    yasnippet)
+  "The list of Lisp packages required by the isabelle layer.")
+#+END_SRC
 
+*** Add the isabelle layer to spacemacs and configure it
+To use this configuration layer, add it to your =~/.spacemacs=. You will need to
+add =isabelle= to the existing =dotspacemacs-configuration-layers= list in this
+file.
+
+Then you need to add the following lines in the =dotspacemacs/user-init= function of your =~/.spacemacs= file.
+#+BEGIN_SRC elisp
+  (setq lsp-isar-path-to-isabelle "~/isabelle-release")
+  (setq lsp-isabelle-options (list "-d" "~/Example_Dir/Example_Session_Dir" "-S" "Example_Session"))
+#+END_SRC
+Note that the second line contains the command options to start isabelle from the
+command line and must be adapted to each use (see the Isabelle manual for the list of options).
+
+Using the option "-S" (especially if you are importing the AFP in your theories), will speed up the start-up time.
+Note that this option can only be used if a ROOT file is declared for the corresponding session (see the isabelle documentation).
+* Install (as a developer)
+** TODO standard emacs
+** spacemacs
 *** Download the Isar-mode package
 
 #+BEGIN_SRC sh
@@ -168,21 +225,8 @@ In the remainder of these instructions, I assume you have cloned these repos dir
 #+END_SRC
 
 *** Add the isabelle layer to spacemacs and configure it
-To use this configuration layer, add it to your =~/.spacemacs=. You will need to
-add =isabelle= to the existing =dotspacemacs-configuration-layers= list in this
-file.
-
-Then you need to add the following lines in the =dotspacemacs/user-init= function of your =~/.spacemacs= file.
-#+BEGIN_SRC elisp
-  (setq lsp-isar-path-to-isabelle "~/isabelle-release")
-  (setq lsp-isabelle-options (list "-d" "~/Example_Dir/Example_Session_Dir" "-S" "Example_Session"))
-#+END_SRC
-Note that the second line contains the command options to start isabelle from the
-command line and must be adapted to each use (see the Isabelle manual for the list of options).
-
-Using the option "-S" (especially if you are importing the AFP in your theories), will speed up the start-up time.
-Note that this option can only be used if a ROOT file is declared for the corresponding session (see the isabelle documentation).
-
+Same as non-developer version
+* Post-Installation
 *** Adding the AFP
 Append to the file =~/.isabelle/Isabelle2019/etc/settings=
 #+BEGIN_src sh
@@ -197,4 +241,7 @@ This is also the place to include further paths. Remember, however, that includi
 
 * TODO Key bindings
 
+| Binding | Effect                                                      |
+|---------+-------------------------------------------------------------|
+| C-c C-s | insert sledgehammer command and open the tansient interface |
 
