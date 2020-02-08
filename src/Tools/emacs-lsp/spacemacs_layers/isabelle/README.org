@@ -1,5 +1,5 @@
-#+TITLE: Isabelle layer
-
+#+TITLE: Isabelle in Emacs
+Here is a screenshot of Isabelle in emacs:
 [[file:img/normal_emacs_isabelle.png]]
 
 * Heading
@@ -24,6 +24,7 @@ This layer allows for editing isabelle theory files. It includes:
   - syntax highlighting via isar-mode
   - pretty symbols rewriting
   - processing via isar-lsp
+  - sledgehammer interface
   - some other things
 
 * Preparation
@@ -44,8 +45,13 @@ git co https://github.com/m-fleury/isabelle-release
   ./bin/isabelle build -b HOL
 #+END_SRCk
 
-There is no difference between the standard Isabelle and this Isabelle version, except for some extensions in the LSP server that does not impact Isabelle.
+There is no difference between the standard Isabelle and this Isabelle
+version, except for some extensions in the LSP server that does not
+impact Isabelle. A small list of extensions:
+   - support for progress (corresponding to the theory panel in Isabelle/jEdit)
+   - support for outline (corresponding to the sidekick in Isabelle/jEdit)
 
+While none of them is per-se necessary, as a user, you really want to have the first one.
 * Install (as a non-developer)
 
 ** standard emacs
