@@ -9,13 +9,19 @@ Here is a screenshot of Isabelle in emacs:
 -  [[#description][Description]]
 -  [[#preparation][Preparation]]
     -  [[#clone-isabelle2019-vsce][Clone Isabelle2019-vsce]]
--  [[#install][Install]]
-  -  [[#standard-emacs-as-a-non-developer][standard emacs (as a non-developer)]]
+-  [[#install-as-a-non-developer][Install (as a non-developer)]]
+  -  [[#standard-emacs][standard emacs]]
+  -  [[#spacemacs][spacemacs]]
+    -  [[#create-the-private-layer-isabelle][Create the private layer Isabelle]]
+    -  [[#add-the-isabelle-layer-to-spacemacs-and-configure-it][Add the isabelle layer to spacemacs and configure it]]
+-  [[#install-as-a-developer][Install (as a developer)]]
+  -  [[#standard-emacs][standard emacs]]
   -  [[#spacemacs][spacemacs]]
     -  [[#download-the-isar-mode-package][Download the Isar-mode package]]
     -  [[#create-the-private-layer-isabelle][Create the private layer Isabelle]]
     -  [[#create-the-private-layer-lisp-mode][Create the private layer lisp-mode]]
     -  [[#add-the-isabelle-layer-to-spacemacs-and-configure-it][Add the isabelle layer to spacemacs and configure it]]
+-  [[#post-installation][Post-Installation]]
     -  [[#adding-the-afp][Adding the AFP]]
 -  [[#key-bindings][Key bindings]]
 
@@ -43,7 +49,7 @@ git co https://github.com/m-fleury/isabelle-release
   ./bin/isabelle components -I
   ./bin/isabelle components -a
   ./bin/isabelle build -b HOL
-#+END_SRCk
+#+END_SRC
 
 There is no difference between the standard Isabelle and this Isabelle
 version, except for some extensions in the LSP server that does not
