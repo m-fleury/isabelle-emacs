@@ -48,6 +48,7 @@
 (defun isabelle/init-lsp-isar ()
   (use-package lsp-isar
     :after isar-mode isar-goal-mode
+    :commands lsp-isar-define-client-and-start
     :config
     (setq lsp-response-timeout 1200)
     (setq lsp-restart 'ignore)
