@@ -27,7 +27,8 @@ Here is a screenshot of Isabelle in emacs:
     -  [[#create-the-private-layer-lisp-mode][Create the private layer lisp-mode]]
     -  [[#add-the-isabelle-layer-to-spacemacs-and-configure-it][Add the isabelle layer to spacemacs and configure it]]
 -  [[#post-installation][Post-Installation]]
-    -  [[#adding-the-afp][Adding the AFP]]
+  -  [[#adding-the-afp][Adding the AFP]]
+  -  [[#configuration][Configuration]]
 -  [[#key-bindings][Key bindings]]
 
 * TODO Description
