@@ -92,7 +92,9 @@ This project brings Isabelle's LSP server to emacs, make it possible
 to not use Isabelle/jEdit. This project contains some extensons of the
 Isabelle/LSP server, but no change to the core of Isabelle.
 ** Installation
-The installation instruction are available at [[file:src/Tools/emacs-lsp/spacemacs/isabelle/README.org]].
+The installation instruction are available at
+[[file:src/Tools/emacs-lsp/spacemacs_layers/isabelle/README.org]] (even
+for non-spacemacs users).
 ** Contribution/Bugs
 - We do not accept changes to the pure Isabelle part (see the Isabelle part for a description).
 - You can open issues.
