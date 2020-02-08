@@ -1,5 +1,5 @@
-                       The Isabelle System Distribution
-
+#+TITLE: The Isabelle System Distribution
+* Isabelle Readme
 Version information
 
    This is some repository version of Isabelle.
@@ -75,3 +75,16 @@ Other sources of information
    helpful, we can accept no responsibility for the deficiencies of
    Isabelle and their consequences.
      _________________________________________________________________
+
+* Emacs Isabelle
+** Description
+This project brings Isabelle's LSP server to emacs, make it possible
+to not use Isabelle/jEdit. This project contains some extensons of the
+Isabelle/LSP server, but no change to the core of Isabelle.
+** Installation
+The installation instruction are available at [[file:src/Tools/emacs-lsp/spacemacs/isabelle/README.org]].
+** Contribution/Bugs
+- We do not accept changes to the pure Isabelle part (see the Isabelle part for a description).
+- You can open issues.
+- My elisp-fu is terrible, so if you see improvements, explain me why by opening an issue!
+
