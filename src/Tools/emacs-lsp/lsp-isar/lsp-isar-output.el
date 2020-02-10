@@ -55,6 +55,7 @@
 (defvar lsp-isar-output--last-start nil "Last start time in seconds")
 (defvar lsp-isar-output--previous-goal nil "previous outputted goal")
 (defvar lsp-isar-output-current-output-number 0 "number of the current output")
+(defvar lsp-isar-output-last-seen-prover nil "name of the prover that was seen last")
 
 (defcustom lsp-isar-output-use-async nil
   "Use asynchronous goal printing"
@@ -435,7 +436,8 @@ functions adds up. So any optimisation would help."
 	  (with-current-buffer lsp-isar-output-state-buffer
 	    (let ((inhibit-read-only t))
 	      (setf (buffer-string) "")
-	      (setq lsp-isar-output-proof-cases-content nil)
+	      (setq lsp-isar-output-proof-cases-content nil
+		    lsp-isar-output-last-seen-prover nil)
 	      (lsp-isar-output-parse-output parsed-content)
 	      (goto-char (point-min))
 	      (ignore-errors
