@@ -414,12 +414,13 @@ choice for the given prover."
    ("z" "Z3 proofs" lsp-isar-insert-sledgehammer-z3)])
 
 
-(define-key isar-mode-map (kbd "C-c s") 'lsp-isar-sledgehammer)
+(define-key isar-mode-map (kbd "C-x s") 'lsp-isar-sledgehammer)
 
 (defun lsp-isar-insert-sledgehammer-and-call ()
   "insert sledgehammer and open the interface."
   (interactive)
-  (insert "sledgehammer")
+  (unless (string= (word-at-point) "sledgehammer")
+    (insert "sledgehammer"))
   (lsp-isar-sledgehammer))
 
 (define-key isar-mode-map (kbd "C-c C-s")
