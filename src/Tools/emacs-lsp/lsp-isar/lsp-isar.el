@@ -83,6 +83,15 @@ the output buffer, and the initial hooks.")
 	  (const :tag "Split in three columns (with progress on the right)" 'lsp-isar-split-pattern-three-columns)))
   :group 'isabelle);;
 
+;; taken from https://emacs.stackexchange.com/questions/2189/how-can-i-prevent-a-command-from-using-specific-windows
+(defun lsp-isar-toggle-window-dedicated ()
+  "Control whether or not Emacs is allowed to display another
+buffer in current window."
+  (let (window (get-buffer-window (current-buffer)))
+         (set-window-dedicated-p window (not (window-dedicated-p window)))))
+
+(global-set-key (kbd "C-c t") 'toggle-window-dedicated)
+
 ;; unconditionnaly split the window
 (defun lsp-isar-open-output-and-progress-right-two-columns ()
   "opens the *lsp-isar-output* and *lsp-isar-progress* buffers on the right"
@@ -90,12 +99,15 @@ the output buffer, and the initial hooks.")
   (split-window-right)
   (other-window 1)
   (switch-to-buffer "*lsp-isar-state*")
+  (lsp-isar-toggle-window-dedicated)
   (split-window-below)
   (other-window 1)
   (switch-to-buffer "*lsp-isar-output*")
+  (lsp-isar-toggle-window-dedicated)
   (split-window-below)
   (other-window 1)
   (switch-to-buffer "*lsp-isar-progress*")
+  (lsp-isar-toggle-window-dedicated)
   (other-window -3))
 
 (defun lsp-isar-open-output-and-progress-right-three-columns ()
@@ -109,12 +121,15 @@ the output buffer, and the initial hooks.")
   (split-window-right)
   (other-window 1)
   (switch-to-buffer "*lsp-isar-progress*")
+  (lsp-isar-toggle-window-dedicated)
 
   (other-window -1)
   (switch-to-buffer "*lsp-isar-state*")
+  (lsp-isar-toggle-window-dedicated)
   (split-window-below)
   (other-window 1)
   (switch-to-buffer "*lsp-isar-output*")
+  (lsp-isar-toggle-window-dedicated)
   (other-window -2))
 
 
