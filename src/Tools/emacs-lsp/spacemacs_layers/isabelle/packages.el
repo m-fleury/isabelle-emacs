@@ -33,7 +33,10 @@
 
 (defun isabelle/init-isar-mode ()
   (use-package isar-mode
-    :mode ("\\.thy\\'" . isar-mode))
+    :mode ("\\.thy\\'" . isar-mode)
+    :config
+    (spacemacs/declare-prefix-for-mode 'lsp-mode "i" "isar")
+    (spacemacs/set-leader-keys-for-minor-mode 'lsp-mode "ii" 'lsp-isar-insert-sledgehammer-and-call))
   (use-package isar-goal-mode
     :after isar-mode))
 
@@ -55,7 +58,7 @@
     (setq lsp-prefer-flymake nil)
     (push (concat lsp-isar-path-to-isabelle "/src/Tools/emacs-lsp/yasnippet") yas-snippet-dirs)
     (yas-reload-all)
-    :init
+        :init
     (add-hook 'isar-mode-hook 'flycheck-mode)
     (add-hook 'isar-mode-hook 'lsp-isar-define-client-and-start)
     (add-hook 'lsp-isar-init-hook 'lsp-isar-open-output-and-progress-right-spacemacs)
