@@ -36,7 +36,8 @@
     :mode ("\\.thy\\'" . isar-mode)
     :config
     (spacemacs/declare-prefix-for-mode 'lsp-mode "i" "isar")
-    (spacemacs/set-leader-keys-for-minor-mode 'lsp-mode "ii" 'lsp-isar-insert-sledgehammer-and-call))
+    (spacemacs/set-leader-keys-for-minor-mode 'lsp-mode "ii" 'lsp-isar-insert-sledgehammer-and-call)
+    (spacemacs/set-leader-keys-for-minor-mode 'lsp-mode "is" 'lsp-isar-sledgehammer))
   (use-package isar-goal-mode
     :after isar-mode))
 
