@@ -38,24 +38,27 @@
     :after isar-mode))
 
 
-(defun isabelle/post-init-yasnippet ()
-  (push (concat lsp-isar-path-to-isabelle "/src/Tools/emacs-lsp/yasnippet") yas-snippet-dirs))
-
 (defun isabelle/init-isar-goal-mode ()
   (use-package isar-goal-mode
     :after isar-mode))
 
+(defun isabelle/post-init-yasnippet ()
+  )
+
 (defun isabelle/init-lsp-isar ()
   (use-package lsp-isar
     :after isar-mode isar-goal-mode
-    :commands lsp-isar-define-client-and-start
+    :commands lsp-isar-define-client-and-start lsp-isar-open-output-and-progress-right-spacemacs
     :config
     (setq lsp-response-timeout 1200)
     (setq lsp-restart 'ignore)
-    (setq lsp-prefer-flymake nil))
-  (add-hook 'isar-mode-hook 'flycheck-mode)
-  (add-hook 'isar-mode-hook 'lsp-isar-define-client-and-start)
-  (add-hook 'lsp-isar-init-hook 'lsp-isar-open-output-and-progress-right-spacemacs)
-  (spacemacs/add-to-hooks 'spacemacs/load-yasnippet '(isar-mode-hook)))
+    (setq lsp-prefer-flymake nil)
+    (push (concat lsp-isar-path-to-isabelle "/src/Tools/emacs-lsp/yasnippet") yas-snippet-dirs)
+    (yas-reload-all)
+    :init
+    (add-hook 'isar-mode-hook 'flycheck-mode)
+    (add-hook 'isar-mode-hook 'lsp-isar-define-client-and-start)
+    (add-hook 'lsp-isar-init-hook 'lsp-isar-open-output-and-progress-right-spacemacs)
+    (spacemacs/add-to-hooks 'spacemacs/load-yasnippet '(isar-mode-hook))))
 
 ;;; packages.el ends here
