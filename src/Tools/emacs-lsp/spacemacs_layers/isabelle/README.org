@@ -46,7 +46,7 @@ This layer allows for editing isabelle theory files. It includes:
 #+BEGIN_SRC sh
 git clone git@github.com:m-fleury/isabelle-release.git
 cd isabelle-release
-git co https://github.com/m-fleury/isabelle-release
+git checkout isabelle2019-more-vscode
 #+END_SRC
 
     - Initialize Isabelle (note that the second and third commands can take a while)
@@ -273,9 +273,19 @@ If you want to split the screen differently, you just remove the hook from =isar
 #+END_src
 and add your own function to the hook instead!
 
-* TODO Key bindings
+* Key bindings
+*** Normal emacs
+| Binding | Effect                                                       |
+|---------+--------------------------------------------------------------|
+| C-c C-s | insert sledgehammer command and open the transient interface |
 
-| Binding | Effect                                                      |
-|---------+-------------------------------------------------------------|
-| C-c C-s | insert sledgehammer command and open the tansient interface |
+(If you know magit, you will know how to use the interface)
+
+*** Spacemacs
+| Binding | Effect                                                       |
+|---------+--------------------------------------------------------------|
+| ,ii     | insert sledgehammer command and open the transient interface |
+| ,is     | open the transient interface                                 |
+
+(If you know magit, you will know how to use the interface)
 
