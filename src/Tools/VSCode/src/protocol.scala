@@ -162,6 +162,7 @@ object Protocol
         "hoverProvider" -> true,
         "definitionProvider" -> true,
         "documentHighlightProvider" -> true,
+        "rangeFormatter" -> false,
         "documentSymbolProvider" -> true)
   }
 
