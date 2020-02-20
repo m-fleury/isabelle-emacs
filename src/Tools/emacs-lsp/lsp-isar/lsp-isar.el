@@ -432,8 +432,18 @@ choice for the given prover."
 (define-key isar-mode-map (kbd "C-x s") 'lsp-isar-sledgehammer)
 
 (defun lsp-isar-insert-sledgehammer-and-call ()
-  "insert sledgehammer and open the interface."
+  "insert sledgehammer and open the interface.
+
+If there is no whitespace at the current point, we insert a space before
+the sledgehammer command."
   (interactive)
+  (when (word-at-point)
+    (forward-word))
+  (backward-char)
+  (let ((is-space (thing-at-point 'whitespace)))
+    (forward-char)
+    (unless is-space
+      (insert " ")))
   (unless (string= (word-at-point) "sledgehammer")
     (insert "sledgehammer"))
   (lsp-isar-sledgehammer))
