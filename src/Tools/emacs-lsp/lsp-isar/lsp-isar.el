@@ -437,14 +437,14 @@ choice for the given prover."
 If there is no whitespace at the current point, we insert a space before
 the sledgehammer command."
   (interactive)
-  (when (word-at-point)
-    (forward-word))
-  (backward-char)
-  (let ((is-space (thing-at-point 'whitespace)))
-    (forward-char)
-    (unless is-space
-      (insert " ")))
   (unless (string= (word-at-point) "sledgehammer")
+    (when (word-at-point)
+      (forward-word))
+    (backward-char)
+    (let ((is-space (thing-at-point 'whitespace)))
+      (forward-char)
+      (unless is-space
+	(insert " ")))
     (insert "sledgehammer"))
   (lsp-isar-sledgehammer))
 
