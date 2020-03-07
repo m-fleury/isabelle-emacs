@@ -109,7 +109,8 @@
    "declare" "notepad"
    "inductive"
    "definition" "fun" "primrec" "corec"
-   "text"))
+   "text"
+   "instantiation" "instance"))
 
 (defvar lsp-isar-indent--outmost-command
   (lsp-isar-indent-create-regex-from-words lsp-isar-indent-outmost-command))
