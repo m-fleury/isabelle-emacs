@@ -17,6 +17,12 @@ begin
     for S
     using that
     by auto
+
+  have \<open>T = S\<close>
+    if \<open>S = T\<close>
+    for S
+    unfolding that
+    by auto
 end
 
 datatype finite_type = A | B
