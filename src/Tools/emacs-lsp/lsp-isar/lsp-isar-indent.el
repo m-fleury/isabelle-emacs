@@ -108,7 +108,8 @@
    "sepref_def" "sepref_definition"
    "declare" "notepad"
    "inductive"
-   "definition" "fun" "primrec" "corec"))
+   "definition" "fun" "primrec" "corec"
+   "text"))
 
 (defvar lsp-isar-indent--outmost-command
   (lsp-isar-indent-create-regex-from-words lsp-isar-indent-outmost-command))
