@@ -73,5 +73,24 @@ proof -
 lemma \<open>True\<close>
   ..
 
+lemma \<open>P x\<close> if \<open>P x\<close>
+proof -
+  show \<open>P x\<close>
+    by (use that in auto)
+qed
+
+lemma \<open>P x\<close> for x :: \<open>nat list\<close>
+proof (induction x)
+  case Nil
+  then show ?case sorry
+next
+  case (Cons a x)
+  have H: \<open>P \<Longrightarrow> P\<close> for P
+    by auto
+  show ?case
+    apply -
+    apply (rule H)
+    sorry
+qed
 
 end
