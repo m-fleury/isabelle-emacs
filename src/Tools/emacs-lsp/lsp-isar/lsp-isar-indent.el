@@ -104,7 +104,7 @@
   (list
    "theory" "imports"
    "begin" "end" "datatype"
-   "lemma" "corollary" "theorem" "lemmas"
+   "lemma" "corollary" "theorem" "lemmas" "proposition"
    "sepref_def" "sepref_definition"
    "declare" "notepad"
    "inductive"
@@ -124,8 +124,7 @@
 (defvar lsp-isar-indent-proof-command
   (list
    "proof"
-   "next"
-   "qed"))
+   "next"))
 
 (defvar lsp-isar-indent--proof-command
   (lsp-isar-indent-create-regex-from-words lsp-isar-indent-proof-command))
@@ -212,6 +211,8 @@
 (defvar lsp-isar-indent-apply-command
   (list
    "apply"
+   "oops"
+   "sorry"
    "using"
    "unfolding"
    "supply"
@@ -315,6 +316,9 @@
 	 (current-indentation))
 	(`(lsp-isar-indent-proof-end-command lsp-isar-indent-isar-command)
 	 (current-indentation))
+	(`(lsp-isar-indent-proof-end-command lsp-isar-indent-apply-command)
+	 (- (current-indentation) 4))
+
 	(`(lsp-isar-indent-proof-end-command ,_) ;; lsp-isar-indent-apply-structuring-command
 	 (+ 2 (current-indentation)))
 
@@ -326,8 +330,23 @@
 	 (- (current-indentation) 2))
 	(`(lsp-isar-indent-proof-command lsp-isar-indent-isar-command)
 	 (current-indentation))
+	(`(lsp-isar-indent-proof-command lsp-isar-indent-apply-command)
+	 (- (current-indentation) 2))
 	(`(lsp-isar-indent-proof-command ,_) ;; lsp-isar-indent-apply-structuring-command
 	 (+ 2 (current-indentation)))
+
+	(`(lsp-isar-indent-isars-command lsp-isar-indent-outmost-command)
+	 2)
+	(`(lsp-isar-indent-isars-command lsp-isar-indent-proof-end-command)
+	 (current-indentation))
+	(`(lsp-isar-indent-isars-command lsp-isar-indent-proof-command)
+	 (+ 2 (current-indentation)))
+	(`(lsp-isar-indent-isars-command lsp-isar-indent-isars-command)
+	 (current-indentation))
+	(`(lsp-isar-indent-isars-command lsp-isar-indent-isar-command)
+	 (current-indentation))
+	(`(lsp-isar-indent-isars-command lsp-isar-indent-apply-structuring-command)
+	 (- (current-indentation) 2))
 
 	(`(lsp-isar-indent-isar-command lsp-isar-indent-outmost-command)
 	 2)
@@ -340,6 +359,8 @@
 	(`(lsp-isar-indent-isar-command lsp-isar-indent-isar-command)
 	 (current-indentation))
 	(`(lsp-isar-indent-isar-command lsp-isar-indent-apply-structuring-command)
+	 (- (current-indentation) 2))
+	(`(lsp-isar-indent-isar-command lsp-isar-indent-apply-end-command)
 	 (- (current-indentation) 2))
 
 	(`(lsp-isar-indent-apply-structuring-command lsp-isar-indent-outmost-command)
@@ -366,7 +387,7 @@
 	(`(lsp-isar-indent-apply-command lsp-isar-indent-proof-command)
 	 (+ 2 (current-indentation)))
 	(`(lsp-isar-indent-apply-command lsp-isar-indent-isars-command)
-	 (+ 2 (current-indentation)))
+	 (current-indentation))
 	(`(lsp-isar-indent-apply-command lsp-isar-indent-isar-command)
 	 (+ 2 (current-indentation)))
 	(`(lsp-isar-indent-apply-command lsp-isar-indent-apply-command)
