@@ -66,8 +66,8 @@ if [ -z "$ISABELLE_PLATFORM_FAMILY" ]; then
 fi
 
 #Isabelle distribution identifier -- filled in automatically!
-ISABELLE_ID=""
-[ -z "$ISABELLE_IDENTIFIER" ] && ISABELLE_IDENTIFIER=""
+ISABELLE_ID="Isabelle2020"
+[ -z "$ISABELLE_IDENTIFIER" ] && ISABELLE_IDENTIFIER="Isabelle2020-vsce"
 
 
 # components

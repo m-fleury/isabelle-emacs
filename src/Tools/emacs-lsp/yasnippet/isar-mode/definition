@@ -1,0 +1,6 @@
+# -*- mode: snippet -*-
+# name: definition
+# key: definition
+# --
+definition $1 :: \<open>${2:_}\<close> where
+\<open>$1 = $0\<close>
