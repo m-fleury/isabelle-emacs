@@ -455,6 +455,69 @@ the sledgehammer command."
 (define-key isar-mode-map (kbd "C-c C-s")
   'lsp-isar-insert-sledgehammer-and-call)
 
+(defun lsp-isar-insert-try0 ()
+  "Insert try0 at cursor position.
+
+If there is no whitespace at cursor position, a space is inserted before try0"
+  (interactive)
+  (unless (string= (word-at-point) "try0")
+    (when (word-at-point)
+      (forward-word))
+    (backward-char)
+    (let ((is-space (thing-at-point 'whitespace)))
+      (forward-char)
+      (unless is-space
+        (insert " ")))
+    (insert "try0")))
+
+(define-key isar-mode-map (kbd "C-c C-t")
+  'lsp-isar-insert-try0)
+
+(defun lsp-isar-insert-simp ()
+  "Insert \"by simp\" at cursor position with whitespace in front if necessary"
+  (interactive)
+  (when (word-at-point)
+    (forward-word))
+  (backward-char)
+  (let ((is-space (thing-at-point 'whitespace)))
+    (forward-char)
+    (unless is-space
+      (insert " ")))
+  (insert "by simp"))
+
+(define-key isar-mode-map (kbd "C-c C-b C-s")
+  'lsp-isar-insert-simp)
+
+(defun lsp-isar-insert-auto ()
+  "Insert \"by simp\" at cursor position with whitespace in front if necessary"
+  (interactive)
+  (when (word-at-point)
+    (forward-word))
+  (backward-char)
+  (let ((is-space (thing-at-point 'whitespace)))
+    (forward-char)
+    (unless is-space
+      (insert " ")))
+  (insert "by auto"))
+
+(define-key isar-mode-map (kbd "C-c C-b C-a")
+  'lsp-isar-insert-simp)
+
+(defun lsp-isar-insert-blast ()
+  "Insert \"by simp\" at cursor position with whitespace in front if necessary"
+  (interactive)
+  (when (word-at-point)
+    (forward-word))
+  (backward-char)
+  (let ((is-space (thing-at-point 'whitespace)))
+    (forward-char)
+    (unless is-space
+      (insert " ")))
+  (insert "by blast"))
+
+(define-key isar-mode-map (kbd "C-c C-b C-b")
+  'lsp-isar-insert-simp)
+
 (provide 'lsp-isar)
 
 ;;; lsp-isar.el ends here
