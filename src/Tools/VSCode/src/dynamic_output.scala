@@ -32,7 +32,7 @@ object Dynamic_Output
                       //server.resources.output_pretty_message(snapshot.command_results(command))
                       Rendering.output_messages(snapshot.command_results(command))
                     else output
-                  copy(text = text)
+                  copy(output = text)
               }
             }
             else this
