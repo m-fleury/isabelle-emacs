@@ -41,7 +41,7 @@
   "Holds the cursor position from the last run of post-command-hooks.")
 
 (defvar lsp-isar-caret--caret-timer nil
-  "Holds the timer that should update the cursor")
+  "Holds the timer that should update the cursor.")
 
 (define-inline lsp-isar-caret-update-struct (uri line char focus)
   "Make a Caret_Update object for the given LINE and CHAR.
