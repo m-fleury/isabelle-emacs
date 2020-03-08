@@ -93,4 +93,17 @@ next
     sorry
 qed
 
+
+lemma \<open>P x\<close> for x :: \<open>nat list\<close>
+proof -
+  show \<open>P x\<close> for x
+  proof (induction x)
+    case Nil
+    then show ?case sorry
+  next
+    case (Cons a x)
+    then show ?case sorry
+  qed
+qed
+
 end

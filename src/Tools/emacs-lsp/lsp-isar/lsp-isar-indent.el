@@ -171,7 +171,10 @@
    "show" "thus"
    "moreover"
    "ultimately"
+   "also"
+   "finally"
    "case"
+   "let"
    "obtain"))
 
 (defvar lsp-isar-indent--isar-command
