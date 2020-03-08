@@ -78,9 +78,9 @@ the output buffer, and the initial hooks.")
   "split motif for the columns.."
   :type
   '(alist
-   :key-type
-   (choice (const :tag "Split in two columns" 'lsp-isar-split-pattern-two-columns)
-	  (const :tag "Split in three columns (with progress on the right)" 'lsp-isar-split-pattern-three-columns)))
+    :key-type
+    (choice (const :tag "Split in two columns" 'lsp-isar-split-pattern-two-columns)
+	    (const :tag "Split in three columns (with progress on the right)" 'lsp-isar-split-pattern-three-columns)))
   :group 'isabelle);;
 
 ;; taken from https://emacs.stackexchange.com/questions/2189/how-can-i-prevent-a-command-from-using-specific-windows
