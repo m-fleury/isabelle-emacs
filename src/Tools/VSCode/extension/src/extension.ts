@@ -2,6 +2,7 @@
 
 import * as path from 'path';
 import * as fs from 'fs';
+import { setInterval, clearInterval } from 'timers';
 import * as library from './library'
 import * as decorations from './decorations';
 import * as preview_panel from './preview_panel';
@@ -22,14 +23,16 @@ export function activate(context: ExtensionContext)
   const isabelle_home = library.get_configuration<string>("home")
   const isabelle_args = library.get_configuration<Array<string>>("args")
   const cygwin_root = library.get_configuration<string>("cygwin_root")
-
+  const debug = library.get_configuration<boolean>("debug")
+  let progress_timer: NodeJS.Timer
+  let progress_update_interval : number = library.get_configuration<number>("progress-update-interval") || 1500
 
   /* server */
 
   if (isabelle_home === "")
     window.showErrorMessage("Missing user settings: isabelle.home")
   else {
-    const isabelle_tool = isabelle_home + "/bin/isabelle"
+    const isabelle_tool = isabelle_home + "/bin/isabelle
     const standard_args = ["-o", "vscode_unicode_symbols", "-o", "vscode_pide_extensions"]
 
     const server_options: ServerOptions =
@@ -47,10 +50,22 @@ export function activate(context: ExtensionContext)
         { language: "bibtex", scheme: "file" }
       ]
     };
+    if (debug)
+      console.log("creating language_client now")
+    var language_client;
+    try {
+      language_client =
+        new LanguageClient("Isabelle", server_options, language_client_options, debug)
+      language_client.onReady();
+    }
+    catch(e)  {
+      console.error("could not start Isabelle " + e)
+    }
+    if (debug)
+      console.log("created language_client");
 
-    const language_client =
-      new LanguageClient("Isabelle", server_options, language_client_options, false)
-
+    if (debug)
+      language_client.onReady().then(() =>  console.log("language_client fully loaded"))
 
     /* decorations */
 
@@ -80,6 +95,9 @@ export function activate(context: ExtensionContext)
       if (last_caret_update !== caret_update) {
         if (caret_update.uri)
           language_client.sendNotification(protocol.caret_update_type, caret_update)
+        //console.log("last caret was: " + last_caret_update)
+        //console.log("new caret was: " + caret_update)
+
         last_caret_update = caret_update
       }
     }
@@ -159,7 +177,7 @@ export function activate(context: ExtensionContext)
     const completion_provider = new completion.Completion_Provider
     for (const mode of ["isabelle", "isabelle-ml"]) {
       context.subscriptions.push(
-        languages.registerCompletionItemProvider(mode, completion_provider))
+        languages.registerCompletionItemProvider({scheme: 'file', language: mode}, completion_provider))
     }
 
 
@@ -181,10 +199,91 @@ export function activate(context: ExtensionContext)
     })
 
 
+    /* progress */
+    const theories_output = window.createOutputChannel("Isabelle Theories")
+    context.subscriptions.push(theories_output)
+    theories_output.show(true)
+    theories_output.hide()
+
+    function node_status_print(st: [protocol.Node_Status]) : string {
+      var res =
+      st.forEach(st => {
+          let processed_tasks : number = st.finished + st.warned
+	  let unfinished_tasks : number = st.unprocessed + st.running + st.failed
+          let total_tasks : number = processed_tasks + unfinished_tasks
+          var progress : number
+          if (st.initialized && total_tasks != 0) {
+            progress = 100.0 * processed_tasks / total_tasks
+          }
+          else progress = 0
+
+          if(st.failed != 0 && st.canceled !=0)
+	                           res += "✘
+          else if(st.running != 0) res += "☛☛
+          else if(unfinished_tasks == 0 && st.consolidated && st.finished)
+                                   res += "☑✔
+          else if(st.finished)     res += " ✔
+          else                     res +=
+
+	  let theory_name = st.name.split("/").pop()
+          res += theory_name + " (progress: " + progress.toFixed(0) + "% , " + "warnings: " + st.warned + ")\n
+      })
+      return res
+    }
+
+    language_client.onReady().then(() =>
+    {
+      language_client.onNotification(protocol.progress_response_type,
+				     (params : protocol.Nodes_Status) => {
+          let new_status = node_status_print(params.nodes_status)
+          theories_output.clear();
+					theories_output.appendLine(new_status) })
+    })
+
+    function progress_update() {
+      language_client.onReady().then(() =>
+        language_client.sendNotification(protocol.progress_request_type))
+    }
+    function stop_progress_update() {
+      if(progress_timer)
+        clearInterval(progress_timer)
+      progress_timer = undefined
+      theories_output.clear()
+      theories_output.appendLine("Printing suspended, use isabelle.start-progress-update to restart")
+    }
+
+    function start_progress_update() {
+      clearInterval(progress_timer)
+      progress_timer = setInterval(progress_update, progress_update_interval)
+      theories_output.clear()
+      theories_output.appendLine("Printing activated, awaiting answer from Isabelle")
+
+    }
+
+    function change_progress_update(int) {
+      stop_progress_update()
+      progress_update_interval = int
+      progress_timer = setInterval(progress_update, progress_update_interval)
+      if(progress_timer)
+        start_progress_update()
+    }
+
+
+    context.subscriptions.push(
+      commands.registerCommand("isabelle.set-progress-interval (ms)", change_progress_update),
+      commands.registerCommand("isabelle.stop-progress-update", stop_progress_update),
+      commands.registerCommand("isabelle.start-progress-update", start_progress_update))
+
+
     /* start server */
 
     context.subscriptions.push(language_client.start())
+
+    // only start timer when the server is ready
+    progress_timer = setInterval(progress_update, progress_update_interval)
+
   }
+
 }
 
 export function deactivate() { }
