@@ -20,7 +20,7 @@
 
 ;; THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 ;; IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-;; FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+;; FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
 ;; AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 ;; LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 ;; OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
@@ -46,7 +46,9 @@
   :group 'isabelle)
 
 (defvar lsp-isar-already-initialised nil
-  "boolean to indicate if we have already initialised progress updates,
+  "Indicate if initialised.
+
+Boolean to indicate if we have already initialised progress updates,
 the output buffer, and the initial hooks.")
 
 
@@ -63,19 +65,19 @@ the output buffer, and the initial hooks.")
 	    (run-hooks 'lsp-isar-init-hook)
 	    (setq lsp-isar-already-initialised t))))))
 
-;; lsp-after-initialize-hook might look like the right macro. However, the
+;; lsp-after-initialize-hook might look like the right macro.  However, the
 ;; workspace (lsp--cur-workspace) is not opened yet.
 (add-hook 'lsp-after-open-hook
 	  'lsp-isar-initialise)
 
 (defvar lsp-isar--already-split nil
-  "boolean to indicate if we have already split the window")
+  "Boolean to indicate if we have already split the window.")
 
 (defvar lsp-isar-split-pattern-three-columns 'lsp-isar-split-pattern-three-columns)
 (defvar lsp-isar-split-pattern-two-columns 'lsp-isar-split-pattern-two-columns)
 
 (defcustom lsp-isar-split-pattern 'lsp-isar-split-pattern-two-columns
-  "split motif for the columns.."
+  "Split motif for the columns."
   :type
   '(alist
     :key-type
@@ -85,14 +87,16 @@ the output buffer, and the initial hooks.")
 
 ;; taken from https://emacs.stackexchange.com/questions/2189/how-can-i-prevent-a-command-from-using-specific-windows
 (defun lsp-isar-toggle-window-dedicated ()
-  "Control whether or not Emacs is allowed to display another
+  "Dedicate current window to content.
+
+Control whether or not Emacs is allowed to display another
 buffer in current window."
   (let ((window (get-buffer-window (current-buffer))))
     (set-window-dedicated-p window (not (window-dedicated-p window)))))
 
 ;; unconditionnaly split the window
 (defun lsp-isar-open-output-and-progress-right-two-columns ()
-  "opens the *lsp-isar-output* and *lsp-isar-progress* buffers on the right"
+  "Opens the *lsp-isar-output* and *lsp-isar-progress* buffers on the right."
   (interactive)
   (split-window-right)
   (other-window 1)
@@ -109,7 +113,7 @@ buffer in current window."
   (other-window -3))
 
 (defun lsp-isar-open-output-and-progress-right-three-columns ()
-  "opens the *lsp-isar-output* and *lsp-isar-progress* buffers on the right"
+  "Opens the *lsp-isar-output* and *lsp-isar-progress* buffers on the right."
   (interactive)
   ;; split first
   (split-window-right)
@@ -132,29 +136,30 @@ buffer in current window."
 
 
 (defun lsp-isar-open-output-and-progress-right ()
-  "opens the *lsp-isar-output* and *lsp-isar-progress* buffers on the right.
+  "Opens the *lsp-isar-output* and *lsp-isar-progress* buffers on the right.
 
 It can be used for example by ``(add-hook 'lsp-isar-init-hook
-'lsp-isar-open-output-and-progress-right-spacemacs)'"
+'lsp-isar-open-output-and-progress-right-spacemacs)'."
   (cond
    ((eq lsp-isar-split-pattern 'lsp-isar-split-pattern-two-columns)
     (lsp-isar-open-output-and-progress-right-two-columns))
    ((eq lsp-isar-split-pattern 'lsp-isar-split-pattern-three-columns)
     (lsp-isar-open-output-and-progress-right-three-columns))
-   (t (message "unrecognised motif to split window. See variable `lsp-isar-split-pattern'"))))
+   (t (message "unrecognised motif to split window.  See variable `lsp-isar-split-pattern'"))))
 
 ;; split the window 2 seconds later (the timeout is necessary to give
 ;; enough time to spacemacs to jump to the theory file).
 (defun lsp-isar-open-output-and-progress-right-spacemacs ()
+  "Split the window with current motif."
   (run-at-time 2 nil (lambda () (lsp-isar-open-output-and-progress-right))))
 
 (defcustom lsp-isar-path-to-isabelle "/home/zmaths/Documents/isabelle/isabelle2018-vsce"
-  "default path to Isabelle (e.g., /path/to/isabelle/folder)"
+  "Default path to Isabelle (e.g., /path/to/isabelle/folder)."
   :type 'string
   :group 'isabelle)
 
 (defcustom lsp-isabelle-options (list "-m" "do_notation")
-  "Isabelle options (e.g, AFP)"
+  "Isabelle options (e.g, AFP)."
   :type '(list string)
   :group 'isabelle)
 
@@ -166,12 +171,11 @@ It can be used for example by ``(add-hook 'lsp-isar-init-hook
   "Isabelle's LSP server options.
 
 Please refer to the documentation of Isabelle for the full set of
-options. In most cases, you should keep the options
+options.  In most cases, you should keep the options
 `(list \"-o\" \"vscode_unicode_symbols\" \"-o\"
    \"vscode_pide_extensions\")'.
 
-Set `lsp-isabelle-options' for other options (like importing the AFP).
-"
+Set `lsp-isabelle-options' for other options (like importing the AFP)."
   :type '(list string)
   :group 'isabelle)
 
@@ -184,21 +188,21 @@ Set `lsp-isabelle-options' for other options (like importing the AFP).
    lsp-isabelle-options))
 
 (defvar lsp-isar--already-defined-client nil
-  "Variable testing if the LSP client has already been defined")
+  "Variable testing if the LSP client has already been defined.")
 
 
 (defcustom lsp-isar-remote-path-to-isabelle
   "/home/zmaths/Documents/isabelle-release"
-  "default path to Isabelle (e.g., /path/to/isabelle/folder)"
+  "Default path to Isabelle (e.g., /path/to/isabelle/folder)."
   :type '(string)
   :group 'isabelle)
 
-(defcustom lsp-remote-isabelle-options (list "-m" "do_notation") "Isabelle options (e.g, AFP)"
+(defcustom lsp-remote-isabelle-options (list "-m" "do_notation") "Isabelle options (e.g, AFP)."
   :type '(list string)
   :group 'isabelle)
 
 (defun lsp-full-remote-isabelle-path ()
-  "full remote isabelle command"
+  "Full remote isabelle command."
   (append
    (list (concat lsp-isar-remote-path-to-isabelle "/bin/isabelle")
 	 "vscode_server")
@@ -206,19 +210,19 @@ Set `lsp-isabelle-options' for other options (like importing the AFP).
    lsp-remote-isabelle-options))
 
 
-(defvar lsp-isar-tramp nil "Use Tramp to edit remote files")
+(defvar lsp-isar-tramp nil "Use Tramp to edit remote files.")
 
 (defun lsp-isar-define-client ()
-  "defines the LSP client for isar mode.
+  "Defines the LSP client for isar mode.
 
 If `lsp-isar-tramp' is t, then the lsp client is registered as
-remote in order to edit files remotely over tramp. Remember that
+remote in order to edit files remotely over tramp.  Remember that
 `lsp-isar-tramp' uses a different configuration.
 
 Set `lsp-remote-isabelle-options' and `lsp-isabelle-options' to
 the AFP and other options."
   ;; declare the lsp mode
-  (push  '(isar-mode . "isabelle") lsp-language-id-configuration)
+  (push  '(isar-mode .  "isabelle") lsp-language-id-configuration)
 
   (if lsp-isar-tramp
       (lsp-register-client
@@ -252,9 +256,9 @@ the AFP and other options."
 
 ;;;###autoload
 (defun lsp-isar-define-client-and-start ()
-  "Setup the LSP client if required and starts lsp in the current buffer.
+  "Setup the LSP client if required and start LSP in the current buffer.
 
-This is the main entry point of the lsp-isar client. To start the
+This is the main entry point of the lsp-isar client.  To start the
 mode automically, use `(add-hook 'isar-mode-hook
 #'lsp-isar-define-client-and-start)'"
   (unless lsp-isar--already-defined-client
@@ -270,19 +274,20 @@ mode automically, use `(add-hook 'isar-mode-hook
 
 
 (defvar lsp-isar-experimental nil
-  "experimental settings")
+  "Experimental settings.")
 
 (defun lsp-isar-activate-experimental-features ()
+  "Activate experimental features."
   (if lsp-isar-experimental
       (progn
-	(message "activating experimental feature is lsp-isar. Set lsp-isar-experimental to nil to avoid it")
+	(message "activating experimental feature is lsp-isar.  Set lsp-isar-experimental to nil to avoid it")
 	(set (make-local-variable 'indent-line-function) 'lsp-isar-indent-line))))
 
 (add-hook 'isar-mode-hook #'lsp-isar-activate-experimental-features)
 
 
 (defun lsp-isar-insert-cases ()
-  "insert the last seen outline at the beginning of the next line.
+  "Insert the last seen outline at the beginning of the next line.
 
 This is meant to be used for skeletons as generated by
 `proof (induction)' or `proof cases'."
@@ -305,8 +310,10 @@ This is meant to be used for skeletons as generated by
   (lsp-isar-kill-thing-at-point 'word))
 
 (defun lsp-isar-insert-sledgehammer (&optional prover isar keep-sledgehammer)
-  "Looks at the last sledgehammer result, removes the word
-  \"sledgehammer\" if pointed at, then inserts the proofs if any.
+  "Insert proof from PROVER in ISAR, keeping the command if KEEP-SLEDGEHAMMER.
+
+Looks at the last sledgehammer result, removes the word
+\"sledgehammer\" if pointed at, then inserts the proofs if any.
 
 The first parameter is the prover name (or a subset of it) and
 the second is t if the Isar proof version should be taken.
@@ -344,7 +351,7 @@ the transient is re-opened."
 (require 'transient)
 
 (defun lsp-isar-is-isar (transient)
-  "find out if the --isar option is set"
+  "Find out if the --isar option is set in TRANSIENT."
   (--if-let (--first (string-prefix-p "--isar" it)
                      (transient-args transient))
       t
@@ -352,64 +359,63 @@ the transient is re-opened."
 
 
 (defun lsp-isar-keep-sledgehammer (transient)
-  "find out if the --isar option is set"
+  "Find out if the --isar option is set in TRANSIENT."
   (--if-let (--first (string-prefix-p "--keep-sledgehammer" it)
                      (transient-args transient))
       t
     nil))
 
 (defun lsp-isar-insert-sledgehammer-cvc4 (isar keep-sledgehammer)
-  "Insert CVC4 proofs"
+  "Insert CVC4 proofs in ISAR, keeping sh command KEEP-SLEDGEHAMMER."
   (interactive
    (list (lsp-isar-is-isar 'lsp-isar-sledgehammer)
 	 (lsp-isar-keep-sledgehammer 'lsp-isar-sledgehammer)))
   (lsp-isar-insert-sledgehammer "cvc4" isar keep-sledgehammer))
 
 (defun lsp-isar-insert-sledgehammer-z3 (isar keep-sledgehammer)
-  "Insert Z3 proofs"
+  "Insert Z3 proofs in ISAR, keeping sh command KEEP-SLEDGEHAMMER."
   (interactive
    (list (lsp-isar-is-isar 'lsp-isar-sledgehammer)
 	 (lsp-isar-keep-sledgehammer 'lsp-isar-sledgehammer)))
   (lsp-isar-insert-sledgehammer "z3" isar keep-sledgehammer))
 
 (defun lsp-isar-insert-sledgehammer-SPASS (isar keep-sledgehammer)
-  "Insert SPASS proofs"
+  "Insert SPASS proofs in ISAR, keeping sh command KEEP-SLEDGEHAMMER."
   (interactive
    (list (lsp-isar-is-isar 'lsp-isar-sledgehammer)
 	 (lsp-isar-keep-sledgehammer 'lsp-isar-sledgehammer)))
   (lsp-isar-insert-sledgehammer "spass" isar keep-sledgehammer))
 
 (defun lsp-isar-insert-sledgehammer-vampire (isar keep-sledgehammer)
-  "Insert vampire proofs"
+  "Insert vampire proofs in ISAR, keeping sh command KEEP-SLEDGEHAMMER."
   (interactive
    (list (lsp-isar-is-isar 'lsp-isar-sledgehammer)
 	 (lsp-isar-keep-sledgehammer 'lsp-isar-sledgehammer)))
   (lsp-isar-insert-sledgehammer "vampire" isar keep-sledgehammer))
 
 (defun lsp-isar-insert-sledgehammer-E (isar keep-sledgehammer)
-  "Insert E proofs"
+  "Insert E proofs in ISAR, keeping sh command KEEP-SLEDGEHAMMER."
   (interactive
    (list (lsp-isar-is-isar 'lsp-isar-sledgehammer)
 	 (lsp-isar-keep-sledgehammer 'lsp-isar-sledgehammer)))
   (lsp-isar-insert-sledgehammer "e" isar keep-sledgehammer))
 
 (defun lsp-isar-insert-sledgehammer-veriT (isar keep-sledgehammer)
-  "Insert veriT proofs"
+  "Insert veriT proofs in ISAR, keeping sh command KEEP-SLEDGEHAMMER."
   (interactive
    (list (lsp-isar-is-isar 'lsp-isar-sledgehammer)
 	 (lsp-isar-keep-sledgehammer 'lsp-isar-sledgehammer)))
   (lsp-isar-insert-sledgehammer "veriT" isar keep-sledgehammer))
 
 (defun lsp-isar-delete-sledgehammer-call ()
-  "Insert veriT proofs"
+  "Insert veriT proofs."
   (interactive)
   (if (string= (word-at-point) "sledgehammer")
       (lsp-isar-kill-word-at-point)))
 
 
 (define-transient-command lsp-isar-sledgehammer ()
-  "Interface to insert sledgehammer commands to the theory
-  buffer.
+  "Interface to insert sledgehammer command in theory.
 
 The options `--isar' is set automatically set if there only one
 choice for the given prover."
@@ -430,7 +436,7 @@ choice for the given prover."
 (define-key isar-mode-map (kbd "C-x s") 'lsp-isar-sledgehammer)
 
 (defun lsp-isar-insert-sledgehammer-and-call ()
-  "insert sledgehammer and open the interface.
+  "Insert sledgehammer and open the interface.
 
 If there is no whitespace at the current point, we insert a space before
 the sledgehammer command."

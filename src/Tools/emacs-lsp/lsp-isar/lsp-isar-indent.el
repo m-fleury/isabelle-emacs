@@ -19,7 +19,7 @@
 
 ;; THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 ;; IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-;; FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+;; FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
 ;; AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 ;; LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 ;; OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
@@ -27,12 +27,12 @@
 
 ;;; Commentary:
 
-;; Initially I tried to follow the corresponding implementation in Isabelle. However, it is full of
-;; special cases and no high level definition is provided. Finally, I decided to reimplement it from
+;; Initially I tried to follow the corresponding implementation in Isabelle.  However, it is full of
+;; special cases and no high level definition is provided.  Finally, I decided to reimplement it from
 ;; scratch.
 
 ;; The overall idea is to split keywords in categories, compare the categories, and finally how much
-;; more the indentation must be done. This assumes that the previous line has been correctly
+;; more the indentation must be done.  This assumes that the previous line has been correctly
 ;; indented.
 
 ;; We distinguish between:
@@ -57,6 +57,7 @@
 (defvar lsp-isar-indent-trace-indent t)
 
 (defun lsp-isar-indent-previous-line-with-word ()
+  "Goto previous nonempty line."
   (lsp-isar-indent-trace-indent "lsp-isar-indent-previous-line-with-word, looking at %s" (word-at-point))
   (forward-line -1)
   (let ((finished nil))
@@ -83,14 +84,16 @@
 
 
 (defun lsp-isar-indent-trace-indent (&rest args)
+  "Optionally tracing procedure of ARGS."
   (if lsp-isar-indent-trace-indent
       (apply 'message args)))
 
 (defun lsp-isar-indent-current-line-empty-p ()
+  "Test if line is nonempty."
   (or (not (thing-at-point 'line)) (string-match-p "^\\s-*$" (thing-at-point 'line))))
 
 (defun lsp-isar-indent-create-regex-from-words (s)
-  "Creates a regular expression based on a list of words."
+  "Create a regular expression based on the list of words S."
   (concat
    (cl-reduce (lambda (w y) (concat w "\\|" y))
 	      (mapcar (lambda (w) (concat "\\(" w "\\)"))
@@ -241,6 +244,10 @@
 
 ;; looking-at-p can match the next line...
 (defun lsp-isar-indent-looking-at-p-nonempty (a)
+  "Test if the line is nonempty and matching A.
+
+Unlike the Emacs version, empty line where the next line match do
+not match the pattern A."
   (and
    (lsp-isar-indent-current-line-empty-p)
    (/= 0 (lsp-isar-indent-current-line-empty-p))
@@ -248,11 +255,13 @@
    (string-match-p a (word-at-point))))
 
 (defun lsp-isar-indent-move-to-first-word-on-the-line ()
+  "Goto first word on the line."
   (lsp-isar-indent-trace-indent "lsp-isar-indent-move-to-first-word-on-the-line, initially looking at %s" (word-at-point))
   (back-to-indentation)
   (lsp-isar-indent-trace-indent "lsp-isar-indent-move-to-first-word-on-the-line, now looking at %s" (word-at-point)))
 
 (defun lsp-isar-indent-command-at-beginning-of-line ()
+  "Identifies the command at the current position."
   (cond
    ((lsp-isar-indent-looking-at-p-nonempty lsp-isar-indent--outmost-command)
     lsp-isar-indent-outmost-command-name)
@@ -282,6 +291,7 @@
 
 
 (defun lsp-isar-indent-find-previous-command ()
+  "Find first previous line starting with a command."
   (lsp-isar-indent-trace-indent "+++++++\nstarting lsp-isar-indent-find-previous-command")
   (let ((finished nil))
     ;; TODO only for debugging
@@ -296,7 +306,7 @@
 
 
 (defun lsp-isar-indent-indentation-depth ()
-
+  "Give the indenttation depth."
   (save-excursion
     (beginning-of-line)
     (lsp-isar-indent-move-to-first-word-on-the-line)
@@ -438,7 +448,7 @@
 	))))
 
 (defun lsp-isar-indent-line ()
-  "Indent current line as Isar code"
+  "Indent current line as Isar code."
   (interactive)
   (beginning-of-line)
   (lsp-isar-indent-trace-indent "************************")

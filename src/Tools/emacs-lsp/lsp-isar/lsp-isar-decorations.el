@@ -20,7 +20,7 @@
 
 ;; THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 ;; IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-;; FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+;; FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
 ;; AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 ;; LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 ;; OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
@@ -37,31 +37,31 @@
 ;;
 ;;
 ;;
-;; emacs has two ways to do syntax highlighting:
+;; Emacs has two ways to do syntax highlighting:
 ;; (i) fontification
 ;; (ii) overlays
 ;;
 ;; (i) is in general more efficient than (ii), which is however more
-;; faithful. However, (i) messes up with the prettification of symbols
-;; (replacing '\<open>' by its UTF8 counterpart). It also does not
+;; faithful.  However, (i) messes up with the prettification of symbols
+;; (replacing '\<open>' by its UTF8 counterpart).  It also does not
 ;; provide a way to remove only some fonts, forcing to readd every
-;; decoration on the whole buffer at each change. This was way to slow
-;; on non-trivial buffers. Therefore, this was killed.
+;; decoration on the whole buffer at each change.  This was way to slow
+;; on non-trivial buffers.  Therefore, this was killed.
 ;;
 ;; (ii) was a bit better (we could open medium-size buffers), but the
-;; most simple version (as currently done in cquery, i.e. repainting
+;; most simple version (as currently done in cquery, i.e.  repainting
 ;; every overlay at each update from the LSP server) did not scale for
-;; large buffers, where editing became unbearably slow. This problem
-;; is partly solved in the devel version of emacs (emacs27),
+;; large buffers, where editing became unbearably slow.  This problem
+;; is partly solved in the devel version of Emacs (Emacs27),
 ;; especially the noverlay branch.
 ;;
 ;;
 ;; The overlay problem
 ;;
-;; In emacs, overlays are in a doubly-linked list (the markers). This
-;; means that removing overlays from a buffer is inefficient. In the
+;; In Emacs, overlays are in a doubly-linked list (the markers).  This
+;; means that removing overlays from a buffer is inefficient.  In the
 ;; current implementation, removing many of them has a quadratic cost
-;; (large buffer have 200 000 markers). However, reusing overalys in
+;; (large buffer have 200 000 markers).  However, reusing overalys in
 ;; the same buffer has no cost, except for a very high memory usage
 ;; and more work for the code displaying buffers (as far as I know,
 ;; this is not an issue for us).
@@ -70,13 +70,13 @@
 ;; Critical points
 ;;
 ;; (i) we repaint only the "diffs" between colorations when receiving
-;; the new intervals to be highlighted. This worked even for larger
+;; the new intervals to be highlighted.  This worked even for larger
 ;; buffers (but can still be slow in some cases).
 ;;
 ;; (ii) We don't delete the overlays when we have to remove
-;; it. Instead, we remove the properties of the overlays to make the
-;; overlay invisible. Then we reuse (recycle) them, instead of
-;; creating new overlays. This is much faster than deleting them. This
+;; it.  Instead, we remove the properties of the overlays to make the
+;; overlay invisible.  Then we reuse (recycle) them, instead of
+;; creating new overlays.  This is much faster than deleting them.  This
 ;; makes adding overlays less efficient, but basically the cost is
 ;; smaller.  Remark that overlays are only reused in the buffer they
 ;; were removed from.
@@ -100,19 +100,19 @@
 ;;
 ;;   - the timer to delete overlays is not really necessary anymore,
 ;;   because it is superseeded by the function killing all overlays.
-;;   Try that out when running emacs for a long time without break.
+;;   Try that out when running Emacs for a long time without break.
 ;;
 ;;
 ;; Some comments on the faces:
 ;;
-;; 1. setting faces is *hard*. There are currently chosen to play
+;; 1.  setting faces is *hard*.  There are currently chosen to play
 ;; reasonnably with a dark background (monokai-theme or
-;; spacemacs). The light colors are based on the solarized (light)
+;; spacemacs).  The light colors are based on the solarized (light)
 ;; color palette.
 ;;
-;; 2. Setting the background make the lines visible, but also means
+;; 2.  Setting the background make the lines visible, but also means
 ;; that that highlighting is /broken/: currently when the whole region
-;; is highlighted, then the highlighting is not visible. Therefore, we
+;; is highlighted, then the highlighting is not visible.  Therefore, we
 ;; currently only set backgrounds for important messages (running,
 ;; errors, and unprocessed).
 ;;
@@ -125,15 +125,15 @@
 
 ;; file -> type -> [range, decoration] list
 (defvar lsp-isar-decorations--sem-overlays (make-hash-table :test 'equal)
-  "decoration cache.")
+  "Decoration cache.")
 
 ;; file -> overlays list
 (defvar lsp-isar-decorations--overlays-to-reuse (make-hash-table :test 'equal)
-  "decoration overlays that can be reused.")
+  "Decoration overlays that can be reused.")
 
 ;; file -> timer
-(defvar lsp-isar-decorations--recycler nil "Timer to slowly delete overlays
-from the last opened buffer.")
+(defvar lsp-isar-decorations--recycler nil
+  "Timer to slowly delete overlays from the last opened buffer.")
 
 ;; prettifyng the source
 (defgroup lsp-isar-decorations-sem nil
@@ -479,82 +479,88 @@ classes."
 
 
 (defvar-local lsp-isar-decorations-get-font
-  '(("background_unprocessed1"  . lsp-isar-font-background-unprocessed1)
-    ("background_running1"  . lsp-isar-font-background-running1)
-    ("background_bad"  . lsp-isar-font-background-bad)
-    ("background_intensify"  . lsp-isar-font-background-intensify)
-    ("background_quoted"  . lsp-isar-font-background-quoted)
-    ("background_antiquoted"  . lsp-isar-font-background-antiquoted)
-    ("background_markdown_bullet1"  . lsp-isar-font-background-markdown-bullet1)
-    ("background_markdown_bullet2"  . lsp-isar-font-background-markdown-bullet2)
-    ("background_markdown_bullet3"  . lsp-isar-font-background-markdown-bullet3)
-    ("background_markdown_bullet4"  . lsp-isar-font-background-markdown-bullet4)
+  '(("background_unprocessed1"  .  lsp-isar-font-background-unprocessed1)
+    ("background_running1"  .  lsp-isar-font-background-running1)
+    ("background_bad"  .  lsp-isar-font-background-bad)
+    ("background_intensify"  .  lsp-isar-font-background-intensify)
+    ("background_quoted"  .  lsp-isar-font-background-quoted)
+    ("background_antiquoted"  .  lsp-isar-font-background-antiquoted)
+    ("background_markdown_bullet1"  .  lsp-isar-font-background-markdown-bullet1)
+    ("background_markdown_bullet2"  .  lsp-isar-font-background-markdown-bullet2)
+    ("background_markdown_bullet3"  .  lsp-isar-font-background-markdown-bullet3)
+    ("background_markdown_bullet4"  .  lsp-isar-font-background-markdown-bullet4)
 
 
-    ("foreground_quoted"  . lsp-isar-font-foreground-quoted)
-    ("foreground_antiquoted"  . lsp-isar-font-foreground-antiquoted)
-    ("dotted_writeln"  . lsp-isar-font-dotted-writeln)
+    ("foreground_quoted"  .  lsp-isar-font-foreground-quoted)
+    ("foreground_antiquoted"  .  lsp-isar-font-foreground-antiquoted)
+    ("dotted_writeln"  .  lsp-isar-font-dotted-writeln)
 
-    ("dotted_information"  . lsp-isar-font-dotted-information)
-    ("dotted_warning"  . lsp-isar-font-dotted-warning)
-
-
-    ("text_main"  . lsp-isar-font-text-main)
-
-    ("text_keyword1"  . lsp-isar-font-text-keyword1)
-
-    ("text_keyword2"  . lsp-isar-font-text-keyword2)
-    ("text_keyword3"  . lsp-isar-font-text-keyword3)
-    ("text_quasi_keyword"  . lsp-isar-font-text-quasi_keyword)
-    ("text_improper"  . lsp-isar-font-text-improper)
-    ("text_operator"  . lsp-isar-font-text-operator)
-    ("text_tfree"  . lsp-isar-font-text-tfree)
-    ("text_tvar"  . lsp-isar-font-text-tvar)
-    ("text_free"  . lsp-isar-font-text-free)
-    ("text_skolem"  . lsp-isar-font-text-skolem)
-    ("text_bound"  . lsp-isar-font-text-bound)
-    ("text_var"  . lsp-isar-font-text-var)
-    ("text_inner_numeral"  . lsp-isar-font-text-inner_numeral)
-    ("text_inner_quoted"  . lsp-isar-font-text-inner_quoted)
-    ("text_inner_cartouche"  . lsp-isar-font-text-inner_cartouche)
-    ("text_inner_comment"  . lsp-isar-font-text-inner_comment)
-    ("text_dynamic"  . lsp-isar-font-text-dynamic)
-    ("text_class_parameter"  . lsp-isar-font-text-class_parameter)
-    ("text_antiquote"  . lsp-isar-font-text-antiquote)
-
-    ("text_overview_unprocessed"  . lsp-isar-font-text-overview-unprocessed)
-    ("text_overview_running"  . lsp-isar-font-text-overview-running)
-    ("text_overview_error"  . lsp-isar-font-text-overview-error)
-    ("text_overview_warning"  . lsp-isar-font-text-overview-warning)
-
-    ("spell_checker"  . lsp-isar-font-spell-checker)))
-
-(defsubst ranges-are-equal (r1 r2)
-  (let ((r2p (car r2))) ;; ignore the overlay
-    (let ((x0 (elt r1 0)) (y0 (car r2p)))
-      (and (= x0 y0) (= (elt r1 1) (cadr r2p))))))
+    ("dotted_information"  .  lsp-isar-font-dotted-information)
+    ("dotted_warning"  .  lsp-isar-font-dotted-warning)
 
 
-(defsubst point-is-before (x0 y0 x1 y1)
-  (if (/= x0 x1)
-      (< x0 x1)
-    (< y0 y1)))
+    ("text_main"  .  lsp-isar-font-text-main)
+
+    ("text_keyword1"  .  lsp-isar-font-text-keyword1)
+
+    ("text_keyword2"  .  lsp-isar-font-text-keyword2)
+    ("text_keyword3"  .  lsp-isar-font-text-keyword3)
+    ("text_quasi_keyword"  .  lsp-isar-font-text-quasi_keyword)
+    ("text_improper"  .  lsp-isar-font-text-improper)
+    ("text_operator"  .  lsp-isar-font-text-operator)
+    ("text_tfree"  .  lsp-isar-font-text-tfree)
+    ("text_tvar"  .  lsp-isar-font-text-tvar)
+    ("text_free"  .  lsp-isar-font-text-free)
+    ("text_skolem"  .  lsp-isar-font-text-skolem)
+    ("text_bound"  .  lsp-isar-font-text-bound)
+    ("text_var"  .  lsp-isar-font-text-var)
+    ("text_inner_numeral"  .  lsp-isar-font-text-inner_numeral)
+    ("text_inner_quoted"  .  lsp-isar-font-text-inner_quoted)
+    ("text_inner_cartouche"  .  lsp-isar-font-text-inner_cartouche)
+    ("text_inner_comment"  .  lsp-isar-font-text-inner_comment)
+    ("text_dynamic"  .  lsp-isar-font-text-dynamic)
+    ("text_class_parameter"  .  lsp-isar-font-text-class_parameter)
+    ("text_antiquote"  .  lsp-isar-font-text-antiquote)
+
+    ("text_overview_unprocessed"  .  lsp-isar-font-text-overview-unprocessed)
+    ("text_overview_running"  .  lsp-isar-font-text-overview-running)
+    ("text_overview_error"  .  lsp-isar-font-text-overview-error)
+    ("text_overview_warning"  .  lsp-isar-font-text-overview-warning)
+
+    ("spell_checker"  .  lsp-isar-font-spell-checker)))
+
+
+(define-inline lsp-isar-decorations-ranges-are-equal (r1 r2)
+  (inline-letevals (r1 r2)
+    (inline-quote
+     (let ((r2p (car ,r2)))
+       (let ((x0 (elt ,r1 0)) (y0 (car r2p)))
+	 (and (= x0 y0) (= (elt ,r1 1) (cadr r2p))))))))
+
+(define-inline lsp-isar-decorations-point-is-before (x0 y0 x1 y1)
+  (inline-letevals (x0 y0 x1 y1)
+    (inline-quote
+     (if (/= ,x0 ,x1)
+	 (< ,x0 ,x1)
+       (< ,y0 ,y1)))))
 
 ;; Ranges cannot overlap
-(defsubst range-is-before (r1 r2)
-  (let ((r2p (car r2)))
-    (and (point-is-before (elt r1 0) (elt r1 1) (car r2p) (cadr r2p))
-	 ;;(point-is-before (elt r1 2) (elt r1 3) (caddr r2p) (cadddr r2p))
-	 )))
+(define-inline lsp-isar-decorations-range-is-before (r1 r2)
+  (inline-letevals (r1 r2)
+    (inline-quote
+     (let ((r2p (car ,r2)))
+       (and (lsp-isar-decorations-point-is-before (elt ,r1 0) (elt ,r1 1) (car r2p) (cadr r2p)))))))
 
 
 ;; This is a full cleaning of all buffers.  This is too costly to run
-;; regularly. Therefore, we run it after some time of idling.
+;; regularly.  Therefore, we run it after some time of idling.
 ;; Remark that this is still important to run.
 (defun lsp-isar-decorations-kill-all-unused-overlays-file (file &rest _)
-  "Remove all overlays that are deleted or recycled: They are
+  "Delete all invisible overlays in file FILE.
+
+Remove all overlays that are deleted or recycled: They are
 deleted from the buffer and from the hashtables where they appear
-and should be GC-ed by emacs.
+and should be GC-ed by Emacs.
 
 CAUTION: this can be slow."
   (let*
@@ -567,27 +573,30 @@ CAUTION: this can be slow."
 
 
 (defun lsp-isar-decorations-kill-all-unused-overlays ()
+  "Delete all invisible overlays in all files opened by Isabelle."
   (interactive)
-  (message "Cleaning all decorations. Set lsp-isar-decorations-full-clean-after-inactivity \
+  (message "Cleaning all decorations.  Set lsp-isar-decorations-full-clean-after-inactivity \
   increase the delay between two of them, if you have called the function.")
   (maphash 'lsp-isar-decorations-kill-all-unused-overlays-file lsp-isar-decorations--overlays-to-reuse))
 
 
 (defcustom lsp-isar-decorations-full-clean-after-inactivity 600
-  "Full clean every some many seconds. Use nil to deactivate it."
+  "Full clean every some many seconds.  Use nil to deactivate it."
   :type '(number)
   :group 'isabelle)
 
 
 (defvar lsp-isar-decorations--cleaner-timer nil
-  "Timer to clean all elements. Set lsp-isar-decorations-cleaner-ran-every to
-  nil in order to never start the timer.")
+  "Timer to clean all elements.
+
+Set lsp-isar-decorations-cleaner-ran-every to nil in order to
+never start the timer.")
 
 
-;; recycle by batch of a small number of elements. This is run on a
+;; recycle by batch of a small number of elements.  This is run on a
 ;; regural basis.
 (defvar lsp-isar-decorations--last-updated-file nil
-  "Last updated file")
+  "Last updated file.")
 
 
 ;; It is only useful to delete the overlays if we do not have a
@@ -598,6 +607,7 @@ CAUTION: this can be slow."
 ;; We only delete a few overlays with a strict timeout to avoid
 ;; blocking the main thread for too long.
 (defun lsp-isar-decorations-recycle-batch (_w)
+  "Recycle a few overlays only."
   (if lsp-isar-decorations--last-updated-file
       (with-silent-modifications
 	(let*
@@ -616,42 +626,42 @@ CAUTION: this can be slow."
     0))
 
 
-;; started as the equivalent of the cquery version. Later changed a lot.
+;; started as the equivalent of the cquery version.  Later changed a lot.
 ;; ASSUMPTIONS:
 ;;  * old-overlays is sorted (for performance reasion).
 ;;  * old-overlays contains all decorations corresponding to 'typ'
 ;;    in 'buffer' and they have not already been deleted.
 ;;
 ;; The number of markup generated by Isabelle is extremely high and
-;; overlays are slow. The noverlay branch of emacs devel (emacs27)
-;; solves the problem. However, on emacs26, deleting and repainting
+;; overlays are slow.  The noverlay branch of Emacs devel (Emacs27)
+;; solves the problem.  However, on Emacs26, deleting and repainting
 ;; the markup (as currently done in cquery) is way too slow to be
-;; usable. Therefore, we only reprint the markup that changed, which
-;; is much more complicated. However, it seems to solves the problem.
+;; usable.  Therefore, we only reprint the markup that changed, which
+;; is much more complicated.  However, it seems to solves the problem.
 ;;
 ;;
-;; The core function is 'find-new-and-repaint'. Given the old decoration:
+;; The core function is 'find-new-and-repaint'.  Given the old decoration:
 ;; A   B   C   D      F   G   H   I  J  K  L  M
 ;; and the new:
 ;; A   B   C      E   F   G   H'  I  J
 ;;
-;; we assume that the ranges are sorted and align them as shown. We
+;; we assume that the ranges are sorted and align them as shown.  We
 ;; iterate over the two lists and there are several cases:
-;;   1. A = A: nothing to do.
-;;   2. there are no more new: delete the remaining;
-;;   3. there are no more old: just print them;
-;;   4. D < E: we delete D and continue the iteration (keeping E
+;;   1.  A = A: nothing to do.
+;;   2.  there are no more new: delete the remaining;
+;;   3.  there are no more old: just print them;
+;;   4.  D < E: we delete D and continue the iteration (keeping E
 ;;   in the new decorations);
-;;   5. otherwise, the ranges intersect: we delete H' and add H.
+;;   5.  otherwise, the ranges intersect: we delete H' and add H.
 ;;
 ;; Exceptional cases:
 ;;
-;;   6. while printing the overlay, we find out that the position is
+;;   6.  while printing the overlay, we find out that the position is
 ;;   not valid anymore in the current buffer: we delete all further
 ;;   old decorations, stop, and wait for the next update from Isabelle.
 ;;
 ;; The function 'find-new-and-repaint' iterates over the old
-;; decorations and the new ranges. It finds out if a range already had
+;; decorations and the new ranges.  It finds out if a range already had
 ;; a decoration (which does not require changes), if a range needs a
 ;; new decoration (which must be added), or if not decoration is
 ;; required anymore (the old one gets deleted).
@@ -659,39 +669,39 @@ CAUTION: this can be slow."
 ;;
 ;; The end_char_offset is here to improve readability: as we do not
 ;; merge overlays the error marker will continue at the end of the
-;; command. This should help identifying the line with the error.
+;; command.  This should help identifying the line with the error.
 ;;
 ;; find-range-and-add-to-print contains a 'bug' that is due to the
-;; way emacs handles the current point: forward-char and forward-line
-;; return (point-max) when overflowing. Except when the current point
+;; way Emacs handles the current point: forward-char and forward-line
+;; return (point-max) when overflowing.  Except when the current point
 ;; does not exist anymore, then an exception end-of-buffer is raised.
 ;;
 ;;
-;; Deleting overlays is so incredibly slow. This is an issue in emacs
-;; and there is no proper work-around. Basically, deleting overlays are
+;; Deleting overlays is so incredibly slow.  This is an issue in Emacs
+;; and there is no proper work-around.  Basically, deleting overlays are
 ;; quadratic in their number.  There is some discussion on
 ;; https://github.com/cquery-project/cquery/wiki/Emacs.  90% (> 10s)
 ;; of the time is spent deleting overlays when jumping to the top of
-;; buffer and adding a space. In the noverlay branch, it is only 2% of
-;; the time. We now barely delete any overlay.
+;; buffer and adding a space.  In the noverlay branch, it is only 2% of
+;; the time.  We now barely delete any overlay.
 ;;
 ;; Removed overlays are:
-;;    1. added to lsp-isar-decorations--overlays-to-reuse to be reused
-;;    2. then deleted from the overlays
+;;    1.  added to lsp-isar-decorations--overlays-to-reuse to be reused
+;;    2.  then deleted from the overlays
 ;;
-;; 2 are run in lsp-isar-decorations-recycle-timer. It is run by a timer to avoid
-;; blocking emacs. It then cancels itself when there is nothing to do.
+;; 2 are run in lsp-isar-decorations-recycle-timer.  It is run by a timer to avoid
+;; blocking Emacs.  It then cancels itself when there is nothing to do.
 
 ;; The work-around for Sophie:
 (define-inline lsp-isar-decorations-normalise-path (path)
   (inline-letevals (path)
-   (inline-quote (replace-regexp-in-string (regexp-quote "/local/local") "/local" ,path nil 'literal))))
+    (inline-quote (replace-regexp-in-string (regexp-quote "/local/local") "/local" ,path nil 'literal))))
 
 (defun lsp-isar-decorations-update-cached-decorations-overlays (params)
-  "Update the syntax highlighting as generated by Isabelle.
+  "Update the syntax highlighting as generated by Isabelle given in PARAMS.
 
 It is done by removing the now unused old one and adding the old
-one. This a performance critical function."
+one.  This a performance critical function."
   (let* ((file (lsp-isar-decorations-normalise-path (lsp--uri-to-path (gethash "uri" params))))
          (buffer (find-buffer-visiting file))
          (pranges (gethash "content" params nil))
@@ -739,90 +749,90 @@ one. This a performance critical function."
 
 	  ;; recycle an old overlay by moving and updating it,
 	  ;; otherwise, create a new one
-	  (define-inline new-or-recycle-overlay (overlays-to-reuse point0 point1 face)
+	  (define-inline lsp-isar-decorations-new-or-recycle-overlay (overlays-to-reuse point0 point1 face)
 	    (inline-letevals (overlays-to-reuse point0 point1 face)
-			     (inline-quote
-			      (if ,overlays-to-reuse
-				  (let ((ov (pop ,overlays-to-reuse)))
-				    (move-overlay ov ,point0 ,point1)
-				    (overlay-put ov 'face ,face)
-				    ov)
-				(let ((ov (make-overlay ,point0 ,point1)))
-				  (overlay-put ov 'face ,face)
-				  ov)))))
+	      (inline-quote
+	       (if ,overlays-to-reuse
+		   (let ((ov (pop ,overlays-to-reuse)))
+		     (move-overlay ov ,point0 ,point1)
+		     (overlay-put ov 'face ,face)
+		     ov)
+		 (let ((ov (make-overlay ,point0 ,point1)))
+		   (overlay-put ov 'face ,face)
+		   ov)))))
 
 	  ;; if a range is new, find it in the buffer and print it
 	  ;; if the current range is already not valid, return nil
-	  (define-inline find-range-and-add-to-print (range)
+	  (define-inline lsp-isar-decorations-find-range-and-add-to-print (range)
 	    (inline-letevals (range)
-			     (inline-quote
-			      (ignore-errors
-				(let ((l0 (elt ,range 0))
-				      (c0 (elt ,range 1))
-				      (l1 (elt ,range 2))
-				      (c1 (elt ,range 3)))
-				  (forward-line (- l0 line))
-				  (forward-char c0)
-				  (setq point0 (point))
-				  (forward-line (- l1 l0))
-				  (forward-char (+ c1 end_char_offset))
-				  (setq point1 (point))
-				  (setq line l1)
+	      (inline-quote
+	       (ignore-errors
+		 (let ((l0 (elt ,range 0))
+		       (c0 (elt ,range 1))
+		       (l1 (elt ,range 2))
+		       (c1 (elt ,range 3)))
+		   (forward-line (- l0 line))
+		   (forward-char c0)
+		   (setq point0 (point))
+		   (forward-line (- l1 l0))
+		   (forward-char (+ c1 end_char_offset))
+		   (setq point1 (point))
+		   (setq line l1)
 
-				  (let ((ov (new-or-recycle-overlay overlays-to-reuse point0 point1 face)))
-				    (push (list (list l0 c0 l1 c1) ov) curoverlays))
-				  t)))))
+		   (let ((ov (lsp-isar-decorations-new-or-recycle-overlay overlays-to-reuse point0 point1 face)))
+		     (push (list (list l0 c0 l1 c1) ov) curoverlays))
+		   t)))))
 
 	  ;; This function iterates over huge lists and therefore
 	  ;; requires either tail-call optimisation or a while loop
-	  ;; (several thousand elements are common). Therefore, no
+	  ;; (several thousand elements are common).  Therefore, no
 	  ;; recursive function works.
 	  (define-inline lsp-isar-decorations-find-new-and-repaint (news olds)
 	    (inline-letevals (news olds)
-			     (inline-quote
-			      (while (or ,news ,olds)
-				(if (not ,news)
-				    ;; no news: discard all old decorations
-				    (progn
-				      (dolist (x ,olds)
-					(overlay-put (cadr x) 'face 'lsp-isar-font-nothing)
-					(push (cadr x) overlays-to-reuse))
-				      (setq ,olds nil))
-				  (if (not ,olds)
-				      ;; no olds: print all news
-				      (progn
-					(dolist (x ,news)
-					  (find-range-and-add-to-print x))
-					(setq ,news nil))
-				    ;; otherwise, compare the first two ranges
-				    (let ((r1 (car ,news))
-					  (r2 (car ,olds)))
-				      ;; if the ranges are equal no need to repaint
-				      (if (ranges-are-equal r1 r2)
-					  (progn
-					    (push r2 curoverlays)
-					    (pop ,news)
-					    (pop ,olds))
-					;; if r1 < r2, print r1 and continue iteration
-					(if (range-is-before r1 r2)
-					    (progn
-					      (if (find-range-and-add-to-print r1)
-						  (setq ,news (cdr ,news))
-						;; else the content is not valid anymore:
-						(progn
-						  (dolist (x ,olds)
-						    (overlay-put (cadr x) 'face 'lsp-isar-font-nothing)
-						    (push (cadr x) overlays-to-reuse))
-						  (setq ,news nil)
-						  (setq ,olds nil))))
-					  ;; otherwise, r1 is after the beginng of r2,
-					  ;; so remove r2 and continue (r1 might just be later in olds)
-					  (progn
-					    ;;(message "number of elts in olds: %s" (length olds))
-					    ;;(message "wanted to print: %s skipped: %s" r1 r2)
-					    (overlay-put (cadr r2) 'face 'lsp-isar-font-nothing)
-					    (push (cadr r2) overlays-to-reuse)
-					    (pop ,olds)))))))))))
+	      (inline-quote
+	       (while (or ,news ,olds)
+		 (if (not ,news)
+		     ;; no news: discard all old decorations
+		     (progn
+		       (dolist (x ,olds)
+			 (overlay-put (cadr x) 'face 'lsp-isar-font-nothing)
+			 (push (cadr x) overlays-to-reuse))
+		       (setq ,olds nil))
+		   (if (not ,olds)
+		       ;; no olds: print all news
+		       (progn
+			 (dolist (x ,news)
+			   (lsp-isar-decorations-find-range-and-add-to-print x))
+			 (setq ,news nil))
+		     ;; otherwise, compare the first two ranges
+		     (let ((r1 (car ,news))
+			   (r2 (car ,olds)))
+		       ;; if the ranges are equal no need to repaint
+		       (if (lsp-isar-decorations-ranges-are-equal r1 r2)
+			   (progn
+			     (push r2 curoverlays)
+			     (pop ,news)
+			     (pop ,olds))
+			 ;; if r1 < r2, print r1 and continue iteration
+			 (if (lsp-isar-decorations-range-is-before r1 r2)
+			     (progn
+			       (if (lsp-isar-decorations-find-range-and-add-to-print r1)
+				   (setq ,news (cdr ,news))
+				 ;; else the content is not valid anymore:
+				 (progn
+				   (dolist (x ,olds)
+				     (overlay-put (cadr x) 'face 'lsp-isar-font-nothing)
+				     (push (cadr x) overlays-to-reuse))
+				   (setq ,news nil)
+				   (setq ,olds nil))))
+			   ;; otherwise, r1 is after the beginng of r2,
+			   ;; so remove r2 and continue (r1 might just be later in olds)
+			   (progn
+			     ;;(message "number of elts in olds: %s" (length olds))
+			     ;;(message "wanted to print: %s skipped: %s" r1 r2)
+			     (overlay-put (cadr r2) 'face 'lsp-isar-font-nothing)
+			     (push (cadr r2) overlays-to-reuse)
+			     (pop ,olds)))))))))))
 
 
 	  (save-excursion
@@ -840,7 +850,7 @@ one. This a performance critical function."
 	(setq lsp-isar-decorations--last-updated-file file)))))
 
 (defun lsp-isar-decorations-update-and-reprint (_workspace params)
-  "Updates the decoration cach and the reprint all decorations"
+  "Reprint all decorations as given by Isabelle in PARAMS."
   (lsp-isar-decorations-update-cached-decorations-overlays params))
 
 
