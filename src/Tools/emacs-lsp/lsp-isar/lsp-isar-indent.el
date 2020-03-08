@@ -283,8 +283,7 @@
 
 (defun lsp-isar-indent-find-previous-command ()
   (lsp-isar-indent-trace-indent "+++++++\nstarting lsp-isar-indent-find-previous-command")
-  (let ((finished nil)
-	(depth 0))
+  (let ((finished nil))
     ;; TODO only for debugging
     (while (and (not finished) (not (= (point) (point-min))))
       (beginning-of-line)
@@ -292,7 +291,7 @@
       (lsp-isar-indent-move-to-first-word-on-the-line)
       ;; (lsp-isar-indent-trace-indent "\tlsp-isar-indent-indent_structure '%s' '%s', indent at: '%s'" (word-at-point) depth (lsp-isar-indent-indent_indent))
       (setq finished (lsp-isar-indent-command-at-beginning-of-line)))
-  (lsp-isar-indent-trace-indent "+++++++\nfinished lsp-isar-indent-find-previous-command")
+    (lsp-isar-indent-trace-indent "+++++++\nfinished lsp-isar-indent-find-previous-command")
     finished))
 
 
