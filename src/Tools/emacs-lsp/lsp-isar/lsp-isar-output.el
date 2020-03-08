@@ -815,6 +815,7 @@ Lisp equivalent of 'replace-regexp' as indicated in the help."
 	     (lsp-isar-output-state-deco  (cadddr result))
 	     (lsp-isar-output-deco (lsp-isar-output--caddddr result)))
 	 (when (= lsp-isar-output-current-output-number lsp-isar-output-current-output-number-res)
+	   (cl-incf lsp-isar-output-current-output-number)
 	   (setq lsp-isar-output-proof-cases-content lsp-isar-output-proof-cases-content-1)
 	   (if lsp-isar-output-output
 	       (with-current-buffer lsp-isar-output-buffer
