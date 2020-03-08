@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: paragraph
+# key: paragraph
+# --
+paragraph \<open>$0\<close>

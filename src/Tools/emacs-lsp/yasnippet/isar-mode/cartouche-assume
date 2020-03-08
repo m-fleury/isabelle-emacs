@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: assume
+# key: assume
+# --
+assume \<open>$0\<close>
