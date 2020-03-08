@@ -110,13 +110,13 @@
 
 
 (defun lsp-isar--request-buffer ()
-   (with-demoted-errors
-       (progn
-	 (if (<= lsp-isar-progress--request-delay 0)
-	   (let ((my-message (lsp-make-notification "PIDE/progress_request" nil)))
-	     (lsp-send-notification my-message)
-	     (setq lsp-isar-progress--request-delay lsp-isar-progress-request-max-delay)))
-	 (setq lsp-isar-progress--request-delay  (- lsp-isar-progress--request-delay 1)))))
+  (with-demoted-errors
+      (progn
+	(if (<= lsp-isar-progress--request-delay 0)
+	    (let ((my-message (lsp-make-notification "PIDE/progress_request" nil)))
+	      (lsp-send-notification my-message)
+	      (setq lsp-isar-progress--request-delay lsp-isar-progress-request-max-delay)))
+	(setq lsp-isar-progress--request-delay  (- lsp-isar-progress--request-delay 1)))))
 
 (defun lsp-isar-progress-activate-progress-update ()
   "Activate the progress request"
