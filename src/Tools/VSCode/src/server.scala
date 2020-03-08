@@ -192,6 +192,113 @@ class Server(
     resources.update_caret(caret)
     delay_caret_update.invoke()
     delay_input.invoke()
+
+  }
+
+
+  /* Isabelle symbols for Outline */
+
+    /* The following mapping is rather random */
+  val symbol_kind : Map[String, Int] =
+    Map(
+      // Text elements
+      "chapter" -> Protocol.SymbolKind.String,
+      "section" -> Protocol.SymbolKind.String,
+      "subsection" -> Protocol.SymbolKind.String,
+      "subsubsection" -> Protocol.SymbolKind.String,
+      "paragraph" -> Protocol.SymbolKind.String,
+      "subparagraph" -> Protocol.SymbolKind.String,
+
+      // structure
+      "context" -> Protocol.SymbolKind.Namespace,
+      "locale" -> Protocol.SymbolKind.Module,
+      "class" -> Protocol.SymbolKind.Module,
+      "notepad" -> Protocol.SymbolKind.Namespace,
+
+      // lemmas
+      "lemma" -> Protocol.SymbolKind.Function,
+      "theorem" -> Protocol.SymbolKind.Function,
+      "corollary" -> Protocol.SymbolKind.Function,
+      "lemmas" -> Protocol.SymbolKind.Function,
+
+      "declares" -> Protocol.SymbolKind.Function,
+
+      // declarations
+      "datatype" -> Protocol.SymbolKind.Struct,
+
+      "definition" -> Protocol.SymbolKind.Constant,
+      "primrec" -> Protocol.SymbolKind.Constant,
+      "fun" -> Protocol.SymbolKind.Constant,
+      "primcorec" -> Protocol.SymbolKind.Constant,
+      "corec" -> Protocol.SymbolKind.Constant,
+      "abbreviation" -> Protocol.SymbolKind.Constant,
+
+      // ML
+      "ML" -> Protocol.SymbolKind.File,
+      "ML_val" -> Protocol.SymbolKind.File,
+      "ML_file" -> Protocol.SymbolKind.File,
+      "SML_file" -> Protocol.SymbolKind.File
+    )
+
+  val symbol_kind_default = Protocol.SymbolKind.Key
+
+  private def get_symbols(id: Protocol.Id, file : JFile): JSON.T =
+  {
+
+    val file_content = resources.get_file_content(resources.node_name(file))
+    val model = resources.get_model(file)
+
+    (file_content, model) match {
+      case (Some(file_content), Some(model)) =>
+        val file_length = file_content.length
+
+        // TODO distinguish between SML and ML mode
+        val parsed =
+          if (model.is_theory){
+            val syntax = session.recent_syntax(model.node_name)
+            Document_Structure.parse_sections (syntax, resources.node_name(file), file_content)
+          }
+          else if (file.getName() == "ROOT" || file.getName() == "options"){
+            val syntax = session.recent_syntax(model.node_name)
+            Document_Structure.parse_sections (syntax, resources.node_name(file), file_content)
+          } else {
+            Document_Structure.parse_ml_sections(true, file_content)
+          }
+
+        def extract_symbols (offset: Text.Offset, doc_struct : List[Document_Structure.Document]) : (List[JSON.Object.T], Text.Offset) = {
+          doc_struct match {
+            case Nil => (Nil, offset)
+            case Document_Structure.Atom(length) :: doc =>
+              extract_symbols(offset + length, doc)
+            case Document_Structure.Block(name, text, body) :: doc =>
+              val (children, end_children_offset) = extract_symbols(offset, body)
+
+              val (symbols, end_offset) = extract_symbols(end_children_offset, doc)
+
+              val kind = symbol_kind getOrElse (name, symbol_kind_default)
+
+              // trailing whitespaces that are represented differently
+              val range = model.content.doc.range(Text.Range(offset, end_children_offset min file_length))
+
+              val selection_range = try{model.content.doc.range(Text.Range(offset, (offset + text.length) min file_length))}
+              catch {case e =>
+                model.content.doc.range(Text.Range(offset, offset + text.length-1))
+              }
+
+              val label = text.split("\n")(0)
+              val beautified_label = (label /: Symbol.codes) ({case (name, (sym, code)) => name.replaceAllLiterally(sym, code.toChar.toString)})
+              val symbol = Protocol.DocumentSymbol(beautified_label, None, kind, None, range, selection_range, children)
+
+              (symbol :: symbols, end_offset)
+          }
+        }
+
+        val symbols = try { Protocol.DocumentSymbols(id, extract_symbols(0, parsed)._1) }
+           catch {case e => Protocol.DocumentSymbols(id, Nil) }
+        symbols
+
+      case _ => Protocol.DocumentSymbols(id, Nil)
+    }
   }
 
 
@@ -436,6 +543,31 @@ class Server(
     channel.write(Protocol.DocumentHighlights.reply(id, result))
   }
 
+  /* progress reports */
+  def session_progress() : isabelle.JSON.T = {
+    val snapshot = session.snapshot()
+    val nodes = snapshot.version.nodes
+
+    var nodes_status1 : Map[isabelle.Document.Node.Name, isabelle.Document_Status.Node_Status] = Map.empty
+    for (name <- nodes.domain.iterator) {
+      if (resources.is_hidden(name) ||
+        resources.session_base.loaded_theory(name) ||
+        nodes(name).is_empty) ()
+      else {
+        val st = isabelle.Document_Status.Node_Status.make(snapshot.state, snapshot.version, name)
+        nodes_status1 = nodes_status1 + (name -> st)
+      }
+    }
+
+    val nodes_status2 =
+      nodes_status1 -- nodes_status1.keysIterator.filter(nodes.is_suppressed(_))
+
+    val sorted_nodes = nodes.topological_order.filter(nodes_status1.isDefinedAt(_))
+      .map{x => Protocol.Progress_Node(x.path.implode, nodes_status1(x))}
+
+    Protocol.Progress_Nodes(sorted_nodes)
+  }
+
 
   /* main loop */
 
@@ -473,8 +605,10 @@ class Server(
           case Protocol.State_Update(id) => State_Panel.update(id)
           case Protocol.State_Auto_Update(id, enabled) => State_Panel.auto_update(id, enabled)
           case Protocol.Preview_Request(file, column) => request_preview(file, column)
+          case Protocol.Document_Symbols_Request(id, file) => channel.write(get_symbols(id, file))
           case Protocol.Symbols_Request(()) => channel.write(Protocol.Symbols())
-          case _ => if (!Protocol.ResponseMessage.is_empty(json)) log("### IGNORED")
+          case Protocol.Progress_Node_Request(()) => channel.write(session_progress())
+          case ignored => if (!Protocol.ResponseMessage.is_empty(json)) log("### IGNORED: " + ignored)
         }
       }
       catch { case exn: Throwable => channel.log_error_message(Exn.message(exn)) }

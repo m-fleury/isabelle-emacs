@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: subsection
+# key: subsection
+# --
+subsection \<open>$0\<close>
