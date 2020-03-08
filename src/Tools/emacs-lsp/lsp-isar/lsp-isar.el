@@ -408,7 +408,7 @@ the transient is re-opened."
   (lsp-isar-insert-sledgehammer "veriT" isar keep-sledgehammer))
 
 (defun lsp-isar-delete-sledgehammer-call ()
-  "Insert veriT proofs."
+  "Delete sledgehammer call if the cursor is on it."
   (interactive)
   (if (string= (word-at-point) "sledgehammer")
       (lsp-isar-kill-word-at-point)))
