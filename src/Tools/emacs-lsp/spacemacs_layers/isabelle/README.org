@@ -44,7 +44,7 @@ This layer allows for editing isabelle theory files. It includes:
     - The version of Isabelle2019 to download is isabelle2019-vsce and available at https://github.com/m-fleury/isabelle-release in the isabelle2019-more-vscode branch
 
 #+BEGIN_SRC sh
-git clone git@github.com:m-fleury/isabelle-release.git
+git clone https://github.com/m-fleury/isabelle-release.git
 cd isabelle-release
 git checkout isabelle2019-more-vscode
 #+END_SRC
