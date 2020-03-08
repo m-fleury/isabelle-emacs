@@ -44,13 +44,13 @@
 
 
 ;; progress
-(defvar lsp-isar-progress-buffer nil "Contains the buffer to that contains the progress")
-(defvar lsp-isar-progress-request-max-delay 3)
-(defvar lsp-isar-progress--request-delay 0)
+(defvar lsp-isar-progress-buffer nil "Contains the buffer to that contains the progress.")
+(defvar lsp-isar-progress-request-max-delay 3 "Maximum delay for printing.")
+(defvar lsp-isar-progress--request-delay 0 "Intial delay before printing.")
 
 ;; TODO requires to iterate over the result
 (defun lsp-isar-progress--update-buffer (status)
-  "Updates the progress buffer and centers it on the current edited buffer"
+  "Update the progress buffer and centers it on the current edited buffer with STATUS."
   (setq lsp-isar-progress--request-delay 0)
   (let ((inhibit-read-only t)
 	(current-thy-name (if (buffer-file-name) (file-name-base) nil))
@@ -109,7 +109,8 @@
 	      (forward-line current-thy-line))))))))
 
 
-(defun lsp-isar--request-buffer ()
+(defun lsp-isar-progress--request-buffer ()
+  "Request progress update."
   (with-demoted-errors
       (progn
 	(if (<= lsp-isar-progress--request-delay 0)
@@ -119,13 +120,13 @@
 	(setq lsp-isar-progress--request-delay  (- lsp-isar-progress--request-delay 1)))))
 
 (defun lsp-isar-progress-activate-progress-update ()
-  "Activate the progress request"
+  "Activate the progress request."
   (setq lsp-isar-progress-buffer (get-buffer-create "*lsp-isar-progress*"))
   (save-excursion
     (with-current-buffer lsp-isar-progress-buffer
       (font-lock-mode)
       (read-only-mode t)))
-  (run-at-time 0 1 #'lsp-isar--request-buffer))
+  (run-at-time 0 1 #'lsp-isar-progress--request-buffer))
 
 
 (modify-coding-system-alist 'file "*lsp-isar-progress*" 'utf-8-auto)
