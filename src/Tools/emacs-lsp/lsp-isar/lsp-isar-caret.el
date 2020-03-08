@@ -77,33 +77,38 @@ interface Caret_Update {
   (inline-quote
    (save-restriction
      (widen)
-     (lsp-isar-caret-update-struct (or lsp-buffer-uri (lsp-isar-caret--path-to-uri buffer-file-name))
-		   (lsp-isar-caret-cur-line)
-		   (lsp-isar-caret-cur-column)
-		   1))))
+     (lsp-isar-caret-update-struct
+      (or lsp-buffer-uri (lsp-isar-caret--path-to-uri buffer-file-name))
+      (lsp-isar-caret-cur-line)
+      (lsp-isar-caret-cur-column)
+      1))))
 
 (defun lsp-isar-caret--send-caret-update ()
+  "Notify Isabelle about the current caret position."
   (let ((my-message (lsp-make-notification "PIDE/caret_update" (lsp-isar-caret-cur-caret_update))))
     (lsp-send-notification my-message)))
 
 (defun lsp-isar-caret-update-caret-position ()
-  "Test if the position has changed. If it has changed, then
+  "Notify Isabelle about the carrent position if needed.
+
+Test if the position has changed.  If it has changed, then
 launch the timer to update send the notification in the near future."
   (if (and (boundp 'lsp--cur-workspace)
-	     (not (equal (point) lsp-isar-caret-last-post-command-position)))
-	(progn
-	  (lsp-isar-caret--send-caret-update)
-	  ;; (if lsp-isar-caret--caret-timer
-	  ;;   (cancel-timer lsp-isar-caret--caret-timer))
-	  ;; (setq lsp-isar-caret--caret-timer
-	  ;; 	(run-at-time 0.2 nil 'lsp-isar-caret--send-caret-update))
-	  ;; (setq lsp-isar-caret-last-post-command-position (point))
-	  ;; (setq lsp-isar-caret-last-post-command-word my-current-word)
-	  )))
+	   (not (equal (point) lsp-isar-caret-last-post-command-position)))
+      (progn
+	(lsp-isar-caret--send-caret-update)
+	;; (if lsp-isar-caret--caret-timer
+	;;   (cancel-timer lsp-isar-caret--caret-timer))
+	;; (setq lsp-isar-caret--caret-timer
+	;; 	(run-at-time 0.2 nil 'lsp-isar-caret--send-caret-update))
+	;; (setq lsp-isar-caret-last-post-command-position (point))
+	;; (setq lsp-isar-caret-last-post-command-word my-current-word)
+	)))
 
 
 ;; https://stackoverflow.com/questions/26544696/an-emacs-cursor-movement-hook-like-the-javascript-mousemove-event
 (defun lsp-isar-caret-activate-caret-update ()
+  "Initialize automatic update of caret position."
   (add-to-list 'post-command-hook #'lsp-isar-caret-update-caret-position)
   (lsp-isar-caret--send-caret-update))
 
