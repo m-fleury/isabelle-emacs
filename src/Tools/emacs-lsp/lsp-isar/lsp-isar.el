@@ -442,7 +442,8 @@ choice for the given prover."
 If there is no whitespace at cursor position, a space is inserted before COMMAND"
   (interactive)
   (unless (string= (word-at-point) command)
-    (when (word-at-point)
+    ;; special case for word|
+    (when (and (word-at-point) (not (thing-at-point 'whitespace)))
       (forward-word))
     (backward-char)
     (let ((is-space (thing-at-point 'whitespace)))
