@@ -87,10 +87,8 @@ the output buffer, and the initial hooks.")
 (defun lsp-isar-toggle-window-dedicated ()
   "Control whether or not Emacs is allowed to display another
 buffer in current window."
-  (let (window (get-buffer-window (current-buffer)))
-         (set-window-dedicated-p window (not (window-dedicated-p window)))))
-
-(global-set-key (kbd "C-c t") 'toggle-window-dedicated)
+  (let ((window (get-buffer-window (current-buffer))))
+    (set-window-dedicated-p window (not (window-dedicated-p window)))))
 
 ;; unconditionnaly split the window
 (defun lsp-isar-open-output-and-progress-right-two-columns ()
