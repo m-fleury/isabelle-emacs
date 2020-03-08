@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: lemma with cartouches
+# key: lemma
+# --
+lemma \<open>$0\<close>
