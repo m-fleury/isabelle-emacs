@@ -113,7 +113,7 @@
    "inductive" "inductive_cases" "inductive_set"
    "definition" "fun" "primrec" "corec"
    "abbreviation"
-   "text"
+   "text" "section" "subsection" "subsubsection" "paragraph"
    "instantiation" "instance"))
 
 (defvar lsp-isar-indent--outmost-command
