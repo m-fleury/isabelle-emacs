@@ -434,8 +434,10 @@ not match the pattern A."
 	 (current-indentation))
 	(`(lsp-isar-indent-apply-end-command lsp-isar-indent-apply-end-command)
 	 (- (current-indentation) 2))
+	;; this can lead to bugs for `subgoal apply auto\ndone'
+	;; but it works for `subgoal by auto\ndone'
 	(`(lsp-isar-indent-apply-end-command lsp-isar-indent-apply-structuring-command)
-	 (+ 2 (current-indentation)))
+	 (current-indentation))
 
 	(`(,_ . ,_)
 	 (message "unrecognized pattern")
