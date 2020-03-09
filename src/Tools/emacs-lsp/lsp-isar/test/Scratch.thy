@@ -109,12 +109,22 @@ qed
 section \<open>There is more\<close>
 subsection \<open>Indented to the right\<close>
 
-section \<open>Known bugs\<close>
 notepad
 begin
   have P if "P ==> P" for P
     apply (rule that)
     subgoal sorry
+    done
+end
+
+
+section \<open>Known bugs\<close>
+notepad
+begin
+  have P if "P ==> P" "P" for P
+    apply (rule that)
+    subgoal apply (rule that(2))
+    done \<comment> \<open>This done is wrong\<close>
     done
 end
 
