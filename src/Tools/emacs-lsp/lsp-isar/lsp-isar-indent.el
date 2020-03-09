@@ -169,6 +169,7 @@
   (list
    "then"
    "have" "hence"
+   "from" "with"
    "assume"
    "fix"
    "show" "thus"
