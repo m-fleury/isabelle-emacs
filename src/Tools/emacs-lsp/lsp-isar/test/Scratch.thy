@@ -106,4 +106,16 @@ proof -
   qed
 qed
 
+section \<open>There is more\<close>
+subsection \<open>Indented to the right\<close>
+
+section \<open>Known bugs\<close>
+notepad
+begin
+  have P if "P ==> P" for P
+    apply (rule that)
+    subgoal sorry
+    done
+end
+
 end
