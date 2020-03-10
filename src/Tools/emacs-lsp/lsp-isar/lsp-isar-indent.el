@@ -453,14 +453,14 @@ not match the pattern A."
 (defun lsp-isar-indent-line ()
   "Indent current line as Isar code."
   (interactive)
-  (beginning-of-line)
-  (lsp-isar-indent-trace-indent "************************")
-
-  (let
-      ((cur (lsp-isar-indent-indentation-depth)))
-    (lsp-isar-indent-trace-indent "setting indentation to %s" cur)
+  (save-excursion
     (lsp-isar-indent-trace-indent "************************")
-    (indent-line-to cur)))
+
+    (let
+	((cur (lsp-isar-indent-indentation-depth)))
+      (lsp-isar-indent-trace-indent "setting indentation to %s" cur)
+      (lsp-isar-indent-trace-indent "************************")
+      (indent-line-to cur))))
 
 
 (provide 'lsp-isar-indent)
