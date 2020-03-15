@@ -446,7 +446,7 @@ Lisp equivalent of 'replace-regexp' as indicated in the help."
 	      (ignore-errors
 		(search-forward "Proof outline with cases:") ;; TODO this should go to lsp-isar-output-parse-output
 		(setq lsp-isar-output-proof-cases-content (buffer-substring (point) (point-max))))))
-	  (setq lsp-isar-output-current-output-number (1+ lsp-isar-output-current-output-number))
+	  (cl-incf lsp-isar-output-current-output-number)
 	  (with-current-buffer lsp-isar-output-buffer
 	    (read-only-mode t))))
     ('abort-rendering
