@@ -86,7 +86,7 @@
 		      (progn
 			(setq current-thy-line-found t)))
 		  (unless current-thy-line-found
-		    (setq current-thy-line (1+ current-thy-line)))
+		    (cl-incf current-thy-line))
 		  (setq s (concat (file-name-base theory)
 				  " "
 				  (number-to-string processed)
