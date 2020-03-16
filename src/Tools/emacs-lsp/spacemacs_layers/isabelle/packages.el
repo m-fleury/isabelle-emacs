@@ -38,6 +38,7 @@
     (spacemacs/declare-prefix-for-mode 'lsp-mode "i" "isar")
     (spacemacs/set-leader-keys-for-minor-mode 'lsp-mode "ii" 'lsp-isar-insert-sledgehammer-and-call)
     (spacemacs/set-leader-keys-for-minor-mode 'lsp-mode "is" 'lsp-isar-insert-sledgehammer)
+    (spacemacs/set-leader-keys-for-minor-mode 'lsp-mode "ic" 'lsp-isar-insert-proof-outline)
     (spacemacs/set-leader-keys-for-minor-mode 'lsp-mode "it" 'lsp-isar-insert-try0)
     (spacemacs/set-leader-keys-for-minor-mode 'lsp-mode "ibs" 'lsp-isar-insert-simp)
     (spacemacs/set-leader-keys-for-minor-mode 'lsp-mode "iba" 'lsp-isar-insert-auto)
