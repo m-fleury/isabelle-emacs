@@ -3,7 +3,7 @@
 ;; Copyright (c) 2018-2020 Mathias Fleury
 ;;
 ;; Author: Mathias Fleury, Sophie
-;; URL: https://bitbucket.org/zmaths/isabelle2019-vsce/
+;; URL: https://github.com/m-fleury/isabelle-release/
 ;;
 ;;; License: Golf3
 
