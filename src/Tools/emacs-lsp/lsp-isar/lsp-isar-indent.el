@@ -114,7 +114,8 @@
    "definition" "fun" "primrec" "corec"
    "abbreviation"
    "text" "section" "subsection" "subsubsection" "paragraph"
-   "instantiation" "instance"))
+   "instantiation" "instance"
+   "thm"))
 
 (defvar lsp-isar-indent--outmost-command
   (lsp-isar-indent-create-regex-from-words lsp-isar-indent-outmost-command))
@@ -179,7 +180,9 @@
    "finally"
    "case"
    "let"
-   "obtain"))
+   "obtain"
+   "define"
+   "note"))
 
 (defvar lsp-isar-indent--isar-command
   (lsp-isar-indent-create-regex-from-words lsp-isar-indent-isar-command))
@@ -349,6 +352,10 @@ not match the pattern A."
 	     (- (current-indentation) 2)
 	   (current-indentation)))
 	(`(lsp-isar-indent-proof-command lsp-isar-indent-apply-command)
+	 (if (string= current-word "next")
+	     (- (current-indentation) 4)
+	   (- (current-indentation) 2)))
+	(`(lsp-isar-indent-proof-command lsp-isar-indent-apply-end-command)
 	 (if (string= current-word "next")
 	     (- (current-indentation) 4)
 	   (- (current-indentation) 2)))
