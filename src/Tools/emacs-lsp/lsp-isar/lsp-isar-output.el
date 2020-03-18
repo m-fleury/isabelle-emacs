@@ -446,7 +446,6 @@ Lisp equivalent of 'replace-regexp' as indicated in the help."
 	      (ignore-errors
 		(search-forward "Proof outline with cases:") ;; TODO this should go to lsp-isar-output-parse-output
 		(setq lsp-isar-output-proof-cases-content (buffer-substring (point) (point-max))))))
-	  (cl-incf lsp-isar-output-current-output-number)
 	  (with-current-buffer lsp-isar-output-buffer
 	    (read-only-mode t))))
     ('abort-rendering
@@ -862,7 +861,8 @@ Lisp equivalent of 'replace-regexp' as indicated in the help."
 (defun lsp-isar-output-update-state-and-output-buffer (content)
   "Launch the thread or timer to update the state and the output panel with CONTENT."
   (setq lsp-isar-output--previous-goal content)
-  (if lsp-isar-output-use-async
+  (cl-incf lsp-isar-output-current-output-number)
+  (when lsp-isar-output-use-async
       (lsp-isar-output--update-state-and-output-buffer-async lsp-isar-output-current-output-number content))
 
   (if lsp-isar-output-time-before-printing-goal
