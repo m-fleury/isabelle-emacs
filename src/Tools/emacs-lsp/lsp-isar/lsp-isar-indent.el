@@ -444,8 +444,12 @@ not match the pattern A."
 	 (- (current-indentation) 2))
 	;; this can lead to bugs for `subgoal apply auto\ndone'
 	;; but it works for `subgoal by auto\ndone'
+	;; and `subgoal\nby auto\ndone'.
+	;; Basically, we favour nicer Isar proof.
 	(`(lsp-isar-indent-apply-end-command lsp-isar-indent-apply-structuring-command)
-	 (current-indentation))
+	 (if (string= current-word "by")
+	     (+ (current-indentation) 2)
+	   (current-indentation)))
 
 	(`(,_ . ,_)
 	 (message "unrecognized pattern")
