@@ -96,7 +96,7 @@
   "Create a regular expression based on the list of words S."
   (concat
    (cl-reduce (lambda (w y) (concat w "\\|" y))
-	      (mapcar (lambda (w) (concat "\\(" w "\\)"))
+	      (mapcar (lambda (w) (concat "\\<" w "\\>"))
 		      s))))
 
 

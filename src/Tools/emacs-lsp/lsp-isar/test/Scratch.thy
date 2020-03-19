@@ -117,6 +117,14 @@ begin
     done
 end
 
+lemma name_with_boundary: \<open>P \<Longrightarrow> P\<close>
+  by auto
+
+lemma \<open>P \<Longrightarrow> P\<close>
+  apply (rule
+    name_with_boundary)
+  oops
+
 
 section \<open>Known bugs\<close>
 notepad
