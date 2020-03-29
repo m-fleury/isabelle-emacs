@@ -129,11 +129,33 @@ lemma \<open>P \<Longrightarrow> P\<close>
 section \<open>Known bugs\<close>
 notepad
 begin
-  have P if "P ==> P" "P" for P
+  have P if "P \<Longrightarrow> P" "P" for P
     apply (rule that)
     subgoal apply (rule that(2))
-    done \<comment> \<open>This done is wrong\<close>
+    done \<comment> \<open>This done is wrong, but I cannot fix it without knowdegde from the goals.\<close>
     done
 end
+
+text \<open>The labels in the following predicate is wrongly indented, but jEdit is not better:\<close>
+inductive rtranclp :: \<open>('a \<Rightarrow> 'a \<Rightarrow> bool) \<Rightarrow> 'a \<Rightarrow> 'a \<Rightarrow> bool\<close> for r :: \<open>'a \<Rightarrow> 'a \<Rightarrow> bool\<close> where
+  base:
+  \<open>rtranclp r a a\<close> |
+  step:
+  \<open>rtranclp r a c\<close>
+  if
+    \<open>r a b\<close>
+    \<open>rtranclp r b c\<close>
+
+
+section \<open>Test part\<close>
+
+lemma False
+  by auto
+
+lemma True
+  by simp
+
+lemma True
+  by simp
 
 end
