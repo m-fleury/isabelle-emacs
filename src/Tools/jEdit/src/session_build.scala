@@ -40,7 +40,7 @@ object Session_Build
 
   private class Dialog(view: View) extends JDialog(view)
   {
-    val options = PIDE.options.value
+    val options: Options = PIDE.options.value
 
 
     /* text */
@@ -102,7 +102,7 @@ object Session_Build
       }
 
     private val delay_exit =
-      GUI_Thread.delay_first(Time.seconds(1.0))
+      Delay.first(Time.seconds(1.0), gui = true)
       {
         if (can_auto_close) conclude()
         else {
@@ -165,7 +165,7 @@ object Session_Build
     setLocationRelativeTo(view)
     setVisible(true)
 
-    Standard_Thread.fork("session_build") {
+    Isabelle_Thread.fork(name = "session_build") {
       progress.echo("Build started for Isabelle/" + PIDE.resources.session_name + " ...")
 
       val (out, rc) =
