@@ -10,7 +10,7 @@ package isabelle
 object Update
 {
   def update(options: Options, logic: String,
-    progress: Progress = No_Progress,
+    progress: Progress = new Progress,
     log: Logger = No_Logger,
     dirs: List[Path] = Nil,
     select_dirs: List[Path] = Nil,
@@ -18,7 +18,7 @@ object Update
   {
     val context =
       Dump.Context(options, progress = progress, dirs = dirs, select_dirs = select_dirs,
-        selection = selection)
+        selection = selection, skip_base = true)
 
     context.build_logic(logic)
 

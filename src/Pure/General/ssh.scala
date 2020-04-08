@@ -10,6 +10,7 @@ package isabelle
 import java.io.{InputStream, OutputStream, ByteArrayOutputStream}
 
 import scala.collection.mutable
+import scala.util.matching.Regex
 
 import com.jcraft.jsch.{JSch, Logger => JSch_Logger, Session => JSch_Session, SftpException,
   OpenSSHConfig, UserInfo, Channel => JSch_Channel, ChannelExec, ChannelSftp, SftpATTRS}
@@ -21,7 +22,7 @@ object SSH
 
   object Target
   {
-    val User_Host = "^([^@]+)@(.+)$".r
+    val User_Host: Regex = "^([^@]+)@(.+)$".r
 
     def parse(s: String): (String, String) =
       s match {
@@ -38,6 +39,15 @@ object SSH
 
   val default_port = 22
   def make_port(port: Int): Int = if (port > 0) port else default_port
+
+  def port_suffix(port: Int): String =
+    if (port == default_port) "" else ":" + port
+
+  def user_prefix(user: String): String =
+    proper_string(user) match {
+      case None => ""
+      case Some(name) => name + "@"
+    }
 
   def connect_timeout(options: Options): Int =
     options.seconds("ssh_connect_timeout").ms.toInt
@@ -67,17 +77,19 @@ object SSH
     jsch.setKnownHosts(File.platform_path(known_hosts))
 
     val identity_files =
-      space_explode(':', options.string("ssh_identity_files")).map(Path.explode(_))
+      space_explode(':', options.string("ssh_identity_files")).map(Path.explode)
     for (identity_file <- identity_files if identity_file.is_file)
       jsch.addIdentity(File.platform_path(identity_file))
 
     new Context(options, jsch)
   }
 
-  def open_session(options: Options, host: String, user: String = "", port: Int = 0,
+  def open_session(options: Options,
+      host: String, user: String = "", port: Int = 0, actual_host: String = "",
       proxy_host: String = "", proxy_user: String = "", proxy_port: Int = 0,
       permissive: Boolean = false): Session =
-    init_context(options).open_session(host = host, user = user, port = port,
+    init_context(options).open_session(
+      host = host, user = user, port = port, actual_host = actual_host,
       proxy_host = proxy_host, proxy_user = proxy_user, proxy_port = proxy_port,
       permissive = permissive)
 
@@ -85,9 +97,10 @@ object SSH
   {
     def update_options(new_options: Options): Context = new Context(new_options, jsch)
 
-    def connect_session(host: String, user: String = "", port: Int = 0,
+    private def connect_session(host: String, user: String = "", port: Int = 0,
       host_key_permissive: Boolean = false,
-      host_key_alias: String = "",
+      nominal_host: String = "",
+      nominal_user: String = "",
       on_close: () => Unit = () => ()): Session =
     {
       val session = jsch.getSession(proper_string(user).orNull, host, make_port(port))
@@ -97,7 +110,7 @@ object SSH
       session.setServerAliveCountMax(alive_count_max(options))
       session.setConfig("MaxAuthTries", "3")
       if (host_key_permissive) session.setConfig("StrictHostKeyChecking", "no")
-      if (host_key_alias != "") session.setHostKeyAlias(host_key_alias)
+      if (nominal_host != "") session.setHostKeyAlias(nominal_host)
 
       if (options.bool("ssh_compression")) {
         session.setConfig("compression.s2c", "zlib@openssh.com,zlib,none")
@@ -105,25 +118,30 @@ object SSH
         session.setConfig("compression_level", "9")
       }
       session.connect(connect_timeout(options))
-      new Session(options, session, on_close)
+      new Session(options, session, on_close,
+        proper_string(nominal_host) getOrElse host,
+        proper_string(nominal_user) getOrElse user)
     }
 
-    def open_session(host: String, user: String = "", port: Int = 0,
+    def open_session(
+      host: String, user: String = "", port: Int = 0, actual_host: String = "",
       proxy_host: String = "", proxy_user: String = "", proxy_port: Int = 0,
       permissive: Boolean = false): Session =
     {
-      if (proxy_host == "") connect_session(host = host, user = user, port = port)
+      val connect_host = proper_string(actual_host) getOrElse host
+      if (proxy_host == "") connect_session(host = connect_host, user = user, port = port)
       else {
         val proxy = connect_session(host = proxy_host, port = proxy_port, user = proxy_user)
 
         val fw =
-          try { proxy.port_forwarding(remote_host = host, remote_port = make_port(port)) }
+          try { proxy.port_forwarding(remote_host = connect_host, remote_port = make_port(port)) }
           catch { case exn: Throwable => proxy.close; throw exn }
 
         try {
           connect_session(host = fw.local_host, port = fw.local_port,
-            host_key_permissive = permissive, host_key_alias = host,
-            user = user, on_close = () => { fw.close; proxy.close })
+            host_key_permissive = permissive,
+            nominal_host = host, nominal_user = user, user = user,
+            on_close = () => { fw.close; proxy.close })
         }
         catch { case exn: Throwable => fw.close; proxy.close; throw exn }
       }
@@ -219,7 +237,7 @@ object SSH
 
     val exit_status: Future[Int] =
       Future.thread("ssh_wait") {
-        while (!channel.isClosed) Thread.sleep(exec_wait_delay.ms)
+        while (!channel.isClosed) exec_wait_delay.sleep
         channel.getExitStatus
       }
 
@@ -258,7 +276,7 @@ object SSH
             if (line_buffer.size > 0) line_flush()
             finished = true
           }
-          else Thread.sleep(exec_wait_delay.ms)
+          else exec_wait_delay.sleep
         }
 
         result.toList
@@ -292,21 +310,21 @@ object SSH
   class Session private[SSH](
     val options: Options,
     val session: JSch_Session,
-    on_close: () => Unit) extends System with AutoCloseable
+    on_close: () => Unit,
+    val nominal_host: String,
+    val nominal_user: String) extends System with AutoCloseable
   {
     def update_options(new_options: Options): Session =
-      new Session(new_options, session, on_close)
+      new Session(new_options, session, on_close, nominal_host, nominal_user)
 
-    def user_prefix: String = if (session.getUserName == null) "" else session.getUserName + "@"
     def host: String = if (session.getHost == null) "" else session.getHost
-    def port_suffix: String = if (session.getPort == default_port) "" else ":" + session.getPort
-    override def hg_url: String = "ssh://" + user_prefix + host + port_suffix + "/"
 
-    override def prefix: String =
-      user_prefix + host + port_suffix + ":"
+    override def hg_url: String =
+      "ssh://" + user_prefix(nominal_user) + nominal_host + "/"
 
     override def toString: String =
-      user_prefix + host + port_suffix + (if (session.isConnected) "" else " (disconnected)")
+      user_prefix(session.getUserName) + host + port_suffix(session.getPort) +
+      (if (session.isConnected) "" else " (disconnected)")
 
 
     /* port forwarding */
@@ -414,12 +432,12 @@ object SSH
     def read_file(path: Path, local_path: Path): Unit =
       sftp.get(remote_path(path), File.platform_path(local_path))
     def read_bytes(path: Path): Bytes = using(open_input(path))(Bytes.read_stream(_))
-    def read(path: Path): String = using(open_input(path))(File.read_stream(_))
+    def read(path: Path): String = using(open_input(path))(File.read_stream)
 
     def write_file(path: Path, local_path: Path): Unit =
       sftp.put(File.platform_path(local_path), remote_path(path))
     def write_bytes(path: Path, bytes: Bytes): Unit =
-      using(open_output(path))(bytes.write_stream(_))
+      using(open_output(path))(bytes.write_stream)
     def write(path: Path, text: String): Unit =
       using(open_output(path))(stream => Bytes(text).write_stream(stream))
 
@@ -464,7 +482,6 @@ object SSH
   trait System
   {
     def hg_url: String = ""
-    def prefix: String = ""
 
     def expand_path(path: Path): Path = path.expand
     def bash_path(path: Path): String = File.bash_path(path)

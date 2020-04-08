@@ -58,7 +58,7 @@ text \<open>
     \<^enum> The file \<^path>\<open>$ISABELLE_HOME_USER/etc/settings\<close> (if it
     exists) is run in the same way as the site default settings. Note that the
     variable @{setting ISABELLE_HOME_USER} has already been set before ---
-    usually to something like \<^verbatim>\<open>$USER_HOME/.isabelle/Isabelle2018\<close>.
+    usually to something like \<^verbatim>\<open>$USER_HOME/.isabelle/Isabelle2020\<close>.
 
     Thus individual users may override the site-wide defaults. Typically, a
     user settings file contains only a few lines, with some assignments that
@@ -148,7 +148,7 @@ text \<open>
   of the @{executable isabelle} executable.
 
   \<^descr>[@{setting_def ISABELLE_IDENTIFIER}\<open>\<^sup>*\<close>] refers to the name of this
-  Isabelle distribution, e.g.\ ``\<^verbatim>\<open>Isabelle2018\<close>''.
+  Isabelle distribution, e.g.\ ``\<^verbatim>\<open>Isabelle2020\<close>''.
 
   \<^descr>[@{setting_def ML_SYSTEM}, @{setting_def ML_HOME}, @{setting_def
   ML_OPTIONS}, @{setting_def ML_PLATFORM}, @{setting_def ML_IDENTIFIER}\<open>\<^sup>*\<close>]
@@ -390,8 +390,8 @@ text \<open>
   \<^medskip>
   This is how to invoke a function body with proper return code and printing
   of errors, and without printing of a redundant \<^verbatim>\<open>val it = (): unit\<close> result:
-  @{verbatim [display] \<open>isabelle process -e 'Command_Line.tool0 (fn () => writeln "OK")'\<close>}
-  @{verbatim [display] \<open>isabelle process -e 'Command_Line.tool0 (fn () => error "Bad")'\<close>}
+  @{verbatim [display] \<open>isabelle process -e 'Command_Line.tool (fn () => writeln "OK")'\<close>}
+  @{verbatim [display] \<open>isabelle process -e 'Command_Line.tool (fn () => error "Bad")'\<close>}
 \<close>
 
 
