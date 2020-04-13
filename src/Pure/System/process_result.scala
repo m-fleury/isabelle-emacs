@@ -6,6 +6,12 @@ Result of system process.
 
 package isabelle
 
+object Process_Result
+{
+  def print_return_code(rc: Int): String = "Return code: " + rc
+  def print_rc(rc: Int): String = "return code " + rc
+}
+
 final case class Process_Result(
   rc: Int,
   out_lines: List[String] = Nil,
@@ -15,7 +21,11 @@ final case class Process_Result(
 {
   def out: String = cat_lines(out_lines)
   def err: String = cat_lines(err_lines)
-  def errors(errs: List[String]): Process_Result = copy(err_lines = err_lines ::: errs)
+
+  def output(outs: List[String]): Process_Result =
+    copy(out_lines = out_lines ::: outs.flatMap(split_lines))
+  def errors(errs: List[String]): Process_Result =
+    copy(err_lines = err_lines ::: errs.flatMap(split_lines))
   def error(err: String): Process_Result = errors(List(err))
 
   def was_timeout: Process_Result = copy(rc = 1, timeout = true)
@@ -31,6 +41,9 @@ final case class Process_Result(
     else Exn.error(err)
 
   def check: Process_Result = check_rc(_ == 0)
+
+  def print_return_code: String = Process_Result.print_return_code(rc)
+  def print_rc: String = Process_Result.print_rc(rc)
 
   def print: Process_Result =
   {
