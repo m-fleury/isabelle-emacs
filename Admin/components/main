@@ -5,7 +5,7 @@ csdp-6.1-1
 cvc4-1.5-5
 e-2.0-3
 isabelle_fonts-20190717
-jdk-11.0.6+10
+jdk-11.0.5+10
 jedit_build-20190717
 jfreechart-1.5.0
 jortho-1.0-2
@@ -14,7 +14,7 @@ nunchaku-0.5
 opam-2.0.6
 polyml-5.8.1-20200228
 postgresql-42.2.9
-scala-2.12.10
+scala-2.12.11
 smbc-0.4.1
 spass-3.8ds-1
 sqlite-jdbc-3.30.1

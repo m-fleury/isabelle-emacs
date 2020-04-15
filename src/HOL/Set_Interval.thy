@@ -812,10 +812,10 @@ lemma atLeastSucLessThan_greaterThanLessThan: "{Suc l..<u} = {l<..<u}"
     greaterThanLessThan_def)
 
 lemma atLeastAtMostSuc_conv: "m \<le> Suc n \<Longrightarrow> {m..Suc n} = insert (Suc n) {m..n}"
-by (auto simp add: atLeastAtMost_def)
+  by auto
 
 lemma atLeastAtMost_insertL: "m \<le> n \<Longrightarrow> insert m {Suc m..n} = {m ..n}"
-by auto
+  by auto
 
 text \<open>The analogous result is useful on \<^typ>\<open>int\<close>:\<close>
 (* here, because we don't have an own int section *)
@@ -2072,7 +2072,7 @@ context unique_euclidean_semiring_with_bit_shifts
 begin
 
 lemma take_bit_sum:
-  "take_bit n a = (\<Sum>k = 0..<n. push_bit k (of_bool (odd (drop_bit k a))))"
+  "take_bit n a = (\<Sum>k = 0..<n. push_bit k (of_bool (bit a k)))"
   for n :: nat
 proof (induction n arbitrary: a)
   case 0
@@ -2080,14 +2080,14 @@ proof (induction n arbitrary: a)
     by simp
 next
   case (Suc n)
-  have "(\<Sum>k = 0..<Suc n. push_bit k (of_bool (odd (drop_bit k a)))) = 
-    of_bool (odd a) + (\<Sum>k = Suc 0..<Suc n. push_bit k (of_bool (odd (drop_bit k a))))"
+  have "(\<Sum>k = 0..<Suc n. push_bit k (of_bool (bit a k))) = 
+    of_bool (odd a) + (\<Sum>k = Suc 0..<Suc n. push_bit k (of_bool (bit a k)))"
     by (simp add: sum.atLeast_Suc_lessThan ac_simps)
-  also have "(\<Sum>k = Suc 0..<Suc n. push_bit k (of_bool (odd (drop_bit k a))))
-    = (\<Sum>k = 0..<n. push_bit k (of_bool (odd (drop_bit k (a div 2))))) * 2"
-    by (simp only: sum.atLeast_Suc_lessThan_Suc_shift) (simp add: sum_distrib_right push_bit_double)
+  also have "(\<Sum>k = Suc 0..<Suc n. push_bit k (of_bool (bit a k)))
+    = (\<Sum>k = 0..<n. push_bit k (of_bool (bit (a div 2) k))) * 2"
+    by (simp only: sum.atLeast_Suc_lessThan_Suc_shift) (simp add: sum_distrib_right push_bit_double drop_bit_Suc bit_Suc)
   finally show ?case
-    using Suc [of "a div 2"] by (simp add: ac_simps)
+    using Suc [of "a div 2"] by (simp add: ac_simps take_bit_Suc)
 qed
 
 end

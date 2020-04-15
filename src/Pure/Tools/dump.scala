@@ -94,20 +94,21 @@ object Dump
     def apply(
       options: Options,
       aspects: List[Aspect] = Nil,
-      progress: Progress = No_Progress,
+      progress: Progress = new Progress,
       dirs: List[Path] = Nil,
       select_dirs: List[Path] = Nil,
       selection: Sessions.Selection = Sessions.Selection.empty,
-      pure_base: Boolean = false): Context =
+      pure_base: Boolean = false,
+      skip_base: Boolean = false): Context =
     {
       val session_options: Options =
       {
         val options0 = if (NUMA.enabled) NUMA.policy_options(options) else options
         val options1 =
           options0 +
-            "completion_limit=0" +
             "ML_statistics=false" +
             "parallel_proofs=0" +
+            "completion_limit=0" +
             "editor_tracing_messages=0" +
             "editor_presentation"
         (options1 /: aspects)({ case (opts, aspect) => (opts /: aspect.options)(_ + _) })
@@ -125,7 +126,7 @@ object Dump
       val deps: Sessions.Deps =
         Sessions.deps(sessions_structure, progress = progress).check_errors
 
-      new Context(options, progress, dirs, select_dirs, pure_base, session_options, deps)
+      new Context(options, progress, dirs, select_dirs, pure_base, skip_base, session_options, deps)
     }
   }
 
@@ -135,6 +136,7 @@ object Dump
     val dirs: List[Path],
     val select_dirs: List[Path],
     val pure_base: Boolean,
+    val skip_base: Boolean,
     val session_options: Options,
     val deps: Sessions.Deps)
   {
@@ -189,7 +191,7 @@ object Dump
       val PURE = isabelle.Thy_Header.PURE
 
       val base =
-        if (logic == PURE && !pure_base) Nil
+        if ((logic == PURE && !pure_base) || skip_base) Nil
         else make_session(base_sessions, session_logic = PURE, strict = logic == PURE)
 
       val main =
@@ -361,7 +363,7 @@ object Dump
           session.use_theories(used_theories.map(_.theory),
             unicode_symbols = unicode_symbols,
             progress = progress,
-            commit = Some(Consumer.apply _))
+            commit = Some(Consumer.apply))
 
         val bad_theories = Consumer.shutdown()
         val bad_msgs =
@@ -393,7 +395,7 @@ object Dump
     options: Options,
     logic: String,
     aspects: List[Aspect] = Nil,
-    progress: Progress = No_Progress,
+    progress: Progress = new Progress,
     log: Logger = No_Logger,
     dirs: List[Path] = Nil,
     select_dirs: List[Path] = Nil,
@@ -461,7 +463,7 @@ Usage: isabelle dump [OPTIONS] [SESSIONS ...]
   Dump cumulative PIDE session database, with the following aspects:
 
 """ + Library.prefix_lines("    ", show_aspects) + "\n",
-      "A:" -> (arg => aspects = Library.distinct(space_explode(',', arg)).map(the_aspect(_))),
+      "A:" -> (arg => aspects = Library.distinct(space_explode(',', arg)).map(the_aspect)),
       "B:" -> (arg => base_sessions = base_sessions ::: List(arg)),
       "D:" -> (arg => select_dirs = select_dirs ::: List(Path.explode(arg))),
       "O:" -> (arg => output_dir = Path.explode(arg)),
@@ -479,6 +481,10 @@ Usage: isabelle dump [OPTIONS] [SESSIONS ...]
 
       val progress = new Console_Progress(verbose = verbose)
 
+      val start_date = Date.now()
+
+      if (verbose) progress.echo("Started at " + Build_Log.print_date(start_date))
+
       progress.interrupt_handler {
         dump(options, logic,
           aspects = aspects,
@@ -495,5 +501,11 @@ Usage: isabelle dump [OPTIONS] [SESSIONS ...]
             session_groups = session_groups,
             sessions = sessions))
       }
+
+      val end_date = Date.now()
+      val timing = end_date.time - start_date.time
+
+      if (verbose) progress.echo("\nFinished at " + Build_Log.print_date(end_date))
+      progress.echo(timing.message_hms + " elapsed time")
     })
 }
