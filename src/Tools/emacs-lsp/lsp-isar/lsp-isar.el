@@ -358,7 +358,6 @@ the transient is re-opened."
   "Insert proof outline."
   (interactive)
   (end-of-line)
-  (insert "\n")
   (let ((begin (point)))
     (lsp-isar-insert-sendback "Isar" "Isar" nil nil)
     (if lsp-isar-experimental
