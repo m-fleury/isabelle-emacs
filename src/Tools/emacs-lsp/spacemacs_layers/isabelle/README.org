@@ -2,7 +2,7 @@
 Here is a screenshot of Isabelle in emacs:
 [[file:img/normal_emacs_isabelle.png]]
 
-Here is a screenshot of Isabelle in emacs:
+Here is a screenshot of Isabelle in spacemacs:
 [[file:img/spacemacs_isabelle.png]]
 
 (with the sledgehammer interface).
@@ -41,15 +41,15 @@ This layer allows for editing isabelle theory files. It includes:
 
 * Preparation
 *** Clone Isabelle2019-vsce
-    - The version of Isabelle2019 to download is isabelle2019-vsce and available at https://github.com/m-fleury/isabelle-release in the isabelle2019-more-vscode branch
+    - The version of Isabelle2020 to download is available at https://github.com/m-fleury/isabelle-release in the Isabelle2020-more-vscode branch
 
 #+BEGIN_SRC sh
 git clone https://github.com/m-fleury/isabelle-release.git
 cd isabelle-release
-git checkout isabelle2019-more-vscode
+git checkout isabelle2020-more-vscode
 #+END_SRC
 
-    - Initialize Isabelle (note that the second and third commands can take a while)
+    - Initialize Isabelle (note that the second and third commands can take a while and require an internet connection)
 
 #+BEGIN_SRC sh
   ./bin/isabelle components -I
@@ -246,7 +246,7 @@ In the remainder of these instructions, I assume you have cloned these repos dir
 Same as non-developer version
 * Post-Installation
 ** Adding the AFP
-Append to the file =~/.isabelle/Isabelle2019/etc/settings=
+Append to the file =~/.isabelle/Isabelle2020/etc/settings=
 #+BEGIN_src sh
 AFP=/path/to/AFP/thys
 #+END_SRC
@@ -288,4 +288,9 @@ and add your own function to the hook instead!
 | ,is     | open the transient interface                                 |
 
 (If you know magit, you will know how to use the interface)
+
+
+* Update from previous version
+** Isabelle2020
+The option "-S" was replaced by "-R" (or more precisely, the benefits from "-S" do not exist anymore and, therefore, the option "-S" was discontinued in Isabelle).
 
