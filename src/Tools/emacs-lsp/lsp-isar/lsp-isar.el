@@ -210,7 +210,10 @@ Set `lsp-isabelle-options' for other options (like importing the AFP)."
    lsp-remote-isabelle-options))
 
 
-(defvar lsp-isar-tramp nil "Use Tramp to edit remote files.")
+(defcustom lsp-isar-tramp nil "Use Tramp to edit remote files."
+  :type 'bool
+  :group 'isabelle
+  )
 
 (defun lsp-isar-define-client ()
   "Defines the LSP client for isar mode.
@@ -273,8 +276,10 @@ mode automically, use `(add-hook 'isar-mode-hook
 (modify-coding-system-alist 'file "\\.thy\\'" 'utf-8-auto)
 
 
-(defvar lsp-isar-experimental nil
-  "Experimental settings.")
+(defcustom lsp-isar-experimental nil
+  "Experimental settings."
+  :type 'bool
+  :group 'isabelle)
 
 (defun lsp-isar-activate-experimental-features ()
   "Activate experimental features."
