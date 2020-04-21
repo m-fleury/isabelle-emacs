@@ -606,8 +606,7 @@ val transfer' = transfer o Proof_Context.theory_of;
 val transfer'' = transfer o Context.theory_of;
 
 fun join_transfer thy th =
-  if Context.subthy_id (Context.theory_id thy, theory_id th) then th
-  else transfer thy th;
+  (Context.subthy_id (theory_id th, Context.theory_id thy) ? transfer thy) th;
 
 fun join_transfer_context (ctxt, th) =
   if Context.subthy_id (theory_id th, Context.theory_id (Proof_Context.theory_of ctxt))
@@ -1720,7 +1719,7 @@ fun of_class (cT, raw_c) =
     val Cterm {t = prop, maxidx, sorts, ...} = global_cterm_of thy (Logic.mk_of_class (T, c));
   in
     if Sign.of_sort thy (T, [c]) then
-      Thm (deriv_rule0 (fn () => Proofterm.OfClass (T, c)),
+      Thm (deriv_rule0 (fn () => Proofterm.PClass (T, c)),
        {cert = cert,
         tags = [],
         maxidx = maxidx,
