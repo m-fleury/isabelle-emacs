@@ -28,10 +28,6 @@ text \<open>
   are specified as definitional class operations.
 \<close>
 
-lemma stable_imp_drop_eq:
-  \<open>drop_bit n a = a\<close> if \<open>a div 2 = a\<close>
-  by (induction n) (simp_all add: that)
-
 sublocale "and": semilattice \<open>(AND)\<close>
   by standard (auto simp add: bit_eq_iff bit_and_iff)
 
@@ -219,7 +215,7 @@ proof (rule bit_eqI)
   assume *: \<open>2 ^ m \<noteq> 0\<close>
   then show \<open>bit (set_bit 0 a) m = bit (1 + 2 * (a div 2)) m\<close>
     by (simp add: bit_set_bit_iff bit_double_iff even_bit_succ_iff)
-      (cases m, simp_all)
+      (cases m, simp_all add: bit_Suc)
 qed
 
 lemma set_bit_Suc [simp]:
@@ -239,7 +235,7 @@ proof (rule bit_eqI)
     show ?thesis
       by (cases a rule: parity_cases)
         (simp_all add: bit_set_bit_iff bit_double_iff even_bit_succ_iff *,
-        simp_all add: Suc \<open>2 ^ m \<noteq> 0\<close>)
+        simp_all add: Suc \<open>2 ^ m \<noteq> 0\<close> bit_Suc)
   qed
 qed
 
@@ -250,7 +246,7 @@ proof (rule bit_eqI)
   assume *: \<open>2 ^ m \<noteq> 0\<close>
   then show \<open>bit (unset_bit 0 a) m = bit (2 * (a div 2)) m\<close>
     by (simp add: bit_unset_bit_iff bit_double_iff)
-      (cases m, simp_all)
+      (cases m, simp_all add: bit_Suc)
 qed
 
 lemma unset_bit_Suc [simp]:
@@ -268,7 +264,7 @@ proof (rule bit_eqI)
     show ?thesis
       by (cases a rule: parity_cases)
         (simp_all add: bit_unset_bit_iff bit_double_iff even_bit_succ_iff *,
-         simp_all add: Suc)
+         simp_all add: Suc bit_Suc)
   qed
 qed
 
@@ -279,7 +275,7 @@ proof (rule bit_eqI)
   assume *: \<open>2 ^ m \<noteq> 0\<close>
   then show \<open>bit (flip_bit 0 a) m = bit (of_bool (even a) + 2 * (a div 2)) m\<close>
     by (simp add: bit_flip_bit_iff bit_double_iff even_bit_succ_iff)
-      (cases m, simp_all)
+      (cases m, simp_all add: bit_Suc)
 qed
 
 lemma flip_bit_Suc [simp]:
@@ -299,7 +295,7 @@ proof (rule bit_eqI)
     show ?thesis
       by (cases a rule: parity_cases)
         (simp_all add: bit_flip_bit_iff bit_double_iff even_bit_succ_iff,
-        simp_all add: Suc \<open>2 ^ m \<noteq> 0\<close>)
+        simp_all add: Suc \<open>2 ^ m \<noteq> 0\<close> bit_Suc)
   qed
 qed
 
@@ -348,7 +344,7 @@ proof (induction q arbitrary: m n)
 next
   case (Suc n)
   then show ?case
-    by (simp add: rec [of m n])
+    by (simp add: rec [of m n] bit_Suc)
 qed
 
 sublocale abel_semigroup F
@@ -461,7 +457,7 @@ proof (induction n arbitrary: k l)
 next
   case (Suc n)
   then show ?case
-    by (simp add: rec [of k l])
+    by (simp add: rec [of k l] bit_Suc)
 qed
 
 sublocale abel_semigroup F
@@ -514,7 +510,7 @@ lemma not_int_div_2:
 lemma bit_not_iff_int:
   \<open>bit (NOT k) n \<longleftrightarrow> \<not> bit k n\<close>
     for k :: int
-  by (induction n arbitrary: k) (simp_all add: not_int_div_2 even_not_iff_int)
+  by (induction n arbitrary: k) (simp_all add: not_int_div_2 even_not_iff_int bit_Suc)
 
 instance proof
   fix k l :: int and n :: nat
@@ -609,5 +605,73 @@ lifting_forget integer.lifting
 
 lifting_update natural.lifting
 lifting_forget natural.lifting
+
+
+subsection \<open>Key ideas of bit operations\<close>
+
+subsection \<open>Key ideas of bit operations\<close>
+
+text \<open>
+  When formalizing bit operations, it is tempting to represent
+  bit values as explicit lists over a binary type. This however
+  is a bad idea, mainly due to the inherent ambiguities in
+  representation concerning repeating leading bits.
+
+  Hence this approach avoids such explicit lists altogether
+  following an algebraic path:
+
+  \<^item> Bit values are represented by numeric types: idealized
+    unbounded bit values can be represented by type \<^typ>\<open>int\<close>,
+    bounded bit values by quotient types over \<^typ>\<open>int\<close>.
+
+  \<^item> (A special case are idealized unbounded bit values ending
+    in @{term [source] 0} which can be represented by type \<^typ>\<open>nat\<close> but
+    only support a restricted set of operations).
+
+  \<^item> From this idea follows that
+
+      \<^item> multiplication by \<^term>\<open>2 :: int\<close> is a bit shift to the left and
+
+      \<^item> division by \<^term>\<open>2 :: int\<close> is a bit shift to the right.
+
+  \<^item> Concerning bounded bit values, iterated shifts to the left
+    may result in eliminating all bits by shifting them all
+    beyond the boundary.  The property \<^prop>\<open>(2 :: int) ^ n \<noteq> 0\<close>
+    represents that \<^term>\<open>n\<close> is \<^emph>\<open>not\<close> beyond that boundary.
+
+  \<^item> The projection on a single bit is then @{thm bit_def [where ?'a = int, no_vars]}.
+
+  \<^item> This leads to the most fundamental properties of bit values:
+
+      \<^item> Equality rule: @{thm bit_eqI [where ?'a = int, no_vars]}
+
+      \<^item> Induction rule: @{thm bits_induct [where ?'a = int, no_vars]}
+
+  \<^item> Typical operations are characterized as follows:
+
+      \<^item> Singleton \<^term>\<open>n\<close>th bit: \<^term>\<open>(2 :: int) ^ n\<close>
+
+      \<^item> Bit mask upto bit \<^term>\<open>n\<close>: \<^term>\<open>(2 :: int) ^ n - 1\<close>
+
+      \<^item> Left shift: @{thm push_bit_eq_mult [where ?'a = int, no_vars]}
+
+      \<^item> Right shift: @{thm drop_bit_eq_div [where ?'a = int, no_vars]}
+
+      \<^item> Truncation: @{thm take_bit_eq_mod [where ?'a = int, no_vars]}
+
+      \<^item> Negation: @{thm bit_not_iff [where ?'a = int, no_vars]}
+
+      \<^item> And: @{thm bit_and_iff [where ?'a = int, no_vars]}
+
+      \<^item> Or: @{thm bit_or_iff [where ?'a = int, no_vars]}
+
+      \<^item> Xor: @{thm bit_xor_iff [where ?'a = int, no_vars]}
+
+      \<^item> Set a single bit: @{thm set_bit_def [where ?'a = int, no_vars]}
+
+      \<^item> Unset a single bit: @{thm unset_bit_def [where ?'a = int, no_vars]}
+
+      \<^item> Flip a single bit: @{thm flip_bit_def [where ?'a = int, no_vars]}
+\<close>
 
 end
