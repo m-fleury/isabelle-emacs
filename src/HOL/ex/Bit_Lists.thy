@@ -1,4 +1,4 @@
-(*  Author:  Florian Haftmann, TUM
+ (*  Author:  Florian Haftmann, TUM
 *)
 
 section \<open>Proof(s) of concept for algebraically founded lists of bits\<close>
@@ -44,11 +44,11 @@ proof (induction bs arbitrary: n)
 next
   case (Cons b bs)
   then show ?case
-    by (cases n) (simp_all add: ac_simps)
+    by (cases n) (simp_all add: ac_simps take_bit_Suc)
 qed
 
 lemma unsigned_of_bits_drop [simp]:
-  "unsigned_of_bits (drop n bs) = Parity.drop_bit n (unsigned_of_bits bs)"
+  "unsigned_of_bits (drop n bs) = drop_bit n (unsigned_of_bits bs)"
 proof (induction bs arbitrary: n)
   case Nil
   then show ?case
@@ -56,7 +56,7 @@ proof (induction bs arbitrary: n)
 next
   case (Cons b bs)
   then show ?case
-    by (cases n) simp_all
+    by (cases n) (simp_all add: drop_bit_Suc)
 qed
 
 lemma bit_unsigned_of_bits_iff:
@@ -68,7 +68,7 @@ proof (induction bs arbitrary: n)
 next
   case (Cons b bs)
   then show ?case
-    by (cases n) simp_all
+    by (cases n) (simp_all add: bit_Suc)
 qed
 
 primrec n_bits_of :: "nat \<Rightarrow> 'a \<Rightarrow> bool list"
@@ -77,9 +77,9 @@ primrec n_bits_of :: "nat \<Rightarrow> 'a \<Rightarrow> bool list"
   | "n_bits_of (Suc n) a = odd a # n_bits_of n (a div 2)"
 
 lemma n_bits_of_eq_iff:
-  "n_bits_of n a = n_bits_of n b \<longleftrightarrow> Parity.take_bit n a = Parity.take_bit n b"
+  "n_bits_of n a = n_bits_of n b \<longleftrightarrow> take_bit n a = take_bit n b"
   apply (induction n arbitrary: a b)
-   apply (auto elim!: evenE oddE)
+   apply (auto elim!: evenE oddE simp add: take_bit_Suc)
    apply (metis dvd_triv_right even_plus_one_iff)
   apply (metis dvd_triv_right even_plus_one_iff)
   done
@@ -97,8 +97,8 @@ proof -
 qed
 
 lemma unsigned_of_bits_n_bits_of [simp]:
-  "unsigned_of_bits (n_bits_of n a) = Parity.take_bit n a"
-  by (induction n arbitrary: a) (simp_all add: ac_simps)
+  "unsigned_of_bits (n_bits_of n a) = take_bit n a"
+  by (induction n arbitrary: a) (simp_all add: ac_simps take_bit_Suc)
 
 end
 
@@ -236,7 +236,7 @@ proof (induction bs arbitrary: n)
 next
   case (Cons b bs)
   then show ?case
-    by (cases n; cases b; cases bs) simp_all
+    by (cases n; cases b; cases bs) (simp_all add: bit_Suc)
 qed
 
 lemma of_bits_append [simp]:
@@ -257,7 +257,7 @@ lemma of_bits_replicate_False [simp]:
   by (auto simp add: of_bits_int_def)
 
 lemma of_bits_drop [simp]:
-  "of_bits (drop n bs) = Parity.drop_bit n (of_bits bs :: int)"
+  "of_bits (drop n bs) = drop_bit n (of_bits bs :: int)"
     if "n < length bs"
 using that proof (induction bs arbitrary: n)
   case Nil
@@ -275,7 +275,7 @@ next
     with Cons.prems have "bs \<noteq> []"
       by auto
     with Suc Cons.IH [of n] Cons.prems show ?thesis
-      by (cases b) simp_all
+      by (cases b) (simp_all add: drop_bit_Suc)
   qed
 qed
 
@@ -324,57 +324,38 @@ class semiring_bit_representation = semiring_bit_operations + bit_representation
 class ring_bit_representation = ring_bit_operations + semiring_bit_representation +
   assumes not_eq: "not = of_bits \<circ> map Not \<circ> bits_of"
 
-context zip_nat
-begin
-
-lemma of_bits:
-  "of_bits bs \<^bold>\<times> of_bits cs = (of_bits (map2 (\<^bold>*) bs cs) :: nat)"
-  if "length bs = length cs" for bs cs
-  by (simp add: Parity.bit_eq_iff bit_unsigned_of_bits_iff bit_eq_iff)
-    (simp add: that end_of_bits nth_default_map2 [of _ _ _ False False])
-end
-
 instance nat :: semiring_bit_representation
-  apply standard
-      apply (simp_all only: and_nat.of_bits or_nat.of_bits xor_nat.of_bits)
-   apply simp_all
-  done
-
-context zip_int
-begin
- 
-lemma of_bits:
-  \<open>of_bits bs \<^bold>\<times> of_bits cs = (of_bits (map2 (\<^bold>*) bs cs) :: int)\<close>
-  if \<open>length bs = length cs\<close> and \<open>\<not> False \<^bold>* False\<close> for bs cs
-proof (cases \<open>bs = []\<close>)
-  case True
-  moreover have \<open>cs = []\<close>
-    using True that by simp
-  ultimately show ?thesis
-    by (simp add: Parity.bit_eq_iff bit_eq_iff that)
-next
-  case False
-  moreover have \<open>cs \<noteq> []\<close>
-    using False that by auto
-  ultimately show ?thesis
-    apply (simp add: Parity.bit_eq_iff bit_of_bits_int_iff bit_eq_iff zip_eq_Nil_iff last_map last_zip that)
-    apply (simp add: that nth_default_map2 [of _ _ _ \<open>last bs\<close> \<open>last cs\<close>])
-    done
-qed
-
-end
+  by standard (simp_all add: bit_eq_iff bit_unsigned_of_bits_iff nth_default_map2 [of _ _ _ False False]
+    bit_and_iff bit_or_iff bit_xor_iff)
 
 instance int :: ring_bit_representation
 proof
-  show "(not :: int \<Rightarrow> _) = of_bits \<circ> map Not \<circ> bits_of"
-  proof (rule sym, rule ext)
-    fix k :: int
-    show "(of_bits \<circ> map Not \<circ> bits_of) k = NOT k"
-      by (induction k rule: int_bit_induct) (simp_all add: not_int_def)
-  qed
-  show "push_bit n k = of_bits (replicate n False @ bits_of k)"
+  {
+    fix bs cs :: \<open>bool list\<close>
+    assume \<open>length bs = length cs\<close>
+    then have \<open>cs = [] \<longleftrightarrow> bs = []\<close>
+      by auto
+    with \<open>length bs = length cs\<close> have \<open>zip bs cs \<noteq> [] \<and> last (map2 (\<and>) bs cs) \<longleftrightarrow> (bs \<noteq> [] \<and> last bs) \<and> (cs \<noteq> [] \<and> last cs)\<close>
+      and \<open>zip bs cs \<noteq> [] \<and> last (map2 (\<or>) bs cs) \<longleftrightarrow> (bs \<noteq> [] \<and> last bs) \<or> (cs \<noteq> [] \<and> last cs)\<close>
+      and \<open>zip bs cs \<noteq> [] \<and> last (map2 (\<noteq>) bs cs) \<longleftrightarrow> ((bs \<noteq> [] \<and> last bs) \<noteq> (cs \<noteq> [] \<and> last cs))\<close>
+      by (auto simp add: last_map last_zip zip_eq_Nil_iff prod_eq_iff)
+    then show \<open>of_bits bs AND of_bits cs = (of_bits (map2 (\<and>) bs cs) :: int)\<close>
+      and \<open>of_bits bs OR of_bits cs = (of_bits (map2 (\<or>) bs cs) :: int)\<close>
+      and \<open>of_bits bs XOR of_bits cs = (of_bits (map2 (\<noteq>) bs cs) :: int)\<close>
+      by (simp_all add: fun_eq_iff bit_eq_iff bit_and_iff bit_or_iff bit_xor_iff bit_not_iff bit_of_bits_int_iff \<open>length bs = length cs\<close> nth_default_map2 [of bs cs _ \<open>bs \<noteq> [] \<and> last bs\<close> \<open>cs \<noteq> [] \<and> last cs\<close>])
+  }
+  show \<open>push_bit n k = of_bits (replicate n False @ bits_of k)\<close>
     for k :: int and n :: nat
     by (cases "n = 0") simp_all
-qed (simp_all add: and_int.of_bits or_int.of_bits xor_int.of_bits)
+  show \<open>drop_bit n k = of_bits (drop n (bits_of k))\<close>
+    if \<open>n < length (bits_of k)\<close> for k :: int and n :: nat
+    using that by simp
+  show \<open>(not :: int \<Rightarrow> _) = of_bits \<circ> map Not \<circ> bits_of\<close>
+  proof (rule sym, rule ext)
+    fix k :: int
+    show \<open>(of_bits \<circ> map Not \<circ> bits_of) k = NOT k\<close>
+      by (induction k rule: int_bit_induct) (simp_all add: not_int_def)
+  qed
+qed
 
 end
