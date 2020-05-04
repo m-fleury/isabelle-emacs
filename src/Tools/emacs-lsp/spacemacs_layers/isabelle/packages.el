@@ -46,7 +46,19 @@
     (spacemacs/set-leader-keys-for-minor-mode 'lsp-mode "ibt" 'lsp-isar-insert-try0-proof))
 
   (use-package isar-goal-mode
-    :after isar-mode))
+    :after isar-mode)
+
+
+  ;; https://github.com/m-fleury/isabelle-release/issues/21
+  (defun ~/evil-motion-range--wrapper (fn &rest args)
+    "Like `evil-motion-range', but override field-beginning for performance.
+See URL `https://github.com/ProofGeneral/PG/issues/427'."
+    (cl-letf (((symbol-function 'field-beginning)
+               (lambda (&rest args) 1)))
+      (apply fn args)))
+
+  (advice-add #'evil-motion-range :around #'~/evil-motion-range--wrapper)
+  )
 
 
 (defun isabelle/init-isar-goal-mode ()
