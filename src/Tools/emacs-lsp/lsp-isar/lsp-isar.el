@@ -467,13 +467,8 @@ If there is no whitespace at cursor position, a space is inserted before COMMAND
   (interactive)
   (unless (string= (word-at-point) command)
     ;; special case for word|
-    (when (and (word-at-point) (not (thing-at-point 'whitespace)))
-      (forward-word))
-    (backward-char)
-    (let ((is-space (thing-at-point 'whitespace)))
-      (forward-char)
-      (unless is-space
-        (insert " ")))
+    (end-of-line)
+    (insert "\n")
     (insert command)))
 
 
