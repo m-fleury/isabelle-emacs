@@ -126,7 +126,7 @@ lemma \<open>P \<Longrightarrow> P\<close>
   oops
 
 
-section \<open>Known bugs\<close>
+section \<open>Known indentation bugs\<close>
 notepad
 begin
   have P if "P \<Longrightarrow> P" "P" for P
