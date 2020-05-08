@@ -269,11 +269,11 @@ the AFP and other options."
 This is the main entry point of the lsp-isar client.  To start the
 mode automically, use `(add-hook 'isar-mode-hook
 #'lsp-isar-define-client-and-start)'"
-  (when lsp-isar-use-lsp
+  (if (not lsp-isar-use-lsp)
+      (message "not starting the server! Set lsp-isar-use-lsp to t for that.")
     (unless lsp-isar--already-defined-client
-      (progn
-        (lsp-isar-define-client)
-        (setq lsp-isar--already-defined-client t)))
+      (lsp-isar-define-client)
+      (setq lsp-isar--already-defined-client t))
     (lsp)))
 
 
