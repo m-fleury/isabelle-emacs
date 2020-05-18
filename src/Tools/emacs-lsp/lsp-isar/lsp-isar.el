@@ -215,6 +215,11 @@ Set `lsp-isabelle-options' for other options (like importing the AFP)."
   :group 'isabelle
   )
 
+(defcustom lsp-isar-use-lsp t "Use nil to open files without opening the server."
+  :type 'bool
+  :group 'isabelle
+  )
+
 (defun lsp-isar-define-client ()
   "Defines the LSP client for isar mode.
 
@@ -264,11 +269,12 @@ the AFP and other options."
 This is the main entry point of the lsp-isar client.  To start the
 mode automically, use `(add-hook 'isar-mode-hook
 #'lsp-isar-define-client-and-start)'"
-  (unless lsp-isar--already-defined-client
-    (progn
-      (lsp-isar-define-client)
-      (setq lsp-isar--already-defined-client t)))
-  (lsp))
+  (when lsp-isar-use-lsp
+    (unless lsp-isar--already-defined-client
+      (progn
+        (lsp-isar-define-client)
+        (setq lsp-isar--already-defined-client t)))
+    (lsp)))
 
 
 ;; although the communication to the LSP server is done using utf-16,
