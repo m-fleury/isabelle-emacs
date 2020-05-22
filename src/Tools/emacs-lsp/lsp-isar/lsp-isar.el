@@ -528,11 +528,83 @@ If there is no whitespace at cursor position, a space is inserted before try0"
 (define-key isar-mode-map (kbd "C-c C-b C-a") 'lsp-isar-insert-simp)
 
 (defun lsp-isar-insert-blast ()
-  "Insert \"by simp\" at cursor position with whitespace in front if necessary"
+  "Insert \"by blast\" at cursor position with whitespace in front if necessary"
   (interactive)
   (lsp-isar-insert-command "by blast"))
 
 (define-key isar-mode-map (kbd "C-c C-b C-b") 'lsp-isar-insert-simp)
+
+(defun lsp-isar-insert-metis ()
+  "Insert \"by metis\" at cursor position with whitespace in front if necessary"
+  (interactive)
+  (lsp-isar-insert-command "by metis"))
+
+(define-key isar-mode-map (kbd "C-c C-b C-m") 'lsp-isar-insert-metis)
+
+(defun lsp-isar-insert-argo ()
+  "Insert \"by argo\" at cursor position with whitespace in front if necessary"
+  (interactive)
+  (lsp-isar-insert-command "by argo"))
+
+(define-key isar-mode-map (kbd "C-c C-b C-r") 'lsp-isar-insert-argo)
+
+(defun lsp-isar-insert-linarith ()
+  "Insert \"by linarith\" at cursor position with whitespace in front if necessary"
+  (interactive)
+  (lsp-isar-insert-command "by linarith"))
+
+(define-key isar-mode-map (kbd "C-c C-b C-l") 'lsp-isar-insert-linarith)
+
+(defun lsp-isar-insert-algebra ()
+  "Insert \"by algebra\" at cursor position with whitespace in front if necessary"
+  (interactive)
+  (lsp-isar-insert-command "by algebra"))
+
+(define-key isar-mode-map (kbd "C-c C-b C-g") 'lsp-isar-insert-algebra)
+
+(defun lsp-isar-insert-presburger ()
+  "Insert \"by presburger\" at cursor position with whitespace in front if necessary"
+  (interactive)
+  (lsp-isar-insert-command "by presburger"))
+
+(define-key isar-mode-map (kbd "C-c C-b C-p") 'lsp-isar-insert-presburger)
+
+(defun lsp-isar-insert-fast ()
+  "Insert \"by fast\" at cursor position with whitespace in front if necessary"
+  (interactive)
+  (lsp-isar-insert-command "by fast"))
+
+(define-key isar-mode-map (kbd "C-c C-b C-f C-a") 'lsp-isar-insert-fast)
+
+(defun lsp-isar-insert-fastforce ()
+  "Insert \"by fastforce\" at cursor position with whitespace in front if necessary"
+  (interactive)
+  (lsp-isar-insert-command "by fastforce"))
+
+(define-key isar-mode-map (kbd "C-c C-b C-f C-f") 'lsp-isar-insert-fastforce)
+
+(defun lsp-isar-insert-force ()
+  "Insert \"by force\" at cursor position with whitespace in front if necessary"
+  (interactive)
+  (lsp-isar-insert-command "by force"))
+
+(define-key isar-mode-map (kbd "C-c C-b C-f C-f") 'lsp-isar-insert-force)
+
+(defun lsp-isar-insert-meson ()
+  "Insert \"by meson\" at cursor position with whitespace in front if necessary"
+  (interactive)
+  (lsp-isar-insert-command "by meson"))
+
+(define-key isar-mode-map (kbd "C-c C-b C-e") 'lsp-isar-insert-meson)
+
+(defun lsp-isar-insert-satx ()
+  "Insert \"by satx\" at cursor position with whitespace in front if necessary"
+  (interactive)
+  (lsp-isar-insert-command "by satx"))
+
+(define-key isar-mode-map (kbd "C-c C-b C-s") 'lsp-isar-insert-satx)
+
+
 
 (provide 'lsp-isar)
 
