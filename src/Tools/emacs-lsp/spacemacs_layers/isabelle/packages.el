@@ -43,6 +43,16 @@
     (spacemacs/set-leader-keys-for-minor-mode 'lsp-mode "ibs" 'lsp-isar-insert-simp)
     (spacemacs/set-leader-keys-for-minor-mode 'lsp-mode "iba" 'lsp-isar-insert-auto)
     (spacemacs/set-leader-keys-for-minor-mode 'lsp-mode "ibb" 'lsp-isar-insert-blast)
+    (spacemacs/set-leader-keys-for-minor-mode 'lsp-mode "ibm" 'lsp-isar-insert-metis)
+    (spacemacs/set-leader-keys-for-minor-mode 'lsp-mode "ibr" 'lsp-isar-insert-argo)
+    (spacemacs/set-leader-keys-for-minor-mode 'lsp-mode "ibl" 'lsp-isar-insert-linarith)
+    (spacemacs/set-leader-keys-for-minor-mode 'lsp-mode "ibp" 'lsp-isar-insert-presburger)
+    (spacemacs/set-leader-keys-for-minor-mode 'lsp-mode "ibg" 'lsp-isar-insert-algebra)
+    (spacemacs/set-leader-keys-for-minor-mode 'lsp-mode "ibfa" 'lsp-isar-insert-fast)
+    (spacemacs/set-leader-keys-for-minor-mode 'lsp-mode "ibff" 'lsp-isar-insert-fastforce)
+    (spacemacs/set-leader-keys-for-minor-mode 'lsp-mode "ibfo" 'lsp-isar-insert-force)
+    (spacemacs/set-leader-keys-for-minor-mode 'lsp-mode "ibe" 'lsp-isar-insert-meson)
+    (spacemacs/set-leader-keys-for-minor-mode 'lsp-mode "ibs" 'lsp-isar-insert-satx)
     (spacemacs/set-leader-keys-for-minor-mode 'lsp-mode "ibt" 'lsp-isar-insert-try0-proof))
 
   (use-package isar-goal-mode
