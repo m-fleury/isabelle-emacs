@@ -47,6 +47,7 @@
 (defvar lsp-isar-progress-buffer nil "Contains the buffer to that contains the progress.")
 (defvar lsp-isar-progress-request-max-delay 3 "Maximum delay for printing.")
 (defvar lsp-isar-progress--request-delay 0 "Intial delay before printing.")
+(defvar lsp-isar-progress--max-thy-name-length 10 "Longest theory name (and lower bound).")
 
 ;; TODO requires to iterate over the result
 (defun lsp-isar-progress--update-buffer (status)
@@ -87,13 +88,16 @@
 			(setq current-thy-line-found t)))
 		  (unless current-thy-line-found
 		    (cl-incf current-thy-line))
-		  (setq s (concat (file-name-base theory)
-				  " "
-				  (number-to-string processed)
-				  " / " (number-to-string total)
-				  ", ✖: " (number-to-string failed)
-				  ", ⌛:" (number-to-string running)
-				  "\n"))
+      (setq lsp-isar-progress--max-thy-name-length
+            (max lsp-isar-progress--max-thy-name-length
+                 (length (file-name-base theory))))
+		  (setq s
+            (format (concat "%" (number-to-string lsp-isar-progress--max-thy-name-length)  "s %5s / %5s, ✖: %4s, ⌛: %4s\n")
+                   (file-name-base theory)
+				           (number-to-string processed)
+				           (number-to-string total)
+				           (number-to-string failed)
+				           (number-to-string running)))
 		  (if (and consolidated (= unprocessed 0) (= failed 0) (= running 0))
 		      (insert (propertize s 'font-lock-face '(:foreground "LightSalmon4")))
 		    (if (/= failed 0)
