@@ -47,66 +47,79 @@
 (defvar lsp-isar-progress-buffer nil "Contains the buffer to that contains the progress.")
 (defvar lsp-isar-progress-request-max-delay 3 "Maximum delay for printing.")
 (defvar lsp-isar-progress--request-delay 0 "Intial delay before printing.")
+(defvar lsp-isar-progress--max-thy-name-length 10 "Longest theory name (and lower bound).")
+(defvar lsp-isar-progress--max-goal-number-length 3 "Longest number of goals name (and lower bound).")
 
-;; TODO requires to iterate over the result
+(defcustom lsp-isar-progress-theory-name-map (lambda (x) x) "Replace theory names"
+  :type 'function
+  :group 'isabelle)
+
 (defun lsp-isar-progress--update-buffer (status)
   "Update the progress buffer and centers it on the current edited buffer with STATUS."
   (setq lsp-isar-progress--request-delay 0)
   (let ((inhibit-read-only t)
-	(current-thy-name (if (buffer-file-name) (file-name-base) nil))
-	(current-thy-point nil)
-	(current-thy-line nil)
-	(current-thy-line-found nil)
-	s)
+	      (current-thy-name (if (buffer-file-name) (file-name-base) nil))
+	      (current-thy-point nil)
+	      (current-thy-line nil)
+	      (current-thy-line-found nil)
+	      s)
     (save-excursion
 
       ;; if the cursor was already in the buffer store the
       ;; position.
       (if (eq (current-buffer) lsp-isar-progress-buffer)
-	  (setq current-thy-point (point)))
+	        (setq current-thy-point (point)))
       (with-current-buffer lsp-isar-progress-buffer
-	(setq current-thy-line 0)
-	(setq current-thy-line-found nil)
-	(setf (buffer-string) "")
-	(seq-doseq (theory_status status)
-	  (let*
-	      ((theory (gethash "name" theory_status))
-	       (unprocessed (gethash "unprocessed" theory_status theory_status))
-	       (running (gethash "running" theory_status))
-	       (finished (gethash "finished" theory_status))
-	       (failed (gethash "failed" theory_status))
-	       (consolidated (gethash "consolidated" theory_status)))
-	    (progn
-	      (let* ((warned (gethash "warned" theory_status))
-		     (total (+ unprocessed running warned failed finished))
-		     (processed (+ warned finished)))
-		(progn
-		  (if (or current-thy-line-found
-			  (string= (file-name-base theory) current-thy-name))
-		      (progn
-			(setq current-thy-line-found t)))
-		  (unless current-thy-line-found
-		    (cl-incf current-thy-line))
-		  (setq s (concat (file-name-base theory)
-				  " "
-				  (number-to-string processed)
-				  " / " (number-to-string total)
-				  ", ✖: " (number-to-string failed)
-				  ", ⌛:" (number-to-string running)
-				  "\n"))
-		  (if (and consolidated (= unprocessed 0) (= failed 0) (= running 0))
-		      (insert (propertize s 'font-lock-face '(:foreground "LightSalmon4")))
-		    (if (/= failed 0)
-			(insert (propertize s 'font-lock-face '(:background "saddle brown")))
-		      (if (/= running 0)
-			  (insert (propertize s 'font-lock-face '(:background "medium sea green" :foreground "black")))
-			(insert s)))))))))
-	(when (get-buffer-window lsp-isar-progress-buffer 'visible)
-	  (with-selected-window (get-buffer-window lsp-isar-progress-buffer)
-	    (goto-char (point-min))
-	    (if current-thy-point
-		(goto-char current-thy-point)
-	      (forward-line current-thy-line))))))))
+	      (setq current-thy-line 0)
+	      (setq current-thy-line-found nil)
+	      (setf (buffer-string) "")
+	      (seq-doseq (theory_status status)
+	        (let*
+	            ((theory (gethash "name" theory_status))
+               (thyname (funcall lsp-isar-progress-theory-name-map (file-name-base theory)))
+	             (unprocessed (gethash "unprocessed" theory_status theory_status))
+	             (running (gethash "running" theory_status))
+	             (finished (gethash "finished" theory_status))
+	             (failed (gethash "failed" theory_status))
+	             (consolidated (gethash "consolidated" theory_status)))
+	          (progn
+	            (let* ((warned (gethash "warned" theory_status))
+		                 (total (+ unprocessed running warned failed finished))
+		                 (processed (+ warned finished)))
+		            (progn
+		              (if (or current-thy-line-found
+			                    (string= thyname current-thy-name))
+			                (setq current-thy-line-found t))
+		              (unless current-thy-line-found
+		                (cl-incf current-thy-line))
+                  (setq lsp-isar-progress--max-thy-name-length
+                        (max lsp-isar-progress--max-thy-name-length
+                             (length thyname)))
+                  (setq lsp-isar-progress--max-goal-number-length
+                        (max lsp-isar-progress--max-goal-number-length
+                             (length (number-to-string total))))
+		              (setq s
+                        (format (concat "%" (number-to-string lsp-isar-progress--max-thy-name-length)  "s"
+                                        " %" (number-to-string lsp-isar-progress--max-goal-number-length) "s /"
+                                        " %" (number-to-string lsp-isar-progress--max-goal-number-length) "s, ✖: %2s, ⌛: %2s\n")
+                                thyname
+				                        (number-to-string processed)
+				                        (number-to-string total)
+				                        (number-to-string failed)
+				                        (number-to-string running)))
+		              (if (and consolidated (= unprocessed 0) (= failed 0) (= running 0))
+		                  (insert (propertize s 'font-lock-face '(:foreground "LightSalmon4")))
+		                (if (/= failed 0)
+			                  (insert (propertize s 'font-lock-face '(:background "saddle brown")))
+		                  (if (/= running 0)
+			                    (insert (propertize s 'font-lock-face '(:background "medium sea green" :foreground "black")))
+			                  (insert s)))))))))
+	      (when (get-buffer-window lsp-isar-progress-buffer 'visible)
+	        (with-selected-window (get-buffer-window lsp-isar-progress-buffer)
+	          (goto-char (point-min))
+	          (if current-thy-point
+		            (goto-char current-thy-point)
+	            (forward-line current-thy-line))))))))
 
 
 (defun lsp-isar-progress--request-buffer ()

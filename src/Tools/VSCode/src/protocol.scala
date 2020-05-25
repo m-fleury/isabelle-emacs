@@ -473,9 +473,10 @@ object Protocol
   sealed case class Diagnostic(range: Line.Range, message: String,
     severity: Option[Int] = None, code: Option[Int] = None, source: Option[String] = None)
   {
+    val ensured_severity = Some(severity.getOrElse(1))
     def json: JSON.T =
       Message.empty + ("range" -> Range(range)) + ("message" -> message) ++
-      JSON.optional("severity" -> severity) ++
+      JSON.optional("severity" -> ensured_severity) ++
       JSON.optional("code" -> code) ++
       JSON.optional("source" -> source)
   }
