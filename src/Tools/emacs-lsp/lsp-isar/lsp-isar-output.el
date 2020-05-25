@@ -480,6 +480,7 @@ Lisp equivalent of 'replace-regexp' as indicated in the help."
 	      (lsp-isar-output-buffer (get-buffer-create "*lsp-isar-output*"))
 	      (lsp-isar-output-proof-cases-content nil)
 	      (lsp-isar-output-last-seen-prover nil)
+              (inhibit-message t)
 	      lsp-isar-output-state
 	      lsp-isar-output)
 
@@ -501,8 +502,7 @@ Lisp equivalent of 'replace-regexp' as indicated in the help."
 		      ((eq content 'html) nil)
 		      ((stringp content) (insert content))
 		      ((not (listp content))
-		       (message "unrecognised %s"
-				content)
+		       ;; (message "unrecognised %s" content)
 		       (insert (format "%s" content)))
 		      (t
 		       (pcase (dom-tag content)
@@ -745,12 +745,12 @@ Lisp equivalent of 'replace-regexp' as indicated in the help."
 			 (_
 			  (if (listp (dom-tag content))
 			      (progn
-				(message "unrecognised node %s" (dom-tag content))
+				;; (message "unrecognised node %s" (dom-tag content))
 				(insert (format "%s" (dom-tag content)))
 				(mapc 'lsp-isar-output-parse-output (dom-children content)))
 			    (progn
-			      (message "unrecognised content %s; node is: %s; string: %s %s"
-				       content (dom-tag content) (stringp (dom-tag content)) (listp content))
+			      ;; (message "unrecognised content %s; node is: %s; string: %s %s"
+			      ;;       content (dom-tag content) (stringp (dom-tag content)) (listp content))
 			      (insert (format "%s" (dom-tag content))))))))))))
 
 		(lsp-isar-output--eval-state-and-output-buffer-async
@@ -803,6 +803,8 @@ Lisp equivalent of 'replace-regexp' as indicated in the help."
 		       (setq lsp-isar-output (buffer-string)))
 		     (list lsp-isar-output-state lsp-isar-output lsp-isar-output-proof-cases-content
 			   lsp-isar-output-state-deco lsp-isar-output-deco)))))
+
+             ;; main function executed
 	     (lsp-isar-output--eval-state-and-output-buffer-async content)))))
 
      ;; After evaluating the goal asynchronously, we retrieve it and update it in the current
@@ -862,8 +864,6 @@ Lisp equivalent of 'replace-regexp' as indicated in the help."
   "Launch the thread or timer to update the state and the output panel with CONTENT."
   (setq lsp-isar-output--previous-goal content)
   (cl-incf lsp-isar-output-current-output-number)
-  (when lsp-isar-output-use-async
-      (lsp-isar-output--update-state-and-output-buffer-async lsp-isar-output-current-output-number content))
 
   (if lsp-isar-output-time-before-printing-goal
       (progn
@@ -875,7 +875,10 @@ Lisp equivalent of 'replace-regexp' as indicated in the help."
 			     (progn
 			       (setq lsp-isar-output--last-start (time-to-seconds))
 			       (lsp-isar-output--update-state-and-output-buffer content)))
-			   content)))))
+			   content)))
+    (if lsp-isar-output-use-async
+        (lsp-isar-output--update-state-and-output-buffer-async lsp-isar-output-current-output-number content)
+      (warn "no output system specified!"))))
 
 
 (modify-coding-system-alist 'file "*lsp-isar-output*" 'utf-8-auto)
