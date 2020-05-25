@@ -97,8 +97,8 @@
                  (length (number-to-string total))))
 		  (setq s
             (format (concat "%" (number-to-string lsp-isar-progress--max-thy-name-length)  "s"
-                            "%" (number-to-string lsp-isar-progress--max-goal-number-length) "s / "
-                            "%" (number-to-string lsp-isar-progress--max-goal-number-length) "s, ✖: %2s, ⌛: %2s\n")
+                            " %" (number-to-string lsp-isar-progress--max-goal-number-length) "s /"
+                            " %" (number-to-string lsp-isar-progress--max-goal-number-length) "s, ✖: %2s, ⌛: %2s\n")
                    (file-name-base theory)
 				           (number-to-string processed)
 				           (number-to-string total)
