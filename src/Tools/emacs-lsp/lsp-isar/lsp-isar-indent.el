@@ -54,7 +54,7 @@
 ;;; Code:
 
 (require 'thingatpt)
-(defvar lsp-isar-indent-trace-indent t)
+(defvar lsp-isar-indent-trace-indent nil)
 
 (defun lsp-isar-indent-previous-line-with-word ()
   "Goto previous nonempty line."
@@ -452,12 +452,12 @@ not match the pattern A."
 	   (current-indentation)))
 
 	(`(,_ . ,_)
-	 (message "unrecognized pattern")
-	 (message "previous-command %s" (list current-command previous-command))
+	 (lsp-isar-indent-trace-indent "unrecognized pattern")
+	 (lsp-isar-indent-trace-indent "previous-command %s" (list current-command previous-command))
 	 (+ 2 (current-indentation)))
 	(_
-	 (message "unrecognized pattern")
-	 (message "previous-command %s" (list current-command previous-command))
+	 (lsp-isar-indent-trace-indent "unrecognized pattern")
+	 (lsp-isar-indent-trace-indent "previous-command %s" (list current-command previous-command))
 	 0)
 	))))
 
