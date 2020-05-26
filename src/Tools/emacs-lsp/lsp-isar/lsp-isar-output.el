@@ -75,7 +75,7 @@ Use nil for infinity"
 
 (define-inline lsp-isar-output-remove-quotes-from-string (obj)
   (inline-letevals (obj)
-    (inline-quote (string-remove-suffix "'" (string-remove-prefix "'" ,obj)))))
+		   (inline-quote (string-remove-suffix "'" (string-remove-prefix "'" ,obj)))))
 
 ;; The function iterates over the HTML as parsed by the HTML library.  As a side effect, it fills the
 ;; state buffer and the output buffer with the correct faces.  We cannot make the function recursive,
@@ -170,8 +170,8 @@ functions adds up.  So any optimisation would help."
 	   (setq contents (append (dom-children content) contents)))
 
 	  ('block
-	      (insert (if (dom-attr content 'indent) " " ""))
-	    (setq contents (append (dom-children content) contents)))
+	   (insert (if (dom-attr content 'indent) " " ""))
+	   (setq contents (append (dom-children content) contents)))
 
 	  ('class
 	   (setq contents (append (dom-children content) contents)))
@@ -471,7 +471,7 @@ Lisp equivalent of 'replace-regexp' as indicated in the help."
 		(require 'subr-x)
 		(define-inline lsp-isar-output-remove-quotes-from-string (obj)
 		  (inline-letevals (obj)
-		    (inline-quote (string-remove-suffix "'" (string-remove-prefix "'" ,obj)))))
+				   (inline-quote (string-remove-suffix "'" (string-remove-prefix "'" ,obj)))))
 
 		(let
 		    ((lsp-isar-output-deco nil)

@@ -50,7 +50,7 @@
   :after lsp-mode
   :commands lsp-isar-define-client-and-start
   :defer t
-  :init 
+  :init
   (add-hook 'isar-mode-hook #'lsp-isar-define-client-and-start)
   (add-hook 'lsp-isar-init-hook 'lsp-isar-open-output-and-progress-right-spacemacs)
   :config

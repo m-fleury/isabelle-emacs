@@ -458,8 +458,7 @@ not match the pattern A."
 	(_
 	 (lsp-isar-indent-trace-indent "unrecognized pattern")
 	 (lsp-isar-indent-trace-indent "previous-command %s" (list current-command previous-command))
-	 0)
-	))))
+	 0)))))
 
 (defun lsp-isar-indent-line ()
   "Indent current line as Isar code."

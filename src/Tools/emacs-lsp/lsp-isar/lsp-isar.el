@@ -81,11 +81,14 @@ the output buffer, and the initial hooks.")
   :type
   '(alist
     :key-type
-    (choice (const :tag "Split in two columns" 'lsp-isar-split-pattern-two-columns)
-	    (const :tag "Split in three columns (with progress on the right)" 'lsp-isar-split-pattern-three-columns)))
+    (choice
+     (const :tag "Split in two columns" 'lsp-isar-split-pattern-two-columns)
+     (const :tag "Split in three columns (with progress on the right)"
+	    'lsp-isar-split-pattern-three-columns)))
   :group 'isabelle);;
 
-;; taken from https://emacs.stackexchange.com/questions/2189/how-can-i-prevent-a-command-from-using-specific-windows
+;; taken from
+;; https://emacs.stackexchange.com/questions/2189/how-can-i-prevent-a-command-from-using-specific-windows
 (defun lsp-isar-toggle-window-dedicated ()
   "Dedicate current window to content.
 
@@ -212,13 +215,11 @@ Set `lsp-isabelle-options' for other options (like importing the AFP)."
 
 (defcustom lsp-isar-tramp nil "Use Tramp to edit remote files."
   :type 'bool
-  :group 'isabelle
-  )
+  :group 'isabelle)
 
 (defcustom lsp-isar-use-lsp t "Use nil to open files without opening the server."
   :type 'bool
-  :group 'isabelle
-  )
+  :group 'isabelle)
 
 (defun lsp-isar-define-client ()
   "Defines the LSP client for isar mode.
@@ -244,8 +245,10 @@ the AFP and other options."
 	:notification-handlers
 	(lsp-ht
 	 ("PIDE/decoration" 'lsp-isar-decorations-update-and-reprint)
-	 ("PIDE/dynamic_output" (lambda (_w p) (lsp-isar-output-update-state-and-output-buffer (gethash "content" p))))
-	 ("PIDE/progress" (lambda (_w p) (lsp-isar-progress--update-buffer (gethash "nodes_status" p)))))))
+	 ("PIDE/dynamic_output"
+	  (lambda (_w p) (lsp-isar-output-update-state-and-output-buffer (gethash "content" p))))
+	 ("PIDE/progress"
+	  (lambda (_w p) (lsp-isar-progress--update-buffer (gethash "nodes_status" p)))))))
 
     (lsp-register-client
      (make-lsp-client
@@ -257,8 +260,10 @@ the AFP and other options."
       :notification-handlers
       (lsp-ht
        ("PIDE/decoration" 'lsp-isar-decorations-update-and-reprint)
-       ("PIDE/dynamic_output" (lambda (_w p) (lsp-isar-output-update-state-and-output-buffer (gethash "content" p))))
-       ("PIDE/progress" (lambda (_w p) (lsp-isar-progress--update-buffer (gethash "nodes_status" p)))))))))
+       ("PIDE/dynamic_output"
+	(lambda (_w p) (lsp-isar-output-update-state-and-output-buffer (gethash "content" p))))
+       ("PIDE/progress"
+	(lambda (_w p) (lsp-isar-progress--update-buffer (gethash "nodes_status" p)))))))))
 
 
 
@@ -291,7 +296,7 @@ mode automically, use `(add-hook 'isar-mode-hook
   "Activate experimental features."
   (if lsp-isar-experimental
       (progn
-	(message "activating experimental feature is lsp-isar.  Set lsp-isar-experimental to nil to avoid it")
+	(message "Using experimental feature.  `(setq lsp-isar-experimental nil)' to avoid it.")
 	(set (make-local-variable 'indent-line-function) 'lsp-isar-indent-line))))
 
 (add-hook 'isar-mode-hook #'lsp-isar-activate-experimental-features)
@@ -339,7 +344,8 @@ the transient is re-opened."
 			    (if (not isar)
 				(and (cl-search prover key) (cl-search "Isar" key))
 			      (and (cl-search prover key) (not (cl-search "Isar" key)))))))))
-    ;; (message "looking for %s in %s (isar? %s), found: %s" prover lsp-isar-output-proof-cases-content isar sh)
+    ;; (message "looking for %s in %s (isar? %s), found: %s" prover
+    ;; lsp-isar-output-proof-cases-content isar sh)
     (if (not sh)
 	(if (string= proof-command "sledgehammer")
 	    (lsp-isar-sledgehammer-interface))
@@ -350,6 +356,9 @@ the transient is re-opened."
       (insert (car sh)))))
 
 (defun lsp-isar-insert-sledgehammer-proof (prover isar keep-sledgehammer)
+  "Insert proof by PROVER found in ISAR, keeping the command if KEEP-SLEDGEHAMMER.
+
+See documentation from `lsp-isar-insert-sendback' for more details"
   (interactive "P")
   (lsp-isar-insert-sendback "sledgehammer" prover isar keep-sledgehammer))
 
