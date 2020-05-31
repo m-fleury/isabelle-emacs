@@ -703,13 +703,13 @@ never start the timer.")
 
 It is done by removing the now unused old one and adding the old
 one.  This a performance critical function."
-  (let* ((file (lsp-isar-decorations-normalise-path (lsp--uri-to-path (gethash "uri" params))))
-         (buffer (find-buffer-visiting file))
-         (pranges (gethash "content" params nil))
-	 (typ (gethash "type" params "default"))
-	 (face (cdr (assoc typ lsp-isar-decorations-get-font)))
-	 (end_char_offset (if (or (equal typ "text_overview_error") (equal typ "text_overview_running")) 1 0)))
-    (save-excursion
+  (save-excursion
+    (let* ((file (lsp-isar-decorations-normalise-path (lsp--uri-to-path (gethash "uri" params))))
+	   (buffer (find-buffer-visiting file))
+	   (pranges (gethash "content" params nil))
+	   (typ (gethash "type" params "default"))
+	   (face (cdr (assoc typ lsp-isar-decorations-get-font)))
+	   (end_char_offset (if (or (equal typ "text_overview_error") (equal typ "text_overview_running")) 1 0)))
       (when (not buffer)
 	;; buffer was closed
 	;; the rest will be deleted during the next round of full cleaning
@@ -827,12 +827,11 @@ one.  This a performance critical function."
 						  (setq ,olds nil))))
 					  ;; otherwise, r1 is after the beginng of r2,
 					  ;; so remove r2 and continue (r1 might just be later in olds)
-					  (progn
-					    ;;(message "number of elts in olds: %s" (length olds))
-					    ;;(message "wanted to print: %s skipped: %s" r1 r2)
-					    (overlay-put (cadr r2) 'face 'lsp-isar-font-nothing)
-					    (push (cadr r2) overlays-to-reuse)
-					    (pop ,olds)))))))))))
+					  ;;(message "number of elts in olds: %s" (length olds))
+					  ;;(message "wanted to print: %s skipped: %s" r1 r2)
+					  (overlay-put (cadr r2) 'face 'lsp-isar-font-nothing)
+					  (push (cadr r2) overlays-to-reuse)
+					  (pop ,olds))))))))))
 
 	  (with-current-buffer buffer
 	    (with-silent-modifications
