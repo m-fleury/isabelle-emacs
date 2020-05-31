@@ -607,7 +607,12 @@ never start the timer.")
 ;; We only delete a few overlays with a strict timeout to avoid
 ;; blocking the main thread for too long.
 (defun lsp-isar-decorations-recycle-batch (_w)
-  "Recycle a few overlays only."
+  "Recycle a few invisible overlays.
+
+A few overlays are deleted.  We keep the numbers lows to avoid
+slowing down emacs too much. Removing overlays is quadratic in
+the number of overlays while recycling them is cheap (but uses
+more memory), so we only remove some with a short timeout."
   (save-excursion
     (when lsp-isar-decorations--last-updated-file
       (with-silent-modifications
