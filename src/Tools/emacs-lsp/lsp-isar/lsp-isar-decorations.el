@@ -731,17 +731,32 @@ one.  This a performance critical function."
 		   (inhibit-field-text-motion t))
 	(if (equal face 'lsp-isar-font-default)
 	    (warn "unrecognised color %s. Please report the error." typ))
+
+	;; extract only the range in the correct order
 	(seq-doseq (range pranges)
 	  (push (gethash "range" range) ranges))
+	(setq ranges (nreverse ranges))
+	;; check if correctly sorted
+	;; (let ((prev (car ranges))
+	;;       (tl (cdr ranges))
+	;;       (sortedp (lambda (x y)
+	;;  		 (let ((x0 (elt x 0)) (y0 (elt y 0)))
+	;;  		   (if (/= x0 y0)
+	;;  		       (< x0 y0)
+	;;  		     (< (elt x 1) (elt y 1)))))))
+	;;   (while tl
+	;;     (unless (funcall sortedp prev (car tl))
+	;;       (message "not sorted"))
+	;;     (setq tl (cdr tl))))
 
 	;; Sort by start-line ASC, start-character ASC.
 	;; the ranges are not overlapping
-	(setq ranges
-	      (sort ranges (lambda (x y)
-			     (let ((x0 (elt x 0)) (y0 (elt y 0)))
-			       (if (/= x0 y0)
-				   (< x0 y0)
-				 (< (elt x 1) (elt y 1)))))))
+	;; (setq ranges
+	;;       (sort ranges (lambda (x y)
+	;; 		     (let ((x0 (elt x 0)) (y0 (elt y 0)))
+	;; 		       (if (/= x0 y0)
+	;; 			   (< x0 y0)
+	;; 			 (< (elt x 1) (elt y 1)))))))
 
 	;; convert array to list if :use-native-json is t
 	(setq pranges (append pranges nil))
