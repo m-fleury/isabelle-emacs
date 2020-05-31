@@ -730,7 +730,7 @@ one.  This a performance critical function."
       (let (ranges point0 point1 (line 0) (curoverlays nil)
 		   (inhibit-field-text-motion t))
 	(if (equal face 'lsp-isar-font-default)
-	    (message "unrecognised color %s" typ))
+	    (warn "unrecognised color %s. Please report the error." typ))
 	(seq-doseq (range pranges)
 	  (push (gethash "range" range) ranges))
 
