@@ -490,14 +490,12 @@ classes."
     ("background_markdown_bullet3"  .  lsp-isar-font-background-markdown-bullet3)
     ("background_markdown_bullet4"  .  lsp-isar-font-background-markdown-bullet4)
 
-
     ("foreground_quoted"  .  lsp-isar-font-foreground-quoted)
     ("foreground_antiquoted"  .  lsp-isar-font-foreground-antiquoted)
     ("dotted_writeln"  .  lsp-isar-font-dotted-writeln)
 
     ("dotted_information"  .  lsp-isar-font-dotted-information)
     ("dotted_warning"  .  lsp-isar-font-dotted-warning)
-
 
     ("text_main"  .  lsp-isar-font-text-main)
 
