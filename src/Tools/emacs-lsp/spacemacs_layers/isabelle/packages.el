@@ -55,7 +55,20 @@
     (spacemacs/set-leader-keys-for-minor-mode 'lsp-mode "ibfo" 'lsp-isar-insert-force)
     (spacemacs/set-leader-keys-for-minor-mode 'lsp-mode "ibe" 'lsp-isar-insert-meson)
     (spacemacs/set-leader-keys-for-minor-mode 'lsp-mode "ibs" 'lsp-isar-insert-satx)
-    (spacemacs/set-leader-keys-for-minor-mode 'lsp-mode "ibt" 'lsp-isar-insert-try0-proof))
+    (spacemacs/set-leader-keys-for-minor-mode 'lsp-mode "ibt" 'lsp-isar-insert-try0-proof)
+
+
+    (defun evil-insert-line-below-and-indent ()
+      (interactive)
+      (funcall indent-line-function)
+      (evil-open-below 1))
+    (defun evil-insert-line-above-and-indent ()
+      (interactive)
+      (funcall indent-line-function)
+      (evil-open-above 1))
+    (define-key evil-normal-state-map (kbd "o") 'evil-insert-line-below-and-indent)
+    (define-key evil-normal-state-map (kbd "O") 'evil-insert-line-above-and-indent)
+    )
 
   (use-package isar-goal-mode
     :after isar-mode)
@@ -70,6 +83,7 @@ See URL `https://github.com/ProofGeneral/PG/issues/427'."
       (apply fn args)))
 
   (advice-add #'evil-motion-range :around #'~/evil-motion-range--wrapper)
+  ;;(advice-add #'evil-ret :around #'~/evil-motion-range--wrapper)
   )
 
 (defun isabelle/init-isar-goal-mode ()

@@ -451,6 +451,9 @@ not match the pattern A."
 	     (+ (current-indentation) 2)
 	   (current-indentation)))
 
+	(`(nil . ,_)
+	 (+ 2 (current-indentation)))
+
 	(`(,_ . ,_)
 	 (lsp-isar-indent-trace-indent "unrecognized pattern")
 	 (lsp-isar-indent-trace-indent "previous-command %s" (list current-command previous-command))
