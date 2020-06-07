@@ -287,18 +287,27 @@ mode automically, use `(add-hook 'isar-mode-hook
 ;; we can only use utf-8
 (modify-coding-system-alist 'file "\\.thy\\'" 'utf-8-auto)
 
+(defcustom lsp-isar-indentation t
+  "Experimental settings."
+  :type 'boolean
+  :group 'isabelle)
+
+
+(defun lsp-isar-activate-indentation ()
+  "Activate experimental features."
+  (when lsp-isar-indentation
+    (set (make-local-variable 'indent-line-function) 'lsp-isar-indent-line)))
+
+(add-hook 'isar-mode-hook #'lsp-isar-activate-indentation)
 
 (defcustom lsp-isar-experimental nil
   "Experimental settings."
-  :type 'bool
+  :type 'boolean
   :group 'isabelle)
 
 (defun lsp-isar-activate-experimental-features ()
   "Activate experimental features."
-  (if lsp-isar-experimental
-      (progn
-	(message "Using experimental feature.  `(setq lsp-isar-experimental nil)' to avoid it.")
-	(set (make-local-variable 'indent-line-function) 'lsp-isar-indent-line))))
+  )
 
 (add-hook 'isar-mode-hook #'lsp-isar-activate-experimental-features)
 
