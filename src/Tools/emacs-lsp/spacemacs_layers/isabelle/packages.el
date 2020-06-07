@@ -20,6 +20,7 @@
     (isar-mode :location local)
     (isar-goal-mode :location local)
     (lsp-isar :location local)
+    (lsp-isar-parse-args :location local)
     yasnippet)
   "The list of Lisp packages required by the isabelle layer.")
 
@@ -28,6 +29,7 @@
   (use-package dash
     :defer t))
 
+;; there is already a better initialisation in the completion layer
 ;;(defun isabelle/init-yasnippet ()
 ;;  (use-package yasnippet))
 
@@ -70,7 +72,6 @@ See URL `https://github.com/ProofGeneral/PG/issues/427'."
   (advice-add #'evil-motion-range :around #'~/evil-motion-range--wrapper)
   )
 
-
 (defun isabelle/init-isar-goal-mode ()
   (use-package isar-goal-mode
     :after isar-mode))
@@ -88,10 +89,16 @@ See URL `https://github.com/ProofGeneral/PG/issues/427'."
     (setq lsp-prefer-flymake nil)
     (push (concat lsp-isar-path-to-isabelle "/src/Tools/emacs-lsp/yasnippet") yas-snippet-dirs)
     (yas-reload-all)
-        :init
+    :init
     (add-hook 'isar-mode-hook 'flycheck-mode)
     (add-hook 'isar-mode-hook 'lsp-isar-define-client-and-start)
     (add-hook 'lsp-isar-init-hook 'lsp-isar-open-output-and-progress-right-spacemacs)
     (spacemacs/add-to-hooks 'spacemacs/load-yasnippet '(isar-mode-hook))))
+
+(defun isabelle/init-lsp-isar-parse-args ()
+  (use-package lsp-isar-parse-args))
+
+(defun isabelle/post-lsp-isar-parse-args ()
+  )
 
 ;;; packages.el ends here

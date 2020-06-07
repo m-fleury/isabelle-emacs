@@ -39,6 +39,7 @@
 (require 'lsp-isar-progress)
 (require 'lsp-isar-decorations)
 (require 'lsp-isar-indent)
+(require 'lsp-isar-parse-args)
 
 (defcustom lsp-isar-init-hook nil
   "List of functions to be called after Isabelle has been started."
@@ -274,8 +275,8 @@ the AFP and other options."
 This is the main entry point of the lsp-isar client.  To start the
 mode automically, use `(add-hook 'isar-mode-hook
 #'lsp-isar-define-client-and-start)'"
-  (if (not lsp-isar-use-lsp)
-      (message "not starting the server! Set lsp-isar-use-lsp to t for that.")
+  (if (or (not lsp-isar-use-lsp) lsp-isar-parse-args-noisabelle)
+      (message "not starting the server! Set lsp-isar-use-lsp to t for that and do not pass '--noisabelle' as argument to Emacs.")
     (unless lsp-isar--already-defined-client
       (lsp-isar-define-client)
       (setq lsp-isar--already-defined-client t))
