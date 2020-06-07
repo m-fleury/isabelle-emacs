@@ -33,6 +33,8 @@
 ;; server accordingly.
 
 ;; Code
+(defcustom lsp-isar-parse-use t "Flag to indicate whether the library should be used.")
+
 (defcustom lsp-isar-parse-args-use-isabelle nil "flag to indicate whether to use Isabelle"
   :type 'boolean
   :group 'isabelle)
@@ -92,15 +94,17 @@
 
 
 (defun lsp-isar-parse-set-isabelle-path ()
-  (setq lsp-isar-path-to-isabelle (concat isabelle-directory "isabelle-release")))
+  (when lsp-isar-parse-use
+    (setq lsp-isar-path-to-isabelle (concat isabelle-directory "isabelle-release"))))
 
 
 (defun lsp-isar-parse-combine-isabelle-args ()
   "Parse the arguments passed to emacs."
-  (message "%s" "running isabelle settings")
-  (setq isabelle-base-session (pop command-line-args-left))
-  (lsp-isar-parse-set-isabelle-path)
-  (setq lsp-isabelle-options (lsp-isar-parse-lsp-isabelle-options)))
+  (when lsp-isar-parse-use
+    (message "%s" "running isabelle settings")
+    (setq isabelle-base-session (pop command-line-args-left))
+    (lsp-isar-parse-set-isabelle-path)
+    (setq lsp-isabelle-options (lsp-isar-parse-lsp-isabelle-options))))
 
 (lsp-isar-parse-set-isabelle-path)
 
