@@ -33,26 +33,31 @@
 ;; server accordingly.
 
 ;; Code
-
 (defcustom lsp-isar-parse-args-use-isabelle nil "flag to indicate whether to use Isabelle"
-  :type 'boolean)
+  :type 'boolean
+  :group 'isabelle)
 (defcustom lsp-isar-parse-args-noafp nil "flag to indicate whether to use Isabelle"
-  :type 'boolean)
+  :type 'boolean
+  :group 'isabelle)
 (defcustom lsp-isar-parse-args-nopac t "flag to indicate whether to use Isabelle"
-  :type 'boolean)
+  :type 'boolean
+  :group 'isabelle)
 (defcustom lsp-isar-parse-args-nollvm t "flag to indicate whether to use Isabelle"
-  :type 'boolean)
+  :type 'boolean
+  :group 'isabelle)
 (defcustom lsp-isar-parse-args-noisafol nil "flag to indicate whether to use Isabelle"
-  :type 'boolean)
+  :type 'boolean
+  :group 'isabelle)
 (defcustom lsp-isar-parse-args-base-session nil "flag to indicate whether to use Isabelle"
-  :type 'string)
+  :type 'string
+  :group 'isabelle)
 (defcustom lsp-isar-parse-args-noisabelle nil "flag to indicate whether to use Isabelle"
-  :type 'boolean)
+  :type 'boolean
+  :group 'isabelle)
 
 
-(setq lsp-isar-parse-noisabelle (member "--noisabelle" command-line-args))
+(setq lsp-isar-parse-args-noisabelle (member "--noisabelle" command-line-args))
 (setq command-line-args (delete "--noisabelle" command-line-args))
-(setq lsp-isar-use-lsp (not lsp-isar-parse-args-noisabelle))
 
 (setq lsp-isar-parse-args-noafp (member "--isabelle-noafp" command-line-args))
 (setq command-line-args (delete "--isabelle-noafp" command-line-args))
@@ -95,9 +100,9 @@
   (message "%s" "running isabelle settings")
   (setq isabelle-base-session (pop command-line-args-left))
   (lsp-isar-parse-set-isabelle-path)
-  (setq lsp-isabelle-options (lsp-isar-parse-lsp-isabelle-options))
-  (setq lsp-isar-split-pattern 'lsp-isar-split-pattern-three-columns))
+  (setq lsp-isabelle-options (lsp-isar-parse-lsp-isabelle-options)))
 
+(lsp-isar-parse-set-isabelle-path)
 
 (add-to-list 'command-switch-alist
 	     '("-isabelle-S" .
