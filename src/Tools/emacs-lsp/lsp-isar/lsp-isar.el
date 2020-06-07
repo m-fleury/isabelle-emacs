@@ -46,11 +46,35 @@
   :type 'hook
   :group 'isabelle)
 
+(defcustom lsp-isar-indentation t
+  "Experimental settings."
+  :type 'boolean
+  :group 'isabelle)
+
+(defcustom lsp-isar-experimental nil
+  "Experimental settings."
+  :type 'boolean
+  :group 'isabelle)
+
 (defvar lsp-isar-already-initialised nil
   "Indicate if initialised.
 
 Boolean to indicate if we have already initialised progress updates,
 the output buffer, and the initial hooks.")
+
+
+(defcustom lsp-isar-tramp nil "Use Tramp to edit remote files."
+  :type 'bool
+  :group 'isabelle)
+
+(defcustom lsp-isar-use-lsp t
+  "Use nil to open files without opening the server.
+
+A potentially easier way to control is to use the option
+`--noisabelle' you can pass to Emacs. It has the same effect, but
+you can decide at startup what you want."
+  :type 'bool
+  :group 'isabelle)
 
 
 (defun lsp-isar-initialise ()
@@ -59,12 +83,11 @@ the output buffer, and the initial hooks.")
       (progn
 	(lsp-isar-caret-activate-caret-update)
 	(unless lsp-isar-already-initialised
-	  (progn
-	    (lsp-isar-output-initialize-output-buffer)
-	    (lsp-isar-progress-activate-progress-update)
-	    (lsp-isar-decorations--init-decorations)
-	    (run-hooks 'lsp-isar-init-hook)
-	    (setq lsp-isar-already-initialised t))))))
+	  (lsp-isar-output-initialize-output-buffer)
+	  (lsp-isar-progress-activate-progress-update)
+	  (lsp-isar-decorations--init-decorations)
+	  (run-hooks 'lsp-isar-init-hook)
+	  (setq lsp-isar-already-initialised t)))))
 
 ;; lsp-after-initialize-hook might look like the right macro.  However, the
 ;; workspace (lsp--cur-workspace) is not opened yet.
@@ -154,8 +177,9 @@ It can be used for example by ``(add-hook 'lsp-isar-init-hook
 ;; split the window 2 seconds later (the timeout is necessary to give
 ;; enough time to spacemacs to jump to the theory file).
 (defun lsp-isar-open-output-and-progress-right-spacemacs ()
-  "Split the window with current motif."
+  "Split the window with motif defined by `lsp-isar-split-pattern'."
   (run-at-time 2 nil (lambda () (lsp-isar-open-output-and-progress-right))))
+
 
 (defcustom lsp-isar-path-to-isabelle "/home/zmaths/Documents/isabelle/isabelle2018-vsce"
   "Default path to Isabelle (e.g., /path/to/isabelle/folder)."
@@ -212,15 +236,6 @@ Set `lsp-isabelle-options' for other options (like importing the AFP)."
 	 "vscode_server")
    lsp-vscode-options
    lsp-remote-isabelle-options))
-
-
-(defcustom lsp-isar-tramp nil "Use Tramp to edit remote files."
-  :type 'bool
-  :group 'isabelle)
-
-(defcustom lsp-isar-use-lsp t "Use nil to open files without opening the server."
-  :type 'bool
-  :group 'isabelle)
 
 (defun lsp-isar-define-client ()
   "Defines the LSP client for isar mode.
@@ -287,23 +302,13 @@ mode automically, use `(add-hook 'isar-mode-hook
 ;; we can only use utf-8
 (modify-coding-system-alist 'file "\\.thy\\'" 'utf-8-auto)
 
-(defcustom lsp-isar-indentation t
-  "Experimental settings."
-  :type 'boolean
-  :group 'isabelle)
-
-
 (defun lsp-isar-activate-indentation ()
-  "Activate experimental features."
+  "Activate automatic indentation by default."
   (when lsp-isar-indentation
     (set (make-local-variable 'indent-line-function) 'lsp-isar-indent-line)))
 
 (add-hook 'isar-mode-hook #'lsp-isar-activate-indentation)
 
-(defcustom lsp-isar-experimental nil
-  "Experimental settings."
-  :type 'boolean
-  :group 'isabelle)
 
 (defun lsp-isar-activate-experimental-features ()
   "Activate experimental features."
@@ -533,91 +538,91 @@ If there is no whitespace at cursor position, a space is inserted before try0"
 (define-key isar-mode-map (kbd "C-c C-t") 'lsp-isar-insert-try0)
 
 (defun lsp-isar-insert-simp ()
-  "Insert \"by simp\" at cursor position with whitespace in front if necessary"
+  "Insert \"by simp\" at cursor position with whitespace in front if necessary."
   (interactive)
   (lsp-isar-insert-command "by simp"))
 
 (define-key isar-mode-map (kbd "C-c C-b C-s") 'lsp-isar-insert-simp)
 
 (defun lsp-isar-insert-auto ()
-  "Insert \"by auto\" at cursor position with whitespace in front if necessary"
+  "Insert \"by auto\" at cursor position with whitespace in front if necessary."
   (interactive)
   (lsp-isar-insert-command "by auto"))
 
 (define-key isar-mode-map (kbd "C-c C-b C-a") 'lsp-isar-insert-simp)
 
 (defun lsp-isar-insert-blast ()
-  "Insert \"by blast\" at cursor position with whitespace in front if necessary"
+  "Insert \"by blast\" at cursor position with whitespace in front if necessary."
   (interactive)
   (lsp-isar-insert-command "by blast"))
 
 (define-key isar-mode-map (kbd "C-c C-b C-b") 'lsp-isar-insert-simp)
 
 (defun lsp-isar-insert-metis ()
-  "Insert \"by metis\" at cursor position with whitespace in front if necessary"
+  "Insert \"by metis\" at cursor position with whitespace in front if necessary."
   (interactive)
   (lsp-isar-insert-command "by metis"))
 
 (define-key isar-mode-map (kbd "C-c C-b C-m") 'lsp-isar-insert-metis)
 
 (defun lsp-isar-insert-argo ()
-  "Insert \"by argo\" at cursor position with whitespace in front if necessary"
+  "Insert \"by argo\" at cursor position with whitespace in front if necessary."
   (interactive)
   (lsp-isar-insert-command "by argo"))
 
 (define-key isar-mode-map (kbd "C-c C-b C-r") 'lsp-isar-insert-argo)
 
 (defun lsp-isar-insert-linarith ()
-  "Insert \"by linarith\" at cursor position with whitespace in front if necessary"
+  "Insert \"by linarith\" at cursor position with whitespace in front if necessary."
   (interactive)
   (lsp-isar-insert-command "by linarith"))
 
 (define-key isar-mode-map (kbd "C-c C-b C-l") 'lsp-isar-insert-linarith)
 
 (defun lsp-isar-insert-algebra ()
-  "Insert \"by algebra\" at cursor position with whitespace in front if necessary"
+  "Insert \"by algebra\" at cursor position with whitespace in front if necessary."
   (interactive)
   (lsp-isar-insert-command "by algebra"))
 
 (define-key isar-mode-map (kbd "C-c C-b C-g") 'lsp-isar-insert-algebra)
 
 (defun lsp-isar-insert-presburger ()
-  "Insert \"by presburger\" at cursor position with whitespace in front if necessary"
+  "Insert \"by presburger\" at cursor position with whitespace in front if necessary."
   (interactive)
   (lsp-isar-insert-command "by presburger"))
 
 (define-key isar-mode-map (kbd "C-c C-b C-p") 'lsp-isar-insert-presburger)
 
 (defun lsp-isar-insert-fast ()
-  "Insert \"by fast\" at cursor position with whitespace in front if necessary"
+  "Insert \"by fast\" at cursor position with whitespace in front if necessary."
   (interactive)
   (lsp-isar-insert-command "by fast"))
 
 (define-key isar-mode-map (kbd "C-c C-b C-f C-a") 'lsp-isar-insert-fast)
 
 (defun lsp-isar-insert-fastforce ()
-  "Insert \"by fastforce\" at cursor position with whitespace in front if necessary"
+  "Insert \"by fastforce\" at cursor position with whitespace in front if necessary."
   (interactive)
   (lsp-isar-insert-command "by fastforce"))
 
 (define-key isar-mode-map (kbd "C-c C-b C-f C-f") 'lsp-isar-insert-fastforce)
 
 (defun lsp-isar-insert-force ()
-  "Insert \"by force\" at cursor position with whitespace in front if necessary"
+  "Insert \"by force\" at cursor position with whitespace in front if necessary."
   (interactive)
   (lsp-isar-insert-command "by force"))
 
-(define-key isar-mode-map (kbd "C-c C-b C-f C-f") 'lsp-isar-insert-force)
+(define-key isar-mode-map (kbd "C-c C-b C-f C-o") 'lsp-isar-insert-force)
 
 (defun lsp-isar-insert-meson ()
-  "Insert \"by meson\" at cursor position with whitespace in front if necessary"
+  "Insert \"by meson\" at cursor position with whitespace in front if necessary."
   (interactive)
   (lsp-isar-insert-command "by meson"))
 
 (define-key isar-mode-map (kbd "C-c C-b C-e") 'lsp-isar-insert-meson)
 
 (defun lsp-isar-insert-satx ()
-  "Insert \"by satx\" at cursor position with whitespace in front if necessary"
+  "Insert \"by satx\" at cursor position with whitespace in front if necessary."
   (interactive)
   (lsp-isar-insert-command "by satx"))
 
