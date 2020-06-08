@@ -668,6 +668,9 @@ more memory), so we only remove some with a short timeout."
 ;;   not valid anymore in the current buffer: we delete all further
 ;;   old decorations, stop, and wait for the next update from Isabelle.
 ;;
+;; Due to 6, when we are using arrays, we have nil at the end. In a normal language we probably
+;; would use a resizable array, but here we use nil for padding.
+;;
 ;; The function 'find-new-and-repaint' iterates over the old
 ;; decorations and the new ranges.  It finds out if a range already had
 ;; a decoration (which does not require changes), if a range needs a
@@ -733,6 +736,7 @@ one.  This a performance critical function."
 	;; the rest will be deleted during the next round of full cleaning
 	(message "buffer not found")
 	(puthash file [] lsp-isar-decorations--sem-overlays))
+
       (if (and lsp-isar-decorations-delayed-printing (not (get-buffer-window buffer 'visible)))
 	  (progn
 	    (let ((current-file-overlays (gethash file lsp-isar-decorations--delayed-overlays (make-hash-table :test 'equal))))
@@ -828,40 +832,42 @@ one.  This a performance critical function."
 				      (iold 0))
 				  (setq ,curoverlays (make-vector lnews nil))
 				  (while (and (< inew lnews) (< iold lolds))
-				    (aset, curoverlays inew 1)
 				    ;; otherwise, compare the first two ranges
 				    (let ((r1 (aref ,news inew))
 					  (r2 (aref ,olds iold)))
-				      ;; if the ranges are equal no need to repaint
-				      (if (lsp-isar-decorations-ranges-are-equal r1 r2)
-					  (progn
-					    (aset ,curoverlays inew r2)
-					    (cl-incf inew)
-					    (cl-incf iold))
-					;; if r1 < r2, print r1 and continue iteration
-					(if (lsp-isar-decorations-range-is-before r1 r2)
-					    (if (lsp-isar-decorations-find-range-and-add-to-print r1 ,curoverlays inew)
-						(cl-incf inew)
-					      ;; else the content is not valid anymore:
-					      (progn
-						(cl-loop for x from iold to (1- lolds) do
-							 (overlay-put (cadr (elt ,olds x)) 'face 'lsp-isar-font-nothing)
-							 (push (cadr (elt ,olds x)) overlays-to-reuse))
-						(setq inew lnews)
-						(setq iold lolds)))
-					  ;; otherwise, r1 is after the beginng of r2,
-					  ;; so remove r2 and continue (r1 might just be later in olds)
-					  ;;(message "number of elts in olds: %s" (length olds))
-					  ;;(message "wanted to print: %s skipped: %s" r1 r2)
-					  (overlay-put (cadr r2) 'face 'lsp-isar-font-nothing)
-					  (push (cadr r2) overlays-to-reuse)
-					  (cl-incf iold)))))
+				      (if (not r2)
+					  ;; we have reached the padding at the end of the olds
+					  (setq lolds iold)
+					;; if the ranges are equal no need to repaint
+					(if (lsp-isar-decorations-ranges-are-equal r1 r2)
+					    (progn
+					      (aset ,curoverlays inew r2)
+					      (cl-incf inew)
+					      (cl-incf iold))
+					  ;; if r1 < r2, print r1 and continue iteration
+					  (if (lsp-isar-decorations-range-is-before r1 r2)
+					      (if (lsp-isar-decorations-find-range-and-add-to-print r1 ,curoverlays inew)
+						  (cl-incf inew)
+						;; else the content is not valid anymore:
+						(progn
+						  (cl-loop for x from iold to (1- lolds) do
+							   (when (elt ,olds x)
+							     (overlay-put (cadr (elt ,olds x)) 'face 'lsp-isar-font-nothing)
+							     (push (cadr (elt ,olds x)) overlays-to-reuse)))
+						  (setq inew lnews)
+						  (setq iold lolds)))
+					    ;; otherwise, r1 is after the beginng of r2,
+					    ;; so remove r2 and continue (r1 might just be later in olds)
+					    ;;(message "number of elts in olds: %s" (length olds))
+					    ;;(message "wanted to print: %s skipped: %s" r1 r2)
+					    (overlay-put (cadr r2) 'face 'lsp-isar-font-nothing)
+					    (push (cadr r2) overlays-to-reuse)
+					    (cl-incf iold))))))
 				  (when (>= inew lnews)
 				    ;; no news: discard all old decorations
 				    (cl-loop for x from iold to (1- lolds) do
-					     (when (cadr (elt ,olds x))
-					       (overlay-put (cadr (elt ,olds x)) 'face 'lsp-isar-font-nothing)
-					       (push (cadr (elt ,olds x)) overlays-to-reuse)))
+					     (overlay-put (cadr (elt ,olds x)) 'face 'lsp-isar-font-nothing)
+					     (push (cadr (elt ,olds x)) overlays-to-reuse))
 				    (setq iold lolds))
 				  (when (>= iold lolds)
 				    ;; no olds: print all news
