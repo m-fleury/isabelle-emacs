@@ -555,13 +555,27 @@ but still, I want assertions to be done only for debugging."
                               `(,string (list ,@sargs) (list ,@args)))))
             nil))))
 
+
+;; types
+(cl-defstruct (lsp-isar-ov
+	       (:constructor lsp-isar-ov-create)
+	       ;; :named is not really useful in our case
+	       (:type vector))
+  "Saved overlays with position."
+  (x0 0 :read-only t :type 'int)
+  (y0 0 :read-only t :type 'int)
+  (x1 0 :read-only t :type 'int)
+  (y1 0 :read-only t :type 'int)
+  (overlay nil :read-only t))
+
+
 ;; range  functions
 (define-inline lsp-isar-decorations-ranges-are-equal (r1 r2)
   (inline-letevals (r1 r2)
 		   (inline-quote
-		    (let ((r2p (car ,r2)))
-		      (let ((x0 (elt ,r1 0)) (y0 (car r2p)))
-			(and (= x0 y0) (= (elt ,r1 1) (cadr r2p))))))))
+		    (let ((r2p (lsp-isar-ov-x0 ,r2)))
+		      (let ((x0 (elt ,r1 0)) (y0 (lsp-isar-ov-y0 ,r2)))
+			(and (= x0 y0) (= (elt ,r1 1) (lsp-isar-ov-x1 ,r2))))))))
 
 (define-inline lsp-isar-decorations-point-is-before (x0 y0 x1 y1)
   (inline-letevals (x0 y0 x1 y1)
@@ -570,12 +584,11 @@ but still, I want assertions to be done only for debugging."
 			(< ,x0 ,x1)
 		      (< ,y0 ,y1)))))
 
-;; Ranges cannot overlap
+;; Ranges of the same type cannot overlap
 (define-inline lsp-isar-decorations-range-is-before (r1 r2)
   (inline-letevals (r1 r2)
-		   (inline-quote
-		    (let ((r2p (car ,r2)))
-		      (and (lsp-isar-decorations-point-is-before (elt ,r1 0) (elt ,r1 1) (car r2p) (cadr r2p)))))))
+    (inline-quote
+     (and (lsp-isar-decorations-point-is-before (elt ,r1 0) (elt ,r1 1) (lsp-isar-ov-x0 ,r2) (lsp-isar-ov-y0 ,r2))))))
 
 
 ;; This is a full cleaning of all buffers.  This is too costly to run
@@ -732,6 +745,7 @@ more memory), so we only remove some with a short timeout."
 ;; the assertion is not evaluated, but this loop is performance
 ;; critical, so even a function that boils down to evaluating (and nil nil
 ;; nil) is not something I want to have in the code.
+
 ;;
 ;; The work-around for Sophie:
 (define-inline lsp-isar-decorations-normalise-path (path)
@@ -763,8 +777,7 @@ one.  This a performance critical function."
 	  (progn
 	    (let ((current-file-overlays (gethash file lsp-isar-decorations--delayed-overlays (make-hash-table :test 'equal))))
 	      (puthash typ params current-file-overlays)
-	      (puthash file current-file-overlays lsp-isar-decorations--delayed-overlays)
-	      (message "delayed printing for buffer %s" file)))
+	      (puthash file current-file-overlays lsp-isar-decorations--delayed-overlays)))
 
 	;; faster adding (and deleting) of overlays; see for example
 	;; discussion on
@@ -778,7 +791,7 @@ one.  This a performance critical function."
 	      (warn "unrecognised color %s. Please report the error." typ))
 	  (lsp-isar-decorations--cl-assert (vectorp pranges))
 
-	  (setq ranges (make-vector (length pranges) nil))
+	  (setq ranges (make-vector (length pranges) (lsp-isar-ov-create)))
 
 	  ;; extract only the range in the correct order
 	  ;; neither mapcar nor seq-map return the correct type!
@@ -838,7 +851,7 @@ one.  This a performance critical function."
 				    (setq line l1)
 
 				    (let ((ov (lsp-isar-decorations-new-or-recycle-overlay overlays-to-reuse point0 point1 face)))
-				      (aset ,curoverlays ,position (list (list l0 c0 l1 c1) ov))
+				      (aset ,curoverlays ,position (lsp-isar-ov-create :x0 l0 :y0 c0 :x1 l1 :y1 c1 :overlay ov))
 				      t))))))
 
 	    ;; This function iterates over huge lists and therefore
@@ -857,7 +870,7 @@ one.  This a performance critical function."
 				    ;; otherwise, compare the first two ranges
 				    (let ((r1 (aref ,news inew))
 					  (r2 (aref ,olds iold)))
-				      (if (not r2)
+				      (if (not (lsp-isar-ov-overlay (elt ,olds iold)))
 					  ;; we have reached the padding at the end of the olds
 					  (setq lolds iold)
 					;; if the ranges are equal no need to repaint
@@ -873,23 +886,26 @@ one.  This a performance critical function."
 						;; else the content is not valid anymore:
 						(progn
 						  (cl-loop for x from iold to (1- lolds) do
-							   (when (elt ,olds x)
-							     (overlay-put (cadr (elt ,olds x)) 'face 'lsp-isar-font-nothing)
-							     (push (cadr (elt ,olds x)) overlays-to-reuse)))
+							   (unless (lsp-isar-ov-overlay (elt ,olds x))
+							     return nil)
+							   (overlay-put (lsp-isar-ov-overlay (elt ,olds x)) 'face 'lsp-isar-font-nothing)
+							   (push (lsp-isar-ov-overlay (elt ,olds x)) overlays-to-reuse))
 						  (setq inew lnews)
 						  (setq iold lolds)))
 					    ;; otherwise, r1 is after the beginng of r2,
 					    ;; so remove r2 and continue (r1 might just be later in olds)
 					    ;;(message "number of elts in olds: %s" (length olds))
 					    ;;(message "wanted to print: %s skipped: %s" r1 r2)
-					    (overlay-put (cadr r2) 'face 'lsp-isar-font-nothing)
-					    (push (cadr r2) overlays-to-reuse)
+					    (overlay-put (lsp-isar-ov-overlay r2) 'face 'lsp-isar-font-nothing)
+					    (push (lsp-isar-ov-overlay r2) overlays-to-reuse)
 					    (cl-incf iold))))))
 				  (when (>= inew lnews)
 				    ;; no news: discard all old decorations
 				    (cl-loop for x from iold to (1- lolds) do
-					     (overlay-put (cadr (elt ,olds x)) 'face 'lsp-isar-font-nothing)
-					     (push (cadr (elt ,olds x)) overlays-to-reuse))
+					     (unless (lsp-isar-ov-overlay (elt ,olds x))
+					       return nil)
+					     (overlay-put (lsp-isar-ov-overlay (elt ,olds x)) 'face 'lsp-isar-font-nothing)
+					     (push (lsp-isar-ov-overlay (elt ,olds x)) overlays-to-reuse))
 				    (setq iold lolds))
 				  (when (>= iold lolds)
 				    ;; no olds: print all news
@@ -942,7 +958,6 @@ one.  This a performance critical function."
   (save-excursion
     (let ((buffer (find-buffer-visiting file)))
       (when (and buffer params (get-buffer-window buffer 'visible))
-	(message "file %s is now visible" file)
 	(maphash (lambda (_key params) (lsp-isar-decorations-update-cached-decorations-overlays params))
 		 params)
 	(remhash file lsp-isar-decorations--delayed-overlays)))))
