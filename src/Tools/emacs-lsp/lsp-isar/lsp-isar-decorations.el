@@ -532,6 +532,30 @@ classes."
     ("spell_checker"  .  lsp-isar-font-spell-checker)))
 
 
+;; REMOVE FOR DEBUGGING: performance hacks
+(cl-proclaim `(optimize (speed 3) (safety 0)))
+
+(defmacro lsp-isar-decorations--cl-assert (form &optional show-args string &rest args)
+  "Saner version of cl-assert: no cost if optimizations are activated!
+
+By default it is only when the file is compiling and if it is
+not, we just pay for the cost of the test.  The cost is not high,
+but still, I want assertions to be done only for debugging."
+  (declare (debug (form &rest form)))
+  (and (or (< cl--optimize-speed 3) (= cl--optimize-safety 3))
+       (let ((sargs (and show-args
+                         (delq nil (mapcar (lambda (x)
+                                             (unless (macroexp-const-p x)
+                                               x))
+                                           (cdr-safe form))))))
+	 `(progn
+            (or ,form
+                (cl--assertion-failed
+                 ',form ,@(if (or string sargs args)
+                              `(,string (list ,@sargs) (list ,@args)))))
+            nil))))
+
+;; range  functions
 (define-inline lsp-isar-decorations-ranges-are-equal (r1 r2)
   (inline-letevals (r1 r2)
 		   (inline-quote
@@ -721,9 +745,7 @@ more memory), so we only remove some with a short timeout."
 It is done by removing the now unused old one and adding the old
 one.  This a performance critical function."
   (save-excursion
-    (let* ( ;; REMOVE FOR DEBUGGING: performance hacks
-	   (cl--optimize-speed 3)
-	   (cl--optimize-safety nil)
+    (let* (
 	   ;; normal function
 	   (file (lsp-isar-decorations-normalise-path (lsp--uri-to-path (gethash "uri" params))))
 	   (buffer (find-buffer-visiting file))
@@ -754,7 +776,7 @@ one.  This a performance critical function."
 		     (inhibit-field-text-motion t))
 	  (if (equal face 'lsp-isar-font-default)
 	      (warn "unrecognised color %s. Please report the error." typ))
-	  ;; (cl-assert (vectorp pranges))
+	  (lsp-isar-decorations--cl-assert (vectorp pranges))
 
 	  (setq ranges (make-vector (length pranges) nil))
 
@@ -763,7 +785,7 @@ one.  This a performance critical function."
 	  (cl-loop for i from 0 to (1- (length pranges)) do
 		   (aset ranges i (gethash "range" (aref pranges i))))
 	  ;; 	(setq ranges (mapcar (lambda (range) (gethash "range" range)) pranges))
-	  ;; (cl-assert (vectorp ranges))
+	  (lsp-isar-decorations--cl-assert (vectorp ranges))
 
 	  ;; Sort by start-line ASC, start-character ASC.
 	  ;; the ranges are not overlapping
@@ -780,7 +802,7 @@ one.  This a performance critical function."
 	       (old-overlays (gethash typ current-file-overlays []))
 	       (overlays-to-reuse (gethash file lsp-isar-decorations--overlays-to-reuse nil)))
 
-	    ;; (cl-assert (vectorp old-overlays))
+	    (lsp-isar-decorations--cl-assert (vectorp old-overlays))
 	    ;; recycle an old overlay by moving and updating it,
 	    ;; otherwise, create a new one
 	    (define-inline lsp-isar-decorations-new-or-recycle-overlay (overlays-to-reuse point0 point1 face)
@@ -791,8 +813,8 @@ one.  This a performance critical function."
 				      (move-overlay ov ,point0 ,point1)
 				      (overlay-put ov 'face ,face)
 				      ov)
-				  ;; (cl-assert (numberp ,point0))
-				  ;; (cl-assert (numberp ,point1))
+				  (lsp-isar-decorations--cl-assert (numberp ,point0))
+				  (lsp-isar-decorations--cl-assert (numberp ,point1))
 				  (let ((ov (make-overlay ,point0 ,point1)))
 				    (overlay-put ov 'face ,face)
 				    ov)))))
@@ -874,8 +896,8 @@ one.  This a performance critical function."
 				    (cl-loop for x from inew to (1- lnews) do
 					     (lsp-isar-decorations-find-range-and-add-to-print (elt ,news x) ,curoverlays x))
 				    (setq inew lnews)
-				    ;; (cl-assert (= iold lolds))
-				    ;; (cl-assert (= inew lnews))
+				    (lsp-isar-decorations--cl-assert (= iold lolds))
+				    (lsp-isar-decorations--cl-assert (= inew lnews))
 				    )))))
 
 	    (with-current-buffer buffer
@@ -884,13 +906,13 @@ one.  This a performance critical function."
 		(widen)
 		(goto-char 1)
 		;; (cl-loop for x in old-overlays do
-		;; 	       (cl-assert (cadr x)))
+		;; 	       (lsp-isar-decorations--cl-assert (cadr x)))
 
 		(lsp-isar-decorations-find-new-and-repaint curoverlays ranges old-overlays)
 
 		;; the curoverlays are sorted in reversed order
 		;; (cl-loop for x in curoverlays do
-		;; 	       (cl-assert (cadr x)))
+		;; 	       (lsp-isar-decorations--cl-assert (cadr x)))
 		;; (message "curoverlays = %s" curoverlays)
 		(puthash typ curoverlays current-file-overlays)
 		(puthash file current-file-overlays lsp-isar-decorations--sem-overlays)
