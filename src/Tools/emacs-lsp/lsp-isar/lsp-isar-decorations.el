@@ -131,14 +131,18 @@
 (defvar lsp-isar-decorations--overlays-to-reuse (make-hash-table :test 'equal)
   "Decoration overlays that can be reused.")
 
+;; file -> overlays list
+(defvar lsp-isar-decorations--delayed-overlays (make-hash-table :test 'equal)
+  "Decoration overlays that can be reused.")
+
 ;; file -> timer
 (defvar lsp-isar-decorations--recycler nil
   "Timer to slowly delete overlays from the last opened buffer.")
 
-;; prettifyng the source
-(defgroup lsp-isar-decorations-sem nil
-  "Isabelle semantic highlighting."
-  :group 'tools)
+(defcustom lsp-isar-decorations-delayed-printing nil
+  "Don't update the decorations of non-visible buffers."
+  :group 'isabelle
+  :type 'bool)
 
 
 (defface lsp-isar-font-background-unprocessed1
@@ -718,151 +722,156 @@ one.  This a performance critical function."
 	;; the rest will be deleted during the next round of full cleaning
 	(message "buffer not found")
 	(puthash file nil lsp-isar-decorations--sem-overlays))
+      (if (and lsp-isar-decorations-delayed-printing (not (get-buffer-window buffer 'visible)))
+	  (progn
+	    (let ((current-file-overlays (gethash file lsp-isar-decorations--delayed-overlays (make-hash-table :test 'equal))))
+	      (puthash typ params current-file-overlays)
+	      (puthash file current-file-overlays lsp-isar-decorations--delayed-overlays)
+	      (message "delayed printing for buffer %s" file)))
+	;; faster adding (and deleting) of overlays; see for example
+	;; discussion on
+	;; https://github.com/flycheck/flycheck/issues/1168
+	(overlay-recenter (point-max))
 
-      ;; faster adding (and deleting) of overlays; see for example
-      ;; discussion on
-      ;; https://github.com/flycheck/flycheck/issues/1168
-      (overlay-recenter (point-max))
+	;; extract the ranges
+	(let (ranges point0 point1 (line 0) (curoverlays nil)
+		     (inhibit-field-text-motion t))
+	  (if (equal face 'lsp-isar-font-default)
+	      (warn "unrecognised color %s. Please report the error." typ))
 
-      ;; extract the ranges
-      (let (ranges point0 point1 (line 0) (curoverlays nil)
-		   (inhibit-field-text-motion t))
-	(if (equal face 'lsp-isar-font-default)
-	    (warn "unrecognised color %s. Please report the error." typ))
+	  ;; extract only the range in the correct order
+	  (seq-doseq (range pranges)
+	    (push (gethash "range" range) ranges))
+	  (setq ranges (nreverse ranges))
+	  ;; check if correctly sorted
+	  ;; (let ((prev (car ranges))
+	  ;;       (tl (cdr ranges))
+	  ;;       (sortedp (lambda (x y)
+	  ;;  		 (let ((x0 (elt x 0)) (y0 (elt y 0)))
+	  ;;  		   (if (/= x0 y0)
+	  ;;  		       (< x0 y0)
+	  ;;  		     (< (elt x 1) (elt y 1)))))))
+	  ;;   (while tl
+	  ;;     (unless (funcall sortedp prev (car tl))
+	  ;;       (message "not sorted"))
+	  ;;     (setq tl (cdr tl))))
 
-	;; extract only the range in the correct order
-	(seq-doseq (range pranges)
-	  (push (gethash "range" range) ranges))
-	(setq ranges (nreverse ranges))
-	;; check if correctly sorted
-	;; (let ((prev (car ranges))
-	;;       (tl (cdr ranges))
-	;;       (sortedp (lambda (x y)
-	;;  		 (let ((x0 (elt x 0)) (y0 (elt y 0)))
-	;;  		   (if (/= x0 y0)
-	;;  		       (< x0 y0)
-	;;  		     (< (elt x 1) (elt y 1)))))))
-	;;   (while tl
-	;;     (unless (funcall sortedp prev (car tl))
-	;;       (message "not sorted"))
-	;;     (setq tl (cdr tl))))
+	  ;; Sort by start-line ASC, start-character ASC.
+	  ;; the ranges are not overlapping
+	  ;; (setq ranges
+	  ;;       (sort ranges (lambda (x y)
+	  ;; 		     (let ((x0 (elt x 0)) (y0 (elt y 0)))
+	  ;; 		       (if (/= x0 y0)
+	  ;; 			   (< x0 y0)
+	  ;; 			 (< (elt x 1) (elt y 1)))))))
 
-	;; Sort by start-line ASC, start-character ASC.
-	;; the ranges are not overlapping
-	;; (setq ranges
-	;;       (sort ranges (lambda (x y)
-	;; 		     (let ((x0 (elt x 0)) (y0 (elt y 0)))
-	;; 		       (if (/= x0 y0)
-	;; 			   (< x0 y0)
-	;; 			 (< (elt x 1) (elt y 1)))))))
+	  ;; convert array to list if :use-native-json is t
+	  (setq pranges (append pranges nil))
 
-	;; convert array to list if :use-native-json is t
-	(setq pranges (append pranges nil))
+	  ;; reprint
+	  (let*
+	      ((current-file-overlays (gethash file lsp-isar-decorations--sem-overlays (make-hash-table :test 'equal)))
+	       (old-overlays (gethash typ current-file-overlays nil))
+	       (overlays-to-reuse (gethash file lsp-isar-decorations--overlays-to-reuse nil)))
 
-	;; reprint
-	(let*
-	    ((current-file-overlays (gethash file lsp-isar-decorations--sem-overlays (make-hash-table :test 'equal)))
-	     (old-overlays (gethash typ current-file-overlays nil))
-	     (overlays-to-reuse (gethash file lsp-isar-decorations--overlays-to-reuse nil)))
-
-	  ;; recycle an old overlay by moving and updating it,
-	  ;; otherwise, create a new one
-	  (define-inline lsp-isar-decorations-new-or-recycle-overlay (overlays-to-reuse point0 point1 face)
-	    (inline-letevals (overlays-to-reuse point0 point1 face)
-			     (inline-quote
-			      (if ,overlays-to-reuse
-				  (let ((ov (pop ,overlays-to-reuse)))
-				    (move-overlay ov ,point0 ,point1)
+	    ;; recycle an old overlay by moving and updating it,
+	    ;; otherwise, create a new one
+	    (define-inline lsp-isar-decorations-new-or-recycle-overlay (overlays-to-reuse point0 point1 face)
+	      (inline-letevals (overlays-to-reuse point0 point1 face)
+			       (inline-quote
+				(if ,overlays-to-reuse
+				    (let ((ov (pop ,overlays-to-reuse)))
+				      (move-overlay ov ,point0 ,point1)
+				      (overlay-put ov 'face ,face)
+				      ov)
+				  (let ((ov (make-overlay ,point0 ,point1)))
 				    (overlay-put ov 'face ,face)
-				    ov)
-				(let ((ov (make-overlay ,point0 ,point1)))
-				  (overlay-put ov 'face ,face)
-				  ov)))))
+				    ov)))))
 
-	  ;; if a range is new, find it in the buffer and print it
-	  ;; if the current range is already not valid, return nil
-	  (define-inline lsp-isar-decorations-find-range-and-add-to-print (range)
-	    (inline-letevals (range)
-			     (inline-quote
-			      (ignore-errors
-				(let ((l0 (elt ,range 0))
-				      (c0 (elt ,range 1))
-				      (l1 (elt ,range 2))
-				      (c1 (elt ,range 3)))
-				  (forward-line (- l0 line))
-				  (forward-char c0)
-				  (setq point0 (point))
-				  (forward-line (- l1 l0))
-				  (forward-char (+ c1 end_char_offset))
-				  (setq point1 (point))
-				  (setq line l1)
+	    ;; if a range is new, find it in the buffer and print it
+	    ;; if the current range is already not valid, return nil
+	    (define-inline lsp-isar-decorations-find-range-and-add-to-print (range)
+	      (inline-letevals (range)
+			       (inline-quote
+				(ignore-errors
+				  (let ((l0 (elt ,range 0))
+					(c0 (elt ,range 1))
+					(l1 (elt ,range 2))
+					(c1 (elt ,range 3)))
+				    (forward-line (- l0 line))
+				    (forward-char c0)
+				    (setq point0 (point))
+				    (forward-line (- l1 l0))
+				    (forward-char (+ c1 end_char_offset))
+				    (setq point1 (point))
+				    (setq line l1)
 
-				  (let ((ov (lsp-isar-decorations-new-or-recycle-overlay overlays-to-reuse point0 point1 face)))
-				    (push (list (list l0 c0 l1 c1) ov) curoverlays))
-				  t)))))
+				    (let ((ov (lsp-isar-decorations-new-or-recycle-overlay overlays-to-reuse point0 point1 face)))
+				      (push (list (list l0 c0 l1 c1) ov) curoverlays))
+				    t)))))
 
-	  ;; This function iterates over huge lists and therefore
-	  ;; requires either tail-call optimisation or a while loop
-	  ;; (several thousand elements are common).  Therefore, no
-	  ;; recursive function works.
-	  (define-inline lsp-isar-decorations-find-new-and-repaint (news olds)
-	    (inline-letevals (news olds)
-			     (inline-quote
-			      (while (or ,news ,olds)
-				(if (not ,news)
-				    ;; no news: discard all old decorations
-				    (progn
-				      (dolist (x ,olds)
-					(overlay-put (cadr x) 'face 'lsp-isar-font-nothing)
-					(push (cadr x) overlays-to-reuse))
-				      (setq ,olds nil))
-				  (if (not ,olds)
-				      ;; no olds: print all news
+	    ;; This function iterates over huge lists and therefore
+	    ;; requires either tail-call optimisation or a while loop
+	    ;; (several thousand elements are common).  Therefore, no
+	    ;; recursive function works.
+	    (define-inline lsp-isar-decorations-find-new-and-repaint (news olds)
+	      (inline-letevals (news olds)
+			       (inline-quote
+				(while (or ,news ,olds)
+				  (if (not ,news)
+				      ;; no news: discard all old decorations
 				      (progn
-					(dolist (x ,news)
-					  (lsp-isar-decorations-find-range-and-add-to-print x))
-					(setq ,news nil))
-				    ;; otherwise, compare the first two ranges
-				    (let ((r1 (car ,news))
-					  (r2 (car ,olds)))
-				      ;; if the ranges are equal no need to repaint
-				      (if (lsp-isar-decorations-ranges-are-equal r1 r2)
-					  (progn
-					    (push r2 curoverlays)
-					    (pop ,news)
-					    (pop ,olds))
-					;; if r1 < r2, print r1 and continue iteration
-					(if (lsp-isar-decorations-range-is-before r1 r2)
+					(dolist (x ,olds)
+					  (overlay-put (cadr x) 'face 'lsp-isar-font-nothing)
+					  (push (cadr x) overlays-to-reuse))
+					(setq ,olds nil))
+				    (if (not ,olds)
+					;; no olds: print all news
+					(progn
+					  (dolist (x ,news)
+					    (lsp-isar-decorations-find-range-and-add-to-print x))
+					  (setq ,news nil))
+				      ;; otherwise, compare the first two ranges
+				      (let ((r1 (car ,news))
+					    (r2 (car ,olds)))
+					;; if the ranges are equal no need to repaint
+					(if (lsp-isar-decorations-ranges-are-equal r1 r2)
 					    (progn
-					      (if (lsp-isar-decorations-find-range-and-add-to-print r1)
-						  (setq ,news (cdr ,news))
-						;; else the content is not valid anymore:
-						(progn
-						  (dolist (x ,olds)
-						    (overlay-put (cadr x) 'face 'lsp-isar-font-nothing)
-						    (push (cadr x) overlays-to-reuse))
-						  (setq ,news nil)
-						  (setq ,olds nil))))
-					  ;; otherwise, r1 is after the beginng of r2,
-					  ;; so remove r2 and continue (r1 might just be later in olds)
-					  ;;(message "number of elts in olds: %s" (length olds))
-					  ;;(message "wanted to print: %s skipped: %s" r1 r2)
-					  (overlay-put (cadr r2) 'face 'lsp-isar-font-nothing)
-					  (push (cadr r2) overlays-to-reuse)
-					  (pop ,olds))))))))))
+					      (push r2 curoverlays)
+					      (pop ,news)
+					      (pop ,olds))
+					  ;; if r1 < r2, print r1 and continue iteration
+					  (if (lsp-isar-decorations-range-is-before r1 r2)
+					      (progn
+						(if (lsp-isar-decorations-find-range-and-add-to-print r1)
+						    (setq ,news (cdr ,news))
+						  ;; else the content is not valid anymore:
+						  (progn
+						    (dolist (x ,olds)
+						      (overlay-put (cadr x) 'face 'lsp-isar-font-nothing)
+						      (push (cadr x) overlays-to-reuse))
+						    (setq ,news nil)
+						    (setq ,olds nil))))
+					    ;; otherwise, r1 is after the beginng of r2,
+					    ;; so remove r2 and continue (r1 might just be later in olds)
+					    ;;(message "number of elts in olds: %s" (length olds))
+					    ;;(message "wanted to print: %s skipped: %s" r1 r2)
+					    (overlay-put (cadr r2) 'face 'lsp-isar-font-nothing)
+					    (push (cadr r2) overlays-to-reuse)
+					    (pop ,olds))))))))))
 
-	  (with-current-buffer buffer
-	    (with-silent-modifications
-	      ;; find all new overlays
-	      (widen)
-	      (goto-char 1)
-	      (lsp-isar-decorations-find-new-and-repaint ranges old-overlays)
+	    (with-current-buffer buffer
+	      (with-silent-modifications
+		;; find all new overlays
+		(widen)
+		(goto-char 1)
+		(lsp-isar-decorations-find-new-and-repaint ranges old-overlays)
 
-	      ;; the curoverlays are sorted in reversed order
-	      (puthash typ (nreverse curoverlays) current-file-overlays)
-	      (puthash file current-file-overlays lsp-isar-decorations--sem-overlays)
-	      (puthash file overlays-to-reuse lsp-isar-decorations--overlays-to-reuse)))))
-      (setq lsp-isar-decorations--last-updated-file file))))
+		;; the curoverlays are sorted in reverse order
+		(puthash typ (nreverse curoverlays) current-file-overlays)
+		(puthash file current-file-overlays lsp-isar-decorations--sem-overlays)
+		(puthash file overlays-to-reuse lsp-isar-decorations--overlays-to-reuse)))))
+	(setq lsp-isar-decorations--last-updated-file file)))))
 
 (defun lsp-isar-decorations-update-and-reprint (_workspace params)
   "Reprint all decorations as given by Isabelle in PARAMS."
@@ -881,6 +890,25 @@ one.  This a performance critical function."
       (setq lsp-isar-decorations--cleaner-timer
 	    (run-with-idle-timer lsp-isar-decorations-full-clean-after-inactivity t
 				 'lsp-isar-decorations-kill-all-unused-overlays))))
+
+(defun lsp-isar-decorations--print-delayed-buffer-decorations (file params)
+  "Prints the decorations from buffer FILE that were not printed so far."
+  (save-excursion
+    (let ((buffer (find-buffer-visiting file)))
+      (when (and buffer params (get-buffer-window buffer 'visible))
+	(message "file %s is now visible" file)
+	(maphash (lambda (_key params) (lsp-isar-decorations-update-cached-decorations-overlays params))
+		 params)
+	(puthash file nil lsp-isar-decorations--delayed-overlays)))))
+
+(defun lsp-isar-decorations--print-delayed-buffers-decorations ()
+  "Prints the decorations that were not printed so far."
+  (maphash 'lsp-isar-decorations--print-delayed-buffer-decorations lsp-isar-decorations--delayed-overlays))
+
+(defun lsp-isar-decorations-activate-delayed-printing ()
+  "Activate delayed printing."
+  (when lsp-isar-decorations-delayed-printing
+    (add-to-list 'post-command-hook #'lsp-isar-decorations--print-delayed-buffers-decorations)))
 
 (provide 'lsp-isar-decorations)
 

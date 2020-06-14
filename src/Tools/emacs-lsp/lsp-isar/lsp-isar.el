@@ -79,15 +79,16 @@ you can decide at startup what you want."
 
 (defun lsp-isar-initialise ()
   "Initialise all Isar-related informations."
-  (if (equal major-mode 'isar-mode)
-      (progn
-	(lsp-isar-caret-activate-caret-update)
-	(unless lsp-isar-already-initialised
-	  (lsp-isar-output-initialize-output-buffer)
-	  (lsp-isar-progress-activate-progress-update)
-	  (lsp-isar-decorations--init-decorations)
-	  (run-hooks 'lsp-isar-init-hook)
-	  (setq lsp-isar-already-initialised t)))))
+  (when (equal major-mode 'isar-mode)
+      ;; delayed decoration printing
+    (lsp-isar-caret-activate-caret-update)
+    (lsp-isar-decorations-activate-delayed-printing)
+    (unless lsp-isar-already-initialised
+      (lsp-isar-output-initialize-output-buffer)
+      (lsp-isar-progress-activate-progress-update)
+      (lsp-isar-decorations--init-decorations)
+      (run-hooks 'lsp-isar-init-hook)
+      (setq lsp-isar-already-initialised t))))
 
 ;; lsp-after-initialize-hook might look like the right macro.  However, the
 ;; workspace (lsp--cur-workspace) is not opened yet.
@@ -290,6 +291,7 @@ the AFP and other options."
 This is the main entry point of the lsp-isar client.  To start the
 mode automically, use `(add-hook 'isar-mode-hook
 #'lsp-isar-define-client-and-start)'"
+  ;; starting lsp
   (if (or (not lsp-isar-use-lsp) lsp-isar-parse-args-noisabelle)
       (message "not starting the server! Set lsp-isar-use-lsp to t for that and do not pass '--noisabelle' as argument to Emacs.")
     (unless lsp-isar--already-defined-client
