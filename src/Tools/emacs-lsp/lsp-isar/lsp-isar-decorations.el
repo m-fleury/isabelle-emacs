@@ -899,7 +899,7 @@ one.  This a performance critical function."
 	(message "file %s is now visible" file)
 	(maphash (lambda (_key params) (lsp-isar-decorations-update-cached-decorations-overlays params))
 		 params)
-	(puthash file nil lsp-isar-decorations--delayed-overlays)))))
+	(remhash file lsp-isar-decorations--delayed-overlays)))))
 
 (defun lsp-isar-decorations--print-delayed-buffers-decorations ()
   "Prints the decorations that were not printed so far."
