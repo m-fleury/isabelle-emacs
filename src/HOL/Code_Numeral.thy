@@ -88,7 +88,7 @@ lemma [transfer_rule]:
 
 lemma [transfer_rule]:
   "((\<longleftrightarrow>) ===> pcr_integer) of_bool of_bool"
-  by (unfold of_bool_def [abs_def]) transfer_prover
+  by (unfold of_bool_def) transfer_prover
 
 lemma [transfer_rule]:
   "((=) ===> pcr_integer) int of_nat"
@@ -108,11 +108,11 @@ lemma [transfer_rule]:
 
 lemma [transfer_rule]:
   "((=) ===> (=) ===> pcr_integer) Num.sub Num.sub"
-  by (unfold Num.sub_def [abs_def]) transfer_prover
+  by (unfold Num.sub_def) transfer_prover
 
 lemma [transfer_rule]:
   "(pcr_integer ===> (=) ===> pcr_integer) (^) (^)"
-  by (unfold power_def [abs_def]) transfer_prover
+  by (unfold power_def) transfer_prover
 
 end
 
@@ -218,13 +218,19 @@ instance
 
 end
 
-lemma [transfer_rule]:
-  "rel_fun pcr_integer (rel_fun pcr_integer pcr_integer) (min :: _ \<Rightarrow> _ \<Rightarrow> int) (min :: _ \<Rightarrow> _ \<Rightarrow> integer)"
-  by (unfold min_def [abs_def]) transfer_prover
+context
+  includes lifting_syntax
+begin
 
 lemma [transfer_rule]:
-  "rel_fun pcr_integer (rel_fun pcr_integer pcr_integer) (max :: _ \<Rightarrow> _ \<Rightarrow> int) (max :: _ \<Rightarrow> _ \<Rightarrow> integer)"
-  by (unfold max_def [abs_def]) transfer_prover
+  \<open>(pcr_integer ===> pcr_integer ===> pcr_integer) min min\<close>
+  by (unfold min_def) transfer_prover
+
+lemma [transfer_rule]:
+  \<open>(pcr_integer ===> pcr_integer ===> pcr_integer) max max\<close>
+  by (unfold max_def) transfer_prover
+
+end
 
 lemma int_of_integer_min [simp]:
   "int_of_integer (min k l) = min (int_of_integer k) (int_of_integer l)"
@@ -290,30 +296,34 @@ instance integer :: unique_euclidean_ring_with_nat
 instantiation integer :: semiring_bit_shifts
 begin
 
+lift_definition bit_integer :: \<open>integer \<Rightarrow> nat \<Rightarrow> bool\<close>
+  is bit .
+
 lift_definition push_bit_integer :: \<open>nat \<Rightarrow> integer \<Rightarrow> integer\<close>
-  is \<open>push_bit\<close> .
+  is push_bit .
 
 lift_definition drop_bit_integer :: \<open>nat \<Rightarrow> integer \<Rightarrow> integer\<close>
-  is \<open>drop_bit\<close> .
+  is drop_bit .
+
+lift_definition take_bit_integer :: \<open>nat \<Rightarrow> integer \<Rightarrow> integer\<close>
+  is take_bit .
 
 instance by (standard; transfer)
-  (fact bit_eq_rec bits_induct push_bit_eq_mult drop_bit_eq_div
+  (fact bit_eq_rec bits_induct bit_iff_odd push_bit_eq_mult drop_bit_eq_div take_bit_eq_mod
     bits_div_0 bits_div_by_1 bits_mod_div_trivial even_succ_div_2
     exp_div_exp_eq div_exp_eq mod_exp_eq mult_exp_mod_exp_eq div_exp_mod_exp_eq
     even_mask_div_iff even_mult_exp_div_exp_iff)+
 
 end
 
-lemma [transfer_rule]:
-  "rel_fun (=) (rel_fun pcr_integer pcr_integer) (take_bit :: _ \<Rightarrow> _ \<Rightarrow> int) (take_bit :: _ \<Rightarrow> _ \<Rightarrow> integer)"
-  by (unfold take_bit_eq_mod [abs_def]) transfer_prover
-
 instance integer :: unique_euclidean_semiring_with_bit_shifts ..
 
 lemma [code]:
+  \<open>bit k n \<longleftrightarrow> odd (drop_bit n k)\<close>
   \<open>push_bit n k = k * 2 ^ n\<close>
-  \<open>drop_bit n k = k div 2 ^ n\<close> for k :: integer
-  by (fact push_bit_eq_mult drop_bit_eq_div)+
+  \<open>drop_bit n k = k div 2 ^ n\<close>
+  \<open>take_bit n k = k mod 2 ^ n\<close> for k :: integer
+  by (fact bit_iff_odd_drop_bit push_bit_eq_mult drop_bit_eq_div take_bit_eq_mod)+
 
 instantiation integer :: unique_euclidean_semiring_numeral
 begin
@@ -372,9 +382,15 @@ definition Pos :: "num \<Rightarrow> integer"
 where
   [simp, code_post]: "Pos = numeral"
 
+context
+  includes lifting_syntax
+begin
+
 lemma [transfer_rule]:
-  "rel_fun HOL.eq pcr_integer numeral Pos"
+  \<open>((=) ===> pcr_integer) numeral Pos\<close>
   by simp transfer_prover
+
+end
 
 lemma Pos_fold [code_unfold]:
   "numeral Num.One = Pos Num.One"
@@ -386,9 +402,15 @@ definition Neg :: "num \<Rightarrow> integer"
 where
   [simp, code_abbrev]: "Neg n = - Pos n"
 
+context
+  includes lifting_syntax
+begin
+
 lemma [transfer_rule]:
-  "rel_fun HOL.eq pcr_integer (\<lambda>n. - numeral n) Neg"
-  by (simp add: Neg_def [abs_def]) transfer_prover
+  \<open>((=) ===> pcr_integer) (\<lambda>n. - numeral n) Neg\<close>
+  by (unfold Neg_def) transfer_prover
+
+end
 
 code_datatype "0::integer" Pos Neg
 
@@ -853,33 +875,39 @@ end
 
 instance natural :: Rings.dvd ..
 
-lemma [transfer_rule]:
-  "rel_fun pcr_natural (rel_fun pcr_natural HOL.iff) Rings.dvd Rings.dvd"
-  unfolding dvd_def by transfer_prover
+context
+  includes lifting_syntax
+begin
 
 lemma [transfer_rule]:
-  "rel_fun (=) pcr_natural (of_bool :: bool \<Rightarrow> nat) (of_bool :: bool \<Rightarrow> natural)"
-  by (unfold of_bool_def [abs_def]) transfer_prover
+  \<open>(pcr_natural ===> pcr_natural ===> (\<longleftrightarrow>)) (dvd) (dvd)\<close>
+  by (unfold dvd_def) transfer_prover
 
 lemma [transfer_rule]:
-  "rel_fun HOL.eq pcr_natural (\<lambda>n::nat. n) (of_nat :: nat \<Rightarrow> natural)"
+  \<open>((\<longleftrightarrow>) ===> pcr_natural) of_bool of_bool\<close>
+  by (unfold of_bool_def) transfer_prover
+
+lemma [transfer_rule]:
+  \<open>((=) ===> pcr_natural) (\<lambda>n. n) of_nat\<close>
 proof -
   have "rel_fun HOL.eq pcr_natural (of_nat :: nat \<Rightarrow> nat) (of_nat :: nat \<Rightarrow> natural)"
-    by (unfold of_nat_def [abs_def]) transfer_prover
+    by (unfold of_nat_def) transfer_prover
   then show ?thesis by (simp add: id_def)
 qed
 
 lemma [transfer_rule]:
-  "rel_fun HOL.eq pcr_natural (numeral :: num \<Rightarrow> nat) (numeral :: num \<Rightarrow> natural)"
+  \<open>((=) ===> pcr_natural) numeral numeral\<close>
 proof -
-  have "rel_fun HOL.eq pcr_natural (numeral :: num \<Rightarrow> nat) (\<lambda>n. of_nat (numeral n))"
+  have \<open>((=) ===> pcr_natural) numeral (\<lambda>n. of_nat (numeral n))\<close>
     by transfer_prover
   then show ?thesis by simp
 qed
 
 lemma [transfer_rule]:
-  "rel_fun pcr_natural (rel_fun (=) pcr_natural) (power :: _ \<Rightarrow> _ \<Rightarrow> nat) (power :: _ \<Rightarrow> _ \<Rightarrow> natural)"
-  by (unfold power_def [abs_def]) transfer_prover
+  \<open>(pcr_natural ===> (=) ===> pcr_natural) (^) (^)\<close>
+  by (unfold power_def) transfer_prover
+
+end
 
 lemma nat_of_natural_of_nat [simp]:
   "nat_of_natural (of_nat n) = n"
@@ -921,13 +949,19 @@ qed (transfer, simp add: algebra_simps equal less_le_not_le [symmetric] linear)+
 
 end
 
-lemma [transfer_rule]:
-  "rel_fun pcr_natural (rel_fun pcr_natural pcr_natural) (min :: _ \<Rightarrow> _ \<Rightarrow> nat) (min :: _ \<Rightarrow> _ \<Rightarrow> natural)"
-  by (unfold min_def [abs_def]) transfer_prover
+context
+  includes lifting_syntax
+begin
 
 lemma [transfer_rule]:
-  "rel_fun pcr_natural (rel_fun pcr_natural pcr_natural) (max :: _ \<Rightarrow> _ \<Rightarrow> nat) (max :: _ \<Rightarrow> _ \<Rightarrow> natural)"
-  by (unfold max_def [abs_def]) transfer_prover
+  \<open>(pcr_natural ===> pcr_natural ===> pcr_natural) min min\<close>
+  by (unfold min_def) transfer_prover
+
+lemma [transfer_rule]:
+  \<open>(pcr_natural ===> pcr_natural ===> pcr_natural) max max\<close>
+  by (unfold max_def) transfer_prover
+
+end
 
 lemma nat_of_natural_min [simp]:
   "nat_of_natural (min k l) = min (nat_of_natural k) (nat_of_natural l)"
@@ -987,30 +1021,34 @@ instance natural :: unique_euclidean_semiring_with_nat
 instantiation natural :: semiring_bit_shifts
 begin
 
+lift_definition bit_natural :: \<open>natural \<Rightarrow> nat \<Rightarrow> bool\<close>
+  is bit .
+
 lift_definition push_bit_natural :: \<open>nat \<Rightarrow> natural \<Rightarrow> natural\<close>
-  is \<open>push_bit\<close> .
+  is push_bit .
 
 lift_definition drop_bit_natural :: \<open>nat \<Rightarrow> natural \<Rightarrow> natural\<close>
-  is \<open>drop_bit\<close> .
+  is drop_bit .
+
+lift_definition take_bit_natural :: \<open>nat \<Rightarrow> natural \<Rightarrow> natural\<close>
+  is take_bit .
 
 instance by (standard; transfer)
-  (fact bit_eq_rec bits_induct push_bit_eq_mult drop_bit_eq_div
+  (fact bit_eq_rec bits_induct bit_iff_odd push_bit_eq_mult drop_bit_eq_div take_bit_eq_mod
     bits_div_0 bits_div_by_1 bits_mod_div_trivial even_succ_div_2
     exp_div_exp_eq div_exp_eq mod_exp_eq mult_exp_mod_exp_eq div_exp_mod_exp_eq
     even_mask_div_iff even_mult_exp_div_exp_iff)+
 
 end
 
-lemma [transfer_rule]:
-  "rel_fun (=) (rel_fun pcr_natural pcr_natural) (take_bit :: _ \<Rightarrow> _ \<Rightarrow> nat) (take_bit :: _ \<Rightarrow> _ \<Rightarrow> natural)"
-  by (unfold take_bit_eq_mod [abs_def]) transfer_prover
-
 instance natural :: unique_euclidean_semiring_with_bit_shifts ..
 
 lemma [code]:
+  \<open>bit m n \<longleftrightarrow> odd (drop_bit n m)\<close>
   \<open>push_bit n m = m * 2 ^ n\<close>
-  \<open>drop_bit n m = m div 2 ^ n\<close> for m :: natural
-  by (fact push_bit_eq_mult drop_bit_eq_div)+
+  \<open>drop_bit n m = m div 2 ^ n\<close>
+  \<open>take_bit n m = m mod 2 ^ n\<close> for m :: natural
+  by (fact bit_iff_odd_drop_bit push_bit_eq_mult drop_bit_eq_div take_bit_eq_mod)+
 
 lift_definition natural_of_integer :: "integer \<Rightarrow> natural"
   is "nat :: int \<Rightarrow> nat"
