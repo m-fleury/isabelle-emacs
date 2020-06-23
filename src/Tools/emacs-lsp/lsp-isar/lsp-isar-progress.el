@@ -63,7 +63,7 @@ shortening prefixes of buffers with the same name."
   "Update the progress buffer and centers it on the current edited buffer with STATUS."
   (setq lsp-isar-progress--request-delay 0)
   (let ((inhibit-read-only t)
-	(current-thy-name (if (buffer-file-name) (file-name-base) nil))
+	(current-thy-name (if (buffer-file-name) (file-name-base (buffer-file-name)) nil))
 	(current-thy-point nil)
 	(current-thy-line nil)
 	(current-thy-line-found nil)
