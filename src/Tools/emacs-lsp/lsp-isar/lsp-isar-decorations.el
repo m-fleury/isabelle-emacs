@@ -573,9 +573,10 @@ but still, I want assertions to be done only for debugging."
 (define-inline lsp-isar-decorations-ranges-are-equal (r1 r2)
   (inline-letevals (r1 r2)
 		   (inline-quote
-		    (let ((r2p (lsp-isar-ov-x0 ,r2)))
-		      (let ((x0 (elt ,r1 0)) (y0 (lsp-isar-ov-y0 ,r2)))
-			(and (= x0 y0) (= (elt ,r1 1) (lsp-isar-ov-x1 ,r2))))))))
+		    (let ((x0 (lsp-isar-ov-x0 ,r2)) (y0 (lsp-isar-ov-y0 ,r2)))
+		      (let ((x1 (elt ,r1 0)) (y1 (elt ,r1 1)))
+			(and (= x0 x1)
+			     (= y1 y0)))))))
 
 (define-inline lsp-isar-decorations-point-is-before (x0 y0 x1 y1)
   (inline-letevals (x0 y0 x1 y1)
@@ -763,7 +764,7 @@ one.  This a performance critical function."
 	   ;; normal function
 	   (file (lsp-isar-decorations-normalise-path (lsp--uri-to-path (gethash "uri" params))))
 	   (buffer (find-buffer-visiting file))
-	   (pranges (gethash "content" params nil))
+	   (pranges (gethash "content" params []))
 	   (typ (gethash "type" params "default"))
 	   (face (cdr (assoc typ lsp-isar-decorations-get-font)))
 	   (end_char_offset (if (or (equal typ "text_overview_error") (equal typ "text_overview_running")) 1 0)))
@@ -791,7 +792,7 @@ one.  This a performance critical function."
 	      (warn "unrecognised color %s. Please report the error." typ))
 	  (lsp-isar-decorations--cl-assert (vectorp pranges))
 
-	  (setq ranges (make-vector (length pranges) (lsp-isar-ov-create)))
+	  (setq ranges (make-vector (length pranges) nil))
 
 	  ;; extract only the range in the correct order
 	  ;; neither mapcar nor seq-map return the correct type!
@@ -865,7 +866,7 @@ one.  This a performance critical function."
 				      (lolds (length ,olds))
 				      (inew 0)
 				      (iold 0))
-				  (setq ,curoverlays (make-vector lnews nil))
+				  (setq ,curoverlays (make-vector lnews (lsp-isar-ov-create)))
 				  (while (and (< inew lnews) (< iold lolds))
 				    ;; otherwise, compare the first two ranges
 				    (let ((r1 (aref ,news inew))
@@ -887,7 +888,7 @@ one.  This a performance critical function."
 						(progn
 						  (cl-loop for x from iold to (1- lolds) do
 							   (unless (lsp-isar-ov-overlay (elt ,olds x))
-							     return nil)
+							     (cl-return nil))
 							   (overlay-put (lsp-isar-ov-overlay (elt ,olds x)) 'face 'lsp-isar-font-nothing)
 							   (push (lsp-isar-ov-overlay (elt ,olds x)) overlays-to-reuse))
 						  (setq inew lnews)
@@ -903,7 +904,7 @@ one.  This a performance critical function."
 				    ;; no news: discard all old decorations
 				    (cl-loop for x from iold to (1- lolds) do
 					     (unless (lsp-isar-ov-overlay (elt ,olds x))
-					       return nil)
+					       (cl-return nil))
 					     (overlay-put (lsp-isar-ov-overlay (elt ,olds x)) 'face 'lsp-isar-font-nothing)
 					     (push (lsp-isar-ov-overlay (elt ,olds x)) overlays-to-reuse))
 				    (setq iold lolds))
