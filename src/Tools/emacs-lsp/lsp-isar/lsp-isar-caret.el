@@ -66,19 +66,13 @@ interface Caret_Update {
       (lsp--path-to-uri
        (or buffer-file-name (ignore-errors (buffer-file-name (buffer-base-buffer)))))))
 
-(defun lsp-isar-caret--path-to-uri (path)
-  "Convert PATH to a uri."
-  (concat lsp--uri-file-prefix
-          (url-hexify-string (replace-regexp-in-string (regexp-quote "/home/salt") "/local/home/salt" (expand-file-name path) nil 'literal)
-                             url-path-allowed-chars)))
-
 (define-inline lsp-isar-caret-cur-caret_update ()
   "Make a Caret_Update object for the current point."
   (inline-quote
    (save-restriction
      (widen)
      (lsp-isar-caret-update-struct
-      (lsp-isar-caret--path-to-uri buffer-file-name)
+      (lsp-isar-caret--buffer-uri)
       (lsp-isar-caret-cur-line)
       (lsp-isar-caret-cur-column)
       1))))

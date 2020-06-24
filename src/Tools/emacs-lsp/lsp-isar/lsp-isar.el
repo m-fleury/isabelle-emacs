@@ -41,6 +41,7 @@
 (require 'lsp-isar-indent)
 (require 'lsp-isar-parse-args)
 
+
 (defcustom lsp-isar-init-hook nil
   "List of functions to be called after Isabelle has been started."
   :type 'hook
@@ -66,6 +67,20 @@ the output buffer, and the initial hooks.")
 (defcustom lsp-isar-tramp nil "Use Tramp to edit remote files."
   :type 'bool
   :group 'isabelle)
+
+(defcustom lsp-isar-file-name-unfollow-links (lambda (x) x)
+  "Function to replace canonical paths by relative paths.
+
+A typical example is
+
+   (replace-regexp-in-string
+      (regexp-quote \"/mnt/doc/isabelle/afp-2020\")
+      \"/home/zmaths/Documents/isabelle/afp-2020\"
+      path nil 'literal)
+
+where the path are replaced by what you need to be
+replaced. Remember that Isabelle canonicalize paths
+automatically.")
 
 (defcustom lsp-isar-use-lsp t
   "Use nil to open files without opening the server.
@@ -274,6 +289,8 @@ the AFP and other options."
       :major-modes '(isar-mode)
       :server-id 'lsp-isar
       :priority 1
+      :path->uri-fn (lambda (path) (lsp--path-to-uri-1 (file-truename path)))
+      :uri->path-fn (lambda (path) (funcall lsp-isar-file-name-unfollow-links (lsp--uri-to-path-1 path)))
       :notification-handlers
       (lsp-ht
        ("PIDE/decoration" 'lsp-isar-decorations-update-and-reprint)
@@ -630,7 +647,12 @@ If there is no whitespace at cursor position, a space is inserted before try0"
 
 (define-key isar-mode-map (kbd "C-c C-b C-s") 'lsp-isar-insert-satx)
 
+;; This needs to be done at the very beginning!
+;; (defun lsp-isar-make-buffer-name-absolute ()
+;;   "Replace the current path by the full buffer name."
+;;   (setq-local lsp-buffer-uri (lsp--path-to-uri (file-truename (buffer-file-name)))))
 
+;; (add-hook 'lsp-before-initialize-hook #'lsp-isar-make-buffer-name-absolute)
 
 (provide 'lsp-isar)
 

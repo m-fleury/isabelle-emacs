@@ -217,7 +217,7 @@ object Protocol
         uri <- JSON.string(json, "uri")
         range_json <- JSON.value(json, "range")
         range <- Range.unapply(range_json)
-      } yield Line.Node_Range(Url.absolute_file_name(uri), range)
+      } yield Line.Node_Range(Url.canonical_file_name(uri), range)
   }
 
   object TextDocumentPosition
@@ -228,7 +228,7 @@ object Protocol
         uri <- JSON.string(doc, "uri")
         pos_json <- JSON.value(json, "position")
         pos <- Position.unapply(pos_json)
-      } yield Line.Node_Position(Url.absolute_file_name(uri), pos)
+      } yield Line.Node_Position(Url.canonical_file_name(uri), pos)
   }
 
 
@@ -290,7 +290,7 @@ object Protocol
             lang <- JSON.string(doc, "languageId")
             version <- JSON.long(doc, "version")
             text <- JSON.string(doc, "text")
-          } yield (Url.absolute_file(uri), lang, version, text)
+          } yield (Url.canonical_file(uri), lang, version, text)
         case _ => None
       }
   }
@@ -313,7 +313,7 @@ object Protocol
             version <- JSON.long(doc, "version")
             changes <- if (JSON.value(params, "contentChanges") == null) Some(Nil)
             else JSON.list(params, "contentChanges", unapply_change _)
-          } yield (Url.absolute_file(uri), version, changes)
+          } yield (Url.canonical_file(uri), version, changes)
         case _ => None
       }
   }
@@ -326,7 +326,7 @@ object Protocol
           for {
             doc <- JSON.value(params, "textDocument")
             uri <- JSON.string(doc, "uri")
-          } yield Url.absolute_file(uri)
+          } yield Url.canonical_file(uri)
         case _ => None
       }
   }
@@ -534,7 +534,7 @@ object Protocol
               uri <- JSON.string(params, "uri")
               if Url.is_wellformed_file(uri)
               pos <- Position.unapply(params)
-            } yield (Url.absolute_file(uri), pos)
+            } yield (Url.canonical_file(uri), pos)
           Some(caret)
         case _ => None
       }
@@ -597,7 +597,7 @@ object Protocol
             uri <- JSON.string(params, "uri")
             if Url.is_wellformed_file(uri)
             column <- JSON.int(params, "column")
-          } yield (Url.absolute_file(uri), column)
+          } yield (Url.canonical_file(uri), column)
         case _ => None
       }
   }
@@ -680,7 +680,7 @@ object Protocol
             textdoc <- JSON.value(params, "textDocument")
             uri <- JSON.string(textdoc, "uri")
             if Url.is_wellformed_file(uri)
-          } yield (id, Url.absolute_file(uri))
+          } yield (id, Url.canonical_file(uri))
         case _ => None
       }
   }
