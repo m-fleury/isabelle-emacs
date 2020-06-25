@@ -572,18 +572,18 @@ but still, I want assertions to be done only for debugging."
 ;; range  functions
 (define-inline lsp-isar-decorations-ranges-are-equal (r1 r2)
   (inline-letevals (r1 r2)
-		   (inline-quote
-		    (let ((x0 (lsp-isar-ov-x0 ,r2)) (y0 (lsp-isar-ov-y0 ,r2)))
-		      (let ((x1 (elt ,r1 0)) (y1 (elt ,r1 1)))
-			(and (= x0 x1)
-			     (= y1 y0)))))))
+    (inline-quote
+     (let ((x0 (lsp-isar-ov-x0 ,r2)) (y0 (lsp-isar-ov-y0 ,r2)))
+       (let ((x1 (elt ,r1 0)) (y1 (elt ,r1 1)))
+	 (and (= x0 x1)
+	      (= y1 y0)))))))
 
 (define-inline lsp-isar-decorations-point-is-before (x0 y0 x1 y1)
   (inline-letevals (x0 y0 x1 y1)
-		   (inline-quote
-		    (if (/= ,x0 ,x1)
-			(< ,x0 ,x1)
-		      (< ,y0 ,y1)))))
+    (inline-quote
+     (if (/= ,x0 ,x1)
+	 (< ,x0 ,x1)
+       (< ,y0 ,y1)))))
 
 ;; Ranges of the same type cannot overlap
 (define-inline lsp-isar-decorations-range-is-before (r1 r2)
@@ -747,12 +747,103 @@ more memory), so we only remove some with a short timeout."
 ;; critical, so even a function that boils down to evaluating (and nil nil
 ;; nil) is not something I want to have in the code.
 
-;;
-;; The work-around for Sophie:
-(define-inline lsp-isar-decorations-normalise-path (path)
-  (inline-letevals (path)
-		   (inline-quote (replace-regexp-in-string (regexp-quote "/local/local") "/local" ,path nil 'literal))))
+(define-inline lsp-isar-decorations-new-or-recycle-overlay (overlays-to-reuse point0 point1 face)
+  (inline-letevals (overlays-to-reuse point0 point1 face)
+    (inline-quote
+     (if ,overlays-to-reuse
+	 (let ((ov (pop ,overlays-to-reuse)))
+	   (move-overlay ov ,point0 ,point1)
+	   (overlay-put ov 'face ,face)
+	   ov)
+       (lsp-isar-decorations--cl-assert (numberp ,point0))
+       (lsp-isar-decorations--cl-assert (numberp ,point1))
+       (let ((ov (make-overlay ,point0 ,point1)))
+	 (overlay-put ov 'face ,face)
+	 ov)))))
 
+;; if a range is new, find it in the buffer and print it
+;; if the current range is already not valid, return nil
+(define-inline lsp-isar-decorations-find-range-and-add-to-print (range curoverlays position)
+  (inline-letevals (range position)
+    (inline-quote
+     (ignore-errors
+       (let ((l0 (elt ,range 0))
+	     (c0 (elt ,range 1))
+	     (l1 (elt ,range 2))
+	     (c1 (elt ,range 3)))
+	 (forward-line (- l0 line))
+	 (forward-char c0)
+	 (setq point0 (point))
+	 (forward-line (- l1 l0))
+	 (forward-char (+ c1 end_char_offset))
+	 (setq point1 (point))
+	 (setq line l1)
+
+	 (let ((ov (lsp-isar-decorations-new-or-recycle-overlay overlays-to-reuse point0 point1 face)))
+	   (aset ,curoverlays ,position (lsp-isar-ov-create :x0 l0 :y0 c0 :x1 l1 :y1 c1 :overlay ov))
+	   t))))))
+
+;; This function iterates over huge lists and therefore
+;; requires either tail-call optimisation or a while loop
+;; (several thousand elements are common).  Therefore, no
+;; recursive function works.
+(define-inline lsp-isar-decorations-find-new-and-repaint (curoverlays news olds)
+  (inline-letevals (news olds)
+    (inline-quote
+     (let ((lnews (length ,news))
+	   (lolds (length ,olds))
+	   (inew 0)
+	   (iold 0))
+       (setq ,curoverlays (make-vector lnews (lsp-isar-ov-create)))
+       (while (and (< inew lnews) (< iold lolds))
+	 ;; otherwise, compare the first two ranges
+	 (let ((r1 (aref ,news inew))
+	       (r2 (aref ,olds iold)))
+	   (if (not (lsp-isar-ov-overlay (elt ,olds iold)))
+	       ;; we have reached the padding at the end of the olds
+	       (setq lolds iold)
+	     ;; if the ranges are equal no need to repaint
+	     (if (lsp-isar-decorations-ranges-are-equal r1 r2)
+		 (progn
+		   (aset ,curoverlays inew r2)
+		   (cl-incf inew)
+		   (cl-incf iold))
+	       ;; if r1 < r2, print r1 and continue iteration
+	       (if (lsp-isar-decorations-range-is-before r1 r2)
+		   (if (lsp-isar-decorations-find-range-and-add-to-print r1 ,curoverlays inew)
+		       (cl-incf inew)
+		     ;; else the content is not valid anymore:
+		     (progn
+		       (cl-loop for x from iold to (1- lolds) do
+				(unless (lsp-isar-ov-overlay (elt ,olds x))
+				  (cl-return nil))
+				(overlay-put (lsp-isar-ov-overlay (elt ,olds x)) 'face 'lsp-isar-font-nothing)
+				(push (lsp-isar-ov-overlay (elt ,olds x)) overlays-to-reuse))
+		       (setq inew lnews)
+		       (setq iold lolds)))
+		 ;; otherwise, r1 is after the beginng of r2,
+		 ;; so remove r2 and continue (r1 might just be later in olds)
+		 ;;(message "number of elts in olds: %s" (length olds))
+		 ;;(message "wanted to print: %s skipped: %s" r1 r2)
+		 (overlay-put (lsp-isar-ov-overlay r2) 'face 'lsp-isar-font-nothing)
+		 (push (lsp-isar-ov-overlay r2) overlays-to-reuse)
+		 (cl-incf iold))))))
+       (when (>= inew lnews)
+	 ;; no news: discard all old decorations
+	 (cl-loop for x from iold to (1- lolds) do
+		  (unless (lsp-isar-ov-overlay (elt ,olds x))
+		    (cl-return nil))
+		  (overlay-put (lsp-isar-ov-overlay (elt ,olds x)) 'face 'lsp-isar-font-nothing)
+		  (push (lsp-isar-ov-overlay (elt ,olds x)) overlays-to-reuse))
+	 (setq iold lolds))
+       (when (>= iold lolds)
+	 ;; no olds: print all news
+	 (cl-loop for x from inew to (1- lnews) do
+		  (lsp-isar-decorations-find-range-and-add-to-print (elt ,news x) ,curoverlays x))
+	 (setq inew lnews)
+	 (lsp-isar-decorations--cl-assert (= iold lolds))
+	 (lsp-isar-decorations--cl-assert (= inew lnews))
+	 )))))
 
 (defun lsp-isar-decorations-update-cached-decorations-overlays (params)
   "Update the syntax highlighting as generated by Isabelle given in PARAMS.
@@ -762,7 +853,7 @@ one.  This a performance critical function."
   (save-excursion
     (let* (
 	   ;; normal function
-	   (file (lsp-isar-decorations-normalise-path (lsp--uri-to-path (gethash "uri" params))))
+	   (file (lsp--uri-to-path (gethash "uri" params)))
 	   (buffer (find-buffer-visiting file))
 	   (pranges (gethash "content" params []))
 	   (typ (gethash "type" params "default"))
@@ -786,20 +877,20 @@ one.  This a performance critical function."
 	(overlay-recenter (point-max))
 
 	;; extract the ranges
-	(let (ranges point0 point1 (line 0) curoverlays
+	(let (point0 point1 (line 0) curoverlays
 		     (inhibit-field-text-motion t))
-	  (if (equal face 'lsp-isar-font-default)
-	      (warn "unrecognised color %s. Please report the error." typ))
+	  (when (equal face 'lsp-isar-font-default)
+	    (warn "unrecognised color %s. Please report the error." typ))
 	  (lsp-isar-decorations--cl-assert (vectorp pranges))
 
-	  (setq ranges (make-vector (length pranges) nil))
+	  ;; (setq ranges (make-vector (length pranges) nil))
 
 	  ;; extract only the range in the correct order
 	  ;; neither mapcar nor seq-map return the correct type!
 	  (cl-loop for i from 0 to (1- (length pranges)) do
-		   (aset ranges i (gethash "range" (aref pranges i))))
+		   (aset pranges i (gethash "range" (aref pranges i))))
 	  ;; 	(setq ranges (mapcar (lambda (range) (gethash "range" range)) pranges))
-	  (lsp-isar-decorations--cl-assert (vectorp ranges))
+	  (lsp-isar-decorations--cl-assert (vectorp pranges))
 
 	  ;; Sort by start-line ASC, start-character ASC.
 	  ;; the ranges are not overlapping
@@ -819,103 +910,6 @@ one.  This a performance critical function."
 	    (lsp-isar-decorations--cl-assert (vectorp old-overlays))
 	    ;; recycle an old overlay by moving and updating it,
 	    ;; otherwise, create a new one
-	    (define-inline lsp-isar-decorations-new-or-recycle-overlay (overlays-to-reuse point0 point1 face)
-	      (inline-letevals (overlays-to-reuse point0 point1 face)
-			       (inline-quote
-				(if ,overlays-to-reuse
-				    (let ((ov (pop ,overlays-to-reuse)))
-				      (move-overlay ov ,point0 ,point1)
-				      (overlay-put ov 'face ,face)
-				      ov)
-				  (lsp-isar-decorations--cl-assert (numberp ,point0))
-				  (lsp-isar-decorations--cl-assert (numberp ,point1))
-				  (let ((ov (make-overlay ,point0 ,point1)))
-				    (overlay-put ov 'face ,face)
-				    ov)))))
-
-	    ;; if a range is new, find it in the buffer and print it
-	    ;; if the current range is already not valid, return nil
-	    (define-inline lsp-isar-decorations-find-range-and-add-to-print (range curoverlays position)
-	      (inline-letevals (range position)
-			       (inline-quote
-				(ignore-errors
-				  (let ((l0 (elt ,range 0))
-					(c0 (elt ,range 1))
-					(l1 (elt ,range 2))
-					(c1 (elt ,range 3)))
-				    (forward-line (- l0 line))
-				    (forward-char c0)
-				    (setq point0 (point))
-				    (forward-line (- l1 l0))
-				    (forward-char (+ c1 end_char_offset))
-				    (setq point1 (point))
-				    (setq line l1)
-
-				    (let ((ov (lsp-isar-decorations-new-or-recycle-overlay overlays-to-reuse point0 point1 face)))
-				      (aset ,curoverlays ,position (lsp-isar-ov-create :x0 l0 :y0 c0 :x1 l1 :y1 c1 :overlay ov))
-				      t))))))
-
-	    ;; This function iterates over huge lists and therefore
-	    ;; requires either tail-call optimisation or a while loop
-	    ;; (several thousand elements are common).  Therefore, no
-	    ;; recursive function works.
-	    (define-inline lsp-isar-decorations-find-new-and-repaint (curoverlays news olds)
-	      (inline-letevals (news olds)
-			       (inline-quote
-				(let ((lnews (length ,news))
-				      (lolds (length ,olds))
-				      (inew 0)
-				      (iold 0))
-				  (setq ,curoverlays (make-vector lnews (lsp-isar-ov-create)))
-				  (while (and (< inew lnews) (< iold lolds))
-				    ;; otherwise, compare the first two ranges
-				    (let ((r1 (aref ,news inew))
-					  (r2 (aref ,olds iold)))
-				      (if (not (lsp-isar-ov-overlay (elt ,olds iold)))
-					  ;; we have reached the padding at the end of the olds
-					  (setq lolds iold)
-					;; if the ranges are equal no need to repaint
-					(if (lsp-isar-decorations-ranges-are-equal r1 r2)
-					    (progn
-					      (aset ,curoverlays inew r2)
-					      (cl-incf inew)
-					      (cl-incf iold))
-					  ;; if r1 < r2, print r1 and continue iteration
-					  (if (lsp-isar-decorations-range-is-before r1 r2)
-					      (if (lsp-isar-decorations-find-range-and-add-to-print r1 ,curoverlays inew)
-						  (cl-incf inew)
-						;; else the content is not valid anymore:
-						(progn
-						  (cl-loop for x from iold to (1- lolds) do
-							   (unless (lsp-isar-ov-overlay (elt ,olds x))
-							     (cl-return nil))
-							   (overlay-put (lsp-isar-ov-overlay (elt ,olds x)) 'face 'lsp-isar-font-nothing)
-							   (push (lsp-isar-ov-overlay (elt ,olds x)) overlays-to-reuse))
-						  (setq inew lnews)
-						  (setq iold lolds)))
-					    ;; otherwise, r1 is after the beginng of r2,
-					    ;; so remove r2 and continue (r1 might just be later in olds)
-					    ;;(message "number of elts in olds: %s" (length olds))
-					    ;;(message "wanted to print: %s skipped: %s" r1 r2)
-					    (overlay-put (lsp-isar-ov-overlay r2) 'face 'lsp-isar-font-nothing)
-					    (push (lsp-isar-ov-overlay r2) overlays-to-reuse)
-					    (cl-incf iold))))))
-				  (when (>= inew lnews)
-				    ;; no news: discard all old decorations
-				    (cl-loop for x from iold to (1- lolds) do
-					     (unless (lsp-isar-ov-overlay (elt ,olds x))
-					       (cl-return nil))
-					     (overlay-put (lsp-isar-ov-overlay (elt ,olds x)) 'face 'lsp-isar-font-nothing)
-					     (push (lsp-isar-ov-overlay (elt ,olds x)) overlays-to-reuse))
-				    (setq iold lolds))
-				  (when (>= iold lolds)
-				    ;; no olds: print all news
-				    (cl-loop for x from inew to (1- lnews) do
-					     (lsp-isar-decorations-find-range-and-add-to-print (elt ,news x) ,curoverlays x))
-				    (setq inew lnews)
-				    (lsp-isar-decorations--cl-assert (= iold lolds))
-				    (lsp-isar-decorations--cl-assert (= inew lnews))
-				    )))))
 
 	    (with-current-buffer buffer
 	      (with-silent-modifications
@@ -925,7 +919,7 @@ one.  This a performance critical function."
 		;; (cl-loop for x in old-overlays do
 		;; 	       (lsp-isar-decorations--cl-assert (cadr x)))
 
-		(lsp-isar-decorations-find-new-and-repaint curoverlays ranges old-overlays)
+		(lsp-isar-decorations-find-new-and-repaint curoverlays pranges old-overlays)
 
 		;; the curoverlays are sorted in reversed order
 		;; (cl-loop for x in curoverlays do
