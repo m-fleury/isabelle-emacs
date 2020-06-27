@@ -33,7 +33,9 @@
 ;; server accordingly.
 
 ;; Code
-(defcustom lsp-isar-parse-use t "Flag to indicate whether the library should be used.")
+(defcustom lsp-isar-parse-use t "Flag to indicate whether the library should be used."
+  :type 'boolean
+  :group 'isabelle)
 
 (defcustom lsp-isar-parse-args-use-isabelle nil "flag to indicate whether to use Isabelle"
   :type 'boolean

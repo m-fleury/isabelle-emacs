@@ -65,7 +65,7 @@ shortening prefixes of buffers with the same name."
  (lsp-isar:Progress (:nodes_status) nil)
  (lsp-isar:TheoryProgress (:name :unprocessed :running :finished :failed :consolidated :warned) nil))
 
-(lsp-defun lsp-isar-progress--update-buffer (_workspace (&lsp-isar:Progress :nodes_status))
+(lsp-defun lsp-isar-progress--update-buffer (_workspace (&lsp-isar:Progress :nodes-status))
   "Update the progress buffer and centers it on the current edited buffer with STATUS."
   (setq lsp-isar-progress--request-delay 0)
   (let ((inhibit-read-only t)
@@ -84,11 +84,9 @@ shortening prefixes of buffers with the same name."
       (setq current-thy-line 0)
       (setq current-thy-line-found nil)
       (setf (buffer-string) "")
-      (seq-doseq (theory_status nodes_status)
+      (seq-doseq (theory_status nodes-status)
 	(-let [(&lsp-isar:TheoryProgress :name :unprocessed :failed :running :finished :consolidated :warned) theory_status]
-	  (-let* (
-		  (theory name)
-		  (thyname (funcall lsp-isar-progress-theory-name-map (file-name-base theory))))
+	  (-let ((thyname (funcall lsp-isar-progress-theory-name-map (file-name-base name))))
 	    (progn
 	      (let* ((total (+ unprocessed running warned failed finished))
 		     (processed (+ warned finished)))

@@ -39,8 +39,8 @@
 
 (require 'dom)
 (require 'async)
-(require 'lsp-protocol
-)
+(require 'lsp-protocol)
+
 (eval-when-compile (require 'subr-x))
 
 (defvar lsp-isar-output-state-buffer nil "Isabelle state buffer.")
