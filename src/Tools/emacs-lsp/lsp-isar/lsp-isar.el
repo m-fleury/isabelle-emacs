@@ -270,21 +270,21 @@ the AFP and other options."
       (lsp-register-client
        (make-lsp-client
 	:new-connection
-	(lsp-tramp-connection (lambda () (lsp-full-remote-isabelle-path)))
+	(lsp-tramp-connection #'lsp-full-remote-isabelle-path)
 	:major-modes '(isar-mode)
 	:server-id 'lsp-isar
 	:priority 1
 	:remote? t
 	:notification-handlers
 	(lsp-ht
-	 ("PIDE/decoration" 'lsp-isar-decorations-update-and-reprint)
-	 ("PIDE/dynamic_output" 'lsp-isar-output-update-state-and-output-buffer)
-	 ("PIDE/progress" 'lsp-isar-progress--update-buffer)))))
+	 ("PIDE/decoration" #'lsp-isar-decorations-update-and-reprint)
+	 ("PIDE/dynamic_output" #'lsp-isar-output-update-state-and-output-buffer)
+	 ("PIDE/progress" #'lsp-isar-progress--update-buffer))))
 
     (lsp-register-client
      (make-lsp-client
       :new-connection
-      (lsp-stdio-connection (lambda () (lsp-full-isabelle-path)))
+      (lsp-stdio-connection 'lsp-full-isabelle-path)
       :major-modes '(isar-mode)
       :server-id 'lsp-isar
       :priority 1
@@ -292,9 +292,9 @@ the AFP and other options."
       :uri->path-fn (lambda (path) (funcall lsp-isar-file-name-unfollow-links (lsp--uri-to-path-1 path)))
       :notification-handlers
       (lsp-ht
-	 ("PIDE/decoration" 'lsp-isar-decorations-update-and-reprint)
-	 ("PIDE/dynamic_output" 'lsp-isar-output-update-state-and-output-buffer)
-	 ("PIDE/progress" 'lsp-isar-progress--update-buffer)))))
+	 ("PIDE/decoration" #'lsp-isar-decorations-update-and-reprint)
+	 ("PIDE/dynamic_output" #'lsp-isar-output-update-state-and-output-buffer)
+	 ("PIDE/progress" #'lsp-isar-progress--update-buffer))))))
 
 
 
