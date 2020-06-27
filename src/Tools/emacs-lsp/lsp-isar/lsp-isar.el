@@ -33,6 +33,7 @@
 ;;; Code:
 
 
+(require 'lsp-protocol)
 (require 'lsp-mode)
 (require 'lsp-isar-caret)
 (require 'lsp-isar-output)
@@ -40,7 +41,6 @@
 (require 'lsp-isar-decorations)
 (require 'lsp-isar-indent)
 (require 'lsp-isar-parse-args)
-
 
 (defcustom lsp-isar-init-hook nil
   "List of functions to be called after Isabelle has been started."
@@ -252,6 +252,11 @@ Set `lsp-isabelle-options' for other options (like importing the AFP)."
 	 "vscode_server")
    lsp-vscode-options
    lsp-remote-isabelle-options))
+
+
+(lsp-interface
+ (lsp-isar:DecorationRange (:range) nil)
+ (lsp-isar:Decorations (:uri :type) (:content)))
 
 (defun lsp-isar-define-client ()
   "Defines the LSP client for isar mode.
