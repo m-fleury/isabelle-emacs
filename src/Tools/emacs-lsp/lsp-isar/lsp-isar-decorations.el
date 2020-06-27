@@ -893,7 +893,8 @@ one.  This a performance critical function."
 	  ;; extract only the range in the correct order
 	  ;; neither mapcar nor seq-map return the correct type!
 	  (cl-loop for i from 0 to (1- (length pranges)) do
-		   (aset pranges i (gethash "range" (aref pranges i))))
+		   (-let [(&lsp-isar:DecorationRange :range) (aref pranges i)]
+		     (aset pranges i range)))
 	  ;; 	(setq ranges (mapcar (lambda (range) (gethash "range" range)) pranges))
 	  (lsp-isar-decorations--cl-assert (vectorp pranges))
 

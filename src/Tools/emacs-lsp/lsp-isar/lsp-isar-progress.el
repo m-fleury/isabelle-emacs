@@ -41,7 +41,8 @@
 ;; blabla
 
 ;;; Code:
-
+(require 'lsp-protocol)
+(require 'dash)
 
 ;; progress
 (defvar lsp-isar-progress-buffer nil "Contains the buffer to that contains the progress.")
@@ -59,7 +60,12 @@ shortening prefixes of buffers with the same name."
   :type 'function
   :group 'isabelle)
 
-(defun lsp-isar-progress--update-buffer (status)
+
+(lsp-interface
+ (lsp-isar:Progress (:nodes_status) nil)
+ (lsp-isar:TheoryProgress (:name :unprocessed :running :finished :failed :consolidated :warned) nil))
+
+(lsp-defun lsp-isar-progress--update-buffer (_workspace (&lsp-isar:Progress :nodes_status))
   "Update the progress buffer and centers it on the current edited buffer with STATUS."
   (setq lsp-isar-progress--request-delay 0)
   (let ((inhibit-read-only t)
@@ -78,50 +84,45 @@ shortening prefixes of buffers with the same name."
       (setq current-thy-line 0)
       (setq current-thy-line-found nil)
       (setf (buffer-string) "")
-      (seq-doseq (theory_status status)
-	(let*
-	    ((theory (gethash "name" theory_status))
-             (thyname (funcall lsp-isar-progress-theory-name-map (file-name-base theory)))
-	     (unprocessed (gethash "unprocessed" theory_status theory_status))
-	     (running (gethash "running" theory_status))
-	     (finished (gethash "finished" theory_status))
-	     (failed (gethash "failed" theory_status))
-	     (consolidated (gethash "consolidated" theory_status)))
-	  (progn
-	    (let* ((warned (gethash "warned" theory_status))
-		   (total (+ unprocessed running warned failed finished))
-		   (processed (+ warned finished)))
-	      (progn
-		(if (or current-thy-line-found
-			(string= thyname current-thy-name))
-		    (setq current-thy-line-found t))
-		(unless current-thy-line-found
-		  (cl-incf current-thy-line))
-                (setq lsp-isar-progress--max-thy-name-length
-                      (max lsp-isar-progress--max-thy-name-length
-                           (length thyname)))
-                (setq lsp-isar-progress--max-goal-number-length
-                      (max lsp-isar-progress--max-goal-number-length
-                           (length (number-to-string total))))
-		(setq s
-		      (format
-		       (concat
-			"%" (number-to-string lsp-isar-progress--max-thy-name-length)  "s"
-                        " %" (number-to-string lsp-isar-progress--max-goal-number-length) "s /"
-                        " %" (number-to-string lsp-isar-progress--max-goal-number-length) "s,"
-			" ✖: %2s, ⌛: %2s\n")
-                       thyname
-		       (number-to-string processed)
-		       (number-to-string total)
-		       (number-to-string failed)
-		       (number-to-string running)))
-		(if (and consolidated (= unprocessed 0) (= failed 0) (= running 0))
-		    (insert (propertize s 'font-lock-face '(:foreground "LightSalmon4")))
-		  (if (/= failed 0)
-		      (insert (propertize s 'font-lock-face '(:background "saddle brown")))
-		    (if (/= running 0)
-			(insert (propertize s 'font-lock-face '(:background "medium sea green" :foreground "black")))
-		      (insert s)))))))))
+      (seq-doseq (theory_status nodes_status)
+	(-let [(&lsp-isar:TheoryProgress :name :unprocessed :failed :running :finished :consolidated :warned) theory_status]
+	  (-let* (
+		  (theory name)
+		  (thyname (funcall lsp-isar-progress-theory-name-map (file-name-base theory))))
+	    (progn
+	      (let* ((total (+ unprocessed running warned failed finished))
+		     (processed (+ warned finished)))
+		(progn
+		  (if (or current-thy-line-found
+			  (string= thyname current-thy-name))
+		      (setq current-thy-line-found t))
+		  (unless current-thy-line-found
+		    (cl-incf current-thy-line))
+		  (setq lsp-isar-progress--max-thy-name-length
+			(max lsp-isar-progress--max-thy-name-length
+			     (length thyname)))
+		  (setq lsp-isar-progress--max-goal-number-length
+			(max lsp-isar-progress--max-goal-number-length
+			     (length (number-to-string total))))
+		  (setq s
+			(format
+			 (concat
+			  "%" (number-to-string lsp-isar-progress--max-thy-name-length)  "s"
+			  " %" (number-to-string lsp-isar-progress--max-goal-number-length) "s /"
+			  " %" (number-to-string lsp-isar-progress--max-goal-number-length) "s,"
+			  " ✖: %2s, ⌛: %2s\n")
+			 thyname
+			 (number-to-string processed)
+			 (number-to-string total)
+			 (number-to-string failed)
+			 (number-to-string running)))
+		  (if (and consolidated (= unprocessed 0) (= failed 0) (= running 0))
+		      (insert (propertize s 'font-lock-face '(:foreground "LightSalmon4")))
+		    (if (/= failed 0)
+			(insert (propertize s 'font-lock-face '(:background "saddle brown")))
+		      (if (/= running 0)
+			  (insert (propertize s 'font-lock-face '(:background "medium sea green" :foreground "black")))
+			(insert s))))))))))
       (when (get-buffer-window lsp-isar-progress-buffer 'visible)
 	(with-selected-window (get-buffer-window lsp-isar-progress-buffer)
 	  (goto-char (point-min))

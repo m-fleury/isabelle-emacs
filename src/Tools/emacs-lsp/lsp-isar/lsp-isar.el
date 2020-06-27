@@ -254,10 +254,6 @@ Set `lsp-isabelle-options' for other options (like importing the AFP)."
    lsp-remote-isabelle-options))
 
 
-(lsp-interface
- (lsp-isar:DecorationRange (:range) nil)
- (lsp-isar:Decorations (:uri :type) (:content)))
-
 (defun lsp-isar-define-client ()
   "Defines the LSP client for isar mode.
 
@@ -282,10 +278,8 @@ the AFP and other options."
 	:notification-handlers
 	(lsp-ht
 	 ("PIDE/decoration" 'lsp-isar-decorations-update-and-reprint)
-	 ("PIDE/dynamic_output"
-	  (lambda (_w p) (lsp-isar-output-update-state-and-output-buffer (gethash "content" p))))
-	 ("PIDE/progress"
-	  (lambda (_w p) (lsp-isar-progress--update-buffer (gethash "nodes_status" p)))))))
+	 ("PIDE/dynamic_output" 'lsp-isar-output-update-state-and-output-buffer)
+	 ("PIDE/progress" 'lsp-isar-progress--update-buffer)))))
 
     (lsp-register-client
      (make-lsp-client
@@ -298,11 +292,9 @@ the AFP and other options."
       :uri->path-fn (lambda (path) (funcall lsp-isar-file-name-unfollow-links (lsp--uri-to-path-1 path)))
       :notification-handlers
       (lsp-ht
-       ("PIDE/decoration" 'lsp-isar-decorations-update-and-reprint)
-       ("PIDE/dynamic_output"
-	(lambda (_w p) (lsp-isar-output-update-state-and-output-buffer (gethash "content" p))))
-       ("PIDE/progress"
-	(lambda (_w p) (lsp-isar-progress--update-buffer (gethash "nodes_status" p)))))))))
+	 ("PIDE/decoration" 'lsp-isar-decorations-update-and-reprint)
+	 ("PIDE/dynamic_output" 'lsp-isar-output-update-state-and-output-buffer)
+	 ("PIDE/progress" 'lsp-isar-progress--update-buffer)))))
 
 
 

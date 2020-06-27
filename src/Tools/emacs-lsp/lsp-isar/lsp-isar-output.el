@@ -39,7 +39,8 @@
 
 (require 'dom)
 (require 'async)
-
+(require 'lsp-protocol
+)
 (eval-when-compile (require 'subr-x))
 
 (defvar lsp-isar-output-state-buffer nil "Isabelle state buffer.")
@@ -861,25 +862,30 @@ Lisp equivalent of 'replace-regexp' as indicated in the help."
       (isar-goal-mode)
       (font-lock-mode nil))))
 
-(defun lsp-isar-output-update-state-and-output-buffer (content)
-  "Launch the thread or timer to update the state and the output panel with CONTENT."
-  (setq lsp-isar-output--previous-goal content)
-  (cl-incf lsp-isar-output-current-output-number)
 
-  (if lsp-isar-output-time-before-printing-goal
-      (progn
-	(if lsp-isar-output-proof-timer
-	    (cancel-timer lsp-isar-output-proof-timer))
-	(setq lsp-isar-output-proof-timer
-	      (run-at-time lsp-isar-output-time-before-printing-goal nil
-			   (lambda (content)
-			     (progn
-			       (setq lsp-isar-output--last-start (time-to-seconds))
-			       (lsp-isar-output--update-state-and-output-buffer content)))
-			   content)))
-    (if lsp-isar-output-use-async
-        (lsp-isar-output--update-state-and-output-buffer-async lsp-isar-output-current-output-number content)
-      (warn "no output system specified!"))))
+(lsp-interface
+ (lsp-isar:DynamicOutput (:content) nil))
+
+(defun lsp-isar-output-update-state-and-output-buffer (_workspace content)
+  "Launch the thread or timer to update the state and the output panel with CONTENT."
+  (-let [(&lsp-isar:DynamicOutput :content) content]
+    (setq lsp-isar-output--previous-goal content)
+    (cl-incf lsp-isar-output-current-output-number)
+
+    (if lsp-isar-output-time-before-printing-goal
+	(progn
+	  (if lsp-isar-output-proof-timer
+	      (cancel-timer lsp-isar-output-proof-timer))
+	  (setq lsp-isar-output-proof-timer
+		(run-at-time lsp-isar-output-time-before-printing-goal nil
+			     (lambda (content)
+			       (progn
+				 (setq lsp-isar-output--last-start (time-to-seconds))
+				 (lsp-isar-output--update-state-and-output-buffer content)))
+			     content)))
+      (if lsp-isar-output-use-async
+	  (lsp-isar-output--update-state-and-output-buffer-async lsp-isar-output-current-output-number content)
+	(warn "no output system specified!")))))
 
 
 (modify-coding-system-alist 'file "*lsp-isar-output*" 'utf-8-auto)
