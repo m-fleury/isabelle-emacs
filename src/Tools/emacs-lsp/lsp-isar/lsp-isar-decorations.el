@@ -763,23 +763,24 @@ more memory), so we only remove some with a short timeout."
 
 ;; if a range is new, find it in the buffer and print it
 ;; if the current range is already not valid, return nil
-(define-inline lsp-isar-decorations-find-range-and-add-to-print (range curoverlays position)
-  (inline-letevals (range position)
+(define-inline lsp-isar-decorations-find-range-and-add-to-print (range curoverlays position end_char_offset overlays-to-reuse line face)
+  (inline-letevals (range position end_char_offset overlays-to-reuse line face)
     (inline-quote
      (ignore-errors
        (let ((l0 (elt ,range 0))
 	     (c0 (elt ,range 1))
 	     (l1 (elt ,range 2))
-	     (c1 (elt ,range 3)))
+	     (c1 (elt ,range 3))
+	     point0 point1)
 	 (forward-line (- l0 line))
 	 (forward-char c0)
 	 (setq point0 (point))
 	 (forward-line (- l1 l0))
-	 (forward-char (+ c1 end_char_offset))
+	 (forward-char (+ c1 ,end_char_offset))
 	 (setq point1 (point))
 	 (setq line l1)
 
-	 (let ((ov (lsp-isar-decorations-new-or-recycle-overlay overlays-to-reuse point0 point1 face)))
+	 (let ((ov (lsp-isar-decorations-new-or-recycle-overlay overlays-to-reuse point0 point1 ,face)))
 	   (aset ,curoverlays ,position (lsp-isar-ov-create :x0 l0 :y0 c0 :x1 l1 :y1 c1 :overlay ov))
 	   t))))))
 
@@ -787,13 +788,14 @@ more memory), so we only remove some with a short timeout."
 ;; requires either tail-call optimisation or a while loop
 ;; (several thousand elements are common).  Therefore, no
 ;; recursive function works.
-(define-inline lsp-isar-decorations-find-new-and-repaint (curoverlays news olds)
-  (inline-letevals (news olds)
+(define-inline lsp-isar-decorations-find-new-and-repaint (curoverlays news olds end_char_offset overlays-to-reuse face)
+  (inline-letevals (news olds end_char_offset overlays-to-reuse face)
     (inline-quote
      (let ((lnews (length ,news))
 	   (lolds (length ,olds))
 	   (inew 0)
-	   (iold 0))
+	   (iold 0)
+	   (line 0))
        (setq ,curoverlays (make-vector lnews (lsp-isar-ov-create)))
        (while (and (< inew lnews) (< iold lolds))
 	 ;; otherwise, compare the first two ranges
@@ -810,7 +812,7 @@ more memory), so we only remove some with a short timeout."
 		   (cl-incf iold))
 	       ;; if r1 < r2, print r1 and continue iteration
 	       (if (lsp-isar-decorations-range-is-before r1 r2)
-		   (if (lsp-isar-decorations-find-range-and-add-to-print r1 ,curoverlays inew)
+		   (if (lsp-isar-decorations-find-range-and-add-to-print r1 ,curoverlays inew ,end_char_offset ,overlays-to-reuse line ,face)
 		       (cl-incf inew)
 		     ;; else the content is not valid anymore:
 		     (progn
@@ -839,7 +841,7 @@ more memory), so we only remove some with a short timeout."
        (when (>= iold lolds)
 	 ;; no olds: print all news
 	 (cl-loop for x from inew to (1- lnews) do
-		  (lsp-isar-decorations-find-range-and-add-to-print (elt ,news x) ,curoverlays x))
+		  (lsp-isar-decorations-find-range-and-add-to-print (elt ,news x) ,curoverlays x  ,end_char_offset ,overlays-to-reuse line ,face))
 	 (setq inew lnews)
 	 (lsp-isar-decorations--cl-assert (= iold lolds))
 	 (lsp-isar-decorations--cl-assert (= inew lnews))
@@ -877,8 +879,7 @@ one.  This a performance critical function."
 	(overlay-recenter (point-max))
 
 	;; extract the ranges
-	(let (point0 point1 (line 0) curoverlays
-		     (inhibit-field-text-motion t))
+	(let (curoverlays (inhibit-field-text-motion t))
 	  (when (equal face 'lsp-isar-font-default)
 	    (warn "unrecognised color %s. Please report the error." typ))
 	  (lsp-isar-decorations--cl-assert (vectorp pranges))
@@ -919,7 +920,7 @@ one.  This a performance critical function."
 		;; (cl-loop for x in old-overlays do
 		;; 	       (lsp-isar-decorations--cl-assert (cadr x)))
 
-		(lsp-isar-decorations-find-new-and-repaint curoverlays pranges old-overlays)
+		(lsp-isar-decorations-find-new-and-repaint curoverlays pranges old-overlays end_char_offset overlays-to-reuse face)
 
 		;; the curoverlays are sorted in reversed order
 		;; (cl-loop for x in curoverlays do
