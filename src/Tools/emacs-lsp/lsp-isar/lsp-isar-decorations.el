@@ -121,7 +121,7 @@
 
 ;;; Code:
 
-(require 'lsp-mode)
+(require 'lsp-protocol)
 
 ;; file -> type -> [range, decoration] list
 (defvar lsp-isar-decorations--sem-overlays (make-hash-table :test 'equal)

@@ -730,7 +730,7 @@ object Protocol
   {
     def apply(nodes_status: List[JSON.Object.T]): JSON.T =
     {
-       Notification("PIDE/progress", JSON.Object("nodes_status" -> nodes_status))
+       Notification("PIDE/progress", JSON.Object("nodes-status" -> nodes_status))
     }
   }
 

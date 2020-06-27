@@ -62,7 +62,7 @@ shortening prefixes of buffers with the same name."
 
 
 (lsp-interface
- (lsp-isar:Progress (:nodes_status) nil)
+ (lsp-isar:Progress (:nodes-status) nil)
  (lsp-isar:TheoryProgress (:name :unprocessed :running :finished :failed :consolidated :warned) nil))
 
 (lsp-defun lsp-isar-progress--update-buffer (_workspace (&lsp-isar:Progress :nodes-status))
