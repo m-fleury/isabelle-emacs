@@ -36,6 +36,7 @@
 
 (require 'isar-goal-mode)
 (require 'lsp-isar-decorations)
+(require 'dash)
 
 (require 'dom)
 (require 'async)

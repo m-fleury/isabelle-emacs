@@ -80,7 +80,8 @@ A typical example is
 
 where the path are replaced by what you need to be
 replaced. Remember that Isabelle canonicalize paths
-automatically.")
+automatically."
+  :group 'isabelle)
 
 (defcustom lsp-isar-use-lsp t
   "Use nil to open files without opening the server.
