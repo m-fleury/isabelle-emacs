@@ -888,6 +888,14 @@ Lisp equivalent of 'replace-regexp' as indicated in the help."
       (warn "no output system specified!"))))
 
 
+
+(defun lsp-isar-output-set-size (size)
+  "Resize line length of output buffer."
+  (interactive)
+  (let ((my-message (lsp-make-notification "PIDE/set_message_margin" (list :value size))))
+    (lsp-send-notification my-message)))
+
+
 (modify-coding-system-alist 'file "*lsp-isar-output*" 'utf-8-auto)
 
 (provide 'lsp-isar-output)

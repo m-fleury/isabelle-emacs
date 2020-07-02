@@ -40,7 +40,7 @@ object Dynamic_Output
       if (st1.output != output) {
         val content =
           cat_lines(
-            List(HTML.output(XML.elem("body", List(HTML.source(Pretty.formatted(st1.output)))),
+            List(HTML.output(XML.elem("body", List(HTML.source(Pretty.formatted(st1.output, margin = resources.get_message_margin())))),
             hidden = false, structural = true)))
         channel.write(Protocol.Dynamic_Output(content))
       }

@@ -742,4 +742,17 @@ object Protocol
         if method == "PIDE/progress_request"
       } yield ()
   }
+
+
+  object Set_Message_Margin
+  {
+    def unapply(json: JSON.T): Option[Int] =
+      json match {
+        case Notification("PIDE/set_message_margin", Some(params)) =>
+          for {
+            value <- JSON.int(params, "value")
+          } yield (value)
+        case _ => None
+      }
+  }
 }

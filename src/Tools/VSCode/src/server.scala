@@ -608,6 +608,7 @@ class Server(
           case Protocol.Document_Symbols_Request(id, file) => channel.write(get_symbols(id, file))
           case Protocol.Symbols_Request(()) => channel.write(Protocol.Symbols())
           case Protocol.Progress_Node_Request(()) => channel.write(session_progress())
+          case Protocol.Set_Message_Margin(size) => resources.update_margin(size)
           case ignored => if (!Protocol.ResponseMessage.is_empty(json)) log("### IGNORED: " + ignored)
         }
       }
