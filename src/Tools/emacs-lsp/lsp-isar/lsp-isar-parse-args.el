@@ -94,12 +94,6 @@
    ;; "-v" "-L" "/tmp/isabelle_log"
    ))
 
-
-(defun lsp-isar-parse-set-isabelle-path ()
-  (when lsp-isar-parse-use
-    (setq lsp-isar-path-to-isabelle (concat isabelle-directory "isabelle-release"))))
-
-
 (defun lsp-isar-parse-combine-isabelle-args ()
   "Parse the arguments passed to emacs."
   (when lsp-isar-parse-use
@@ -107,8 +101,6 @@
     (setq isabelle-base-session (pop command-line-args-left))
     (lsp-isar-parse-set-isabelle-path)
     (setq lsp-isabelle-options (lsp-isar-parse-lsp-isabelle-options))))
-
-(lsp-isar-parse-set-isabelle-path)
 
 (add-to-list 'command-switch-alist
 	     '("-isabelle-S" .
