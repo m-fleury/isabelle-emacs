@@ -99,7 +99,6 @@
   (when lsp-isar-parse-use
     (message "%s" "running isabelle settings")
     (setq isabelle-base-session (pop command-line-args-left))
-    (lsp-isar-parse-set-isabelle-path)
     (setq lsp-isabelle-options (lsp-isar-parse-lsp-isabelle-options))))
 
 (add-to-list 'command-switch-alist
