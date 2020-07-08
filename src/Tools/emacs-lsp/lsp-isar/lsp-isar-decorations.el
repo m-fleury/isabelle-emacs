@@ -865,7 +865,7 @@ one.  This a performance critical function."
 	;; buffer was closed
 	;; the rest will be deleted during the next round of full cleaning
 	(message "buffer not found")
-	(puthash file [] lsp-isar-decorations--sem-overlays))
+	(remhash file lsp-isar-decorations--sem-overlays))
 
       (if (and lsp-isar-decorations-delayed-printing (not (get-buffer-window buffer 'visible)))
 	  (progn
