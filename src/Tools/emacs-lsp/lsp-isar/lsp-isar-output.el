@@ -895,6 +895,16 @@ Lisp equivalent of 'replace-regexp' as indicated in the help."
   (let ((my-message (lsp-make-notification "PIDE/set_message_margin" (list :value size))))
     (lsp-send-notification my-message)))
 
+(defun lsp-isar-output-adapt-length ()
+  "Adapt the size of the buffer"
+  (when lsp-isar-output-buffer
+    (save-excursion
+      (lsp-isar-output-set-size (window-body-width (get-buffer-window lsp-isar-output-buffer))))))
+
+(defun lsp-isar-output-adapt-to-change (&optional frame)
+  (lsp-isar-output-adapt-length))
+
+(add-hook 'window-configuration-change-hook 'lsp-isar-output-adapt-to-change)
 
 (modify-coding-system-alist 'file "*lsp-isar-output*" 'utf-8-auto)
 
