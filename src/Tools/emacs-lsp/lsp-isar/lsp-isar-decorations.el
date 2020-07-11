@@ -146,7 +146,7 @@
 
 
 (defface lsp-isar-font-background-unprocessed1
-  '((((class color) (background dark)) :background "#610061")
+  `((((class color) (background dark)) :background "#610061")
     (((class color) (background light)) :background "#002b36")
     (t :priority 0))
   "The face used to mark inactive regions."
@@ -154,7 +154,7 @@
 
 
 (defface lsp-isar-font-background-unprocessed
-  '((((class color) (background dark)) :background "#ffa000")
+  `((((class color) (background dark)) :background "#ffa000")
     (((class color) (background light)) :background "#002b36")
     (t :priority 0))
   ""
@@ -870,7 +870,7 @@ one.  This a performance critical function."
 	;; buffer was closed
 	;; the rest will be deleted during the next round of full cleaning
 	(message "buffer not found")
-	(puthash file [] lsp-isar-decorations--sem-overlays))
+	(remhash file lsp-isar-decorations--sem-overlays))
 
       (if (and lsp-isar-decorations-delayed-printing (not (get-buffer-window buffer 'visible)))
 	  (progn
@@ -971,7 +971,7 @@ one.  This a performance critical function."
 (defun lsp-isar-decorations-activate-delayed-printing ()
   "Activate delayed printing."
   (when lsp-isar-decorations-delayed-printing
-    (add-to-list 'post-command-hook #'lsp-isar-decorations--print-delayed-buffers-decorations)))
+    (add-to-list 'window-configuration-change-hook #'lsp-isar-decorations--print-delayed-buffers-decorations)))
 
 (provide 'lsp-isar-decorations)
 
