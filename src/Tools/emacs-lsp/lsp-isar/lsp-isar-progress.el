@@ -86,14 +86,15 @@ shortening prefixes of buffers with the same name."
       (setf (buffer-string) "")
       (seq-doseq (theory_status nodes-status)
 	(-let [(&lsp-isar:TheoryProgress :name :unprocessed :failed :running :finished :consolidated :warned) theory_status]
-	  (-let ((thyname (funcall lsp-isar-progress-theory-name-map (file-name-base name))))
+	  (-let* ((thyname-raw (file-name-base name))
+		  (thyname (funcall lsp-isar-progress-theory-name-map thyname-raw)))
 	    (progn
 	      (let* ((total (+ unprocessed running warned failed finished))
 		     (processed (+ warned finished)))
 		(progn
-		  (if (or current-thy-line-found
-			  (string= thyname current-thy-name))
-		      (setq current-thy-line-found t))
+		  (when (or current-thy-line-found
+			  (string= thyname-raw current-thy-name))
+		    (setq current-thy-line-found t))
 		  (unless current-thy-line-found
 		    (cl-incf current-thy-line))
 		  (setq lsp-isar-progress--max-thy-name-length
@@ -126,7 +127,8 @@ shortening prefixes of buffers with the same name."
 	  (goto-char (point-min))
 	  (if current-thy-point
 	      (goto-char current-thy-point)
-	    (forward-line current-thy-line)))))))
+	    (forward-line current-thy-line))
+	  (recenter))))))
 
 
 (defun lsp-isar-progress--request-buffer ()
