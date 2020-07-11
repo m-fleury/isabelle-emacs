@@ -858,84 +858,74 @@ It is done by removing the now unused old one and adding the old
 one.  This a performance critical function."
   (save-excursion
     (-let [(&lsp-isar:Decorations :uri :type :content) params]
-    (-let* (
-	   ;; normal function
-	   (file (lsp--uri-to-path uri))
-	   (buffer (find-buffer-visiting file))
-	   (pranges (or content []))
-	   (typ type)
-	   (face (cdr (assoc typ lsp-isar-decorations-get-font)))
-	   (end_char_offset (if (or (equal typ "text_overview_error") (equal typ "text_overview_running")) 1 0)))
-      (when (not buffer)
-	;; buffer was closed
-	;; the rest will be deleted during the next round of full cleaning
-	(message "buffer not found")
-	(remhash file lsp-isar-decorations--sem-overlays))
+      (-let* (
+	      ;; normal function
+	      (file (lsp--uri-to-path uri))
+	      (buffer (find-buffer-visiting file))
+	      (pranges (or content []))
+	      (typ type)
+	      (face (cdr (assoc typ lsp-isar-decorations-get-font)))
+	      (end_char_offset (if (or (equal typ "text_overview_error") (equal typ "text_overview_running")) 1 0)))
+	(if (not buffer)
+	    ;; buffer was closed or is not properly opened yet
+	    ;; the rest will be deleted during the next round of full cleaning
+	    (remhash file lsp-isar-decorations--sem-overlays)
 
-      (if (and lsp-isar-decorations-delayed-printing (not (get-buffer-window buffer 'visible)))
-	  (progn
-	    (let ((current-file-overlays (gethash file lsp-isar-decorations--delayed-overlays (make-hash-table :test 'equal))))
-	      (puthash typ params current-file-overlays)
-	      (puthash file current-file-overlays lsp-isar-decorations--delayed-overlays)))
+	  (if (and lsp-isar-decorations-delayed-printing (not (get-buffer-window buffer 'visible)))
+	      (let ((current-file-overlays (gethash file lsp-isar-decorations--delayed-overlays (make-hash-table :test 'equal))))
+		(puthash typ params current-file-overlays)
+		(puthash file current-file-overlays lsp-isar-decorations--delayed-overlays))
 
-	;; faster adding (and deleting) of overlays; see for example
-	;; discussion on
-	;; https://github.com/flycheck/flycheck/issues/1168
-	(overlay-recenter (point-max))
+	    ;; faster adding (and deleting) of overlays; see for example
+	    ;; discussion on
+	    ;; https://github.com/flycheck/flycheck/issues/1168
+	    (overlay-recenter (point-max))
 
-	;; extract the ranges
-	(let (curoverlays (inhibit-field-text-motion t))
-	  (when (equal face 'lsp-isar-font-default)
-	    (warn "unrecognised color %s. Please report the error." typ))
-	  (lsp-isar-decorations--cl-assert (vectorp pranges))
+	    (let (curoverlays (inhibit-field-text-motion t))
+	      (when (equal face 'lsp-isar-font-default)
+		(warn "unrecognised color %s. Please report the error." typ))
+	      (lsp-isar-decorations--cl-assert (vectorp pranges))
 
-	  ;; (setq ranges (make-vector (length pranges) nil))
+	      ;; extract only the range in the correct order
+	      ;; neither mapcar nor seq-map return the correct type!
+	      (cl-loop for i from 0 to (1- (length pranges)) do
+		       (-let [(&lsp-isar:DecorationRange :range) (aref pranges i)]
+			 (aset pranges i range)))
+	      (lsp-isar-decorations--cl-assert (vectorp pranges))
 
-	  ;; extract only the range in the correct order
-	  ;; neither mapcar nor seq-map return the correct type!
-	  (cl-loop for i from 0 to (1- (length pranges)) do
-		   (-let [(&lsp-isar:DecorationRange :range) (aref pranges i)]
-		     (aset pranges i range)))
-	  ;; 	(setq ranges (mapcar (lambda (range) (gethash "range" range)) pranges))
-	  (lsp-isar-decorations--cl-assert (vectorp pranges))
+	      ;; Sort by start-line ASC, start-character ASC.
+	      ;; the ranges are not overlapping
+	      ;; (setq ranges
+	      ;;       (sort ranges (lambda (x y)
+	      ;; 		     (let ((x0 (elt x 0)) (y0 (elt y 0)))
+	      ;; 		       (if (/= x0 y0)
+	      ;; 			   (< x0 y0)
+	      ;; 			 (< (elt x 1) (elt y 1)))))))
 
-	  ;; Sort by start-line ASC, start-character ASC.
-	  ;; the ranges are not overlapping
-	  ;; (setq ranges
-	  ;;       (sort ranges (lambda (x y)
-	  ;; 		     (let ((x0 (elt x 0)) (y0 (elt y 0)))
-	  ;; 		       (if (/= x0 y0)
-	  ;; 			   (< x0 y0)
-	  ;; 			 (< (elt x 1) (elt y 1)))))))
+	      ;; reprint
+	      (let*
+		  ((current-file-overlays (gethash file lsp-isar-decorations--sem-overlays (make-hash-table :test 'equal)))
+		   (old-overlays (gethash typ current-file-overlays []))
+		   (overlays-to-reuse (gethash file lsp-isar-decorations--overlays-to-reuse nil)))
 
-	  ;; reprint
-	  (let*
-	      ((current-file-overlays (gethash file lsp-isar-decorations--sem-overlays (make-hash-table :test 'equal)))
-	       (old-overlays (gethash typ current-file-overlays []))
-	       (overlays-to-reuse (gethash file lsp-isar-decorations--overlays-to-reuse nil)))
+		(lsp-isar-decorations--cl-assert (vectorp old-overlays))
+		;; recycle an old overlay by moving and updating it,
+		;; otherwise, create a new one
 
-	    (lsp-isar-decorations--cl-assert (vectorp old-overlays))
-	    ;; recycle an old overlay by moving and updating it,
-	    ;; otherwise, create a new one
+		(with-current-buffer buffer
+		  (with-silent-modifications
+		    ;; find all new overlays
+		    (widen)
+		    (goto-char 1)
+		    ;; (cl-loop for x in old-overlays do
+		    ;; 	       (lsp-isar-decorations--cl-assert (cadr x)))
 
-	    (with-current-buffer buffer
-	      (with-silent-modifications
-		;; find all new overlays
-		(widen)
-		(goto-char 1)
-		;; (cl-loop for x in old-overlays do
-		;; 	       (lsp-isar-decorations--cl-assert (cadr x)))
+		    (lsp-isar-decorations-find-new-and-repaint curoverlays pranges old-overlays end_char_offset overlays-to-reuse face)
 
-		(lsp-isar-decorations-find-new-and-repaint curoverlays pranges old-overlays end_char_offset overlays-to-reuse face)
-
-		;; the curoverlays are sorted in reversed order
-		;; (cl-loop for x in curoverlays do
-		;; 	       (lsp-isar-decorations--cl-assert (cadr x)))
-		;; (message "curoverlays = %s" curoverlays)
-		(puthash typ curoverlays current-file-overlays)
-		(puthash file current-file-overlays lsp-isar-decorations--sem-overlays)
-		(puthash file overlays-to-reuse lsp-isar-decorations--overlays-to-reuse)))))
-	(setq lsp-isar-decorations--last-updated-file file))))))
+		    (puthash typ curoverlays current-file-overlays)
+		    (puthash file current-file-overlays lsp-isar-decorations--sem-overlays)
+		    (puthash file overlays-to-reuse lsp-isar-decorations--overlays-to-reuse)))
+		(setq lsp-isar-decorations--last-updated-file file)))))))))
 
 (defun lsp-isar-decorations-update-and-reprint (_workspace params)
   "Reprint all decorations as given by Isabelle in PARAMS."
