@@ -543,7 +543,7 @@ text \<open>
   \<^descr> @{method (HOL) induction_schema} derives user-specified induction rules
   from well-founded induction and completeness of patterns. This factors out
   some operations that are done internally by the function package and makes
-  them available separately. See \<^file>\<open>~~/src/HOL/ex/Induction_Schema.thy\<close> for
+  them available separately. See \<^file>\<open>~~/src/HOL/Examples/Induction_Schema.thy\<close> for
   examples.
 \<close>
 
@@ -662,7 +662,7 @@ text \<open>
   Adhoc overloading allows to overload a constant depending on its type.
   Typically this involves the introduction of an uninterpreted constant (used
   for input and output) and the addition of some variants (used internally).
-  For examples see \<^file>\<open>~~/src/HOL/ex/Adhoc_Overloading_Examples.thy\<close> and
+  For examples see \<^file>\<open>~~/src/HOL/Examples/Adhoc_Overloading_Examples.thy\<close> and
   \<^file>\<open>~~/src/HOL/Library/Monad_Syntax.thy\<close>.
 
   \<^rail>\<open>
@@ -1010,7 +1010,7 @@ text \<open>
 
 subsubsection \<open>Examples\<close>
 
-text \<open>See \<^file>\<open>~~/src/HOL/ex/Records.thy\<close>, for example.\<close>
+text \<open>See \<^file>\<open>~~/src/HOL/Examples/Records.thy\<close>, for example.\<close>
 
 
 section \<open>Semantic subtype definitions \label{sec:hol-typedef}\<close>
@@ -2150,7 +2150,7 @@ lemma collinear_inv_rotation:
 (*<*)end(*>*)
 
 text \<open>
-  See also \<^file>\<open>~~/src/HOL/ex/Groebner_Examples.thy\<close>.
+  See also \<^file>\<open>~~/src/HOL/Examples/Groebner_Examples.thy\<close>.
 \<close>
 
 
@@ -2167,7 +2167,7 @@ text \<open>
 
   \<^descr> @{method (HOL) coherent} solves problems of \<^emph>\<open>Coherent Logic\<close> @{cite
   "Bezem-Coquand:2005"}, which covers applications in confluence theory,
-  lattice theory and projective geometry. See \<^file>\<open>~~/src/HOL/ex/Coherent.thy\<close>
+  lattice theory and projective geometry. See \<^file>\<open>~~/src/HOL/Examples/Coherent.thy\<close>
   for some examples.
 \<close>
 
@@ -2434,7 +2434,7 @@ text \<open>
   Variant \<open>code nbe\<close> accepts also non-left-linear equations for
   \<^emph>\<open>normalization by evaluation\<close> only.
 
-  Variants \<open>code drop:\<close> and \<open>code abort:\<close> take a list of constant as arguments
+  Variants \<open>code drop:\<close> and \<open>code abort:\<close> take a list of constants as arguments
   and drop all code equations declared for them. In the case of \<open>abort\<close>,
   these constants then do not require to a specification by means of
   code equations; if needed these are implemented by program abort (exception)
