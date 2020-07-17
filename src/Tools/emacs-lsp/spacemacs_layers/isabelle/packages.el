@@ -112,7 +112,7 @@ See URL `https://github.com/ProofGeneral/PG/issues/427'."
     (lsp-isar-file-name-unfollow-links
      (lambda (path)
        (replace-regexp-in-string
-	(regexp-quote "/home/salt")
+	(regexp-quote "^/home/salt")
 	"/local/home/salt"
 	path nil 'literal)))))
 
