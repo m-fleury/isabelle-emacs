@@ -128,7 +128,7 @@ shortening prefixes of buffers with the same name."
 	  (if current-thy-point
 	      (goto-char current-thy-point)
 	    (forward-line current-thy-line))
-	  (recenter))))))
+	  (recenter -1))))))
 
 
 (defun lsp-isar-progress--request-buffer ()
