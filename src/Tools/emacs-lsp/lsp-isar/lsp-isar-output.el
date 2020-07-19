@@ -896,7 +896,9 @@ Lisp equivalent of 'replace-regexp' as indicated in the help."
   "Adapt the size of the buffer"
   (when lsp-isar-output-buffer
     (save-excursion
-      (lsp-isar-output-set-size (window-body-width (get-buffer-window lsp-isar-output-buffer))))))
+      (let
+	  ((cols (window-body-width (get-buffer-window lsp-isar-output-buffer))))
+	(lsp-isar-output-set-size (- cols 5))))))
 
 (defun lsp-isar-output-adapt-to-change (&optional _frame)
   (lsp-isar-output-adapt-length))
