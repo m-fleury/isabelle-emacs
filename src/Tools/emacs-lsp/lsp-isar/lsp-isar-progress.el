@@ -43,6 +43,7 @@
 ;;; Code:
 (require 'lsp-mode)
 (require 'dash)
+(require 'lsp-isar-types)
 
 ;; progress
 (defvar lsp-isar-progress-buffer nil "Contains the buffer to that contains the progress.")
@@ -59,11 +60,6 @@ output buffer.  An example of this consists in removing or
 shortening prefixes of buffers with the same name."
   :type 'function
   :group 'isabelle)
-
-
-(lsp-interface
- (lsp-isar:Progress (:nodes-status) nil)
- (lsp-isar:TheoryProgress (:name :unprocessed :running :finished :failed :consolidated :warned) nil))
 
 (lsp-defun lsp-isar-progress--update-buffer (_workspace (&lsp-isar:Progress :nodes-status))
   "Update the progress buffer and centers it on the current edited buffer with STATUS."

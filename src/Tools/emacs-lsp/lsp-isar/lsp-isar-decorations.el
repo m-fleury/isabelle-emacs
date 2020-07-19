@@ -122,6 +122,7 @@
 ;;; Code:
 
 (require 'lsp-mode)
+(require 'lsp-isar-types)
 
 ;; file -> type -> [range, decoration] list
 (defvar lsp-isar-decorations--sem-overlays (make-hash-table :test 'equal)
@@ -557,21 +558,6 @@ but still, I want assertions to be done only for debugging."
             nil))))
 
 
-;; types
-(cl-defstruct (lsp-isar-ov
-	       (:constructor lsp-isar-ov-create)
-	       ;; :named is not really useful in our case
-	       (:type vector))
-  "Saved overlays with position."
-  (x0 0 :read-only t :type 'int)
-  (y0 0 :read-only t :type 'int)
-  (x1 0 :read-only t :type 'int)
-  (y1 0 :read-only t :type 'int)
-  (overlay nil :read-only t))
-
-(lsp-interface
- (lsp-isar:DecorationRange (:range) nil)
- (lsp-isar:Decorations (:uri :type :content) nil))
 
 ;; range  functions
 (define-inline lsp-isar-decorations-ranges-are-equal (r1 r2)

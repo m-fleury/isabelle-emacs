@@ -41,6 +41,7 @@
 (require 'dom)
 (require 'async)
 (require 'lsp-protocol)
+(require 'lsp-isar-types)
 
 (eval-when-compile (require 'subr-x))
 
@@ -862,10 +863,6 @@ Lisp equivalent of 'replace-regexp' as indicated in the help."
       (read-only-mode t)
       (isar-goal-mode)
       (font-lock-mode nil))))
-
-
-(lsp-interface
- (lsp-isar:DynamicOutput (:content) nil))
 
 (lsp-defun lsp-isar-output-update-state-and-output-buffer (_workspace (&lsp-isar:DynamicOutput :content))
   "Launch the thread or timer to update the state and the output panel with CONTENT."
