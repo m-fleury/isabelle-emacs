@@ -898,7 +898,7 @@ Lisp equivalent of 'replace-regexp' as indicated in the help."
     (save-excursion
       (lsp-isar-output-set-size (window-body-width (get-buffer-window lsp-isar-output-buffer))))))
 
-(defun lsp-isar-output-adapt-to-change (&optional frame)
+(defun lsp-isar-output-adapt-to-change (&optional _frame)
   (lsp-isar-output-adapt-length))
 
 (add-hook 'window-configuration-change-hook 'lsp-isar-output-adapt-to-change)

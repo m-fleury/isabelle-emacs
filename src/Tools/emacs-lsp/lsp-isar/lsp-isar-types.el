@@ -33,7 +33,7 @@
 
 ;;; Code:
 
-(require 'lsp-interface)
+(require 'lsp-mode)
 
 ;; types
 (cl-defstruct (lsp-isar-ov
