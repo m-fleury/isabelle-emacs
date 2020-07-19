@@ -7,7 +7,7 @@
 
 ;; Keywords: lisp
 ;; Version: 0
-;; Package-Requires: ((emacs "25.1") (async "1.9.3") (isar-goal-mode "0"))
+;; Package-Requires: ((emacs "25.1") (async "1.9.3") (isar-goal-mode "0") (lsp-mode "7.0"))
 
 ;; Permission is hereby granted, free of charge, to any person obtaining a copy
 ;; of this software and associated documentation files (the "Software"), to deal

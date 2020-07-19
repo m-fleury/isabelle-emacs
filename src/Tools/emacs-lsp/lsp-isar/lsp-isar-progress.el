@@ -6,7 +6,7 @@
 
 ;; Keywords: lisp
 ;; Version: 0
-;; Package-Requires: ((emacs "25.1"))
+;; Package-Requires: ((emacs "25.1") (lsp-mode "7.0"))
 
 
 ;; Permission is hereby granted, free of charge, to any person obtaining a copy
