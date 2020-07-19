@@ -28,6 +28,9 @@
 (use-package lsp-mode
   :ensure t)
 
+(use-package async
+  :ensure t)
+
 (use-package isar-mode
   :ensure t
   :mode "\\.thy\\'"
@@ -38,13 +41,13 @@
 (use-package isar-goal-mode
   :ensure t
   :quelpa (isar-goal-mode :fetcher github
-			  :repo "m-fleury/simp-isar-mode"))
+			  :repo "m-fleury/isar-mode"))
 
 (use-package lsp-isar
 	     :ensure t
 	     :quelpa ((lsp-isar :fetcher github
 				:repo "m-fleury/isabelle-release"
-				:branch "isabelle2019-more-vscode"
+				:branch "Isabelle2020-more-vscode"
 				:files ("src/Tools/emacs-lsp/lsp-isar/*.el"))
 				:upgrade t)
   :after lsp-mode
