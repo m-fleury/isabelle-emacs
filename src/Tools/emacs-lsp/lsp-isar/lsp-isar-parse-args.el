@@ -55,10 +55,19 @@
 (defcustom lsp-isar-parse-args-base-session nil "flag to indicate whether to use Isabelle"
   :type 'string
   :group 'isabelle)
+
 (defcustom lsp-isar-parse-args-noisabelle nil "flag to indicate whether to use Isabelle"
   :type 'boolean
   :group 'isabelle)
 
+(defcustom isabelle-base-session nil "Base session for Isabelle."
+  :type 'string
+  :group 'isabelle)
+
+(defcustom lsp-isabelle-options (list "-m" "do_notation")
+  "Isabelle options (e.g, AFP)."
+  :type '(list string)
+  :group 'isabelle)
 
 (setq lsp-isar-parse-args-noisabelle (member "--noisabelle" command-line-args))
 (setq command-line-args (delete "--noisabelle" command-line-args))
@@ -78,6 +87,7 @@
 (defun flatten (list)
   "flatten a list of lists as a simple list"
   (cl-mapcan (lambda (x) (if (listp x) x (list x))) list))
+
 
 (defun lsp-isar-parse-lsp-isabelle-options ()
   "Combination of all Isabelle options."

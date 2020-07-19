@@ -203,11 +203,6 @@ It can be used for example by ``(add-hook 'lsp-isar-init-hook
   :type 'string
   :group 'isabelle)
 
-(defcustom lsp-isabelle-options (list "-m" "do_notation")
-  "Isabelle options (e.g, AFP)."
-  :type '(list string)
-  :group 'isabelle)
-
 (defcustom lsp-vscode-options
   (list
    "-o" "vscode_unicode_symbols"

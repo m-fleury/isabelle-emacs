@@ -536,8 +536,9 @@ classes."
 (cl-proclaim `(optimize (speed 3) (safety 0)))
 
 (defmacro lsp-isar-decorations--cl-assert (form &optional show-args string &rest args)
-  "Saner version of cl-assert: no cost if optimizations are activated!
+  "Verify that FORM returns non-nil; signal an error if not.
 
+Saner version of cl-assert of FORM: no cost if optimizations are activated!
 By default it is only when the file is compiling and if it is
 not, we just pay for the cost of the test.  The cost is not high,
 but still, I want assertions to be done only for debugging."

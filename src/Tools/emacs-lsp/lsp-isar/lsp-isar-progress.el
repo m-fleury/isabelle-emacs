@@ -41,7 +41,7 @@
 ;; blabla
 
 ;;; Code:
-(require 'lsp-protocol)
+(require 'lsp-mode)
 (require 'dash)
 
 ;; progress
@@ -93,7 +93,7 @@ shortening prefixes of buffers with the same name."
 		     (processed (+ warned finished)))
 		(progn
 		  (when (or current-thy-line-found
-			  (string= thyname-raw current-thy-name))
+			    (string= thyname-raw current-thy-name))
 		    (setq current-thy-line-found t))
 		  (unless current-thy-line-found
 		    (cl-incf current-thy-line))
