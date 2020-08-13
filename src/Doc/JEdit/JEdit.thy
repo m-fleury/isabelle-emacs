@@ -305,7 +305,7 @@ text \<open>
 
   The \<^verbatim>\<open>-n\<close> option reports the server name, and the \<^verbatim>\<open>-s\<close> option provides a
   different server name. The default server name is the official distribution
-  name (e.g.\ \<^verbatim>\<open>Isabelle2019\<close>). Thus @{tool jedit_client} can connect to the
+  name (e.g.\ \<^verbatim>\<open>Isabelle2020\<close>). Thus @{tool jedit_client} can connect to the
   Isabelle desktop application without further options.
 
   The \<^verbatim>\<open>-p\<close> option allows to override the implicit default of the system
@@ -360,15 +360,14 @@ text \<open>
 subsection \<open>Displays with high resolution \label{sec:hdpi}\<close>
 
 text \<open>
-  In 2019, we usually see displays with high resolution like ``Ultra HD'' /
+  In 2020, we usually see displays with high resolution like ``Ultra HD'' /
   ``4K'' at $3840 \times 2160$, or more. Old ``Full HD'' displays at $1920
   \times 1080$ pixels are still being used, but Java 11 font-rendering might
-  look bad on it (see \secref{sec:problems}) --- this is a good opportunity to
-  upgrade to current 4K or 5K technology. GUI layouts are lagging behind the
-  high resolution trends, and implicitly assume very old-fashioned $1024
-  \times 768$ or $1280 \times 1024$ screens and fonts with 12 or 14 pixels.
-  Java and jEdit do provide reasonable support for high resolution, but this
-  requires manual adjustments as described below.
+  look bad on it. GUI layouts are lagging behind the high resolution trends,
+  and implicitly assume very old-fashioned $1024 \times 768$ or $1280 \times
+  1024$ screens and fonts with 12 or 14 pixels. Java and jEdit do provide
+  reasonable support for high resolution, but this requires manual
+  adjustments as described below.
 
   \<^medskip> The \<^bold>\<open>operating-system\<close> often provides some configuration for global
   scaling of text fonts, e.g.\ to enlarge it uniformly by $200\%$. This
@@ -2078,7 +2077,7 @@ text \<open>
 
 chapter \<open>Miscellaneous tools\<close>
 
-section \<open>Timing\<close>
+section \<open>Timing and monitoring\<close>
 
 text \<open>
   Managed evaluation of commands within PIDE documents includes timing
@@ -2104,13 +2103,19 @@ text \<open>
   Isabelle~/ General\<close>.
 
   \<^medskip>
+  The jEdit status line includes monitor widgets for current heap usage of
+  Java and Isabelle/ML, respectively. The one for ML includes information
+  about ongoing garbage collection (as ``ML cleanup''); a double-click opens
+  a new instance of the \<^emph>\<open>Monitor\<close> panel for further details.
+
+  \<^medskip>
   The \<^emph>\<open>Monitor\<close> panel visualizes various data collections about recent
-  activity of the Isabelle/ML task farm and the underlying ML runtime system.
+  activity of the runtime system of Isabelle/ML and Java. There are buttons to
+  request a full garbage collection and sharing of live data on the ML heap.
   The display is continuously updated according to @{system_option_ref
   editor_chart_delay}. Note that the painting of the chart takes considerable
   runtime itself --- on the Java Virtual Machine that runs Isabelle/Scala, not
-  Isabelle/ML. Internally, the Isabelle/Scala module \<^verbatim>\<open>isabelle.ML_Statistics\<close>
-  provides further access to statistics of Isabelle/ML.
+  Isabelle/ML.
 \<close>
 
 
@@ -2194,6 +2199,24 @@ text \<open>
 
   \<^bold>\<open>Workaround:\<close> Use action @{action isabelle.draft} and print via the Web
   browser.
+
+  \<^item> \<^bold>\<open>Problem:\<close> Antialiased text rendering may show bad performance or bad
+  visual quality, notably on Linux/X11.
+
+  \<^bold>\<open>Workaround:\<close> The property \<^verbatim>\<open>view.antiAlias\<close> (via menu item Utilities /
+  Global Options / Text Area / Anti Aliased smooth text) has the main impact
+  on text rendering, but some related properties may also change the
+  behaviour. The default is \<^verbatim>\<open>view.antiAlias=subpixel HRGB\<close>: it can be much
+  faster than \<^verbatim>\<open>standard\<close>, but occasionally causes problems with odd color
+  shades. An alternative is to have \<^verbatim>\<open>view.antiAlias=standard\<close> and set a Java
+  system property like this:\<^footnote>\<open>See also
+  \<^url>\<open>https://docs.oracle.com/javase/10/troubleshoot/java-2d-pipeline-rendering-and-properties.htm\<close>.\<close>
+  @{verbatim [display] \<open>isabelle jedit -Dsun.java2d.opengl=true\<close>}
+
+  If this works reliably, it can be made persistent via @{setting
+  JEDIT_JAVA_OPTIONS} within \<^path>\<open>$ISABELLE_HOME_USER/etc/settings\<close>. For
+  the Isabelle desktop ``app'', there is a corresponding file with Java
+  runtime options in the main directory (name depends on the OS platform).
 
   \<^item> \<^bold>\<open>Problem:\<close> Some Linux/X11 input methods such as IBus tend to disrupt key
   event handling of Java/AWT/Swing.
