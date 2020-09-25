@@ -38,7 +38,7 @@
 
 (require 'lsp-isar-caret)
 (require 'lsp-isar-decorations)
-(require 'lsp-isar-find-theorems)
+;; (require 'lsp-isar-find-theorems)
 (require 'lsp-isar-indent)
 (require 'lsp-isar-output)
 (require 'lsp-isar-parse-args)
