@@ -5,8 +5,6 @@
 
 ;; Keywords: lisp
 ;; Version: 0
-;; Package-Requires: ((emacs "25.1") (lsp-mode "7.0"))
-
 
 ;; Permission is hereby granted, free of charge, to any person obtaining a copy
 ;; of this software and associated documentation files (the "Software"), to deal
@@ -834,8 +832,7 @@ more memory), so we only remove some with a short timeout."
 		  (lsp-isar-decorations-find-range-and-add-to-print (elt ,news x) ,curoverlays x  ,end_char_offset ,overlays-to-reuse line ,face))
 	 (setq inew lnews)
 	 (lsp-isar-decorations--cl-assert (= iold lolds))
-	 (lsp-isar-decorations--cl-assert (= inew lnews))
-	 )))))
+	 (lsp-isar-decorations--cl-assert (= inew lnews)))))))
 
 
 (lsp-defun lsp-isar-decorations-update-cached-decorations-overlays (params)

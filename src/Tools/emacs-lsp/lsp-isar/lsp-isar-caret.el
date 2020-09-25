@@ -5,7 +5,6 @@
 
 ;; Keywords: lisp
 ;; Version: 0
-;; Package-Requires: ((emacs "25.1") (lsp-mode "6.1") (lsp-mode "7.0"))
 
 ;; Permission is hereby granted, free of charge, to any person obtaining a copy
 ;; of this software and associated documentation files (the "Software"), to deal
@@ -27,7 +26,8 @@
 
 ;;; Commentary:
 
-;; blabla
+;; The position of the caret must be updated whenever it moves. This is achieved by instrumenting
+;; `post-command-hook' and sending a message.
 
 ;;; Code:
 
@@ -36,12 +36,6 @@
 
 (defvar lsp-isar-caret-last-post-command-position 0
   "Holds the cursor position from the last run of post-command-hooks.")
-
-(defvar lsp-isar-caret-last-post-command-word ""
-  "Holds the cursor position from the last run of post-command-hooks.")
-
-(defvar lsp-isar-caret--caret-timer nil
-  "Holds the timer that should update the cursor.")
 
 (define-inline lsp-isar-caret-update-struct (uri line char focus)
   "Make a Caret_Update object for the given LINE and CHAR.
@@ -87,17 +81,8 @@ interface Caret_Update {
 
 Test if the position has changed.  If it has changed, then
 launch the timer to update send the notification in the near future."
-  (if (and (boundp 'lsp--cur-workspace)
-	   (not (equal (point) lsp-isar-caret-last-post-command-position)))
-      (progn
-	(lsp-isar-caret--send-caret-update)
-	;; (if lsp-isar-caret--caret-timer
-	;;   (cancel-timer lsp-isar-caret--caret-timer))
-	;; (setq lsp-isar-caret--caret-timer
-	;; 	(run-at-time 0.2 nil 'lsp-isar-caret--send-caret-update))
-	;; (setq lsp-isar-caret-last-post-command-position (point))
-	;; (setq lsp-isar-caret-last-post-command-word my-current-word)
-	)))
+  (when (boundp 'lsp--cur-workspace)
+    (lsp-isar-caret--send-caret-update)))
 
 
 ;; https://stackoverflow.com/questions/26544696/an-emacs-cursor-movement-hook-like-the-javascript-mousemove-event

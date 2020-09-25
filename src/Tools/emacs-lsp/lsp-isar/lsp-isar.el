@@ -35,12 +35,14 @@
 
 (require 'lsp-protocol)
 (require 'lsp-mode)
+
 (require 'lsp-isar-caret)
-(require 'lsp-isar-output)
-(require 'lsp-isar-progress)
 (require 'lsp-isar-decorations)
+(require 'lsp-isar-find-theorems)
 (require 'lsp-isar-indent)
+(require 'lsp-isar-output)
 (require 'lsp-isar-parse-args)
+(require 'lsp-isar-progress)
 
 (defcustom lsp-isar-init-hook nil
   "List of functions to be called after Isabelle has been started."
@@ -97,7 +99,7 @@ you can decide at startup what you want."
 (defun lsp-isar-initialise ()
   "Initialise all Isar-related informations."
   (when (equal major-mode 'isar-mode)
-      ;; delayed decoration printing
+    ;; delayed decoration printing
     (lsp-isar-caret-activate-caret-update)
     (lsp-isar-decorations-activate-delayed-printing)
     (unless lsp-isar-already-initialised
@@ -276,7 +278,8 @@ the AFP and other options."
 	(lsp-ht
 	 ("PIDE/decoration" #'lsp-isar-decorations-update-and-reprint)
 	 ("PIDE/dynamic_output" #'lsp-isar-output-update-state-and-output-buffer)
-	 ("PIDE/progress" #'lsp-isar-progress--update-buffer))))
+	 ("PIDE/progress" #'lsp-isar-progress--update-buffer)
+	 ("PIDE/find-theorems-output" #'lsp-isar-find-theorems-answer))))
 
     (lsp-register-client
      (make-lsp-client
@@ -289,9 +292,10 @@ the AFP and other options."
       :uri->path-fn (lambda (path) (funcall lsp-isar-file-name-unfollow-links (lsp--uri-to-path-1 path)))
       :notification-handlers
       (lsp-ht
-	 ("PIDE/decoration" #'lsp-isar-decorations-update-and-reprint)
-	 ("PIDE/dynamic_output" #'lsp-isar-output-update-state-and-output-buffer)
-	 ("PIDE/progress" #'lsp-isar-progress--update-buffer))))))
+       ("PIDE/decoration" #'lsp-isar-decorations-update-and-reprint)
+       ("PIDE/dynamic_output" #'lsp-isar-output-update-state-and-output-buffer)
+       ("PIDE/progress" #'lsp-isar-progress--update-buffer)
+       ("PIDE/find-theorems" #'lsp-isar-find-theorems-answer))))))
 
 
 

@@ -5,8 +5,6 @@
 
 ;; Keywords: lisp
 ;; Version: 0
-;; Package-Requires: ((emacs "25.1"))
-
 
 ;; Permission is hereby granted, free of charge, to any person obtaining a copy
 ;; of this software and associated documentation files (the "Software"), to deal
@@ -43,9 +41,7 @@
 (defcustom lsp-isar-parse-args-noafp nil "flag to indicate whether to use Isabelle"
   :type 'boolean
   :group 'isabelle)
-(defcustom lsp-isar-parse-args-nopac t "flag to indicate whether to use Isabelle"
-  :type 'boolean
-  :group 'isabelle)
+
 (defcustom lsp-isar-parse-args-nollvm t "flag to indicate whether to use Isabelle"
   :type 'boolean
   :group 'isabelle)
@@ -84,25 +80,28 @@
 (setq lsp-isar-parse-args-noisafol (member "--isabelle-noisafol" command-line-args))
 (setq command-line-args (delete "--isabelle-noisafol" command-line-args))
 
-(defun flatten (list)
-  "flatten a list of lists as a simple list"
+(defun lsp-isar-parse-args-flatten (list)
+  "Flatten a list of lists as a simple list.
+
+Typically a function that should be defined elsewhere and called
+flatten."
   (cl-mapcan (lambda (x) (if (listp x) x (list x))) list))
 
 
 (defun lsp-isar-parse-lsp-isabelle-options ()
   "Combination of all Isabelle options."
-  (flatten
+  (lsp-isar-parse-args-flatten
    (list
     (if lsp-isar-parse-args-noafp nil (list "-d" "$AFP"))
-    (if lsp-isar-parse-args-nopac nil (list "-d" "$ISAFOL/PAC"))
     (if lsp-isar-parse-args-nollvm nil (list "-d" "$ISABELLE_LLVM"))
     (if lsp-isar-parse-args-noisafol nil (list "-d" "$ISAFOL/Weidenbach_Book"))
     (if lsp-isar-parse-args-base-session nil (list "-R" isabelle-base-session)); "IsaSAT"
     "-m" "do_notation"
     "-o" "vscode_output_delay=1"
-    "-o" "vscode_caret_perspective=20")
+    "-o" "vscode_caret_perspective=20"
+;;    "-v" "-L" "/tmp/isabelle_log"
    ;; "-v" "-L" "/tmp/isabelle_log"
-   ))
+   )))
 
 (defun lsp-isar-parse-combine-isabelle-args ()
   "Parse the arguments passed to emacs."
@@ -113,6 +112,10 @@
 
 (add-to-list 'command-switch-alist
 	     '("-isabelle-S" .
+	       (lambda (_) (lsp-isar-parse-combine-isabelle-args))))
+
+(add-to-list 'command-switch-alist
+	     '("-isabelle-R" .
 	       (lambda (_) (lsp-isar-parse-combine-isabelle-args))))
 
 

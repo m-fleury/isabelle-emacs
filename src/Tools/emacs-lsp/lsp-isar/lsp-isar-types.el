@@ -5,8 +5,6 @@
 
 ;; Keywords: lisp
 ;; Version: 0
-;; Package-Requires: ((emacs "25.1") (lsp-mode "7.0"))
-
 
 ;; Permission is hereby granted, free of charge, to any person obtaining a copy
 ;; of this software and associated documentation files (the "Software"), to deal
@@ -30,6 +28,9 @@
 ;;
 
 ;;; Commentary:
+
+;; This file defines the types of the various messages that can be sent by Isabelle. We must define
+;; them in a separate file.
 
 ;;; Code:
 
@@ -57,6 +58,10 @@
 (lsp-interface
  (lsp-isar:Progress (:nodes-status) nil)
  (lsp-isar:TheoryProgress (:name :unprocessed :running :finished :failed :consolidated :warned) nil))
+
+
+(lsp-interface
+ (lsp-isar:FindTheoremOutput (:content) nil))
 
 
 (provide 'lsp-isar-types)

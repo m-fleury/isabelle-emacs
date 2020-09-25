@@ -7,7 +7,6 @@
 
 ;; Keywords: lisp
 ;; Version: 0
-;; Package-Requires: ((emacs "25.1") (async "1.9.3") (isar-goal-mode "0.1") (lsp-mode "7.0"))
 
 ;; Permission is hereby granted, free of charge, to any person obtaining a copy
 ;; of this software and associated documentation files (the "Software"), to deal
@@ -29,8 +28,11 @@
 
 ;;; Commentary:
 
-;; Provides two ways to update the output and state buffer.  Once directly and another asynchronous
-;; via the async library.
+;; Provides two ways to update the output and state buffer.  Once directly and another
+;; asynchronously via the async library.
+
+;; The synchronous version can timeout via `lsp-isar-output-maximal-time'. This is necessary,
+;; because the update runs in the main thread.
 
 ;;; Code:
 
