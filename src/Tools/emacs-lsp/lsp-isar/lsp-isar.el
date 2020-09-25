@@ -70,6 +70,22 @@ the output buffer, and the initial hooks.")
   :type 'bool
   :group 'isabelle)
 
+(defcustom lsp-isar-file-name-follow-links (lambda (x) x)
+  "Function to replace stuff by other stuff.
+
+A typical example is
+
+   (replace-regexp-in-string
+      (regexp-quote \"/mnt/doc/isabelle/afp-2020\")
+      \"/home/zmaths/Documents/isabelle/afp-2020\"
+      path nil 'literal)
+
+where the path are replaced by what you need to be
+replaced. Remember that Isabelle canonicalize paths
+automatically."
+  :type 'function
+  :group 'isabelle)
+
 (defcustom lsp-isar-file-name-unfollow-links (lambda (x) x)
   "Function to replace canonical paths by relative paths.
 
@@ -288,7 +304,7 @@ the AFP and other options."
       :major-modes '(isar-mode)
       :server-id 'lsp-isar
       :priority 1
-      :path->uri-fn (lambda (path) (lsp--path-to-uri-1 (file-truename path)))
+      :path->uri-fn (lambda (path) (lsp--path-to-uri-1 (funcall lsp-isar-file-name-follow-links  (file-truename path))))
       :uri->path-fn (lambda (path) (funcall lsp-isar-file-name-unfollow-links (lsp--uri-to-path-1 path)))
       :notification-handlers
       (lsp-ht
