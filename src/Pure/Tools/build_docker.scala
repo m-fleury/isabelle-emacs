@@ -15,7 +15,7 @@ object Build_Docker
   private val Isabelle_Name = """^.*?(Isabelle[^/\\:]+)_linux\.tar\.gz$""".r
 
   val packages: List[String] =
-    List("curl", "less", "libfontconfig1", "libgomp1", "libwww-perl", "rlwrap", "unzip")
+    List("curl", "less", "libfontconfig1", "libgomp1", "libwww-perl", "pwgen", "rlwrap", "unzip")
 
   val package_collections: Map[String, List[String]] =
     Map("X11" -> List("libx11-6", "libxext6", "libxrender1", "libxtst6", "libxi6"),
@@ -67,7 +67,8 @@ RUN tar xzf Isabelle.tar.gz && \
   mv """ + isabelle_name + """ Isabelle && \
   perl -pi -e 's,ISABELLE_HOME_USER=.*,ISABELLE_HOME_USER="\$USER_HOME/.isabelle",g;' Isabelle/etc/settings && \
   perl -pi -e 's,ISABELLE_LOGIC=.*,ISABELLE_LOGIC=""" + logic + """,g;' Isabelle/etc/settings && \
-  Isabelle/bin/isabelle build -o system_heaps -b """ + logic +
+  Isabelle/bin/isabelle build -o system_heaps -b """ + logic + """ && \
+  rm Isabelle.tar.gz""" +
  (if (entrypoint) """
 
 ENTRYPOINT ["Isabelle/bin/isabelle"]
@@ -128,13 +129,6 @@ Usage: isabelle build_docker [OPTIONS] APP_ARCHIVE
 
   Build Isabelle docker image with default logic image, using a standard
   Isabelle application archive for Linux (local file or remote URL).
-
-  Examples:
-
-    isabelle build_docker -E -t test/isabelle:Isabelle2019 Isabelle2019_linux.tar.gz
-
-    isabelle build_docker -E -n -o Dockerfile http://isabelle.in.tum.de/dist/Isabelle2019_linux.tar.gz
-
 """,
           "B:" -> (arg => base = arg),
           "E" -> (_ => entrypoint = true),
