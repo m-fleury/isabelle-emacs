@@ -563,15 +563,15 @@ but still, I want assertions to be done only for debugging."
     (inline-quote
      (let ((x0 (lsp-isar-ov-x0 ,r2)) (y0 (lsp-isar-ov-y0 ,r2)))
        (let ((x1 (elt ,r1 0)) (y1 (elt ,r1 1)))
-	 (and (= x0 x1)
-	      (= y1 y0)))))))
+	 (and (= (cl-the fixnum x0) (cl-the fixnum x1))
+	      (= (cl-the fixnum y1) (cl-the fixnum y0))))))))
 
 (define-inline lsp-isar-decorations-point-is-before (x0 y0 x1 y1)
   (inline-letevals (x0 y0 x1 y1)
     (inline-quote
-     (if (/= ,x0 ,x1)
-	 (< ,x0 ,x1)
-       (< ,y0 ,y1)))))
+     (if (/= (cl-the fixnum ,x0) (cl-the fixnum ,x1))
+	 (< (cl-the fixnum ,x0) (cl-the fixnum ,x1))
+       (< (cl-the fixnum ,y0) (cl-the fixnum ,y1))))))
 
 ;; Ranges of the same type cannot overlap
 (define-inline lsp-isar-decorations-range-is-before (r1 r2)
@@ -760,11 +760,11 @@ more memory), so we only remove some with a short timeout."
 	     (l1 (elt ,range 2))
 	     (c1 (elt ,range 3))
 	     point0 point1)
-	 (forward-line (- l0 line))
+	 (forward-line (- (cl-the fixnum l0) (cl-the fixnum line)))
 	 (forward-char c0)
 	 (setq point0 (point))
-	 (forward-line (- l1 l0))
-	 (forward-char (+ c1 ,end_char_offset))
+	 (forward-line (- (cl-the fixnum l1) (cl-the fixnum l0)))
+	 (forward-char (+ (cl-the fixnum c1) ,end_char_offset))
 	 (setq point1 (point))
 	 (setq line l1)
 
@@ -779,60 +779,62 @@ more memory), so we only remove some with a short timeout."
 (define-inline lsp-isar-decorations-find-new-and-repaint (curoverlays news olds end_char_offset overlays-to-reuse face)
   (inline-letevals (news olds end_char_offset overlays-to-reuse face)
     (inline-quote
-     (let ((lnews (length ,news))
-	   (lolds (length ,olds))
-	   (inew 0)
-	   (iold 0)
-	   (line 0))
-       (setq ,curoverlays (make-vector lnews (lsp-isar-ov-create)))
-       (while (and (< inew lnews) (< iold lolds))
-	 ;; otherwise, compare the first two ranges
-	 (let ((r1 (aref ,news inew))
-	       (r2 (aref ,olds iold)))
-	   (if (not (lsp-isar-ov-overlay (elt ,olds iold)))
-	       ;; we have reached the padding at the end of the olds
-	       (setq lolds iold)
-	     ;; if the ranges are equal no need to repaint
-	     (if (lsp-isar-decorations-ranges-are-equal r1 r2)
-		 (progn
-		   (aset ,curoverlays inew r2)
-		   (cl-incf inew)
-		   (cl-incf iold))
-	       ;; if r1 < r2, print r1 and continue iteration
-	       (if (lsp-isar-decorations-range-is-before r1 r2)
-		   (if (lsp-isar-decorations-find-range-and-add-to-print r1 ,curoverlays inew ,end_char_offset ,overlays-to-reuse line ,face)
-		       (cl-incf inew)
-		     ;; else the content is not valid anymore:
-		     (progn
-		       (cl-loop for x from iold to (1- lolds) do
-				(unless (lsp-isar-ov-overlay (elt ,olds x))
-				  (cl-return nil))
-				(overlay-put (lsp-isar-ov-overlay (elt ,olds x)) 'face 'lsp-isar-font-nothing)
-				(push (lsp-isar-ov-overlay (elt ,olds x)) overlays-to-reuse))
-		       (setq inew lnews)
-		       (setq iold lolds)))
-		 ;; otherwise, r1 is after the beginng of r2,
-		 ;; so remove r2 and continue (r1 might just be later in olds)
-		 ;;(message "number of elts in olds: %s" (length olds))
-		 ;;(message "wanted to print: %s skipped: %s" r1 r2)
-		 (overlay-put (lsp-isar-ov-overlay r2) 'face 'lsp-isar-font-nothing)
-		 (push (lsp-isar-ov-overlay r2) overlays-to-reuse)
-		 (cl-incf iold))))))
-       (when (>= inew lnews)
-	 ;; no news: discard all old decorations
-	 (cl-loop for x from iold to (1- lolds) do
-		  (unless (lsp-isar-ov-overlay (elt ,olds x))
-		    (cl-return nil))
-		  (overlay-put (lsp-isar-ov-overlay (elt ,olds x)) 'face 'lsp-isar-font-nothing)
-		  (push (lsp-isar-ov-overlay (elt ,olds x)) overlays-to-reuse))
-	 (setq iold lolds))
-       (when (>= iold lolds)
-	 ;; no olds: print all news
-	 (cl-loop for x from inew to (1- lnews) do
-		  (lsp-isar-decorations-find-range-and-add-to-print (elt ,news x) ,curoverlays x  ,end_char_offset ,overlays-to-reuse line ,face))
-	 (setq inew lnews)
-	 (lsp-isar-decorations--cl-assert (= iold lolds))
-	 (lsp-isar-decorations--cl-assert (= inew lnews)))))))
+     (progn
+       (declare (cl-optimize (speed 3) (safety 0)))
+       (let ((lnews (length ,news))
+	     (lolds (length ,olds))
+	     (inew 0)
+	     (iold 0)
+	     (line 0))
+	 (setq ,curoverlays (make-vector lnews (lsp-isar-ov-create)))
+	 (while (and (< inew lnews) (< iold lolds))
+	   ;; otherwise, compare the first two ranges
+	   (let ((r1 (aref (cl-the array ,news) (cl-the fixnum inew)))
+		 (r2 (aref (cl-the array ,olds) (cl-the fixnum iold))))
+	     (if (not (lsp-isar-ov-overlay (elt ,olds iold)))
+		 ;; we have reached the padding at the end of the olds
+		 (setq lolds iold)
+	       ;; if the ranges are equal no need to repaint
+	       (if (lsp-isar-decorations-ranges-are-equal r1 r2)
+		   (progn
+		     (aset ,curoverlays inew r2)
+		     (cl-incf (cl-the fixnum inew))
+		     (cl-incf (cl-the fixnum iold)))
+		 ;; if r1 < r2, print r1 and continue iteration
+		 (if (lsp-isar-decorations-range-is-before r1 r2)
+		     (if (lsp-isar-decorations-find-range-and-add-to-print r1 ,curoverlays inew ,end_char_offset ,overlays-to-reuse line ,face)
+			 (cl-incf (cl-the fixnum inew))
+		       ;; else the content is not valid anymore:
+		       (progn
+			 (cl-loop for x from iold to (1- lolds) do
+				  (unless (lsp-isar-ov-overlay (elt ,olds x))
+				    (cl-return nil))
+				  (overlay-put (lsp-isar-ov-overlay (elt ,olds x)) 'face 'lsp-isar-font-nothing)
+				  (push (lsp-isar-ov-overlay (elt ,olds x)) overlays-to-reuse))
+			 (setq inew lnews)
+			 (setq iold lolds)))
+		   ;; otherwise, r1 is after the beginng of r2,
+		   ;; so remove r2 and continue (r1 might just be later in olds)
+		   ;;(message "number of elts in olds: %s" (length olds))
+		   ;;(message "wanted to print: %s skipped: %s" r1 r2)
+		   (overlay-put (lsp-isar-ov-overlay r2) 'face 'lsp-isar-font-nothing)
+		   (push (lsp-isar-ov-overlay r2) overlays-to-reuse)
+		   (cl-incf (cl-the fixnum iold)))))))
+	 (when (>= inew lnews)
+	   ;; no news: discard all old decorations
+	   (cl-loop for x from iold to (1- lolds) do
+		    (unless (lsp-isar-ov-overlay (elt ,olds x))
+		      (cl-return nil))
+		    (overlay-put (lsp-isar-ov-overlay (elt ,olds x)) 'face 'lsp-isar-font-nothing)
+		    (push (lsp-isar-ov-overlay (elt ,olds x)) overlays-to-reuse))
+	   (setq iold lolds))
+	 (when (>= iold lolds)
+	   ;; no olds: print all news
+	   (cl-loop for x from inew to (1- lnews) do
+		    (lsp-isar-decorations-find-range-and-add-to-print (elt ,news x) ,curoverlays x  ,end_char_offset ,overlays-to-reuse line ,face))
+	   (setq inew lnews)
+	   (lsp-isar-decorations--cl-assert (= iold lolds))
+	   (lsp-isar-decorations--cl-assert (= inew lnews))))))))
 
 
 (lsp-defun lsp-isar-decorations-update-cached-decorations-overlays (params)
