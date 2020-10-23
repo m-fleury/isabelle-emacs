@@ -110,7 +110,7 @@
    "sepref_def" "sepref_definition"
    "declare" "notepad"
    "inductive" "inductive_cases" "inductive_set"
-   "definition" "fun" "primrec" "corec"
+   "definition" "fun" "primrec" "corec" "locale" "sublocale"
    "abbreviation"
    "text" "section" "subsection" "subsubsection" "paragraph"
    "instantiation" "instance"
@@ -153,6 +153,7 @@
 (defvar lsp-isar-indent-isars-command
   (list
    "assumes"
+   "fixes"
    "shows"
    "obtains"))
 
