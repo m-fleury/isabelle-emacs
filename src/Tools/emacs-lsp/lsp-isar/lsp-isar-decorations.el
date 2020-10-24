@@ -564,7 +564,7 @@ but still, I want assertions to be done only for debugging."
      (let ((x0 (lsp-isar-ov-x0 ,r2)) (y0 (lsp-isar-ov-y0 ,r2)))
        (let ((x1 (elt ,r1 0)) (y1 (elt ,r1 1)))
 	 (and (= (cl-the fixnum x0) (cl-the fixnum x1))
-	      (= (cl-the fixnum y1) (cl-the fixnum y0))))))))
+	      (= (cl-the fixnum y0) (cl-the fixnum y1))))))))
 
 (define-inline lsp-isar-decorations-point-is-before (x0 y0 x1 y1)
   (inline-letevals (x0 y0 x1 y1)
@@ -803,7 +803,8 @@ more memory), so we only remove some with a short timeout."
 		 ;; if r1 < r2, print r1 and continue iteration
 		 (if (lsp-isar-decorations-range-is-before r1 r2)
 		     (if (lsp-isar-decorations-find-range-and-add-to-print r1 ,curoverlays inew ,end_char_offset ,overlays-to-reuse line ,face)
-			 (cl-incf (cl-the fixnum inew))
+			 (progn
+			   (cl-incf inew))
 		       ;; else the content is not valid anymore:
 		       (progn
 			 (cl-loop for x from iold to (1- lolds) do
