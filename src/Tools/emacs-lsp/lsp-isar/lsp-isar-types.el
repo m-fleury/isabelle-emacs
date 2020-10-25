@@ -29,8 +29,8 @@
 
 ;;; Commentary:
 
-;; This file defines the types of the various messages that can be sent by Isabelle. We must define
-;; them in a separate file.
+;; This file defines the types of the various messages that can be sent by Isabelle.
+;; We must define them in a separate file (and not in the file we want to use).
 
 ;;; Code:
 
@@ -41,7 +41,11 @@
 	       (:constructor lsp-isar-ov-create)
 	       ;; :named is not really useful in our case
 	       (:type vector))
-  "Saved overlays with position."
+  "Syntax highlighting representation.
+
+It contains the overlay that is printed at that position.  The
+positions (x0, y0) and (x1, y1) correspond to the beginning and
+the end of the overlay."
   (x0 0 :read-only t :type 'int)
   (y0 0 :read-only t :type 'int)
   (x1 0 :read-only t :type 'int)

@@ -803,8 +803,7 @@ more memory), so we only remove some with a short timeout."
 		 ;; if r1 < r2, print r1 and continue iteration
 		 (if (lsp-isar-decorations-range-is-before r1 r2)
 		     (if (lsp-isar-decorations-find-range-and-add-to-print r1 ,curoverlays inew ,end_char_offset ,overlays-to-reuse line ,face)
-			 (progn
-			   (cl-incf inew))
+			 (cl-incf inew)
 		       ;; else the content is not valid anymore:
 		       (progn
 			 (cl-loop for x from iold to (1- lolds) do
