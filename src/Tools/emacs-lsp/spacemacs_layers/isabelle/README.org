@@ -294,3 +294,17 @@ and add your own function to the hook instead!
 ** Isabelle2020
 The option "-S" was replaced by "-R" (or more precisely, the benefits from "-S" do not exist anymore and, therefore, the option "-S" was discontinued in Isabelle).
 
+* Configuration recommandation
+We can only recommand to use the values recommended by the LSP project
+#+BEGIN_src elisp
+  (setq gc-cons-threshold 100000000)
+  (setq read-process-output-max (* 1024 1024)) ;; 1mb
+#+END_src
+
+You can also set the following variable:
+#+BEGIN_src elisp
+(setq lsp-use-plists t)
+#+END_src
+This requires recompiling the LSP projects (delete in your
+=.emacs.d/elpa=, /all/ directories starting with =lsp= and restart
+Emacs)
