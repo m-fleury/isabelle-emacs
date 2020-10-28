@@ -790,7 +790,7 @@ more memory), so we only remove some with a short timeout."
   (inline-letevals (news olds end_char_offset overlays-to-reuse face)
     (inline-quote
      (progn
-       (declare (cl-optimize (speed 3) (safety 0)))
+       (declare (cl-optimize (speed 3) (safety 3)))
        (let ((lnews (length ,news))
 	     (lolds (length ,olds))
 	     (inew 0)
@@ -808,28 +808,27 @@ more memory), so we only remove some with a short timeout."
 	       (if (lsp-isar-decorations-ranges-are-equal r1 r2)
 		   (progn
 		     (aset ,curoverlays inew r2)
-		     (cl-incf (cl-the fixnum inew))
-		     (cl-incf (cl-the fixnum iold)))
+		     (cl-incf inew) ;; (cl-the fixnum inew))
+		     (cl-incf iold)) ;;(cl-the fixnum iold)))
 		 ;; if r1 < r2, print r1 and continue iteration
 		 (if (lsp-isar-decorations-range-is-before r1 r2)
 		     (if (lsp-isar-decorations-find-range-and-add-to-print r1 ,curoverlays inew ,end_char_offset ,overlays-to-reuse line ,face)
 			 (cl-incf inew)
 		       ;; else the content is not valid anymore:
-		       (progn
-			 (cl-loop for x from iold to (1- lolds) do
-				  (unless (lsp-isar-ov-overlay (elt ,olds x))
-				    (cl-return nil))
-				  (overlay-put (lsp-isar-ov-overlay (elt ,olds x)) 'face 'lsp-isar-font-nothing)
-				  (push (lsp-isar-ov-overlay (elt ,olds x)) overlays-to-reuse))
-			 (setq inew lnews)
-			 (setq iold lolds)))
+		       (cl-loop for x from iold to (1- lolds) do
+				(unless (lsp-isar-ov-overlay (elt ,olds x))
+				  (cl-return nil))
+				(overlay-put (lsp-isar-ov-overlay (elt ,olds x)) 'face 'lsp-isar-font-nothing)
+				(push (lsp-isar-ov-overlay (elt ,olds x)) overlays-to-reuse))
+		       (setq inew lnews)
+		       (setq iold lolds))
 		   ;; otherwise, r1 is after the beginng of r2,
 		   ;; so remove r2 and continue (r1 might just be later in olds)
 		   ;;(message "number of elts in olds: %s" (length olds))
 		   ;;(message "wanted to print: %s skipped: %s" r1 r2)
 		   (overlay-put (lsp-isar-ov-overlay r2) 'face 'lsp-isar-font-nothing)
 		   (push (lsp-isar-ov-overlay r2) overlays-to-reuse)
-		   (cl-incf (cl-the fixnum iold)))))))
+		   (cl-incf iold))))))
 	 (when (>= inew lnews)
 	   ;; no news: discard all old decorations
 	   (cl-loop for x from iold to (1- lolds) do
