@@ -146,7 +146,7 @@
 
 (defface lsp-isar-font-background-unprocessed1
   `((((class color) (background dark)) :background "#610061")
-    (((class color) (background light)) :background "#002b36")
+    (((class color) (background light)) :background "#aa6b36")
     (t :priority 0))
   "The face used to mark inactive regions."
   :group 'lsp-isar-sem)
