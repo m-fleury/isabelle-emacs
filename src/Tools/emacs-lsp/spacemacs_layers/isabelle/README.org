@@ -31,13 +31,17 @@ Here is a screenshot of Isabelle in spacemacs:
   -  [[#configuration][Configuration]]
 -  [[#key-bindings][Key bindings]]
 
-* TODO Description
+* Description
 This layer allows for editing isabelle theory files. It includes:
   - syntax highlighting via isar-mode
   - pretty symbols rewriting
-  - processing via isar-lsp
+  - processing via lsp-isar
   - sledgehammer interface
-  - some other things
+  - some keybindings
+
+Remark that only isar-mode and lsp-isar have been developped for this
+project. The rest (and in particular the LSP integration) was
+developped by other peole!
 
 * Preparation
 *** Clone Isabelle2019-vsce
@@ -88,6 +92,8 @@ Add the following to your =.emacs=:
 ;; install quelpa
 (use-package quelpa
   :ensure t)
+
+(require 'quelpa)
 
 (quelpa
  '(quelpa-use-package
@@ -190,7 +196,26 @@ command line and must be adapted to each use (see the Isabelle manual for the li
 Using the option "-S" (especially if you are importing the AFP in your theories), will speed up the start-up time.
 Note that this option can only be used if a ROOT file is declared for the corresponding session (see the isabelle documentation).
 * Install (as a developer)
-** TODO standard emacs
+** standard emacs
+#+begin_src elisp
+(setq simp-isar-mode-path (concat repos-directory "simp-isar-mode"))
+
+(use-package isar-mode
+  :load-path simp-isar-mode-path
+  :mode "\\.thy\\'"
+  :config)
+
+(use-package isar-goal-mode
+  :defer t
+  :load-path simp-isar-mode-path)
+
+  (use-package lsp-isar
+    :load-path lsp-isar-path-stable
+    :commands lsp-isar-open-output-and-progress-right-spacemacs lsp-isar-define-client-and-start
+    :defer t
+  )
+#+end_src
+where =simp-isar-mode-path= and =lsp-isar-path-stable= are the corresponding paths.
 ** spacemacs
 *** Download the Isar-mode package
 
@@ -272,7 +297,13 @@ If you want to split the screen differently, you just remove the hook from =isar
 (add-hook 'isar-mode-hook #'lsp-isar-define-client-and-start)
 #+END_src
 and add your own function to the hook instead!
-
+* Soft links
+Isabelle is very confused by soft links. The issues you will see are:
+  - no update of decorations when moving the cursor;
+  - the number of goals is twice the real number of goals.
+To solve this issue, you need to set the variables `lsp-isar-file-name-unfollow-links` and
+`lsp-isar-file-name-follow-links`. Setting both currently not described, because we do not really
+understand what is happenning behind the scenes. Please open an issue if you have that problem.
 * Key bindings
 *** Normal emacs
 | Binding | Effect                                                       |
@@ -294,7 +325,7 @@ and add your own function to the hook instead!
 ** Isabelle2020
 The option "-S" was replaced by "-R" (or more precisely, the benefits from "-S" do not exist anymore and, therefore, the option "-S" was discontinued in Isabelle).
 
-* Configuration recommandation
+* Recommended configuration
 We can only recommand to use the values recommended by the LSP project
 #+BEGIN_src elisp
   (setq gc-cons-threshold 100000000)
@@ -308,3 +339,8 @@ You can also set the following variable:
 This requires recompiling the LSP projects (delete in your
 =.emacs.d/elpa=, /all/ directories starting with =lsp= and restart
 Emacs)
+
+
+Remark that you can also use the so-called `gccemacs' version of
+Emacs. It should improve the performance, but we never run benchmarks
+to confirm that.
