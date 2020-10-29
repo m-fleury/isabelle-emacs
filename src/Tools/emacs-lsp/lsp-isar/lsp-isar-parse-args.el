@@ -71,9 +71,6 @@
 (setq lsp-isar-parse-args-noafp (member "--isabelle-noafp" command-line-args))
 (setq command-line-args (delete "--isabelle-noafp" command-line-args))
 
-(setq lsp-isar-parse-args-nopac (member "--isabelle-nopac" command-line-args))
-(setq command-line-args (delete "--isabelle-nopac" command-line-args))
-
 (setq lsp-isar-parse-args-nollvm (member "--isabelle-nollvm" command-line-args))
 (setq command-line-args (delete "--isabelle-nollvm" command-line-args))
 
