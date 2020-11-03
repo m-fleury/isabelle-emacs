@@ -104,16 +104,38 @@
 
 (defvar lsp-isar-indent-outmost-command
   (list
-   "theory" "imports"
-   "begin" "end" "datatype"
-   "lemma" "corollary" "theorem" "lemmas" "proposition"
-   "sepref_def" "sepref_definition"
-   "declare" "notepad"
-   "inductive" "inductive_cases" "inductive_set"
-   "definition" "fun" "primrec" "corec" "locale" "sublocale"
    "abbreviation"
-   "text" "section" "subsection" "subsubsection" "paragraph"
-   "instantiation" "instance"
+   "begin"
+   "corec"
+   "corollary"
+   "datatype"
+   "declare"
+   "definition"
+   "end"
+   "fun"
+   "find_thm"
+   "imports"
+   "inductive"
+   "inductive_cases"
+   "inductive_set"
+   "instance"
+   "instantiation"
+   "lemma"
+   "lemmas"
+   "locale"
+   "notepad"
+   "paragraph"
+   "primrec"
+   "proposition"
+   "section"
+   "sepref_def"
+   "sepref_definition"
+   "sublocale"
+   "subsection"
+   "subsubsection"
+   "text"
+   "theorem"
+   "theory"
    "thm"))
 
 (defvar lsp-isar-indent--outmost-command
@@ -127,8 +149,8 @@
 
 (defvar lsp-isar-indent-proof-command
   (list
-   "proof"
-   "next"))
+    "next"
+    "proof"))
 
 (defvar lsp-isar-indent--proof-command
   (lsp-isar-indent-create-regex-from-words lsp-isar-indent-proof-command))
@@ -154,8 +176,8 @@
   (list
    "assumes"
    "fixes"
-   "shows"
-   "obtains"))
+   "obtains"
+   "shows"))
 
 (defvar lsp-isar-indent--isars-command
   (lsp-isar-indent-create-regex-from-words lsp-isar-indent-isars-command))
@@ -168,21 +190,24 @@
 
 (defvar lsp-isar-indent-isar-command
   (list
-   "then"
-   "have" "hence"
-   "from" "with"
-   "assume"
-   "fix"
-   "show" "thus"
-   "moreover"
-   "ultimately"
    "also"
-   "finally"
+   "assume"
    "case"
-   "let"
-   "obtain"
    "define"
-   "note"))
+   "finally"
+   "fix"
+   "from"
+   "have"
+   "hence"
+   "let"
+   "moreover"
+   "note"
+   "obtain"
+   "show"
+   "then"
+   "thus"
+   "ultimately"
+   "with"))
 
 (defvar lsp-isar-indent--isar-command
   (lsp-isar-indent-create-regex-from-words lsp-isar-indent-isar-command))
@@ -194,8 +219,8 @@
 
 (defvar lsp-isar-indent-apply-structuring-command
   (list
-   "subgoal"
-   "focus"))
+   "focus"
+   "subgoal"))
 
 (defvar lsp-isar-indent--apply-structuring-command
   (lsp-isar-indent-create-regex-from-words lsp-isar-indent-apply-structuring-command))
@@ -222,13 +247,18 @@
 (defvar lsp-isar-indent-apply-command
   (list
    "apply"
-   "oops"
-   "sorry"
-   "using"
-   "unfolding"
-   "supply"
    "for"
-   "if"))
+   "if"
+   "nitpick"
+   "oops"
+   "sledgehammer"
+   "sorry"
+   "supply"
+   "try0"
+   "try"
+   "quickcheck"
+   "unfolding"
+   "using"))
 
 (defvar lsp-isar-indent--apply-command
   (lsp-isar-indent-create-regex-from-words lsp-isar-indent-apply-command))
@@ -239,8 +269,7 @@
 (defvar lsp-isar-indent-linking-command-name 'lsp-isar-indent-linking-command)
 
 (defvar lsp-isar-indent-linking-command
-  (list
-   "and"))
+  (list "and"))
 
 (defvar lsp-isar-indent--linking-command
   (lsp-isar-indent-create-regex-from-words lsp-isar-indent-linking-command))
