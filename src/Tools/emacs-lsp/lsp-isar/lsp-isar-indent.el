@@ -106,6 +106,7 @@
   (list
    "abbreviation"
    "begin"
+   "context"
    "corec"
    "corollary"
    "datatype"
@@ -122,6 +123,7 @@
    "lemma"
    "lemmas"
    "locale"
+   "notation"
    "notepad"
    "paragraph"
    "primrec"
