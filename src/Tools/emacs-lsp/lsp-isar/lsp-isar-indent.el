@@ -114,7 +114,6 @@
    "end"
    "fun"
    "find_thm"
-   "imports"
    "inductive"
    "inductive_cases"
    "inductive_set"
@@ -176,6 +175,7 @@
   (list
    "assumes"
    "fixes"
+   "imports"
    "obtains"
    "shows"))
 
