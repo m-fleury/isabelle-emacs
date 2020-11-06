@@ -146,7 +146,7 @@
 
 (defface lsp-isar-font-background-unprocessed1
   `((((class color) (background dark)) :background "#610061")
-    (((class color) (background light)) :background "#839496")
+    (((class color) (background light)) :background "#83d496")
     (t :priority 0))
   "The face used to mark inactive regions."
   :group 'lsp-isar-sem)
@@ -170,7 +170,7 @@
 
 (defface lsp-isar-font-background-bad
   '((((class color) (background dark)) :background "#ee7621")
-    (((class color) (background light)) :background "#dc322f")
+    (((class color) (background light)) :background "#efea22")
     (t :priority 5))
   ""
   :group 'lsp-isar-sem)
@@ -442,7 +442,7 @@ classes."
 
 (defface lsp-isar-font-text-overview-unprocessed
   '((((class color) (background dark)) :background "#610061")
-    (((class color) (background light)) :background "#84a5a7")
+    (((class color) (background light)) :background "#0fff80")
     (t :priority 5))
   ""
   :group 'lsp-isar-sem)
@@ -456,7 +456,7 @@ classes."
 
 (defface lsp-isar-font-text-overview-error
   '((((class color) (background dark)) :background  "#b22222")
-    (((class color) (background light)) :background "#ffc222" )
+    (((class color) (background light)) :background "#fff222" )
     (t :priority 5))
   ""
   :group 'lsp-isar-sem)
