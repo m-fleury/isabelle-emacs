@@ -250,14 +250,12 @@ Set `lsp-isabelle-options' for other options (like importing the AFP)."
 
 (defun lsp-full-remote-isabelle-path ()
   "Full remote isabelle command."
-  (append
-   (list (concat ;; "/ssh:fmv:"
-	  lsp-isar-remote-path-to-isabelle
-	  ;;"/bin/isabelle"
-	  )
-	 "vscode_server")
-   lsp-vscode-options
-   lsp-remote-isabelle-options))
+  (mapcar (lambda (opt) (replace-regexp-in-string "\\$" "\\$" opt nil 'literal))
+	  (append
+	   (list lsp-isar-remote-path-to-isabelle
+		 "vscode_server")
+	   lsp-vscode-options
+	   lsp-remote-isabelle-options)))
 
 
 (defun lsp-full-isabelle-path ()
@@ -297,8 +295,7 @@ the AFP and other options."
 
     (lsp-register-client
      (make-lsp-client
-      :new-connection
-      (lsp-stdio-connection 'lsp-full-isabelle-path)
+      :new-connection (lsp-stdio-connection 'lsp-full-isabelle-path)
       :major-modes '(isar-mode)
       :server-id 'lsp-isar
       :priority 1
