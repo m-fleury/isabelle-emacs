@@ -65,11 +65,25 @@
   :type '(list string)
   :group 'isabelle)
 
+(defcustom lsp-remote-isabelle-options (list "-m" "do_notation") "Isabelle options (e.g, AFP)."
+  :type '(list string)
+  :group 'isabelle)
+
+(defcustom lsp-isar-parse-args-tramp nil "Flag to indicate whether the library should be used."
+  :type 'boolean
+  :group 'isabelle)
+
 (setq lsp-isar-parse-args-noisabelle (member "--noisabelle" command-line-args))
 (setq command-line-args (delete "--noisabelle" command-line-args))
 
 (setq lsp-isar-parse-args-noafp (member "--isabelle-noafp" command-line-args))
 (setq command-line-args (delete "--isabelle-noafp" command-line-args))
+
+
+(setq lsp-isar-parse-args-tramp (member "--isabelle-tramp" command-line-args))
+(when lsp-isar-parse-args-tramp
+  (setq lsp-isar-tramp t))
+(setq command-line-args (delete "--isabelle-tramp" command-line-args))
 
 (setq lsp-isar-parse-args-nollvm (member "--isabelle-nollvm" command-line-args))
 (setq command-line-args (delete "--isabelle-nollvm" command-line-args))
@@ -105,7 +119,8 @@ flatten."
   (when lsp-isar-parse-use
     (message "%s" "running isabelle settings")
     (setq isabelle-base-session (pop command-line-args-left))
-    (setq lsp-isabelle-options (lsp-isar-parse-lsp-isabelle-options))))
+    (setq lsp-isabelle-options (lsp-isar-parse-lsp-isabelle-options))
+    (setq lsp-remote-isabelle-options (lsp-isar-parse-lsp-isabelle-options))))
 
 (add-to-list 'command-switch-alist
 	     '("-isabelle-S" .

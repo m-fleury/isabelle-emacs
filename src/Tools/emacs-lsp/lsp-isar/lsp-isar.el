@@ -238,6 +238,28 @@ Set `lsp-isabelle-options' for other options (like importing the AFP)."
   :type '(list string)
   :group 'isabelle)
 
+(defvar lsp-isar--already-defined-client nil
+  "Variable testing if the LSP client has already been defined.")
+
+
+(defcustom lsp-isar-remote-path-to-isabelle
+  "isabelle"
+  "Default path to Isabelle (e.g., /path/to/isabelle/folder)."
+  :type '(string)
+  :group 'isabelle)
+
+(defun lsp-full-remote-isabelle-path ()
+  "Full remote isabelle command."
+  (append
+   (list (concat ;; "/ssh:fmv:"
+	  lsp-isar-remote-path-to-isabelle
+	  ;;"/bin/isabelle"
+	  )
+	 "vscode_server")
+   lsp-vscode-options
+   lsp-remote-isabelle-options))
+
+
 (defun lsp-full-isabelle-path ()
   "Calculate the full path and the options for Isabelle."
   (append
@@ -245,29 +267,6 @@ Set `lsp-isabelle-options' for other options (like importing the AFP)."
 	 "vscode_server")
    lsp-vscode-options
    lsp-isabelle-options))
-
-(defvar lsp-isar--already-defined-client nil
-  "Variable testing if the LSP client has already been defined.")
-
-
-(defcustom lsp-isar-remote-path-to-isabelle
-  "/home/zmaths/Documents/isabelle-release"
-  "Default path to Isabelle (e.g., /path/to/isabelle/folder)."
-  :type '(string)
-  :group 'isabelle)
-
-(defcustom lsp-remote-isabelle-options (list "-m" "do_notation") "Isabelle options (e.g, AFP)."
-  :type '(list string)
-  :group 'isabelle)
-
-(defun lsp-full-remote-isabelle-path ()
-  "Full remote isabelle command."
-  (append
-   (list (concat lsp-isar-remote-path-to-isabelle "/bin/isabelle")
-	 "vscode_server")
-   lsp-vscode-options
-   lsp-remote-isabelle-options))
-
 
 (defun lsp-isar-define-client ()
   "Defines the LSP client for isar mode.
@@ -284,8 +283,7 @@ the AFP and other options."
   (if lsp-isar-tramp
       (lsp-register-client
        (make-lsp-client
-	:new-connection
-	(lsp-tramp-connection #'lsp-full-remote-isabelle-path)
+	:new-connection (lsp-tramp-connection 'lsp-full-remote-isabelle-path)
 	:major-modes '(isar-mode)
 	:server-id 'lsp-isar
 	:priority 1
