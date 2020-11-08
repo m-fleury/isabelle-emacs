@@ -105,7 +105,7 @@ flatten."
    (list
     (if lsp-isar-parse-args-noafp nil (list "-d" "$AFP"))
     (if lsp-isar-parse-args-nollvm nil (list "-d" "$ISABELLE_LLVM"))
-    (if lsp-isar-parse-args-noisafol nil (list "-d" "$ISAFOL/Weidenbach_Book"))
+    (if lsp-isar-parse-args-noisafol nil (list "-d" "$ISAFOL"))
     (if lsp-isar-parse-args-base-session nil (list "-R" isabelle-base-session)); "IsaSAT"
     "-m" "do_notation"
     "-o" "vscode_output_delay=1"
