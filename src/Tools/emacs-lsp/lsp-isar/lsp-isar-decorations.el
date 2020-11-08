@@ -856,7 +856,7 @@ one.  This a performance critical function."
       (-let* (
 	      ;; normal function
 	      (file (lsp--uri-to-path uri))
-	      (buffer (get-file-buffer file)) ;;(find-buffer-visiting file))
+	      (buffer (find-buffer-visiting file))
 	      (pranges (or content []))
 	      (typ type)
 	      (face (cdr (assoc typ lsp-isar-decorations-get-font)))
