@@ -856,7 +856,7 @@ one.  This a performance critical function."
       (-let* (
 	      ;; normal function
 	      (file (lsp--uri-to-path uri))
-	      (buffer (find-buffer-visiting file))
+	      (buffer (get-file-buffer file))
 	      (pranges (or content []))
 	      (typ type)
 	      (face (cdr (assoc typ lsp-isar-decorations-get-font)))
@@ -943,7 +943,7 @@ one.  This a performance critical function."
 (defun lsp-isar-decorations--print-delayed-buffer-decorations (file params)
   "Prints the decorations from buffer FILE that were not printed so far."
   (save-excursion
-    (let ((buffer (find-buffer-visiting file)))
+    (let ((buffer (get-file-buffer file)))
       (when (and buffer params (get-buffer-window buffer 'visible))
 	(maphash (lambda (_key params) (lsp-isar-decorations-update-cached-decorations-overlays params))
 		 params)

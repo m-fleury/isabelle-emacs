@@ -299,7 +299,7 @@ the AFP and other options."
       :major-modes '(isar-mode)
       :server-id 'lsp-isar
       :priority 1
-      :path->uri-fn (lambda (path) (lsp--path-to-uri-1 (funcall lsp-isar-file-name-follow-links  (file-truename path))))
+      :path->uri-fn (lambda (path) (lsp--path-to-uri-1 (funcall lsp-isar-file-name-follow-links path)))
       :uri->path-fn (lambda (path) (funcall lsp-isar-file-name-unfollow-links (lsp--uri-to-path-1 path)))
       :notification-handlers
       (lsp-ht

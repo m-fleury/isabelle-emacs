@@ -129,8 +129,8 @@ See URL `https://github.com/ProofGeneral/PG/issues/427'."
       (lsp-isar-file-name-unfollow-links
        (lambda (path)
          (replace-regexp-in-string
-	        "^/home/salt"
-	        "/local/home/salt"
+	        "^/local/home/salt"
+	        "/home/salt"
 	        path nil 'literal))))))
 
 (defun isabelle/init-lsp-isar-parse-args ()
