@@ -106,6 +106,7 @@
   (list
    "abbreviation"
    "begin"
+   "chapter"
    "context"
    "corec"
    "corollary"
@@ -115,6 +116,7 @@
    "end"
    "fun"
    "find_thm"
+   "global_interpretation"
    "hide_const"
    "hide_fact"
    "hide_type"
@@ -127,6 +129,8 @@
    "lemma"
    "lemmas"
    "locale"
+   "ML"
+   "ML_command"
    "notation"
    "notepad"
    "no_notation"
@@ -142,7 +146,9 @@
    "text"
    "theorem"
    "theory"
-   "thm"))
+   "thm"
+   "typedef"
+   "type_synonym"))
 
 (defvar lsp-isar-indent--outmost-command
   (lsp-isar-indent-create-regex-from-words lsp-isar-indent-outmost-command))
