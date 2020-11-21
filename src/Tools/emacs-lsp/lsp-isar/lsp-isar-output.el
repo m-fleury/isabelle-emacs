@@ -425,6 +425,9 @@ Lisp equivalent of 'replace-regexp' as indicated in the help."
 		  (lsp-isar-output-replace-regexp-all-occs "\\$\n*<body>\n" "<body>")
 
 		  ;; protect spaces and line breaks
+		  (lsp-isar-output-replace-regexp-all-occs "\s\s\s\s\s"
+							   "  ")
+
 		  (lsp-isar-output-replace-regexp-all-occs "\n\\( *\\)"
 							   "<break line = 1>'\\1'</break>")
 
@@ -776,10 +779,8 @@ Lisp equivalent of 'replace-regexp' as indicated in the help."
 
 			     ;; remove line breaks at beginning
 			     (lsp-isar-output-replace-regexp-all-occs "\\$\n*<body>\n" "<body>")
-
-			     ;; add some missing line breaks between error message
-			     (lsp-isar-output-replace-regexp-all-occs "</error_message><error_message"
-								      "</error_message>\n<error_message")
+			     (lsp-isar-output-replace-regexp-all-occs "\s\s\s\s\s"
+								      "  ")
 
 			     ;; protect spaces and line breaks
 			     (lsp-isar-output-replace-regexp-all-occs "\n\\( *\\)"
