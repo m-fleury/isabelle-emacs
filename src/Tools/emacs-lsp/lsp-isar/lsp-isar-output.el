@@ -226,6 +226,7 @@ functions adds up.  So any optimisation would help."
 	   (set-buffer lsp-isar-output-buffer)
 	   (let ((start-point (point)) (face (cdr (assoc "text_overview_error" lsp-isar-decorations-get-font))))
 	     (push (dom-node 'lsp-isar-output-fontification `((start-point .  ,start-point) (face .  ,face)) nil) contents)
+	     (push (dom-node 'break `(('line .  1)) "\n") contents)
 	     (setq contents (append (dom-children content) contents))))
 
 	  ('text_fold
@@ -423,11 +424,6 @@ Lisp equivalent of 'replace-regexp' as indicated in the help."
 		  ;; remove line breaks at beginning
 		  (lsp-isar-output-replace-regexp-all-occs "\\$\n*<body>\n" "<body>")
 
-
-		  ;; add some missing line breaks between error message
-		  (lsp-isar-output-replace-regexp-all-occs "</error_message><error_message"
-							   "</error_message>\n<error_message")
-
 		  ;; protect spaces and line breaks
 		  (lsp-isar-output-replace-regexp-all-occs "\n\\( *\\)"
 							   "<break line = 1>'\\1'</break>")
@@ -601,6 +597,7 @@ Lisp equivalent of 'replace-regexp' as indicated in the help."
 			  (push (dom-node 'lsp-isar-output-select-state-buffer ()) contents)
 			  (let ((start-point (point)) (face "text_overview_error"))
 			    (push (dom-node 'lsp-isar-output-fontification `((start-point .  ,start-point) (face .  ,face)) nil) contents)
+			    (push (dom-node 'break `(('line .  1)) "\n") contents)
 			    (setq contents (append (dom-children content) contents))))
 
 			 ('text_fold
