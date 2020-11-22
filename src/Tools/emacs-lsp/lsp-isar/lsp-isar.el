@@ -309,7 +309,6 @@ the AFP and other options."
        ("PIDE/find-theorems" #'lsp-isar-find-theorems-answer))))))
 
 
-
 ;;;###autoload
 (defun lsp-isar-define-client-and-start ()
   "Setup the LSP client if required and start LSP in the current buffer.
@@ -318,8 +317,13 @@ This is the main entry point of the lsp-isar client.  To start the
 mode automically, use `(add-hook 'isar-mode-hook
 #'lsp-isar-define-client-and-start)'"
   ;; starting lsp
-  (if (or (not lsp-isar-use-lsp) lsp-isar-parse-args-noisabelle)
-      (message "not starting the server! Set lsp-isar-use-lsp to t for that and do not pass '--noisabelle' as argument to Emacs.")
+  (when (or (not lsp-isar-use-lsp) lsp-isar-parse-args-noisabelle)
+    (message "not starting the server! Set lsp-isar-use-lsp to t for that and do not pass '--noisabelle' as argument to Emacs."))
+  (unless (or
+           (not lsp-isar-use-lsp)
+           lsp-isar-parse-args-noisabelle
+           (boundp 'lsp-isar-already-started))
+    (set (make-local-variable 'lsp-isar-already-started) t)
     (unless lsp-isar--already-defined-client
       (lsp-isar-define-client)
       (setq lsp-isar--already-defined-client t))
