@@ -73,24 +73,6 @@
   :type 'boolean
   :group 'isabelle)
 
-(setq lsp-isar-parse-args-noisabelle (member "--noisabelle" command-line-args))
-(setq command-line-args (delete "--noisabelle" command-line-args))
-
-(setq lsp-isar-parse-args-noafp (member "--isabelle-noafp" command-line-args))
-(setq command-line-args (delete "--isabelle-noafp" command-line-args))
-
-
-(setq lsp-isar-parse-args-tramp (member "--isabelle-tramp" command-line-args))
-(when lsp-isar-parse-args-tramp
-  (setq lsp-isar-tramp t))
-(setq command-line-args (delete "--isabelle-tramp" command-line-args))
-
-(setq lsp-isar-parse-args-nollvm (member "--isabelle-nollvm" command-line-args))
-(setq command-line-args (delete "--isabelle-nollvm" command-line-args))
-
-(setq lsp-isar-parse-args-noisafol (member "--isabelle-noisafol" command-line-args))
-(setq command-line-args (delete "--isabelle-noisafol" command-line-args))
-
 (defun lsp-isar-parse-args-flatten (list)
   "Flatten a list of lists as a simple list.
 
@@ -113,6 +95,31 @@ flatten."
 ;;    "-v" "-L" "/tmp/isabelle_log"
    ;; "-v" "-L" "/tmp/isabelle_log"
    )))
+
+(defun lsp-isar-parse-combine-isabelle-args-no ()
+  "Parse the arguments passed to emacs."
+  (when lsp-isar-parse-use
+    (message "%s (tramp: %s)" "running isabelle settings" (if lsp-isar-parse-args-tramp "Yes" "No"))
+
+    (unless lsp-isar-parse-args-noisabelle
+      (setq lsp-isar-parse-args-noisabelle (member "--noisabelle" command-line-args))
+      (setq command-line-args (delete "--noisabelle" command-line-args)))
+
+    (unless lsp-isar-parse-args-noafp
+      (setq lsp-isar-parse-args-noafp (member "--isabelle-noafp" command-line-args))
+      (setq command-line-args (delete "--isabelle-noafp" command-line-args)))
+
+    (unless lsp-isar-parse-args-tramp
+      (setq lsp-isar-parse-args-tramp (member "--isabelle-tramp" command-line-args))
+      (setq command-line-args (delete "--isabelle-tramp" command-line-args)))
+
+    (unless lsp-isar-parse-args-nollvm
+	(setq lsp-isar-parse-args-nollvm (member "--isabelle-nollvm" command-line-args))
+	(setq command-line-args (delete "--isabelle-nollvm" command-line-args)))
+
+    (unless lsp-isar-parse-args-noisafol
+      (setq lsp-isar-parse-args-noisafol (member "--isabelle-noisafol" command-line-args))
+      (setq command-line-args (delete "--isabelle-noisafol" command-line-args)))))
 
 (defun lsp-isar-parse-combine-isabelle-args ()
   "Parse the arguments passed to emacs."
