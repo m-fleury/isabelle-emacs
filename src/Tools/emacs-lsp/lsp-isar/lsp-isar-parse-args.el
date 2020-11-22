@@ -124,7 +124,7 @@ flatten."
 (defun lsp-isar-parse-combine-isabelle-args ()
   "Parse the arguments passed to emacs."
   (when lsp-isar-parse-use
-    (message "%s" "running isabelle settings")
+    (message "%s (tramp: %s)" "running isabelle settings" (if lsp-isar-parse-args-tramp "Yes" "No"))
     (setq isabelle-base-session (pop command-line-args-left))
     (setq lsp-isabelle-options (lsp-isar-parse-lsp-isabelle-options))
     (setq lsp-remote-isabelle-options (lsp-isar-parse-lsp-isabelle-options))))

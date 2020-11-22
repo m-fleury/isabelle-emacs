@@ -66,10 +66,6 @@ Boolean to indicate if we have already initialised progress updates,
 the output buffer, and the initial hooks.")
 
 
-(defcustom lsp-isar-tramp nil "Use Tramp to edit remote files."
-  :type 'bool
-  :group 'isabelle)
-
 (defcustom lsp-isar-file-name-follow-links (lambda (x) x)
   "Function to replace stuff by other stuff.
 
@@ -269,16 +265,17 @@ Set `lsp-isabelle-options' for other options (like importing the AFP)."
 (defun lsp-isar-define-client ()
   "Defines the LSP client for isar mode.
 
-If `lsp-isar-tramp' is t, then the lsp client is registered as
+If `lsp-isar-parse-args-tramp' is t, then the lsp client is registered as
 remote in order to edit files remotely over tramp.  Remember that
-`lsp-isar-tramp' uses a different configuration.
+`lsp-isar-parse-args-tramp' uses a different configuration.
 
 Set `lsp-remote-isabelle-options' and `lsp-isabelle-options' to
 the AFP and other options."
+  (message "installing config (tramp: %s)" (if lsp-isar-parse-args-tramp "Yes" "No"))
   ;; declare the lsp mode
   (push  '(isar-mode .  "isabelle") lsp-language-id-configuration)
 
-  (if lsp-isar-tramp
+  (if lsp-isar-parse-args-tramp
       (lsp-register-client
        (make-lsp-client
 	:new-connection (lsp-tramp-connection 'lsp-full-remote-isabelle-path)
