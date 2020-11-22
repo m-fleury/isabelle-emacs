@@ -137,6 +137,21 @@ flatten."
 	     '("-isabelle-R" .
 	       (lambda (_) (lsp-isar-parse-combine-isabelle-args))))
 
+(add-to-list 'command-switch-alist
+	     '("-isabelle-tramp" .
+	       (lambda (_) (lsp-isar-parse-combine-isabelle-args-no))))
+
+(add-to-list 'command-switch-alist
+	     '("-noisabelle" .
+	       (lambda (_) (lsp-isar-parse-combine-isabelle-args-no))))
+
+(add-to-list 'command-switch-alist
+	     '("-isabelle-noisafol" .
+	       (lambda (_) (lsp-isar-parse-combine-isabelle-args-no))))
+
+(add-to-list 'command-switch-alist
+	     '("-isabelle-noafp" .
+	       (lambda (_) (lsp-isar-parse-combine-isabelle-args-no))))
 
 (provide 'lsp-isar-parse-args)
 
