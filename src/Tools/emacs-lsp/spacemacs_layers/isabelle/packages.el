@@ -117,16 +117,16 @@ See URL `https://github.com/ProofGeneral/PG/issues/427'."
     (spacemacs/add-to-hooks 'spacemacs/load-yasnippet '(isar-mode-hook))
     :custom
     ((lsp-isar-file-name-follow-links
-       (lambda (path)
+      (lambda (path)
+        (replace-regexp-in-string
+         "^/local/home/salt/isabelle/afp-devel"
+	       "/home/salt/isabelle/afp-devel"
          (replace-regexp-in-string
-	        "^/home/salt/isabelle/emacs_isabelle"
-	        "/local/home/salt/isabelle/emacs_isabelle"
-	        (replace-regexp-in-string
-	         "^/local/home/salt/isabelle/afp-devel"
-	         "/home/salt/isabelle/afp-devel"
-	         path nil 'literal)
-	        path nil 'literal)))
-      (lsp-isar-file-name-unfollow-links
+	        "^/home/salt/isabelle"
+	        "/local/home/salt/isabelle"
+	        path nil 'literal)
+	       nil 'literal)))
+     (lsp-isar-file-name-unfollow-links
        (lambda (path)
          (replace-regexp-in-string
 	        "^/local/home/salt"
