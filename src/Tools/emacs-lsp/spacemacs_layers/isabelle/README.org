@@ -72,7 +72,7 @@ While none of them is per-se necessary, as a user, you really want to have the f
 
 ** standard emacs
 
-Add the following to your =.emacs=:
+Add the following to your =.emacs= (refer to the file =configuration_ex/mini_init.el=):
 #+BEGIN_SRC lisp
 ;; initialisation of package
 (package-initialize)
@@ -111,13 +111,17 @@ Add the following to your =.emacs=:
   :ensure t
   :mode "\\.thy\\'"
   :quelpa (isar-mode :fetcher github
-		     :repo "m-fleury/isar-mode")
+		     :repo "m-fleury/isar-mode"
+		     :files ("*.el")
+		     :upgrade t)
   )
 
 (use-package isar-goal-mode
   :ensure t
   :quelpa (isar-goal-mode :fetcher github
-			  :repo "m-fleury/simp-isar-mode"))
+			  :repo "m-fleury/simp-isar-mode"
+		     :files ("*.el")
+		     :upgrade t))
 
 (use-package lsp-isar
 	     :ensure t
