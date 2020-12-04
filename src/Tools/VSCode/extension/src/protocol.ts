@@ -131,3 +131,32 @@ export const exclude_word_permanently_type =
 
 export const reset_words_type =
   new NotificationType<void, void>("PIDE/reset_words")
+
+
+/* processing */
+
+export interface Node_Status
+{
+  name: string
+  unprocessed: number
+  running: number
+  warned: number
+  failed: number
+  finished: number
+  initialized: Boolean
+  consolidated: Boolean
+  canceled: Boolean
+  terminated: Boolean
+}
+
+export interface Nodes_Status
+{
+  nodes_status: [Node_Status]
+}
+
+export const progress_request_type =
+  new NotificationType<void, void>("PIDE/progress_request")
+
+export const progress_response_type =
+  new NotificationType<Nodes_Status, void>("PIDE/progress")
+

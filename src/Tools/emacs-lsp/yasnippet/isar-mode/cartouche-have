@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: have
+# key: have
+# --
+have \<open>$0\<close>
