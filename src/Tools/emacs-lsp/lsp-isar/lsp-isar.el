@@ -298,6 +298,7 @@ the AFP and other options."
       :priority 1
       :path->uri-fn (lambda (path) (lsp--path-to-uri-1 (funcall lsp-isar-file-name-follow-links path)))
       :uri->path-fn (lambda (path) (funcall lsp-isar-file-name-unfollow-links (lsp--uri-to-path-1 path)))
+      :library-folders-fn (lambda (_workspace) (list "/local/home/salt/isabelle/afp-devel" "/local/home/salt/isabelle/emacs_isabelle/isabelle-release"))
       :notification-handlers
       (lsp-ht
        ("PIDE/decoration" #'lsp-isar-decorations-update-and-reprint)
