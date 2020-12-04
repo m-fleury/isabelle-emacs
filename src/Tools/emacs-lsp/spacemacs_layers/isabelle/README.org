@@ -1,0 +1,350 @@
+#+TITLE: Isabelle in Emacs
+Here is a screenshot of Isabelle in emacs:
+[[file:img/normal_emacs_isabelle.png]]
+
+Here is a screenshot of Isabelle in spacemacs:
+[[file:img/spacemacs_isabelle.png]]
+
+(with the sledgehammer interface).
+
+* Heading
+:PROPERTIES:
+:TOC:      this
+:END:
+-  [[#description][Description]]
+-  [[#preparation][Preparation]]
+    -  [[#clone-isabelle2019-vsce][Clone Isabelle2019-vsce]]
+-  [[#install-as-a-non-developer][Install (as a non-developer)]]
+  -  [[#standard-emacs][standard emacs]]
+  -  [[#spacemacs][spacemacs]]
+    -  [[#create-the-private-layer-isabelle][Create the private layer Isabelle]]
+    -  [[#add-the-isabelle-layer-to-spacemacs-and-configure-it][Add the isabelle layer to spacemacs and configure it]]
+-  [[#install-as-a-developer][Install (as a developer)]]
+  -  [[#standard-emacs][standard emacs]]
+  -  [[#spacemacs][spacemacs]]
+    -  [[#download-the-isar-mode-package][Download the Isar-mode package]]
+    -  [[#create-the-private-layer-isabelle][Create the private layer Isabelle]]
+    -  [[#create-the-private-layer-lisp-mode][Create the private layer lisp-mode]]
+    -  [[#add-the-isabelle-layer-to-spacemacs-and-configure-it][Add the isabelle layer to spacemacs and configure it]]
+-  [[#post-installation][Post-Installation]]
+  -  [[#adding-the-afp][Adding the AFP]]
+  -  [[#configuration][Configuration]]
+-  [[#key-bindings][Key bindings]]
+
+* Description
+This layer allows for editing isabelle theory files. It includes:
+  - syntax highlighting via isar-mode
+  - pretty symbols rewriting
+  - processing via lsp-isar
+  - sledgehammer interface
+  - some keybindings
+
+Remark that only isar-mode and lsp-isar have been developped for this
+project. The rest (and in particular the LSP integration) was
+developped by other peole!
+
+* Preparation
+*** Clone Isabelle2019-vsce
+    - The version of Isabelle2020 to download is available at https://github.com/m-fleury/isabelle-release in the Isabelle2020-more-vscode branch
+
+#+BEGIN_SRC sh
+git clone https://github.com/m-fleury/isabelle-release.git
+cd isabelle-release
+git checkout isabelle2020-more-vscode
+#+END_SRC
+
+    - Initialize Isabelle (note that the second and third commands can take a while and require an internet connection)
+
+#+BEGIN_SRC sh
+  ./bin/isabelle components -I
+  ./bin/isabelle components -a
+  ./bin/isabelle build -b HOL
+#+END_SRC
+
+There is no difference between the standard Isabelle and this Isabelle
+version, except for some extensions in the LSP server that does not
+impact Isabelle. A small list of extensions:
+   - support for progress (corresponding to the theory panel in Isabelle/jEdit)
+   - support for outline (corresponding to the sidekick in Isabelle/jEdit)
+
+While none of them is per-se necessary, as a user, you really want to have the first one.
+* Install (as a non-developer)
+
+** standard emacs
+
+Add the following to your =.emacs= (refer to the file =configuration_ex/mini_init.el=):
+#+BEGIN_SRC lisp
+;; initialisation of package
+(package-initialize)
+
+(add-to-list 'package-archives '("org" . "http://orgmode.org/elpa/") t)
+(add-to-list 'package-archives '("melpa" . "http://melpa.milkbox.net/packages/") t)
+
+(unless (package-installed-p 'use-package)
+  (message "installing package use-package")
+  (package-refresh-contents)
+  (package-install 'use-package)
+
+  (unless (package-installed-p 'use-package)
+    (error "failed to install use-package"))
+  )
+
+;; install quelpa
+(use-package quelpa
+  :ensure t)
+
+(require 'quelpa)
+
+(quelpa
+ '(quelpa-use-package
+   :fetcher git
+   :url "https://github.com/quelpa/quelpa-use-package.git"))
+
+(require 'quelpa-use-package)
+
+;; install dependency
+(use-package lsp-mode
+  :ensure t)
+
+;; the various required packages
+(use-package isar-mode
+  :ensure t
+  :mode "\\.thy\\'"
+  :quelpa (isar-mode :fetcher github
+		     :repo "m-fleury/isar-mode"
+		     :files ("*.el")
+		     :upgrade t)
+  )
+
+(use-package isar-goal-mode
+  :ensure t
+  :quelpa (isar-goal-mode :fetcher github
+			  :repo "m-fleury/simp-isar-mode"
+		     :files ("*.el")
+		     :upgrade t))
+
+(use-package lsp-isar
+	     :ensure t
+	     :quelpa ((lsp-isar :fetcher github
+				:repo "m-fleury/isabelle-release"
+				:branch "isabelle2019-more-vscode"
+				:files ("src/Tools/emacs-lsp/lsp-isar/*.el"))
+				:upgrade t)
+  :after lsp-mode
+  :commands lsp-isar-define-client-and-start
+  :defer t
+  :init
+  (add-hook 'isar-mode-hook #'lsp-isar-define-client-and-start)
+  (add-hook 'lsp-isar-init-hook 'lsp-isar-open-output-and-progress-right-spacemacs)
+  :config
+
+  ;; CHANGE HERE: path to isabelle-release repo
+  (setq lsp-isar-path-to-isabelle "~/Documents/isabelle/isabelle-release")
+
+  )
+#+END_SRC
+
+Change the =CHANGE HERE= part with the correct path to the =isabelle-release= clone.
+
+
+** spacemacs
+*** Create the private layer Isabelle
+    - Go to the private directory in your .emacs.d
+#+BEGIN_SRC sh
+  cd ~/.emacs.d/private
+#+END_SRC
+    - Create an Isabelle directory and go to it
+#+BEGIN_SRC sh
+  mkdir isabelle
+  cd local
+#+END_SRC
+    - Create symbolic links to the layer files
+#+BEGIN_SRC sh
+  ln -s ~/isabelle-release/src/Tools/emacs-lsp/spacemacs_layers/isabelle/layers.el layers.el
+  ln -s ~/isabelle-release/src/Tools/emacs-lsp/spacemacs_layers/isabelle/packages.el packages.el
+  ln -s ~/isabelle-release/src/Tools/emacs-lsp/spacemacs_layers/isabelle/funcs.el funcs.el
+#+END_SRC
+    - Replace the imports by
+#+BEGIN_SRC elisp
+(defconst isabelle-packages
+  '(
+    ;; async is in spacemacs-core
+    dash
+    (isar-mode :location (recipe
+                             :fetcher github
+                             :repo "m-fleury/isar-mode"))
+    (isar-goal-mode :location (recipe
+                             :fetcher github
+                             :repo "m-fleury/simp-isar-mode"))
+    (lsp-isar :location (recipe
+                             :fetcher github
+                             :repo "m-fleury/emacs-isabelle"
+                 :files ("src/Tools/emacs-lsp/lsp-isar/*.el")))
+    yasnippet)
+  "The list of Lisp packages required by the isabelle layer.")
+#+END_SRC
+
+*** Add the isabelle layer to spacemacs and configure it
+To use this configuration layer, add it to your =~/.spacemacs=. You will need to
+add =isabelle= to the existing =dotspacemacs-configuration-layers= list in this
+file.
+
+Then you need to add the following lines in the =dotspacemacs/user-init= function of your =~/.spacemacs= file.
+#+BEGIN_SRC elisp
+  (setq lsp-isar-path-to-isabelle "~/isabelle-release")
+  (setq lsp-isabelle-options (list "-d" "~/Example_Dir/Example_Session_Dir" "-S" "Example_Session"))
+#+END_SRC
+Note that the second line contains the command options to start isabelle from the
+command line and must be adapted to each use (see the Isabelle manual for the list of options).
+
+Using the option "-S" (especially if you are importing the AFP in your theories), will speed up the start-up time.
+Note that this option can only be used if a ROOT file is declared for the corresponding session (see the isabelle documentation).
+* Install (as a developer)
+** standard emacs
+#+begin_src elisp
+(setq simp-isar-mode-path (concat repos-directory "simp-isar-mode"))
+
+(use-package isar-mode
+  :load-path simp-isar-mode-path
+  :mode "\\.thy\\'"
+  :config)
+
+(use-package isar-goal-mode
+  :defer t
+  :load-path simp-isar-mode-path)
+
+  (use-package lsp-isar
+    :load-path lsp-isar-path-stable
+    :commands lsp-isar-open-output-and-progress-right-spacemacs lsp-isar-define-client-and-start
+    :defer t
+  )
+#+end_src
+where =simp-isar-mode-path= and =lsp-isar-path-stable= are the corresponding paths.
+** spacemacs
+*** Download the Isar-mode package
+
+#+BEGIN_SRC sh
+  git clone https://github.com/m-fleury/simp-isar-mode.git
+#+END_SRC
+
+In the remainder of these instructions, I assume you have cloned these repos directly in your home directory. The following commands must be adapted with the correct paths otherwise.
+
+*** Create the private layer Isabelle
+    - Go to the private directory in your .emacs.d
+#+BEGIN_SRC sh
+  cd ~/.emacs.d/private
+#+END_SRC
+    - Create an Isabelle directory and go to it
+#+BEGIN_SRC sh
+  mkdir isabelle
+  cd local
+#+END_SRC
+    - Create symbolic links to the layer files
+#+BEGIN_SRC sh
+  ln -s ~/isabelle-release/src/Tools/emacs-lsp/spacemacs_layers/isabelle/layers.el layers.el
+  ln -s ~/isabelle-release/src/Tools/emacs-lsp/spacemacs_layers/isabelle/packages.el packages.el
+  ln -s ~/isabelle-release/src/Tools/emacs-lsp/spacemacs_layers/isabelle/funcs.el funcs.el
+#+END_SRC
+    - Create a local folder and go to it
+#+BEGIN_SRC sh
+  mkdir local
+  cd local
+#+END_SRC
+    - Create symbolic links to local packages
+#+BEGIN_SRC sh
+  ln -s ~/isabelle-release/src/Tools/emacs-lsp/lsp-isar/ lsp-isar 
+  ln -s ~/simp-isar-mode/ isar-mode
+#+END_SRC
+
+*** Create the private layer lisp-mode
+    - Go to the private folder of your .emacs.d
+#+BEGIN_SRC sh
+  cd ../..
+#+END_SRC
+    - Create an lsp-mode folder and go to it
+#+BEGIN_SRC sh
+  mkdir lsp-mode
+  cd lsp-mode
+#+END_SRC
+    - Create a symbolic link to the layer file
+#+BEGIN_SRC sh
+  ln -s ~/isabelle-release/src/Tools/emacs-lsp/spacemacs_layers/lsp-mode/packages.el packages.el
+#+END_SRC
+
+*** Add the isabelle layer to spacemacs and configure it
+Same as non-developer version
+* Post-Installation
+** Adding the AFP
+Append to the file =~/.isabelle/Isabelle2020/etc/settings=
+#+BEGIN_src sh
+AFP=/path/to/AFP/thys
+#+END_SRC
+
+Then change in the emacs/spacemacs configuration
+#+BEGIN_src elisp
+  (setq lsp-isabelle-options (list "-d" "\$AFP"))
+#+END_src
+This is also the place to include further paths. Remember, however, that including more paths, makes Isabelle slower to start.
+** Configuration
+Splitting is possible in two or three columns (see the screenshot on top). This can be controlled by
+#+BEGIN_src elisp
+(setq lsp-isar-split-pattern 'lsp-isar-split-pattern-three-columns)
+#+END_src
+or
+#+BEGIN_src elisp
+(setq lsp-isar-split-pattern 'lsp-isar-split-pattern-two-columns)
+#+END_src
+
+
+If you want to split the screen differently, you just remove the hook from =isar-mode-hooks= (the line looks like):
+#+BEGIN_src elisp
+(add-hook 'isar-mode-hook #'lsp-isar-define-client-and-start)
+#+END_src
+and add your own function to the hook instead!
+* Soft links
+Isabelle is very confused by soft links. The issues you will see are:
+  - no update of decorations when moving the cursor;
+  - the number of goals is twice the real number of goals.
+To solve this issue, you need to set the variables `lsp-isar-file-name-unfollow-links` and
+`lsp-isar-file-name-follow-links`. Setting both currently not described, because we do not really
+understand what is happenning behind the scenes. Please open an issue if you have that problem.
+* Key bindings
+*** Normal emacs
+| Binding | Effect                                                       |
+|---------+--------------------------------------------------------------|
+| C-c C-s | insert sledgehammer command and open the transient interface |
+
+(If you know magit, you will know how to use the interface)
+
+*** Spacemacs
+| Binding | Effect                                                       |
+|---------+--------------------------------------------------------------|
+| ,ii     | insert sledgehammer command and open the transient interface |
+| ,is     | open the transient interface                                 |
+
+(If you know magit, you will know how to use the interface)
+
+
+* Update from previous version
+** Isabelle2020
+The option "-S" was replaced by "-R" (or more precisely, the benefits from "-S" do not exist anymore and, therefore, the option "-S" was discontinued in Isabelle).
+
+* Recommended configuration
+We can only recommand to use the values recommended by the LSP project
+#+BEGIN_src elisp
+  (setq gc-cons-threshold 100000000)
+  (setq read-process-output-max (* 1024 1024)) ;; 1mb
+#+END_src
+
+You can also set the following variable:
+#+BEGIN_src elisp
+(setq lsp-use-plists t)
+#+END_src
+This requires recompiling the LSP projects (delete in your
+=.emacs.d/elpa=, /all/ directories starting with =lsp= and restart
+Emacs)
+
+
+Remark that you can also use the so-called `gccemacs' version of
+Emacs. It should improve the performance, but we never run benchmarks
+to confirm that.

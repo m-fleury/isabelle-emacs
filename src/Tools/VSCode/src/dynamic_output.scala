@@ -12,7 +12,7 @@ import isabelle._
 
 object Dynamic_Output
 {
-  sealed case class State(do_update: Boolean = true, output: List[XML.Tree] = Nil)
+  sealed case class State(val server: vscode.Language_Server, do_update: Boolean = true, output: List[XML.Tree] = Nil)
   {
     def handle_update(
       resources: VSCode_Resources, channel: Channel, restriction: Option[Set[Command]]): State =
@@ -26,18 +26,53 @@ object Dynamic_Output
               snapshot.current_command(caret.node_name, caret.offset) match {
                 case None => copy(output = Nil)
                 case Some(command) =>
-                  copy(output =
-                    if (restriction.isEmpty || restriction.get.contains(command))
+                  val text = 
+                    if (!restriction.isDefined || restriction.get.contains(command))
+                      //server.resources.output_pretty_message(snapshot.command_results(command))
                       Rendering.output_messages(snapshot.command_results(command))
-                    else output)
+                    else output
+                  copy(output = text)
               }
             }
             else this
         }
       if (st1.output != output) {
-        channel.write(LSP.Dynamic_Output(
-          resources.output_pretty_message(Pretty.separate(st1.output))))
+        val content =
+          cat_lines(
+            List(HTML.output(XML.elem("body", List(HTML.source(Pretty.formatted(st1.output, margin = resources.get_message_margin())))),
+            hidden = false, structural = true)))
+        channel.write(LSP.Dynamic_Output(content))
       }
+      st1
+    }
+
+    def force_update(
+      resources: VSCode_Resources, channel: Channel, restriction: Option[Set[Command]]): State =
+    {
+      val st1 =
+        resources.get_caret() match {
+          case None => copy(output = Nil)
+          case Some(caret) =>
+            val snapshot = caret.model.snapshot()
+            if (do_update && !snapshot.is_outdated) {
+              snapshot.current_command(caret.node_name, caret.offset) match {
+                case None => copy(output = Nil)
+                case Some(command) =>
+                  val text = 
+                    if (!restriction.isDefined || restriction.get.contains(command))
+                      //server.resources.output_pretty_message(snapshot.command_results(command))
+                      Rendering.output_messages(snapshot.command_results(command))
+                    else output
+                  copy(output = text)
+              }
+            }
+            else this
+        }
+      val content =
+        cat_lines(
+          List(HTML.output(XML.elem("body", List(HTML.source(Pretty.formatted(st1.output, margin = resources.get_message_margin())))),
+            hidden = false, structural = true)))
+      channel.write(LSP.Dynamic_Output(content))
       st1
     }
   }
@@ -48,11 +83,14 @@ object Dynamic_Output
 
 class Dynamic_Output private(server: Language_Server)
 {
-  private val state = Synchronized(Dynamic_Output.State())
+  private val state = Synchronized(Dynamic_Output.State(server))
 
   private def handle_update(restriction: Option[Set[Command]])
   { state.change(_.handle_update(server.resources, server.channel, restriction)) }
 
+
+  private def force_update(restriction: Option[Set[Command]])
+  { state.change(_.force_update(server.resources, server.channel, restriction)) }
 
   /* main */
 
@@ -76,5 +114,10 @@ class Dynamic_Output private(server: Language_Server)
   {
     server.session.commands_changed -= main
     server.session.caret_focus -= main
+  }
+
+  def force_goal_reprint()
+  {
+    force_update(None)
   }
 }

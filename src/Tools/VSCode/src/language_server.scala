@@ -192,6 +192,113 @@ class Language_Server(
     resources.update_caret(caret)
     delay_caret_update.invoke()
     delay_input.invoke()
+
+  }
+
+
+  /* Isabelle symbols for Outline */
+
+    /* The following mapping is rather random */
+  val symbol_kind : Map[String, Int] =
+    Map(
+      // Text elements
+      "chapter" -> LSP.SymbolKind.String,
+      "section" -> LSP.SymbolKind.String,
+      "subsection" -> LSP.SymbolKind.String,
+      "subsubsection" -> LSP.SymbolKind.String,
+      "paragraph" -> LSP.SymbolKind.String,
+      "subparagraph" -> LSP.SymbolKind.String,
+
+      // structure
+      "context" -> LSP.SymbolKind.Namespace,
+      "locale" -> LSP.SymbolKind.Module,
+      "class" -> LSP.SymbolKind.Module,
+      "notepad" -> LSP.SymbolKind.Namespace,
+
+      // lemmas
+      "lemma" -> LSP.SymbolKind.Function,
+      "theorem" -> LSP.SymbolKind.Function,
+      "corollary" -> LSP.SymbolKind.Function,
+      "lemmas" -> LSP.SymbolKind.Function,
+
+      "declares" -> LSP.SymbolKind.Function,
+
+      // declarations
+      "datatype" -> LSP.SymbolKind.Struct,
+
+      "definition" -> LSP.SymbolKind.Constant,
+      "primrec" -> LSP.SymbolKind.Constant,
+      "fun" -> LSP.SymbolKind.Constant,
+      "primcorec" -> LSP.SymbolKind.Constant,
+      "corec" -> LSP.SymbolKind.Constant,
+      "abbreviation" -> LSP.SymbolKind.Constant,
+
+      // ML
+      "ML" -> LSP.SymbolKind.File,
+      "ML_val" -> LSP.SymbolKind.File,
+      "ML_file" -> LSP.SymbolKind.File,
+      "SML_file" -> LSP.SymbolKind.File
+    )
+
+  val symbol_kind_default = LSP.SymbolKind.Key
+
+  private def get_symbols(id: LSP.Id, file : JFile): JSON.T =
+  {
+
+    val file_content = resources.get_file_content(resources.node_name(file))
+    val model = resources.get_model(file)
+
+    (file_content, model) match {
+      case (Some(file_content), Some(model)) =>
+        val file_length = file_content.length
+
+        // TODO distinguish between SML and ML mode
+        val parsed =
+          if (model.is_theory){
+            val syntax = session.recent_syntax(model.node_name)
+            Document_Structure.parse_sections (syntax, resources.node_name(file), file_content)
+          }
+          else if (file.getName() == "ROOT" || file.getName() == "options"){
+            val syntax = session.recent_syntax(model.node_name)
+            Document_Structure.parse_sections (syntax, resources.node_name(file), file_content)
+          } else {
+            Document_Structure.parse_ml_sections(true, file_content)
+          }
+
+        def extract_symbols (offset: Text.Offset, doc_struct : List[Document_Structure.Document]) : (List[JSON.Object.T], Text.Offset) = {
+          doc_struct match {
+            case Nil => (Nil, offset)
+            case Document_Structure.Atom(length) :: doc =>
+              extract_symbols(offset + length, doc)
+            case Document_Structure.Block(name, text, body) :: doc =>
+              val (children, end_children_offset) = extract_symbols(offset, body)
+
+              val (symbols, end_offset) = extract_symbols(end_children_offset, doc)
+
+              val kind = symbol_kind getOrElse (name, symbol_kind_default)
+
+              // trailing whitespaces that are represented differently
+              val range = model.content.doc.range(Text.Range(offset, end_children_offset min file_length))
+
+              val selection_range = try{model.content.doc.range(Text.Range(offset, (offset + text.length) min file_length))}
+              catch {case e =>
+                model.content.doc.range(Text.Range(offset, offset + text.length-1))
+              }
+
+              val label = text.split("\n")(0)
+              val beautified_label = (label /: Symbol.codes) ({case (name, (sym, code)) => name.replaceAllLiterally(sym, code.toChar.toString)})
+              val symbol = LSP.DocumentSymbol(beautified_label, None, kind, None, range, selection_range, children)
+
+              (symbol :: symbols, end_offset)
+          }
+        }
+
+        val symbols = try { LSP.DocumentSymbols(id, extract_symbols(0, parsed)._1) }
+           catch {case e => LSP.DocumentSymbols(id, Nil) }
+        symbols
+
+      case _ => LSP.DocumentSymbols(id, Nil)
+    }
   }
 
 
@@ -426,6 +533,33 @@ class Language_Server(
     channel.write(LSP.DocumentHighlights.reply(id, result))
   }
 
+  /* progress reports */
+  def session_progress() : isabelle.JSON.T = {
+    val snapshot = session.snapshot()
+    val nodes = snapshot.version.nodes
+
+    var nodes_status1 : Map[isabelle.Document.Node.Name, isabelle.Document_Status.Node_Status] = Map.empty
+    for (name <- nodes.domain.iterator) {
+      if (resources.is_hidden(name) ||
+        resources.session_base.loaded_theory(name) ||
+        nodes(name).is_empty) ()
+      else {
+        val st = isabelle.Document_Status.Node_Status.make(snapshot.state, snapshot.version, name)
+        nodes_status1 = nodes_status1 + (name -> st)
+      }
+    }
+
+    val nodes_status2 =
+      nodes_status1 -- nodes_status1.keysIterator.filter(nodes.is_suppressed(_))
+
+    val sorted_nodes = nodes.topological_order.filter(nodes_status1.isDefinedAt(_))
+      .map{x => LSP.Progress_Node(x.path.implode, nodes_status1(x))}
+    log("## progress = " + sorted_nodes)
+
+
+    LSP.Progress_Nodes(sorted_nodes)
+  }
+
 
   /* main loop */
 
@@ -463,8 +597,11 @@ class Language_Server(
           case LSP.State_Update(id) => State_Panel.update(id)
           case LSP.State_Auto_Update(id, enabled) => State_Panel.auto_update(id, enabled)
           case LSP.Preview_Request(file, column) => request_preview(file, column)
+          case LSP.Document_Symbols_Request(id, file) => channel.write(get_symbols(id, file))
           case LSP.Symbols_Request(()) => channel.write(LSP.Symbols())
-          case _ => if (!LSP.ResponseMessage.is_empty(json)) log("### IGNORED")
+          case LSP.Progress_Node_Request(()) => channel.write(session_progress())
+          case LSP.Set_Message_Margin(size) => resources.update_margin(size); dynamic_output.force_goal_reprint()
+          case ignored => if (!LSP.ResponseMessage.is_empty(json)) log("### IGNORED: " + ignored)
         }
       }
       catch { case exn: Throwable => channel.log_error_message(Exn.message(exn)) }

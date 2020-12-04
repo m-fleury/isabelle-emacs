@@ -85,7 +85,7 @@ class VSCode_Resources(
   def pide_extensions: Boolean = options.bool("vscode_pide_extensions")
   def unicode_symbols: Boolean = options.bool("vscode_unicode_symbols")
   def tooltip_margin: Int = options.int("vscode_tooltip_margin")
-  def message_margin: Int = options.int("vscode_message_margin")
+  var message_margin: Int = options.int("vscode_message_margin")
 
 
   /* document node name */
@@ -348,6 +348,12 @@ class VSCode_Resources(
   def output_pretty_tooltip(body: XML.Body): String = output_pretty(body, tooltip_margin)
   def output_pretty_message(body: XML.Body): String = output_pretty(body, message_margin)
 
+  def update_margin(margin : Int) =
+    if (margin > 20)
+      message_margin = margin
+
+  def get_message_margin() : Int =
+    message_margin
 
   /* caret handling */
 

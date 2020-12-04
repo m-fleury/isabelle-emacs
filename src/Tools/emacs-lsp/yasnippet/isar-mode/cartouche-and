@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: and
+# key: and
+# --
+and \<open>$0\<close>

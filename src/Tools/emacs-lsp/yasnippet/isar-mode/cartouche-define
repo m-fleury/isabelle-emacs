@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: define
+# key: define
+# --
+define $1 where \<open>$1 \<equiv> $0\<close>
