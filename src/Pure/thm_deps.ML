@@ -42,7 +42,11 @@ fun pretty_thm_oracles ctxt thms =
     fun prt_oracle (ora, NONE) = prt_ora ora
       | prt_oracle (ora, SOME prop) =
           prt_ora ora @ [Pretty.str ":", Pretty.brk 1, Syntax.pretty_term_global thy prop];
-  in Pretty.big_list "oracles:" (map (Pretty.item o prt_oracle) (all_oracles thms)) end;
+    val oracles =
+      (case try all_oracles thms of
+        SOME oracles => oracles
+      | NONE => error "Malformed proofs")
+  in Pretty.big_list "oracles:" (map (Pretty.item o prt_oracle) oracles) end;
 
 
 (* thm_deps *)
@@ -70,8 +74,12 @@ fun thm_deps thy =
 fun pretty_thm_deps thy thms =
   let
     val ctxt = Proof_Context.init_global thy;
+    val deps =
+      (case try (thm_deps thy) thms of
+        SOME deps => deps
+      | NONE => error "Malformed proofs");
     val items =
-      map #2 (thm_deps thy thms)
+      map #2 deps
       |> map (fn (name, i) => (Proof_Context.markup_extern_fact ctxt name, i))
       |> sort_by (#2 o #1)
       |> map (fn ((marks, xname), i) =>
@@ -87,10 +95,10 @@ fun unused_thms_cmd (base_thys, thys) =
       if exists (fn thy => Global_Theory.defined_fact thy name) base_thys then I
       else
         let val {concealed, group, ...} = Name_Space.the_entry space name in
-          fold_rev (fn th =>
+          fold_rev (transfer #> (fn th =>
             (case Thm.derivation_name th of
               "" => I
-            | a => cons (a, (transfer th, concealed, group)))) ths
+            | a => cons (a, (th, concealed, group))))) ths
         end;
     fun add_facts thy =
       let
