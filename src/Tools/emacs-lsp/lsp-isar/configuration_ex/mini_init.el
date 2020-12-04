@@ -35,13 +35,17 @@
   :ensure t
   :mode "\\.thy\\'"
   :quelpa (isar-mode :fetcher github
-		     :repo "m-fleury/isar-mode")
+		     :repo "m-fleury/isar-mode"
+		     :files ("*.el")
+		     :upgrade t)
   )
 
 (use-package isar-goal-mode
   :ensure t
   :quelpa (isar-goal-mode :fetcher github
-			  :repo "m-fleury/isar-mode"))
+			  :repo "m-fleury/isar-mode"
+			  :files ("*.el")
+			  :upgrade t))
 
 (use-package lsp-isar
 	     :ensure t
