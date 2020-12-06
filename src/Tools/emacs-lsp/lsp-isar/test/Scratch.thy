@@ -8,6 +8,9 @@ lemma \<open>\<forall>x. P x\<close>
 text \<open>This is another test.
   There are multiple things to do.
   \<close>
+text \<open>Test \<open>test\<close>\<close>
+lemma \<open>True\<close>
+  by blast
 
 notepad
 begin
