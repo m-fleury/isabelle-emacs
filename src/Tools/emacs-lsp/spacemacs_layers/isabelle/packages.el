@@ -21,6 +21,8 @@
     (isar-goal-mode :location local)
     (lsp-isar :location local)
     (lsp-isar-parse-args :location local)
+    smartparens
+    (smartparens-isar :location local)
     yasnippet)
   "The list of Lisp packages required by the isabelle layer.")
 
@@ -138,6 +140,16 @@ See URL `https://github.com/ProofGeneral/PG/issues/427'."
   (use-package lsp-isar-parse-args))
 
 (defun isabelle/post-lsp-isar-parse-args ()
+  )
+
+(defun isabelle/init-smartparens-isar ()
+  (use-package smartparens-isar))
+
+(defun isabelle/post-init-smartparens-isar ()
+  )
+
+
+(defun isabelle/post-init-smartparens ()
   )
 
 ;;; packages.el ends here
