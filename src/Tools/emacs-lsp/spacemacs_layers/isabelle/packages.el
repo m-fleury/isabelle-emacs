@@ -16,18 +16,12 @@
 (defconst isabelle-packages
   '(
     ;; async is in spacemacs-core
-    dash
     (isar-mode :location local)
     (isar-goal-mode :location local)
     (lsp-isar :location local)
     (lsp-isar-parse-args :location local)
     yasnippet)
   "The list of Lisp packages required by the isabelle layer.")
-
-
-(defun isabelle/init-dash ()
-  (use-package dash
-    :defer t))
 
 ;; there is already a better initialisation in the completion layer
 ;;(defun isabelle/init-yasnippet ()
