@@ -246,7 +246,7 @@ Set `lsp-isabelle-options' for other options (like importing the AFP)."
 
 (defun lsp-full-remote-isabelle-path ()
   "Full remote isabelle command."
-  (mapcar (lambda (opt) (replace-regexp-in-string "\\$" "\\$" opt nil 'literal))
+  (mapcar (lambda (opt) opt) ;;(replace-regexp-in-string "\\$" "\\$" opt nil 'literal)
 	  (append
 	   (list lsp-isar-remote-path-to-isabelle
 		 "vscode_server")
@@ -261,6 +261,51 @@ Set `lsp-isabelle-options' for other options (like importing the AFP)."
 	 "vscode_server")
    lsp-vscode-options
    lsp-isabelle-options))
+
+;; tramp fixes for emacs 28 (i.e. devel)
+(when (>= emacs-major-version 28)
+  ;; fix for Emacs 28 (https://github.com/emacs-lsp/lsp-mode/issues/2514#issuecomment-759452037)
+  (defun start-file-process-shell-command@around (start-file-process-shell-command name buffer &rest args)
+    "Start a program in a subprocess.  Return the process object for it. Similar to `start-process-shell-command', but calls `start-file-process'."
+    (let ((command (mapconcat 'identity args " ")))
+      (funcall start-file-process-shell-command name buffer command)))
+
+  (advice-add 'start-file-process-shell-command :around #'start-file-process-shell-command@around)
+
+  ;; work-around to make sure no brace is lost during transmission
+  ;; see https://github.com/emacs-lsp/lsp-mode/issues/2375
+  (defun lsp-tramp-connection (local-command &optional generate-error-file-fn)
+    "Create LSP stdio connection named name.
+LOCAL-COMMAND is either list of strings, string or function which
+returns the command to execute."
+    ;; Force a direct asynchronous process.
+    (add-to-list 'tramp-connection-properties
+		 (list (regexp-quote (file-remote-p default-directory))
+                       "direct-async-process" t))
+    (list :connect (lambda (filter sentinel name environment-fn)
+                     (let* ((final-command (lsp-resolve-final-function
+					    local-command))
+                            (_stderr (or (when generate-error-file-fn
+                                           (funcall generate-error-file-fn name))
+					 (format "/tmp/%s-%s-stderr" name
+						 (cl-incf lsp--stderr-index))))
+                            (process-name (generate-new-buffer-name name))
+                            (process-environment
+                             (lsp--compute-process-environment environment-fn))
+                            (proc (make-process
+                                   :name process-name
+                                   :buffer (format "*%s*" process-name)
+                                   :command final-command
+                                   :connection-type 'pipe
+                                   :coding 'no-conversion
+                                   :noquery t
+                                   :filter filter
+                                   :sentinel sentinel
+                                   :file-handler t)))
+                       (cons proc proc)))
+          :test? (lambda () (-> local-command lsp-resolve-final-function
+				lsp-server-present?)))))
+
 
 (defun lsp-isar-define-client ()
   "Defines the LSP client for isar mode.
