@@ -50,7 +50,7 @@ developped by other peole!
 #+BEGIN_SRC sh
 git clone https://github.com/m-fleury/isabelle-release.git
 cd isabelle-release
-git checkout isabelle2020-more-vscode
+git checkout isabelle2021-more-vscode
 #+END_SRC
 
     - Initialize Isabelle (note that the second and third commands can take a while and require an internet connection)
@@ -275,7 +275,7 @@ In the remainder of these instructions, I assume you have cloned these repos dir
 Same as non-developer version
 * Post-Installation
 ** Adding the AFP
-Append to the file =~/.isabelle/Isabelle2020/etc/settings=
+Append to the file =~/.isabelle/Isabelle2021/etc/settings=
 #+BEGIN_src sh
 AFP=/path/to/AFP/thys
 #+END_SRC
