@@ -256,20 +256,11 @@ In the remainder of these instructions, I assume you have cloned these repos dir
   ln -s ~/simp-isar-mode/ isar-mode
 #+END_SRC
 
-*** Create the private layer lisp-mode
-    - Go to the private folder of your .emacs.d
-#+BEGIN_SRC sh
-  cd ../..
-#+END_SRC
-    - Create an lsp-mode folder and go to it
-#+BEGIN_SRC sh
-  mkdir lsp-mode
-  cd lsp-mode
-#+END_SRC
-    - Create a symbolic link to the layer file
-#+BEGIN_SRC sh
-  ln -s ~/isabelle-release/src/Tools/emacs-lsp/spacemacs_layers/lsp-mode/packages.el packages.el
-#+END_SRC
+*** Add the lsp layer to spacemacs
+The LSP layer must be added to your =~/.spacemacs= configuration file. If it is 
+not recursively called by another layer you will need to add =lsp= to the
+existing =dotspacemacs-configuration-layers= list in this file.
+
 
 *** Add the isabelle layer to spacemacs and configure it
 Same as non-developer version
