@@ -266,7 +266,7 @@ existing =dotspacemacs-configuration-layers= list in this file.
 Same as non-developer version
 * Post-Installation
 ** Adding the AFP
-Append to the file =~/.isabelle/Isabelle2021/etc/settings=
+Append to the file =~/.isabelle/Isabelle2021-vsce/etc/settings=
 #+BEGIN_src sh
 AFP=/path/to/AFP/thys
 #+END_SRC
