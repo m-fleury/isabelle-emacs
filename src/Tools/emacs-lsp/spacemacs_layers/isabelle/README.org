@@ -11,25 +11,25 @@ Here is a screenshot of Isabelle in spacemacs:
 :PROPERTIES:
 :TOC:      this
 :END:
--  [[#description][Description]]
--  [[#preparation][Preparation]]
-    -  [[#clone-isabelle2019-vsce][Clone Isabelle2019-vsce]]
--  [[#install-as-a-non-developer][Install (as a non-developer)]]
-  -  [[#standard-emacs][standard emacs]]
-  -  [[#spacemacs][spacemacs]]
-    -  [[#create-the-private-layer-isabelle][Create the private layer Isabelle]]
-    -  [[#add-the-isabelle-layer-to-spacemacs-and-configure-it][Add the isabelle layer to spacemacs and configure it]]
--  [[#install-as-a-developer][Install (as a developer)]]
-  -  [[#standard-emacs][standard emacs]]
-  -  [[#spacemacs][spacemacs]]
-    -  [[#download-the-isar-mode-package][Download the Isar-mode package]]
-    -  [[#create-the-private-layer-isabelle][Create the private layer Isabelle]]
-    -  [[#create-the-private-layer-lisp-mode][Create the private layer lisp-mode]]
-    -  [[#add-the-isabelle-layer-to-spacemacs-and-configure-it][Add the isabelle layer to spacemacs and configure it]]
--  [[#post-installation][Post-Installation]]
-  -  [[#adding-the-afp][Adding the AFP]]
-  -  [[#configuration][Configuration]]
--  [[#key-bindings][Key bindings]]
+- [[#description][Description]]
+- [[#preparation][Preparation]]
+  - [[#clone-isabelle-release][Clone Isabelle-release]]
+- [[#install-as-a-non-developer][Install (as a non-developer)]]
+  - [[#standard-emacs][standard emacs]]
+  - [[#spacemacs][spacemacs]]
+    - [[#create-the-private-layer-isabelle][Create the private layer Isabelle]]
+    - [[#add-the-isabelle-layer-to-spacemacs-and-configure-it][Add the isabelle layer to spacemacs and configure it]]
+- [[#install-as-a-developer][Install (as a developer)]]
+  - [[#standard-emacs][standard emacs]]
+  - [[#spacemacs][spacemacs]]
+    - [[#download-the-isar-mode-package][Download the Isar-mode package]]
+    - [[#create-the-private-layer-isabelle][Create the private layer Isabelle]]
+    - [[#create-the-private-layer-lisp-mode][Create the private layer lisp-mode]]
+    - [[#add-the-isabelle-layer-to-spacemacs-and-configure-it][Add the isabelle layer to spacemacs and configure it]]
+- [[#post-installation][Post-Installation]]
+  - [[#adding-the-afp][Adding the AFP]]
+  - [[#configuration][Configuration]]
+- [[#key-bindings][Key bindings]]
 
 * Description
 This layer allows for editing isabelle theory files. It includes:
@@ -44,8 +44,8 @@ project. The rest (and in particular the LSP integration) was
 developped by other peole!
 
 * Preparation
-*** Clone Isabelle2019-vsce
-    - The version of Isabelle2020 to download is available at https://github.com/m-fleury/isabelle-release in the Isabelle2020-more-vscode branch
+*** Clone Isabelle-release
+    - The version of Isabelle2021 to download is available at https://github.com/m-fleury/isabelle-release in the Isabelle2021-more-vscode branch
 
 #+BEGIN_SRC sh
 git clone https://github.com/m-fleury/isabelle-release.git
@@ -127,7 +127,7 @@ Add the following to your =.emacs= (refer to the file =configuration_ex/mini_ini
 	     :ensure t
 	     :quelpa ((lsp-isar :fetcher github
 				:repo "m-fleury/isabelle-release"
-				:branch "isabelle2019-more-vscode"
+				:branch "isabelle2021-more-vscode"
 				:files ("src/Tools/emacs-lsp/lsp-isar/*.el"))
 				:upgrade t)
   :after lsp-mode
