@@ -237,7 +237,7 @@ In the remainder of these instructions, I assume you have cloned these repos dir
     - Create an Isabelle directory and go to it
 #+BEGIN_SRC sh
   mkdir isabelle
-  cd local
+  cd isabelle
 #+END_SRC
     - Create symbolic links to the layer files
 #+BEGIN_SRC sh
