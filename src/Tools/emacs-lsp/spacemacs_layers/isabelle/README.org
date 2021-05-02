@@ -13,7 +13,7 @@ Here is a screenshot of Isabelle in spacemacs:
 :END:
 - [[#description][Description]]
 - [[#preparation][Preparation]]
-  - [[#clone-isabelle-release][Clone Isabelle-release]]
+  - [[#clone-isabelle-release][Clone Isabelle-emacs]]
 - [[#install-as-a-non-developer][Install (as a non-developer)]]
   - [[#standard-emacs][standard emacs]]
   - [[#spacemacs][spacemacs]]
@@ -44,12 +44,12 @@ project. The rest (and in particular the LSP integration) was
 developped by other peole!
 
 * Preparation
-*** Clone Isabelle-release
-    - The version of Isabelle2021 to download is available at https://github.com/m-fleury/isabelle-release in the Isabelle2021-more-vscode branch
+*** Clone Isabelle-emacs
+    - The version of Isabelle2021 to download is available at https://github.com/m-fleury/isabelle-emacs in the Isabelle2021-more-vscode branch
 
 #+BEGIN_SRC sh
-git clone https://github.com/m-fleury/isabelle-release.git
-cd isabelle-release
+git clone https://github.com/m-fleury/isabelle-emacs.git
+cd isabelle-emacs
 git checkout isabelle2021-more-vscode
 #+END_SRC
 
@@ -126,7 +126,7 @@ Add the following to your =.emacs= (refer to the file =configuration_ex/mini_ini
 (use-package lsp-isar
 	     :ensure t
 	     :quelpa ((lsp-isar :fetcher github
-				:repo "m-fleury/isabelle-release"
+				:repo "m-fleury/isabelle-emacs"
 				:branch "isabelle2021-more-vscode"
 				:files ("src/Tools/emacs-lsp/lsp-isar/*.el"))
 				:upgrade t)
@@ -138,13 +138,13 @@ Add the following to your =.emacs= (refer to the file =configuration_ex/mini_ini
   (add-hook 'lsp-isar-init-hook 'lsp-isar-open-output-and-progress-right-spacemacs)
   :config
 
-  ;; CHANGE HERE: path to isabelle-release repo
-  (setq lsp-isar-path-to-isabelle "~/Documents/isabelle/isabelle-release")
+  ;; CHANGE HERE: path to isabelle-emacs repo
+  (setq lsp-isar-path-to-isabelle "~/Documents/isabelle/isabelle-emacs")
 
   )
 #+END_SRC
 
-Change the =CHANGE HERE= part with the correct path to the =isabelle-release= clone.
+Change the =CHANGE HERE= part with the correct path to the =isabelle-emacs= clone.
 
 
 ** spacemacs
@@ -160,9 +160,9 @@ Change the =CHANGE HERE= part with the correct path to the =isabelle-release= cl
 #+END_SRC
     - Create symbolic links to the layer files
 #+BEGIN_SRC sh
-  ln -s ~/isabelle-release/src/Tools/emacs-lsp/spacemacs_layers/isabelle/layers.el layers.el
-  ln -s ~/isabelle-release/src/Tools/emacs-lsp/spacemacs_layers/isabelle/packages.el packages.el
-  ln -s ~/isabelle-release/src/Tools/emacs-lsp/spacemacs_layers/isabelle/funcs.el funcs.el
+  ln -s ~/isabelle-emacs/src/Tools/emacs-lsp/spacemacs_layers/isabelle/layers.el layers.el
+  ln -s ~/isabelle-emacs/src/Tools/emacs-lsp/spacemacs_layers/isabelle/packages.el packages.el
+  ln -s ~/isabelle-emacs/src/Tools/emacs-lsp/spacemacs_layers/isabelle/funcs.el funcs.el
 #+END_SRC
     - Replace the imports by
 #+BEGIN_SRC elisp
@@ -191,7 +191,7 @@ file.
 
 Then you need to add the following lines in the =dotspacemacs/user-init= function of your =~/.spacemacs= file.
 #+BEGIN_SRC elisp
-  (setq lsp-isar-path-to-isabelle "~/isabelle-release")
+  (setq lsp-isar-path-to-isabelle "~/isabelle-emacs")
   (setq lsp-isabelle-options (list "-d" "~/Example_Dir/Example_Session_Dir" "-S" "Example_Session"))
 #+END_SRC
 Note that the second line contains the command options to start isabelle from the
@@ -241,9 +241,9 @@ In the remainder of these instructions, I assume you have cloned these repos dir
 #+END_SRC
     - Create symbolic links to the layer files
 #+BEGIN_SRC sh
-  ln -s ~/isabelle-release/src/Tools/emacs-lsp/spacemacs_layers/isabelle/layers.el layers.el
-  ln -s ~/isabelle-release/src/Tools/emacs-lsp/spacemacs_layers/isabelle/packages.el packages.el
-  ln -s ~/isabelle-release/src/Tools/emacs-lsp/spacemacs_layers/isabelle/funcs.el funcs.el
+  ln -s ~/isabelle-emacs/src/Tools/emacs-lsp/spacemacs_layers/isabelle/layers.el layers.el
+  ln -s ~/isabelle-emacs/src/Tools/emacs-lsp/spacemacs_layers/isabelle/packages.el packages.el
+  ln -s ~/isabelle-emacs/src/Tools/emacs-lsp/spacemacs_layers/isabelle/funcs.el funcs.el
 #+END_SRC
     - Create a local folder and go to it
 #+BEGIN_SRC sh
@@ -252,7 +252,7 @@ In the remainder of these instructions, I assume you have cloned these repos dir
 #+END_SRC
     - Create symbolic links to local packages
 #+BEGIN_SRC sh
-  ln -s ~/isabelle-release/src/Tools/emacs-lsp/lsp-isar/ lsp-isar 
+  ln -s ~/isabelle-emacs/src/Tools/emacs-lsp/lsp-isar/ lsp-isar 
   ln -s ~/simp-isar-mode/ isar-mode
 #+END_SRC
 
