@@ -115,6 +115,9 @@ class Language_Server(
   def session: Session = session_.value getOrElse error("Server inactive")
   def resources: VSCode_Resources = session.resources.asInstanceOf[VSCode_Resources]
 
+  val html_output: Boolean = options.bool("vscode_html_output")
+  log("html_output = " + html_output)
+
   def rendering_offset(node_pos: Line.Node_Position): Option[(VSCode_Rendering, Text.Offset)] =
     for {
       model <- resources.get_model(new JFile(node_pos.name))
