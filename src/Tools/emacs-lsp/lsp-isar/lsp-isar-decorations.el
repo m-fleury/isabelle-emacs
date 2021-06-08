@@ -565,7 +565,7 @@ but still, I want assertions to be done only for debugging."
   (inline-letevals (r1 r2)
     (inline-quote
      (let ((xx1 (lsp-isar-ov-x0 ,r2)) (yy1 (lsp-isar-ov-y0 ,r2))
-           (xx2 (lsp-isar-ov-x0 ,r2)) (yy2 (lsp-isar-ov-y0 ,r2)))
+           (xx2 (lsp-isar-ov-x1 ,r2)) (yy2 (lsp-isar-ov-y1 ,r2)))
        (let ((x1 (elt ,r1 0)) (y1 (elt ,r1 1))
              (x2 (elt ,r1 2)) (y2 (elt ,r1 3)))
 	 (and (= (cl-the fixnum xx1) (cl-the fixnum x1))
