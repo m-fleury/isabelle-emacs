@@ -557,14 +557,21 @@ but still, I want assertions to be done only for debugging."
 
 
 
-;; range  functions
+;; range functions
+;;
+;; we need to compare both points because of identifier changes from "ab" to
+;; "ab1": the initial point has not changed, but the final point is different.
 (define-inline lsp-isar-decorations-ranges-are-equal (r1 r2)
   (inline-letevals (r1 r2)
     (inline-quote
-     (let ((x0 (lsp-isar-ov-x0 ,r2)) (y0 (lsp-isar-ov-y0 ,r2)))
-       (let ((x1 (elt ,r1 0)) (y1 (elt ,r1 1)))
-	 (and (= (cl-the fixnum x0) (cl-the fixnum x1))
-	      (= (cl-the fixnum y0) (cl-the fixnum y1))))))))
+     (let ((xx1 (lsp-isar-ov-x0 ,r2)) (yy1 (lsp-isar-ov-y0 ,r2))
+           (xx2 (lsp-isar-ov-x0 ,r2)) (yy2 (lsp-isar-ov-y0 ,r2)))
+       (let ((x1 (elt ,r1 0)) (y1 (elt ,r1 1))
+             (x2 (elt ,r1 2)) (y2 (elt ,r1 3)))
+	 (and (= (cl-the fixnum xx1) (cl-the fixnum x1))
+	      (= (cl-the fixnum yy1) (cl-the fixnum y1))
+	      (= (cl-the fixnum xx2) (cl-the fixnum x2))
+	      (= (cl-the fixnum yy2) (cl-the fixnum y2))))))))
 
 (define-inline lsp-isar-decorations-point-is-before (x0 y0 x1 y1)
   (inline-letevals (x0 y0 x1 y1)
@@ -580,9 +587,10 @@ but still, I want assertions to be done only for debugging."
      (and (lsp-isar-decorations-point-is-before (elt ,r1 0) (elt ,r1 1) (lsp-isar-ov-x0 ,r2) (lsp-isar-ov-y0 ,r2))))))
 
 
-;; This is a full cleaning of all buffers.  This is too costly to run
-;; regularly.  Therefore, we run it after some time of idling.
-;; Remark that this is still important to run.
+;; This is a full cleaning of all buffers. This is too costly to run regularly.
+;; Therefore, we run it after some time of idling. Remark that this is still
+;; important to run, because eventually many overlays can take a significant
+;; amount of memory. This is reduced as we are reusing overlays.
 (defun lsp-isar-decorations-kill-all-unused-overlays-file (file &rest _)
   "Delete all invisible overlays in file FILE.
 
