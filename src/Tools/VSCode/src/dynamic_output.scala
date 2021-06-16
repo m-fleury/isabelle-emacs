@@ -37,11 +37,15 @@ object Dynamic_Output
             else this
         }
       if (st1.output != output) {
-        val content =
-          cat_lines(
-            List(HTML.output(XML.elem("body", List(HTML.source(Pretty.formatted(st1.output, margin = resources.get_message_margin())))),
-            hidden = false, structural = true)))
-        channel.write(LSP.Dynamic_Output(content))
+        if(server.html_output) {
+          val content =
+            cat_lines(
+              List(HTML.output(XML.elem("body", List(HTML.source(Pretty.formatted(st1.output, margin = resources.get_message_margin())))),
+              hidden = false, structural = true)))
+          channel.write(LSP.Dynamic_Output(content))
+        } else {
+          channel.write(LSP.Dynamic_Output(resources.output_pretty_message(Pretty.separate(st1.output))))
+        }
       }
       st1
     }
@@ -68,11 +72,15 @@ object Dynamic_Output
             }
             else this
         }
-      val content =
-        cat_lines(
-          List(HTML.output(XML.elem("body", List(HTML.source(Pretty.formatted(st1.output, margin = resources.get_message_margin())))),
-            hidden = false, structural = true)))
-      channel.write(LSP.Dynamic_Output(content))
+      if(server.html_output) {
+        val content =
+          cat_lines(
+            List(HTML.output(XML.elem("body", List(HTML.source(Pretty.formatted(st1.output, margin = resources.get_message_margin())))),
+              hidden = false, structural = true)))
+        channel.write(LSP.Dynamic_Output(content))
+      } else {
+        channel.write(LSP.Dynamic_Output(resources.output_pretty_message(Pretty.separate(st1.output))))
+      }
       st1
     }
   }
