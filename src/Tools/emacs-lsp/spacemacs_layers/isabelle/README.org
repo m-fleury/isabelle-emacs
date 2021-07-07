@@ -153,10 +153,11 @@ Change the =CHANGE HERE= part with the correct path to the =isabelle-emacs= clon
 #+BEGIN_SRC sh
   cd ~/.emacs.d/private
 #+END_SRC
-    - Create an Isabelle directory and go to it
+    - Create an Isabelle directory inside `local` and go to it
 #+BEGIN_SRC sh
-  mkdir isabelle
+  mkdir -p local
   cd local
+  mkdir isabelle
 #+END_SRC
     - Create symbolic links to the layer files
 #+BEGIN_SRC sh
@@ -178,7 +179,7 @@ Change the =CHANGE HERE= part with the correct path to the =isabelle-emacs= clon
                              :repo "m-fleury/simp-isar-mode"))
     (lsp-isar :location (recipe
                              :fetcher github
-                             :repo "m-fleury/emacs-isabelle"
+                             :repo "m-fleury/isabelle-emacs"
                  :files ("src/Tools/emacs-lsp/lsp-isar/*.el")))
     yasnippet)
   "The list of Lisp packages required by the isabelle layer.")
@@ -245,10 +246,11 @@ In the remainder of these instructions, I assume you have cloned these repos dir
   ln -s ~/isabelle-emacs/src/Tools/emacs-lsp/spacemacs_layers/isabelle/packages.el packages.el
   ln -s ~/isabelle-emacs/src/Tools/emacs-lsp/spacemacs_layers/isabelle/funcs.el funcs.el
 #+END_SRC
-    - Create a local folder and go to it
+    - Create a `local` folder and go to it
 #+BEGIN_SRC sh
-  mkdir local
+  mkdir -p local
   cd local
+  mkdir isabelle
 #+END_SRC
     - Create symbolic links to local packages
 #+BEGIN_SRC sh
