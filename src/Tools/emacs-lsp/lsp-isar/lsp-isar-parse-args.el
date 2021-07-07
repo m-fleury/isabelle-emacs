@@ -92,9 +92,16 @@ flatten."
     "-m" "do_notation"
     "-o" "vscode_output_delay=1"
     "-o" "vscode_caret_perspective=20"
-;;    "-v" "-L" "/tmp/isabelle_log"
    ;; "-v" "-L" "/tmp/isabelle_log"
    )))
+
+(defun lsp-isar-parse-combine-isabelle-args ()
+  "Parse the arguments passed to emacs."
+  (when lsp-isar-parse-use
+    (message "%s (tramp: %s)" "running isabelle settings" (if lsp-isar-parse-args-tramp "Yes" "No"))
+    (setq isabelle-base-session (pop command-line-args-left))
+    (setq lsp-isabelle-options (lsp-isar-parse-lsp-isabelle-options))
+    (setq lsp-remote-isabelle-options (lsp-isar-parse-lsp-isabelle-options))))
 
 (defun lsp-isar-parse-combine-isabelle-args-no ()
   "Parse the arguments passed to emacs."
@@ -114,20 +121,16 @@ flatten."
       (setq command-line-args (delete "--isabelle-tramp" command-line-args)))
 
     (unless lsp-isar-parse-args-nollvm
-	(setq lsp-isar-parse-args-nollvm (member "--isabelle-nollvm" command-line-args))
-	(setq command-line-args (delete "--isabelle-nollvm" command-line-args)))
+	    (setq lsp-isar-parse-args-nollvm (member "--isabelle-nollvm" command-line-args))
+	    (setq command-line-args (delete "--isabelle-nollvm" command-line-args)))
 
     (unless lsp-isar-parse-args-noisafol
       (setq lsp-isar-parse-args-noisafol (member "--isabelle-noisafol" command-line-args))
-      (setq command-line-args (delete "--isabelle-noisafol" command-line-args)))))
+      (setq command-line-args (delete "--isabelle-noisafol" command-line-args)))
 
-(defun lsp-isar-parse-combine-isabelle-args ()
-  "Parse the arguments passed to emacs."
-  (when lsp-isar-parse-use
-    (message "%s (tramp: %s)" "running isabelle settings" (if lsp-isar-parse-args-tramp "Yes" "No"))
-    (setq isabelle-base-session (pop command-line-args-left))
     (setq lsp-isabelle-options (lsp-isar-parse-lsp-isabelle-options))
-    (setq lsp-remote-isabelle-options (lsp-isar-parse-lsp-isabelle-options))))
+    (setq lsp-remote-isabelle-options (lsp-isar-parse-lsp-isabelle-options))
+    ))
 
 (add-to-list 'command-switch-alist
 	     '("-isabelle-S" .

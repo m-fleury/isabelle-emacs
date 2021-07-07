@@ -79,11 +79,11 @@ See URL `https://github.com/ProofGeneral/PG/issues/427'."
   (advice-add #'evil-motion-range :around #'~/evil-motion-range--wrapper)
   ;;(advice-add #'evil-ret :around #'~/evil-motion-range--wrapper)
 
-  (add-hook 'isar-mode-hook
-	          (lambda ()
-		          (progn
-		            (setq fill-column 100)
-		            (spacemacs/toggle-fill-column-indicator-on))))
+  ;; (add-hook 'isar-mode-hook
+	;;           (lambda ()
+	;; 	          (progn
+	;; 	            (setq fill-column 100)
+	;; 	            (spacemacs/toggle-fill-column-indicator-on))))
 
   )
 
