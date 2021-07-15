@@ -60,8 +60,16 @@
       (interactive)
       (funcall indent-line-function)
       (evil-open-above 1))
-    (define-key evil-normal-state-map (kbd "o") 'evil-insert-line-below-and-indent)
-    (define-key evil-normal-state-map (kbd "O") 'evil-insert-line-above-and-indent)
+    ;; https://github.com/m-fleury/isabelle-release/issues/21
+    (defun ~/evil-motion-range--wrapper (fn &rest args)
+      "Like `evil-motion-range', but override field-beginning for performance.
+See URL `https://github.com/ProofGeneral/PG/issues/427'."
+      (cl-letf (((symbol-function 'field-beginning)
+                 (lambda (&rest args) 1)))
+        (apply fn args)))
+
+    (advice-add #'evil-motion-range :around #'~/evil-motion-range--wrapper)
+
     )
 
   (use-package isar-goal-mode
