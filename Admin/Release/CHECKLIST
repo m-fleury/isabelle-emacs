@@ -43,7 +43,7 @@ Checklist for official releases
 
 - update https://isabelle.sketis.net/repos/isabelle-website
 
-- check doc/Contents, src/Tools/jEdit/dist/doc/Contents;
+- check doc/Contents, $JEDIT_HOME/doc/Contents;
 
 - test old HD display: Linux, Windows, macOS;
 
@@ -74,7 +74,7 @@ Packaging
 
 - fully-automated packaging (e.g. on lxcisa0):
 
-  hg up -r DISTNAME && Admin/build_release -b HOL -l -R DISTNAME /home/isabelle/dist
+  hg up -r DISTNAME && Admin/build_release -D /home/isabelle/dist -b HOL -l -R DISTNAME
 
 - Docker image:
 
