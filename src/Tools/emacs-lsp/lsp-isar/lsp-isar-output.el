@@ -472,9 +472,6 @@ Lisp equivalent of 'replace-regexp' as indicated in the help."
        ;; first load all the libraries we need (remember, that this runs in another Emacs
        ;; instance, so the require above do not apply.)
        (progn
-	 (defun lsp-isar-output-remove-quotes-from-string (obj)
-	   (string-remove-suffix "'" (string-remove-prefix "'" obj)))
-
 	 (let
 	     ((lsp-isar-output-deco nil)
 	      (lsp-isar-output-state-deco nil)
@@ -853,6 +850,8 @@ Lisp equivalent of 'replace-regexp' as indicated in the help."
       (progn
 	(require 'dom)
 	(require 'subr-x)
+	(defun lsp-isar-output-remove-quotes-from-string (obj)
+	  (string-remove-suffix "'" (string-remove-prefix "'" obj)))
 	(defun lsp-isar-output-replace-regexp-all-occs (REGEXP TO-STRING)
 	  "replace-regexp as indicated in the help"
 	  (goto-char (point-min))
