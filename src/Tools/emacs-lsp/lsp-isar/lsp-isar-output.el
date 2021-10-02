@@ -472,8 +472,6 @@ Lisp equivalent of 'replace-regexp' as indicated in the help."
        ;; first load all the libraries we need (remember, that this runs in another Emacs
        ;; instance, so the require above do not apply.)
        (progn
-	 (require 'dom)
-	 (require 'subr-x)
 	 (defun lsp-isar-output-remove-quotes-from-string (obj)
 	   (string-remove-suffix "'" (string-remove-prefix "'" obj)))
 
@@ -491,11 +489,6 @@ Lisp equivalent of 'replace-regexp' as indicated in the help."
 
 	   (set-buffer lsp-isar-output-state-buffer)
 
-	   (defun lsp-isar-output-replace-regexp-all-occs (REGEXP TO-STRING)
-	     "replace-regexp as indicated in the help"
-	     (goto-char (point-min))
-	     (while (re-search-forward REGEXP nil t)
-	       (replace-match TO-STRING nil nil)))
 	   (cl-labels
 	       ((lsp-isar-output-parse-output
 		 (contents)
@@ -855,6 +848,18 @@ Lisp equivalent of 'replace-regexp' as indicated in the help."
 (defun lsp-isar-output-initialize-output-buffer ()
   "Initialize buffers."
   (setq lsp-isar-output-session-name (session-async-new))
+  (session-async-start
+   `(lambda ()
+      (progn
+	(require 'dom)
+	(require 'subr-x)
+	(defun lsp-isar-output-replace-regexp-all-occs (REGEXP TO-STRING)
+	  "replace-regexp as indicated in the help"
+	  (goto-char (point-min))
+	  (while (re-search-forward REGEXP nil t)
+	    (replace-match TO-STRING nil nil)))))
+   'ignore
+   lsp-isar-output-session-name)
   (setq lsp-isar-output-state-buffer (get-buffer-create "*lsp-isar-state*"))
   (setq lsp-isar-output-buffer (get-buffer-create "*lsp-isar-output*"))
   (save-excursion
