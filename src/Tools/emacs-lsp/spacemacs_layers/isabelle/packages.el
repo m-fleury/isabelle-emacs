@@ -20,6 +20,7 @@
     (isar-goal-mode :location local)
     (lsp-isar :location local)
     (lsp-isar-parse-args :location local)
+    session-async
     yasnippet)
   "The list of Lisp packages required by the isabelle layer.")
 
@@ -104,7 +105,7 @@ See URL `https://github.com/ProofGeneral/PG/issues/427'."
 
 (defun isabelle/init-lsp-isar ()
   (use-package lsp-isar
-    :after isar-mode isar-goal-mode
+    :after isar-mode isar-goal-mode session-async
     :commands lsp-isar-define-client-and-start lsp-isar-open-output-and-progress-right-spacemacs
     :config
     (setq lsp-response-timeout 1200)

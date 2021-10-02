@@ -41,7 +41,7 @@
 (require 'dash)
 
 (require 'dom)
-(require 'async)
+(require 'session-async)
 (require 'lsp-protocol)
 (require 'lsp-isar-types)
 
@@ -52,6 +52,8 @@
 
 (defvar lsp-isar-output-proof-cases-content nil)
 (defvar lsp-isar-output-proof-timer nil "Current timer rendering the HTML.")
+(defvar lsp-isar-output-session-name nil
+  "Async session to send goals to for printing.")
 
 (defcustom lsp-isar-output-maximal-time 3
   "Maximal time in seconds printing can take.
@@ -465,16 +467,15 @@ Lisp equivalent of 'replace-regexp' as indicated in the help."
 (defun lsp-isar-output--update-state-and-output-buffer-async (lsp-isar-output-current-output-number-res content)
   "Parse Isabelle output CONTENT asynchronously and number LSP-ISAR-OUTPUT-CURRENT-OUTPUT-NUMBER-RES."
   (save-excursion
-    (async-start
-     (lambda ()
+    (session-async-start
+     `(lambda ()
        ;; first load all the libraries we need (remember, that this runs in another Emacs
        ;; instance, so the require above do not apply.)
        (progn
 	 (require 'dom)
 	 (require 'subr-x)
-	 (define-inline lsp-isar-output-remove-quotes-from-string (obj)
-	   (inline-letevals (obj)
-	     (inline-quote (string-remove-suffix "'" (string-remove-prefix "'" ,obj)))))
+	 (defun lsp-isar-output-remove-quotes-from-string (obj)
+	   (string-remove-suffix "'" (string-remove-prefix "'" obj)))
 
 	 (let
 	     ((lsp-isar-output-deco nil)
@@ -808,7 +809,7 @@ Lisp equivalent of 'replace-regexp' as indicated in the help."
 			   lsp-isar-output-state-deco lsp-isar-output-deco)))))
 
 	     ;; main function executed
-	     (lsp-isar-output--eval-state-and-output-buffer-async content)))))
+	     (lsp-isar-output--eval-state-and-output-buffer-async ,content)))))
      (lambda (result)
        ;; After evaluating the goal asynchronously, we retrieve it and update it in the current
        ;; window.
@@ -847,11 +848,13 @@ Lisp equivalent of 'replace-regexp' as indicated in the help."
 			  (font (caddr deco))
 			  (face (cdr (assoc font lsp-isar-decorations-get-font)))
 			  (ov (make-overlay point0 point1)))
-		     (overlay-put ov 'face face))))))))))))
+		     (overlay-put ov 'face face)))))))))
+     lsp-isar-output-session-name)))
 
 ;; deactivate font-lock-mode because we to the fontification ourselves anyway.
 (defun lsp-isar-output-initialize-output-buffer ()
   "Initialize buffers."
+  (setq lsp-isar-output-session-name (session-async-new))
   (setq lsp-isar-output-state-buffer (get-buffer-create "*lsp-isar-state*"))
   (setq lsp-isar-output-buffer (get-buffer-create "*lsp-isar-output*"))
   (save-excursion
