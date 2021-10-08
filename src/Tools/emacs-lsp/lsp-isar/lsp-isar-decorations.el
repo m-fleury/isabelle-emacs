@@ -169,7 +169,7 @@
 
 
 (defface lsp-isar-font-background-bad
-  '((((class color) (background dark)) :background "#ee7621")
+  '((((class color) (background dark)) :background "saddle brown")
     (((class color) (background light)) :background "#efea22")
     (t :priority 5))
   ""
