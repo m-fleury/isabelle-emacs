@@ -143,4 +143,7 @@ See URL `https://github.com/ProofGeneral/PG/issues/427'."
 (defun isabelle/post-lsp-isar-parse-args ()
   )
 
+(defun isabelle/init-session-async ()
+  (use-package session-async))
+
 ;;; packages.el ends here
