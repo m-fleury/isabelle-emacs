@@ -53,32 +53,65 @@
 ;;; Code:
 
 (require 'thingatpt)
+
+(defun lsp-isar-indent-thing-at-point (thing &optional no-properties)
+  "Return the THING at point.
+
+See thing-at-point for usage. Does not respect fields, making it
+much faster than thing-at-point (since commit 7db376e5604 from Emacs).
+
+The fact that I need to duplicate the function is really
+unfortunate, but the speed difference is several orders of
+magnitude."
+  (save-restriction
+    (let ((text
+           (cond
+            ((cl-loop for (pthing . function) in thing-at-point-provider-alist
+                      when (eq pthing thing)
+                      for result = (funcall function)
+                      when result
+                      return result))
+            ((get thing 'thing-at-point)
+             (funcall (get thing 'thing-at-point)))
+            (t
+             (let ((bounds (bounds-of-thing-at-point thing)))
+               (when bounds
+                 (buffer-substring (car bounds) (cdr bounds))))))))
+      (when (and text no-properties (sequencep text))
+        (set-text-properties 0 (length text) nil text))
+      text)))
+
+
+(defun lsp-isar-indent-word-at-point (&optional no-properties)
+  "Return the word at point.  See `lsp-isar-indent-thing-at-point'."
+  (lsp-isar-indent-thing-at-point 'word no-properties))
+
 (defvar lsp-isar-indent-trace-indent nil)
 
 (defun lsp-isar-indent-previous-line-with-word ()
   "Goto previous nonempty line."
-  (lsp-isar-indent-trace-indent "lsp-isar-indent-previous-line-with-word, looking at %s" (word-at-point))
+  (lsp-isar-indent-trace-indent "lsp-isar-indent-previous-line-with-word, looking at %s" (lsp-isar-indent-word-at-point))
   (forward-line -1)
   (let ((finished nil))
     (while (and (not finished)
 		(not (= (point) (point-min))))
       (lsp-isar-indent-trace-indent
        "lsp-isar-indent-previous-line-with-word beginning of line, looking at %s, line %s"
-       (word-at-point)
+       (lsp-isar-indent-word-at-point)
        (line-number-at-pos))
       (back-to-indentation) ;; move to first word of the line
       (lsp-isar-indent-trace-indent
        "lsp-isar-indent-previous-line-with-word, looking at %s, line %s"
-       (word-at-point)
+       (lsp-isar-indent-word-at-point)
        (line-number-at-pos))
-      (if (word-at-point)
+      (if (lsp-isar-indent-word-at-point)
 	  (setq finished t)
 	(progn
 	  (forward-line -1)
 	  (beginning-of-line)))))
   (lsp-isar-indent-trace-indent
    "lsp-isar-indent-previous-line-with-word found, looking at %s, line %s"
-   (word-at-point)
+   (lsp-isar-indent-word-at-point)
    (line-number-at-pos)))
 
 
@@ -89,7 +122,7 @@
 
 (defun lsp-isar-indent-current-line-empty-p ()
   "Test if line is nonempty."
-  (or (not (thing-at-point 'line)) (string-match-p "^\\s-*$" (thing-at-point 'line))))
+  (or (not (lsp-isar-indent-thing-at-point 'line)) (string-match-p "^\\s-*$" (lsp-isar-indent-thing-at-point 'line))))
 
 (defun lsp-isar-indent-create-regex-from-words (s)
   "Create a regular expression based on the list of words S."
@@ -302,14 +335,14 @@ not match the pattern A."
   (and
    (lsp-isar-indent-current-line-empty-p)
    (/= 0 (lsp-isar-indent-current-line-empty-p))
-   (word-at-point)
-   (string-match-p a (word-at-point))))
+   (lsp-isar-indent-word-at-point)
+   (string-match-p a (lsp-isar-indent-word-at-point))))
 
 (defun lsp-isar-indent-move-to-first-word-on-the-line ()
   "Goto first word on the line."
-  (lsp-isar-indent-trace-indent "lsp-isar-indent-move-to-first-word-on-the-line, initially looking at %s" (word-at-point))
+  (lsp-isar-indent-trace-indent "lsp-isar-indent-move-to-first-word-on-the-line, initially looking at %s" (lsp-isar-indent-word-at-point))
   (back-to-indentation)
-  (lsp-isar-indent-trace-indent "lsp-isar-indent-move-to-first-word-on-the-line, now looking at %s" (word-at-point)))
+  (lsp-isar-indent-trace-indent "lsp-isar-indent-move-to-first-word-on-the-line, now looking at %s" (lsp-isar-indent-word-at-point)))
 
 (defun lsp-isar-indent-command-at-beginning-of-line ()
   "Identifies the command at the current position."
@@ -363,7 +396,7 @@ not match the pattern A."
     (lsp-isar-indent-move-to-first-word-on-the-line)
     (let
 	((current-command (lsp-isar-indent-command-at-beginning-of-line))
-	 (current-word (word-at-point))
+	 (current-word (lsp-isar-indent-word-at-point))
 	 (previous-command (lsp-isar-indent-find-previous-command)))
       (lsp-isar-indent-trace-indent "current-word %s" current-word)
       (lsp-isar-indent-trace-indent "current command previous-command %s" (list current-command previous-command))
