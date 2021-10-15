@@ -86,7 +86,21 @@ magnitude."
   "Return the word at point.  See `lsp-isar-indent-thing-at-point'."
   (lsp-isar-indent-thing-at-point 'word no-properties))
 
-(defvar lsp-isar-indent-trace-indent nil)
+(defvar lsp-isar-indent-trace-indent nil
+  "Set variable to t to produce logs during parsing. 
+
+Set the variable before require-ing the package and not
+after (Remember: this is Emacs. Unused arguments are still
+evaluated.)")
+
+(if lsp-isar-indent-trace-indent
+    (defun lsp-isar-indent-trace-indent (&rest args)
+      "Optionally tracing procedure of ARGS."
+      (if lsp-isar-indent-trace-indent
+	  (apply 'message args)))
+  (define-inline lsp-isar-indent-trace-indent (args)
+    (inline-letevals (args)
+		     (apply 'message args))))
 
 (defun lsp-isar-indent-previous-line-with-word ()
   "Goto previous nonempty line."
@@ -113,12 +127,6 @@ magnitude."
    "lsp-isar-indent-previous-line-with-word found, looking at %s, line %s"
    (lsp-isar-indent-word-at-point)
    (line-number-at-pos)))
-
-
-(defun lsp-isar-indent-trace-indent (&rest args)
-  "Optionally tracing procedure of ARGS."
-  (if lsp-isar-indent-trace-indent
-      (apply 'message args)))
 
 (defun lsp-isar-indent-current-line-empty-p ()
   "Test if line is nonempty."
