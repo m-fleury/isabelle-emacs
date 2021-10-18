@@ -42,7 +42,7 @@
   :type 'boolean
   :group 'isabelle)
 
-(defcustom lsp-isar-parse-args-nollvm t "flag to indicate whether to use Isabelle"
+(defcustom lsp-isar-parse-args-nollvm nil "flag to indicate whether to use Isabelle"
   :type 'boolean
   :group 'isabelle)
 (defcustom lsp-isar-parse-args-noisafol nil "flag to indicate whether to use Isabelle"
