@@ -62,45 +62,55 @@ much faster than thing-at-point (since commit 7db376e5604 from Emacs).
 
 The fact that I need to duplicate the function is really
 unfortunate, but the speed difference is several orders of
-magnitude."
+magnitude (think: at least one second per call vs instant)."
   (save-restriction
     (let ((text
-           (cond
-            ((cl-loop for (pthing . function) in thing-at-point-provider-alist
-                      when (eq pthing thing)
-                      for result = (funcall function)
-                      when result
-                      return result))
-            ((get thing 'thing-at-point)
-             (funcall (get thing 'thing-at-point)))
-            (t
-             (let ((bounds (bounds-of-thing-at-point thing)))
-               (when bounds
-                 (buffer-substring (car bounds) (cdr bounds))))))))
+	   (cond
+	    ((cl-loop for (pthing . function) in thing-at-point-provider-alist
+		      when (eq pthing thing)
+		      for result = (funcall function)
+		      when result
+		      return result))
+	    ((get thing 'thing-at-point)
+	     (funcall (get thing 'thing-at-point)))
+	    (t
+	     (let ((bounds (bounds-of-thing-at-point thing)))
+	       (when bounds
+		 (buffer-substring (car bounds) (cdr bounds))))))))
       (when (and text no-properties (sequencep text))
-        (set-text-properties 0 (length text) nil text))
+	(set-text-properties 0 (length text) nil text))
       text)))
-
 
 (defun lsp-isar-indent-word-at-point (&optional no-properties)
   "Return the word at point.  See `lsp-isar-indent-thing-at-point'."
   (lsp-isar-indent-thing-at-point 'word no-properties))
 
+(defun lsp-isar-indent-thing-at-point-around (orig-fun &rest args)
+  (lsp-isar-indent-thing-at-point args))
+
+(when (>= emacs-major-version 28)
+  (defun thing-at-point (thing &optional no-properties)
+    "Very ugly work-around because it contiminates all calls to thing-at-point.
+
+However, as mentionned above, the speed difference is too large to not do that."
+    (lsp-isar-indent-thing-at-point thing no-properties)))
+
 (defvar lsp-isar-indent-trace-indent nil
-  "Set variable to t to produce logs during parsing. 
+  "Set variable to t to produce logs during parsing.
 
 Set the variable before require-ing the package and not
-after (Remember: this is Emacs. Unused arguments are still
-evaluated.)")
-
+after (Remember: this is Emacs. There is no optimisation so
+unused arguments are still evaluated.)")
 (if lsp-isar-indent-trace-indent
     (defun lsp-isar-indent-trace-indent (&rest args)
       "Optionally tracing procedure of ARGS."
-      (if lsp-isar-indent-trace-indent
-	  (apply 'message args)))
-  (define-inline lsp-isar-indent-trace-indent (args)
-    (inline-letevals (args)
-		     (apply 'message args))))
+      (apply 'message args))
+      ;;(if lsp-isar-indent-trace-indent
+  ;;	  (apply 'message args))
+  (progn
+    (message "don't debug indentation")
+    (define-inline lsp-isar-indent-trace-indent (&rest _args)
+        nil)))
 
 (defun lsp-isar-indent-previous-line-with-word ()
   "Goto previous nonempty line."
