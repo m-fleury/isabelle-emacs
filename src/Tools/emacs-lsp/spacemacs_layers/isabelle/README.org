@@ -39,9 +39,9 @@ This layer allows for editing isabelle theory files. It includes:
   - sledgehammer interface
   - some keybindings
 
-Remark that only isar-mode and lsp-isar have been developped for this
+Remark that only isar-mode and lsp-isar have been developed for this
 project. The rest (and in particular the LSP integration) was
-developped by other peole!
+developed by other people!
 
 * Preparation
 *** Clone Isabelle-emacs
@@ -74,7 +74,7 @@ While none of them is per-se necessary, as a user, you really want to have the f
 
 Add the following to your =.emacs= (refer to the file =configuration_ex/mini_init.el=):
 #+BEGIN_SRC lisp
-;; initialisation of package
+;; initialisation of package (if needed)
 (package-initialize)
 
 (add-to-list 'package-archives '("org" . "http://orgmode.org/elpa/") t)
@@ -102,9 +102,12 @@ Add the following to your =.emacs= (refer to the file =configuration_ex/mini_ini
 
 (require 'quelpa-use-package)
 
-;; install dependency
+;; install dependencies
 (use-package lsp-mode
   :ensure t)
+(use-package session-async
+  :ensure t)
+
 
 ;; the various required packages
 (use-package isar-mode
