@@ -35,6 +35,7 @@
 
 (require 'lsp-protocol)
 (require 'lsp-mode)
+(require 'tramp)
 
 (require 'lsp-isar-caret)
 (require 'lsp-isar-decorations)
@@ -331,8 +332,7 @@ the AFP and other options."
 	(lsp-ht
 	 ("PIDE/decoration" #'lsp-isar-decorations-update-and-reprint)
 	 ("PIDE/dynamic_output" #'lsp-isar-output-update-state-and-output-buffer)
-	 ("PIDE/progress" #'lsp-isar-progress--update-buffer)
-	 ("PIDE/find-theorems-output" #'lsp-isar-find-theorems-answer))))
+	 ("PIDE/progress" #'lsp-isar-progress--update-buffer))))
 
     (lsp-register-client
      (make-lsp-client
@@ -347,8 +347,7 @@ the AFP and other options."
       (lsp-ht
        ("PIDE/decoration" #'lsp-isar-decorations-update-and-reprint)
        ("PIDE/dynamic_output" #'lsp-isar-output-update-state-and-output-buffer)
-       ("PIDE/progress" #'lsp-isar-progress--update-buffer)
-       ("PIDE/find-theorems" #'lsp-isar-find-theorems-answer))))))
+       ("PIDE/progress" #'lsp-isar-progress--update-buffer))))))
 
 
 ;;;###autoload

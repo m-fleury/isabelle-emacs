@@ -465,7 +465,8 @@ Lisp equivalent of 'replace-regexp' as indicated in the help."
   (car (cdr (cdr (cdr (cdr x))))))
 
 (defun lsp-isar-output--update-state-and-output-buffer-async (lsp-isar-output-current-output-number-res content)
-  "Parse Isabelle output CONTENT asynchronously and number LSP-ISAR-OUTPUT-CURRENT-OUTPUT-NUMBER-RES."
+  "Parse Isabelle output CONTENT asynchronously and number
+LSP-ISAR-OUTPUT-CURRENT-OUTPUT-NUMBER-RES."
   (save-excursion
     (session-async-start
      `(lambda () (lsp-isar-output-recalculate-async ,content))
@@ -870,7 +871,8 @@ Lisp equivalent of 'replace-regexp' as indicated in the help."
       (font-lock-mode nil))))
 
 (lsp-defun lsp-isar-output-update-state-and-output-buffer (_workspace (&lsp-isar:DynamicOutput :content))
-  "Launch the thread or timer to update the state and the output panel with CONTENT."
+  "Launch the thread or timer to update the state and the output
+panel with CONTENT."
   (setq lsp-isar-output--previous-goal content)
   (cl-incf lsp-isar-output-current-output-number)
 

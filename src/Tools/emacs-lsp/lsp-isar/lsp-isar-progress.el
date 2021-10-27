@@ -60,7 +60,8 @@ shortening prefixes of buffers with the same name."
   :group 'isabelle)
 
 (lsp-defun lsp-isar-progress--update-buffer (_workspace (&lsp-isar:Progress :nodes-status))
-  "Update the progress buffer and centers it on the current edited buffer with STATUS."
+  "Update the progress buffer and centers it on the current
+edited buffer with STATUS."
   (setq lsp-isar-progress--request-delay 0)
   (let ((inhibit-read-only t)
 	(current-thy-name (if (buffer-file-name) (file-name-base (buffer-file-name)) nil))

@@ -85,14 +85,13 @@ magnitude (think: at least one second per call vs instant)."
   "Return the word at point.  See `lsp-isar-indent-thing-at-point'."
   (lsp-isar-indent-thing-at-point 'word no-properties))
 
-(defun lsp-isar-indent-thing-at-point-around (orig-fun &rest args)
-  (lsp-isar-indent-thing-at-point args))
-
 (when (>= emacs-major-version 28)
   (defun thing-at-point (thing &optional no-properties)
-    "Very ugly work-around because it contiminates all calls to thing-at-point.
+    "Ugly work-around because it contaminates all calls to thing-at-point.
 
-However, as mentionned above, the speed difference is too large to not do that."
+However, as mentionned above, the speed difference is too large
+to not do that (see
+https://github.com/m-fleury/isabelle-emacs/issues/51)."
     (lsp-isar-indent-thing-at-point thing no-properties)))
 
 (defvar lsp-isar-indent-trace-indent nil
