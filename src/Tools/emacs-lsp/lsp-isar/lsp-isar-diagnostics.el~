@@ -1,0 +1,17 @@
+
+
+(defun lsp-diagnostics-lsp-checker-if-needed ()
+  (unless (flycheck-valid-checker-p 'isar)
+    (flycheck-define-generic-checker 'lsp
+      "A syntax checker using the Language Server Protocol (LSP)
+provided by lsp-mode.
+See https://github.com/emacs-lsp/lsp-mode."
+      :start #'lsp-diagnostics--flycheck-start
+      :modes '(lsp-placeholder-mode) ;; placeholder
+      :predicate (lambda () lsp-diagnostics-mode)
+      :error-explainer (lambda (e)
+                         (lsp-diagnostics-flycheck-error-explainer
+                          e (lsp--workspace-server-id (car-safe (lsp-workspaces))))))))
+
+
+(flycheck-define-generic-checker)
