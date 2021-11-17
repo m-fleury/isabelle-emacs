@@ -26,6 +26,9 @@ Here is a screenshot of Isabelle in spacemacs:
     - [[#create-the-private-layer-isabelle][Create the private layer Isabelle]]
     - [[#create-the-private-layer-lisp-mode][Create the private layer lisp-mode]]
     - [[#add-the-isabelle-layer-to-spacemacs-and-configure-it][Add the isabelle layer to spacemacs and configure it]]
+  - [[#doom][doom]]
+    - [[#installing-the-required-packages][Installing the required packages]]
+    - [[#configuration][Configuration]]
 - [[#post-installation][Post-Installation]]
   - [[#adding-the-afp][Adding the AFP]]
   - [[#configuration][Configuration]]
@@ -269,6 +272,71 @@ existing =dotspacemacs-configuration-layers= list in this file.
 
 *** Add the isabelle layer to spacemacs and configure it
 Same as non-developer version
+
+** doom
+*** Installing the required packages
+Add the following to your =packages.el= (replacing the paths with the correct ones): 
+#+BEGIN_src elisp
+(package! isar-mode
+   :recipe (:local-repo ".../path/to/simp-isar-mode"))
+
+(package! isar-goal-mode
+   :recipe (:local-repo ".../path/to/simp-isar-mode"))
+
+(package! lsp-isar
+   :recipe (:local-repo ".../isabelle-emacs/src/Tools/emacs-lsp/lsp-isar/"))
+
+(package! lsp-isar-parse-args
+   :recipe (:local-repo ".../isabelle-emacs/src/Tools/emacs-lsp/lsp-isar/"))
+
+(package! session-async)
+#+END_src
+Now run =doom sync= to install the packages.
+
+*** Configuration
+An example configuration, appended to your =config.el=, might look like this: 
+#+BEGIN_src elisp
+;; Isabelle setup
+(use-package! isar-mode
+  :mode "\\.thy\\'"
+  :config
+  ;; (add-hook 'isar-mode-hook 'turn-on-highlight-indentation-mode)
+  ;; (add-hook 'isar-mode-hook 'flycheck-mode)
+  (add-hook 'isar-mode-hook 'company-mode)
+  (add-hook 'isar-mode-hook
+            (lambda ()
+              (set (make-local-variable 'company-backends)
+                   '((company-dabbrev-code company-yasnippet)))))
+  (add-hook 'isar-mode-hook
+            (lambda ()
+              (set (make-local-variable 'indent-tabs-mode) nil)))
+  (add-hook 'isar-mode-hook
+            (lambda ()
+              (yas-minor-mode)))
+  )
+
+(use-package! lsp-isar-parse-args
+  :custom
+  (lsp-isar-parse-args-nollvm nil))
+
+(use-package! lsp-isar
+  :commands lsp-isar-define-client-and-start
+  :custom
+  (lsp-isar-output-use-async t)
+  (lsp-isar-output-time-before-printing-goal nil)
+  (lsp-isar-experimental t)
+  (lsp-isar-split-pattern 'lsp-isar-split-pattern-three-columns)
+  (lsp-isar-decorations-delayed-printing t)
+  :init
+  (add-hook 'lsp-isar-init-hook 'lsp-isar-open-output-and-progress-right-spacemacs)
+  (add-hook 'isar-mode-hook #'lsp-isar-define-client-and-start)
+
+  (push (concat ".../isabelle-emacs/src/Tools/emacs-lsp/yasnippet")
+   yas-snippet-dirs)
+  (setq lsp-isar-path-to-isabelle ".../isabelle-emacs")
+  )  ; looks for ~/.doom.d/my/package/my-package.el
+#+END_src
+
 * Post-Installation
 ** Adding the AFP
 Append to the file =~/.isabelle/Isabelle2021-vsce/etc/settings=
