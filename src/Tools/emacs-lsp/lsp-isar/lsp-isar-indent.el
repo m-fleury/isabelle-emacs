@@ -54,8 +54,9 @@
 
 (require 'thingatpt)
 
-(defun lsp-isar-indent-thing-at-point (thing &optional no-properties)
-  "Return the THING at point.
+(if (>= emacs-major-version 28)
+    (defun lsp-isar-indent-thing-at-point (thing &optional no-properties)
+      "Return the THING at point.
 
 See thing-at-point for usage. Does not respect fields, making it
 much faster than thing-at-point (since commit 7db376e5604 from Emacs).
@@ -63,27 +64,25 @@ much faster than thing-at-point (since commit 7db376e5604 from Emacs).
 The fact that I need to duplicate the function is really
 unfortunate, but the speed difference is several orders of
 magnitude (think: at least one second per call vs instant)."
-  (save-restriction
-    (let ((text
-	   (cond
-	    ((cl-loop for (pthing . function) in thing-at-point-provider-alist
-		      when (eq pthing thing)
-		      for result = (funcall function)
-		      when result
-		      return result))
-	    ((get thing 'thing-at-point)
-	     (funcall (get thing 'thing-at-point)))
-	    (t
-	     (let ((bounds (bounds-of-thing-at-point thing)))
-	       (when bounds
-		 (buffer-substring (car bounds) (cdr bounds))))))))
-      (when (and text no-properties (sequencep text))
-	(set-text-properties 0 (length text) nil text))
-      text)))
-
-(defun lsp-isar-indent-word-at-point (&optional no-properties)
-  "Return the word at point.  See `lsp-isar-indent-thing-at-point'."
-  (lsp-isar-indent-thing-at-point 'word no-properties))
+      (save-restriction
+        (let ((text
+	       (cond
+	        ((cl-loop for (pthing . function) in thing-at-point-provider-alist
+		          when (eq pthing thing)
+		          for result = (funcall function)
+		          when result
+		          return result))
+	        ((get thing 'thing-at-point)
+	         (funcall (get thing 'thing-at-point)))
+	        (t
+	         (let ((bounds (bounds-of-thing-at-point thing)))
+	           (when bounds
+		     (buffer-substring (car bounds) (cdr bounds))))))))
+          (when (and text no-properties (sequencep text))
+	    (set-text-properties 0 (length text) nil text))
+          text)))
+  (defun lsp-isar-indent-thing-at-point (thing &optional no-properties)
+    (thing-at-point thing no-properties)))
 
 (when (>= emacs-major-version 28)
   (defun thing-at-point (thing &optional no-properties)
