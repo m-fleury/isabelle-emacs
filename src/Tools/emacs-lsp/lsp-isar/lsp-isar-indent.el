@@ -84,6 +84,10 @@ magnitude (think: at least one second per call vs instant)."
   (defun lsp-isar-indent-thing-at-point (thing &optional no-properties)
     (thing-at-point thing no-properties)))
 
+(defun lsp-isar-indent-word-at-point (&optional no-properties)
+  "Return the word at point.  See `lsp-isar-indent-thing-at-point'."
+  (lsp-isar-indent-thing-at-point 'word no-properties))
+
 (when (>= emacs-major-version 28)
   (defun thing-at-point (thing &optional no-properties)
     "Ugly work-around because it contaminates all calls to thing-at-point.
