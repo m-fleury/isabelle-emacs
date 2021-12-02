@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: hence
+# key: hence
+# --
+then have \<open>$0\<close>
