@@ -171,12 +171,8 @@ Change the =CHANGE HERE= part with the correct path to the =isabelle-emacs= clon
   ln -s ~/isabelle-emacs/src/Tools/emacs-lsp/spacemacs_layers/isabelle/packages.el packages.el
   ln -s ~/isabelle-emacs/src/Tools/emacs-lsp/spacemacs_layers/isabelle/funcs.el funcs.el
 #+END_SRC
-    - Replace the imports by
+    - In `defconst isabelle-packages` at the top of the file, remove the imports of `isar-mode`, `lsp-isar`, and `isar-goal-mode` and replace them by:
 #+BEGIN_SRC elisp
-(defconst isabelle-packages
-  '(
-    ;; async is in spacemacs-core
-    dash
     (isar-mode :location (recipe
                              :fetcher github
                              :repo "m-fleury/isar-mode"))
@@ -187,8 +183,6 @@ Change the =CHANGE HERE= part with the correct path to the =isabelle-emacs= clon
                              :fetcher github
                              :repo "m-fleury/isabelle-emacs"
                  :files ("src/Tools/emacs-lsp/lsp-isar/*.el")))
-    yasnippet)
-  "The list of Lisp packages required by the isabelle layer.")
 #+END_SRC
 
 *** Add the isabelle layer to spacemacs and configure it
