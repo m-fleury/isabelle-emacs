@@ -187,7 +187,7 @@ Change the =CHANGE HERE= part with the correct path to the =isabelle-emacs= clon
 
 *** Add the isabelle layer to spacemacs and configure it
 To use this configuration layer, add it to your =~/.spacemacs=. You will need to
-add =isabelle= to the existing =dotspacemacs-configuration-layers= list in this
+add =isabelle= and =git= (we use =transient= that powers magit) to the existing =dotspacemacs-configuration-layers= list in this
 file.
 
 Then you need to add the following lines in the =dotspacemacs/user-init= function of your =~/.spacemacs= file.
