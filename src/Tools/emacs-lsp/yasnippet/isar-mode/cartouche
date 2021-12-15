@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: cartouches
+# key: $
+# --
+\<open>$0\<close>
