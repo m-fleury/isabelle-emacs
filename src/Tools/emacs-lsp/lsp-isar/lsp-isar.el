@@ -246,12 +246,11 @@ Set `lsp-isabelle-options' for other options (like importing the AFP)."
 
 (defun lsp-full-remote-isabelle-path ()
   "Full remote isabelle command."
-  (mapcar (lambda (opt) opt) ;; (replace-regexp-in-string "\\$" "\\$" opt nil 'literal)) ;;
-	  (append
-	   (list lsp-isar-remote-path-to-isabelle
-		 "vscode_server")
-	   lsp-vscode-options
-	   lsp-remote-isabelle-options)))
+  (append
+   (list lsp-isar-remote-path-to-isabelle
+	 "vscode_server")
+   lsp-vscode-options
+   lsp-remote-isabelle-options))
 
 
 (defun lsp-full-isabelle-path ()
