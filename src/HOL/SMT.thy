@@ -606,6 +606,7 @@ proof -
 qed
 
 
+
 subsection \<open>Setup\<close>
 
 ML_file \<open>Tools/SMT/smt_util.ML\<close>
@@ -637,7 +638,9 @@ ML_file \<open>Tools/SMT/z3_replay_rules.ML\<close>
 ML_file \<open>Tools/SMT/z3_replay_methods.ML\<close>
 ML_file \<open>Tools/SMT/z3_replay.ML\<close>
 ML_file \<open>Tools/SMT/lethe_replay_methods.ML\<close>
+ML_file \<open>Tools/SMT/cvc4_replay_methods.ML\<close>
 ML_file \<open>Tools/SMT/verit_replay_methods.ML\<close>
+ML_file \<open>Tools/SMT/cvc4_replay.ML\<close>
 ML_file \<open>Tools/SMT/verit_replay.ML\<close>
 ML_file \<open>Tools/SMT/smt_systems.ML\<close>
 
@@ -683,6 +686,14 @@ Z3.
 \<close>
 
 declare [[smt_oracle = false]]
+
+text \<open>
+CVC5 is able to generate Lethe. Support for it is currently experimental
+and hence not activate by default (in particular CVC5 is not yet bundled
+with Isabelle).
+\<close>
+
+declare [[smt_cvc_lethe = false]]
 
 text \<open>
 Each SMT solver provides several command-line options to tweak its

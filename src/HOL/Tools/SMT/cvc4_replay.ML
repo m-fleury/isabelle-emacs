@@ -1,15 +1,16 @@
-(*  Title:      HOL/Tools/SMT/verit_replay.ML
-    Author:     Mathias Fleury, MPII, JKU
+(*  Title:      HOL/Tools/SMT/cvc4_replay.ML
+    Author:     Mathias Fleury, JKU
+    Author:     Hanna Lachnitt, Stanford University
 
-VeriT proof parsing and replay.
+CVC4 proof parsing and replay.
 *)
 
-signature VERIT_REPLAY =
+signature CVC4_REPLAY =
 sig
   val replay: Proof.context -> SMT_Translate.replay_data -> string list -> thm
 end;
 
-structure Verit_Replay: VERIT_REPLAY =
+structure CVC4_Replay: CVC4_REPLAY =
 struct
 
 fun subst_only_free pairs =
@@ -77,6 +78,7 @@ fun replay_thm method_for rewrite_rules ll_defs ctxt assumed unchanged_prems pre
       |> Simplifier.simplify (empty_simpset ctxt addsimps rewrite_rules)
   end
 
+
 fun add_used_asserts_in_step (Lethe_Proof.Lethe_Replay_Node {prems,
     subproof = (_, _, _, subproof), ...}) =
   union (op =) (map_filter (try (snd o SMTLIB_Interface.role_and_index_of_assert_name)) prems @
@@ -140,7 +142,7 @@ fun replay_theorem_step rewrite_rules ll_defs assumed inputs proof_prems
        if Lethe_Replay_Methods.requires_subproof_assms prems rule then proof_prems else []
     val local_inputs =
        if Lethe_Replay_Methods.requires_local_input prems rule then input @ inputs else []
-    val replay = Timing.timing (replay_thm Verit_Replay_Methods.method_for rewrite_rules ll_defs
+    val replay = Timing.timing (replay_thm CVC4_Replay_Methods.method_for rewrite_rules ll_defs
        ctxt assumed [] (proof_prems @ local_inputs) (nthms @ nthms') concl_tranformation
        global_transformation args insts)
 
@@ -209,6 +211,29 @@ fun replay_assumed assms ll_defs rewrite_rules stats ctxt term =
     (thm, stats')
   end
 
+val cvc_assms_prefix = "__repeated_assms_" (*FUDGE*)
+(*The index k is not unique for monomorphised theorems.*)
+fun cvc_assms_name l k = cvc_assms_prefix ^ SMTLIB_Interface.assert_name_of_role_and_index SMT_Util.Axiom k ^ "_" ^ l
+
+fun add_correct_assms_deps ctxt rewrite_rules ll_defs assms steps =
+  let
+    fun add_correct_assms_deps (st as Lethe_Proof.Lethe_Replay_Node {id, rule, args, prems, proof_ctxt,
+        concl, bounds, insts, declarations, subproof}) =
+     (case try (snd o SMTLIB_Interface.role_and_index_of_assert_name) id of
+       NONE => st
+     | SOME _ =>
+       (case List.find (fn (_, th') =>  CVC4_Proof_Parse.cvc_matching_assms ctxt rewrite_rules ll_defs concl th') assms of
+         NONE => st
+       | SOME ((k, _), _) =>
+       let
+          val assms_prem = cvc_assms_name id k
+       in
+        Lethe_Proof.mk_replay_node id rule args (assms_prem :: prems) proof_ctxt concl bounds insts declarations
+         subproof
+       end))
+  in
+    map add_correct_assms_deps steps
+  end
 
 fun replay_step rewrite_rules ll_defs assumed inputs proof_prems
   (step as Lethe_Proof.Lethe_Replay_Node {rule, ...}) state =
@@ -221,6 +246,10 @@ fun replay outer_ctxt
     ({context = ctxt, typs, terms, rewrite_rules, assms, ll_defs, ...} : SMT_Translate.replay_data)
      output =
   let
+    val _ = if not (SMT_Config.use_lethe_proof_from_cvc ctxt)
+       then (raise SMT_Failure.SMT (SMT_Failure.Other_Failure ("reconstruction with CVC is experimental." ^
+         "You must activate it with [[smt_cvc_lethe = true]] and use CVC5.")))
+       else ()
     val rewrite_rules =
       filter_out (fn thm => Term.could_unify (Thm.prop_of @{thm verit_eq_true_simplify},
           Thm.prop_of thm))
@@ -234,20 +263,29 @@ fun replay outer_ctxt
       Lethe_Proof.parse_replay typs terms output ctxt
     val parsing_time = Time.toNanoseconds (#elapsed (Timing.result start0))
 
-    fun step_of_assume (j, (_, th)) =
-      Lethe_Proof.Lethe_Replay_Node {
-        id = SMTLIB_Interface.assert_name_of_role_and_index SMT_Util.Axiom (id_of_index j),
-        rule = Lethe_Proof.input_rule,
-        args = [],
-        prems = [],
-        proof_ctxt = [],
-        concl = Thm.prop_of th
-          |> Raw_Simplifier.rewrite_term (Proof_Context.theory_of
-               (empty_simpset ctxt addsimps rewrite_rules)) rewrite_rules [],
-        bounds = [],
-        insts = Symtab.empty,
-        declarations = [],
-        subproof = ([], [], [], [])}
+    fun step_of_assume (i, (_, th)) =
+      let
+        fun matching ((_, _), th') = CVC4_Proof_Parse.cvc_matching_assms ctxt rewrite_rules ll_defs (Thm.prop_of th) th'
+      in
+        case List.find matching assms of
+          NONE => []
+        | SOME ((k, role), th') =>
+        Lethe_Proof.Lethe_Replay_Node {
+          id = cvc_assms_name (SMTLIB_Interface.assert_name_of_role_and_index role (id_of_index i)) k,
+          rule = Lethe_Proof.input_rule,
+          args = [],
+          prems = [],
+          proof_ctxt = [],
+          concl = Thm.prop_of th'
+            |> Raw_Simplifier.rewrite_term (Proof_Context.theory_of
+                 (empty_simpset ctxt addsimps rewrite_rules)) rewrite_rules [],
+          bounds = [],
+          insts = Symtab.empty,
+          declarations = [],
+          subproof = ([], [], [], [])}
+        |> single
+      end
+ 
     val used_assert_ids = fold add_used_asserts_in_step actual_steps []
     fun normalize_tac ctxt = let val thy = Proof_Context.theory_of (empty_simpset ctxt) in
       Raw_Simplifier.rewrite_term thy rewrite_rules [] end
@@ -257,6 +295,7 @@ fun replay outer_ctxt
         used_assert_ids
 
     val assm_steps = map step_of_assume used_assm_js
+         |> flat
 
     fun extract (Lethe_Proof.Lethe_Replay_Node {id, rule, concl, bounds, ...}) =
          (id, rule, concl, map fst bounds)
@@ -279,6 +318,8 @@ fun replay outer_ctxt
       end)
       used_rew_js (assumed, Symtab.cons_list ("parsing", parsing_time) Symtab.empty)
 
+    val actual_steps = actual_steps
+      |> add_correct_assms_deps ctxt rewrite_rules ll_defs assms
     val ctxt4 =
       ctxt3
       |> put_simpset (SMT_Replay.make_simpset ctxt3 [])
@@ -303,11 +344,11 @@ fun replay outer_ctxt
     val thm_with_defs = Symtab.lookup proofs id |> the |> snd
       |> singleton (Proof_Context.export ctxt5 outer_ctxt)
     val _ = SMT_Config.statistics_msg ctxt5
-      (Pretty.string_of o SMT_Replay.pretty_statistics "veriT" total) stats
+      (Pretty.string_of o SMT_Replay.pretty_statistics "CVC" total) stats
     val _ = SMT_Replay.spying (SMT_Config.spy_verit ctxt) ctxt
-      (fn () => SMT_Replay.print_stats (Symtab.dest stats)) "spy_verit"
+      (fn () => SMT_Replay.print_stats (Symtab.dest stats)) "spy_cvc"
   in
-    Verit_Replay_Methods.discharge ctxt [thm_with_defs] @{term False}
+    CVC4_Replay_Methods.discharge ctxt [thm_with_defs] @{term False}
   end
 
 end

@@ -29,7 +29,7 @@ fun smtlib_logic "z3" ts =
 (* SMT-LIB builtins *)
 
 local
-  val smtlibC = SMTLIB_Interface.smtlibC @ SMTLIB_Interface.bvsmlibC
+  val smtlibC = SMTLIB_Interface.bvsmlibC
 
   val wordT = \<^typ>\<open>'a::len word\<close>
 
@@ -61,6 +61,16 @@ local
 
   fun if_fixed_all m = if_fixed (forall (can dest_wordT) o (op ::)) m
   fun if_fixed_args m = if_fixed (forall (can dest_wordT) o snd) m
+
+  fun is_conv [(Type (\<^type_name>\<open>Int.int\<close>, [])), a] = can dest_wordT a
+    | is_conv x = (@{print} x; false)
+
+  fun is_word_to_uint m = if_fixed (is_conv o (op ::)) m
+
+  fun is_conv [a, (Type (\<^type_name>\<open>Int.int\<close>, []))] = can dest_wordT a
+    | is_conv x = (@{print} x; false)
+
+  fun is_uint_to_word m = if_fixed (is_conv o (op ::)) m
 
   fun add_word_fun f (t, n) =
     let val (m, _) = Term.dest_Const t
@@ -154,9 +164,98 @@ val setup_builtins =
     (\<^term>\<open>less :: 'a::len word \<Rightarrow> _\<close>, "bvult"),
     (\<^term>\<open>less_eq :: 'a::len word \<Rightarrow> _\<close>, "bvule"),
     (\<^term>\<open>word_sless\<close>, "bvslt"),
-    (\<^term>\<open>word_sle\<close>, "bvsle") ]
+    (\<^term>\<open>word_sle\<close>, "bvsle") ] #>
+  fold (add_word_fun is_word_to_uint) [
+    (\<^term>\<open>unsigned :: 'a::len word \<Rightarrow> int\<close>, "bv2nat") ] #>
+  fold (add_word_fun is_uint_to_word) [
+    (\<^term>\<open>word_of_int :: int \<Rightarrow> 'a::len word\<close>, "nat2bv") ]
+
 
 val add_word_shift' = add_word_fun shift'
+
+fun mk_unary n t =
+  let val T = fastype_of t
+  in Const (n, T --> T) $ t end
+
+val split_last =
+  let fun split_last [a] = ([], a)
+       | split_last (x :: xs) = apfst (curry (op ::) x) (split_last xs)
+  in apfst List.rev o split_last end
+
+fun mk_concat (t, u) =
+  let
+    val T = fastype_of t
+    val U = fastype_of u
+    val TU = Word_Lib.dest_wordT T + Word_Lib.dest_wordT U
+          |> Word_Lib.mk_wordT
+  in Const (\<^const_name>\<open>Word.word_cat\<close>, T --> U --> TU) $ t $ u end;
+
+fun mk_extract i j u =
+  let
+    val I = HOLogic.mk_number \<^typ>\<open>nat\<close> i
+    val J = HOLogic.mk_number \<^typ>\<open>nat\<close> i
+    val T = fastype_of u
+    val TU = i - j + 1
+          |> Word_Lib.mk_wordT
+  in Const (\<^const_name>\<open>Word.smt_extract\<close>, @{typ nat} --> @{typ nat} --> T --> TU) $ I $ J $ u end;
+
+fun mk_zero_extend i u =
+  let
+    val T = fastype_of u
+    val TU = Word_Lib.mk_wordT i
+  in Const (\<^const_name>\<open>Word.cast\<close>, T --> TU) $ u end;
+
+fun mk_scast i u =
+  let
+    val T = fastype_of u
+    val TU = Word_Lib.mk_wordT i
+  in Const (\<^const_name>\<open>Word.signed\<close>, T --> TU) $ u end;
+
+fun bv_term_parser (SMTLIB.Sym bv, []) =
+      (case try (unprefix "bv") bv of
+        NONE => NONE
+      | SOME t => SOME (HOLogic.mk_number \<^typ>\<open>Int.int\<close> (fst (read_int (raw_explode t)))))
+  | bv_term_parser (SMTLIB.Sym "_", [int, base]) =
+      let
+        val ty = Word_Lib.mk_wordT (snd (HOLogic.dest_number base))
+        val num = snd (HOLogic.dest_number int)
+      in
+        SOME (HOLogic.mk_number ty num)
+      end
+  | bv_term_parser (SMTLIB.Sym "bvneg", [t]) =
+      SOME (mk_unary \<^const_name>\<open>uminus_class.uminus\<close> t)
+  | bv_term_parser (SMTLIB.Sym "bvadd", t) =
+      let val (xs, a) = split_last t
+      in
+        SOME (fold (curry (HOLogic.mk_binop \<^const_name>\<open>Groups.plus\<close>)) xs a)
+      end
+  | bv_term_parser (SMTLIB.Sym "bv", [t1, t2]) =
+      SOME (HOLogic.mk_binop \<^const_name>\<open>Groups.minus\<close> (t1, t2))
+  | bv_term_parser (SMTLIB.Sym "bvmul", [t1, t2]) =
+      SOME (HOLogic.mk_binop \<^const_name>\<open>Groups.times\<close> (t1, t2))
+  | bv_term_parser (SMTLIB.Sym "bvand", [t1, t2]) =
+      SOME (HOLogic.mk_binop \<^const_name>\<open>semiring_bit_operations_class.and\<close> (t1, t2))
+  | bv_term_parser (SMTLIB.Sym "bvor", [t1, t2]) =
+      SOME (HOLogic.mk_binop \<^const_name>\<open>semiring_bit_operations_class.or\<close> (t1, t2))
+  | bv_term_parser (SMTLIB.Sym "bvxor", [t1, t2]) =
+      SOME (HOLogic.mk_binop \<^const_name>\<open>semiring_bit_operations_class.xor\<close> (t1, t2))
+  | bv_term_parser (SMTLIB.Sym "bvnot", [t1]) =
+      SOME (mk_unary \<^const_name>\<open>uminus_class.uminus\<close> t1)
+  | bv_term_parser (SMTLIB.Sym "concat", [t1, t2]) =
+      SOME (mk_concat (t1, t2))
+  | bv_term_parser (SMTLIB.S [SMTLIB.Sym "_", SMTLIB.Sym "extract", SMTLIB.Num i, SMTLIB.Num j], [t]) =
+      SOME (mk_extract i j t)
+  | bv_term_parser (SMTLIB.S [SMTLIB.Sym "_", SMTLIB.Sym "zero_extend", SMTLIB.Num i], [t]) =
+      SOME (mk_zero_extend i t)
+  | bv_term_parser (SMTLIB.S [SMTLIB.Sym "_", SMTLIB.Sym "sign_extend", SMTLIB.Num i], [t]) =
+      SOME (mk_scast i t)
+(* (* TODO: shifl is not defined here *)
+  | bv_term_parser (SMTLIB.Sym "bvshl", [t1, t2]) =
+      SOME (HOLogic.mk_binop \<^const_name>\<open>Word.shiftl\<close> (t1, t2))
+
+TODO: zero_extend, extract [use slice to define it], sign_extend, rotate_left
+ *)
+  | bv_term_parser xs = (@{print} xs; NONE)
 
 end
 
@@ -166,5 +265,9 @@ end
 val _ = Theory.setup (Context.theory_map (
   SMTLIB_Interface.add_logic (20, smtlib_logic) #>
   setup_builtins))
+
+
+val _ = Theory.setup (Context.theory_map (
+  SMTLIB_Proof.add_term_parser bv_term_parser))
 
 end;

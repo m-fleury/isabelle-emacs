@@ -135,6 +135,10 @@ fun run_smt_solver mode name (params as {debug, verbose, isar_proofs, compress, 
       | SOME ids => sort_by fst (map (fst o snd) ids))
     val outcome = Option.map failure_of_smt_failure outcome
 
+    fun tac_of_smt "verit" = SMT_Verit "default"
+      | tac_of_smt "cvc4" = SMT_CVC
+      | tac_of_smt _ = SMT_Z3
+
     val (preferred_methss, message) =
       (case outcome of
         NONE =>

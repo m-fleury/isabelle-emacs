@@ -8,15 +8,37 @@ theory SMT_Word_Examples
 imports "HOL-Library.Word"
 begin
 
-declare [[smt_oracle = true]]
+(* declare [[smt_oracle = true]]
 declare [[z3_extensions = true]]
 declare [[smt_certificates = "SMT_Word_Examples.certs"]]
-declare [[smt_read_only_certificates = true]]
-
+declare [[smt_read_only_certificates = true]] *)
+declare [[smt_trace,z3_extensions]]
 text \<open>
 Currently, there is no proof reconstruction for words.
 All lemmas are proved using the oracle mechanism.
 \<close>
+type_synonym w32 = "32 word"
+
+declare [[show_types=true]]
+declare [[cvc4_options = "--proof-format-mode=verit-extended --simplification=none --dag-thres=0 --lang=smt2 --full-saturate-quant"]]
+declare [[smt_nat_as_int=true]]
+
+definition bound :: nat where
+  [simplified, simp]: "bound = unat (2^11 :: w32)"
+
+definition bseg :: "w32 \<Rightarrow> w32 \<Rightarrow> bool" where
+  [simp]: "bseg x s \<longleftrightarrow> unat x < bound \<and> unat x + unat s \<le> bound"
+
+
+lemma b2:
+  assumes
+  "bseg x s"
+   "i < unat s"
+ shows "unat x + i < bound"
+  supply [[smt_trace]]
+using assms unfolding bound_def bseg_def
+  apply (smt (cvc4) )
+  using assms by auto
 
 
 section \<open>Bitvector numbers\<close>

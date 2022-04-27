@@ -66,7 +66,7 @@ val cvc4_extensions = Attrib.setup_config_bool \<^binding>\<open>cvc4_extensions
 local
   fun cvc4_options ctxt =
     ["--no-stats",
-     "--random-seed=" ^ string_of_int (Config.get ctxt SMT_Config.random_seed),
+     "--sat-random-seed=" ^ string_of_int (Config.get ctxt SMT_Config.random_seed),
      "--lang=smt2"] @
     (case SMT_Config.get_timeout ctxt of
       NONE => []
@@ -105,7 +105,7 @@ val cvc4: SMT_Solver.solver_config = {
      ((1, 256, meshN), ["--finite-model-find", "--fmf-inst-engine"])],
   outcome = on_first_line (outcome_of "unsat" "sat" "unknown" "timeout"),
   parse_proof = SOME (K CVC4_Proof_Parse.parse_proof),
-  replay = NONE }
+  replay = SOME CVC4_Replay.replay }
 
 end
 
@@ -126,7 +126,7 @@ local
     "--proof-merge",
     "--disable-print-success",
     "--disable-banner"] @
-    Verit_Proof.veriT_current_strategy (Context.Proof ctxt) @
+    Verit_Proof.verit_current_strategy (Context.Proof ctxt) @
     (case SMT_Config.get_timeout ctxt of
       NONE => []
     | SOME t => ["--max-time=" ^ string_of_int (Time.toMilliseconds t)])
@@ -205,12 +205,12 @@ fun smt_method ((solver, stgy), thms) ctxt facts =
     val default_solver = SMT_Config.solver_of ctxt
     val solver = the_default default_solver solver
     val _ = 
-      if solver = "z3" andalso stgy <> NONE
-      then warning ("No strategy is available for z3. Ignoring " ^ quote (the stgy)) 
+      if solver <> "verit" andalso stgy <> NONE
+      then warning ("No strategy is available for " ^ solver ^ ". Ignoring " ^ quote (the stgy))
       else ()
     val ctxt =
       ctxt
-      |> (if stgy <> NONE then Context.proof_map (Verit_Proof.select_veriT_stgy (the stgy)) else I)
+      |> (if stgy <> NONE then Context.proof_map (Verit_Proof.select_verit_stgy (the stgy)) else I)
       |> Context.Proof
       |> SMT_Config.select_solver solver
       |> Context.proof_of

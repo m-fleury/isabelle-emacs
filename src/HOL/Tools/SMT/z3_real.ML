@@ -2,6 +2,8 @@
     Author:     Sascha Boehme, TU Muenchen
 
 Z3 setup for reals.
+
+TODO rename to SMT_Real
 *)
 
 structure Z3_Real: sig end =
