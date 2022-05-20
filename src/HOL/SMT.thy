@@ -606,6 +606,29 @@ proof -
 qed
 
 
+(*Bitvector TODO: Move to separate file*)
+
+named_theorems arith_simp_cvc5 \<open>TODO\<close>
+lemmas [arith_simp_cvc5] = Groups.monoid_mult_class.mult_1_right Nat.mult_Suc_right
+                     Nat.mult_0_right Nat.add_Suc_right Groups.monoid_add_class.add.right_neutral
+                     Num.numeral_2_eq_2 Nat.One_nat_def Num.numeral_2_eq_2 Nat.One_nat_def
+                     Nat.Suc_less_eq Nat.zero_less_Suc minus_nat.diff_0 Nat.diff_Suc_Suc
+
+named_theorems of_bl_rev_map_bits \<open>Theorems to reconstruct bitblasting of a variable.\<close>
+named_theorems bv_reconstruction_const_test \<open>Theorems to reconstruct bitblasting of a constant.\<close>
+
+named_theorems rbl_bvult_fun \<open>Theorems to reconstruct bitblasting of a bvult term.\<close>
+named_theorems word_less_rbl_bvult \<open>Theorems to reconstruct bitblasting of a bvult term.\<close>
+
+named_theorems rbl_extract_fun \<open>Theorems to reconstruct bitblasting of a extract term.\<close>
+named_theorems rbl_extract \<open>Theorems to reconstruct bitblasting of a extract term.\<close>
+
+named_theorems rbl_concat \<open>Theorems to reconstruct bitblasting of a contract term.\<close>
+
+named_theorems bv_reconstruction_length \<open>Theorems evaluate LENGTH('a) for a concrete length.\<close>
+named_theorems bv_reconstruction_lists \<open>Theorems to reconstruct bitvector theorems concerning lists.\<close>
+named_theorems bv_reconstruction_list_funs \<open>Theorems to reconstruct bitvector theorems concerning list function, e.g. take.\<close>
+
 
 subsection \<open>Setup\<close>
 

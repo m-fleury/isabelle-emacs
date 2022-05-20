@@ -50,7 +50,10 @@ sig
      (*For compression*)
      Theory_Resolution2 |
      (*Extended rules*)
-     Symm | Not_Symm | Reordering | Tmp_Quantifier_Simplify
+     Symm | Not_Symm | Reordering | Tmp_Quantifier_Simplify |
+     (*Bitvector TODO: MOVE ALL BITVECTOR HANDLING TO SEPERATE FILE*)
+     BV_Bitblast_Step_Var | BV_Bitblast_Step_Const | BV_Bitblast_Step_Bvule |
+     BV_Bitblast_Step_Bvult | BV_Bitblast_Step_Extract | BV_Bitblast_Step_Concat
 
   val requires_subproof_assms : string list -> string -> bool
   val requires_local_input: string list -> string -> bool
@@ -138,6 +141,12 @@ sig
   val symm: lethe_tac
   val not_symm: lethe_tac
   val reordering: lethe_tac
+  val bv_bitblast_step_var: lethe_tac
+  val bv_bitblast_step_const: lethe_tac
+  val bv_bitblast_step_bvult: lethe_tac
+  val bv_bitblast_step_bvule: lethe_tac
+  val bv_bitblast_step_extract: lethe_tac
+  val bv_bitblast_step_concat: lethe_tac
 
 (*
   val : lethe_tac
@@ -213,7 +222,10 @@ datatype verit_rule =
    (*For compression*)
    Theory_Resolution2 |
    (*Extended rules*)
-   Symm | Not_Symm | Reordering | Tmp_Quantifier_Simplify
+   Symm | Not_Symm | Reordering | Tmp_Quantifier_Simplify |
+   (*Bitvector*)
+   BV_Bitblast_Step_Var | BV_Bitblast_Step_Const | BV_Bitblast_Step_Bvule |
+   BV_Bitblast_Step_Bvult | BV_Bitblast_Step_Extract | BV_Bitblast_Step_Concat
 
 fun string_of_verit_rule Bind = "Bind"
   | string_of_verit_rule Cong = "Cong"
@@ -293,6 +305,12 @@ fun string_of_verit_rule Bind = "Bind"
   | string_of_verit_rule Symm = "symm"
   | string_of_verit_rule Not_Symm = "not_symm"
   | string_of_verit_rule Reordering = "reordering"
+  | string_of_verit_rule BV_Bitblast_Step_Var = "bv_bitblast_step_var"
+  | string_of_verit_rule BV_Bitblast_Step_Const = "bv_bitblast_step_const"
+  | string_of_verit_rule BV_Bitblast_Step_Bvule = "bv_bitblast_step_bvule"
+  | string_of_verit_rule BV_Bitblast_Step_Bvult = "bv_bitblast_step_bvult"
+  | string_of_verit_rule BV_Bitblast_Step_Extract = "bv_bitblast_step_extract"
+  | string_of_verit_rule BV_Bitblast_Step_Concat = "bv_bitblast_step_concat"
   | string_of_verit_rule Not_Not = Lethe_Proof.not_not_rule
   | string_of_verit_rule Tautological_Clause = "tautology"
   | string_of_verit_rule Duplicate_Literals = Lethe_Proof.contract_rule
@@ -1186,6 +1204,198 @@ local
         replay_error ctxt "invalid application in some reordering rule" Unsupported thms t
 in
   val reordering = prove_reordering
+end
+
+(* Bitblasting *)
+
+(* Bitblasting a variable *)
+local
+  fun prove_bitblast_step_var ctxt _ t =
+  let
+    (*obtain bitblasted variable*)
+    fun find_bbT_var (_ $ (_ $ x $ _)) = x |
+        find_bbT_var _ = error ("Bitblasting step (variable) has the wrong form!")
+    val bit_blasted_var = find_bbT_var t
+
+    (*instantiate with bitblasted variable*)
+    val of_bl_rev_map_bits_lemma =
+        nth (Named_Theorems.get ctxt @{named_theorems of_bl_rev_map_bits}) 0
+    val of_bl_rev_map_bits_lemma_inst =
+        Drule.infer_instantiate' ctxt (map (SOME o Thm.cterm_of ctxt) [bit_blasted_var]) of_bl_rev_map_bits_lemma
+
+  in  SMT_Replay_Methods.prove ctxt t (fn _ =>(
+      K (print_tac ctxt ("bv bitblast reconstruction debug 1"))
+      THEN' K (HEADGOAL (EqSubst.eqsubst_tac ctxt [1] [of_bl_rev_map_bits_lemma_inst]))
+      THEN' K (print_tac ctxt ("bv bitblast reconstruction debug 2 "))
+      THEN' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems bv_reconstruction_length}))
+      THEN' K (print_tac ctxt ("bv bitblast reconstruction debug 3"))
+      THEN' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems smt_arith_simplify}))
+      THEN' K (print_tac ctxt ("bv bitblast reconstruction debug 4"))
+      THEN' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems arith_simp_cvc5}))
+      THEN' K (print_tac ctxt ("bv bitblast reconstruction debug 5"))
+      THEN' (simplify_tac ctxt ((Named_Theorems.get ctxt @{named_theorems bv_reconstruction_lists})))
+      THEN' K (print_tac ctxt ("bv bitblast reconstruction debug 6"))
+      ))
+  end
+in
+  val bv_bitblast_step_var = prove_bitblast_step_var
+end
+
+(* Bitblasting a constant *)
+local
+  fun prove_bitblast_step_const ctxt _ t =
+  let
+  in  SMT_Replay_Methods.prove ctxt t (fn _ =>(
+      K (print_tac ctxt ("bv bitblast reconstruction debug 1"))
+      THEN' K (unfold_tac ctxt (Named_Theorems.get ctxt @{named_theorems bv_reconstruction_const_test}))
+      THEN' K (print_tac ctxt ("bv bitblast reconstruction debug 5"))
+      ))
+  end
+in
+  val bv_bitblast_step_const = prove_bitblast_step_const
+end
+
+(* Bitblasting a bvult *)
+local
+  fun prove_bitblast_step_bvult ctxt _ t =
+  let
+    (*obtain bitblasted variables*)
+    fun find_bbT_vars (_ $ (_ $ (_ $ (_ $ x) $ (_ $ y)) $ _)) = (x,y) |
+        find_bbT_vars _ = error ("Bitblasting step (bvult) has the wrong form!")
+    val bit_blasted_vars = find_bbT_vars t
+    (*val _ = (SMT_Config.verit_msg ctxt) (fn () => \<^print> ("bv bitblast reconstruction t =",t))*)
+
+    (*instantiate with bitblasted variable*)
+    val word_less_rbl_bvult_lemma =
+        nth (Named_Theorems.get ctxt @{named_theorems word_less_rbl_bvult}) 0
+    val word_less_rbl_bvult_lemma_inst =
+        Drule.infer_instantiate' ctxt (map (SOME o Thm.cterm_of ctxt) [fst bit_blasted_vars,snd bit_blasted_vars]) word_less_rbl_bvult_lemma
+
+   in  SMT_Replay_Methods.prove ctxt t (fn _ =>(
+      K (print_tac ctxt ("bvult bitblast reconstruction debug 1"))
+      THEN' K (HEADGOAL (EqSubst.eqsubst_tac ctxt [1] [word_less_rbl_bvult_lemma_inst]))
+      THEN' K (print_tac ctxt ("bvult bitblast reconstruction debug 2"))
+      THEN' REPEAT_CHANGED (
+            (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems rbl_bvult_fun}))
+      THEN' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems bv_reconstruction_length}))
+      THEN' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems smt_arith_simplify}))
+      THEN' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems arith_simp_cvc5}))
+      THEN' (simplify_tac ctxt ((Named_Theorems.get ctxt @{named_theorems bv_reconstruction_lists})))
+      THEN' (simplify_tac ctxt @{thms verit_and_simplify1})
+      THEN' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems bv_reconstruction_list_funs}))
+      THEN' K (print_tac ctxt ("bvult bitblast reconstruction debug 3"))
+      )
+      THEN' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems bv_reconstruction_list_funs}))
+      THEN' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems rbl_bvult_fun}))
+      ))
+  end
+in
+  val bv_bitblast_step_bvult = prove_bitblast_step_bvult
+  val bv_bitblast_step_bvule = prove_bitblast_step_bvult (*TODO*)
+end
+
+
+
+(* Bitblasting an extract *)
+local
+  fun prove_bitblast_step_extract ctxt thms t =
+  let
+    (*val _ = (SMT_Config.verit_msg ctxt) (fn () => \<^print> ("bv bitblast reconstruction t =",t))
+    val _ = (SMT_Config.verit_msg ctxt) (fn () => \<^print> ("bv bitblast reconstruction thms =",thms))*)
+
+    (*obtain bitblasted variables*)
+    fun find_bbT_index (_ $ (_ $ (_ $ i $ j $ _) $ _)) = (i,j) |
+        find_bbT_index _ = error ("Bitblasting step (extend) has the wrong form!")
+    val indices = find_bbT_index t
+    fun find_bbT_orig (_ $ (_ $ (_ $ _ $ _ $ (_ $ x)) $ _)) = x |
+        find_bbT_orig _ = error ("Bitblasting step (extend) has the wrong form!")
+    val find_bbT_var = find_bbT_orig t
+
+    (*instantiate with bitblasted variable*)
+    val rbl_extract_lemma =
+        nth (Named_Theorems.get ctxt @{named_theorems rbl_extract}) 0
+   val rbl_extract_lemma_inst =
+        Drule.infer_instantiate' ctxt (map (SOME o Thm.cterm_of ctxt)
+ [fst indices, snd indices,find_bbT_var]) rbl_extract_lemma
+
+
+  in  SMT_Replay_Methods.prove ctxt t (fn _ =>(
+      K (print_tac ctxt ("bv bitblast extract reconstruction debug 1"))
+      THEN' K (HEADGOAL (EqSubst.eqsubst_tac ctxt [1] [rbl_extract_lemma_inst]))
+      THEN' K (print_tac ctxt ("bv bitblast extract reconstruction debug 2"))
+      THEN' REPEAT_CHANGED (
+            K (HEADGOAL (simplify_tac ctxt ((Named_Theorems.get ctxt @{named_theorems bv_reconstruction_lists}))))
+      THEN' K (HEADGOAL (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems bv_reconstruction_length})))
+      THEN' K (HEADGOAL (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems arith_simp_cvc5})))
+      THEN' K (HEADGOAL (simplify_tac ctxt @{thms arith_simps verit_minus_simplify}))
+      THEN' K (HEADGOAL (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems smt_arith_simplify})))
+      THEN' K (HEADGOAL (simplify_tac ctxt ((Named_Theorems.get ctxt @{named_theorems rbl_extract_fun}))))
+      THEN' K (print_tac ctxt ("bv bitblast extract reconstruction debug 3")))
+
+      THEN' K (HEADGOAL (simplify_tac ctxt ((Named_Theorems.get ctxt @{named_theorems bv_reconstruction_list_funs}))))
+      THEN' K (HEADGOAL (simplify_tac ctxt ((Named_Theorems.get ctxt @{named_theorems rbl_extract_fun}))))
+      THEN' K (HEADGOAL (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems bv_reconstruction_length})))
+      THEN' K (HEADGOAL (simplify_tac ctxt ((Named_Theorems.get ctxt @{named_theorems bv_reconstruction_lists}))))
+      THEN' K (HEADGOAL (simplify_tac ctxt @{thms arith_simps verit_minus_simplify}))
+      THEN' K (HEADGOAL (simplify_tac ctxt ((Named_Theorems.get ctxt @{named_theorems bv_reconstruction_lists}))))
+      THEN' K (HEADGOAL (simplify_tac ctxt @{thms Num.numeral_2_eq_2 Nat.One_nat_def}))
+      THEN' K (HEADGOAL (simplify_tac ctxt @{thms arith_simps verit_minus_simplify}))
+      THEN' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems smt_arith_simplify}))
+      THEN' K (print_tac ctxt ("bv bitblast extract reconstruction debug 4"))
+
+      ))
+  end
+in
+  val bv_bitblast_step_extract = prove_bitblast_step_extract
+end
+
+
+(* Bitblasting a concat *)
+local
+  fun prove_bitblast_step_concat ctxt thms t =
+  let
+    val _ = (SMT_Config.verit_msg ctxt) (fn () => \<^print> ("bv bitblast reconstruction t =",t))
+    val _ = (SMT_Config.verit_msg ctxt) (fn () => \<^print> ("bv bitblast reconstruction thms =",thms))
+
+    (*obtain bitblasted variable*)
+    fun find_bbT_var (_ $ (_ $ (_$ (_ $ (_ $ xs)) $ (_ $ (_ $ ys))) $ _ )) = (xs,ys) |
+        find_bbT_var _ = error ("Bitblasting step (concat) has the wrong form!")
+    val bit_blasted_var = find_bbT_var t
+
+    (*instantiate with bitblasted variables*)
+    val rbl_concat_lemma =
+        nth (Named_Theorems.get ctxt @{named_theorems rbl_concat}) 0
+    val rbl_concat_lemma_inst =
+        Drule.infer_instantiate' ctxt (map (SOME o Thm.cterm_of ctxt) [fst bit_blasted_var,snd bit_blasted_var]) rbl_concat_lemma
+
+    val arith_simps2 = @{thms Groups.monoid_mult_class.mult_1_right Nat.mult_Suc_right
+                     Nat.mult_0_right Nat.add_Suc_right Groups.monoid_add_class.add.right_neutral}
+
+   in  SMT_Replay_Methods.prove ctxt t (fn _ =>(
+      K (print_tac ctxt ("concat bitblast reconstruction debug 1"))
+      THEN' K (HEADGOAL (EqSubst.eqsubst_tac ctxt [1] [rbl_concat_lemma_inst]))
+      THEN' K (print_tac ctxt ("concat bitblast reconstruction debug 2 "))
+      THEN' REPEAT_CHANGED (
+          K (HEADGOAL (simplify_tac ctxt ((Named_Theorems.get ctxt @{named_theorems bv_reconstruction_lists}))))
+      THEN' K (HEADGOAL (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems bv_reconstruction_length})))
+      THEN' K (HEADGOAL (simplify_tac ctxt @{thms Num.numeral_2_eq_2 Nat.One_nat_def}))
+      THEN' K (HEADGOAL (simplify_tac ctxt @{thms arith_simps verit_minus_simplify}))
+      THEN' K (HEADGOAL (simplify_tac ctxt arith_simps2))
+      THEN' K (HEADGOAL (simplify_tac ctxt ((Named_Theorems.get ctxt @{named_theorems bv_reconstruction_const_test}))))
+      THEN' K (HEADGOAL (simplify_tac ctxt ((Named_Theorems.get ctxt @{named_theorems rbl_extract_fun}))))
+      THEN' K (print_tac ctxt ("bv bitblast extract reconstruction debug 3")))
+      THEN' K (HEADGOAL (simplify_tac ctxt ((Named_Theorems.get ctxt @{named_theorems bv_reconstruction_lists}))))
+      THEN' K (HEADGOAL (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems bv_reconstruction_length})))
+      THEN' K (HEADGOAL (simplify_tac ctxt @{thms Num.numeral_2_eq_2 Nat.One_nat_def}))
+      THEN' K (HEADGOAL (simplify_tac ctxt @{thms arith_simps verit_minus_simplify}))
+      THEN' K (HEADGOAL (simplify_tac ctxt arith_simps2))
+      THEN' K (HEADGOAL (simplify_tac ctxt ((Named_Theorems.get ctxt @{named_theorems rbl_extract_fun}))))
+      THEN' K (HEADGOAL (simplify_tac ctxt ((Named_Theorems.get ctxt @{named_theorems bv_reconstruction_const_test}))))
+      THEN' K (print_tac ctxt ("bv bitblast extract reconstruction debug 4"))
+      ))
+  end
+in
+  val bv_bitblast_step_concat = prove_bitblast_step_concat
 end
 
 end;
