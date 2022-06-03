@@ -263,6 +263,7 @@ unused arguments are still evaluated.)")
    "also"
    "assume"
    "case"
+   "consider"
    "define"
    "finally"
    "fix"

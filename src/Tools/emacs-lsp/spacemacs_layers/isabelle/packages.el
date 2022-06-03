@@ -49,7 +49,7 @@
     (spacemacs/set-leader-keys-for-minor-mode 'lsp-mode "ibff" 'lsp-isar-insert-fastforce)
     (spacemacs/set-leader-keys-for-minor-mode 'lsp-mode "ibfo" 'lsp-isar-insert-force)
     (spacemacs/set-leader-keys-for-minor-mode 'lsp-mode "ibe" 'lsp-isar-insert-meson)
-    (spacemacs/set-leader-keys-for-minor-mode 'lsp-mode "ibs" 'lsp-isar-insert-satx)
+    (spacemacs/set-leader-keys-for-minor-mode 'lsp-mode "ibx" 'lsp-isar-insert-satx)
     (spacemacs/set-leader-keys-for-minor-mode 'lsp-mode "ibt" 'lsp-isar-insert-try0-proof)
 
 
