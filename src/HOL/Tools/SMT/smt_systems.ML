@@ -70,7 +70,8 @@ local
      "--lang=smt2"] @
     (case SMT_Config.get_timeout ctxt of
       NONE => []
-    | SOME t => ["--tlimit", string_of_int (Time.toMilliseconds t)])
+    | SOME t => ["--tlimit", string_of_int (Time.toMilliseconds t)]) @
+    (if SMT_Config.use_lethe_proof_from_cvc ctxt then ["--proof-format-mode=alethe"] else [])
 
   fun select_class ctxt =
     if Config.get ctxt cvc4_extensions then
@@ -85,6 +86,10 @@ local
         SMTLIB_Interface.bvsmlibC
       else
         SMTLIB_Interface.smtlibC
+  fun cvc4_smt_options ctxt =
+    if SMT_Config.use_lethe_proof_from_cvc ctxt
+    then [(":produce-proofs", "true")]
+    else [(":produce-unsat-cores", "true")]
 in
 
 val cvc4: SMT_Solver.solver_config = {
@@ -93,7 +98,7 @@ val cvc4: SMT_Solver.solver_config = {
   avail = make_avail "CVC4",
   command = make_command "CVC4",
   options = cvc4_options,
-  smt_options = [(":produce-unsat-cores", "true")],
+  smt_options = cvc4_smt_options,
   good_slices =
     (* FUDGE *)
     [((1, 512, meshN), ["--full-saturate-quant", "--inst-when=full-last-call", "--inst-no-entail", "--term-db-mode=relevant", "--multi-trigger-linear"]),
@@ -138,7 +143,7 @@ val veriT: SMT_Solver.solver_config = {
   avail = is_some o check_tool "ISABELLE_VERIT",
   command = the o check_tool "ISABELLE_VERIT",
   options = veriT_options,
-  smt_options = [(":produce-proofs", "true")],
+  smt_options = K [(":produce-proofs", "true")],
   good_slices =
     (* FUDGE *)
     [((1, 1024, meshN), []),
@@ -179,7 +184,7 @@ val z3: SMT_Solver.solver_config = {
   avail = make_avail "Z3",
   command = make_command "Z3",
   options = z3_options,
-  smt_options = [(":produce-proofs", "true")],
+  smt_options = K [(":produce-proofs", "true")],
   good_slices =
     (* FUDGE *)
     [((1, 1024, meshN), []),

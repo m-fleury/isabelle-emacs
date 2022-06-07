@@ -20,7 +20,7 @@ sig
      avail: unit -> bool,
      command: unit -> string list,
      options: Proof.context -> string list,
-     smt_options: (string * string) list,
+     smt_options: Proof.context -> (string * string) list,
      good_slices: ((int * int * string) * string list) list,
      outcome: string -> string list -> outcome * string list,
      parse_proof: (Proof.context -> SMT_Translate.replay_data ->
@@ -154,7 +154,7 @@ type solver_config =
    avail: unit -> bool,
    command: unit -> string list,
    options: Proof.context -> string list,
-   smt_options: (string * string) list,
+   smt_options: Proof.context -> (string * string) list,
    good_slices: ((int * int * string) * string list) list,
    outcome: string -> string list -> outcome * string list,
    parse_proof: (Proof.context -> SMT_Translate.replay_data ->
@@ -179,7 +179,7 @@ fun check_topsort ctxt thm =
 
 type solver_info = {
   command: unit -> string list,
-  smt_options: (string * string) list,
+  smt_options: Proof.context -> (string * string) list,
   good_slices: ((int * int * string) * string list) list,
   parse_proof: Proof.context -> SMT_Translate.replay_data ->
     ((string * ATP_Problem_Generate.stature) * thm) list -> term list -> term -> string list ->
@@ -252,7 +252,7 @@ fun apply_solver_and_replay ctxt thms0 =
     val thms = map (pair SMT_Util.Axiom o check_topsort ctxt) thms0
     val (name, {command, smt_options, replay, ...}) = name_and_info_of ctxt
     val (output, replay_data) =
-      invoke name command [] smt_options (SMT_Normalize.normalize ctxt thms) ctxt
+      invoke name command [] (smt_options ctxt) (SMT_Normalize.normalize ctxt thms) ctxt
   in replay ctxt replay_data output end
 
 
@@ -278,7 +278,7 @@ fun smt_filter ctxt0 goal xfacts i time_limit options =
 
     val (name, {command, smt_options, parse_proof, ...}) = name_and_info_of ctxt
     val (output, replay_data) =
-      invoke name command options smt_options (SMT_Normalize.normalize ctxt thms) ctxt
+      invoke name command options (smt_options ctxt) (SMT_Normalize.normalize ctxt thms) ctxt
   in
     parse_proof ctxt replay_data xfacts (map Thm.prop_of prems) (Thm.term_of concl) output
   end
