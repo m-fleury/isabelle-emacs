@@ -10,6 +10,11 @@ sig
   datatype tree = 
     Num of int |
     Dec of int * int |
+(*TODO Hanna: Delete this, let it be a string with a specific prefix and use that to decide in smt_word.*)
+    BV of int * int | (*value and length*)
+                      (*QUESTION: If I don't do this here, later I won't know the base, right?*)
+                      (*Another possibility might be to piggy-back on handling for bv_term_parser (SMTLIB.Sym "_", [int, base]).*)
+    (*Rbl of bool list |*)
     Str of string |
     Sym of string |
     Key of string |
@@ -29,6 +34,8 @@ exception PARSE of int * string
 datatype tree = 
   Num of int |
   Dec of int * int |
+  BV of int * int | (*value and length*)
+  (*Rbl of bool list |*)
   Str of string |
   Sym of string |
   Key of string |
@@ -61,8 +68,34 @@ fun read_num l cs =
 (* binary numbers *)
 
 fun is_bin c = (c = "0" orelse c = "1")
-
 fun read_bin l cs = read_raw is_bin l cs |>> Num o fst o read_radix_int 2
+
+
+(* bitvectors *)
+(*Goal: Change this to translate the chars into bools*)
+(*  val char_to_bool: string list -> bool list *)
+
+fun char_to_bool [] = []
+  | char_to_bool (c::cs) = if c = "0" then false :: char_to_bool cs
+                           else if c = "1" then true :: char_to_bool cs
+                           else raise Fail ("bad bitvector character " ^ quote c)
+
+fun toWord i [] = i
+  | toWord i (c :: cs) =
+      if c = "0" then (toWord (i * 2) cs)
+      else if c = "1" then (toWord (i*2 + 1) cs)
+      else raise Fail ("bad bin character " ^ quote c)
+
+fun string_to_word cs = (toWord 0 cs,length cs)
+
+
+(*fun read_bv l cs = read_raw is_bin l cs |>> Rbl o char_to_bool*)
+
+fun read_bv l cs = read_raw is_bin l cs |>> BV o string_to_word
+(*Use SMTLIB.Sym "_", [int, base] instead*) 
+
+
+
 
 
 (* hex numbers *)
@@ -119,7 +152,7 @@ fun read _ [] rest tss = (rest, tss)
   | read l ("#" :: "x" :: cs) None (ts :: tss) =
       token read_hex l cs ts tss
   | read l ("#" :: "b" :: cs) None (ts :: tss) =
-      token read_bin l cs ts tss
+      token read_bv l cs ts tss (*Hanna TODO: Replace this*)
   | read l (":" :: cs) None (ts :: tss) =
       token (read_sym Key) l cs ts tss
   | read l ("\"" :: cs) None (ts :: tss) =

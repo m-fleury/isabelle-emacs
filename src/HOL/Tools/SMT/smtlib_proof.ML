@@ -155,6 +155,8 @@ fun core_term_parser (SMTLIB.Sym "true", _) = SOME \<^Const>\<open>True\<close>
   | core_term_parser (SMTLIB.Sym "not", [t]) = SOME (HOLogic.mk_not t)
   | core_term_parser (SMTLIB.Sym "and", t :: ts) = SOME (mk_rassoc (curry HOLogic.mk_conj) t ts)
   | core_term_parser (SMTLIB.Sym "or", t :: ts) = SOME (mk_rassoc (curry HOLogic.mk_disj) t ts)
+(*TODO Hanna: This works (and_pos error still there) but do I want this?*)
+  (*| core_term_parser (SMTLIB.Sym "xor",[t1,t2]) = SOME (HOLogic.mk_not (HOLogic.mk_eq (t1, t2)))*)
   | core_term_parser (SMTLIB.Sym "=>", [t1, t2]) = SOME (HOLogic.mk_imp (t1, t2))
   | core_term_parser (SMTLIB.Sym "implies", [t1, t2]) = SOME (HOLogic.mk_imp (t1, t2))
   | core_term_parser (SMTLIB.Sym "=", [t1, t2]) = SOME (HOLogic.mk_eq (t1, t2))
@@ -358,6 +360,8 @@ fun expand_name_bindings t (tab, exp_tab) =
       | expand_update (t as SMTLIB.Key _) exp_tab = (t, exp_tab)
       | expand_update (t as SMTLIB.Num _) exp_tab = (t, exp_tab)
       | expand_update (t as SMTLIB.Dec _) exp_tab = (t, exp_tab)
+      | expand_update (t as SMTLIB.BV _) exp_tab = (t, exp_tab)
+      (*| expand_update (t as SMTLIB.Rbl _) exp_tab = (t, exp_tab)*)
       | expand_update (t as SMTLIB.Str _) exp_tab = (t, exp_tab)
       | expand_update (SMTLIB.S s) (exp_tab : SMTLIB.tree Symtab.table) =
          fold_map expand_update s exp_tab
