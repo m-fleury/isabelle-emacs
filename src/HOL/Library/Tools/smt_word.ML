@@ -266,6 +266,9 @@ fun bv_term_parser (SMTLIB.Sym bv, []) =
   | bv_term_parser (SMTLIB.S [SMTLIB.Sym "_", SMTLIB.Sym "bitOf", SMTLIB.Num i], [t]) =
       SOME (Const (\<^const_name>\<open>semiring_bits_class.bit\<close>, (fastype_of t) --> HOLogic.natT --> \<^typ>\<open>HOL.bool\<close>)
       $ t $ (HOLogic.mk_nat i))
+  | bv_term_parser (SMTLIB.Sym "bbT", xs) =
+        SOME ((Const ("Reversed_Bit_Lists.of_bl", \<^typ>\<open>HOL.bool list\<close> --> mk_wordT(length xs))) 
+        $ ((Const (\<^const_name>\<open>List.rev\<close>, \<^typ>\<open>HOL.bool list\<close> -->  \<^typ>\<open>HOL.bool list\<close>)) $ (HOLogic.mk_list \<^typ>\<open>bool\<close> xs)))
   | bv_term_parser (SMTLIB.S [SMTLIB.Sym "_", SMTLIB.Sym "extract", SMTLIB.Num i, SMTLIB.Num j], [t]) =
       SOME (mk_extract i j t)
   | bv_term_parser (SMTLIB.S [SMTLIB.Sym "_", SMTLIB.Sym "zero_extend", SMTLIB.Num i], [t]) =
