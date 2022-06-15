@@ -449,8 +449,6 @@ fun postprocess_proof compress ctxt step cx =
   let
     fun postprocess (Raw_Lethe_Node {id, rule, args, prems, declarations, concl, subproof}) (cx, rew) =
     let
-      val _ = (SMT_Config.verit_msg ctxt) (fn () => @{print} ("id =", id, "concl =", concl))
-
       val args = extract_types_of_args args
       val globally_bound_vars = declared_csts cx rule args
       val cx = fold (update_binding o (fn (s, typ) => (s, Term (Free (s, type_of cx typ)))))
@@ -481,10 +479,6 @@ fun postprocess_proof compress ctxt step cx =
 
       (* postprocess conclusion *)
       val concl = SMTLIB_Isar.unskolemize_names ctxt (subproof_rewriter concl)
-
-      val _ = (SMT_Config.verit_msg ctxt) (fn () => \<^print> ("id =", id, "concl =", concl))
-      val _ = (SMT_Config.verit_msg ctxt) (fn () => \<^print> ("id =", id, "cx' =", cx',
-        "bound_vars =", bound_vars))
 
       val bound_tvars =
           map (fn (s, SOME typ) => (s, type_of cx typ))
@@ -776,7 +770,6 @@ fun parse typs funs lines ctxt =
 fun parse_replay typs funs lines ctxt =
   let
     val (u, env) = import_proof_and_post_process typs funs lines ctxt
-    val _ = (SMT_Config.verit_msg ctxt) (fn () => \<^print> u)
   in
     (u, ctxt_of env)
   end

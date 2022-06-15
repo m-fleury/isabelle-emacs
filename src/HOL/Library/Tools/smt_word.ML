@@ -193,11 +193,11 @@ fun mk_concat (t, u) =
 fun mk_extract i j u =
   let
     val I = HOLogic.mk_number \<^typ>\<open>nat\<close> i
-    val J = HOLogic.mk_number \<^typ>\<open>nat\<close> i
+    val J = HOLogic.mk_number \<^typ>\<open>nat\<close> j
     val T = fastype_of u
     val TU = i - j + 1
           |> Word_Lib.mk_wordT
-  in Const (\<^const_name>\<open>Word.smt_extract\<close>, @{typ nat} --> @{typ nat} --> T --> TU) $ I $ J $ u end;
+  in Const (\<^const_name>\<open>Word.smt_extract\<close>, @{typ nat} --> @{typ nat} --> T --> TU) $ J $ I $ u end;
 
 fun mk_zero_extend i u =
   let
@@ -214,7 +214,14 @@ fun mk_scast i u =
 fun bv_term_parser (SMTLIB.Sym bv, []) =
       (case try (unprefix "bv") bv of
         NONE => NONE
-      | SOME t => SOME (HOLogic.mk_number \<^typ>\<open>Int.int\<close> (fst (read_int (raw_explode t)))))
+      (*| SOME t => SOME (HOLogic.mk_number \<^typ>\<open>Int.int\<close> (fst (read_int (raw_explode t)))))*)
+      | SOME t => SOME ((HOLogic.mk_term_of \<^typ>\<open>32 word\<close> (HOLogic.mk_string t))))
+  | bv_term_parser (SMTLIB.BV (int,base), []) =    
+    let
+        val ty = Word_Lib.mk_wordT base
+      in
+        SOME (HOLogic.mk_number ty int)
+      end
   | bv_term_parser (SMTLIB.Sym "_", [int, base]) =
       let
         val ty = Word_Lib.mk_wordT (snd (HOLogic.dest_number base))
@@ -222,6 +229,10 @@ fun bv_term_parser (SMTLIB.Sym bv, []) =
       in
         SOME (HOLogic.mk_number ty num)
       end
+  | bv_term_parser (SMTLIB.Sym "bvult", [t1, t2]) =
+      SOME (HOLogic.mk_binrel \<^const_name>\<open>Orderings.less\<close> (t1, t2))
+  | bv_term_parser (SMTLIB.Sym "bvule", [t1, t2]) =
+      SOME (HOLogic.mk_binrel \<^const_name>\<open>Orderings.less_eq\<close> (t1, t2))
   | bv_term_parser (SMTLIB.Sym "bvneg", [t]) =
       SOME (mk_unary \<^const_name>\<open>uminus_class.uminus\<close> t)
   | bv_term_parser (SMTLIB.Sym "bvadd", t) =
@@ -229,8 +240,11 @@ fun bv_term_parser (SMTLIB.Sym bv, []) =
       in
         SOME (fold (curry (HOLogic.mk_binop \<^const_name>\<open>Groups.plus\<close>)) xs a)
       end
-  | bv_term_parser (SMTLIB.Sym "bv", [t1, t2]) =
-      SOME (HOLogic.mk_binop \<^const_name>\<open>Groups.minus\<close> (t1, t2))
+  | bv_term_parser (SMTLIB.Sym "bvsub", t) =
+      let val (xs, a) = split_last t
+      in
+        SOME (fold (curry (HOLogic.mk_binop \<^const_name>\<open>Groups.minus\<close>)) xs a)
+      end
   | bv_term_parser (SMTLIB.Sym "bvmul", [t1, t2]) =
       SOME (HOLogic.mk_binop \<^const_name>\<open>Groups.times\<close> (t1, t2))
   | bv_term_parser (SMTLIB.Sym "bvand", [t1, t2]) =
@@ -239,10 +253,19 @@ fun bv_term_parser (SMTLIB.Sym bv, []) =
       SOME (HOLogic.mk_binop \<^const_name>\<open>semiring_bit_operations_class.or\<close> (t1, t2))
   | bv_term_parser (SMTLIB.Sym "bvxor", [t1, t2]) =
       SOME (HOLogic.mk_binop \<^const_name>\<open>semiring_bit_operations_class.xor\<close> (t1, t2))
+  | bv_term_parser (SMTLIB.Sym "bvxnor", [t1, t2]) =
+      SOME (mk_unary \<^const_name>\<open>ring_bit_operations_class.not\<close> (HOLogic.mk_binop \<^const_name>\<open>semiring_bit_operations_class.xor\<close> (t1, t2)))
   | bv_term_parser (SMTLIB.Sym "bvnot", [t1]) =
-      SOME (mk_unary \<^const_name>\<open>uminus_class.uminus\<close> t1)
+      SOME (mk_unary \<^const_name>\<open>ring_bit_operations_class.not\<close> t1)
+  | bv_term_parser (SMTLIB.Sym "xor", [t1, t2]) =
+ (*TODO Hanna: Move somewhere else to general parsing of proof? Nothing bv specific, although
+  only present in bv proofs.*)
+      SOME (Const ("SMT.xor", \<^typ>\<open>HOL.bool\<close> --> \<^typ>\<open>HOL.bool\<close> --> \<^typ>\<open>HOL.bool\<close> ) $ t1 $ t2)
   | bv_term_parser (SMTLIB.Sym "concat", [t1, t2]) =
       SOME (mk_concat (t1, t2))
+  | bv_term_parser (SMTLIB.S [SMTLIB.Sym "_", SMTLIB.Sym "bitOf", SMTLIB.Num i], [t]) =
+      SOME (Const (\<^const_name>\<open>semiring_bits_class.bit\<close>, (fastype_of t) --> HOLogic.natT --> \<^typ>\<open>HOL.bool\<close>)
+      $ t $ (HOLogic.mk_nat i))
   | bv_term_parser (SMTLIB.S [SMTLIB.Sym "_", SMTLIB.Sym "extract", SMTLIB.Num i, SMTLIB.Num j], [t]) =
       SOME (mk_extract i j t)
   | bv_term_parser (SMTLIB.S [SMTLIB.Sym "_", SMTLIB.Sym "zero_extend", SMTLIB.Num i], [t]) =
@@ -255,7 +278,7 @@ fun bv_term_parser (SMTLIB.Sym bv, []) =
 
 TODO: zero_extend, extract [use slice to define it], sign_extend, rotate_left
  *)
-  | bv_term_parser xs = (@{print} xs; NONE)
+  | bv_term_parser xs = (NONE)
 
 end
 
