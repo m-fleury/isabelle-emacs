@@ -153,7 +153,7 @@ fun replay_definition_step rewrite_rules ll_defs _ _ _
   (Lethe_Proof.Lethe_Replay_Node {id, declarations = raw_declarations, subproof = (_, _, _, subproof), ...}) state =
   let
     val _ = if null subproof then ()
-          else raise (Fail ("unrecognized veriT proof, definition has a subproof"))
+          else raise (Fail ("unrecognized cvc5 proof, definition has a subproof"))
     val (proofs, stats, ctxt, concl_tranformation, global_transformation) = state
     val global_transformer = subst_only_free global_transformation
     val rewrite = let val thy = Proof_Context.theory_of ctxt in
