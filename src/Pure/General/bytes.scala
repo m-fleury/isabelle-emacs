@@ -73,16 +73,14 @@ object Bytes {
 
   /* XZ compression */
 
-  object Compress extends Scala.Fun("compress") {
+  object Compress extends Scala.Fun_Bytes("compress") {
     val here = Scala_Project.here
-    def invoke(args: List[Bytes]): List[Bytes] =
-      List(Library.the_single(args).compress())
+    def apply(arg: Bytes): Bytes = arg.compress()
   }
 
-  object Uncompress extends Scala.Fun("uncompress") {
+  object Uncompress extends Scala.Fun_Bytes("uncompress") {
     val here = Scala_Project.here
-    def invoke(args: List[Bytes]): List[Bytes] =
-      List(Library.the_single(args).uncompress())
+    def apply(arg: Bytes): Bytes = arg.uncompress()
   }
 
 
