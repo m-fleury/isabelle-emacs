@@ -169,6 +169,9 @@ fun append_list path txts = open_append (output_list txts) path;
 fun write path txt = write_list path [txt];
 fun append path txt = append_list path [txt];
 
+fun write_buffer path buf =
+  open_output (fn file => List.app (output file) (Buffer.contents buf)) path;
+
 
 (* eq *)
 
