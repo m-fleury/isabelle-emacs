@@ -131,7 +131,7 @@ fun init_session_yxml yxml =
   let
     val (session_positions, (session_directories, (bibtex_entries, (command_timings,
         (load_commands, (scala_functions, (global_theories, loaded_theories))))))) =
-      YXML.parse_body yxml |>
+      YXML.parse_body_bytes yxml |>
         let open XML.Decode in
           (pair (list (pair string properties))
             (pair (list (pair string string))
