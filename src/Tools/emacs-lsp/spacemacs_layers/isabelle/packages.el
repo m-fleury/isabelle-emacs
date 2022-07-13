@@ -70,6 +70,9 @@ See URL `https://github.com/ProofGeneral/PG/issues/427'."
         (apply fn args)))
 
     (advice-add #'evil-motion-range :around #'~/evil-motion-range--wrapper)
+    (advice-add #'evil-open-below :around #'~/evil-motion-range--wrapper)
+    (advice-add #'evil-open-above :around #'~/evil-motion-range--wrapper)
+    (advice-add #'evil-insert-newline-below :around #'~/evil-motion-range--wrapper)
 
     )
 
