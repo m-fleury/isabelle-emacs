@@ -121,36 +121,6 @@ See URL `https://github.com/ProofGeneral/PG/issues/427'."
     (add-hook 'isar-mode-hook 'lsp-isar-define-client-and-start)
     (add-hook 'lsp-isar-init-hook 'lsp-isar-open-output-and-progress-right-spacemacs)
     (spacemacs/add-to-hooks 'spacemacs/load-yasnippet '(isar-mode-hook))
-    :custom
-    ;; ((lsp-isar-file-name-follow-links
-    ;;   (lambda (path)
-    ;;     (replace-regexp-in-string
-    ;;      "^/local/home/salt/"
-    ;;      "/home/salt/"
-    ;;      path nil 'literal)))
-    ;;  (lsp-isar-file-name-unfollow-links
-    ;;   (lambda (path)
-    ;;     (replace-regexp-in-string
-    ;;      "/local/home/salt"
-    ;;      "/home/salt"
-    ;;      path nil 'literal))))
-    ;; ))
-    ((lsp-isar-file-name-follow-links
-      (lambda (path)
-        (replace-regexp-in-string
-	       "/home/salt"  ;;/softwares/afp-2022-06-07"
-         "/local/home/salt" ;;/softwares/afp-2022-06-07"
-         ;; (replace-regexp-in-string
-	       ;;  "^/home/salt/software/isabelle-release"
-	       ;;  "/local/home/salt/softwares/isabelle-release"
-	       ;;  path nil 'literal)
-	       path nil 'literal)))
-     (lsp-isar-file-name-unfollow-links
-       (lambda (path)
-         (replace-regexp-in-string
-	        "/local/home/salt"
-	        "/home/salt"
-	        path nil 'literal))))
     ))
 
 (defun isabelle/init-lsp-isar-parse-args ()
