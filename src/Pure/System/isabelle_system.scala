@@ -13,8 +13,6 @@ import java.nio.file.{Path => JPath, Files, SimpleFileVisitor, FileVisitResult,
   StandardCopyOption, FileSystemException}
 import java.nio.file.attribute.BasicFileAttributes
 
-import scala.jdk.CollectionConverters._
-
 
 object Isabelle_System {
   /* settings environment */
@@ -39,48 +37,25 @@ object Isabelle_System {
 
   /* services */
 
-  abstract class Service
+  type Service = Classpath.Service
 
-  @volatile private var _services: Option[List[Class[Service]]] = None
+  @volatile private var _classpath: Option[Classpath] = None
 
-  def services(): List[Class[Service]] = {
-    if (_services.isEmpty) init()  // unsynchronized check
-    _services.get
+  def classpath(): Classpath = {
+    if (_classpath.isEmpty) init()  // unsynchronized check
+    _classpath.get
   }
 
-  def make_services[C](c: Class[C]): List[C] =
-    for { c1 <- services() if Library.is_subclass(c1, c) }
-      yield c1.getDeclaredConstructor().newInstance().asInstanceOf[C]
+  def make_services[C](c: Class[C]): List[C] = classpath().make_services(c)
 
 
-  /* init settings + services */
-
-  def make_services(): List[Class[Service]] = {
-    def make(where: String, names: List[String]): List[Class[Service]] = {
-      for (name <- names) yield {
-        def err(msg: String): Nothing =
-          error("Bad Isabelle/Scala service " + quote(name) + " in " + where + "\n" + msg)
-        try { Class.forName(name).asInstanceOf[Class[Service]] }
-        catch {
-          case _: ClassNotFoundException => err("Class not found")
-          case exn: Throwable => err(Exn.message(exn))
-        }
-      }
-    }
-
-    def from_env(variable: String): List[Class[Service]] =
-      make(quote(variable), space_explode(':', getenv_strict(variable)))
-
-    def from_jar(platform_jar: String): List[Class[Service]] =
-      make(quote(platform_jar),
-        isabelle.setup.Build.get_services(JPath.of(platform_jar)).asScala.toList)
-
-    from_env("ISABELLE_SCALA_SERVICES") ::: Scala.class_path().flatMap(from_jar)
-  }
+  /* init settings + classpath */
 
   def init(isabelle_root: String = "", cygwin_root: String = ""): Unit = {
     isabelle.setup.Environment.init(isabelle_root, cygwin_root)
-    synchronized { if (_services.isEmpty) { _services = Some(make_services()) } }
+    synchronized {
+      if (_classpath.isEmpty) _classpath = Some(Classpath())
+    }
   }
 
 
@@ -102,10 +77,10 @@ object Isabelle_System {
   /* Isabelle distribution identification */
 
   def isabelle_id(root: Path = Path.ISABELLE_HOME): String =
-    getetc("ISABELLE_ID", root = root) orElse Mercurial.archive_id(root) getOrElse {
-      if (Mercurial.is_repository(root)) Mercurial.repository(root).parent()
-      else error("Failed to identify Isabelle distribution " + root.expand)
-    }
+    getetc("ISABELLE_ID", root = root) orElse
+    Mercurial.archive_id(root) orElse
+    Mercurial.id_repository(root, rev = "") getOrElse
+    error("Failed to identify Isabelle distribution " + root.expand)
 
   object Isabelle_Id extends Scala.Fun_String("isabelle_id") {
     val here = Scala_Project.here
@@ -122,8 +97,7 @@ object Isabelle_System {
     }
 
   def export_isabelle_identifier(isabelle_identifier: String): String =
-    if (isabelle_identifier == "") ""
-    else "export ISABELLE_IDENTIFIER=" + Bash.string(isabelle_identifier) + "\n"
+    "export ISABELLE_IDENTIFIER=" + Bash.string(isabelle_identifier) + "\n"
 
   def isabelle_identifier(): Option[String] = proper_string(getenv("ISABELLE_IDENTIFIER"))
 
@@ -143,19 +117,22 @@ object Isabelle_System {
 
   /* scala functions */
 
-  private def apply_paths(args: List[String], fun: List[Path] => Unit): List[String] = {
+  private def apply_paths(
+    args: List[String],
+    fun: PartialFunction[List[Path], Unit]
+  ): List[String] = {
     fun(args.map(Path.explode))
     Nil
   }
 
   private def apply_paths1(args: List[String], fun: Path => Unit): List[String] =
-    apply_paths(args, { case List(path) => fun(path) case _ => ??? })
+    apply_paths(args, { case List(path) => fun(path) })
 
   private def apply_paths2(args: List[String], fun: (Path, Path) => Unit): List[String] =
-    apply_paths(args, { case List(path1, path2) => fun(path1, path2) case _ => ??? })
+    apply_paths(args, { case List(path1, path2) => fun(path1, path2) })
 
   private def apply_paths3(args: List[String], fun: (Path, Path, Path) => Unit): List[String] =
-    apply_paths(args, { case List(path1, path2, path3) => fun(path1, path2, path3) case _ => ??? })
+    apply_paths(args, { case List(path1, path2, path3) => fun(path1, path2, path3) })
 
 
   /* permissions */
@@ -481,7 +458,7 @@ object Isabelle_System {
   object Download extends Scala.Fun("download", thread = true) {
     val here = Scala_Project.here
     override def invoke(args: List[Bytes]): List[Bytes] =
-      args match { case List(url) => List(download(url.text).bytes) case _ => ??? }
+      args.map(url => download(url.text).bytes)
   }
 
 

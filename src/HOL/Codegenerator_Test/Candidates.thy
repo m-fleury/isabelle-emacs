@@ -16,7 +16,7 @@ imports
   "HOL-Computational_Algebra.Polynomial_Factorial"
   "HOL-Number_Theory.Eratosthenes"
   "HOL-Examples.Records"
-  "HOL-Library.Word"
+  "HOL-Examples.Gauss_Numbers"
 begin
 
 text \<open>Drop technical stuff from \<^theory>\<open>HOL.Quickcheck_Narrowing\<close> which is tailored towards Haskell\<close>
@@ -67,5 +67,13 @@ text \<open>Explicit check in \<open>Scala\<close> for correct bracketing of abs
 definition funny_funs :: "(bool \<Rightarrow> bool) list \<Rightarrow> (bool \<Rightarrow> bool) list"
 where
   "funny_funs fs = (\<lambda>x. x \<or> True) # (\<lambda>x. x \<or> False) # fs"
+
+text \<open>Explicit checks for strings etc.\<close>
+
+definition \<open>hello = ''Hello, world!''\<close>
+
+definition \<open>hello2 = String.explode (String.implode hello)\<close>
+
+definition \<open>which_hello \<longleftrightarrow> hello \<le> hello2\<close>
 
 end

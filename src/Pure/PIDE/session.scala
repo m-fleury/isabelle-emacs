@@ -106,11 +106,12 @@ object Session {
   /* protocol handlers */
 
   type Protocol_Function = Prover.Protocol_Output => Boolean
+  type Protocol_Functions = List[(String, Protocol_Function)]
 
   abstract class Protocol_Handler extends Isabelle_System.Service {
     def init(session: Session): Unit = {}
     def exit(): Unit = {}
-    def functions: List[(String, Protocol_Function)] = Nil
+    def functions: Protocol_Functions = Nil
     def prover_options(options: Options): Options = options
   }
 }
@@ -479,7 +480,7 @@ class Session(_session_options: => Options, val resources: Resources) extends Do
               case Protocol.Export(args)
               if args.id.isDefined && Value.Long.unapply(args.id.get).isDefined =>
                 val id = Value.Long.unapply(args.id.get).get
-                val entry = Export.make_entry("", args, msg.chunk, cache)
+                val entry = Export.make_entry(Sessions.DRAFT, args, msg.chunk, cache)
                 change_command(_.add_export(id, (args.serial, entry)))
 
               case Protocol.Loading_Theory(node_name, id) =>

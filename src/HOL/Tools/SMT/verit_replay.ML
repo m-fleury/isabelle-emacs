@@ -130,9 +130,10 @@ fun replay_theorem_step rewrite_rules ll_defs assumed inputs proof_prems
     (*for sko_ex and sko_forall, assumptions are in proofs',  but the definition of the skolem
        function is in proofs *)
     val nthms = prems
+      |> filter_out Lethe_Proof.is_lethe_def
       |> map (apsnd export_thm) o map_filter (Symtab.lookup (if (null subproof) then proofs else proofs'))
-    val nthms' = (if Lethe_Proof.is_skolemization rule
-         then prems else [])
+    val nthms' = (if Lethe_Proof.is_skolemization rule then prems else [])
+      |> filter Lethe_Proof.is_lethe_def
       |> map_filter (Symtab.lookup proofs)
     val args = map (Term.subst_free concl_tranformation o subst_only_free global_transformation) args
     val insts = Symtab.map (K (Term.subst_free concl_tranformation o subst_only_free global_transformation)) insts

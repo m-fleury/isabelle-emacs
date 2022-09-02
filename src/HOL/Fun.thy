@@ -377,28 +377,30 @@ lemma bij_betw_comp_iff: "bij_betw f A A' \<Longrightarrow> bij_betw f' A' A'' \
 lemma bij_betw_comp_iff2:
   assumes bij: "bij_betw f' A' A''"
     and img: "f ` A \<le> A'"
-  shows "bij_betw f A A' \<longleftrightarrow> bij_betw (f' \<circ> f) A A''"
-  using assms
-proof (auto simp add: bij_betw_comp_iff)
-  assume *: "bij_betw (f' \<circ> f) A A''"
-  then show "bij_betw f A A'"
-    using img
-  proof (auto simp add: bij_betw_def)
-    assume "inj_on (f' \<circ> f) A"
-    then show "inj_on f A"
-      using inj_on_imageI2 by blast
+  shows "bij_betw f A A' \<longleftrightarrow> bij_betw (f' \<circ> f) A A''" (is "?L \<longleftrightarrow> ?R")
+proof
+  assume "?L"
+  then show "?R"
+    using assms by (auto simp add: bij_betw_comp_iff)
   next
-    fix a'
-    assume **: "a' \<in> A'"
-    with bij have "f' a' \<in> A''"
-      unfolding bij_betw_def by auto
-    with * obtain a where 1: "a \<in> A \<and> f' (f a) = f' a'"
-      unfolding bij_betw_def by force
-    with img have "f a \<in> A'" by auto
-    with bij ** 1 have "f a = a'"
-      unfolding bij_betw_def inj_on_def by auto
-    with 1 show "a' \<in> f ` A" by auto
-  qed
+    assume *: "?R"
+    have "inj_on (f' \<circ> f) A \<Longrightarrow> inj_on f A"
+      using inj_on_imageI2 by blast
+    moreover have "A' \<subseteq> f ` A"
+    proof
+      fix a'
+      assume **: "a' \<in> A'"
+      with bij have "f' a' \<in> A''"
+        unfolding bij_betw_def by auto
+      with * obtain a where 1: "a \<in> A \<and> f' (f a) = f' a'"
+        unfolding bij_betw_def by force
+      with img have "f a \<in> A'" by auto
+      with bij ** 1 have "f a = a'"
+        unfolding bij_betw_def inj_on_def by auto
+      with 1 show "a' \<in> f ` A" by auto
+    qed
+    ultimately show "?L"
+      using img * by (auto simp add: bij_betw_def)
 qed
 
 lemma bij_betw_inv:
@@ -425,7 +427,7 @@ proof -
     from g [OF a1] a1 g [OF a2] a2 \<open>?g x = ?g y\<close> show "x = y" by simp
   qed
   moreover have "?g ` B = A"
-  proof (auto simp: image_def)
+  proof safe
     fix b
     assume "b \<in> B"
     with s obtain a where P: "?P b a" by blast
@@ -435,7 +437,9 @@ proof -
     assume "a \<in> A"
     with s obtain b where P: "?P b a" by blast
     with s have "b \<in> B" by blast
-    with g[OF P] show "\<exists>b\<in>B. a = ?g b" by blast
+    with g[OF P] have "\<exists>b\<in>B. a = ?g b" by blast
+    then show "a \<in> ?g ` B"
+      by auto
   qed
   ultimately show ?thesis
     by (auto simp: bij_betw_def)
@@ -456,6 +460,9 @@ lemma bij_betw_combine:
 
 lemma bij_betw_subset: "bij_betw f A A' \<Longrightarrow> B \<subseteq> A \<Longrightarrow> f ` B = B' \<Longrightarrow> bij_betw f B B'"
   by (auto simp add: bij_betw_def inj_on_def)
+
+lemma bij_betw_ball: "bij_betw f A B \<Longrightarrow> (\<forall>b \<in> B. phi b) = (\<forall>a \<in> A. phi (f a))"
+  unfolding bij_betw_def inj_on_def by blast
 
 lemma bij_pointE:
   assumes "bij f"
@@ -634,7 +641,7 @@ proof
 next
   assume *: "bij_betw f (A \<union> {b}) (A' \<union> {f b})"
   have "f ` A = A'"
-  proof auto
+  proof safe
     fix a
     assume **: "a \<in> A"
     then have "f a \<in> A' \<union> {f b}"
@@ -794,7 +801,6 @@ lemma fun_upd_idem_iff: "f(x:=y) = f \<longleftrightarrow> f x = y"
   unfolding fun_upd_def
   apply safe
    apply (erule subst)
-   apply (rule_tac [2] ext)
    apply auto
   done
 
@@ -900,12 +906,13 @@ lemma bij_betw_iff_bijections:
   "bij_betw f A B \<longleftrightarrow> (\<exists>g. (\<forall>x \<in> A. f x \<in> B \<and> g(f x) = x) \<and> (\<forall>y \<in> B. g y \<in> A \<and> f(g y) = y))"
   (is "?lhs = ?rhs")
 proof
-  assume L: ?lhs
-  then show ?rhs
-    apply (rule_tac x="the_inv_into A f" in exI)
-    apply (auto simp: bij_betw_def f_the_inv_into_f the_inv_into_f_f the_inv_into_into)
-    done
-qed (force intro: bij_betw_byWitness)
+  show "?lhs \<Longrightarrow> ?rhs"
+    by (auto simp: bij_betw_def f_the_inv_into_f the_inv_into_f_f the_inv_into_into
+        exI[where ?x="the_inv_into A f"])
+next
+  show "?rhs \<Longrightarrow> ?lhs"
+    by (force intro: bij_betw_byWitness)
+qed
 
 abbreviation the_inv :: "('a \<Rightarrow> 'b) \<Rightarrow> ('b \<Rightarrow> 'a)"
   where "the_inv f \<equiv> the_inv_into UNIV f"
@@ -927,36 +934,92 @@ proof
   then show False by blast
 qed
 
+
 subsection \<open>Monotonic functions over a set\<close>
 
-definition "mono_on f A \<equiv> \<forall>r s. r \<in> A \<and> s \<in> A \<and> r \<le> s \<longrightarrow> f r \<le> f s"
+definition monotone_on :: "'a set \<Rightarrow> ('a \<Rightarrow> 'a \<Rightarrow> bool) \<Rightarrow> ('b \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> 'b) \<Rightarrow> bool"
+  where "monotone_on A orda ordb f \<longleftrightarrow> (\<forall>x\<in>A. \<forall>y\<in>A. orda x y \<longrightarrow> ordb (f x) (f y))"
+
+abbreviation monotone :: "('a \<Rightarrow> 'a \<Rightarrow> bool) \<Rightarrow> ('b \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> 'b) \<Rightarrow> bool"
+  where "monotone \<equiv> monotone_on UNIV"
+
+lemma monotone_def[no_atp]: "monotone orda ordb f \<longleftrightarrow> (\<forall>x y. orda x y \<longrightarrow> ordb (f x) (f y))"
+  by (simp add: monotone_on_def)
+
+text \<open>Lemma @{thm [source] monotone_def} is provided for backward compatibility.\<close>
+
+lemma monotone_onI:
+  "(\<And>x y. x \<in> A \<Longrightarrow> y \<in> A \<Longrightarrow> orda x y \<Longrightarrow> ordb (f x) (f y)) \<Longrightarrow> monotone_on A orda ordb f"
+  by (simp add: monotone_on_def)
+
+lemma monotoneI[intro?]: "(\<And>x y. orda x y \<Longrightarrow> ordb (f x) (f y)) \<Longrightarrow> monotone orda ordb f"
+  by (rule monotone_onI)
+
+lemma monotone_onD:
+  "monotone_on A orda ordb f \<Longrightarrow> x \<in> A \<Longrightarrow> y \<in> A \<Longrightarrow> orda x y \<Longrightarrow> ordb (f x) (f y)"
+  by (simp add: monotone_on_def)
+
+lemma monotoneD[dest?]: "monotone orda ordb f \<Longrightarrow> orda x y \<Longrightarrow> ordb (f x) (f y)"
+  by (rule monotone_onD[of UNIV, simplified])
+
+lemma monotone_on_subset: "monotone_on A orda ordb f \<Longrightarrow> B \<subseteq> A \<Longrightarrow> monotone_on B orda ordb f"
+  by (auto intro: monotone_onI dest: monotone_onD)
+
+lemma monotone_on_empty[simp]: "monotone_on {} orda ordb f"
+  by (auto intro: monotone_onI dest: monotone_onD)
+
+lemma monotone_on_o:
+  assumes
+    mono_f: "monotone_on A orda ordb f" and
+    mono_g: "monotone_on B ordc orda g" and
+    "g ` B \<subseteq> A"
+  shows "monotone_on B ordc ordb (f \<circ> g)"
+proof (rule monotone_onI)
+  fix x y assume "x \<in> B" and "y \<in> B" and "ordc x y"
+  hence "orda (g x) (g y)"
+    by (rule mono_g[THEN monotone_onD])
+  moreover from \<open>g ` B \<subseteq> A\<close> \<open>x \<in> B\<close> \<open>y \<in> B\<close> have "g x \<in> A" and "g y \<in> A"
+    unfolding image_subset_iff by simp_all
+  ultimately show "ordb ((f \<circ> g) x) ((f \<circ> g) y)"
+    using mono_f[THEN monotone_onD] by simp
+qed
+
+abbreviation mono_on :: "('a :: ord) set \<Rightarrow> ('a \<Rightarrow> 'b :: ord) \<Rightarrow> bool"
+  where "mono_on A \<equiv> monotone_on A (\<le>) (\<le>)"
+
+lemma mono_on_def: "mono_on A f \<longleftrightarrow> (\<forall>r s. r \<in> A \<and> s \<in> A \<and> r \<le> s \<longrightarrow> f r \<le> f s)"
+  by (auto simp add: monotone_on_def)
 
 lemma mono_onI:
-  "(\<And>r s. r \<in> A \<Longrightarrow> s \<in> A \<Longrightarrow> r \<le> s \<Longrightarrow> f r \<le> f s) \<Longrightarrow> mono_on f A"
-  unfolding mono_on_def by simp
+  "(\<And>r s. r \<in> A \<Longrightarrow> s \<in> A \<Longrightarrow> r \<le> s \<Longrightarrow> f r \<le> f s) \<Longrightarrow> mono_on A f"
+  by (rule monotone_onI)
 
 lemma mono_onD:
-  "\<lbrakk>mono_on f A; r \<in> A; s \<in> A; r \<le> s\<rbrakk> \<Longrightarrow> f r \<le> f s"
-  unfolding mono_on_def by simp
+  "\<lbrakk>mono_on A f; r \<in> A; s \<in> A; r \<le> s\<rbrakk> \<Longrightarrow> f r \<le> f s"
+  by (rule monotone_onD)
 
-lemma mono_imp_mono_on: "mono f \<Longrightarrow> mono_on f A"
+lemma mono_imp_mono_on: "mono f \<Longrightarrow> mono_on A f"
   unfolding mono_def mono_on_def by auto
 
-lemma mono_on_subset: "mono_on f A \<Longrightarrow> B \<subseteq> A \<Longrightarrow> mono_on f B"
-  unfolding mono_on_def by auto
+lemma mono_on_subset: "mono_on A f \<Longrightarrow> B \<subseteq> A \<Longrightarrow> mono_on B f"
+  by (rule monotone_on_subset)
 
-definition "strict_mono_on f A \<equiv> \<forall>r s. r \<in> A \<and> s \<in> A \<and> r < s \<longrightarrow> f r < f s"
+abbreviation strict_mono_on :: "('a :: ord) set \<Rightarrow> ('a \<Rightarrow> 'b :: ord) \<Rightarrow> bool"
+  where "strict_mono_on A \<equiv> monotone_on A (<) (<)"
+
+lemma strict_mono_on_def: "strict_mono_on A f \<longleftrightarrow> (\<forall>r s. r \<in> A \<and> s \<in> A \<and> r < s \<longrightarrow> f r < f s)"
+  by (auto simp add: monotone_on_def)
 
 lemma strict_mono_onI:
-  "(\<And>r s. r \<in> A \<Longrightarrow> s \<in> A \<Longrightarrow> r < s \<Longrightarrow> f r < f s) \<Longrightarrow> strict_mono_on f A"
-  unfolding strict_mono_on_def by simp
+  "(\<And>r s. r \<in> A \<Longrightarrow> s \<in> A \<Longrightarrow> r < s \<Longrightarrow> f r < f s) \<Longrightarrow> strict_mono_on A f"
+  by (rule monotone_onI)
 
 lemma strict_mono_onD:
-  "\<lbrakk>strict_mono_on f A; r \<in> A; s \<in> A; r < s\<rbrakk> \<Longrightarrow> f r < f s"
-  unfolding strict_mono_on_def by simp
+  "\<lbrakk>strict_mono_on A f; r \<in> A; s \<in> A; r < s\<rbrakk> \<Longrightarrow> f r < f s"
+  by (rule monotone_onD)
 
 lemma mono_on_greaterD:
-  assumes "mono_on g A" "x \<in> A" "y \<in> A" "g x > (g (y::_::linorder) :: _ :: linorder)"
+  assumes "mono_on A g" "x \<in> A" "y \<in> A" "g x > (g (y::_::linorder) :: _ :: linorder)"
   shows "x > y"
 proof (rule ccontr)
   assume "\<not>x > y"
@@ -977,7 +1040,7 @@ proof
 qed
 
 lemma strict_mono_on_imp_inj_on:
-  assumes "strict_mono_on (f :: (_ :: linorder) \<Rightarrow> (_ :: preorder)) A"
+  assumes "strict_mono_on A (f :: (_ :: linorder) \<Rightarrow> (_ :: preorder))"
   shows "inj_on f A"
 proof (rule inj_onI)
   fix x y assume "x \<in> A" "y \<in> A" "f x = f y"
@@ -987,22 +1050,26 @@ proof (rule inj_onI)
 qed
 
 lemma strict_mono_on_leD:
-  assumes "strict_mono_on (f :: (_ :: linorder) \<Rightarrow> _ :: preorder) A" "x \<in> A" "y \<in> A" "x \<le> y"
+  assumes "strict_mono_on A (f :: (_ :: linorder) \<Rightarrow> _ :: preorder)" "x \<in> A" "y \<in> A" "x \<le> y"
   shows "f x \<le> f y"
-proof (insert le_less_linear[of y x], elim disjE)
-  assume "x < y"
-  with assms have "f x < f y" by (rule_tac strict_mono_onD[OF assms(1)]) simp_all
-  thus ?thesis by (rule less_imp_le)
-qed (insert assms, simp)
+proof (cases "x = y")
+  case True
+  then show ?thesis by simp
+next
+  case False
+  with assms have "f x < f y"
+    using strict_mono_onD[OF assms(1)] by simp
+  then show ?thesis by (rule less_imp_le)
+qed
 
 lemma strict_mono_on_eqD:
   fixes f :: "(_ :: linorder) \<Rightarrow> (_ :: preorder)"
-  assumes "strict_mono_on f A" "f x = f y" "x \<in> A" "y \<in> A"
+  assumes "strict_mono_on A f" "f x = f y" "x \<in> A" "y \<in> A"
   shows "y = x"
-  using assms by (rule_tac linorder_cases[of x y]) (auto dest: strict_mono_onD)
+  using assms by (cases rule: linorder_cases) (auto dest: strict_mono_onD)
 
 lemma strict_mono_on_imp_mono_on:
-  "strict_mono_on (f :: (_ :: linorder) \<Rightarrow> _ :: preorder) A \<Longrightarrow> mono_on f A"
+  "strict_mono_on A (f :: (_ :: linorder) \<Rightarrow> _ :: preorder) \<Longrightarrow> mono_on A f"
   by (rule mono_onI, rule strict_mono_on_leD)
 
 

@@ -38,18 +38,23 @@ text \<open>
   The ROOT file format follows the lexical conventions of the \<^emph>\<open>outer syntax\<close>
   of Isabelle/Isar, see also @{cite "isabelle-isar-ref"}. This defines common
   forms like identifiers, names, quoted strings, verbatim text, nested
-  comments etc. The grammar for @{syntax session_chapter} and @{syntax
-  session_entry} is given as syntax diagram below; each ROOT file may contain
-  multiple specifications like this. Chapters help to organize browser info
-  (\secref{sec:info}), but have no formal meaning. The default chapter is
-  ``\<open>Unsorted\<close>''.
+  comments etc. The grammar for @{syntax chapter_def}, @{syntax chapter_entry}
+  and @{syntax session_entry} is given as syntax diagram below. Each ROOT file
+  may contain multiple specifications like this. Chapters help to organize
+  browser info (\secref{sec:info}), but have no formal meaning. The default
+  chapter is ``\<open>Unsorted\<close>''. Chapter definitions, which are optional, allow to
+  associate additional information.
 
   Isabelle/jEdit @{cite "isabelle-jedit"} includes a simple editing mode
   \<^verbatim>\<open>isabelle-root\<close> for session ROOT files, which is enabled by default for any
   file of that name.
 
   \<^rail>\<open>
-    @{syntax_def session_chapter}: @'chapter' @{syntax name}
+    @{syntax_def chapter_def}: @'chapter_definition' @{syntax name} \<newline>
+      groups? description?
+    ;
+
+    @{syntax_def chapter_entry}: @'chapter' @{syntax name}
     ;
 
     @{syntax_def session_entry}: @'session' @{syntax system_name} groups? dir? '=' \<newline>
@@ -86,6 +91,10 @@ text \<open>
       (@{syntax embedded}+)
   \<close>
 
+  \<^descr> \isakeyword{chapter{\isacharunderscorekeyword}definition}~\<open>A (groups)\<close>
+  associates a collection of groups with chapter \<open>A\<close>. All sessions that belong
+  to this chapter will automatically become members of these groups.
+
   \<^descr> \isakeyword{session}~\<open>A = B + body\<close> defines a new session \<open>A\<close> based on
   parent session \<open>B\<close>, with its content given in \<open>body\<close> (imported sessions and
   theories). Note that a parent (like \<open>HOL\<close>) is mandatory in practical
@@ -110,8 +119,8 @@ text \<open>
   All theory files are located relatively to the session directory. The prover
   process is run within the same as its current working directory.
 
-  \<^descr> \isakeyword{description}~\<open>text\<close> is a free-form annotation for this
-  session.
+  \<^descr> \isakeyword{description}~\<open>text\<close> is a free-form description for this
+  session (or chapter), e.g. for presentation purposes.
 
   \<^descr> \isakeyword{options}~\<open>[x = a, y = b, z]\<close> defines separate options
   (\secref{sec:system-options}) that are used when processing this session,
@@ -488,53 +497,53 @@ subsubsection \<open>Examples\<close>
 
 text \<open>
   Build a specific logic image:
-  @{verbatim [display] \<open>isabelle build -b HOLCF\<close>}
+  @{verbatim [display] \<open>  isabelle build -b HOLCF\<close>}
 
   \<^smallskip>
   Build the main group of logic images:
-  @{verbatim [display] \<open>isabelle build -b -g main\<close>}
+  @{verbatim [display] \<open>  isabelle build -b -g main\<close>}
 
   \<^smallskip>
   Build all descendants (and requirements) of \<^verbatim>\<open>FOL\<close> and \<^verbatim>\<open>ZF\<close>:
-  @{verbatim [display] \<open>isabelle build -B FOL -B ZF\<close>}
+  @{verbatim [display] \<open>  isabelle build -B FOL -B ZF\<close>}
 
   \<^smallskip>
   Build all sessions where sources have changed (ignoring heaps):
-  @{verbatim [display] \<open>isabelle build -a -S\<close>}
+  @{verbatim [display] \<open>  isabelle build -a -S\<close>}
 
   \<^smallskip>
   Provide a general overview of the status of all Isabelle sessions, without
   building anything:
-  @{verbatim [display] \<open>isabelle build -a -n -v\<close>}
+  @{verbatim [display] \<open>  isabelle build -a -n -v\<close>}
 
   \<^smallskip>
   Build all sessions with HTML browser info and PDF document preparation:
-  @{verbatim [display] \<open>isabelle build -a -o browser_info -o document\<close>}
+  @{verbatim [display] \<open>  isabelle build -a -o browser_info -o document\<close>}
 
   \<^smallskip>
   Build all sessions with a maximum of 8 parallel prover processes and 4
   worker threads each (on a machine with many cores):
-  @{verbatim [display] \<open>isabelle build -a -j8 -o threads=4\<close>}
+  @{verbatim [display] \<open>  isabelle build -a -j8 -o threads=4\<close>}
 
   \<^smallskip>
   Build some session images with cleanup of their descendants, while retaining
   their ancestry:
-  @{verbatim [display] \<open>isabelle build -b -c HOL-Library HOL-Algebra\<close>}
+  @{verbatim [display] \<open>  isabelle build -b -c HOL-Library HOL-Algebra\<close>}
 
   \<^smallskip>
   Clean all sessions without building anything:
-  @{verbatim [display] \<open>isabelle build -a -n -c\<close>}
+  @{verbatim [display] \<open>  isabelle build -a -n -c\<close>}
 
   \<^smallskip>
   Build all sessions from some other directory hierarchy, according to the
   settings variable \<^verbatim>\<open>AFP\<close> that happens to be defined inside the Isabelle
   environment:
-  @{verbatim [display] \<open>isabelle build -D '$AFP'\<close>}
+  @{verbatim [display] \<open>  isabelle build -D '$AFP'\<close>}
 
   \<^smallskip>
   Inform about the status of all sessions required for AFP, without building
   anything yet:
-  @{verbatim [display] \<open>isabelle build -D '$AFP' -R -v -n\<close>}
+  @{verbatim [display] \<open>  isabelle build -D '$AFP' -R -v -n\<close>}
 \<close>
 
 
@@ -586,7 +595,7 @@ subsubsection \<open>Examples\<close>
 text \<open>
   Print messages from theory \<^verbatim>\<open>HOL.Nat\<close> of session \<^verbatim>\<open>HOL\<close>, using Unicode
   rendering of Isabelle symbols and a margin of 100 characters:
-  @{verbatim [display] \<open>isabelle log -T HOL.Nat -U -m 100 HOL\<close>}
+  @{verbatim [display] \<open>  isabelle log -T HOL.Nat -U -m 100 HOL\<close>}
 \<close>
 
 
@@ -695,17 +704,17 @@ subsubsection \<open>Examples\<close>
 
 text \<open>
   Dump all Isabelle/ZF sessions (which are rather small):
-  @{verbatim [display] \<open>isabelle dump -v -B ZF\<close>}
+  @{verbatim [display] \<open>  isabelle dump -v -B ZF\<close>}
 
   \<^smallskip>
   Dump the quite substantial \<^verbatim>\<open>HOL-Analysis\<close> session, with full bootstrap
   from Isabelle/Pure:
-  @{verbatim [display] \<open>isabelle dump -v HOL-Analysis\<close>}
+  @{verbatim [display] \<open>  isabelle dump -v HOL-Analysis\<close>}
 
   \<^smallskip>
   Dump all sessions connected to HOL-Analysis, using main Isabelle/HOL as
   basis:
-  @{verbatim [display] \<open>isabelle dump -v -b HOL -B HOL-Analysis\<close>}
+  @{verbatim [display] \<open>  isabelle dump -v -b HOL -B HOL-Analysis\<close>}
 
   This results in uniform PIDE markup for everything, except for the
   Isabelle/Pure bootstrap process itself. Producing that on the spot requires
@@ -713,8 +722,8 @@ text \<open>
   process (in 64bit mode). Here are some relevant settings (\secref{sec:boot})
   for such ambitious applications:
   @{verbatim [display]
-\<open>ISABELLE_TOOL_JAVA_OPTIONS="-Xms4g -Xmx32g -Xss16m"
-ML_OPTIONS="--minheap 4G --maxheap 32G"
+\<open>  ISABELLE_TOOL_JAVA_OPTIONS="-Xms4g -Xmx32g -Xss16m"
+  ML_OPTIONS="--minheap 4G --maxheap 32G"
 \<close>}
 \<close>
 
@@ -797,17 +806,17 @@ text \<open>
   Update some cartouche notation in all theory sources required for session
   \<^verbatim>\<open>HOL-Analysis\<close> (and ancestors):
 
-  @{verbatim [display] \<open>isabelle update -u mixfix_cartouches HOL-Analysis\<close>}
+  @{verbatim [display] \<open>  isabelle update -u mixfix_cartouches HOL-Analysis\<close>}
 
   \<^smallskip> Update the same for all application sessions based on \<^verbatim>\<open>HOL-Analysis\<close> ---
   using its image as starting point (for reduced resource requirements):
 
-  @{verbatim [display] \<open>isabelle update -u mixfix_cartouches -b HOL-Analysis -B HOL-Analysis\<close>}
+  @{verbatim [display] \<open>  isabelle update -u mixfix_cartouches -b HOL-Analysis -B HOL-Analysis\<close>}
 
   \<^smallskip> Update sessions that build on \<^verbatim>\<open>HOL-Proofs\<close>, which need to be run
   separately with special options as follows:
 
-  @{verbatim [display] \<open>isabelle update -u mixfix_cartouches -l HOL-Proofs -B HOL-Proofs
+  @{verbatim [display] \<open>  isabelle update -u mixfix_cartouches -l HOL-Proofs -B HOL-Proofs
   -o record_proofs=2\<close>}
 
   \<^smallskip> See also the end of \secref{sec:tool-dump} for hints on increasing
@@ -846,19 +855,111 @@ subsubsection \<open>Examples\<close>
 
 text \<open>
   All sessions of the Isabelle distribution:
-  @{verbatim [display] \<open>isabelle sessions -a\<close>}
+  @{verbatim [display] \<open>  isabelle sessions -a\<close>}
 
   \<^medskip>
   Sessions that are based on \<^verbatim>\<open>ZF\<close> (and required by it):
-  @{verbatim [display] \<open>isabelle sessions -B ZF\<close>}
+  @{verbatim [display] \<open>  isabelle sessions -B ZF\<close>}
 
   \<^medskip>
   All sessions of Isabelle/AFP (based in directory \<^path>\<open>AFP\<close>):
-  @{verbatim [display] \<open>isabelle sessions -D AFP/thys\<close>}
+  @{verbatim [display] \<open>  isabelle sessions -D AFP/thys\<close>}
 
   \<^medskip>
   Sessions required by Isabelle/AFP (based in directory \<^path>\<open>AFP\<close>):
-  @{verbatim [display] \<open>isabelle sessions -R -D AFP/thys\<close>}
+  @{verbatim [display] \<open>  isabelle sessions -R -D AFP/thys\<close>}
+\<close>
+
+
+section \<open>Synchronize source repositories and session images for Isabelle and AFP\<close>
+
+text \<open>
+  The @{tool_def sync} tool synchronizes a local Isabelle and AFP source
+  repository, possibly with prebuilt \<^verbatim>\<open>.jar\<close> files and session images. Its
+  command-line usage is: @{verbatim [display]
+\<open>Usage: isabelle sync [OPTIONS] TARGET
+
+  Options are:
+    -A ROOT      include AFP with given root directory (":" for $AFP_BASE)
+    -H           purge heaps directory on target
+    -I NAME      include session heap image and build database
+                 (based on accidental local state)
+    -J           preserve *.jar files
+    -S           robust (but less portable) treatment of spaces in
+                 file and directory names on the target
+    -T           thorough treatment of file content and directory times
+    -a REV       explicit AFP revision (default: state of working directory)
+    -n           no changes: dry-run
+    -r REV       explicit revision (default: state of working directory)
+    -p PORT      explicit SSH port (default: 22)
+    -v           verbose
+
+  Synchronize Isabelle + AFP repositories, based on "isabelle hg_sync".\<close>}
+
+  The approach is to apply @{tool hg_sync} (see \secref{sec:tool-hg-sync}) on
+  the underlying Isabelle repository, and an optional AFP repository.
+  Consequently, the Isabelle installation needs to be a Mercurial repository
+  clone: a regular download of the Isabelle distribution is not sufficient!
+
+  On the target side, AFP is placed into @{setting ISABELLE_HOME} as immediate
+  sub-directory with the literal name \<^verbatim>\<open>AFP\<close>; thus it can be easily included
+  elsewhere, e.g. @{tool build}~\<^verbatim>\<open>-d\<close>~\<^verbatim>\<open>'~~/AFP'\<close> on the remote side.
+
+  \<^medskip> Options \<^verbatim>\<open>-S\<close>, \<^verbatim>\<open>-T\<close>, \<^verbatim>\<open>-n\<close>, \<^verbatim>\<open>-p\<close>, \<^verbatim>\<open>-v\<close> are the same as the underlying
+  @{tool hg_sync}.
+
+  \<^medskip> Options \<^verbatim>\<open>-r\<close> and \<^verbatim>\<open>-a\<close> are the same as option \<^verbatim>\<open>-r\<close> for @{tool hg_sync},
+  but for the Isabelle and AFP repositories, respectively. The AFP version is
+  only used if a corresponding repository is given via option \<^verbatim>\<open>-A\<close>, either
+  with explicit root directory, or as \<^verbatim>\<open>-A:\<close> to refer to \<^verbatim>\<open>$AFP_BASE\<close> (this
+  assumes AFP as component of the local Isabelle installation). If no AFP
+  repository is given, an existing \<^verbatim>\<open>AFP\<close> directory on the target remains
+  unchanged.
+
+  \<^medskip> Option \<^verbatim>\<open>-J\<close> uploads existing \<^verbatim>\<open>.jar\<close> files from the working directory,
+  which are usually Isabelle/Scala/Java modules under control of @{tool
+  scala_build} via \<^verbatim>\<open>etc/build.props\<close> (see also \secref{sec:scala-build}).
+  Thus the dependency management is accurate: bad uploads will be rebuilt
+  eventually (or ignored). This might fail for very old Isabelle versions,
+  when going into the past via option \<^verbatim>\<open>-r\<close>: here it is better to omit option
+  \<^verbatim>\<open>-J\<close> and thus purge \<^verbatim>\<open>.jar\<close> files on the target (because they do not belong
+  to the repository).
+
+  \<^medskip> Option \<^verbatim>\<open>-I\<close> uploads a collection of session images. The set of \<^verbatim>\<open>-I\<close>
+  options specifies the end-points in the session build graph, including all
+  required ancestors. The result collection is uploaded using the underlying
+  \<^verbatim>\<open>rsync\<close> policies, so unchanged images are not sent again. Session images
+  are assembled within the target \<^verbatim>\<open>heaps\<close> directory: this scheme fits
+  together with @{tool build}~\<^verbatim>\<open>-o system_heaps\<close>. Images are taken as-is from
+  the local Isabelle installation, regardless of option \<^verbatim>\<open>-r\<close>. Upload of bad
+  images could waste time and space, but running e.g. @{tool build} on the
+  target will check dependencies accurately and rebuild outdated images on
+  demand.
+
+  \<^medskip> Option \<^verbatim>\<open>-H\<close> tells the underlying \<^verbatim>\<open>rsync\<close> process to purge the \<^verbatim>\<open>heaps\<close>
+  directory on the target, before uploading new images via option \<^verbatim>\<open>-I\<close>. The
+  default is to work monotonically: old material that is not overwritten
+  remains unchanged. Over time, this may lead to unused garbage, due to
+  changes in session names or the Poly/ML version. Option \<^verbatim>\<open>-H\<close> helps to avoid
+  wasting file-system space.
+\<close>
+
+subsubsection \<open>Examples\<close>
+
+text \<open>
+  For quick testing of Isabelle + AFP on a remote machine, upload changed
+  sources, jars, and local sessions images for \<^verbatim>\<open>HOL\<close>:
+
+  @{verbatim [display] \<open>  isabelle sync -A: -I HOL -J testmachine:test/isabelle_afp\<close>}
+  Assuming that the local \<^verbatim>\<open>HOL\<close> hierarchy has been up-to-date, and the local
+  and remote ML platforms coincide, a remote @{tool build} will proceed
+  without building \<^verbatim>\<open>HOL\<close> again.
+
+  \<^medskip> Here is a variation for extra-clean testing of Isabelle + AFP: no option
+  \<^verbatim>\<open>-J\<close>, but option \<^verbatim>\<open>-T\<close> to disable the default ``quick check'' of \<^verbatim>\<open>rsync\<close>
+  (which only inspects file sizes and date stamps); existing heaps are
+  deleted:
+  @{verbatim [display] \<open>  isabelle sync -A: -T -H testmachine:test/isabelle_afp\<close>}
 \<close>
 
 end

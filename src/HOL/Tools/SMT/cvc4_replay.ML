@@ -217,7 +217,7 @@ fun add_correct_assms_deps ctxt rewrite_rules ll_defs assms steps =
      (case try (snd o SMTLIB_Interface.role_and_index_of_assert_name) id of
        NONE => st
      | SOME _ =>
-       (case List.find (fn (_, th') =>  CVC4_Proof_Parse.cvc_matching_assms ctxt rewrite_rules ll_defs concl th') assms of
+       (case List.find (fn (_, th') =>  CVC_Proof_Parse.cvc_matching_assms ctxt rewrite_rules ll_defs concl th') assms of
          NONE => st
        | SOME ((k,_), _) =>
        let
@@ -262,7 +262,7 @@ fun replay outer_ctxt
 
     fun step_of_assume (i, (_, th)) =
       let
-        fun matching (_, th') = CVC4_Proof_Parse.cvc_matching_assms ctxt rewrite_rules ll_defs (Thm.prop_of th) th'
+        fun matching (_, th') = CVC_Proof_Parse.cvc_matching_assms ctxt rewrite_rules ll_defs (Thm.prop_of th) th'
       in
         case List.find matching assms of
           NONE => []

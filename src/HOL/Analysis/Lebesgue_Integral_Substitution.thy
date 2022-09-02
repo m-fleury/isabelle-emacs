@@ -30,7 +30,7 @@ proof-
                              Mg': "set_borel_measurable borel {a..b} g'"
       by (simp_all only: set_measurable_continuous_on_ivl)
   from derivg have derivg': "\<And>x. x \<in> {a..b} \<Longrightarrow> (g has_vector_derivative g' x) (at x)"
-    by (simp only: has_field_derivative_iff_has_vector_derivative)
+    by (simp only: has_real_derivative_iff_has_vector_derivative)
 
   have real_ind[simp]: "\<And>A x. enn2real (indicator A x) = indicator A x"
       by (auto split: split_indicator)
@@ -73,7 +73,7 @@ proof-
         hence B: "\<And>x. min u' v' \<le> x \<Longrightarrow> x \<le> max u' v' \<Longrightarrow>
                       (g has_vector_derivative g' x) (at x within {min u' v'..max u' v'})"
             by (simp only: u'v' max_absorb2 min_absorb1)
-               (auto simp: has_field_derivative_iff_has_vector_derivative)
+               (auto simp: has_real_derivative_iff_has_vector_derivative)
           have "integrable lborel (\<lambda>x. indicator ({a..b} \<inter> g -` {u..v}) x *\<^sub>R g' x)"
             using set_integrable_subset borel_integrable_atLeastAtMost'[OF contg']
             by (metis \<open>{u'..v'} \<subseteq> {a..b}\<close> eucl_ivals(5) set_integrable_def sets_lborel u'v'(1))
@@ -122,7 +122,7 @@ proof-
         by (simp add: vimage_Compl diff_eq Int_commute[of "-A"])
       also have "{g a..g b} - A = {g a..g b} - A \<inter> {g a..g b}" by blast
       also have "emeasure lborel ... = g b - g a - emeasure lborel (A \<inter> {g a..g b})"
-             using \<open>A \<in> sets borel\<close> by (subst emeasure_Diff) (auto simp: )
+             using \<open>A \<in> sets borel\<close> by (subst emeasure_Diff) auto
      also have "emeasure lborel (A \<inter> {g a..g b}) =
                     \<integral>\<^sup>+x. indicator A x * indicator {g a..g b} x \<partial>lborel"
        using \<open>A \<in> sets borel\<close>

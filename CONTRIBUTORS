@@ -6,6 +6,9 @@ listed as an author in one of the source files of this Isabelle distribution.
 Contributions to this Isabelle version
 --------------------------------------
 
+* June 2022: Jan van Brügge, TU München
+  Strict cardinality bounds for BNFs.
+
 * April - August 2021: Denis Paluca and Fabian Huch, TU München
   Various improvements to Isabelle/VSCode.
 
@@ -13,6 +16,11 @@ Contributions to this Isabelle version
   More ambitious minimization of case expressions in generated code;
   code generation: type annotations in pattern bindings are printed in a
   way suitable for Scala 3.
+
+* July 2022: Florian Haftmann, TU München and René Thiemann, UIBK
+  Theory Code_Abstract_Char implements characters by target language
+  integers, sacrificing pattern patching in exchange for dramatically
+  increased performance for comparisions.
 
 
 Contributions to Isabelle2021-1

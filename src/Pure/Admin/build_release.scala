@@ -102,7 +102,7 @@ directory individually.
 
   object Release_Archive {
     def make(bytes: Bytes, rename: String = ""): Release_Archive = {
-      Isabelle_System.with_tmp_dir("tmp")(dir =>
+      Isabelle_System.with_tmp_dir("build_release")(dir =>
         Isabelle_System.with_tmp_file("archive", ext = "tar.gz") { archive_path =>
           val isabelle_dir = Isabelle_System.make_directory(dir + ISABELLE)
 
@@ -222,17 +222,22 @@ directory individually.
     options: Options,
     platform: Platform.Family.Value,
     build_sessions: List[String],
-    local_dir: Path
+    local_dir: Path,
+    progress: Progress = new Progress,
   ): Unit = {
     val server_option = "build_host_" + platform.toString
+    val server = options.string(server_option)
+    progress.echo("Building heaps " + commas_quote(build_sessions) +
+      " (" + server_option + " = " + quote(server) + ") ...")
+
     val ssh =
-      options.string(server_option) match {
+       server match {
         case "" =>
           if (Platform.family == platform) SSH.Local
           else error("Undefined option " + server_option + ": cannot build heaps")
         case SSH.Target(user, host) =>
           SSH.open_session(options, host = host, user = user)
-        case s => error("Malformed option " + server_option + ": " + quote(s))
+        case _ => error("Malformed option " + server_option + ": " + quote(server))
       }
     try {
       Isabelle_System.with_tmp_file("tmp", ext = "tar") { local_tmp_tar =>
@@ -398,7 +403,7 @@ exec "$ISABELLE_JDK_HOME/bin/java" \
   ): Unit = {
     val progress = context.progress
 
-    val hg = Mercurial.repository(Path.ISABELLE_HOME)
+    val hg = Mercurial.self_repository()
     val id =
       try { hg.id(version) }
       catch { case ERROR(msg) => cat_error("Bad repository version: " + version, msg) }
@@ -412,7 +417,7 @@ exec "$ISABELLE_JDK_HOME/bin/java" \
 
       Isabelle_System.new_directory(context.dist_dir)
 
-      hg.archive(context.isabelle_dir.expand.implode, rev = id, options = "--type files")
+      hg.archive(context.isabelle_dir.expand.implode, rev = id)
 
       for (name <- List(".hg_archival.txt", ".hgtags", ".hgignore", "README_REPOSITORY")) {
         (context.isabelle_dir + Path.explode(name)).file.delete
@@ -583,8 +588,7 @@ exec "$ISABELLE_JDK_HOME/bin/java" \
         // build heaps
 
         if (build_sessions.nonEmpty) {
-          progress.echo("Building heaps " + commas_quote(build_sessions) + " ...")
-          build_heaps(options, platform, build_sessions, isabelle_target)
+          build_heaps(options, platform, build_sessions, isabelle_target, progress = progress)
         }
 
 

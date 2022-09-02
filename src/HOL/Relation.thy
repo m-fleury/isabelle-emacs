@@ -155,14 +155,29 @@ definition refl_on :: "'a set \<Rightarrow> 'a rel \<Rightarrow> bool"
 abbreviation refl :: "'a rel \<Rightarrow> bool" \<comment> \<open>reflexivity over a type\<close>
   where "refl \<equiv> refl_on UNIV"
 
-definition reflp :: "('a \<Rightarrow> 'a \<Rightarrow> bool) \<Rightarrow> bool"
-  where "reflp r \<longleftrightarrow> (\<forall>x. r x x)"
+definition reflp_on :: "'a set \<Rightarrow> ('a \<Rightarrow> 'a \<Rightarrow> bool) \<Rightarrow> bool"
+  where "reflp_on A R \<longleftrightarrow> (\<forall>x\<in>A. R x x)"
+
+abbreviation reflp :: "('a \<Rightarrow> 'a \<Rightarrow> bool) \<Rightarrow> bool"
+  where "reflp \<equiv> reflp_on UNIV"
+
+lemma reflp_def[no_atp]: "reflp R \<longleftrightarrow> (\<forall>x. R x x)"
+  by (simp add: reflp_on_def)
+
+text \<open>@{thm [source] reflp_def} is for backward compatibility.\<close>
 
 lemma reflp_refl_eq [pred_set_conv]: "reflp (\<lambda>x y. (x, y) \<in> r) \<longleftrightarrow> refl r"
   by (simp add: refl_on_def reflp_def)
 
 lemma refl_onI [intro?]: "r \<subseteq> A \<times> A \<Longrightarrow> (\<And>x. x \<in> A \<Longrightarrow> (x, x) \<in> r) \<Longrightarrow> refl_on A r"
   unfolding refl_on_def by (iprover intro!: ballI)
+
+lemma reflp_onI:
+  "(\<And>x y. x \<in> A \<Longrightarrow> R x x) \<Longrightarrow> reflp_on A R"
+  by (simp add: reflp_on_def)
+
+lemma reflpI[intro?]: "(\<And>x. R x x) \<Longrightarrow> reflp R"
+  by (rule reflp_onI)
 
 lemma refl_onD: "refl_on A r \<Longrightarrow> a \<in> A \<Longrightarrow> (a, a) \<in> r"
   unfolding refl_on_def by blast
@@ -173,39 +188,56 @@ lemma refl_onD1: "refl_on A r \<Longrightarrow> (x, y) \<in> r \<Longrightarrow>
 lemma refl_onD2: "refl_on A r \<Longrightarrow> (x, y) \<in> r \<Longrightarrow> y \<in> A"
   unfolding refl_on_def by blast
 
-lemma reflpI [intro?]: "(\<And>x. r x x) \<Longrightarrow> reflp r"
-  by (auto intro: refl_onI simp add: reflp_def)
+lemma reflp_onD:
+  "reflp_on A R \<Longrightarrow> x \<in> A \<Longrightarrow> R x x"
+  by (simp add: reflp_on_def)
+
+lemma reflpD[dest?]: "reflp R \<Longrightarrow> R x x"
+  by (simp add: reflp_onD)
 
 lemma reflpE:
   assumes "reflp r"
   obtains "r x x"
   using assms by (auto dest: refl_onD simp add: reflp_def)
 
-lemma reflpD [dest?]:
-  assumes "reflp r"
-  shows "r x x"
-  using assms by (auto elim: reflpE)
+lemma reflp_on_subset: "reflp_on A R \<Longrightarrow> B \<subseteq> A \<Longrightarrow> reflp_on B R"
+  by (auto intro: reflp_onI dest: reflp_onD)
 
 lemma refl_on_Int: "refl_on A r \<Longrightarrow> refl_on B s \<Longrightarrow> refl_on (A \<inter> B) (r \<inter> s)"
   unfolding refl_on_def by blast
 
+lemma reflp_on_inf: "reflp_on A R \<Longrightarrow> reflp_on B S \<Longrightarrow> reflp_on (A \<inter> B) (R \<sqinter> S)"
+  by (auto intro: reflp_onI dest: reflp_onD)
+
 lemma reflp_inf: "reflp r \<Longrightarrow> reflp s \<Longrightarrow> reflp (r \<sqinter> s)"
-  by (auto intro: reflpI elim: reflpE)
+  by (rule reflp_on_inf[of UNIV _ UNIV, unfolded Int_absorb])
 
 lemma refl_on_Un: "refl_on A r \<Longrightarrow> refl_on B s \<Longrightarrow> refl_on (A \<union> B) (r \<union> s)"
   unfolding refl_on_def by blast
 
+lemma reflp_on_sup: "reflp_on A R \<Longrightarrow> reflp_on B S \<Longrightarrow> reflp_on (A \<union> B) (R \<squnion> S)"
+  by (auto intro: reflp_onI dest: reflp_onD)
+
 lemma reflp_sup: "reflp r \<Longrightarrow> reflp s \<Longrightarrow> reflp (r \<squnion> s)"
-  by (auto intro: reflpI elim: reflpE)
+  by (rule reflp_on_sup[of UNIV _ UNIV, unfolded Un_absorb])
 
 lemma refl_on_INTER: "\<forall>x\<in>S. refl_on (A x) (r x) \<Longrightarrow> refl_on (\<Inter>(A ` S)) (\<Inter>(r ` S))"
   unfolding refl_on_def by fast
 
+lemma reflp_on_Inf: "\<forall>x\<in>S. reflp_on (A x) (R x) \<Longrightarrow> reflp_on (\<Inter>(A ` S)) (\<Sqinter>(R ` S))"
+  by (auto intro: reflp_onI dest: reflp_onD)
+
 lemma refl_on_UNION: "\<forall>x\<in>S. refl_on (A x) (r x) \<Longrightarrow> refl_on (\<Union>(A ` S)) (\<Union>(r ` S))"
   unfolding refl_on_def by blast
 
+lemma reflp_on_Sup: "\<forall>x\<in>S. reflp_on (A x) (R x) \<Longrightarrow> reflp_on (\<Union>(A ` S)) (\<Squnion>(R ` S))"
+  by (auto intro: reflp_onI dest: reflp_onD)
+
 lemma refl_on_empty [simp]: "refl_on {} {}"
   by (simp add: refl_on_def)
+
+lemma reflp_on_empty [simp]: "reflp_on {} R"
+  by (auto intro: reflp_onI)
 
 lemma refl_on_singleton [simp]: "refl_on {x} {(x, x)}"
 by (blast intro: refl_onI)
@@ -217,8 +249,12 @@ lemma refl_on_def' [nitpick_unfold, code]:
 lemma reflp_equality [simp]: "reflp (=)"
   by (simp add: reflp_def)
 
-lemma reflp_mono: "reflp R \<Longrightarrow> (\<And>x y. R x y \<longrightarrow> Q x y) \<Longrightarrow> reflp Q"
-  by (auto intro: reflpI dest: reflpD)
+lemma reflp_on_mono:
+  "reflp_on A R \<Longrightarrow> (\<And>x y. x \<in> A \<Longrightarrow> y \<in> A \<Longrightarrow> R x y \<Longrightarrow> Q x y) \<Longrightarrow> reflp_on A Q"
+  by (auto intro: reflp_onI dest: reflp_onD)
+
+lemma reflp_mono: "reflp R \<Longrightarrow> (\<And>x y. R x y \<Longrightarrow> Q x y) \<Longrightarrow> reflp Q"
+  by (rule reflp_on_mono[of UNIV R Q]) simp_all
 
 
 subsubsection \<open>Irreflexivity\<close>
@@ -486,8 +522,40 @@ lemma total_onI [intro?]:
 
 abbreviation "total \<equiv> total_on UNIV"
 
+definition totalp_on where
+  "totalp_on A R \<longleftrightarrow> (\<forall>x \<in> A. \<forall>y \<in> A. x \<noteq> y \<longrightarrow> R x y \<or> R y x)"
+
+abbreviation totalp where
+  "totalp \<equiv> totalp_on UNIV"
+
+lemma totalp_on_refl_on_eq[pred_set_conv]: "totalp_on A (\<lambda>x y. (x, y) \<in> r) \<longleftrightarrow> total_on A r"
+  by (simp add: totalp_on_def total_on_def)
+
+lemma totalp_onI:
+  "(\<And>x y. x \<in> A \<Longrightarrow> y \<in> A \<Longrightarrow> x \<noteq> y \<Longrightarrow> R x y \<or> R y x) \<Longrightarrow> totalp_on A R"
+  by (simp add: totalp_on_def)
+
+lemma totalpI: "(\<And>x y. x \<noteq> y \<Longrightarrow> R x y \<or> R y x) \<Longrightarrow> totalp R"
+  by (rule totalp_onI)
+
+lemma totalp_onD:
+  "totalp_on A R \<Longrightarrow> x \<in> A \<Longrightarrow> y \<in> A \<Longrightarrow> x \<noteq> y \<Longrightarrow> R x y \<or> R y x"
+  by (simp add: totalp_on_def)
+
+lemma totalpD: "totalp R \<Longrightarrow> x \<noteq> y \<Longrightarrow> R x y \<or> R y x"
+  by (simp add: totalp_onD)
+
+lemma total_on_subset: "total_on A r \<Longrightarrow> B \<subseteq> A \<Longrightarrow> total_on B r"
+  by (auto simp: total_on_def)
+
+lemma totalp_on_subset: "totalp_on A R \<Longrightarrow> B \<subseteq> A \<Longrightarrow> totalp_on B R"
+  by (auto intro: totalp_onI dest: totalp_onD)
+
 lemma total_on_empty [simp]: "total_on {} r"
   by (simp add: total_on_def)
+
+lemma totalp_on_empty [simp]: "totalp_on {} R"
+  by (auto intro: totalp_onI)
 
 lemma total_on_singleton [simp]: "total_on {x} {(x, x)}"
   unfolding total_on_def by blast
@@ -1112,12 +1180,19 @@ lemma Image_INT_subset: "(r `` (\<Inter>(B ` A))) \<subseteq> (\<Inter>x\<in>A. 
   by blast
 
 text \<open>Converse inclusion requires some assumptions\<close>
-lemma Image_INT_eq: "single_valued (r\<inverse>) \<Longrightarrow> A \<noteq> {} \<Longrightarrow> r `` (\<Inter>(B ` A)) = (\<Inter>x\<in>A. r `` B x)"
-  apply (rule equalityI)
-   apply (rule Image_INT_subset)
-  apply (auto simp add: single_valued_def)
-  apply blast
-  done
+lemma Image_INT_eq:
+  assumes "single_valued (r\<inverse>)"
+    and "A \<noteq> {}"
+  shows "r `` (\<Inter>(B ` A)) = (\<Inter>x\<in>A. r `` B x)"
+proof(rule equalityI, rule Image_INT_subset)
+  show "(\<Inter>x\<in>A. r `` B x) \<subseteq> r `` \<Inter> (B ` A)"
+  proof
+    fix x
+    assume "x \<in> (\<Inter>x\<in>A. r `` B x)"
+    then show "x \<in> r `` \<Inter> (B ` A)"
+      using assms unfolding single_valued_def by simp blast
+  qed
+qed
 
 lemma Image_subset_eq: "r``A \<subseteq> B \<longleftrightarrow> A \<subseteq> - ((r\<inverse>) `` (- B))"
   by blast

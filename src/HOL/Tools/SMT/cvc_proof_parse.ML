@@ -1,10 +1,10 @@
-(*  Title:      HOL/Tools/SMT/cvc4_proof_parse.ML
+(*  Title:      HOL/Tools/SMT/cvc_proof_parse.ML
     Author:     Jasmin Blanchette, TU Muenchen
 
-CVC4 proof (actually, unsat core) parsing.
+CVC4 and cvc5 proof (actually, unsat core) parsing.
 *)
 
-signature CVC4_PROOF_PARSE =
+signature CVC_PROOF_PARSE =
 sig
   val parse_proof: SMT_Translate.replay_data ->
     ((string * ATP_Problem_Generate.stature) * thm) list -> term list -> term -> string list ->
@@ -16,7 +16,7 @@ sig
 
 end;
 
-structure CVC4_Proof_Parse: CVC4_PROOF_PARSE =
+structure CVC_Proof_Parse: CVC_PROOF_PARSE =
 struct
 
 open ATP_Util

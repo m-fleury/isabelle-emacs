@@ -153,7 +153,8 @@ fun dynamic_value_strict ctxt t compiler =
       | SOME drv => drv)
     val with_dir = if Config.get ctxt debug then with_debug_dir else Isabelle_System.with_tmp_dir
     fun eval result =
-      with_dir "Code_Test" (driver ctxt ((apfst o map o apfst) Long_Name.implode result))
+      with_dir "Code_Test"
+        (driver ctxt ((apfst o map) (apfst Long_Name.implode #> apsnd Bytes.content) result))
       |> parse_result compiler
     fun evaluator program _ vs_ty deps =
       Exn.interruptible_capture eval
@@ -505,7 +506,7 @@ fun evaluate_in_scala (_: Proof.context) (code_files, value_name) dir =
 }\<close>
     val _ = File.write code_path code
     val _ = File.write driver_path driver
-    val _ = Scala_Compiler.toplevel true (code ^ driver)
+    val _ = Scala_Compiler.toplevel (code ^ driver)
       handle ERROR msg => error ("Evaluation for " ^ scalaN ^ " failed:\n" ^ msg)
   in File.read out_path end
 

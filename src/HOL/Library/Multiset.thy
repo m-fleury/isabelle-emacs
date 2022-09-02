@@ -1346,6 +1346,25 @@ lemma
   filter_mset_False[simp]: "{#y \<in># M. False#} = {#}"
   by (auto simp: multiset_eq_iff)
 
+lemma filter_mset_cong0:
+  assumes "\<And>x. x \<in># M \<Longrightarrow> f x \<longleftrightarrow> g x"
+  shows "filter_mset f M = filter_mset g M"
+proof (rule subset_mset.antisym; unfold subseteq_mset_def; rule allI)
+  fix x
+  show "count (filter_mset f M) x \<le> count (filter_mset g M) x"
+    using assms by (cases "x \<in># M") (simp_all add: not_in_iff)
+next
+  fix x
+  show "count (filter_mset g M) x \<le> count (filter_mset f M) x"
+    using assms by (cases "x \<in># M") (simp_all add: not_in_iff)
+qed
+
+lemma filter_mset_cong:
+  assumes "M = M'" and "\<And>x. x \<in># M' \<Longrightarrow> f x \<longleftrightarrow> g x"
+  shows "filter_mset f M = filter_mset g M'"
+  unfolding \<open>M = M'\<close>
+  using assms by (auto intro: filter_mset_cong0)
+
 
 subsubsection \<open>Size\<close>
 
@@ -1586,6 +1605,64 @@ proof -
 qed
 
 
+subsection \<open>Least and greatest elements\<close>
+
+context begin
+
+qualified lemma
+  assumes
+    (* FIXME: Replace by transp_on (set_mset M) R if it gets introduced. *)
+    "\<forall>x \<in> set_mset M. \<forall>y \<in> set_mset M. \<forall>z \<in> set_mset M. R x y \<longrightarrow> R y z \<longrightarrow> R x z" and
+    "totalp_on (set_mset M) R" and
+    "M \<noteq> {#}"
+  shows
+    bex_least_element: "(\<exists>least \<in># M. \<forall>x \<in># M. least \<noteq> x \<longrightarrow> R least x)" and
+    bex_greatest_element: "(\<exists>greatest \<in># M. \<forall>x \<in># M. greatest \<noteq> x \<longrightarrow> R x greatest)"
+  unfolding atomize_conj
+  using assms
+proof (induction M rule: multiset_induct)
+  case empty
+  hence False by simp
+  thus ?case ..
+next
+  case (add x M)
+  from add.prems(1) have transp_on_x_M_raw: "\<forall>y\<in>#M. \<forall>z\<in>#M. R x y \<and> R y z \<longrightarrow> R x z"
+    by (metis insert_iff set_mset_add_mset_insert)
+
+  from add.prems(1) have transp_on_R_M:
+    "\<forall>x \<in> set_mset M. \<forall>y \<in> set_mset M. \<forall>z \<in> set_mset M. R x y \<longrightarrow> R y z \<longrightarrow> R x z"
+    by (meson mset_subsetD multi_psub_of_add_self)
+
+  from add.prems(2) have
+    totalp_on_x_M_raw: "\<forall>y \<in># M. x \<noteq> y \<longrightarrow> R x y \<or> R y x" and
+    totalp_on_M_R: "totalp_on (set_mset M) R"
+    by (simp_all add: totalp_on_def)
+
+  show ?case
+  proof (cases "M = {#}")
+    case True
+    thus ?thesis by simp
+  next
+    case False
+    then obtain least greatest where
+      least_of_M: "least \<in># M" "\<forall>y\<in>#M. least \<noteq> y \<longrightarrow> R least y" and
+      greatest_of_M: "greatest\<in>#M" "\<forall>y\<in>#M. greatest \<noteq> y \<longrightarrow> R y greatest"
+      using add.IH[OF transp_on_R_M totalp_on_M_R] by blast
+
+    show ?thesis
+    proof (rule conjI)
+      from least_of_M show "\<exists>y\<in>#add_mset x M. \<forall>z\<in>#add_mset x M. y \<noteq> z \<longrightarrow> R y z"
+        by (metis insert_iff set_mset_add_mset_insert totalp_on_x_M_raw transp_on_x_M_raw)
+    next
+      from greatest_of_M show "\<exists>y\<in>#add_mset x M. \<forall>z\<in>#add_mset x M. y \<noteq> z \<longrightarrow> R z y"
+        by (metis insert_iff set_mset_add_mset_insert totalp_on_x_M_raw transp_on_x_M_raw)
+    qed
+  qed
+qed
+
+end
+
+
 subsection \<open>The fold combinator\<close>
 
 definition fold_mset :: "('a \<Rightarrow> 'b \<Rightarrow> 'b) \<Rightarrow> 'b \<Rightarrow> 'a multiset \<Rightarrow> 'b"
@@ -1795,6 +1872,79 @@ lemma image_mset_cong_pair:
 lemma image_mset_const_eq:
   "{#c. a \<in># M#} = replicate_mset (size M) c"
   by (induct M) simp_all
+
+lemma image_mset_filter_mset_swap:
+  "image_mset f (filter_mset (\<lambda>x. P (f x)) M) = filter_mset P (image_mset f M)"
+  by (induction M rule: multiset_induct) simp_all
+
+
+lemma image_mset_eq_plusD:
+  "image_mset f A = B + C \<Longrightarrow> \<exists>B' C'. A = B' + C' \<and> B = image_mset f B' \<and> C = image_mset f C'"
+proof (induction A arbitrary: B C)
+  case empty
+  thus ?case by simp
+next
+  case (add x A)
+  show ?case
+  proof (cases "f x \<in># B")
+    case True
+    with add.prems have "image_mset f A = (B - {#f x#}) + C"
+      by (metis add_mset_remove_trivial image_mset_add_mset mset_subset_eq_single
+          subset_mset.add_diff_assoc2)
+    thus ?thesis
+      using add.IH add.prems by force
+  next
+    case False
+    with add.prems have "image_mset f A = B + (C - {#f x#})"
+      by (metis diff_single_eq_union diff_union_single_conv image_mset_add_mset union_iff
+          union_single_eq_member)
+    then show ?thesis
+      using add.IH add.prems by force
+  qed
+qed
+
+lemma image_mset_eq_image_mset_plusD:
+  assumes "image_mset f A = image_mset f B + C" and inj_f: "inj_on f (set_mset A \<union> set_mset B)"
+  shows "\<exists>C'. A = B + C' \<and> C = image_mset f C'"
+  using assms
+proof (induction A arbitrary: B C)
+  case empty
+  thus ?case by simp
+next
+  case (add x A)
+  show ?case
+  proof (cases "x \<in># B")
+    case True
+    with add.prems have "image_mset f A = image_mset f (B - {#x#}) + C"
+      by (smt (verit, del_insts) add.left_commute add_cancel_right_left diff_union_cancelL
+          diff_union_single_conv image_mset_union union_mset_add_mset_left
+          union_mset_add_mset_right)
+    with add.IH have "\<exists>M3'. A = B - {#x#} + M3' \<and> image_mset f M3' = C"
+      by (smt (verit, del_insts) True Un_insert_left Un_insert_right add.prems(2) inj_on_insert
+          insert_DiffM set_mset_add_mset_insert)
+    with True show ?thesis
+      by auto
+  next
+    case False
+    with add.prems(2) have "f x \<notin># image_mset f B"
+      by auto
+    with add.prems(1) have "image_mset f A = image_mset f B + (C - {#f x#})"
+      by (metis (no_types, lifting) diff_union_single_conv image_eqI image_mset_Diff
+          image_mset_single mset_subset_eq_single set_image_mset union_iff union_single_eq_diff
+          union_single_eq_member)
+    with add.prems(2) add.IH have "\<exists>M3'. A = B + M3' \<and> C - {#f x#} = image_mset f M3'"
+      by auto
+    then show ?thesis
+      by (metis add.prems(1) add_diff_cancel_left' image_mset_Diff mset_subset_eq_add_left
+          union_mset_add_mset_right)
+  qed
+qed
+
+lemma image_mset_eq_plus_image_msetD:
+  "image_mset f A = B + image_mset f C \<Longrightarrow> inj_on f (set_mset A \<union> set_mset C) \<Longrightarrow>
+  \<exists>B'. A = B' + C \<and> B = image_mset f B'"
+  unfolding add.commute[of B] add.commute[of _ C]
+  by (rule image_mset_eq_image_mset_plusD; assumption)
 
 
 subsection \<open>Further conversions\<close>
@@ -3039,6 +3189,98 @@ qed
 lemmas subset_implies_multp = subset_implies_mult[of _ _ "{(x, y). r x y}" for r, folded multp_def]
 
 
+subsubsection \<open>Monotonicity\<close>
+
+lemma monotone_on_multp_multp_image_mset:
+  assumes "monotone_on A orda ordb f" and "transp orda"
+  shows "monotone_on {M. set_mset M \<subseteq> A} (multp orda) (multp ordb) (image_mset f)"
+proof (rule monotone_onI)
+  fix M1 M2
+  assume
+    M1_in: "M1 \<in> {M. set_mset M \<subseteq> A}" and
+    M2_in: "M2 \<in> {M. set_mset M \<subseteq> A}" and
+    M1_lt_M2: "multp orda M1 M2"
+
+  from multp_implies_one_step[OF \<open>transp orda\<close> M1_lt_M2] obtain I J K where
+    M2_eq: "M2 = I + J" and
+    M1_eq: "M1 = I + K" and
+    J_neq_mempty: "J \<noteq> {#}" and
+    ball_K_less: "\<forall>k\<in>#K. \<exists>x\<in>#J. orda k x"
+    by metis
+
+  have "multp ordb (image_mset f I + image_mset f K) (image_mset f I + image_mset f J)"
+  proof (intro one_step_implies_multp ballI)
+    show "image_mset f J \<noteq> {#}"
+      using J_neq_mempty by simp
+  next
+    fix k' assume "k'\<in>#image_mset f K"
+    then obtain k where "k' = f k" and k_in: "k \<in># K"
+      by auto
+    then obtain j where j_in: "j\<in>#J" and "orda k j"
+      using ball_K_less by auto
+
+    have "ordb (f k) (f j)"
+    proof (rule \<open>monotone_on A orda ordb f\<close>[THEN monotone_onD, OF _ _ \<open>orda k j\<close>])
+      show "k \<in> A"
+        using M1_eq M1_in k_in by auto
+    next
+      show "j \<in> A"
+        using M2_eq M2_in j_in by auto
+    qed
+    thus "\<exists>j\<in>#image_mset f J. ordb k' j"
+      using \<open>j \<in># J\<close> \<open>k' = f k\<close> by auto
+  qed
+  thus "multp ordb (image_mset f M1) (image_mset f M2)"
+    by (simp add: M1_eq M2_eq)
+qed
+
+lemma monotone_multp_multp_image_mset:
+  assumes "monotone orda ordb f" and "transp orda"
+  shows "monotone (multp orda) (multp ordb) (image_mset f)"
+  by (rule monotone_on_multp_multp_image_mset[OF assms, simplified])
+
+lemma multp_image_mset_image_msetD:
+  assumes
+    "multp R (image_mset f A) (image_mset f B)" and
+    "transp R" and
+    inj_on_f: "inj_on f (set_mset A \<union> set_mset B)"
+  shows "multp (\<lambda>x y. R (f x) (f y)) A B"
+proof -
+  from assms(1,2) obtain I J K where
+    f_B_eq: "image_mset f B = I + J" and
+    f_A_eq: "image_mset f A = I + K" and
+    J_neq_mempty: "J \<noteq> {#}" and
+    ball_K_less: "\<forall>k\<in>#K. \<exists>x\<in>#J. R k x"
+    by (auto dest: multp_implies_one_step)
+
+  from f_B_eq obtain I' J' where
+    B_def: "B = I' + J'" and I_def: "I = image_mset f I'" and J_def: "J = image_mset f J'"
+    using image_mset_eq_plusD by blast
+
+  from inj_on_f have inj_on_f': "inj_on f (set_mset A \<union> set_mset I')"
+    by (rule inj_on_subset) (auto simp add: B_def)
+
+  from f_A_eq obtain K' where
+    A_def: "A = I' + K'" and K_def: "K = image_mset f K'"
+    by (auto simp: I_def dest: image_mset_eq_image_mset_plusD[OF _ inj_on_f'])
+
+  show ?thesis
+    unfolding A_def B_def
+  proof (intro one_step_implies_multp ballI)
+    from J_neq_mempty show "J' \<noteq> {#}"
+      by (simp add: J_def)
+  next
+    fix k assume "k \<in># K'"
+    with ball_K_less obtain j' where "j' \<in># J" and "R (f k) j'"
+      using K_def by auto
+    moreover then obtain j where "j \<in># J'" and "f j = j'"
+      using J_def by auto
+    ultimately show "\<exists>j\<in>#J'. R (f k) (f j)"
+      by blast
+  qed
+qed
+
+
 subsubsection \<open>The multiset extension is cancellative for multiset union\<close>
 
 lemma mult_cancel:
@@ -3846,9 +4088,11 @@ proof -
     by (rule natLeq_card_order)
   show "BNF_Cardinal_Arithmetic.cinfinite natLeq"
     by (rule natLeq_cinfinite)
-  show "ordLeq3 (card_of (set_mset X)) natLeq" for X
+  show "regularCard natLeq"
+    by (rule regularCard_natLeq)
+  show "ordLess2 (card_of (set_mset X)) natLeq" for X
     by transfer
-      (auto intro!: ordLess_imp_ordLeq simp: finite_iff_ordLess_natLeq[symmetric])
+      (auto simp: finite_iff_ordLess_natLeq[symmetric])
   show "rel_mset R OO rel_mset S \<le> rel_mset (R OO S)" for R S
     unfolding rel_mset_def[abs_def] OO_def
     apply clarify

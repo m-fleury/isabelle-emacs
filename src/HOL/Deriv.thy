@@ -811,7 +811,7 @@ qed
 lemma DERIV_def: "DERIV f x :> D \<longleftrightarrow> (\<lambda>h. (f (x + h) - f x) / h) \<midarrow>0\<rightarrow> D"
   unfolding field_has_derivative_at has_field_derivative_def has_field_derivative_iff ..
 
-text \<open>due to Christian Pardillo Laursen, replacing a proper epsilon-delta horror\<close>
+text \<open>due to Christian Pardillo Laursen, replacing a proper epsilon-delta horror\<close>
 lemma field_derivative_lim_unique:
   assumes f: "(f has_field_derivative df) (at z)"
     and s: "s \<longlonglongrightarrow> 0"  "\<And>n. s n \<noteq> 0" 
@@ -841,14 +841,15 @@ lemma DERIV_compose_FDERIV:
 
 subsection \<open>Vector derivative\<close>
 
-lemma has_field_derivative_iff_has_vector_derivative:
-  "(f has_field_derivative y) F \<longleftrightarrow> (f has_vector_derivative y) F"
+text \<open>It's for real derivatives only, and not obviously generalisable to field derivatives\<close>
+lemma has_real_derivative_iff_has_vector_derivative:
+  "(f has_real_derivative y) F \<longleftrightarrow> (f has_vector_derivative y) F"
   unfolding has_vector_derivative_def has_field_derivative_def real_scaleR_def mult_commute_abs ..
 
 lemma has_field_derivative_subset:
   "(f has_field_derivative y) (at x within s) \<Longrightarrow> t \<subseteq> s \<Longrightarrow>
     (f has_field_derivative y) (at x within t)"
-  unfolding has_field_derivative_def by (rule has_derivative_subset)
+  by (fact DERIV_subset)
 
 lemma has_vector_derivative_const[simp, derivative_intros]: "((\<lambda>x. c) has_vector_derivative 0) net"
   by (auto simp: has_vector_derivative_def)
@@ -903,7 +904,7 @@ lemma (in bounded_bilinear) has_vector_derivative:
 lemma has_vector_derivative_scaleR[derivative_intros]:
   "(f has_field_derivative f') (at x within s) \<Longrightarrow> (g has_vector_derivative g') (at x within s) \<Longrightarrow>
     ((\<lambda>x. f x *\<^sub>R g x) has_vector_derivative (f x *\<^sub>R g' + f' *\<^sub>R g x)) (at x within s)"
-  unfolding has_field_derivative_iff_has_vector_derivative
+  unfolding has_real_derivative_iff_has_vector_derivative
   by (rule bounded_bilinear.has_vector_derivative[OF bounded_bilinear_scaleR])
 
 lemma has_vector_derivative_mult[derivative_intros]:
@@ -915,7 +916,7 @@ lemma has_vector_derivative_mult[derivative_intros]:
 lemma has_vector_derivative_of_real[derivative_intros]:
   "(f has_field_derivative D) F \<Longrightarrow> ((\<lambda>x. of_real (f x)) has_vector_derivative (of_real D)) F"
   by (rule bounded_linear.has_vector_derivative[OF bounded_linear_of_real])
-    (simp add: has_field_derivative_iff_has_vector_derivative)
+    (simp add: has_real_derivative_iff_has_vector_derivative)
 
 lemma has_vector_derivative_real_field:
   "(f has_field_derivative f') (at (of_real a)) \<Longrightarrow> ((\<lambda>x. f (of_real x)) has_vector_derivative f') (at a within s)"

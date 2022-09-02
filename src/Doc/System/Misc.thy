@@ -300,6 +300,78 @@ text \<open>
 \<close>
 
 
+section \<open>Mercurial repository synchronization \label{sec:tool-hg-sync}\<close>
+
+text \<open>
+  The @{tool_def hg_sync} tool synchronizes a local Mercurial repository with
+  a target directory.
+
+  @{verbatim [display]
+\<open>Usage: isabelle hg_sync [OPTIONS] TARGET
+
+  Options are:
+    -F RULE      add rsync filter RULE
+                 (e.g. "protect /foo" to avoid deletion)
+    -R ROOT      explicit repository root directory
+                 (default: implicit from current directory)
+    -S           robust (but less portable) treatment of spaces in
+                 file and directory names on the target
+    -T           thorough treatment of file content and directory times
+    -n           no changes: dry-run
+    -r REV       explicit revision (default: state of working directory)
+    -p PORT      explicit SSH port (default: 22)
+    -v           verbose
+
+  Synchronize Mercurial repository with TARGET directory,
+  which can be local or remote (using notation of rsync).\<close>}
+
+  The \<^verbatim>\<open>TARGET\<close> specification can be a local or remote directory (via ssh),
+  using \<^verbatim>\<open>rsync\<close>\<^footnote>\<open>\<^url>\<open>https://linux.die.net/man/1/rsync\<close>\<close> notation for
+  destinations; see also examples below. The content is written directly into
+  the target, \<^emph>\<open>without\<close> creating a separate sub-directory. The special
+  sub-directory \<^verbatim>\<open>.hg_sync\<close> within the target contains meta data from the
+  original Mercurial repository. Repeated synchronization is guarded by the
+  presence of a \<^verbatim>\<open>.hg_sync\<close> sub-directory: this sanity check prevents
+  accidental changes (or deletion!) of targets that were not created by @{tool
+  hg_sync}.
+
+  \<^medskip> Option \<^verbatim>\<open>-r\<close> specifies an explicit revision of the repository; the default
+  is the current state of the working directory (which might be uncommitted).
+
+  \<^medskip> Option \<^verbatim>\<open>-v\<close> enables verbose mode. Option \<^verbatim>\<open>-n\<close> enables ``dry-run'' mode:
+  operations are only simulated; use it with option \<^verbatim>\<open>-v\<close> to actually see
+  results.
+
+  \<^medskip> Option \<^verbatim>\<open>-F\<close> adds a filter rule to the underlying \<^verbatim>\<open>rsync\<close> command;
+  multiple \<^verbatim>\<open>-F\<close> options may be given to accumulate a list of rules.
+
+  \<^medskip> Option \<^verbatim>\<open>-R\<close> specifies an explicit repository root directory. The default
+  is to derive it from the current directory, searching upwards until a
+  suitable \<^verbatim>\<open>.hg\<close> directory is found.
+
+  \<^medskip> Option \<^verbatim>\<open>-T\<close> indicates thorough treatment of file content and directory
+  times. The default is to consider files with equal time and size already as
+  equal, and to ignore time stamps on directories.
+
+  \<^medskip> Option \<^verbatim>\<open>-p\<close> specifies an explicit port for the SSH connection underlying
+  \<^verbatim>\<open>rsync\<close>.
+
+  \<^medskip> Option \<^verbatim>\<open>-S\<close> uses \<^verbatim>\<open>rsync --protect-args\<close> to work robustly with spaces or
+  special characters of the shell. This requires at least \<^verbatim>\<open>rsync 3.0.0\<close>,
+  which is not always available --- notably on macOS. Assuming traditional
+  Unix-style naming of files and directories, it is safe to omit this option
+  for the sake of portability.
+\<close>
+
+subsubsection \<open>Examples\<close>
+
+text \<open>
+  Synchronize the current repository onto a remote host, with accurate
+  treatment of all content:
+  @{verbatim [display] \<open>  isabelle hg_sync -T remotename:test/repos\<close>}
+\<close>
+
+
 section \<open>Installing standalone Isabelle executables \label{sec:tool-install}\<close>
 
 text \<open>

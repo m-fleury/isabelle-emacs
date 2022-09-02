@@ -2,7 +2,8 @@
     Author:     Dmitriy Traytel, TU Muenchen
     Author:     Andrei Popescu, TU Muenchen
     Author:     Jasmin Blanchette, TU Muenchen
-    Copyright   2012
+    Author:     Jan van Brügge, TU Muenchen
+    Copyright   2012, 2022
 
 Registration of basic types as bounded natural functors.
 *)
@@ -77,15 +78,15 @@ next
 next
   show "cinfinite natLeq" by (rule natLeq_cinfinite)
 next
+  show "regularCard natLeq" by (rule regularCard_natLeq)
+next
   fix x :: "'o + 'p"
-  show "|setl x| \<le>o natLeq"
-    apply (rule ordLess_imp_ordLeq)
+  show "|setl x| <o natLeq"
     apply (rule finite_iff_ordLess_natLeq[THEN iffD1])
     by (simp add: sum_set_defs(1) split: sum.split)
 next
   fix x :: "'o + 'p"
-  show "|setr x| \<le>o natLeq"
-    apply (rule ordLess_imp_ordLeq)
+  show "|setr x| <o natLeq"
     apply (rule finite_iff_ordLess_natLeq[THEN iffD1])
     by (simp add: sum_set_defs(2) split: sum.split)
 next
@@ -168,13 +169,15 @@ next
 next
   show "cinfinite natLeq" by (rule natLeq_cinfinite)
 next
-  fix x
-  show "|{fst x}| \<le>o natLeq"
-    by (rule ordLess_imp_ordLeq) (simp add: finite_iff_ordLess_natLeq[symmetric])
+  show "regularCard natLeq" by (rule regularCard_natLeq)
 next
   fix x
-  show "|{snd x}| \<le>o natLeq"
-    by (rule ordLess_imp_ordLeq) (simp add: finite_iff_ordLess_natLeq[symmetric])
+  show "|{fst x}| <o natLeq"
+    by (simp add: finite_iff_ordLess_natLeq[symmetric])
+next
+  fix x
+  show "|{snd x}| <o natLeq"
+    by (simp add: finite_iff_ordLess_natLeq[symmetric])
 next
   fix R1 R2 S1 S2
   show "rel_prod R1 R2 OO rel_prod S1 S2 \<le> rel_prod (R1 OO S1) (R2 OO S2)" by auto
@@ -187,10 +190,56 @@ next
   by auto
 qed auto
 
+lemma card_order_bd_fun: "card_order (natLeq +c card_suc ( |UNIV| ))"
+  by (auto simp: card_order_csum natLeq_card_order card_order_card_suc card_of_card_order_on)
+
+lemma Cinfinite_bd_fun: "Cinfinite (natLeq +c card_suc ( |UNIV| ))"
+  by (auto simp: Cinfinite_csum natLeq_Cinfinite)
+
+lemma regularCard_bd_fun: "regularCard (natLeq +c card_suc ( |UNIV| ))"
+  (is "regularCard (_ +c card_suc ?U)")
+  apply (cases "Cinfinite ?U")
+   apply (rule regularCard_csum)
+      apply (rule natLeq_Cinfinite)
+     apply (rule Cinfinite_card_suc)
+      apply assumption
+     apply (rule card_of_card_order_on)
+    apply (rule regularCard_natLeq)
+   apply (rule regularCard_card_suc)
+    apply (rule card_of_card_order_on)
+   apply assumption
+  apply (rule regularCard_ordIso[of natLeq])
+    apply (rule csum_absorb1[THEN ordIso_symmetric])
+     apply (rule natLeq_Cinfinite)
+    apply (rule card_suc_least)
+      apply (rule card_of_card_order_on)
+     apply (rule natLeq_Card_order)
+    apply (subst finite_iff_ordLess_natLeq[symmetric])
+    apply (simp add: cinfinite_def Field_card_of card_of_card_order_on)
+   apply (rule natLeq_Cinfinite)
+  apply (rule regularCard_natLeq)
+  done
+
+lemma ordLess_bd_fun: "|UNIV::'a set| <o natLeq +c card_suc ( |UNIV::'a set| )"
+  (is "_ <o (_ +c card_suc (?U :: 'a rel))")
+proof (cases "Cinfinite ?U")
+  case True
+  have "?U <o card_suc ?U" using card_of_card_order_on natLeq_card_order card_suc_greater by blast
+  also have "card_suc ?U =o natLeq +c card_suc ?U" by (rule csum_absorb2[THEN ordIso_symmetric])
+    (auto simp: True card_of_card_order_on intro!: Cinfinite_card_suc natLeq_ordLeq_cinfinite)
+  finally show ?thesis .
+next
+  case False
+  then have "?U <o natLeq"
+    by (auto simp: cinfinite_def Field_card_of card_of_card_order_on finite_iff_ordLess_natLeq[symmetric])
+  then show ?thesis
+    by (rule ordLess_ordLeq_trans[OF _ ordLeq_csum1[OF natLeq_Card_order]])
+qed
+
 bnf "'a \<Rightarrow> 'b"
   map: "(\<circ>)"
   sets: range
-  bd: "natLeq +c |UNIV :: 'a set|"
+  bd: "natLeq +c card_suc ( |UNIV::'a set| )"
   rel: "rel_fun (=)"
   pred: "pred_fun (\<lambda>_. True)"
 proof
@@ -206,20 +255,18 @@ next
   fix f show "range \<circ> (\<circ>) f = (`) f \<circ> range"
     by (auto simp add: fun_eq_iff)
 next
-  show "card_order (natLeq +c |UNIV| )" (is "_ (_ +c ?U)")
-  apply (rule card_order_csum)
-  apply (rule natLeq_card_order)
-  by (rule card_of_card_order_on)
-(*  *)
-  show "cinfinite (natLeq +c ?U)"
-    apply (rule cinfinite_csum)
-    apply (rule disjI1)
-    by (rule natLeq_cinfinite)
+  show "card_order (natLeq +c card_suc ( |UNIV| ))"
+    by (rule card_order_bd_fun)
 next
-  fix f :: "'d => 'a"
-  have "|range f| \<le>o | (UNIV::'d set) |" (is "_ \<le>o ?U") by (rule card_of_image)
-  also have "?U \<le>o natLeq +c ?U" by (rule ordLeq_csum2) (rule card_of_Card_order)
-  finally show "|range f| \<le>o natLeq +c ?U" .
+  show "cinfinite (natLeq +c card_suc ( |UNIV| ))"
+    by (rule Cinfinite_bd_fun[THEN conjunct1])
+next
+  show "regularCard (natLeq +c card_suc ( |UNIV| ))"
+    by (rule regularCard_bd_fun)
+next
+  fix f :: "'d \<Rightarrow> 'a"
+  show "|range f| <o natLeq +c card_suc |UNIV :: 'd set|"
+    by (rule ordLeq_ordLess_trans[OF card_of_image ordLess_bd_fun])
 next
   fix R S
   show "rel_fun (=) R OO rel_fun (=) S \<le> rel_fun (=) (R OO S)" by (auto simp: rel_fun_def)

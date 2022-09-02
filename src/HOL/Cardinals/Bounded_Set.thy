@@ -74,7 +74,7 @@ qed
 bnf "'a set['k]"
   map: map_bset
   sets: set_bset
-  bd: "natLeq +c |UNIV :: 'k set|"
+  bd: "natLeq +c card_suc |UNIV :: 'k set|"
   wits: bempty
   rel: rel_bset
 proof -
@@ -91,8 +91,9 @@ next
   show "set_bset \<circ> map_bset f = (`) f \<circ> set_bset" by (rule ext, transfer) auto
 next
   fix X :: "'a set['k]"
-  show "|set_bset X| \<le>o natLeq +c |UNIV :: 'k set|"
-    by transfer (blast dest: ordLess_imp_ordLeq)
+  have "|set_bset X| <o natLeq +c |UNIV :: 'k set|" by transfer blast
+  then show "|set_bset X| <o natLeq +c card_suc |UNIV :: 'k set|"
+    by (rule ordLess_ordLeq_trans[OF _ csum_mono2[OF ordLess_imp_ordLeq[OF card_suc_greater[OF card_of_card_order_on]]]])
 next
   fix R S
   show "rel_bset R OO rel_bset S \<le> rel_bset (R OO S)"
@@ -107,7 +108,7 @@ next
   fix x
   assume "x \<in> set_bset bempty"
   then show False by transfer simp
-qed (simp_all add: card_order_csum natLeq_card_order cinfinite_csum natLeq_cinfinite)
+qed (simp_all add: card_order_bd_fun Cinfinite_bd_fun regularCard_bd_fun)
 
 
 lemma map_bset_bempty[simp]: "map_bset f bempty = bempty"

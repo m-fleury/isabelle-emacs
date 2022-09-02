@@ -2855,7 +2855,7 @@ text \<open>\blankline\<close>
     bnf "('d, 'a) fn"
       map: map_fn
       sets: set_fn
-      bd: "natLeq +c |UNIV :: 'd set|"
+      bd: "natLeq +c card_suc |UNIV :: 'd set|"
       rel: rel_fn
       pred: pred_fn
     proof -
@@ -2875,22 +2875,23 @@ text \<open>\blankline\<close>
       show "set_fn \<circ> map_fn f = (`) f \<circ> set_fn"
         by transfer (auto simp add: comp_def)
     next
-      show "card_order (natLeq +c |UNIV :: 'd set| )"
-        apply (rule card_order_csum)
-        apply (rule natLeq_card_order)
-        by (rule card_of_card_order_on)
+      show "card_order (natLeq +c card_suc |UNIV :: 'd set| )"
+        by (rule card_order_bd_fun)
     next
-      show "cinfinite (natLeq +c |UNIV :: 'd set| )"
-        apply (rule cinfinite_csum)
-        apply (rule disjI1)
-        by (rule natLeq_cinfinite)
+      show "cinfinite (natLeq +c card_suc |UNIV :: 'd set| )"
+        by (rule Cinfinite_bd_fun[THEN conjunct1])
+    next
+      show "regularCard (natLeq +c card_suc |UNIV :: 'd set| )"
+        by (rule regularCard_bd_fun)
     next
       fix F :: "('d, 'a) fn"
       have "|set_fn F| \<le>o |UNIV :: 'd set|" (is "_ \<le>o ?U")
         by transfer (rule card_of_image)
-      also have "?U \<le>o natLeq +c ?U"
-        by (rule ordLeq_csum2) (rule card_of_Card_order)
-      finally show "|set_fn F| \<le>o natLeq +c |UNIV :: 'd set|" .
+      also have "?U <o card_suc ?U"
+        by (simp add: card_of_card_order_on card_suc_greater)
+      also have "card_suc ?U \<le>o natLeq +c card_suc ?U"
+        using Card_order_card_suc card_of_card_order_on ordLeq_csum2 by blast
+      finally show "|set_fn F| <o natLeq +c card_suc |UNIV :: 'd set|" .
     next
       fix R :: "'a \<Rightarrow> 'b \<Rightarrow> bool" and S :: "'b \<Rightarrow> 'c \<Rightarrow> bool"
       show "rel_fn R OO rel_fn S \<le> rel_fn (R OO S)"

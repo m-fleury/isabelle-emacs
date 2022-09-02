@@ -16,7 +16,8 @@ object Mercurial {
   type Graph = isabelle.Graph[String, Unit]
 
 
-  /* HTTP server */
+
+  /** HTTP server **/
 
   object Server {
     def apply(root: String): Server = new Server(root)
@@ -79,6 +80,9 @@ object Mercurial {
   }
 
 
+
+  /** repository commands **/
+
   /* command-line syntax */
 
   def optional(s: String, prefix: String = ""): String =
@@ -111,17 +115,56 @@ object Mercurial {
     archive_info(root).map(info => info.tags.mkString(" "))
 
 
+  /* hg_sync meta data */
+
+  object Hg_Sync {
+    val NAME = ".hg_sync"
+    val _NAME: String = " " + NAME
+    val PATH: Path = Path.explode(NAME)
+    val PATH_ID: Path = PATH + Path.explode("id")
+    val PATH_LOG: Path = PATH + Path.explode("log")
+    val PATH_DIFF: Path = PATH + Path.explode("diff")
+    val PATH_STAT: Path = PATH + Path.explode("stat")
+
+    def is_directory(root: Path, ssh: SSH.System = SSH.Local): Boolean =
+      ssh.is_dir(root + PATH)
+
+    def directory(root: Path, ssh: SSH.System = SSH.Local): Directory = {
+      if (is_directory(root, ssh = ssh)) new Directory(root, ssh)
+      else error("No .hg_sync directory found in " + ssh.rsync_path(root))
+    }
+
+    class Directory private [Hg_Sync](val root: Path, val ssh: SSH.System)
+    {
+      override def toString: String = ssh.rsync_path(root)
+
+      def read(path: Path): String = ssh.read(root + path)
+      lazy val id: String = read(PATH_ID)
+      lazy val log: String = read(PATH_LOG)
+      lazy val diff: String = read(PATH_DIFF)
+      lazy val stat: String = read(PATH_STAT)
+
+      def changed: Boolean = id.endsWith("+")
+    }
+  }
+
+
   /* repository access */
 
   def is_repository(root: Path, ssh: SSH.System = SSH.Local): Boolean =
     ssh.is_dir(root + Path.explode(".hg")) &&
     new Repository(root, ssh).command("root").ok
 
+  def id_repository(root: Path, ssh: SSH.System = SSH.Local, rev: String = "tip"): Option[String] =
+    if (is_repository(root, ssh = ssh)) Some(repository(root, ssh = ssh).id(rev = rev)) else None
+
   def repository(root: Path, ssh: SSH.System = SSH.Local): Repository = {
     val hg = new Repository(root, ssh)
     hg.command("root").check
     hg
   }
+
+  def self_repository(): Repository = repository(Path.ISABELLE_HOME)
 
   def find_repository(start: Path, ssh: SSH.System = SSH.Local): Option[Repository] = {
     @tailrec def find(root: Path): Option[Repository] =
@@ -131,6 +174,10 @@ object Mercurial {
 
     find(ssh.expand_path(start))
   }
+
+  def the_repository(start: Path, ssh: SSH.System = SSH.Local): Repository =
+    find_repository(start, ssh = ssh) getOrElse
+      error("No repository found in " + start.absolute)
 
   private def make_repository(
     root: Path,
@@ -213,6 +260,9 @@ object Mercurial {
     def log(rev: String = "", template: String = "", options: String = ""): String =
       hg.command("log", opt_rev(rev) + opt_template(template), options).check.out
 
+    def diff(rev: String = "", options: String = ""): String =
+      hg.command("diff", opt_rev(rev), options).check.out
+
     def parent(): String = log(rev = "p1()", template = "{node|short}")
 
     def push(
@@ -238,8 +288,77 @@ object Mercurial {
         opt_rev(rev) + opt_flag("--clean", clean) + opt_flag("--check", check), options).check
     }
 
-    def known_files(): List[String] =
-      hg.command("status", options = "--modified --added --clean --no-status").check.out_lines
+    def status(options: String = ""): List[String] =
+      hg.command("status", options = options).check.out_lines
+
+    def known_files(): List[String] = status(options = "--modified --added --clean --no-status")
+
+    def sync(context: Rsync.Context, target: String,
+      verbose: Boolean = false,
+      thorough: Boolean = false,
+      dry_run: Boolean = false,
+      filter: List[String] = Nil,
+      contents: List[File.Content] = Nil,
+      rev: String = ""
+    ): Unit = {
+      require(ssh == SSH.Local, "local repository required")
+
+      Isabelle_System.with_tmp_dir("sync") { tmp_dir =>
+        val context0 = context.copy(progress = new Progress)
+
+        Rsync.init(context0, target)
+
+        val list =
+          Rsync.exec(context0, list = true, args = List("--", Rsync.terminate(target)))
+            .check.out_lines.filterNot(_.endsWith(" ."))
+        if (list.nonEmpty && !list.exists(_.endsWith(Hg_Sync._NAME))) {
+          error("No .hg_sync meta data in " + quote(target))
+        }
+
+        val id_content = id(rev = rev)
+        val is_changed = id_content.endsWith("+")
+        val log_content = if (is_changed) "" else log(rev = rev, options = "-l1")
+        val diff_content = if (is_changed) diff(rev = rev, options = "--git") else ""
+        val stat_content = if (is_changed) diff(rev = rev, options = "--stat") else ""
+
+        Rsync.init(context0, target,
+          contents =
+            File.content(Hg_Sync.PATH_ID, id_content) ::
+            File.content(Hg_Sync.PATH_LOG, log_content) ::
+            File.content(Hg_Sync.PATH_DIFF, diff_content) ::
+            File.content(Hg_Sync.PATH_STAT, stat_content) :: contents)
+
+        val (exclude, source) =
+          if (rev.isEmpty) {
+            val exclude = ".hg" :: status(options = "--unknown --ignored --no-status")
+            val source = File.standard_path(root)
+            (exclude, source)
+          }
+          else {
+            val exclude = List(".hg_archival.txt")
+            val source = File.standard_path(tmp_dir + Path.explode("archive"))
+            archive(source, rev = rev)
+            (exclude, source)
+          }
+
+        val exclude_path = tmp_dir + Path.explode("exclude")
+        File.write(exclude_path, cat_lines(exclude.map("/" + _)))
+
+        val protect =
+          (Hg_Sync.PATH :: contents.map(_.path))
+            .map(path => "protect /" + File.standard_path(path))
+        Rsync.exec(context,
+          verbose = verbose,
+          thorough = thorough,
+          dry_run = dry_run,
+          clean = true,
+          prune_empty_dirs = true,
+          filter = protect ::: filter,
+          args = List("--exclude-from=" + exclude_path.implode, "--",
+            Rsync.terminate(source), target)
+        ).check
+      }
+    }
 
     def graph(): Graph = {
       val Node = """^node: (\w{12}) (\w{12}) (\w{12})""".r
@@ -256,7 +375,8 @@ object Mercurial {
   }
 
 
-  /* check files */
+
+  /** check files **/
 
   def check_files(files: List[Path], ssh: SSH.System = SSH.Local): (List[Path], List[Path]) = {
     val outside = new mutable.ListBuffer[Path]
@@ -283,7 +403,8 @@ object Mercurial {
   }
 
 
-  /* setup remote vs. local repository */
+
+  /** hg_setup **/
 
   private def edit_hgrc(local_hg: Repository, path_name: String, source: String): Unit = {
     val hgrc = local_hg.root + Path.explode(".hg/hgrc")
@@ -395,7 +516,7 @@ object Mercurial {
     local_hg.push(remote = remote_url)
   }
 
-  val isabelle_tool =
+  val isabelle_tool1 =
     Isabelle_Tool("hg_setup", "setup remote vs. local Mercurial repository",
       Scala_Project.here,
       { args =>
@@ -431,4 +552,67 @@ Usage: isabelle hg_setup [OPTIONS] REMOTE LOCAL_DIR
         hg_setup(remote, local_path, remote_name = remote_name, path_name = path_name,
           remote_exists = remote_exists, progress = progress)
       })
+
+
+
+  /** hg_sync **/
+
+  val isabelle_tool2 =
+    Isabelle_Tool("hg_sync", "synchronize Mercurial repository with target directory",
+      Scala_Project.here, { args =>
+        var filter: List[String] = Nil
+        var root: Option[Path] = None
+        var protect_args = false
+        var thorough = false
+        var dry_run = false
+        var rev = ""
+        var port = SSH.default_port
+        var verbose = false
+
+        val getopts = Getopts("""
+Usage: isabelle hg_sync [OPTIONS] TARGET
+
+  Options are:
+    -F RULE      add rsync filter RULE
+                 (e.g. "protect /foo" to avoid deletion)
+    -R ROOT      explicit repository root directory
+                 (default: implicit from current directory)
+    -S           robust (but less portable) treatment of spaces in
+                 file and directory names on the target
+    -T           thorough treatment of file content and directory times
+    -n           no changes: dry-run
+    -r REV       explicit revision (default: state of working directory)
+    -p PORT      explicit SSH port (default: """ + SSH.default_port + """)
+    -v           verbose
+
+  Synchronize Mercurial repository with TARGET directory,
+  which can be local or remote (using notation of rsync).
+""",
+          "F:" -> (arg => filter = filter ::: List(arg)),
+          "R:" -> (arg => root = Some(Path.explode(arg))),
+          "S" -> (_ => protect_args = true),
+          "T" -> (_ => thorough = true),
+          "n" -> (_ => dry_run = true),
+          "r:" -> (arg => rev = arg),
+          "p:" -> (arg => port = Value.Int.parse(arg)),
+          "v" -> (_ => verbose = true))
+
+        val more_args = getopts(args)
+        val target =
+          more_args match {
+            case List(target) => target
+            case _ => getopts.usage()
+          }
+
+        val progress = new Console_Progress
+        val hg =
+          root match {
+            case Some(dir) => repository(dir)
+            case None => the_repository(Path.current)
+          }
+        val context = Rsync.Context(progress, port = port, protect_args = protect_args)
+        hg.sync(context, target, verbose = verbose, thorough = thorough,
+          dry_run = dry_run, filter = filter, rev = rev)
+      }
+    )
 }

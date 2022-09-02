@@ -7,22 +7,38 @@ Support for Scala at runtime.
 package isabelle
 
 
-import java.io.{File => JFile, StringWriter, PrintWriter}
+import java.io.{File => JFile, PrintStream, ByteArrayOutputStream, OutputStream}
 
-import scala.tools.nsc.{GenericRunnerSettings, ConsoleWriter, NewLinePrintWriter}
-import scala.tools.nsc.interpreter.{IMain, Results}
-import scala.tools.nsc.interpreter.shell.ReplReporterImpl
+import scala.collection.mutable
+import scala.annotation.tailrec
+
+import dotty.tools.dotc.CompilationUnit
+import dotty.tools.dotc.ast.Trees.PackageDef
+import dotty.tools.dotc.ast.untpd
+import dotty.tools.dotc.core.Contexts.{Context => CompilerContext}
+import dotty.tools.dotc.core.NameOps.moduleClassName
+import dotty.tools.dotc.core.{Phases, StdNames}
+import dotty.tools.dotc.interfaces
+import dotty.tools.dotc.reporting.{Diagnostic, ConsoleReporter}
+import dotty.tools.dotc.util.{SourceFile, SourcePosition, NoSourcePosition}
+import dotty.tools.repl
+import dotty.tools.repl.{ReplCompiler, ReplDriver}
+
 
 object Scala {
   /** registered functions **/
 
   abstract class Fun(val name: String, val thread: Boolean = false) {
     override def toString: String = name
-    def multi: Boolean = true
+    def single: Boolean = false
+    def bytes: Boolean = false
     def position: Properties.T = here.position
     def here: Scala_Project.Here
     def invoke(args: List[Bytes]): List[Bytes]
   }
+
+  trait Single_Fun extends Fun { override def single: Boolean = true }
+  trait Bytes_Fun extends Fun { override def bytes: Boolean = true }
 
   abstract class Fun_Strings(name: String, thread: Boolean = false)
   extends Fun(name, thread = thread) {
@@ -32,11 +48,23 @@ object Scala {
   }
 
   abstract class Fun_String(name: String, thread: Boolean = false)
-  extends Fun_Strings(name, thread = thread) {
-    override def multi: Boolean = false
+  extends Fun_Strings(name, thread = thread) with Single_Fun {
     override def apply(args: List[String]): List[String] =
       List(apply(Library.the_single(args)))
     def apply(arg: String): String
+  }
+
+  abstract class Fun_Bytes(name: String, thread: Boolean = false)
+    extends Fun(name, thread = thread) with Single_Fun with Bytes_Fun {
+    override def invoke(args: List[Bytes]): List[Bytes] =
+      List(apply(Library.the_single(args)))
+    def apply(arg: Bytes): Bytes
+  }
+
+  val encode_fun: XML.Encode.T[Fun] = { fun =>
+    import XML.Encode._
+    pair(string, pair(pair(bool, bool), properties))(
+      fun.name, ((fun.single, fun.bytes), fun.position))
   }
 
   class Functions(val functions: Fun*) extends Isabelle_System.Service
@@ -72,81 +100,172 @@ object Scala {
 
   /** compiler **/
 
-  def class_path(): List[String] =
-    for {
-      prop <- List("isabelle.scala.classpath", "java.class.path")
-      elems = System.getProperty(prop, "") if elems.nonEmpty
-      elem <- space_explode(JFile.pathSeparatorChar, elems) if elem.nonEmpty
-    } yield elem
-
   object Compiler {
-    def context(
-      error: String => Unit = Exn.error,
-      jar_dirs: List[JFile] = Nil
-    ): Context = {
-      def find_jars(dir: JFile): List[String] =
-        File.find_files(dir, file => file.getName.endsWith(".jar")).
-          map(File.absolute_name)
+    object Message {
+      object Kind extends Enumeration {
+        val error, warning, info, other = Value
+      }
+      private val Header = """^--.* (Error|Warning|Info): .*$""".r
+      val header_kind: String => Kind.Value =
+        {
+          case "Error" => Kind.error
+          case "Warning" => Kind.warning
+          case "Info" => Kind.info
+          case _ => Kind.other
+        }
 
-      val settings = new GenericRunnerSettings(error)
-      settings.classpath.value =
-        (class_path() ::: jar_dirs.flatMap(find_jars)).mkString(JFile.pathSeparator)
+      // see compiler/src/dotty/tools/dotc/reporting/MessageRendering.scala
+      def split(str: String): List[Message] = {
+        var kind = Kind.other
+        val text = new mutable.StringBuilder
+        val result = new mutable.ListBuffer[Message]
 
-      new Context(settings)
+        def flush(): Unit = {
+          if (text.nonEmpty) { result += Message(kind, text.toString) }
+          kind = Kind.other
+          text.clear()
+        }
+
+        for (line <- Library.trim_split_lines(str)) {
+          line match {
+            case Header(k) => flush(); kind = header_kind(k)
+            case _ => if (line.startsWith("-- ")) flush()
+          }
+          if (text.nonEmpty) { text += '\n' }
+          text ++= line
+        }
+        flush()
+        result.toList
+      }
     }
 
-    def default_print_writer: PrintWriter =
-      new NewLinePrintWriter(new ConsoleWriter, true)
+    sealed case class Message(kind: Message.Kind.Value, text: String)
+    {
+      def is_error: Boolean = kind == Message.Kind.error
+      override def toString: String = text
+    }
 
-    class Context private [Compiler](val settings: GenericRunnerSettings) {
-      override def toString: String = settings.toString
+    sealed case class Result(
+      state: repl.State,
+      messages: List[Message],
+      unit: Option[CompilationUnit] = None
+    ) {
+      val errors: List[String] = messages.flatMap(msg => if (msg.is_error) Some(msg.text) else None)
+      def ok: Boolean = errors.isEmpty
+      def check_state: repl.State = if (ok) state else error(cat_lines(errors))
+      override def toString: String = if (ok) "Result(ok)" else "Result(error)"
+    }
 
-      def interpreter(
-        print_writer: PrintWriter = default_print_writer,
-        class_loader: ClassLoader = null
-      ): IMain = {
-        new IMain(settings, new ReplReporterImpl(settings, print_writer)) {
-          override def parentClassLoader: ClassLoader =
-            if (class_loader == null) super.parentClassLoader
-            else class_loader
-        }
-      }
+    def context(
+      settings: List[String] = Nil,
+      jar_files: List[JFile] = Nil,
+      class_loader: Option[ClassLoader] = None
+    ): Context = {
+      val isabelle_settings =
+        Word.explode(Isabelle_System.getenv_strict("ISABELLE_SCALAC_OPTIONS"))
+      val classpath = Classpath(jar_files = jar_files)
+      new Context(isabelle_settings ::: settings, classpath, class_loader)
+    }
 
-      def toplevel(interpret: Boolean, source: String): List[String] = {
-        val out = new StringWriter
-        val interp = interpreter(new PrintWriter(out))
-        val marker = '\u000b'
-        val ok =
-          interp.withLabel(marker.toString) {
-            if (interpret) interp.interpret(source) == Results.Success
-            else (new interp.ReadEvalPrint).compile(source)
-          }
-        out.close()
+    class Context private [Compiler](
+      _settings: List[String],
+      val classpath: Classpath,
+      val class_loader: Option[ClassLoader] = None
+    ) {
+      def settings: List[String] =
+        _settings ::: List("-classpath", classpath.platform_path)
 
-        val Error = """(?s)^\S* error: (.*)$""".r
-        val errors =
-          space_explode(marker, Library.strip_ansi_color(out.toString)).
-            collect({ case Error(msg) => "Scala error: " + Library.trim_line(msg) })
+      private val out_stream = new ByteArrayOutputStream(1024)
+      private val out = new PrintStream(out_stream)
+      private val driver: ReplDriver = new ReplDriver(settings.toArray, out, class_loader)
 
-        if (!ok && errors.isEmpty) List("Error") else errors
+      def init_state: repl.State = driver.initialState
+
+      def compile(source: String, state: repl.State = init_state): Result = {
+        out.flush()
+        out_stream.reset()
+        val state1 = driver.run(source)(state)
+        out.flush()
+        val messages = Message.split(out_stream.toString(UTF8.charset))
+        out_stream.reset()
+        Result(state1, messages)
       }
     }
   }
 
   object Toplevel extends Fun_String("scala_toplevel") {
     val here = Scala_Project.here
-    def apply(arg: String): String = {
-      val (interpret, source) =
-        YXML.parse_body(arg) match {
-          case Nil => (false, "")
-          case List(XML.Text(source)) => (false, source)
-          case body => import XML.Decode._; pair(bool, string)(body)
-        }
+    def apply(source: String): String = {
       val errors =
-        try { Compiler.context().toplevel(interpret, source) }
+        try { Compiler.context().compile(source).errors.map("Scala error: " + _) }
         catch { case ERROR(msg) => List(msg) }
       locally { import XML.Encode._; YXML.string_of_body(list(string)(errors)) }
     }
+  }
+
+
+
+  /** interpreter thread **/
+
+  object Interpreter {
+    /* requests */
+
+    sealed abstract class Request
+    case class Execute(command: (Compiler.Context, repl.State) => repl.State) extends Request
+    case object Shutdown extends Request
+
+
+    /* known interpreters */
+
+    private val known = Synchronized(Set.empty[Interpreter])
+
+    def add(interpreter: Interpreter): Unit = known.change(_ + interpreter)
+    def del(interpreter: Interpreter): Unit = known.change(_ - interpreter)
+
+    def get[A](which: PartialFunction[Interpreter, A]): Option[A] =
+      known.value.collectFirst(which)
+  }
+
+  class Interpreter(context: Compiler.Context, out: OutputStream = Console.out) {
+    interpreter =>
+
+    private val running = Synchronized[Option[Thread]](None)
+    def running_thread(thread: Thread): Boolean = running.value.contains(thread)
+    def interrupt_thread(): Unit = running.change({ opt => opt.foreach(_.interrupt()); opt })
+
+    private var state = context.init_state
+
+    private lazy val thread: Consumer_Thread[Interpreter.Request] =
+      Consumer_Thread.fork("Scala.Interpreter") {
+        case Interpreter.Execute(command) =>
+          try {
+            running.change(_ => Some(Thread.currentThread()))
+            state = command(context, state)
+          }
+          finally {
+            running.change(_ => None)
+            Exn.Interrupt.dispose()
+          }
+          true
+        case Interpreter.Shutdown =>
+          Interpreter.del(interpreter)
+          false
+      }
+
+    def shutdown(): Unit = {
+      thread.send(Interpreter.Shutdown)
+      interrupt_thread()
+      thread.shutdown()
+    }
+
+    def execute(command: (Compiler.Context, repl.State) => repl.State): Unit =
+      thread.send(Interpreter.Execute(command))
+
+    def reset(): Unit =
+      thread.send(Interpreter.Execute((context, _) => context.init_state))
+
+    Interpreter.add(interpreter)
+    thread
   }
 
 
@@ -208,15 +327,15 @@ object Scala {
     private def invoke_scala(msg: Prover.Protocol_Output): Boolean = synchronized {
       msg.properties match {
         case Markup.Invoke_Scala(name, id) =>
-          def body: Unit = {
+          def body(): Unit = {
             val (tag, res) = Scala.function_body(name, msg.chunks)
             result(id, tag, res)
           }
           val future =
             if (Scala.function_thread(name)) {
-              Future.thread(name = Isabelle_Thread.make_name(base = "invoke_scala"))(body)
+              Future.thread(name = Isabelle_Thread.make_name(base = "invoke_scala"))(body())
             }
-            else Future.fork(body)
+            else Future.fork(body())
           futures += (id -> future)
           true
         case _ => false
@@ -235,7 +354,7 @@ object Scala {
       }
     }
 
-    override val functions =
+    override val functions: Session.Protocol_Functions =
       List(
         Markup.Invoke_Scala.name -> invoke_scala,
         Markup.Cancel_Scala.name -> cancel_scala)
@@ -246,8 +365,11 @@ class Scala_Functions extends Scala.Functions(
   Scala.Echo,
   Scala.Sleep,
   Scala.Toplevel,
-  Bytes.Decode_Base64,
-  Bytes.Encode_Base64,
+  Scala_Build.Scala_Fun,
+  Base64.Decode,
+  Base64.Encode,
+  XZ.Compress,
+  XZ.Uncompress,
   Doc.Doc_Names,
   Bibtex.Check_Database,
   Isabelle_System.Make_Directory,

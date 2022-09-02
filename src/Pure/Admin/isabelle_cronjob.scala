@@ -18,6 +18,7 @@ object Isabelle_Cronjob {
   val backup = "lxbroy10:cronjob"
   val main_dir: Path = Path.explode("~/cronjob")
   val main_state_file: Path = main_dir + Path.explode("run/main.state")
+  val build_release_log: Path = main_dir + Path.explode("run/build_release.log")
   val current_log: Path = main_dir + Path.explode("run/main.log")  // owned by log service
   val cumulative_log: Path = main_dir + Path.explode("log/main.log")  // owned by log service
 
@@ -46,7 +47,6 @@ object Isabelle_Cronjob {
       { logger =>
         Isabelle_Devel.make_index()
 
-        Mercurial.setup_repository(Isabelle_System.isabelle_repository.root, isabelle_repos)
         Mercurial.setup_repository(Isabelle_System.afp_repository.root, afp_repos)
 
         File.write(logger.log_dir + Build_Log.log_filename("isabelle_identify", logger.start_date),
@@ -82,8 +82,11 @@ object Isabelle_Cronjob {
   /* build release */
 
   val build_release: Logger_Task =
-    Logger_Task("build_release",
-      { logger => Isabelle_Devel.release_snapshot(logger.options, get_rev(), get_afp_rev()) })
+    Logger_Task("build_release", { logger =>
+      build_release_log.file.delete
+      Isabelle_Devel.release_snapshot(logger.options, get_rev(), get_afp_rev(),
+        progress = new File_Progress(build_release_log))
+    })
 
 
   /* remote build_history */
@@ -107,7 +110,7 @@ object Isabelle_Cronjob {
     days: Int,
     rev: String,
     afp_rev: Option[String],
-    sql: SQL.Source
+    sql: PostgreSQL.Source
   ): List[Item] = {
     val afp = afp_rev.isDefined
     val select =
@@ -138,7 +141,6 @@ object Isabelle_Cronjob {
     proxy_host: String = "",
     proxy_user: String = "",
     proxy_port: Int = 0,
-    self_update: Boolean = false,
     historic: Boolean = false,
     history: Int = 0,
     history_base: String = "build_history_base",
@@ -148,7 +150,7 @@ object Isabelle_Cronjob {
     afp: Boolean = false,
     bulky: Boolean = false,
     more_hosts: List[String] = Nil,
-    detect: SQL.Source = "",
+    detect: PostgreSQL.Source = "",
     active: Boolean = true
   ) {
     def ssh_session(context: SSH.Context): SSH.Session =
@@ -156,7 +158,7 @@ object Isabelle_Cronjob {
         proxy_host = proxy_host, proxy_user = proxy_user, proxy_port = proxy_port,
         permissive = proxy_host.nonEmpty)
 
-    def sql: SQL.Source =
+    def sql: PostgreSQL.Source =
       Build_Log.Prop.build_engine.toString + " = " + SQL.string(Build_History.engine) + " AND " +
       SQL.member(Build_Log.Prop.build_host.ident, host :: more_hosts) +
       (if (detect == "") "" else " AND " + SQL.enclose(detect))
@@ -206,9 +208,12 @@ object Isabelle_Cronjob {
 
   val remote_builds_old: List[Remote_Build] =
     List(
+      Remote_Build("macOS 10.15 Catalina", "laramac01", user = "makarius",
+        proxy_host = "laraserver", proxy_user = "makarius",
+        options = "-m32 -M4 -e ISABELLE_GHC_SETUP=true -p pide_session=false",
+        args = "-a -d '~~/src/Benchmarks'"),
       Remote_Build("Linux A", "i21of4", user = "i21isatest",
         proxy_host = "lxbroy10", proxy_user = "i21isatest",
-        self_update = true,
         options = "-m32 -M1x4,2,4" +
           " -e ISABELLE_OCAML=ocaml -e ISABELLE_OCAMLC=ocamlc -e ISABELLE_OCAML_SETUP=true" +
           " -e ISABELLE_GHC_SETUP=true" +
@@ -228,8 +233,8 @@ object Isabelle_Cronjob {
         detect = Build_Log.Prop.build_tags.toString + " = " + SQL.string("Benchmarks")),
       Remote_Build("macOS 10.14 Mojave (Old)", "lapnipkow3",
         options = "-m32 -M1,2 -e ISABELLE_GHC_SETUP=true -p pide_session=false",
-        self_update = true, args = "-a -d '~~/src/Benchmarks'"),
-      Remote_Build("AFP old bulky", "lrzcloud1", self_update = true,
+        args = "-a -d '~~/src/Benchmarks'"),
+      Remote_Build("AFP old bulky", "lrzcloud1",
         proxy_host = "lxbroy10", proxy_user = "i21isatest",
         options = "-m64 -M6 -U30000 -s10 -t AFP",
         args = "-g large -g slow",
@@ -316,12 +321,12 @@ object Isabelle_Cronjob {
             " -e ISABELLE_MLTON=mlton" +
             " -e ISABELLE_SMLNJ=sml" +
             " -e ISABELLE_SWIPL=swipl",
-          self_update = true, args = "-a -d '~~/src/Benchmarks'")),
+          args = "-a -d '~~/src/Benchmarks'")),
       List(Remote_Build("Linux B", "lxbroy10", historic = true, history = 90,
         options = "-m32 -B -M1x4,2,4,6", args = "-N -g timing")),
       List(Remote_Build("macOS 10.13 High Sierra", "lapbroy68",
         options = "-m32 -B -M1,2,4 -e ISABELLE_GHC_SETUP=true -p pide_session=false",
-        self_update = true, args = "-a -d '~~/src/Benchmarks'")),
+        args = "-a -d '~~/src/Benchmarks'")),
       List(
         Remote_Build("macOS 11 Big Sur", "mini1",
           options = "-m32 -B -M1x2,2,4 -p pide_session=false" +
@@ -330,7 +335,7 @@ object Isabelle_Cronjob {
             " -e ISABELLE_MLTON=/usr/local/bin/mlton" +
             " -e ISABELLE_SMLNJ=/usr/local/smlnj/bin/sml" +
             " -e ISABELLE_SWIPL=/usr/local/bin/swipl",
-          self_update = true, args = "-a -d '~~/src/Benchmarks'")),
+          args = "-a -d '~~/src/Benchmarks'")),
       List(
         Remote_Build("macOS 10.14 Mojave", "mini2",
           options = "-m32 -B -M1x2,2,4 -p pide_session=false" +
@@ -339,21 +344,21 @@ object Isabelle_Cronjob {
             " -e ISABELLE_MLTON=/usr/local/bin/mlton" +
             " -e ISABELLE_SMLNJ=/usr/local/smlnj/bin/sml" +
             " -e ISABELLE_SWIPL=/usr/local/bin/swipl",
-          self_update = true, args = "-a -d '~~/src/Benchmarks'"),
+          args = "-a -d '~~/src/Benchmarks'"),
         Remote_Build("macOS, quick_and_dirty", "mini2",
           options = "-m32 -M4 -t quick_and_dirty -p pide_session=false",
-          self_update = true, args = "-a -o quick_and_dirty",
+          args = "-a -o quick_and_dirty",
           detect = Build_Log.Prop.build_tags.toString + " = " + SQL.string("quick_and_dirty")),
         Remote_Build("macOS, skip_proofs", "mini2",
           options = "-m32 -M4 -t skip_proofs -p pide_session=false", args = "-a -o skip_proofs",
           detect = Build_Log.Prop.build_tags.toString + " = " + SQL.string("skip_proofs"))),
-      List(Remote_Build("macOS 10.15 Catalina", "laramac01", user = "makarius",
-        proxy_host = "laraserver", proxy_user = "makarius",
-        self_update = true,
-        options = "-m32 -M4 -e ISABELLE_GHC_SETUP=true -p pide_session=false",
-        args = "-a -d '~~/src/Benchmarks'")),
       List(
-        Remote_Build("Windows", "vmnipkow9", historic = true, history = 90, self_update = true,
+        Remote_Build("macOS 10.15 Catalina", "monterey", actual_host = "laramac01",
+          user = "makarius", proxy_host = "laraserver", proxy_user = "makarius",
+          options = "-m32 -M4 -e ISABELLE_GHC_SETUP=true -p pide_session=false",
+          args = "-a -d '~~/src/Benchmarks'")),
+      List(
+        Remote_Build("Windows", "vmnipkow9", historic = true, history = 90,
           options = "-m32 -M4" +
             " -C /cygdrive/d/isatest/contrib" +
             " -e ISABELLE_OCAML=ocaml -e ISABELLE_OCAMLC=ocamlc -e ISABELLE_OCAML_SETUP=true" +
@@ -363,7 +368,7 @@ object Isabelle_Cronjob {
           detect =
             Build_Log.Settings.ML_PLATFORM.toString + " = " + SQL.string("x86-windows") + " OR " +
             Build_Log.Settings.ML_PLATFORM + " = " + SQL.string("x86_64_32-windows")),
-        Remote_Build("Windows", "vmnipkow9", historic = true, history = 90, self_update = true,
+        Remote_Build("Windows", "vmnipkow9", historic = true, history = 90,
           options = "-m64 -M4" +
             " -C /cygdrive/d/isatest/contrib" +
             " -e ISABELLE_OCAML=ocaml -e ISABELLE_OCAMLC=ocamlc -e ISABELLE_OCAML_SETUP=true" +
@@ -376,7 +381,7 @@ object Isabelle_Cronjob {
   val remote_builds2: List[List[Remote_Build]] =
     List(
       List(
-        Remote_Build("AFP", "lrzcloud2", actual_host = "10.195.4.41", self_update = true,
+        Remote_Build("AFP", "lrzcloud2", actual_host = "10.195.4.41",
           proxy_host = "lxbroy10", proxy_user = "i21isatest",
           java_heap = "8g",
           options = "-m32 -M1x6 -t AFP" +
@@ -387,7 +392,7 @@ object Isabelle_Cronjob {
           args = "-a -X large -X slow",
           afp = true,
           detect = Build_Log.Prop.build_tags.toString + " = " + SQL.string("AFP")),
-        Remote_Build("AFP", "lrzcloud2", actual_host = "10.195.4.41", self_update = true,
+        Remote_Build("AFP", "lrzcloud2", actual_host = "10.195.4.41",
           proxy_host = "lxbroy10", proxy_user = "i21isatest",
           java_heap = "8g",
           options = "-m64 -M8 -U30000 -s10 -t AFP",
@@ -407,13 +412,13 @@ object Isabelle_Cronjob {
       { logger =>
         using(r.ssh_session(logger.ssh_context)) { ssh =>
           val results =
-            Build_History.remote_build_history(ssh,
+            Build_History.remote_build(ssh,
               isabelle_repos,
               isabelle_repos.ext(r.host),
               isabelle_identifier = "cronjob_build_history",
-              self_update = r.self_update,
               rev = rev,
-              afp_rev = afp_rev,
+              afp_repos = if (afp_rev.isDefined) Some(afp_repos) else None,
+              afp_rev = afp_rev.getOrElse(""),
               options =
                 " -N " + Bash.string(task_name) + (if (i < 0) "" else "_" + (i + 1).toString) +
                 " -R " + Bash.string(Components.default_component_repository) +

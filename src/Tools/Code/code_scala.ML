@@ -161,7 +161,7 @@ fun print_scala_stmt tyco_syntax const_syntax reserved
               vars
               |> print_bind tyvars some_thm BR pat
               |>> (fn p => (false, concat [str "val", p, str "=",
-                constraint (print_term tyvars false some_thm vars NOBR t) (print_typ tyvars NOBR ty)]));
+                constraint (print_term tyvars false some_thm vars NOBR t) (print_typ tyvars BR ty)]));
             fun print_match_seq t vars =
               ((true, print_term tyvars false some_thm vars NOBR t), vars);
             fun print_match is_first ((IVar NONE, ty), t) =
@@ -334,7 +334,7 @@ fun print_scala_stmt tyco_syntax const_syntax reserved
                 (map print_classparam_val classparams))
               :: map print_classparam_def classparams
               @| Pretty.block_enclose
-                (str ("object " ^ deresolve_class class ^ "{"), str "}")
+                (str ("object " ^ deresolve_class class ^ " {"), str "}")
                 (map (print_inst class) insts)
             )
           end;
@@ -477,11 +477,11 @@ val _ = Theory.setup
         print_typ (INFX (1, R)) ty2
       )))]))
   #> fold (Code_Target.add_reserved target) [
-      "abstract", "case", "catch", "class", "def", "do", "else", "extends", "false",
-      "final", "finally", "for", "forSome", "if", "implicit", "import", "lazy",
-      "match", "new", "null", "object", "override", "package", "private", "protected",
-      "requires", "return", "sealed", "super", "this", "throw", "trait", "try",
-      "true", "type", "val", "var", "while", "with", "yield"
+      "abstract", "case", "catch", "class", "def", "do", "else", "enum", "export", "extends",
+      "false", "final", "finally", "for", "forSome", "given", "if", "implicit", "import", "lazy",
+      "match", "new", "null", "object", "override", "package", "private", "protected", "requires",
+      "return", "sealed", "super", "then", "this", "throw", "trait", "try", "true", "type", "val",
+      "var", "while", "with", "yield"
     ]
   #> fold (Code_Target.add_reserved target) [
       "apply", "sys", "scala", "BigInt", "Nil", "List"

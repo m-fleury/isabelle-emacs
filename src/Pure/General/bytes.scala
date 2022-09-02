@@ -10,7 +10,6 @@ package isabelle
 import java.io.{File => JFile, ByteArrayOutputStream, ByteArrayInputStream,
   OutputStream, InputStream, FileInputStream, FileOutputStream}
 import java.net.URL
-import java.util.Base64
 
 import org.tukaani.xz.{XZInputStream, XZOutputStream}
 
@@ -42,21 +41,22 @@ object Bytes {
 
   /* base64 */
 
-  def base64(s: String): Bytes = {
-    val a = Base64.getDecoder.decode(s)
+  def decode_base64(s: String): Bytes = {
+    val a = Base64.decode(s)
     new Bytes(a, 0, a.length)
   }
 
-  object Decode_Base64 extends Scala.Fun("decode_base64") {
+
+  /* XZ compression */
+
+  object Compress extends Scala.Fun_Bytes("compress") {
     val here = Scala_Project.here
-    def invoke(args: List[Bytes]): List[Bytes] =
-      List(base64(Library.the_single(args).text))
+    def apply(arg: Bytes): Bytes = arg.compress()
   }
 
-  object Encode_Base64 extends Scala.Fun("encode_base64") {
+  object Uncompress extends Scala.Fun_Bytes("uncompress") {
     val here = Scala_Project.here
-    def invoke(args: List[Bytes]): List[Bytes] =
-      List(Bytes(Library.the_single(args).base64))
+    def apply(arg: Bytes): Bytes = arg.uncompress()
   }
 
 
@@ -70,12 +70,11 @@ object Bytes {
       val buf = new Array[Byte](8192)
       var m = 0
 
-      var cont = true
-      while (cont) {
+      while ({
         m = stream.read(buf, 0, buf.length min (limit - out.size))
         if (m != -1) out.write(buf, 0, m)
-        cont = (m != -1 && limit > out.size)
-      }
+        m != -1 && limit > out.size
+      }) ()
 
       new Bytes(out.toByteArray, 0, out.size)
     }
@@ -145,16 +144,16 @@ final class Bytes private(
 
   def text: String = UTF8.decode_permissive(this)
 
-  def base64: String = {
+  def encode_base64: String = {
     val b =
       if (offset == 0 && length == bytes.length) bytes
       else Bytes(bytes, offset, length).bytes
-    Base64.getEncoder.encodeToString(b)
+    Base64.encode(b)
   }
 
-  def maybe_base64: (Boolean, String) = {
+  def maybe_encode_base64: (Boolean, String) = {
     val s = text
-    if (this == Bytes(s)) (false, s) else (true, base64)
+    if (this == Bytes(s)) (false, s) else (true, encode_base64)
   }
 
   override def toString: String = "Bytes(" + length + ")"

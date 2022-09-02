@@ -14,8 +14,7 @@ import scala.collection.mutable
 import scala.util.matching.Regex
 
 import com.jcraft.jsch.{JSch, Logger => JSch_Logger, Session => JSch_Session, SftpException,
-  OpenSSHConfig, UserInfo, Channel => JSch_Channel, ChannelExec, ChannelSftp, SftpATTRS,
-  JSchException}
+  OpenSSHConfig, UserInfo, ChannelExec, ChannelSftp, SftpATTRS, JSchException}
 
 
 object SSH {
@@ -104,18 +103,20 @@ object SSH {
       host: String,
       user: String = "",
       port: Int = 0,
-      host_key_permissive: Boolean = false,
+      permissive: Boolean = false,
       nominal_host: String = "",
       nominal_user: String = "",
+      nominal_port: Option[Int] = None,
       on_close: () => Unit = () => ()
     ): Session = {
-      val session = jsch.getSession(proper_string(user).orNull, host, make_port(port))
+      val connect_port = make_port(port)
+      val session = jsch.getSession(proper_string(user).orNull, host, connect_port)
 
       session.setUserInfo(No_User_Info)
       session.setServerAliveInterval(alive_interval(options))
       session.setServerAliveCountMax(alive_count_max(options))
       session.setConfig("MaxAuthTries", "3")
-      if (host_key_permissive) session.setConfig("StrictHostKeyChecking", "no")
+      if (permissive) session.setConfig("StrictHostKeyChecking", "no")
       if (nominal_host != "") session.setHostKeyAlias(nominal_host)
 
       if (options.bool("ssh_compression")) {
@@ -126,7 +127,8 @@ object SSH {
       session.connect(connect_timeout(options))
       new Session(options, session, on_close,
         proper_string(nominal_host) getOrElse host,
-        proper_string(nominal_user) getOrElse user)
+        proper_string(nominal_user) getOrElse user,
+        nominal_port getOrElse connect_port)
     }
 
     def open_session(
@@ -140,18 +142,23 @@ object SSH {
       permissive: Boolean = false
     ): Session = {
       val connect_host = proper_string(actual_host) getOrElse host
-      if (proxy_host == "") connect_session(host = connect_host, user = user, port = port)
+      val connect_port = make_port(port)
+      if (proxy_host == "") connect_session(host = connect_host, user = user, port = connect_port)
       else {
         val proxy = connect_session(host = proxy_host, port = proxy_port, user = proxy_user)
 
         val fw =
-          try { proxy.port_forwarding(remote_host = connect_host, remote_port = make_port(port)) }
+          try { proxy.port_forwarding(remote_host = connect_host, remote_port = connect_port) }
           catch { case exn: Throwable => proxy.close(); throw exn }
 
         try {
-          connect_session(host = fw.local_host, port = fw.local_port,
-            host_key_permissive = permissive,
-            nominal_host = host, nominal_user = user, user = user,
+          connect_session(
+            host = fw.local_host,
+            port = fw.local_port,
+            permissive = permissive,
+            nominal_host = host,
+            nominal_port = Some(connect_port),
+            nominal_user = user, user = user,
             on_close = { () => fw.close(); proxy.close() })
         }
         catch { case exn: Throwable => fw.close(); proxy.close(); throw exn }
@@ -241,7 +248,7 @@ object SSH {
   class Exec private[SSH](session: Session, channel: ChannelExec) extends AutoCloseable {
     override def toString: String = "exec " + session.toString
 
-    def close(): Unit = channel.disconnect
+    def close(): Unit = channel.disconnect()
 
     val exit_status: Future[Int] =
       Future.thread("ssh_wait") {
@@ -270,7 +277,7 @@ object SSH {
           val line = Library.trim_line(line_buffer.toString(UTF8.charset_name))
           progress(line)
           result += line
-          line_buffer.reset
+          line_buffer.reset()
         }
 
         var c = 0
@@ -317,15 +324,19 @@ object SSH {
     val session: JSch_Session,
     on_close: () => Unit,
     val nominal_host: String,
-    val nominal_user: String
+    val nominal_user: String,
+    val nominal_port: Int
   ) extends System {
     def update_options(new_options: Options): Session =
-      new Session(new_options, session, on_close, nominal_host, nominal_user)
+      new Session(new_options, session, on_close, nominal_host, nominal_user, nominal_port)
 
     def host: String = if (session.getHost == null) "" else session.getHost
 
     override def hg_url: String =
       "ssh://" + user_prefix(nominal_user) + nominal_host + "/"
+
+    override def rsync_prefix: String =
+      user_prefix(nominal_user) + nominal_host + ":"
 
     override def toString: String =
       user_prefix(session.getUserName) + host + port_suffix(session.getPort) +
@@ -346,7 +357,7 @@ object SSH {
     val sftp: ChannelSftp = session.openChannel("sftp").asInstanceOf[ChannelSftp]
     sftp.connect(connect_timeout(options))
 
-    override def close(): Unit = { sftp.disconnect; session.disconnect; on_close() }
+    override def close(): Unit = { sftp.disconnect(); session.disconnect(); on_close() }
 
     val settings: JMap[String, String] = {
       val home = sftp.getHome
@@ -435,8 +446,8 @@ object SSH {
 
     override def read_file(path: Path, local_path: Path): Unit =
       sftp.get(remote_path(path), File.platform_path(local_path))
-    def read_bytes(path: Path): Bytes = using(open_input(path))(Bytes.read_stream(_))
-    def read(path: Path): String = using(open_input(path))(File.read_stream)
+    override def read_bytes(path: Path): Bytes = using(open_input(path))(Bytes.read_stream(_))
+    override def read(path: Path): String = using(open_input(path))(File.read_stream)
 
     override def write_file(path: Path, local_path: Path): Unit =
       sftp.put(File.platform_path(local_path), remote_path(path))
@@ -488,6 +499,9 @@ object SSH {
 
     def hg_url: String = ""
 
+    def rsync_prefix: String = ""
+    def rsync_path(path: Path): String = rsync_prefix + expand_path(path).implode
+
     def expand_path(path: Path): Path = path.expand
     def bash_path(path: Path): String = File.bash_path(path)
     def is_dir(path: Path): Boolean = path.is_dir
@@ -496,6 +510,8 @@ object SSH {
     def with_tmp_dir[A](body: Path => A): A = Isabelle_System.with_tmp_dir("tmp")(body)
     def read_file(path1: Path, path2: Path): Unit = Isabelle_System.copy_file(path1, path2)
     def write_file(path1: Path, path2: Path): Unit = Isabelle_System.copy_file(path2, path1)
+    def read_bytes(path: Path): Bytes = Bytes.read(path)
+    def read(path: Path): String = File.read(path)
 
     def execute(command: String,
         progress_stdout: String => Unit = (_: String) => (),

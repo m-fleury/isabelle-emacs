@@ -267,6 +267,10 @@ lemma enumerate_mono_iff [simp]:
   "infinite S \<Longrightarrow> enumerate S m < enumerate S n \<longleftrightarrow> m < n"
   by (metis enumerate_mono less_asym less_linear)
 
+lemma enumerate_mono_le_iff [simp]:
+  "infinite S \<Longrightarrow> enumerate S m \<le> enumerate S n \<longleftrightarrow> m \<le> n"
+  by (meson enumerate_mono_iff not_le)
+
 lemma le_enumerate:
   assumes S: "infinite S"
   shows "n \<le> enumerate S n"
@@ -467,7 +471,7 @@ qed
 
 lemma finite_enumerate:
   assumes fS: "finite S"
-  shows "\<exists>r::nat\<Rightarrow>nat. strict_mono_on r {..<card S} \<and> (\<forall>n<card S. r n \<in> S)"
+  shows "\<exists>r::nat\<Rightarrow>nat. strict_mono_on {..<card S} r \<and> (\<forall>n<card S. r n \<in> S)"
   unfolding strict_mono_def
   using finite_enumerate_in_set[OF fS] finite_enumerate_mono[of _ _ S] fS
   by (metis lessThan_iff strict_mono_on_def)
@@ -603,11 +607,11 @@ qed
 lemma ex_bij_betw_strict_mono_card:
   fixes M :: "'a::wellorder set"
   assumes "finite M" 
-  obtains h where "bij_betw h {..<card M} M" and "strict_mono_on h {..<card M}"
+  obtains h where "bij_betw h {..<card M} M" and "strict_mono_on {..<card M} h"
 proof
   show "bij_betw (enumerate M) {..<card M} M"
     by (simp add: assms finite_bij_enumerate)
-  show "strict_mono_on (enumerate M) {..<card M}"
+  show "strict_mono_on {..<card M} (enumerate M)"
     by (simp add: assms finite_enumerate_mono strict_mono_on_def)
 qed
 

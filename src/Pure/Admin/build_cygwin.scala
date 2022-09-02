@@ -8,10 +8,10 @@ package isabelle
 
 
 object Build_Cygwin {
-  val default_mirror: String = "https://isabelle.sketis.net/cygwin_2021-1"
+  val default_mirror: String = "https://isabelle.sketis.net/cygwin_2022"
 
   val packages: List[String] =
-    List("curl", "libgmp-devel", "nano", "unzip")
+    List("curl", "libgmp-devel", "nano", "rsync", "unzip")
 
   def build_cygwin(progress: Progress,
     mirror: String = default_mirror,

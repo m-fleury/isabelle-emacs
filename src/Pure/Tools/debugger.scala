@@ -65,7 +65,7 @@ object Debugger {
     def toggle_breakpoint(breakpoint: Long): (Boolean, State) = {
       val active_breakpoints1 =
         if (active_breakpoints(breakpoint)) active_breakpoints - breakpoint
-      else active_breakpoints + breakpoint
+        else active_breakpoints + breakpoint
       (active_breakpoints1(breakpoint), copy(active_breakpoints = active_breakpoints1))
     }
 
@@ -124,7 +124,7 @@ object Debugger {
         case Markup.Debugger_Output(thread_name) =>
           Symbol.decode_yxml_failsafe(msg.text) match {
             case List(XML.Elem(Markup(name, props @ Markup.Serial(i)), body)) =>
-              val message = XML.Elem(Markup(Markup.message(name), props), body)
+              val message = Protocol.make_message(body, kind = name, props = props)
               debugger.add_output(thread_name, i -> session.cache.elem(message))
               true
             case _ => false
@@ -133,7 +133,7 @@ object Debugger {
       }
     }
 
-    override val functions =
+    override val functions: Session.Protocol_Functions =
       List(
         Markup.DEBUGGER_STATE -> debugger_state,
         Markup.DEBUGGER_OUTPUT -> debugger_output)
