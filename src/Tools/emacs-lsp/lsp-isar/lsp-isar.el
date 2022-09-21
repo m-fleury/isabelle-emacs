@@ -327,6 +327,8 @@ the AFP and other options."
 	:server-id 'lsp-isar
 	:priority 1
 	:remote? t
+	:path->uri-fn (lambda (path) (lsp--path-to-uri-1 (funcall lsp-isar-file-name-follow-links path)))
+	:uri->path-fn (lambda (path) (funcall lsp-isar-file-name-unfollow-links (lsp--uri-to-path-1 path)))
 	:notification-handlers
 	(lsp-ht
 	 ("PIDE/decoration" #'lsp-isar-decorations-update-and-reprint)
