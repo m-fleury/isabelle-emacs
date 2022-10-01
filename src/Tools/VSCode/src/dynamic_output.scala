@@ -11,7 +11,7 @@ import isabelle._
 
 
 object Dynamic_Output {
-  sealed case class State(do_update: Boolean = true, output: List[XML.Tree] = Nil) {
+  sealed case class State(val server: vscode.Language_Server, do_update: Boolean = true, output: List[XML.Tree] = Nil) {
     def handle_update(
       resources: VSCode_Resources,
       channel: Channel,
@@ -28,7 +28,7 @@ object Dynamic_Output {
                 case Some(command) =>
                   copy(output =
                     if (restriction.isEmpty || restriction.get.contains(command)) {
-                      val output_state = resources.options.bool("editor_output_state")
+                      val output_state = true // resources.options.bool("editor_output_state")
                       Rendering.output_messages(snapshot.command_results(command), output_state)
                     } else output)
               }
@@ -36,6 +36,62 @@ object Dynamic_Output {
             else this
         }
       if (st1.output != output) {
+        if(server.html_output) {
+          val node_context =
+            new Browser_Info.Node_Context {
+              override def make_ref(props: Properties.T, body: XML.Body): Option[XML.Elem] =
+                for {
+                  thy_file <- Position.Def_File.unapply(props)
+                  def_line <- Position.Def_Line.unapply(props)
+                  source <- resources.source_file(thy_file)
+                  uri = File.uri(Path.explode(source).absolute_file)
+                } yield HTML.link(uri.toString + "#" + def_line, body)
+            }
+          val elements = Browser_Info.extra_elements.copy(entity = Markup.Elements.full)
+          val html = node_context.make_html(elements, Pretty.formatted(st1.output, margin = resources.get_message_margin()))
+//          val html =
+//            HTML.output(Pretty.formatted(st1.output, margin = resources.get_message_margin()),
+//              hidden = false, structural = false)
+//            cat_lines(
+//              List(HTML.source(Pretty.formatted(st1.output, margin = resources.get_message_margin())))
+//                .map(x => HTML.output(x, hidden = false, structural = false)))
+          val content =
+            cat_lines(
+              List(HTML.output(XML.elem("body", List(HTML.source(Pretty.formatted(st1.output, margin = resources.get_message_margin())))),
+                hidden = false, structural = true)))
+          channel.write(LSP.Dynamic_Output(content))
+        } else {
+          channel.write(LSP.Dynamic_Output(resources.output_pretty_message(Pretty.separate(st1.output))))
+        }
+      }
+      st1
+    }
+
+    def force_update(
+      resources: VSCode_Resources, channel: Channel, restriction: Option[Set[Command]]): State =
+    {
+      val st1 =
+        resources.get_caret() match {
+          case None => copy(output = Nil)
+          case Some(caret) =>
+            val snapshot = caret.model.snapshot()
+            if (do_update && !snapshot.is_outdated) {
+              snapshot.current_command(caret.node_name, caret.offset) match {
+                case None => copy(output = Nil)
+                case Some(command) =>
+                  val text =
+                    if (!restriction.isDefined || restriction.get.contains(command)) {
+                      //server.resources.output_pretty_message(snapshot.command_results(command))
+                      val output_state = resources.options.bool("editor_output_state")
+                      Rendering.output_messages(snapshot.command_results(command), output_state)
+                    } else output
+                  copy(output = text)
+              }
+            }
+            else this
+        }
+
+      if(server.html_output) {
         val node_context =
           new Browser_Info.Node_Context {
             override def make_ref(props: Properties.T, body: XML.Body): Option[XML.Elem] =
@@ -46,24 +102,30 @@ object Dynamic_Output {
                 uri = File.uri(Path.explode(source).absolute_file)
               } yield HTML.link(uri.toString + "#" + def_line, body)
           }
-        val elements = Browser_Info.extra_elements.copy(entity = Markup.Elements.full)
-        val html = node_context.make_html(elements, Pretty.separate(st1.output))
-        channel.write(LSP.Dynamic_Output(HTML.source(html).toString))
+        // val html = node_context.make_html(elements, Pretty.formatted(st1.output, margin = resources.get_message_margin()))
+        val content =
+          cat_lines(
+            List(HTML.output(XML.elem("body", List(HTML.source(Pretty.formatted(st1.output, margin = resources.get_message_margin())))),
+              hidden = false, structural = true)))
+        channel.write(LSP.Dynamic_Output(content))
+      } else {
+        channel.write(LSP.Dynamic_Output(resources.output_pretty_message(Pretty.separate(st1.output))))
       }
       st1
-    }
   }
-
+  }
   def apply(server: Language_Server): Dynamic_Output = new Dynamic_Output(server)
+
 }
 
-
 class Dynamic_Output private(server: Language_Server) {
-  private val state = Synchronized(Dynamic_Output.State())
+  private val state = Synchronized(Dynamic_Output.State(server))
 
   private def handle_update(restriction: Option[Set[Command]]): Unit =
     state.change(_.handle_update(server.resources, server.channel, restriction))
 
+  private def force_update(restriction: Option[Set[Command]]): Unit =
+  { state.change(_.force_update(server.resources, server.channel, restriction)) }
 
   /* main */
 
@@ -85,5 +147,10 @@ class Dynamic_Output private(server: Language_Server) {
   def exit(): Unit = {
     server.session.commands_changed -= main
     server.session.caret_focus -= main
+  }
+
+  def force_goal_reprint(): Unit =
+  {
+    force_update(None)
   }
 }
