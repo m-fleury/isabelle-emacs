@@ -58,8 +58,8 @@ object Dynamic_Output {
           val content =
             cat_lines(
               List(HTML.output(XML.elem("body", List(HTML.source(Pretty.formatted(st1.output, margin = resources.get_message_margin())))),
-                hidden = false, structural = true)))
-          channel.write(LSP.Dynamic_Output(content))
+                hidden = false, structural = false)))
+          channel.write(LSP.Dynamic_Output(Symbol.encode(content)))
         } else {
           channel.write(LSP.Dynamic_Output(resources.output_pretty_message(Pretty.separate(st1.output))))
         }

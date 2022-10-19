@@ -220,15 +220,13 @@ It can be used for example by ``(add-hook 'lsp-isar-init-hook
 
 (defcustom lsp-vscode-options
   (list
-   "-o" "vscode_unicode_symbols"
    "-o" "vscode_pide_extensions"
    "-o" "vscode_caret_perspective=10")
   "Isabelle's LSP server options.
 
 Please refer to the documentation of Isabelle for the full set of
 options.  In most cases, you should keep the options
-`(list \"-o\" \"vscode_unicode_symbols\" \"-o\"
-   \"vscode_pide_extensions\")'.
+`(list \"-o\" \"vscode_pide_extensions\")'.
 
 Set `lsp-isabelle-options' for other options (like importing the AFP)."
   :type '(list string)

@@ -486,12 +486,14 @@ LSP-ISAR-OUTPUT-CURRENT-OUTPUT-NUMBER-RES."
 	       (with-current-buffer lsp-isar-output-buffer
 		 (read-only-mode -1)
 		 (setf (buffer-string) lsp-isar-output-output)
+		 (lsp-isar-output-replace-regexp-all-occs "|Symbol=\\(\\w*\\)|" "\\\\\<\\1\>")
 		 (read-only-mode t))))
 	   (when lsp-isar-output-state
 	     (save-excursion
 	       (with-current-buffer lsp-isar-output-state-buffer
 		 (read-only-mode -1)
 		 (setf (buffer-string) lsp-isar-output-state)
+		 (lsp-isar-output-replace-regexp-all-occs "|Symbol=\\(\\w*\\)|" "\<\\1>")
 		 (read-only-mode t))
 	       (with-current-buffer lsp-isar-output-state-buffer
 		 (dolist (deco lsp-isar-output-state-deco)
@@ -824,6 +826,9 @@ LSP-ISAR-OUTPUT-CURRENT-OUTPUT-NUMBER-RES."
 			      ;; Isabelle's HTML and Emacs's HMTL disagree, so
 			      ;; we preprocess the output.
 
+			      ;; \<And> is replaced by \nand
+			      (lsp-isar-output-replace-regexp-all-occs "\\\\<\\(\\w*\\)>" "|Symbol=\\1|")
+
 			      ;; remove line breaks at beginning
 			      (lsp-isar-output-replace-regexp-all-occs "\\$\n*<body>\n" "<body>")
 			      (lsp-isar-output-replace-regexp-all-occs "\s\s\s\s\s"
@@ -837,10 +842,8 @@ LSP-ISAR-OUTPUT-CURRENT-OUTPUT-NUMBER-RES."
 			      (lsp-isar-output-replace-regexp-all-occs "\\(\\w\\)>\\( *\\)<"
 								       "\\1><break>'\\2'</break><")
 
-			      ;;(lsp-isar-output-replace-regexp-all-occs "\\(\\w\\)>\"" "\\1>\\\"")
-
 			      ;; (message (buffer-string))
-			      ;;(message "%s"(libxml-parse-html-region  (point-min) (point-max)))
+			      ;; (message "%s"(libxml-parse-html-region  (point-min) (point-max)))
 			      (setq parsed-content (libxml-parse-html-region (point-min) (point-max))))))
 		      (with-current-buffer lsp-isar-output-state-buffer
 			(let ((inhibit-read-only t))
