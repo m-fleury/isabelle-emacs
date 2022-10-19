@@ -486,14 +486,14 @@ LSP-ISAR-OUTPUT-CURRENT-OUTPUT-NUMBER-RES."
 	       (with-current-buffer lsp-isar-output-buffer
 		 (read-only-mode -1)
 		 (setf (buffer-string) lsp-isar-output-output)
-		 (lsp-isar-output-replace-regexp-all-occs "|Symbol=\\(\\w*\\)|" "\\\\\<\\1\>")
+		 ;;(lsp-isar-output-replace-regexp-all-occs "|Symbol=\\(\\w*\\)|" "\\\\\<\\1\>")
 		 (read-only-mode t))))
 	   (when lsp-isar-output-state
 	     (save-excursion
 	       (with-current-buffer lsp-isar-output-state-buffer
 		 (read-only-mode -1)
 		 (setf (buffer-string) lsp-isar-output-state)
-		 (lsp-isar-output-replace-regexp-all-occs "|Symbol=\\(\\w*\\)|" "\<\\1>")
+		 ;;(lsp-isar-output-replace-regexp-all-occs "|Symbol=\\(\\w*\\)|" "\\\\\<\\1\>")
 		 (read-only-mode t))
 	       (with-current-buffer lsp-isar-output-state-buffer
 		 (dolist (deco lsp-isar-output-state-deco)
@@ -553,10 +553,10 @@ LSP-ISAR-OUTPUT-CURRENT-OUTPUT-NUMBER-RES."
 		      (cond
 		       ((eq content nil) nil)
 		       ((eq content 'html) nil)
-		       ((stringp content) (insert content))
+		       ((stringp content) (insert (replace-regexp-in-string "|Symbol=\\(\\w*\\)|" "\\\\\<\\1\>" content)))
 		       ((not (listp content))
 			;; (message "unrecognised %s" content)
-			(insert (format "%s" content)))
+			(insert (replace-regexp-in-string "|Symbol=\\(\\w*\\)|" "\\\\\<\\1\>" (format "%s" content))))
 		       (t
 			(pcase (dom-tag content)
 			  ('lsp-isar-output-select-state-buffer
@@ -660,8 +660,8 @@ LSP-ISAR-OUTPUT-CURRENT-OUTPUT-NUMBER-RES."
 			   (setq contents (append (dom-children content) contents)))
 
 			  ('span
-			   (insert (format "%s" (car (last (dom-children content))))))
-
+			   (let ((str (format "%s" (car (last (dom-children content))))))
+			     (insert (replace-regexp-in-string "|Symbol=\\(\\w*\\)|" "\\\\\<\\1\>" (format "%s"str)))))
 			  ('position
 			   (push (car (last (dom-children content))) contents))
 
