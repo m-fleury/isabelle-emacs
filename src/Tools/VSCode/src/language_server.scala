@@ -294,8 +294,8 @@ class Language_Server(
               }
 
               val label = text.split("\n")(0)
-//              val beautified_label = Symbol.codes.foldLeft(label)({case (name, (sym, code)) => name.replace(sym, code.toChar.toString)})
-              val symbol = LSP.DocumentSymbol(label, None, kind, None, range, selection_range, children)
+              val beautified_label = Symbol.output(true, label)
+              val symbol = LSP.DocumentSymbol(beautified_label, None, kind, None, range, selection_range, children)
 
               (symbol :: symbols, end_offset)
           }
