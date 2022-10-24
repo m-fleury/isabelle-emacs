@@ -78,7 +78,8 @@ edited buffer with STATUS."
     (with-current-buffer lsp-isar-progress-buffer
       (setq current-thy-line 0)
       (setq current-thy-line-found nil)
-      (setf (buffer-string) "")
+      ;;(setf (buffer-string) "")
+      (erase-buffer)
       (seq-doseq (theory_status nodes-status)
 	(-let [(&lsp-isar:TheoryProgress :name :unprocessed :failed :running :finished :consolidated :warned) theory_status]
 	  (-let* ((thyname-raw (file-name-base name))

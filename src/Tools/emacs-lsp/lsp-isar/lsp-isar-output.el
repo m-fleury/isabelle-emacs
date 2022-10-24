@@ -413,7 +413,7 @@ Lisp equivalent of 'replace-regexp' as indicated in the help."
 	(save-excursion
 	  (with-current-buffer lsp-isar-output-buffer
 	    (read-only-mode -1)
-	    (setf (buffer-string) ""))
+	    (erase-buffer))
 	  (with-temp-buffer
 	    (if content
 		(progn
@@ -444,7 +444,7 @@ Lisp equivalent of 'replace-regexp' as indicated in the help."
 		  (setq parsed-content (libxml-parse-html-region (point-min) (point-max))))))
 	  (with-current-buffer lsp-isar-output-state-buffer
 	    (let ((inhibit-read-only t))
-	      (setf (buffer-string) "")
+	      (erase-buffer)
 	      (setq lsp-isar-output-proof-cases-content nil
 		    lsp-isar-output-last-seen-prover nil)
 	      (lsp-isar-output-parse-output parsed-content)
@@ -816,7 +816,7 @@ LSP-ISAR-OUTPUT-CURRENT-OUTPUT-NUMBER-RES."
 		    (save-excursion
 		      (with-current-buffer lsp-isar-output-buffer
 			(read-only-mode -1)
-			(setf (buffer-string) ""))
+			(erase-buffer))
 		      (with-temp-buffer
 			(if content
 			    (progn
@@ -847,7 +847,7 @@ LSP-ISAR-OUTPUT-CURRENT-OUTPUT-NUMBER-RES."
 			      (setq parsed-content (libxml-parse-html-region (point-min) (point-max))))))
 		      (with-current-buffer lsp-isar-output-state-buffer
 			(let ((inhibit-read-only t))
-			  (setf (buffer-string) "")
+			  (erase-buffer)
 			  (lsp-isar-output-parse-output parsed-content)
 			  (goto-char (point-min))
 			  (setq lsp-isar-output-state (buffer-string))))
