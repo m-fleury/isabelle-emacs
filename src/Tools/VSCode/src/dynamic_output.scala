@@ -47,19 +47,21 @@ object Dynamic_Output {
                   uri = File.uri(Path.explode(source).absolute_file)
                 } yield HTML.link(uri.toString + "#" + def_line, body)
             }
-          val elements = Browser_Info.extra_elements.copy(entity = Markup.Elements.full)
-          val html = node_context.make_html(elements, Pretty.formatted(st1.output, margin = resources.get_message_margin()))
-//          val html =
-//            HTML.output(Pretty.formatted(st1.output, margin = resources.get_message_margin()),
-//              hidden = false, structural = false)
-//            cat_lines(
-//              List(HTML.source(Pretty.formatted(st1.output, margin = resources.get_message_margin())))
-//                .map(x => HTML.output(x, hidden = false, structural = false)))
-          val content =
-            cat_lines(
-              List(HTML.output(XML.elem("body", List(HTML.source(Pretty.formatted(st1.output, margin = resources.get_message_margin())))),
-                hidden = false, structural = false)))
-          channel.write(LSP.Dynamic_Output(Symbol.encode(content)))
+          // using this to distinguish between VSCode and emacs is a hack
+          if (resources.options.bool("vscode_unicode_symbols")) {// if VSCode
+            val elements = Browser_Info.extra_elements.copy(entity = Markup.Elements.full)
+            val html = node_context.make_html(elements, Pretty.formatted(st1.output, margin = resources.get_message_margin()))
+            channel.write(LSP.Dynamic_Output(HTML.source(html).toString))
+          }
+          else {
+            // emacs. The HTML is very similar (and actually contains more informations).
+            val content =
+              cat_lines(
+                List(HTML.output(XML.elem("body", List(HTML.source(Pretty.formatted(st1.output, margin = resources.get_message_margin())))),
+                  hidden = false, structural = false)))
+            val encoded_content = Symbol.encode(content)
+            channel.write(LSP.Dynamic_Output(encoded_content))
+          }
         } else {
           channel.write(LSP.Dynamic_Output(resources.output_pretty_message(Pretty.separate(st1.output))))
         }
