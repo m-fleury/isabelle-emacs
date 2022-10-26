@@ -344,6 +344,16 @@ If you use evil key bindings in doom, you will also hit issue described at https
                (advice-add #'evil-motion-range :around #'~/evil-motion-range--wrapper)
 
 #+end_src
+
+Try typing => inside a .thy file now. It should automatically convert the symbol to `\<Rightarrow>`.
+If you do not see a fancy symbol, you can add
+#+BEGIN_SRC elisp
+(add-hook 'isar-mode-hook
+	(lambda ()
+		(unicode-tokens-mode) (unicode-tokens-mode)))
+#+END_SRC
+before the matching closing bracket of `(use-package! isar-mode ...`. This is a temporary fix for https://github.com/m-fleury/isabelle-release/issues/62.
+
 * Post-Installation
 ** Adding the AFP
 Append to the file =~/.isabelle/Isabelle2021-1-vsce/etc/settings=
