@@ -355,7 +355,7 @@ Then change in the emacs/spacemacs configuration
 #+BEGIN_src elisp
   (setq lsp-isabelle-options (list "-d" "\$AFP"))
 #+END_src
-This is also the place to include further paths. Remember, however, that including more paths, makes Isabelle slower to start.
+This is also the place to include further paths. Remember, however, that including more paths makes Isabelle slower to start.
 ** Configuration
 Splitting is possible in two or three columns (see the screenshot on top). This can be controlled by
 #+BEGIN_src elisp
