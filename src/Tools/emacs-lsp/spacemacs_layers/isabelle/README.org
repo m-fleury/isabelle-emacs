@@ -13,7 +13,7 @@ Here is a screenshot of Isabelle in spacemacs:
 :END:
 - [[#description][Description]]
 - [[#preparation][Preparation]]
-  - [[#clone-isabelle-release][Clone Isabelle-emacs]]
+  - [[#clone-isabelle-emacs][Clone Isabelle-emacs]]
 - [[#install-as-a-non-developer][Install (as a non-developer)]]
   - [[#standard-emacs][standard emacs]]
   - [[#spacemacs][spacemacs]]
@@ -47,7 +47,7 @@ project. The rest (and in particular the LSP integration) was
 developed by other people!
 
 * Preparation
-*** Clone Isabelle-emacs
+** Clone Isabelle-emacs
     - The version of Isabelle2021-1 to download is available at https://github.com/m-fleury/isabelle-emacs in the Isabelle2021-1-more-vscode branch
 
 #+BEGIN_SRC sh
