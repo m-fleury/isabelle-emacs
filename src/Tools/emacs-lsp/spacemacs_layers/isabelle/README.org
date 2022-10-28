@@ -53,7 +53,7 @@ developed by other people!
 #+BEGIN_SRC sh
 git clone https://github.com/m-fleury/isabelle-emacs.git
 cd isabelle-emacs
-git checkout Isabelle2021-1-more-vscode
+git checkout Isabelle2022-more-vscode
 #+END_SRC
 
     - Initialize Isabelle (note that the second and third commands can take a while and require an internet connection)
