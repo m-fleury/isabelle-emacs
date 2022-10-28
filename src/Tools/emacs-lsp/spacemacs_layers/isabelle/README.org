@@ -48,7 +48,7 @@ developed by other people!
 
 * Preparation
 ** Clone Isabelle-emacs
-    - The version of Isabelle2021-1 to download is available at https://github.com/m-fleury/isabelle-emacs in the Isabelle2021-1-more-vscode branch
+    - The version of Isabelle2022 to download is available at https://github.com/m-fleury/isabelle-emacs in the Isabelle2022-more-vscode branch
 
 #+BEGIN_SRC sh
 git clone https://github.com/m-fleury/isabelle-emacs.git
@@ -133,7 +133,7 @@ Add the following to your =.emacs= (refer to the file =configuration_ex/mini_ini
 	     :ensure t
 	     :quelpa ((lsp-isar :fetcher github
 				:repo "m-fleury/isabelle-emacs"
-				:branch "isabelle2021-1-more-vscode"
+				:branch "isabelle2022-more-vscode"
 				:files ("src/Tools/emacs-lsp/lsp-isar/*.el"))
 				:upgrade t)
   :after lsp-mode
@@ -346,7 +346,7 @@ If you use evil key bindings in doom, you will also hit issue described at https
 #+end_src
 * Post-Installation
 ** Adding the AFP
-Append to the file =~/.isabelle/Isabelle2021-1-vsce/etc/settings=
+Append to the file =~/.isabelle/Isabelle2022-vsce/etc/settings=
 #+BEGIN_src sh
 AFP=/path/to/AFP/thys
 #+END_SRC
