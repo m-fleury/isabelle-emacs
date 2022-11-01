@@ -14,7 +14,7 @@ text \<open>
 \<close>
 
 consts
-  data :: "[i, i] => i"
+  data :: "[i, i] \<Rightarrow> i"
 
 datatype "data(A, B)" =
     Con0
@@ -31,22 +31,22 @@ text \<open>
   type definitions.
 \<close>
 
-lemma data_mono: "[| A \<subseteq> C; B \<subseteq> D |] ==> data(A, B) \<subseteq> data(C, D)"
-  apply (unfold data.defs)
+lemma data_mono: "\<lbrakk>A \<subseteq> C; B \<subseteq> D\<rbrakk> \<Longrightarrow> data(A, B) \<subseteq> data(C, D)"
+    unfolding data.defs
   apply (rule lfp_mono)
    apply (rule data.bnd_mono)+
   apply (rule univ_mono Un_mono basic_monos | assumption)+
   done
 
 lemma data_univ: "data(univ(A), univ(A)) \<subseteq> univ(A)"
-  apply (unfold data.defs data.con_defs)
+    unfolding data.defs data.con_defs
   apply (rule lfp_lowerbound)
    apply (rule_tac [2] subset_trans [OF A_subset_univ Un_upper1, THEN univ_mono])
   apply (fast intro!: zero_in_univ Inl_in_univ Inr_in_univ Pair_in_univ)
   done
 
 lemma data_subset_univ:
-    "[| A \<subseteq> univ(C); B \<subseteq> univ(C) |] ==> data(A, B) \<subseteq> univ(C)"
+    "\<lbrakk>A \<subseteq> univ(C); B \<subseteq> univ(C)\<rbrakk> \<Longrightarrow> data(A, B) \<subseteq> univ(C)"
   by (rule subset_trans [OF data_mono data_univ])
 
 

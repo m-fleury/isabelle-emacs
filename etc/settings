@@ -81,7 +81,7 @@ fi
 ISABELLE_TOOLS="$ISABELLE_HOME/lib/Tools"
 
 # Location for temporary files (should be on a local file system).
-ISABELLE_TMP_PREFIX="${TMPDIR:-/tmp}/isabelle-${USER:-$LOGNAME}"
+ISABELLE_TMP_PREFIX="/tmp/isabelle-${USER:-$LOGNAME}"
 
 # Heap locations.
 ISABELLE_HEAPS="$ISABELLE_HOME_USER/heaps"
@@ -167,5 +167,6 @@ ISABELLE_GNUPLOT="gnuplot"
 ISABELLE_FONTFORGE="fontforge"
 
 #ISABELLE_MLTON="/usr/bin/mlton"
+#ISABELLE_MLTON_OPTIONS="-pi-style npi"
 #ISABELLE_SMLNJ="/usr/bin/sml"
 #ISABELLE_SWIPL="/usr/bin/swipl"

@@ -18,7 +18,7 @@ setup \<open>
 
 ML \<open>val ZF_ss = simpset_of \<^context>\<close>
 
-simproc_setup defined_Bex ("\<exists>x\<in>A. P(x) & Q(x)") = \<open>
+simproc_setup defined_Bex ("\<exists>x\<in>A. P(x) \<and> Q(x)") = \<open>
   fn _ => Quantifier1.rearrange_Bex
     (fn ctxt => unfold_tac ctxt @{thms Bex_def})
 \<close>
@@ -29,15 +29,15 @@ simproc_setup defined_Ball ("\<forall>x\<in>A. P(x) \<longrightarrow> Q(x)") = \
 \<close>
 
 
-(** Lemmas for showing that <a,b> uniquely determines a and b **)
+(** Lemmas for showing that \<langle>a,b\<rangle> uniquely determines a and b **)
 
 lemma singleton_eq_iff [iff]: "{a} = {b} \<longleftrightarrow> a=b"
 by (rule extension [THEN iff_trans], blast)
 
-lemma doubleton_eq_iff: "{a,b} = {c,d} \<longleftrightarrow> (a=c & b=d) | (a=d & b=c)"
+lemma doubleton_eq_iff: "{a,b} = {c,d} \<longleftrightarrow> (a=c \<and> b=d) | (a=d \<and> b=c)"
 by (rule extension [THEN iff_trans], blast)
 
-lemma Pair_iff [simp]: "<a,b> = <c,d> \<longleftrightarrow> a=c & b=d"
+lemma Pair_iff [simp]: "\<langle>a,b\<rangle> = \<langle>c,d\<rangle> \<longleftrightarrow> a=c \<and> b=d"
 by (simp add: Pair_def doubleton_eq_iff, blast)
 
 lemmas Pair_inject = Pair_iff [THEN iffD1, THEN conjE, elim!]
@@ -45,8 +45,8 @@ lemmas Pair_inject = Pair_iff [THEN iffD1, THEN conjE, elim!]
 lemmas Pair_inject1 = Pair_iff [THEN iffD1, THEN conjunct1]
 lemmas Pair_inject2 = Pair_iff [THEN iffD1, THEN conjunct2]
 
-lemma Pair_not_0: "<a,b> \<noteq> 0"
-apply (unfold Pair_def)
+lemma Pair_not_0: "\<langle>a,b\<rangle> \<noteq> 0"
+  unfolding Pair_def
 apply (blast elim: equalityE)
 done
 
@@ -54,7 +54,7 @@ lemmas Pair_neq_0 = Pair_not_0 [THEN notE, elim!]
 
 declare sym [THEN Pair_neq_0, elim!]
 
-lemma Pair_neq_fst: "<a,b>=a ==> P"
+lemma Pair_neq_fst: "\<langle>a,b\<rangle>=a \<Longrightarrow> P"
 proof (unfold Pair_def)
   assume eq: "{{a, a}, {a, b}} = a"
   have  "{a, a} \<in> {{a, a}, {a, b}}" by (rule consI1)
@@ -63,7 +63,7 @@ proof (unfold Pair_def)
   ultimately show "P" by (rule mem_asym)
 qed
 
-lemma Pair_neq_snd: "<a,b>=b ==> P"
+lemma Pair_neq_snd: "\<langle>a,b\<rangle>=b \<Longrightarrow> P"
 proof (unfold Pair_def)
   assume eq: "{{a, a}, {a, b}} = b"
   have  "{a, b} \<in> {{a, a}, {a, b}}" by blast
@@ -77,10 +77,10 @@ subsection\<open>Sigma: Disjoint Union of a Family of Sets\<close>
 
 text\<open>Generalizes Cartesian product\<close>
 
-lemma Sigma_iff [simp]: "<a,b>: Sigma(A,B) \<longleftrightarrow> a \<in> A & b \<in> B(a)"
+lemma Sigma_iff [simp]: "\<langle>a,b\<rangle>: Sigma(A,B) \<longleftrightarrow> a \<in> A \<and> b \<in> B(a)"
 by (simp add: Sigma_def)
 
-lemma SigmaI [TC,intro!]: "[| a \<in> A;  b \<in> B(a) |] ==> <a,b> \<in> Sigma(A,B)"
+lemma SigmaI [TC,intro!]: "\<lbrakk>a \<in> A;  b \<in> B(a)\<rbrakk> \<Longrightarrow> \<langle>a,b\<rangle> \<in> Sigma(A,B)"
 by simp
 
 lemmas SigmaD1 = Sigma_iff [THEN iffD1, THEN conjunct1]
@@ -88,19 +88,19 @@ lemmas SigmaD2 = Sigma_iff [THEN iffD1, THEN conjunct2]
 
 (*The general elimination rule*)
 lemma SigmaE [elim!]:
-    "[| c \<in> Sigma(A,B);
-        !!x y.[| x \<in> A;  y \<in> B(x);  c=<x,y> |] ==> P
-     |] ==> P"
+    "\<lbrakk>c \<in> Sigma(A,B);
+        \<And>x y.\<lbrakk>x \<in> A;  y \<in> B(x);  c=\<langle>x,y\<rangle>\<rbrakk> \<Longrightarrow> P
+\<rbrakk> \<Longrightarrow> P"
 by (unfold Sigma_def, blast)
 
 lemma SigmaE2 [elim!]:
-    "[| <a,b> \<in> Sigma(A,B);
-        [| a \<in> A;  b \<in> B(a) |] ==> P
-     |] ==> P"
+    "\<lbrakk>\<langle>a,b\<rangle> \<in> Sigma(A,B);
+        \<lbrakk>a \<in> A;  b \<in> B(a)\<rbrakk> \<Longrightarrow> P
+\<rbrakk> \<Longrightarrow> P"
 by (unfold Sigma_def, blast)
 
 lemma Sigma_cong:
-    "[| A=A';  !!x. x \<in> A' ==> B(x)=B'(x) |] ==>
+    "\<lbrakk>A=A';  \<And>x. x \<in> A' \<Longrightarrow> B(x)=B'(x)\<rbrakk> \<Longrightarrow>
      Sigma(A,B) = Sigma(A',B')"
 by (simp add: Sigma_def)
 
@@ -120,52 +120,52 @@ by blast
 
 subsection\<open>Projections \<^term>\<open>fst\<close> and \<^term>\<open>snd\<close>\<close>
 
-lemma fst_conv [simp]: "fst(<a,b>) = a"
+lemma fst_conv [simp]: "fst(\<langle>a,b\<rangle>) = a"
 by (simp add: fst_def)
 
-lemma snd_conv [simp]: "snd(<a,b>) = b"
+lemma snd_conv [simp]: "snd(\<langle>a,b\<rangle>) = b"
 by (simp add: snd_def)
 
-lemma fst_type [TC]: "p \<in> Sigma(A,B) ==> fst(p) \<in> A"
+lemma fst_type [TC]: "p \<in> Sigma(A,B) \<Longrightarrow> fst(p) \<in> A"
 by auto
 
-lemma snd_type [TC]: "p \<in> Sigma(A,B) ==> snd(p) \<in> B(fst(p))"
+lemma snd_type [TC]: "p \<in> Sigma(A,B) \<Longrightarrow> snd(p) \<in> B(fst(p))"
 by auto
 
-lemma Pair_fst_snd_eq: "a \<in> Sigma(A,B) ==> <fst(a),snd(a)> = a"
+lemma Pair_fst_snd_eq: "a \<in> Sigma(A,B) \<Longrightarrow> <fst(a),snd(a)> = a"
 by auto
 
 
 subsection\<open>The Eliminator, \<^term>\<open>split\<close>\<close>
 
 (*A META-equality, so that it applies to higher types as well...*)
-lemma split [simp]: "split(%x y. c(x,y), <a,b>) == c(a,b)"
+lemma split [simp]: "split(\<lambda>x y. c(x,y), \<langle>a,b\<rangle>) \<equiv> c(a,b)"
 by (simp add: split_def)
 
 lemma split_type [TC]:
-    "[|  p \<in> Sigma(A,B);
-         !!x y.[| x \<in> A; y \<in> B(x) |] ==> c(x,y):C(<x,y>)
-     |] ==> split(%x y. c(x,y), p) \<in> C(p)"
+    "\<lbrakk>p \<in> Sigma(A,B);
+         \<And>x y.\<lbrakk>x \<in> A; y \<in> B(x)\<rbrakk> \<Longrightarrow> c(x,y):C(\<langle>x,y\<rangle>)
+\<rbrakk> \<Longrightarrow> split(\<lambda>x y. c(x,y), p) \<in> C(p)"
 by (erule SigmaE, auto)
 
 lemma expand_split:
-  "u \<in> A*B ==>
-        R(split(c,u)) \<longleftrightarrow> (\<forall>x\<in>A. \<forall>y\<in>B. u = <x,y> \<longrightarrow> R(c(x,y)))"
+  "u \<in> A*B \<Longrightarrow>
+        R(split(c,u)) \<longleftrightarrow> (\<forall>x\<in>A. \<forall>y\<in>B. u = \<langle>x,y\<rangle> \<longrightarrow> R(c(x,y)))"
 by (auto simp add: split_def)
 
 
 subsection\<open>A version of \<^term>\<open>split\<close> for Formulae: Result Type \<^typ>\<open>o\<close>\<close>
 
-lemma splitI: "R(a,b) ==> split(R, <a,b>)"
+lemma splitI: "R(a,b) \<Longrightarrow> split(R, \<langle>a,b\<rangle>)"
 by (simp add: split_def)
 
 lemma splitE:
-    "[| split(R,z);  z \<in> Sigma(A,B);
-        !!x y. [| z = <x,y>;  R(x,y) |] ==> P
-     |] ==> P"
+    "\<lbrakk>split(R,z);  z \<in> Sigma(A,B);
+        \<And>x y. \<lbrakk>z = \<langle>x,y\<rangle>;  R(x,y)\<rbrakk> \<Longrightarrow> P
+\<rbrakk> \<Longrightarrow> P"
 by (auto simp add: split_def)
 
-lemma splitD: "split(R,<a,b>) ==> R(a,b)"
+lemma splitD: "split(R,\<langle>a,b\<rangle>) \<Longrightarrow> R(a,b)"
 by (simp add: split_def)
 
 text \<open>
@@ -173,11 +173,11 @@ text \<open>
 \<close>
 
 lemma split_paired_Bex_Sigma [simp]:
-     "(\<exists>z \<in> Sigma(A,B). P(z)) \<longleftrightarrow> (\<exists>x \<in> A. \<exists>y \<in> B(x). P(<x,y>))"
+     "(\<exists>z \<in> Sigma(A,B). P(z)) \<longleftrightarrow> (\<exists>x \<in> A. \<exists>y \<in> B(x). P(\<langle>x,y\<rangle>))"
 by blast
 
 lemma split_paired_Ball_Sigma [simp]:
-     "(\<forall>z \<in> Sigma(A,B). P(z)) \<longleftrightarrow> (\<forall>x \<in> A. \<forall>y \<in> B(x). P(<x,y>))"
+     "(\<forall>z \<in> Sigma(A,B). P(z)) \<longleftrightarrow> (\<forall>x \<in> A. \<forall>y \<in> B(x). P(\<langle>x,y\<rangle>))"
 by blast
 
 end

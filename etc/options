@@ -19,7 +19,7 @@ option document_bibliography : bool = false
   -- "explicitly enable use of bibtex (default: according to presence of root.bib)"
 option document_build : string = "lualatex" (standard "build")
   -- "document build engine (e.g. build, lualatex, pdflatex)"
-option document_logo : string = ""
+option document_logo : string = "" (standard "_")
   -- "generate named instance of Isabelle logo (underscore means unnamed variant)"
 option document_heading_prefix : string = "isamarkup" (standard)
   -- "prefix for LaTeX macros generated from 'chapter', 'section' etc."
@@ -63,6 +63,10 @@ option show_main_goal : bool = false
   -- "show main goal when printing proof state"
 option goals_limit : int = 10
   -- "maximum number of subgoals to be printed"
+
+option show_states : bool = false
+  -- "show toplevel states even if outside of interactive mode"
+
 
 option names_long : bool = false
   -- "show fully qualified names"
@@ -133,7 +137,7 @@ option process_output_tail : int = 40
   -- "build process output tail shown to user (in lines, 0 = unlimited)"
 
 option profiling : string = "" (standard "time")
-  -- "ML profiling (possible values: time, allocations)"
+  -- "ML profiling (possible values: time, time_thread, allocations)"
 
 option system_log : string = "" (standard "-")
   -- "output for system messages (log file or \"-\" for console progress)"
@@ -157,7 +161,10 @@ public option ML_debugger : bool = false
   -- "ML debugger instrumentation for newly compiled code"
 
 public option ML_system_64 : bool = false
-  -- "ML system for 64bit platform is used if possible (change requires restart)"
+  -- "prefer native 64bit platform (change requires restart)"
+
+public option ML_system_apple : bool = true
+  -- "prefer native Apple/ARM64 platform (change requires restart)"
 
 public option ML_process_policy : string = ""
   -- "ML process command prefix (process policy)"
@@ -166,10 +173,10 @@ public option ML_process_policy : string = ""
 section "PIDE Build"
 
 option pide_reports : bool = true
-  -- "report PIDE markup"
+  -- "report PIDE markup (in ML)"
 
 option build_pide_reports : bool = true
-  -- "report PIDE markup in batch build"
+  -- "report PIDE markup (in batch build)"
 
 
 section "Editor Session"
@@ -283,28 +290,22 @@ public option spell_checker_exclude : string = "document_marker,antiquoted,raw_t
   -- "excluded markup elements for spell-checker (separated by commas)"
 
 
-section "Secure Shell"
+section "Secure Shell (OpenSSH)"
 
-option ssh_config_dir : string = "$HOME/.ssh"
-  -- "SSH configuration directory"
+public option ssh_batch_mode : bool = true
+  -- "enable SSH batch mode (no user interaction)"
 
-option ssh_config_file : string = "$HOME/.ssh/config"
-  -- "main SSH configuration file"
+public option ssh_multiplexing : bool = true
+  -- "enable multiplexing of SSH sessions (ignored on Windows)"
 
-option ssh_identity_files : string = "$HOME/.ssh/id_dsa:$HOME/.ssh/id_ecdsa:$HOME/.ssh/id_rsa"
-  -- "possible SSH identity files (separated by colons)"
-
-option ssh_compression : bool = true
+public option ssh_compression : bool = true
   -- "enable SSH compression"
 
-option ssh_connect_timeout : real = 60
-  -- "SSH connection timeout (seconds)"
+public option ssh_alive_interval : real = 30
+  -- "time interval to keep SSH server connection alive (seconds, ignore value < 0)"
 
-option ssh_alive_interval : real = 30
-  -- "time interval to keep SSH server connection alive (seconds)"
-
-option ssh_alive_count_max : int = 3
-  -- "maximum number of messages to keep SSH server connection alive"
+public option ssh_alive_count_max : int = 3
+  -- "maximum number of messages to keep SSH server connection alive (ignore value < 0)"
 
 
 section "Phabricator"

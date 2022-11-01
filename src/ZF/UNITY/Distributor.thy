@@ -13,8 +13,8 @@ text\<open>Distributor specification (the number of outputs is Nclients)\<close>
 text\<open>spec (14)\<close>
 
 definition
-  distr_follows :: "[i, i, i, i =>i] =>i"  where
-    "distr_follows(A, In, iIn, Out) ==
+  distr_follows :: "[i, i, i, i \<Rightarrow>i] \<Rightarrow>i"  where
+    "distr_follows(A, In, iIn, Out) \<equiv>
      (lift(In) IncreasingWrt prefix(A)/list(A)) \<inter>
      (lift(iIn) IncreasingWrt prefix(nat)/list(nat)) \<inter>
      Always({s \<in> state. \<forall>elt \<in> set_of_list(s`iIn). elt < Nclients})
@@ -22,18 +22,18 @@ definition
          (\<Inter>n \<in> Nclients.
           lift(Out(n))
               Fols
-          (%s. sublist(s`In, {k \<in> nat. k<length(s`iIn) & nth(k, s`iIn) = n}))
+          (\<lambda>s. sublist(s`In, {k \<in> nat. k<length(s`iIn) \<and> nth(k, s`iIn) = n}))
           Wrt prefix(A)/list(A))"
 
 definition
-  distr_allowed_acts :: "[i=>i]=>i"  where
-    "distr_allowed_acts(Out) ==
+  distr_allowed_acts :: "[i\<Rightarrow>i]\<Rightarrow>i"  where
+    "distr_allowed_acts(Out) \<equiv>
      {D \<in> program. AllowedActs(D) =
      cons(id(state), \<Union>G \<in> (\<Inter>n\<in>nat. preserves(lift(Out(n)))). Acts(G))}"
 
 definition
-  distr_spec :: "[i, i, i, i =>i]=>i"  where
-    "distr_spec(A, In, iIn, Out) ==
+  distr_spec :: "[i, i, i, i \<Rightarrow>i]\<Rightarrow>i"  where
+    "distr_spec(A, In, iIn, Out) \<equiv>
      distr_follows(A, In, iIn, Out) \<inter> distr_allowed_acts(Out)"
 
 locale distr =
@@ -43,31 +43,31 @@ locale distr =
     and A   \<comment> \<open>the type of items being distributed\<close>
     and D
  assumes
-     var_assumes [simp]:  "In \<in> var & iIn \<in> var & (\<forall>n. Out(n):var)"
+     var_assumes [simp]:  "In \<in> var \<and> iIn \<in> var \<and> (\<forall>n. Out(n):var)"
  and all_distinct_vars:   "\<forall>n. all_distinct([In, iIn, Out(n)])"
- and type_assumes [simp]: "type_of(In)=list(A) &  type_of(iIn)=list(nat) &
+ and type_assumes [simp]: "type_of(In)=list(A) \<and>  type_of(iIn)=list(nat) \<and>
                           (\<forall>n. type_of(Out(n))=list(A))"
  and default_val_assumes [simp]:
-                         "default_val(In)=Nil &
-                          default_val(iIn)=Nil &
+                         "default_val(In)=Nil \<and>
+                          default_val(iIn)=Nil \<and>
                           (\<forall>n. default_val(Out(n))=Nil)"
  and distr_spec:  "D \<in> distr_spec(A, In, iIn, Out)"
 
 
-lemma (in distr) In_value_type [simp,TC]: "s \<in> state ==> s`In \<in> list(A)"
-apply (unfold state_def)
+lemma (in distr) In_value_type [simp,TC]: "s \<in> state \<Longrightarrow> s`In \<in> list(A)"
+  unfolding state_def
 apply (drule_tac a = In in apply_type, auto)
 done
 
 lemma (in distr) iIn_value_type [simp,TC]:
-     "s \<in> state ==> s`iIn \<in> list(nat)"
-apply (unfold state_def)
+     "s \<in> state \<Longrightarrow> s`iIn \<in> list(nat)"
+  unfolding state_def
 apply (drule_tac a = iIn in apply_type, auto)
 done
 
 lemma (in distr) Out_value_type [simp,TC]:
-     "s \<in> state ==> s`Out(n):list(A)"
-apply (unfold state_def)
+     "s \<in> state \<Longrightarrow> s`Out(n):list(A)"
+  unfolding state_def
 apply (drule_tac a = "Out (n)" in apply_type)
 apply auto
 done
@@ -78,8 +78,8 @@ apply (auto simp add: distr_spec_def distr_allowed_acts_def)
 done
 
 lemma (in distr) D_ok_iff:
-     "G \<in> program ==>
-        D ok G \<longleftrightarrow> ((\<forall>n \<in> nat. G \<in> preserves(lift(Out(n)))) & D \<in> Allowed(G))"
+     "G \<in> program \<Longrightarrow>
+        D ok G \<longleftrightarrow> ((\<forall>n \<in> nat. G \<in> preserves(lift(Out(n)))) \<and> D \<in> Allowed(G))"
 apply (cut_tac distr_spec)
 apply (auto simp add: INT_iff distr_spec_def distr_allowed_acts_def
                       Allowed_def ok_iff_Allowed)
@@ -101,12 +101,12 @@ apply (auto intro!: guaranteesI intro: Follows_imp_Increasing_left
 done
 
 lemma (in distr) distr_bag_Follows_lemma:
-"[| \<forall>n \<in> nat. G \<in> preserves(lift(Out(n)));
+"\<lbrakk>\<forall>n \<in> nat. G \<in> preserves(lift(Out(n)));
    D \<squnion> G \<in> Always({s \<in> state.
-          \<forall>elt \<in> set_of_list(s`iIn). elt < Nclients}) |]
-  ==> D \<squnion> G \<in> Always
-          ({s \<in> state. msetsum(%n. bag_of (sublist(s`In,
-                       {k \<in> nat. k < length(s`iIn) &
+          \<forall>elt \<in> set_of_list(s`iIn). elt < Nclients})\<rbrakk>
+  \<Longrightarrow> D \<squnion> G \<in> Always
+          ({s \<in> state. msetsum(\<lambda>n. bag_of (sublist(s`In,
+                       {k \<in> nat. k < length(s`iIn) \<and>
                           nth(k, s`iIn)= n})),
                          Nclients, A) =
               bag_of(sublist(s`In, length(s`iIn)))})"
@@ -122,7 +122,7 @@ apply (subst bag_of_sublist_UN_disjoint [symmetric])
  apply (simp (no_asm_simp))
 apply (simp add: set_of_list_conv_nth [of _ nat])
 apply (subgoal_tac
-       "(\<Union>i \<in> Nclients. {k\<in>nat. k < length(s`iIn) & nth(k, s`iIn) = i}) =
+       "(\<Union>i \<in> Nclients. {k\<in>nat. k < length(s`iIn) \<and> nth(k, s`iIn) = i}) =
         length(s`iIn) ")
 apply (simp (no_asm_simp))
 apply (rule equalityI)
@@ -131,7 +131,7 @@ apply (rename_tac m)
 apply (subgoal_tac "length (s ` iIn) \<in> nat")
 apply typecheck
 apply (subgoal_tac "m \<in> nat")
-apply (drule_tac x = "nth(m, s`iIn) " and P = "%elt. X (elt) \<longrightarrow> elt<Nclients" for X in bspec)
+apply (drule_tac x = "nth(m, s`iIn) " and P = "\<lambda>elt. X (elt) \<longrightarrow> elt<Nclients" for X in bspec)
 apply (simp add: ltI)
 apply (simp_all add: Ord_mem_iff_lt)
 apply (blast dest: ltD)
@@ -144,9 +144,9 @@ theorem (in distr) distr_bag_Follows:
         Always({s \<in> state. \<forall>elt \<in> set_of_list(s`iIn). elt < Nclients}))
       guarantees
        (\<Inter>n \<in> Nclients.
-        (%s. msetsum(%i. bag_of(s`Out(i)),  Nclients, A))
+        (\<lambda>s. msetsum(\<lambda>i. bag_of(s`Out(i)),  Nclients, A))
         Fols
-        (%s. bag_of(sublist(s`In, length(s`iIn))))
+        (\<lambda>s. bag_of(sublist(s`In, length(s`iIn))))
         Wrt MultLe(A, r)/Mult(A))"
 apply (cut_tac distr_spec)
 apply (rule guaranteesI, clarify)

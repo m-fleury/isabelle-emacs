@@ -265,7 +265,7 @@ object Browser_Info {
       val name = snapshot.node_name
       if (plain_text) {
         val title = "File " + Symbol.cartouche_decoded(name.path.file_name)
-        val body = HTML.text(snapshot.node.source)
+        val body = HTML.text(snapshot.source)
         html_document(title, body, fonts_css)
       }
       else {
@@ -599,11 +599,10 @@ object Browser_Info {
       def err(): Nothing =
         error("Missing document information for theory: " + quote(theory_name))
 
-      val command = Build_Job.read_theory(session_context.theory(theory_name)) getOrElse err()
+      val snapshot = Build_Job.read_theory(session_context.theory(theory_name)) getOrElse err()
       val theory = context.theory_by_name(session_name, theory_name) getOrElse err()
 
       if (verbose) progress.echo("Presenting theory " + quote(theory_name))
-      val snapshot = Document.State.init.snippet(command)
 
       val thy_elements = theory.elements(context.elements)
 

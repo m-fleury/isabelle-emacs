@@ -12,27 +12,27 @@ no_notation
 
 (*First, we must simulate a record declaration:
 record ring = monoid +
-  add :: "[i, i] => i" (infixl "\<oplus>\<index>" 65)
+  add :: "[i, i] \<Rightarrow> i" (infixl "\<oplus>\<index>" 65)
   zero :: i ("\<zero>\<index>")
 *)
 
 definition
-  add_field :: "i => i" where
+  add_field :: "i \<Rightarrow> i" where
   "add_field(M) = fst(snd(snd(snd(M))))"
 
 definition
-  ring_add :: "[i, i, i] => i" (infixl \<open>\<oplus>\<index>\<close> 65) where
-  "ring_add(M,x,y) = add_field(M) ` <x,y>"
+  ring_add :: "[i, i, i] \<Rightarrow> i" (infixl \<open>\<oplus>\<index>\<close> 65) where
+  "ring_add(M,x,y) = add_field(M) ` \<langle>x,y\<rangle>"
 
 definition
-  zero :: "i => i" (\<open>\<zero>\<index>\<close>) where
+  zero :: "i \<Rightarrow> i" (\<open>\<zero>\<index>\<close>) where
   "zero(M) = fst(snd(snd(snd(snd(M)))))"
 
 
 lemma add_field_eq [simp]: "add_field(<C,M,I,A,z>) = A"
   by (simp add: add_field_def)
 
-lemma add_eq [simp]: "ring_add(<C,M,I,A,z>, x, y) = A ` <x,y>"
+lemma add_eq [simp]: "ring_add(<C,M,I,A,z>, x, y) = A ` \<langle>x,y\<rangle>"
   by (simp add: ring_add_def)
 
 lemma zero_eq [simp]: "zero(<C,M,I,A,Z,z>) = Z"
@@ -42,11 +42,11 @@ lemma zero_eq [simp]: "zero(<C,M,I,A,Z,z>) = Z"
 text \<open>Derived operations.\<close>
 
 definition
-  a_inv :: "[i,i] => i" (\<open>\<ominus>\<index> _\<close> [81] 80) where
-  "a_inv(R) == m_inv (<carrier(R), add_field(R), zero(R), 0>)"
+  a_inv :: "[i,i] \<Rightarrow> i" (\<open>\<ominus>\<index> _\<close> [81] 80) where
+  "a_inv(R) \<equiv> m_inv (<carrier(R), add_field(R), zero(R), 0>)"
 
 definition
-  minus :: "[i,i,i] => i" (\<open>(_ \<ominus>\<index> _)\<close> [65,66] 65) where
+  minus :: "[i,i,i] \<Rightarrow> i" (\<open>(_ \<ominus>\<index> _)\<close> [65,66] 65) where
   "\<lbrakk>x \<in> carrier(R); y \<in> carrier(R)\<rbrakk> \<Longrightarrow> x \<ominus>\<^bsub>R\<^esub> y = x \<oplus>\<^bsub>R\<^esub> (\<ominus>\<^bsub>R\<^esub> y)"
 
 locale abelian_monoid = fixes G (structure)
@@ -105,7 +105,7 @@ lemma (in abelian_group) a_inv_closed [intro, simp]:
 by (simp add: a_inv_def  group.inv_closed [OF a_group, simplified])
 
 lemma (in abelian_monoid) a_closed [intro, simp]:
-     "[| x \<in> carrier(G); y \<in> carrier(G) |] ==> x \<oplus> y \<in> carrier(G)"
+     "\<lbrakk>x \<in> carrier(G); y \<in> carrier(G)\<rbrakk> \<Longrightarrow> x \<oplus> y \<in> carrier(G)"
 by (rule monoid.m_closed [OF a_monoid,
                   simplified, simplified ring_add_def [symmetric]])
 
@@ -173,7 +173,7 @@ lemma (in abelian_group) minus_add:
 lemmas (in abelian_monoid) a_ac = a_assoc a_comm a_lcomm
 
 text \<open>
-  The following proofs are from Jacobson, Basic Algebra I, pp.~88--89
+  The following proofs are from Jacobson, Basic Algebra I, pp.\<not>88--89
 \<close>
 
 context ring
@@ -231,12 +231,12 @@ end
 subsection \<open>Morphisms\<close>
 
 definition
-  ring_hom :: "[i,i] => i" where
-  "ring_hom(R,S) ==
+  ring_hom :: "[i,i] \<Rightarrow> i" where
+  "ring_hom(R,S) \<equiv>
     {h \<in> carrier(R) -> carrier(S).
-      (\<forall>x y. x \<in> carrier(R) & y \<in> carrier(R) \<longrightarrow>
-        h ` (x \<cdot>\<^bsub>R\<^esub> y) = (h ` x) \<cdot>\<^bsub>S\<^esub> (h ` y) &
-        h ` (x \<oplus>\<^bsub>R\<^esub> y) = (h ` x) \<oplus>\<^bsub>S\<^esub> (h ` y)) &
+      (\<forall>x y. x \<in> carrier(R) \<and> y \<in> carrier(R) \<longrightarrow>
+        h ` (x \<cdot>\<^bsub>R\<^esub> y) = (h ` x) \<cdot>\<^bsub>S\<^esub> (h ` y) \<and>
+        h ` (x \<oplus>\<^bsub>R\<^esub> y) = (h ` x) \<oplus>\<^bsub>S\<^esub> (h ` y)) \<and>
       h ` \<one>\<^bsub>R\<^esub> = \<one>\<^bsub>S\<^esub>}"
 
 lemma ring_hom_memI:

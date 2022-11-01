@@ -13,15 +13,15 @@ imports AC_Equiv
 begin
 
 definition
-    "LEMMA ==
-     \<forall>X. ~Finite(X) \<longrightarrow> (\<exists>R. well_ord(X,R) & ~well_ord(X,converse(R)))"
+    "LEMMA \<equiv>
+     \<forall>X. \<not>Finite(X) \<longrightarrow> (\<exists>R. well_ord(X,R) \<and> \<not>well_ord(X,converse(R)))"
 
 (* ********************************************************************** *)
 (* It is easy to see that WO7 is equivalent to (**)                       *)
 (* ********************************************************************** *)
 
 lemma WO7_iff_LEMMA: "WO7 \<longleftrightarrow> LEMMA"
-apply (unfold WO7_def LEMMA_def)
+  unfolding WO7_def LEMMA_def
 apply (blast intro: Finite_well_ord_converse)
 done
 
@@ -29,8 +29,8 @@ done
 (* It is also easy to show that LEMMA implies WO1.                        *)
 (* ********************************************************************** *)
 
-lemma LEMMA_imp_WO1: "LEMMA ==> WO1"
-apply (unfold WO1_def LEMMA_def Finite_def eqpoll_def)
+lemma LEMMA_imp_WO1: "LEMMA \<Longrightarrow> WO1"
+  unfolding WO1_def LEMMA_def Finite_def eqpoll_def
 apply (blast intro!: well_ord_rvimage [OF bij_is_inj nat_implies_well_ord])
 done
 
@@ -48,16 +48,16 @@ done
 (* ********************************************************************** *)
 
 lemma converse_Memrel_not_wf_on: 
-    "[| Ord(a); ~Finite(a) |] ==> ~wf[a](converse(Memrel(a)))"
-apply (unfold wf_on_def wf_def)
+    "\<lbrakk>Ord(a); \<not>Finite(a)\<rbrakk> \<Longrightarrow> \<not>wf[a](converse(Memrel(a)))"
+  unfolding wf_on_def wf_def
 apply (drule nat_le_infinite_Ord [THEN le_imp_subset], assumption)
 apply (rule notI)
 apply (erule_tac x = nat in allE, blast)
 done
 
 lemma converse_Memrel_not_well_ord: 
-    "[| Ord(a); ~Finite(a) |] ==> ~well_ord(a,converse(Memrel(a)))"
-apply (unfold well_ord_def)
+    "\<lbrakk>Ord(a); \<not>Finite(a)\<rbrakk> \<Longrightarrow> \<not>well_ord(a,converse(Memrel(a)))"
+  unfolding well_ord_def
 apply (blast dest: converse_Memrel_not_wf_on)
 done
 
@@ -69,15 +69,15 @@ by (blast intro: ordertype_ord_iso [THEN ord_iso_sym] ord_iso_rvimage_eq
              Memrel_type [THEN subset_Int_iff [THEN iffD1]] trans)
 
 lemma well_ord_converse_Memrel:
-     "[| well_ord(A,r); well_ord(A,converse(r)) |]   
-      ==> well_ord(ordertype(A,r), converse(Memrel(ordertype(A,r))))" 
+     "\<lbrakk>well_ord(A,r); well_ord(A,converse(r))\<rbrakk>   
+      \<Longrightarrow> well_ord(ordertype(A,r), converse(Memrel(ordertype(A,r))))" 
 apply (subst well_ord_rvimage_ordertype [symmetric], assumption) 
 apply (rule rvimage_converse [THEN subst])
 apply (blast intro: ordertype_ord_iso ord_iso_sym ord_iso_is_bij
                     bij_is_inj well_ord_rvimage)
 done
 
-lemma WO1_imp_LEMMA: "WO1 ==> LEMMA"
+lemma WO1_imp_LEMMA: "WO1 \<Longrightarrow> LEMMA"
 apply (unfold WO1_def LEMMA_def, clarify) 
 apply (blast dest: well_ord_converse_Memrel
                    Ord_ordertype [THEN converse_Memrel_not_well_ord]
@@ -96,13 +96,13 @@ done
 (*            The proof of WO8 \<longleftrightarrow> WO1 (Rubin & Rubin p. 6)               *)
 (* ********************************************************************** *)
 
-lemma WO1_WO8: "WO1 ==> WO8"
+lemma WO1_WO8: "WO1 \<Longrightarrow> WO8"
 by (unfold WO1_def WO8_def, fast)
 
 
-(* The implication "WO8 ==> WO1": a faithful image of Rubin & Rubin's proof*)
-lemma WO8_WO1: "WO8 ==> WO1"
-apply (unfold WO1_def WO8_def)
+(* The implication "WO8 \<Longrightarrow> WO1": a faithful image of Rubin & Rubin's proof*)
+lemma WO8_WO1: "WO8 \<Longrightarrow> WO1"
+  unfolding WO1_def WO8_def
 apply (rule allI)
 apply (erule_tac x = "{{x}. x \<in> A}" in allE)
 apply (erule impE)

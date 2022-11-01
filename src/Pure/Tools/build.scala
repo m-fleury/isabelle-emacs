@@ -136,17 +136,24 @@ object Build {
 
   /** build with results **/
 
-  class Results private[Build](results: Map[String, (Option[Process_Result], Sessions.Info)]) {
+  class Results private[Build](
+    val store: Sessions.Store,
+    val deps: Sessions.Deps,
+    results: Map[String, (Option[Process_Result], Sessions.Info)],
+    val presentation_sessions: Browser_Info.Config => List[String]
+  ) {
+    def cache: Term.Cache = store.cache
+
     def sessions: Set[String] = results.keySet
-    def infos: List[Sessions.Info] = results.values.map(_._2).toList
     def cancelled(name: String): Boolean = results(name)._1.isEmpty
+    def info(name: String): Sessions.Info = results(name)._2
     def apply(name: String): Process_Result = results(name)._1.getOrElse(Process_Result(1))
-    def get_info(name: String): Option[Sessions.Info] = results.get(name).map(_._2)
-    def info(name: String): Sessions.Info = get_info(name).get
     val rc: Int =
       results.iterator.map({ case (_, (Some(r), _)) => r.rc case (_, (None, _)) => 1 }).
         foldLeft(Process_Result.RC.ok)(_ max _)
     def ok: Boolean = rc == Process_Result.RC.ok
+
+    def unfinished: List[String] = sessions.iterator.filterNot(apply(_).ok).toList.sorted
 
     override def toString: String = rc.toString
   }
@@ -198,9 +205,7 @@ object Build {
 
     val full_sessions =
       Sessions.load_structure(build_options, dirs = dirs, select_dirs = select_dirs, infos = infos)
-
     val full_sessions_selection = full_sessions.imports_selection(selection)
-    val full_sessions_selected = full_sessions_selection.toSet
 
     def sources_stamp(deps: Sessions.Deps, session_name: String): String = {
       val digests =
@@ -236,13 +241,6 @@ object Build {
     }
 
     val build_sessions = build_deps.sessions_structure
-
-    val presentation_sessions =
-      (for {
-        session_name <- build_sessions.build_topological_order.iterator
-        info <- build_sessions.get(session_name)
-        if full_sessions_selected(session_name) && browser_info.enabled(info) }
-      yield session_name).toList
 
 
     /* check unknown files */
@@ -408,10 +406,11 @@ object Build {
                 }
                 val all_current = current && ancestor_results.forall(_.current)
 
-                if (all_current)
+                if (all_current) {
                   loop(pending - session_name, running,
                     results +
                       (session_name -> Result(true, heap_digest, Some(Process_Result(0)), info)))
+                }
                 else if (no_build) {
                   progress.echo_if(verbose, "Skipping " + session_name + " ...")
                   loop(pending - session_name, running,
@@ -448,20 +447,29 @@ object Build {
     /* build results */
 
     val results = {
-      val results0 =
+      val build_results =
         if (build_deps.is_empty) {
           progress.echo_warning("Nothing to build")
           Map.empty[String, Result]
         }
         else Isabelle_Thread.uninterruptible { loop(queue, Map.empty, Map.empty) }
 
-      new Results(
-        (for ((name, result) <- results0.iterator)
-          yield (name, (result.process, result.info))).toMap)
+      val results =
+        (for ((name, result) <- build_results.iterator)
+          yield (name, (result.process, result.info))).toMap
+
+      def presentation_sessions(config: Browser_Info.Config): List[String] =
+        (for {
+          name <- build_sessions.build_topological_order.iterator
+          result <- build_results.get(name)
+          if result.ok && config.enabled(result.info)
+        } yield name).toList
+
+      new Results(store, build_deps, results, presentation_sessions)
     }
 
     if (export_files) {
-      for (name <- full_sessions.imports_selection(selection).iterator if results(name).ok) {
+      for (name <- full_sessions_selection.iterator if results(name).ok) {
         val info = results.info(name)
         if (info.export_files.nonEmpty) {
           progress.echo("Exporting " + info.name + " ...")
@@ -475,18 +483,14 @@ object Build {
       }
     }
 
-    if (results.rc != Process_Result.RC.ok && (verbose || !no_build)) {
-      val unfinished =
-        (for {
-          name <- results.sessions.iterator
-          if !results(name).ok
-         } yield name).toList.sorted
-      progress.echo("Unfinished session(s): " + commas(unfinished))
+    val presentation_sessions = results.presentation_sessions(browser_info)
+    if (presentation_sessions.nonEmpty && !progress.stopped) {
+      Browser_Info.build(browser_info, results.store, results.deps, presentation_sessions,
+        progress = progress, verbose = verbose)
     }
 
-    if (!no_build && !progress.stopped && results.ok && presentation_sessions.nonEmpty) {
-      Browser_Info.build(browser_info, store, build_deps, presentation_sessions,
-        progress = progress, verbose = verbose)
+    if (!results.ok && (verbose || !no_build)) {
+      progress.echo("Unfinished session(s): " + commas(results.unfinished))
     }
 
     results

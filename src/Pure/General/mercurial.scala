@@ -467,40 +467,38 @@ object Mercurial {
 
     /* remote repository */
 
-    val remote_url =
-      remote match {
-        case _ if remote.startsWith("ssh://") =>
-          val ssh_url = remote + "/" + repos_name
+    val remote_url = {
+      if (remote.startsWith("ssh://")) {
+        val ssh_url = remote + "/" + repos_name
 
-          if (!remote_exists) {
-            try { local_hg.command("init", ssh_url, repository = false).check }
-            catch { case ERROR(msg) => progress.echo_warning(msg) }
-          }
+        if (!remote_exists) {
+          try { local_hg.command("init", ssh_url, repository = false).check }
+          catch { case ERROR(msg) => progress.echo_warning(msg) }
+        }
 
-          ssh_url
-
-        case SSH.Target(user, host) =>
-          val phabricator = Phabricator.API(user, host)
-
-          var repos =
-            phabricator.get_repositories().find(r => r.short_name == repos_name) getOrElse {
-              if (remote_exists) {
-                error("Remote repository " +
-                  quote(phabricator.hg_url + "/source/" + repos_name) + " expected to exist")
-              }
-              else phabricator.create_repository(repos_name, short_name = repos_name)
-            }
-
-          while (repos.importing) {
-            progress.echo("Awaiting remote repository ...")
-            Time.seconds(0.5).sleep()
-            repos = phabricator.the_repository(repos.phid)
-          }
-
-          repos.ssh_url
-
-        case _ => error("Malformed remote specification " + quote(remote))
+        ssh_url
       }
+      else {
+        val phabricator = Phabricator.API(remote)
+
+        var repos =
+          phabricator.get_repositories().find(r => r.short_name == repos_name) getOrElse {
+            if (remote_exists) {
+              error("Remote repository " +
+                quote(phabricator.hg_url + "/source/" + repos_name) + " expected to exist")
+            }
+            else phabricator.create_repository(repos_name, short_name = repos_name)
+          }
+
+        while (repos.importing) {
+          progress.echo("Awaiting remote repository ...")
+          Time.seconds(0.5).sleep()
+          repos = phabricator.the_repository(repos.phid)
+        }
+
+        repos.ssh_url
+      }
+    }
 
     progress.echo("Remote repository " + quote(remote_url))
 
@@ -561,12 +559,13 @@ Usage: isabelle hg_setup [OPTIONS] REMOTE LOCAL_DIR
     Isabelle_Tool("hg_sync", "synchronize Mercurial repository with target directory",
       Scala_Project.here, { args =>
         var filter: List[String] = Nil
-        var root: Option[Path] = None
         var protect_args = false
+        var root: Option[Path] = None
+        var ssh_control_path = ""
         var thorough = false
         var dry_run = false
+        var ssh_port = 0
         var rev = ""
-        var port = SSH.default_port
         var verbose = false
 
         val getopts = Getopts("""
@@ -575,26 +574,27 @@ Usage: isabelle hg_sync [OPTIONS] TARGET
   Options are:
     -F RULE      add rsync filter RULE
                  (e.g. "protect /foo" to avoid deletion)
+    -P           protect spaces in target file names: more robust, less portable
     -R ROOT      explicit repository root directory
                  (default: implicit from current directory)
-    -S           robust (but less portable) treatment of spaces in
-                 file and directory names on the target
+    -S PATH      SSH control path for connection multiplexing
     -T           thorough treatment of file content and directory times
     -n           no changes: dry-run
+    -p PORT      SSH port
     -r REV       explicit revision (default: state of working directory)
-    -p PORT      explicit SSH port (default: """ + SSH.default_port + """)
     -v           verbose
 
   Synchronize Mercurial repository with TARGET directory,
   which can be local or remote (using notation of rsync).
 """,
           "F:" -> (arg => filter = filter ::: List(arg)),
+          "P" -> (_ => protect_args = true),
           "R:" -> (arg => root = Some(Path.explode(arg))),
-          "S" -> (_ => protect_args = true),
+          "S:" -> (arg => ssh_control_path = arg),
           "T" -> (_ => thorough = true),
           "n" -> (_ => dry_run = true),
+          "p:" -> (arg => ssh_port = Value.Int.parse(arg)),
           "r:" -> (arg => rev = arg),
-          "p:" -> (arg => port = Value.Int.parse(arg)),
           "v" -> (_ => verbose = true))
 
         val more_args = getopts(args)
@@ -610,7 +610,8 @@ Usage: isabelle hg_sync [OPTIONS] TARGET
             case Some(dir) => repository(dir)
             case None => the_repository(Path.current)
           }
-        val context = Rsync.Context(progress, port = port, protect_args = protect_args)
+        val context = Rsync.Context(progress, ssh_port = ssh_port,
+          ssh_control_path = ssh_control_path, protect_args = protect_args)
         hg.sync(context, target, verbose = verbose, thorough = thorough,
           dry_run = dry_run, filter = filter, rev = rev)
       }

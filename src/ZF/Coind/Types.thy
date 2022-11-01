@@ -24,8 +24,8 @@ datatype
           | te_owr ("te \<in> TyEnv","x \<in> ExVar","t \<in> Ty") 
 
 consts
-  te_dom :: "i => i"
-  te_app :: "[i,i] => i"
+  te_dom :: "i \<Rightarrow> i"
+  te_app :: "[i,i] \<Rightarrow> i"
 
 
 primrec (*domain of the type environment*)
@@ -43,7 +43,7 @@ lemma te_app_owr1: "te_app(te_owr(te,x,t),x) = t"
 by simp
 
 (*redundant??*)
-lemma te_app_owr2: "x \<noteq> y ==> te_app(te_owr(te,x,t),y) = te_app(te,y)"
+lemma te_app_owr2: "x \<noteq> y \<Longrightarrow> te_app(te_owr(te,x,t),y) = te_app(te,y)"
 by auto
 
 lemma te_app_owr [simp]:
@@ -51,7 +51,7 @@ lemma te_app_owr [simp]:
 by auto
 
 lemma te_appI:
-     "[| te \<in> TyEnv; x \<in> ExVar; x \<in> te_dom(te) |] ==> te_app(te,x) \<in> Ty"
+     "\<lbrakk>te \<in> TyEnv; x \<in> ExVar; x \<in> te_dom(te)\<rbrakk> \<Longrightarrow> te_app(te,x) \<in> Ty"
 apply (erule_tac P = "x \<in> te_dom (te) " in rev_mp)
 apply (erule TyEnv.induct, auto)
 done

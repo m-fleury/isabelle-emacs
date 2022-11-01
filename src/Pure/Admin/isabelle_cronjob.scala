@@ -135,12 +135,8 @@ object Isabelle_Cronjob {
   sealed case class Remote_Build(
     description: String,
     host: String,
-    actual_host: String = "",
     user: String = "",
     port: Int = 0,
-    proxy_host: String = "",
-    proxy_user: String = "",
-    proxy_port: Int = 0,
     historic: Boolean = false,
     history: Int = 0,
     history_base: String = "build_history_base",
@@ -153,10 +149,8 @@ object Isabelle_Cronjob {
     detect: PostgreSQL.Source = "",
     active: Boolean = true
   ) {
-    def ssh_session(context: SSH.Context): SSH.Session =
-      context.open_session(host = host, user = user, port = port, actual_host = actual_host,
-        proxy_host = proxy_host, proxy_user = proxy_user, proxy_port = proxy_port,
-        permissive = proxy_host.nonEmpty)
+    def open_session(options: Options): SSH.Session =
+      SSH.open_session(options, host = host, user = user, port = port)
 
     def sql: PostgreSQL.Source =
       Build_Log.Prop.build_engine.toString + " = " + SQL.string(Build_History.engine) + " AND " +
@@ -209,11 +203,9 @@ object Isabelle_Cronjob {
   val remote_builds_old: List[Remote_Build] =
     List(
       Remote_Build("macOS 10.15 Catalina", "laramac01", user = "makarius",
-        proxy_host = "laraserver", proxy_user = "makarius",
         options = "-m32 -M4 -e ISABELLE_GHC_SETUP=true -p pide_session=false",
         args = "-a -d '~~/src/Benchmarks'"),
       Remote_Build("Linux A", "i21of4", user = "i21isatest",
-        proxy_host = "lxbroy10", proxy_user = "i21isatest",
         options = "-m32 -M1x4,2,4" +
           " -e ISABELLE_OCAML=ocaml -e ISABELLE_OCAMLC=ocamlc -e ISABELLE_OCAML_SETUP=true" +
           " -e ISABELLE_GHC_SETUP=true" +
@@ -235,7 +227,6 @@ object Isabelle_Cronjob {
         options = "-m32 -M1,2 -e ISABELLE_GHC_SETUP=true -p pide_session=false",
         args = "-a -d '~~/src/Benchmarks'"),
       Remote_Build("AFP old bulky", "lrzcloud1",
-        proxy_host = "lxbroy10", proxy_user = "i21isatest",
         options = "-m64 -M6 -U30000 -s10 -t AFP",
         args = "-g large -g slow",
         afp = true,
@@ -318,7 +309,7 @@ object Isabelle_Cronjob {
           options = "-m32 -B -M4" +
             " -e ISABELLE_OCAML=ocaml -e ISABELLE_OCAMLC=ocamlc -e ISABELLE_OCAMLFIND=ocamlfind" +
             " -e ISABELLE_GHC_SETUP=true" +
-            " -e ISABELLE_MLTON=mlton" +
+            " -e ISABELLE_MLTON=mlton -e ISABELLE_MLTON_OPTIONS=" +
             " -e ISABELLE_SMLNJ=sml" +
             " -e ISABELLE_SWIPL=swipl",
           args = "-a -d '~~/src/Benchmarks'")),
@@ -332,7 +323,7 @@ object Isabelle_Cronjob {
           options = "-m32 -B -M1x2,2,4 -p pide_session=false" +
             " -e ISABELLE_OCAML=ocaml -e ISABELLE_OCAMLC=ocamlc -e ISABELLE_OCAML_SETUP=true" +
             " -e ISABELLE_GHC_SETUP=true" +
-            " -e ISABELLE_MLTON=/usr/local/bin/mlton" +
+            " -e ISABELLE_MLTON=/usr/local/bin/mlton -e ISABELLE_MLTON_OPTIONS=" +
             " -e ISABELLE_SMLNJ=/usr/local/smlnj/bin/sml" +
             " -e ISABELLE_SWIPL=/usr/local/bin/swipl",
           args = "-a -d '~~/src/Benchmarks'")),
@@ -341,7 +332,7 @@ object Isabelle_Cronjob {
           options = "-m32 -B -M1x2,2,4 -p pide_session=false" +
             " -e ISABELLE_OCAML=ocaml -e ISABELLE_OCAMLC=ocamlc -e ISABELLE_OCAML_SETUP=true" +
             " -e ISABELLE_GHC_SETUP=true" +
-            " -e ISABELLE_MLTON=/usr/local/bin/mlton" +
+            " -e ISABELLE_MLTON=/usr/local/bin/mlton -e ISABELLE_MLTON_OPTIONS=" +
             " -e ISABELLE_SMLNJ=/usr/local/smlnj/bin/sml" +
             " -e ISABELLE_SWIPL=/usr/local/bin/swipl",
           args = "-a -d '~~/src/Benchmarks'"),
@@ -353,8 +344,7 @@ object Isabelle_Cronjob {
           options = "-m32 -M4 -t skip_proofs -p pide_session=false", args = "-a -o skip_proofs",
           detect = Build_Log.Prop.build_tags.toString + " = " + SQL.string("skip_proofs"))),
       List(
-        Remote_Build("macOS 10.15 Catalina", "monterey", actual_host = "laramac01",
-          user = "makarius", proxy_host = "laraserver", proxy_user = "makarius",
+        Remote_Build("macOS 10.15 Catalina", "monterey", user = "makarius",
           options = "-m32 -M4 -e ISABELLE_GHC_SETUP=true -p pide_session=false",
           args = "-a -d '~~/src/Benchmarks'")),
       List(
@@ -381,19 +371,17 @@ object Isabelle_Cronjob {
   val remote_builds2: List[List[Remote_Build]] =
     List(
       List(
-        Remote_Build("AFP", "lrzcloud2", actual_host = "10.195.4.41",
-          proxy_host = "lxbroy10", proxy_user = "i21isatest",
+        Remote_Build("AFP", "lrzcloud2",
           java_heap = "8g",
           options = "-m32 -M1x6 -t AFP" +
             " -e ISABELLE_GHC=ghc" +
-            " -e ISABELLE_MLTON=mlton" +
+            " -e ISABELLE_MLTON=mlton -e ISABELLE_MLTON_OPTIONS=" +
             " -e ISABELLE_OCAML=ocaml -e ISABELLE_OCAMLC=ocamlc -e ISABELLE_OCAMLFIND=ocamlfind" +
             " -e ISABELLE_SMLNJ=sml",
           args = "-a -X large -X slow",
           afp = true,
           detect = Build_Log.Prop.build_tags.toString + " = " + SQL.string("AFP")),
-        Remote_Build("AFP", "lrzcloud2", actual_host = "10.195.4.41",
-          proxy_host = "lxbroy10", proxy_user = "i21isatest",
+        Remote_Build("AFP", "lrzcloud2",
           java_heap = "8g",
           options = "-m64 -M8 -U30000 -s10 -t AFP",
           args = "-g large -g slow",
@@ -410,7 +398,7 @@ object Isabelle_Cronjob {
     val task_name = "build_history-" + r.host
     Logger_Task(task_name,
       { logger =>
-        using(r.ssh_session(logger.ssh_context)) { ssh =>
+        using(r.open_session(logger.options)) { ssh =>
           val results =
             Build_History.remote_build(ssh,
               isabelle_repos,
@@ -443,10 +431,10 @@ object Isabelle_Cronjob {
 
   object Log_Service {
     def apply(options: Options, progress: Progress = new Progress): Log_Service =
-      new Log_Service(SSH.init_context(options), progress)
+      new Log_Service(options, progress)
   }
 
-  class Log_Service private(val ssh_context: SSH.Context, progress: Progress) {
+  class Log_Service private(val options: Options, progress: Progress) {
     current_log.file.delete
 
     private val thread: Consumer_Thread[String] =
@@ -493,12 +481,11 @@ object Isabelle_Cronjob {
   }
 
   class Logger private[Isabelle_Cronjob](
-    val log_service: Log_Service,
+    log_service: Log_Service,
     val start_date: Date,
     val task_name: String
   ) {
-    def ssh_context: SSH.Context = log_service.ssh_context
-    def options: Options = ssh_context.options
+    def options: Options = log_service.options
 
     def log(date: Date, msg: String): Unit = log_service.log(date, task_name, msg)
 

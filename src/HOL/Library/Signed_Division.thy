@@ -7,9 +7,13 @@ theory Signed_Division
   imports Main
 begin
 
-class signed_division = comm_semiring_1_cancel +
+class signed_divide =
   fixes signed_divide :: \<open>'a \<Rightarrow> 'a \<Rightarrow> 'a\<close> (infixl \<open>sdiv\<close> 70)
-  and signed_modulo :: \<open>'a \<Rightarrow> 'a \<Rightarrow> 'a\<close> (infixl \<open>smod\<close> 70)
+
+class signed_modulo =
+  fixes signed_modulo :: \<open>'a \<Rightarrow> 'a \<Rightarrow> 'a\<close> (infixl \<open>smod\<close> 70)
+
+class signed_division = comm_semiring_1_cancel + signed_divide + signed_modulo +
   assumes sdiv_mult_smod_eq: \<open>a sdiv b * b + a smod b = a\<close>
 begin
 
@@ -147,20 +151,16 @@ lemma sdiv_int_range:
 lemma smod_int_range:
   \<open>a smod b \<in> {- \<bar>b\<bar> + 1..\<bar>b\<bar> - 1}\<close>
   if \<open>b \<noteq> 0\<close> for a b :: int
-  using that
-  apply (cases \<open>b > 0\<close>)
-   apply (insert pos_mod_conj [where a=a and b=b])[1]
-   apply (insert pos_mod_conj [where a="-a" and b=b])[1]
-   apply (auto simp: smod_int_alt_def algebra_simps sgn_if
-              abs_if not_less add1_zle_eq [simplified add.commute])[1]
-    apply (metis add_nonneg_nonneg int_one_le_iff_zero_less le_less less_add_same_cancel2 not_le pos_mod_conj)
-  apply (metis (full_types) add.inverse_inverse eucl_rel_int eucl_rel_int_iff le_less_trans neg_0_le_iff_le)
-  apply (insert neg_mod_conj [where a=a and b="b"])[1]
-  apply (insert neg_mod_conj [where a="-a" and b="b"])[1]
-  apply (clarsimp simp: smod_int_alt_def algebra_simps sgn_if
-            abs_if not_less add1_zle_eq [simplified add.commute])
-  apply (metis neg_0_less_iff_less neg_mod_conj not_le not_less_iff_gr_or_eq order_trans pos_mod_conj)
-  done
+proof -
+  define m n where \<open>m = nat \<bar>a\<bar>\<close> \<open>n = nat \<bar>b\<bar>\<close>
+  then have \<open>\<bar>a\<bar> = int m\<close> \<open>\<bar>b\<bar> = int n\<close>
+    by simp_all
+  with that have \<open>n > 0\<close>
+    by simp
+  with signed_modulo_int_def [of a b] \<open>\<bar>a\<bar> = int m\<close> \<open>\<bar>b\<bar> = int n\<close>
+  show ?thesis
+    by (auto simp add: sgn_if diff_le_eq int_one_le_iff_zero_less simp flip: of_nat_mod of_nat_diff)
+qed
 
 lemma smod_int_compares:
    "\<lbrakk> 0 \<le> a; 0 < b \<rbrakk> \<Longrightarrow> (a :: int) smod b < b"

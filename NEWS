@@ -4,13 +4,17 @@ Isabelle NEWS -- history of user-relevant changes
 (Note: Isabelle/jEdit shows a tree-view of the NEWS file in Sidekick.)
 
 
-New in this Isabelle version
-----------------------------
+New in Isabelle2022 (October 2022)
+----------------------------------
 
 *** General ***
 
-* Old-style {* verbatim *} tokens have been discontinued (legacy feature
-since Isabelle2019). INCOMPATIBILITY, use \<open>cartouche\<close> syntax instead.
+* The instantiation of schematic goals is now displayed explicitly as a
+list of variable assignments. This works for proof state output, and at
+the end of a toplevel proof. In rare situations, a proof command or
+proof method may violate the intended goal discipline, by not producing
+an instance of the original goal, but there is only a warning, no hard
+error.
 
 * Session ROOT files support 'chapter_definition' entries (optional).
 This allows to associate additional information as follows:
@@ -20,6 +24,16 @@ This allows to associate additional information as follows:
 
   - "chapter_definition NAME description TEXT" to provide a description
   for presentation purposes
+
+* Old-style {* verbatim *} tokens have been discontinued (legacy feature
+since Isabelle2019). INCOMPATIBILITY, use \<open>cartouche\<close> syntax instead.
+
+
+*** Isabelle/jEdit Prover IDE ***
+
+* Command 'print_state' outputs a plain message, i.e. "writeln" instead
+of "state". Thus it is displayed in the Output panel, even if the option
+"editor_output_state" is disabled.
 
 
 *** Isabelle/VSCode Prover IDE ***
@@ -66,31 +80,66 @@ presented session.
 
 *** HOL ***
 
-* HOL-Algebra: Facts renamed to avoid fact name clashes on interpretation:
+* HOL record types: new simproc that sorts update expressions, guarded
+by configuration option "record_sort_updates" (default: false). Some
+examples are in theory "HOL-Examples.Records".
 
-    is_ring ~> ring_axioms
-    cring ~> cring_axioms
-    R_def ~> R_m_def
+* More explanations on the new, verified order prover for partial and
+linear orders, which first appeared in Isabelle2021-1.
 
+The order prover rearranges the goal to prove False, then retrieves
+order literals (i.e. x = y, x <= y, x < y, and their negated versions)
+from the premises and finally tries to derive a contradiction. Its main
+use case is as a solver to the Simplifier, where it e.g. solves premises
+of conditional rewrite rules.
+
+The new prover (src/Provers/order_tac.ML) replaces the old prover
+(src/Provers/order.ML) and improves upon the old one in several ways:
+
+  - The completeness of the prover is verified in Isabelle (see the ATVA
+    2021 paper "A Verified Decision Procedure for Orders in
+    Isabelle/HOL").
+
+  - The new prover is complete for partial orders.
+
+  - The interface to register new orders was reworked to reduce
+    boilerplate.
+
+The prover has two configuration attributes that control its behaviour:
+
+  - order_trace (default: false) to enable tracing for the solver.
+
+  - order_split_limit (default: 8) to limit the number of order literals
+    of the form ~ x < y that are passed to the solver since those lead
+    to case splitting and thus exponential runtime. This only applies to
+    partial orders.
+
+The prover is agnostic to the object-logic, but the default setup is for
+HOL: see theory HOL.Orderings with ML structure HOL_Order_Tac. The
+structure allows us to register new orders with the functions
+HOL_Order_Tac.declare_order and HOL_Order_Tac.declare_linorder. Using
+these functions, we register the orders of the type classes order and
+linorder with the solver. If possible, one should instantiate these type
+classes instead of adding new orders to the solver. One can also
+interpret the type class locale as in src/HOL/Library/Sublist.thy, which
+contains e.g. the prefix order on lists.
+
+The proof method "order" invokes the prover in a standalone fashion.
+
+The diagnostic command 'print_orders' shows all orders known to the
+prover in the current context.
+
+* Meson: added support for polymorphic "using" facts. Minor
 INCOMPATIBILITY.
 
 * Moved auxiliary computation constant "divmod_nat" to theory
-"Euclidean_Division".  Minor INCOMPATIBILITY.
+"HOL.Euclidean_Division". Minor INCOMPATIBILITY.
 
-* Renamed attribute "arith_split" to "linarith_split".  Minor
+* Renamed attribute "arith_split" to "linarith_split". Minor
 INCOMPATIBILITY.
 
-* Theory Char_ord: streamlined logical specifications.
-Minor INCOMPATIBILITY.
-
-* New Theory Code_Abstract_Char implements characters by target language
-integers, sacrificing pattern patching in exchange for dramatically
-increased performance for comparisons.
-
-* New theory HOL-Library.NList of fixed length lists.
-
-* Rule split_of_bool_asm is not split any longer, analogously to
-split_if_asm.  INCOMPATIBILITY.
+* Theory "HOL.Rings": rule split_of_bool_asm is not split any longer,
+analogously to split_if_asm. INCOMPATIBILITY.
 
 * Theory "HOL.Bit_Operations": rule bit_0 is not default [simp] any
 longer. INCOMPATIBILITY.
@@ -104,8 +153,15 @@ INCOMPATIBILITY.
     compatibility but its usage is discouraged. Minor INCOMPATIBILITY.
   - Changed argument order of mono_on and strict_mono_on to uniformize
     with monotone_on and the general "characterizing set at the beginning
-    of predicates" preference. Also change them to be abbreviation of
-    monotone_of. Minor INCOMPATIBILITY
+    of predicates" preference. Also change them to be abbreviations
+    of monotone_of. Lemmas mono_on_def and strict_mono_on_def are
+    explicitly provided for backward compatibility but their usage is
+    discouraged. INCOMPATIBILITY.
+  - Move mono, strict_mono, antimono, and relevant lemmas to Fun theory.
+    Also change them to be abbreviations of mono_on, strict_mono_on,
+    and monotone, respectively. Lemmas mono_def, strict_mono_def, and
+    antimono_def are explicitly provided for backward compatibility but
+    their usage is discouraged. Minor INCOMPATIBILITY.
   - Added lemmas.
       monotone_onD
       monotone_onI
@@ -146,6 +202,19 @@ INCOMPATIBILITY.
       total_on_trancl
       totalp_on_tranclp
 
+* Theory "HOL-Library.Signed_Division": class signed_division carries
+assumptions; use syntactic type classes signed_division and
+signed_modulo as alternatives.
+
+* New theory "HOL-Library.NList" of fixed length lists.
+
+* New Theory "HOL-Library.Code_Abstract_Char" implements characters by
+target language integers, sacrificing pattern patching in exchange for
+dramatically increased performance for comparisons.
+
+* Theory "HOL-Library.Char_ord": streamlined logical specifications.
+Minor INCOMPATIBILITY.
+
 * Theory "HOL-Library.Multiset":
   - Consolidated operation and fact names.
         multp ~> multp_code
@@ -174,55 +243,63 @@ INCOMPATIBILITY.
       monotone_on_multp_multp_image_mset
       multp_image_mset_image_msetD
 
-* Theory "HOL-Library.Sublist":
-  - Added lemma map_mono_strict_suffix.
+* Theory "HOL-Library.Sublist": added lemma map_mono_strict_suffix.
 
-* Theory "HOL-ex.Sum_of_Powers":
-  - Deleted. The same material is in the AFP as Bernoulli.
+* Theory "HOL-ex.Sum_of_Powers" has been deleted. The same material is
+in the AFP as Bernoulli.
 
-* Nitpick: To avoid technical issues, prefer non-JNI solvers to JNI solvers by
-  default. Minor INCOMPATIBILITY.
+* Session HOL-Algebra: some facts have been renamed to avoid fact name
+clashes on interpretation:
+
+    is_ring ~> ring_axioms
+    cring ~> cring_axioms
+    R_def ~> R_m_def
+
+INCOMPATIBILITY.
+
+* Nitpick: To avoid technical issues, prefer non-JNI solvers to JNI
+solvers by default. Minor INCOMPATIBILITY.
 
 * Sledgehammer:
-  - Redesigned multithreading to provide more fine grained prover schedules.
-    The binary option 'slice' has been replaced by a numeric value 'slices'
-    indicating the number of desired slices. Stronger provers can now be run by
-    more than one thread simultaneously. The new option 'max_proofs' controls
-    the number of proofs shown. INCOMPATIBILITY.
-  - Introduced sledgehammer_outcome data type and changed return type of ML
-    function Sledgehammer.run_sledgehammer from "bool * (string * string list)"
-    to "bool * (sledgehammer_outcome * string)". The former value can be
-    recomputed with "apsnd (ATP_Util.map_prod
+  - Redesigned multithreading to provide more fine grained prover
+    schedules. The binary option 'slice' has been replaced by a numeric
+    value 'slices' indicating the number of desired slices. Stronger
+    provers can now be run by more than one thread simultaneously. The
+    new option 'max_proofs' controls the number of proofs shown.
+    INCOMPATIBILITY.
+  - Introduced sledgehammer_outcome data type and changed return type of
+    ML function Sledgehammer.run_sledgehammer from "bool * (string *
+    string list)" to "bool * (sledgehammer_outcome * string)". The
+    former value can be recomputed with "apsnd (ATP_Util.map_prod
     Sledgehammer.short_string_of_sledgehammer_outcome single)".
     INCOMPATIBILITY.
   - Added support for TX0 and TX1 TPTP formats and $ite/$let expressions
     in TH0 and TH1.
   - Added support for cvc5.
-  - Generate Isar proofs by default when and only when the one-liner proof
-    fails to replay and the Isar proof succeeds.
+  - Generate Isar proofs by default when and only when the one-liner
+    proof fails to replay and the Isar proof succeeds.
   - Replaced option "sledgehammer_atp_dest_dir" by
     "sledgehammer_atp_problem_dest_dir", for problem files, and
-    "sledgehammer_atp_proof_dest_dir", for proof files. Minor INCOMPATIBILITY.
+    "sledgehammer_atp_proof_dest_dir", for proof files. Minor
+    INCOMPATIBILITY.
   - Removed support for experimental prover 'z3_tptp'.
   - The fastest successfully preplayed proof is always suggested.
-  - All SMT solvers but Z3 now resort to suggest (smt (verit)) when no proof
-    could be preplayed.
-  - Added new "some_preplayed" value to "expect" option to specify that some
-    successfully preplayed proof is expected. This is in contrast to the "some"
-    value which doesn't specify whether preplay succeeds or not.
+  - All SMT solvers but Z3 now resort to suggest (smt (verit)) when no
+    proof could be preplayed.
+  - Added new "some_preplayed" value to "expect" option to specify that
+    some successfully preplayed proof is expected. This is in contrast
+    to the "some" value which doesn't specify whether preplay succeeds
+    or not.
 
 * Mirabelle:
-  - Replaced sledgehammer option "keep" by
-    "keep_probs", for problems files, and
-    "keep_proofs" for proof files. Minor INCOMPATIBILITY.
-  - Added option "-r INT" to randomize the goals with a given 64-bit seed before
-    selection.
+  - Replaced sledgehammer option "keep" by "keep_probs", for problems
+    files, and "keep_proofs" for proof files. Minor INCOMPATIBILITY.
+  - Added option "-r INT" to randomize the goals with a given 64-bit
+    seed before selection.
   - Added option "-y" for a dry run.
-  - Renamed run_action to run in Mirabelle.action record. Minor INCOMPATIBILITY.
+  - Renamed run_action to run in Mirabelle.action record. Minor
+    INCOMPATIBILITY.
   - Run the actions on goals before commands "unfolding" and "using".
-
-* Meson
-  - Added support for polymorphic "using" facts. Minor INCOMPATIBILITY.
 
 * (Co)datatype package:
   - BNFs now require a strict cardinality bound (<o instead of \<le>o).
@@ -231,8 +308,8 @@ INCOMPATIBILITY.
 
 * More ambitious minimization of case expressions in generated code.
 
-* Code generation for Scala: type annotations in pattern bindings
-  are printed in a way suitable for Scala 3.
+* Code generation for Scala: type annotations in pattern bindings are
+printed in a way suitable for Scala 3.
 
 
 *** ML ***
@@ -254,6 +331,20 @@ the classic Java-style syntax, not the new Python-style syntax).
 Occasional INCOMPATIBILITY, see also the official Scala documentation
 https://docs.scala-lang.org/scala3/guides/migration/compatibility-intro.html
 
+* External Isabelle tools implemented as .scala scripts are no longer
+supported. INCOMPATIBILITY, instead provide a proper Isabelle/Scala
+module with etc/build.props and "services" for a suitable class instance
+of isabelle.Isabelle_Scala_Tools. For example, see
+$ISABELLE_HOME/etc/build.props and its isabelle.Tools, which defines the
+standard Isabelle tools.
+
+* The session build database now maintains an additional "uuid" column
+to identity the original build process uniquely. Thus other tools may
+dependent symbolically on a particular build instance.
+
+* Command-line tool "isabelle build_docker" supports Docker within Snap
+more robustly; see also option -W.
+
 * Command-line tool "isabelle scala_project" supports Gradle as
 alternative to Maven: either option -G or -M needs to be specified
 explicitly. This increases the chances that the Java/Scala IDE project
@@ -270,16 +361,78 @@ builds on the remote side. This tool requires a Mercurial clone of the
 Isabelle repository: a regular download of the distribution will not
 work!
 
-* The session build database now maintains an additional "uuid" column
-to identity the original build process uniquely. Thus other tools may
-dependent symbolically on a particular build instance.
+* Command-line tool "isabelle log" has been refined to support multiple
+sessions, and to match messages against regular expressions (using Java
+Pattern syntax).
 
-* External Isabelle tools implemented as .scala scripts are no longer
-supported. INCOMPATIBILITY, instead provide a proper Isabelle/Scala
-module with etc/build.props and "services" for a suitable class instance
-of isabelle.Isabelle_Scala_Tools. For example, see
-$ISABELLE_HOME/etc/build.props and its isabelle.Tools, which defines the
-standard Isabelle tools.
+* System option "show_states" controls output of toplevel command states
+(notably proof states) in batch-builds; in interactive mode this is
+always done on demand. The option is relevant for tools that operate on
+exported PIDE markup, e.g. document presentation or diagnostics. For
+example:
+
+  isabelle build -o show_states FOL-ex
+  isabelle log -v -U FOL-ex
+
+Option "show_states" is also the default for the configuration option
+"show_results" within the formal context.
+
+Note that printing intermediate states may cause considerable slowdown
+in building a session.
+
+* Session ROOT entries support 'export_classpath' to augment the
+Java/Scala name space for tools that allow dynamic loading of service
+classes within a session context. A notable example is document
+preparation, which works via the class isabelle.Document_Build.Engine
+and is configured by the corresponding system option "document_build".
+The Isabelle/Isar command 'scala_build_generated_files' helps to produce
+a suitable .jar module for inclusion via 'export_classpath'.
+
+* Isabelle/Scala SSH connections now use regular OpenSSH executables
+from the local system: ssh, scp, sftp; the old ssh-java component has
+been discontinued. This has various practical consequences:
+
+  - Authentication and configuration works accurately via the official
+    .ssh/known_hosts and .ssh/config files.
+
+  - Host connections are usually shared (via multiplexed channels), to
+    reduce the overhead for multiple commands. This also works for SSH
+    connections for rsync (e.g. "isabelle sync"). Windows/Cygwin does
+    not support multiplexing: the functionality should be the same, but
+    slower, with a new connection for each command.
+
+  - Multiple hops via "bastion hosts" can be easily configured in
+    .ssh/config via ProxyJump declarations. The former Isabelle/Scala
+    parameters for proxy_host etc. have been discontinued: minor
+    INCOMPATIBILITY.
+
+* The MLton compiler for x86_64-linux has been bundled as Isabelle
+component, since Ubuntu 22.04 no longer provides a suitable package.
+Note that on macOS, MLton is readily available via Homebrew:
+https://formulae.brew.sh/formula/mlton
+
+The Isabelle settings refer to an executable "$ISABELLE_MLTON" and
+command-line options $ISABELLE_MLTON_OPTIONS, which need to fit
+together. Potential INCOMPATIBILITY for existing
+$ISABELLE_HOME_USER/etc/settings.
+
+* The system option "ML_system_apple" controls the use of native
+Apple/ARM64 for Poly/ML: default "true". Like "ML_system_64" this only
+works when saved in "$ISABELLE_HOME_USER/etc/preferences" (e.g. after
+shutdown of Isabelle/jEdit).
+
+* The headless PIDE session now supports adhoc editing of theories via
+repeated "use_theories" on changed files. This functionality was
+originally intended (e.g. see Isabelle2018), but it got lost due to
+later improvements of "isabelle dump". Now it should work again, e.g. as
+follows for "isabelle server &" and "isabelle client":
+
+  session_start {"session": "HOL", "options": ["headless_consolidate_delay=0.5", "headless_prune_delay=5"]}
+  use_theories {"session_id": "...", "theories": ["/home/makarius/tmp/Test"]}
+  use_theories {"session_id": "...", "theories": ["/home/makarius/tmp/Test"]}
+  purge_theories {"session_id":"...", "all": true}
+  session_stop {"session_id": "..."}
+  shutdown
 
 
 
@@ -441,7 +594,47 @@ targets and in any nested target built on top of a target supporting
 
 *** HOL ***
 
-* New order prover.
+* A new, verified order prover for partial and linear orders. The order
+prover rearranges the goal to prove False, then retrieves order literals
+(i.e. x = y, x <= y, x < y, and their negated versions) from the premises 
+and finally tries to derive a contradiction. Its main use case is as a
+solver to the simplifier, where it e.g. solves premises of conditional
+rewrite rules.
+
+The new prover (src/Provers/order_tac.ML) replaces the old prover
+(src/Provers/order.ML) and improves upon the old one in several ways:
+
+  - The completeness of the prover is verified in Isabelle (see the
+    ATVA 2021 paper "A Verified Decision Procedure for Orders in Isabelle/HOL").
+
+  - The new prover is complete for partial orders.
+
+  - The interface to register new orders was reworked to reduce boilerplate.
+
+The prover has two configuration attributes that control its behaviour:
+  
+  - order_trace (default: false): Enables tracing for the solver.
+
+  - order_split_limit (default: 8): Limits the number of order
+    literals of the form ~ x < y that are passed to the solver since
+    those lead to case splitting and thus exponential runtime. This
+    only applies to partial orders.
+
+The prover is agnostic to the object logic. For HOL, the setup for the
+prover is performed in src/HOL/Orderings.thy where the structure
+HOL_Order_Tac is obtained. The structure allows us to register new
+orders with the functions HOL_Order_Tac.declare_order and
+HOL_Order_Tac.declare_linorder. Using these functions, we register the
+orders of the type classes order and linorder with the solver. If
+possible, one should instantiate these type classes instead of adding
+new orders to the solver. One can also interpret the type class locale
+as in src/HOL/Library/Sublist.thy, which contains e.g. the prefix
+order on lists.
+
+The method order calls the prover in a standalone fashion.
+
+The diagnostic command print_orders shows all orders known to the prover
+in the current context.
 
 * Theorems "antisym" and "eq_iff" in class "order" have been renamed to
 "order.antisym" and "order.eq_iff", to coexist locally with "antisym"

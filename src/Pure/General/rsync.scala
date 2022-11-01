@@ -9,14 +9,17 @@ package isabelle
 
 object Rsync {
   sealed case class Context(progress: Progress,
-    port: Int = SSH.default_port,
+    ssh_port: Int = 0,
+    ssh_control_path: String = "",
     archive: Boolean = true,
     protect_args: Boolean = true  // requires rsync 3.0.0, or later
   ) {
-    def command: String =
-      "rsync --rsh=" + Bash.string("ssh -p " + port) +
+    def command: String = {
+      val ssh_command = SSH.client_command(port = ssh_port, control_path = ssh_control_path)
+      "rsync --rsh=" + Bash.string(ssh_command) +
         (if (archive) " --archive" else "") +
         (if (protect_args) " --protect-args" else "")
+    }
   }
 
   def exec(

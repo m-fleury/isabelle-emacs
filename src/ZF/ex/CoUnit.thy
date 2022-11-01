@@ -25,7 +25,7 @@ codatatype
   "counit" = Con ("x \<in> counit")
 
 inductive_cases ConE: "Con(x) \<in> counit"
-  \<comment> \<open>USELESS because folding on \<^term>\<open>Con(xa) == xa\<close> fails.\<close>
+  \<comment> \<open>USELESS because folding on \<^term>\<open>Con(xa) \<equiv> xa\<close> fails.\<close>
 
 lemma Con_iff: "Con(x) = Con(y) \<longleftrightarrow> x = y"
   \<comment> \<open>Proving freeness results.\<close>
@@ -37,7 +37,7 @@ lemma counit_eq_univ: "counit = quniv(0)"
   apply (rule subsetI)
   apply (erule counit.coinduct)
    apply (rule subset_refl)
-  apply (unfold counit.con_defs)
+    unfolding counit.con_defs
   apply fast
   done
 
@@ -55,17 +55,17 @@ codatatype
 
 inductive_cases Con2E: "Con2(x, y) \<in> counit2"
 
-lemma Con2_iff: "Con2(x, y) = Con2(x', y') \<longleftrightarrow> x = x' & y = y'"
+lemma Con2_iff: "Con2(x, y) = Con2(x', y') \<longleftrightarrow> x = x' \<and> y = y'"
   \<comment> \<open>Proving freeness results.\<close>
   by (fast elim!: counit2.free_elims)
 
-lemma Con2_bnd_mono: "bnd_mono(univ(0), %x. Con2(x, x))"
-  apply (unfold counit2.con_defs)
+lemma Con2_bnd_mono: "bnd_mono(univ(0), \<lambda>x. Con2(x, x))"
+    unfolding counit2.con_defs
   apply (rule bnd_monoI)
    apply (assumption | rule subset_refl QPair_subset_univ QPair_mono)+
   done
 
-lemma lfp_Con2_in_counit2: "lfp(univ(0), %x. Con2(x,x)) \<in> counit2"
+lemma lfp_Con2_in_counit2: "lfp(univ(0), \<lambda>x. Con2(x,x)) \<in> counit2"
   apply (rule singletonI [THEN counit2.coinduct])
   apply (rule qunivI [THEN singleton_subsetI])
   apply (rule subset_trans [OF lfp_subset empty_subsetI [THEN univ_mono]])
@@ -73,24 +73,24 @@ lemma lfp_Con2_in_counit2: "lfp(univ(0), %x. Con2(x,x)) \<in> counit2"
   done
 
 lemma counit2_Int_Vset_subset [rule_format]:
-  "Ord(i) ==> \<forall>x y. x \<in> counit2 \<longrightarrow> y \<in> counit2 \<longrightarrow> x \<inter> Vset(i) \<subseteq> y"
+  "Ord(i) \<Longrightarrow> \<forall>x y. x \<in> counit2 \<longrightarrow> y \<in> counit2 \<longrightarrow> x \<inter> Vset(i) \<subseteq> y"
   \<comment> \<open>Lemma for proving finality.\<close>
   apply (erule trans_induct)
   apply (tactic "safe_tac (put_claset subset_cs \<^context>)")
   apply (erule counit2.cases)
   apply (erule counit2.cases)
-  apply (unfold counit2.con_defs)
+    unfolding counit2.con_defs
   apply (tactic \<open>fast_tac (put_claset subset_cs \<^context>
     addSIs [@{thm QPair_Int_Vset_subset_UN} RS @{thm subset_trans}, @{thm QPair_mono}]
     addSEs [@{thm Ord_in_Ord}, @{thm Pair_inject}]) 1\<close>)
   done
 
-lemma counit2_implies_equal: "[| x \<in> counit2;  y \<in> counit2 |] ==> x = y"
+lemma counit2_implies_equal: "\<lbrakk>x \<in> counit2;  y \<in> counit2\<rbrakk> \<Longrightarrow> x = y"
   apply (rule equalityI)
   apply (assumption | rule conjI counit2_Int_Vset_subset [THEN Int_Vset_subset])+
   done
 
-lemma counit2_eq_univ: "counit2 = {lfp(univ(0), %x. Con2(x,x))}"
+lemma counit2_eq_univ: "counit2 = {lfp(univ(0), \<lambda>x. Con2(x,x))}"
   apply (rule equalityI)
    apply (rule_tac [2] lfp_Con2_in_counit2 [THEN singleton_subsetI])
   apply (rule subsetI)

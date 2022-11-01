@@ -65,7 +65,6 @@ object Session {
   case object Caret_Focus
   case class Raw_Edits(doc_blobs: Document.Blobs, edits: List[Document.Edit_Text])
   case class Dialog_Result(id: Document_ID.Generic, serial: Long, result: String)
-  case class Build_Theories(id: String, master_dir: Path, theories: List[(Options, List[Path])])
   case class Commands_Changed(
     assignment: Boolean, nodes: Set[Document.Node.Name], commands: Set[Command])
 
@@ -256,7 +255,7 @@ class Session(_session_options: => Options, val resources: Resources) extends Do
     def flush(): Unit = synchronized {
       if (assignment || nodes.nonEmpty || commands.nonEmpty)
         commands_changed.post(Session.Commands_Changed(assignment, nodes, commands))
-      if (nodes.nonEmpty) consolidation.update(nodes)
+      if (nodes.nonEmpty) consolidation.update(more_nodes = nodes)
       assignment = false
       nodes = Set.empty
       commands = Set.empty
@@ -313,10 +312,10 @@ class Session(_session_options: => Options, val resources: Resources) extends Do
       state.change(_ => None)
     }
 
-    def update(new_nodes: Set[Document.Node.Name] = Set.empty): Unit = {
+    def update(more_nodes: Set[Document.Node.Name] = Set.empty): Unit = {
       val active =
         state.change_result(st =>
-          (st.isDefined, st.map(nodes => if (nodes.isEmpty) new_nodes else nodes ++ new_nodes)))
+          (st.isDefined, st.map(nodes => if (nodes.isEmpty) more_nodes else nodes ++ more_nodes)))
       if (active) delay.invoke()
     }
 
@@ -333,7 +332,7 @@ class Session(_session_options: => Options, val resources: Resources) extends Do
     def defined: Boolean = variable.value.isDefined
     def get: Prover = variable.value.get
     def set(p: Prover): Unit = variable.change(_ => Some(p))
-    def reset: Unit = variable.change(_ => None)
+    def reset(): Unit = variable.change(_ => None)
     def await_reset(): Unit = variable.guarded_access({ case None => Some((), None) case _ => None })
   }
 
@@ -558,7 +557,7 @@ class Session(_session_options: => Options, val resources: Resources) extends Do
               }
               file_formats.stop_session
               phase = Session.Terminated(result)
-              prover.reset
+              prover.reset()
 
             case _ =>
               raw_output_messages.post(output)

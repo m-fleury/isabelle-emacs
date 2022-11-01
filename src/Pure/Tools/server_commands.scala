@@ -140,7 +140,7 @@ object Server_Commands {
       val res =
         JSON.Object(
           "session_id" -> id.toString,
-          "tmp_dir" -> File.path(session.tmp_dir).implode)
+          "tmp_dir" -> session.tmp_dir_name)
 
       (res, id -> session)
     }
@@ -316,8 +316,8 @@ object Server_Commands {
 
     override val command_body: Server.Command_Body =
       { case (context, Purge_Theories(args)) =>
-        val session = context.server.the_session(args.session_id)
-        command(args, session)._1
+          val session = context.server.the_session(args.session_id)
+          command(args, session)._1
       }
   }
 }

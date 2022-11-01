@@ -38,9 +38,11 @@ text \<open>
 \<open>Usage: isabelle build_docker [OPTIONS] APP_ARCHIVE
 
   Options are:
-    -B NAME      base image (default "ubuntu")
+    -B NAME      base image (default "ubuntu:22.04")
     -E           set Isabelle/bin/isabelle as entrypoint
     -P NAME      additional Ubuntu package collection ("X11", "latex")
+    -W DIR       working directory that is accessible to docker,
+                 potentially via snap (default: ".")
     -l NAME      default logic (default ISABELLE_LOGIC="HOL")
     -n           no docker build
     -o FILE      output generated Dockerfile
@@ -68,10 +70,10 @@ text \<open>
 
   \<^medskip>
   Option \<^verbatim>\<open>-B\<close> specifies the Docker image taken as starting point for the
-  Isabelle installation: it needs to be a suitable version of Ubuntu Linux.
-  The default \<^verbatim>\<open>ubuntu\<close> refers to the latest LTS version provided by Canonical
-  as the official Ubuntu vendor\<^footnote>\<open>\<^url>\<open>https://hub.docker.com/_/ubuntu\<close>\<close>. For
-  Isabelle2021-1 this should be Ubuntu 20.04 LTS.
+  Isabelle installation: it needs to be a suitable version of Ubuntu Linux,
+  see also \<^url>\<open>https://hub.docker.com/_/ubuntu\<close>. The default for Isabelle2022
+  is \<^verbatim>\<open>ubuntu:22.04\<close>, but other versions often work as well, after some
+  experimentation with packages.
 
   Option \<^verbatim>\<open>-p\<close> includes additional Ubuntu packages, using the terminology
   of \<^verbatim>\<open>apt-get install\<close> within the underlying Linux distribution.
@@ -89,6 +91,12 @@ text \<open>
   tools.
 
   Option \<^verbatim>\<open>-v\<close> disables quiet-mode of the underlying \<^verbatim>\<open>docker build\<close> process.
+
+  \<^medskip>
+  Option \<^verbatim>\<open>-W\<close> specifies an alternative work directory: it needs to be
+  accessible to docker, even if this is run via Snap (e.g.\ on Ubuntu 22.04).
+  The default ``\<^verbatim>\<open>.\<close>'' usually works, if this is owned by the user: the tool
+  will create a fresh directory within it, and remove it afterwards.
 \<close>
 
 
@@ -98,22 +106,22 @@ text \<open>
   Produce a Dockerfile (without image) from a remote Isabelle distribution:
   @{verbatim [display]
 \<open>  isabelle build_docker -E -n -o Dockerfile
-    https://isabelle.in.tum.de/website-Isabelle2021-1/dist/Isabelle2021-1_linux.tar.gz\<close>}
+    https://isabelle.in.tum.de/website-Isabelle2022/dist/Isabelle2022_linux.tar.gz\<close>}
 
   Build a standard Isabelle Docker image from a local Isabelle distribution,
   with \<^verbatim>\<open>bin/isabelle\<close> as executable entry point:
 
   @{verbatim [display]
-\<open>  isabelle build_docker -E -t test/isabelle:Isabelle2021-1 Isabelle2021-1_linux.tar.gz\<close>}
+\<open>  isabelle build_docker -E -t test/isabelle:Isabelle2022 Isabelle2022_linux.tar.gz\<close>}
 
   Invoke the raw Isabelle/ML process within that image:
   @{verbatim [display]
-\<open>  docker run test/isabelle:Isabelle2021-1 process -e "Session.welcome ()"\<close>}
+\<open>  docker run test/isabelle:Isabelle2022 process -e "Session.welcome ()"\<close>}
 
   Invoke a Linux command-line tool within the contained Isabelle system
   environment:
   @{verbatim [display]
-\<open>  docker run test/isabelle:Isabelle2021-1 env uname -a\<close>}
+\<open>  docker run test/isabelle:Isabelle2022 env uname -a\<close>}
   The latter should always report a Linux operating system, even when running
   on Windows or macOS.
 \<close>
@@ -312,14 +320,14 @@ text \<open>
   Options are:
     -F RULE      add rsync filter RULE
                  (e.g. "protect /foo" to avoid deletion)
+    -P           protect spaces in target file names: more robust, less portable
     -R ROOT      explicit repository root directory
                  (default: implicit from current directory)
-    -S           robust (but less portable) treatment of spaces in
-                 file and directory names on the target
+    -S PATH      SSH control path for connection multiplexing
     -T           thorough treatment of file content and directory times
     -n           no changes: dry-run
+    -p PORT      SSH port
     -r REV       explicit revision (default: state of working directory)
-    -p PORT      explicit SSH port (default: 22)
     -v           verbose
 
   Synchronize Mercurial repository with TARGET directory,
@@ -354,9 +362,12 @@ text \<open>
   equal, and to ignore time stamps on directories.
 
   \<^medskip> Option \<^verbatim>\<open>-p\<close> specifies an explicit port for the SSH connection underlying
-  \<^verbatim>\<open>rsync\<close>.
+  \<^verbatim>\<open>rsync\<close>; the default is taken from the user's \<^path>\<open>ssh_config\<close> file.
 
-  \<^medskip> Option \<^verbatim>\<open>-S\<close> uses \<^verbatim>\<open>rsync --protect-args\<close> to work robustly with spaces or
+  \<^medskip> Option \<^verbatim>\<open>-S\<close> specifies the control path (Unix socket) to an existing SSH
+  connection that supports multiplexing (\<^verbatim>\<open>ssh -M -S\<close>~\<open>socket\<close>).
+
+  \<^medskip> Option \<^verbatim>\<open>-P\<close> uses \<^verbatim>\<open>rsync --protect-args\<close> to work robustly with spaces or
   special characters of the shell. This requires at least \<^verbatim>\<open>rsync 3.0.0\<close>,
   which is not always available --- notably on macOS. Assuming traditional
   Unix-style naming of files and directories, it is safe to omit this option
@@ -448,7 +459,7 @@ text \<open>
 
   \<^medskip>
   The default is to output the full version string of the Isabelle
-  distribution, e.g.\ ``\<^verbatim>\<open>Isabelle2021-1: December 2021\<close>.
+  distribution, e.g.\ ``\<^verbatim>\<open>Isabelle2022: October 2022\<close>.
 
   \<^medskip>
   Option \<^verbatim>\<open>-i\<close> produces a short identification derived from the Mercurial id

@@ -18,15 +18,15 @@ subsubsection\<open>Separation for Order-Isomorphisms\<close>
 
 lemma well_ord_iso_Reflects:
   "REFLECTS[\<lambda>x. x\<in>A \<longrightarrow>
-                (\<exists>y[L]. \<exists>p[L]. fun_apply(L,f,x,y) & pair(L,y,x,p) & p \<in> r),
+                (\<exists>y[L]. \<exists>p[L]. fun_apply(L,f,x,y) \<and> pair(L,y,x,p) \<and> p \<in> r),
         \<lambda>i x. x\<in>A \<longrightarrow> (\<exists>y \<in> Lset(i). \<exists>p \<in> Lset(i).
-                fun_apply(##Lset(i),f,x,y) & pair(##Lset(i),y,x,p) & p \<in> r)]"
+                fun_apply(##Lset(i),f,x,y) \<and> pair(##Lset(i),y,x,p) \<and> p \<in> r)]"
 by (intro FOL_reflections function_reflections)
 
 lemma well_ord_iso_separation:
-     "[| L(A); L(f); L(r) |]
-      ==> separation (L, \<lambda>x. x\<in>A \<longrightarrow> (\<exists>y[L]. (\<exists>p[L].
-                     fun_apply(L,f,x,y) & pair(L,y,x,p) & p \<in> r)))"
+     "\<lbrakk>L(A); L(f); L(r)\<rbrakk>
+      \<Longrightarrow> separation (L, \<lambda>x. x\<in>A \<longrightarrow> (\<exists>y[L]. (\<exists>p[L].
+                     fun_apply(L,f,x,y) \<and> pair(L,y,x,p) \<and> p \<in> r)))"
 apply (rule gen_separation_multi [OF well_ord_iso_Reflects, of "{A,f,r}"], 
        auto)
 apply (rule_tac env="[A,f,r]" in DPow_LsetI)
@@ -38,18 +38,18 @@ subsubsection\<open>Separation for \<^term>\<open>obase\<close>\<close>
 
 lemma obase_reflects:
   "REFLECTS[\<lambda>a. \<exists>x[L]. \<exists>g[L]. \<exists>mx[L]. \<exists>par[L].
-             ordinal(L,x) & membership(L,x,mx) & pred_set(L,A,a,r,par) &
+             ordinal(L,x) \<and> membership(L,x,mx) \<and> pred_set(L,A,a,r,par) \<and>
              order_isomorphism(L,par,r,x,mx,g),
         \<lambda>i a. \<exists>x \<in> Lset(i). \<exists>g \<in> Lset(i). \<exists>mx \<in> Lset(i). \<exists>par \<in> Lset(i).
-             ordinal(##Lset(i),x) & membership(##Lset(i),x,mx) & pred_set(##Lset(i),A,a,r,par) &
+             ordinal(##Lset(i),x) \<and> membership(##Lset(i),x,mx) \<and> pred_set(##Lset(i),A,a,r,par) \<and>
              order_isomorphism(##Lset(i),par,r,x,mx,g)]"
 by (intro FOL_reflections function_reflections fun_plus_reflections)
 
 lemma obase_separation:
      \<comment> \<open>part of the order type formalization\<close>
-     "[| L(A); L(r) |]
-      ==> separation(L, \<lambda>a. \<exists>x[L]. \<exists>g[L]. \<exists>mx[L]. \<exists>par[L].
-             ordinal(L,x) & membership(L,x,mx) & pred_set(L,A,a,r,par) &
+     "\<lbrakk>L(A); L(r)\<rbrakk>
+      \<Longrightarrow> separation(L, \<lambda>a. \<exists>x[L]. \<exists>g[L]. \<exists>mx[L]. \<exists>par[L].
+             ordinal(L,x) \<and> membership(L,x,mx) \<and> pred_set(L,A,a,r,par) \<and>
              order_isomorphism(L,par,r,x,mx,g))"
 apply (rule gen_separation_multi [OF obase_reflects, of "{A,r}"], auto)
 apply (rule_tac env="[A,r]" in DPow_LsetI)
@@ -60,21 +60,21 @@ done
 subsubsection\<open>Separation for a Theorem about \<^term>\<open>obase\<close>\<close>
 
 lemma obase_equals_reflects:
-  "REFLECTS[\<lambda>x. x\<in>A \<longrightarrow> ~(\<exists>y[L]. \<exists>g[L].
-                ordinal(L,y) & (\<exists>my[L]. \<exists>pxr[L].
-                membership(L,y,my) & pred_set(L,A,x,r,pxr) &
+  "REFLECTS[\<lambda>x. x\<in>A \<longrightarrow> \<not>(\<exists>y[L]. \<exists>g[L].
+                ordinal(L,y) \<and> (\<exists>my[L]. \<exists>pxr[L].
+                membership(L,y,my) \<and> pred_set(L,A,x,r,pxr) \<and>
                 order_isomorphism(L,pxr,r,y,my,g))),
-        \<lambda>i x. x\<in>A \<longrightarrow> ~(\<exists>y \<in> Lset(i). \<exists>g \<in> Lset(i).
-                ordinal(##Lset(i),y) & (\<exists>my \<in> Lset(i). \<exists>pxr \<in> Lset(i).
-                membership(##Lset(i),y,my) & pred_set(##Lset(i),A,x,r,pxr) &
+        \<lambda>i x. x\<in>A \<longrightarrow> \<not>(\<exists>y \<in> Lset(i). \<exists>g \<in> Lset(i).
+                ordinal(##Lset(i),y) \<and> (\<exists>my \<in> Lset(i). \<exists>pxr \<in> Lset(i).
+                membership(##Lset(i),y,my) \<and> pred_set(##Lset(i),A,x,r,pxr) \<and>
                 order_isomorphism(##Lset(i),pxr,r,y,my,g)))]"
 by (intro FOL_reflections function_reflections fun_plus_reflections)
 
 lemma obase_equals_separation:
-     "[| L(A); L(r) |]
-      ==> separation (L, \<lambda>x. x\<in>A \<longrightarrow> ~(\<exists>y[L]. \<exists>g[L].
-                              ordinal(L,y) & (\<exists>my[L]. \<exists>pxr[L].
-                              membership(L,y,my) & pred_set(L,A,x,r,pxr) &
+     "\<lbrakk>L(A); L(r)\<rbrakk>
+      \<Longrightarrow> separation (L, \<lambda>x. x\<in>A \<longrightarrow> \<not>(\<exists>y[L]. \<exists>g[L].
+                              ordinal(L,y) \<and> (\<exists>my[L]. \<exists>pxr[L].
+                              membership(L,y,my) \<and> pred_set(L,A,x,r,pxr) \<and>
                               order_isomorphism(L,pxr,r,y,my,g))))"
 apply (rule gen_separation_multi [OF obase_equals_reflects, of "{A,r}"], auto)
 apply (rule_tac env="[A,r]" in DPow_LsetI)
@@ -85,22 +85,22 @@ done
 subsubsection\<open>Replacement for \<^term>\<open>omap\<close>\<close>
 
 lemma omap_reflects:
- "REFLECTS[\<lambda>z. \<exists>a[L]. a\<in>B & (\<exists>x[L]. \<exists>g[L]. \<exists>mx[L]. \<exists>par[L].
-     ordinal(L,x) & pair(L,a,x,z) & membership(L,x,mx) &
-     pred_set(L,A,a,r,par) & order_isomorphism(L,par,r,x,mx,g)),
- \<lambda>i z. \<exists>a \<in> Lset(i). a\<in>B & (\<exists>x \<in> Lset(i). \<exists>g \<in> Lset(i). \<exists>mx \<in> Lset(i).
+ "REFLECTS[\<lambda>z. \<exists>a[L]. a\<in>B \<and> (\<exists>x[L]. \<exists>g[L]. \<exists>mx[L]. \<exists>par[L].
+     ordinal(L,x) \<and> pair(L,a,x,z) \<and> membership(L,x,mx) \<and>
+     pred_set(L,A,a,r,par) \<and> order_isomorphism(L,par,r,x,mx,g)),
+ \<lambda>i z. \<exists>a \<in> Lset(i). a\<in>B \<and> (\<exists>x \<in> Lset(i). \<exists>g \<in> Lset(i). \<exists>mx \<in> Lset(i).
         \<exists>par \<in> Lset(i).
-         ordinal(##Lset(i),x) & pair(##Lset(i),a,x,z) &
-         membership(##Lset(i),x,mx) & pred_set(##Lset(i),A,a,r,par) &
+         ordinal(##Lset(i),x) \<and> pair(##Lset(i),a,x,z) \<and>
+         membership(##Lset(i),x,mx) \<and> pred_set(##Lset(i),A,a,r,par) \<and>
          order_isomorphism(##Lset(i),par,r,x,mx,g))]"
 by (intro FOL_reflections function_reflections fun_plus_reflections)
 
 lemma omap_replacement:
-     "[| L(A); L(r) |]
-      ==> strong_replacement(L,
+     "\<lbrakk>L(A); L(r)\<rbrakk>
+      \<Longrightarrow> strong_replacement(L,
              \<lambda>a z. \<exists>x[L]. \<exists>g[L]. \<exists>mx[L]. \<exists>par[L].
-             ordinal(L,x) & pair(L,a,x,z) & membership(L,x,mx) &
-             pred_set(L,A,a,r,par) & order_isomorphism(L,par,r,x,mx,g))"
+             ordinal(L,x) \<and> pair(L,a,x,z) \<and> membership(L,x,mx) \<and>
+             pred_set(L,A,a,r,par) \<and> order_isomorphism(L,par,r,x,mx,g))"
 apply (rule strong_replacementI)
 apply (rule_tac u="{A,r,B}" in gen_separation_multi [OF omap_reflects], auto)
 apply (rule_tac env="[A,B,r]" in DPow_LsetI)
@@ -133,17 +133,17 @@ subsubsection\<open>Separation for \<^term>\<open>wfrank\<close>\<close>
 
 lemma wfrank_Reflects:
  "REFLECTS[\<lambda>x. \<forall>rplus[L]. tran_closure(L,r,rplus) \<longrightarrow>
-              ~ (\<exists>f[L]. M_is_recfun(L, %x f y. is_range(L,f,y), rplus, x, f)),
+              \<not> (\<exists>f[L]. M_is_recfun(L, \<lambda>x f y. is_range(L,f,y), rplus, x, f)),
       \<lambda>i x. \<forall>rplus \<in> Lset(i). tran_closure(##Lset(i),r,rplus) \<longrightarrow>
-         ~ (\<exists>f \<in> Lset(i).
-            M_is_recfun(##Lset(i), %x f y. is_range(##Lset(i),f,y),
+         \<not> (\<exists>f \<in> Lset(i).
+            M_is_recfun(##Lset(i), \<lambda>x f y. is_range(##Lset(i),f,y),
                         rplus, x, f))]"
 by (intro FOL_reflections function_reflections is_recfun_reflection tran_closure_reflection)
 
 lemma wfrank_separation:
-     "L(r) ==>
+     "L(r) \<Longrightarrow>
       separation (L, \<lambda>x. \<forall>rplus[L]. tran_closure(L,r,rplus) \<longrightarrow>
-         ~ (\<exists>f[L]. M_is_recfun(L, %x f y. is_range(L,f,y), rplus, x, f)))"
+         \<not> (\<exists>f[L]. M_is_recfun(L, \<lambda>x f y. is_range(L,f,y), rplus, x, f)))"
 apply (rule gen_separation [OF wfrank_Reflects], simp)
 apply (rule_tac env="[r]" in DPow_LsetI)
 apply (rule sep_rules tran_closure_iff_sats is_recfun_iff_sats | simp)+
@@ -153,25 +153,25 @@ done
 subsubsection\<open>Replacement for \<^term>\<open>wfrank\<close>\<close>
 
 lemma wfrank_replacement_Reflects:
- "REFLECTS[\<lambda>z. \<exists>x[L]. x \<in> A &
+ "REFLECTS[\<lambda>z. \<exists>x[L]. x \<in> A \<and>
         (\<forall>rplus[L]. tran_closure(L,r,rplus) \<longrightarrow>
-         (\<exists>y[L]. \<exists>f[L]. pair(L,x,y,z)  &
-                        M_is_recfun(L, %x f y. is_range(L,f,y), rplus, x, f) &
+         (\<exists>y[L]. \<exists>f[L]. pair(L,x,y,z)  \<and>
+                        M_is_recfun(L, \<lambda>x f y. is_range(L,f,y), rplus, x, f) \<and>
                         is_range(L,f,y))),
- \<lambda>i z. \<exists>x \<in> Lset(i). x \<in> A &
+ \<lambda>i z. \<exists>x \<in> Lset(i). x \<in> A \<and>
       (\<forall>rplus \<in> Lset(i). tran_closure(##Lset(i),r,rplus) \<longrightarrow>
-       (\<exists>y \<in> Lset(i). \<exists>f \<in> Lset(i). pair(##Lset(i),x,y,z)  &
-         M_is_recfun(##Lset(i), %x f y. is_range(##Lset(i),f,y), rplus, x, f) &
+       (\<exists>y \<in> Lset(i). \<exists>f \<in> Lset(i). pair(##Lset(i),x,y,z)  \<and>
+         M_is_recfun(##Lset(i), \<lambda>x f y. is_range(##Lset(i),f,y), rplus, x, f) \<and>
          is_range(##Lset(i),f,y)))]"
 by (intro FOL_reflections function_reflections fun_plus_reflections
              is_recfun_reflection tran_closure_reflection)
 
 lemma wfrank_strong_replacement:
-     "L(r) ==>
+     "L(r) \<Longrightarrow>
       strong_replacement(L, \<lambda>x z.
          \<forall>rplus[L]. tran_closure(L,r,rplus) \<longrightarrow>
-         (\<exists>y[L]. \<exists>f[L]. pair(L,x,y,z)  &
-                        M_is_recfun(L, %x f y. is_range(L,f,y), rplus, x, f) &
+         (\<exists>y[L]. \<exists>f[L]. pair(L,x,y,z)  \<and>
+                        M_is_recfun(L, \<lambda>x f y. is_range(L,f,y), rplus, x, f) \<and>
                         is_range(L,f,y)))"
 apply (rule strong_replacementI)
 apply (rule_tac u="{r,B}" 
@@ -186,12 +186,12 @@ subsubsection\<open>Separation for Proving \<open>Ord_wfrank_range\<close>\<clos
 
 lemma Ord_wfrank_Reflects:
  "REFLECTS[\<lambda>x. \<forall>rplus[L]. tran_closure(L,r,rplus) \<longrightarrow>
-          ~ (\<forall>f[L]. \<forall>rangef[L].
+          \<not> (\<forall>f[L]. \<forall>rangef[L].
              is_range(L,f,rangef) \<longrightarrow>
              M_is_recfun(L, \<lambda>x f y. is_range(L,f,y), rplus, x, f) \<longrightarrow>
              ordinal(L,rangef)),
       \<lambda>i x. \<forall>rplus \<in> Lset(i). tran_closure(##Lset(i),r,rplus) \<longrightarrow>
-          ~ (\<forall>f \<in> Lset(i). \<forall>rangef \<in> Lset(i).
+          \<not> (\<forall>f \<in> Lset(i). \<forall>rangef \<in> Lset(i).
              is_range(##Lset(i),f,rangef) \<longrightarrow>
              M_is_recfun(##Lset(i), \<lambda>x f y. is_range(##Lset(i),f,y),
                          rplus, x, f) \<longrightarrow>
@@ -200,10 +200,10 @@ by (intro FOL_reflections function_reflections is_recfun_reflection
           tran_closure_reflection ordinal_reflection)
 
 lemma  Ord_wfrank_separation:
-     "L(r) ==>
+     "L(r) \<Longrightarrow>
       separation (L, \<lambda>x.
          \<forall>rplus[L]. tran_closure(L,r,rplus) \<longrightarrow>
-          ~ (\<forall>f[L]. \<forall>rangef[L].
+          \<not> (\<forall>f[L]. \<forall>rangef[L].
              is_range(L,f,rangef) \<longrightarrow>
              M_is_recfun(L, \<lambda>x f y. is_range(L,f,y), rplus, x, f) \<longrightarrow>
              ordinal(L,rangef)))"

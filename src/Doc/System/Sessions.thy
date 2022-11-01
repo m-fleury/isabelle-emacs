@@ -61,7 +61,7 @@ text \<open>
       (@{syntax system_name} '+')? description? options? \<newline>
       sessions? directories? (theories*) \<newline>
       (document_theories?) (document_files*) \<newline>
-      (export_files*)
+      (export_files*) (export_classpath?)
     ;
     groups: '(' (@{syntax name} +) ')'
     ;
@@ -89,6 +89,8 @@ text \<open>
     ;
     export_files: @'export_files' ('(' dir ')')? ('[' nat ']')? \<newline>
       (@{syntax embedded}+)
+    ;
+    export_classpath: @'export_classpath' (@{syntax embedded}*)
   \<close>
 
   \<^descr> \isakeyword{chapter{\isacharunderscorekeyword}definition}~\<open>A (groups)\<close>
@@ -182,6 +184,15 @@ text \<open>
   0) specifies the prefix of elements that should be removed from each name:
   it allows to reduce the resulting directory hierarchy at the danger of
   overwriting files due to loss of uniqueness.
+
+  \<^descr> \isakeyword{export_classpath}~\<open>patterns\<close> specifies export artifacts that
+  should be included into the local Java/Scala classpath of this session
+  context. This is only relevant for tools that allow dynamic loading of
+  service classes (\secref{sec:scala-build}), while most other Isabelle/Scala
+  tools require global configuration during system startup. An empty list of
+  \<open>patterns\<close> defaults to \<^verbatim>\<open>"*:classpath/*.jar"\<close>, which fits to the naming
+  convention of JAR modules produced by the Isabelle/Isar command
+  \<^theory_text>\<open>scala_build_generated_files\<close> @{cite "isabelle-isar-ref"}.
 \<close>
 
 
@@ -531,6 +542,11 @@ text \<open>
   @{verbatim [display] \<open>  isabelle build -b -c HOL-Library HOL-Algebra\<close>}
 
   \<^smallskip>
+  HTML/PDF presentation for sessions that happen to be properly built already,
+  without rebuilding anything except the missing browser info:
+  @{verbatim [display] \<open>  isabelle build -a -n -o browser_info\<close>}
+
+  \<^smallskip>
   Clean all sessions without building anything:
   @{verbatim [display] \<open>  isabelle build -a -n -c\<close>}
 
@@ -554,24 +570,31 @@ text \<open>
   database of the given session. Its command-line usage is:
 
   @{verbatim [display]
-\<open>Usage: isabelle log [OPTIONS] SESSION
+\<open>Usage: isabelle log [OPTIONS] [SESSIONS ...]
 
   Options are:
+    -H REGEX     filter messages by matching against head
+    -M REGEX     filter messages by matching against body
     -T NAME      restrict to given theories (multiple options possible)
     -U           output Unicode symbols
     -m MARGIN    margin for pretty printing (default: 76.0)
     -o OPTION    override Isabelle system OPTION (via NAME=VAL or NAME)
     -v           print all messages, including information etc.
 
-  Print messages from the build database of the given session, without any
-  checks against current sources: results from a failed build can be
-  printed as well.\<close>}
+  Print messages from the build database of the given sessions, without any
+  checks against current sources nor session structure: results from old
+  sessions or failed builds can be printed as well.
 
-  The specified session database is taken as is, independently of the current
-  session structure and theories sources. The order of messages follows the
-  source positions of source files; thus the erratic evaluation of parallel
-  processing rarely matters. There is \<^emph>\<open>no\<close> implicit build process involved,
-  so it is possible to retrieve error messages from a failed session as well.
+  Multiple options -H and -M are conjunctive: all given patterns need to
+  match. Patterns match any substring, but ^ or $ may be used to match the
+  start or end explicitly.\<close>}
+
+  The specified session databases are taken as is, with formal checking
+  against current sources: There is \<^emph>\<open>no\<close> implicit build process involved, so
+  it is possible to retrieve error messages from a failed session as well. The
+  order of messages follows the source positions of source files; thus the
+  result is mostly deterministic, independent of the somewhat erratic
+  evaluation of parallel processing.
 
   \<^medskip> Option \<^verbatim>\<open>-o\<close> allows to change system options, as in @{tool build}
   (\secref{sec:tool-build}). This may affect the storage space for the build
@@ -588,6 +611,16 @@ text \<open>
 
   \<^medskip> Option \<^verbatim>\<open>-v\<close> prints all messages from the session database that are
   normally inlined into the source text, including information messages etc.
+
+  \<^medskip> Options \<^verbatim>\<open>-H\<close> and \<^verbatim>\<open>-M\<close> filter messages according to their header or body
+  content, respectively. The header follows a very basic format that makes it
+  easy to match message kinds (e.g. \<^verbatim>\<open>Warning\<close> or \<^verbatim>\<open>Error\<close>) and file names
+  (e.g. \<^verbatim>\<open>src/HOL/Nat.thy\<close>). The body is usually pretty-printed, but for
+  matching it is treated like one long line: blocks are ignored and breaks are
+  turned into plain spaces (according to their formal width).
+
+  The syntax for patters follows regular expressions of the Java
+  platform.\<^footnote>\<open>\<^url>\<open>https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/util/regex/Pattern.html\<close>\<close>
 \<close>
 
 subsubsection \<open>Examples\<close>
@@ -596,6 +629,15 @@ text \<open>
   Print messages from theory \<^verbatim>\<open>HOL.Nat\<close> of session \<^verbatim>\<open>HOL\<close>, using Unicode
   rendering of Isabelle symbols and a margin of 100 characters:
   @{verbatim [display] \<open>  isabelle log -T HOL.Nat -U -m 100 HOL\<close>}
+
+  Print warnings about ambiguous input (inner syntax) of session
+  \<^verbatim>\<open>HOL-Library\<close>, which is built beforehand:
+  @{verbatim [display] \<open>  isabelle build HOL-Library
+  isabelle log -H "Warning" -M "Ambiguous input" HOL-Library\<close>}
+
+  Print all errors from all sessions, e.g. from a partial build of
+  Isabelle/AFP:
+  @{verbatim [display] \<open>  isabelle log -H "Error" $(isabelle sessions -a -d AFP/thys)\<close>}
 \<close>
 
 
@@ -839,6 +881,7 @@ text \<open>
     -R           refer to requirements of selected sessions
     -X NAME      exclude sessions from group NAME and all descendants
     -a           select all sessions
+    -b           follow session build dependencies (default: source imports)
     -d DIR       include session directory
     -g NAME      select session group NAME
     -x NAME      exclude session NAME and all descendants
@@ -858,7 +901,15 @@ text \<open>
   @{verbatim [display] \<open>  isabelle sessions -a\<close>}
 
   \<^medskip>
-  Sessions that are based on \<^verbatim>\<open>ZF\<close> (and required by it):
+  Sessions that are imported by \<^verbatim>\<open>ZF\<close>:
+  @{verbatim [display] \<open>  isabelle sessions ZF\<close>}
+
+  \<^medskip>
+  Sessions that are required to build \<^verbatim>\<open>ZF\<close>:
+  @{verbatim [display] \<open>  isabelle sessions -b ZF\<close>}
+
+  \<^medskip>
+  Sessions that are based on \<^verbatim>\<open>ZF\<close> (and imported by it):
   @{verbatim [display] \<open>  isabelle sessions -B ZF\<close>}
 
   \<^medskip>
@@ -885,13 +936,13 @@ text \<open>
     -I NAME      include session heap image and build database
                  (based on accidental local state)
     -J           preserve *.jar files
-    -S           robust (but less portable) treatment of spaces in
-                 file and directory names on the target
+    -P           protect spaces in target file names: more robust, less portable
+    -S PATH      SSH control path for connection multiplexing
     -T           thorough treatment of file content and directory times
     -a REV       explicit AFP revision (default: state of working directory)
     -n           no changes: dry-run
+    -p PORT      SSH port
     -r REV       explicit revision (default: state of working directory)
-    -p PORT      explicit SSH port (default: 22)
     -v           verbose
 
   Synchronize Isabelle + AFP repositories, based on "isabelle hg_sync".\<close>}
@@ -905,8 +956,8 @@ text \<open>
   sub-directory with the literal name \<^verbatim>\<open>AFP\<close>; thus it can be easily included
   elsewhere, e.g. @{tool build}~\<^verbatim>\<open>-d\<close>~\<^verbatim>\<open>'~~/AFP'\<close> on the remote side.
 
-  \<^medskip> Options \<^verbatim>\<open>-S\<close>, \<^verbatim>\<open>-T\<close>, \<^verbatim>\<open>-n\<close>, \<^verbatim>\<open>-p\<close>, \<^verbatim>\<open>-v\<close> are the same as the underlying
-  @{tool hg_sync}.
+  \<^medskip> Options \<^verbatim>\<open>-P\<close>, \<^verbatim>\<open>-S\<close>, \<^verbatim>\<open>-T\<close>, \<^verbatim>\<open>-n\<close>, \<^verbatim>\<open>-p\<close>, \<^verbatim>\<open>-v\<close> are the same as the
+  underlying @{tool hg_sync}.
 
   \<^medskip> Options \<^verbatim>\<open>-r\<close> and \<^verbatim>\<open>-a\<close> are the same as option \<^verbatim>\<open>-r\<close> for @{tool hg_sync},
   but for the Isabelle and AFP repositories, respectively. The AFP version is

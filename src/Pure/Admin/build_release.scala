@@ -13,7 +13,7 @@ object Build_Release {
   private def execute(dir: Path, script: String): Unit =
     Isabelle_System.bash(script, cwd = dir.file).check
 
-  private def execute_tar(dir: Path, args: String, strip: Int = 0): Unit =
+  private def execute_tar(dir: Path, args: String, strip: Int = 0): Process_Result =
     Isabelle_System.gnutar(args, dir = dir, strip = strip).check
 
   private def bash_java_opens(args: String*): String =
@@ -227,34 +227,37 @@ directory individually.
   ): Unit = {
     val server_option = "build_host_" + platform.toString
     val server = options.string(server_option)
-    progress.echo("Building heaps " + commas_quote(build_sessions) +
+    progress.echo("Building heaps for " + commas_quote(build_sessions) +
       " (" + server_option + " = " + quote(server) + ") ...")
 
     val ssh =
-       server match {
-        case "" =>
-          if (Platform.family == platform) SSH.Local
-          else error("Undefined option " + server_option + ": cannot build heaps")
-        case SSH.Target(user, host) =>
-          SSH.open_session(options, host = host, user = user)
-        case _ => error("Malformed option " + server_option + ": " + quote(server))
-      }
+      if (server.nonEmpty) SSH.open_session(options, server)
+      else if (Platform.family == platform) SSH.Local
+      else error("Undefined option " + server_option + ": cannot build heaps")
+
     try {
       Isabelle_System.with_tmp_file("tmp", ext = "tar") { local_tmp_tar =>
         execute_tar(local_dir, "-cf " + File.bash_path(local_tmp_tar) + " .")
         ssh.with_tmp_dir { remote_dir =>
           val remote_tmp_tar = remote_dir + Path.basic("tmp.tar")
           ssh.write_file(remote_tmp_tar, local_tmp_tar)
-          val remote_commands =
+
+          val build_command =
+            "bin/isabelle build -o system_heaps -b -- " + Bash.strings(build_sessions)
+          val build_script =
             List(
               "cd " + File.bash_path(remote_dir),
               "tar -xf tmp.tar",
-              "bin/isabelle build -o system_heaps -b -- " + Bash.strings(build_sessions),
+              build_command,
+              """mkdir -p "$(bin/isabelle getenv -b ISABELLE_HOME_USER)/etc" """,
+              """{ echo "ML_system_apple = false" > "$(bin/isabelle getenv -b ISABELLE_HOME_USER)/etc/preferences"; }""",
+              build_command,
               "tar -cf tmp.tar heaps")
-          ssh.execute(remote_commands.mkString(" && "), settings = false).check
+          ssh.execute(build_script.mkString(" && "), settings = false).check
           ssh.read_file(remote_tmp_tar, local_tmp_tar)
         }
-        execute_tar(local_dir, "-xf " + File.bash_path(local_tmp_tar))
+        execute_tar(local_dir, "-xvf " + File.bash_path(local_tmp_tar))
+          .out_lines.sorted.foreach(progress.echo)
       }
     }
     finally { ssh.close() }

@@ -250,8 +250,8 @@ section "Bootstrap phase 3: towards theory Pure and final ML toplevel setup";
 (*basic proof engine*)
 ML_file "par_tactical.ML";
 ML_file "context_tactic.ML";
-ML_file "Isar/proof_display.ML";
 ML_file "Isar/attrib.ML";
+ML_file "Isar/proof_display.ML";
 ML_file "Isar/context_rules.ML";
 ML_file "Isar/method.ML";
 ML_file "Isar/proof.ML";
@@ -364,3 +364,4 @@ ML_file "Tools/doc.ML";
 ML_file "Tools/jedit.ML";
 ML_file "Tools/ghc.ML";
 ML_file "Tools/generated_files.ML";
+

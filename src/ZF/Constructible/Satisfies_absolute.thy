@@ -11,14 +11,14 @@ subsection \<open>More Internalization\<close>
 
 subsubsection\<open>The Formula \<^term>\<open>is_depth\<close>, Internalized\<close>
 
-(*    "is_depth(M,p,n) == 
+(*    "is_depth(M,p,n) \<equiv> 
        \<exists>sn[M]. \<exists>formula_n[M]. \<exists>formula_sn[M]. 
          2          1                0
-        is_formula_N(M,n,formula_n) & p \<notin> formula_n &
-        successor(M,n,sn) & is_formula_N(M,sn,formula_sn) & p \<in> formula_sn" *)
+        is_formula_N(M,n,formula_n) \<and> p \<notin> formula_n \<and>
+        successor(M,n,sn) \<and> is_formula_N(M,sn,formula_sn) \<and> p \<in> formula_sn" *)
 definition
-  depth_fm :: "[i,i]=>i" where
-  "depth_fm(p,n) == 
+  depth_fm :: "[i,i]\<Rightarrow>i" where
+  "depth_fm(p,n) \<equiv> 
      Exists(Exists(Exists(
        And(formula_N_fm(n#+3,1),
          And(Neg(Member(p#+3,1)),
@@ -26,21 +26,21 @@ definition
            And(formula_N_fm(2,0), Member(p#+3,0))))))))"
 
 lemma depth_fm_type [TC]:
- "[| x \<in> nat; y \<in> nat |] ==> depth_fm(x,y) \<in> formula"
+ "\<lbrakk>x \<in> nat; y \<in> nat\<rbrakk> \<Longrightarrow> depth_fm(x,y) \<in> formula"
 by (simp add: depth_fm_def)
 
 lemma sats_depth_fm [simp]:
-   "[| x \<in> nat; y < length(env); env \<in> list(A)|]
-    ==> sats(A, depth_fm(x,y), env) \<longleftrightarrow>
+   "\<lbrakk>x \<in> nat; y < length(env); env \<in> list(A)\<rbrakk>
+    \<Longrightarrow> sats(A, depth_fm(x,y), env) \<longleftrightarrow>
         is_depth(##A, nth(x,env), nth(y,env))"
 apply (frule_tac x=y in lt_length_in_nat, assumption)  
 apply (simp add: depth_fm_def is_depth_def) 
 done
 
 lemma depth_iff_sats:
-      "[| nth(i,env) = x; nth(j,env) = y; 
-          i \<in> nat; j < length(env); env \<in> list(A)|]
-       ==> is_depth(##A, x, y) \<longleftrightarrow> sats(A, depth_fm(i,j), env)"
+      "\<lbrakk>nth(i,env) = x; nth(j,env) = y; 
+          i \<in> nat; j < length(env); env \<in> list(A)\<rbrakk>
+       \<Longrightarrow> is_depth(##A, x, y) \<longleftrightarrow> sats(A, depth_fm(i,j), env)"
 by (simp)
 
 theorem depth_reflection:
@@ -58,17 +58,17 @@ text\<open>The arguments of \<^term>\<open>is_a\<close> are always 2, 1, 0, and 
       will be enclosed by three quantifiers.\<close>
 
 (* is_formula_case :: 
-    "[i=>o, [i,i,i]=>o, [i,i,i]=>o, [i,i,i]=>o, [i,i]=>o, i, i] => o"
-  "is_formula_case(M, is_a, is_b, is_c, is_d, v, z) == 
-      (\<forall>x[M]. \<forall>y[M]. x\<in>nat \<longrightarrow> y\<in>nat \<longrightarrow> is_Member(M,x,y,v) \<longrightarrow> is_a(x,y,z)) &
-      (\<forall>x[M]. \<forall>y[M]. x\<in>nat \<longrightarrow> y\<in>nat \<longrightarrow> is_Equal(M,x,y,v) \<longrightarrow> is_b(x,y,z)) &
+    "[i\<Rightarrow>o, [i,i,i]\<Rightarrow>o, [i,i,i]\<Rightarrow>o, [i,i,i]\<Rightarrow>o, [i,i]\<Rightarrow>o, i, i] \<Rightarrow> o"
+  "is_formula_case(M, is_a, is_b, is_c, is_d, v, z) \<equiv> 
+      (\<forall>x[M]. \<forall>y[M]. x\<in>nat \<longrightarrow> y\<in>nat \<longrightarrow> is_Member(M,x,y,v) \<longrightarrow> is_a(x,y,z)) \<and>
+      (\<forall>x[M]. \<forall>y[M]. x\<in>nat \<longrightarrow> y\<in>nat \<longrightarrow> is_Equal(M,x,y,v) \<longrightarrow> is_b(x,y,z)) \<and>
       (\<forall>x[M]. \<forall>y[M]. x\<in>formula \<longrightarrow> y\<in>formula \<longrightarrow> 
-                     is_Nand(M,x,y,v) \<longrightarrow> is_c(x,y,z)) &
+                     is_Nand(M,x,y,v) \<longrightarrow> is_c(x,y,z)) \<and>
       (\<forall>x[M]. x\<in>formula \<longrightarrow> is_Forall(M,x,v) \<longrightarrow> is_d(x,z))" *)
 
 definition
-  formula_case_fm :: "[i, i, i, i, i, i]=>i" where
-  "formula_case_fm(is_a, is_b, is_c, is_d, v, z) == 
+  formula_case_fm :: "[i, i, i, i, i, i]\<Rightarrow>i" where
+  "formula_case_fm(is_a, is_b, is_c, is_d, v, z) \<equiv> 
         And(Forall(Forall(Implies(finite_ordinal_fm(1), 
                            Implies(finite_ordinal_fm(0), 
                             Implies(Member_fm(1,0,v#+2), 
@@ -87,31 +87,31 @@ definition
 
 
 lemma is_formula_case_type [TC]:
-     "[| is_a \<in> formula;  is_b \<in> formula;  is_c \<in> formula;  is_d \<in> formula;  
-         x \<in> nat; y \<in> nat |] 
-      ==> formula_case_fm(is_a, is_b, is_c, is_d, x, y) \<in> formula"
+     "\<lbrakk>is_a \<in> formula;  is_b \<in> formula;  is_c \<in> formula;  is_d \<in> formula;  
+         x \<in> nat; y \<in> nat\<rbrakk> 
+      \<Longrightarrow> formula_case_fm(is_a, is_b, is_c, is_d, x, y) \<in> formula"
 by (simp add: formula_case_fm_def)
 
 lemma sats_formula_case_fm:
   assumes is_a_iff_sats: 
-      "!!a0 a1 a2. 
-        [|a0\<in>A; a1\<in>A; a2\<in>A|]  
-        ==> ISA(a2, a1, a0) \<longleftrightarrow> sats(A, is_a, Cons(a0,Cons(a1,Cons(a2,env))))"
+      "\<And>a0 a1 a2. 
+        \<lbrakk>a0\<in>A; a1\<in>A; a2\<in>A\<rbrakk>  
+        \<Longrightarrow> ISA(a2, a1, a0) \<longleftrightarrow> sats(A, is_a, Cons(a0,Cons(a1,Cons(a2,env))))"
   and is_b_iff_sats: 
-      "!!a0 a1 a2. 
-        [|a0\<in>A; a1\<in>A; a2\<in>A|]  
-        ==> ISB(a2, a1, a0) \<longleftrightarrow> sats(A, is_b, Cons(a0,Cons(a1,Cons(a2,env))))"
+      "\<And>a0 a1 a2. 
+        \<lbrakk>a0\<in>A; a1\<in>A; a2\<in>A\<rbrakk>  
+        \<Longrightarrow> ISB(a2, a1, a0) \<longleftrightarrow> sats(A, is_b, Cons(a0,Cons(a1,Cons(a2,env))))"
   and is_c_iff_sats: 
-      "!!a0 a1 a2. 
-        [|a0\<in>A; a1\<in>A; a2\<in>A|]  
-        ==> ISC(a2, a1, a0) \<longleftrightarrow> sats(A, is_c, Cons(a0,Cons(a1,Cons(a2,env))))"
+      "\<And>a0 a1 a2. 
+        \<lbrakk>a0\<in>A; a1\<in>A; a2\<in>A\<rbrakk>  
+        \<Longrightarrow> ISC(a2, a1, a0) \<longleftrightarrow> sats(A, is_c, Cons(a0,Cons(a1,Cons(a2,env))))"
   and is_d_iff_sats: 
-      "!!a0 a1. 
-        [|a0\<in>A; a1\<in>A|]  
-        ==> ISD(a1, a0) \<longleftrightarrow> sats(A, is_d, Cons(a0,Cons(a1,env)))"
+      "\<And>a0 a1. 
+        \<lbrakk>a0\<in>A; a1\<in>A\<rbrakk>  
+        \<Longrightarrow> ISD(a1, a0) \<longleftrightarrow> sats(A, is_d, Cons(a0,Cons(a1,env)))"
   shows 
-      "[|x \<in> nat; y < length(env); env \<in> list(A)|]
-       ==> sats(A, formula_case_fm(is_a,is_b,is_c,is_d,x,y), env) \<longleftrightarrow>
+      "\<lbrakk>x \<in> nat; y < length(env); env \<in> list(A)\<rbrakk>
+       \<Longrightarrow> sats(A, formula_case_fm(is_a,is_b,is_c,is_d,x,y), env) \<longleftrightarrow>
            is_formula_case(##A, ISA, ISB, ISC, ISD, nth(x,env), nth(y,env))"
 apply (frule_tac x=y in lt_length_in_nat, assumption)  
 apply (simp add: formula_case_fm_def is_formula_case_def 
@@ -121,25 +121,25 @@ done
 
 lemma formula_case_iff_sats:
   assumes is_a_iff_sats: 
-      "!!a0 a1 a2. 
-        [|a0\<in>A; a1\<in>A; a2\<in>A|]  
-        ==> ISA(a2, a1, a0) \<longleftrightarrow> sats(A, is_a, Cons(a0,Cons(a1,Cons(a2,env))))"
+      "\<And>a0 a1 a2. 
+        \<lbrakk>a0\<in>A; a1\<in>A; a2\<in>A\<rbrakk>  
+        \<Longrightarrow> ISA(a2, a1, a0) \<longleftrightarrow> sats(A, is_a, Cons(a0,Cons(a1,Cons(a2,env))))"
   and is_b_iff_sats: 
-      "!!a0 a1 a2. 
-        [|a0\<in>A; a1\<in>A; a2\<in>A|]  
-        ==> ISB(a2, a1, a0) \<longleftrightarrow> sats(A, is_b, Cons(a0,Cons(a1,Cons(a2,env))))"
+      "\<And>a0 a1 a2. 
+        \<lbrakk>a0\<in>A; a1\<in>A; a2\<in>A\<rbrakk>  
+        \<Longrightarrow> ISB(a2, a1, a0) \<longleftrightarrow> sats(A, is_b, Cons(a0,Cons(a1,Cons(a2,env))))"
   and is_c_iff_sats: 
-      "!!a0 a1 a2. 
-        [|a0\<in>A; a1\<in>A; a2\<in>A|]  
-        ==> ISC(a2, a1, a0) \<longleftrightarrow> sats(A, is_c, Cons(a0,Cons(a1,Cons(a2,env))))"
+      "\<And>a0 a1 a2. 
+        \<lbrakk>a0\<in>A; a1\<in>A; a2\<in>A\<rbrakk>  
+        \<Longrightarrow> ISC(a2, a1, a0) \<longleftrightarrow> sats(A, is_c, Cons(a0,Cons(a1,Cons(a2,env))))"
   and is_d_iff_sats: 
-      "!!a0 a1. 
-        [|a0\<in>A; a1\<in>A|]  
-        ==> ISD(a1, a0) \<longleftrightarrow> sats(A, is_d, Cons(a0,Cons(a1,env)))"
+      "\<And>a0 a1. 
+        \<lbrakk>a0\<in>A; a1\<in>A\<rbrakk>  
+        \<Longrightarrow> ISD(a1, a0) \<longleftrightarrow> sats(A, is_d, Cons(a0,Cons(a1,env)))"
   shows 
-      "[|nth(i,env) = x; nth(j,env) = y; 
-      i \<in> nat; j < length(env); env \<in> list(A)|]
-       ==> is_formula_case(##A, ISA, ISB, ISC, ISD, x, y) \<longleftrightarrow>
+      "\<lbrakk>nth(i,env) = x; nth(j,env) = y; 
+      i \<in> nat; j < length(env); env \<in> list(A)\<rbrakk>
+       \<Longrightarrow> is_formula_case(##A, ISA, ISB, ISC, ISD, x, y) \<longleftrightarrow>
            sats(A, formula_case_fm(is_a,is_b,is_c,is_d,i,j), env)"
 by (simp add: sats_formula_case_fm [OF is_a_iff_sats is_b_iff_sats 
                                        is_c_iff_sats is_d_iff_sats])
@@ -150,16 +150,16 @@ text\<open>The second argument of \<^term>\<open>is_a\<close> gives it direct ac
   based on that of \<open>is_nat_case_reflection\<close>.\<close>
 theorem is_formula_case_reflection:
   assumes is_a_reflection:
-    "!!h f g g'. REFLECTS[\<lambda>x. is_a(L, h(x), f(x), g(x), g'(x)),
+    "\<And>h f g g'. REFLECTS[\<lambda>x. is_a(L, h(x), f(x), g(x), g'(x)),
                      \<lambda>i x. is_a(##Lset(i), h(x), f(x), g(x), g'(x))]"
   and is_b_reflection:
-    "!!h f g g'. REFLECTS[\<lambda>x. is_b(L, h(x), f(x), g(x), g'(x)),
+    "\<And>h f g g'. REFLECTS[\<lambda>x. is_b(L, h(x), f(x), g(x), g'(x)),
                      \<lambda>i x. is_b(##Lset(i), h(x), f(x), g(x), g'(x))]"
   and is_c_reflection:
-    "!!h f g g'. REFLECTS[\<lambda>x. is_c(L, h(x), f(x), g(x), g'(x)),
+    "\<And>h f g g'. REFLECTS[\<lambda>x. is_c(L, h(x), f(x), g(x), g'(x)),
                      \<lambda>i x. is_c(##Lset(i), h(x), f(x), g(x), g'(x))]"
   and is_d_reflection:
-    "!!h f g g'. REFLECTS[\<lambda>x. is_d(L, h(x), f(x), g(x)),
+    "\<And>h f g g'. REFLECTS[\<lambda>x. is_d(L, h(x), f(x), g(x)),
                      \<lambda>i x. is_d(##Lset(i), h(x), f(x), g(x))]"
   shows "REFLECTS[\<lambda>x. is_formula_case(L, is_a(L,x), is_b(L,x), is_c(L,x), is_d(L,x), g(x), h(x)),
                \<lambda>i x. is_formula_case(##Lset(i), is_a(##Lset(i), x), is_b(##Lset(i), x), is_c(##Lset(i), x), is_d(##Lset(i), x), g(x), h(x))]"
@@ -175,16 +175,16 @@ done
 subsection \<open>Absoluteness for the Function \<^term>\<open>satisfies\<close>\<close>
 
 definition
-  is_depth_apply :: "[i=>o,i,i,i] => o" where
+  is_depth_apply :: "[i\<Rightarrow>o,i,i,i] \<Rightarrow> o" where
    \<comment> \<open>Merely a useful abbreviation for the sequel.\<close>
-  "is_depth_apply(M,h,p,z) ==
+  "is_depth_apply(M,h,p,z) \<equiv>
     \<exists>dp[M]. \<exists>sdp[M]. \<exists>hsdp[M]. 
-        finite_ordinal(M,dp) & is_depth(M,p,dp) & successor(M,dp,sdp) &
-        fun_apply(M,h,sdp,hsdp) & fun_apply(M,hsdp,p,z)"
+        finite_ordinal(M,dp) \<and> is_depth(M,p,dp) \<and> successor(M,dp,sdp) \<and>
+        fun_apply(M,h,sdp,hsdp) \<and> fun_apply(M,hsdp,p,z)"
 
 lemma (in M_datatypes) is_depth_apply_abs [simp]:
-     "[|M(h); p \<in> formula; M(z)|] 
-      ==> is_depth_apply(M,h,p,z) \<longleftrightarrow> z = h ` succ(depth(p)) ` p"
+     "\<lbrakk>M(h); p \<in> formula; M(z)\<rbrakk> 
+      \<Longrightarrow> is_depth_apply(M,h,p,z) \<longleftrightarrow> z = h ` succ(depth(p)) ` p"
 by (simp add: is_depth_apply_def formula_into_M depth_type eq_commute)
 
 
@@ -195,61 +195,61 @@ text\<open>There is at present some redundancy between the relativizations in
 text\<open>These constants let us instantiate the parameters \<^term>\<open>a\<close>, \<^term>\<open>b\<close>,
       \<^term>\<open>c\<close>, \<^term>\<open>d\<close>, etc., of the locale \<open>Formula_Rec\<close>.\<close>
 definition
-  satisfies_a :: "[i,i,i]=>i" where
-   "satisfies_a(A) == 
+  satisfies_a :: "[i,i,i]\<Rightarrow>i" where
+   "satisfies_a(A) \<equiv> 
     \<lambda>x y. \<lambda>env \<in> list(A). bool_of_o (nth(x,env) \<in> nth(y,env))"
 
 definition
-  satisfies_is_a :: "[i=>o,i,i,i,i]=>o" where
-   "satisfies_is_a(M,A) == 
+  satisfies_is_a :: "[i\<Rightarrow>o,i,i,i,i]\<Rightarrow>o" where
+   "satisfies_is_a(M,A) \<equiv> 
     \<lambda>x y zz. \<forall>lA[M]. is_list(M,A,lA) \<longrightarrow>
              is_lambda(M, lA, 
                 \<lambda>env z. is_bool_of_o(M, 
                       \<exists>nx[M]. \<exists>ny[M]. 
-                       is_nth(M,x,env,nx) & is_nth(M,y,env,ny) & nx \<in> ny, z),
+                       is_nth(M,x,env,nx) \<and> is_nth(M,y,env,ny) \<and> nx \<in> ny, z),
                 zz)"
 
 definition
-  satisfies_b :: "[i,i,i]=>i" where
-   "satisfies_b(A) ==
+  satisfies_b :: "[i,i,i]\<Rightarrow>i" where
+   "satisfies_b(A) \<equiv>
     \<lambda>x y. \<lambda>env \<in> list(A). bool_of_o (nth(x,env) = nth(y,env))"
 
 definition
-  satisfies_is_b :: "[i=>o,i,i,i,i]=>o" where
+  satisfies_is_b :: "[i\<Rightarrow>o,i,i,i,i]\<Rightarrow>o" where
    \<comment> \<open>We simplify the formula to have just \<^term>\<open>nx\<close> rather than 
        introducing \<^term>\<open>ny\<close> with  \<^term>\<open>nx=ny\<close>\<close>
-  "satisfies_is_b(M,A) == 
+  "satisfies_is_b(M,A) \<equiv> 
     \<lambda>x y zz. \<forall>lA[M]. is_list(M,A,lA) \<longrightarrow>
              is_lambda(M, lA, 
                 \<lambda>env z. is_bool_of_o(M, 
-                      \<exists>nx[M]. is_nth(M,x,env,nx) & is_nth(M,y,env,nx), z),
+                      \<exists>nx[M]. is_nth(M,x,env,nx) \<and> is_nth(M,y,env,nx), z),
                 zz)"
 
 definition 
-  satisfies_c :: "[i,i,i,i,i]=>i" where
-   "satisfies_c(A) == \<lambda>p q rp rq. \<lambda>env \<in> list(A). not(rp ` env and rq ` env)"
+  satisfies_c :: "[i,i,i,i,i]\<Rightarrow>i" where
+   "satisfies_c(A) \<equiv> \<lambda>p q rp rq. \<lambda>env \<in> list(A). not(rp ` env and rq ` env)"
 
 definition
-  satisfies_is_c :: "[i=>o,i,i,i,i,i]=>o" where
-   "satisfies_is_c(M,A,h) == 
+  satisfies_is_c :: "[i\<Rightarrow>o,i,i,i,i,i]\<Rightarrow>o" where
+   "satisfies_is_c(M,A,h) \<equiv> 
     \<lambda>p q zz. \<forall>lA[M]. is_list(M,A,lA) \<longrightarrow>
              is_lambda(M, lA, \<lambda>env z. \<exists>hp[M]. \<exists>hq[M]. 
-                 (\<exists>rp[M]. is_depth_apply(M,h,p,rp) & fun_apply(M,rp,env,hp)) & 
-                 (\<exists>rq[M]. is_depth_apply(M,h,q,rq) & fun_apply(M,rq,env,hq)) & 
-                 (\<exists>pq[M]. is_and(M,hp,hq,pq) & is_not(M,pq,z)),
+                 (\<exists>rp[M]. is_depth_apply(M,h,p,rp) \<and> fun_apply(M,rp,env,hp)) \<and> 
+                 (\<exists>rq[M]. is_depth_apply(M,h,q,rq) \<and> fun_apply(M,rq,env,hq)) \<and> 
+                 (\<exists>pq[M]. is_and(M,hp,hq,pq) \<and> is_not(M,pq,z)),
                 zz)"
 
 definition
-  satisfies_d :: "[i,i,i]=>i" where
+  satisfies_d :: "[i,i,i]\<Rightarrow>i" where
    "satisfies_d(A) 
-    == \<lambda>p rp. \<lambda>env \<in> list(A). bool_of_o (\<forall>x\<in>A. rp ` (Cons(x,env)) = 1)"
+    \<equiv> \<lambda>p rp. \<lambda>env \<in> list(A). bool_of_o (\<forall>x\<in>A. rp ` (Cons(x,env)) = 1)"
 
 definition
-  satisfies_is_d :: "[i=>o,i,i,i,i]=>o" where
-   "satisfies_is_d(M,A,h) == 
+  satisfies_is_d :: "[i\<Rightarrow>o,i,i,i,i]\<Rightarrow>o" where
+   "satisfies_is_d(M,A,h) \<equiv> 
     \<lambda>p zz. \<forall>lA[M]. is_list(M,A,lA) \<longrightarrow>
              is_lambda(M, lA, 
-                \<lambda>env z. \<exists>rp[M]. is_depth_apply(M,h,p,rp) & 
+                \<lambda>env z. \<exists>rp[M]. is_depth_apply(M,h,p,rp) \<and> 
                     is_bool_of_o(M, 
                            \<forall>x[M]. \<forall>xenv[M]. \<forall>hp[M]. 
                               x\<in>A \<longrightarrow> is_Cons(M,x,env,xenv) \<longrightarrow> 
@@ -258,10 +258,10 @@ definition
                zz)"
 
 definition
-  satisfies_MH :: "[i=>o,i,i,i,i]=>o" where
+  satisfies_MH :: "[i\<Rightarrow>o,i,i,i,i]\<Rightarrow>o" where
     \<comment> \<open>The variable \<^term>\<open>u\<close> is unused, but gives \<^term>\<open>satisfies_MH\<close> 
         the correct arity.\<close>
-  "satisfies_MH == 
+  "satisfies_MH \<equiv> 
     \<lambda>M A u f z. 
          \<forall>fml[M]. is_formula(M,fml) \<longrightarrow>
              is_lambda (M, fml, 
@@ -271,8 +271,8 @@ definition
                z)"
 
 definition
-  is_satisfies :: "[i=>o,i,i,i]=>o" where
-  "is_satisfies(M,A) == is_formula_rec (M, satisfies_MH(M,A))"
+  is_satisfies :: "[i\<Rightarrow>o,i,i,i]\<Rightarrow>o" where
+  "is_satisfies(M,A) \<equiv> is_formula_rec (M, satisfies_MH(M,A))"
 
 
 text\<open>This lemma relates the fragments defined above to the original primitive
@@ -291,112 +291,112 @@ text\<open>Further constraints on the class \<^term>\<open>M\<close> in order to
 locale M_satisfies = M_eclose +
  assumes 
    Member_replacement:
-    "[|M(A); x \<in> nat; y \<in> nat|]
-     ==> strong_replacement
+    "\<lbrakk>M(A); x \<in> nat; y \<in> nat\<rbrakk>
+     \<Longrightarrow> strong_replacement
          (M, \<lambda>env z. \<exists>bo[M]. \<exists>nx[M]. \<exists>ny[M]. 
-              env \<in> list(A) & is_nth(M,x,env,nx) & is_nth(M,y,env,ny) & 
-              is_bool_of_o(M, nx \<in> ny, bo) &
+              env \<in> list(A) \<and> is_nth(M,x,env,nx) \<and> is_nth(M,y,env,ny) \<and> 
+              is_bool_of_o(M, nx \<in> ny, bo) \<and>
               pair(M, env, bo, z))"
  and
    Equal_replacement:
-    "[|M(A); x \<in> nat; y \<in> nat|]
-     ==> strong_replacement
+    "\<lbrakk>M(A); x \<in> nat; y \<in> nat\<rbrakk>
+     \<Longrightarrow> strong_replacement
          (M, \<lambda>env z. \<exists>bo[M]. \<exists>nx[M]. \<exists>ny[M]. 
-              env \<in> list(A) & is_nth(M,x,env,nx) & is_nth(M,y,env,ny) & 
-              is_bool_of_o(M, nx = ny, bo) &
+              env \<in> list(A) \<and> is_nth(M,x,env,nx) \<and> is_nth(M,y,env,ny) \<and> 
+              is_bool_of_o(M, nx = ny, bo) \<and>
               pair(M, env, bo, z))"
  and
    Nand_replacement:
-    "[|M(A); M(rp); M(rq)|]
-     ==> strong_replacement
+    "\<lbrakk>M(A); M(rp); M(rq)\<rbrakk>
+     \<Longrightarrow> strong_replacement
          (M, \<lambda>env z. \<exists>rpe[M]. \<exists>rqe[M]. \<exists>andpq[M]. \<exists>notpq[M]. 
-               fun_apply(M,rp,env,rpe) & fun_apply(M,rq,env,rqe) & 
-               is_and(M,rpe,rqe,andpq) & is_not(M,andpq,notpq) & 
-               env \<in> list(A) & pair(M, env, notpq, z))"
+               fun_apply(M,rp,env,rpe) \<and> fun_apply(M,rq,env,rqe) \<and> 
+               is_and(M,rpe,rqe,andpq) \<and> is_not(M,andpq,notpq) \<and> 
+               env \<in> list(A) \<and> pair(M, env, notpq, z))"
  and
   Forall_replacement:
-   "[|M(A); M(rp)|]
-    ==> strong_replacement
+   "\<lbrakk>M(A); M(rp)\<rbrakk>
+    \<Longrightarrow> strong_replacement
         (M, \<lambda>env z. \<exists>bo[M]. 
-              env \<in> list(A) & 
+              env \<in> list(A) \<and> 
               is_bool_of_o (M, 
                             \<forall>a[M]. \<forall>co[M]. \<forall>rpco[M]. 
                                a\<in>A \<longrightarrow> is_Cons(M,a,env,co) \<longrightarrow>
                                fun_apply(M,rp,co,rpco) \<longrightarrow> number1(M, rpco), 
-                            bo) &
+                            bo) \<and>
               pair(M,env,bo,z))"
  and
   formula_rec_replacement: 
       \<comment> \<open>For the \<^term>\<open>transrec\<close>\<close>
-   "[|n \<in> nat; M(A)|] ==> transrec_replacement(M, satisfies_MH(M,A), n)"
+   "\<lbrakk>n \<in> nat; M(A)\<rbrakk> \<Longrightarrow> transrec_replacement(M, satisfies_MH(M,A), n)"
  and
   formula_rec_lambda_replacement:  
       \<comment> \<open>For the \<open>\<lambda>-abstraction\<close> in the \<^term>\<open>transrec\<close> body\<close>
-   "[|M(g); M(A)|] ==>
+   "\<lbrakk>M(g); M(A)\<rbrakk> \<Longrightarrow>
     strong_replacement (M, 
-       \<lambda>x y. mem_formula(M,x) &
+       \<lambda>x y. mem_formula(M,x) \<and>
              (\<exists>c[M]. is_formula_case(M, satisfies_is_a(M,A),
                                   satisfies_is_b(M,A),
                                   satisfies_is_c(M,A,g),
-                                  satisfies_is_d(M,A,g), x, c) &
+                                  satisfies_is_d(M,A,g), x, c) \<and>
              pair(M, x, c, y)))"
 
 
 lemma (in M_satisfies) Member_replacement':
-    "[|M(A); x \<in> nat; y \<in> nat|]
-     ==> strong_replacement
-         (M, \<lambda>env z. env \<in> list(A) &
+    "\<lbrakk>M(A); x \<in> nat; y \<in> nat\<rbrakk>
+     \<Longrightarrow> strong_replacement
+         (M, \<lambda>env z. env \<in> list(A) \<and>
                      z = \<langle>env, bool_of_o(nth(x, env) \<in> nth(y, env))\<rangle>)"
 by (insert Member_replacement, simp) 
 
 lemma (in M_satisfies) Equal_replacement':
-    "[|M(A); x \<in> nat; y \<in> nat|]
-     ==> strong_replacement
-         (M, \<lambda>env z. env \<in> list(A) &
+    "\<lbrakk>M(A); x \<in> nat; y \<in> nat\<rbrakk>
+     \<Longrightarrow> strong_replacement
+         (M, \<lambda>env z. env \<in> list(A) \<and>
                      z = \<langle>env, bool_of_o(nth(x, env) = nth(y, env))\<rangle>)"
 by (insert Equal_replacement, simp) 
 
 lemma (in M_satisfies) Nand_replacement':
-    "[|M(A); M(rp); M(rq)|]
-     ==> strong_replacement
-         (M, \<lambda>env z. env \<in> list(A) & z = \<langle>env, not(rp`env and rq`env)\<rangle>)"
+    "\<lbrakk>M(A); M(rp); M(rq)\<rbrakk>
+     \<Longrightarrow> strong_replacement
+         (M, \<lambda>env z. env \<in> list(A) \<and> z = \<langle>env, not(rp`env and rq`env)\<rangle>)"
 by (insert Nand_replacement, simp) 
 
 lemma (in M_satisfies) Forall_replacement':
-   "[|M(A); M(rp)|]
-    ==> strong_replacement
+   "\<lbrakk>M(A); M(rp)\<rbrakk>
+    \<Longrightarrow> strong_replacement
         (M, \<lambda>env z.
-               env \<in> list(A) &
+               env \<in> list(A) \<and>
                z = \<langle>env, bool_of_o (\<forall>a\<in>A. rp ` Cons(a,env) = 1)\<rangle>)"
 by (insert Forall_replacement, simp) 
 
 lemma (in M_satisfies) a_closed:
-     "[|M(A); x\<in>nat; y\<in>nat|] ==> M(satisfies_a(A,x,y))"
+     "\<lbrakk>M(A); x\<in>nat; y\<in>nat\<rbrakk> \<Longrightarrow> M(satisfies_a(A,x,y))"
 apply (simp add: satisfies_a_def) 
 apply (blast intro: lam_closed2 Member_replacement') 
 done
 
 lemma (in M_satisfies) a_rel:
-     "M(A) ==> Relation2(M, nat, nat, satisfies_is_a(M,A), satisfies_a(A))"
+     "M(A) \<Longrightarrow> Relation2(M, nat, nat, satisfies_is_a(M,A), satisfies_a(A))"
 apply (simp add: Relation2_def satisfies_is_a_def satisfies_a_def)
 apply (auto del: iffI intro!: lambda_abs2 simp add: Relation1_def) 
 done
 
 lemma (in M_satisfies) b_closed:
-     "[|M(A); x\<in>nat; y\<in>nat|] ==> M(satisfies_b(A,x,y))"
+     "\<lbrakk>M(A); x\<in>nat; y\<in>nat\<rbrakk> \<Longrightarrow> M(satisfies_b(A,x,y))"
 apply (simp add: satisfies_b_def) 
 apply (blast intro: lam_closed2 Equal_replacement') 
 done
 
 lemma (in M_satisfies) b_rel:
-     "M(A) ==> Relation2(M, nat, nat, satisfies_is_b(M,A), satisfies_b(A))"
+     "M(A) \<Longrightarrow> Relation2(M, nat, nat, satisfies_is_b(M,A), satisfies_b(A))"
 apply (simp add: Relation2_def satisfies_is_b_def satisfies_b_def)
 apply (auto del: iffI intro!: lambda_abs2 simp add: Relation1_def) 
 done
 
 lemma (in M_satisfies) c_closed:
-     "[|M(A); x \<in> formula; y \<in> formula; M(rx); M(ry)|] 
-      ==> M(satisfies_c(A,x,y,rx,ry))"
+     "\<lbrakk>M(A); x \<in> formula; y \<in> formula; M(rx); M(ry)\<rbrakk> 
+      \<Longrightarrow> M(satisfies_c(A,x,y,rx,ry))"
 apply (simp add: satisfies_c_def) 
 apply (rule lam_closed2) 
 apply (rule Nand_replacement') 
@@ -404,7 +404,7 @@ apply (simp_all add: formula_into_M list_into_M [of _ A])
 done
 
 lemma (in M_satisfies) c_rel:
- "[|M(A); M(f)|] ==> 
+ "\<lbrakk>M(A); M(f)\<rbrakk> \<Longrightarrow> 
   Relation2 (M, formula, formula, 
                satisfies_is_c(M,A,f),
                \<lambda>u v. satisfies_c(A, u, v, f ` succ(depth(u)) ` u, 
@@ -415,7 +415,7 @@ apply (auto del: iffI intro!: lambda_abs2
 done
 
 lemma (in M_satisfies) d_closed:
-     "[|M(A); x \<in> formula; M(rx)|] ==> M(satisfies_d(A,x,rx))"
+     "\<lbrakk>M(A); x \<in> formula; M(rx)\<rbrakk> \<Longrightarrow> M(satisfies_d(A,x,rx))"
 apply (simp add: satisfies_d_def) 
 apply (rule lam_closed2) 
 apply (rule Forall_replacement') 
@@ -423,7 +423,7 @@ apply (simp_all add: formula_into_M list_into_M [of _ A])
 done
 
 lemma (in M_satisfies) d_rel:
- "[|M(A); M(f)|] ==> 
+ "\<lbrakk>M(A); M(f)\<rbrakk> \<Longrightarrow> 
   Relation1(M, formula, satisfies_is_d(M,A,f), 
      \<lambda>u. satisfies_d(A, u, f ` succ(depth(u)) ` u))"
 apply (simp del: rall_abs 
@@ -433,11 +433,11 @@ done
 
 
 lemma (in M_satisfies) fr_replace:
-      "[|n \<in> nat; M(A)|] ==> transrec_replacement(M,satisfies_MH(M,A),n)" 
+      "\<lbrakk>n \<in> nat; M(A)\<rbrakk> \<Longrightarrow> transrec_replacement(M,satisfies_MH(M,A),n)" 
 by (blast intro: formula_rec_replacement) 
 
 lemma (in M_satisfies) formula_case_satisfies_closed:
- "[|M(g); M(A); x \<in> formula|] ==>
+ "\<lbrakk>M(g); M(A); x \<in> formula\<rbrakk> \<Longrightarrow>
   M(formula_case (satisfies_a(A), satisfies_b(A),
        \<lambda>u v. satisfies_c(A, u, v, 
                          g ` succ(depth(u)) ` u, g ` succ(depth(v)) ` v),
@@ -446,8 +446,8 @@ lemma (in M_satisfies) formula_case_satisfies_closed:
 by (blast intro: a_closed b_closed c_closed d_closed) 
 
 lemma (in M_satisfies) fr_lam_replace:
-   "[|M(g); M(A)|] ==>
-    strong_replacement (M, \<lambda>x y. x \<in> formula &
+   "\<lbrakk>M(g); M(A)\<rbrakk> \<Longrightarrow>
+    strong_replacement (M, \<lambda>x y. x \<in> formula \<and>
             y = \<langle>x, 
                  formula_rec_case(satisfies_a(A),
                                   satisfies_b(A),
@@ -464,7 +464,7 @@ text\<open>Instantiate locale \<open>Formula_Rec\<close> for the
       Function \<^term>\<open>satisfies\<close>\<close>
 
 lemma (in M_satisfies) Formula_Rec_axioms_M:
-   "M(A) ==>
+   "M(A) \<Longrightarrow>
     Formula_Rec_axioms(M, satisfies_a(A), satisfies_is_a(M,A), 
                           satisfies_b(A), satisfies_is_b(M,A), 
                           satisfies_c(A), satisfies_is_c(M,A), 
@@ -478,7 +478,7 @@ done
 
 
 theorem (in M_satisfies) Formula_Rec_M: 
-    "M(A) ==>
+    "M(A) \<Longrightarrow>
      Formula_Rec(M, satisfies_a(A), satisfies_is_a(M,A), 
                          satisfies_b(A), satisfies_is_b(M,A), 
                          satisfies_c(A), satisfies_is_c(M,A), 
@@ -494,13 +494,13 @@ and satisfies_abs'    = Formula_Rec.formula_rec_abs [OF Formula_Rec_M]
 
 
 lemma (in M_satisfies) satisfies_closed:
-  "[|M(A); p \<in> formula|] ==> M(satisfies(A,p))"
+  "\<lbrakk>M(A); p \<in> formula\<rbrakk> \<Longrightarrow> M(satisfies(A,p))"
 by (simp add: Formula_Rec.formula_rec_closed [OF Formula_Rec_M]  
               satisfies_eq) 
 
 lemma (in M_satisfies) satisfies_abs:
-  "[|M(A); M(z); p \<in> formula|] 
-   ==> is_satisfies(M,A,p,z) \<longleftrightarrow> z = satisfies(A,p)"
+  "\<lbrakk>M(A); M(z); p \<in> formula\<rbrakk> 
+   \<Longrightarrow> is_satisfies(M,A,p,z) \<longleftrightarrow> z = satisfies(A,p)"
 by (simp only: Formula_Rec.formula_rec_abs [OF Formula_Rec_M]  
                satisfies_eq is_satisfies_def satisfies_MH_def)
 
@@ -509,14 +509,14 @@ subsection\<open>Internalizations Needed to Instantiate \<open>M_satisfies\<clos
 
 subsubsection\<open>The Operator \<^term>\<open>is_depth_apply\<close>, Internalized\<close>
 
-(* is_depth_apply(M,h,p,z) ==
+(* is_depth_apply(M,h,p,z) \<equiv>
     \<exists>dp[M]. \<exists>sdp[M]. \<exists>hsdp[M]. 
       2        1         0
-        finite_ordinal(M,dp) & is_depth(M,p,dp) & successor(M,dp,sdp) &
-        fun_apply(M,h,sdp,hsdp) & fun_apply(M,hsdp,p,z) *)
+        finite_ordinal(M,dp) \<and> is_depth(M,p,dp) \<and> successor(M,dp,sdp) \<and>
+        fun_apply(M,h,sdp,hsdp) \<and> fun_apply(M,hsdp,p,z) *)
 definition
-  depth_apply_fm :: "[i,i,i]=>i" where
-    "depth_apply_fm(h,p,z) ==
+  depth_apply_fm :: "[i,i,i]\<Rightarrow>i" where
+    "depth_apply_fm(h,p,z) \<equiv>
        Exists(Exists(Exists(
         And(finite_ordinal_fm(2),
          And(depth_fm(p#+3,2),
@@ -524,19 +524,19 @@ definition
            And(fun_apply_fm(h#+3,1,0), fun_apply_fm(0,p#+3,z#+3))))))))"
 
 lemma depth_apply_type [TC]:
-     "[| x \<in> nat; y \<in> nat; z \<in> nat |] ==> depth_apply_fm(x,y,z) \<in> formula"
+     "\<lbrakk>x \<in> nat; y \<in> nat; z \<in> nat\<rbrakk> \<Longrightarrow> depth_apply_fm(x,y,z) \<in> formula"
 by (simp add: depth_apply_fm_def)
 
 lemma sats_depth_apply_fm [simp]:
-   "[| x \<in> nat; y \<in> nat; z \<in> nat; env \<in> list(A)|]
-    ==> sats(A, depth_apply_fm(x,y,z), env) \<longleftrightarrow>
+   "\<lbrakk>x \<in> nat; y \<in> nat; z \<in> nat; env \<in> list(A)\<rbrakk>
+    \<Longrightarrow> sats(A, depth_apply_fm(x,y,z), env) \<longleftrightarrow>
         is_depth_apply(##A, nth(x,env), nth(y,env), nth(z,env))"
 by (simp add: depth_apply_fm_def is_depth_apply_def)
 
 lemma depth_apply_iff_sats:
-    "[| nth(i,env) = x; nth(j,env) = y; nth(k,env) = z;
-        i \<in> nat; j \<in> nat; k \<in> nat; env \<in> list(A)|]
-     ==> is_depth_apply(##A, x, y, z) \<longleftrightarrow> sats(A, depth_apply_fm(i,j,k), env)"
+    "\<lbrakk>nth(i,env) = x; nth(j,env) = y; nth(k,env) = z;
+        i \<in> nat; j \<in> nat; k \<in> nat; env \<in> list(A)\<rbrakk>
+     \<Longrightarrow> is_depth_apply(##A, x, y, z) \<longleftrightarrow> sats(A, depth_apply_fm(i,j,k), env)"
 by simp
 
 lemma depth_apply_reflection:
@@ -550,17 +550,17 @@ done
 
 subsubsection\<open>The Operator \<^term>\<open>satisfies_is_a\<close>, Internalized\<close>
 
-(* satisfies_is_a(M,A) == 
+(* satisfies_is_a(M,A) \<equiv> 
     \<lambda>x y zz. \<forall>lA[M]. is_list(M,A,lA) \<longrightarrow>
              is_lambda(M, lA, 
                 \<lambda>env z. is_bool_of_o(M, 
                       \<exists>nx[M]. \<exists>ny[M]. 
-                       is_nth(M,x,env,nx) & is_nth(M,y,env,ny) & nx \<in> ny, z),
+                       is_nth(M,x,env,nx) \<and> is_nth(M,y,env,ny) \<and> nx \<in> ny, z),
                 zz)  *)
 
 definition
-  satisfies_is_a_fm :: "[i,i,i,i]=>i" where
-  "satisfies_is_a_fm(A,x,y,z) ==
+  satisfies_is_a_fm :: "[i,i,i,i]\<Rightarrow>i" where
+  "satisfies_is_a_fm(A,x,y,z) \<equiv>
    Forall(
      Implies(is_list_fm(succ(A),0),
        lambda_fm(
@@ -571,13 +571,13 @@ definition
          0, succ(z))))"
 
 lemma satisfies_is_a_type [TC]:
-     "[| A \<in> nat; x \<in> nat; y \<in> nat; z \<in> nat |]
-      ==> satisfies_is_a_fm(A,x,y,z) \<in> formula"
+     "\<lbrakk>A \<in> nat; x \<in> nat; y \<in> nat; z \<in> nat\<rbrakk>
+      \<Longrightarrow> satisfies_is_a_fm(A,x,y,z) \<in> formula"
 by (simp add: satisfies_is_a_fm_def)
 
 lemma sats_satisfies_is_a_fm [simp]:
-   "[| u \<in> nat; x < length(env); y < length(env); z \<in> nat; env \<in> list(A)|]
-    ==> sats(A, satisfies_is_a_fm(u,x,y,z), env) \<longleftrightarrow>
+   "\<lbrakk>u \<in> nat; x < length(env); y < length(env); z \<in> nat; env \<in> list(A)\<rbrakk>
+    \<Longrightarrow> sats(A, satisfies_is_a_fm(u,x,y,z), env) \<longleftrightarrow>
         satisfies_is_a(##A, nth(u,env), nth(x,env), nth(y,env), nth(z,env))"
 apply (frule_tac x=x in lt_length_in_nat, assumption)  
 apply (frule_tac x=y in lt_length_in_nat, assumption)  
@@ -586,16 +586,16 @@ apply (simp add: satisfies_is_a_fm_def satisfies_is_a_def sats_lambda_fm
 done
 
 lemma satisfies_is_a_iff_sats:
-  "[| nth(u,env) = nu; nth(x,env) = nx; nth(y,env) = ny; nth(z,env) = nz;
-      u \<in> nat; x < length(env); y < length(env); z \<in> nat; env \<in> list(A)|]
-   ==> satisfies_is_a(##A,nu,nx,ny,nz) \<longleftrightarrow>
+  "\<lbrakk>nth(u,env) = nu; nth(x,env) = nx; nth(y,env) = ny; nth(z,env) = nz;
+      u \<in> nat; x < length(env); y < length(env); z \<in> nat; env \<in> list(A)\<rbrakk>
+   \<Longrightarrow> satisfies_is_a(##A,nu,nx,ny,nz) \<longleftrightarrow>
        sats(A, satisfies_is_a_fm(u,x,y,z), env)"
 by simp
 
 theorem satisfies_is_a_reflection:
      "REFLECTS[\<lambda>x. satisfies_is_a(L,f(x),g(x),h(x),g'(x)),
                \<lambda>i x. satisfies_is_a(##Lset(i),f(x),g(x),h(x),g'(x))]"
-apply (unfold satisfies_is_a_def) 
+  unfolding satisfies_is_a_def 
 apply (intro FOL_reflections is_lambda_reflection bool_of_o_reflection 
              nth_reflection is_list_reflection)
 done
@@ -603,16 +603,16 @@ done
 
 subsubsection\<open>The Operator \<^term>\<open>satisfies_is_b\<close>, Internalized\<close>
 
-(* satisfies_is_b(M,A) == 
+(* satisfies_is_b(M,A) \<equiv> 
     \<lambda>x y zz. \<forall>lA[M]. is_list(M,A,lA) \<longrightarrow>
              is_lambda(M, lA, 
                 \<lambda>env z. is_bool_of_o(M, 
-                      \<exists>nx[M]. is_nth(M,x,env,nx) & is_nth(M,y,env,nx), z),
+                      \<exists>nx[M]. is_nth(M,x,env,nx) \<and> is_nth(M,y,env,nx), z),
                 zz) *)
 
 definition
-  satisfies_is_b_fm :: "[i,i,i,i]=>i" where
- "satisfies_is_b_fm(A,x,y,z) ==
+  satisfies_is_b_fm :: "[i,i,i,i]\<Rightarrow>i" where
+ "satisfies_is_b_fm(A,x,y,z) \<equiv>
    Forall(
      Implies(is_list_fm(succ(A),0),
        lambda_fm(
@@ -620,13 +620,13 @@ definition
          0, succ(z))))"
 
 lemma satisfies_is_b_type [TC]:
-     "[| A \<in> nat; x \<in> nat; y \<in> nat; z \<in> nat |]
-      ==> satisfies_is_b_fm(A,x,y,z) \<in> formula"
+     "\<lbrakk>A \<in> nat; x \<in> nat; y \<in> nat; z \<in> nat\<rbrakk>
+      \<Longrightarrow> satisfies_is_b_fm(A,x,y,z) \<in> formula"
 by (simp add: satisfies_is_b_fm_def)
 
 lemma sats_satisfies_is_b_fm [simp]:
-   "[| u \<in> nat; x < length(env); y < length(env); z \<in> nat; env \<in> list(A)|]
-    ==> sats(A, satisfies_is_b_fm(u,x,y,z), env) \<longleftrightarrow>
+   "\<lbrakk>u \<in> nat; x < length(env); y < length(env); z \<in> nat; env \<in> list(A)\<rbrakk>
+    \<Longrightarrow> sats(A, satisfies_is_b_fm(u,x,y,z), env) \<longleftrightarrow>
         satisfies_is_b(##A, nth(u,env), nth(x,env), nth(y,env), nth(z,env))"
 apply (frule_tac x=x in lt_length_in_nat, assumption)  
 apply (frule_tac x=y in lt_length_in_nat, assumption)  
@@ -635,16 +635,16 @@ apply (simp add: satisfies_is_b_fm_def satisfies_is_b_def sats_lambda_fm
 done
 
 lemma satisfies_is_b_iff_sats:
-  "[| nth(u,env) = nu; nth(x,env) = nx; nth(y,env) = ny; nth(z,env) = nz;
-      u \<in> nat; x < length(env); y < length(env); z \<in> nat; env \<in> list(A)|]
-   ==> satisfies_is_b(##A,nu,nx,ny,nz) \<longleftrightarrow>
+  "\<lbrakk>nth(u,env) = nu; nth(x,env) = nx; nth(y,env) = ny; nth(z,env) = nz;
+      u \<in> nat; x < length(env); y < length(env); z \<in> nat; env \<in> list(A)\<rbrakk>
+   \<Longrightarrow> satisfies_is_b(##A,nu,nx,ny,nz) \<longleftrightarrow>
        sats(A, satisfies_is_b_fm(u,x,y,z), env)"
 by simp
 
 theorem satisfies_is_b_reflection:
      "REFLECTS[\<lambda>x. satisfies_is_b(L,f(x),g(x),h(x),g'(x)),
                \<lambda>i x. satisfies_is_b(##Lset(i),f(x),g(x),h(x),g'(x))]"
-apply (unfold satisfies_is_b_def) 
+  unfolding satisfies_is_b_def 
 apply (intro FOL_reflections is_lambda_reflection bool_of_o_reflection 
              nth_reflection is_list_reflection)
 done
@@ -652,17 +652,17 @@ done
 
 subsubsection\<open>The Operator \<^term>\<open>satisfies_is_c\<close>, Internalized\<close>
 
-(* satisfies_is_c(M,A,h) == 
+(* satisfies_is_c(M,A,h) \<equiv> 
     \<lambda>p q zz. \<forall>lA[M]. is_list(M,A,lA) \<longrightarrow>
              is_lambda(M, lA, \<lambda>env z. \<exists>hp[M]. \<exists>hq[M]. 
-                 (\<exists>rp[M]. is_depth_apply(M,h,p,rp) & fun_apply(M,rp,env,hp)) & 
-                 (\<exists>rq[M]. is_depth_apply(M,h,q,rq) & fun_apply(M,rq,env,hq)) & 
-                 (\<exists>pq[M]. is_and(M,hp,hq,pq) & is_not(M,pq,z)),
+                 (\<exists>rp[M]. is_depth_apply(M,h,p,rp) \<and> fun_apply(M,rp,env,hp)) \<and> 
+                 (\<exists>rq[M]. is_depth_apply(M,h,q,rq) \<and> fun_apply(M,rq,env,hq)) \<and> 
+                 (\<exists>pq[M]. is_and(M,hp,hq,pq) \<and> is_not(M,pq,z)),
                 zz) *)
 
 definition
-  satisfies_is_c_fm :: "[i,i,i,i,i]=>i" where
- "satisfies_is_c_fm(A,h,p,q,zz) ==
+  satisfies_is_c_fm :: "[i,i,i,i,i]\<Rightarrow>i" where
+ "satisfies_is_c_fm(A,h,p,q,zz) \<equiv>
    Forall(
      Implies(is_list_fm(succ(A),0),
        lambda_fm(
@@ -673,29 +673,29 @@ definition
          0, succ(zz))))"
 
 lemma satisfies_is_c_type [TC]:
-     "[| A \<in> nat; h \<in> nat; x \<in> nat; y \<in> nat; z \<in> nat |]
-      ==> satisfies_is_c_fm(A,h,x,y,z) \<in> formula"
+     "\<lbrakk>A \<in> nat; h \<in> nat; x \<in> nat; y \<in> nat; z \<in> nat\<rbrakk>
+      \<Longrightarrow> satisfies_is_c_fm(A,h,x,y,z) \<in> formula"
 by (simp add: satisfies_is_c_fm_def)
 
 lemma sats_satisfies_is_c_fm [simp]:
-   "[| u \<in> nat; v \<in> nat; x \<in> nat; y \<in> nat; z \<in> nat; env \<in> list(A)|]
-    ==> sats(A, satisfies_is_c_fm(u,v,x,y,z), env) \<longleftrightarrow>
+   "\<lbrakk>u \<in> nat; v \<in> nat; x \<in> nat; y \<in> nat; z \<in> nat; env \<in> list(A)\<rbrakk>
+    \<Longrightarrow> sats(A, satisfies_is_c_fm(u,v,x,y,z), env) \<longleftrightarrow>
         satisfies_is_c(##A, nth(u,env), nth(v,env), nth(x,env), 
                             nth(y,env), nth(z,env))"  
 by (simp add: satisfies_is_c_fm_def satisfies_is_c_def sats_lambda_fm)
 
 lemma satisfies_is_c_iff_sats:
-  "[| nth(u,env) = nu; nth(v,env) = nv; nth(x,env) = nx; nth(y,env) = ny; 
+  "\<lbrakk>nth(u,env) = nu; nth(v,env) = nv; nth(x,env) = nx; nth(y,env) = ny; 
       nth(z,env) = nz;
-      u \<in> nat; v \<in> nat; x \<in> nat; y \<in> nat; z \<in> nat; env \<in> list(A)|]
-   ==> satisfies_is_c(##A,nu,nv,nx,ny,nz) \<longleftrightarrow>
+      u \<in> nat; v \<in> nat; x \<in> nat; y \<in> nat; z \<in> nat; env \<in> list(A)\<rbrakk>
+   \<Longrightarrow> satisfies_is_c(##A,nu,nv,nx,ny,nz) \<longleftrightarrow>
        sats(A, satisfies_is_c_fm(u,v,x,y,z), env)"
 by simp
 
 theorem satisfies_is_c_reflection:
      "REFLECTS[\<lambda>x. satisfies_is_c(L,f(x),g(x),h(x),g'(x),h'(x)),
                \<lambda>i x. satisfies_is_c(##Lset(i),f(x),g(x),h(x),g'(x),h'(x))]"
-apply (unfold satisfies_is_c_def) 
+  unfolding satisfies_is_c_def 
 apply (intro FOL_reflections function_reflections is_lambda_reflection
              extra_reflections nth_reflection depth_apply_reflection 
              is_list_reflection)
@@ -703,10 +703,10 @@ done
 
 subsubsection\<open>The Operator \<^term>\<open>satisfies_is_d\<close>, Internalized\<close>
 
-(* satisfies_is_d(M,A,h) == 
+(* satisfies_is_d(M,A,h) \<equiv> 
     \<lambda>p zz. \<forall>lA[M]. is_list(M,A,lA) \<longrightarrow>
              is_lambda(M, lA, 
-                \<lambda>env z. \<exists>rp[M]. is_depth_apply(M,h,p,rp) & 
+                \<lambda>env z. \<exists>rp[M]. is_depth_apply(M,h,p,rp) \<and> 
                     is_bool_of_o(M, 
                            \<forall>x[M]. \<forall>xenv[M]. \<forall>hp[M]. 
                               x\<in>A \<longrightarrow> is_Cons(M,x,env,xenv) \<longrightarrow> 
@@ -715,8 +715,8 @@ subsubsection\<open>The Operator \<^term>\<open>satisfies_is_d\<close>, Internal
                zz) *)
 
 definition
-  satisfies_is_d_fm :: "[i,i,i,i]=>i" where
- "satisfies_is_d_fm(A,h,p,zz) ==
+  satisfies_is_d_fm :: "[i,i,i,i]\<Rightarrow>i" where
+ "satisfies_is_d_fm(A,h,p,zz) \<equiv>
    Forall(
      Implies(is_list_fm(succ(A),0),
        lambda_fm(
@@ -730,28 +730,28 @@ definition
          0, succ(zz))))"
 
 lemma satisfies_is_d_type [TC]:
-     "[| A \<in> nat; h \<in> nat; x \<in> nat; z \<in> nat |]
-      ==> satisfies_is_d_fm(A,h,x,z) \<in> formula"
+     "\<lbrakk>A \<in> nat; h \<in> nat; x \<in> nat; z \<in> nat\<rbrakk>
+      \<Longrightarrow> satisfies_is_d_fm(A,h,x,z) \<in> formula"
 by (simp add: satisfies_is_d_fm_def)
 
 lemma sats_satisfies_is_d_fm [simp]:
-   "[| u \<in> nat; x \<in> nat; y \<in> nat; z \<in> nat; env \<in> list(A)|]
-    ==> sats(A, satisfies_is_d_fm(u,x,y,z), env) \<longleftrightarrow>
+   "\<lbrakk>u \<in> nat; x \<in> nat; y \<in> nat; z \<in> nat; env \<in> list(A)\<rbrakk>
+    \<Longrightarrow> sats(A, satisfies_is_d_fm(u,x,y,z), env) \<longleftrightarrow>
         satisfies_is_d(##A, nth(u,env), nth(x,env), nth(y,env), nth(z,env))"  
 by (simp add: satisfies_is_d_fm_def satisfies_is_d_def sats_lambda_fm
               sats_bool_of_o_fm)
 
 lemma satisfies_is_d_iff_sats:
-  "[| nth(u,env) = nu; nth(x,env) = nx; nth(y,env) = ny; nth(z,env) = nz;
-      u \<in> nat; x \<in> nat; y \<in> nat; z \<in> nat; env \<in> list(A)|]
-   ==> satisfies_is_d(##A,nu,nx,ny,nz) \<longleftrightarrow>
+  "\<lbrakk>nth(u,env) = nu; nth(x,env) = nx; nth(y,env) = ny; nth(z,env) = nz;
+      u \<in> nat; x \<in> nat; y \<in> nat; z \<in> nat; env \<in> list(A)\<rbrakk>
+   \<Longrightarrow> satisfies_is_d(##A,nu,nx,ny,nz) \<longleftrightarrow>
        sats(A, satisfies_is_d_fm(u,x,y,z), env)"
 by simp
 
 theorem satisfies_is_d_reflection:
      "REFLECTS[\<lambda>x. satisfies_is_d(L,f(x),g(x),h(x),g'(x)),
                \<lambda>i x. satisfies_is_d(##Lset(i),f(x),g(x),h(x),g'(x))]"
-apply (unfold satisfies_is_d_def) 
+  unfolding satisfies_is_d_def 
 apply (intro FOL_reflections function_reflections is_lambda_reflection
              extra_reflections nth_reflection depth_apply_reflection 
              is_list_reflection)
@@ -760,7 +760,7 @@ done
 
 subsubsection\<open>The Operator \<^term>\<open>satisfies_MH\<close>, Internalized\<close>
 
-(* satisfies_MH == 
+(* satisfies_MH \<equiv> 
     \<lambda>M A u f zz. 
          \<forall>fml[M]. is_formula(M,fml) \<longrightarrow>
              is_lambda (M, fml, 
@@ -770,8 +770,8 @@ subsubsection\<open>The Operator \<^term>\<open>satisfies_MH\<close>, Internaliz
                zz) *)
 
 definition
-  satisfies_MH_fm :: "[i,i,i,i]=>i" where
- "satisfies_MH_fm(A,u,f,zz) ==
+  satisfies_MH_fm :: "[i,i,i,i]\<Rightarrow>i" where
+ "satisfies_MH_fm(A,u,f,zz) \<equiv>
    Forall(
      Implies(is_formula_fm(0),
        lambda_fm(
@@ -783,21 +783,21 @@ definition
          0, succ(zz))))"
 
 lemma satisfies_MH_type [TC]:
-     "[| A \<in> nat; u \<in> nat; x \<in> nat; z \<in> nat |]
-      ==> satisfies_MH_fm(A,u,x,z) \<in> formula"
+     "\<lbrakk>A \<in> nat; u \<in> nat; x \<in> nat; z \<in> nat\<rbrakk>
+      \<Longrightarrow> satisfies_MH_fm(A,u,x,z) \<in> formula"
 by (simp add: satisfies_MH_fm_def)
 
 lemma sats_satisfies_MH_fm [simp]:
-   "[| u \<in> nat; x \<in> nat; y \<in> nat; z \<in> nat; env \<in> list(A)|]
-    ==> sats(A, satisfies_MH_fm(u,x,y,z), env) \<longleftrightarrow>
+   "\<lbrakk>u \<in> nat; x \<in> nat; y \<in> nat; z \<in> nat; env \<in> list(A)\<rbrakk>
+    \<Longrightarrow> sats(A, satisfies_MH_fm(u,x,y,z), env) \<longleftrightarrow>
         satisfies_MH(##A, nth(u,env), nth(x,env), nth(y,env), nth(z,env))"  
 by (simp add: satisfies_MH_fm_def satisfies_MH_def sats_lambda_fm
               sats_formula_case_fm)
 
 lemma satisfies_MH_iff_sats:
-  "[| nth(u,env) = nu; nth(x,env) = nx; nth(y,env) = ny; nth(z,env) = nz;
-      u \<in> nat; x \<in> nat; y \<in> nat; z \<in> nat; env \<in> list(A)|]
-   ==> satisfies_MH(##A,nu,nx,ny,nz) \<longleftrightarrow>
+  "\<lbrakk>nth(u,env) = nu; nth(x,env) = nx; nth(y,env) = ny; nth(z,env) = nz;
+      u \<in> nat; x \<in> nat; y \<in> nat; z \<in> nat; env \<in> list(A)\<rbrakk>
+   \<Longrightarrow> satisfies_MH(##A,nu,nx,ny,nz) \<longleftrightarrow>
        sats(A, satisfies_MH_fm(u,x,y,z), env)"
 by simp 
 
@@ -810,7 +810,7 @@ lemmas satisfies_reflections =
 theorem satisfies_MH_reflection:
      "REFLECTS[\<lambda>x. satisfies_MH(L,f(x),g(x),h(x),g'(x)),
                \<lambda>i x. satisfies_MH(##Lset(i),f(x),g(x),h(x),g'(x))]"
-apply (unfold satisfies_MH_def) 
+  unfolding satisfies_MH_def 
 apply (intro FOL_reflections satisfies_reflections)
 done
 
@@ -833,11 +833,11 @@ by (intro FOL_reflections function_reflections nth_reflection
 
 
 lemma Member_replacement:
-    "[|L(A); x \<in> nat; y \<in> nat|]
-     ==> strong_replacement
+    "\<lbrakk>L(A); x \<in> nat; y \<in> nat\<rbrakk>
+     \<Longrightarrow> strong_replacement
          (L, \<lambda>env z. \<exists>bo[L]. \<exists>nx[L]. \<exists>ny[L]. 
-              env \<in> list(A) & is_nth(L,x,env,nx) & is_nth(L,y,env,ny) & 
-              is_bool_of_o(L, nx \<in> ny, bo) &
+              env \<in> list(A) \<and> is_nth(L,x,env,nx) \<and> is_nth(L,y,env,ny) \<and> 
+              is_bool_of_o(L, nx \<in> ny, bo) \<and>
               pair(L, env, bo, z))"
 apply (rule strong_replacementI)
 apply (rule_tac u="{list(A),B,x,y}" 
@@ -863,11 +863,11 @@ by (intro FOL_reflections function_reflections nth_reflection
 
 
 lemma Equal_replacement:
-    "[|L(A); x \<in> nat; y \<in> nat|]
-     ==> strong_replacement
+    "\<lbrakk>L(A); x \<in> nat; y \<in> nat\<rbrakk>
+     \<Longrightarrow> strong_replacement
          (L, \<lambda>env z. \<exists>bo[L]. \<exists>nx[L]. \<exists>ny[L]. 
-              env \<in> list(A) & is_nth(L,x,env,nx) & is_nth(L,y,env,ny) & 
-              is_bool_of_o(L, nx = ny, bo) &
+              env \<in> list(A) \<and> is_nth(L,x,env,nx) \<and> is_nth(L,y,env,ny) \<and> 
+              is_bool_of_o(L, nx = ny, bo) \<and>
               pair(L, env, bo, z))"
 apply (rule strong_replacementI)
 apply (rule_tac u="{list(A),B,x,y}" 
@@ -890,17 +890,17 @@ lemma Nand_Reflects:
        fun_apply(##Lset(i), rp, u, rpe) \<and> fun_apply(##Lset(i), rq, u, rqe) \<and>
        is_and(##Lset(i), rpe, rqe, andpq) \<and> is_not(##Lset(i), andpq, notpq) \<and>
        u \<in> list(A) \<and> pair(##Lset(i), u, notpq, x))]"
-apply (unfold is_and_def is_not_def) 
+  unfolding is_and_def is_not_def 
 apply (intro FOL_reflections function_reflections)
 done
 
 lemma Nand_replacement:
-    "[|L(A); L(rp); L(rq)|]
-     ==> strong_replacement
+    "\<lbrakk>L(A); L(rp); L(rq)\<rbrakk>
+     \<Longrightarrow> strong_replacement
          (L, \<lambda>env z. \<exists>rpe[L]. \<exists>rqe[L]. \<exists>andpq[L]. \<exists>notpq[L]. 
-               fun_apply(L,rp,env,rpe) & fun_apply(L,rq,env,rqe) & 
-               is_and(L,rpe,rqe,andpq) & is_not(L,andpq,notpq) & 
-               env \<in> list(A) & pair(L, env, notpq, z))"
+               fun_apply(L,rp,env,rpe) \<and> fun_apply(L,rq,env,rqe) \<and> 
+               is_and(L,rpe,rqe,andpq) \<and> is_not(L,andpq,notpq) \<and> 
+               env \<in> list(A) \<and> pair(L, env, notpq, z))"
 apply (rule strong_replacementI)
 apply (rule_tac u="{list(A),B,rp,rq}" 
          in gen_separation_multi [OF Nand_Reflects],
@@ -925,20 +925,20 @@ lemma Forall_Reflects:
             is_Cons(##Lset(i),a,u,co) \<longrightarrow> fun_apply(##Lset(i),rp,co,rpco) \<longrightarrow> 
             number1(##Lset(i),rpco),
                        bo) \<and> pair(##Lset(i),u,bo,x))]"
-apply (unfold is_bool_of_o_def) 
+  unfolding is_bool_of_o_def 
 apply (intro FOL_reflections function_reflections Cons_reflection)
 done
 
 lemma Forall_replacement:
-   "[|L(A); L(rp)|]
-    ==> strong_replacement
+   "\<lbrakk>L(A); L(rp)\<rbrakk>
+    \<Longrightarrow> strong_replacement
         (L, \<lambda>env z. \<exists>bo[L]. 
-              env \<in> list(A) & 
+              env \<in> list(A) \<and> 
               is_bool_of_o (L, 
                             \<forall>a[L]. \<forall>co[L]. \<forall>rpco[L]. 
                                a\<in>A \<longrightarrow> is_Cons(L,a,env,co) \<longrightarrow>
                                fun_apply(L,rp,co,rpco) \<longrightarrow> number1(L, rpco), 
-                            bo) &
+                            bo) \<and>
               pair(L,env,bo,z))"
 apply (rule strong_replacementI)
 apply (rule_tac u="{A,list(A),B,rp}" 
@@ -960,7 +960,7 @@ by (intro FOL_reflections function_reflections satisfies_MH_reflection
 
 lemma formula_rec_replacement: 
       \<comment> \<open>For the \<^term>\<open>transrec\<close>\<close>
-   "[|n \<in> nat; L(A)|] ==> transrec_replacement(L, satisfies_MH(L,A), n)"
+   "\<lbrakk>n \<in> nat; L(A)\<rbrakk> \<Longrightarrow> transrec_replacement(L, satisfies_MH(L,A), n)"
 apply (rule L.transrec_replacementI, simp add: L.nat_into_M)
 apply (rule strong_replacementI)
 apply (rule_tac u="{B,A,n,Memrel(eclose({n}))}"
@@ -974,20 +974,20 @@ done
 subsubsection\<open>The Lambda Replacement Case\<close>
 
 lemma formula_rec_lambda_replacement_Reflects:
- "REFLECTS [\<lambda>x. \<exists>u[L]. u \<in> B &
-     mem_formula(L,u) &
+ "REFLECTS [\<lambda>x. \<exists>u[L]. u \<in> B \<and>
+     mem_formula(L,u) \<and>
      (\<exists>c[L].
          is_formula_case
           (L, satisfies_is_a(L,A), satisfies_is_b(L,A),
            satisfies_is_c(L,A,g), satisfies_is_d(L,A,g),
-           u, c) &
+           u, c) \<and>
          pair(L,u,c,x)),
-  \<lambda>i x. \<exists>u \<in> Lset(i). u \<in> B & mem_formula(##Lset(i),u) &
+  \<lambda>i x. \<exists>u \<in> Lset(i). u \<in> B \<and> mem_formula(##Lset(i),u) \<and>
      (\<exists>c \<in> Lset(i).
          is_formula_case
           (##Lset(i), satisfies_is_a(##Lset(i),A), satisfies_is_b(##Lset(i),A),
            satisfies_is_c(##Lset(i),A,g), satisfies_is_d(##Lset(i),A,g),
-           u, c) &
+           u, c) \<and>
          pair(##Lset(i),u,c,x))]"
 by (intro FOL_reflections function_reflections mem_formula_reflection
           is_formula_case_reflection satisfies_is_a_reflection
@@ -996,13 +996,13 @@ by (intro FOL_reflections function_reflections mem_formula_reflection
 
 lemma formula_rec_lambda_replacement: 
       \<comment> \<open>For the \<^term>\<open>transrec\<close>\<close>
-   "[|L(g); L(A)|] ==>
+   "\<lbrakk>L(g); L(A)\<rbrakk> \<Longrightarrow>
     strong_replacement (L, 
-       \<lambda>x y. mem_formula(L,x) &
+       \<lambda>x y. mem_formula(L,x) \<and>
              (\<exists>c[L]. is_formula_case(L, satisfies_is_a(L,A),
                                   satisfies_is_b(L,A),
                                   satisfies_is_c(L,A,g),
-                                  satisfies_is_d(L,A,g), x, c) &
+                                  satisfies_is_d(L,A,g), x, c) \<and>
              pair(L, x, c, y)))" 
 apply (rule strong_replacementI)
 apply (rule_tac u="{B,A,g}"

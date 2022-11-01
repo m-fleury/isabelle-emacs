@@ -278,7 +278,7 @@ qed
 
 lemma cong_diff_iff_cong_0_nat:
   "[a - b = 0] (mod m) \<longleftrightarrow> [a = b] (mod m)" if "a \<ge> b" for a b :: nat
-  using that by (auto simp add: cong_def le_imp_diff_is_add dest: nat_mod_eq_lemma)
+  using that by (simp add: cong_0_iff) (simp add: cong_def mod_eq_dvd_iff_nat)
 
 lemma cong_diff_iff_cong_0_nat':
   "[nat \<bar>int a - int b\<bar> = 0] (mod m) \<longleftrightarrow> [a = b] (mod m)"
@@ -342,32 +342,18 @@ lemma cong_less_imp_eq_int: "0 \<le> a \<Longrightarrow> a < m \<Longrightarrow>
 
 lemma cong_less_unique_nat: "0 < m \<Longrightarrow> (\<exists>!b. 0 \<le> b \<and> b < m \<and> [a = b] (mod m))"
   for a m :: nat
-  by (auto simp: cong_def) (metis mod_less_divisor mod_mod_trivial)
+  by (auto simp: cong_def) (metis mod_mod_trivial mod_less_divisor)
 
 lemma cong_less_unique_int: "0 < m \<Longrightarrow> (\<exists>!b. 0 \<le> b \<and> b < m \<and> [a = b] (mod m))"
   for a m :: int
-  by (auto simp: cong_def)  (metis mod_mod_trivial pos_mod_conj)
+  by (auto simp add: cong_def) (metis mod_mod_trivial pos_mod_bound pos_mod_sign)
 
-lemma cong_iff_lin_nat: "([a = b] (mod m)) \<longleftrightarrow> (\<exists>k1 k2. b + k1 * m = a + k2 * m)"
-  (is "?lhs = ?rhs")
+lemma cong_iff_lin_nat: "[a = b] (mod m) \<longleftrightarrow> (\<exists>k1 k2. b + k1 * m = a + k2 * m)"
   for a b :: nat
-proof
-  assume ?lhs
-  show ?rhs
-  proof (cases "b \<le> a")
-    case True
-    with \<open>?lhs\<close> show ?rhs
-      by (metis cong_altdef_nat dvd_def le_add_diff_inverse add_0_right mult_0 mult.commute)
-  next
-    case False
-    with \<open>?lhs\<close> show ?rhs
-      by (metis cong_def mult.commute nat_le_linear nat_mod_eq_lemma)
-  qed
-next
-  assume ?rhs
-  then show ?lhs
-    by (metis cong_def mult.commute nat_mod_eq_iff) 
-qed
+  apply (auto simp add: cong_def nat_mod_eq_iff)
+   apply (metis mult.commute)
+  apply (metis mult.commute)
+  done
 
 lemma cong_cong_mod_nat: "[a = b] (mod m) \<longleftrightarrow> [a mod m = b mod m] (mod m)"
   for a b :: nat
@@ -395,8 +381,7 @@ lemma cong_add_rcancel_0_nat: "[x + a = a] (mod n) \<longleftrightarrow> [x = 0]
 
 lemma cong_dvd_modulus_nat: "[x = y] (mod m) \<Longrightarrow> n dvd m \<Longrightarrow> [x = y] (mod n)"
   for x y :: nat
-  unfolding cong_iff_lin_nat dvd_def
-  by (metis mult.commute mult.left_commute)
+  by (auto simp add: cong_altdef_nat')
 
 lemma cong_to_1_nat:
   fixes a :: nat
@@ -428,8 +413,7 @@ lemma cong_to_1'_nat: "[a = 1] (mod n) \<longleftrightarrow> a = 0 \<and> n = 1 
 
 lemma cong_le_nat: "y \<le> x \<Longrightarrow> [x = y] (mod n) \<longleftrightarrow> (\<exists>q. x = q * n + y)"
   for x y :: nat
-  by (auto simp add: cong_altdef_nat le_imp_diff_is_add elim!: dvdE)
-
+  by (auto simp add: cong_altdef_nat le_imp_diff_is_add)
 
 lemma cong_solve_nat:
   fixes a :: nat
@@ -534,12 +518,8 @@ lemma coprime_iff_invertible'_int:
   fixes m :: int
   assumes "m > 0"
   shows "coprime a m \<longleftrightarrow> (\<exists>x. 0 \<le> x \<and> x < m \<and> [a * x = 1] (mod m))"
-proof -
-  have "\<And>b. \<lbrakk>0 < m; [a * b = 1] (mod m)\<rbrakk> \<Longrightarrow> \<exists>b'<m. [a * b' = 1] (mod m)"
-    by (meson cong_less_unique_int cong_scalar_left cong_sym cong_trans)
-  then show ?thesis
-    by (metis assms coprime_iff_invertible_int cong_def cong_mult_lcancel mod_pos_pos_trivial pos_mod_conj)
-qed
+  using assms by (simp add: coprime_iff_invertible_int)
+    (metis assms cong_mod_left mod_mult_right_eq pos_mod_bound pos_mod_sign)
 
 lemma cong_cong_lcm_nat: "[x = y] (mod a) \<Longrightarrow> [x = y] (mod b) \<Longrightarrow> [x = y] (mod lcm a b)"
   for x y :: nat
