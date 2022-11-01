@@ -33,6 +33,7 @@ Here is a screenshot of Isabelle in spacemacs:
   - [[#adding-the-afp][Adding the AFP]]
   - [[#configuration][Configuration]]
 - [[#key-bindings][Key bindings]]
+- Using Isabelle on a remote machine with Tramp
 
 * Description
 This layer allows for editing isabelle theory files. It includes:
@@ -401,7 +402,8 @@ understand what is happenning behind the scenes. Please open an issue if you hav
 The option "-S" was replaced by "-R" (or more precisely, the benefits from "-S" do not exist anymore and, therefore, the option "-S" was discontinued in Isabelle).
 
 * Recommended configuration
-We can only recommand to use the values recommended by the LSP project
+** Emacs Configuration
+We can only recommand to use the values recommended by the [[https://emacs-lsp.github.io/lsp-mode/page/performance/][LSP project]]
 #+BEGIN_src elisp
   (setq gc-cons-threshold 100000000)
   (setq read-process-output-max (* 1024 1024)) ;; 1mb
@@ -416,6 +418,52 @@ This requires recompiling the LSP projects (delete in your
 Emacs)
 
 
+** Emacs Version
+*** Emacs 29
+The upcoming Emacs-29 should have the "noverlay" branch significantly
+improving the performance of overlays (aka all the syntax highlighting
+in our case). The performance is already mostly okay, so this is not
+critical anymore (I spent enough time optimizing it), but it can still
+be useful.
+
+*** Emacs 28
 Remark that you can also use the so-called `gccemacs' version of
 Emacs. It should improve the performance, but we never run benchmarks
 to confirm that.
+
+*** Emacs 27
+JSON parsing is significantly faster
+
+
+* Using Isabelle on a remote machine with Tramp
+
+Emacs provides a mode called Tramp to open buffers on remote
+machines. This is useful in the Isabelle context when you are running
+on a low-powered laptop and instead want to use the faster (usually
+office) computer/server. In my experience, this is faster than ssh-ing
+into the machine and running Emacs there.
+
+I have attempted to run it many times. Sometimes it works for some
+time, and then it stops working again and I don't understand why.
+
+  - a fast connection is useful. SSH forwarding works most of the
+    time. Make sure to start Emacs from a terminal with ssh-agent
+    running (or any variant) such that ssh-ing in the machine does not
+    ask you for a password.
+
+  - isabelle *must be* in the path. There is no other way.
+
+  - set the variable to t:
+#+begin_src elip
+(setq lsp-isar-parse-args-tramp t)
+#+end_src
+
+I have an "emacs" option (`--isabelle-tramp`) to decide between locally and remotely.
+
+  - Taken from [[ https://www.reddit.com/r/emacs/comments/y92y4b/tramp_users_slowness_got_you_down_check][here]]:
+#+begin_src elisp
+  (defun my-vc-off-if-remote ()
+    (if (file-remote-p (buffer-file-name))
+	(setq-local vc-handled-backends nil)))
+  (add-hook 'find-file-hook 'my-vc-off-if-remote)
+#+end_src
