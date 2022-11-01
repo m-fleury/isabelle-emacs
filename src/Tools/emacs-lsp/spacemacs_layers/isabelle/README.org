@@ -427,9 +427,9 @@ critical anymore (I spent enough time optimizing it), but it can still
 be useful.
 
 *** Emacs 28
-Remark that you can also use the so-called `gccemacs' version of
-Emacs. It should improve the performance, but we never run benchmarks
-to confirm that.
+Remark that you can also use the so-called `gccemacs' version of Emacs
+(now merged under the name native). It should improve the performance,
+but we never run benchmarks to confirm that.
 
 *** Emacs 27
 JSON parsing is significantly faster
