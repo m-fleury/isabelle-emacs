@@ -245,7 +245,7 @@ fun choose And = ignore_args and_rule
   | choose BV_Bitblast_Step_Bvule = ignore_args bv_bitblast_step_bvule
   | choose BV_Bitblast_Step_Bvult = ignore_args bv_bitblast_step_bvult
   | choose BV_Bitblast_Step_Extract = ignore_args bv_bitblast_step_extract
-  | choose BV_Bitblast_Step_Contact = ignore_args bv_bitblast_step_concat
+  | choose BV_Bitblast_Step_Concat = ignore_args bv_bitblast_step_concat
   | choose Tmp_Quantifier_Simplify = ignore_args qnt_simplify
   | choose r = unsupported (string_of_verit_rule r)
 
