@@ -135,7 +135,7 @@ local
       | _ => NONE)
     end
 in
-
+(*Generate smt-problem*)
 val setup_builtins =
   SMT_Builtin.add_builtin_typ smtlibC (wordT, word_typ, word_num) #>
   fold (add_word_fun if_fixed_all) [
@@ -275,6 +275,9 @@ fun bv_term_parser (SMTLIB.Sym bv, []) =
       SOME (mk_zero_extend i t)
   | bv_term_parser (SMTLIB.S [SMTLIB.Sym "_", SMTLIB.Sym "sign_extend", SMTLIB.Num i], [t]) =
       SOME (mk_scast i t)
+  | bv_term_parser (SMTLIB.Sym "bv2nat", [t1]) =
+      SOME (Const (\<^const_name>\<open>unsigned\<close>, (fastype_of t1) --> \<^typ>\<open>int\<close>) $ t1)
+
 (* (* TODO: shifl is not defined here *)
   | bv_term_parser (SMTLIB.Sym "bvshl", [t1, t2]) =
       SOME (HOLogic.mk_binop \<^const_name>\<open>Word.shiftl\<close> (t1, t2))
