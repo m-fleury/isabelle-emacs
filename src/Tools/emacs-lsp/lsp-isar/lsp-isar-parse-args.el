@@ -80,20 +80,23 @@ Typically a function that should be defined elsewhere and called
 flatten."
   (cl-mapcan (lambda (x) (if (listp x) x (list x))) list))
 
+(defvar lsp-isar-parse-args-d-args nil "Options passed as -d to Emacs.")
 
 (defun lsp-isar-parse-lsp-isabelle-options ()
   "Combination of all Isabelle options."
   (lsp-isar-parse-args-flatten
-   (list
-    (if lsp-isar-parse-args-noafp nil (list "-d" "$AFP"))
-    (if lsp-isar-parse-args-nollvm nil (list "-d" "$ISABELLE_LLVM"))
-    (if lsp-isar-parse-args-noisafol nil (list "-d" "$ISAFOL"))
-    (if lsp-isar-parse-args-base-session nil (list "-R" isabelle-base-session)); "IsaSAT"
-    "-m" "do_notation"
-    "-o" "vscode_output_delay=1"
-    "-o" "vscode_caret_perspective=20"
-   ;; "-v" "-L" "/tmp/isabelle_log"
-   )))
+   (append
+    lsp-isar-parse-args-d-args
+    (list
+     (if lsp-isar-parse-args-noafp nil (list "-d" "$AFP"))
+     (if lsp-isar-parse-args-nollvm nil (list "-d" "$ISABELLE_LLVM"))
+     (if lsp-isar-parse-args-noisafol nil (list "-d" "$ISAFOL"))
+     (if lsp-isar-parse-args-base-session nil (list "-R" isabelle-base-session)); "IsaSAT"
+     "-m" "do_notation"
+     "-o" "vscode_output_delay=1"
+     "-o" "vscode_caret_perspective=20"
+     ;; "-v" "-L" "/tmp/isabelle_log"
+     ))))
 
 (defun lsp-isar-parse-combine-isabelle-args ()
   "Parse the arguments passed to emacs."
@@ -152,6 +155,20 @@ flatten."
 (add-to-list 'command-switch-alist
 	     '("-isabelle-noafp" .
 	       (lambda (_) (lsp-isar-parse-combine-isabelle-args-no))))
+
+
+(defun lsp-isar-parse-d-option ()
+  "Parse the arguments -d option passed to emacs."
+  (when lsp-isar-parse-use
+    (push (pop command-line-args-left) lsp-isar-parse-args-d-args)
+    (push "-d" lsp-isar-parse-args-d-args)
+    (message "%s" lsp-isar-parse-args-d-args)
+    (setq lsp-isabelle-options (lsp-isar-parse-lsp-isabelle-options))
+    (setq lsp-remote-isabelle-options (lsp-isar-parse-lsp-isabelle-options))))
+
+(add-to-list 'command-switch-alist
+	     '("-isabelle-d" .
+	       (lambda (_) (lsp-isar-parse-d-option))))
 
 (provide 'lsp-isar-parse-args)
 
