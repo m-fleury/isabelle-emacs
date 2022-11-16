@@ -48,9 +48,6 @@
 (defcustom lsp-isar-parse-args-noisafol nil "flag to indicate whether to use Isabelle"
   :type 'boolean
   :group 'isabelle)
-(defcustom lsp-isar-parse-args-base-session nil "flag to indicate whether to use Isabelle"
-  :type 'string
-  :group 'isabelle)
 
 (defcustom lsp-isar-parse-args-noisabelle nil "flag to indicate whether to use Isabelle"
   :type 'boolean
