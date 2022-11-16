@@ -245,6 +245,14 @@ functions adds up.  So any optimisation would help."
 	    (push (dom-node 'break `(('line .  1)) "\n") contents)
 	    (setq contents (append (dom-children content) contents))))
 
+	 ('b
+	  (insert "\\<^bbold>")
+	  (setq contents (append (dom-children content)  (list "\\<^ebold>") contents)))
+
+	 ('i
+	  (insert "\\<^bitalic>")
+	  (setq contents (append (dom-children content)  (list "\\<^eitalic>") contents)))
+
 	 ('text_fold
 	  (setq contents (append (dom-children content) contents)))
 
