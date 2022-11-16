@@ -80,18 +80,20 @@ Typically a function that should be defined elsewhere and called
 flatten."
   (cl-mapcan (lambda (x) (if (listp x) x (list x))) list))
 
-(defvar lsp-isar-parse-args-d-args nil "Options passed as -d to Emacs.")
+(defvar lsp-isar-parse-args-d-args (list) "Options passed as -d to Emacs.")
+(defvar lsp-isar-parse-args-o-args (list) "Options passed as -o to Emacs.")
 
 (defun lsp-isar-parse-lsp-isabelle-options ()
   "Combination of all Isabelle options."
   (lsp-isar-parse-args-flatten
    (append
     lsp-isar-parse-args-d-args
+    lsp-isar-parse-args-o-args
     (list
      (if lsp-isar-parse-args-noafp nil (list "-d" "$AFP"))
      (if lsp-isar-parse-args-nollvm nil (list "-d" "$ISABELLE_LLVM"))
      (if lsp-isar-parse-args-noisafol nil (list "-d" "$ISAFOL"))
-     (if lsp-isar-parse-args-base-session nil (list "-R" isabelle-base-session)); "IsaSAT"
+     (if (and lsp-isar-parse-args-base-session isabelle-base-session) (list "-R" isabelle-base-session) nil); "IsaSAT"
      "-m" "do_notation"
      "-o" "vscode_output_delay=1"
      "-o" "vscode_caret_perspective=20"
@@ -170,6 +172,18 @@ flatten."
 	     '("-isabelle-d" .
 	       (lambda (_) (lsp-isar-parse-d-option))))
 
+(defun lsp-isar-parse-o-option ()
+  "Parse the arguments -o option passed to emacs."
+  (when lsp-isar-parse-use
+    (push (pop command-line-args-left) lsp-isar-parse-args-o-args)
+    (push "-o" lsp-isar-parse-args-o-args)
+    (message "%s" lsp-isar-parse-args-o-args)
+    (setq lsp-isabelle-options (lsp-isar-parse-lsp-isabelle-options))
+    (setq lsp-remote-isabelle-options (lsp-isar-parse-lsp-isabelle-options))))
+
+(add-to-list 'command-switch-alist
+	     '("-isabelle-o" .
+	       (lambda (_) (lsp-isar-parse-o-option))))
 (provide 'lsp-isar-parse-args)
 
 ;;; lsp-isar-parse-args.el ends here
