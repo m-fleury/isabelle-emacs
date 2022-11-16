@@ -93,7 +93,7 @@ flatten."
      (if lsp-isar-parse-args-noafp nil (list "-d" "$AFP"))
      (if lsp-isar-parse-args-nollvm nil (list "-d" "$ISABELLE_LLVM"))
      (if lsp-isar-parse-args-noisafol nil (list "-d" "$ISAFOL"))
-     (if (and lsp-isar-parse-args-base-session isabelle-base-session) (list "-R" isabelle-base-session) nil); "IsaSAT"
+     (if isabelle-base-session (list "-R" isabelle-base-session) nil); "IsaSAT"
      "-m" "do_notation"
      "-o" "vscode_output_delay=1"
      "-o" "vscode_caret_perspective=20"
