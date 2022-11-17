@@ -279,7 +279,7 @@ returns the command to execute."
     (add-to-list 'tramp-connection-properties
 		 (list (regexp-quote (file-remote-p default-directory))
                        "direct-async-process" t))
-    (list :connect (lambda (filter sentinel name environment-fn)
+    (list :connect (lambda (filter sentinel name environment-fn _workspace)
                      (let* ((final-command (lsp-resolve-final-function
 					    local-command))
                             (_stderr (or (when generate-error-file-fn

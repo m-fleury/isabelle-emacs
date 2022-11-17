@@ -129,7 +129,7 @@ edited buffer with STATUS."
 
 (defun lsp-isar-progress--request-buffer ()
   "Request progress update."
-  (with-demoted-errors
+  (with-demoted-errors "Error: %s"
       (progn
 	(if (<= lsp-isar-progress--request-delay 0)
 	    (let ((my-message (lsp-make-notification "PIDE/progress_request" nil)))
