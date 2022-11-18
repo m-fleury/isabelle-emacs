@@ -214,6 +214,7 @@ fun mk_scast i u =
 fun bv_term_parser (SMTLIB.Sym bv, []) =
       (case try (unprefix "bv") bv of
         NONE => NONE
+(*TODO*)
       (*| SOME t => SOME (HOLogic.mk_number \<^typ>\<open>Int.int\<close> (fst (read_int (raw_explode t)))))*)
       | SOME t => SOME ((HOLogic.mk_term_of \<^typ>\<open>32 word\<close> (HOLogic.mk_string t))))
   | bv_term_parser (SMTLIB.BV (int,base), []) =    
@@ -286,6 +287,11 @@ TODO: zero_extend, extract [use slice to define it], sign_extend, rotate_left
  *)
   | bv_term_parser xs = (NONE)
 
+
+fun bv_type_parser (SMTLIB.S [SMTLIB.Sym "_", SMTLIB.Sym "BitVec", SMTLIB.Num x], []) =
+    SOME (Word_Lib.mk_wordT x)
+  | bv_type_parser xs = NONE
+
 end
 
 
@@ -298,5 +304,9 @@ val _ = Theory.setup (Context.theory_map (
 
 val _ = Theory.setup (Context.theory_map (
   SMTLIB_Proof.add_term_parser bv_term_parser))
+
+
+val _ = Theory.setup (Context.theory_map (
+  SMTLIB_Proof.add_type_parser bv_type_parser))
 
 end;
