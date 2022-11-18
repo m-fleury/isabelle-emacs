@@ -1,12 +1,10 @@
 (*  Title:      HOL/Tools/SMT/z3_real.ML
     Author:     Sascha Boehme, TU Muenchen
 
-Z3 setup for reals.
-
-TODO rename to SMT_Real
+SMT setup for reals.
 *)
 
-structure Z3_Real: sig end =
+structure SMT_Real: sig end =
 struct
 
 fun real_type_parser (SMTLIB.Sym "Real", []) = SOME \<^typ>\<open>Real.real\<close>
