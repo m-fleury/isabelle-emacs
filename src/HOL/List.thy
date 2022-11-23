@@ -5,7 +5,7 @@
 section \<open>The datatype of finite lists\<close>
 
 theory List
-imports Sledgehammer Lifting_Set
+imports Presburger Divides Numeral_Simprocs Lifting_Set
 begin
 
 datatype (set: 'a) list =

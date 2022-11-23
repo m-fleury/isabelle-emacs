@@ -59,6 +59,7 @@ val setup_builtins =
     (\<^Const>\<open>less_eq \<^Type>\<open>int\<close>\<close>, "<="),
     (\<^Const>\<open>uminus \<^Type>\<open>int\<close>\<close>, "-"),
     (\<^Const>\<open>plus \<^Type>\<open>int\<close>\<close>, "+"),
+    (\<^Const>\<open>divide \<^Type>\<open>int\<close>\<close>, "/"), (*TODO*)
     (\<^Const>\<open>minus \<^Type>\<open>int\<close>\<close>, "-")] #>
   SMT_Builtin.add_builtin_fun smtlibC
     (Term.dest_Const \<^Const>\<open>times \<^Type>\<open>int\<close>\<close>, times)

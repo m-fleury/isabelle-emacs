@@ -435,8 +435,7 @@ apply(rule Longest_common_prefix_eq)
   apply(simp)
  apply (simp add: Longest_common_prefix_prefix)
 apply simp
-by(metis Longest_common_prefix_longest[of L] Cons_prefix_Cons Nitpick.size_list_simp(2)
-     Suc_le_mono hd_Cons_tl order.strict_implies_order zero_less_Suc)
+  sorry
 
 lemma Longest_common_prefix_eq_Cons: assumes "L \<noteq> {}" "[] \<notin> L"  "\<forall>xs\<in>L. hd xs = x"
 shows "Longest_common_prefix L = x # Longest_common_prefix {ys. x#ys \<in> L}"

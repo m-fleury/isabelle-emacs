@@ -146,7 +146,7 @@ val setup_builtins =
     (\<^term>\<open>not :: 'a::len word \<Rightarrow> _\<close>, "bvnot"),
     (\<^term>\<open>and :: 'a::len word \<Rightarrow> _\<close>, "bvand"),
     (\<^term>\<open>or :: 'a::len word \<Rightarrow> _\<close>, "bvor"),
-    (\<^term>\<open>xor :: 'a::len word \<Rightarrow> _\<close>, "bvxor"),
+    (\<^term>\<open>Bit_Operations.xor :: 'a::len word \<Rightarrow> _\<close>, "bvxor"),
     (\<^term>\<open>word_cat :: 'a::len word \<Rightarrow> _\<close>, "concat") ] #>
   fold (add_word_fun shift) [
     (\<^term>\<open>push_bit :: nat \<Rightarrow> 'a::len word \<Rightarrow> _ \<close>, "bvshl"),
@@ -197,7 +197,7 @@ fun mk_extract i j u =
     val T = fastype_of u
     val TU = i - j + 1
           |> Word_Lib.mk_wordT
-  in Const (\<^const_name>\<open>Word.smt_extract\<close>, @{typ nat} --> @{typ nat} --> T --> TU) $ J $ I $ u end;
+  in Const (\<^const_name>\<open>SMT.smt_extract\<close>, @{typ nat} --> @{typ nat} --> T --> TU) $ J $ I $ u end;
 
 fun mk_zero_extend i u =
   let
@@ -290,7 +290,7 @@ TODO: zero_extend, extract [use slice to define it], sign_extend, rotate_left
 
 fun bv_type_parser (SMTLIB.S [SMTLIB.Sym "_", SMTLIB.Sym "BitVec", SMTLIB.Num x], []) =
     SOME (Word_Lib.mk_wordT x)
-  | bv_type_parser xs = NONE
+  | bv_type_parser xs = (@{print} "what"; @{print} xs;NONE)
 
 end
 

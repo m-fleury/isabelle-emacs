@@ -322,10 +322,14 @@ fun parse_raw_proof_steps (limit : string option) (ls : SMTLIB.tree list) (cx : 
           in (s :: rp, rl, cx) end
       | (ASSUME, p, l) =>
           let
+            val _ = @{print} p
+
             val (id, t :: []) = p
               |> get_id
             val ((t, cx), _) = SMTLIB_Proof.extract_and_update_name_bindings t cx
+            (*TODO: prems are not added here! But where?!*)
             val s = mk_raw_node id input_rule (SMTLIB.S []) [] [] t []
+            (*Recursive call to parse rest of the steps.*)
             val (rp, rl, cx) = parse_raw_proof_steps limit l cx
           in (s :: rp, rl, cx) end
       | (ANCHOR, p, l) =>
@@ -453,6 +457,8 @@ fun postprocess_proof compress ctxt step cx =
   let
     fun postprocess (Raw_Lethe_Node {id, rule, args, prems, declarations, concl, subproof}) (cx, rew) =
     let
+      (*val _ = @{print} "postprocess step with id: "
+      val _ = @{print} id*)
       val args = extract_types_of_args args
       val globally_bound_vars = declared_csts cx rule args
       val cx = fold (update_binding o (fn (s, typ) => (s, Term (Free (s, type_of cx typ)))))
@@ -755,17 +761,30 @@ local
         |> fold_map process raw_steps
         |> (fn (steps, (cx, _)) => (flat steps, cx))
         |> compress? apfst combine_proof_steps
+(*Here the premise is still in*)
+     val _ = @{print} "At least I am here"
+     val _ = @{print} step
+
     in step end
 in
 
 fun parse typs funs lines ctxt =
   let
+(*This function is not called?!*)
+    val _ = @{print} "Really need to know if this is executed"
     val (u, env) = import_proof_and_post_process typs funs lines ctxt
     val t = u
        |> remove_skolem_definitions_proof
        |> flat o (map linearize_proof)
     fun node_to_step (Lethe_Node {id, rule, prems, concl, ...}) =
+let
+(*This is apparently not called*)
+val _ = @{print} "In parse, does the assumption have premises here:"
+val _ = @{print} id
+val _ = @{print} prems
+in 
       mk_step id rule prems [] concl []
+end
   in
     (map node_to_step t, ctxt_of env)
   end
@@ -773,6 +792,7 @@ fun parse typs funs lines ctxt =
 fun parse_replay typs funs lines ctxt =
   let
     val (u, env) = import_proof_and_post_process typs funs lines ctxt
+val _ = @{print} "But this has to" (*and it is printed*)
   in
     (u, ctxt_of env)
   end

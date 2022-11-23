@@ -112,12 +112,9 @@ fun with_fresh_names f ({ctxt, id, syms, typs, funs, ...}: ('a, 'b) context) =
 fun lookup_typ ({typs, ...}: ('a, 'b) context) = Symtab.lookup typs
 fun lookup_fun ({funs, ...}: ('a, 'b) context) = Symtab.lookup funs
 
-
-(* core type and term parser *)
-
 fun core_type_parser (SMTLIB.Sym "Bool", []) = SOME \<^typ>\<open>HOL.bool\<close>
   | core_type_parser (SMTLIB.Sym "Int", []) = SOME \<^typ>\<open>Int.int\<close>
-  | core_type_parser xs = (@{print} xs; NONE)
+  | core_type_parser xs = ((*@{print} "in core_type_parser"; @{print} xs;@{print} "end core_type_parser"; *) NONE)
 
 fun mk_unary n t =
   let val T = fastype_of t
@@ -178,6 +175,7 @@ fun core_term_parser (SMTLIB.Sym "true", _) = SOME \<^Const>\<open>True\<close>
   | core_term_parser (SMTLIB.Sym "div", [t1, t2]) = SOME (mk_binary \<^const_name>\<open>z3div\<close> t1 t2)
   | core_term_parser (SMTLIB.Sym "mod", [t1, t2]) = SOME (mk_binary \<^const_name>\<open>z3mod\<close> t1 t2)
   | core_term_parser (SMTLIB.Sym "<", [t1, t2]) = SOME (mk_less t1 t2)
+(*Is that a good idea with rewrites? HANNA*)
   | core_term_parser (SMTLIB.Sym ">", [t1, t2]) = SOME (mk_less t2 t1)
   | core_term_parser (SMTLIB.Sym "<=", [t1, t2]) = SOME (mk_less_eq t1 t2)
   | core_term_parser (SMTLIB.Sym ">=", [t1, t2]) = SOME (mk_less_eq t2 t1)
@@ -247,6 +245,7 @@ fun parse_type cx ty Ts =
       | _ => raise SMTLIB_PARSE ("bad SMT type format", ty)))
 
 fun parse_term t ts cx =
+((*@{print} "In parse_term"; @{print} t;*)
   (case apply_parsers (get_term_parsers (ctxt_of cx)) (t, ts) of
     SOME u => (u, cx)
   | NONE =>
@@ -258,6 +257,8 @@ fun parse_term t ts cx =
               if null ts then declare_free name Term.dummyT cx
               else raise SMTLIB_PARSE ("bad SMT term", t))
       | _ => raise SMTLIB_PARSE ("bad SMT term format", t)))
+)
+
 
 fun type_of cx ty =
   (case try (parse_type cx ty) [] of
@@ -280,7 +281,10 @@ fun mk_choice (x, T, P) = HOLogic.choice_const T $ absfree (x, T) P
 
 fun term_of t cx =
   (case t of
-    SMTLIB.S [SMTLIB.Sym "forall", SMTLIB.S vars, body] => quant HOLogic.mk_all vars body cx
+    SMTLIB.S [SMTLIB.Sym "forall", SMTLIB.S vars, body] => 
+let (*val _ = @{print} "str_of tree forall " ^ (SMTLIB.str_of (SMTLIB.S vars)) ^ " done"*)
+in  quant HOLogic.mk_all vars body cx
+end
   | SMTLIB.S [SMTLIB.Sym "exists", SMTLIB.S vars, body] => quant HOLogic.mk_exists vars body cx
   | SMTLIB.S [SMTLIB.Sym "choice", SMTLIB.S vars, body] => quant mk_choice vars body cx
   | SMTLIB.S [SMTLIB.Sym "let", SMTLIB.S bindings, body] =>
@@ -303,6 +307,11 @@ fun term_of t cx =
 
 and quant q vars body cx =
   let val vs = map (dest_var cx) vars
+      (*val _ = @{print} "In quant"
+      val _ = @{print} "str_of tree quant "
+      val _ = @{print} "Until here "
+      val _ = (SMTLIB.str_of (SMTLIB.S vars))
+      val _ = "but not done?"*)
   in
     cx
     |> with_bindings (map (apsnd (Term o Free)) vs) (term_of (dest_body body))

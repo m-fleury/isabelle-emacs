@@ -1110,7 +1110,7 @@ end
 
 
 subsection \<open>Setup for Nitpick\<close>
-
+(*
 declaration \<open>
   Nitpick_HOL.register_frac_type \<^type_name>\<open>rat\<close>
     [(\<^const_name>\<open>Abs_Rat\<close>, \<^const_name>\<open>Nitpick.Abs_Frac\<close>),
@@ -1123,7 +1123,7 @@ declaration \<open>
      (\<^const_name>\<open>ord_rat_inst.less_rat\<close>, \<^const_name>\<open>Nitpick.less_frac\<close>),
      (\<^const_name>\<open>ord_rat_inst.less_eq_rat\<close>, \<^const_name>\<open>Nitpick.less_eq_frac\<close>),
      (\<^const_name>\<open>field_char_0_class.of_rat\<close>, \<^const_name>\<open>Nitpick.of_frac\<close>)]
-\<close>
+\<close>*)
 
 lemmas [nitpick_unfold] =
   inverse_rat_inst.inverse_rat

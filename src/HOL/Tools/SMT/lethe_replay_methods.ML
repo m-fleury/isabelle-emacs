@@ -714,9 +714,14 @@ end
 
 
 fun normalized_input ctxt prems t = SMT_Replay_Methods.prove ctxt t (fn _ =>
+let
+    val _ = (SMT_Config.verit_msg ctxt) (fn () => \<^print> ("normalized input in lethe_replay t =",t))
+    val _ = (SMT_Config.verit_msg ctxt) (fn () => \<^print> ("normalized input prems in lethe_replay =",prems))
+in
   Method.insert_tac ctxt prems
   THEN' TRY' (K (unfold_tac ctxt @{thms SMT.trigger_def}))
-  THEN' TRY' (partial_simplify_tac ctxt @{thms eq_commute}))
+  THEN' TRY' (partial_simplify_tac ctxt @{thms eq_commute})
+end)
 
 val false_rule_thm = @{lemma \<open>\<not>False\<close> by blast}
 
@@ -826,7 +831,7 @@ end
 
 local
   fun xor_neg_term ctxt thm (\<^term>\<open>Trueprop\<close> $
-         (\<^term>\<open>HOL.disj\<close> $ (\<^term>\<open>SMT.xor\<close> $ a $ b) $ _)) =
+         (\<^term>\<open>HOL.disj\<close> $ (\<^term>\<open>Bit_Operations.xor\<close> $ a $ b) $ _)) =
          Drule.infer_instantiate' ctxt (map (SOME o Thm.cterm_of ctxt) [a, b]) thm
      | xor_neg_term ctxt thm  t =
         replay_error ctxt "invalid application in xor neg" Unsupported [thm] t
@@ -834,7 +839,7 @@ local
 
 (*TODO: Might be able to get rid of this with better instantiation *)
   fun xor_pos_term ctxt thm (\<^term>\<open>Trueprop\<close> $
-         (\<^term>\<open>HOL.disj\<close> $ (\<^term>\<open>HOL.Not\<close> $ (\<^term>\<open>SMT.xor\<close> $ a $ b)) $ _)) =
+         (\<^term>\<open>HOL.disj\<close> $ (\<^term>\<open>HOL.Not\<close> $ (\<^term>\<open>Bit_Operations.xor\<close> $ a $ b)) $ _)) =
          Drule.infer_instantiate' ctxt (map (SOME o Thm.cterm_of ctxt) [a, b]) thm
      | xor_pos_term ctxt thm  t =
         replay_error ctxt "invalid application in xor pos" Unsupported [thm] t
