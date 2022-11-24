@@ -130,6 +130,8 @@ fun replay_theorem_step rewrite_rules ll_defs assumed inputs proof_prems
 
 
 (*Prems is still the same but its extension to nthms is empty Already not in temp*)
+    val _ = @{print} "Prems"
+
     val _ = @{print} prems
     val temp1 = (null subproof)
 (*Both of them evaluate the if condition to true, a0 (and a1) are not present in the proofs of the buggy one*)
@@ -295,7 +297,7 @@ fun replay outer_ctxt
         | SOME ((k, role), th') =>
 let 
         val _ = @{print} "In step_of_assume"
-        val temp = cvc_assms_name (SMTLIB_Interface.assert_name_of_role_and_index role (id_of_index i)) k
+        val temp = cvc_assms_name (string_of_int (id_of_index i)) k
         val _ = @{print} temp
 val temp2 = Thm.prop_of th'
             |> Raw_Simplifier.rewrite_term (Proof_Context.theory_of
