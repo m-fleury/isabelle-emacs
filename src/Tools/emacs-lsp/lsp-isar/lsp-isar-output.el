@@ -163,7 +163,7 @@ functions adds up.  So any optimisation would help."
 	      (push (list start-point (point) face) lsp-isar-output-output-deco))))
 	 ('lsp-isar-output-save-sendback
 	  (let ((start-point (dom-attr content 'start-point)))
-	    (push (list lsp-isar-output-last-seen-prover (buffer-substring start-point (point))) lsp-isar-output-proof-cases-content)))
+	    (push (list (buffer-substring start-point (point))) lsp-isar-output-proof-cases-content)))
 	 ('html
 	  (setq contents (append (dom-children content) contents)))
 	 ('xmlns nil)
@@ -328,6 +328,7 @@ functions adds up.  So any optimisation would help."
 	    (setq contents (append (dom-children content) contents))))
 
 	 ('sendback ;; TODO handle properly
+          (insert "|" (format "%s" (1+ (length lsp-isar-output-proof-cases-content))) "|: ")
 	  (let ((start-point (point)))
 	    (save-excursion
 	      (beginning-of-line)
