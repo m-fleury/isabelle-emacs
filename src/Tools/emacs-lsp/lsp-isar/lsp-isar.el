@@ -415,13 +415,10 @@ If there is no proof, the sledgehammer call is not removed and
 the transient is re-opened."
   (interactive "P")
   ;;(message "word-at-point= %s %s" (word-at-point) (eq (word-at-point) "sledgehammer"))
-  (message "prover pos = %s from %s" prover lsp-isar-output-proof-cases-content)
   (let* ((prover (- prover 1))
          (sh (nth prover lsp-isar-output-proof-cases-content)))
     ;; (message "looking for %s in %s (isar? %s), found: %s" prover
     ;; lsp-isar-output-proof-cases-content isar sh)
-    (message "prover pos = %s from %s" prover lsp-isar-output-proof-cases-content)
-    (message "%s" sh)
     (if (not sh)
 	(if (string= proof-command "sledgehammer")
 	    (lsp-isar-sledgehammer-interface))
