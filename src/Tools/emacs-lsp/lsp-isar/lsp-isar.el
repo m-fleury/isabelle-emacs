@@ -543,14 +543,14 @@ choice for the given prover."
    ("i" "Insert Isar proof" "--isar")
    ("k" "Keep sledgehammer call if cursor is on it" "--keep-sledgehammer")]
   ["Insert calls"
-   ("1" "1 proof" lsp-isar-insert-sledgehammer-proof-1)
+   ("1" "1st proof" lsp-isar-insert-sledgehammer-proof-1)
    ("d" "delete sledgehammer call" lsp-isar-delete-sledgehammer-call)
-   ("2" "2 proof" lsp-isar-insert-sledgehammer-proof-2)
-   ("3" "3 proof" lsp-isar-insert-sledgehammer-proof-3)
-   ("4" "4 proof" lsp-isar-insert-sledgehammer-proof-4)
-   ("5" "5 proof" lsp-isar-insert-sledgehammer-proof-5)
-   ("6" "6 proof" lsp-isar-insert-sledgehammer-proof-6)
-   ("7" "7 proof" lsp-isar-insert-sledgehammer-proof-7)])
+   ("2" "2snd proof" lsp-isar-insert-sledgehammer-proof-2)
+   ("3" "3rd proof" lsp-isar-insert-sledgehammer-proof-3)
+   ("4" "4th proof" lsp-isar-insert-sledgehammer-proof-4)
+   ("5" "5th proof" lsp-isar-insert-sledgehammer-proof-5)
+   ("6" "6th proof" lsp-isar-insert-sledgehammer-proof-6)
+   ("7" "7th proof" lsp-isar-insert-sledgehammer-proof-7)])
 
 
 (define-key isar-mode-map (kbd "C-x s") 'lsp-isar-sledgehammer)
