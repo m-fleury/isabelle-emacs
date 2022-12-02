@@ -163,7 +163,7 @@ functions adds up.  So any optimisation would help."
 	      (push (list start-point (point) face) lsp-isar-output-output-deco))))
 	 ('lsp-isar-output-save-sendback
 	  (let ((start-point (dom-attr content 'start-point)))
-	    (push (list (buffer-substring start-point (point))) lsp-isar-output-proof-cases-content)))
+	    (push (buffer-substring start-point (point)) lsp-isar-output-proof-cases-content)))
 	 ('html
 	  (setq contents (append (dom-children content) contents)))
 	 ('xmlns nil)

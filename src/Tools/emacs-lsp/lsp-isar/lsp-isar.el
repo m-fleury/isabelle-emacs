@@ -415,10 +415,11 @@ If there is no proof, the sledgehammer call is not removed and
 the transient is re-opened."
   (interactive "P")
   ;;(message "word-at-point= %s %s" (word-at-point) (eq (word-at-point) "sledgehammer"))
-  (let* ((prover (- prover 1))
+  ;; the list is in reverse order (last completion first in the list)
+  (let* ((idx (- (length lsp-isar-output-proof-cases-content) prover))
+	 (prover idx)
          (sh (nth prover lsp-isar-output-proof-cases-content)))
-    ;; (message "looking for %s in %s (isar? %s), found: %s" prover
-    ;; lsp-isar-output-proof-cases-content isar sh)
+    ;; (message "%s" lsp-isar-output-proof-cases-content)
     (if (not sh)
 	(if (string= proof-command "sledgehammer")
 	    (lsp-isar-sledgehammer-interface))
@@ -426,7 +427,7 @@ the transient is re-opened."
 	  (lsp-isar-kill-word-at-point)
         (end-of-line)
 	(insert "\n"))
-      (insert (car sh)))))
+      (insert sh))))
 
 (defun lsp-isar-insert-sledgehammer-proof (prover isar keep-sledgehammer)
   "Insert proof by PROVER found in ISAR, keeping the command if KEEP-SLEDGEHAMMER.
