@@ -7,7 +7,7 @@ section \<open>Bindings to Satisfiability Modulo Theories (SMT) solvers based on
 
 theory SMT
   imports Divides Numeral_Simprocs "HOL-Library.Word" "HOL.Real"
-  keywords "smt_status" :: diag
+  keywords "smt_status" "parse_rare_file" "parse_rare" :: diag
 begin
 
 subsection \<open>A skolemization tactic and proof method\<close>
@@ -143,7 +143,7 @@ lemma int_plus: "int (n + m) = int n + int m" by (rule of_nat_add)
 lemma int_minus: "int (n - m) = int (nat (int n - int m))" by auto
 
 lemma nat_int_comparison:
-  fixes a b :: nat
+  fixes a b :: nat     
   shows "(a = b) = (int a = int b)"
     and "(a < b) = (int a < int b)"
     and "(a \<le> b) = (int a \<le> int b)"
@@ -638,6 +638,9 @@ lemmas [arith_simp_cvc5] = Groups.monoid_mult_class.mult_1_right Nat.mult_Suc_ri
                      Num.numeral_2_eq_2 Nat.One_nat_def Num.numeral_2_eq_2 Nat.One_nat_def
                      Nat.Suc_less_eq Nat.zero_less_Suc minus_nat.diff_0 Nat.diff_Suc_Suc Nat.le0
 
+named_theorems arith_poly_norm \<open>Theorems normalize polynoms.\<close>
+lemmas [arith_poly_norm] = ac_simps realrel_def of_int_mult of_int_add
+
 named_theorems word_var_rbl_list \<open>Theorems to reconstruct bitblasting of a variable.\<close>
 
 named_theorems bv_reconstruction_const \<open>Theorems to reconstruct bitblasting of a constant.\<close>
@@ -714,6 +717,8 @@ ML_file \<open>Tools/SMT/verit_strategies.ML\<close>
 ML_file \<open>Tools/SMT/verit_replay.ML\<close>
 ML_file \<open>Tools/SMT/cvc4_replay.ML\<close>
 ML_file \<open>Tools/SMT/smt_systems.ML\<close>
+ML_file \<open>Tools/SMT/cvc5_dsl_rewrites/parse_rewrites.ML\<close>
+ML_file \<open>Tools/SMT/cvc5_dsl_rewrites/rewrites_to_lemma.ML\<close>
 
 
 subsection \<open>Configuration\<close>
@@ -1127,7 +1132,6 @@ fun nat_as_int_conv ctxt = SMT_Util.if_exists_conv is_nat_const (nat_to_int_conv
 
 fun add_int_of_nat_constraints thms =
   let
-val _ = @{print} "BV!"
  val (q, cts) = fold (add_apps add_int_of_nat [] o Thm.cprop_of) thms (false, [])
   in
     if q then (thms, nat_int_thms)
@@ -1229,4 +1233,44 @@ if_fixed_all "string" "t" @{typ "w32 \<Rightarrow> int"} "e"
 end
 \<close>
 *)
+
+ML \<open>
+ (* val print_rewrite: (string list * (string * string option)) ->
+    Toplevel.transition -> Toplevel.transition*)
+
+open PARSE_REWRITE
+open WRITE_LEMMA
+
+fun print_item string_of (modes, arg) = Toplevel.keep (fn state =>
+  Print_Mode.with_modes modes (fn () => writeln (string_of state (hd arg))) ())
+
+fun string_of_rewrite ctxt s
+= foldr1 (op^) (List.concat (WRITE_LEMMA.write_lemmas (PARSE_REWRITE.parse_rewrites [s]) "THEORY_NAME" "IMPORTING_THEORIES" ctxt))
+
+fun print_rewrite (cs:string) (t:Toplevel.transition) :  Toplevel.transition =
+Toplevel.keep (fn toplevel => (fn state =>
+  Print_Mode.with_modes [] (fn () => writeln (string_of_rewrite state cs)) ()) (Toplevel.context_of toplevel)) t
+
+val _ =
+  Outer_Syntax.command \<^command_keyword>\<open>parse_rare\<close> "parse a single rule in rare format (provided as a string) and output lemma"
+    ( Parse.string >> print_rewrite);
+
+
+
+val semi = Scan.option \<^keyword>\<open>;\<close>; (*TODO: Do not need?*)
+
+val _ =
+  Outer_Syntax.command \<^command_keyword>\<open>parse_rare_file\<close> "parse file in rare format and output lemmas. <rare_file, import theories, target_theory>"
+    ((Resources.provide_parse_file -- Parse.string)  -- Parse.string >> (fn ((get_file,theory_imports),theory_name) => (*Probably not the right way*)
+      Toplevel.theory (fn (thy:theory) =>
+        let
+          val ({lines, ...}, thy') = get_file thy; (*Not the way to do this*)
+          val _ = @{print} lines
+          val ctxt = Proof_Context.get_global thy "Main"
+          val res = (List.concat (WRITE_LEMMA.write_lemmas (PARSE_REWRITE.parse_rewrites lines) theory_name theory_imports ctxt))
+          val _ = Output.writelns res
+
+        in thy' end)))
+\<close>
+
 end
