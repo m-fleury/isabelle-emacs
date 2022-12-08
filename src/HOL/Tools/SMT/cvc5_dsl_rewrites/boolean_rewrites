@@ -1,0 +1,11 @@
+(define-rule bool-eq-refl ((t Bool)) (= t t) true)
+(define-rule bool-eq-symm ((t Bool) (s Bool)) (= t s) (= s t))
+(define-rule bool-double-neg-elim ((t Bool)) (not (not t)) t)
+
+(define-rule bool-eq-true ((t Bool)) (= t true) t)
+(define-rule bool-eq-false ((t Bool)) (= t false) (not t))
+
+(define-rule bool-impl-false1 ((t Bool)) (=> t false) (not t))
+(define-rule bool-impl-false2 ((t Bool)) (=> false t) true)
+(define-rule bool-impl-true1 ((t Bool)) (=> t true) true)
+(define-rule bool-impl-true2 ((t Bool)) (=> true t) t)
