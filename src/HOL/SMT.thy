@@ -6,7 +6,7 @@
 section \<open>Bindings to Satisfiability Modulo Theories (SMT) solvers based on SMT-LIB 2\<close>
 
 theory SMT
-  imports Divides Numeral_Simprocs "HOL-Library.Word" "HOL.Real"
+  imports Divides Numeral_Simprocs "HOL-Library.Word" "HOL.Real" "Tools/SMT/cvc5_dsl_rewrites/Boolean_Rewrites"
   keywords "smt_status" "parse_rare_file" "parse_rare" :: diag
 begin
 
@@ -1234,10 +1234,9 @@ end
 \<close>
 *)
 
-ML \<open>
- (* val print_rewrite: (string list * (string * string option)) ->
-    Toplevel.transition -> Toplevel.transition*)
 
+
+ML \<open>
 open PARSE_REWRITE
 open WRITE_LEMMA
 
@@ -1261,16 +1260,30 @@ val semi = Scan.option \<^keyword>\<open>;\<close>; (*TODO: Do not need?*)
 
 val _ =
   Outer_Syntax.command \<^command_keyword>\<open>parse_rare_file\<close> "parse file in rare format and output lemmas. <rare_file, import theories, target_theory>"
-    ((Resources.provide_parse_file -- Parse.string)  -- Parse.string >> (fn ((get_file,theory_imports),theory_name) => (*Probably not the right way*)
+    (((Resources.provide_parse_file -- Parse.string)  -- Parse.string)
+     >> (fn ((get_file,theory_imports),theory_name) => (*Probably not the right way*)
       Toplevel.theory (fn (thy:theory) =>
         let
-          val ({lines, ...}, thy') = get_file thy; (*Not the way to do this*)
+          val ({lines, ...}, thy') = get_file thy; (*Not the way to do this? Why do you need a theory?*)
           val _ = @{print} lines
           val ctxt = Proof_Context.get_global thy "Main"
-          val res = (List.concat (WRITE_LEMMA.write_lemmas (PARSE_REWRITE.parse_rewrites lines) theory_name theory_imports ctxt))
-          val _ = Output.writelns res
+          val res = foldr1 (op^) (List.concat (WRITE_LEMMA.write_lemmas (PARSE_REWRITE.parse_rewrites lines) theory_name theory_imports ctxt))
+         val _ = @{print} ("res", res) (*Has markup in them, How to transform without printing?*)
+          val _ = (Output.writeln res)
+          val res2 = Pretty.string_of (Pretty.mark_str (Markup.raw_text,res)) (*Das Problem ist ja nicht, das es markup enthaelt, sondern das sie nicht entfaltet werden bei schreiben*)
+          val _ =
+           Bytes.write 
+            (Path.make ["src","HOL","Tools","SMT", "cvc5_dsl_rewrites", "Boolean_Rewrites_test.thy"]) (Bytes.string res2)
+         (* val _ = (Export.export thy'
+ (Path.binding (Path.make ["src","HOL","Tools","SMT", "cvc5_dsl_rewrites", "Boolean_Rewrites_test.thy"],Position.start))
+(Bytes.contents_blob (Bytes.string res)))*)
+          val _ = @{print} "done writing to file"
 
-        in thy' end)))
+
+        in thy' end))
+
+(*Try Export.export*)
+
+)
 \<close>
-
 end
