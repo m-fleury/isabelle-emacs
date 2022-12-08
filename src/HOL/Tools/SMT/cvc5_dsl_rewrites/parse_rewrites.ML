@@ -59,14 +59,13 @@ fun read_rewrite_name l (c :: cs) None ts =
     read_rewrite_name l _ _ _ = raise PARSE (l, "rule name could not be parsed in")
 
 
-(*read rule type and proceed according to it*)
+(*Parse rule type and proceed according to it*)
 local 
-
-  fun read_par l (SMTLIB.S cs) = Par cs | (*TODO: What when list is empty still S?*)
+  fun read_par _ (SMTLIB.S cs) = Par cs | (*TODO: What when list is empty still S?*)
       read_par l _ =  raise PARSE (l, "not a valid parameter")
   fun read_rule_smtlib_tree l [target :: match :: [par]] = [read_par l par, Match match, Target target] |
       read_rule_smtlib_tree l _ = raise PARSE (l, "not a valid instance of a define-rule")
-  fun read_cond_rule_smtlib_tree l [target :: match :: precondition :: [par]] = [read_par l par, Match match, Target target] |
+  fun read_cond_rule_smtlib_tree l [target :: match :: precondition :: [par]] = [read_par l par, Precondition precondition, Match match, Target target] |
       read_cond_rule_smtlib_tree l _ = raise PARSE (l, "not a valid instance of a define-cond-rule")
 
   fun read_name l cs = read_rewrite_name l cs None []
