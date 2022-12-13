@@ -651,6 +651,7 @@ LSP-ISAR-OUTPUT-CURRENT-OUTPUT-NUMBER-RES."
       (isar-goal-mode)
       (font-lock-mode nil))
     (with-current-buffer lsp-isar-output-buffer
+      (visual-line-mode t)
       (read-only-mode t)
       (isar-goal-mode)
       (font-lock-mode nil))))
