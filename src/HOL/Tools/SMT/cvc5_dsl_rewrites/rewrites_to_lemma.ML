@@ -26,16 +26,33 @@ fun string_of_term ctxt s =
         Pretty.str "::", Pretty.brk 1, Pretty.quote (Syntax.pretty_typ ctxt' T)])
   end;
 
-fun get_term tree ctxt = Syntax.string_of_term ctxt (fst (SMTLIB_Proof.term_of tree (empty_context ctxt Symtab.empty Symtab.empty)))
 
-fun write_file_header theory_name theory_imports= [["theory " ^ theory_name ^ "\n"],["  imports " ^ theory_imports ^ "\n"], ["begin\n\n"]]
+fun hackish_string_of_term ctxt =
+ Print_Mode.setmp [] (Syntax.string_of_term ctxt)
+  #> YXML.content_of
+
+fun hackish_string_of_type ctxt =
+ Print_Mode.setmp [] (Syntax.string_of_typ ctxt)
+  #> YXML.content_of
+
+fun get_term tree ctxt = 
+hackish_string_of_term ctxt (fst (SMTLIB_Proof.term_of tree (empty_context ctxt Symtab.empty Symtab.empty)))
+|> @{print}
+
+fun write_file_header theory_name theory_imports 
+= [["theory " ^ theory_name ^ "\n"],["  imports " ^ theory_imports ^ "\n"], ["begin\n\n"]
+  ,["(* This is a theory automatically created from a rare file! All that remains to do is to prove\n",
+    "any lemma whose auto proof fails and to to import this file in SMT.thy. *)\n"]]
 val write_file_footer = ["end"]
 
-fun write_lemma_header name = ["lemma " ^ name ^ ":\n"]
+(*TODO: Do better named_theorems word_and_rbl_bvand \<open>Theorems to reconstruct bitblasting of a bvand term.\<close>*)
+fun write_lemma_header name = ["named_theorems " ^ name ^ " \<open>automatically_generated\<close>\n\n"] @ ["lemma [" ^ name ^ "]:\n"]
 fun write_fixes pars ctxt = 
 let
   val cx = (empty_context ctxt Symtab.empty Symtab.empty)
-  fun write_par (SMTLIB.S [var,typ]) = SMTLIB.str_of var ^ "::" ^ Syntax.string_of_typ ctxt (SMTLIB_Proof.type_of cx typ)
+  fun write_par (SMTLIB.S [var,typ]) =
+ hackish_string_of_term ctxt (fst (SMTLIB_Proof.term_of var (empty_context ctxt Symtab.empty Symtab.empty)))
+ ^ "::" ^ hackish_string_of_type ctxt (SMTLIB_Proof.type_of cx typ)
   fun write_params [] = [] |
   write_params (p::ps) = write_par p ^ (if ps = [] then "" else " and ") :: write_params ps
 in
@@ -52,14 +69,29 @@ fun write_lemma (Rewrite_Rule ((Rule_Type DEFINE_RULE)::(Rule_Name name)::rest )
     in 
       (write_lemma_header name) :: [write_fixes param ctxt, write_shows m t ctxt, write_auto]
     end |
-  write_lemma (Rewrite_Rule ((Rule_Type DEFINE_RULE)::(Rule_Name name)::rest )) ctxt =
+  write_lemma (Rewrite_Rule ((Rule_Type DEFINE_COND_RULE)::(Rule_Name name)::rest )) ctxt =
     let
       val [Par param, Precondition ass, Match m, Target t] = rest
     in 
       (write_lemma_header name) :: [(write_shows_wth_assump ass m t ctxt), write_auto]
     end |
-    write_lemma rwr ctxt = raise WRITE_LEMMA_FROM_DSL_REWRITE ("Could not write rewrite rule to lemma, has wrong form" ) (*^ PARSE_REWRITE.to_str rwr)*)
+  write_lemma (Rewrite_Rule ((Rule_Type DEFINE_STAR_RULE)::(Rule_Name name)::rest )) ctxt =
+    let
+      val [Par param, Context_Expr context_expr, Match m, Target t] = rest
+    in (*TODO*)
+      (write_lemma_header name) :: [write_fixes param ctxt, write_shows m t ctxt,write_auto]
+    end |
+    write_lemma rwr ctxt = 
+let val _ = @{print}("rwr",rwr)
+in
+raise WRITE_LEMMA_FROM_DSL_REWRITE ("Could not write rewrite rule to lemma, has wrong form" ) (*^ PARSE_REWRITE.to_str rwr)*)
+end
 
+(*("rwr",
+ Rewrite_Rule
+  [Rule_Type DEFINE_RULE_STAR, Rule_Name "bool_and_true", Par [S [Sym "ys", Sym "Bool"], S [Sym "xs", Sym "Bool"]],
+   Match (S [Sym "and", Sym "xs", Sym "true", Sym "ys"]),
+   Target (S [Sym "and", Sym "xs", Sym "ys"])])*)
 local
   fun write_lemmas_h [] _ = [] |
       write_lemmas_h (c::cs) ctxt = (write_lemma c ctxt) @ write_lemmas_h cs ctxt

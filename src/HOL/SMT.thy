@@ -1260,29 +1260,27 @@ val semi = Scan.option \<^keyword>\<open>;\<close>; (*TODO: Do not need?*)
 
 val _ =
   Outer_Syntax.command \<^command_keyword>\<open>parse_rare_file\<close> "parse file in rare format and output lemmas. <rare_file, import theories, target_theory>"
-    (((Resources.provide_parse_file -- Parse.string)  -- Parse.string)
-     >> (fn ((get_file,theory_imports),theory_name) => (*Probably not the right way*)
+    (((Parse.string -- Parse.string)  -- Parse.string)
+     >> (fn ((file_name,theory_imports),theory_name) => (*Probably not the right way*)
       Toplevel.theory (fn (thy:theory) =>
-        let
-          val ({lines, ...}, thy') = get_file thy; (*Not the way to do this? Why do you need a theory?*)
+               let
+          (*Built new path*)
+          val file_path = Path.explode file_name
+          val new_theory_name = theory_name ^ ".thy"
+          val res_path = Path.append (Path.dir file_path) (Path.basic new_theory_name)
+
+          (*Calculate result*)
+          val lines = (Bytes.split_lines (Bytes.read file_path)) ;
           val _ = @{print} lines
-          val ctxt = Proof_Context.get_global thy "Main"
+          val ctxt = Proof_Context.get_global thy theory_imports
           val res = foldr1 (op^) (List.concat (WRITE_LEMMA.write_lemmas (PARSE_REWRITE.parse_rewrites lines) theory_name theory_imports ctxt))
-         val _ = @{print} ("res", res) (*Has markup in them, How to transform without printing?*)
           val _ = (Output.writeln res)
-          val res2 = Pretty.string_of (Pretty.mark_str (Markup.raw_text,res)) (*Das Problem ist ja nicht, das es markup enthaelt, sondern das sie nicht entfaltet werden bei schreiben*)
+
           val _ =
            Bytes.write 
-            (Path.make ["src","HOL","Tools","SMT", "cvc5_dsl_rewrites", "Boolean_Rewrites_test.thy"]) (Bytes.string res2)
-         (* val _ = (Export.export thy'
- (Path.binding (Path.make ["src","HOL","Tools","SMT", "cvc5_dsl_rewrites", "Boolean_Rewrites_test.thy"],Position.start))
-(Bytes.contents_blob (Bytes.string res)))*)
-          val _ = @{print} "done writing to file"
-
-
-        in thy' end))
-
-(*Try Export.export*)
+            res_path (Bytes.string res)
+          val _ = @{print} ("done writing to file", res_path)
+        in thy end))
 
 )
 \<close>
