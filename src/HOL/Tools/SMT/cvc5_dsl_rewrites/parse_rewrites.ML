@@ -6,11 +6,11 @@ sig
   datatype rewrite_tree = 
     Rule_Type of rule_type |
     Rule_Name of string |
-    Par of SMTLIB.tree list | (*TODO: Should par be a SMTLIB.tree rather*)
+    Par of SMTLIB.tree list |
     Precondition of SMTLIB.tree |
     Match of SMTLIB.tree |
     Target of SMTLIB.tree |
-    Context_Expr of SMTLIB.tree |
+    Context_Expr of SMTLIB.tree option |
     Rewrite_Rule of rewrite_tree list
 
   val parse_rewrites: string list -> rewrite_tree list
@@ -24,7 +24,6 @@ struct
 exception PARSE of int * string
 
 datatype rule_type = DEFINE_RULE | DEFINE_COND_RULE | DEFINE_RULE_STAR
-datatype unfinished = None | String of string | Symbol of string
 
   datatype rewrite_tree = 
     Rule_Type of rule_type |
@@ -33,11 +32,11 @@ datatype unfinished = None | String of string | Symbol of string
     Precondition of SMTLIB.tree |
     Match of SMTLIB.tree |
     Target of SMTLIB.tree |
-    Context_Expr of SMTLIB.tree |
+    Context_Expr of SMTLIB.tree option |
     Rewrite_Rule of rewrite_tree list
 
 
-(*While rule type and rule name are parsed in directly the parameter and the expressions are
+(*While rule type and rule name are directly parsed in, the parameters and the expressions are
   given to SMTLIB.parse to efficiently reuse its capabilities:
 
 E.g.,
@@ -48,6 +47,10 @@ E.g.,
 TODO: [[Sym "true", S [Sym "=", Sym "t", Sym "s"],
    S [S [Sym "t",
          Sym "Bool"]]]
+
+Binarisation of n-ary operators in rare rules:
+Note that for the parameters the type cvc_ListVar is already set here but for the expressions
+this is done in rewrites_to_lemma to reuse the binarisation procedure in SMTLIB_Proof
 *)
 
 (*Parse name*)
@@ -65,13 +68,22 @@ local
 fun get_smtlib_tree str : SMTLIB.tree list list
   = snd (SMTLIB.read_line 0 (implode str) SMTLIB.None [[]])
 
+(*After the terms are parsed we need to transform every list into 
+  "((xs \<and> True \<and> ys) = (xs \<and> ys))"
+  "((cvc_list_left (\<and>) xs (cvc_list_right (\<and>) (cvc_list_right (\<and>) b ys) zs))
+       = (cvc_list_left (\<and>) xs (cvc_list_left (\<and>) zs (cvc_list_right (\<and>) b ys))))"
+
+So traverse the tree. Best would be bottom up to get these cases where both lists are empty out
+of the way
+*)
+
 (*Call read_par in here?*)
 (*TODO: Can there be nested parenthesis in the parameter list?*)
 (*TODO: Should target, match etc also be parsed into different components?*)
 (*((xs Bool :list) (b Bool) (ys Bool :list) (zs Bool :list))*)
 (*TODO: Use unfinished*)
 local
-  fun rm_list_from_par (")"::cs) cs' _ = (cs, (")"::cs')) |
+  fun rm_list_from_par (")"::cs) cs' b = (cs, (")"::cs'),b) |
       rm_list_from_par ("("::cs) cs' false = rm_list_from_par cs ("("::cs') false |
       rm_list_from_par (":"::cs) cs' false = rm_list_from_par cs cs' true |
       rm_list_from_par (c::cs) cs' false = rm_list_from_par cs (c::cs') false |
@@ -80,8 +92,16 @@ local
   fun rm_list_from_par_list (")"::cs) cs' l = (cs, cs') | (*very last parenthesis*) 
     rm_list_from_par_list ("("::cs) cs' l  = (*any other parenthesis is a par*)
       let 
-        val (new_cs,current_par) = rm_list_from_par ("("::cs) [] false
-        val par_as_smtlib = (hd (get_smtlib_tree (rev current_par)))
+        val (new_cs,current_par,is_list) = rm_list_from_par ("("::cs) [] false
+        val par_as_smtlib =
+          (if is_list then
+            let
+              (*val _ = @{print} ("Test if this is correct " ,(hd (hd (get_smtlib_tree (rev current_par)))))*) 
+              val (SMTLIB.S [var,typ]) = (hd (hd (get_smtlib_tree (rev current_par))))
+            in 
+              [(SMTLIB.S [var,SMTLIB.Sym "cvc_ListVar"])]
+            end
+          else (hd (get_smtlib_tree (rev current_par))))
       in
         rm_list_from_par_list new_cs (par_as_smtlib @ cs') l
       end 
@@ -100,57 +120,57 @@ end
       parse_pars _ l = raise PARSE (l, "parameter list needs to start with an opening parenthesis.")
 end
 
-
-(* [[Sym "t", Sym "s", Sym "="],
-  [S [Sym "=", Sym "t",
-      Sym "s"]]]*)
-  fun read_rule_smtlib_tree l (target :: [match]) = [Match match, Target target] |
+  fun read_rule_smtlib_tree _ (target :: [match]) = [Match match, Target target] |
       read_rule_smtlib_tree l tree = let val _ = @{print}("treee", tree) in raise PARSE (l, "not a valid instance of a define-rule") end
-  fun read_cond_rule_smtlib_tree l (target :: match :: [precondition])
+  fun read_cond_rule_smtlib_tree _ (target :: match :: [precondition])
           = [Precondition precondition, Match match, Target target] |
       read_cond_rule_smtlib_tree l _ = raise PARSE (l, "not a valid instance of a define-cond-rule")
+  fun read_star_rule_smtlib_tree _ (target :: [match])
+          = [Context_Expr NONE, Match match, Target target] |
+      read_star_rule_smtlib_tree _ (target :: match :: [context_expr])
+          = [Context_Expr (SOME context_expr), Match match, Target target] |
+      read_star_rule_smtlib_tree l t = (@{print}("t",t);raise PARSE (l, "not a valid instance of a define-star-rule"))
+
+
 
   fun read_name l cs = read_rewrite_name l cs None []
 
   fun parse_rare rule l cs f = 
   let
     val (wth_name, _, name) = read_name l cs
-    val _ = @{print}("wth_name",implode wth_name)
     val (wth_par, parsed_par) = parse_pars wth_name l
-    val _ = @{print}("wth_par",implode wth_par)
     val wth_last_parenthesis = take (length wth_par - 1) wth_par
     val exprs = f l (hd (get_smtlib_tree wth_last_parenthesis))
-    val _ = @{print}("pars",parsed_par)
-  in 
+  in
     rule :: name @ [parsed_par] @ exprs
   end
 
 in 
-(*Soll liste ausgeben nicht liste von listen*)
   fun parse_according_to_type l ("("::"d"::"e"::"f"::"i"::"n"::"e"::"-"::"r"::"u"::"l"::"e"::" ":: cs)
         = parse_rare (Rule_Type DEFINE_RULE) l cs read_rule_smtlib_tree | 
       parse_according_to_type l ("("::"d"::"e"::"f"::"i"::"n"::"e"::"-"::"c"::"o"::"n"::"d"::"-"::"r"::"u"::"l"::"e"::" ":: cs)
         = parse_rare (Rule_Type DEFINE_COND_RULE) l cs read_cond_rule_smtlib_tree | 
       parse_according_to_type l ("("::"d"::"e"::"f"::"i"::"n"::"e"::"-"::"r"::"u"::"l"::"e"::"*"::" ":: cs)
-        = parse_rare (Rule_Type DEFINE_RULE_STAR) l cs read_rule_smtlib_tree | 
+        = parse_rare (Rule_Type DEFINE_RULE_STAR) l cs read_star_rule_smtlib_tree | 
       parse_according_to_type l _ = raise PARSE (l, "could not read rule type")
 end
 
 
 (* Overall parser: *)
-fun read_tree (l:int) (line:string list) : rewrite_tree
-   = ((*@{print} ("current line ",line);*) Rewrite_Rule (parse_according_to_type l line)) 
+fun read_tree l line
+   = parse_according_to_type l line |> Rewrite_Rule
 
-fun (*add_line (";"::cs) (l,rewrite_trees) = (l + 1, rewrite_trees) | *)(*Skip comments*)
-    add_line line (l, rewrite_trees) =
-      let
-        val _ = @{print}("line",line)
-        val line_list = (raw_explode line)
-      in 
-        if size line = 0 then (l + 1, rewrite_trees) (*Skip empty lines*)
-        else if hd line_list = ";" then (l + 1, rewrite_trees) (*Skip comments*)
-        else (l + 1, (read_tree l line_list) :: rewrite_trees) (*Get rewrite tree for current line and append*)
-      end
+fun add_line line (l, rewrite_trees) =
+  let
+    val _ = @{print}("current line to parse",line)
+    val line_list = (raw_explode line)
+  in
+    if size line = 0 then (l + 1, rewrite_trees) (*Skip empty lines*)
+    else if hd line_list = ";" then (l + 1, rewrite_trees) (*Skip comments*)
+    else (l + 1, (read_tree l line_list) :: rewrite_trees) (*Get rewrite tree for current line and append*)
+  end
+
+(*TEMP: Figure out how to parse this in a string list automatically, seperating at\n *)
 
 fun parse_rewrites lines = (fold add_line lines (1,[])) |> snd
 
@@ -164,7 +184,8 @@ fun pretty_rewrite_tree (Rule_Type DEFINE_RULE) = Pretty.str ("define-rule ")
   | pretty_rewrite_tree (Precondition tree) = SMTLIB.pretty_tree tree
   | pretty_rewrite_tree (Match tree) = SMTLIB.pretty_tree tree
   | pretty_rewrite_tree (Target tree) = SMTLIB.pretty_tree tree
-  | pretty_rewrite_tree (Context_Expr tree) = SMTLIB.pretty_tree tree
+  | pretty_rewrite_tree (Context_Expr NONE) = Pretty.str ""
+  | pretty_rewrite_tree (Context_Expr (SOME tree)) = SMTLIB.pretty_tree tree
   | pretty_rewrite_tree (Rewrite_Rule trees) =
       Pretty.enclose "(" ")" (Pretty.separate "" (map pretty_rewrite_tree trees))
 

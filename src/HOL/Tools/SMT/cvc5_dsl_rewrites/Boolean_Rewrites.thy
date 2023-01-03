@@ -1,22 +1,38 @@
 theory Boolean_Rewrites
-  imports Main
+  imports Dsl_Nary_Ops
 begin
 
 (* This is a theory automatically created from a rare file! All that remains to do is to prove
 any lemma whose auto proof fails and to to import this file in SMT.thy. *)
 named_theorems bool_or_taut \<open>automatically_generated\<close>
 
+lemma help1: "cvc_isListOp (ListOp (\<or>) False)"
+  sorry
+
 lemma [bool_or_taut]:
-  fixes zs::bool and ys::bool and w::bool and xs::bool
-  shows "((xs \<or> w \<or> ys \<or> \<not> w \<or> zs) = (True))"
-  by auto
+  fixes zs::cvc_ListVar and ys::cvc_ListVar and w::bool and xs::cvc_ListVar
+  shows "((cvc_list_left (\<or>) xs
+ (w \<or> cvc_list_left (\<or>) ys (cvc_list_right (\<or>) (\<not> w) zs))) = (True))"
+  apply (cases xs)
+  apply (cases ys)
+  apply (cases zs)
+  apply simp_all
+  unfolding cvc_list_left_transfer
+  subgoal for xss yss zss
+  using cvc_list_right_transfer[of "(\<or>)" False "\<not> w" zss] help1
+  apply simp
+
+  sorry
+  sorry
 
 named_theorems bool_and_conf \<open>automatically_generated\<close>
 
 lemma [bool_and_conf]:
-  fixes zs::bool and ys::bool and w::bool and xs::bool
-  shows "((xs \<and> w \<and> ys \<and> \<not> w \<and> zs) = (False))"
-  by auto
+  fixes zs::cvc_ListVar and ys::cvc_ListVar and w::bool and xs::cvc_ListVar
+  shows "((cvc_list_left (\<and>) xs
+ (w \<and>
+  cvc_list_left (\<and>) ys (cvc_list_right (\<and>) (\<not> w) zs))) = (False))"
+  sorry
 
 named_theorems bool_ite_not_cond \<open>automatically_generated\<close>
 
@@ -42,58 +58,64 @@ lemma [bool_ite_true_cond]:
 named_theorems bool_and_dup \<open>automatically_generated\<close>
 
 lemma [bool_and_dup]:
-  fixes zs::bool and ys::bool and b::bool and xs::bool
-  shows "((xs \<and> b \<and> ys \<and> b \<and> zs) = (xs \<and> b \<and> ys \<and> zs))"
-  by auto
+  fixes zs::cvc_ListVar and ys::cvc_ListVar and b::bool and xs::cvc_ListVar
+  shows "((cvc_list_left (\<and>) xs
+ (b \<and> cvc_list_left (\<and>) ys (cvc_list_right (\<and>) b zs))) = (cvc_list_left (\<and>) xs (b \<and> cvc_list_both (\<and>) ys zs)))"
+  sorry
 
 named_theorems bool_and_flatten \<open>automatically_generated\<close>
 
 lemma [bool_and_flatten]:
-  fixes zs::bool and ys::bool and b::bool and xs::bool
-  shows "((xs \<and> (b \<and> ys) \<and> zs) = (xs \<and> zs \<and> b \<and> ys))"
-  by auto
+  fixes zs::cvc_ListVar and ys::cvc_ListVar and b::bool and xs::cvc_ListVar
+  shows "((cvc_list_left (\<and>) xs
+ (cvc_list_right (\<and>) (cvc_list_right (\<and>) b ys) zs)) = (cvc_list_left (\<and>) xs
+ (cvc_list_left (\<and>) zs (cvc_list_right (\<and>) b ys))))"
+  sorry
 
 named_theorems bool_and_false \<open>automatically_generated\<close>
 
 lemma [bool_and_false]:
-  fixes ys::bool and xs::bool
-  shows "((xs \<and> False \<and> ys) = (False))"
-  by auto
+  fixes ys::cvc_ListVar and xs::cvc_ListVar
+  shows "((cvc_list_left (\<and>) xs (cvc_list_right (\<and>) False ys)) = (False))"
+  sorry
 
 named_theorems bool_and_true \<open>automatically_generated\<close>
 
 lemma [bool_and_true]:
-  fixes ys::bool and xs::bool
-  shows "((xs \<and> True \<and> ys) = (xs \<and> ys))"
-  by auto
+  fixes ys::cvc_ListVar and xs::cvc_ListVar
+  shows "((cvc_list_left (\<and>) xs (cvc_list_right (\<and>) True ys)) = (cvc_list_both (\<and>) xs ys))"
+  sorry
 
 named_theorems bool_or_dup \<open>automatically_generated\<close>
 
 lemma [bool_or_dup]:
-  fixes zs::bool and ys::bool and b::bool and xs::bool
-  shows "((xs \<or> b \<or> ys \<or> b \<or> zs) = (xs \<or> b \<or> ys \<or> zs))"
-  by auto
+  fixes zs::cvc_ListVar and ys::cvc_ListVar and b::bool and xs::cvc_ListVar
+  shows "((cvc_list_left (\<or>) xs
+ (b \<or> cvc_list_left (\<or>) ys (cvc_list_right (\<or>) b zs))) = (cvc_list_left (\<or>) xs (b \<or> cvc_list_both (\<or>) ys zs)))"
+  sorry
 
 named_theorems bool_or_flatten \<open>automatically_generated\<close>
 
 lemma [bool_or_flatten]:
-  fixes zs::bool and ys::bool and b::bool and xs::bool
-  shows "((xs \<or> (b \<or> ys) \<or> zs) = (xs \<or> zs \<or> b \<or> ys))"
-  by auto
+  fixes zs::cvc_ListVar and ys::cvc_ListVar and b::bool and xs::cvc_ListVar
+  shows "((cvc_list_left (\<or>) xs
+ (cvc_list_right (\<or>) (cvc_list_right (\<or>) b ys) zs)) = (cvc_list_left (\<or>) xs
+ (cvc_list_left (\<or>) zs (cvc_list_right (\<or>) b ys))))"
+  sorry
 
 named_theorems bool_or_false \<open>automatically_generated\<close>
 
 lemma [bool_or_false]:
-  fixes ys::bool and xs::bool
-  shows "((xs \<or> False \<or> ys) = (xs \<or> ys))"
-  by auto
+  fixes ys::cvc_ListVar and xs::cvc_ListVar
+  shows "((cvc_list_left (\<or>) xs (cvc_list_right (\<or>) False ys)) = (cvc_list_both (\<or>) xs ys))"
+  sorry
 
 named_theorems bool_or_true \<open>automatically_generated\<close>
 
 lemma [bool_or_true]:
-  fixes ys::bool and xs::bool
-  shows "((xs \<or> True \<or> ys) = (True))"
-  by auto
+  fixes ys::cvc_ListVar and xs::cvc_ListVar
+  shows "((cvc_list_left (\<or>) xs (cvc_list_right (\<or>) True ys)) = (True))"
+  sorry
 
 named_theorems bool_impl_true2 \<open>automatically_generated\<close>
 
