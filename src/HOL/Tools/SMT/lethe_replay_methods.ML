@@ -31,7 +31,7 @@ sig
      Eq_Congruent | Eq_Reflexive | Eq_Transitive | Eq_Congruent_Pred | Trans |  Refl |  Cong |
      (*Arithmetics:*)
      LA_Disequality | LA_Generic | LA_Tautology |  LIA_Generic | LA_Totality | LA_RW_Eq |
-     NLA_Generic |
+     NLA_Generic | Arith_Poly_Norm |
      (*Quantifiers:*)
      Forall_Inst | Qnt_Rm_Unused | Qnt_Join | Onepoint | Bind | Skolem_Forall | Skolem_Ex |
      (*Resolution:*)
@@ -114,6 +114,7 @@ sig
   val la_generic: lethe_tac_args
   val la_rw_eq: lethe_tac
   val lia_generic: lethe_tac
+  val arith_poly_norm: lethe_tac
   val refl: lethe_tac
   val normalized_input: lethe_tac
   val not_and_rule: lethe_tac
@@ -138,7 +139,7 @@ sig
   val qnt_rm_unused: lethe_tac
   val onepoint: lethe_tac
   val qnt_simplify: lethe_tac
-  val all_simplify: lethe_tac
+  val all_simplify: lethe_tac_args
   val unit_res: lethe_tac
   val skolem_ex: lethe_tac
   val skolem_forall: lethe_tac
@@ -223,7 +224,7 @@ datatype verit_rule =
    Eq_Congruent | Eq_Reflexive | Eq_Transitive | Eq_Congruent_Pred | Trans |  Refl |  Cong |
    (*Arithmetics:*)
    LA_Disequality | LA_Generic | LA_Tautology |  LIA_Generic | LA_Totality | LA_RW_Eq |
-   NLA_Generic |
+   NLA_Generic | Arith_Poly_Norm |
    (*Quantifiers:*)
    Forall_Inst | Qnt_Rm_Unused | Qnt_Join | Onepoint | Bind | Skolem_Forall | Skolem_Ex |
    (*Resolution:*)
@@ -305,6 +306,7 @@ fun string_of_verit_rule Bind = "Bind"
   | string_of_verit_rule LA_RW_Eq = "la_rw_eq"
   | string_of_verit_rule LA_Totality = "LA_Totality"
   | string_of_verit_rule NLA_Generic = "nla_generic"
+  | string_of_verit_rule Arith_Poly_Norm = "arith_poly_norm"
   | string_of_verit_rule Eq_Transitive = "eq_transitive"
   | string_of_verit_rule Qnt_Rm_Unused = "qnt_remove_unused"
   | string_of_verit_rule Onepoint = "onepoint"
@@ -1248,15 +1250,75 @@ fun prod_simplify ctxt _ t =
     THEN' TRY' (K (Clasimp.auto_tac ctxt))) (*TODO: TEMP until cvc5 produces fine grained simplification steps *)
 end
 
-fun all_simplify ctxt _ t =
-  SMT_Replay_Methods.prove ctxt t (fn _ =>
+local 
+
+fun try_simp ctxt t = 
+  SMT_Replay_Methods.prove ctxt t (fn a =>
      TRY'(K (HEADGOAL (simplify_tac ctxt ((Named_Theorems.get ctxt @{named_theorems all_simplify_temp})))))
-     THEN' K (print_tac ctxt ("all_simplify reconstruction debug 2 "))
      THEN' TRY'(K (HEADGOAL (simplify_tac ctxt @{thms arith_simps verit_minus_simplify})))
-     THEN' K (print_tac ctxt ("all_simplify reconstruction debug 3 "))
      THEN' TRY'(K (HEADGOAL (simplify_tac ctxt ((Named_Theorems.get ctxt @{named_theorems arith_simp_cvc5})))))
      THEN' TRY' (K (Clasimp.auto_tac ctxt))
-) (*TODO: TEMP until cvc5 produces fine grained simplification steps *)
+  )
+
+
+fun dsl_tac_initialize rewrite_name args ctxt t =
+let
+ fun rewrite_lemma rewrite_name =
+        nth (Named_Theorems.get ctxt ("Boolean_Rewrites."^rewrite_name)) 0
+
+ fun rewrite_lemma_inst rewrite_name [t]  =
+    (Drule.infer_instantiate' ctxt (map (SOME o Thm.cterm_of ctxt) [t]) (rewrite_lemma rewrite_name)) |
+ rewrite_lemma_inst rewrite_name (t :: ts) =
+     Drule.infer_instantiate' ctxt (map (SOME o Thm.cterm_of ctxt) [t]) (rewrite_lemma_inst rewrite_name ts)
+
+val _ = @{print}("rewrite_lemma_inst",(rewrite_lemma_inst rewrite_name (rev args)))
+
+fun testm i = NO_CONTEXT_TACTIC ctxt
+ ((Method.unfold @{thms cvc_list_right_Nil cvc_list_left_Nil cvc_list_right_Cons cvc_list_left_Cons} ctxt) 
+[(rewrite_lemma_inst rewrite_name (rev args))])
+
+val test2 = Seq.list_of
+((unfold_tac ctxt @{thms cvc_list_right_Nil cvc_list_left_Nil cvc_list_right_Cons cvc_list_left_Cons})
+ (rewrite_lemma_inst rewrite_name (rev args)))
+
+
+val test3 = 
+Seq.list_of ((HEADGOAL (simplify_tac ctxt @{thms cvc_list_right_Nil cvc_list_left_Nil cvc_list_right_Cons cvc_list_left_Cons}))
+ (rewrite_lemma_inst rewrite_name (rev args)))
+
+
+fun test4 thm = Seq.list_of ((NO_CONTEXT_TACTIC ctxt
+ ((Method.unfold @{thms cvc_list_right_Nil cvc_list_left_Nil cvc_list_right_Cons cvc_list_left_Cons} ctxt) 
+[(rewrite_lemma_inst rewrite_name (rev args))])) thm)
+
+in
+ (@{print} ("rewrite_name with initialization given", rewrite_name);
+   SMT_Replay_Methods.prove ctxt t (fn a =>
+       K (print_tac ctxt ("all-simplify at the beginning "))
+       THEN' (testm ORELSE' Method.insert_tac ctxt [(rewrite_lemma_inst rewrite_name (rev args))])
+       (*THEN' (Method.insert_tac ctxt test2)*)
+       (*THEN' K (HEADGOAL (EqSubst.eqsubst_tac ctxt [1] test3))*)
+      (*THEN' K (HEADGOAL (EqSubst.eqsubst_tac ctxt [1] test4))*)
+(*testm*)
+      THEN' K (print_tac ctxt ("all-simplify after adding initialized lemma"))
+      (*THEN' TRY' (Method.assm_tac ctxt)*)
+      THEN' TRY' (simplify_tac ctxt [@{lemma \<open>A = B ==> A = B\<close> by blast}])
+      THEN' TRY' (resolve_tac ctxt [@{thm refl}])
+
+(*((d::bool) \<and> ((b::bool) \<and> (c::bool)) \<and> (a::bool)) = (d \<and> (b \<and> c) \<and> a)*)
+    (*THEN' TRY' (K (Clasimp.auto_tac ctxt)*)
+))
+end
+
+fun get_tac [Free (rewrite_name, _)] ctxt t =
+   if rewrite_name = "evaluate" then (@{print} "Found evaluate, try to simplify"; try_simp ctxt t)
+    else dsl_tac_initialize rewrite_name [] ctxt t |
+ get_tac (Free (rewrite_name, _)::initializations) ctxt t = dsl_tac_initialize rewrite_name initializations ctxt t |
+ get_tac _ ctxt t = (@{print} "No dsl rule found, try to simplify"; try_simp ctxt t)
+
+in 
+  fun all_simplify ctxt _ args t = (@{print} ("args",args); get_tac args ctxt t)
+end
 
 (* Arithmetics *)
 local
@@ -1277,6 +1339,17 @@ fun la_disequality ctxt _ t =
   SMT_Replay_Methods.match_instantiate ctxt t @{thm verit_la_disequality}
 
 end
+
+
+fun arith_poly_norm ctxt _ t =
+  SMT_Replay_Methods.prove ctxt t (fn _ =>
+     K (Clasimp.auto_tac ctxt)
+     THEN' K (print_tac ctxt ("arith_poly_norm 1"))
+     THEN' TRY'(K (HEADGOAL (simplify_tac ctxt ((Named_Theorems.get ctxt @{named_theorems arith_poly_norm})))))
+     THEN' K (print_tac ctxt ("arith_poly_norm 2"))
+     THEN' TRY' (K (Clasimp.auto_tac ctxt))
+)
+
 
 
 (* Symm and Not_Symm*)
