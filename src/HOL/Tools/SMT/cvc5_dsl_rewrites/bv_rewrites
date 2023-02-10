@@ -1,0 +1,1 @@
+(define-rule TestRule ((x ?BitVec) (y ?BitVec)) (= x y) (= y x))
