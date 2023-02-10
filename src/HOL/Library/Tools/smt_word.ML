@@ -7,6 +7,9 @@ SMT setup for words.
 signature SMT_WORD =
 sig
   val add_word_shift': term * string -> Context.generic -> Context.generic
+
+   val bv_type_parser : SMTLIB.tree * typ list -> typ option
+   val bv_term_parser :  SMTLIB.tree * term list -> term option
 end
 
 structure SMT_Word : SMT_WORD =
@@ -63,12 +66,12 @@ local
   fun if_fixed_args m = if_fixed (forall (can dest_wordT) o snd) m
 
   fun is_conv [(Type (\<^type_name>\<open>Int.int\<close>, [])), a] = can dest_wordT a
-    | is_conv x = (@{print} x; false)
+    | is_conv x = (@{print} ("not conv",x); false)
 
   fun is_word_to_uint m = if_fixed (is_conv o (op ::)) m
 
   fun is_conv [a, (Type (\<^type_name>\<open>Int.int\<close>, []))] = can dest_wordT a
-    | is_conv x = (@{print} x; false)
+    | is_conv x = (@{print} ("not conv",x); false)
 
   fun is_uint_to_word m = if_fixed (is_conv o (op ::)) m
 
@@ -185,9 +188,13 @@ val split_last =
 fun mk_concat (t, u) =
   let
     val T = fastype_of t
+    val _ = @{print}("fastype_of t",fastype_of t)
     val U = fastype_of u
-    val TU = Word_Lib.dest_wordT T + Word_Lib.dest_wordT U
-          |> Word_Lib.mk_wordT
+
+    (*TODO: If one of them is not concrete we need to use LENGTH('a) here. But how to add the extra restriction that LENGTH('c) = LENGTH('a) + LENGTH('b)?*)
+    (*val TU = Word_Lib.dest_wordT T + Word_Lib.dest_wordT U
+          |> Word_Lib.mk_wordT*)
+    val TU = (TVar (("?a", serial ()), []))
   in Const (\<^const_name>\<open>Word.word_cat\<close>, T --> U --> TU) $ t $ u end;
 
 fun mk_extract i j u =
@@ -290,14 +297,21 @@ TODO: zero_extend, extract [use slice to define it], sign_extend, rotate_left
 
 fun bv_type_parser (SMTLIB.S [SMTLIB.Sym "_", SMTLIB.Sym "BitVec", SMTLIB.Num x], []) =
     SOME (Word_Lib.mk_wordT x)
-  | bv_type_parser xs = (@{print} "what"; @{print} xs;NONE)
-
+  | bv_type_parser (SMTLIB.S [SMTLIB.Sym "_", SMTLIB.Sym "BitVec", SMTLIB.Sym x], []) =
+    SOME (Word_Lib.mk_wordT 8) (*TODO: Delete*)
+  | bv_type_parser (SMTLIB.S [SMTLIB.Sym "?BitVec"], []) = SOME (Word_Lib.mk_wordT 8) (*TODO*)
+  | bv_type_parser (SMTLIB.Sym "?BitVec", []) = SOME (Type (\<^type_name>\<open>word\<close>, [(TVar (("?a", serial ()), []))])) (*TODO *)
+  (*| bv_type_parser (SMTLIB.Sym "?BitVec", []) = SOME (Type (\<^type_name>\<open>word\<close>, [ \<^typ>\<open>'a\<close>])) (*TODO*)*)
+  | bv_type_parser xs = (@{print} ("bv_type_parser", xs);NONE)
+(*("bv_type_parser",
+ (Sym "?BitVec",
+  [])*)
 end
 
 
 (* setup *)
 
-val _ = Theory.setup (Context.theory_map (
+(*val _ = Theory.setup (Context.theory_map (
   SMTLIB_Interface.add_logic (20, smtlib_logic) #>
   setup_builtins))
 
@@ -307,6 +321,6 @@ val _ = Theory.setup (Context.theory_map (
 
 
 val _ = Theory.setup (Context.theory_map (
-  SMTLIB_Proof.add_type_parser bv_type_parser))
+  SMTLIB_Proof.add_type_parser bv_type_parser))*)
 
 end;
