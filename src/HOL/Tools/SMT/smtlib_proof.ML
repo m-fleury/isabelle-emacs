@@ -114,7 +114,10 @@ fun lookup_fun ({funs, ...}: ('a, 'b) context) = Symtab.lookup funs
 
 fun core_type_parser (SMTLIB.Sym "Bool", []) = SOME \<^typ>\<open>HOL.bool\<close>
   | core_type_parser (SMTLIB.Sym "Int", []) = SOME \<^typ>\<open>Int.int\<close>
-  | core_type_parser xs = ((*@{print} "in core_type_parser"; @{print} xs;@{print} "end core_type_parser"; *) NONE)
+  | core_type_parser (SMTLIB.Sym "cvc_ListVar", [t1]) = SOME (Type ("Dsl_Nary_Ops.cvc_ListVar",[t1]))
+  | core_type_parser xs = if (SMT_String.string_type_parser xs) = NONE 
+                          then SMT_Word.bv_type_parser xs
+                          else SMT_String.string_type_parser xs (*TEMP: They are not called otherwise, even though they are registered...*)
 
 fun mk_unary n t =
   let val T = fastype_of t
@@ -156,7 +159,28 @@ fun core_term_parser (SMTLIB.Sym "true", _) = SOME \<^Const>\<open>True\<close>
   (*| core_term_parser (SMTLIB.Sym "xor",[t1,t2]) = SOME (HOLogic.mk_not (HOLogic.mk_eq (t1, t2)))*)
   | core_term_parser (SMTLIB.Sym "=>", [t1, t2]) = SOME (HOLogic.mk_imp (t1, t2))
   | core_term_parser (SMTLIB.Sym "implies", [t1, t2]) = SOME (HOLogic.mk_imp (t1, t2))
-  | core_term_parser (SMTLIB.Sym "=", [t1, t2]) = SOME (HOLogic.mk_eq (t1, t2))
+  | core_term_parser (SMTLIB.Sym "=", [t1, t2]) =
+      let
+      (*TODO: This is not used! Why can SMT_real introduce of_int here but not for multiplication?*)
+        val T1 = fastype_of t1
+        val T2 = fastype_of t2
+        val _ = if T1 = T2 then () else
+        let
+          val _ = @{print} "Detected that it is an equality"
+          val _ = @{print} ("t1", t1)
+          val _ = @{print} ("Type of t1", T1)
+          val _ = @{print} ("t2", t2)
+          val _ = @{print} ("Type of t2", T2)
+          in () end
+
+        val (t1',t2',T3) = if T1 = \<^typ>\<open>Int.int\<close> andalso T2 = \<^typ>\<open>Real.real\<close>
+                           then (Const ( \<^const_name>\<open>of_int\<close>, T1 --> T2)  $ t1,t2, T2)
+                           else (if T1 = \<^typ>\<open>Real.real\<close> andalso T2 = \<^typ>\<open>Int.int\<close>
+                                then (t1, Const ( \<^const_name>\<open>of_int\<close>, T2 --> T1)  $ t2,T1)
+                                else (t1,t2,T1))
+     in
+       SOME ( Const (\<^const_name>\<open>HOL.eq\<close>, T3 --> T3 --> \<^typ>\<open>HOL.bool\<close>) $ t1' $ t2')
+     end
   | core_term_parser (SMTLIB.Sym "~", [t1, t2]) = SOME (HOLogic.mk_eq (t1, t2))
   | core_term_parser (SMTLIB.Sym "ite", [t1, t2, t3]) =
       let
@@ -170,8 +194,23 @@ fun core_term_parser (SMTLIB.Sym "true", _) = SOME \<^Const>\<open>True\<close>
       SOME (mk_lassoc' \<^const_name>\<open>plus_class.plus\<close> t ts)
   | core_term_parser (SMTLIB.Sym "-", t :: ts) =
       SOME (mk_lassoc' \<^const_name>\<open>minus_class.minus\<close> t ts)
+  | core_term_parser (SMTLIB.Sym "*", [t1,t2]) =
+    (*TODO: Is there a better way to fix subtyping?*)
+      let
+         val T1 = fastype_of t1
+         val T2 = fastype_of t2
+         val (t1',t2',T3) = if T1 = \<^typ>\<open>Int.int\<close> andalso T2 = \<^typ>\<open>Real.real\<close>
+                            then (Const ( \<^const_name>\<open>of_int\<close>, T1 --> T2)  $ t1,t2, T2)
+                            else (if T1 = \<^typ>\<open>Real.real\<close> andalso T2 = \<^typ>\<open>Int.int\<close>
+                                 then (t1, Const ( \<^const_name>\<open>of_int\<close>, T2 --> T1)  $ t2,T1)
+                                 else (t1,t2,T1))
+      in
+      SOME ( Const (\<^const_name>\<open>Groups.times\<close>, [T3, T3] ---> T3) $ t1' $ t2')
+
+      (*SOME ( Const (\<^const_name>\<open>Groups.times\<close>, [T1, T1] ---> T1) $ t1 $ t2)*)
+      end
   | core_term_parser (SMTLIB.Sym "*", t :: ts) =
-      SOME (mk_lassoc' \<^const_name>\<open>times_class.times\<close> t ts)
+      SOME (mk_lassoc' \<^const_name>\<open>Groups.times\<close> t ts)
   | core_term_parser (SMTLIB.Sym "div", [t1, t2]) = SOME (mk_binary \<^const_name>\<open>z3div\<close> t1 t2)
   | core_term_parser (SMTLIB.Sym "mod", [t1, t2]) = SOME (mk_binary \<^const_name>\<open>z3mod\<close> t1 t2)
   | core_term_parser (SMTLIB.Sym "<", [t1, t2]) = SOME (mk_less t1 t2)
@@ -179,8 +218,16 @@ fun core_term_parser (SMTLIB.Sym "true", _) = SOME \<^Const>\<open>True\<close>
   | core_term_parser (SMTLIB.Sym ">", [t1, t2]) = SOME (mk_less t2 t1)
   | core_term_parser (SMTLIB.Sym "<=", [t1, t2]) = SOME (mk_less_eq t1 t2)
   | core_term_parser (SMTLIB.Sym ">=", [t1, t2]) = SOME (mk_less_eq t2 t1)
-  | core_term_parser xs = NONE
-
+  | core_term_parser (SMTLIB.Sym "cvc5_nary_op", ts) =
+(*Plan: If there is some content in ts try to figure out what type it has. If it has no dummy type
+use that. Otherwise use ?a from the beginning?*)
+    SOME(Const( \<^const_name>\<open>ListVar\<close> , \<^typ>\<open>HOL.bool list \<Rightarrow>  HOL.bool cvc_ListVar \<close>)
+      (*$ (HOLogic.mk_list (TVar (("?a", serial ()), [])) ts))*)
+      $ (HOLogic.mk_list \<^typ>\<open>HOL.bool\<close> ts))
+  | core_term_parser (SMTLIB.Sym "emptyString", []) = SOME (Free ("''''", \<^typ>\<open>String.string\<close>))
+ | core_term_parser xs = if (SMT_String.string_term_parser xs) = NONE 
+                          then SMT_Word.bv_term_parser xs
+                          else SMT_String.string_term_parser xs
 
 (* custom type and term parsers *)
 
@@ -290,10 +337,10 @@ end
   | SMTLIB.S [SMTLIB.Sym "let", SMTLIB.S bindings, body] =>
       with_bindings (map dest_binding bindings) (term_of body) cx
   | SMTLIB.S (SMTLIB.Sym "!" :: t :: _) => term_of t cx
-  | SMTLIB.S (f :: args) =>
+  | SMTLIB.S (f :: args) => ((*@{print}("term_of",f);*)
       cx
       |> fold_map term_of args
-      |-> parse_term f
+      |-> parse_term f)
   | SMTLIB.Sym name =>
       (case lookup_binding cx name of
         Tree u =>
