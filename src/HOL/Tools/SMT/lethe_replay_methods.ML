@@ -1295,7 +1295,8 @@ in
  (@{print} ("rewrite_name with initialization given", rewrite_name);
    SMT_Replay_Methods.prove ctxt t (fn a =>
        K (print_tac ctxt ("all-simplify at the beginning "))
-       THEN' (testm ORELSE' Method.insert_tac ctxt [(rewrite_lemma_inst rewrite_name (rev args))])
+       THEN'  Method.insert_tac ctxt
+[Simplifier.simplify ((put_simpset HOL_basic_ss (empty_simpset ctxt)) addsimps @{thms cvc_list_right_Nil cvc_list_left_Nil cvc_list_right_Cons cvc_list_left_Cons}) (rewrite_lemma_inst rewrite_name (rev args))]
        (*THEN' (Method.insert_tac ctxt test2)*)
        (*THEN' K (HEADGOAL (EqSubst.eqsubst_tac ctxt [1] test3))*)
       (*THEN' K (HEADGOAL (EqSubst.eqsubst_tac ctxt [1] test4))*)
