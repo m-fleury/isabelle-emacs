@@ -93,7 +93,6 @@ fun replay_theorem_step rewrite_rules ll_defs assumed inputs proof_prems
   (step as Lethe_Proof.Lethe_Replay_Node {id, rule, prems, bounds, args, insts,
      subproof = (fixes, assms, input, subproof), concl, ...}) state =
   let
-    val _ = @{print} ("id=", id)
     val (proofs, stats, ctxt, concl_tranformation, global_transformation) = state
     val (_, ctxt) = Variable.variant_fixes (map fst bounds) ctxt
       |> (fn (names, ctxt) => (names,
@@ -112,7 +111,6 @@ fun replay_theorem_step rewrite_rules ll_defs assumed inputs proof_prems
         #> HOLogic.mk_Trueprop
       end
     val assms = map (subst_only_free global_transformation o Term.subst_free (export_vars) o post) assms
-    val _ = @{print} " I might be here?"
     val input = map (subst_only_free global_transformation o Term.subst_free (export_vars) o post) input
     val (all_proof_prems', sub_ctxt2) = Assumption.add_assumes (map (Thm.cterm_of sub_ctxt) (assms @ input))
       sub_ctxt
@@ -133,20 +131,6 @@ fun replay_theorem_step rewrite_rules ll_defs assumed inputs proof_prems
 
     (*for sko_ex and sko_forall, assumptions are in proofs',  but the definition of the skolem
        function is in proofs *)
-
-
-(*Prems is still the same but its extension to nthms is empty Already not in temp*)
-
-    val _ = @{print} ("prems", prems)
-    val temp1 = (null subproof)
-(*Both of them evaluate the if condition to true, a0 (and a1) are not present in the proofs of the buggy one*)
-    val _ = @{print} temp1
-    val _ = @{print} proofs
-
-    val temp =   prems
-      |> map_filter (Symtab.lookup (if (null subproof) then proofs else proofs'))
-    val _ = @{print} temp
-
     val nthms = 
       prems
       |> map (apsnd export_thm) o map_filter (Symtab.lookup (if (null subproof) then proofs else proofs'))
@@ -162,7 +146,6 @@ fun replay_theorem_step rewrite_rules ll_defs assumed inputs proof_prems
        if Lethe_Replay_Methods.requires_local_input prems rule then input @ inputs else []
 
 
-    val _ = @{print} nthms
     val replay = (Timing.timing (replay_thm CVC4_Replay_Methods.method_for rewrite_rules ll_defs
        ctxt assumed [] (proof_prems @ local_inputs) (nthms @ nthms') concl_tranformation
        global_transformation args insts))
@@ -260,14 +243,8 @@ fun replay_step rewrite_rules ll_defs assumed inputs proof_prems
   (step as Lethe_Proof.Lethe_Replay_Node {rule, ...}) state =
   if rule = Lethe_Proof.lethe_def
   then replay_definition_step rewrite_rules ll_defs assumed inputs proof_prems step state
-  else 
-let
-    val (proofs, stats, ctxt, concl_tranformation, global_transformation) = state
-    val _ = @{print} "proofs"
-    val _ = @{print} proofs
-in
-replay_theorem_step rewrite_rules ll_defs assumed inputs proof_prems step state
-end
+  else replay_theorem_step rewrite_rules ll_defs assumed inputs proof_prems step state
+
 
 fun replay outer_ctxt
     ({context = ctxt, typs, terms, rewrite_rules, assms, ll_defs, ...} : SMT_Translate.replay_data)
@@ -300,14 +277,7 @@ fun replay outer_ctxt
         case List.find matching assms of
           NONE => []
         | SOME ((k, role), th') =>
-          let
-            val temp = cvc_assms_name (string_of_int (id_of_index i)) k
-            val _ = @{print} temp
-            val temp2 = Thm.prop_of th'
-              |> Raw_Simplifier.rewrite_term (Proof_Context.theory_of
-                   (empty_simpset ctxt addsimps rewrite_rules)) rewrite_rules []
-            val _ = @{print} temp2
-          in 
+          
             Lethe_Proof.Lethe_Replay_Node {
               id = cvc_assms_name (SMTLIB_Interface.assert_name_of_role_and_index role (id_of_index i)) k,
               rule = Lethe_Proof.input_rule,
@@ -322,7 +292,6 @@ fun replay outer_ctxt
               declarations = [],
               subproof = ([], [], [], [])}
             |> single
-          end
       end
  
     val used_assert_ids = fold add_used_asserts_in_step actual_steps []
@@ -361,9 +330,6 @@ fun replay outer_ctxt
 
     val actual_steps = actual_steps
       |> add_correct_assms_deps ctxt rewrite_rules ll_defs assms
-(*Premise still has a0 but also __repeated_assms_a2_a0 instead of __repeated_assms_a0_a0*)
-val _ = @{print} "Actually steps:" 
-val _ = @{print} actual_steps
 
     val ctxt4 =
       ctxt3
@@ -374,30 +340,23 @@ val _ = @{print} actual_steps
       | steps_with_depth i (p :: ps) = (i +  Lethe_Proof.number_of_steps [p], p) ::
           steps_with_depth (i +  Lethe_Proof.number_of_steps [p]) ps
     val actual_steps = steps_with_depth 0 actual_steps
-val _ = @{print} "debug1"
     val start = Timing.start ()
     val print_runtime_statistics = SMT_Replay.intermediate_statistics ctxt4 start len
     fun blockwise f (i, x) (next, y) =
       (if i > next then print_runtime_statistics i else ();
        (if i > next then i + 10 else next, f x y))
-val _ = @{print} "debug2"
 
     val global_transformation : term Termtab.table = Termtab.empty
-val _ = @{print} "debug2a0"
 
     val (_, (proofs, stats, ctxt5, _, _)) =
       fold (blockwise (replay_step rewrite_rules ll_defs assumed [] [])) actual_steps
         (1, (assumed, stats, ctxt4, [], global_transformation))
-val _ = @{print} "debug2a"
 
     val total = Time.toMilliseconds (#elapsed (Timing.result start))
-val _ = @{print} "debug2b"
 
     val (_, (_, Lethe_Proof.Lethe_Replay_Node {id, ...})) = split_last actual_steps
-val _ = @{print} "debug2c"
 
     val _ = print_runtime_statistics len
-val _ = @{print} "debug3"
 
     val thm_with_defs = Symtab.lookup proofs id |> the |> snd
       |> singleton (Proof_Context.export ctxt5 outer_ctxt)
@@ -405,8 +364,6 @@ val _ = @{print} "debug3"
       (Pretty.string_of o SMT_Replay.pretty_statistics "cvc" total) stats
     val _ = SMT_Replay.spying (SMT_Config.spy_verit ctxt) ctxt
       (fn () => SMT_Replay.print_stats (Symtab.dest stats)) "spy_cvc"
-val _ = @{print} "thm_with_defs:" 
-val _ = @{print} thm_with_defs
 
   in
     CVC4_Replay_Methods.discharge ctxt [thm_with_defs] @{term False}
