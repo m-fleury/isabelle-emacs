@@ -322,8 +322,6 @@ fun parse_raw_proof_steps (limit : string option) (ls : SMTLIB.tree list) (cx : 
           in (s :: rp, rl, cx) end
       | (ASSUME, p, l) =>
           let
-            val _ = @{print} p
-
             val (id, t :: []) = p
               |> get_id
             val ((t, cx), _) = SMTLIB_Proof.extract_and_update_name_bindings t cx
@@ -356,6 +354,7 @@ fun proof_ctxt_of_rule "bind" t = t
 
 fun args_of_rule "bind" t = t
   | args_of_rule "la_generic" t = t
+  | args_of_rule "all_simplify" t = (@{print}("t args of",t);t)
   | args_of_rule _ _ = []
 
 fun insts_of_forall_inst "forall_inst" t = map (fn SMTLIB.S [_, SMTLIB.Sym x, a] => (x, a)) t
@@ -457,8 +456,7 @@ fun postprocess_proof compress ctxt step cx =
   let
     fun postprocess (Raw_Lethe_Node {id, rule, args, prems, declarations, concl, subproof}) (cx, rew) =
     let
-      (*val _ = @{print} "postprocess step with id: "
-      val _ = @{print} id*)
+      (*val _ = @{print} ("postprocess step with id: ",id)*)
       val args = extract_types_of_args args
       val globally_bound_vars = declared_csts cx rule args
       val cx = fold (update_binding o (fn (s, typ) => (s, Term (Free (s, type_of cx typ)))))
@@ -531,13 +529,21 @@ fun postprocess_proof compress ctxt step cx =
 
       (* postprocess arguments *)
       val rule_args = args_of_rule rule stripped_args
+      (*val _ = @{print} ("rule_args",rule_args)*)
+
       val (termified_args, _) = fold_map term_of rule_args subproof_cx
+      (*val _ = @{print} ("termified_args",termified_args)*)
       val normalized_args = map unsk_and_rewrite termified_args
+      (*val _ = @{print} ("normalized_argss",normalized_args)*)
+
       val rule_args = map subproof_rewriter normalized_args
+      (*val _ = @{print} ("rule_args",rule_args)*)
 
       val raw_insts = insts_of_forall_inst rule stripped_args
       fun termify_term (x, t) cx = let val (t, cx) = term_of t cx in ((x, t), cx) end
       val (termified_args, _) = fold_map termify_term raw_insts subproof_cx
+      (*val _ = @{print} ("termified_args",termified_args)*)
+
       val insts = Symtab.empty
         |> fold (fn (x, t) => fn insts => Symtab.update_new (x, t) insts) termified_args
         |> Symtab.map (K unsk_and_rewrite)
@@ -761,30 +767,17 @@ local
         |> fold_map process raw_steps
         |> (fn (steps, (cx, _)) => (flat steps, cx))
         |> compress? apfst combine_proof_steps
-(*Here the premise is still in*)
-     val _ = @{print} "At least I am here"
-     val _ = @{print} step
-
     in step end
 in
 
 fun parse typs funs lines ctxt =
   let
-(*This function is not called?!*)
-    val _ = @{print} "Really need to know if this is executed"
     val (u, env) = import_proof_and_post_process typs funs lines ctxt
     val t = u
        |> remove_skolem_definitions_proof
        |> flat o (map linearize_proof)
     fun node_to_step (Lethe_Node {id, rule, prems, concl, ...}) =
-let
-(*This is apparently not called*)
-val _ = @{print} "In parse, does the assumption have premises here:"
-val _ = @{print} id
-val _ = @{print} prems
-in 
       mk_step id rule prems [] concl []
-end
   in
     (map node_to_step t, ctxt_of env)
   end
@@ -792,7 +785,6 @@ end
 fun parse_replay typs funs lines ctxt =
   let
     val (u, env) = import_proof_and_post_process typs funs lines ctxt
-val _ = @{print} "But this has to" (*and it is printed*)
   in
     (u, ctxt_of env)
   end
