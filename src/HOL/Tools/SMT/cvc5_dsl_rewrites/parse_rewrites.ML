@@ -10,7 +10,7 @@ sig
     Precondition of SMTLIB.tree |
     Match of SMTLIB.tree |
     Target of SMTLIB.tree |
-    Context_Expr of SMTLIB.tree option |
+    Context_Expr of SMTLIB.tree option | (*Not fully supported yet*)
     Rewrite_Rule of rewrite_tree list
 
   val parse_rewrites: string list -> rewrite_tree list
@@ -65,13 +65,15 @@ fun read_rewrite_name l (c :: cs) None ts =
        else read_rewrite_name l cs (String (s ^ c)) ts | (*Word continues*)
     read_rewrite_name l _ _ _ = raise PARSE (l, "rule name could not be parsed in")
 
-(*Transform statement to SMTLIB tree*)
+(*
+Depricated:
 fun get_smtlib_tree str : SMTLIB.tree list list
  = snd (SMTLIB.read_line 0 (implode str) SMTLIB.None [[]])
+*)
 
 local
-    fun parse_par (":"::cs) s _ l = parse_par cs s true l
-   | parse_par (")"::cs) s _ _ = (cs,"("^s^")")
+    fun parse_par (":"::cs) s _ l = parse_par cs (s^" ListVar") true l
+   | parse_par (")"::cs) s x _ = (cs, SMTLIB.parse ["("^s^")"] ,x)
    | parse_par (c::cs) s false l = parse_par cs (s^c) false l
    | parse_par (_::cs) s true l = parse_par cs s true l
    | parse_par _ _ _ l = raise PARSE (l, "parameter is not well-formed.")
@@ -79,34 +81,38 @@ in
   fun parse_pars ("("::cs) None l = parse_pars cs (TreeList []) l (*Very first opening parenthesis*) 
  | parse_pars ("("::cs) (TreeList xs) l =
     let
-      val (new_cs, par) = parse_par cs "" false l
+      val (new_cs, par,is_list) = parse_par cs "" false l
       (*val _ = @{print} ("Parsed par: ", par)
       val _ = @{print} ("New rest string: ", implode new_cs)*)
-    in 
-      case (hd (hd (get_smtlib_tree [par]))) of (SMTLIB.S [var,typ])
+    in parse_pars new_cs (TreeList (par::xs)) l
+      (*case SMTLIB.parse [par] of (SMTLIB.S [var,typ])
           => let
-              val par_tree = (SMTLIB.S [var,SMTLIB.S [SMTLIB.Sym ("cvc_ListVar"),typ]])
+              val par_type = if is_list then SMTLIB.S [SMTLIB.Sym ("cvc_ListVar"),typ] else typ
+              val par_tree = (SMTLIB.S [var,par_type])
              in 
               parse_pars new_cs (TreeList (par_tree::xs)) l
              end
-      | _ => raise PARSE (l, "parameter is not in SMTLIB format")
+      | _ => raise PARSE (l, "parameter is not in SMTLIB format")*)
     end
- | parse_pars (") "::cs) None _ = (cs, Par []) (*Very last closing parenthesis: Par List was empty*)
- | parse_pars (")"::cs) (TreeList xs) _ = (cs, Par xs) (*Very last closing parenthesis*)
+ | parse_pars (") "::cs) None _ = (cs, []) (*Very last closing parenthesis: Par List was empty*)
+ | parse_pars (")"::cs) (TreeList xs) _ = (cs, xs) (*Very last closing parenthesis*)
  | parse_pars (" "::cs) (TreeList xs) l = parse_pars cs (TreeList xs) l (*Skip spaces between pars*)
  | parse_pars _ _ l = raise PARSE (l, "parameter list is not well-formed.")
 end
 
 local 
-  fun read_rule_smtlib_tree _ (target :: [match]) = [Match match, Target target] |
+  fun read_rule_smtlib_tree _ (target :: [match])
+         = [Match match, Target target] |
       read_rule_smtlib_tree l _ = raise PARSE (l, "not a valid instance of a define-rule")
+
   fun read_cond_rule_smtlib_tree _ (target :: match :: [precondition])
-          = [Precondition precondition, Match match, Target target] |
+         = [Precondition precondition, Match match, Target target] |
       read_cond_rule_smtlib_tree l _ = raise PARSE (l, "not a valid instance of a define-cond-rule")
+
   fun read_star_rule_smtlib_tree _ (target :: [match])
-          = [Context_Expr NONE, Match match, Target target] |
+        = [Context_Expr NONE, Match match, Target target] |
       read_star_rule_smtlib_tree _ (target :: match :: [context_expr])
-          = [Context_Expr (SOME context_expr), Match match, Target target] |
+        = [Context_Expr (SOME context_expr), Match match, Target target] |
       read_star_rule_smtlib_tree l _ = raise PARSE (l, "not a valid instance of a define-star-rule")
 
   fun read_name l cs = read_rewrite_name l cs None []
@@ -118,16 +124,43 @@ local
     val (wth_par, parsed_par) = parse_pars wth_name None l
     (*val _ = @{print}("parameter list: ", parsed_par)*)
     val wth_last_parenthesis = take (length wth_par - 1) wth_par
-    val _ = @{print} ("rest of string without last parenthesis",implode wth_last_parenthesis)
-    fun replace_quoation_marks [] = [] | 
-        replace_quoation_marks ("\""::"\""::cs) =  "emptyString "  :: replace_quoation_marks cs |
-        replace_quoation_marks (c::cs) = c :: replace_quoation_marks cs
-    val wth_last_parenthesis_quotation_marks = replace_quoation_marks wth_last_parenthesis
-    val _ = @{print} ("wth_last_parenthesis_quotation_marks",implode wth_last_parenthesis_quotation_marks)
 
-    val exprs = f l (hd (get_smtlib_tree wth_last_parenthesis_quotation_marks))
+    (*TODO: Completely rewrite*)
+    (*TODO: Use nested lists instead of counter and then flatten them?*)
+
+    (*A statement is either in between parenthesis or a single token*)
+    (*Empty strings cannot be parsed in by the SMTLIB parser. Find out the reason. For now strings are excluded here*)
+    fun read_token [] token _ = ([],token) |
+        read_token (" "::cs) token _ = (cs,token) |
+        read_token ("\""::cs) token false = read_token cs (token^"str.const(") true |
+        read_token ("\""::cs) token true = read_token cs (token^")") false |
+        read_token (c::cs) token x = read_token cs (token^c) x
+
+    fun split_up [] _ _ _ = [] |
+        split_up (" "::cs) 0 None str_const = split_up cs 0 None str_const | (*Skip blanks in between expressions*)
+        split_up ("("::cs) 0 None str_const = split_up cs 1 (String "(") str_const | (*Expression starts with a parenthesis*)
+        split_up ("("::cs) i (String str) str_const = split_up cs (i+1) (String (str ^ "(")) str_const | (*Expression starts with a parenthesis*)
+        split_up (c::cs) 0 None str_const =
+          let 
+            val (new_cs,token) = read_token (c::cs) "" false
+          in 
+            [token]::split_up new_cs 0 None str_const
+          end | (*Expression is a token wth parenthesis*)
+        split_up (")"::cs) 1 (String str) str_const = [str ^ ")"] :: split_up cs 0 None str_const |
+        split_up (")"::cs) i (String str) str_const = split_up cs (i-1) (String (str^")")) str_const |
+        split_up ("\""::cs) i (String str) false = split_up cs i (String (str^"str.const(")) true |
+        split_up ("\""::cs) i (String str) true = split_up cs i (String (str^")")) false |
+        split_up (c::cs) i (String str) str_const = split_up cs i (String (str^c)) str_const |
+        split_up _ _ _ _ = raise PARSE (l, "rule cannot be parsed in")
+
+(*TODO: string list instead of string list list*)
+    val expr_list = split_up wth_last_parenthesis 0 None false
+    (*Separate components (match, target, condition, context) from each other: *)
+    (*val _ = @{print} ("expr_list", parsed_par::expr_list)*)
+
+   val expr = f l (map SMTLIB.parse expr_list)
   in
-    rule :: name @ [parsed_par] @ exprs
+    rule :: name @ [Par parsed_par] @ expr
   end
 
 in 

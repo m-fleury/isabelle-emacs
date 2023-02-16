@@ -6,7 +6,8 @@
 section \<open>Bindings to Satisfiability Modulo Theories (SMT) solvers based on SMT-LIB 2\<close>
 
 theory SMT
-  imports Divides Numeral_Simprocs "HOL-Library.Word" "HOL.Real" "Tools/SMT/cvc5_dsl_rewrites/Boolean_Rewrites"
+  imports Divides Numeral_Simprocs "HOL-Library.Word" "HOL.Real" "Tools/SMT/cvc5_dsl_rewrites/Rare_Interface"
+"HOL-Library.Sublist"
   keywords "smt_status" "parse_rare_file" "parse_rare" :: diag
 begin
 
@@ -682,6 +683,12 @@ named_theorems rbl_xor_temp \<open>xor_def.\<close>
 named_theorems all_simplify_temp \<open>Theorems to reconstruct bitvector theorems concerning list function, e.g. take.\<close>
 
 subsection \<open>Setup\<close>
+ML \<open>val _ = @{print}("Hello, hello, hello before setup")\<close>
+context
+begin
+qualified definition smt_extract where
+  \<open>smt_extract j i w = slice i (take_bit j w)\<close>
+end
 
 ML_file \<open>Tools/SMT/smt_util.ML\<close>
 ML_file \<open>Tools/SMT/smt_failure.ML\<close>
@@ -692,6 +699,8 @@ ML_file \<open>Tools/SMT/smt_normalize.ML\<close>
 ML_file \<open>Tools/SMT/smt_translate.ML\<close>
 ML_file \<open>Tools/SMT/smtlib.ML\<close>
 ML_file \<open>Tools/SMT/smtlib_interface.ML\<close>
+ML_file \<open>Tools/SMT/SMT_string.ML\<close>
+ML_file \<open>~~/src/HOL/Library/Tools/smt_word.ML\<close> (*TODO Mathias delete*)
 ML_file \<open>Tools/SMT/smtlib_proof.ML\<close>
 ML_file \<open>Tools/SMT/smtlib_isar.ML\<close>
 ML_file \<open>Tools/SMT/z3_proof.ML\<close>
@@ -1042,13 +1051,13 @@ lemmas [smt_arith_simplify] =
 
 subsection \<open>Tool support\<close>
 
-context
+(*context
 begin
 qualified definition smt_extract where
   \<open>smt_extract j i w = slice i (take_bit j w)\<close>
 end
 
-ML_file \<open>~~/src/HOL/Library/Tools/smt_word.ML\<close>
+ML_file \<open>~~/src/HOL/Library/Tools/smt_word.ML\<close>*) (*TODO: Mathias*)
 
 ML \<open>
 local
@@ -1272,7 +1281,7 @@ val _ =
           (*Calculate result*)
           val lines = (Bytes.split_lines (Bytes.read file_path)) ;
           val _ = @{print} lines
-          val ctxt = Proof_Context.get_global thy theory_imports
+          val ctxt = Proof_Context.get_global thy "Dsl_Nary_Ops" (*TODO: theory_imports*)
           val res = foldr1 (op^) (List.concat (WRITE_LEMMA.write_lemmas (PARSE_REWRITE.parse_rewrites lines) theory_name theory_imports ctxt))
           val _ = (Output.writeln res)
 

@@ -116,7 +116,7 @@ fun core_type_parser (SMTLIB.Sym "Bool", []) = SOME \<^typ>\<open>HOL.bool\<clos
   | core_type_parser (SMTLIB.Sym "Int", []) = SOME \<^typ>\<open>Int.int\<close>
   | core_type_parser (SMTLIB.Sym "cvc_ListVar", [t1]) = SOME (Type ("Dsl_Nary_Ops.cvc_ListVar",[t1]))
   | core_type_parser xs = if (SMT_String.string_type_parser xs) = NONE 
-                          then SMT_Word.bv_type_parser xs
+                          then SMT_Word.bv_type_parser xs (*TODO: Mathias*)
                           else SMT_String.string_type_parser xs (*TEMP: They are not called otherwise, even though they are registered...*)
 
 fun mk_unary n t =

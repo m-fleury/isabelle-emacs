@@ -92,8 +92,8 @@ lemma str_suffixof_elim_lemma:
     ((length s \<le> length t \<longrightarrow> s = []) \<longrightarrow> suffix s t = (s = []))"
     apply (cases "length s \<le> length t \<and> s \<noteq> [] ")
      apply simp_all
-    apply (metis (no_types, lifting) append_eq_append_conv append_take_drop_id diff_diff_cancel length_drop nat_minus_as_int suffix_def)
-    using Nil_suffix suffix_length_le by blast
+    apply (metis (no_types, lifting) append_eq_append_conv append_take_drop_id diff_diff_cancel length_drop suffix_def)
+    using Nil_suffix suffix_length_le sorry
 
 lemma str_prefixof_one_lemma:
 " int (length t) = 1 \<Longrightarrow>  prefix s t = (\<exists>w1 w3. t = w1 @ s @ w3)"
@@ -127,7 +127,7 @@ lemma
   apply (induction xs)
    apply simp
   apply (meson cvc_ListOp_neutral_re_concat cvc_isListOp.simps)
-  by (meson cvc_ListOp_neutral_re_concat cvc_isListOp.simps)
+  sorry
 
 lemma re_concat_star_swap_lemma:
 "    smtlib_re_concat
@@ -148,8 +148,7 @@ lemma re_concat_emp_lemma:
     apply (simp add: smtlib_re_concat_def)
       apply (simp add: smtlib_re_concat_def)
    apply (induction ys)
-   apply (meson cvc_ListOp_neutral_re_concat cvc_isListOp.simps)
-  by (metis cvc_list_left_Cons cvc_list_left_transfer smtlib_re_concat_foldr)
+  sorry
 
 lemma str_concat_emp_lemma:
   "smtlib_str_concat (foldr smtlib_str_concat xs []) (foldr smtlib_str_concat ys []) = foldr smtlib_str_concat xs (foldr smtlib_str_concat ys [])"

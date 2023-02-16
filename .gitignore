@@ -1,0 +1,7 @@
+*.ML~
+*.thy~
+src/HOL/Tools/SMT/cvc5_dsl_rewrites/Arith_Rewrites2.thy
+src/HOL/Tools/SMT/cvc5_dsl_rewrites/BV_Rewrites2.thy
+src/HOL/Tools/SMT/cvc5_dsl_rewrites/Boolean_Rewrites2.thy
+src/HOL/Tools/SMT/cvc5_dsl_rewrites/String_Rewrites2.thy
+*~
