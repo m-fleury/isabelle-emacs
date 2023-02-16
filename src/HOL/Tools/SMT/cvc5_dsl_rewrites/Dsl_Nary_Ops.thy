@@ -1,5 +1,5 @@
 theory Dsl_Nary_Ops
-  imports Main
+  imports Main Smtlib_String "HOL-Library.Word"
 begin
 
 datatype 'a cvc_ListVar = ListVar "'a list"
@@ -14,10 +14,58 @@ explicitly stating the neutral element of their operation*)
 named_theorems cvc_ListOp_neutral \<open>Neutral elements for cvc_ListOps\<close>
 lemma cvc_ListOp_neutral_and [cvc_ListOp_neutral]: "cvc_isListOp (ListOp (\<and>) True)" by simp
 lemma cvc_ListOp_neutral_or [cvc_ListOp_neutral]: "cvc_isListOp (ListOp (\<or>) False)" by simp
+lemma cvc_ListOp_neutral_plus [cvc_ListOp_neutral]: "cvc_isListOp (ListOp (+) (0::int))" by simp
+lemma cvc_ListOp_neutral_mult [cvc_ListOp_neutral]: "cvc_isListOp (ListOp (*) (1::int))" by simp
+lemma cvc_ListOp_neutral_append [cvc_ListOp_neutral]: "cvc_isListOp (ListOp (@) [])" by simp
+lemma cvc_ListOp_neutral_re_concat [cvc_ListOp_neutral]: "cvc_isListOp (ListOp (smtlib_re_concat) {''''})" 
+  by (simp add: smtlib_re_concat_def)
+lemma cvc_ListOp_neutral_str_concat [cvc_ListOp_neutral]: "cvc_isListOp (ListOp (smtlib_str_concat) [])"
+  by (simp add: smtlib_str_concat_def)
 
 fun cvc_nary_op_fold :: "('a \<Rightarrow> 'a \<Rightarrow> 'a) \<Rightarrow> 'a list \<Rightarrow> 'a" where
  cvc_nary_op_fold_Nil: "cvc_nary_op_fold op [x] = x" |
  cvc_nary_op_fold_Cons: "cvc_nary_op_fold op (x#xs) = (op x (cvc_nary_op_fold op xs))"
+
+fun cvc_bin_op_fold :: "('a \<Rightarrow> 'a \<Rightarrow> 'a) \<Rightarrow> 'a list \<Rightarrow> 'a \<Rightarrow> 'a" where
+ cvc_bin_op_fold_Nil: "cvc_bin_op_fold op [] y = y" |
+ cvc_bin_op_fold_Cons: "cvc_bin_op_fold op (x#xs) y = (op x (cvc_bin_op_fold op xs y))"
+
+(*op xs a    (op x1 (op ... (op xn a)))*)
+(*and [] a = a *)
+(*and [x] a = and x a*)
+
+(*xs = [x1,xs], ys = [y1], zs = [(and z1 z2)]
+
+  "((cvc_list_left (\<and>) xs
+ (cvc_list_right (\<and>) (cvc_list_right (\<and>) b ys) zs)) = (cvc_list_left (\<and>) xs
+ (cvc_list_left (\<and>) zs (cvc_list_right (\<and>) b ys))))"
+
+xs = [x1, x2], ys = [y1], zs = [(and z1 z2)]
+
+(and x1 (and x2 (and (and b y1) (and z2 z3)))) = (and x1 (and x2 (and (and z1 z2) (and b y1)))
+
+
+
+(and x1 x2 (and b y1) (and z1 z2))
+
+*)
+fun cvc_bin_op where "cvc_bin_op op (ListVar xs) y = cvc_bin_op_fold op xs y"
+fun cvc_bin_op2 where "cvc_bin_op2 op y (ListVar xs) = (if xs = [] then y else op y (cvc_nary_op_fold op xs))"
+fun cvc_bin_op3 where "cvc_bin_op3 op (ListVar xs) (ListVar ys) neutral
+   = (if ys = [] \<and> xs = [] then neutral
+      else if ys = [] then (cvc_nary_op_fold op xs)
+      else cvc_bin_op_fold op xs (cvc_nary_op_fold op ys))"
+
+(* (\<and> b (\<or> xs ys))  = (\<and> b False) *)
+(* (\<or> b (\<or> xs ys))  =  b *)
+definition cvc_list_left where "cvc_list_left op lv y = cvc_bin_op op lv y"
+definition cvc_list_right where "cvc_list_right op y lv = cvc_bin_op2 op y lv"
+definition cvc_list_both where "cvc_list_both op neutral lv1 lv2 = cvc_bin_op3 op lv1 lv2 neutral"
+
+value "((cvc_list_left (\<and>) (ListVar [x1, x2])
+ (cvc_list_right (\<and>) (cvc_list_right (\<and>) b (ListVar [y1])) (ListVar [(z1 \<and> z2)]))) = (cvc_list_left (\<and>) (ListVar [x1, x2])
+ (cvc_list_left (\<and>) (ListVar [(z1 \<and> z2)]) (cvc_list_right (\<and>) b (ListVar [y1])))))"
+
 
 lemma transfer_h1:
   assumes "1 \<le> n" "cvc_isListOp (ListOp op neutral)"
@@ -71,32 +119,18 @@ proof-
     by auto
 qed
 
-lemma transfer1:
+lemma cvc_nary_op_fold_transfer:
   assumes "1 \<le> length xs " "cvc_isListOp (ListOp op neutral)"
   shows "cvc_nary_op_fold op xs = foldr op xs neutral"
   using transfer_h1 assms by metis
 
-
-fun cvc_bin_op_fold :: "('a \<Rightarrow> 'a \<Rightarrow> 'a) \<Rightarrow> 'a list \<Rightarrow> 'a \<Rightarrow> 'a" where
- cvc_bin_op_fold_Nil: "cvc_bin_op_fold op [] y = y" |
- cvc_bin_op_fold_Cons: "cvc_bin_op_fold op (x#xs) y = (op x (cvc_bin_op_fold op xs y))"
-
-lemma transfer2:
+lemma cvc_bin_op_fold_transfer:
   shows "cvc_bin_op_fold op xs y = foldr op xs y"
   apply (induction xs)
   by auto
 
-fun cvc_bin_op where "cvc_bin_op op (ListVar xs) y = cvc_bin_op_fold op xs y"
-fun cvc_bin_op2 where "cvc_bin_op2 op y (ListVar xs) = (if xs = [] then y else op y (cvc_nary_op_fold op xs))"
-fun cvc_bin_op3 where "cvc_bin_op3 op (ListVar xs) (ListVar ys)
-   = (if ys = [] then (cvc_nary_op_fold op xs) else cvc_bin_op op (ListVar xs) (cvc_nary_op_fold op ys))"
-
-definition cvc_list_left where "cvc_list_left op lv y = cvc_bin_op op lv y"
-definition cvc_list_right where "cvc_list_right op y lv = cvc_bin_op2 op y lv"
-definition cvc_list_both where "cvc_list_both op lv1 lv2 = cvc_bin_op3 op lv1 lv2"
-
 lemma cvc_list_left_transfer: "cvc_list_left op (ListVar xs) y = foldr op xs y"
-  by (simp add: cvc_list_left_def transfer2)
+  by (simp add: cvc_list_left_def cvc_bin_op_fold_transfer)
 
 lemma cvc_list_right_transfer: 
   assumes "cvc_isListOp (ListOp op neutral)"
@@ -105,8 +139,84 @@ lemma cvc_list_right_transfer:
    apply simp
   using assms cvc_list_right_def
   apply (metis cvc_bin_op2.simps cvc_isListOp.simps)
-  using assms cvc_list_right_def transfer1
+  using assms cvc_list_right_def cvc_nary_op_fold_transfer
   by (metis One_nat_def cvc_bin_op2.simps le_numeral_extra(4) list.simps(3) list.size(4) trans_le_add2)
+
+named_theorems cvc_list_right_transfer_op \<open>cvc_list_right_transfer instantiated with operator\<close>
+
+lemma [cvc_list_right_transfer_op]: 
+  "cvc_list_right (\<and>) y (ListVar xs) = (\<and>) y (foldr (\<and>) xs True)"
+  by (simp add: cvc_list_right_transfer)
+
+lemma [cvc_list_right_transfer_op]:
+  "cvc_list_right (\<or>) y (ListVar xs) = (\<or>) y (foldr (\<or>) xs False)"
+  by (simp add: cvc_list_right_transfer)
+
+lemma [cvc_list_right_transfer_op]:
+  "cvc_list_right (+) y (ListVar xs) = (+) y (foldr (+) xs (0::int))"
+  by (simp add: cvc_list_right_transfer)
+
+lemma [cvc_list_right_transfer_op]:
+  "cvc_list_right (*) y (ListVar xs) = (*) y (foldr (*) xs (1::int))"
+  by (simp add: cvc_list_right_transfer)
+
+lemma [cvc_list_right_transfer_op]:
+  "cvc_list_right (@) y (ListVar xs) = (@) y (foldr (@) xs [])"
+  by (simp add: cvc_list_right_transfer)
+
+lemma [cvc_list_right_transfer_op]:
+  "cvc_list_right (smtlib_re_concat) y (ListVar xs) = (smtlib_re_concat) y (foldr (smtlib_re_concat) xs {''''})"
+  by (meson cvc_ListOp_neutral_re_concat cvc_list_right_transfer)
+
+lemma [cvc_list_right_transfer_op]:
+  "cvc_list_right (smtlib_str_concat) y (ListVar xs) = (smtlib_str_concat) y (foldr (smtlib_str_concat) xs [])"
+  by (simp add: cvc_list_right_transfer smtlib_str_concat_def)
+
+lemma cvc_list_both_transfer: 
+  assumes "cvc_isListOp (ListOp op neutral)"
+  shows "cvc_list_both op neutral (ListVar ys) (ListVar xs) = foldr op ys (foldr op xs neutral)"
+  using assms
+  apply (cases "xs = [] \<and> ys = []")
+   apply simp
+  unfolding cvc_list_both_def
+  apply simp
+  apply (cases ys)
+  unfolding cvc_list_both_def
+    apply simp
+  apply (metis assms(1) cvc_bin_op2.simps cvc_list_right_def cvc_list_right_transfer)
+  by (metis One_nat_def cvc_bin_op.simps cvc_bin_op3.simps cvc_bin_op_fold_transfer cvc_nary_op_fold_transfer foldr.simps(1) id_apply length_0_conv less_Suc0 linorder_not_less)
+
+named_theorems cvc_list_both_transfer_op \<open>cvc_list_both_transfer instantiated with operator\<close>
+
+
+lemma [cvc_list_both_transfer_op]: 
+  "cvc_list_both (\<and>) True (ListVar ys) (ListVar xs) = foldr (\<and>) ys (foldr (\<and>) xs True)"
+  by (simp add: cvc_list_both_transfer)
+
+lemma [cvc_list_both_transfer_op]:
+  "cvc_list_both (\<or>) False (ListVar ys) (ListVar xs) = foldr (\<or>) ys (foldr (\<or>) xs False)"
+  by (simp add: cvc_list_both_transfer)
+
+lemma [cvc_list_both_transfer_op]:
+  "cvc_list_both (+) (0::int) (ListVar ys) (ListVar xs) = foldr (+) ys (foldr (+) xs 0)"
+  by (simp add: cvc_list_both_transfer)
+
+lemma [cvc_list_both_transfer_op]:
+  "cvc_list_both (*) (1::int) (ListVar ys) (ListVar xs) = foldr (*) ys (foldr (*) xs 1)"
+  by (simp add: cvc_list_both_transfer)
+
+lemma [cvc_list_both_transfer_op]:
+  "cvc_list_both (@) [] (ListVar ys) (ListVar xs) = foldr (@) ys (foldr (@) xs [])"
+  by (simp add: cvc_list_both_transfer)
+
+lemma [cvc_list_both_transfer_op]:
+  "cvc_list_both (smtlib_re_concat) {''''} (ListVar ys) (ListVar xs) = foldr (smtlib_re_concat) ys (foldr (smtlib_re_concat) xs {''''})"
+  by (meson cvc_ListOp_neutral_re_concat cvc_list_both_transfer)
+
+lemma [cvc_list_both_transfer_op]:
+  "cvc_list_both (smtlib_str_concat) [] (ListVar ys) (ListVar xs) = foldr (smtlib_str_concat) ys (foldr (smtlib_str_concat) xs [])"
+  by (meson cvc_ListOp_neutral_str_concat cvc_list_both_transfer)
+
 
 lemma cvc_list_left_Nil: "cvc_list_left op (ListVar []) y = y"
   unfolding cvc_list_left_def
@@ -118,9 +228,9 @@ lemma cvc_list_right_Nil: "cvc_list_right op y (ListVar []) = y"
 
 (*Note that: "cvc_list_both (\<and>) (ListVar []) (ListVar []) = y" is forbidden and should be ruled out
 by parsing*)
-lemma cvc_list_both_Singleton: "cvc_list_both op (ListVar [x]) (ListVar []) = x"
-                     "cvc_list_both op (ListVar []) (ListVar [x]) = x"
-                     "cvc_list_both op (ListVar []) (ListVar [x]) = x"
+lemma cvc_list_both_Singleton: "cvc_list_both op neutral (ListVar [x]) (ListVar []) = x"
+                     "cvc_list_both op neutral (ListVar []) (ListVar [x]) = x"
+                     "cvc_list_both op neutral (ListVar []) (ListVar [x]) = x"
   unfolding cvc_list_both_def
   by auto
 
@@ -136,13 +246,15 @@ lemma cvc_list_right_Cons: "cvc_list_right op y (ListVar (x#xs))
   apply (induction xs)
   by auto
 
-lemma cvc_list_both_Cons: "cvc_list_both op (ListVar (x#xs)) (ListVar (y#ys))
-       = op x (cvc_list_both op (ListVar xs) (ListVar (y#ys)))"
+lemma cvc_list_both_Cons: "cvc_list_both op neutral (ListVar (x#xs)) (ListVar (y#ys))
+       = op x (cvc_list_both op neutral (ListVar xs) (ListVar (y#ys)))"
   unfolding cvc_list_both_def
   apply (induction xs)
   by auto
 
-lemma test: "foldr (\<and>) c (b \<and> foldr (\<and>) d True \<and> foldr (\<and>) e True) = foldr (\<and>) c (foldr (\<and>) e (b \<and> foldr (\<and>) d True))"
+
+lemma bool_and_flatten_test_help:
+  shows  "foldr (\<and>) c (b \<and> foldr (\<and>) d True \<and> foldr (\<and>) e True) = foldr (\<and>) c (foldr (\<and>) e (b \<and> foldr (\<and>) d True))"
   apply (induction c)
    apply simp
    apply (induction d)
@@ -158,7 +270,6 @@ lemma test: "foldr (\<and>) c (b \<and> foldr (\<and>) d True \<and> foldr (\<an
    apply simp
   by simp
 
-
 lemma bool_and_flatten_test:
   fixes xs ys zs :: "bool cvc_ListVar"
   shows "(cvc_list_left (\<and>) xs (cvc_list_right (\<and>) (cvc_list_right (\<and>) b ys) zs))
@@ -167,25 +278,18 @@ lemma bool_and_flatten_test:
   apply (cases ys)
   apply (cases zs)
   apply simp_all
+  subgoal for xss yss zss
   unfolding cvc_list_left_transfer
-  unfolding cvc_list_right_transfer
-  using cvc_list_right_transfer[of "(\<and>)" True b ] 
-  apply simp
-  subgoal for c d e
-    using cvc_list_right_transfer[of "(\<and>)" True "(b \<and> foldr (\<and>) d True)" e]
-    apply simp
-    using test
-    by auto
+  unfolding cvc_list_right_transfer_op
+  using bool_and_flatten_test_help by auto
   done
 
-lemma "a \<and> (c \<and> (b \<and> d)) \<longrightarrow> (a \<and> (c \<and> (b \<and> d)))"
+lemma test: "a \<and> (c \<and> (b \<and> d)) \<longrightarrow> (a \<and> (c \<and> (b \<and> d)))"
   using bool_and_flatten_test[of "ListVar [a,c]" b "ListVar [d]" "ListVar []"]
   apply (unfold cvc_list_right_Nil)
   unfolding cvc_list_right_Nil cvc_list_left_Nil
   unfolding cvc_list_right_Cons cvc_list_left_Cons
   unfolding cvc_list_right_Nil cvc_list_left_Nil
   by simp
-
-
 
 end
