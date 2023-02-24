@@ -683,12 +683,6 @@ named_theorems rbl_xor_temp \<open>xor_def.\<close>
 named_theorems all_simplify_temp \<open>Theorems to reconstruct bitvector theorems concerning list function, e.g. take.\<close>
 
 subsection \<open>Setup\<close>
-ML \<open>val _ = @{print}("Hello, hello, hello before setup")\<close>
-context
-begin
-qualified definition smt_extract where
-  \<open>smt_extract j i w = slice i (take_bit j w)\<close>
-end
 
 ML_file \<open>Tools/SMT/smt_util.ML\<close>
 ML_file \<open>Tools/SMT/smt_failure.ML\<close>
@@ -700,7 +694,6 @@ ML_file \<open>Tools/SMT/smt_translate.ML\<close>
 ML_file \<open>Tools/SMT/smtlib.ML\<close>
 ML_file \<open>Tools/SMT/smtlib_interface.ML\<close>
 ML_file \<open>Tools/SMT/SMT_string.ML\<close>
-ML_file \<open>~~/src/HOL/Library/Tools/smt_word.ML\<close> (*TODO Mathias delete*)
 ML_file \<open>Tools/SMT/smtlib_proof.ML\<close>
 ML_file \<open>Tools/SMT/smtlib_isar.ML\<close>
 ML_file \<open>Tools/SMT/z3_proof.ML\<close>
@@ -1051,13 +1044,13 @@ lemmas [smt_arith_simplify] =
 
 subsection \<open>Tool support\<close>
 
-(*context
+context
 begin
 qualified definition smt_extract where
   \<open>smt_extract j i w = slice i (take_bit j w)\<close>
 end
 
-ML_file \<open>~~/src/HOL/Library/Tools/smt_word.ML\<close>*) (*TODO: Mathias*)
+ML_file \<open>~~/src/HOL/Library/Tools/smt_word.ML\<close> (*TODO: Mathias*)
 
 ML \<open>
 local

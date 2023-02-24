@@ -299,8 +299,8 @@ fun bv_type_parser (SMTLIB.S [SMTLIB.Sym "_", SMTLIB.Sym "BitVec", SMTLIB.Num x]
     SOME (Word_Lib.mk_wordT x)
   | bv_type_parser (SMTLIB.S [SMTLIB.Sym "_", SMTLIB.Sym "BitVec", SMTLIB.Sym x], []) =
     SOME (Word_Lib.mk_wordT 8) (*TODO: Delete*)
-  | bv_type_parser (SMTLIB.S [SMTLIB.Sym "?BitVec"], []) = SOME (Word_Lib.mk_wordT 8) (*TODO*)
-  | bv_type_parser (SMTLIB.Sym "?BitVec", []) = SOME (Type (\<^type_name>\<open>word\<close>, [(TVar (("?a", serial ()), []))])) (*TODO *)
+  | bv_type_parser (SMTLIB.S [SMTLIB.Sym "?BitVec"], []) = SOME (Type (\<^type_name>\<open>word\<close>, [dummyT])) (*TODO*)
+  | bv_type_parser (SMTLIB.Sym "?BitVec", []) = SOME (Type (\<^type_name>\<open>word\<close>, [dummyT])) (*TODO *)
   (*| bv_type_parser (SMTLIB.Sym "?BitVec", []) = SOME (Type (\<^type_name>\<open>word\<close>, [ \<^typ>\<open>'a\<close>])) (*TODO*)*)
   | bv_type_parser xs = (@{print} ("bv_type_parser", xs);NONE)
 (*("bv_type_parser",
@@ -311,7 +311,7 @@ end
 
 (* setup *)
 
-(*val _ = Theory.setup (Context.theory_map (
+val _ = Theory.setup (Context.theory_map (
   SMTLIB_Interface.add_logic (20, smtlib_logic) #>
   setup_builtins))
 
@@ -321,6 +321,6 @@ val _ = Theory.setup (Context.theory_map (
 
 
 val _ = Theory.setup (Context.theory_map (
-  SMTLIB_Proof.add_type_parser bv_type_parser))*)
+  SMTLIB_Proof.add_type_parser bv_type_parser))
 
 end;

@@ -84,16 +84,7 @@ in
       val (new_cs, par,is_list) = parse_par cs "" false l
       (*val _ = @{print} ("Parsed par: ", par)
       val _ = @{print} ("New rest string: ", implode new_cs)*)
-    in parse_pars new_cs (TreeList (par::xs)) l
-      (*case SMTLIB.parse [par] of (SMTLIB.S [var,typ])
-          => let
-              val par_type = if is_list then SMTLIB.S [SMTLIB.Sym ("cvc_ListVar"),typ] else typ
-              val par_tree = (SMTLIB.S [var,par_type])
-             in 
-              parse_pars new_cs (TreeList (par_tree::xs)) l
-             end
-      | _ => raise PARSE (l, "parameter is not in SMTLIB format")*)
-    end
+    in parse_pars new_cs (TreeList (par::xs)) l end
  | parse_pars (") "::cs) None _ = (cs, []) (*Very last closing parenthesis: Par List was empty*)
  | parse_pars (")"::cs) (TreeList xs) _ = (cs, xs) (*Very last closing parenthesis*)
  | parse_pars (" "::cs) (TreeList xs) l = parse_pars cs (TreeList xs) l (*Skip spaces between pars*)
@@ -190,7 +181,7 @@ fun add_line line (l, rewrite_trees) =
 
 (*TEMP: Figure out how to parse this in a string list automatically, seperating at\n *)
 
-fun parse_rewrites lines = (fold add_line lines (1,[])) |> snd
+fun parse_rewrites lines = (fold add_line (rev lines) (1,[])) |> snd
 
 (* pretty printer *)
 

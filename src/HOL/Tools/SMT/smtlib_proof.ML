@@ -115,9 +115,11 @@ fun lookup_fun ({funs, ...}: ('a, 'b) context) = Symtab.lookup funs
 fun core_type_parser (SMTLIB.Sym "Bool", []) = SOME \<^typ>\<open>HOL.bool\<close>
   | core_type_parser (SMTLIB.Sym "Int", []) = SOME \<^typ>\<open>Int.int\<close>
   | core_type_parser (SMTLIB.Sym "cvc_ListVar", [t1]) = SOME (Type ("Dsl_Nary_Ops.cvc_ListVar",[t1]))
-  | core_type_parser xs = if (SMT_String.string_type_parser xs) = NONE 
-                          then SMT_Word.bv_type_parser xs (*TODO: Mathias*)
-                          else SMT_String.string_type_parser xs (*TEMP: They are not called otherwise, even though they are registered...*)
+  | core_type_parser (SMTLIB.S [SMTLIB.Sym "Bool", SMTLIB.Sym "ListVar"], []) = 
+    SOME (Type ("Dsl_Nary_Ops.cvc_ListVar",[\<^typ>\<open>HOL.bool\<close>]))
+  | core_type_parser (SMTLIB.Sym "?BitVec", []) = SOME (Type (\<^type_name>\<open>word\<close>, [dummyT])) (*TODO *)
+  | core_type_parser xs = (@{print}("xs",xs); SMT_String.string_type_parser xs (*TEMP: They are not called otherwise, even though they are registered...*)
+)
 
 fun mk_unary n t =
   let val T = fastype_of t
@@ -161,6 +163,7 @@ fun core_term_parser (SMTLIB.Sym "true", _) = SOME \<^Const>\<open>True\<close>
   | core_term_parser (SMTLIB.Sym "implies", [t1, t2]) = SOME (HOLogic.mk_imp (t1, t2))
   | core_term_parser (SMTLIB.Sym "=", [t1, t2]) =
       let
+
       (*TODO: This is not used! Why can SMT_real introduce of_int here but not for multiplication?*)
         val T1 = fastype_of t1
         val T2 = fastype_of t2
@@ -225,9 +228,7 @@ use that. Otherwise use ?a from the beginning?*)
       (*$ (HOLogic.mk_list (TVar (("?a", serial ()), [])) ts))*)
       $ (HOLogic.mk_list \<^typ>\<open>HOL.bool\<close> ts))
   | core_term_parser (SMTLIB.Sym "emptyString", []) = SOME (Free ("''''", \<^typ>\<open>String.string\<close>))
- | core_term_parser xs = if (SMT_String.string_term_parser xs) = NONE 
-                          then SMT_Word.bv_term_parser xs
-                          else SMT_String.string_term_parser xs
+ | core_term_parser xs = SMT_String.string_term_parser xs
 
 (* custom type and term parsers *)
 
@@ -316,6 +317,8 @@ fun type_of cx ty =
       | _ => raise SMTLIB_PARSE ("bad SMT type", ty)))
 
 fun dest_var cx (SMTLIB.S [SMTLIB.Sym name, ty]) = (name, (desymbolize name, type_of cx ty))
+  | dest_var cx (SMTLIB.S [SMTLIB.Sym name, ty, SMTLIB.Sym "ListVar"]) (*TODO*)
+        = (name, (desymbolize name, type_of cx (SMTLIB.S [SMTLIB.Sym "cvc_ListVar", ty])))
   | dest_var _ v = raise SMTLIB_PARSE ("bad SMT quantifier variable format", v)
 
 fun dest_body (SMTLIB.S (SMTLIB.Sym "!" :: body :: _)) = dest_body body
