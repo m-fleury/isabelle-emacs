@@ -1263,8 +1263,21 @@ fun try_simp ctxt t =
 
 fun dsl_tac_initialize rewrite_name args ctxt t =
 let
+
+(*Get all parent theories of Rare_Interface. TODO: Maybe do this somewhere else so it doesn't has to be redone every time*)
+
+val is_BV = Named_Theorems.exists ctxt ("BV_Rewrites."^rewrite_name) (*have exist already give out the thm list? I don't want to change named_theorem so much*)
+val is_Bool = Named_Theorems.exists ctxt ("Boolean_Rewrites."^rewrite_name)
+val is_Arith = Named_Theorems.exists ctxt ("Arith_Rewrites."^rewrite_name)
+val is_String = Named_Theorems.exists ctxt ("String_Rewrites."^rewrite_name)
+
+
  fun rewrite_lemma rewrite_name =
-        nth (Named_Theorems.get ctxt ("Boolean_Rewrites."^rewrite_name)) 0
+       if is_BV then nth (Named_Theorems.get ctxt ("BV_Rewrites."^rewrite_name)) 0
+       else if is_Bool then nth (Named_Theorems.get ctxt ("Boolean_Rewrites."^rewrite_name)) 0
+       else if is_Arith then nth (Named_Theorems.get ctxt ("Arith_Rewrites."^rewrite_name)) 0
+       else if is_String then nth (Named_Theorems.get ctxt ("String_Rewrites."^rewrite_name)) 0
+       else nth (Named_Theorems.get ctxt ("Builtin_Rewrites."^rewrite_name)) 0
 
  fun rewrite_lemma_inst rewrite_name [t]  =
     (Drule.infer_instantiate' ctxt (map (SOME o Thm.cterm_of ctxt) [t]) (rewrite_lemma rewrite_name)) |
