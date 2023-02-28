@@ -98,31 +98,45 @@ fun get_pars ctxt
  (Const ("HOL.All", _) $ (Abs (new_par_name, new_par_type, xs)))
  ((SMTLIB.S [SMTLIB.Sym org_par_name, SMTLIB.Sym org_par_type]) :: ys) pars = 
   let 
+  val _ = @{print}("org_par_type",org_par_type)
+  val _ = @{print}("org_par_name",org_par_name)
+  val _ = @{print}("new_par_name",new_par_name)
+
     val par = 
-        (if (not (org_par_type = "?BitVec"))
+        (if (org_par_type = "?BitVec")
          then 
-           let
-            val term = SMTLIB_Proof.type_of (empty_context ctxt Symtab.empty Symtab.empty) (SMTLIB.Sym org_par_type) 
-            val par_type_str = hackish_string_of_type ctxt term
-           in new_par_name ^ "::\"" ^ par_type_str ^ "\"" end
-         else
-           let (*Take ??a from new_par_type and make a word of length ??a *)
+            let (*Take ??a from new_par_type and make a word of length ??a *)
             val _ = @{print}("new_par_type",new_par_type)
 
             (*val new_typ = Type((hackish_string_of_type ctxt new_par_type)^"::len word",[])*)
             val new_typ = Type("Word.word",[new_par_type])
 
             val par_type_str = hackish_string_of_type ctxt new_typ
-           in new_par_name ^ "::\"" ^ (implode (tl (tl (raw_explode par_type_str)))) ^ "\"" end)
+           in new_par_name ^ "::\"" ^ (implode (tl (tl (raw_explode par_type_str)))) ^ "\"" end
+         else
+         if (org_par_type = "?")
+         then 
+            let (*Take ??a from new_par_type and make a word of length ??a *)
+               val _ = @{print}("new_par_type",new_par_type)
+               val par_type_str = hackish_string_of_type ctxt new_par_type
+           in new_par_name ^ "::\"" ^ (implode (tl (tl (raw_explode par_type_str)))) ^ "\"" end
+         else
+            let
+            val term = SMTLIB_Proof.type_of (empty_context ctxt Symtab.empty Symtab.empty) (SMTLIB.Sym org_par_type) 
+            val par_type_str = hackish_string_of_type ctxt term
+            in new_par_name ^ "::\"" ^ par_type_str ^ "\"" end  )
   in
     get_pars ctxt xs ys (par :: pars)
   end |
 get_pars ctxt (Const ("HOL.All", _) $ (Abs (new_par_name, new_par_type, xs)))
  ((SMTLIB.S [SMTLIB.Sym org_par_name, SMTLIB.Sym org_par_type,SMTLIB.Sym "ListVar"]) :: ys) pars = 
   let 
-val _ = @{print}("new_par_name",new_par_name)
-val _ = @{print}("new_par_type",new_par_type)
+val _ = @{print}("ListVar detected in get_pars")
 
+val _ = @{print}("  new_par_name",new_par_name)
+val _ = @{print}("  new_par_type",new_par_type)
+val _ = @{print}("  org_par_name",org_par_name)
+val _ = @{print}("  org_par_type",org_par_type)
 
 (*TODO: Test for ? or something in case this is not a bitvec but still parametric*)
     val par = 
@@ -136,6 +150,9 @@ val _ = @{print}("new_par_type",new_par_type)
            let (*TODO*)
             val par_type_str = hackish_string_of_type ctxt new_par_type
            in new_par_name ^ "::\"" ^ par_type_str ^ "\"" end)
+
+val _ = @{print}("  Added par",par)
+
   in
     get_pars ctxt xs ys (par :: pars)
   end |
@@ -208,11 +225,13 @@ in
 mk_nary (l1 $ l2) lvars n = (@{print}("lvars1",lvars);@{print}("l1",l1);@{print}("l2",l2);(mk_nary l1 lvars n) $ (mk_nary l2 lvars n)) |
 mk_nary (Abs (name, typ,l2)) lvars n =
 let
-   val _ = @{print}("name",name)
+val _ = @{print}("name",name)
+val _ = @{print}("Add to lvars with n= ",n)
 val _ = @{print}("lvars2",lvars)
 val _ = @{print}("typ",typ)
+val _ = @{print}("Increase n ",n + 1)
 
-val new_lvars = if (typ = \<^typ>\<open>bool cvc_ListVar\<close>) then (n::lvars) else lvars
+val new_lvars = if (typ = \<^typ>\<open>bool cvc_ListVar\<close>) then (n::lvars) else (if (typ = \<^typ>\<open>int cvc_ListVar\<close>) then (n::lvars) else lvars)
 in
  (Abs (name, typ,mk_nary l2 new_lvars (n+1)))
 end | (*TODO: Add name to list here if listvar*)
@@ -229,7 +248,8 @@ mk_nary l1 lvars n = l1
 fun write_body res param ctxt =
 let
   val str_res = hackish_string_of_term ctxt res
-  (*val _ = @{print}("str_res",str_res)*)
+  val _ = @{print}("str_res",str_res)
+  val _ = @{print}("res",res)
 
   fun wth_forall ("."::" "::xs) = xs | 
       wth_forall ("."::xs) = xs | 
@@ -239,7 +259,7 @@ let
       write_params [p] =  p |
       write_params (p::ps) = p ^ " and " ^ write_params ps
 
-  val pars = get_pars ctxt res param [] |> write_params
+  val pars = get_pars ctxt res (rev param) [] |> write_params
   val goal = raw_explode str_res |> wth_forall |> implode
 in 
   ["  fixes " ^ pars  ^ "\n"] @ ["  shows \"" ^ goal ^ "\"\n" ]
@@ -253,14 +273,17 @@ local
     (*val _ = @{print}("smtlib_tree",smtlib_tree)*)
     val term = empty_context ctxt Symtab.empty Symtab.empty |> SMTLIB_Proof.term_of smtlib_tree
     val _ = @{print}("term",term)
-    val nary = mk_nary (fst term) [] 0
+    val nary = mk_nary (fst term) [] 1
     val _ = @{print}("nary",nary)
+  val str_res = hackish_string_of_term ctxt nary
+    val _ = @{print}("str_res",str_res)
+
 
     val term_gen_types = nary |> generalize_types ctxt
     val _ = @{print}("term_gen_types",term_gen_types)
 
   in
-   nary
+   term_gen_types
   end
 
 (*
@@ -276,17 +299,19 @@ n::'a \<longrightarrow> n::? \<longrightarrow> 'a
 
 *)
 
+
+
 in 
 fun write_lemma (Rewrite_Rule ((Rule_Type DEFINE_RULE)::(Rule_Name name)::[Par param, Match m, Target t])) ctxt =
-    let
-      val smtlib_tree = SMTLIB.S [SMTLIB.Sym "forall", SMTLIB.S param, SMTLIB.S [SMTLIB.Sym "=", m, t]]
-      val res = write_tree smtlib_tree ctxt
-    in 
-       [write_lemma_header name, write_body res param ctxt]
-    end |
+  let
+    val smtlib_tree = SMTLIB.S [SMTLIB.Sym "forall", SMTLIB.S (rev param), SMTLIB.S [SMTLIB.Sym "=", m, t]]
+    val res = write_tree smtlib_tree ctxt
+  in 
+    [write_lemma_header name, write_body res param ctxt]
+  end |
   write_lemma (Rewrite_Rule ((Rule_Type DEFINE_COND_RULE)::(Rule_Name name)::[Par param, Precondition ass, Match m, Target t])) ctxt =
     let
-      val smtlib_tree = SMTLIB.S [SMTLIB.Sym "forall", SMTLIB.S param,
+      val smtlib_tree = SMTLIB.S [SMTLIB.Sym "forall", SMTLIB.S (rev param),
                         SMTLIB.S [SMTLIB.Sym "implies", ass, SMTLIB.S [SMTLIB.Sym "=", m, t]]]
       val res = write_tree smtlib_tree ctxt
     in 
