@@ -112,14 +112,20 @@ fun get_pars ctxt
             val new_typ = Type("Word.word",[new_par_type])
 
             val par_type_str = hackish_string_of_type ctxt new_typ
-           in new_par_name ^ "::\"" ^ (implode (tl (tl (raw_explode par_type_str)))) ^ "\"" end
+            val new_par_type_str = if hd (raw_explode par_type_str) = "?" 
+                                   then (implode (tl (tl (raw_explode par_type_str))))
+                                   else par_type_str
+           in new_par_name ^ "::\"" ^ new_par_type_str ^ "\"" end (*TODO: Only cut first two digits if they are question marks*)
          else
          if (org_par_type = "?")
          then 
             let (*Take ??a from new_par_type and make a word of length ??a *)
                val _ = @{print}("new_par_type",new_par_type)
                val par_type_str = hackish_string_of_type ctxt new_par_type
-           in new_par_name ^ "::\"" ^ (implode (tl (tl (raw_explode par_type_str)))) ^ "\"" end
+               val new_par_type_str = if hd (raw_explode par_type_str) = "?" 
+                                   then (implode (tl (tl (raw_explode par_type_str))))
+                                   else par_type_str
+           in new_par_name ^ "::\"" ^ new_par_type_str ^ "\"" end
          else
             let
             val term = SMTLIB_Proof.type_of (empty_context ctxt Symtab.empty Symtab.empty) (SMTLIB.Sym org_par_type) 
@@ -305,6 +311,7 @@ in
 fun write_lemma (Rewrite_Rule ((Rule_Type DEFINE_RULE)::(Rule_Name name)::[Par param, Match m, Target t])) ctxt =
   let
     val smtlib_tree = SMTLIB.S [SMTLIB.Sym "forall", SMTLIB.S (rev param), SMTLIB.S [SMTLIB.Sym "=", m, t]]
+    val _ = @{print}("smtlib_tree",smtlib_tree)
     val res = write_tree smtlib_tree ctxt
   in 
     [write_lemma_header name, write_body res param ctxt]

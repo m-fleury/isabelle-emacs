@@ -292,7 +292,7 @@ fun bv_term_parser (SMTLIB.Sym bv, []) =
 
 TODO: zero_extend, extract [use slice to define it], sign_extend, rotate_left
  *)
-  | bv_term_parser xs = (NONE)
+  | bv_term_parser xs = (@{print}("IN BV_TERM PARSER",xs);NONE)
 
 
 fun bv_type_parser (SMTLIB.S [SMTLIB.Sym "_", SMTLIB.Sym "BitVec", SMTLIB.Num x], []) =
