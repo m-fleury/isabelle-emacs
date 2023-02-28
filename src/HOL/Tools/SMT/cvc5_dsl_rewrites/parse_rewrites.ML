@@ -71,17 +71,19 @@ fun get_smtlib_tree str : SMTLIB.tree list list
  = snd (SMTLIB.read_line 0 (implode str) SMTLIB.None [[]])
 *)
 
-local
-    fun parse_par (":"::cs) s _ l = parse_par cs (s^" ListVar") true l
-   | parse_par (")"::cs) s x _ = (cs, SMTLIB.parse ["("^s^")"] ,x)
-   | parse_par (c::cs) s false l = parse_par cs (s^c) false l
-   | parse_par (_::cs) s true l = parse_par cs s true l
-   | parse_par _ _ _ l = raise PARSE (l, "parameter is not well-formed.")
+local (*TODO: Rewrite*)
+    fun parse_par (":"::cs) name typ _ _ l = parse_par cs name ("ListVar " ^ typ) true false l
+   | parse_par (")"::cs) name typ _ _ _ = (cs, SMTLIB.parse ["("^name^" " ^ typ^")"])
+   | parse_par (" "::cs) name typ false _ l = parse_par cs name typ false true l
+   | parse_par (c::cs) name typ false false l = parse_par cs (name^c) typ false false l
+   | parse_par (c::cs) name typ x true l = parse_par cs name (typ^c) x true l
+   | parse_par (_::cs) name typ true _ l = parse_par cs name typ true false l
+   | parse_par _ _ _ _ _ l = raise PARSE (l, "parameter is not well-formed.")
 in
   fun parse_pars ("("::cs) None l = parse_pars cs (TreeList []) l (*Very first opening parenthesis*) 
  | parse_pars ("("::cs) (TreeList xs) l =
     let
-      val (new_cs, par,is_list) = parse_par cs "" false l
+      val (new_cs, par) = parse_par cs "" "" false false l
       (*val _ = @{print} ("Parsed par: ", par)
       val _ = @{print} ("New rest string: ", implode new_cs)*)
     in parse_pars new_cs (TreeList (par::xs)) l end
@@ -92,15 +94,15 @@ in
 end
 
 local 
-  fun read_rule_smtlib_tree _ (target :: [match])
+  fun read_rule_smtlib_tree _ (match :: [target])
          = [Match match, Target target] |
       read_rule_smtlib_tree l _ = raise PARSE (l, "not a valid instance of a define-rule")
 
-  fun read_cond_rule_smtlib_tree _ (target :: match :: [precondition])
+  fun read_cond_rule_smtlib_tree _ (precondition :: match :: [target])
          = [Precondition precondition, Match match, Target target] |
       read_cond_rule_smtlib_tree l _ = raise PARSE (l, "not a valid instance of a define-cond-rule")
 
-  fun read_star_rule_smtlib_tree _ (target :: [match])
+  fun read_star_rule_smtlib_tree _ (match :: [target])
         = [Context_Expr NONE, Match match, Target target] |
       read_star_rule_smtlib_tree _ (target :: match :: [context_expr])
         = [Context_Expr (SOME context_expr), Match match, Target target] |
@@ -123,10 +125,12 @@ local
     (*Empty strings cannot be parsed in by the SMTLIB parser. Find out the reason. For now strings are excluded here*)
     fun read_token [] token _ = ([],token) |
         read_token (" "::cs) token _ = (cs,token) |
-        read_token ("\""::cs) token false = read_token cs (token^"str.const(") true |
+        read_token ("\""::"\""::cs) token false = read_token cs (token^"(str.const)") true | (*TDOO: replace by ''s?*)
+        read_token ("\""::cs) token false = read_token cs (token^"(str.const ") true | (*TDOO: replace by ''s?*)
         read_token ("\""::cs) token true = read_token cs (token^")") false |
         read_token (c::cs) token x = read_token cs (token^c) x
 
+(*TODO: string constants*)
     fun split_up [] _ _ _ = [] |
         split_up (" "::cs) 0 None str_const = split_up cs 0 None str_const | (*Skip blanks in between expressions*)
         split_up ("("::cs) 0 None str_const = split_up cs 1 (String "(") str_const | (*Expression starts with a parenthesis*)
@@ -147,9 +151,9 @@ local
 (*TODO: string list instead of string list list*)
     val expr_list = split_up wth_last_parenthesis 0 None false
     (*Separate components (match, target, condition, context) from each other: *)
-    (*val _ = @{print} ("expr_list", parsed_par::expr_list)*)
-
+    val _ = @{print} ("expr_list", expr_list)
    val expr = f l (map SMTLIB.parse expr_list)
+
   in
     rule :: name @ [Par parsed_par] @ expr
   end
