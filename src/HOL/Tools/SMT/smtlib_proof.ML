@@ -115,9 +115,14 @@ fun lookup_fun ({funs, ...}: ('a, 'b) context) = Symtab.lookup funs
 fun core_type_parser (SMTLIB.Sym "Bool", []) = SOME \<^typ>\<open>HOL.bool\<close>
   | core_type_parser (SMTLIB.Sym "Int", []) = SOME \<^typ>\<open>Int.int\<close>
   | core_type_parser (SMTLIB.Sym "cvc_ListVar", [t1]) = SOME (Type ("Dsl_Nary_Ops.cvc_ListVar",[t1]))
-  | core_type_parser (SMTLIB.S [SMTLIB.Sym "Bool", SMTLIB.Sym "ListVar"], []) = 
-    SOME (Type ("Dsl_Nary_Ops.cvc_ListVar",[\<^typ>\<open>HOL.bool\<close>]))
+  (*| core_type_parser (SMTLIB.S [typ, SMTLIB.Sym "ListVar"], []) = (*TODO: old way (line above) was better!*)
+    let 
+      val SOME new_type = core_type_parser (typ,[]) (*TODO*)
+    in 
+      SOME (Type ("Dsl_Nary_Ops.cvc_ListVar",[new_type]))
+    end*)
   | core_type_parser (SMTLIB.Sym "?BitVec", []) = SOME (Type (\<^type_name>\<open>word\<close>, [dummyT])) (*TODO *)
+  | core_type_parser (SMTLIB.Sym "?", []) = SOME dummyT
   | core_type_parser xs = (@{print}("xs",xs); SMT_String.string_type_parser xs (*TEMP: They are not called otherwise, even though they are registered...*)
 )
 
@@ -317,7 +322,7 @@ fun type_of cx ty =
       | _ => raise SMTLIB_PARSE ("bad SMT type", ty)))
 
 fun dest_var cx (SMTLIB.S [SMTLIB.Sym name, ty]) = (name, (desymbolize name, type_of cx ty))
-  | dest_var cx (SMTLIB.S [SMTLIB.Sym name, ty, SMTLIB.Sym "ListVar"]) (*TODO*)
+  | dest_var cx (SMTLIB.S [SMTLIB.Sym name, SMTLIB.Sym "ListVar", ty]) (*TODO*)
         = (name, (desymbolize name, type_of cx (SMTLIB.S [SMTLIB.Sym "cvc_ListVar", ty])))
   | dest_var _ v = raise SMTLIB_PARSE ("bad SMT quantifier variable format", v)
 
