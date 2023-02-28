@@ -8,6 +8,7 @@ signature NAMED_THEOREMS =
 sig
   val member: Proof.context -> string -> thm -> bool
   val get: Proof.context -> string -> thm list
+  val exists: Proof.context -> string -> bool
   val clear: string -> Context.generic -> Context.generic
   val add_thm: string -> thm -> Context.generic -> Context.generic
   val del_thm: string -> thm -> Context.generic -> Context.generic
@@ -43,6 +44,11 @@ fun the_entry context name =
   (case Symtab.lookup (Data.get context) name of
     NONE => error (undeclared name)
   | SOME entry => entry);
+
+fun exists context name =
+  (case Symtab.lookup (Data.get (Context.Proof context)) name of
+    NONE => false
+  | SOME entry => true);
 
 fun map_entry name f context =
   (the_entry context name; Data.map (Symtab.map_entry name f) context);
