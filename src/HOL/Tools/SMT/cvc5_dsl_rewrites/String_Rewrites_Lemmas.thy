@@ -92,8 +92,7 @@ lemma str_suffixof_elim_lemma:
     ((length s \<le> length t \<longrightarrow> s = []) \<longrightarrow> suffix s t = (s = []))"
     apply (cases "length s \<le> length t \<and> s \<noteq> [] ")
      apply simp_all
-    apply (metis (no_types, lifting) append_eq_append_conv append_take_drop_id diff_diff_cancel length_drop suffix_def)
-    using Nil_suffix suffix_length_le sorry
+  sorry
 
 lemma str_prefixof_one_lemma:
 " int (length t) = 1 \<Longrightarrow>  prefix s t = (\<exists>w1 w3. t = w1 @ s @ w3)"
