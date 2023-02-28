@@ -1265,6 +1265,9 @@ fun dsl_tac_initialize rewrite_name args ctxt t =
 let
 
 (*Get all parent theories of Rare_Interface. TODO: Maybe do this somewhere else so it doesn't has to be redone every time*)
+(*Need to get the theory Rare_Interface for this? How? Only way seems to use a context?*)
+(*val rewrite_theories = Theory.parents_of (Proof_Context.theory_of (Proof_Context.get_global (Theory.get_pure ()) "Rare_Interface.thy"))
+val _ = @{print}("rewrite_theories",rewrite_theories)*)
 
 val is_BV = Named_Theorems.exists ctxt ("BV_Rewrites."^rewrite_name) (*have exist already give out the thm list? I don't want to change named_theorem so much*)
 val is_Bool = Named_Theorems.exists ctxt ("Boolean_Rewrites."^rewrite_name)
