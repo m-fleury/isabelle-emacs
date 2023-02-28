@@ -122,6 +122,7 @@ fun core_type_parser (SMTLIB.Sym "Bool", []) = SOME \<^typ>\<open>HOL.bool\<clos
       SOME (Type ("Dsl_Nary_Ops.cvc_ListVar",[new_type]))
     end*)
   | core_type_parser (SMTLIB.Sym "?BitVec", []) = SOME (Type (\<^type_name>\<open>word\<close>, [dummyT])) (*TODO *)
+  (*| core_type_parser (SMTLIB.Sym "?BitVec", []) = SOME \<^typ>\<open>8 word\<close> (*Tried if BV parser is called when this is done but no *)*)
   | core_type_parser (SMTLIB.Sym "?", []) = SOME dummyT
   | core_type_parser xs = (@{print}("xs",xs); SMT_String.string_type_parser xs (*TEMP: They are not called otherwise, even though they are registered...*)
 )
@@ -233,7 +234,8 @@ use that. Otherwise use ?a from the beginning?*)
       (*$ (HOLogic.mk_list (TVar (("?a", serial ()), [])) ts))*)
       $ (HOLogic.mk_list \<^typ>\<open>HOL.bool\<close> ts))
   | core_term_parser (SMTLIB.Sym "emptyString", []) = SOME (Free ("''''", \<^typ>\<open>String.string\<close>))
- | core_term_parser xs = SMT_String.string_term_parser xs
+ | core_term_parser xs =
+ (@{print}("In core term parser, not able to parse ", xs);SMT_String.string_term_parser xs)
 
 (* custom type and term parsers *)
 
@@ -298,10 +300,10 @@ fun parse_type cx ty Ts =
       | _ => raise SMTLIB_PARSE ("bad SMT type format", ty)))
 
 fun parse_term t ts cx =
-((*@{print} "In parse_term"; @{print} t;*)
+(@{print} ("In parse_term t ",t);@{print} ("In parse_term ts ",ts);
   (case apply_parsers (get_term_parsers (ctxt_of cx)) (t, ts) of
     SOME u => (u, cx)
-  | NONE =>
+  | NONE => (@{print} ("Applied all parsers and could still not parse t ",t);
       (case t of
         SMTLIB.Sym name =>
           (case lookup_fun cx name of
@@ -309,7 +311,7 @@ fun parse_term t ts cx =
           | NONE =>
               if null ts then declare_free name Term.dummyT cx
               else raise SMTLIB_PARSE ("bad SMT term", t))
-      | _ => raise SMTLIB_PARSE ("bad SMT term format", t)))
+      | _ => raise SMTLIB_PARSE ("bad SMT term format", t))))
 )
 
 
