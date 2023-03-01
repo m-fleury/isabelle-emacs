@@ -719,8 +719,7 @@ ML_file \<open>Tools/SMT/verit_strategies.ML\<close>
 ML_file \<open>Tools/SMT/verit_replay.ML\<close>
 ML_file \<open>Tools/SMT/cvc4_replay.ML\<close>
 ML_file \<open>Tools/SMT/smt_systems.ML\<close>
-ML_file \<open>Tools/SMT/cvc5_dsl_rewrites/parse_rewrites.ML\<close>
-ML_file \<open>Tools/SMT/cvc5_dsl_rewrites/rewrites_to_lemma.ML\<close>
+
 
 
 subsection \<open>Configuration\<close>
@@ -1236,7 +1235,21 @@ end
 \<close>
 *)
 
+ML \<open> 
+val x =
+SMT_Word.bv_type_parser (SMTLIB.S [SMTLIB.Sym "_", SMTLIB.Sym "BitVec", SMTLIB.Num 3], [])
 
+val y =
+SMT_Word.bv_term_parser (SMTLIB.Sym "bvneg",  [Free ("x", \<^typ>\<open>32 word\<close>)])
+
+val z =
+SMT_Word.bv_term_parser (SMTLIB.Sym "bvneg",  [Free ("x", \<^typ>\<open>'a word\<close>)])
+
+
+\<close>
+
+ML_file \<open>Tools/SMT/cvc5_dsl_rewrites/parse_rewrites.ML\<close>
+ML_file \<open>Tools/SMT/cvc5_dsl_rewrites/rewrites_to_lemma.ML\<close>
 
 ML \<open>
 open PARSE_REWRITE
