@@ -125,7 +125,7 @@ local
     (*Empty strings cannot be parsed in by the SMTLIB parser. Find out the reason. For now strings are excluded here*)
     fun read_token [] token _ = ([],token) |
         read_token (" "::cs) token _ = (cs,token) |
-        read_token ("\""::"\""::cs) token false = read_token cs (token^"(str.const)") true | (*TDOO: replace by ''s?*)
+        read_token ("\""::"\""::cs) token false = read_token cs (token^"(str.const emptyString)") true | (*TDOO: replace by ''s?*)
         read_token ("\""::cs) token false = read_token cs (token^"(str.const ") true | (*TDOO: replace by ''s?*)
         read_token ("\""::cs) token true = read_token cs (token^")") false |
         read_token (c::cs) token x = read_token cs (token^c) x
@@ -143,6 +143,7 @@ local
           end | (*Expression is a token wth parenthesis*)
         split_up (")"::cs) 1 (String str) str_const = [str ^ ")"] :: split_up cs 0 None str_const |
         split_up (")"::cs) i (String str) str_const = split_up cs (i-1) (String (str^")")) str_const |
+        split_up ("\""::"\""::cs) i (String str) false = split_up cs i (String (str^"(str.const)")) false |
         split_up ("\""::cs) i (String str) false = split_up cs i (String (str^"str.const(")) true |
         split_up ("\""::cs) i (String str) true = split_up cs i (String (str^")")) false |
         split_up (c::cs) i (String str) str_const = split_up cs i (String (str^c)) str_const |
