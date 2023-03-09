@@ -1273,30 +1273,26 @@ val _ =
 
 val semi = Scan.option \<^keyword>\<open>;\<close>; (*TODO: Do not need?*)
 
-val _ =
-  Outer_Syntax.command \<^command_keyword>\<open>parse_rare_file\<close> "parse file in rare format and output lemmas. <rare_file, import theories, target_theory>"
+val _ =  Outer_Syntax.local_theory \<^command_keyword>\<open>parse_rare_file\<close> "parse file in rare format and output lemmas. <rare_file, import theories, target_theory>"
     (((Parse.string -- Parse.string)  -- Parse.string)
-     >> (fn ((file_name,theory_imports),theory_name) => (*Probably not the right way*)
-      Toplevel.theory (fn (thy:theory) =>
-               let
+    >> (fn ((file_name,theory_imports),theory_name) => fn lthy =>
+  let
           (*Built new path*)
           val file_path = Path.explode file_name
           val new_theory_name = theory_name ^ ".thy"
+          val ctxt = Local_Theory.target_of lthy
           val res_path = Path.append (Path.dir file_path) (Path.basic new_theory_name)
 
           (*Calculate result*)
           val lines = (Bytes.split_lines (Bytes.read file_path)) ;
-          val _ = @{print} lines
-          val ctxt = Proof_Context.get_global thy "Dsl_Nary_Ops" (*TODO: theory_imports*)
           val res = foldr1 (op^) (List.concat (WRITE_LEMMA.write_lemmas (PARSE_REWRITE.parse_rewrites lines) theory_name theory_imports ctxt))
           val _ = (Output.writeln res)
 
           val _ =
-           Bytes.write 
+           Bytes.write
             res_path (Bytes.string res)
           val _ = @{print} ("done writing to file", res_path)
-        in thy end))
-
-)
+in  lthy
+end))
 \<close>
 end
