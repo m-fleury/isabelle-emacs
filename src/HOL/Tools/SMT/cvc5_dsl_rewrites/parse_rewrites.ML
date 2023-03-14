@@ -82,8 +82,8 @@ in
       val (cs',par_name) = parse_string l cs None "Parameter name could not be parsed in"
       val (cs'',par_type) = parse_par_type cs' "" false l
       val par = SMTLIB.parse ["("^par_name^" " ^ par_type^")"]
-    (*val _ = @{print} ("Parsed par: ", par)
-      val _ = @{print} ("New rest string: ", implode new_cs)*)
+      (*val _ = @{print} ("Parsed par: ", par)
+      val _ = @{print} ("New rest string: ", implode cs'')*)
     in parse_pars cs'' (TreeList (par::xs)) l end
  | parse_pars (")"::cs) (TreeList xs) _ = (cs, xs) (*Very last closing parenthesis*)
  | parse_pars (" "::cs) (TreeList xs) l = parse_pars cs (TreeList xs) l (*Skip spaces between pars*)
@@ -124,7 +124,7 @@ local
         read_token ("\""::cs) token true = read_token cs (token^")") false |
         read_token (c::cs) token x = read_token cs (token^c) x
 
-(*TODO: string constants*)
+    (*TODO: string constants*)
     (*TODO: Use nested lists instead of counter and then flatten them?*)
     fun split_up [] _ _ _ = [] |
         split_up (" "::cs) 0 None str_const = split_up cs 0 None str_const | (*Skip blanks in between expressions*)
@@ -149,7 +149,7 @@ local
     (*Separate components (match, target, condition, context) from each other: *)
     val _ = @{print} ("expr_list", expr_list)
    val expr = f l (map SMTLIB.parse expr_list)
-
+    val _ = @{print} ("expr", expr)
   in
     rule :: [name] @ [Par parsed_par] @ expr
   end

@@ -115,16 +115,8 @@ fun lookup_fun ({funs, ...}: ('a, 'b) context) = Symtab.lookup funs
 fun core_type_parser (SMTLIB.Sym "Bool", []) = SOME \<^typ>\<open>HOL.bool\<close>
   | core_type_parser (SMTLIB.Sym "Int", []) = SOME \<^typ>\<open>Int.int\<close>
   | core_type_parser (SMTLIB.Sym "ListVar", [t1]) = SOME (Type ("Dsl_Nary_Ops.cvc_ListVar",[t1]))
-  | core_type_parser (SMTLIB.S [typ, SMTLIB.Sym "ListVar"], []) = (*TODO: old way (line above) was better!*)
-    let 
-      val SOME new_type = core_type_parser (typ,[]) (*TODO*)
-    in 
-      SOME (Type ("Dsl_Nary_Ops.cvc_ListVar",[new_type]))
-    end
-  | core_type_parser (SMTLIB.Sym "?BitVec", []) = SOME (Type (\<^type_name>\<open>word\<close>, [dummyT])) (*TODO *)
-  (*| core_type_parser (SMTLIB.Sym "?BitVec", []) = SOME \<^typ>\<open>8 word\<close> (*Tried if BV parser is called when this is done but no *)*)
   | core_type_parser (SMTLIB.Sym "?", []) = SOME dummyT
-  | core_type_parser xs = (@{print}("xs",xs); SMT_String.string_type_parser xs (*TEMP: They are not called otherwise, even though they are registered...*)
+  | core_type_parser xs = ((*@{print}("xs",xs);*) SMT_String.string_type_parser xs (*TEMP: They are not called otherwise, even though they are registered...*)
 )
 
 fun mk_unary n t =
@@ -235,7 +227,7 @@ use that. Otherwise use ?a from the beginning?*)
       $ (HOLogic.mk_list \<^typ>\<open>HOL.bool\<close> ts))
   | core_term_parser (SMTLIB.Sym "emptyString", []) = SOME (Free ("''''", \<^typ>\<open>String.string\<close>))
  | core_term_parser xs =
- (@{print}("In core term parser, not able to parse ", xs);SMT_String.string_term_parser xs)
+ ((*@{print}("In core term parser, not able to parse ", xs);*)SMT_String.string_term_parser xs)
 
 (* custom type and term parsers *)
 
@@ -300,7 +292,6 @@ fun parse_type cx ty Ts =
       | _ => raise SMTLIB_PARSE ("bad SMT type format", ty)))
 
 fun parse_term t ts cx =
-(@{print} ("In parse_term t ",t);@{print} ("In parse_term ts ",ts);
   (case apply_parsers (get_term_parsers (ctxt_of cx)) (t, ts) of
     SOME u => (u, cx)
   | NONE => (@{print} ("Applied all parsers and could still not parse t ",t);
@@ -312,7 +303,6 @@ fun parse_term t ts cx =
               if null ts then declare_free name Term.dummyT cx
               else raise SMTLIB_PARSE ("bad SMT term", t))
       | _ => raise SMTLIB_PARSE ("bad SMT term format", t))))
-)
 
 
 fun type_of cx ty =
