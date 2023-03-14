@@ -71,6 +71,7 @@ in
  ["  shows \"" ^ res ^ "\"\n" ]
 end
 
+val write_auto = ["  by auto\n\n"]
 
 
 
@@ -135,7 +136,7 @@ fun get_pars ctxt
     get_pars ctxt xs ys (par :: pars)
   end |
 get_pars ctxt (Const ("HOL.All", _) $ (Abs (new_par_name, new_par_type, xs)))
- ((SMTLIB.S [SMTLIB.Sym org_par_name, SMTLIB.Sym org_par_type,SMTLIB.Sym "ListVar"]) :: ys) pars = 
+ ((SMTLIB.S [SMTLIB.Sym org_par_name, SMTLIB.S [SMTLIB.Sym "ListVar", SMTLIB.S [SMTLIB.Sym org_par_type]]]) :: ys) pars = 
   let 
 val _ = @{print}("ListVar detected in get_pars")
 
@@ -149,7 +150,7 @@ val _ = @{print}("  org_par_type",org_par_type)
         (if (not (org_par_type = "?BitVec"))
          then 
            let
-            val term = SMTLIB_Proof.type_of (empty_context ctxt Symtab.empty Symtab.empty) (SMTLIB.S [SMTLIB.Sym org_par_type,SMTLIB.Sym "ListVar"]) 
+            val term = SMTLIB_Proof.type_of (empty_context ctxt Symtab.empty Symtab.empty) ( SMTLIB.S [SMTLIB.Sym "ListVar", SMTLIB.S [SMTLIB.Sym org_par_type]]) 
             val par_type_str = hackish_string_of_type ctxt term
            in new_par_name ^ "::\"" ^ par_type_str ^ "\"" end
          else
@@ -162,7 +163,7 @@ val _ = @{print}("  Added par",par)
   in
     get_pars ctxt xs ys (par :: pars)
   end |
-  get_pars ctxt xs ys pars = pars
+  get_pars ctxt xs ys pars = (@{print}("Qword",xs);@{print}("werwerer",ys);pars)
 
 (*Not that happy with this, maybe do this in smtlib_proof after all?*)
 fun mk_nary ((Const operator) $ (Bound m1) $ (Bound m2)) lvars n =
@@ -256,8 +257,10 @@ let
   val str_res = hackish_string_of_term ctxt res
   val _ = @{print}("str_res",str_res)
   val _ = @{print}("res",res)
+  val _ = @{print}("param",rev param)
 
-  fun wth_forall ("."::" "::xs) = xs | 
+  fun wth_forall ("."::" "::xs) = xs |
+      wth_forall ("."::"\n"::" "::" "::" "::xs) = xs |
       wth_forall ("."::xs) = xs | 
       wth_forall (_::xs) = wth_forall xs |
       wth_forall [] = []
@@ -266,6 +269,7 @@ let
       write_params (p::ps) = p ^ " and " ^ write_params ps
 
   val pars = get_pars ctxt res (rev param) [] |> write_params
+  val _ = @{print}("pars", pars)
   val goal = raw_explode str_res |> wth_forall |> implode
 in 
   ["  fixes " ^ pars  ^ "\n"] @ ["  shows \"" ^ goal ^ "\"\n" ]
@@ -314,7 +318,7 @@ fun write_lemma (Rewrite_Rule ((Rule_Type DEFINE_RULE)::(Rule_Name name)::[Par p
     val _ = @{print}("smtlib_tree",smtlib_tree)
     val res = write_tree smtlib_tree ctxt
   in 
-    [write_lemma_header name, write_body res param ctxt]
+    [write_lemma_header name, write_body res param ctxt, write_auto]
   end |
   write_lemma (Rewrite_Rule ((Rule_Type DEFINE_COND_RULE)::(Rule_Name name)::[Par param, Precondition ass, Match m, Target t])) ctxt =
     let
