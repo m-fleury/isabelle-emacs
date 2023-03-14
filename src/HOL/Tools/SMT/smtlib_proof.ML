@@ -114,13 +114,13 @@ fun lookup_fun ({funs, ...}: ('a, 'b) context) = Symtab.lookup funs
 
 fun core_type_parser (SMTLIB.Sym "Bool", []) = SOME \<^typ>\<open>HOL.bool\<close>
   | core_type_parser (SMTLIB.Sym "Int", []) = SOME \<^typ>\<open>Int.int\<close>
-  | core_type_parser (SMTLIB.Sym "cvc_ListVar", [t1]) = SOME (Type ("Dsl_Nary_Ops.cvc_ListVar",[t1]))
-  (*| core_type_parser (SMTLIB.S [typ, SMTLIB.Sym "ListVar"], []) = (*TODO: old way (line above) was better!*)
+  | core_type_parser (SMTLIB.Sym "ListVar", [t1]) = SOME (Type ("Dsl_Nary_Ops.cvc_ListVar",[t1]))
+  | core_type_parser (SMTLIB.S [typ, SMTLIB.Sym "ListVar"], []) = (*TODO: old way (line above) was better!*)
     let 
       val SOME new_type = core_type_parser (typ,[]) (*TODO*)
     in 
       SOME (Type ("Dsl_Nary_Ops.cvc_ListVar",[new_type]))
-    end*)
+    end
   | core_type_parser (SMTLIB.Sym "?BitVec", []) = SOME (Type (\<^type_name>\<open>word\<close>, [dummyT])) (*TODO *)
   (*| core_type_parser (SMTLIB.Sym "?BitVec", []) = SOME \<^typ>\<open>8 word\<close> (*Tried if BV parser is called when this is done but no *)*)
   | core_type_parser (SMTLIB.Sym "?", []) = SOME dummyT

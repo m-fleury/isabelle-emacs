@@ -43,51 +43,48 @@ datatype unfinished = None | String of string | Symbol of string | TreeList of S
 For example,
  For: (define-rule bool-eq-refl ((t Bool)) (= t s) true
 
- SMTLIB.parse "(t Bool)" and SMTLIB.parse "(= t s) true" result in 
+ SMTLIB.parse "(t Bool)" and SMTLIB.parse "(= t s)" and SMTLIB.parse "true" result in 
 
- S [S [Sym "t",Sym "Bool"]] and S [S [Sym "=", Sym "t", Sym "s"], Sym "true"]
-
-TODO: To use SMTLIB.parse we would have to separate "(= t s)" and "true". Is that worth not having 
-to add SMTLIB.read_line to that files signature? Requires one more traversal. ASK Matthias
+ S [S [Sym "t",Sym "Bool"]] and S [S [Sym "=", Sym "t", Sym "s"]] and S [Sym "true"]
 
 Binarisation of n-ary operators in rare rules:
   Note that for the parameters the type cvc_ListVar is already set here but for the expressions
   this is done in rewrites_to_lemma to reuse the binarisation procedure in SMTLIB_Proof.
 *)
 
-(*Parse name*)
-fun read_rewrite_name l (c :: cs) None ts =
-       if Symbol.is_ascii_blank c then read_rewrite_name l cs None ts (*Ignore leading space*)
-       else read_rewrite_name l cs (String c) ts | (*Start of a word*)
-    read_rewrite_name l (c :: cs) (String s) ts =
-       if Symbol.is_ascii_blank c then (cs, (Rule_Name s :: ts)) (*End of a word*)
-       else if c = "-" then read_rewrite_name l cs (String (s ^ "_")) ts (*Replace - in name by _ *)
-       else read_rewrite_name l cs (String (s ^ c)) ts | (*Word continues*)
-    read_rewrite_name l _ _ _ = raise PARSE (l, "rule name could not be parsed in")
+fun parse_string l (c :: cs) None error_msg =
+       if Symbol.is_ascii_blank c then parse_string l cs None error_msg (*Ignore leading space*)
+       else parse_string l cs (String c) error_msg | (*Start of a word*)
+    parse_string l (c :: cs) (String s) error_msg =
+       if Symbol.is_ascii_blank c then (cs, s) (*End of a word*)
+       else if c = "-" then parse_string l cs (String (s ^ "_")) error_msg (*Replace - in name by _ *)
+       else parse_string l cs (String (s ^ c)) error_msg | (*Word continues*)
+    parse_string l _ _  error_msg = raise PARSE (l, error_msg)
 
-(*
-Depricated:
-fun get_smtlib_tree str : SMTLIB.tree list list
- = snd (SMTLIB.read_line 0 (implode str) SMTLIB.None [[]])
-*)
+local
 
-local (*TODO: Rewrite*)
-    fun parse_par (":"::cs) name typ _ _ l = parse_par cs name ("ListVar " ^ typ) true false l
-   | parse_par (")"::cs) name typ _ _ _ = (cs, SMTLIB.parse ["("^name^" " ^ typ^")"])
-   | parse_par (" "::cs) name typ false _ l = parse_par cs name typ false true l
-   | parse_par (c::cs) name typ false false l = parse_par cs (name^c) typ false false l
-   | parse_par (c::cs) name typ x true l = parse_par cs name (typ^c) x true l
-   | parse_par (_::cs) name typ true _ l = parse_par cs name typ true false l
-   | parse_par _ _ _ _ _ l = raise PARSE (l, "parameter is not well-formed.")
+   (* A parameter can be of the form <symbol> <sort> <attr>*
+      The symbol and the sort need to be parsed in. If the attribute is :list, the type of the 
+      parameter should be a ListVar type.   
+   *)
+  fun parse_par_type (":"::cs) typ _ l = parse_par_type cs ("(ListVar (" ^ typ ^ "))") true l
+    | parse_par_type (")"::cs) typ _ _ = (cs, typ)
+    | parse_par_type (" "::cs) typ is_list l = parse_par_type cs typ is_list l
+    | parse_par_type (_::cs) typ true l = parse_par_type cs typ true l
+    | parse_par_type (c::cs) typ false l = parse_par_type cs (typ^c) false l
+    | parse_par_type _ _ _ l = raise PARSE (l, "parameter is not well-formed.")
+
 in
-  fun parse_pars ("("::cs) None l = parse_pars cs (TreeList []) l (*Very first opening parenthesis*) 
+  fun parse_pars ("("::")"::cs) None _ = (cs,[]) (*Par list is empty*)
+ | parse_pars ("("::cs) None l = parse_pars cs (TreeList []) l (*Very first opening parenthesis*) 
  | parse_pars ("("::cs) (TreeList xs) l =
     let
-      val (new_cs, par) = parse_par cs "" "" false false l
-      (*val _ = @{print} ("Parsed par: ", par)
+      val (cs',par_name) = parse_string l cs None "Parameter name could not be parsed in"
+      val (cs'',par_type) = parse_par_type cs' "" false l
+      val par = SMTLIB.parse ["("^par_name^" " ^ par_type^")"]
+    (*val _ = @{print} ("Parsed par: ", par)
       val _ = @{print} ("New rest string: ", implode new_cs)*)
-    in parse_pars new_cs (TreeList (par::xs)) l end
- | parse_pars (") "::cs) None _ = (cs, []) (*Very last closing parenthesis: Par List was empty*)
+    in parse_pars cs'' (TreeList (par::xs)) l end
  | parse_pars (")"::cs) (TreeList xs) _ = (cs, xs) (*Very last closing parenthesis*)
  | parse_pars (" "::cs) (TreeList xs) l = parse_pars cs (TreeList xs) l (*Skip spaces between pars*)
  | parse_pars _ _ l = raise PARSE (l, "parameter list is not well-formed.")
@@ -108,21 +105,18 @@ local
         = [Context_Expr (SOME context_expr), Match match, Target target] |
       read_star_rule_smtlib_tree l _ = raise PARSE (l, "not a valid instance of a define-star-rule")
 
-  fun read_name l cs = read_rewrite_name l cs None []
+  fun read_rewrite_name l cs = parse_string l cs None "Rule name could not be parsed in" ||> Rule_Name
 
   fun parse_rare rule l cs f = 
   let
-    val (wth_name, name) = read_name l cs
+    val (wth_name, name) = read_rewrite_name l cs
     (*val _ = @{print}("rule name: ", name)*)
     val (wth_par, parsed_par) = parse_pars wth_name None l
     (*val _ = @{print}("parameter list: ", parsed_par)*)
     val wth_last_parenthesis = take (length wth_par - 1) wth_par
 
-    (*TODO: Completely rewrite*)
-    (*TODO: Use nested lists instead of counter and then flatten them?*)
-
     (*A statement is either in between parenthesis or a single token*)
-    (*Empty strings cannot be parsed in by the SMTLIB parser. Find out the reason. For now strings are excluded here*)
+    (*Empty strings cannot be parsed in by the SMTLIB parser. For now strings are excluded here*)
     fun read_token [] token _ = ([],token) |
         read_token (" "::cs) token _ = (cs,token) |
         read_token ("\""::"\""::cs) token false = read_token cs (token^"(str.const emptyString)") true | (*TDOO: replace by ''s?*)
@@ -131,6 +125,7 @@ local
         read_token (c::cs) token x = read_token cs (token^c) x
 
 (*TODO: string constants*)
+    (*TODO: Use nested lists instead of counter and then flatten them?*)
     fun split_up [] _ _ _ = [] |
         split_up (" "::cs) 0 None str_const = split_up cs 0 None str_const | (*Skip blanks in between expressions*)
         split_up ("("::cs) 0 None str_const = split_up cs 1 (String "(") str_const | (*Expression starts with a parenthesis*)
@@ -156,7 +151,7 @@ local
    val expr = f l (map SMTLIB.parse expr_list)
 
   in
-    rule :: name @ [Par parsed_par] @ expr
+    rule :: [name] @ [Par parsed_par] @ expr
   end
 
 in 
