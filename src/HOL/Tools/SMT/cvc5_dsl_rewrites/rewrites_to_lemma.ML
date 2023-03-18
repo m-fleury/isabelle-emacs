@@ -24,12 +24,13 @@ fun hackish_string_of_type ctxt =
 
 fun generalize_types ctxt t =
   let
-    val erase_types = map_types (fn _ => dummyT)
+(*TODO: Don't erase simple types here*)
+    val erase_types = map_types (fn x => (@{print}("erase_type x",x);dummyT))
     (* use schematic type variables *)
     val ctxt = ctxt |> Proof_Context.set_mode Proof_Context.mode_pattern
     val infer_types = singleton (Type_Infer_Context.infer_types ctxt)
   in
-     t |> erase_types |> infer_types
+     t  |> infer_types
   end
 
 
@@ -79,7 +80,16 @@ val write_auto = ["  by auto\n\n"]
    =  ["  assumes \"" ^ get_term ass pars ctxt ^ "\"\n" ^
 "  shows \"((" ^ get_term match pars ctxt ^ ") = (" ^ get_term target pars ctxt ^ "))\"\n" ] *)
 (*val write_auto = ["  by auto\n\n"]*)
-(*fun write_auto pars name =
+(*("t",
+ S [Sym "zs",
+    S [Sym "ListVar",
+       S [Sym "Bool"]]])*)
+fun collect_lists [] = [] |
+    collect_lists ((SMTLIB.S [SMTLIB.Sym var,SMTLIB.S [SMTLIB.Sym "ListVar", _]])::ts)
+      = var :: collect_lists ts |
+    collect_lists (t::ts) = collect_lists ts
+
+fun write_auto pars name =
 let
   val lists = (collect_lists pars) (*TODO: Should not do this twice*)
   fun write_cases [] = "" |
@@ -92,7 +102,7 @@ let
                "  done\n\n"
 in
  if lists = [] then ["  by auto\n\n"] else [tactic]
-end*)
+end
 
 
 (*(*("res",
@@ -156,7 +166,7 @@ val _ = @{print}("  Added par",par)
             (*val new_typ = Type((hackish_string_of_type ctxt new_par_type)^"::len word",[])*)
             val new_typ = Type("Word.word",[new_par_type])
 
-            val par_type_str = hackish_string_of_type ctxt new_typ
+            val par_type_str = hackish_string_of_type ctxt new_par_type
             val new_par_type_str = if hd (raw_explode par_type_str) = "?" 
                                    then (implode (tl (tl (raw_explode par_type_str))))
                                    else par_type_str
@@ -212,13 +222,13 @@ let
   val new_operator =
     if var1_is_in_list = NONE andalso var2_is_in_list = NONE
       then Const operator
-    else if var1_is_in_list = NONE
-      then Const(\<^const_name>\<open>cvc_list_right\<close>, \<^typ>\<open>('a \<Rightarrow> 'a \<Rightarrow> 'a) \<Rightarrow> 'a \<Rightarrow> 'a Dsl_Nary_Ops.cvc_ListVar \<Rightarrow> 'a\<close>) $ Const operator
-    else if var2_is_in_list = NONE
-      then Const(\<^const_name>\<open>cvc_list_left\<close>, \<^typ>\<open>('a \<Rightarrow> 'a \<Rightarrow> 'a) \<Rightarrow> 'a Dsl_Nary_Ops.cvc_ListVar \<Rightarrow> 'a \<Rightarrow> 'a\<close>) $ Const operator
-    else
-      Const(\<^const_name>\<open>cvc_list_both\<close>, \<^typ>\<open>('a \<Rightarrow> 'a \<Rightarrow> 'a) \<Rightarrow> 'a Dsl_Nary_Ops.cvc_ListVar
-          \<Rightarrow> 'a Dsl_Nary_Ops.cvc_ListVar \<Rightarrow> 'a \<Rightarrow> 'a\<close>) $ Const operator $ (neutral_for_operator (fst operator))
+    else if var1_is_in_list = NONE (* \<^typ>\<open>('a \<Rightarrow> 'a \<Rightarrow> 'a) \<Rightarrow> 'a \<Rightarrow> 'a Dsl_Nary_Ops.cvc_ListVar \<Rightarrow> 'a\<close>*)
+      then Const(\<^const_name>\<open>cvc_list_right\<close>,dummyT) $ Const operator
+    else if var2_is_in_list = NONE (* \<^typ>\<open>('a \<Rightarrow> 'a \<Rightarrow> 'a) \<Rightarrow> 'a Dsl_Nary_Ops.cvc_ListVar \<Rightarrow> 'a \<Rightarrow> 'a\<close>*)
+      then Const(\<^const_name>\<open>cvc_list_left\<close>,dummyT) $ Const operator
+    else (* \<^typ>\<open>('a \<Rightarrow> 'a \<Rightarrow> 'a) \<Rightarrow> 'a Dsl_Nary_Ops.cvc_ListVar
+          \<Rightarrow> 'a Dsl_Nary_Ops.cvc_ListVar \<Rightarrow> 'a \<Rightarrow> 'a\<close>*)
+      Const(\<^const_name>\<open>cvc_list_both\<close>,dummyT) $ Const operator $ (neutral_for_operator (fst operator))
 in 
   (new_operator $ (Free (var_name1,typ1)) $ (Free (var_name2,typ2)))
 end
@@ -227,8 +237,8 @@ end
    val var1_is_in_list = List.find (fn a => var_name1 = a) lvars
    val new_operator =
      if var1_is_in_list = NONE
-     then Const operator
-     else Const (\<^const_name>\<open>cvc_list_left\<close>, \<^typ>\<open>('a \<Rightarrow> 'a \<Rightarrow> 'a) \<Rightarrow> 'a \<Rightarrow> 'a Dsl_Nary_Ops.cvc_ListVar \<Rightarrow> 'a\<close>)
+     then Const operator 
+     else Const (\<^const_name>\<open>cvc_list_left\<close>,dummyT) (* \<^typ>\<open>('a \<Rightarrow> 'a \<Rightarrow> 'a) \<Rightarrow> 'a Dsl_Nary_Ops.cvc_ListVar \<Rightarrow> 'a \<Rightarrow>'a\<close>*)
          $ Const operator
  in 
   (new_operator $ (Free (var_name1,typ1)) $ (mk_nary1 l2 lvars))
@@ -239,7 +249,7 @@ end
    val new_operator =
      if var2_is_in_list = NONE
      then Const operator
-     else Const (\<^const_name>\<open>cvc_list_right\<close>, \<^typ>\<open>('a \<Rightarrow> 'a \<Rightarrow> 'a) \<Rightarrow> 'a \<Rightarrow> 'a Dsl_Nary_Ops.cvc_ListVar \<Rightarrow> 'a\<close>)
+     else Const (\<^const_name>\<open>cvc_list_right\<close>,dummyT) (* \<^typ>\<open>('a \<Rightarrow> 'a \<Rightarrow> 'a) \<Rightarrow> 'a \<Rightarrow> 'a Dsl_Nary_Ops.cvc_ListVar \<Rightarrow> 'a\<close>*)
          $ Const operator
  in 
   (new_operator $ (mk_nary1 l1 lvars) $ (Free (var_name2,typ2)))
@@ -250,7 +260,15 @@ end
 
 
 
-
+fun test_f (Free (name, t)) xs =
+let
+  fun find_bound_id [(var_name,id)] = id |
+      find_bound_id ((var_name,id)::xs) = (if name = var_name then id else find_bound_id xs)
+in 
+ (Bound (find_bound_id xs))
+end |
+    test_f (l1 $ l2) xs = test_f l1 xs $ test_f l2 xs |
+    test_f x xs = x
 
 
 
@@ -368,9 +386,10 @@ end
 
 local
 
- fun write_tree smtlib_tree2 param ctxt =
+ fun write_tree smtlib_tree param ctxt =
   let
-    (*val _ = @{print}("smtlib_tree",smtlib_tree)*)
+    val _ = @{print}("smtlib_tree",smtlib_tree)
+
     (*val term = empty_context ctxt Symtab.empty Symtab.empty |> SMTLIB_Proof.term_of smtlib_tree*)
     val cx = empty_context ctxt Symtab.empty Symtab.empty
     val term2 = SMTLIB_Proof.term_of smtlib_tree2 cx
@@ -378,16 +397,43 @@ local
     (*val _ = @{print}("term",fst term)
     val _ = @{print}("term",snd term)*)
     val _ = @{print}("term2",fst term2)
+    val _ = @{print}("param",param)
+(*("param",
+ [S [Sym "ys", S [Sym "ListVar", S [Sym "Bool"]]],
+  S [Sym "xs",
+     S [Sym "ListVar",
+        S [Sym "Bool"]]]])*)
+
+fun get_lists [] lvars = lvars |
+ get_lists (SMTLIB.S [SMTLIB.Sym name, SMTLIB.S [SMTLIB.Sym "ListVar", typ]] :: ts) lvars
+= get_lists ts (name::lvars) |
+get_lists (t::ts) lvars = get_lists ts lvars
+
+fun get_names [] = [] |
+ get_names (SMTLIB.S [SMTLIB.Sym name, _] :: ts) 
+= name :: get_names ts 
+
+
+
+(* [S [Sym "ys", S [Sym "ListVar", S [Sym "Bool"]]],
+  S [Sym "xs",
+     S [Sym "ListVar",
+        S [Sym "Bool"]]]]*)
+    val _ = @{print}("(get_lists param [])",(get_lists param []))
 
 
     (*val nary = mk_nary (fst term) [] 0*)
-    val nary2 = mk_nary1 (fst term2) ["xs","ys","zs"]
+    val nary2 = mk_nary1 (fst term2) (get_lists param [])
 
     (*val _ = @{print}("nary",nary)*)
     val _ = @{print}("nary2",nary2)
 
     val str_res = hackish_string_of_term ctxt nary2
     val _ = @{print}("str_res",str_res)
+val testf = test_f nary2 ( (get_names param) ~~ (upto(0,length param-1)))
+val _ = @{print}("ftest", test_f nary2)
+
+
 
 (*  "\<forall>(s1::char list) (s2::char list cvc_ListVar)\n   (s3::char list cvc_ListVar) (t1::char list) (t2::char list cvc_ListVar)\n   t3::char list cvc_ListVar.\n   \<not> cvc_list_both (=) (PutInNeutral::bool) s1 t1 \<and>\n   smtlib_str_len s1 = smtlib_str_len t1 \<longrightarrow>\n   (cvc_list_right smtlib_str_concat (cvc_list_left smtlib_str_concat s1 s2)\n     s3 =\n    smtlib_str_concat (cvc_list_left smtlib_str_concat t1 t2) t3) =\n   False") (line 314 of "/home/lachnitt/Sources/isabelle-git/isabelle-emacs/src/HOL/Tools/SMT/cvc5_dsl_rewrites/rewrites_to_lemma.ML") 
 *)
@@ -399,80 +445,73 @@ fun dest_var cx (SMTLIB.S [SMTLIB.Sym name, ty]) = (name, (desymbolize name, typ
   | dest_var _ v = raise SMTLIB_PARSE ("bad SMT quantifier variable format", v)
 
 
+(*Seems not to work, do I have to traverse the node manually and change the free variables to 
+bound ones? I thought the below function was doing that.*)
 fun quant vars body cx =
   let val vs = map (dest_var cx) vars
-      (*val _ = @{print} "In quant"
-      val _ = @{print} "str_of tree quant "
-      val _ = @{print} "Until here "
-      val _ = (SMTLIB.str_of (SMTLIB.S vars))
-      val _ = "but not done?"*)
+      val _ = @{print} "In quant"
+      val _ = @{print} ("vs",vs)
+      val _ = @{print} ("body",fst (body cx))
+
   in
     cx
     |> with_bindings (map (apsnd (Term o Free)) vs) body
     |>> fold_rev (fn (_, (n, T)) => fn t => HOLogic.mk_all (n, T, t)) vs
   end
 
-  val test = quant param (fn x => (nary2, snd term2)) cx
+  val test = quant (rev param) (fn x => (nary2, snd term2)) cx
     val _ = @{print}("test",test)
-
-
-
-    val term_gen_types = (fst test) |> generalize_types ctxt
+  val testfr = quant (rev param) (fn x => (testf, snd term2)) cx
+    val _ = @{print}("testfr",testfr)
+                                       
+    val term_gen_types = (fst testfr) |> generalize_types ctxt
     val _ = @{print}("term_gen_types",term_gen_types)
+
+
+
+  val str_res = hackish_string_of_term ctxt term_gen_types
+
+    val _ = @{print}("str_res",str_res)
+
 
   in
    term_gen_types
   end
 
-(*
-
-fixes x::'a word
-assumes LENGTH('a) = 5 
-
-
-
-n::'a \<rightarrow> n::int \<rightarrow> n::int
-n::'a \<rightarrow> n::?Bitvec \<longrightarrow> 'a word
-n::'a \<longrightarrow> n::? \<longrightarrow> 'a 
-
-*)
-
-
+fun quant_letify_tree tree param (NONE)
+   = SMTLIB.S [SMTLIB.Sym "forall", SMTLIB.S (rev param), tree]
+  | quant_letify_tree tree param (SOME lets)
+   = SMTLIB.S [SMTLIB.Sym "forall", SMTLIB.S (rev param),
+                   SMTLIB.S [SMTLIB.Sym "let", SMTLIB.S lets, tree]]
 
 in 
-fun write_lemma (Rewrite_Rule ((Rule_Type DEFINE_RULE)::(Rule_Name name)::[Par param, Match m, Target t])) ctxt =
-  let
-    val smtlib_tree = SMTLIB.S [SMTLIB.Sym "forall", SMTLIB.S (rev param), SMTLIB.S [SMTLIB.Sym "=", m, t]]
-    val _ = @{print}("smtlib_tree",smtlib_tree)
-    val smtlib_tree2 = SMTLIB.S [SMTLIB.Sym "=", m, t]
-
-    val res = write_tree smtlib_tree2 param ctxt
-  in 
-    [write_lemma_header name, write_body res param ctxt, write_auto]
-  end |
-  write_lemma (Rewrite_Rule ((Rule_Type DEFINE_COND_RULE)::(Rule_Name name)::[Par param, Precondition ass, Match m, Target t])) ctxt =
-    let
-      val smtlib_tree = SMTLIB.S [SMTLIB.Sym "forall", SMTLIB.S (rev param),
-                        SMTLIB.S [SMTLIB.Sym "implies", ass, SMTLIB.S [SMTLIB.Sym "=", m, t]]]
-      val smtlib_tree2 = SMTLIB.S [SMTLIB.Sym "implies", ass, SMTLIB.S [SMTLIB.Sym "=", m, t]]
-      val res = write_tree smtlib_tree2 param ctxt
-    in 
-       [write_lemma_header name, write_body res param ctxt]
-    end |
-  write_lemma (Rewrite_Rule ((Rule_Type DEFINE_STAR_RULE)::(Rule_Name name)::[Par param, Context_Expr context_expr, Match m, Target t])) ctxt =
-    let (*TODO*)
-      val smtlib_tree = SMTLIB.S [SMTLIB.Sym "forall", SMTLIB.S param, SMTLIB.S [SMTLIB.Sym "=", m, t]]
-      val smtlib_tree2 = SMTLIB.S [SMTLIB.Sym "=", m, t]
-
-      val res = write_tree smtlib_tree2 param ctxt
-    in (*TODO*)
-       [write_lemma_header name, write_body res param ctxt]
-    end |
-    write_lemma rwr ctxt = 
-let val _ = @{print}("rwr",rwr)
-in
-raise WRITE_LEMMA_FROM_DSL_REWRITE ("Could not write rewrite rule to lemma, has wrong form" ) (*^ PARSE_REWRITE.to_str rwr)*)
-end
+  fun write_lemma (Rewrite_Rule ((Rule_Type DEFINE_RULE)::(Rule_Name name):: [Par param, Let_Defs ld, Match m, Target t])) ctxt =
+   let
+    val _ = @{print}("current define-rule to write: ", name)
+    val smtlib_tree_body = SMTLIB.S [SMTLIB.Sym "=", m, t]
+    val smtlib_tree = quant_letify_tree smtlib_tree_body param ld
+    val res = write_tree smtlib_tree param ctxt
+   in
+    [write_lemma_header name, write_body res param ctxt, write_auto param name]
+   end |
+  write_lemma (Rewrite_Rule ((Rule_Type DEFINE_COND_RULE)::(Rule_Name name)::[Par param, Let_Defs ld, Precondition ass, Match m, Target t])) ctxt =
+   let
+    val _ = @{print}("current define-cond-rule to write: ", name)
+    val smtlib_tree_body = SMTLIB.S [SMTLIB.Sym "implies", ass, SMTLIB.S [SMTLIB.Sym "=", m, t]]
+    val smtlib_tree = quant_letify_tree smtlib_tree_body param ld
+    val res = write_tree smtlib_tree param ctxt
+   in 
+     [write_lemma_header name, write_body res param ctxt, write_auto param name]
+   end |
+  write_lemma (Rewrite_Rule ((Rule_Type DEFINE_STAR_RULE)::(Rule_Name name)::[Par param, Let_Defs ld, Context_Expr context_expr, Match m, Target t])) ctxt =
+   let (*TODO*)
+     val _ = @{print}("current define-star-rule to write: ", name)
+     val smtlib_tree = SMTLIB.S [SMTLIB.Sym "forall", SMTLIB.S param, SMTLIB.S [SMTLIB.Sym "=", m, t]]
+     val res = write_tree smtlib_tree param ctxt
+   in (*TODO*)
+      [write_lemma_header name, write_body res param ctxt]
+   end |
+  write_lemma rwr _ = (@{print}("rwr",rwr);raise WRITE_LEMMA_FROM_DSL_REWRITE ("Could not write rewrite rule to lemma, has wrong form"))
 end
 
 local
