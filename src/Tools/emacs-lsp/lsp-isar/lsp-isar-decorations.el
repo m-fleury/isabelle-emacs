@@ -764,6 +764,7 @@ more memory), so we only remove some with a short timeout."
        (lsp-isar-decorations--cl-assert (numberp ,point0))
        (lsp-isar-decorations--cl-assert (numberp ,point1))
        (let ((ov (make-overlay ,point0 ,point1)))
+	 (overlay-put ov 'evaporate t)
 	 (overlay-put ov 'face ,face)
 	 ov)))))
 
