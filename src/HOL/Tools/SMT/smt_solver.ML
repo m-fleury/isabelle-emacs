@@ -283,7 +283,7 @@ fun replay_only ctxt problem proof =
       |> SMT_Config.select_solver solver
       |> Context.proof_of
     val (name, {command, smt_options, replay, ...}) = name_and_info_of ctxt
-    val replay_data = SMT_Parse_Problem.parse1 problem ctxt
+    val replay_data = SMT_Parse_Problem.parse problem ctxt
 
     (*Print replay data for debugging*)
     val {context, typs, terms, ll_defs , rewrite_rules , assms} = replay_data

@@ -1398,7 +1398,7 @@ end))
 ML \<open>
 
 (*Call replay from SMT_Solver and add replay_data on your own*)
-val _ =  Outer_Syntax.local_theory \<^command_keyword>\<open>check_smt\<close> "parse a file in SMTLIB2 format and check proof"
+val _ =  Outer_Syntax.local_theory \<^command_keyword>\<open>check_smt\<close> "parse a file in SMTLIB2 format and check proof. <problem_file,proof_file>"
     ((Parse.string -- Parse.string)
     >> (fn (problem_file_name,proof_file_name) => fn lthy =>
   let

@@ -1,7 +1,6 @@
 signature SMT_PARSE_PROBLEM =
 sig
-  (*val parse_smt_problem : string --> SMT_Translate.replay_data*)
-  val parse1: string list -> Proof.context -> SMT_Translate.replay_data
+  val parse: string list -> Proof.context -> SMT_Translate.replay_data
 end;
 
 structure SMT_Parse_Problem =
@@ -98,9 +97,11 @@ in
  {context = sub_ctxt2,typs = typs,terms = terms,ll_defs = ll_defs,rewrite_rules = rewrite_rules,assms = assms2}
 end
 
+(*This obviously could be done better but since it is only temporary:*)
 fun read l ("("::"a"::"s"::"s"::"e"::"r"::"t"::" "::cs) replay_data = parse_assert ("("::"a"::"s"::"s"::"e"::"r"::"t"::" "::cs) replay_data |
     read l cs replay_data = replay_data
 (* read l ("("::"d"::"e"::"c"::"l"::"a"::"r"::"e"::"-"::"f"::"u"::"n"::" "::cs) replay_data = parse_declare cs replay_data *)
+(* read l ("("::"d"::"e"::"c"::"l"::"a"::"r"::"e"::"-"::"s"::"o"::"r"::"t"::" "::cs) replay_data = parse_declare cs replay_data *)
 
 
 
@@ -116,7 +117,7 @@ fun add_line line (l, replay_data) =
     else (l + 1, read l (raw_explode line) replay_data)
   end
 
-fun parse1 lines ctxt
+fun parse lines ctxt
  = snd (fold add_line lines (1,
  ({context = ctxt, typs = Symtab.empty, terms = Symtab.empty, ll_defs = [], rewrite_rules = [], assms = []}: SMT_Translate.replay_data)))
  (*= print (fst (Lethe_Proof.parse Symtab.empty Symtab.empty lines ctxt))*)
