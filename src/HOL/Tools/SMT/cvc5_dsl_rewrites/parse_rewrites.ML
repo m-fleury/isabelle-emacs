@@ -6,7 +6,8 @@ sig
   datatype rewrite_tree = 
     Rule_Type of rule_type |
     Rule_Name of string |
-    Par of SMTLIB.tree list |
+    Par of (SMTLIB.tree list * SMTLIB.tree list) |
+    Let_Defs of SMTLIB.tree list option |
     Precondition of SMTLIB.tree |
     Match of SMTLIB.tree |
     Target of SMTLIB.tree |
@@ -29,7 +30,8 @@ datatype unfinished = None | String of string | Symbol of string | TreeList of S
   datatype rewrite_tree = 
     Rule_Type of rule_type |
     Rule_Name of string |
-    Par of SMTLIB.tree list |
+    Par of (SMTLIB.tree list * SMTLIB.tree list) |
+    Let_Defs of SMTLIB.tree list option |
     Precondition of SMTLIB.tree |
     Match of SMTLIB.tree |
     Target of SMTLIB.tree |
@@ -48,8 +50,9 @@ For example,
  S [S [Sym "t",Sym "Bool"]] and S [S [Sym "=", Sym "t", Sym "s"]] and S [Sym "true"]
 
 Binarisation of n-ary operators in rare rules:
-  Note that for the parameters the type cvc_ListVar is already set here but for the expressions
-  this is done in rewrites_to_lemma to reuse the binarisation procedure in SMTLIB_Proof.
+  Note that we cannot use the type ListVar here yet since that would lead to incorrect type inferences.
+  We have to set this in rewrites_to_lemma where we also add cvc_list operators to reuse the binarisation
+  procedure in SMTLIB_Proof.
 *)
 
 fun parse_string l (c :: cs) None error_msg =
@@ -65,29 +68,34 @@ local
 
    (* A parameter can be of the form <symbol> <sort> <attr>*
       The symbol and the sort need to be parsed in. If the attribute is :list, the type of the 
-      parameter should be a ListVar type.   
+      parameter still needs to be whatever type the elements of this list have.  
    *)
-  fun parse_par_type (":"::cs) typ _ l = parse_par_type cs ("(ListVar (" ^ typ ^ "))") true l
-    | parse_par_type (")"::cs) typ _ _ = (cs, typ)
-    | parse_par_type (" "::cs) typ is_list l = parse_par_type cs typ is_list l
+ (*TODO: THERE CAN BE NESTED PARENTEHESIS (c (_ BitVec 1))*)
+  fun parse_par_type (":"::cs) typ _ l = parse_par_type cs typ true l
+    | parse_par_type (")"::cs) typ is_list _ = (cs, typ, is_list)
+    (*| parse_par_type (" "::cs) typ is_list l = parse_par_type cs typ is_list l*)
     | parse_par_type (_::cs) typ true l = parse_par_type cs typ true l
     | parse_par_type (c::cs) typ false l = parse_par_type cs (typ^c) false l
     | parse_par_type _ _ _ l = raise PARSE (l, "parameter is not well-formed.")
 
 in
-  fun parse_pars ("("::")"::cs) None _ = (cs,[]) (*Par list is empty*)
- | parse_pars ("("::cs) None l = parse_pars cs (TreeList []) l (*Very first opening parenthesis*) 
- | parse_pars ("("::cs) (TreeList xs) l =
+  fun parse_pars ("("::")"::cs) None _ _ = (cs,[],[]) (*Par list is empty*)
+ | parse_pars ("("::cs) None [] l = parse_pars cs (TreeList []) [] l (*Very first opening parenthesis*) 
+ | parse_pars ("("::cs) (TreeList xs) list_pars l =
     let
       val (cs',par_name) = parse_string l cs None "Parameter name could not be parsed in"
-      val (cs'',par_type) = parse_par_type cs' "" false l
+      (*TODO: This is a hotfix for nested parenthesis*)
+      val (cs'',par_type,is_list) = if hd cs' = "(" then parse_par_type (tl cs') "" false l else parse_par_type cs' "" false l
+      val cs'' = if hd cs' = "(" then tl cs'' else cs''
+      val par_type = if hd cs' = "(" then "("^par_type^")" else par_type
       val par = SMTLIB.parse ["("^par_name^" " ^ par_type^")"]
+      val new_list_pars = (if is_list then par::list_pars else list_pars)
       (*val _ = @{print} ("Parsed par: ", par)
       val _ = @{print} ("New rest string: ", implode cs'')*)
-    in parse_pars cs'' (TreeList (par::xs)) l end
- | parse_pars (")"::cs) (TreeList xs) _ = (cs, xs) (*Very last closing parenthesis*)
- | parse_pars (" "::cs) (TreeList xs) l = parse_pars cs (TreeList xs) l (*Skip spaces between pars*)
- | parse_pars _ _ l = raise PARSE (l, "parameter list is not well-formed.")
+    in parse_pars cs'' (TreeList (par::xs)) new_list_pars l end
+ | parse_pars (")"::cs) (TreeList xs) list_pars _ = (cs, xs, list_pars) (*Very last closing parenthesis*)
+ | parse_pars (" "::cs) (TreeList xs) list_pars l = parse_pars cs (TreeList xs) list_pars l (*Skip spaces between pars*)
+ | parse_pars _ _ _ l = raise PARSE (l, "parameter list is not well-formed.")
 end
 
 local 
@@ -111,8 +119,8 @@ local
   let
     val (wth_name, name) = read_rewrite_name l cs
     (*val _ = @{print}("rule name: ", name)*)
-    val (wth_par, parsed_par) = parse_pars wth_name None l
-    (*val _ = @{print}("parameter list: ", parsed_par)*)
+    val (wth_par, parsed_par, list_pars) = parse_pars wth_name None [] l
+    val _ = @{print}("parameter list: ", parsed_par)
     val wth_last_parenthesis = take (length wth_par - 1) wth_par
 
     (*A statement is either in between parenthesis or a single token*)
@@ -145,13 +153,28 @@ local
         split_up _ _ _ _ = raise PARSE (l, "rule cannot be parsed in")
 
 (*TODO: string list instead of string list list*)
-    val expr_list = split_up wth_last_parenthesis 0 None false
-    (*Separate components (match, target, condition, context) from each other: *)
-    val _ = @{print} ("expr_list", expr_list)
+
+(* Split up blocks. Then, test if first block is a def block or not *)
+
+  val expr_list = split_up wth_last_parenthesis 0 None false
+  val pot_def_list = implode (hd expr_list)
+
+  val (expr_list, ld) =
+   if String.isPrefix "(def" pot_def_list
+   then
+   let
+     val wth_def = unprefix "(def" pot_def_list (*TODO: Delete last element*)
+     val defs = split_up (fst (split_last (raw_explode wth_def))) 0 None false
+   in (tl expr_list, SOME (map SMTLIB.parse defs)) end
+   else (expr_list, NONE)
+
+
+   (*Separate components (match, target, condition, context) from each other: *)
+   (*val _ = @{print} ("expr_list", expr_list)*)
    val expr = f l (map SMTLIB.parse expr_list)
-    val _ = @{print} ("expr", expr)
+   (*val _ = @{print} ("expr", expr)*)
   in
-    rule :: [name] @ [Par parsed_par] @ expr
+    rule :: [name] @ [Par (parsed_par,list_pars)] @ [Let_Defs ld] @ expr
   end
 
 in 
@@ -181,7 +204,7 @@ fun add_line line (l, rewrite_trees) =
 
 (*TEMP: Figure out how to parse this in a string list automatically, seperating at\n *)
 
-fun parse_rewrites lines = (fold add_line (rev lines) (1,[])) |> snd
+fun parse_rewrites lines = (fold add_line lines (1,[])) |> snd |> rev
 
 (* pretty printer *)
 
@@ -189,7 +212,7 @@ fun pretty_rewrite_tree (Rule_Type DEFINE_RULE) = Pretty.str ("define-rule ")
   | pretty_rewrite_tree (Rule_Type DEFINE_COND_RULE) = Pretty.str ("define-cond-rule ")
   | pretty_rewrite_tree (Rule_Type DEFINE_RULE_STAR) = Pretty.str ("define-rule* ")
   | pretty_rewrite_tree (Rule_Name s) = Pretty.str s 
-  | pretty_rewrite_tree (Par trees) = Pretty.enclose "(" ")" (Pretty.separate "" (map SMTLIB.pretty_tree trees))
+  | pretty_rewrite_tree (Par (trees,_)) = Pretty.enclose "(" ")" (Pretty.separate "" (map SMTLIB.pretty_tree trees))
   | pretty_rewrite_tree (Precondition tree) = SMTLIB.pretty_tree tree
   | pretty_rewrite_tree (Match tree) = SMTLIB.pretty_tree tree
   | pretty_rewrite_tree (Target tree) = SMTLIB.pretty_tree tree
