@@ -219,7 +219,8 @@ fun core_term_parser (SMTLIB.Sym "true", _) = SOME \<^Const>\<open>True\<close>
   | core_term_parser (SMTLIB.Sym ">", [t1, t2]) = SOME (mk_less t2 t1)
   | core_term_parser (SMTLIB.Sym "<=", [t1, t2]) = SOME (mk_less_eq t1 t2)
   | core_term_parser (SMTLIB.Sym ">=", [t1, t2]) = SOME (mk_less_eq t2 t1)
-  | core_term_parser (SMTLIB.Sym "cvc5_nary_op", ts) =
+  | core_term_parser (SMTLIB.Sym "distinct", [t1, t2]) = SOME (HOLogic.mk_not (HOLogic.mk_binop \<^const_name>\<open>HOL.eq\<close> (t1,t2)))
+  | core_term_parser (SMTLIB.Sym "cvc5_nary_op", ts) = (*TODO*)
 (*Plan: If there is some content in ts try to figure out what type it has. If it has no dummy type
 use that. Otherwise use ?a from the beginning?*)
     SOME(Const( \<^const_name>\<open>ListVar\<close> , \<^typ>\<open>HOL.bool list \<Rightarrow>  HOL.bool cvc_ListVar \<close>)
@@ -292,9 +293,9 @@ fun parse_type cx ty Ts =
       | _ => raise SMTLIB_PARSE ("bad SMT type format", ty)))
 
 fun parse_term t ts cx =
-  (case apply_parsers (get_term_parsers (ctxt_of cx)) (t, ts) of
+  case apply_parsers (get_term_parsers (ctxt_of cx)) (t, ts) of
     SOME u => (u, cx)
-  | NONE => (@{print} ("Applied all parsers and could still not parse t ",t);
+  | NONE =>
       (case t of
         SMTLIB.Sym name =>
           (case lookup_fun cx name of
@@ -302,7 +303,7 @@ fun parse_term t ts cx =
           | NONE =>
               if null ts then declare_free name Term.dummyT cx
               else raise SMTLIB_PARSE ("bad SMT term", t))
-      | _ => raise SMTLIB_PARSE ("bad SMT term format", t))))
+      | _ => raise SMTLIB_PARSE ("bad SMT term format", t))
 
 
 fun type_of cx ty =
@@ -355,10 +356,14 @@ end
 and quant q vars body cx =
   let val vs = map (dest_var cx) vars
       (*val _ = @{print} "In quant"
-      val _ = @{print} "str_of tree quant "
-      val _ = @{print} "Until here "
-      val _ = (SMTLIB.str_of (SMTLIB.S vars))
-      val _ = "but not done?"*)
+      val _ = @{print} ("vs",vs)
+      val _ = @{print} ("(dest_body body)",(dest_body body))
+      val _ = @{print} ("term_of(dest_body body)", (term_of(dest_body body) cx))
+      val _ = @{print} ("cx",cx)
+
+val _ = @{print}("test", cx
+    |> with_bindings (map (apsnd (Term o Free)) vs) (term_of (dest_body body))
+    |>> fold_rev (fn (_, (n, T)) => fn t => q (n, T, t)) vs)*)
   in
     cx
     |> with_bindings (map (apsnd (Term o Free)) vs) (term_of (dest_body body))
