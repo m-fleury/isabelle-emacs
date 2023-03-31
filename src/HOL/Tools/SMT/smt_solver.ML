@@ -41,8 +41,6 @@ sig
   val smt_tac': Proof.context -> thm list -> int -> tactic
 
   val replay_only: Proof.context -> string list -> string list -> thm
-  (*val smt_check: Proof.context -> int -> tactic*)
-
 end;
 
 structure SMT_Solver: SMT_SOLVER =
@@ -262,6 +260,7 @@ fun apply_solver_and_replay ctxt thms0 =
     val (output, replay_data) =
       invoke name command [] (smt_options ctxt) (SMT_Normalize.normalize ctxt thms) ctxt
 
+    (*Print replay data for debugging*)
     val {context, typs, terms, ll_defs , rewrite_rules , assms} = replay_data
     val _ = @{print}("In apply_solver_and_replay")
     val _ = @{print}("assms",assms)
@@ -275,10 +274,6 @@ fun apply_solver_and_replay ctxt thms0 =
 
 fun replay_only ctxt problem proof =
   let
-    val _ = (SMT_Config.verbose_msg ctxt (K ("Checking Alethe proof...")) ())
-    val _ = (SMT_Config.verbose_msg ctxt (K ("Problem to be checked: \n" ^ String.concat problem)) ())
-
-
     (*Set solver (for replay but not for invoking)*)
     val solver = "cvc4"
     val ctxt =
@@ -299,16 +294,6 @@ fun replay_only ctxt problem proof =
     val _ = @{print}("rewrite_rules",rewrite_rules)
     val _ = @{print}("ll_defs",ll_defs)
     val _ = @{print}("End in replay_only")
-
-
-
-    (*Make fake false theorem*)
-    val thms0 = @{thms TrueI}
-    val thms = map (pair SMT_Util.Axiom o check_topsort ctxt) thms0
-    val _ = @{print}("thms",thms)
-    val ithms = (SMT_Normalize.normalize context thms)
-    val _ = @{print}("ithms",ithms)
-
 
   in replay context replay_data proof end
 

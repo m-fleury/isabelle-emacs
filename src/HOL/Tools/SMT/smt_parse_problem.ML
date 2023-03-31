@@ -68,9 +68,9 @@ let
     |> map SMTLIB.parse
   val _ = @{print}("smtlib_lines_without_qm",smtlib_lines_without_qm)
 
+  (*If the assert is not named we can only work with a counter, if we were to need the id*)
   val SMTLIB.S [SMTLIB.Sym "assert", SMTLIB.S [SMTLIB.Sym "!", term, SMTLIB.Key "named", SMTLIB.Sym id]]
     = hd smtlib_lines_without_qm
-  val wth_assert = SMTLIB.S [SMTLIB.Sym "!", term, SMTLIB.Key "named", SMTLIB.Sym id]
 
   val ((t, name_binding), _) = SMTLIB_Proof.extract_and_update_name_bindings (term) (SMTLIB_Proof.empty_name_binding)
   val _ = @{print}("t",t)

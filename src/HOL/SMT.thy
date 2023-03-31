@@ -8,7 +8,7 @@ section \<open>Bindings to Satisfiability Modulo Theories (SMT) solvers based on
 theory SMT
   imports Divides Numeral_Simprocs "HOL-Library.Word" "HOL.Real" "Tools/SMT/cvc5_dsl_rewrites/Rare_Interface"
 "HOL-Library.Sublist" "HOL-Library.Log_Nat"
-  keywords "smt_status" "parse_rare_file" "parse_rare" :: diag
+  keywords "smt_status" "parse_rare_file" "parse_rare" "check_smt" :: diag
 begin
 
 subsection \<open>A skolemization tactic and proof method\<close>
@@ -1392,5 +1392,39 @@ val _ =  Outer_Syntax.local_theory \<^command_keyword>\<open>parse_rare_file\<cl
           val _ = @{print} ("done writing to file", res_path)
 in  lthy
 end))
+\<close>
+
+
+ML \<open>
+
+(*Call replay from SMT_Solver and add replay_data on your own*)
+val _ =  Outer_Syntax.local_theory \<^command_keyword>\<open>check_smt\<close> "parse a file in SMTLIB2 format and check proof"
+    ((Parse.string -- Parse.string)
+    >> (fn (problem_file_name,proof_file_name) => fn lthy =>
+  let
+
+    (*Get problem and proof file*)
+    val ctxt = Local_Theory.target_of lthy
+    val problem_file_path = Path.explode problem_file_name
+    val proof_file_path = Path.explode proof_file_name
+    val problem_lines = (Bytes.split_lines (Bytes.read problem_file_path));
+    val proof_lines = (Bytes.split_lines (Bytes.read proof_file_path));
+    (*TODO: This weird empty line is added at the end. Investigate*)
+    val proof_lines = take (length proof_lines - 1) proof_lines
+    val problem_lines = take (length problem_lines - 1) problem_lines
+    (*val _ = @{print} ("problem_lines", problem_lines)
+    val _ = @{print} ("proof_lines", proof_lines)*)
+
+    (*Output information*)
+    fun pretty tag lines = Pretty.string_of (Pretty.big_list tag (map Pretty.str lines))
+    val _ = SMT_Config.verbose_msg ctxt (pretty "Checking Alethe proof...") []
+    val _ = SMT_Config.verbose_msg ctxt (pretty "Problem:") problem_lines
+    val _ = SMT_Config.verbose_msg ctxt (pretty "Proof to be checked:") proof_lines
+
+    (*Replay proof*)
+    val _ = SMT_Solver.replay_only ctxt [(hd problem_lines)] proof_lines
+    val _ = (SMT_Config.verbose_msg ctxt (K ("Checked Alethe proof")) ())
+in lthy end))
+
 \<close>
 end
