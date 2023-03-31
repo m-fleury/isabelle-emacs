@@ -434,12 +434,6 @@ See documentation from `lsp-isar-insert-sendback' for more details"
   (lsp-isar-insert-sendback "sledgehammer" prover keep-sledgehammer))
 
 
-(defun lsp-isar-insert-try0-proof ()
-  "Insert proof obtained by try0 and deletes the try0 command."
-  (interactive)
-  (lsp-isar-insert-sendback "try0" "Try this: " nil))
-
-
 (defun lsp-isar-insert-proof-outline ()
   "Insert proof outline."
   (interactive)
@@ -574,14 +568,107 @@ the sledgehammer command."
 (define-key isar-mode-map (kbd "C-c C-s") 'lsp-isar-insert-sledgehammer-and-call)
 
 
-(defun lsp-isar-insert-try0 ()
-  "Insert try0 at cursor position.
 
-If there is no whitespace at cursor position, a space is inserted before try0"
+(defun lsp-isar-keep-try0 (transient)
+  "Find out if the --keep-try0 option is set in TRANSIENT."
+  (--if-let (--first (string-prefix-p "--keep-try0" it)
+                     (transient-args transient))
+      t
+    nil))
+(defun lsp-isar-insert-try-proof (prover keep-try)
+  "Insert proof by PROVER found in ISAR, keeping the command if KEEP-TRY0.
+
+See documentation from `lsp-isar-insert-sendback' for more details"
+  (interactive "P")
+  (lsp-isar-insert-sendback "try0" prover keep-try))
+
+(defun lsp-isar-insert-try-proof-1 (keep-try0)
+  "Insert 1st proofs keeping sh command if KEEP-TRY0."
+  (interactive
+   (list (lsp-isar-keep-try0 'lsp-isar-try-interface)))
+  (lsp-isar-insert-try-proof 1 keep-try0))
+
+(defun lsp-isar-insert-try-proof-2 (keep-try0)
+  "Insert 2nd proofs keeping sh command if KEEP-TRY0."
+  (interactive
+   (list (lsp-isar-keep-try0 'lsp-isar-try-interface)))
+  (lsp-isar-insert-try-proof 2 keep-try0))
+
+(defun lsp-isar-insert-try-proof-3 (keep-try0)
+  "Insert 3rd proofs keeping sh command if KEEP-TRY0."
+  (interactive
+   (list (lsp-isar-keep-try0 'lsp-isar-try-interface)))
+  (lsp-isar-insert-try-proof 3 keep-try0))
+
+(defun lsp-isar-insert-try-proof-4 (keep-try0)
+  "Insert 4th proofs keeping sh command if KEEP-TRY0."
+  (interactive
+   (list (lsp-isar-keep-try0 'lsp-isar-try-interface)))
+  (lsp-isar-insert-try-proof 4 keep-try0))
+
+(defun lsp-isar-insert-try-proof-5 (keep-try0)
+  "Insert 5th proofs keeping sh command if KEEP-TRY0."
+  (interactive
+   (list (lsp-isar-keep-try0 'lsp-isar-try-interface)))
+  (lsp-isar-insert-try-proof 5 keep-try0))
+
+(defun lsp-isar-insert-try-proof-6 (keep-try0)
+  "Insert 6th proofs keeping sh command if KEEP-TRY0."
+  (interactive
+   (list (lsp-isar-keep-try0 'lsp-isar-try-interface)))
+  (lsp-isar-insert-try-proof 6 keep-try0))
+
+(defun lsp-isar-insert-try-proof-7 (keep-try0)
+  "Insert 7th proofs keeping sh command if KEEP-TRY0."
+  (interactive
+   (list (lsp-isar-keep-try0 'lsp-isar-try-interface)))
+  (lsp-isar-insert-try-proof 7 keep-try0))
+
+(defun lsp-isar-delete-try-call ()
+  "Insert veriT proofs."
+  (interactive)
+  (if (string= (lsp-isar-indent-word-at-point) "try0")
+      (lsp-isar-kill-word-at-point)))
+
+
+(transient-define-prefix lsp-isar-try-interface ()
+  "Interface to insert try0 command in theory.
+
+The options `--isar' is set automatically set if there only one
+choice for the given prover."
+
+  ["Options"
+   ("k" "Keep try0 call if cursor is on it" "--keep-try0")]
+  ["Insert calls"
+   ("1" "proof |1|" lsp-isar-insert-try-proof-1)
+   ("2" "proof |2|" lsp-isar-insert-try-proof-2)
+   ("3" "proof |3|" lsp-isar-insert-try-proof-3)
+   ("4" "proof |4|" lsp-isar-insert-try-proof-4)
+   ("5" "proof |5|" lsp-isar-insert-try-proof-5)
+   ("6" "proof |6|" lsp-isar-insert-try-proof-6)
+   ("7" "proof |7|" lsp-isar-insert-try-proof-7)
+   ("d" "delete try0 call" lsp-isar-delete-try-call)])
+
+
+(defun lsp-isar-insert-try ()
+  "Insert try.
+
+If there is no whitespace at the current point, we insert a space before
+the try command."
   (interactive)
   (lsp-isar-insert-command "try0"))
 
-(define-key isar-mode-map (kbd "C-c C-t") 'lsp-isar-insert-try0)
+
+(defun lsp-isar-insert-try-and-call ()
+  "Insert try and open the interface.
+
+If there is no whitespace at the current point, we insert a space before
+the try command."
+  (interactive)
+  (lsp-isar-insert-try)
+  (lsp-isar-try-interface))
+
+(define-key isar-mode-map (kbd "C-c t") 'lsp-isar-insert-try-and-call)
 
 (defun lsp-isar-insert-simp ()
   "Insert \"by simp\" at cursor position with whitespace in front if necessary."
