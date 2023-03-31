@@ -39,6 +39,10 @@ sig
   (*tactic*)
   val smt_tac: Proof.context -> thm list -> int -> tactic
   val smt_tac': Proof.context -> thm list -> int -> tactic
+
+  val replay_only: Proof.context -> string list -> string list -> thm
+  (*val smt_check: Proof.context -> int -> tactic*)
+
 end;
 
 structure SMT_Solver: SMT_SOLVER =
@@ -250,10 +254,63 @@ val good_slices = #good_slices oo get_info
 fun apply_solver_and_replay ctxt thms0 =
   let
     val thms = map (pair SMT_Util.Axiom o check_topsort ctxt) thms0
+    val _ = @{print}("thms0",thms0)
+    val _ = @{print}("thms",thms)
+    val _ = @{print}("(SMT_Normalize.normalize ctxt thms)",(SMT_Normalize.normalize ctxt thms))
+
     val (name, {command, smt_options, replay, ...}) = name_and_info_of ctxt
     val (output, replay_data) =
       invoke name command [] (smt_options ctxt) (SMT_Normalize.normalize ctxt thms) ctxt
+
+    val {context, typs, terms, ll_defs , rewrite_rules , assms} = replay_data
+    val _ = @{print}("In apply_solver_and_replay")
+    val _ = @{print}("assms",assms)
+    val _ = @{print}("terms",terms)
+    val _ = @{print}("typs",typs)
+    val _ = @{print}("rewrite_rules",rewrite_rules)
+    val _ = @{print}("ll_defs",ll_defs)
+    val _ = @{print}("End in apply_solver_and_replay")
+
   in replay ctxt replay_data output end
+
+fun replay_only ctxt problem proof =
+  let
+    val _ = (SMT_Config.verbose_msg ctxt (K ("Checking Alethe proof...")) ())
+    val _ = (SMT_Config.verbose_msg ctxt (K ("Problem to be checked: \n" ^ String.concat problem)) ())
+
+
+    (*Set solver (for replay but not for invoking)*)
+    val solver = "cvc4"
+    val ctxt =
+      ctxt
+      |> I
+      |> Context.Proof
+      |> SMT_Config.select_solver solver
+      |> Context.proof_of
+    val (name, {command, smt_options, replay, ...}) = name_and_info_of ctxt
+    val replay_data = SMT_Parse_Problem.parse1 problem ctxt
+
+    (*Print replay data for debugging*)
+    val {context, typs, terms, ll_defs , rewrite_rules , assms} = replay_data
+    val _ = @{print}("In replay_only")
+    val _ = @{print}("assms",assms)
+    val _ = @{print}("terms",terms)
+    val _ = @{print}("typs",typs)
+    val _ = @{print}("rewrite_rules",rewrite_rules)
+    val _ = @{print}("ll_defs",ll_defs)
+    val _ = @{print}("End in replay_only")
+
+
+
+    (*Make fake false theorem*)
+    val thms0 = @{thms TrueI}
+    val thms = map (pair SMT_Util.Axiom o check_topsort ctxt) thms0
+    val _ = @{print}("thms",thms)
+    val ithms = (SMT_Normalize.normalize context thms)
+    val _ = @{print}("ithms",ithms)
+
+
+  in replay context replay_data proof end
 
 
 (* filter (for Sledgehammer) *)
