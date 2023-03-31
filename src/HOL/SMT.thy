@@ -7,7 +7,7 @@ section \<open>Bindings to Satisfiability Modulo Theories (SMT) solvers based on
 
 theory SMT
   imports Divides Numeral_Simprocs "HOL-Library.Word" "HOL.Real" "Tools/SMT/cvc5_dsl_rewrites/Rare_Interface"
-"HOL-Library.Sublist"
+"HOL-Library.Sublist" "HOL-Library.Log_Nat"
   keywords "smt_status" "parse_rare_file" "parse_rare" :: diag
 begin
 
@@ -698,10 +698,11 @@ ML_file \<open>Tools/SMT/smtlib_proof.ML\<close>
 ML_file \<open>Tools/SMT/smtlib_isar.ML\<close>
 ML_file \<open>Tools/SMT/z3_proof.ML\<close>
 ML_file \<open>Tools/SMT/z3_isar.ML\<close>
-ML_file \<open>Tools/SMT/smt_solver.ML\<close>
 ML_file \<open>Tools/SMT/cvc_interface.ML\<close>
 ML_file \<open>Tools/SMT/lethe_proof.ML\<close>
 ML_file \<open>Tools/SMT/lethe_isar.ML\<close>
+ML_file \<open>Tools/SMT/smt_parse_problem.ML\<close>
+ML_file \<open>Tools/SMT/smt_solver.ML\<close>
 ML_file \<open>Tools/SMT/lethe_proof_parse.ML\<close>
 ML_file \<open>Tools/SMT/cvc_proof_parse.ML\<close>
 ML_file \<open>Tools/SMT/conj_disj_perm.ML\<close>
@@ -1046,7 +1047,104 @@ subsection \<open>Tool support\<close>
 context
 begin
 qualified definition smt_extract where
-  \<open>smt_extract j i w = slice i (take_bit j w)\<close>
+  \<open>smt_extract j i w = slice i (take_bit (Suc j) w)\<close>
+
+fun repeat where
+"repeat (Suc 0) x = x" |
+"repeat (Suc n) x = word_cat x (repeat n x)"
+
+definition smt_repeat :: "nat \<Rightarrow> 'a::len word \<Rightarrow> 'a::len word" where
+  \<open>smt_repeat i x = repeat i x\<close>
+
+definition xor :: "bool \<Rightarrow> bool \<Rightarrow> bool" (infixl "[+1]" 60)
+  where "(A [+1] B) \<equiv> (\<not>(A = B))"
+
+
+(*
+
+(define-rule bv-redor-eliminate ((x ?BitVec)) (bvredor x) (not (bvcomp x (bv 0 (bvsize x)))))
+(define-rule bv-redand-eliminate ((x ?BitVec)) (bvredand x) (not (bvcomp x (not (bv 0 (bvsize x))))))
+*)
+
+definition smt_comp :: "'a::len word \<Rightarrow> 'a::len word \<Rightarrow> 1 word" where
+  \<open>smt_comp x y = (if (x = y) then 1 else 0)\<close>
+
+definition smt_redor :: "'a::len word \<Rightarrow> 1 word" where
+  \<open>smt_redor x = not (smt_comp x 0)\<close>
+
+definition smt_redand :: "'a::len word \<Rightarrow> 1 word" where
+  \<open>smt_redand x = not (smt_comp x (not (0::'a word)))\<close>
+
+definition smt_uaddo  :: "'a::len word \<Rightarrow> 'a::len word \<Rightarrow> bool" where
+"smt_uaddo x y = (smt_extract (size x) (size x)
+ ((Word.word_cat (0::1 word) x) + (Word.word_cat (0::1 word) y) :: 'c::len word) = (1:: 1 word))"
+
+definition smt_saddo :: "'a::len word \<Rightarrow> 'b::len word \<Rightarrow> bool" where
+"smt_saddo x y = (smt_extract ((size x)-1) ((size y)-1)
+ ((Word.word_cat (0::1 word) x) + (Word.word_cat (0::1 word) y) :: 'c::len word) = (1:: 1 word))"
+
+definition smt_sdivo :: "'a::len word \<Rightarrow> 'b::len word \<Rightarrow> bool" where
+"smt_sdivo x y = (x = (word_cat (1::1 word) (0::'c::len word)::'a word) \<and> y = (mask (size y)::'b word))"
+
+definition smt_usubo :: "'a::len word \<Rightarrow> 'a::len word \<Rightarrow> bool" where (*TODO*)
+"smt_usubo x y = ((smt_extract ((size x)-1) ((size x)-1) (push_bit 1 x - push_bit 1 x)) = (1::1 word))"
+(*(define-rule bv-ssubo-eliminate
+	((x ?BitVec) (y ?BitVec))
+	(def
+		(n (bvsize x))
+		(xLt0 (= (extract (- n 1) (- n 1) x) (bv 1 1)))
+		(yLt0 (= (extract (- n 1) (- n 1) y) (bv 1 1)))
+		(s (bvsub x y))
+		(sLt0 (= (extract (- n 1) (- n 1) s) (bv 1 1)))
+	)
+	(bvssubo x y)
+	(or
+		(and xLt0 (not yLt0) (not sLt0))
+		(and (not xLt0) yLt0 sLt0)))*)
+definition smt_ssubo :: "'a::len word \<Rightarrow> 'a::len word \<Rightarrow> bool" where (*TODO*)
+"smt_ssubo x y = 
+(let n = size x in 
+(let xLt0 = ((smt_extract ((size x)-1) ((size x)-1) x) = (1::1 word)) in
+(let yLt0 = ((smt_extract ((size x)-1) ((size x)-1) y) = (1::1 word)) in
+(let sLt0 = ((smt_extract ((size x)-1) ((size x)-1) (x -y)) = (1::1 word)) in
+((xLt0 \<and> \<not>yLt0 \<and> \<not>sLt0) \<or> (\<not>xLt0 \<and> yLt0 \<and> sLt0))))))
+"
+
+
+definition smt_urem :: "'a::len word \<Rightarrow> 'a::len word \<Rightarrow> 'a::len word" where
+"smt_urem s t = (if (unat s = 0) then s
+ else of_nat ((unat s) mod (unat t)))"
+
+definition smt_smod :: "'a::len word \<Rightarrow> 'a::len word \<Rightarrow> 'a::len word" where
+"smt_smod s t =
+(let size_s = size s in
+(let msb_s = smt_extract (size_s-1) (size_s-1) s in
+(let msb_t = smt_extract (size_s-1) (size_s-1) t in 
+(let abs_s = (if (msb_s = (0::1 word)) then s else -s) in 
+(let abs_t = (if (msb_t = (0::1 word)) then t else -t) in 
+(let u = (smt_urem abs_s abs_t) in 
+(if (u = (0::'a word)) then u
+ else if ((msb_s = (0::1 word)) \<and> (msb_t = (0::1 word))) then u
+ else if ((msb_s = (1::1 word)) \<and> (msb_t = (0::1 word))) then (-u + t)
+ else if ((msb_s = (0::1 word)) \<and> (msb_t = (1::1 word))) then (u + t)
+ else -u)))))))
+"
+
+definition smt_srem :: "'a::len word \<Rightarrow> 'a::len word \<Rightarrow> 'a::len word" where
+"smt_srem s t =
+(let size_s = size s in
+(let msb_s = smt_extract (size_s-1) (size_s-1) s in
+(let msb_t = smt_extract (size_s-1) (size_s-1) t in 
+(if ((msb_s = (0::1 word)) \<and> (msb_t = (0::1 word)))
+ then (smt_urem s t)
+ else (if ((msb_s = 1) \<and> (msb_t = 0))
+ then (- (smt_urem (-s) t))
+ else (if ((msb_s = 0) \<and> (msb_t = 1))
+ then (smt_urem s (-t))
+ else (- (smt_urem (-s) (-t)))
+))))))
+"
+
 end
 
 ML_file \<open>~~/src/HOL/Library/Tools/smt_word.ML\<close> (*TODO: Mathias*)
