@@ -97,6 +97,15 @@ in
  {context = sub_ctxt2,typs = typs,terms = terms,ll_defs = ll_defs,rewrite_rules = rewrite_rules,assms = assms2}
 end
 
+fun parse_sort cs ({context,typs,terms,ll_defs,rewrite_rules,assms}: SMT_Translate.replay_data)
+ =
+let
+
+in
+ {context = context,typs = typs,terms = terms,ll_defs = ll_defs,rewrite_rules = rewrite_rules,assms = assms}
+end
+
+
 (*This obviously could be done better but since it is only temporary:*)
 fun read l ("("::"a"::"s"::"s"::"e"::"r"::"t"::" "::cs) replay_data = parse_assert ("("::"a"::"s"::"s"::"e"::"r"::"t"::" "::cs) replay_data |
     read l cs replay_data = replay_data
