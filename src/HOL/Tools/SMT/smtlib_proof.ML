@@ -153,7 +153,7 @@ fun mk_less_eq t1 t2 = mk_binary_pred \<^const_name>\<open>ord_class.less_eq\<cl
 fun core_term_parser (SMTLIB.Sym "true", _) = SOME \<^Const>\<open>True\<close>
   | core_term_parser (SMTLIB.Sym "false", _) = SOME \<^Const>\<open>False\<close>
   | core_term_parser (SMTLIB.Sym "not", [t]) = SOME (HOLogic.mk_not t)
-  | core_term_parser (SMTLIB.Sym "and", t :: ts) = SOME (mk_rassoc (curry HOLogic.mk_conj) t ts)
+  | core_term_parser (SMTLIB.Sym "and", t :: ts) = SOME (mk_rassoc (curry HOLogic.mk_conj) t ts) (*TODO!!! ASK Mathias and is left_assoc in SMTLIB*)
   | core_term_parser (SMTLIB.Sym "or", t :: ts) = SOME (mk_rassoc (curry HOLogic.mk_disj) t ts)
 (*TODO Hanna: This works (and_pos error still there) but do I want this?*)
   (*| core_term_parser (SMTLIB.Sym "xor",[t1,t2]) = SOME (HOLogic.mk_not (HOLogic.mk_eq (t1, t2)))*)
@@ -219,7 +219,14 @@ fun core_term_parser (SMTLIB.Sym "true", _) = SOME \<^Const>\<open>True\<close>
   | core_term_parser (SMTLIB.Sym ">", [t1, t2]) = SOME (mk_less t2 t1)
   | core_term_parser (SMTLIB.Sym "<=", [t1, t2]) = SOME (mk_less_eq t1 t2)
   | core_term_parser (SMTLIB.Sym ">=", [t1, t2]) = SOME (mk_less_eq t2 t1)
-  | core_term_parser (SMTLIB.Sym "distinct", [t1, t2]) = SOME (HOLogic.mk_not (HOLogic.mk_binop \<^const_name>\<open>HOL.eq\<close> (t1,t2)))
+  | core_term_parser (SMTLIB.Sym "distinct", ts)
+    =
+    let
+     fun pairwise [] _ = []
+       | pairwise (t1::tss) uss = (map (fn t2 => HOLogic.mk_not (HOLogic.mk_binop \<^const_name>\<open>HOL.eq\<close> (t1,t2))) uss) @ pairwise tss uss
+    in 
+      SOME (mk_lassoc'\<^const_name>\<open>HOL.conj\<close> (hd (pairwise ts ts)) (tl (pairwise ts ts)))
+    end
   | core_term_parser (SMTLIB.Sym "cvc5_nary_op", ts) = (*TODO*)
 (*Plan: If there is some content in ts try to figure out what type it has. If it has no dummy type
 use that. Otherwise use ?a from the beginning?*)
