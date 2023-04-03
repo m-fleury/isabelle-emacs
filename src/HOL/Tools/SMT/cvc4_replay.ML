@@ -93,6 +93,14 @@ fun replay_theorem_step rewrite_rules ll_defs assumed inputs proof_prems
   (step as Lethe_Proof.Lethe_Replay_Node {id, rule, prems, bounds, args, insts,
      subproof = (fixes, assms, input, subproof), concl, ...}) state =
   let
+    val _ = @{print}("replay_theorem_step rule", rule)
+    val _ = @{print}("replay_theorem_step id", id)
+
+    val _ = @{print}("replay_theorem_step args", args)
+    val _ = @{print}("replay_theorem_step inputs", inputs)
+    val _ = @{print}("replay_theorem_step assumed", assumed)
+    val _ = @{print}("replay_theorem_step proof_prems", proof_prems)
+
     val (proofs, stats, ctxt, concl_tranformation, global_transformation) = state
     val (_, ctxt) = Variable.variant_fixes (map fst bounds) ctxt
       |> (fn (names, ctxt) => (names,
@@ -111,7 +119,11 @@ fun replay_theorem_step rewrite_rules ll_defs assumed inputs proof_prems
         #> HOLogic.mk_Trueprop
       end
     val assms = map (subst_only_free global_transformation o Term.subst_free (export_vars) o post) assms
+    val _ = @{print}("replay_theorem_step assms", assms)
+
     val input = map (subst_only_free global_transformation o Term.subst_free (export_vars) o post) input
+    val _ = @{print}("replay_theorem_step input", input)
+
     val (all_proof_prems', sub_ctxt2) = Assumption.add_assumes (map (Thm.cterm_of sub_ctxt) (assms @ input))
       sub_ctxt
     fun is_refl thm = Thm.concl_of thm |> (fn (_ $ t) => t) |> HOLogic.dest_eq |> (op =) handle TERM _=> false
@@ -153,6 +165,10 @@ fun replay_theorem_step rewrite_rules ll_defs assumed inputs proof_prems
     val ({elapsed, ...}, thm) =
       SMT_Config.with_time_limit ctxt SMT_Config.reconstruction_step_timeout replay step
         handle Timeout.TIMEOUT _ => raise SMT_Failure.SMT SMT_Failure.Time_Out
+    (*TODO: Maybe add flag so this is only output when checking an external proof, although I feel
+      it would be useful even when not*)
+    val _ = (SMT_Config.verbose_msg ctxt (K ("Successfully checked step " ^ id)) ())
+
     val stats' = Symtab.cons_list (rule, Time.toNanoseconds elapsed) stats
     val proofs = Symtab.update (id, (map fst bounds, thm)) proofs
   in (proofs, stats', ctxt,
