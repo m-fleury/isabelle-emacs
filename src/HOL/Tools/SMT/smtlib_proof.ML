@@ -223,7 +223,7 @@ fun core_term_parser (SMTLIB.Sym "true", _) = SOME \<^Const>\<open>True\<close>
     =
     let
      fun pairwise [] _ = []
-       | pairwise (t1::tss) uss = (map (fn t2 => HOLogic.mk_not (HOLogic.mk_binop \<^const_name>\<open>HOL.eq\<close> (t1,t2))) uss) @ pairwise tss uss
+       | pairwise (t1::tss) (_::uss) = (map (fn t2 => HOLogic.mk_not (HOLogic.mk_binop \<^const_name>\<open>HOL.eq\<close> (t1,t2))) uss) @ pairwise tss uss
     in 
       SOME (mk_lassoc'\<^const_name>\<open>HOL.conj\<close> (hd (pairwise ts ts)) (tl (pairwise ts ts)))
     end
