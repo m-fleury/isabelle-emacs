@@ -1422,9 +1422,11 @@ val _ =  Outer_Syntax.local_theory \<^command_keyword>\<open>check_smt\<close> "
     val _ = SMT_Config.verbose_msg ctxt (pretty "Proof to be checked:") proof_lines
 
     (*Replay proof*)
-    val _ = SMT_Solver.replay_only ctxt [(hd problem_lines)] proof_lines
+    val _ = SMT_Solver.replay_only ctxt problem_lines proof_lines
     val _ = (SMT_Config.verbose_msg ctxt (K ("Checked Alethe proof")) ())
 in lthy end))
 
 \<close>
+
+
 end
