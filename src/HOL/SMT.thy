@@ -1428,5 +1428,18 @@ in lthy end))
 
 \<close>
 
-
+ML \<open>case @{typ "'a"} of TFree a => @{print} a\<close>
+ML \<open>
+Thm.cterm_of ( @{context})
+  @{term "a :: 'alpha"}\<close>
+declare [[smt_trace=true,smt_cvc_lethe = true]]
+lemma "f x a = f x b \<Longrightarrow> f x (f x a) = f x (f x b)"
+  supply  [[smt_cvc_lethe = true]]
+  apply (smt (cvc4))
+  oops
+ML \<open>
+Thm.cterm_of (Variable.declare_typ (TFree ("'alpha", ["HOL.type"])) @{context})
+  @{term "a :: 'alpha"}\<close>
+declare [[smt_trace]]
+check_smt "/home/fleury/Documents/repos/QF_UF/TypeSafe/z3.1184131.smt2" "/tmp/log"
 end

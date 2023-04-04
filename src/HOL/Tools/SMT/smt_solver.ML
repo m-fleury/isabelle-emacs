@@ -286,6 +286,7 @@ fun replay_only ctxt problem proof =
     val replay_data = SMT_Parse_Problem.parse problem ctxt
 
     (*Print replay data for debugging*)
+    val (replay_data, _) = replay_data
     val {context, typs, terms, ll_defs , rewrite_rules , assms} = replay_data
     val _ = @{print}("In replay_only")
     val _ = @{print}("assms",assms)

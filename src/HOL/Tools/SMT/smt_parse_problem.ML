@@ -57,61 +57,128 @@ Ich versuche diese Woche, sonst uebernimmt Mathias.
   "(?P::bool) = True \<equiv> ?P"]) (line 270 of "/home/lachnitt/Sources/isabelle-git/isabelle-emacs/src/HOL/Tools/SMT/smt_solver.ML") 
 ("ll_defs", []*)
 
-fun parse_assert cs ({context,typs,terms,ll_defs,rewrite_rules,assms}: SMT_Translate.replay_data)
+fun parse_assert cs ({context,typs,terms,ll_defs,rewrite_rules,assms}: SMT_Translate.replay_data, assms_nbr)
  =
 let
-  val _ = @{print}("cs",implode cs)
   val smtlib_lines_without_qm = (*This also removes pattern usually but I deleted it here for now*)
-    [implode cs]
-    |> map single
-    |> map SMTLIB.parse
-  val _ = @{print}("smtlib_lines_without_qm",smtlib_lines_without_qm)
+    implode cs
+    |> single
+    |> SMTLIB.parse
+  val ([step], _, cx) = @{print} (Lethe_Proof.parse_raw_proof_steps NONE [smtlib_lines_without_qm]
+   SMTLIB_Proof.empty_name_binding 0)
 
-  (*If the assert is not named we can only work with a counter, if we were to need the id*)
-  val SMTLIB.S [SMTLIB.Sym "assert", SMTLIB.S [SMTLIB.Sym "!", term, SMTLIB.Key "named", SMTLIB.Sym id]]
-    = hd smtlib_lines_without_qm
+  val (Lethe_Proof.Raw_Lethe_Node {concl, ...} : Lethe_Proof.raw_lethe_node) = step
+  val _ = @{print}("concl", concl)
 
-  val ((t, name_binding), _) = SMTLIB_Proof.extract_and_update_name_bindings (term) (SMTLIB_Proof.empty_name_binding)
-  val _ = @{print}("t",t)
-  val cx = (SMTLIB_Proof.empty_context context Symtab.empty Symtab.empty)
-  val t2 = SMTLIB_Proof.term_of t cx |> fst
-  val context = SMTLIB_Proof.ctxt_of cx
+
+  val cx = (SMTLIB_Proof.empty_context context typs terms)
+  val t2 = SMTLIB_Proof.term_of concl cx |> fst
   val _ = @{print}("t2",t2)
 
 
-  val (all_proof_prems', sub_ctxt2) = Assumption.add_assumes (map (Thm.apply \<^cterm>\<open>Trueprop\<close> o Thm.cterm_of context) [@{term "\<not>True"}]) context
+  val ([all_proof_prems'], sub_ctxt2) = Assumption.add_assumes (map (Thm.apply \<^cterm>\<open>Trueprop\<close> o Thm.cterm_of context) [t2]) context
   val _ = @{print}("all_proof_prems'",all_proof_prems')
 
-  val test = Thm.assume (Thm.apply \<^cterm>\<open>Trueprop\<close> (Thm.cterm_of context @{term "\<not>True"}))
-  val _ = @{print}("test",test)
  (* assms should be:
   ("assms", [((0, Axiom), "\<not> True"  [.])]) (line 267 of "/home/lachnitt/Sources/isabelle-git/isabelle-emacs/src/HOL/Tools/SMT/smt_solver.ML") *)
     val export_thm = singleton (Proof_Context.export sub_ctxt2 context)
  
- val assms2 = ([((0,SMT_Util.Axiom),test)]:((int * SMT_Util.role) * thm) list)
-
-val rewrite_rules2 =  [@{thm SMT.fun_app_def},@{thm HOL.Let_def},
-  @{thm verit_eq_true_simplify}]
+ val assms2 = ([((0,SMT_Util.Axiom),all_proof_prems')]:((int * SMT_Util.role) * thm) list)
 
 in
- {context = sub_ctxt2,typs = typs,terms = terms,ll_defs = ll_defs,rewrite_rules = rewrite_rules,assms = assms2}
+ ({context = sub_ctxt2,typs = typs,terms = terms,ll_defs = ll_defs,rewrite_rules = rewrite_rules,
+assms = assms2}, assms_nbr+1)
 end
 
-fun parse_sort cs ({context,typs,terms,ll_defs,rewrite_rules,assms}: SMT_Translate.replay_data)
+(*Taken from stuff*)
+fun add_components_of_typ (Type (s, Ts)) =
+    cons (Long_Name.base_name s) #> fold_rev add_components_of_typ Ts
+  | add_components_of_typ (TFree (s, _)) = cons (perhaps (try (unprefix "'")) s)
+  | add_components_of_typ _ = I;
+
+fun suggested_name_of_typ T = space_implode "_" (add_components_of_typ T []);
+
+fun suggested_name_of_term (Const (s, _)) = Long_Name.base_name s
+  | suggested_name_of_term (Free (s, _)) = s
+  | suggested_name_of_term _ = Name.uu
+
+fun add_typ T proper (cx as (names, typs, terms)) =
+  (case Typtab.lookup typs T of
+    SOME (name, _) => (name, cx)
+  | NONE =>
+      let
+        val sugg = Name.desymbolize (SOME true) (suggested_name_of_typ T) ^ "$"
+        val (name, names') = Name.variant sugg names
+        val typs' = Typtab.update (T, (name, proper)) typs
+      in (name, (names', typs', terms)) end)
+(**)
+fun parse_sort (cs: string list) ({context,typs: typ Symtab.table,terms,ll_defs,rewrite_rules,assms}: SMT_Translate.replay_data, assms_nbr)
  =
 let
+    val _ = @{print} ("declaration", cs)
+  val typ = (*This also removes pattern usually but I deleted it here for now*)
+    [implode cs]
+    |> map single
+    |> map SMTLIB.parse
+    |> (fn [SMTLIB.S [SMTLIB.Sym "declare-sort", SMTLIB.Sym typ, SMTLIB.Num 0]] => typ)
+    |> @{print}
+    val T = TFree (typ, ["HOL.type"])
+    val context = Variable.declare_typ T context
 
+   val typs = Symtab.update (typ, T) typs
+|> @{print}
 in
- {context = context,typs = typs,terms = terms,ll_defs = ll_defs,rewrite_rules = rewrite_rules,assms = assms}
+ ({context = context,typs = typs,terms = terms,ll_defs = ll_defs,rewrite_rules = rewrite_rules,assms = assms}, assms_nbr)
 end
+
+
+fun dest_name (SMTLIB.Sym name) = name
+  | dest_name t = raise SMTLIB_Proof.SMTLIB_PARSE ("bad name", t)
+
+fun dest_seq (SMTLIB.S ts) = ts
+  | dest_seq t = raise SMTLIB_Proof.SMTLIB_PARSE ("bad Z3 proof format", t)
+
+val desymbolize = Name.desymbolize (SOME false) o perhaps (try (unprefix "?"))
+
+fun parse_declare (cs: string list) ({context,typs,terms,ll_defs,rewrite_rules,assms}: SMT_Translate.replay_data, assms_nbr)
+   =
+  let
+    val _ = @{print} ("declaration", cs)
+    val (n, tys, ty) = (*This also removes pattern usually but I deleted it here for now*)
+      [implode cs]
+      |> map single
+      |> map SMTLIB.parse
+      |> (fn [SMTLIB.S [SMTLIB.Sym "declare-fun", n, tys, ty]] => (n, tys, ty))
+    
+     val name = dest_name n
+     val ctxt = SMTLIB_Proof.empty_context context typs terms
+     val Ts = map (SMTLIB_Proof.type_of ctxt) (dest_seq tys)
+     val T = SMTLIB_Proof.type_of ctxt ty
+
+    val ([n'], ctxt') =  Variable.variant_fixes [name] context
+
+    val t = Free (n', Ts ---> T)
+    val terms = Symtab.update (name, t) terms
+|>  @{print} 
+(*
+     val Ts = map (SMTLIB_Proof.type_of context) (dest_seq tys)
+     val T = type_of cx ty
+*)
+   (*     in parse' ts (declare_fun name (Ts ---> T) cx) end*)
+    val _ = @{print} ("declaration", (n, tys, ty))
+  in
+    ({context = context, typs = typs,terms = terms,ll_defs = ll_defs,rewrite_rules = rewrite_rules,assms = assms}, assms_nbr)
+  end
 
 
 (*This obviously could be done better but since it is only temporary:*)
-fun read l ("("::"a"::"s"::"s"::"e"::"r"::"t"::" "::cs) replay_data = parse_assert ("("::"a"::"s"::"s"::"e"::"r"::"t"::" "::cs) replay_data |
-    read l cs replay_data = replay_data
+fun read l ("("::"a"::"s"::"s"::"e"::"r"::"t"::" "::cs) replay_data = 
+      parse_assert ("("::"a"::"s"::"s"::"e"::"r"::"t"::" "::cs) replay_data
+  | read l (cs as "("::"d"::"e"::"c"::"l"::"a"::"r"::"e"::"-"::"f"::"u"::"n"::" ":: _) replay_data = parse_declare cs replay_data
+  | read l (cs as "("::"d"::"e"::"c"::"l"::"a"::"r"::"e"::"-"::"s"::"o"::"r"::"t"::" ":: _) replay_data = parse_sort cs replay_data
+  | read l cs replay_data  = replay_data
 (* read l ("("::"d"::"e"::"c"::"l"::"a"::"r"::"e"::"-"::"f"::"u"::"n"::" "::cs) replay_data = parse_declare cs replay_data *)
 (* read l ("("::"d"::"e"::"c"::"l"::"a"::"r"::"e"::"-"::"s"::"o"::"r"::"t"::" "::cs) replay_data = parse_declare cs replay_data *)
-
 
 
 (* overall parser *)
@@ -128,7 +195,7 @@ fun add_line line (l, replay_data) =
 
 fun parse lines ctxt
  = snd (fold add_line lines (1,
- ({context = ctxt, typs = Symtab.empty, terms = Symtab.empty, ll_defs = [], rewrite_rules = [], assms = []}: SMT_Translate.replay_data)))
+ ({context = ctxt, typs = Symtab.empty, terms = Symtab.empty, ll_defs = [], rewrite_rules = [], assms = []}: SMT_Translate.replay_data, 0)))
  (*= print (fst (Lethe_Proof.parse Symtab.empty Symtab.empty lines ctxt))*)
 
 
