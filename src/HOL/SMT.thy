@@ -1442,6 +1442,6 @@ ML \<open>
 Thm.cterm_of (Variable.declare_typ (TFree ("'alpha", ["HOL.type"])) @{context})
   @{term "a :: 'alpha"}\<close>
 declare [[smt_trace,show_types=false,smt_debug_verit]]
-check_smt "/home/fleury/Documents/repos/QF_UF/TypeSafe/z3.1184131.smt2" "/tmp/log"
+check_smt "/home/fleury/Documents/repos/QF_UF/TypeSafe/z3.1184147.smt2" "/tmp/log"
 
 end

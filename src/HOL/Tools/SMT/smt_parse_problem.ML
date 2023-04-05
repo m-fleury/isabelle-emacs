@@ -79,7 +79,7 @@ let
   val ([all_proof_prems'], sub_ctxt2) = Assumption.add_assumes (map (Thm.apply \<^cterm>\<open>Trueprop\<close> o Thm.cterm_of context) [t2]) context
   val _ = @{print}("all_proof_prems'",all_proof_prems')
  
- val assm = ((0,SMT_Util.Axiom),all_proof_prems'):((int * SMT_Util.role) * thm)
+ val assm = ((assms_nbr,SMT_Util.Axiom),all_proof_prems'):((int * SMT_Util.role) * thm)
 
 in
  ({context = sub_ctxt2,typs = typs,terms = terms,ll_defs = ll_defs,rewrite_rules = rewrite_rules,
