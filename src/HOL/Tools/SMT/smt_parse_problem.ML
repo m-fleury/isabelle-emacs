@@ -78,10 +78,6 @@ let
 
   val ([all_proof_prems'], sub_ctxt2) = Assumption.add_assumes (map (Thm.apply \<^cterm>\<open>Trueprop\<close> o Thm.cterm_of context) [t2]) context
   val _ = @{print}("all_proof_prems'",all_proof_prems')
-
- (* assms should be:
-  ("assms", [((0, Axiom), "\<not> True"  [.])]) (line 267 of "/home/lachnitt/Sources/isabelle-git/isabelle-emacs/src/HOL/Tools/SMT/smt_solver.ML") *)
-    val export_thm = singleton (Proof_Context.export sub_ctxt2 context)
  
  val assm = ((0,SMT_Util.Axiom),all_proof_prems'):((int * SMT_Util.role) * thm)
 
@@ -176,7 +172,7 @@ fun read ("("::"a"::"s"::"s"::"e"::"r"::"t"::" "::cs) replay_data =
       parse_assert ("("::"a"::"s"::"s"::"e"::"r"::"t"::" "::cs) replay_data
   | read (cs as "("::"d"::"e"::"c"::"l"::"a"::"r"::"e"::"-"::"f"::"u"::"n"::" ":: _) replay_data = parse_declare cs replay_data
   | read (cs as "("::"d"::"e"::"c"::"l"::"a"::"r"::"e"::"-"::"s"::"o"::"r"::"t"::" ":: _) replay_data = parse_sort cs replay_data
-  | read cs replay_data  = replay_data
+  | read _ replay_data  = replay_data
 (* read l ("("::"d"::"e"::"c"::"l"::"a"::"r"::"e"::"-"::"f"::"u"::"n"::" "::cs) replay_data = parse_declare cs replay_data *)
 (* read l ("("::"d"::"e"::"c"::"l"::"a"::"r"::"e"::"-"::"s"::"o"::"r"::"t"::" "::cs) replay_data = parse_declare cs replay_data *)
 

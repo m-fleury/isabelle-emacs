@@ -812,6 +812,7 @@ local
 
       val smtlib_lines_without_qm =
         lines
+        |> filter_out (fn x => x = "")
         |> map single
         |> map SMTLIB.parse
         |> map remove_all_qm2
