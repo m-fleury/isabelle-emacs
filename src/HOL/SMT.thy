@@ -1147,6 +1147,7 @@ definition smt_srem :: "'a::len word \<Rightarrow> 'a::len word \<Rightarrow> 'a
 
 end
 
+
 ML_file \<open>~~/src/HOL/Library/Tools/smt_word.ML\<close> (*TODO: Mathias*)
 
 ML \<open>
@@ -1440,6 +1441,7 @@ lemma "f x a = f x b \<Longrightarrow> f x (f x a) = f x (f x b)"
 ML \<open>
 Thm.cterm_of (Variable.declare_typ (TFree ("'alpha", ["HOL.type"])) @{context})
   @{term "a :: 'alpha"}\<close>
-declare [[smt_trace]]
+declare [[smt_trace,show_types=false,smt_debug_verit]]
 check_smt "/home/fleury/Documents/repos/QF_UF/TypeSafe/z3.1184131.smt2" "/tmp/log"
+
 end

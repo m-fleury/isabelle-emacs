@@ -106,18 +106,21 @@ fun replay_theorem_step rewrite_rules ll_defs assumed inputs proof_prems
       |> (fn (names, ctxt) => (names,
         fold Variable.declare_term [SMTLIB_Isar.unskolemize_names ctxt concl] ctxt))
 
+    val _ = @{print}("stuff 0", assms)
     val (names, sub_ctxt) = Variable.variant_fixes (map fst fixes) ctxt
        ||> fold Variable.declare_term (map Free fixes)
+    val _ = @{print}("stuff 10", assms)
     val export_vars = concl_tranformation @
        (ListPair.zip (map Free fixes, map Free (ListPair.zip (names, map snd fixes))))
 
     val post = let val thy = Proof_Context.theory_of (empty_simpset ctxt) in
-        Raw_Simplifier.rewrite_term thy ((if Lethe_Proof.keep_raw_lifting rule then tl rewrite_rules else rewrite_rules)) []
+        Raw_Simplifier.rewrite_term thy ((if Lethe_Proof.keep_raw_lifting rule andalso not (null rewrite_rules) then tl rewrite_rules else rewrite_rules)) []
         #> Object_Logic.atomize_term ctxt
         #> not (null ll_defs andalso Lethe_Proof.keep_raw_lifting rule) ? SMTLIB_Isar.unlift_term ll_defs
         #> SMTLIB_Isar.unskolemize_names ctxt
         #> HOLogic.mk_Trueprop
       end
+    val _ = @{print}("stuff", assms)
     val assms = map (subst_only_free global_transformation o Term.subst_free (export_vars) o post) assms
     val _ = @{print}("replay_theorem_step assms", assms)
 

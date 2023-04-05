@@ -138,6 +138,17 @@ end)
 fun qnt_simplify ctxt _ t = SMT_Replay_Methods.prove ctxt t (fn _ =>
       K (Clasimp.auto_tac ctxt))
 
+
+fun unsupported_failback ctxt prems t = SMT_Replay_Methods.prove ctxt t (fn _ =>
+let
+    val _ = @{print} "fallback!"
+
+in
+  Method.insert_tac ctxt prems
+    (*TODO: should only be used for lambda encoding*)
+    THEN' Clasimp.force_tac ctxt
+end)
+
 (*
 Example:
 lemma \<open>(\<forall>x y. P x = Q y) \<Longrightarrow> (\<forall> y z. Q y = R z) \<Longrightarrow> (\<forall>x z. P x = R z)\<close>
@@ -255,7 +266,7 @@ fun choose And = ignore_args and_rule
   | choose BV_Bitblast_Step_Bvequal = ignore_args bv_bitblast_step_bvequal
   | choose BV_Bitblast_Step_Concat = ignore_args bv_bitblast_step_concat
   | choose Tmp_Quantifier_Simplify = ignore_args qnt_simplify
-  | choose r = unsupported (string_of_verit_rule r)
+  | choose r = ignore_args unsupported_failback
 
 type verit_method = Proof.context -> thm list -> term -> thm
 type abs_context = int * term Termtab.table

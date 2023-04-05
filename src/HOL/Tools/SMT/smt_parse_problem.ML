@@ -83,11 +83,11 @@ let
   ("assms", [((0, Axiom), "\<not> True"  [.])]) (line 267 of "/home/lachnitt/Sources/isabelle-git/isabelle-emacs/src/HOL/Tools/SMT/smt_solver.ML") *)
     val export_thm = singleton (Proof_Context.export sub_ctxt2 context)
  
- val assms2 = ([((0,SMT_Util.Axiom),all_proof_prems')]:((int * SMT_Util.role) * thm) list)
+ val assm = ((0,SMT_Util.Axiom),all_proof_prems'):((int * SMT_Util.role) * thm)
 
 in
  ({context = sub_ctxt2,typs = typs,terms = terms,ll_defs = ll_defs,rewrite_rules = rewrite_rules,
-assms = assms2}, assms_nbr+1)
+assms = assm :: assms}, assms_nbr+1)
 end
 
 (*Taken from stuff*)
@@ -172,11 +172,11 @@ fun parse_declare (cs: string list) ({context,typs,terms,ll_defs,rewrite_rules,a
 
 
 (*This obviously could be done better but since it is only temporary:*)
-fun read l ("("::"a"::"s"::"s"::"e"::"r"::"t"::" "::cs) replay_data = 
+fun read ("("::"a"::"s"::"s"::"e"::"r"::"t"::" "::cs) replay_data = 
       parse_assert ("("::"a"::"s"::"s"::"e"::"r"::"t"::" "::cs) replay_data
-  | read l (cs as "("::"d"::"e"::"c"::"l"::"a"::"r"::"e"::"-"::"f"::"u"::"n"::" ":: _) replay_data = parse_declare cs replay_data
-  | read l (cs as "("::"d"::"e"::"c"::"l"::"a"::"r"::"e"::"-"::"s"::"o"::"r"::"t"::" ":: _) replay_data = parse_sort cs replay_data
-  | read l cs replay_data  = replay_data
+  | read (cs as "("::"d"::"e"::"c"::"l"::"a"::"r"::"e"::"-"::"f"::"u"::"n"::" ":: _) replay_data = parse_declare cs replay_data
+  | read (cs as "("::"d"::"e"::"c"::"l"::"a"::"r"::"e"::"-"::"s"::"o"::"r"::"t"::" ":: _) replay_data = parse_sort cs replay_data
+  | read cs replay_data  = replay_data
 (* read l ("("::"d"::"e"::"c"::"l"::"a"::"r"::"e"::"-"::"f"::"u"::"n"::" "::cs) replay_data = parse_declare cs replay_data *)
 (* read l ("("::"d"::"e"::"c"::"l"::"a"::"r"::"e"::"-"::"s"::"o"::"r"::"t"::" "::cs) replay_data = parse_declare cs replay_data *)
 
@@ -190,7 +190,7 @@ fun add_line line (l, replay_data) =
   in
     if size line = 0 then (l + 1, replay_data) (*Skip empty lines*)
     else if hd line_list = ";" then (l + 1, replay_data) (*Skip comments*)
-    else (l + 1, read l (raw_explode line) replay_data)
+    else (l + 1, read (raw_explode line) replay_data)
   end
 
 fun parse lines ctxt
