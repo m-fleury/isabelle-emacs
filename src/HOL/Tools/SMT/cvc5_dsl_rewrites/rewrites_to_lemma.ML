@@ -299,9 +299,27 @@ local
     val _ = @{print}("smtlib_tree",smtlib_tree)
     (*First the tree is parsed without considering lists*)
     val cx = empty_context ctxt Symtab.empty Symtab.empty
-    val term = SMTLIB_Proof.term_of smtlib_tree cx |> fst
-    val _ = @{print}("smtlib_tree as term",term)
+    val (term,additional_assms) = SMTLIB_Proof.term_of_with_additonal_assms smtlib_tree cx 
+    val term = term |> fst
+    val _ = @{print}("additional_assms",additional_assms)
+     
+
+    fun mk_rassoc f t ts =
+      let val us = rev (t :: ts)
+      in fold f (tl us) (hd us) end
+
+(*NOOO, I have to replace variables by bounds*)
+    fun add_assms ts [] = ts |
+        add_assms (Const ("HOL.All", all) $ (Abs (name, typ,l2))) ass = (Const ("HOL.All", all) $ (Abs (name, typ,add_assms l2 ass))) |
+        add_assms ts (a::ass) = (Const ("HOL.implies", \<^typ>\<open>HOL.bool\<close> -->  \<^typ>\<open>HOL.bool\<close> --> \<^typ>\<open>HOL.bool\<close>)
+                              $ (mk_rassoc (curry HOLogic.mk_conj) a ass) $ ts ) 
+  
+    val _ = @{print}("smtlib_tree as term", term)                                 
+    (*val _ = @{print}("smtlib_tree as term with additional_assms",add_assms term additional_assms)
+    val term = add_assms term additional_assms*)
+
     (*Then, the whole term is traversed to make terms lists and introduce corresponding operators*)
+    (*TODO: include additional_assms, for this take away quantifier add additional_assms and add quantifiers back*)
     val list_param2 = map (fn (SMTLIB.S [SMTLIB.Sym name, SMTLIB.Sym typ]) => name) list_param
     val _ = @{print}("list_param2", list_param2)
 
