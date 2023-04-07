@@ -173,8 +173,6 @@ fun read ("("::"a"::"s"::"s"::"e"::"r"::"t"::" "::cs) replay_data =
   | read (cs as "("::"d"::"e"::"c"::"l"::"a"::"r"::"e"::"-"::"f"::"u"::"n"::" ":: _) replay_data = parse_declare cs replay_data
   | read (cs as "("::"d"::"e"::"c"::"l"::"a"::"r"::"e"::"-"::"s"::"o"::"r"::"t"::" ":: _) replay_data = parse_sort cs replay_data
   | read _ replay_data  = replay_data
-(* read l ("("::"d"::"e"::"c"::"l"::"a"::"r"::"e"::"-"::"f"::"u"::"n"::" "::cs) replay_data = parse_declare cs replay_data *)
-(* read l ("("::"d"::"e"::"c"::"l"::"a"::"r"::"e"::"-"::"s"::"o"::"r"::"t"::" "::cs) replay_data = parse_declare cs replay_data *)
 
 
 (* overall parser *)
@@ -189,8 +187,34 @@ fun add_line line (l, replay_data) =
     else (l + 1, read (raw_explode line) replay_data)
   end
 
+
+fun count_parenthesis n ("(" :: line)  = count_parenthesis (n+1) line
+  | count_parenthesis n (")" :: line)  = count_parenthesis (n-1) line
+  | count_parenthesis n (_ :: line)  = count_parenthesis (n) line
+  | count_parenthesis n []  = n
+
+(*TODO this is ugly and does not support
+(assert ..) (assert ...)
+
+
+but supports
+
+(assert (or 
+   a
+   b))
+
+
+*)
+fun fix_lines [] = []
+  | fix_lines (l :: lines) = 
+    let val n = count_parenthesis 0 (raw_explode l)
+    in 
+      if n = 0 then l :: fix_lines lines
+      else implode ((raw_explode l @ [hd lines])) :: tl lines
+    end
+
 fun parse lines ctxt
- = snd (fold add_line lines (1,
+ = snd (fold add_line (fix_lines lines) (1,
  ({context = ctxt, typs = Symtab.empty, terms = Symtab.empty, ll_defs = [], rewrite_rules = [], assms = []}: SMT_Translate.replay_data, 0)))
  (*= print (fst (Lethe_Proof.parse Symtab.empty Symtab.empty lines ctxt))*)
 
