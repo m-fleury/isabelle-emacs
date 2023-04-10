@@ -283,8 +283,8 @@ fun replay_only ctxt problem proof =
       |> SMT_Config.select_solver solver
       |> Context.proof_of
     val (name, {command, smt_options, replay, ...}) = name_and_info_of ctxt
-    val replay_data = SMT_Parse_Problem.parse problem ctxt
-
+    val (replay_data, _) = SMT_Parse_Problem.parse problem ctxt
+ 
     (*Print replay data for debugging*)
     val {context, typs, terms, ll_defs , rewrite_rules , assms} = replay_data
     val _ = @{print}("In replay_only")
@@ -294,8 +294,10 @@ fun replay_only ctxt problem proof =
     val _ = @{print}("rewrite_rules",rewrite_rules)
     val _ = @{print}("ll_defs",ll_defs)
     val _ = @{print}("End in replay_only")
+    val thm = replay context replay_data proof
+    val _ =  @{print} (Proof_Context.export context ctxt [thm])
 
-  in replay context replay_data proof end
+  in thm end
 
 
 (* filter (for Sledgehammer) *)

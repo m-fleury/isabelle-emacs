@@ -721,6 +721,7 @@ let
     val _ = (SMT_Config.verit_msg ctxt) (fn () => \<^print> ("normalized input prems in lethe_replay =",prems))
 in
   Method.insert_tac ctxt prems
+THEN' K (print_tac ctxt "steff")
   THEN' TRY' (K (unfold_tac ctxt @{thms SMT.trigger_def}))
   THEN' TRY' (partial_simplify_tac ctxt @{thms eq_commute})
 end)

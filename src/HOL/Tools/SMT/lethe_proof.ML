@@ -32,6 +32,17 @@ sig
      term -> (string * typ) list -> term Symtab.table -> (string * term) list ->
      (string * typ) list * term list * term list * lethe_replay_node list -> lethe_replay_node
 
+datatype raw_lethe_node = Raw_Lethe_Node of {
+  id: string,
+  rule: string,
+  args: SMTLIB.tree,
+  prems: string list,
+  concl: SMTLIB.tree,
+  declarations: (string * SMTLIB.tree) list,
+  subproof: raw_lethe_node list}
+ val parse_raw_proof_steps: string option -> SMTLIB.tree list -> SMTLIB_Proof.name_bindings -> int ->
+ raw_lethe_node list * SMTLIB.tree list * SMTLIB_Proof.name_bindings
+
   (*proof parser*)
   val parse: typ Symtab.table -> term Symtab.table -> string list ->
     Proof.context -> lethe_step list * Proof.context
@@ -262,7 +273,7 @@ end
 
 datatype step_kind = ASSUME | ASSERT | ANCHOR | NO_STEP | NORMAL_STEP | SKOLEM
 
-fun parse_raw_proof_steps (limit : string option) (ls : SMTLIB.tree list) (cx : name_bindings) :
+fun parse_raw_proof_steps (limit : string option) (ls : SMTLIB.tree list) (cx : name_bindings) (assms_nbr : int):
      (raw_lethe_node list * SMTLIB.tree list * name_bindings) =
   let
     fun rotate_pair (a, (b, c)) = ((a, b), c)
@@ -272,6 +283,7 @@ fun parse_raw_proof_steps (limit : string option) (ls : SMTLIB.tree list) (cx : 
       | step_kind ((p as SMTLIB.S (SMTLIB.Sym "assert" :: _)) :: l) = (ASSERT, p, l)
       | step_kind ((p as SMTLIB.S (SMTLIB.Sym "step" :: _)) :: l) = (NORMAL_STEP, p, l)
       | step_kind ((p as SMTLIB.S (SMTLIB.Sym "define-fun" :: _)) :: l) = (SKOLEM, p, l)
+      | step_kind ((p as SMTLIB.S (SMTLIB.Sym "declare-fun" :: _)) :: l) = (SKOLEM, p, l)
       | step_kind p = raise (Fail ("step_kind unrec: " ^ @{make_string} p))
     fun parse_skolem (SMTLIB.S [SMTLIB.Sym "define-fun", SMTLIB.Sym id,  _, typ,
            SMTLIB.S (SMTLIB.Sym "!" :: t :: [SMTLIB.Key _, SMTLIB.Sym name])]) cx =
@@ -284,10 +296,18 @@ fun parse_raw_proof_steps (limit : string option) (ls : SMTLIB.tree list) (cx : 
               (SMTLIB.S [SMTLIB.Sym "=", SMTLIB.Sym id, l]) [], cx)
          end
       | parse_skolem (SMTLIB.S [SMTLIB.Sym "define-fun", SMTLIB.Sym id,  _, typ, SMTLIB.S l]) cx =
-         let val (l, cx) = (fst oo SMTLIB_Proof.extract_and_update_name_bindings) (SMTLIB.S l ) cx
+         let val (l, cx) = (fst oo SMTLIB_Proof.extract_and_update_name_bindings) (SMTLIB.S l) cx
          in
            (mk_raw_node (id ^ lethe_def) lethe_def (SMTLIB.S [SMTLIB.Sym id, typ, l]) [] []
               (SMTLIB.S [SMTLIB.Sym "=", SMTLIB.Sym id, l]) [], cx)
+         end
+      | parse_skolem (SMTLIB.S [SMTLIB.Sym "declare-fun", SMTLIB.Sym id, typ, def]) cx =
+         (*replace the name binding by the constant instead of the full term in order to reduce
+           the size of the generated terms and therefore the reconstruction time*)
+         let val (l, cx) = (fst oo SMTLIB_Proof.extract_and_update_name_bindings) def cx
+         in
+           (mk_raw_node (id ^ lethe_def) lethe_def (SMTLIB.S [SMTLIB.Sym id, typ, l]) [] []
+              (SMTLIB.S [SMTLIB.Sym "=", SMTLIB.Sym id, def]) [], cx)
          end
       | parse_skolem t _ = raise Fail ("unrecognized Lethe proof " ^ \<^make_string> t)
     fun get_id_cx (SMTLIB.S ((SMTLIB.Sym _) :: (SMTLIB.Sym id) :: l), cx) = (id, (l, cx))
@@ -336,7 +356,7 @@ fun parse_raw_proof_steps (limit : string option) (ls : SMTLIB.tree list) (cx : 
               val (s, (_, cx)) =  (p, cx)
                 |> parse_normal_step
                 |>>  (to_raw_node [])
-              val (rp, rl, cx) = parse_raw_proof_steps limit l cx
+              val (rp, rl, cx) = parse_raw_proof_steps limit l cx assms_nbr
           in (s :: rp, rl, cx) end
       | (ASSUME, p, l) =>
           let
@@ -348,36 +368,38 @@ fun parse_raw_proof_steps (limit : string option) (ls : SMTLIB.tree list) (cx : 
             val ((t, cx), _) = SMTLIB_Proof.extract_and_update_name_bindings t cx
             val s = mk_raw_node id input_rule (SMTLIB.S []) [] [] t []
             (*Recursive call to parse rest of the steps.*)
-            val (rp, rl, cx) = parse_raw_proof_steps limit l cx
+            val (rp, rl, cx) = parse_raw_proof_steps limit l cx (assms_nbr + 1)
           in (s :: rp, rl, cx) end
       | (ASSERT, p, l) => (*TODO*)
           let
             val _ = @{print}("p",p)
             val _ = @{print}("l",l)
 
+            val (id, term) = (case p of
+                SMTLIB.S [SMTLIB.Sym "assert", SMTLIB.S [SMTLIB.Sym "!", term, SMTLIB.Key "named", SMTLIB.Sym id]] => (id, term)
+              | SMTLIB.S [SMTLIB.Sym "assert", term] => (Int.toString assms_nbr, term))
             (*val SMTLIB.S [SMTLIB.Sym "assert", SMTLIB.S [SMTLIB.Sym "!", term, SMTLIB.Key "named", SMTLIB.Sym id]]
                 = p*)
-            val (id, t :: []) = ("0",[])
             val _ = @{print}("id",id)
-            val _ = @{print}("t",t)
+            val _ = @{print}("t",term)
 
-            val ((t, cx), _) = SMTLIB_Proof.extract_and_update_name_bindings t cx
+            val ((t, cx), _) = SMTLIB_Proof.extract_and_update_name_bindings term cx
             val s = mk_raw_node id input_rule (SMTLIB.S []) [] [] t []
             (*Recursive call to parse rest of the steps.*)
-            val (rp, rl, cx) = parse_raw_proof_steps limit l cx
+            val (rp, rl, cx) = parse_raw_proof_steps limit l cx (assms_nbr+1)
           in (s :: rp, rl, cx) end
       | (ANCHOR, p, l) =>
           let
             val (anchor_id, (anchor_args, (_, cx))) = (p, cx) |> (parse_anchor_step ##> parse_args)
-            val (subproof, discharge_step :: remaining_proof, cx) = parse_raw_proof_steps (SOME anchor_id) l cx
+            val (subproof, discharge_step :: remaining_proof, cx) = parse_raw_proof_steps (SOME anchor_id) l cx assms_nbr
             val (curss, (_, cx)) = parse_normal_step (discharge_step, cx)
             val s = to_raw_node subproof (fst curss, anchor_args)
-            val (rp, rl, cx) = parse_raw_proof_steps limit remaining_proof cx
+            val (rp, rl, cx) = parse_raw_proof_steps limit remaining_proof cx assms_nbr
           in (s :: rp, rl, cx) end
       | (SKOLEM, p, l) =>
           let
             val (s, cx) = parse_skolem p cx
-            val (rp, rl, cx) = parse_raw_proof_steps limit l cx
+            val (rp, rl, cx) = parse_raw_proof_steps limit l cx (assms_nbr)
           in (s :: rp, rl, cx) end
   end
 
@@ -790,6 +812,7 @@ local
 
       val smtlib_lines_without_qm =
         lines
+        |> filter_out (fn x => x = "")
         |> map single
         |> map SMTLIB.parse
         |> map remove_all_qm2
@@ -797,7 +820,7 @@ local
       val _ = @{print}("smtlib_lines_without_qm",smtlib_lines_without_qm)
 
       val (raw_steps, _, _) =
-        parse_raw_proof_steps NONE smtlib_lines_without_qm SMTLIB_Proof.empty_name_binding
+        parse_raw_proof_steps NONE smtlib_lines_without_qm SMTLIB_Proof.empty_name_binding 0
       val _ = @{print}("raw_steps",raw_steps)
 
       fun process step (cx, cx') =

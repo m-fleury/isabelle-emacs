@@ -37,7 +37,7 @@ fun outcome_of unsat sat unknown timeout solver_name line =
   else if String.isPrefix timeout line then SMT_Solver.Time_Out
   else raise SMT_Failure.SMT (SMT_Failure.Other_Failure ("Solver " ^ quote solver_name ^
     " failed -- enable tracing using the " ^ quote (Config.name_of SMT_Config.trace) ^
-    " option for details"))
+    " option for details. Line:" ^ @{make_string} line))
 
 (* When used with bitvectors, CVC4 can produce error messages like:
 

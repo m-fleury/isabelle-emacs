@@ -1147,6 +1147,7 @@ definition smt_srem :: "'a::len word \<Rightarrow> 'a::len word \<Rightarrow> 'a
 
 end
 
+
 ML_file \<open>~~/src/HOL/Library/Tools/smt_word.ML\<close> (*TODO: Mathias*)
 
 ML \<open>
@@ -1428,5 +1429,20 @@ in lthy end))
 
 \<close>
 
+ML \<open>case @{typ "'a"} of TFree a => @{print} a\<close>
+ML \<open>
+Thm.cterm_of ( @{context})
+  @{term "a :: 'alpha"}\<close>
+declare [[smt_trace=true,smt_cvc_lethe = true]]
+lemma "f x a = f x b \<Longrightarrow> f x (f x a) = f x (f x b)"
+  supply  [[smt_cvc_lethe = true]]
+  apply (smt (cvc4))
+  oops
+ML \<open>
+Thm.cterm_of (Variable.declare_typ (TFree ("'alpha", ["HOL.type"])) @{context})
+  @{term "a :: 'alpha"}\<close>
+declare [[smt_trace,show_types=false,smt_debug_verit]]
+check_smt "/home/fleury/Documents/repos/QF_UF/20170829-Rodin/smt1300175744189082250.smt2" 
+"/home/fleury/Documents/repos/QF_UF/20170829-Rodin/smt1300175744189082250.smt2.proof"
 
 end
