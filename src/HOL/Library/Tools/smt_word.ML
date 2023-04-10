@@ -321,12 +321,16 @@ fun bv_term_parser (SMTLIB.Sym bv, []) =
     let 
        val T1 = fastype_of t1
        val T2 = fastype_of t2
-      val _ = @{print}("t1",t1)
-      val _ = @{print}("T1",T1)
+      val _ = @{print}("extract t1",t1)
+      val _ = @{print}("extract T1",T1)
+      val _ = @{print}("extract t2",t2)
+      val _ = @{print}("extract T2",T2)
+
+      val _ = @{print}("extract t3",t3)
 
        val t1' = if T1 = \<^typ>\<open>Int.int\<close> then (Const ( \<^const_name>\<open>nat\<close>, T1 --> \<^typ>\<open>Nat.nat\<close>) $ t1) else t1
        val t2' = if T2 = \<^typ>\<open>Int.int\<close> then (Const ( \<^const_name>\<open>nat\<close>, T2 --> \<^typ>\<open>Nat.nat\<close>) $ t2) else t2
-      val _ = @{print}("t1'",t1')
+      val _ = @{print}("extract t1'",t1')
 
     in (SOME (Const (\<^const_name>\<open>SMT.smt_extract\<close>, @{typ nat} --> @{typ nat} --> dummyT --> dummyT) $ t1' $ t2' $ t3)
       ,[(mk_less_eq (HOLogic.mk_number \<^typ>\<open>Nat.nat\<close> 0) t1')

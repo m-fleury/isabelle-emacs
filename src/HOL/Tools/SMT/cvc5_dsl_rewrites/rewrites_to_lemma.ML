@@ -58,8 +58,8 @@ fun write_lemma_header name = ["named_theorems rewrite_" ^ name ^ " \<open>autom
 
 fun write_auto lists name =
 let
-  fun write_cases xs = map (fn str => "  apply (cases " ^ str ^ ")\n") xs |> foldl1 (String.^)
-  fun write_subgoal xs = map (fn str => str ^ "s ") xs |> foldl1 (String.^)
+  fun write_cases xs = if xs = [] then "" else map (fn str => "  apply (cases " ^ str ^ ")\n") xs |> foldl1 (String.^)
+  fun write_subgoal xs = if xs = [] then "" else map (fn str => str ^ "s ") xs |> foldl1 (String.^)
   val tactic = write_cases lists ^ "  subgoal for " ^ write_subgoal lists ^ "\n" ^
                "    apply (simp add: cvc_list_left_transfer cvc_list_right_transfer_op cvc_list_both_transfer_op)\n" ^ 
                "    by (simp add: " ^ name ^  "_lemma)\n" ^
@@ -68,80 +68,7 @@ in
  if lists = [] then ["  by auto\n\n"] else [tactic]
 end
 
-
-fun
-get_pars ctxt (Const ("HOL.All", _) $ (Abs (new_par_name, new_par_type, xs)))
- ((SMTLIB.S [SMTLIB.Sym org_par_name, SMTLIB.S [SMTLIB.Sym "ListVar", SMTLIB.S [SMTLIB.Sym org_par_type]]]) :: ys) pars = 
-  let 
-val _ = @{print}("ListVar detected in get_pars")
-
-val _ = @{print}("  new_par_name",new_par_name)
-val _ = @{print}("  new_par_type",new_par_type)
-val _ = @{print}("  org_par_name",org_par_name)
-val _ = @{print}("  org_par_type",org_par_type)
-
-(*TODO: Test for ? or something in case this is not a bitvec but still parametric*)
-    val par = 
-        (if (not (org_par_type = "?BitVec"))
-         then 
-           let
-            val term = SMTLIB_Proof.type_of (empty_context ctxt Symtab.empty Symtab.empty) ( SMTLIB.S [SMTLIB.Sym "ListVar", SMTLIB.S [SMTLIB.Sym org_par_type]]) 
-            val par_type_str = hackish_string_of_type ctxt term
-           in new_par_name ^ "::\"" ^ par_type_str ^ "\"" end
-         else
-           let (*TODO*)
-            val par_type_str = hackish_string_of_type ctxt new_par_type
-           in new_par_name ^ "::\"" ^ par_type_str ^ "\"" end)
-
-val _ = @{print}("  Added par",par)
-
-  in
-    get_pars ctxt xs ys (par :: pars)
-  end |
-
- get_pars ctxt
- (Const ("HOL.All", _) $ (Abs (new_par_name, new_par_type, xs)))
- ((SMTLIB.S [SMTLIB.Sym org_par_name, SMTLIB.Sym org_par_type]) :: ys) pars = 
-  let 
-  val _ = @{print}("org_par_type",org_par_type)
-  val _ = @{print}("org_par_name",org_par_name)
-  val _ = @{print}("new_par_name",new_par_name)
-
-    val par = 
-        (if (org_par_type = "?BitVec")
-         then 
-            let (*Take ??a from new_par_type and make a word of length ??a *)
-            val _ = @{print}("new_par_type",new_par_type)
-
-            (*val new_typ = Type((hackish_string_of_type ctxt new_par_type)^"::len word",[])*)
-            val new_typ = Type("Word.word",[new_par_type])
-
-            val par_type_str = hackish_string_of_type ctxt new_par_type
-            val new_par_type_str = if hd (raw_explode par_type_str) = "?" 
-                                   then (implode (tl (tl (raw_explode par_type_str))))
-                                   else par_type_str
-           in new_par_name ^ "::\"" ^ new_par_type_str ^ "\"" end (*TODO: Only cut first two digits if they are question marks*)
-         else
-         if (org_par_type = "?")
-         then 
-            let (*Take ??a from new_par_type and make a word of length ??a *)
-               val _ = @{print}("new_par_type",new_par_type)
-               val par_type_str = hackish_string_of_type ctxt new_par_type
-               val new_par_type_str = if hd (raw_explode par_type_str) = "?" 
-                                   then (implode (tl (tl (raw_explode par_type_str))))
-                                   else par_type_str
-           in new_par_name ^ "::\"" ^ new_par_type_str ^ "\"" end
-         else
-            let
-            val term = SMTLIB_Proof.type_of (empty_context ctxt Symtab.empty Symtab.empty) (SMTLIB.Sym org_par_type) 
-            val par_type_str = hackish_string_of_type ctxt term
-            in new_par_name ^ "::\"" ^ par_type_str ^ "\"" end  )
-  in
-    get_pars ctxt xs ys (par :: pars)
-  end |
-
-  get_pars ctxt xs ys pars = (@{print}("Qword",xs);@{print}("werwerer",ys);pars)
-
+(* Functions to Manipulate Terms*)
 (*TODO decrease m instead of giving two arguments*)
 fun mk_nary ((Const (operator_name,operator_typ)) $ (Bound m1) $ (Bound m2)) lvars lists n m =
 let
@@ -246,7 +173,7 @@ end
 
 
 local
- fun parse_tree smtlib_tree list_param nr_pars ctxt =
+ fun parse_tree smtlib_tree list_param nr_pars pars ctxt =
   let
     val _ = @{print}("smtlib_tree",smtlib_tree)
     (*First the tree is parsed without considering lists*)
@@ -259,19 +186,40 @@ local
     fun mk_rassoc f t ts =
       let val us = rev (t :: ts)
       in fold f (tl us) (hd us) end
+    fun mk_bound (Free (var,typ)) bounds =
+          let
+            (*val _ = @{print}("bounds",bounds)*)
 
-(*NOOO, I have to replace variables by bounds*)
-    fun add_assms ts [] = ts |
-        add_assms (Const ("HOL.All", all) $ (Abs (name, typ,l2))) ass = (Const ("HOL.All", all) $ (Abs (name, typ,add_assms l2 ass))) |
-        add_assms ts (a::ass) = (Const ("HOL.implies", \<^typ>\<open>HOL.bool\<close> -->  \<^typ>\<open>HOL.bool\<close> --> \<^typ>\<open>HOL.bool\<close>)
-                              $ (mk_rassoc (curry HOLogic.mk_conj) a ass) $ ts ) 
+            val bound = List.find (fn (b,Free (var1,typ1)) => var = var1) bounds
+            (*val _ = @{print}("bound",bound)*)
+          in              
+            if bound = NONE then (Free (var,typ)) else 
+            (let val SOME (BOUND,b) = bound in BOUND end)
+          end |
+        mk_bound (l1 $ l2) bounds = mk_bound l1 bounds $ mk_bound l2 bounds |
+        mk_bound (Abs (str,typ,l1)) bounds = (Abs (str,typ,mk_bound l1 bounds)) |
+        mk_bound x _ = x
+
+    (*Instead of figuring out bound array instead add params, transfer to smtlib and cut of all quantifiers *)
+    fun add_assms ts [] bounds = (ts,bounds) |
+        add_assms (Const ("HOL.All", all) $ (Abs (name, typ,l2))) ass bounds =
+            let
+              val bounds2 = (Bound (nr_pars -length bounds - 1 ),Free (name,typ))::bounds
+            in
+              ((Const ("HOL.All", all) $ (Abs (name, typ,fst (add_assms l2 ass bounds2)))),bounds2) end |
+        add_assms ts (a::ass) bounds =
+let
+val _ = @{print}("bounds",bounds)
+in
+          ((Const ("HOL.implies", \<^typ>\<open>HOL.bool\<close> -->  \<^typ>\<open>HOL.bool\<close> --> \<^typ>\<open>HOL.bool\<close>)
+            $ (mk_bound (mk_rassoc (curry HOLogic.mk_conj) a ass) bounds) $ ts), bounds) end
   
     val _ = @{print}("smtlib_tree as term", term)                                 
-    (*val _ = @{print}("smtlib_tree as term with additional_assms",add_assms term additional_assms)
-    val term = add_assms term additional_assms*)
+    val _ = @{print}("smtlib_tree as term with additional_assms",add_assms term additional_assms [])
+    val term = fst (add_assms term additional_assms [])
+    val _ = @{print}("smtlib_tree as term3", term)                                 
 
     (*Then, the whole term is traversed to make terms lists and introduce corresponding operators*)
-    (*TODO: include additional_assms, for this take away quantifier add additional_assms and add quantifiers back*)
     val list_param2 = map (fn (SMTLIB.S [SMTLIB.Sym name, SMTLIB.Sym typ]) => name) list_param
     val _ = @{print}("list_param2", list_param2)
 
@@ -366,7 +314,7 @@ in
     val smtlib_tree_body = SMTLIB.S [SMTLIB.Sym "=", m, t]
     val smtlib_tree = quant_letify_tree smtlib_tree_body param ld
     (*Get term of smtlib_tree*)
-    val (res,ctxt) = parse_tree smtlib_tree list_param (length param) ctxt
+    val (res,ctxt) = parse_tree smtlib_tree list_param (length param) param ctxt
     (*Get components of term for printing*)
   (*  val (pars,rest) = parse_pars res []
     val _ = @{print}("pars: ", pars)
@@ -381,7 +329,7 @@ in
     val _ = @{print}("current define-cond-rule to write: ", name)
     val smtlib_tree_body = SMTLIB.S [SMTLIB.Sym "implies", ass, SMTLIB.S [SMTLIB.Sym "=", m, t]]
     val smtlib_tree = quant_letify_tree smtlib_tree_body param ld
-    val (res,ctxt) = parse_tree smtlib_tree list_param (length param) ctxt
+    val (res,ctxt) = parse_tree smtlib_tree list_param (length param) param ctxt
     val list_param2 = map (fn (SMTLIB.S [SMTLIB.Sym name, SMTLIB.Sym typ]) => name) list_param
 
    in 
@@ -391,7 +339,7 @@ in
    let (*TODO*)
      val _ = @{print}("current define-star-rule to write: ", name)
      val smtlib_tree = SMTLIB.S [SMTLIB.Sym "forall", SMTLIB.S param, SMTLIB.S [SMTLIB.Sym "=", m, t]]
-     val res = parse_tree smtlib_tree list_param (length param) ctxt
+     val res = parse_tree smtlib_tree list_param (length param) param ctxt
    in
       [write_lemma_header name]
    end |
