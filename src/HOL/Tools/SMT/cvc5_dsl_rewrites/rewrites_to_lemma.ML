@@ -13,6 +13,7 @@ structure WRITE_LEMMA: WRITE_LEMMA =
 struct
   exception WRITE_LEMMA_FROM_DSL_REWRITE of string
 
+(* Utilities *)
 
 fun hackish_string_of_term ctxt =
  Print_Mode.setmp [] (Syntax.string_of_term ctxt)
@@ -23,15 +24,18 @@ fun hackish_string_of_type ctxt =
   #> YXML.content_of
 
 fun generalize_types ctxt t =
-  let
-    (*TODO: Don't erase simple types here.*)
-    val erase_types = map_types (fn x => (@{print}("erase_type x",x);dummyT))
-    (* use schematic type variables *)
-    val ctxt = ctxt |> Proof_Context.set_mode Proof_Context.mode_pattern
-    val infer_types = singleton (Type_Infer_Context.infer_types ctxt)
-  in
-     t  |> infer_types
-  end
+let
+  (*Don't erase simple types here.*)
+  (*val erase_types = map_types (fn x => dummyT)*)
+  (* use schematic type variables *)
+  val ctxt = ctxt |> Proof_Context.set_mode Proof_Context.mode_pattern
+  val infer_types = singleton (Type_Infer_Context.infer_types ctxt)
+in
+  t  |> infer_types
+end
+
+
+(* Writing Utility Functions *)
 
 (*TODO: List of lists and line-breaks*)
 fun write_file_header theory_name theory_imports 
@@ -49,51 +53,15 @@ fun write_file_header theory_name theory_imports
     "str_concat,\n",
     "*)\n\n"]]
 val write_file_footer = ["end"]
-fun write_lemma_header name = ["named_theorems rewrite_" ^ name ^ " \<open>automatically_generated\<close>\n\n"] @ ["lemma [rewrite_" ^ name ^ "]:\n"]
-
-fun write_fixes pars = 
-let
-  fun write_params [] = "" |
-      write_params [p] =  p |
-      write_params (p::ps) = p ^ " and " ^ write_params ps
-in
-  ["  fixes " ^ write_params pars  ^ "\n"]
-end
-
-fun write_shows goal =
-let 
-  (*TODO: check if starts with forall first*)
-  fun wth_forall ("."::" "::xs) = xs | 
-      wth_forall ("."::xs) = xs | 
-      wth_forall (_::xs) = ((*@{print}("c",c);*) wth_forall xs) 
-  val res = implode (wth_forall (raw_explode goal))
-in
- ["  shows \"" ^ res ^ "\"\n" ]
-end
-
-val write_auto = ["  by auto\n\n"]
-
-
-
-(*fun write_shows_wth_assump pars ass match target ctxt
-   =  ["  assumes \"" ^ get_term ass pars ctxt ^ "\"\n" ^
-"  shows \"((" ^ get_term match pars ctxt ^ ") = (" ^ get_term target pars ctxt ^ "))\"\n" ] *)
-(*val write_auto = ["  by auto\n\n"]*)
-(*("t",
- S [Sym "zs",
-    S [Sym "ListVar",
-       S [Sym "Bool"]]])*)
-fun collect_lists [] = [] |
-    collect_lists ((SMTLIB.S [SMTLIB.Sym var,SMTLIB.S [SMTLIB.Sym "ListVar", _]])::ts)
-      = var :: collect_lists ts |
-    collect_lists (t::ts) = collect_lists ts
+fun write_lemma_header name = ["named_theorems rewrite_" ^ name ^ " \<open>automatically_generated\<close>\n\n"]
+                            @ ["lemma [rewrite_" ^ name ^ "]:\n"]
 
 fun write_auto lists name =
 let
-  fun write_cases [] = "" |
-    write_cases (x::xs) = "  apply (cases " ^ x ^ ")\n" ^  write_cases xs
-  fun write_subgoal [] = "" | (*TODO: use fold*)
-    write_subgoal (x::xs) = x ^ "s " ^  write_subgoal xs
+  fun write_cases xs = if xs = [] then ""
+    else map (fn str => "  apply (cases " ^ str ^ ")\n") xs |> foldl1 (String.^)
+  fun write_subgoal xs = if xs = [] then "" else map (fn str => str ^ "s ") xs |> foldl1 (String.^)
+
   val tactic = write_cases lists ^ "  subgoal for " ^ write_subgoal lists ^ "\n" ^
                "    apply (simp add: cvc_list_left_transfer cvc_list_right_transfer_op cvc_list_both_transfer_op)\n" ^ 
                "    by (simp add: " ^ name ^  "_lemma)\n" ^
@@ -102,94 +70,7 @@ in
  if lists = [] then ["  by auto\n\n"] else [tactic]
 end
 
-
-(*(*("res",
- Const ("HOL.All", "(??'a word \<Rightarrow> bool) \<Rightarrow> bool") $
-   Abs ("xs", "??'a word",
-     Const ("HOL.All", "(??'b word \<Rightarrow> bool) \<Rightarrow> bool") $
-       Abs ("s", "??'b word",
-         Const ("HOL.All", "(... word ... bool) \<Rightarrow> bool") $
-           Abs ("ys", "??'c word",
-             Const ("HOL.All", "...") $ Abs ("i", ..., ...))))) (line 259 of "~~/src/HOL/Tools/SMT/cvc5_dsl_rewrites/rewrites_to_lemma.ML") 
-("param",
- [S [Sym "xs", S [Sym "ListVar", S [Sym "?BitVec"]]], S [Sym "s", Sym "?BitVec"], S [Sym "ys", S [Sym "ListVar", S [Sym "?BitVec"]]],
-  S [Sym "i", Sym "Int"], S [Sym "j", Sym "Int"],
-  S [Sym "k", Sym "Int"]])*)*)
-
-
-fun
-get_pars ctxt (Const ("HOL.All", _) $ (Abs (new_par_name, new_par_type, xs)))
- ((SMTLIB.S [SMTLIB.Sym org_par_name, SMTLIB.S [SMTLIB.Sym "ListVar", SMTLIB.S [SMTLIB.Sym org_par_type]]]) :: ys) pars = 
-  let 
-val _ = @{print}("ListVar detected in get_pars")
-
-val _ = @{print}("  new_par_name",new_par_name)
-val _ = @{print}("  new_par_type",new_par_type)
-val _ = @{print}("  org_par_name",org_par_name)
-val _ = @{print}("  org_par_type",org_par_type)
-
-(*TODO: Test for ? or something in case this is not a bitvec but still parametric*)
-    val par = 
-        (if (not (org_par_type = "?BitVec"))
-         then 
-           let
-            val term = SMTLIB_Proof.type_of (empty_context ctxt Symtab.empty Symtab.empty) ( SMTLIB.S [SMTLIB.Sym "ListVar", SMTLIB.S [SMTLIB.Sym org_par_type]]) 
-            val par_type_str = hackish_string_of_type ctxt term
-           in new_par_name ^ "::\"" ^ par_type_str ^ "\"" end
-         else
-           let (*TODO*)
-            val par_type_str = hackish_string_of_type ctxt new_par_type
-           in new_par_name ^ "::\"" ^ par_type_str ^ "\"" end)
-
-val _ = @{print}("  Added par",par)
-
-  in
-    get_pars ctxt xs ys (par :: pars)
-  end |
-
- get_pars ctxt
- (Const ("HOL.All", _) $ (Abs (new_par_name, new_par_type, xs)))
- ((SMTLIB.S [SMTLIB.Sym org_par_name, SMTLIB.Sym org_par_type]) :: ys) pars = 
-  let 
-  val _ = @{print}("org_par_type",org_par_type)
-  val _ = @{print}("org_par_name",org_par_name)
-  val _ = @{print}("new_par_name",new_par_name)
-
-    val par = 
-        (if (org_par_type = "?BitVec")
-         then 
-            let (*Take ??a from new_par_type and make a word of length ??a *)
-            val _ = @{print}("new_par_type",new_par_type)
-
-            (*val new_typ = Type((hackish_string_of_type ctxt new_par_type)^"::len word",[])*)
-            val new_typ = Type("Word.word",[new_par_type])
-
-            val par_type_str = hackish_string_of_type ctxt new_par_type
-            val new_par_type_str = if hd (raw_explode par_type_str) = "?" 
-                                   then (implode (tl (tl (raw_explode par_type_str))))
-                                   else par_type_str
-           in new_par_name ^ "::\"" ^ new_par_type_str ^ "\"" end (*TODO: Only cut first two digits if they are question marks*)
-         else
-         if (org_par_type = "?")
-         then 
-            let (*Take ??a from new_par_type and make a word of length ??a *)
-               val _ = @{print}("new_par_type",new_par_type)
-               val par_type_str = hackish_string_of_type ctxt new_par_type
-               val new_par_type_str = if hd (raw_explode par_type_str) = "?" 
-                                   then (implode (tl (tl (raw_explode par_type_str))))
-                                   else par_type_str
-           in new_par_name ^ "::\"" ^ new_par_type_str ^ "\"" end
-         else
-            let
-            val term = SMTLIB_Proof.type_of (empty_context ctxt Symtab.empty Symtab.empty) (SMTLIB.Sym org_par_type) 
-            val par_type_str = hackish_string_of_type ctxt term
-            in new_par_name ^ "::\"" ^ par_type_str ^ "\"" end  )
-  in
-    get_pars ctxt xs ys (par :: pars)
-  end |
-
-  get_pars ctxt xs ys pars = (@{print}("Qword",xs);@{print}("werwerer",ys);pars)
-
+(* Functions to Manipulate Terms *)
 (*TODO decrease m instead of giving two arguments*)
 fun mk_nary ((Const (operator_name,operator_typ)) $ (Bound m1) $ (Bound m2)) lvars lists n m =
 let

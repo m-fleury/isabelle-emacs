@@ -116,8 +116,7 @@ fun core_type_parser (SMTLIB.Sym "Bool", []) = SOME \<^typ>\<open>HOL.bool\<clos
   | core_type_parser (SMTLIB.Sym "Int", []) = SOME \<^typ>\<open>Int.int\<close>
   | core_type_parser (SMTLIB.Sym "ListVar", [t1]) = SOME (Type ("Dsl_Nary_Ops.cvc_ListVar",[t1]))
   | core_type_parser (SMTLIB.Sym "?", []) = SOME dummyT
-  | core_type_parser xs = ((*@{print}("xs",xs);*) SMT_String.string_type_parser xs (*TEMP: They are not called otherwise, even though they are registered...*)
-)
+  | core_type_parser _ = NONE
 
 fun mk_unary n t =
   let val T = fastype_of t
