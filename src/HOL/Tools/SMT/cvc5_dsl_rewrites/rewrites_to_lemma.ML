@@ -191,6 +191,9 @@ local
   val str_body = hackish_string_of_term ctxt nary_term
   val _ = @{print}("str_body",str_body)
 
+  val x = SMTLIB_Impl_Assumptions.add_implicit_assms nary_term
+  val _ = @{print}("x",x)
+
 
     (*Finally, types are reinferred to allow gradual types*)
     (*val ctxt = ctxt |> Proof_Context.set_mode Proof_Context.mode_pattern
