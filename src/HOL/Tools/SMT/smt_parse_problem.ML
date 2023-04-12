@@ -193,7 +193,7 @@ fun count_parenthesis n ("(" :: line)  = count_parenthesis (n+1) line
   | count_parenthesis n (_ :: line)  = count_parenthesis (n) line
   | count_parenthesis n []  = n
 
-(*TODO this is ugly and does not support
+(*TODO this is ugly and not very efficient and does not support
 (assert ..) (assert ...)
 
 
@@ -205,16 +205,16 @@ but supports
 
 
 *)
-fun fix_lines [] = []
-  | fix_lines (l :: lines) = 
-    let val n = count_parenthesis 0 (raw_explode l)
+fun fix_lines acc _ [] = [acc]
+  | fix_lines acc m (l :: lines) =
+    let val n = count_parenthesis m (raw_explode l)
     in 
-      if n = 0 then l :: fix_lines lines
-      else implode ((raw_explode l @ [hd lines])) :: tl lines
+      if n = 0 then acc ^ l :: fix_lines "" 0 lines
+      else fix_lines (acc ^ l) n (lines)
     end
 
 fun parse lines ctxt
- = snd (fold add_line (fix_lines lines) (1,
+ = snd (fold add_line (fix_lines "" 0 lines) (1,
  ({context = ctxt, typs = Symtab.empty, terms = Symtab.empty, ll_defs = [], rewrite_rules = [], assms = []}: SMT_Translate.replay_data, 0)))
  (*= print (fst (Lethe_Proof.parse Symtab.empty Symtab.empty lines ctxt))*)
 
