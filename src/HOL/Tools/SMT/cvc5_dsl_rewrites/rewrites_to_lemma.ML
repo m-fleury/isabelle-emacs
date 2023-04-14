@@ -70,7 +70,64 @@ in
  if lists = [] then ["  by auto\n\n"] else [tactic]
 end
 
+(* Functions to SMTLIB Trees *)
+
+
 (* Functions to Manipulate Terms *)
+
+
+(*I need this to be incooperated in the other function and called on terms that are added to implicit assumptions as well*)
+val merge_sets = Library.union (fn (a,b) => (a = b))
+val merge_subterms = Library.union (fn ((_,b),(_,d)) => (b = d))
+
+
+
+
+fun get_implicit_assump (SMTLIB.S [SMTLIB.Sym "extract", i, j, t]) assms subterms
+: SMTLIB.tree list * (SMTLIB.tree * SMTLIB.tree) list * SMTLIB.tree
+   =
+     let
+       val (assms': SMTLIB.tree list, subterms', t') = get_implicit_assump t assms subterms
+       val assms2 = merge_sets assms assms'
+       val subterms = merge_subterms subterms subterms'
+       val new_term = (SMTLIB.S [SMTLIB.Sym "extract", i, j, t'])
+       val current_id = length subterms
+
+       val new_var = case List.find (fn (a,b) => new_term = b) subterms of
+                     NONE =>  "_c" ^ Library.string_of_int current_id |> SMTLIB.Sym |
+                     (SOME (x,_)) => x
+       val subterms = merge_subterms [(new_var,new_term)] subterms
+       val _ = @{print}("subterms",subterms)
+
+       val new_assms = [
+                        SMTLIB.S [SMTLIB.Sym "<=", SMTLIB.Num 0, j],
+                        SMTLIB.S [SMTLIB.Sym "<=", j, i],
+                        SMTLIB.S [SMTLIB.Sym "=", SMTLIB.S [SMTLIB.Sym "bvsize", new_var]
+                          , SMTLIB.S [SMTLIB.Sym "+", SMTLIB.Num 1, SMTLIB.S [SMTLIB.Sym "-", i, j]]],
+                        SMTLIB.S [SMTLIB.Sym "=", new_var, (SMTLIB.S [SMTLIB.Sym "extract", i, j, t'])]
+                        ]
+       val assms = merge_sets new_assms assms2
+     in (assms,subterms,new_var) end |
+    get_implicit_assump (SMTLIB.S ts) assms ids =
+    let
+      fun fold_get_implicit assms2 ids2 (t::ts) ts2 = 
+        let
+       val _ = @{print}("ids2",ids2)
+
+          val (assms',ids',t') = get_implicit_assump t assms ids2
+       val _ = @{print}("ids'",ids')
+
+        in
+          fold_get_implicit (merge_sets assms2 assms') (merge_subterms ids2 ids') ts (ts2 @ [t'])
+        end |
+        fold_get_implicit assms2 ids2 [] ts2 = (assms2,ids2,ts2)
+
+       val (assms2,ids2,ts2) = fold_get_implicit assms ids ts []
+    in (assms2,ids2,(SMTLIB.S ts2)) end |
+    get_implicit_assump x assms ids = (assms,ids,x)
+
+
+
 (*TODO decrease m instead of giving two arguments*)
 fun mk_nary ((Const (operator_name,operator_typ)) $ (Bound m1) $ (Bound m2)) lvars lists n m =
 let
@@ -178,6 +235,30 @@ local
  fun parse_tree smtlib_tree list_param nr_pars ctxt =
   let
     val _ = @{print}("smtlib_tree",smtlib_tree)
+    val (implicit_assumptions,ids,new_tree) = get_implicit_assump smtlib_tree [] []
+    val _ = @{print}("new_tree",new_tree)
+    val implicit_assumptions2 = SMTLIB.S ([SMTLIB.Sym "and"] @ implicit_assumptions)
+    val _ = @{print}("implicit_assumptions",implicit_assumptions2)
+
+    val smtlib_tree = new_tree
+
+    val smtlib_tree = case smtlib_tree of
+        SMTLIB.S [SMTLIB.Sym "forall", SMTLIB.S param,SMTLIB.S [SMTLIB.Sym "let", SMTLIB.S lets, body]] => 
+if implicit_assumptions = [] then smtlib_tree
+                      else (SMTLIB.S [SMTLIB.Sym "forall", SMTLIB.S param,SMTLIB.S [SMTLIB.Sym "let", SMTLIB.S lets, body]]) |
+SMTLIB.S [SMTLIB.Sym "forall", SMTLIB.S param,body] =>
+if implicit_assumptions = [] then smtlib_tree
+                      else (SMTLIB.S [SMTLIB.Sym "forall", SMTLIB.S param, body])
+
+  
+    val _ = @{print}("smtlib_tree",smtlib_tree)
+
+(* S [Sym "forall", S [S [Sym "xs", Sym "?BitVec"], S [Sym "s", Sym "?BitVec"], S [Sym "ys", Sym "?BitVec"], S [Sym "i", Sym "Int"], S [Sym "j", Sym "Int"], S [Sym "k", Sym "Int"]],
+    S [Sym "=", S [Sym "concat", Sym "xs", S [Sym "extract", Sym "k", S [Sym "+", Sym "j", Num 1], Sym "s"], S [Sym "extract", Sym "j", Sym "i", Sym "s"], Sym "ys"],
+       S [Sym "concat", Sym "xs", S [Sym "extract", Sym "k", Sym "i", Sym "s"], Sym "ys"]]]*)
+
+
+
     (*First the tree is parsed without considering lists*)
     val cx = empty_context ctxt Symtab.empty Symtab.empty
     val term = SMTLIB_Proof.term_of smtlib_tree cx |> fst
@@ -186,14 +267,16 @@ local
     val list_param2 = map (fn (SMTLIB.S [SMTLIB.Sym name, SMTLIB.Sym typ]) => name) list_param
     val _ = @{print}("list_param2", list_param2)
 
+
     val nary_term = mk_nary term [] list_param2 0 (nr_pars - 1)
     val _ = @{print}("nary_term", nary_term)
-  val str_body = hackish_string_of_term ctxt nary_term
-  val _ = @{print}("str_body",str_body)
 
-  val x = SMTLIB_Impl_Assumptions.add_implicit_assms nary_term
-  val _ = @{print}("x",x)
+    (*val nary_term = SMTLIB_Impl_Assumptions.add_implicit_assms nary_term
+    val _ = @{print}("nary_term with implicit assumptions",nary_term)
+*)
 
+    val str_body = hackish_string_of_term ctxt nary_term
+    val _ = @{print}("str_body",str_body)
 
     (*Finally, types are reinferred to allow gradual types*)
     (*val ctxt = ctxt |> Proof_Context.set_mode Proof_Context.mode_pattern
@@ -209,28 +292,31 @@ local
 
  fun write_pars res ctxt = 
  let
+
    fun write_params [] = "" |
        write_params [Const (str,typ)] = str ^ ":: \"" ^ hackish_string_of_type ctxt typ ^ "\"" |
        write_params (Const (str,typ)::ps) = 
-let 
-  val t2 = dest_Type typ(*'a word*)
-val _ = @{print}("t2222",t2)
-in
-  str ^ ":: \"" ^ hackish_string_of_type ctxt typ ^ "\"" ^ " and " ^ write_params ps
-end
+       let 
+       (*val t2 = dest_Type typ(*'a word*)
+       val _ = @{print}("t2222",t2)*)
+       val _ = @{print}("write_pars",res)
+       in
+       str ^ ":: \"" ^ hackish_string_of_type ctxt typ ^ "\"" ^ " and " ^ write_params ps
+       end
 
-fun delete_question_mark l = 
-if hd l = "?" then tl (tl l) else l
+   fun delete_question_mark l = if hd l = "?" then tl (tl l) else l
 
 
 fun temp ("w"::"o"::"r"::"d"::ts) = (":"::":"::"l"::"e"::"n"::" ":: "w"::"o"::"r"::"d"::ts) |
     temp (t::ts) = t :: temp ts|
     temp [] = []
+val _ = @{print}("here1: ")
 
 fun test (Const ("HOL.All", _) $ Abs (str, typ,((Const ("HOL.All", typ1) $ t1))))
 =
 let
-val _ = @{print}("typ IN PARM",dest_Type typ) (*"Word.word", ["??'a"]*)
+
+(*val _ = @{print}("typ IN PARM",dest_Type typ) (*"Word.word", ["??'a"]*)*)
 
 
 val new_type
@@ -240,9 +326,15 @@ in
 end |
  test (Const ("HOL.All", _) $ Abs (str, typ,ts))
 = str ^ "::\"" ^  (implode (temp (hackish_string_of_type ctxt typ |> raw_explode |> delete_question_mark)))  ^ "\""
+
+
  in
   ["  fixes " ^ test res ^ "\n"]
  end
+
+
+
+
 
  fun write_body body ctxt =
  let
@@ -268,7 +360,8 @@ end |
    = (@{print}("lets",lets);SMTLIB.S [SMTLIB.Sym "forall", SMTLIB.S (rev param),
                    SMTLIB.S [SMTLIB.Sym "let", SMTLIB.S lets, tree]])
 
-in 
+in val _ = @{print}("here2: ")
+
   fun write_lemma (Rewrite_Rule ((Rule_Type DEFINE_RULE)::(Rule_Name name):: [Par (param,list_param), Let_Defs ld, Match m, Target t])) ctxt =
    let
     val _ = @{print}("current define-rule to write: ", name)
@@ -286,7 +379,6 @@ in
     val _ = @{print}("pars: ", pars)
     val _ = @{print}("rest: ", rest)*)
     val list_param2 = map (fn (SMTLIB.S [SMTLIB.Sym name, SMTLIB.Sym typ]) => name) list_param
-
    in
     [write_lemma_header name, write_pars res ctxt, write_body res ctxt, write_auto list_param2 name]
    end |
