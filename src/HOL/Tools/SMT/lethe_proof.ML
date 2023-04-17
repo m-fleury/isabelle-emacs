@@ -546,9 +546,9 @@ fun postprocess_proof compress ctxt step cx =
       (* postprocess conclusion *)
       val concl = SMTLIB_Isar.unskolemize_names ctxt (subproof_rewriter concl)
 
-      val bound_tvars =
-          map (fn (s, SOME typ) => (s, type_of cx typ))
-            (shadowing_vars @ new_lhs_vars)
+      fun give_proper_type (s, SOME typ) = (s, type_of cx typ)
+       | give_proper_type (s, NONE) = raise (Fail ("could not find type of var " ^ @{make_string} s ^ " in step " ^ id ^ " in " ^  @{make_string} concl))
+      val bound_tvars = map give_proper_type (shadowing_vars @ new_lhs_vars)
       val subproof_cx =
          add_bound_variables_to_ctxt cx (shadowing_vars @ new_lhs_vars) cx
 
