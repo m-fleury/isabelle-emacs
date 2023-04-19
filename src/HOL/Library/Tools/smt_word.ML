@@ -282,7 +282,7 @@ fun bv_term_parser (SMTLIB.Sym bv, []) =
   | bv_term_parser (SMTLIB.Sym "xor", [t1, t2]) =
  (*TODO Hanna: Move somewhere else to general parsing of proof? Nothing bv specific, although
   only present in bv proofs.*)
-      SOME (Const ("SMT.xor", \<^typ>\<open>HOL.bool\<close> --> \<^typ>\<open>HOL.bool\<close> --> \<^typ>\<open>HOL.bool\<close> ) $ t1 $ t2)
+      SOME (Const ("Word.xor", \<^typ>\<open>HOL.bool\<close> --> \<^typ>\<open>HOL.bool\<close> --> \<^typ>\<open>HOL.bool\<close> ) $ t1 $ t2)
   | bv_term_parser (SMTLIB.Sym "concat", [t1, t2]) =
       SOME (mk_concat (t1, t2))
   | bv_term_parser (SMTLIB.Sym "concat", t::ts) = 
@@ -323,12 +323,12 @@ fun bv_term_parser (SMTLIB.Sym bv, []) =
          val t1' = (Const (\<^const_name>\<open>nat\<close>, T1 --> \<^typ>\<open>Nat.nat\<close>) $ t1)
          val t2' = HOLogic.mk_number \<^typ>\<open>Nat.nat\<close> 2
         
-     in (*TODO: Is this the right definition of log to use?*)
-      SOME (Const (\<^const_name>\<open>of_nat\<close>, \<^typ>\<open>Nat.nat\<close> --> \<^typ>\<open>Int.int\<close> ) $ (Const (\<^const_name>\<open>floorlog\<close>, \<^typ>\<open>Nat.nat\<close> --> \<^typ>\<open>Nat.nat\<close> --> \<^typ>\<open>Nat.nat\<close>)
+     in
+      SOME (Const (\<^const_name>\<open>of_nat\<close>, \<^typ>\<open>Nat.nat\<close> --> \<^typ>\<open>Int.int\<close> ) $ (Const (\<^const_name>\<open>Log_Nat.floorlog\<close>, \<^typ>\<open>Nat.nat\<close> --> \<^typ>\<open>Nat.nat\<close> --> \<^typ>\<open>Nat.nat\<close>)
          $ t1' $ t2'))
      end
   | bv_term_parser (SMTLIB.Sym "int.ispow2", [t1]) =
-      SOME (Const  (\<^const_name>\<open>True\<close>, \<^typ>\<open>bool\<close>)) (*TODOOOOO!*)
+      SOME (Const (\<^const_name>\<open>SMT.is_pow2\<close>,\<^typ>\<open>Int.int\<close> --> \<^typ>\<open>bool\<close>) $ t1)
   | bv_term_parser (SMTLIB.Sym "bvugt", [t1,t2]) =
       SOME (HOLogic.mk_binrel \<^const_name>\<open>Orderings.less\<close> (t2, t1))
   | bv_term_parser (SMTLIB.Sym "bvuge", [t1,t2]) =
@@ -391,6 +391,8 @@ fun bv_term_parser (SMTLIB.Sym bv, []) =
       SOME (Const (\<^const_name>\<open>word_rotr\<close>,\<^typ>\<open>Nat.nat\<close>--> T2 --> T2) $ (Const ( \<^const_name>\<open>nat\<close>, \<^typ>\<open>Int.int\<close> --> \<^typ>\<open>Nat.nat\<close>) $ t1) $ t2)
     end
   | bv_term_parser (SMTLIB.Sym "zero_extend", [t1, t2]) = (*This should push t1 0's to t2, solution above uses ucast, should I do to?*)
+(*(define-rule bv-zero-extend-eliminate ((x ?BitVec) (n Int)) (zero_extend n x) (concat (bv 0 n) x))
+*)
       SOME (Const (\<^const_name>\<open>push_bit\<close>,\<^typ>\<open>Nat.nat\<close>--> fastype_of t2 --> dummyT) $ (Const ( \<^const_name>\<open>nat\<close>, \<^typ>\<open>Int.int\<close> --> \<^typ>\<open>Nat.nat\<close>) $ t1) $ t2)
   | bv_term_parser (SMTLIB.Sym "sign_extend", [t1, t2]) =
 let
@@ -473,7 +475,7 @@ end
   | bv_term_parser (SMTLIB.Sym "bvsdiv", [t1,t2]) = (*TODO*)
       SOME (HOLogic.mk_binop \<^const_name>\<open>Rings.divide\<close> (t1, t2))
  | bv_term_parser (SMTLIB.Sym "bvudiv", [t1,t2]) =
-      SOME (HOLogic.mk_binop \<^const_name>\<open>Rings.divide\<close> (t1, t2))
+      SOME (HOLogic.mk_binop \<^const_name>\<open>Rings.divide\<close> (t1, t2)) (*TODO: What about the case whre t2 is 0? SMTLIB semantics says it should be mask *)
   | bv_term_parser (SMTLIB.Sym "bvshl", [t1, t2]) = 
     let
       val T1 = fastype_of t1
