@@ -8,7 +8,7 @@ section \<open>Bindings to Satisfiability Modulo Theories (SMT) solvers based on
 theory SMT
   imports Divides Numeral_Simprocs "HOL-Library.Word" "HOL.Real" "Tools/SMT/cvc5_dsl_rewrites/Rare_Interface"
 "HOL-Library.Sublist" "HOL-Library.Log_Nat"
-  keywords "smt_status" "parse_rare_file" "parse_rare" "check_smt" :: diag
+  keywords "smt_status" "parse_rare_file" "parse_rare" "check_smt"  "check_smt_dir" :: diag
 begin
 
 subsection \<open>A skolemization tactic and proof method\<close>
@@ -1046,8 +1046,15 @@ subsection \<open>Tool support\<close>
 
 context
 begin
-qualified definition smt_extract where
+qualified definition smt_extract  :: "nat \<Rightarrow> nat \<Rightarrow> 'a::len word \<Rightarrow> 'b ::len word" where
   \<open>smt_extract j i w = slice i (take_bit (Suc j) w)\<close>
+
+(* Use x!0 \<and> (x & (x-1)) = 0 somehow? Do I need to cast everything to word?
+(i = 0) \<and> ((and (Word.Word i) ((Word.Word i)-1)) = 0)
+*)
+definition is_pow2 :: "int \<Rightarrow> bool" where
+  \<open>is_pow2 i \<equiv> (i = 0) \<and> (and i (i-1) = 0)\<close>
+
 
 fun repeat where
 "repeat (Suc 0) x = x" |
@@ -1055,9 +1062,6 @@ fun repeat where
 
 definition smt_repeat :: "nat \<Rightarrow> 'a::len word \<Rightarrow> 'a::len word" where
   \<open>smt_repeat i x = repeat i x\<close>
-
-definition xor :: "bool \<Rightarrow> bool \<Rightarrow> bool" (infixl "[+1]" 60)
-  where "(A [+1] B) \<equiv> (\<not>(A = B))"
 
 
 (*
@@ -1087,7 +1091,7 @@ definition smt_sdivo :: "'a::len word \<Rightarrow> 'b::len word \<Rightarrow> b
 "smt_sdivo x y = (x = (word_cat (1::1 word) (0::'c::len word)::'a word) \<and> y = (mask (size y)::'b word))"
 
 definition smt_usubo :: "'a::len word \<Rightarrow> 'a::len word \<Rightarrow> bool" where (*TODO*)
-"smt_usubo x y = ((smt_extract ((size x)-1) ((size x)-1) (push_bit 1 x - push_bit 1 x)) = (1::1 word))"
+"smt_usubo x y = ((smt_extract ((size x)-1) ((size y)-1) (push_bit 1 x - push_bit 1 y)) = (1::1 word))"
 (*(define-rule bv-ssubo-eliminate
 	((x ?BitVec) (y ?BitVec))
 	(def
@@ -1399,7 +1403,7 @@ end))
 ML \<open>
 
 (*Call replay from SMT_Solver and add replay_data on your own*)
-val _ =  Outer_Syntax.local_theory \<^command_keyword>\<open>check_smt\<close> "parse a file in SMTLIB2 format and check proof. <problem_file,proof_file>"
+val _ = Outer_Syntax.local_theory \<^command_keyword>\<open>check_smt\<close> "parse a file in SMTLIB2 format and check proof. <problem_file,proof_file>"
     ((Parse.string -- Parse.string)
     >> (fn (problem_file_name,proof_file_name) => fn lthy =>
   let
@@ -1429,6 +1433,8 @@ in lthy end))
 
 \<close>
 
+
+
 ML \<open>case @{typ "'a"} of TFree a => @{print} a\<close>
 ML \<open>
 Thm.cterm_of ( @{context})
@@ -1442,7 +1448,27 @@ ML \<open>
 Thm.cterm_of (Variable.declare_typ (TFree ("'alpha", ["HOL.type"])) @{context})
   @{term "a :: 'alpha"}\<close>
 declare [[smt_trace,show_types=false,smt_debug_verit]]
-check_smt "$HOME/Documents/repos/SMTLIB/QF_UF/20170829-Rodin/smt1300175744189082250.smt2" 
-"$HOME/Documents/repos/SMTLIB/QF_UF/20170829-Rodin/smt1300175744189082250.smt2.proof"
+(*check_smt "$HOME/Documents/repos/SMTLIB/QF_UF/20170829-Rodin/smt1300175744189082250.smt2" 
+"$HOME/Documents/repos/SMTLIB/QF_UF/20170829-Rodin/smt1300175744189082250.smt2.proof"*)
 
+
+ML_file \<open>Tools/SMT/smtlib_regress.ML\<close>
+
+ML \<open>
+val x = SMT_Regress.test_all_benchmarks
+\<close>
+
+ML \<open>
+
+(*Call replay from SMT_Solver and add replay_data on your own*)
+val _ = Outer_Syntax.local_theory \<^command_keyword>\<open>check_smt_dir\<close> "parse a directory with SMTLIB2 format and check proof. <dir>"
+    ((Parse.string)
+    >> (fn (dir_name) => fn lthy =>
+  let
+    val _ = SMT_Regress.test_all_benchmarks lthy
+in lthy end))
+
+\<close>
+
+check_smt_dir ""
 end
