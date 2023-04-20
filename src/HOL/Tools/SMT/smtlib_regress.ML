@@ -40,10 +40,19 @@ let
           val _ = if Path.explode proof_path |> File.is_file then ()
                   else (@{print}("Could not find proof for problem: ",problem_path);())
           val (_,i) = (check_smt problem_path proof_path local_thy,i+1)
-            handle (Fail err) => (@{print}("Proof could not be checked!",problem_path ^ err);(local_thy,i)) |
-                   (SMTLIB_Proof.SMTLIB_PARSE ("unknown SMT type",t)) 
-                    => (@{print}(("Theory is probably not supported ", t),problem_path);(local_thy,i)) |
-                    exp => (@{print}("Some error occured while checking the proof",problem_path);(local_thy,i))
+            handle
+            (Fail err)
+              => (@{print}("Proof could not be checked! " ^ err,problem_path);(local_thy,i)) |
+            (SMTLIB_Proof.SMTLIB_PARSE ("unknown SMT type",t)) 
+              => (@{print}(("Either theory is not supported or parsing instructions for the term are not included in the parser", t),problem_path);(local_thy,i)) |
+            (SMTLIB_Proof.SMTLIB_PARSE(err,t))
+              => (@{print}(("Error parsing SMTLIB: " ^ err, t),problem_path);(local_thy,i)) |
+            (SMTLIB.PARSE(l,err))
+              => (@{print}("Error parsing SMTLIB into SMTLIB Tree: " ^ err ^ " in line " ^ Int.toString l ,problem_path);(local_thy,i)) |
+            (SMT_Failure.SMT err)
+              => (@{print}("Error parsing SMTLIB into SMTLIB Tree: " ^ SMT_Failure.string_of_failure err,problem_path);(local_thy,i)) |
+            exp => (@{print}("Some error occured while checking the proof",problem_path);(local_thy,i))
+     (*How to print exp so I can see what it is?*)
         in
          check_all ts i
         end

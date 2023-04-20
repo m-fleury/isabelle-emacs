@@ -1448,8 +1448,8 @@ ML \<open>
 Thm.cterm_of (Variable.declare_typ (TFree ("'alpha", ["HOL.type"])) @{context})
   @{term "a :: 'alpha"}\<close>
 declare [[smt_trace,show_types=false,smt_debug_verit]]
-(*check_smt "$HOME/Documents/repos/SMTLIB/QF_UF/20170829-Rodin/smt1300175744189082250.smt2" 
-"$HOME/Documents/repos/SMTLIB/QF_UF/20170829-Rodin/smt1300175744189082250.smt2.proof"*)
+check_smt "$HOME/Documents/repos/SMTLIB/QF_UF/20170829-Rodin/smt1300175744189082250.smt2" 
+"$HOME/Documents/repos/SMTLIB/QF_UF/20170829-Rodin/smt1300175744189082250.smt2.proof"
 
 
 ML_file \<open>Tools/SMT/smtlib_regress.ML\<close>
