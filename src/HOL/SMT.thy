@@ -1448,9 +1448,11 @@ ML \<open>
 Thm.cterm_of (Variable.declare_typ (TFree ("'alpha", ["HOL.type"])) @{context})
   @{term "a :: 'alpha"}\<close>
 declare [[smt_trace,show_types=false,smt_debug_verit]]
-check_smt "$HOME/Documents/repos/SMTLIB/QF_UF/20170829-Rodin/smt1300175744189082250.smt2" 
-"$HOME/Documents/repos/SMTLIB/QF_UF/20170829-Rodin/smt1300175744189082250.smt2.proof"
+check_smt "~/Sources/Benchmark/regress0/uf/NEQ016_size5_reduced2a.smtv1.smt2"
+"~/Sources/Benchmark/regress0/uf/NEQ016_size5_reduced2a.smtv1.alethe"
 
+check_smt "~/Sources/QF_UF/Test1/smt249825283571301584.smt2"
+"~/Sources/QF_UF/Test1/smt249825283571301584.alethe"
 
 ML_file \<open>Tools/SMT/smtlib_regress.ML\<close>
 
@@ -1471,5 +1473,7 @@ in lthy end))
 
 \<close>
 
-check_smt_dir "~/Sources/Benchmark/regress0/"
+check_smt_dir "~/Sources/Benchmark/regress0/uf/"
+check_smt_dir "~/Sources/QF_UF/Test1/"
+
 end
