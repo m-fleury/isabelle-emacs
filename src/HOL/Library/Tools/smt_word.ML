@@ -494,7 +494,7 @@ end
     in
       SOME (Const (\<^const_name>\<open>signed_drop_bit\<close>, \<^typ>\<open>Nat.nat\<close> --> T1 --> T1) $ (Const ( \<^const_name>\<open>unsigned\<close>, T1 --> \<^typ>\<open>Nat.nat\<close> ) $ t1) $ t2)
    end
-  | bv_term_parser xs = (@{print}("IN BV_TERM PARSER",xs);NONE)
+  | bv_term_parser xs = ((*@{print}("IN BV_TERM PARSER",xs);*)NONE)
 
 val dummyLenWord =  \<^typ>\<open>'a::len word\<close>
 val dummyLenWord2 = Type(\<^type_name>\<open>word\<close>,[TFree(\<^type_name>\<open>dummy\<close>,@{sort "len"})])
