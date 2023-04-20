@@ -1461,14 +1461,15 @@ val x = SMT_Regress.test_all_benchmarks
 ML \<open>
 
 (*Call replay from SMT_Solver and add replay_data on your own*)
+(*The problem (name.smt2) and proof files (name.alethe) should be in the same directory.*)
 val _ = Outer_Syntax.local_theory \<^command_keyword>\<open>check_smt_dir\<close> "parse a directory with SMTLIB2 format and check proof. <dir>"
     ((Parse.string)
     >> (fn (dir_name) => fn lthy =>
   let
-    val _ = SMT_Regress.test_all_benchmarks lthy
+    val _ = SMT_Regress.test_all_benchmarks dir_name lthy
 in lthy end))
 
 \<close>
 
-check_smt_dir ""
+check_smt_dir "~/Sources/Benchmark/regress0/"
 end
