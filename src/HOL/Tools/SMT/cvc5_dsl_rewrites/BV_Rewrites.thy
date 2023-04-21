@@ -19,29 +19,56 @@ str_concat,
 *)
 thm cat_slices
 
+named_theorems rewrite_bv_concat_flatten \<open>automatically_generated\<close>
+
+lemma [rewrite_bv_concat_flatten]:
+  fixes xs::"'a::len word cvc_ListVar" and s::"'a::len word" and ys::"'a::len word cvc_ListVar" and zs::"'a::len word cvc_ListVar"
+  shows "cvc_list_right word_cat
+    (cvc_list_left word_cat xs (cvc_list_right word_cat s ys)) zs =
+   cvc_list_right word_cat
+    (cvc_list_right word_cat (cvc_list_left word_cat xs s) ys) zs"
+  apply (cases zs)
+  apply (cases ys)
+  apply (cases xs)
+  subgoal for zss yss xss 
+    apply (simp add: cvc_list_left_transfer cvc_list_right_transfer_op cvc_list_both_transfer_op)
+    apply (induction zss arbitrary: zs)
+     apply simp_all
+    apply (induction yss arbitrary: ys)
+     apply simp_all
+    apply (induction xss arbitrary: xs)
+     apply simp_all
+     apply (metis word_cat_id)
+    by (simp add: word_cat_id)
+  done
+
 
 named_theorems rewrite_bv_concat_extract_merge \<open>automatically_generated\<close>
 
 lemma [rewrite_bv_concat_extract_merge]:
   fixes xs::"'a ::len word cvc_ListVar" and s::"'b ::len word" and ys::"'a ::len word cvc_ListVar" and i::"int" and j::"int" and k::"int"
   shows "(0::int) \<le> i \<and>
-   (0::int) \<le> j \<and> (0::int) \<le> k \<and> i \<le> j \<and> j < k \<longrightarrow>
+   (0::int) \<le> j \<and> (0::int) \<le> k \<and> i \<le> j \<and> j < k \<longrightarrow>nat k < size (s::'b::len word) \<longrightarrow> 
+   int LENGTH('a) = k - j \<longrightarrow> 
+   int LENGTH('a) = k - i \<longrightarrow>
+   int LENGTH('c) = j + 1 - i \<longrightarrow> 
    cvc_list_right word_cat
     (word_cat
-      (cvc_list_left word_cat xs
-        (smt_extract (nat k) (nat (j + (1::int))) s))
-      (smt_extract (nat j) (nat i) s))
+      (cvc_list_left word_cat xs (smt_extract (nat k) (nat (j + (1::int))) s::'a::len word) :: 'a ::len word)
+      (smt_extract (nat j) (nat i) s::'c::len word) ::'a::len word)
     ys =
    cvc_list_right word_cat
-    (cvc_list_left word_cat xs (smt_extract (nat k) (nat i) s)) ys"
+    (cvc_list_left word_cat xs (smt_extract (nat k) (nat i) s::'a::len word)) ys"
   apply (cases ys)
   apply (cases xs)
   subgoal for yss xss 
     apply (simp add: cvc_list_left_transfer cvc_list_right_transfer_op cvc_list_both_transfer_op)
-     apply (induction yss)
+     apply (induction yss arbitrary: ys)
      apply simp_all
-    using word_cat_smt_extract[of "nat i"]
-
+     apply (induction xss arbitrary: xs)
+      apply simp_all
+    using word_cat_smt_extract[of "nat i" "nat j" "nat k" s, where 'b="'a"]
+    
 
 
      apply (induction xss)
@@ -53,6 +80,17 @@ lemma [rewrite_bv_concat_extract_merge]:
     
     by (simp add: bv_concat_extract_merge_lemma)
   done
+
+named_theorems rewrite_bv_extract_extract \<open>automatically_generated\<close>
+
+lemma [rewrite_bv_extract_extract]:
+  fixes x::"'a::len word" and i::"int" and j::"int" and k::"int" and l::"int"
+  shows "k \<ge> 0 \<longrightarrow> l \<ge> k \<longrightarrow> j \<ge> i \<longrightarrow> i+l \<ge> i+k \<longrightarrow> i+k \<ge>0 \<longrightarrow> 
+LENGTH('b) = j + 1 -i \<longrightarrow> 
+LENGTH('c) = l + 1 -k \<longrightarrow>
+(smt_extract (nat l) (nat k) (smt_extract (nat j) (nat i) x::'b::len word)::'c::len word) =
+   (smt_extract (nat (i + l)) (nat (i + k)) x)"
+  
 
 named_theorems rewrite_bv_extract_whole \<open>automatically_generated\<close>
 
@@ -1114,6 +1152,44 @@ lemma [rewrite_bv_ashr_zero]:
   shows "signed_drop_bit (unat a) (Word.Word (0::int)) = Word.Word (0::int)"
   by auto
 
+named_theorems rewrite_bv_and_concat_pullup \<open>automatically_generated\<close>
+
+lemma [rewrite_bv_and_concat_pullup]:
+  fixes x::"'a::len word" and y::"'b::len word" and z::"'c::len word" and ys::"'c::len word cvc_ListVar"
+  shows "LENGTH('c) = i - size y \<longrightarrow> size y \<le> size x - 1 \<longrightarrow> 
+
+  and x (word_cat (cvc_list_left word_cat ys z) y) =
+   word_cat
+    (and (smt_extract (nat (int (size x) - (1::int)))
+           (nat (int (size y))) x :: 'c::len word)
+      (cvc_list_left word_cat ys z))
+    (and (smt_extract (nat (int (size y) - (1::int))) (nat (0::int)) x :: 'b::len word)
+      y)"
+  apply (cases ys)
+  subgoal for yss 
+    apply (simp add: cvc_list_left_transfer cvc_list_right_transfer_op cvc_list_both_transfer_op)
+    apply (induction yss arbitrary: ys)
+     apply simp_all
+    by (simp add: bv_and_concat_pullup_lemma)
+  done
+
+named_theorems rewrite_bv_or_concat_pullup \<open>automatically_generated\<close>
+
+lemma [rewrite_bv_or_concat_pullup]:
+  fixes x::"'a::len word" and y::"'b::len word" and z::"'c::len word" and ys::"'c::len word cvc_ListVar"
+  shows "or x (word_cat (cvc_list_left word_cat ys z) y) =
+   word_cat
+    (or (SMT.smt_extract (nat (int (size x) - (1::int)))
+          (nat (int (size y))) x)
+      (cvc_list_left word_cat ys z))
+    (or (SMT.smt_extract (nat (int (size y) - (1::int))) (nat (0::int)) x)
+      y)"
+  apply (cases ys)
+  subgoal for yss 
+    apply (simp add: cvc_list_left_transfer cvc_list_right_transfer_op cvc_list_both_transfer_op)
+    by (simp add: bv_or_concat_pullup_lemma)
+  done
+
 named_theorems rewrite_bv_ugt_urem \<open>automatically_generated\<close>
 
 lemma [rewrite_bv_ugt_urem]:
@@ -1667,6 +1743,16 @@ lemma [rewrite_bv_neg_sub]:
   shows "- (x - y) = y - x"
   by auto
 
+named_theorems rewrite_bv_neg_add \<open>automatically_generated\<close>
+
+lemma [rewrite_bv_neg_add]:
+  fixes x::"'a::len word" and y::"'a::len word" and zs::"'a::len word cvc_ListVar"
+  shows "- (x + cvc_list_right (+) y zs) = - x + - cvc_list_right (+) y zs"
+  apply (cases zs)
+  subgoal for zss 
+    by (simp add: cvc_list_left_transfer cvc_list_right_transfer_op cvc_list_both_transfer_op)
+  done
+
 named_theorems rewrite_bv_mult_distrib_const_neg \<open>automatically_generated\<close>
 
 lemma [rewrite_bv_mult_distrib_const_neg]:
@@ -1711,6 +1797,180 @@ lemma [rewrite_bv_not_xor]:
   apply (cases xs)
   subgoal for xss 
     by (simp add: cvc_list_left_transfer cvc_list_right_transfer_op cvc_list_both_transfer_op)
+  done
+
+named_theorems rewrite_bv_and_simplify_1 \<open>automatically_generated\<close>
+
+lemma [rewrite_bv_and_simplify_1]:
+  fixes xs::"'a::len word cvc_ListVar" and ys::"'a::len word cvc_ListVar" and zs::"'a::len word cvc_ListVar" and x::"'a::len word"
+  shows "cvc_list_right and
+    (and (cvc_list_right and (cvc_list_left and xs x) ys) x) zs =
+   cvc_list_right and (cvc_list_right and (cvc_list_left and xs x) ys) zs"
+  apply (cases zs)
+  apply (cases ys)
+  apply (cases xs)
+  subgoal for zss yss xss 
+    apply (simp add: cvc_list_left_transfer cvc_list_right_transfer_op cvc_list_both_transfer_op)
+    apply (induction xss arbitrary: xs)
+     apply simp_all
+    apply (induction yss arbitrary: ys)
+     apply simp_all
+    apply (induction zss arbitrary: zs)
+      apply simp_all
+    apply (simp add: word_bw_comms(2))
+    apply (simp add: or.left_commute word_bw_assocs(2))
+    by (simp add: word_bw_assocs(2))
+  done
+
+named_theorems rewrite_bv_and_simplify_2 \<open>automatically_generated\<close>
+
+lemma [rewrite_bv_and_simplify_2]:
+  fixes xs::"'a::len word cvc_ListVar" and ys::"'a::len word cvc_ListVar" and zs::"'a::len word cvc_ListVar" and x::"'a::len word"
+  shows "cvc_list_right and
+    (and (cvc_list_right and (cvc_list_left and xs x) ys) (not x)) zs =
+   Word.Word (0::int)"
+  apply (cases zs)
+  apply (cases ys)
+  apply (cases xs)
+  subgoal for zss yss xss 
+    apply (simp add: cvc_list_left_transfer cvc_list_right_transfer_op cvc_list_both_transfer_op)
+    by (simp add: bv_and_simplify_2_lemma)
+  done
+
+named_theorems rewrite_bv_or_simplify_1 \<open>automatically_generated\<close>
+
+lemma [rewrite_bv_or_simplify_1]:
+  fixes xs::"'a::len word cvc_ListVar" and ys::"'a::len word cvc_ListVar" and zs::"'a::len word cvc_ListVar" and x::"'a::len word"
+  shows "cvc_list_right or (or (cvc_list_right or (cvc_list_left or xs x) ys) x)
+    zs =
+   cvc_list_right or (cvc_list_right or (cvc_list_left or xs x) ys) zs"
+  apply (cases zs)
+  apply (cases ys)
+  apply (cases xs)
+  subgoal for zss yss xss 
+    apply (simp add: cvc_list_left_transfer cvc_list_right_transfer_op cvc_list_both_transfer_op)
+    apply (induction xss arbitrary: xs)
+     apply simp_all
+    apply (induction yss arbitrary: ys)
+     apply simp_all
+    apply (induction zss arbitrary: zs)
+      apply simp_all
+    apply (simp add: word_bw_comms(2))
+    apply (simp add: or.left_commute word_bw_assocs(2))
+    by (simp add: word_bw_assocs(2))
+  done
+
+named_theorems rewrite_bv_or_simplify_2 \<open>automatically_generated\<close>
+
+lemma [rewrite_bv_or_simplify_2]:
+  fixes xs::"'a::len word cvc_ListVar" and ys::"'a::len word cvc_ListVar" and zs::"'a::len word cvc_ListVar" and x::"'a::len word"
+  shows "cvc_list_right or
+    (or (cvc_list_right or (cvc_list_left or xs x) ys) (not x)) zs =
+   not (Word.Word (0::int))"
+  apply (cases zs)
+  apply (cases ys)
+  apply (cases xs)
+  subgoal for zss yss xss 
+    apply (simp add: cvc_list_left_transfer cvc_list_right_transfer_op cvc_list_both_transfer_op)
+    apply (induction xss arbitrary: xs)
+     apply simp_all
+    apply (induction yss arbitrary: ys)
+     apply simp_all
+    apply (induction zss arbitrary: zs)
+      apply simp_all
+      apply (simp add: or.assoc word_bw_lcs(2))
+     apply (metis or.left_commute word_bw_assocs(2) word_or_max)
+    by (simp add: or.assoc)
+  done
+
+named_theorems rewrite_bv_xor_simplify_1 \<open>automatically_generated\<close>
+
+lemma [rewrite_bv_xor_simplify_1]:
+  fixes xs::"'a::len word cvc_ListVar" and ys::"'a::len word cvc_ListVar" and zs::"'a::len word cvc_ListVar" and x::"'a::len word"
+  shows "cvc_list_right semiring_bit_operations_class.xor
+    (semiring_bit_operations_class.xor
+      (cvc_list_right semiring_bit_operations_class.xor
+        (cvc_list_left semiring_bit_operations_class.xor xs x) ys)
+      x)
+    zs =
+   cvc_list_right semiring_bit_operations_class.xor
+    (cvc_list_both semiring_bit_operations_class.xor (0::'a::len word) xs
+      ys)
+    zs"
+  apply (cases zs)
+  apply (cases ys)
+  apply (cases xs)
+  subgoal for zss yss xss 
+    apply (simp add: cvc_list_left_transfer cvc_list_right_transfer_op cvc_list_both_transfer_op)
+    apply (induction xss arbitrary: xs)
+     apply simp_all
+    apply (induction yss arbitrary: ys)
+     apply simp_all
+    apply (induction zss arbitrary: zs)
+      apply simp_all
+      apply (simp add: word_bw_assocs(3) xor.left_commute)
+    apply (simp add: xor.commute)
+    by (simp add: word_bw_assocs(3))
+  done
+
+named_theorems rewrite_bv_xor_simplify_2 \<open>automatically_generated\<close>
+
+lemma [rewrite_bv_xor_simplify_2]:
+  fixes xs::"'a::len word cvc_ListVar" and ys::"'a::len word cvc_ListVar" and zs::"'a::len word cvc_ListVar" and x::"'a::len word"
+  shows "cvc_list_right semiring_bit_operations_class.xor
+    (semiring_bit_operations_class.xor
+      (cvc_list_right semiring_bit_operations_class.xor
+        (cvc_list_left semiring_bit_operations_class.xor xs x) ys)
+      (not x))
+    zs =
+   not (cvc_list_right semiring_bit_operations_class.xor
+         (cvc_list_both semiring_bit_operations_class.xor
+           (0::'a::len word) xs ys)
+         zs)"
+  apply (cases zs)
+  apply (cases ys)
+  apply (cases xs)
+  subgoal for zss yss xss 
+    apply (simp add: cvc_list_left_transfer cvc_list_right_transfer_op cvc_list_both_transfer_op)
+    apply (induction xss arbitrary: xs)
+     apply simp_all
+    apply (induction yss arbitrary: ys)
+     apply simp_all
+    apply (induction zss arbitrary: zs)
+      apply simp_all
+      apply (simp add: word_bw_assocs(3) xor.left_commute)
+    apply (simp add: xor.commute)
+    by (simp add: word_bw_assocs(3))
+  done
+
+named_theorems rewrite_bv_xor_simplify_3 \<open>automatically_generated\<close>
+
+lemma [rewrite_bv_xor_simplify_3]:
+  fixes xs::"'a::len word cvc_ListVar" and ys::"'a::len word cvc_ListVar" and zs::"'a::len word cvc_ListVar" and x::"'a::len word"
+  shows "cvc_list_right semiring_bit_operations_class.xor
+    (semiring_bit_operations_class.xor
+      (cvc_list_right semiring_bit_operations_class.xor
+        (cvc_list_left semiring_bit_operations_class.xor xs (not x)) ys)
+      x)
+    zs =
+   not (cvc_list_right semiring_bit_operations_class.xor
+         (cvc_list_both semiring_bit_operations_class.xor
+           (0::'a::len word) xs ys)
+         zs)"
+  apply (cases zs)
+  apply (cases ys)
+  apply (cases xs)
+  subgoal for zss yss xss 
+    apply (simp add: cvc_list_left_transfer cvc_list_right_transfer_op cvc_list_both_transfer_op)
+    apply (induction xss arbitrary: xs)
+     apply simp_all
+    apply (induction yss arbitrary: ys)
+     apply simp_all
+    apply (induction zss arbitrary: zs)
+      apply simp_all
+      apply (simp add: word_bw_assocs(3) xor.left_commute)
+    apply (simp add: xor.commute)
+    by (simp add: word_bw_assocs(3))
   done
 
 named_theorems rewrite_bv_ult_add_one \<open>automatically_generated\<close>
