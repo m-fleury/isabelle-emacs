@@ -192,7 +192,7 @@ lemma str_contains_split_char_lemma:
   apply (simp add: smtlib_str_contains_append_Singleton)
   by (simp add: smtlib_str_concat_def smtlib_str_contains_append_Singleton)
 
-lemma rewrite_str_len_concat_rec:
+lemma str_len_concat_rec_lemma:
 " smtlib_str_len (smtlib_str_concat (smtlib_str_concat s1 s2) (foldr smtlib_str_concat s3s [])) =
     smtlib_str_len s1 + smtlib_str_len (smtlib_str_concat s2 (foldr smtlib_str_concat s3s []))"
   apply (induction s3s)

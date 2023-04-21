@@ -444,9 +444,9 @@ lemma [str_eq_refl]:
   shows "((t = t) = (True))"
   by auto
 
-named_theorems rewrite_str_len_concat_rec \<open>automatically_generated\<close>
+named_theorems str_len_concat_rec \<open>automatically_generated\<close>
 
-lemma [rewrite_str_len_concat_rec]:
+lemma [str_len_concat_rec]:
   fixes s1::"char list" and s2::"char list" and s3::"char list cvc_ListVar"
   shows "smtlib_str_len
     (cvc_list_right smtlib_str_concat (smtlib_str_concat s1 s2) s3) =
