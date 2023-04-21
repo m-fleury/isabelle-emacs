@@ -273,8 +273,12 @@ fun bv_term_parser (SMTLIB.Sym bv, []) =
       in 
         SOME (mk_lassoc (fn t1 => fn t2 => (Const ( \<^const_name>\<open>semiring_bit_operations_class.or\<close>, T --> T --> T)) $ t1 $ t2) t ts)
       end
-  | bv_term_parser (SMTLIB.Sym "bvxor", [t1, t2]) =
-      SOME (HOLogic.mk_binop \<^const_name>\<open>semiring_bit_operations_class.xor\<close> (t1, t2))
+  | bv_term_parser (SMTLIB.Sym "bvxor", (t::ts)) =
+      let
+        val T = fastype_of t
+      in 
+        SOME (mk_lassoc (fn t1 => fn t2 => (Const ( \<^const_name>\<open>semiring_bit_operations_class.xor\<close>, T --> T --> T)) $ t1 $ t2) t ts)
+      end
   | bv_term_parser (SMTLIB.Sym "bvxnor", [t1, t2]) =
       SOME (mk_unary \<^const_name>\<open>ring_bit_operations_class.not\<close> (HOLogic.mk_binop \<^const_name>\<open>semiring_bit_operations_class.xor\<close> (t1, t2)))
   | bv_term_parser (SMTLIB.Sym "bvnot", [t1]) =
