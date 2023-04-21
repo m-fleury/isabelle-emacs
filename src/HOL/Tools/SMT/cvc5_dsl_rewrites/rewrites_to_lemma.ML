@@ -230,6 +230,7 @@ let
      neutral_for_operator "Smtlib_String.smtlib_re_concat" = Free ("{''''}", \<^typ>\<open>RegLan\<close>) |
      neutral_for_operator "Smtlib_String.smtlib_str_concat" = Const (\<^const_name>\<open>List.Nil\<close>, \<^typ>\<open>String.string\<close>) |
      neutral_for_operator "Word.word_cat" = Const (\<^const_name>\<open>List.Nil\<close>, \<^typ>\<open>String.string\<close>) | (*TODO*)
+     neutral_for_operator "Bit_Operations.semiring_bit_operations_class.xor" =  Const (\<^const_name>\<open>Groups.zero\<close>, dummyT) |
      neutral_for_operator l = (@{print}("neutral_for_operator", l);Free ("PutInNeutral", \<^typ>\<open>HOL.bool\<close>))
 
   val T = (dummyT --> dummyT --> dummyT) --> dummyT --> dummyT --> dummyT
@@ -328,9 +329,9 @@ local
     val implicit_assumptions2 = SMTLIB.S ([SMTLIB.Sym "and"] @ implicit_assumptions)
     val _ = @{print}("implicit_assumptions",implicit_assumptions2)
 
-    val smtlib_tree = new_tree
+  (*   val smtlib_tree = new_tree
 
-    val smtlib_tree = case smtlib_tree of
+   val smtlib_tree = case smtlib_tree of
         SMTLIB.S [SMTLIB.Sym "forall", SMTLIB.S param,SMTLIB.S [SMTLIB.Sym "let", SMTLIB.S lets, body]] => 
 if implicit_assumptions = [] then smtlib_tree
                       else (SMTLIB.S [SMTLIB.Sym "forall", SMTLIB.S param,SMTLIB.S [SMTLIB.Sym "let", SMTLIB.S lets, 
@@ -339,13 +340,8 @@ SMTLIB.S [SMTLIB.Sym "forall", SMTLIB.S param,body] =>
 if implicit_assumptions = [] then smtlib_tree
                       else (SMTLIB.S [SMTLIB.Sym "forall", SMTLIB.S param, SMTLIB.S [SMTLIB.Sym "=>",implicit_assumptions2, body]])
 
-  
+  *)
     val _ = @{print}("smtlib_tree",smtlib_tree)
-
-(* S [Sym "forall", S [S [Sym "xs", Sym "?BitVec"], S [Sym "s", Sym "?BitVec"], S [Sym "ys", Sym "?BitVec"], S [Sym "i", Sym "Int"], S [Sym "j", Sym "Int"], S [Sym "k", Sym "Int"]],
-    S [Sym "=", S [Sym "concat", Sym "xs", S [Sym "extract", Sym "k", S [Sym "+", Sym "j", Num 1], Sym "s"], S [Sym "extract", Sym "j", Sym "i", Sym "s"], Sym "ys"],
-       S [Sym "concat", Sym "xs", S [Sym "extract", Sym "k", Sym "i", Sym "s"], Sym "ys"]]]*)
-
 
 
     (*First the tree is parsed without considering lists*)
@@ -484,11 +480,20 @@ in val _ = @{print}("here2: ")
    end |
   write_lemma (Rewrite_Rule ((Rule_Type DEFINE_STAR_RULE)::(Rule_Name name)::[Par (param,list_param), Let_Defs ld, Context_Expr context_expr, Match m, Target t])) ctxt =
    let (*TODO*)
-     val _ = @{print}("current define-star-rule to write: ", name)
-     val smtlib_tree = SMTLIB.S [SMTLIB.Sym "forall", SMTLIB.S param, SMTLIB.S [SMTLIB.Sym "=", m, t]]
-     val res = parse_tree smtlib_tree list_param (length param) ctxt
+     fun eliminate_context (SMTLIB.S ts) = (SMTLIB.S (map eliminate_context ts)) |
+         eliminate_context (SMTLIB.Sym "_") = t |
+         eliminate_context x = x
+ 
+     val t = case context_expr of
+             NONE => t |
+             SOME ce => eliminate_context ce
+
+     val smtlib_tree_body = SMTLIB.S [SMTLIB.Sym "=", m, t]
+     val smtlib_tree = quant_letify_tree smtlib_tree_body param ld
+     val (res,ctxt) = parse_tree smtlib_tree list_param (length param) ctxt
+     val list_param2 = map (fn (SMTLIB.S [SMTLIB.Sym name, SMTLIB.Sym typ]) => name) list_param
    in
-      [write_lemma_header name]
+     [write_lemma_header name, write_pars res ctxt, write_body res ctxt, write_auto list_param2 name]
    end |
   write_lemma rwr _ = (@{print}("rwr",rwr);raise WRITE_LEMMA_FROM_DSL_REWRITE ("Could not write rewrite rule to lemma, has wrong form"))
 end
