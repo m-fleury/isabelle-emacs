@@ -412,7 +412,7 @@ fun proof_ctxt_of_rule "bind" t = t
 
 fun args_of_rule "bind" t = t
   | args_of_rule "la_generic" t = t
-  | args_of_rule "all_simplify" t = (@{print}("t args of",t);t)
+  | args_of_rule "all_simplify" t = t
   | args_of_rule _ _ = []
 
 fun insts_of_forall_inst "forall_inst" t = map (fn SMTLIB.S [_, SMTLIB.Sym x, a] => (x, a)) t
@@ -489,7 +489,7 @@ fun extract_types_of_args (SMTLIB.S [var, typ, t as SMTLIB.S [SMTLIB.Sym "choice
     |> single
  | extract_types_of_args (SMTLIB.S t) =
   let
-    fun extract_types_of_arg (SMTLIB.S [eq, SMTLIB.S [var, typ], t]) = (SMTLIB.S [eq, var, t], SOME typ)
+    fun extract_types_of_arg (SMTLIB.S [eq as SMTLIB.Sym "=", SMTLIB.S [var, typ], t]) = (SMTLIB.S [eq, var, t], SOME typ)
       | extract_types_of_arg t = (t, NONE)
   in
     t
@@ -587,7 +587,6 @@ fun postprocess_proof compress ctxt step cx =
 
       (* postprocess arguments *)
       val rule_args = args_of_rule rule stripped_args
-      (*val _ = @{print} ("rule_args",rule_args)*)
 
       val (termified_args, _) = fold_map term_of rule_args subproof_cx
       (*val _ = @{print} ("termified_args",termified_args)*)
@@ -818,7 +817,7 @@ local
         |> map remove_all_qm2
         |> map remove_pattern
       (*val _ = @{print}("smtlib_lines_without_qm",smtlib_lines_without_qm)*)
-
+val _ = @{print}"pretransformed"
       val (raw_steps, _, _) =
         parse_raw_proof_steps NONE smtlib_lines_without_qm SMTLIB_Proof.empty_name_binding 0
       (*val _ = @{print}("raw_steps",raw_steps)*)
@@ -831,8 +830,11 @@ local
       val step =
         (empty_context ctxt typs funs, [])
         |> fold_map process raw_steps
+|> tap (K (@{print}"process"))
         |> (fn (steps, (cx, _)) => (flat steps, cx))
+|> tap (K (@{print}"compress"))
         |> compress? apfst combine_proof_steps
+|> tap (K (@{print}"compressed"))
     in step end
 in
 
