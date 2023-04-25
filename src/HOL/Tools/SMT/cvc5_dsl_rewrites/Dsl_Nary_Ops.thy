@@ -21,6 +21,10 @@ lemma cvc_ListOp_neutral_re_concat [cvc_ListOp_neutral]: "cvc_isListOp (ListOp (
   by (simp add: smtlib_re_concat_def)
 lemma cvc_ListOp_neutral_str_concat [cvc_ListOp_neutral]: "cvc_isListOp (ListOp (smtlib_str_concat) [])"
   by (simp add: smtlib_str_concat_def)
+lemma cvc_ListOp_neutral_bv_xor [cvc_ListOp_neutral]: "cvc_isListOp (ListOp (semiring_bit_operations_class.xor) 0)"
+  by simp
+
+
 
 fun cvc_nary_op_fold :: "('a \<Rightarrow> 'a \<Rightarrow> 'a) \<Rightarrow> 'a list \<Rightarrow> 'a" where
  cvc_nary_op_fold_Nil: "cvc_nary_op_fold op [x] = x" |
@@ -172,6 +176,16 @@ lemma [cvc_list_right_transfer_op]:
   "cvc_list_right (smtlib_str_concat) y (ListVar xs) = (smtlib_str_concat) y (foldr (smtlib_str_concat) xs [])"
   by (simp add: cvc_list_right_transfer smtlib_str_concat_def)
 
+lemma [cvc_list_right_transfer_op]:
+  "cvc_list_right (semiring_bit_operations_class.xor) y (ListVar xs) = (semiring_bit_operations_class.xor) y (foldr (semiring_bit_operations_class.xor) xs 0)"
+  by (simp add: cvc_list_right_transfer smtlib_str_concat_def)
+
+lemma [cvc_list_right_transfer_op]:
+  "cvc_list_right (word_cat) y (ListVar xs) = (if xs = [] then y else (word_cat) y (fold (word_cat) (butlast xs) (last xs)))"
+  apply (induction xs)
+   apply (simp add: cvc_list_right_def)
+  by (metis (no_types, opaque_lifting) Dsl_Nary_Ops.cvc_nary_op_fold_Cons Dsl_Nary_Ops.cvc_nary_op_fold_Nil butlast.simps(2) cvc_bin_op2.simps cvc_list_right_def fold_simps(1) fold_simps(2) last.simps neq_Nil_conv word_cat_id)
+
 lemma cvc_list_both_transfer: 
   assumes "cvc_isListOp (ListOp op neutral)"
   shows "cvc_list_both op neutral (ListVar ys) (ListVar xs) = foldr op ys (foldr op xs neutral)"
@@ -217,6 +231,9 @@ lemma [cvc_list_both_transfer_op]:
   "cvc_list_both (smtlib_str_concat) [] (ListVar ys) (ListVar xs) = foldr (smtlib_str_concat) ys (foldr (smtlib_str_concat) xs [])"
   by (meson cvc_ListOp_neutral_str_concat cvc_list_both_transfer)
 
+lemma [cvc_list_both_transfer_op]:
+  "cvc_list_both (semiring_bit_operations_class.xor) 0 (ListVar ys) (ListVar xs) = foldr (semiring_bit_operations_class.xor) ys (foldr (semiring_bit_operations_class.xor) xs 0)"
+  by (meson cvc_ListOp_neutral_bv_xor cvc_list_both_transfer)
 
 lemma cvc_list_left_Nil: "cvc_list_left op (ListVar []) y = y"
   unfolding cvc_list_left_def

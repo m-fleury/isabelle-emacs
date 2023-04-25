@@ -93,13 +93,13 @@ fun replay_theorem_step rewrite_rules ll_defs assumed inputs proof_prems
   (step as Lethe_Proof.Lethe_Replay_Node {id, rule, prems, bounds, args, insts,
      subproof = (fixes, assms, input, subproof), concl, ...}) state =
   let
-    val _ = @{print}("replay_theorem_step rule", rule)
+   (* val _ = @{print}("replay_theorem_step rule", rule)
     val _ = @{print}("replay_theorem_step id", id)
 
     val _ = @{print}("replay_theorem_step args", args)
     val _ = @{print}("replay_theorem_step inputs", inputs)
     val _ = @{print}("replay_theorem_step assumed", assumed)
-    val _ = @{print}("replay_theorem_step proof_prems", proof_prems)
+    val _ = @{print}("replay_theorem_step proof_prems", proof_prems)*)
 
     val (proofs, stats, ctxt, concl_tranformation, global_transformation) = state
     val (_, ctxt) = Variable.variant_fixes (map fst bounds) ctxt

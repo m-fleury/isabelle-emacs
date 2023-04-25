@@ -362,8 +362,8 @@ fun parse_raw_proof_steps (limit : string option) (ls : SMTLIB.tree list) (cx : 
           let
             val (id, t :: []) = p
               |> get_id
-            val _ = @{print}("id",id)
-            val _ = @{print}("t",t)
+           (* val _ = @{print}("id",id)
+            val _ = @{print}("t",t)*)
 
             val ((t, cx), _) = SMTLIB_Proof.extract_and_update_name_bindings t cx
             val s = mk_raw_node id input_rule (SMTLIB.S []) [] [] t []
@@ -372,16 +372,16 @@ fun parse_raw_proof_steps (limit : string option) (ls : SMTLIB.tree list) (cx : 
           in (s :: rp, rl, cx) end
       | (ASSERT, p, l) => (*TODO*)
           let
-            val _ = @{print}("p",p)
-            val _ = @{print}("l",l)
+            (*val _ = @{print}("p",p)
+            val _ = @{print}("l",l)*)
 
             val (id, term) = (case p of
                 SMTLIB.S [SMTLIB.Sym "assert", SMTLIB.S [SMTLIB.Sym "!", term, SMTLIB.Key "named", SMTLIB.Sym id]] => (id, term)
               | SMTLIB.S [SMTLIB.Sym "assert", term] => (Int.toString assms_nbr, term))
             (*val SMTLIB.S [SMTLIB.Sym "assert", SMTLIB.S [SMTLIB.Sym "!", term, SMTLIB.Key "named", SMTLIB.Sym id]]
                 = p*)
-            val _ = @{print}("id",id)
-            val _ = @{print}("t",term)
+            (*val _ = @{print}("id",id)
+            val _ = @{print}("t",term)*)
 
             val ((t, cx), _) = SMTLIB_Proof.extract_and_update_name_bindings term cx
             val s = mk_raw_node id input_rule (SMTLIB.S []) [] [] t []
@@ -806,9 +806,9 @@ local
   fun import_proof_and_post_process typs funs lines ctxt =
     let
       val compress = SMT_Config.compress_verit_proofs ctxt
-      val _ = @{print}("lines",lines)
+      (*val _ = @{print}("lines",lines)
       val _ = @{print}("lines2", lines
-        |> map single)
+        |> map single)*)
 
       val smtlib_lines_without_qm =
         lines
@@ -817,11 +817,11 @@ local
         |> map SMTLIB.parse
         |> map remove_all_qm2
         |> map remove_pattern
-      val _ = @{print}("smtlib_lines_without_qm",smtlib_lines_without_qm)
+      (*val _ = @{print}("smtlib_lines_without_qm",smtlib_lines_without_qm)*)
 
       val (raw_steps, _, _) =
         parse_raw_proof_steps NONE smtlib_lines_without_qm SMTLIB_Proof.empty_name_binding 0
-      val _ = @{print}("raw_steps",raw_steps)
+      (*val _ = @{print}("raw_steps",raw_steps)*)
 
       fun process step (cx, cx') =
         let fun postprocess step (cx, cx') =

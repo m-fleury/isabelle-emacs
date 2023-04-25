@@ -96,7 +96,8 @@ named_theorems str_contains_refl \<open>automatically_generated\<close>
 lemma [str_contains_refl]:
   fixes x::"char list"
   shows "((smtlib_str_contains x x) = (True))"
-  using smtlib_str_contains_def smtlib_str_contains3.elims(3) by fastforce
+  using smtlib_str_contains_def 
+  by (metis prefix_def prefix_order.order_refl smtlib_str_contains2_def smtlib_str_contains_equal suffix_def suffix_to_prefix)
 
 named_theorems substr_concat1 \<open>automatically_generated\<close>
 
@@ -442,5 +443,19 @@ lemma [str_eq_refl]:
   fixes t::"char list"
   shows "((t = t) = (True))"
   by auto
+
+named_theorems str_len_concat_rec \<open>automatically_generated\<close>
+
+lemma [str_len_concat_rec]:
+  fixes s1::"char list" and s2::"char list" and s3::"char list cvc_ListVar"
+  shows "smtlib_str_len
+    (cvc_list_right smtlib_str_concat (smtlib_str_concat s1 s2) s3) =
+   smtlib_str_len s1 +
+   smtlib_str_len (cvc_list_right smtlib_str_concat s2 s3)"
+  apply (cases s3)
+  subgoal for s3s 
+    apply (simp add: cvc_list_left_transfer cvc_list_right_transfer_op cvc_list_both_transfer_op)
+    by (simp add: str_len_concat_rec_lemma)
+  done
 
 end

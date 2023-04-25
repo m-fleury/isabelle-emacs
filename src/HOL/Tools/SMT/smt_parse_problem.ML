@@ -111,18 +111,18 @@ fun add_typ T proper (cx as (names, typs, terms)) =
 fun parse_sort (cs: string list) ({context,typs: typ Symtab.table,terms,ll_defs,rewrite_rules,assms}: SMT_Translate.replay_data, assms_nbr)
  =
 let
-    val _ = @{print} ("declaration", cs)
+    (*val _ = @{print} ("declaration", cs)*)
   val typ = (*This also removes pattern usually but I deleted it here for now*)
     [implode cs]
     |> map single
     |> map SMTLIB.parse
     |> (fn [SMTLIB.S [SMTLIB.Sym "declare-sort", SMTLIB.Sym typ, SMTLIB.Num 0]] => typ)
-    |> @{print}
+    (*|> @{print}*)
     val T = TFree (typ, ["HOL.type"])
     val context = Variable.declare_typ T context
 
    val typs = Symtab.update (typ, T) typs
-|> @{print}
+(*|> @{print}*)
 in
  ({context = context,typs = typs,terms = terms,ll_defs = ll_defs,rewrite_rules = rewrite_rules,assms = assms}, assms_nbr)
 end
@@ -139,7 +139,7 @@ val desymbolize = Name.desymbolize (SOME false) o perhaps (try (unprefix "?"))
 fun parse_declare (cs: string list) ({context,typs,terms,ll_defs,rewrite_rules,assms}: SMT_Translate.replay_data, assms_nbr)
    =
   let
-    val _ = @{print} ("declaration", cs)
+    (*val _ = @{print} ("declaration", cs)*)
     val (n, tys, ty) = (*This also removes pattern usually but I deleted it here for now*)
       [implode cs]
       |> map single
@@ -155,13 +155,13 @@ fun parse_declare (cs: string list) ({context,typs,terms,ll_defs,rewrite_rules,a
 
     val t = Free (n', Ts ---> T)
     val terms = Symtab.update (name, t) terms
-|>  @{print} 
+(*|>  @{print} *)
 (*
      val Ts = map (SMTLIB_Proof.type_of context) (dest_seq tys)
      val T = type_of cx ty
 *)
    (*     in parse' ts (declare_fun name (Ts ---> T) cx) end*)
-    val _ = @{print} ("declaration", (n, tys, ty))
+   (* val _ = @{print} ("declaration", (n, tys, ty))*)
   in
     ({context = context, typs = typs,terms = terms,ll_defs = ll_defs,rewrite_rules = rewrite_rules,assms = assms}, assms_nbr)
   end
@@ -179,7 +179,7 @@ fun read ("("::"a"::"s"::"s"::"e"::"r"::"t"::" "::cs) replay_data =
 (*TODO: assertions and declarations can go over multiple lines. For now assume they don't*)
 fun add_line line (l, replay_data) =
   let
-    val _ = @{print}("current line to parse",line)
+    (*val _ = @{print}("current line to parse",line)*)
     val line_list = (raw_explode line)
   in
     if size line = 0 then (l + 1, replay_data) (*Skip empty lines*)

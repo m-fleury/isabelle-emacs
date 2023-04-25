@@ -83,48 +83,136 @@ val merge_subterms = Library.union (fn ((_,b),(_,d)) => (b = d))
 
 
 
-fun get_implicit_assump (SMTLIB.S [SMTLIB.Sym "extract", i, j, t]) assms subterms
-: SMTLIB.tree list * (SMTLIB.tree * SMTLIB.tree) list * SMTLIB.tree
-   =
-     let
-       val (assms': SMTLIB.tree list, subterms', t') = get_implicit_assump t assms subterms
-       val assms2 = merge_sets assms assms'
-       val subterms = merge_subterms subterms subterms'
-       val new_term = (SMTLIB.S [SMTLIB.Sym "extract", i, j, t'])
-       val current_id = length subterms
+fun get_implicit_assump (SMTLIB.S [SMTLIB.Sym "extract", i, j, t]) assms subterms =
+  let
+   val (assms', subterms, new_body) = get_implicit_assump t assms subterms
+   val assms = assms'
+   val new_term = (SMTLIB.S [SMTLIB.Sym "extract", i, j, new_body])
+   val new_var = case List.find (fn (_,b) => new_term = b) subterms of
+                  NONE =>  "_c" ^ Library.string_of_int (length subterms) |> SMTLIB.Sym |
+                  SOME (x,_) => x
+   val subterms = merge_subterms [(new_var,new_term)] subterms
 
-       val new_var = case List.find (fn (a,b) => new_term = b) subterms of
-                     NONE =>  "_c" ^ Library.string_of_int current_id |> SMTLIB.Sym |
-                     (SOME (x,_)) => x
-       val subterms = merge_subterms [(new_var,new_term)] subterms
-       val _ = @{print}("subterms",subterms)
+   val add_assms =
+    [
+      SMTLIB.S [SMTLIB.Sym "<=", SMTLIB.Num 0, j],
+      SMTLIB.S [SMTLIB.Sym "<=", j, i],
+      SMTLIB.S [SMTLIB.Sym "=", SMTLIB.S [SMTLIB.Sym "bvsize", new_var],
+        SMTLIB.S [SMTLIB.Sym "+", SMTLIB.Num 1, SMTLIB.S [SMTLIB.Sym "-", i, j]]],
+      SMTLIB.S [SMTLIB.Sym "=", new_var, (SMTLIB.S [SMTLIB.Sym "extract", i, j, new_body])],
+      SMTLIB.S [SMTLIB.Sym "<", i, SMTLIB.S [SMTLIB.Sym "bvsize", new_body]]
+      ]
 
-       val new_assms = [
-                        SMTLIB.S [SMTLIB.Sym "<=", SMTLIB.Num 0, j],
-                        SMTLIB.S [SMTLIB.Sym "<=", j, i],
-                        SMTLIB.S [SMTLIB.Sym "=", SMTLIB.S [SMTLIB.Sym "bvsize", new_var]
-                          , SMTLIB.S [SMTLIB.Sym "+", SMTLIB.Num 1, SMTLIB.S [SMTLIB.Sym "-", i, j]]],
-                        SMTLIB.S [SMTLIB.Sym "=", new_var, (SMTLIB.S [SMTLIB.Sym "extract", i, j, t'])]
-                        ]
-       val assms = merge_sets new_assms assms2
-     in (assms,subterms,new_var) end |
-    get_implicit_assump (SMTLIB.S ts) assms ids =
-    let
-      fun fold_get_implicit assms2 ids2 (t::ts) ts2 = 
+   val assms = merge_sets add_assms assms
+  in (assms,subterms,new_var)
+  end |
+(*TODO: Add concat for arbitrary number of arguments*)
+get_implicit_assump (SMTLIB.S (SMTLIB.Sym "concat"::ts)) assms subterms =
+let
+  fun mk_new [] assms2 subterms2 new_ts = (assms2,subterms2,new_ts) |
+      mk_new (t::ts) assms2 subterms2 new_ts =
         let
-       val _ = @{print}("ids2",ids2)
+          val (assms2, subterms2, new_t2') = get_implicit_assump t assms2 subterms2
+         
+        in mk_new ts assms2 subterms2 (new_ts @ [new_t2']) end
+   val (assms,subterms,new_ts) = mk_new ts assms subterms []
 
-          val (assms',ids',t') = get_implicit_assump t assms ids2
-       val _ = @{print}("ids'",ids')
+   fun mk_new_term [t1,t2] = (SMTLIB.S (SMTLIB.Sym "concat"::t1::[t2])) |
+       mk_new_term (t::ts) = (SMTLIB.S (SMTLIB.Sym "concat"::t::[mk_new_term ts]))
 
-        in
-          fold_get_implicit (merge_sets assms2 assms') (merge_subterms ids2 ids') ts (ts2 @ [t'])
-        end |
-        fold_get_implicit assms2 ids2 [] ts2 = (assms2,ids2,ts2)
+   val new_term = mk_new_term new_ts
+   val new_var = case List.find (fn (_,b) => new_term = b) subterms of
+                  NONE =>  "_c" ^ Library.string_of_int (length subterms) |> SMTLIB.Sym |
+                  SOME (x,_) => x
+   val subterms = merge_subterms [(new_var,(SMTLIB.S (SMTLIB.Sym "concat"::new_ts)))] subterms
+   val temp = map (fn x => SMTLIB.S [SMTLIB.Sym "bvsize", x]) new_ts
+   val new_term = (SMTLIB.S ([SMTLIB.Sym "concat"]@new_ts))
 
-       val (assms2,ids2,ts2) = fold_get_implicit assms ids ts []
-    in (assms2,ids2,(SMTLIB.S ts2)) end |
-    get_implicit_assump x assms ids = (assms,ids,x)
+   val add_assms =
+       [ SMTLIB.S [SMTLIB.Sym "=", SMTLIB.S [SMTLIB.Sym "bvsize", new_var],
+         SMTLIB.S ([SMTLIB.Sym "+"]@ temp)],
+       SMTLIB.S [SMTLIB.Sym "=", new_var, new_term]]
+
+   val assms = merge_sets add_assms assms
+  in (assms,subterms,new_var)
+  end |
+get_implicit_assump (SMTLIB.S [SMTLIB.Sym operator, i, t]) assms subterms =
+ if not (Library.member (op =) ["concat","repeat","zero_extend","sign_extend","rotate_left","rotate_right"] operator)
+  then normal_case (SMTLIB.S [SMTLIB.Sym operator, i, t]) assms subterms
+ else if operator = "concat" then
+  let
+   val (assms, subterms, new_i') = get_implicit_assump i assms subterms
+   val (assms, subterms, new_t') = get_implicit_assump t assms subterms
+
+   val new_term = (SMTLIB.S [SMTLIB.Sym operator, new_i', new_t'])
+   val new_var = case List.find (fn (_,b) => new_term = b) subterms of
+                  NONE =>  "_c" ^ Library.string_of_int (length subterms) |> SMTLIB.Sym |
+                  SOME (x,_) => x
+   val subterms = merge_subterms [(new_var,new_term)] subterms
+
+   val add_assms =
+       [ SMTLIB.S [SMTLIB.Sym "=", SMTLIB.S [SMTLIB.Sym "bvsize", new_var],
+         SMTLIB.S [SMTLIB.Sym "+", SMTLIB.S [SMTLIB.Sym "bvsize", new_i'], SMTLIB.S [SMTLIB.Sym "bvsize", new_t']]],
+       SMTLIB.S [SMTLIB.Sym "=", new_var, (SMTLIB.S [SMTLIB.Sym operator, new_i', new_t'])]]
+
+   val assms = merge_sets add_assms assms
+  in (assms,subterms,new_var)
+  end
+
+
+ else if operator = "rotate_left" orelse operator = "rotate_right"
+  then
+   let
+    val (assms, subterms, new_body) = get_implicit_assump t assms subterms
+   in
+    (merge_sets [SMTLIB.S [SMTLIB.Sym "<=", SMTLIB.Num 0, i]] assms,subterms,(SMTLIB.S [SMTLIB.Sym operator, i, new_body]))
+   end
+ else 
+  let
+   val (assms, subterms, new_body) = get_implicit_assump t assms subterms
+   val new_term = (SMTLIB.S [SMTLIB.Sym operator, i, new_body])
+   val new_var = case List.find (fn (_,b) => new_term = b) subterms of
+                  NONE =>  "_c" ^ Library.string_of_int (length subterms) |> SMTLIB.Sym |
+                  SOME (x,_) => x
+   val subterms = merge_subterms [(new_var,new_term)] subterms
+
+   val add_assms =
+     if operator = "repeat"
+     then [
+       SMTLIB.S [SMTLIB.Sym "<=", SMTLIB.Num 0, i],
+       SMTLIB.S [SMTLIB.Sym "=", SMTLIB.S [SMTLIB.Sym "bvsize", new_var],
+         SMTLIB.S [SMTLIB.Sym "*", SMTLIB.S [SMTLIB.Sym "bvsize", new_body], i]],
+       SMTLIB.S [SMTLIB.Sym "=", new_var, (SMTLIB.S [SMTLIB.Sym operator, i, new_body])]
+       ]
+     else if operator = "zero_extend" orelse operator = "sign_extend"
+     then [
+       SMTLIB.S [SMTLIB.Sym "<=", SMTLIB.Num 0, i],
+       SMTLIB.S [SMTLIB.Sym "=", SMTLIB.S [SMTLIB.Sym "bvsize", new_var],
+         SMTLIB.S [SMTLIB.Sym "+", SMTLIB.S [SMTLIB.Sym "bvsize", new_body], i]],
+       SMTLIB.S [SMTLIB.Sym "=", new_var, (SMTLIB.S [SMTLIB.Sym operator, i, new_body])]
+       ]
+     else []
+
+   val assms = merge_sets add_assms assms
+  in (assms,subterms,new_var)
+  end |
+
+
+get_implicit_assump (SMTLIB.S ts) assms subterms = normal_case (SMTLIB.S ts) assms subterms
+  |
+get_implicit_assump x assms ids = (assms,ids,x)
+and
+normal_case (SMTLIB.S ts) assms subterms =
+ let
+
+  fun fold_get_implicit assms' subterms' (t::ts) new_term = 
+   let
+      val (assms', subterms', t') = get_implicit_assump t assms' subterms'
+   in fold_get_implicit assms' subterms' ts (new_term @ [t']) end |
+  fold_get_implicit assms' subterms' [] new_term = (assms',subterms',new_term)
+
+  val (assms,subterms,new_term) = fold_get_implicit assms subterms ts []
+  in (assms,subterms,(SMTLIB.S new_term)) end
 
 
 
@@ -142,6 +230,7 @@ let
      neutral_for_operator "Smtlib_String.smtlib_re_concat" = Free ("{''''}", \<^typ>\<open>RegLan\<close>) |
      neutral_for_operator "Smtlib_String.smtlib_str_concat" = Const (\<^const_name>\<open>List.Nil\<close>, \<^typ>\<open>String.string\<close>) |
      neutral_for_operator "Word.word_cat" = Const (\<^const_name>\<open>List.Nil\<close>, \<^typ>\<open>String.string\<close>) | (*TODO*)
+     neutral_for_operator "Bit_Operations.semiring_bit_operations_class.xor" =  Const (\<^const_name>\<open>Groups.zero\<close>, dummyT) |
      neutral_for_operator l = (@{print}("neutral_for_operator", l);Free ("PutInNeutral", \<^typ>\<open>HOL.bool\<close>))
 
   val T = (dummyT --> dummyT --> dummyT) --> dummyT --> dummyT --> dummyT
@@ -240,23 +329,19 @@ local
     val implicit_assumptions2 = SMTLIB.S ([SMTLIB.Sym "and"] @ implicit_assumptions)
     val _ = @{print}("implicit_assumptions",implicit_assumptions2)
 
-    val smtlib_tree = new_tree
+  (*   val smtlib_tree = new_tree
 
-    val smtlib_tree = case smtlib_tree of
+   val smtlib_tree = case smtlib_tree of
         SMTLIB.S [SMTLIB.Sym "forall", SMTLIB.S param,SMTLIB.S [SMTLIB.Sym "let", SMTLIB.S lets, body]] => 
 if implicit_assumptions = [] then smtlib_tree
-                      else (SMTLIB.S [SMTLIB.Sym "forall", SMTLIB.S param,SMTLIB.S [SMTLIB.Sym "let", SMTLIB.S lets, body]]) |
+                      else (SMTLIB.S [SMTLIB.Sym "forall", SMTLIB.S param,SMTLIB.S [SMTLIB.Sym "let", SMTLIB.S lets, 
+SMTLIB.S [SMTLIB.Sym "=>",implicit_assumptions2, body]]]) |
 SMTLIB.S [SMTLIB.Sym "forall", SMTLIB.S param,body] =>
 if implicit_assumptions = [] then smtlib_tree
-                      else (SMTLIB.S [SMTLIB.Sym "forall", SMTLIB.S param, body])
+                      else (SMTLIB.S [SMTLIB.Sym "forall", SMTLIB.S param, SMTLIB.S [SMTLIB.Sym "=>",implicit_assumptions2, body]])
 
-  
+  *)
     val _ = @{print}("smtlib_tree",smtlib_tree)
-
-(* S [Sym "forall", S [S [Sym "xs", Sym "?BitVec"], S [Sym "s", Sym "?BitVec"], S [Sym "ys", Sym "?BitVec"], S [Sym "i", Sym "Int"], S [Sym "j", Sym "Int"], S [Sym "k", Sym "Int"]],
-    S [Sym "=", S [Sym "concat", Sym "xs", S [Sym "extract", Sym "k", S [Sym "+", Sym "j", Num 1], Sym "s"], S [Sym "extract", Sym "j", Sym "i", Sym "s"], Sym "ys"],
-       S [Sym "concat", Sym "xs", S [Sym "extract", Sym "k", Sym "i", Sym "s"], Sym "ys"]]]*)
-
 
 
     (*First the tree is parsed without considering lists*)
@@ -395,11 +480,20 @@ in val _ = @{print}("here2: ")
    end |
   write_lemma (Rewrite_Rule ((Rule_Type DEFINE_STAR_RULE)::(Rule_Name name)::[Par (param,list_param), Let_Defs ld, Context_Expr context_expr, Match m, Target t])) ctxt =
    let (*TODO*)
-     val _ = @{print}("current define-star-rule to write: ", name)
-     val smtlib_tree = SMTLIB.S [SMTLIB.Sym "forall", SMTLIB.S param, SMTLIB.S [SMTLIB.Sym "=", m, t]]
-     val res = parse_tree smtlib_tree list_param (length param) ctxt
+     fun eliminate_context (SMTLIB.S ts) = (SMTLIB.S (map eliminate_context ts)) |
+         eliminate_context (SMTLIB.Sym "_") = t |
+         eliminate_context x = x
+ 
+     val t = case context_expr of
+             NONE => t |
+             SOME ce => eliminate_context ce
+
+     val smtlib_tree_body = SMTLIB.S [SMTLIB.Sym "=", m, t]
+     val smtlib_tree = quant_letify_tree smtlib_tree_body param ld
+     val (res,ctxt) = parse_tree smtlib_tree list_param (length param) ctxt
+     val list_param2 = map (fn (SMTLIB.S [SMTLIB.Sym name, SMTLIB.Sym typ]) => name) list_param
    in
-      [write_lemma_header name]
+     [write_lemma_header name, write_pars res ctxt, write_body res ctxt, write_auto list_param2 name]
    end |
   write_lemma rwr _ = (@{print}("rwr",rwr);raise WRITE_LEMMA_FROM_DSL_REWRITE ("Could not write rewrite rule to lemma, has wrong form"))
 end

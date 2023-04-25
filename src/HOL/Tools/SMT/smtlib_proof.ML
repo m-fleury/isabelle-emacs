@@ -152,7 +152,8 @@ fun mk_less_eq t1 t2 = mk_binary_pred \<^const_name>\<open>ord_class.less_eq\<cl
 fun core_term_parser (SMTLIB.Sym "true", _) = SOME \<^Const>\<open>True\<close>
   | core_term_parser (SMTLIB.Sym "false", _) = SOME \<^Const>\<open>False\<close>
   | core_term_parser (SMTLIB.Sym "not", [t]) = SOME (HOLogic.mk_not t)
-  | core_term_parser (SMTLIB.Sym "and", t :: ts) = SOME (mk_rassoc (curry HOLogic.mk_conj) t ts) (*TODO!!! ASK Mathias and is left_assoc in SMTLIB*)
+  | core_term_parser (SMTLIB.Sym "and", t :: ts) = SOME (mk_rassoc (curry HOLogic.mk_conj) t ts)
+ (*TODO: ASK Mathias and is left_assoc in SMTLIB. Answer: Probably to save parenthesis*)
   | core_term_parser (SMTLIB.Sym "or", t :: ts) = SOME (mk_rassoc (curry HOLogic.mk_disj) t ts)
 (*TODO Hanna: This works (and_pos error still there) but do I want this?*)
   (*| core_term_parser (SMTLIB.Sym "xor",[t1,t2]) = SOME (HOLogic.mk_not (HOLogic.mk_eq (t1, t2)))*)

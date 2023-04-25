@@ -109,8 +109,8 @@ local
 
   fun read_star_rule_smtlib_tree _ (match :: [target])
         = [Context_Expr NONE, Match match, Target target] |
-      read_star_rule_smtlib_tree _ (target :: match :: [context_expr])
-        = [Context_Expr (SOME context_expr), Match match, Target target] |
+      read_star_rule_smtlib_tree _ (match :: target :: [context_expr])
+        = (@{print}("target",target);@{print}("match",match);@{print}("context_expr",context_expr);[Context_Expr (SOME context_expr), Match match, Target target]) |
       read_star_rule_smtlib_tree l _ = raise PARSE (l, "not a valid instance of a define-star-rule")
 
   fun read_rewrite_name l cs = parse_string l cs None "Rule name could not be parsed in" ||> Rule_Name
