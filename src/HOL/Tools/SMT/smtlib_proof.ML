@@ -116,7 +116,11 @@ fun core_type_parser (SMTLIB.Sym "Bool", []) = SOME \<^typ>\<open>HOL.bool\<clos
   | core_type_parser (SMTLIB.Sym "Int", []) = SOME \<^typ>\<open>Int.int\<close>
   | core_type_parser (SMTLIB.Sym "ListVar", [t1]) = SOME (Type ("Dsl_Nary_Ops.cvc_ListVar",[t1]))
   | core_type_parser (SMTLIB.Sym "?", []) = SOME dummyT
-  | core_type_parser xs = SMT_String.string_type_parser xs
+  | core_type_parser xs = 
+  (case SMT_String.string_type_parser xs of
+    SOME x => SOME x |
+    NONE => SMT_Set.set_type_parser xs)
+
 
 fun mk_unary n t =
   let val T = fastype_of t
@@ -235,7 +239,10 @@ use that. Otherwise use ?a from the beginning?*)
       $ (HOLogic.mk_list \<^typ>\<open>HOL.bool\<close> ts))
   | core_term_parser (SMTLIB.Sym "emptyString", []) = SOME (Free ("''''", \<^typ>\<open>String.string\<close>))
  | core_term_parser xs =
- ((*@{print}("In core term parser, not able to parse ", xs);*)SMT_String.string_term_parser xs)
+ ((*@{print}("In core term parser, not able to parse ", xs);*)
+case SMT_String.string_term_parser xs of
+SOME x => SOME x |
+NONE => SMT_Set.set_term_parser xs)
 
 (* custom type and term parsers *)
 

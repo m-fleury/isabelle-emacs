@@ -694,6 +694,7 @@ ML_file \<open>Tools/SMT/smt_translate.ML\<close>
 ML_file \<open>Tools/SMT/smtlib.ML\<close>
 ML_file \<open>Tools/SMT/smtlib_interface.ML\<close>
 ML_file \<open>Tools/SMT/SMT_string.ML\<close>
+ML_file \<open>Tools/SMT/SMT_set.ML\<close>
 ML_file \<open>Tools/SMT/smtlib_proof.ML\<close>
 ML_file \<open>Tools/SMT/smtlib_isar.ML\<close>
 ML_file \<open>Tools/SMT/z3_proof.ML\<close>
@@ -1361,6 +1362,7 @@ open WRITE_LEMMA
 fun print_item string_of (modes, arg) = Toplevel.keep (fn state =>
   Print_Mode.with_modes modes (fn () => writeln (string_of state (hd arg))) ())
 
+(*TODO: Can I use: Library.cat_lines?*)
 fun string_of_rewrite ctxt s
 = foldr1 (op^) (List.concat (WRITE_LEMMA.write_lemmas (PARSE_REWRITE.parse_rewrites [s]) "THEORY_NAME" "IMPORTING_THEORIES" ctxt))
 
@@ -1473,7 +1475,35 @@ in lthy end))
 
 \<close>
 
-check_smt_dir "~/Sources/Benchmark/regress0/uf/"
-check_smt_dir "~/Sources/QF_UF/Test1/"
+
+declare[[smt_trace=false]]
+declare[[smt_debug_verit=false]]
+(*check_smt_dir "~/Sources/Benchmark/regress0/uf/"*)
+
+check_smt "~/Sources/Benchmark/regress0/uf/SEQ032_size2.smtv1.smt2"
+"~/Sources/Benchmark/regress0/uf/SEQ032_size2.smtv1.alethe"
+check_smt "~/Sources/QF_UF/2018-Goel-hwbench/QF_UF_usb_phy_ab_reg_max.smt2"
+"~/Sources/QF_UF/2018-Goel-hwbench/QF_UF_usb_phy_ab_reg_max.alethe"
+declare[[smt_trace=true]]
+
+
+check_smt "~/Sources/QF_UF/Test1/test.smt2"
+"~/Sources/QF_UF/Test1/test.alethe"
+
+
+
+check_smt "~/Sources/QF_UF/20170829-Rodin/smt1468783596909311386.smt2"
+"~/Sources/QF_UF/20170829-Rodin/smt1468783596909311386.alethe"
+check_smt "~/Sources/QF_UF/20170829-Rodin/smt2080745738819601301.smt2"
+"~/Sources/QF_UF/20170829-Rodin/smt2080745738819601301.alethe"
+
+(*check_smt_dir "~/Sources/QF_UF/2018-Goel-hwbench/"
+check_smt_dir "~/Sources/QF_UF/20170829-Rodin/"
+*)
+
+
+
+
+
 
 end
