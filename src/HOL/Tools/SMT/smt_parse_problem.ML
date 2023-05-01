@@ -168,11 +168,15 @@ fun parse_declare (cs: string list) ({context,typs,terms,ll_defs,rewrite_rules,a
 
 
 (*This obviously could be done better but since it is only temporary:*)
-fun read ("("::"a"::"s"::"s"::"e"::"r"::"t"::" "::cs) replay_data = 
-      parse_assert ("("::"a"::"s"::"s"::"e"::"r"::"t"::" "::cs) replay_data
+fun read (cs as "("::"a"::"s"::"s"::"e"::"r"::"t"::" "::_) replay_data = 
+      parse_assert cs replay_data
   | read (cs as "("::"d"::"e"::"c"::"l"::"a"::"r"::"e"::"-"::"f"::"u"::"n"::" ":: _) replay_data = parse_declare cs replay_data
   | read (cs as "("::"d"::"e"::"c"::"l"::"a"::"r"::"e"::"-"::"s"::"o"::"r"::"t"::" ":: _) replay_data = parse_sort cs replay_data
-  | read _ replay_data  = replay_data
+  | read ("("::"s"::"e"::"t"::"-"::"i"::"n"::"f"::"o" :: _) replay_data = replay_data
+  | read ("("::"s"::"e"::"t"::"-"::"l"::"o"::"g"::"i"::"c" :: _) replay_data = replay_data
+  | read ("("::"c"::"h"::"e"::"c"::"k"::"-"::"s"::"a"::"t"::")" :: _) replay_data = replay_data
+  | read ("("::"e"::"x"::"i"::"t"::")" :: _) replay_data = replay_data
+  | read x replay_data  = (warning ("found garbage when parsing SMT problem, ignoring: " ^ @{make_string} x); replay_data)
 
 
 (* overall parser *)
