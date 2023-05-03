@@ -80,13 +80,10 @@ end
 val merge_sets = Library.union (fn (a,b) => (a = b))
 val merge_subterms = Library.union (fn ((_,b),(_,d)) => (b = d))
 
-
-
-
+(*Should this be moved to parse_rewrites? *)
 fun get_implicit_assump (SMTLIB.S [SMTLIB.Sym "extract", i, j, t]) assms subterms =
   let
-   val (assms', subterms, new_body) = get_implicit_assump t assms subterms
-   val assms = assms'
+   val (assms, subterms, new_body) = get_implicit_assump t assms subterms
    val new_term = (SMTLIB.S [SMTLIB.Sym "extract", i, j, new_body])
    val new_var = case List.find (fn (_,b) => new_term = b) subterms of
                   NONE =>  "_c" ^ Library.string_of_int (length subterms) |> SMTLIB.Sym |
@@ -101,37 +98,7 @@ fun get_implicit_assump (SMTLIB.S [SMTLIB.Sym "extract", i, j, t]) assms subterm
         SMTLIB.S [SMTLIB.Sym "+", SMTLIB.Num 1, SMTLIB.S [SMTLIB.Sym "-", i, j]]],
       SMTLIB.S [SMTLIB.Sym "=", new_var, (SMTLIB.S [SMTLIB.Sym "extract", i, j, new_body])],
       SMTLIB.S [SMTLIB.Sym "<", i, SMTLIB.S [SMTLIB.Sym "bvsize", new_body]]
-      ]
-
-   val assms = merge_sets add_assms assms
-  in (assms,subterms,new_var)
-  end |
-(*TODO: Add concat for arbitrary number of arguments*)
-get_implicit_assump (SMTLIB.S (SMTLIB.Sym "concat"::ts)) assms subterms =
-let
-  fun mk_new [] assms2 subterms2 new_ts = (assms2,subterms2,new_ts) |
-      mk_new (t::ts) assms2 subterms2 new_ts =
-        let
-          val (assms2, subterms2, new_t2') = get_implicit_assump t assms2 subterms2
-         
-        in mk_new ts assms2 subterms2 (new_ts @ [new_t2']) end
-   val (assms,subterms,new_ts) = mk_new ts assms subterms []
-
-   fun mk_new_term [t1,t2] = (SMTLIB.S (SMTLIB.Sym "concat"::t1::[t2])) |
-       mk_new_term (t::ts) = (SMTLIB.S (SMTLIB.Sym "concat"::t::[mk_new_term ts]))
-
-   val new_term = mk_new_term new_ts
-   val new_var = case List.find (fn (_,b) => new_term = b) subterms of
-                  NONE =>  "_c" ^ Library.string_of_int (length subterms) |> SMTLIB.Sym |
-                  SOME (x,_) => x
-   val subterms = merge_subterms [(new_var,(SMTLIB.S (SMTLIB.Sym "concat"::new_ts)))] subterms
-   val temp = map (fn x => SMTLIB.S [SMTLIB.Sym "bvsize", x]) new_ts
-   val new_term = (SMTLIB.S ([SMTLIB.Sym "concat"]@new_ts))
-
-   val add_assms =
-       [ SMTLIB.S [SMTLIB.Sym "=", SMTLIB.S [SMTLIB.Sym "bvsize", new_var],
-         SMTLIB.S ([SMTLIB.Sym "+"]@ temp)],
-       SMTLIB.S [SMTLIB.Sym "=", new_var, new_term]]
+      ] |> Library.distinct (fn (a,b) => (a = b))
 
    val assms = merge_sets add_assms assms
   in (assms,subterms,new_var)
@@ -153,7 +120,8 @@ get_implicit_assump (SMTLIB.S [SMTLIB.Sym operator, i, t]) assms subterms =
    val add_assms =
        [ SMTLIB.S [SMTLIB.Sym "=", SMTLIB.S [SMTLIB.Sym "bvsize", new_var],
          SMTLIB.S [SMTLIB.Sym "+", SMTLIB.S [SMTLIB.Sym "bvsize", new_i'], SMTLIB.S [SMTLIB.Sym "bvsize", new_t']]],
-       SMTLIB.S [SMTLIB.Sym "=", new_var, (SMTLIB.S [SMTLIB.Sym operator, new_i', new_t'])]]
+       SMTLIB.S [SMTLIB.Sym "=", new_var, (SMTLIB.S [SMTLIB.Sym operator, new_i', new_t'])
+       ]] |> Library.distinct (fn (a,b) => (a = b))
 
    val assms = merge_sets add_assms assms
   in (assms,subterms,new_var)
@@ -183,14 +151,14 @@ get_implicit_assump (SMTLIB.S [SMTLIB.Sym operator, i, t]) assms subterms =
        SMTLIB.S [SMTLIB.Sym "=", SMTLIB.S [SMTLIB.Sym "bvsize", new_var],
          SMTLIB.S [SMTLIB.Sym "*", SMTLIB.S [SMTLIB.Sym "bvsize", new_body], i]],
        SMTLIB.S [SMTLIB.Sym "=", new_var, (SMTLIB.S [SMTLIB.Sym operator, i, new_body])]
-       ]
+       ] |> Library.distinct (fn (a,b) => (a = b))
      else if operator = "zero_extend" orelse operator = "sign_extend"
      then [
        SMTLIB.S [SMTLIB.Sym "<=", SMTLIB.Num 0, i],
        SMTLIB.S [SMTLIB.Sym "=", SMTLIB.S [SMTLIB.Sym "bvsize", new_var],
          SMTLIB.S [SMTLIB.Sym "+", SMTLIB.S [SMTLIB.Sym "bvsize", new_body], i]],
        SMTLIB.S [SMTLIB.Sym "=", new_var, (SMTLIB.S [SMTLIB.Sym operator, i, new_body])]
-       ]
+       ] |> Library.distinct (fn (a,b) => (a = b))
      else []
 
    val assms = merge_sets add_assms assms
@@ -237,7 +205,7 @@ let
 
   val new_operator =
     if var1_is_in_list = NONE andalso var2_is_in_list = NONE
-      then Const (operator_name,dummyT)
+      then Const (operator_name,operator_typ)
     else if var1_is_in_list = NONE (* \<^typ>\<open>(T \<Rightarrow> 'a \<Rightarrow> 'a) \<Rightarrow> 'a \<Rightarrow> 'a Dsl_Nary_Ops.cvc_ListVar \<Rightarrow> 'a\<close>*)
       then Const(\<^const_name>\<open>cvc_list_right\<close>,T ) $ Const (operator_name,dummyT)
     else if var2_is_in_list = NONE (* \<^typ>\<open>('a \<Rightarrow> 'a \<Rightarrow> 'a) \<Rightarrow> 'a Dsl_Nary_Ops.cvc_ListVar \<Rightarrow> 'a \<Rightarrow> 'a\<close>*)
