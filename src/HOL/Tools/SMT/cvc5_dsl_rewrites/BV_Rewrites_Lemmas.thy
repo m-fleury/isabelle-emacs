@@ -5,12 +5,65 @@ begin
  definition smt_extract where
   \<open>smt_extract j i w = slice i (take_bit (Suc j) w)\<close>
 
-fun repeat where
-"repeat (Suc 0) x = x" |
+(*TODO: This is not working*)
+(*Ich braeuchte dependent types dafuer*)
+fun repeat ::"nat \<Rightarrow> 'a::len word \<Rightarrow> 'b::len word" where
+"repeat (Suc (Suc 0)) x = word_cat x x" |
 "repeat (Suc n) x = word_cat x (repeat n x)"
 
-definition smt_repeat :: "nat \<Rightarrow> 'a::len word \<Rightarrow> 'a::len word" where
-  \<open>smt_repeat i x = repeat i x\<close>
+value "repeat 2 (3::3 word)::6 word" (*011011\<rightarrow>27*)
+value "repeat 3 (3::3 word)::9 word" (*011011*)
+value "[]::nat list"
+
+(*
+repeat (n + n) 1 = repeat 7 1
+*)
+fun repeat1 where "repeat1 n x = foldr word_cat (List.replicate n x)"
+
+
+value "repeat1 2 (3::3 word)::6 word" (*011011\<rightarrow>27*)
+value "repeat1 3 (3::3 word)::9 word" (*011011*)
+
+
+
+fun repeat3 ::"nat \<Rightarrow> int \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> int" where
+"repeat3 (Suc 0) x len_x len = x " |
+"repeat3 (Suc n) x len_x len = (let x' = repeat3 n x len_x (len+len_x) in 
+((concat_bit len_x x (take_bit (len+len_x) x'))))"
+
+
+value "repeat3 2 3 3 0" (*011011\<rightarrow>27*)
+value "repeat3 3 3 3 0" (*011011*)
+
+fun repeat2 ::"nat \<Rightarrow> int \<Rightarrow> nat \<Rightarrow> int * nat" where
+"repeat2 (Suc 0) x len_x = (x,len_x) " |
+"repeat2 (Suc n) x len_x = (let (x',len') = repeat2 n x len_x in 
+((concat_bit len_x x (take_bit len' x')),len'+len_x))"
+
+
+value "repeat2 2 3 3" (*011011\<rightarrow>27*)
+value "repeat2 3 3 3" (*011011011 \<rightarrow> 219*)
+
+lift_definition repeat :: \<open>nat \<Rightarrow> nat \<Rightarrow> 'a::len word \<Rightarrow> 'b::len word\<close>
+  is \<open>\<lambda>n l x. fst (repeat2 n x l)\<close>
+  
+  by (simp add: bit_eq_iff bit_concat_bit_iff bit_take_bit_iff)
+
+(*lift_definition word_cat :: \<open>'a::len word \<Rightarrow> 'b::len word \<Rightarrow> 'c::len word\<close>
+  is \<open>\<lambda>k l. concat_bit LENGTH('b) l (take_bit LENGTH('a) k)\<close>
+  by (simp add: bit_eq_iff bit_concat_bit_iff bit_take_bit_iff)
+*)
+
+
+lift_definition repeat :: \<open>'a::len word \<Rightarrow> 'b::len word \<Rightarrow> 'c::len word\<close>
+  is \<open>\<lambda>k l. concat_bit LENGTH('b) l (take_bit LENGTH('a) k)\<close>
+  by (simp add: bit_eq_iff bit_concat_bit_iff bit_take_bit_iff)
+
+
+
+
+definition smt_repeat :: "nat \<Rightarrow> 'a::len word \<Rightarrow> 'b::len word" where
+  \<open>smt_repeat i x = (if i = 0 then (ucast x::'b::len word) else repeat i x)\<close>
 
 definition xor :: "bool \<Rightarrow> bool \<Rightarrow> bool" (infixl "[+1]" 60)
   where "(A [+1] B) \<equiv> (\<not>(A = B))"
@@ -54,15 +107,35 @@ definition smt_ssubo :: "'a::len word \<Rightarrow> 'a::len word \<Rightarrow> b
 ((xLt0 \<and> \<not>yLt0 \<and> \<not>sLt0) \<or> (\<not>xLt0 \<and> yLt0 \<and> sLt0))))))
 "
 
+lemma "unsigned (if x then y else z) = (if x then unsigned y else unsigned z)"
+  by auto
+declare[[show_types]]
+declare[[show_sorts]]
 
 definition smt_urem :: "'a::len word \<Rightarrow> 'a::len word \<Rightarrow> 'a::len word" where
 "smt_urem s t = (if (unat s = 0) then s
  else of_nat ((unat s) mod (unat t)))"
 
+lemma "uint (smt_urem s t) = (if (s = 0) then (uint s) else int ((unat s) mod (unat t)))"
+proof-
+  have "uint (smt_urem s t) =
+        uint (if (unat s = 0) then s else of_nat ((unat s) mod (unat t)))"
+  unfolding smt_urem_def by simp
+  then have "uint (smt_urem s t) =
+   (if (unat s = 0) then uint s else uint (of_nat ((unat s) mod (unat t))::'a::len word))"
+    by presburger
+  moreover have "uint (of_nat ((unat s) mod (unat t))::'a::len word)
+= int ((unat s) mod (unat t))"
+    by (metis Word.of_nat_unat ucast_id unat_mod)
+  ultimately show ?thesis
+    by (simp add: unsigned_eq_0_iff)
+qed
+
+(* Should be done with bit instead of extract? *)
 definition smt_smod :: "'a::len word \<Rightarrow> 'a::len word \<Rightarrow> 'a::len word" where
 "smt_smod s t =
 (let size_s = size s in
-(let msb_s = smt_extract (size_s-1) (size_s-1) s in
+(let msb_s = smt_extract (size_s-1) (size_s-1) s in 
 (let msb_t = smt_extract (size_s-1) (size_s-1) t in 
 (let abs_s = (if (msb_s = (0::1 word)) then s else -s) in 
 (let abs_t = (if (msb_t = (0::1 word)) then t else -t) in 
@@ -77,8 +150,8 @@ definition smt_smod :: "'a::len word \<Rightarrow> 'a::len word \<Rightarrow> 'a
 definition smt_srem :: "'a::len word \<Rightarrow> 'a::len word \<Rightarrow> 'a::len word" where
 "smt_srem s t =
 (let size_s = size s in
-(let msb_s = smt_extract (size_s-1) (size_s-1) s in
-(let msb_t = smt_extract (size_s-1) (size_s-1) t in 
+(let msb_s = (smt_extract (size_s-1) (size_s-1) s::1 word) in
+(let msb_t = (smt_extract (size_s-1) (size_s-1) t::1 word) in 
 (if ((msb_s = (0::1 word)) \<and> (msb_t = (0::1 word)))
  then (smt_urem s t)
  else (if ((msb_s = 1) \<and> (msb_t = 0))
@@ -88,6 +161,56 @@ definition smt_srem :: "'a::len word \<Rightarrow> 'a::len word \<Rightarrow> 'a
  else (- (smt_urem (-s) (-t)))
 ))))))
 "
+
+lemma uint_smt_srem:
+"uint (smt_srem s t) =
+ (if ((smt_extract (size s-1) (size s-1) s = (0::1 word)) \<and> (smt_extract (size s-1) (size s-1) t = (0::1 word)))
+ then uint (smt_urem s t)
+ else (if ((smt_extract (size s-1) (size s-1) s = (1::1 word)) \<and> (smt_extract (size s-1) (size s-1) t = (0::1 word)))
+ then take_bit (size s) (- uint (smt_urem (-s) t))
+ else (if ((smt_extract (size s-1) (size s-1) s = (0::1 word)) \<and> (smt_extract (size s-1) (size s-1) t = (1::1 word)))
+ then uint (smt_urem s (-t))
+ else take_bit (size s) (- uint (smt_urem (-s) (-t)))
+)))"
+proof-
+  have "uint (smt_srem s t) =
+ (if ((smt_extract (size s-1) (size s-1) s = (0::1 word)) \<and> (smt_extract (size s-1) (size s-1) t = (0::1 word)))
+ then uint (smt_urem s t)
+ else (if ((smt_extract (size s-1) (size s-1) s = (1::1 word)) \<and> (smt_extract (size s-1) (size s-1) t = (0::1 word)))
+ then uint (- (smt_urem (-s) t))
+ else (if ((smt_extract (size s-1) (size s-1) s = (0::1 word)) \<and> (smt_extract (size s-1) (size s-1) t = (1::1 word)))
+ then uint (smt_urem s (-t))
+ else uint (- (smt_urem (-s) (-t) ))
+)))"
+  apply (simp add: word_uint_eq_iff[symmetric])
+  using smt_srem_def[of s t]
+  unfolding Let_def
+  by simp
+  moreover have "uint (- (smt_urem (-s) (-t))) = take_bit LENGTH('a) (- uint (smt_urem (-s) (-t)))"
+    by (simp add: uint_word_arith_bintrs(4))
+  moreover have "uint (- (smt_urem (-s) t)) = take_bit LENGTH('a::len) (- uint (smt_urem (-s) t))"
+    by (simp add: uint_word_arith_bintrs(4))
+  ultimately show 
+"uint (smt_srem s t) =
+ (if ((smt_extract (size s-1) (size s-1) s = (0::1 word)) \<and> (smt_extract (size s-1) (size s-1) t = (0::1 word)))
+ then uint (smt_urem s t)
+ else (if ((smt_extract (size s-1) (size s-1) s = (1::1 word)) \<and> (smt_extract (size s-1) (size s-1) t = (0::1 word)))
+ then take_bit (size s) (- uint (smt_urem (-s) t))
+ else (if ((smt_extract (size s-1) (size s-1) s = (0::1 word)) \<and> (smt_extract (size s-1) (size s-1) t = (1::1 word)))
+ then uint (smt_urem s (-t))
+ else take_bit (size s) (- uint (smt_urem (-s) (-t)))
+)))"
+    by (simp add: word_size)
+qed
+
+
+
+
+
+
+
+
+
 
 definition is_pow2 :: "int \<Rightarrow> bool" where
   \<open>is_pow2 i \<equiv> (i = 0) \<and> (and i (i-1) = 0)\<close>
@@ -114,12 +237,12 @@ value "(word_cat (0::1 word) (2::2 word))::3 word"
 
 lemma unat_smt_extract:
   fixes x::"'a::len word"
-  shows  "i \<le> j \<and> j < size x \<and> LENGTH('b) = j + 1 - i
+  shows  "i \<le> j \<Longrightarrow> j < size x \<Longrightarrow> LENGTH('b) = j + 1 - i
  \<Longrightarrow> unat ((smt_extract j i (x::'a::len word))::'b::len word)
    = drop_bit i (take_bit (Suc j) (unat x))"
   apply (cases "i=0")
 proof-
-  assume a0: "i = (0::nat) " and a1: "i \<le> j \<and> j < size x \<and> LENGTH('b) = j + 1 - i"
+  assume a0: "i = (0::nat)" and a1: "i \<le> j" "j < size x" "LENGTH('b) = j + 1 - i"
   then have t0: "LENGTH('b) \<le> LENGTH('a)"
     by (simp add: size_word.rep_eq)
   have "unat (smt_extract j i x::'b::len word) = unat (ucast (take_bit (Suc j) x ::'a::len word)::'b::len word)"
@@ -133,7 +256,7 @@ proof-
   finally show "unat ((smt_extract j i (x::'a::len word))::'b::len word) = drop_bit i (take_bit (Suc j) (unat x))"
     using a0 by force
 next
-  assume a0: "i \<noteq> (0::nat)" and a1: "i \<le> j \<and> j < size x \<and> LENGTH('b) = j + 1 - i"
+  assume a0: "i \<noteq> (0::nat)" and a1: "i \<le> j" "j < size x" "LENGTH('b) = j + 1 - i"
   then have t0: "LENGTH('b) \<le> LENGTH('a)"
     by (metis Suc_eq_plus1 Suc_leI diff_le_self le_trans size_word.rep_eq)
   have t1: "i < LENGTH('a)"
@@ -153,12 +276,12 @@ qed
 
 lemma uint_smt_extract:
   fixes x::"'a::len word"
-  shows  "i \<le> j \<and> j < size x \<and> LENGTH('b) = j + 1 - i
+  shows  "i \<le> j \<Longrightarrow> j < size x \<Longrightarrow> LENGTH('b) = j + 1 - i
  \<Longrightarrow> uint ((smt_extract j i (x::'a::len word))::'b::len word)
    = drop_bit i (take_bit (Suc j) (unsigned x))" 
   apply (cases "i=0")
 proof-
-  assume a0: "i = (0::nat) " and a1: "i \<le> j \<and> j < size x \<and> LENGTH('b) = j + 1 - i"
+  assume a0: "i = (0::nat) " and a1: "i \<le> j" "j < size x" "LENGTH('b) = j + 1 - i"
   then have t0: "LENGTH('b) \<le> LENGTH('a)"
     by (simp add: size_word.rep_eq)
   have "uint (smt_extract j i x::'b::len word) = uint (ucast (take_bit (Suc j) x ::'a::len word)::'b::len word)"
@@ -172,7 +295,7 @@ proof-
   finally show "uint ((smt_extract j i (x::'a::len word))::'b::len word) = drop_bit i (take_bit (Suc j) (unsigned x))" 
     using a0 by force
 next
-  assume a0: "i \<noteq> (0::nat)" and a1: "i \<le> j \<and> j < size x \<and> LENGTH('b) = j + 1 - i"
+  assume a0: "i \<noteq> (0::nat)" and a1: "i \<le> j" "j < size x" "LENGTH('b) = j + 1 - i"
   then have t0: "LENGTH('b) \<le> LENGTH('a)"
     by (metis Suc_eq_plus1 Suc_leI diff_le_self le_trans size_word.rep_eq)
   have t1: "i < LENGTH('a)"
@@ -195,6 +318,63 @@ next
     by auto
 qed
 
+lemma sint_smt_extract:
+  fixes x::"'a::len word"
+  shows  "i \<le> j \<and> j < size x \<and> LENGTH('b) = j + 1 - i
+ \<Longrightarrow> sint ((smt_extract j i (x::'a::len word))::'b::len word)
+= signed_take_bit (LENGTH('b::len) - Suc (0::nat)) (drop_bit i (take_bit (Suc j) (unsigned x)))"
+  apply (cases "i=0")
+proof-
+  assume a0: "i = (0::nat) " and a1: "i \<le> j \<and> j < size x \<and> LENGTH('b) = j + 1 - i"
+  then have t0: "LENGTH('b) \<le> LENGTH('a)"
+    by (simp add: size_word.rep_eq)
+  have "sint (smt_extract j i x::'b::len word) = sint (ucast (take_bit (Suc j) x ::'a::len word)::'b::len word)"
+   unfolding smt_extract_def slice_def slice1_def
+   by (simp add: a0)
+  also have "... = signed_take_bit (LENGTH('b::len) - Suc (0::nat)) (unsigned (take_bit (Suc j) x))"
+    using signed_ucast_eq[of "(take_bit (Suc j) x ::'a::len word)"]
+    by blast
+  also have "... = signed_take_bit (LENGTH('b::len) - Suc (0::nat)) (take_bit (Suc j) (unsigned x))"
+    by (simp add: uint_take_bit_eq)
+  finally show "sint ((smt_extract j i (x::'a::len word))::'b::len word) = signed_take_bit (LENGTH('b::len) - Suc (0::nat)) (drop_bit i (take_bit (Suc j) (unsigned x)))" 
+    using a0 by force
+next
+  assume a0: "i \<noteq> (0::nat)" and a1: "i \<le> j \<and> j < size x \<and> LENGTH('b) = j + 1 - i"
+  then have t0: "LENGTH('b) \<le> LENGTH('a)"
+    by (metis Suc_eq_plus1 Suc_leI diff_le_self le_trans size_word.rep_eq)
+  have t1: "i < LENGTH('a)"
+    by (metis a1 dual_order.strict_trans2 size_word.rep_eq)
+  have "sint (smt_extract j i x::'b::len word) = sint (ucast (drop_bit i (take_bit (Suc j) x))::'b::len word)"
+    unfolding smt_extract_def slice_def slice1_def
+    using a0 t1 by force
+  also have "... = signed_take_bit (LENGTH('b::len) - Suc (0::nat)) (unsigned (drop_bit i (take_bit (Suc j) x)))"
+    using signed_ucast_eq by blast
+  also have "... = signed_take_bit (LENGTH('b::len) - Suc (0::nat)) (drop_bit i (unsigned (take_bit (Suc j) x)))"
+    by (metis take_bit_length_eq unsigned_drop_bit_eq unsigned_take_bit_eq)
+  also have "... = signed_take_bit (LENGTH('b::len) - Suc (0::nat)) (drop_bit i (take_bit (Suc j) (unsigned x)))"
+    by (simp add: unsigned_take_bit_eq)
+  finally show "sint ((smt_extract j i (x::'a::len word))::'b::len word) = signed_take_bit (LENGTH('b::len) - Suc (0::nat)) (drop_bit i (take_bit (Suc j) (unsigned x)))" 
+    using unsigned_drop_bit_eq[of i "take_bit (Suc j) x"] by blast
+qed
+
+lemma uint_word_rotl_eq:
+  \<open>uint (word_rotl n w) = concat_bit (n mod LENGTH('a))
+    (drop_bit (LENGTH('a) - n mod LENGTH('a)) (uint w))
+    (uint (take_bit (LENGTH('a) - n mod LENGTH('a)) w))\<close>
+  for w :: \<open>'a::len word\<close>
+  by transfer (simp add: take_bit_concat_bit_eq)
+
+lemma smt_extract_bit: "k < size (x::'a::len word) \<longrightarrow> (smt_extract k k x::1 word) = (if bit x k then 1 else 0)" 
+  apply (simp add: bang_eq)
+  unfolding smt_extract_def
+  apply (simp_all add: nth_slice bit_take_bit_iff)
+  by (metis add_0 bot_nat_0.not_eq_extremum)
+
+lemma bit_smt_extract: "bit (smt_extract j i x::'b::len word) n = ((n + i < Suc j \<and> bit x (n + i)) \<and> n < LENGTH('b::len))"
+  unfolding smt_extract_def
+  using nth_slice[of i "(take_bit (Suc j) x)" n, where 'a="'b"] bit_take_bit_iff[of "Suc j" x "n+i"]
+  by simp
+
 
 lemma unat_smt_extract2:
   fixes x::"'a::len word" 
@@ -204,9 +384,8 @@ lemma unat_smt_extract2:
   by (simp add: size_word.rep_eq unat_smt_extract)
 
 lemma unat_word_cat: "LENGTH('c) = LENGTH('a) + LENGTH('b) \<Longrightarrow>
-unat (word_cat (x::'a::len word) (y::'b::len word)::'c::len word)
-    = ((take_bit LENGTH('c::len) (push_bit LENGTH('b::len) (unat x)))
-    + (take_bit LENGTH('c::len) (unat y))) mod (2::nat) ^ LENGTH('c::len)"
+  unat (word_cat (x::'a::len word) (y::'b::len word)::'c::len word)
+    = push_bit LENGTH('b::len) (unat x) + unat y"
 proof-
   assume a0: "LENGTH('c) = LENGTH('a) + LENGTH('b)"
   then have "unat (word_cat (x::'a::len word) (y::'b::len word)::'c::len word)
@@ -234,12 +413,43 @@ proof-
     + (take_bit LENGTH('c::len) (unsigned y))) mod (2::nat) ^ LENGTH('c::len)"
     using push_bit_take_bit[of "LENGTH('b)" "LENGTH('c)" "unat x"]
     by auto
-  then show "unat (word_cat (x::'a::len word) (y::'b::len word)::'c::len word)
+ then have "unat (word_cat (x::'a::len word) (y::'b::len word)::'c::len word)
     = ((take_bit LENGTH('c::len) (push_bit LENGTH('b::len) (unat x)))
     + (take_bit LENGTH('c::len) (unat y))) mod (2::nat) ^ LENGTH('c::len)"
     using take_bit_take_bit[of "LENGTH('c)" "LENGTH('b)" "(push_bit LENGTH('b::len) (unat x))"]
     by simp
+ then have "unat (word_cat (x::'a::len word) (y::'b::len word)::'c::len word)
+    = take_bit LENGTH('c::len) ((take_bit LENGTH('c::len) (push_bit LENGTH('b::len) (unat x)))
+    + (take_bit LENGTH('c::len) (unat y)))"
+   using take_bit_nat_def by presburger 
+ then have t0: "unat (word_cat (x::'a::len word) (y::'b::len word)::'c::len word)
+    = take_bit LENGTH('c::len) ((push_bit LENGTH('b::len) (unat x)) + (unat y))"
+   using take_bit_add[of "LENGTH('c)"]
+   by auto
+
+  have "(push_bit LENGTH('b::len) (unat x)) < 2 ^ LENGTH('a) * 2 ^ LENGTH('b)"
+    unfolding push_bit_eq_mult
+    by simp
+  moreover have "2 ^ LENGTH('a) * 2 ^ LENGTH('b) = (2::nat) ^ LENGTH('c)"
+    by (simp add: a0 power_add)
+  ultimately have "(push_bit LENGTH('b::len) (unat x)) < (2::nat) ^ LENGTH('c)"
+    by presburger
+  moreover have "unat (word_cat (x::'a::len word) (y::'b::len word)::'c::len word)
+    = push_bit LENGTH('b::len) (unat x) + unat y"
+    using take_bit_nat_eq_self[of "((push_bit LENGTH('b::len) (unat x)) + (unat y))" "LENGTH('c)"]
+    using a0 nat_add_offset_less push_bit_nat_def t0 by auto
+
+   then show "unat (word_cat (x::'a::len word) (y::'b::len word)::'c::len word)
+    = push_bit LENGTH('b::len) (unat x) + unat y"
+   using take_bit_add[of "LENGTH('c)"]
+   by auto
 qed
+
+lemma uint_word_cat: "LENGTH('c) = LENGTH('a) + LENGTH('b) \<Longrightarrow>
+uint (word_cat (x::'a::len word) (y::'b::len word)::'c::len word) =
+push_bit LENGTH('b::len) (uint x) + uint y"
+  by (metis (mono_tags, lifting) int_plus push_bit_of_nat take_bit_of_nat uint_nat unat_word_cat zmod_int)
+
 
 lemma word_cat_smt_extract: "i \<le> j \<and> j + 1 \<le> k \<and> i \<ge> 0 \<and> k < size x 
  \<and> LENGTH('a) = size x
@@ -735,5 +945,24 @@ proof-
 qed
 
 
+
+lemma rewrite_bv_slt_eliminate_lemma:
+  fixes x::"'a ::len word" and y::"'a ::len word"
+  shows "(x <s y) =
+   (x +
+    push_bit (unat (Word.Word (int (size x) - (1::int))::'a::len word))
+     (Word.Word (1::int)::'a::len word)
+    < y +
+      push_bit (unat (Word.Word (int (size x) - (1::int))::'a::len word))
+       (Word.Word (1::int)::'a::len word))"
+  apply transfer
+  apply simp
+  apply (simp add: signed_take_bit_eq_take_bit_shift)
+  apply (cases \<open>LENGTH('a)\<close>)
+  apply simp_all
+  apply (simp add: iff_conv_conj_imp)
+  apply (rule conjI impI)+
+   apply (metis add.commute add_lessD1 n_less_equal_power_2 nat_int of_nat_take_bit plus_1_eq_Suc take_bit_nat_eq_self)
+  by (metis add.commute add_lessD1 n_less_equal_power_2 nat_int of_nat_take_bit plus_1_eq_Suc take_bit_nat_eq_self)
 
 end
