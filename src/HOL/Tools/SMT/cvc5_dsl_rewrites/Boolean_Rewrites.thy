@@ -71,6 +71,13 @@ lemma [rewrite_bool_impl_true2]:
   shows "(True \<longrightarrow> t) = t"
   by auto
 
+named_theorems rewrite_bool_impl_elim \<open>automatically_generated\<close>
+
+lemma [rewrite_bool_impl_elim]:
+  fixes t::"bool" and s::"bool"
+  shows "(t \<longrightarrow> s) = (\<not> t \<or> s)"
+  by auto
+
 named_theorems rewrite_bool_or_true \<open>automatically_generated\<close>
 
 lemma [rewrite_bool_or_true]:
@@ -129,7 +136,7 @@ named_theorems rewrite_bool_and_true \<open>automatically_generated\<close>
 lemma [rewrite_bool_and_true]:
   fixes xs::"bool cvc_ListVar" and ys::"bool cvc_ListVar"
   shows "cvc_list_left (\<and>) xs (cvc_list_right (\<and>) True ys) =
-   cvc_list_both (\<and>) True xs ys"
+         cvc_list_both (\<and>) True xs ys"
   apply (cases ys)
   apply (cases xs)
   subgoal for yss xss 
@@ -242,6 +249,13 @@ named_theorems rewrite_bool_xor_comm \<open>automatically_generated\<close>
 lemma [rewrite_bool_xor_comm]:
   fixes x::"bool" and y::"bool"
   shows "x [+] y = y [+] x"
+  using xor_def by auto
+
+named_theorems rewrite_bool_xor_elim \<open>automatically_generated\<close>
+
+lemma [rewrite_bool_xor_elim]:
+  fixes x::"bool" and y::"bool"
+  shows "x [+] y = (x \<noteq> y)"
   using xor_def by auto
 
 named_theorems rewrite_ite_neg_branch \<open>automatically_generated\<close>
