@@ -1270,14 +1270,16 @@ let
 (*val rewrite_theories = Theory.parents_of (Proof_Context.theory_of (Proof_Context.get_global (Theory.get_pure ()) "Rare_Interface.thy"))
 val _ = @{print}("rewrite_theories",rewrite_theories)*)
 
+(*This is completely WTF and has no change to work even remotely*)
 val is_BV = Named_Theorems.exists ctxt ("BV_Rewrites."^rewrite_name) (*have exist already give out the thm list? I don't want to change named_theorem so much*)
 val is_Bool = Named_Theorems.exists ctxt ("Boolean_Rewrites."^rewrite_name)
 val is_Arith = Named_Theorems.exists ctxt ("Arith_Rewrites."^rewrite_name)
 val is_String = Named_Theorems.exists ctxt ("String_Rewrites."^rewrite_name)
 
-
  fun rewrite_lemma rewrite_name =
-       if is_BV then nth (Named_Theorems.get ctxt ("BV_Rewrites."^rewrite_name)) 0
+       (*The Hell?*)
+       if rewrite_name = "bool_double_not_elim" then nth (Named_Theorems.get ctxt ("Boolean_Rewrites.rewrite_"^rewrite_name)) 0
+       else if is_BV then nth (Named_Theorems.get ctxt ("BV_Rewrites."^rewrite_name)) 0
        else if is_Bool then nth (Named_Theorems.get ctxt ("Boolean_Rewrites."^rewrite_name)) 0
        else if is_Arith then nth (Named_Theorems.get ctxt ("Arith_Rewrites."^rewrite_name)) 0
        else if is_String then nth (Named_Theorems.get ctxt ("String_Rewrites."^rewrite_name)) 0
@@ -1287,9 +1289,9 @@ val is_String = Named_Theorems.exists ctxt ("String_Rewrites."^rewrite_name)
     (Drule.infer_instantiate' ctxt (map (SOME o Thm.cterm_of ctxt) [t]) (rewrite_lemma rewrite_name)) |
  rewrite_lemma_inst rewrite_name (t :: ts) =
      Drule.infer_instantiate' ctxt (map (SOME o Thm.cterm_of ctxt) [t]) (rewrite_lemma_inst rewrite_name ts)
-
+(*
 val _ = @{print}("rewrite_lemma_inst",(rewrite_lemma_inst rewrite_name (rev args)))
-
+*)
 fun testm i = NO_CONTEXT_TACTIC ctxt
  ((Method.unfold @{thms cvc_list_right_Nil cvc_list_left_Nil cvc_list_right_Cons cvc_list_left_Cons} ctxt) 
 [(rewrite_lemma_inst rewrite_name (rev args))])
@@ -1311,8 +1313,8 @@ fun test4 thm = Seq.list_of ((NO_CONTEXT_TACTIC ctxt
 in
  (@{print} ("rewrite_name with initialization given", rewrite_name);
    SMT_Replay_Methods.prove ctxt t (fn a =>
-       K (print_tac ctxt ("all-simplify at the beginning "))
-       THEN'  Method.insert_tac ctxt
+       (*K (print_tac ctxt ("all-simplify at the beginning "))*
+       THEN'*)  Method.insert_tac ctxt
 [Simplifier.simplify ((put_simpset HOL_basic_ss (empty_simpset ctxt)) addsimps @{thms cvc_list_right_Nil cvc_list_left_Nil cvc_list_right_Cons cvc_list_left_Cons}) (rewrite_lemma_inst rewrite_name (rev args))]
        (*THEN' (Method.insert_tac ctxt test2)*)
        (*THEN' K (HEADGOAL (EqSubst.eqsubst_tac ctxt [1] test3))*)
@@ -1335,7 +1337,8 @@ fun get_tac [Free (rewrite_name, _)] ctxt t =
  get_tac _ ctxt t = (@{print} "No dsl rule found, try to simplify"; try_simp ctxt t)
 
 in 
-  fun all_simplify ctxt _ args t = (@{print} ("args",args); get_tac args ctxt t)
+  fun all_simplify ctxt _ args t = (
+(*warning (@{make_string} (" found all-simplify with args",args));*) get_tac args ctxt t)
 end
 
 (* Arithmetics *)

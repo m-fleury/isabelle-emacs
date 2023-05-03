@@ -64,20 +64,15 @@ let
     implode cs
     |> single
     |> SMTLIB.parse
-  val ([step], _, cx) =  (Lethe_Proof.parse_raw_proof_steps NONE [smtlib_lines_without_qm]
-   SMTLIB_Proof.empty_name_binding 0)
+  val ([step], _, cx) = Lethe_Proof.parse_raw_proof_steps NONE [smtlib_lines_without_qm]
+   SMTLIB_Proof.empty_name_binding 0
 
   val (Lethe_Proof.Raw_Lethe_Node {concl, ...} : Lethe_Proof.raw_lethe_node) = step
-  (*val _ = @{print}("concl", concl)*)
-
 
   val cx = (SMTLIB_Proof.empty_context context typs terms)
   val t2 = SMTLIB_Proof.term_of concl cx |> fst
-  (*val _ = @{print}("t2",t2)*)
-
 
   val ([all_proof_prems'], sub_ctxt2) = Assumption.add_assumes (map (Thm.apply \<^cterm>\<open>Trueprop\<close> o Thm.cterm_of context) [t2]) context
-  (*val _ = @{print}("all_proof_prems'",all_proof_prems')*)
  
  val assm = ((assms_nbr,SMT_Util.Axiom),all_proof_prems'):((int * SMT_Util.role) * thm)
 
@@ -168,11 +163,15 @@ fun parse_declare (cs: string list) ({context,typs,terms,ll_defs,rewrite_rules,a
 
 
 (*This obviously could be done better but since it is only temporary:*)
-fun read ("("::"a"::"s"::"s"::"e"::"r"::"t"::" "::cs) replay_data = 
-      parse_assert ("("::"a"::"s"::"s"::"e"::"r"::"t"::" "::cs) replay_data
+fun read (cs as "("::"a"::"s"::"s"::"e"::"r"::"t"::" "::_) replay_data = 
+      parse_assert cs replay_data
   | read (cs as "("::"d"::"e"::"c"::"l"::"a"::"r"::"e"::"-"::"f"::"u"::"n"::" ":: _) replay_data = parse_declare cs replay_data
   | read (cs as "("::"d"::"e"::"c"::"l"::"a"::"r"::"e"::"-"::"s"::"o"::"r"::"t"::" ":: _) replay_data = parse_sort cs replay_data
-  | read _ replay_data  = replay_data
+  | read ("("::"s"::"e"::"t"::"-"::"i"::"n"::"f"::"o" :: _) replay_data = replay_data
+  | read ("("::"s"::"e"::"t"::"-"::"l"::"o"::"g"::"i"::"c" :: _) replay_data = replay_data
+  | read ("("::"c"::"h"::"e"::"c"::"k"::"-"::"s"::"a"::"t"::")" :: _) replay_data = replay_data
+  | read ("("::"e"::"x"::"i"::"t"::")" :: _) replay_data = replay_data
+  | read x replay_data  = (warning ("found garbage when parsing SMT problem, ignoring: " ^ @{make_string} x); replay_data)
 
 
 (* overall parser *)
