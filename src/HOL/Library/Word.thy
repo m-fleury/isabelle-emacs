@@ -997,7 +997,7 @@ lemma xor_simps:
 
 lift_definition xor_word ::  \<open>'a word \<Rightarrow> 'a word \<Rightarrow> 'a word\<close>
   is Bit_Operations.xor
-  sorry
+  by auto
 
 lift_definition mask_word :: \<open>nat \<Rightarrow> 'a word\<close>
   is mask
