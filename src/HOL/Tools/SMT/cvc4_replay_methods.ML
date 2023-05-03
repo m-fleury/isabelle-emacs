@@ -129,10 +129,9 @@ let
     val _ = (SMT_Config.verit_msg ctxt) (fn () => \<^print> ("normalized ipput prems =",prems))
 
 in
-  K (print_tac ctxt "__normalized_input")
-  THEN' (resolve_tac ctxt prems
+  resolve_tac ctxt prems
     (*TODO: should only be used for lambda encoding*)
-    ORELSE' Clasimp.force_tac ctxt)
+    ORELSE' Clasimp.force_tac ctxt
 end)
 
 fun qnt_simplify ctxt _ t = SMT_Replay_Methods.prove ctxt t (fn _ =>

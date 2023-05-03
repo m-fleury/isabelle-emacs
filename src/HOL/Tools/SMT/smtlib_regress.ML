@@ -51,7 +51,7 @@ let
               => (@{print}("Error parsing SMTLIB into SMTLIB Tree: " ^ err ^ " in line " ^ Int.toString l ,problem_path);(local_thy,i)) |
             (SMT_Failure.SMT err)
               => (@{print}("Error parsing SMTLIB into SMTLIB Tree: " ^ SMT_Failure.string_of_failure err,problem_path);(local_thy,i)) |
-            exp => (@{print}("Some error occured while checking the proof",problem_path);(local_thy,i))
+            exp => (error (@{make_string}("Some error occured while checking the proof",problem_path));(local_thy,i))
      (*How to print exp so I can see what it is?*)
         in
          check_all ts i
