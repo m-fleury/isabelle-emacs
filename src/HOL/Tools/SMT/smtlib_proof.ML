@@ -119,7 +119,10 @@ fun core_type_parser (SMTLIB.Sym "Bool", []) = SOME \<^typ>\<open>HOL.bool\<clos
   | core_type_parser xs = 
   (case SMT_String.string_type_parser xs of
     SOME x => SOME x |
-    NONE => SMT_Set.set_type_parser xs)
+    NONE => 
+      case SMT_Set.set_type_parser xs of
+        SOME y => SOME y |
+        NONE => SMT_Array.array_type_parser xs)
 
 
 fun mk_unary n t =
@@ -148,6 +151,7 @@ fun mk_binary_pred n S t1 t2 =
       if T1 <> Term.dummyT then T1
       else if T2 <> Term.dummyT then T2
       else TVar (("?a", serial ()), S)
+    val _ = @{print}("mk_binary_pred T",T)
   in mk_binary' n T \<^typ>\<open>HOL.bool\<close> t1 t2 end
 
 fun mk_less t1 t2 = mk_binary_pred \<^const_name>\<open>ord_class.less\<close> \<^sort>\<open>linorder\<close> t1 t2
@@ -242,7 +246,10 @@ use that. Otherwise use ?a from the beginning?*)
  ((*@{print}("In core term parser, not able to parse ", xs);*)
 case SMT_String.string_term_parser xs of
 SOME x => SOME x |
-NONE => SMT_Set.set_term_parser xs)
+NONE => 
+      case SMT_Set.set_term_parser xs of
+        SOME y => SOME y |
+        NONE => SMT_Array.array_term_parser xs)
 
 (* custom type and term parsers *)
 
