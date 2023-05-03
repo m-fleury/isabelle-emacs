@@ -1401,15 +1401,22 @@ in  lthy
 end))
 \<close>
 
-
+ML \<open>
+(Scan.optional (\<^keyword>\<open>(\<close> |-- (Parse.string ) --|
+      \<^keyword>\<open>)\<close>)
+    "cvc4"
+)
+\<close>
 ML \<open>
 
 (*Call replay from SMT_Solver and add replay_data on your own*)
 val _ = Outer_Syntax.local_theory \<^command_keyword>\<open>check_smt\<close> "parse a file in SMTLIB2 format and check proof. <problem_file,proof_file>"
-    ((Parse.string -- Parse.string)
-    >> (fn (problem_file_name,proof_file_name) => fn lthy =>
+    (Scan.optional (\<^keyword>\<open>(\<close> |-- Parse.string --|
+      \<^keyword>\<open>)\<close>)
+     "cvc4" --
+    (Parse.string -- Parse.string)
+    >> (fn (prover, (problem_file_name,proof_file_name)) => fn lthy =>
   let
-
     (*Get problem and proof file*)
     val ctxt = Local_Theory.target_of lthy
     val problem_file_path = Path.explode problem_file_name
@@ -1467,10 +1474,12 @@ ML \<open>
 (*Call replay from SMT_Solver and add replay_data on your own*)
 (*The problem (name.smt2) and proof files (name.alethe) should be in the same directory.*)
 val _ = Outer_Syntax.local_theory \<^command_keyword>\<open>check_smt_dir\<close> "parse a directory with SMTLIB2 format and check proof. <dir>"
-    ((Parse.string)
-    >> (fn (dir_name) => fn lthy =>
+    ((Scan.optional (\<^keyword>\<open>(\<close> |-- Parse.string --|
+      \<^keyword>\<open>)\<close>)
+     "cvc4" -- Parse.string)
+    >> (fn (prover, dir_name) => fn lthy =>
   let
-    val _ = SMT_Regress.test_all_benchmarks dir_name lthy
+    val _ = SMT_Regress.test_all_benchmarks prover dir_name lthy
 in lthy end))
 
 \<close>

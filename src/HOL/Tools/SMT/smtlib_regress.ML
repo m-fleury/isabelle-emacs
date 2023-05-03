@@ -1,13 +1,13 @@
 signature SMT_REGRESS =
 sig
-  val test_all_benchmarks : string -> local_theory -> unit
+  val test_all_benchmarks : string -> string -> local_theory -> unit
   val run_regress : bool
 end
 
 structure SMT_Regress : SMT_REGRESS =
 struct
 
-fun check_smt problem_file_name proof_file_name lthy =
+fun check_smt prover problem_file_name proof_file_name lthy =
  let
     (*Get problem and proof file*)
     val ctxt = Local_Theory.target_of lthy
@@ -22,11 +22,11 @@ fun check_smt problem_file_name proof_file_name lthy =
     val proof_lines = take (length proof_lines - 1) proof_lines
     val problem_lines = take (length problem_lines - 1) problem_lines
     (*Replay proof*)
-    val _ = SMT_Solver.replay_only ctxt problem_lines proof_lines
+    val _ = SMT_Solver.replay_only prover ctxt problem_lines proof_lines
 in lthy end
 
 
-fun test_all_benchmarks files_dir local_thy = 
+fun test_all_benchmarks prover files_dir local_thy = 
 let
   val files_dir_path = Path.explode files_dir
   val dir_content = File.read_dir files_dir_path
@@ -39,7 +39,7 @@ let
           val proof_path = Library.unsuffix ".smt2" problem_path |> Library.suffix ".alethe"
           val _ = if Path.explode proof_path |> File.is_file then ()
                   else (@{print}("Could not find proof for problem: ",problem_path);())
-          val (_,i) = (check_smt problem_path proof_path local_thy,i+1)
+          val (_,i) = (check_smt prover problem_path proof_path local_thy,i+1)
             handle
             (Fail err)
               => (@{print}("Proof could not be checked! " ^ err,problem_path);(local_thy,i)) |

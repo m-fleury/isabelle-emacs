@@ -40,7 +40,7 @@ sig
   val smt_tac: Proof.context -> thm list -> int -> tactic
   val smt_tac': Proof.context -> thm list -> int -> tactic
 
-  val replay_only: Proof.context -> string list -> string list -> thm
+  val replay_only: string -> Proof.context -> string list -> string list -> thm
 end;
 
 structure SMT_Solver: SMT_SOLVER =
