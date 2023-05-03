@@ -7,7 +7,7 @@ section \<open>Bindings to Satisfiability Modulo Theories (SMT) solvers based on
 
 theory SMT
   imports Divides Numeral_Simprocs "HOL-Library.Word" "HOL.Real" "Tools/SMT/cvc5_dsl_rewrites/Rare_Interface"
-"HOL-Library.Sublist" "HOL-Library.Log_Nat"
+"HOL-Library.Sublist" "HOL-Library.Log_Nat" "Tools/SMT/cvc5_dsl_rewrites/Boolean_Rewrites"
   keywords "smt_status" "parse_rare_file" "parse_rare" "check_smt"  "check_smt_dir" :: diag
 begin
 
