@@ -11,7 +11,7 @@ sig
     Precondition of SMTLIB.tree |
     Match of SMTLIB.tree |
     Target of SMTLIB.tree |
-    Context_Expr of SMTLIB.tree option | (*Not fully supported yet*)
+    Context_Expr of SMTLIB.tree option |
     Rewrite_Rule of rewrite_tree list
 
   val parse_rewrites: string list -> rewrite_tree list
@@ -27,20 +27,21 @@ exception PARSE of int * string
 datatype rule_type = DEFINE_RULE | DEFINE_COND_RULE | DEFINE_RULE_STAR
 datatype unfinished = None | String of string | Symbol of string | TreeList of SMTLIB.tree list
 
-  datatype rewrite_tree = 
-    Rule_Type of rule_type |
-    Rule_Name of string |
-    Par of (SMTLIB.tree list * SMTLIB.tree list) |
-    Let_Defs of SMTLIB.tree list option |
-    Precondition of SMTLIB.tree |
-    Match of SMTLIB.tree |
-    Target of SMTLIB.tree |
-    Context_Expr of SMTLIB.tree option |
-    Rewrite_Rule of rewrite_tree list
+datatype rewrite_tree = 
+  Rule_Type of rule_type |
+  Rule_Name of string |
+  Par of (SMTLIB.tree list * SMTLIB.tree list) |
+  Let_Defs of SMTLIB.tree list option |
+  Precondition of SMTLIB.tree |
+  Match of SMTLIB.tree |
+  Target of SMTLIB.tree |
+  Context_Expr of SMTLIB.tree option |
+  Rewrite_Rule of rewrite_tree list
 
 
-(*While rule type and rule name are directly parsed in, the parameters and the expressions are
-  given to SMTLIB.parse to efficiently reuse its capabilities:
+(*
+While rule type and rule name are directly parsed in, the parameters and the expressions are given
+to SMTLIB.parse to efficiently reuse its capabilities:
 
 For example,
  For: (define-rule bool-eq-refl ((t Bool)) (= t s) true
@@ -50,10 +51,17 @@ For example,
  S [S [Sym "t",Sym "Bool"]] and S [S [Sym "=", Sym "t", Sym "s"]] and S [Sym "true"]
 
 Binarisation of n-ary operators in rare rules:
-  Note that we cannot use the type ListVar here yet since that would lead to incorrect type inferences.
-  We have to set this in rewrites_to_lemma where we also add cvc_list operators to reuse the binarisation
-  procedure in SMTLIB_Proof.
+  Note that we cannot use the type ListVar here yet since that would lead to incorrect type
+  inferences. We have to set this in rewrites_to_lemma where we also add cvc_list operators to
+  reuse the binarisation procedure in SMTLIB_Proof.
+
+Adding implicit assumptions:
+  Some operators have restrictions on the values they take in SMTLIB. This is particularly the case
+  for the theory of bitvectors. E.g., extract i j s is restricted to values 0 \<le> i \<le> j \<le> size s and
+  the bidwith of the output is size(i) + 1 - j. These implicit assumptions are set during pre-
+  processing.
 *)
+
 
 fun parse_string l (c :: cs) None error_msg =
        if Symbol.is_ascii_blank c then parse_string l cs None error_msg (*Ignore leading space*)
@@ -64,13 +72,15 @@ fun parse_string l (c :: cs) None error_msg =
        else parse_string l cs (String (s ^ c)) error_msg | (*Word continues*)
     parse_string l _ _  error_msg = raise PARSE (l, error_msg)
 
+
+(*
+ A parameter has to be of the form <symbol> <sort> <attr>*
+   The symbol and the sort need to be parsed in. If the attribute is :list, the type of the 
+   parameter still needs to be whatever type the elements of this list have.  
+*)
 local
 
-   (* A parameter can be of the form <symbol> <sort> <attr>*
-      The symbol and the sort need to be parsed in. If the attribute is :list, the type of the 
-      parameter still needs to be whatever type the elements of this list have.  
-   *)
- (*TODO: THERE CAN BE NESTED PARENTEHESIS (c (_ BitVec 1))*)
+ (*TODO: THERE CAN BE NESTED PARENTHESIS (c (_ BitVec 1))*)
   fun parse_par_type (":"::cs) typ _ l = parse_par_type cs typ true l
     | parse_par_type (")"::cs) typ is_list _ = (cs, typ, is_list)
     (*| parse_par_type (" "::cs) typ is_list l = parse_par_type cs typ is_list l*)
@@ -120,7 +130,7 @@ local
     val (wth_name, name) = read_rewrite_name l cs
     (*val _ = @{print}("rule name: ", name)*)
     val (wth_par, parsed_par, list_pars) = parse_pars wth_name None [] l
-    val _ = @{print}("parameter list: ", parsed_par)
+    (*val _ = @{print}("parameter list: ", parsed_par)*)
     val wth_last_parenthesis = take (length wth_par - 1) wth_par
 
     (*A statement is either in between parenthesis or a single token*)
@@ -206,13 +216,15 @@ fun add_line line (l, rewrite_trees) =
 
 fun parse_rewrites lines = (fold add_line lines (1,[])) |> snd |> rev
 
-(* pretty printer *)
-
 fun pretty_rewrite_tree (Rule_Type DEFINE_RULE) = Pretty.str ("define-rule ")
   | pretty_rewrite_tree (Rule_Type DEFINE_COND_RULE) = Pretty.str ("define-cond-rule ")
   | pretty_rewrite_tree (Rule_Type DEFINE_RULE_STAR) = Pretty.str ("define-rule* ")
-  | pretty_rewrite_tree (Rule_Name s) = Pretty.str s 
-  | pretty_rewrite_tree (Par (trees,_)) = Pretty.enclose "(" ")" (Pretty.separate "" (map SMTLIB.pretty_tree trees))
+  | pretty_rewrite_tree (Rule_Name s) = Pretty.str s
+  | pretty_rewrite_tree (Par (trees,_))
+    = Pretty.enclose "(" ")" (Pretty.separate "" (map SMTLIB.pretty_tree trees))
+  | pretty_rewrite_tree (Let_Defs NONE) = Pretty.str ("")
+  | pretty_rewrite_tree (Let_Defs (SOME s))
+    = Pretty.enclose "(" ")" (Pretty.separate "" (map SMTLIB.pretty_tree s))
   | pretty_rewrite_tree (Precondition tree) = SMTLIB.pretty_tree tree
   | pretty_rewrite_tree (Match tree) = SMTLIB.pretty_tree tree
   | pretty_rewrite_tree (Target tree) = SMTLIB.pretty_tree tree
