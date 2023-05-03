@@ -695,6 +695,7 @@ ML_file \<open>Tools/SMT/smtlib.ML\<close>
 ML_file \<open>Tools/SMT/smtlib_interface.ML\<close>
 ML_file \<open>Tools/SMT/SMT_string.ML\<close>
 ML_file \<open>Tools/SMT/SMT_set.ML\<close>
+ML_file \<open>Tools/SMT/SMT_array.ML\<close>
 ML_file \<open>Tools/SMT/smtlib_proof.ML\<close>
 ML_file \<open>Tools/SMT/smtlib_isar.ML\<close>
 ML_file \<open>Tools/SMT/z3_proof.ML\<close>
@@ -1500,10 +1501,10 @@ check_smt "~/Sources/QF_UF/20170829-Rodin/smt2080745738819601301.smt2"
 (*check_smt_dir "~/Sources/QF_UF/2018-Goel-hwbench/"
 check_smt_dir "~/Sources/QF_UF/20170829-Rodin/"
 *)
+value "(a::int set) - b"
 
 
-
-
+value "[1,(2::nat)]!1"
 
 
 end
