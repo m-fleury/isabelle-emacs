@@ -394,20 +394,22 @@ fun bv_term_parser (SMTLIB.Sym bv, []) =
     in
       SOME (Const (\<^const_name>\<open>word_rotr\<close>,\<^typ>\<open>Nat.nat\<close>--> T2 --> T2) $ (Const ( \<^const_name>\<open>nat\<close>, \<^typ>\<open>Int.int\<close> --> \<^typ>\<open>Nat.nat\<close>) $ t1) $ t2)
     end
-  | bv_term_parser (SMTLIB.Sym "zero_extend", [t1, t2]) = (*This should push t1 0's to t2, solution above uses ucast, should I do to?*)
-(*(define-rule bv-zero-extend-eliminate ((x ?BitVec) (n Int)) (zero_extend n x) (concat (bv 0 n) x))
-*)
-      SOME (Const (\<^const_name>\<open>push_bit\<close>,\<^typ>\<open>Nat.nat\<close>--> fastype_of t2 --> dummyT) $ (Const ( \<^const_name>\<open>nat\<close>, \<^typ>\<open>Int.int\<close> --> \<^typ>\<open>Nat.nat\<close>) $ t1) $ t2)
+  | bv_term_parser (SMTLIB.Sym "zero_extend", [t1, t2]) = (*This should push t1 0's before t2, solution above uses ucast, should I do too?*)
+  let
+    val T = fastype_of t2
+    val TU = dummyT (*TODO: If known add concrete bitwidth*)
+  in SOME (Const (\<^const_name>\<open>Word.cast\<close>, T --> TU) $ t2) end
   | bv_term_parser (SMTLIB.Sym "sign_extend", [t1, t2]) =
-let
-      val _ = @{print}("sign_extend t1",t1)
-      val _ = @{print}("sign_extend t2",t2)
-(*("sign_extend t1", Free ("n", "int")) (line 368 of "/home/lachnitt/Sources/isabelle-git/isabelle-emacs/src/HOL/Library/Tools/smt_word.ML") 
-("sign_extend t2", Free ("x", "_ word"))*)
-(*If type of t2 is known I could calculate type of t1, otherwise I would just ignore t1? Maybe better don't use signed*)
-in
-      SOME (Const (\<^const_name>\<open>signed_take_bit\<close>,\<^typ>\<open>Nat.nat\<close>--> fastype_of t2 --> dummyT) $ (Const ( \<^const_name>\<open>nat\<close>, \<^typ>\<open>Int.int\<close> --> \<^typ>\<open>Nat.nat\<close>) $ t1) $ t2)
-end
+  let
+    val _ = @{print}("sign_extend t1",t1)
+    val _ = @{print}("sign_extend t2",t2)
+    (*("sign_extend t1", Free ("n", "int")) (line 368 of "/home/lachnitt/Sources/isabelle-git/isabelle-emacs/src/HOL/Library/Tools/smt_word.ML") 
+    ("sign_extend t2", Free ("x", "_ word"))*)
+    (*If type of t2 is known I could calculate type of t1, otherwise I would just ignore t1? Maybe better don't use signed*)
+  in
+   (*SOME (Const (\<^const_name>\<open>signed_take_bit\<close>,\<^typ>\<open>Nat.nat\<close>--> fastype_of t2 --> dummyT) $ (Const ( \<^const_name>\<open>nat\<close>, \<^typ>\<open>Int.int\<close> --> \<^typ>\<open>Nat.nat\<close>) $ t1) $ t2)*)
+    SOME (Const (\<^const_name>\<open>Word.signed_cast\<close>, fastype_of t2 --> dummyT) $ t2)
+  end
   | bv_term_parser (SMTLIB.Sym "bvuaddo", [t1, t2]) =
       SOME (Const (\<^const_name>\<open>smt_uaddo\<close>,Type("itself",[dummyT]) --> fastype_of t1--> fastype_of t2 --> dummyT) $ Free("itself",dummyT) $ t1 $ t2)
   | bv_term_parser (SMTLIB.Sym "bvsaddo", [t1, t2]) =
