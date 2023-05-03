@@ -450,6 +450,10 @@ fun preprocess compress step =
   let
     fun expand_assms cs =
       map (fn t => case AList.lookup (op =) cs t of NONE => t | SOME a => a)
+    fun match_typing_arguments (SMTLIB.S [SMTLIB.Sym var, typ as SMTLIB.Sym _] :: SMTLIB.S [SMTLIB.Sym "=", x1, x2] :: xs) =
+       SMTLIB.S [SMTLIB.Sym "=", SMTLIB.S [x1, typ], x2] :: match_typing_arguments xs
+     | match_typing_arguments (a :: xs) = a :: match_typing_arguments xs
+     | match_typing_arguments [] = []
     fun expand_lonely_arguments (args as SMTLIB.S [SMTLIB.Sym "=", _, _]) = [args]
       | expand_lonely_arguments (x as SMTLIB.S [SMTLIB.Sym var, _]) = [SMTLIB.S [SMTLIB.Sym "=", x, SMTLIB.Sym var]]
 
@@ -460,7 +464,7 @@ fun preprocess compress step =
           |> map
               (fn SMTLIB.S [SMTLIB.Key "=", x, y] => SMTLIB.S [SMTLIB.Sym "=", x, y]
               | x => x)
-          |> (rule = "bind" orelse rule = "onepoint") ? flat o (map expand_lonely_arguments)
+          |> (rule = "bind" orelse rule = "onepoint") ? flat o (map expand_lonely_arguments) o match_typing_arguments
           |> `(if rule = lethe_def then single o extract_skolem else K [])
           ||> SMTLIB.S
 
