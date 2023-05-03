@@ -200,4 +200,9 @@ lemma str_len_concat_rec_lemma:
   using smtlib_str_concat_length apply auto[1]
   using smtlib_str_concat_length by presburger
 
+lemma str_eq_ctn_false_lemma:
+"\<not> smtlib_str_contains y x \<Longrightarrow> smtlib_str_concat (foldr smtlib_str_concat x1s x) (foldr smtlib_str_concat x2s []) \<noteq> y"
+    unfolding smtlib_str_concat_def
+    by (metis append.assoc fold_append_concat_rev foldr_conv_fold smtlib_str_contains2_def smtlib_str_contains_equal)
+
 end

@@ -137,7 +137,8 @@ lemma smtlib_re_concat_smtlib_re_concat_induct:
   using smtlib_re_concat_ind_def smtlib_re_concat_indp.simps by presburger
 
 lemma smtlib_re_concat_foldr:
- "(foldr smtlib_re_concat xs (smtlib_re_concat s x)) = (smtlib_re_concat (foldr smtlib_re_concat xs s) x)"
+ "(foldr smtlib_re_concat xs (smtlib_re_concat s x))
+ = (smtlib_re_concat (foldr smtlib_re_concat xs s) x)"
   unfolding smtlib_re_concat_def
   apply (induction xs)
    apply simp_all
@@ -188,7 +189,8 @@ inductive_set smtlib_re_star_ind :: "string set \<Rightarrow> string set"
   where
     smtlib_re_star_ind_empty: "'''' \<in> smtlib_re_star_ind L"
   | smtlib_re_star_ind_single: "x \<in> L \<Longrightarrow> x \<in> smtlib_re_star_ind L"
-  | smtlib_re_star_ind_Cons: "b \<in> smtlib_re_star_ind L \<Longrightarrow> a \<in> smtlib_re_star_ind L \<Longrightarrow> a \<noteq> '''' \<Longrightarrow> b \<noteq> ''''
+  | smtlib_re_star_ind_Cons: "b \<in> smtlib_re_star_ind L \<Longrightarrow> a \<in> smtlib_re_star_ind L
+   \<Longrightarrow> a \<noteq> '''' \<Longrightarrow> b \<noteq> ''''
    \<Longrightarrow> a @ b \<in> smtlib_re_star_ind L"
 
 definition smtlib_re_star :: "RegLan \<Rightarrow> RegLan" where
@@ -294,7 +296,7 @@ definition smtlib_str_leq :: "string \<Rightarrow> string \<Rightarrow> bool" wh
 
 definition smtlib_str_substr :: "string \<Rightarrow> int \<Rightarrow> int \<Rightarrow> string" where
   "smtlib_str_substr w m n \<equiv>
- (if 0 \<le> m \<and>  m < int (length w) \<and> 0 < n
+ (if 0 \<le> m \<and> m < int (length w) \<and> 0 < n
   then List.take (min (nat n) (List.length w - (nat m))) (List.drop (nat m) w)
   else '''' )"
 
@@ -639,7 +641,7 @@ definition smtlib_re_opt  :: "RegLan \<Rightarrow> RegLan" where
           \<lbrakk>re.range\<rbrakk>(\<lbrakk>""c""\<rbrakk>, \<lbrakk>""a""\<rbrakk>) =  \<emptyset> *)
 
 definition smtlib_re_range  :: "string \<Rightarrow> string \<Rightarrow> RegLan" where
- "smtlib_re_range w1 w2 = (if length w1 = 1 \<and> length w2 = 1 then {} else {w . smtlib_str_leq w1 w \<and> smtlib_str_leq w w2})" 
+ "smtlib_re_range w1 w2 = (if length w1 = 1 \<and> length w2 = 1 then {w . smtlib_str_leq w1 w \<and> smtlib_str_leq w w2} else {})" 
 
 
 (*------------------------------------------------------------------------------------------------*)
@@ -676,7 +678,7 @@ definition smtlib_re_loop :: "RegLan \<Rightarrow> RegLan" where
 (*(str.is_digit String Bool)
     \<lbrakk>str.is_digit\<rbrakk>(w) = true  iff |w| = 1 and 0x00030 <= w <= 0x00039 *)
 
-definition smtlib_str_is_digit :: "string \<Rightarrow> bool" where (*TODO*)
+definition smtlib_str_is_digit :: "string \<Rightarrow> bool" where
  "smtlib_str_is_digit w = (length w = 1 \<and> 0x00030 <= (of_char (hd w)::int) \<and> (of_char (hd w)::int) <= 0x00039)"
 
 
@@ -690,7 +692,7 @@ definition smtlib_str_is_digit :: "string \<Rightarrow> bool" where (*TODO*)
     - \<lbrakk>str.to_code\<rbrakk>(w) = w          otherwise  (as w consists of a single code point) *)
 
 definition smtlib_str_to_code :: "string \<Rightarrow> int" where
- "smtlib_str_to_code w = (if length w = 1 then -1 else (-1::int))" (*TODO*)
+ "smtlib_str_to_code w = (if length w \<noteq> 1 then -1 else of_char (nth w 0))"
 
 
 (*------------------------------------------------------------------------------------------------*)
