@@ -23,6 +23,8 @@ lemma [eq_refl]:
   by simp
 
 named_theorems eq_symm \<open>automatically_generated\<close>
+declare[[show_types]]
+declare[[show_sorts]]
 
 lemma [eq_symm]:
   fixes s::"'a" and t::"'a"
