@@ -64,20 +64,20 @@ let
     implode cs
     |> single
     |> SMTLIB.parse
-  val ([step], _, cx) = @{print} (Lethe_Proof.parse_raw_proof_steps NONE [smtlib_lines_without_qm]
+  val ([step], _, cx) =  (Lethe_Proof.parse_raw_proof_steps NONE [smtlib_lines_without_qm]
    SMTLIB_Proof.empty_name_binding 0)
 
   val (Lethe_Proof.Raw_Lethe_Node {concl, ...} : Lethe_Proof.raw_lethe_node) = step
-  val _ = @{print}("concl", concl)
+  (*val _ = @{print}("concl", concl)*)
 
 
   val cx = (SMTLIB_Proof.empty_context context typs terms)
   val t2 = SMTLIB_Proof.term_of concl cx |> fst
-  val _ = @{print}("t2",t2)
+  (*val _ = @{print}("t2",t2)*)
 
 
   val ([all_proof_prems'], sub_ctxt2) = Assumption.add_assumes (map (Thm.apply \<^cterm>\<open>Trueprop\<close> o Thm.cterm_of context) [t2]) context
-  val _ = @{print}("all_proof_prems'",all_proof_prems')
+  (*val _ = @{print}("all_proof_prems'",all_proof_prems')*)
  
  val assm = ((assms_nbr,SMT_Util.Axiom),all_proof_prems'):((int * SMT_Util.role) * thm)
 
