@@ -143,6 +143,9 @@ fun mk_lassoc f t ts = fold (fn u1 => fn u2 => f u2 u1) ts t
 
 fun mk_lassoc' n = mk_lassoc (mk_binary n)
 
+fun mk_lassoc'' n S t
+ = mk_lassoc (mk_binary' n (fastype_of t) (TVar (("?a", serial ()), S))) t 
+
 fun mk_binary_pred n S t1 t2 =
   let
     val T1 = fastype_of t1
@@ -156,6 +159,8 @@ fun mk_binary_pred n S t1 t2 =
 
 fun mk_less t1 t2 = mk_binary_pred \<^const_name>\<open>ord_class.less\<close> \<^sort>\<open>linorder\<close> t1 t2
 fun mk_less_eq t1 t2 = mk_binary_pred \<^const_name>\<open>ord_class.less_eq\<close> \<^sort>\<open>linorder\<close> t1 t2
+fun mk_plus t ts = mk_lassoc (mk_binary' \<^const_name>\<open>Groups.plus\<close> (fastype_of t)
+  (TVar (("?a", serial ()), \<^sort>\<open>linordered_ab_group_add\<close> ))) t ts
 
 fun core_term_parser (SMTLIB.Sym "true", _) = SOME \<^Const>\<open>True\<close>
   | core_term_parser (SMTLIB.Sym "false", _) = SOME \<^Const>\<open>False\<close>
@@ -200,9 +205,11 @@ fun core_term_parser (SMTLIB.Sym "true", _) = SOME \<^Const>\<open>True\<close>
   | core_term_parser (SMTLIB.Sym "-", [t]) = SOME (mk_unary \<^const_name>\<open>uminus_class.uminus\<close> t)
   | core_term_parser (SMTLIB.Sym "~", [t]) = SOME (mk_unary \<^const_name>\<open>uminus_class.uminus\<close> t)
   | core_term_parser (SMTLIB.Sym "+", t :: ts) =
-      SOME (mk_lassoc' \<^const_name>\<open>plus_class.plus\<close> t ts)
+    (*SOME (mk_lassoc'' \<^const_name>\<open>Groups.plus\<close>  \<^sort>\<open>linordered_ab_group_add\<close>  t ts)*)
+    SOME (mk_lassoc' \<^const_name>\<open>Groups.plus\<close> t ts)
   | core_term_parser (SMTLIB.Sym "-", t :: ts) =
-      SOME (mk_lassoc' \<^const_name>\<open>minus_class.minus\<close> t ts)
+    (*SOME (mk_lassoc'' \<^const_name>\<open>Groups.minus\<close>  \<^sort>\<open>linordered_ab_group_add\<close>  t ts)*)
+    SOME (mk_lassoc' \<^const_name>\<open>Groups.minus\<close> t ts)
   | core_term_parser (SMTLIB.Sym "*", [t1,t2]) =
     (*TODO: Is there a better way to fix subtyping?*)
       let
@@ -214,9 +221,9 @@ fun core_term_parser (SMTLIB.Sym "true", _) = SOME \<^Const>\<open>True\<close>
                                  then (t1, Const ( \<^const_name>\<open>of_int\<close>, T2 --> T1)  $ t2,T1)
                                  else (t1,t2,T1))
       in
-      SOME ( Const (\<^const_name>\<open>Groups.times\<close>, [T3, T3] ---> T3) $ t1' $ t2')
-
-      (*SOME ( Const (\<^const_name>\<open>Groups.times\<close>, [T1, T1] ---> T1) $ t1 $ t2)*)
+      (*SOME ( Const (\<^const_name>\<open>Groups.times\<close>, [T3, T3] ---> TVar (("?a", serial ()),  \<^sort>\<open>ab_semigroup_mult\<close> )) $ t1' $ t2')
+      *)
+      SOME ( Const (\<^const_name>\<open>Groups.times\<close>, [T1, T1] ---> T1) $ t1 $ t2)
       end
   | core_term_parser (SMTLIB.Sym "*", t :: ts) =
       SOME (mk_lassoc' \<^const_name>\<open>Groups.times\<close> t ts)
