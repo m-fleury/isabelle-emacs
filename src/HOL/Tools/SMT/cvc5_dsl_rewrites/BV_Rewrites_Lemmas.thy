@@ -84,6 +84,7 @@ definition smt_redor :: "'a::len word \<Rightarrow> 1 word" where
 definition smt_redand :: "'a::len word \<Rightarrow> 1 word" where
   \<open>smt_redand x = not (smt_comp x (not (0::'a word)))\<close>
 
+(*'c is 'a + 1*)
 definition smt_uaddo  :: "'a::len word \<Rightarrow> 'b::len word \<Rightarrow> bool" where
 "smt_uaddo x y = (smt_extract (size x) (size x)
  ((Word.word_cat (0::1 word) x) + (Word.word_cat (0::1 word) y) :: 'c::len word) = (1:: 1 word))"
@@ -96,7 +97,7 @@ definition smt_sdivo :: "'a::len word \<Rightarrow> 'b::len word \<Rightarrow> b
 "smt_sdivo x y = (x = (word_cat (1::1 word) (0::'c::len word)::'a word) \<and> y = (mask (size y)::'b word))"
 
 definition smt_usubo :: "'a::len word \<Rightarrow> 'a::len word \<Rightarrow> bool" where
-"smt_usubo x y = ((smt_extract ((size x)-1) ((size y)-1) (push_bit 1 x - push_bit 1 y)) = (1::1 word))"
+"smt_usubo x y = ((smt_extract ((size x)-1) ((size y)-1) (Word.cast x -Word.cast y)) = (1::1 word))"
 
 definition smt_ssubo :: "'a::len word \<Rightarrow> 'a::len word \<Rightarrow> bool" where (*TODO*)
 "smt_ssubo x y = 
