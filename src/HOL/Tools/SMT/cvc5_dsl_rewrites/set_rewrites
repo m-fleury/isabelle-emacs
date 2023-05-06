@@ -6,3 +6,9 @@
 
 (define-rule sets-union-comm ((x ?Set) (y ?Set)) (set.union x y) (set.union y x))
 (define-rule sets-inter-comm ((x ?Set) (y ?Set)) (set.inter x y) (set.inter y x))
+
+
+(define-rule sets-inter-member ((x ?) (y ?Set) (z ?Set)) (set.member x (set.inter y z)) (and (set.member x y) (set.member x z)))
+(define-rule sets-minus-member ((x ?) (y ?Set) (z ?Set)) (set.member x (set.minus y z)) (and (set.member x y) (not (set.member x z))))
+(define-rule sets-union-member ((x ?) (y ?Set) (z ?Set)) (set.member x (set.union y z)) (or (set.member x y) (set.member x z)))
+
