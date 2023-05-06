@@ -15,7 +15,7 @@
 
 (define-cond-rule str-len-replace-inv ((t ?) (s ?) (r ?))  (= (str.len s) (str.len r)) (str.len (str.replace t s r)) (str.len t))
 
-;(define-rule str-len-update-inv ((t ?) (n Int) (r ?))  (str.len (str.update t n r)) (str.len t))
+(define-rule str-len-update-inv ((t ?) (n Int) (r ?))  (str.len (str.update t n r)) (str.len t))
 
 (define-cond-rule str-len-substr-in-range ((s ?) (n Int) (m Int)) (and (>= n 0) (>= m 0) (>= (str.len s) (+ n m))) (str.len (str.substr s n m)) m)
 
@@ -46,11 +46,15 @@
 (define-cond-rule str-prefixof-one ((s ?) (t ?)) (= (str.len t) 1) (str.prefixof s t) (str.contains t s))
 (define-cond-rule str-suffixof-one ((s ?) (t ?)) (= (str.len t) 1) (str.suffixof s t) (str.contains t s))
 
-(define-cond-rule str-substr-combine ((s ?) (n1 Int) (m1 Int) (n2 Int) (m2 Int)) (and (>= n2 0) (>= (- (+ n2 m2) m1) 0)) (str.substr (str.substr s n1 m1) n2 m2) (str.substr s (+ n1 n2) m2))
+(define-cond-rule str-substr-combine1 ((s String) (n1 Int) (m1 Int) (n2 Int) (m2 Int)) (and (>= n1 0) (>= n2 0) (>= (- m2 (- m1 n2)) 0)) (str.substr (str.substr s n1 m1) n2 m2) (str.substr s (+ n1 n2) (- m1 n2)))
+(define-cond-rule str-substr-combine2 ((s String) (n1 Int) (m1 Int) (n2 Int) (m2 Int)) (and (>= n1 0) (>= n2 0) (>= (- (- m1 n2) m2) 0)) (str.substr (str.substr s n1 m1) n2 m2) (str.substr s (+ n1 n2) m2))
 
 (define-cond-rule str-substr-concat1 ((s1 ?) (s2 ? :list) (n Int) (m Int)) (and (>= n 0) (>= (str.len s1) (+ n m))) (str.substr (str.++ s1 s2) n m) (str.substr s1 n m))
 
+(define-cond-rule str-substr-full ((s ?) (n Int)) (>= n (str.len s)) (str.substr s 0 n) s)
 (define-rule str-contains-refl ((x ?)) (str.contains x x) true)
+
+(define-rule str-contains-concat-find ((xs ? :list) (y ?) (zs ? :list)) (str.contains (str.++ xs y zs) y) true)
 
 (define-cond-rule str-contains-split-char ((x ?) (y ?) (z ? :list) (w ?)) (= (str.len w) 1) (str.contains (str.++ x y z) w) (or (str.contains x w) (str.contains (str.++ y z) w)))
 (define-cond-rule str-contains-leq-len-eq ((x String) (y String)) (<= (str.len x) (str.len y)) (str.contains x y) (= x y))
@@ -59,12 +63,24 @@
 
 (define-rule str-at-elim ((x String) (n Int)) (str.at x n) (str.substr x n 1))
 
+(define-rule re-all-elim () re.all (re.* re.allchar))
+(define-rule re-opt-elim ((x RegLan)) (re.opt x) (re.union (str.to_re "") x))
 
 (define-rule re-concat-emp ((xs RegLan :list) (ys RegLan :list)) (re.++ xs (str.to_re "") ys) (re.++ xs ys))
-
+(define-rule re-concat-none ((xs RegLan :list) (ys RegLan :list)) (re.++ xs re.none ys) re.none)
 (define-rule re-concat-flatten ((xs RegLan :list) (s RegLan) (ys RegLan :list) (zs RegLan :list)) (re.++ xs (re.++ s ys) zs) (re.++ xs s ys zs))
 
 (define-rule re-concat-star-swap ((xs RegLan :list) (r RegLan) (ys RegLan :list)) (re.++ xs (re.* r) r ys) (re.++ xs r (re.* r) ys))
+
+(define-rule re-union-all ((xs RegLan :list) (ys RegLan :list)) (re.union xs (re.* re.allchar) ys) (re.* re.allchar))
+(define-rule* re-union-none ((xs RegLan :list) (ys RegLan :list)) (re.union xs re.none ys) (re.union xs ys))
+(define-rule* re-union-flatten ((xs RegLan :list) (b RegLan) (ys RegLan :list) (zs RegLan :list)) (re.union xs (re.union b ys) zs) (re.union xs b ys zs))
+(define-rule* re-union-dup ((xs RegLan :list) (b RegLan) (ys RegLan :list) (zs RegLan :list)) (re.union xs b ys b zs) (re.union xs b ys zs))
+
+(define-rule* re-inter-all ((xs RegLan :list) (ys RegLan :list)) (re.inter xs (re.* re.allchar) ys) (re.inter xs ys))
+(define-rule re-inter-none ((xs RegLan :list) (ys RegLan :list)) (re.inter xs re.none ys) re.none)
+(define-rule* re-inter-flatten ((xs RegLan :list) (b RegLan) (ys RegLan :list) (zs RegLan :list)) (re.inter xs (re.inter b ys) zs) (re.inter xs b ys zs))
+(define-rule* re-inter-dup ((xs RegLan :list) (b RegLan) (ys RegLan :list) (zs RegLan :list)) (re.inter xs b ys b zs) (re.inter xs b ys zs))
 
 (define-rule* str-len-concat-rec ((s1 String) (s2 String) (s3 String :list)) (str.len (str.++ s1 s2 s3)) (str.len (str.++ s2 s3)) (+ (str.len s1) _))
 
