@@ -60,7 +60,7 @@ lemma [rewrite_arith_mul_zero]:
 named_theorems rewrite_arith_neg_neg_one \<open>automatically_generated\<close>
 
 lemma [rewrite_arith_neg_neg_one]:
-  fixes t::"int"
+  fixes t::"nat"
   shows "- (1::int) * (- (1::int) * t) = t"
   by auto
 
@@ -149,11 +149,10 @@ lemma [rewrite_arith_refl_gt]:
   shows "(t < t) = False"
   by auto
 
-(*Problem*)
 named_theorems rewrite_arith_plus_flatten \<open>automatically_generated\<close>
 
 lemma [rewrite_arith_plus_flatten]:
-  fixes xs::"'a::plus cvc_ListVar" and w::"'a::plus" and ys::"'a::plus cvc_ListVar" and zs::"'a::plus cvc_ListVar"
+  fixes xs::"'a::linordered_ab_group_add cvc_ListVar" and w::"'a::linordered_ab_group_add" and ys::"'a::linordered_ab_group_add cvc_ListVar" and zs::"'a::linordered_ab_group_add cvc_ListVar"
   shows "cvc_list_right (+) (cvc_list_left (+) xs (cvc_list_right (+) w ys)) zs =
    cvc_list_right (+) (cvc_list_right (+) (cvc_list_left (+) xs w) ys) zs"
   apply (cases zs)
@@ -161,14 +160,14 @@ lemma [rewrite_arith_plus_flatten]:
   apply (cases xs)
   subgoal for zss yss xss 
     apply (simp add: cvc_list_left_transfer cvc_list_right_transfer_op cvc_list_both_transfer_op)
-    
-    by (simp add: arith_plus_flatten_lemma)
+    apply (induction xss arbitrary: xs)
+    by simp_all
   done
 
 named_theorems rewrite_arith_mult_flatten \<open>automatically_generated\<close>
 
 lemma [rewrite_arith_mult_flatten]:
-  fixes xs::"'a::times cvc_ListVar" and w::"'a::times" and ys::"'a::times cvc_ListVar" and zs::"'a::times cvc_ListVar"
+  fixes xs::"'a::ab_semigroup_mult cvc_ListVar" and w::"'a::ab_semigroup_mult" and ys::"'a::ab_semigroup_mult cvc_ListVar" and zs::"'a::ab_semigroup_mult cvc_ListVar"
   shows "cvc_list_right (*) (cvc_list_left (*) xs (cvc_list_right (*) w ys)) zs =
    cvc_list_right (*) (cvc_list_right (*) (cvc_list_left (*) xs w) ys) zs"
   apply (cases zs)
@@ -176,17 +175,28 @@ lemma [rewrite_arith_mult_flatten]:
   apply (cases xs)
   subgoal for zss yss xss 
     apply (simp add: cvc_list_left_transfer cvc_list_right_transfer_op cvc_list_both_transfer_op)
-    by (simp add: arith_mult_flatten_lemma)
+    apply (induction xss arbitrary: xs)
+     apply simp_all
+    apply (induction yss arbitrary: ys)
+     apply simp_all
+    apply (simp add: cvc_list_right_Nil)
+     apply (induction zss arbitrary: zs)
+    apply (simp add: cvc_list_right_Nil cvc_list_right_transfer2 mult.assoc)
+    by (simp add: ab_semigroup_mult_class.mult_ac(1) cvc_list_right_Cons)
   done
+
 
 named_theorems rewrite_arith_mult_dist \<open>automatically_generated\<close>
 
 lemma [rewrite_arith_mult_dist]:
-  fixes x::"'a::{plus,times}" and y::"'a::{plus,times}" and z::"'a::{plus,times}" and w::"'a::{plus,times} cvc_ListVar"
+  fixes x::"'a::{monoid_mult,plus}" and y::"'a::{monoid_mult,plus}" and z::"'a::{monoid_mult,plus}" and w::"'a::{monoid_mult,plus} cvc_ListVar"
   shows "x * cvc_list_right (+) (y + z) w = x * y + x * cvc_list_right (+) z w"
   apply (cases w)
   subgoal for ws 
     apply (simp add: cvc_list_left_transfer cvc_list_right_transfer_op cvc_list_both_transfer_op)
+    apply (induction ws arbitrary: w)
+     apply simp_all
+    
     by (simp add: arith_mult_dist_lemma)
   done
 
@@ -202,8 +212,7 @@ lemma [rewrite_arith_plus_cancel1]:
   apply (cases t)
   subgoal for rs ss ts 
     apply (simp add: cvc_list_left_transfer cvc_list_right_transfer_op cvc_list_both_transfer_op)
-    apply (induction ts arbitrary: t)
-    by simp_all
+    by (simp add: arith_plus_cancel1_lemma)
   done
 
 named_theorems rewrite_arith_plus_cancel2 \<open>automatically_generated\<close>
@@ -218,8 +227,7 @@ lemma [rewrite_arith_plus_cancel2]:
   apply (cases t)
   subgoal for rs ss ts 
     apply (simp add: cvc_list_left_transfer cvc_list_right_transfer_op cvc_list_both_transfer_op)
-    apply (induction ts arbitrary: t)
-    by simp_all
+    by (simp add: arith_plus_cancel2_lemma)
   done
 
 end
