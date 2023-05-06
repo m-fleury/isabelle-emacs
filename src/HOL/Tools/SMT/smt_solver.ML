@@ -272,7 +272,7 @@ fun apply_solver_and_replay ctxt thms0 =
 
   in replay ctxt replay_data output end
 
-fun replay_only ctxt problem proof =
+fun replay_only str ctxt problem proof =
   let
     (*Set solver (for replay but not for invoking)*)
     val solver = "cvc4"
