@@ -196,10 +196,12 @@ let
      neutral_for_operator "Orderings.ord_class.less_eq" = Const (\<^const_name>\<open>Groups.zero\<close>, \<^typ>\<open>Int.int\<close>) |
      neutral_for_operator "Groups.times_class.times" = Const (\<^const_name>\<open>Groups.one\<close>, \<^typ>\<open>Int.int\<close>) |
      neutral_for_operator "Smtlib_String.smtlib_re_concat" = Free ("{''''}", \<^typ>\<open>RegLan\<close>) |
+     neutral_for_operator "Smtlib_String.smtlib_re_union" = Free ("{''''}", \<^typ>\<open>RegLan\<close>) |
+     neutral_for_operator "Smtlib_String.smtlib_re_inter" = Free ("UNIV", \<^typ>\<open>RegLan\<close>) |
      neutral_for_operator "Smtlib_String.smtlib_str_concat" = Const (\<^const_name>\<open>List.Nil\<close>, \<^typ>\<open>String.string\<close>) |
      neutral_for_operator "Word.word_cat" = Const (\<^const_name>\<open>List.Nil\<close>, \<^typ>\<open>String.string\<close>) | (*TODO*)
      neutral_for_operator "Bit_Operations.semiring_bit_operations_class.xor" =  Const (\<^const_name>\<open>Groups.zero\<close>, dummyT) |
-     neutral_for_operator l = (@{print}("neutral_for_operator", l);Free ("PutInNeutral", \<^typ>\<open>HOL.bool\<close>))
+     neutral_for_operator l = (@{print}("neutral_for_operator", l);Free ("PutInNeutral",dummyT))
 
   val T = (dummyT --> dummyT --> dummyT) --> dummyT --> dummyT --> dummyT
 
@@ -368,9 +370,7 @@ val _ = @{print}("here1: ")
 fun test (Const ("HOL.All", _) $ Abs (str, typ,((Const ("HOL.All", typ1) $ t1))))
 =
 let
-
 (*val _ = @{print}("typ IN PARM",dest_Type typ) (*"Word.word", ["??'a"]*)*)
-
 
 val new_type
  = implode (temp (hackish_string_of_type ctxt typ |> raw_explode |> delete_question_mark)) (*LENGTH thing should happen in parser eventually*)
@@ -378,11 +378,13 @@ in
  str ^ "::\"" ^ new_type ^ "\"" ^ " and " ^ test ((Const ("HOL.All", typ1) $ t1))
 end |
  test (Const ("HOL.All", _) $ Abs (str, typ,ts))
-= str ^ "::\"" ^  (implode (temp (hackish_string_of_type ctxt typ |> raw_explode |> delete_question_mark)))  ^ "\""
+= str ^ "::\"" ^  (implode (temp (hackish_string_of_type ctxt typ |> raw_explode |> delete_question_mark)))  ^ "\"" |
+ test x = (@{print}("x",x);"")
+
 
 
  in
-  ["  fixes " ^ test res ^ "\n"]
+  if size (test res) = 0 then [] else ["  fixes " ^ test res ^ "\n"]
  end
 
 
@@ -394,13 +396,18 @@ end |
   val str_body = hackish_string_of_term ctxt body
   val _ = @{print}("str_body",str_body)
   
+  val a = String.isPrefix "\<forall>" str_body
+
   fun wth_forall ("."::" "::xs) = xs |
       wth_forall ("."::"\n"::" "::" "::" "::xs) = xs |
       wth_forall ("."::xs) = xs | 
       wth_forall (_::xs) = wth_forall xs |
-      wth_forall [] = []
+      wth_forall xs = xs
+  val _ = @{print}("str_body2",raw_explode str_body)
+  val _ = @{print}("a",a)
 
-  val goal = raw_explode str_body |> wth_forall |> filter (fn x => not (x = "?")) |> implode
+val temp = if a then raw_explode str_body |> wth_forall else raw_explode str_body
+  val goal = temp |> filter (fn x => not (x = "?")) |> implode
 
  in
   ["  shows \"" ^ goal ^ "\"\n" ]
