@@ -78,6 +78,8 @@ fun  string_term_parser (SMTLIB.Sym "str.++", t::ts) = SOME (mk_lassoc' \<^const
   | string_term_parser (SMTLIB.Sym "str.from_code", [t1]) = SOME (mk_unary \<^const_name>\<open>smtlib_str_from_code\<close> \<^typ>\<open>String.string\<close> t1)
   | string_term_parser (SMTLIB.Sym "str.to_int", [t1]) = SOME (mk_unary \<^const_name>\<open>smtlib_str_to_int\<close> \<^typ>\<open>Int.int\<close> t1)
   | string_term_parser (SMTLIB.Sym "str.from_int", [t1]) = SOME (mk_unary \<^const_name>\<open>smtlib_str_from_int\<close> \<^typ>\<open>String.string\<close> t1)
+(*Non SMT-LIB: https://github.com/cvc5/cvc5/blob/proof-new/docs/theories/strings.rst*)
+  | string_term_parser (SMTLIB.Sym "str.update", [t1,t2,t3]) = SOME (mk_ternary \<^const_name>\<open>smtlib_str_update\<close> \<^typ>\<open>String.string\<close> t1 t2 t3)
   | string_term_parser _ = NONE
 
 (*val _ = Theory.setup (Context.theory_map (

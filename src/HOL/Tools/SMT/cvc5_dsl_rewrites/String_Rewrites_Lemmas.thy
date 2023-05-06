@@ -2,6 +2,12 @@ theory String_Rewrites_Lemmas
   imports Dsl_Nary_Ops
 begin
 
+
+lemma str_eq_ctn_false_lemma:
+"\<not> smtlib_str_contains y x \<Longrightarrow> smtlib_str_concat (foldr smtlib_str_concat x1s x) (foldr smtlib_str_concat x2s []) \<noteq> y"
+    unfolding smtlib_str_concat_def
+    by (metis append.assoc fold_append_concat_rev foldr_conv_fold smtlib_str_contains2_def smtlib_str_contains_equal)
+
 lemma str_concat_flatten_lemma:
   "smtlib_str_concat (foldr smtlib_str_concat xs (smtlib_str_concat s (foldr smtlib_str_concat ys []))) (foldr smtlib_str_concat zs []) =
     smtlib_str_concat (smtlib_str_concat (foldr smtlib_str_concat xs s) (foldr smtlib_str_concat ys [])) (foldr smtlib_str_concat zs [])"
@@ -9,11 +15,20 @@ lemma str_concat_flatten_lemma:
   apply (induction xs)
   by simp_all
 
-
 lemma str_concat_flatten_eq_lemma: 
 "(smtlib_str_concat (smtlib_str_concat x (foldr smtlib_str_concat x1 [])) (foldr smtlib_str_concat x2 []) = y) =
     (y = smtlib_str_concat (smtlib_str_concat x (foldr smtlib_str_concat x1 [])) (foldr smtlib_str_concat x2 []))"
   by blast
+
+lemma str_concat_flatten_eq_rev_lemma:
+"(foldr smtlib_str_concat x2 (foldr smtlib_str_concat x1 x) = y) = (y = smtlib_str_concat (foldr smtlib_str_concat x2 (foldr smtlib_str_concat x1 [])) x)"
+  unfolding smtlib_str_concat_def
+  apply (induction x1)
+  apply (induction x2)
+    apply simp_all
+    apply blast
+  apply (metis append.right_neutral fold_append_concat_rev foldr_conv_fold)
+  by (metis append.assoc append.monoid_axioms fold_append_concat_rev foldr_conv_fold monoid.right_neutral)
 
 lemma concat_clash_lemma:
   "s1 \<noteq> t1 \<and> smtlib_str_len s1 = smtlib_str_len t1 \<Longrightarrow>
@@ -86,13 +101,22 @@ lemma concat_clash_char_rev_lemma:
   apply simp_all
   by (metis concat_clash_rev_lemma smtlib_str_concat_def smtlib_str_len_def foldr_append length_Cons of_nat_Suc)
 
+lemma rewrite_str_prefixof_elim_lemma:
+  fixes s::"char list" and t::"char list"
+  shows "smtlib_str_prefixof s t =
+   (s = smtlib_str_substr t (0::int) (smtlib_str_len s))"
+  unfolding smtlib_str_prefixof_def smtlib_str_substr_def smtlib_str_len_def
+  apply simp
+  by (metis append_eq_conv_conj min_def prefixE prefix_length_le take_is_prefix)
+
 lemma str_suffixof_elim_lemma:
 "(length s \<le> length t \<and> s \<noteq> [] \<longrightarrow>
      suffix s t = (s = drop (nat (int (length t) - int (length s))) t)) \<and>
     ((length s \<le> length t \<longrightarrow> s = []) \<longrightarrow> suffix s t = (s = []))"
     apply (cases "length s \<le> length t \<and> s \<noteq> [] ")
      apply simp_all
-  sorry
+  apply (metis (no_types, lifting) append_eq_append_conv diff_diff_cancel length_drop nat_diff_distrib' nat_int of_nat_0_le_iff suffix_def suffix_drop)
+  using suffix_bot.bot_least suffix_length_le by blast
 
 lemma str_prefixof_one_lemma:
 " int (length t) = 1 \<Longrightarrow>  prefix s t = (\<exists>w1 w3. t = w1 @ s @ w3)"
@@ -126,7 +150,7 @@ lemma
   apply (induction xs)
    apply simp
   apply (meson cvc_ListOp_neutral_re_concat cvc_isListOp.simps)
-  sorry
+  by (metis cvc_list_left_Cons cvc_list_left_transfer smtlib_re_concat_foldr)
 
 lemma re_concat_star_swap_lemma:
 "    smtlib_re_concat
@@ -146,8 +170,9 @@ lemma re_concat_emp_lemma:
    apply (induction ys)
     apply (simp add: smtlib_re_concat_def)
       apply (simp add: smtlib_re_concat_def)
-   apply (induction ys)
-  sorry
+  apply (induction ys)
+  using cvc_ListOp_neutral_re_concat apply auto[1]
+  by (metis cvc_list_left_Cons cvc_list_left_transfer smtlib_re_concat_foldr)
 
 lemma str_concat_emp_lemma:
   "smtlib_str_concat (foldr smtlib_str_concat xs []) (foldr smtlib_str_concat ys []) = foldr smtlib_str_concat xs (foldr smtlib_str_concat ys [])"
@@ -165,16 +190,6 @@ lemma substr_concat1_lemma:
   apply (induction s2)
    apply simp
   by (simp add: nat_le_iff of_nat_diff smtlib_str_len_def)
-
-lemma str_concat_flatten_eq_rev_lemma:
-"(foldr smtlib_str_concat x2 (foldr smtlib_str_concat x1 x) = y) = (y = smtlib_str_concat (foldr smtlib_str_concat x2 (foldr smtlib_str_concat x1 [])) x)"
-  unfolding smtlib_str_concat_def
-  apply (induction x1)
-  apply (induction x2)
-    apply simp_all
-    apply blast
-  apply (metis append.right_neutral fold_append_concat_rev foldr_conv_fold)
-  by (metis append.assoc append.monoid_axioms fold_append_concat_rev foldr_conv_fold monoid.right_neutral)
 
 lemma concat_clash2_rev_lemma:
 "s1 \<noteq> t1 \<and> smtlib_str_len s1 = smtlib_str_len t1 \<Longrightarrow> s1 \<noteq> foldr smtlib_str_concat t2 t1"
@@ -199,10 +214,5 @@ lemma str_len_concat_rec_lemma:
    apply simp_all
   using smtlib_str_concat_length apply auto[1]
   using smtlib_str_concat_length by presburger
-
-lemma str_eq_ctn_false_lemma:
-"\<not> smtlib_str_contains y x \<Longrightarrow> smtlib_str_concat (foldr smtlib_str_concat x1s x) (foldr smtlib_str_concat x2s []) \<noteq> y"
-    unfolding smtlib_str_concat_def
-    by (metis append.assoc fold_append_concat_rev foldr_conv_fold smtlib_str_contains2_def smtlib_str_contains_equal)
 
 end

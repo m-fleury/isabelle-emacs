@@ -81,7 +81,7 @@ lemma [rewrite_str_concat_flatten_eq_rev]:
   subgoal for x2s x1s 
     apply (simp add: cvc_list_left_transfer cvc_list_right_transfer_op cvc_list_both_transfer_op)
     by (simp add: str_concat_flatten_eq_rev_lemma)
-  done
+  done                              
 
 named_theorems rewrite_str_substr_empty_str \<open>automatically_generated\<close>
 
@@ -135,6 +135,14 @@ lemma [rewrite_str_len_replace_inv]:
    smtlib_str_len (smtlib_str_replace t s r) = smtlib_str_len t"
   using smtlib_str_len_def smtlib_str_replace_def smtlib_str_replace_length by presburger
 
+named_theorems rewrite_str_len_update_inv \<open>automatically_generated\<close>
+
+lemma [rewrite_str_len_update_inv]:
+  fixes t::"char list" and n::"int" and r::"char list"
+  shows "smtlib_str_len (smtlib_str_update t n r) = smtlib_str_len t"
+  unfolding smtlib_str_update_def smtlib_str_len_def Let_def
+  by force
+
 named_theorems rewrite_str_len_substr_in_range \<open>automatically_generated\<close>
 
 lemma [rewrite_str_len_substr_in_range]:
@@ -158,9 +166,7 @@ lemma [rewrite_str_len_substr_ub2]:
   fixes s::"char list" and n::"int" and m::"int" and k::"int"
   shows "smtlib_str_len s - n \<le> k \<longrightarrow> k \<ge> 0 \<longrightarrow>
    (smtlib_str_len (smtlib_str_substr s n m) \<le> k) = True"
-  using smtlib_str_substr_length[of s n m]
-  unfolding smtlib_str_len_def
-  by auto
+  using smtlib_str_len_def smtlib_str_substr_length by auto
 
 named_theorems rewrite_re_in_empty \<open>automatically_generated\<close>
 
@@ -331,9 +337,7 @@ lemma [rewrite_str_prefixof_elim]:
   fixes s::"char list" and t::"char list"
   shows "smtlib_str_prefixof s t =
    (s = smtlib_str_substr t (0::int) (smtlib_str_len s))"
-  unfolding smtlib_str_prefixof_def smtlib_str_substr_def smtlib_str_len_def
-  apply simp
-  by (metis append_eq_conv_conj min_def prefixE prefix_length_le take_is_prefix)
+  by (simp add: rewrite_str_prefixof_elim_lemma)
 
 named_theorems rewrite_str_suffixof_elim \<open>automatically_generated\<close>
 
@@ -361,15 +365,68 @@ lemma [rewrite_str_suffixof_one]:
    smtlib_str_suffixof s t = smtlib_str_contains t s"
    by (simp add: smtlib_str_contains2_def smtlib_str_contains_equal smtlib_str_len_def smtlib_str_suffixof_def str_suffixof_one_lemma)
 
-named_theorems rewrite_str_substr_combine \<open>automatically_generated\<close>
+named_theorems rewrite_str_substr_combine1 \<open>automatically_generated\<close>
 
-lemma [rewrite_str_substr_combine]:
+lemma [rewrite_str_substr_combine1]: (*TODO*)
   fixes s::"char list" and n1::"int" and m1::"int" and n2::"int" and m2::"int"
-  shows "(0::int) \<le> n2 \<and> (0::int) \<le> n2 + m2 - m1 \<longrightarrow>
+  shows "(0::int) \<le> n1 \<and>
+   (0::int) \<le> n2 \<and> (0::int) \<le> m2 - (m1 - n2) \<longrightarrow>
+   smtlib_str_substr (smtlib_str_substr s n1 m1) n2 m2 =
+   smtlib_str_substr s (n1 + n2) (m1 - n2)"
+  unfolding smtlib_str_substr_def[of s n1 m1]
+  apply (cases "n1 < int (length s)")
+   apply simp_all
+   apply (cases "0 < m1 ")
+    apply simp_all
+  unfolding smtlib_str_substr_def[of "[]"]
+    apply simp_all
+  unfolding smtlib_str_substr_def[of s "(n1 + n2)" "(m1 - n2)"]
+    apply simp_all
+  apply (cases "n1 + n2 < int (length s)")
+   apply simp_all
+  apply (cases "n2 < m1")
+    apply simp_all
+    apply (cases "(nat m1)\<le> (length s - nat n1)")  
+     apply simp_all
+     apply (cases "(nat (m1 - n2)) \<le> (length s - nat (n1 + n2))")
+      apply simp_all
+  unfolding  smtlib_str_substr_def[of "(take (nat m1) (drop (nat n1) s))" n2 m2]
+      apply simp
+  apply (smt (verit, ccfv_threshold) add_diff_cancel_left' drop_drop drop_take le_add_diff_inverse2 min_absorb2 nat_diff_distrib' nat_mono take_take)
+    using nat_int_comparison(3) apply force
+    apply (smt (verit, ccfv_SIG) \<open>smtlib_str_substr (take (nat m1) (drop (nat n1) s)) n2 m2 \<equiv> if 0 \<le> n2 \<and> n2 < int (length (take (nat m1) (drop (nat n1) s))) \<and> 0 < m2 then take (min (nat m2) (length (take (nat m1) (drop (nat n1) s)) - nat n2)) (drop (nat n2) (take (nat m1) (drop (nat n1) s))) else []\<close> add_diff_cancel_left' drop_drop drop_take le_add_diff_inverse2 le_diff_iff length_drop min_absorb2 nat_diff_distrib' nat_le_linear nat_less_iff nat_mono order_less_le take_all_iff take_take)
+    apply (simp add: \<open>smtlib_str_substr (take (nat m1) (drop (nat n1) s)) n2 m2 \<equiv> if 0 \<le> n2 \<and> n2 < int (length (take (nat m1) (drop (nat n1) s))) \<and> 0 < m2 then take (min (nat m2) (length (take (nat m1) (drop (nat n1) s)) - nat n2)) (drop (nat n2) (take (nat m1) (drop (nat n1) s))) else []\<close> nat_le_iff of_nat_diff)
+    by (simp add: int_ops(6) of_nat_min smtlib_str_substr_def)
+
+
+named_theorems rewrite_str_substr_combine2 \<open>automatically_generated\<close>
+
+lemma [rewrite_str_substr_combine2]: (*TODO*)
+  fixes s::"char list" and n1::"int" and m1::"int" and n2::"int" and m2::"int"
+  shows "(0::int) \<le> n1 \<and>
+   (0::int) \<le> n2 \<and> (0::int) \<le> m1 - n2 - m2 \<longrightarrow>
    smtlib_str_substr (smtlib_str_substr s n1 m1) n2 m2 =
    smtlib_str_substr s (n1 + n2) m2"
-  oops
-
+  unfolding smtlib_str_substr_def[of s n1 m1] apply simp
+  apply (cases "n1 < int (length s)")
+  apply simp_all
+  unfolding smtlib_str_substr_def[of "[]"]
+    apply simp_all
+   apply (cases "0 < m1 ")
+  apply simp_all
+  unfolding smtlib_str_substr_def[of s "n1+n2" m2] apply simp
+  apply (cases "(nat m1) \<le> (length s - nat n1)")
+     apply simp_all
+   apply (cases "n1 + n2 < int (length s) ")
+    apply simp_all
+  apply (cases "0 < m2")
+     apply simp_all
+  unfolding smtlib_str_substr_def[of "(take (nat m1) (drop (nat n1) s))" n2 m2]
+     apply simp
+  apply (smt (verit, del_insts) drop_drop drop_take min_absorb1 nat_0_le nat_add_distrib nat_diff_distrib' nat_int_comparison(3) take_take)
+  apply presburger
+  using int_ops(6) nat_le_iff apply force
+  by (smt (verit) drop_drop length_drop nat_add_distrib nat_less_iff smtlib_str_substr_def zero_less_diff)
 
 named_theorems rewrite_str_substr_concat1 \<open>automatically_generated\<close>
 
@@ -384,12 +441,41 @@ lemma [rewrite_str_substr_concat1]:
     by (simp add: substr_concat1_lemma)
   done
 
+
+named_theorems rewrite_str_substr_full \<open>automatically_generated\<close>
+
+lemma [rewrite_str_substr_full]:
+  fixes s::"char list" and n::"int"
+  shows "smtlib_str_len s \<le> n \<longrightarrow>
+   smtlib_str_substr s (0::int) n = s"
+  unfolding smtlib_str_len_def smtlib_str_substr_def
+  using order_less_le by fastforce
+
 named_theorems rewrite_str_contains_refl \<open>automatically_generated\<close>
 
 lemma [rewrite_str_contains_refl]:
   fixes x::"char list"
   shows "smtlib_str_contains x x = True"
   by (metis append.right_neutral append_self_conv2 smtlib_str_contains2_def smtlib_str_contains_equal)
+
+
+named_theorems rewrite_str_contains_concat_find \<open>automatically_generated\<close>
+
+lemma [rewrite_str_contains_concat_find]:
+  fixes xs::"char list cvc_ListVar" and y::"char list" and zs::"char list cvc_ListVar"
+  shows "smtlib_str_contains
+    (cvc_list_right smtlib_str_concat (cvc_list_left smtlib_str_concat xs y)
+      zs)
+    y =
+   True"
+  apply (cases zs)
+  apply (cases xs)
+  subgoal for zss xss 
+    apply (simp add: cvc_list_left_transfer cvc_list_right_transfer_op cvc_list_both_transfer_op)
+    apply (induction zss arbitrary: zs)
+    using str_eq_ctn_false_lemma apply blast
+    by (meson str_eq_ctn_false_lemma)
+  done
 
 named_theorems rewrite_str_contains_split_char \<open>automatically_generated\<close>
 
@@ -436,8 +522,21 @@ named_theorems rewrite_str_at_elim \<open>automatically_generated\<close>
 lemma [rewrite_str_at_elim]:
   fixes x::"char list" and n::"int"
   shows "smtlib_str_at x n = smtlib_str_substr x n (1::int)"
-    by (simp add: smtlib_str_at_def)
+  by (simp add: smtlib_str_at_def)
 
+named_theorems rewrite_re_all_elim \<open>automatically_generated\<close>
+
+lemma [rewrite_re_all_elim]:
+  shows "smtlib_re_all = smtlib_re_star smtlib_re_allchar"
+  by (simp add: smtlib_re_all_def)
+
+named_theorems rewrite_re_opt_elim \<open>automatically_generated\<close>
+
+lemma [rewrite_re_opt_elim]:
+  fixes x::"char list set"
+  shows "\<forall>x::char list set.
+   smtlib_re_opt x = smtlib_re_union (smtlib_str_to_re (''''::char list)) x"
+  using smtlib_re_opt_def smtlib_re_union_def by auto
 
 named_theorems rewrite_re_concat_emp \<open>automatically_generated\<close>
 
@@ -452,6 +551,20 @@ lemma [rewrite_re_concat_emp]:
   subgoal for yss xss 
     apply (simp add: cvc_list_left_transfer cvc_list_right_transfer_op cvc_list_both_transfer_op)
     by (simp add: re_concat_emp_lemma)
+  done
+
+named_theorems rewrite_re_concat_none \<open>automatically_generated\<close>
+
+lemma [rewrite_re_concat_none]:
+  fixes xs::"char list set cvc_ListVar" and ys::"char list set cvc_ListVar"
+  shows "\<forall>(xs::char list set cvc_ListVar) ys::char list set cvc_ListVar.
+   cvc_list_right smtlib_re_concat
+    (cvc_list_left smtlib_re_concat xs smtlib_re_none) ys =
+   smtlib_re_none"
+  apply (cases ys)
+  apply (cases xs)
+  subgoal for yss xss
+    by (metis cvc_ListVar.exhaust cvc_bin_op2.simps cvc_list_left_transfer cvc_list_right_def ex_in_conv smtlib_re_concat_foldr smtlib_re_concat_ind.cases smtlib_re_concat_smtlib_re_concat_induct smtlib_re_none_def)
   done
 
 named_theorems rewrite_re_concat_flatten \<open>automatically_generated\<close>
@@ -493,6 +606,228 @@ lemma [rewrite_re_concat_star_swap]:
     by (simp add: re_concat_star_swap_lemma)
   done
 
+named_theorems rewrite_re_union_all \<open>automatically_generated\<close>
+
+lemma [rewrite_re_union_all]:
+  fixes xs::"char list set cvc_ListVar" and ys::"char list set cvc_ListVar"
+  shows "
+   cvc_list_right smtlib_re_union
+    (cvc_list_left smtlib_re_union xs (smtlib_re_star smtlib_re_allchar))
+    ys =
+   smtlib_re_star smtlib_re_allchar"
+  apply (cases ys)
+  apply (cases xs)
+  subgoal for yss xss 
+    apply simp
+    apply (simp add: cvc_list_left_transfer cvc_list_right_transfer_op cvc_list_both_transfer_op)
+    apply (induction yss arbitrary: ys)
+    apply simp_all
+        apply (induction xss arbitrary: xs)
+    apply simp_all
+      apply (simp add: smtlib_re_union_def)
+    apply (simp add: smtlib_re_union_def)
+    using smtlib_re_union_def by auto
+  done
+
+named_theorems rewrite_re_union_none \<open>automatically_generated\<close>
+
+lemma [rewrite_re_union_none]:
+  fixes xs::"char list set cvc_ListVar" and ys::"char list set cvc_ListVar"
+  shows "cvc_list_right smtlib_re_union
+    (cvc_list_left smtlib_re_union xs smtlib_re_none) ys =
+   cvc_list_both smtlib_re_union ({}::char list set) xs ys"
+  apply (cases ys)
+  apply (cases xs)
+  subgoal for yss xss 
+    apply (simp add: cvc_list_left_transfer cvc_list_right_transfer_op cvc_list_both_transfer_op)
+    apply (induction yss arbitrary: ys)
+    apply simp_all
+        apply (induction xss arbitrary: xs)
+      apply simp_all
+    using cvc_ListOp_neutral_re_union smtlib_re_none_def apply force
+    using cvc_ListOp_neutral_re_union apply force
+    
+       apply (induction xss arbitrary: xs)
+     apply simp_all
+    using cvc_ListOp_neutral_re_union smtlib_re_none_def apply force
+    by (smt (verit, ccfv_threshold) Un_def foldr.simps(1) id_apply smtlib_re_none_def smtlib_re_union_def sup_aci(3) sup_bot.right_neutral)
+  done
+
+named_theorems rewrite_re_union_flatten \<open>automatically_generated\<close>
+
+lemma [rewrite_re_union_flatten]:
+  fixes xs::"char list set cvc_ListVar" and b::"char list set" and ys::"char list set cvc_ListVar" and zs::"char list set cvc_ListVar"
+  shows "cvc_list_right smtlib_re_union
+    (cvc_list_left smtlib_re_union xs (cvc_list_right smtlib_re_union b ys))
+    zs =
+   cvc_list_right smtlib_re_union
+    (cvc_list_right smtlib_re_union (cvc_list_left smtlib_re_union xs b) ys)
+    zs"
+  apply (cases zs)
+  apply (cases ys)
+  apply (cases xs)
+  subgoal for zss yss xss 
+    apply (simp add: cvc_list_left_transfer cvc_list_right_transfer_op cvc_list_both_transfer_op)
+      apply (induction zss arbitrary: zs)
+     apply simp_all
+      apply (induction yss arbitrary: ys)
+     apply simp_all
+    using cvc_ListOp_neutral_re_union apply force
+         apply (induction xss arbitrary: xs)
+      apply simp_all
+    subgoal
+  proof -
+    fix a :: "char list set" and xssa :: "char list set list" and aa :: "char list set" and yssa :: "char list set list" and ysa :: "char list set cvc_ListVar" and xsa :: "char list set cvc_ListVar"
+    assume a1: "smtlib_re_union (smtlib_re_union a (foldr smtlib_re_union xssa (smtlib_re_union b (foldr smtlib_re_union yssa {})))) {} = smtlib_re_union (smtlib_re_union (smtlib_re_union a (foldr smtlib_re_union xssa b)) (foldr smtlib_re_union yssa {})) {}"
+    assume a2: "\<And>a yss ys xs. \<lbrakk>smtlib_re_union (foldr smtlib_re_union xssa (smtlib_re_union b (foldr smtlib_re_union yss {}))) {} = smtlib_re_union (smtlib_re_union (foldr smtlib_re_union xssa b) (foldr smtlib_re_union yss {})) {}; ys = ListVar (a # yss); xs = ListVar xssa\<rbrakk> \<Longrightarrow> smtlib_re_union (foldr smtlib_re_union xssa (smtlib_re_union b (smtlib_re_union a (foldr smtlib_re_union yss {})))) {} = smtlib_re_union (smtlib_re_union (foldr smtlib_re_union xssa b) (smtlib_re_union a (foldr smtlib_re_union yss {}))) {}"
+    have f3: "\<And>C Ca. smtlib_re_union C Ca = C \<union> Ca"
+      using smtlib_re_union_def by auto
+    then have f4: "a \<union> foldr smtlib_re_union xssa b \<union> foldr smtlib_re_union yssa {} = a \<union> foldr smtlib_re_union xssa (b \<union> foldr smtlib_re_union yssa {})"
+      using a1 by simp
+    have "\<And>f C. foldr f ([]::char list set list) (C::char list set) = C"
+      by auto
+    then have "\<And>C. foldr smtlib_re_union xssa b \<union> C = foldr smtlib_re_union xssa (b \<union> C)"
+      using f3 a2 by (metis sup_bot.right_neutral)
+    then have "a \<union> (aa \<union> foldr smtlib_re_union xssa (b \<union> foldr smtlib_re_union yssa {})) = a \<union> foldr smtlib_re_union xssa (b \<union> (aa \<union> foldr smtlib_re_union yssa {}))"
+      by (smt (z3) sup_aci(3))
+    then show "smtlib_re_union (smtlib_re_union a (foldr smtlib_re_union xssa (smtlib_re_union b (smtlib_re_union aa (foldr smtlib_re_union yssa {}))))) {} = smtlib_re_union (smtlib_re_union (smtlib_re_union a (foldr smtlib_re_union xssa b)) (smtlib_re_union aa (foldr smtlib_re_union yssa {}))) {}"
+      using f4 f3 by (simp add: sup_aci(3))
+  qed
+  using smtlib_re_union_def by auto
+  done
+
+
+named_theorems rewrite_re_union_dup \<open>automatically_generated\<close>
+
+lemma [rewrite_re_union_dup]:
+  fixes xs::"char list set cvc_ListVar" and b::"char list set" and ys::"char list set cvc_ListVar" and zs::"char list set cvc_ListVar"
+  shows "cvc_list_right smtlib_re_union
+    (smtlib_re_union
+      (cvc_list_right smtlib_re_union (cvc_list_left smtlib_re_union xs b)
+        ys)
+      b)
+    zs =
+   cvc_list_right smtlib_re_union
+    (cvc_list_right smtlib_re_union (cvc_list_left smtlib_re_union xs b) ys)
+    zs"
+  apply (cases zs)
+  apply (cases ys)
+  apply (cases xs)
+  subgoal for zss yss xss 
+    apply (simp add: cvc_list_left_transfer cvc_list_right_transfer_op cvc_list_both_transfer_op)
+    apply (induction zss arbitrary: zs)
+     apply simp_all
+      apply (induction yss arbitrary: ys)
+      apply simp_all
+        apply (induction xss arbitrary: xs)
+      apply simp_all
+    apply (simp add: smtlib_re_union_def)
+    using smtlib_re_union_def apply auto[1]
+    using smtlib_re_union_def apply auto[1]
+    using smtlib_re_union_def by auto
+  done
+
+
+named_theorems rewrite_re_inter_all \<open>automatically_generated\<close>
+
+lemma rewrite_re_inter_all_h1: "smtlib_re_inter (foldr smtlib_re_inter xss UNIV) A = foldr smtlib_re_inter xss A"
+  apply (induction xss)
+  apply (simp add: smtlib_re_inter_def)
+  apply simp
+  by (smt (verit, ccfv_SIG) Collect_cong mem_Collect_eq smtlib_re_inter_def)
+
+
+lemma [rewrite_re_inter_all]:
+  fixes xs::"char list set cvc_ListVar" and ys::"char list set cvc_ListVar"
+  shows "cvc_list_right smtlib_re_inter
+    (cvc_list_left smtlib_re_inter xs (smtlib_re_star smtlib_re_allchar))
+    ys =
+   cvc_list_both smtlib_re_inter (UNIV::char list set) xs ys"
+  apply (cases ys)
+  apply (cases xs)
+  subgoal for yss xss 
+    apply (simp add: cvc_list_left_transfer cvc_list_right_transfer_op cvc_list_both_transfer_op)
+    using rewrite_re_inter_all_h1 by auto
+  done
+
+
+named_theorems rewrite_re_inter_none \<open>automatically_generated\<close>
+
+lemma [rewrite_re_inter_none]:
+  fixes xs::"char list set cvc_ListVar" and ys::"char list set cvc_ListVar"
+  shows "cvc_list_right smtlib_re_inter
+    (cvc_list_left smtlib_re_inter xs smtlib_re_none) ys =
+   smtlib_re_none"
+  apply (cases ys)
+  apply (cases xs)
+  subgoal for yss xss 
+    apply (simp add: cvc_list_left_transfer cvc_list_right_transfer_op cvc_list_both_transfer_op)
+    apply (induction yss arbitrary: ys)
+    apply simp_all
+        apply (induction xss arbitrary: xs)
+      apply simp_all
+    using cvc_ListOp_neutral_re_inter apply force
+    apply (simp add: smtlib_re_inter_def smtlib_re_none_def)
+    using smtlib_re_inter_def smtlib_re_none_def by auto
+  done
+
+named_theorems rewrite_re_inter_flatten \<open>automatically_generated\<close>
+
+lemma rewrite_re_inter_flatten_h1: "smtlib_re_inter (foldr smtlib_re_inter xss (smtlib_re_inter b (foldr smtlib_re_inter yss UNIV))) A =
+    smtlib_re_inter (smtlib_re_inter (foldr smtlib_re_inter xss b) (foldr smtlib_re_inter yss UNIV)) A"
+  apply (induction xss)
+   apply simp_all
+  by (smt (verit) Int_commute Int_def Int_left_commute smtlib_re_inter_def)
+
+
+lemma [rewrite_re_inter_flatten]:
+  fixes xs::"char list set cvc_ListVar" and b::"char list set" and ys::"char list set cvc_ListVar" and zs::"char list set cvc_ListVar"
+  shows "cvc_list_right smtlib_re_inter
+    (cvc_list_left smtlib_re_inter xs (cvc_list_right smtlib_re_inter b ys))
+    zs =
+   cvc_list_right smtlib_re_inter
+    (cvc_list_right smtlib_re_inter (cvc_list_left smtlib_re_inter xs b) ys)
+    zs"
+  apply (cases zs)
+  apply (cases ys)
+  apply (cases xs)
+  subgoal for zss yss xss 
+    apply (simp add: cvc_list_left_transfer cvc_list_right_transfer_op cvc_list_both_transfer_op)
+    by (simp add: rewrite_re_inter_flatten_h1)
+  done
+
+named_theorems rewrite_re_inter_dup \<open>automatically_generated\<close>
+
+lemma [rewrite_re_inter_dup]:
+  fixes xs::"char list set cvc_ListVar" and b::"char list set" and ys::"char list set cvc_ListVar" and zs::"char list set cvc_ListVar"
+  shows "cvc_list_right smtlib_re_inter
+    (smtlib_re_inter
+      (cvc_list_right smtlib_re_inter (cvc_list_left smtlib_re_inter xs b)
+        ys)
+      b)
+    zs =
+   cvc_list_right smtlib_re_inter
+    (cvc_list_right smtlib_re_inter (cvc_list_left smtlib_re_inter xs b) ys)
+    zs"
+  apply (cases zs)
+  apply (cases ys)
+  apply (cases xs)
+  subgoal for zss yss xss 
+    apply (simp add: cvc_list_left_transfer cvc_list_right_transfer_op cvc_list_both_transfer_op)
+    apply (induction zss arbitrary: zs)
+     apply simp_all
+      apply (induction yss arbitrary: ys)
+      apply simp_all
+        apply (induction xss arbitrary: xs)
+      apply simp_all
+    apply (simp add: smtlib_re_inter_def)
+    using smtlib_re_inter_def apply auto[1]
+    using smtlib_re_inter_def apply auto[1]
+    using smtlib_re_inter_def by auto
+  done
+
+
+
 named_theorems rewrite_str_len_concat_rec \<open>automatically_generated\<close>
 
 lemma [rewrite_str_len_concat_rec]:
@@ -511,7 +846,7 @@ named_theorems rewrite_str_in_re_range_elim \<open>automatically_generated\<clos
 
 lemma [rewrite_str_in_re_range_elim]:
   fixes s::"char list" and c1::"char list" and c2::"char list"
-  shows "smtlib_str_len c1 = (1::int) \<Longrightarrow>
+  shows "length s = 1 \<Longrightarrow> smtlib_str_len c1 = (1::int) \<Longrightarrow>
    smtlib_str_len c2 = (1::int) \<Longrightarrow>
    smtlib_str_in_re s (smtlib_re_range c1 c2) =
    (smtlib_str_to_code c1 \<le> smtlib_str_to_code s \<and>
@@ -520,15 +855,21 @@ lemma [rewrite_str_in_re_range_elim]:
   apply simp
   unfolding smtlib_str_in_re_def smtlib_re_range_def smtlib_str_leq_def smtlib_str_less_def
   apply simp
-  apply (induction s)
-  apply simp_all
-   apply (cases c1)
-    apply simp
+  apply (cases s)
    apply simp
-   apply (cases c2)
-    apply simp_all
-  unfolding of_char_def
-  
+  subgoal for s'
+  apply (cases c1)
+     apply simp_all
+    subgoal for c1'
+      apply (cases "c1' = s'")
+       apply simp_all
+  apply (cases c2)
+     apply simp_all
+      subgoal for c2'
+        by (metis dual_order.order_iff_strict of_char_eqI)
+      by (smt (z3) Suc_length_conv length_0_conv nth_Cons_0 of_char_eq_iff string_comp.simps(3))
+    done
+  done
 
 
 

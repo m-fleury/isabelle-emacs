@@ -761,5 +761,33 @@ definition smtlib_str_to_int :: "string \<Rightarrow> int" where
 definition smtlib_str_from_int :: "int \<Rightarrow> string" where
  "smtlib_str_from_int n = (if n \<ge> 0 then (THE w. smtlib_str_to_int w = n \<and> (\<forall>w'::string . smtlib_str_to_int w = n --> length w' >= length w )) else '''')"
 
+
+(*------------------------------------------------------------------------------------------------*)
+(*----------------------------------------- str.update -------------------------------------------*)
+(*------------------------------------------------------------------------------------------------*)
+
+(*
+* (str.update String Int String)
+
+  - \<lbrakk>str.update\<rbrakk>(w, i, w2) = w         if i < 0 or i >= |w|
+
+  - \<lbrakk>str.update\<rbrakk>(w, i, w2) = u1u2u3
+    where
+      - w = u1w3u3
+      - |w3| = |u2|
+      - |u1| = i
+      - u2u4 = w2
+      - |u2| = min(|w2|, |w| - i)      otherwise
+*)
+
+definition smtlib_str_update :: "string \<Rightarrow> int \<Rightarrow> string \<Rightarrow> string" where
+ "smtlib_str_update w i w2 = (if i < 0 \<or> i \<ge> smtlib_str_len w then w else 
+(let u1 = take (nat i) w in
+ let u2_len = (min (smtlib_str_len w2) ((smtlib_str_len w)-i)) in
+ let u3 = drop (nat u2_len) (drop (nat i) w) in
+ let u2 = take (nat u2_len) w2 in
+u1 @ u2 @ u3
+))"
+
 end
 
