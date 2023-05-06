@@ -1,69 +1,180 @@
 theory BV_Rewrites_Lemmas
   imports Dsl_Nary_Ops "HOL-Library.Word" Word_Lib.More_Word "HOL-Library.Log_Nat"
 begin
+(*imported from various places*)
+
+(*IEEE_Float_Extend_Integer*)
+  lemma nat_bit_shift_add_bound:
+    fixes e f :: nat
+    assumes LF: "f<2^F"
+        and LE: "e<2^E"
+    shows "f+e*2^F < 2^(E+F)"
+  proof -
+    from LE have "e \<le> 2^E - 1" by simp
+    hence "e*2^F \<le> (2^E - 1) * 2^F" by simp
+    also have "\<dots> = 2^(E+F) - 2^F" by (simp add: power_add algebra_simps)
+    finally have "e * 2 ^ F \<le> 2 ^ (E + F) - 2 ^ F" .
+    thus ?thesis using LF
+      by (metis LE add.commute nat_add_offset_less)
+  qed
+
+   lemma int_bit_shift_add_bound:
+    fixes e f :: int
+    assumes LF: "f<2^F"
+        and LE: "e<2^E"
+    shows "f+e*2^F < 2^(E+F)"
+  proof -
+    from LE have "e \<le> 2^E - 1" by simp
+    hence "e*2^F \<le> (2^E - 1) * 2^F" by simp
+    also have "\<dots> = 2^(E+F) - 2^F" by (simp add: power_add algebra_simps)
+    finally have "e * 2 ^ F \<le> 2 ^ (E + F) - 2 ^ F" .
+    thus ?thesis using LF by linarith
+  qed
+
+  
+  lemma uint_bit_shift_add_bound:
+    fixes f :: "'f::len word"
+      and e :: "'e::len word"
+    shows "uint (f) + uint (e) * 2 ^ LENGTH('f) < 2^(LENGTH('e) + LENGTH('f))"
+    apply (rule int_bit_shift_add_bound)
+    by auto
+
+  lemma unat_bit_shift_add_bound:
+    fixes f :: "'f::len word"
+      and e :: "'e::len word"
+    shows "unat (f) + unat (e) * 2 ^ LENGTH('f) < 2^(LENGTH('e) + LENGTH('f))"
+    apply (rule nat_bit_shift_add_bound)
+    by auto
+
+lemma unat_pow_le_intro:
+  "LENGTH('a) \<le> n \<Longrightarrow> unat (x :: 'a :: len word) < 2 ^ n"
+  by (metis lt2p_lem not_le of_nat_le_iff of_nat_numeral semiring_1_class.of_nat_power uint_nat)
+
+  lemma unat_word_cat_eq:
+    fixes w\<^sub>1 :: "'l\<^sub>1::len word"
+    fixes w\<^sub>2 :: "'l\<^sub>2::len word"
+    assumes "LENGTH('l\<^sub>1) + LENGTH('l\<^sub>2) \<le> LENGTH('l\<^sub>3)"
+    shows "unat (word_cat w\<^sub>1 w\<^sub>2 :: 'l\<^sub>3::len word) = unat w\<^sub>2 + unat w\<^sub>1 * 2^LENGTH('l\<^sub>2)"  
+  proof -
+(*
+    have [simp]: 
+      "is_up UCAST('l\<^sub>1 \<rightarrow> 'l\<^sub>3)" 
+      "is_up UCAST('l\<^sub>2 \<rightarrow> 'l\<^sub>3)" 
+      using assms 
+      by (auto simp add: is_up)
+*)
+    have [simp]: "LENGTH('l\<^sub>2) < LENGTH('l\<^sub>3)"
+      using assms 
+      by (metis add_diff_cancel_right' add_leD2 diff_is_0_eq' le_neq_implies_less len_not_eq_0)
+      
+          
+      
+    have B2: "unat w\<^sub>2 + unat w\<^sub>1 * unat ((2::'l\<^sub>3 word) ^ LENGTH('l\<^sub>2)) < 2 ^ LENGTH('l\<^sub>3)"
+      apply (simp)
+      apply (rule order.strict_trans2[OF unat_bit_shift_add_bound])
+      using assms by simp
+
+    have B1: "unat w\<^sub>1 * unat ((2::'l\<^sub>3 word) ^ LENGTH('l\<^sub>2)) < 2 ^ LENGTH('l\<^sub>3)" 
+      using B2 by linarith
+          
+    show ?thesis  
+      apply (simp add: word_cat_eq' concat_bit_eq take_bit_eq_mod push_bit_eq_mult)
+      apply (simp add: unat_word_ariths unat_ucast_upcast B1 B2)
+      by (metis B2 \<open>LENGTH('l\<^sub>2) < LENGTH('l\<^sub>3)\<close> add.commute add_leD2 add_lessD1 assms nat_mod_eq'
+          unat_pow_le_intro unat_power_lower unat_ucast)
+  qed
+(*end of stolen*)
 
  definition smt_extract where
   \<open>smt_extract j i w = slice i (take_bit (Suc j) w)\<close>
 
-(*TODO: This is not working*)
-(*Ich braeuchte dependent types dafuer*)
-fun repeat ::"nat \<Rightarrow> 'a::len word \<Rightarrow> 'b::len word" where
-"repeat (Suc (Suc 0)) x = word_cat x x" |
-"repeat (Suc n) x = word_cat x (repeat n x)"
 
-value "repeat 2 (3::3 word)::6 word" (*011011\<rightarrow>27*)
-value "repeat 3 (3::3 word)::9 word" (*011011*)
-value "[]::nat list"
+definition replicate_nat :: \<open>_ \<Rightarrow> _ \<Rightarrow> nat\<close> where
+ \<open>replicate_nat i s = (\<Sum>k=0..(i-1). 2^(s*k))\<close>
 
-(*
-repeat (n + n) 1 = repeat 7 1
-*)
-fun repeat1 where "repeat1 n x = foldr word_cat (List.replicate n x)"
+lemma replicate_nat_Suc[simp]:
+  \<open>i > 0 \<Longrightarrow> replicate_nat (Suc i) s = replicate_nat i s + (2::nat) ^ (i*s)\<close>
+  by (cases i) (auto simp: replicate_nat_def)
 
+definition word_repeat :: \<open>nat \<Rightarrow> 'a :: len word \<Rightarrow> 'b :: len word\<close> where
+\<open>word_repeat i n = (THE x :: 'b::len word. LENGTH('b) = i * size n \<and> unat x = replicate_nat i (size n) * (unat n))\<close>
+lemma ex_unat_nat: "n < 2^ (LENGTH('a)) \<Longrightarrow> \<exists>x :: 'a:: len word. unat x = n"
+  using of_nat_inverse by blast
 
-value "repeat1 2 (3::3 word)::6 word" (*011011\<rightarrow>27*)
-value "repeat1 3 (3::3 word)::9 word" (*011011*)
+lemma replicate_nat_le: \<open>i \<ge> 1 \<Longrightarrow> replicate_nat i (size n) * unat n < 2 ^ (i * size n)\<close>
+  apply (induction i)
+  subgoal by auto
+  subgoal for i
+    apply (cases i)
+    apply (auto simp: replicate_nat_def)
+    apply (simp add: wsst_TYs(3))
+    by (simp add: distrib_left mult.commute nat_bit_shift_add_bound wsst_TYs(3))
+  done
 
+lemma word_repeat_unique:
+  \<open>LENGTH('b) = i * size n \<and> unat a = replicate_nat i (size n) * unat n \<Longrightarrow>
+  LENGTH('b::len) = i * size n \<and> unat x = replicate_nat i (size n) * unat n \<Longrightarrow>
+  x = a\<close>
+  using word_eq_iff_unsigned
+  by metis
 
+lemma ex_word_repeat:
+  fixes n :: \<open>'a :: len word\<close>
+  assumes \<open>LENGTH('b) = i * size n\<close> "i \<ge> 1" 
+  shows \<open>\<exists>x::'b::len word. unat x = replicate_nat i (size n) * (unat n)\<close>
+  using assms apply -
+  by (rule ex_unat_nat) (auto intro: replicate_nat_le)
 
-fun repeat3 ::"nat \<Rightarrow> int \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> int" where
-"repeat3 (Suc 0) x len_x len = x " |
-"repeat3 (Suc n) x len_x len = (let x' = repeat3 n x len_x (len+len_x) in 
-((concat_bit len_x x (take_bit (len+len_x) x'))))"
+lemma word_repeat_prop:
+  \<open>i\<ge>1 \<Longrightarrow> LENGTH('b) = i * size n\<Longrightarrow> unat ((word_repeat i n) :: 'b :: len word) = replicate_nat i (size n) * (unat n)\<close>
+  using ex_word_repeat[of i n, where 'b='b]
+    theI[where P = \<open>\<lambda>x :: 'b::len word. LENGTH('b) = i * size n \<and> unat x = replicate_nat i (size n) * (unat n)\<close>,
+    unfolded word_repeat_def[symmetric]]
+    word_repeat_unique[where 'b='b]
+  by fast
 
+lemma word_repeat_alt_def:
+  assumes \<open>LENGTH('b) = i * size n\<close> \<open>i \<ge> 1\<close>
+  shows \<open>word_repeat i n = (a::'b ::len word) \<longleftrightarrow> (unat a = replicate_nat i (size n) * unat n)\<close>
+proof -
+  have \<open>LENGTH('b) = i * size n \<Longrightarrow> i \<ge> 1 \<Longrightarrow>  word_repeat i n = (a::'b ::len word) \<longleftrightarrow> (LENGTH('b) = i * size n \<and> unat a = replicate_nat i (size n) * unat n)\<close>
+    apply (subst eq_commute[of _ a])
+    apply (subst theI_unique[where P = \<open>\<lambda>x :: 'b::len word. LENGTH('b) = i * size n \<and> unat x = replicate_nat i (size n) * (unat n)\<close>,
+      unfolded word_repeat_def[symmetric], of a])
+    subgoal
+      apply (subst Ex1_def)
+      using
+        ex_word_repeat[of i n, where 'b='b]
+        word_repeat_unique[of i n, where 'b='b]
+      by blast
+    subgoal by auto
+    done
+  then show ?thesis
+    using assms by fast
+qed
 
-value "repeat3 2 3 3 0" (*011011\<rightarrow>27*)
-value "repeat3 3 3 3 0" (*011011*)
-
-fun repeat2 ::"nat \<Rightarrow> int \<Rightarrow> nat \<Rightarrow> int * nat" where
-"repeat2 (Suc 0) x len_x = (x,len_x) " |
-"repeat2 (Suc n) x len_x = (let (x',len') = repeat2 n x len_x in 
-((concat_bit len_x x (take_bit len' x')),len'+len_x))"
-
-
-value "repeat2 2 3 3" (*011011\<rightarrow>27*)
-value "repeat2 3 3 3" (*011011011 \<rightarrow> 219*)
-
-lift_definition repeat :: \<open>nat \<Rightarrow> nat \<Rightarrow> 'a::len word \<Rightarrow> 'b::len word\<close>
-  is \<open>\<lambda>n l x. fst (repeat2 n x l)\<close>
-  
-  by (simp add: bit_eq_iff bit_concat_bit_iff bit_take_bit_iff)
-
-(*lift_definition word_cat :: \<open>'a::len word \<Rightarrow> 'b::len word \<Rightarrow> 'c::len word\<close>
-  is \<open>\<lambda>k l. concat_bit LENGTH('b) l (take_bit LENGTH('a) k)\<close>
-  by (simp add: bit_eq_iff bit_concat_bit_iff bit_take_bit_iff)
-*)
-
-
-lift_definition repeat :: \<open>'a::len word \<Rightarrow> 'b::len word \<Rightarrow> 'c::len word\<close>
-  is \<open>\<lambda>k l. concat_bit LENGTH('b) l (take_bit LENGTH('a) k)\<close>
-  by (simp add: bit_eq_iff bit_concat_bit_iff bit_take_bit_iff)
-
-
+lemma word_repeat_word_cat:
+  fixes n :: "'a :: len word"
+  assumes \<open>LENGTH('b::len) = Suc i * size n\<close> \<open>i > 0\<close>
+    \<open>LENGTH('c::len) = i * size n\<close>
+  shows \<open>(word_repeat (Suc i) n :: 'b word) = word_cat (n :: 'a word) (word_repeat i n :: 'c word)\<close>
+  supply [[show_sorts,show_types]]
+  apply (subst word_repeat_alt_def)
+  subgoal using assms by auto
+  subgoal by auto
+    apply (subst unat_word_cat_eq)
+    subgoal using assms by (auto simp: word_size)
+    apply (subst word_repeat_prop)
+    subgoal using assms by auto
+    subgoal using assms by auto
+      apply (subst replicate_nat_Suc)
+    subgoal using assms by auto
+    subgoal using assms by (auto simp: algebra_simps word_size)
+    done
 
 
 definition smt_repeat :: "nat \<Rightarrow> 'a::len word \<Rightarrow> 'b::len word" where
-  \<open>smt_repeat i x = (if i = 0 then (ucast x::'b::len word) else repeat i x)\<close>
+  \<open>smt_repeat i x = (if i = 0 then (ucast x::'b::len word) else word_repeat i x)\<close>
 
 definition xor :: "bool \<Rightarrow> bool \<Rightarrow> bool" (infixl "[+1]" 60)
   where "(A [+1] B) \<equiv> (\<not>(A = B))"
