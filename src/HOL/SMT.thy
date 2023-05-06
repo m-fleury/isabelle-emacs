@@ -1081,7 +1081,8 @@ definition smt_redor :: "'a::len word \<Rightarrow> 1 word" where
 definition smt_redand :: "'a::len word \<Rightarrow> 1 word" where
   \<open>smt_redand x = not (smt_comp x (not (0::'a word)))\<close>
 
-definition smt_uaddo  :: "'a::len word \<Rightarrow> 'a::len word \<Rightarrow> bool" where
+(*'c is 'a + 1*)
+definition smt_uaddo  :: "'a::len word \<Rightarrow> 'b::len word \<Rightarrow> bool" where
 "smt_uaddo x y = (smt_extract (size x) (size x)
  ((Word.word_cat (0::1 word) x) + (Word.word_cat (0::1 word) y) :: 'c::len word) = (1:: 1 word))"
 
@@ -1092,8 +1093,8 @@ definition smt_saddo :: "'a::len word \<Rightarrow> 'b::len word \<Rightarrow> b
 definition smt_sdivo :: "'a::len word \<Rightarrow> 'b::len word \<Rightarrow> bool" where
 "smt_sdivo x y = (x = (word_cat (1::1 word) (0::'c::len word)::'a word) \<and> y = (mask (size y)::'b word))"
 
-definition smt_usubo :: "'a::len word \<Rightarrow> 'a::len word \<Rightarrow> bool" where (*TODO*)
-"smt_usubo x y = ((smt_extract ((size x)-1) ((size y)-1) (push_bit 1 x - push_bit 1 y)) = (1::1 word))"
+definition smt_usubo :: "'a::len word \<Rightarrow> 'a::len word \<Rightarrow> bool" where
+"smt_usubo x y = ((smt_extract ((size x)-1) ((size y)-1) (Word.cast x - Word.cast y)) = (1::1 word))"
 (*(define-rule bv-ssubo-eliminate
 	((x ?BitVec) (y ?BitVec))
 	(def
@@ -1437,7 +1438,7 @@ val _ = Outer_Syntax.local_theory \<^command_keyword>\<open>check_smt\<close> "p
     val _ = SMT_Config.verbose_msg ctxt (pretty "Proof to be checked:") proof_lines
 
     (*Replay proof*)
-    val _ = SMT_Solver.replay_only ctxt problem_lines proof_lines
+    val _ = SMT_Solver.replay_only "" ctxt problem_lines proof_lines
     val _ = (SMT_Config.verbose_msg ctxt (K ("Checked Alethe proof")) ())
 in lthy end))
 
@@ -1502,8 +1503,6 @@ check_smt "~/Sources/QF_UF/Test1/test.smt2"
 
 
 
-check_smt "~/Sources/QF_UF/20170829-Rodin/smt1468783596909311386.smt2"
-"~/Sources/QF_UF/20170829-Rodin/smt1468783596909311386.alethe"
 check_smt "~/Sources/QF_UF/20170829-Rodin/smt2080745738819601301.smt2"
 "~/Sources/QF_UF/20170829-Rodin/smt2080745738819601301.alethe"
 
