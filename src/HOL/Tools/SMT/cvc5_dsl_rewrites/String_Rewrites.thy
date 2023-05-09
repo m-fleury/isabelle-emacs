@@ -844,34 +844,55 @@ lemma [rewrite_str_len_concat_rec]:
 
 named_theorems rewrite_str_in_re_range_elim \<open>automatically_generated\<close>
 
+
+lemma h1: "(of_char c1::int) \<ge> -1"
+  unfolding of_char_def by simp
+
+lemma h2: "(of_char c1::int) > -1"
+  unfolding of_char_def by simp
+
+lemma h2: "(of_char c1) > -1"
+  nitpick
+
 lemma [rewrite_str_in_re_range_elim]:
   fixes s::"char list" and c1::"char list" and c2::"char list"
-  shows "length s = 1 \<Longrightarrow> smtlib_str_len c1 = (1::int) \<Longrightarrow>
+  shows "smtlib_str_len c1 = (1::int) \<Longrightarrow>
    smtlib_str_len c2 = (1::int) \<Longrightarrow>
    smtlib_str_in_re s (smtlib_re_range c1 c2) =
    (smtlib_str_to_code c1 \<le> smtlib_str_to_code s \<and>
     smtlib_str_to_code s \<le> smtlib_str_to_code c2)"
+  apply (rule iffI)
   unfolding smtlib_str_to_code_def smtlib_str_len_def
   apply simp
   unfolding smtlib_str_in_re_def smtlib_re_range_def smtlib_str_leq_def smtlib_str_less_def
   apply simp
-  apply (cases s)
-   apply simp
-  subgoal for s'
-  apply (cases c1)
+  apply (case_tac [!] "length s")
+   apply simp_all
+   apply (case_tac [!] c2)
      apply simp_all
-    subgoal for c1'
-      apply (cases "c1' = s'")
-       apply simp_all
-  apply (cases c2)
+   apply (case_tac [!] c1)
+   apply simp_all
+  using order_le_less string_comp.elims(2) apply fastforce
+  subgoal for c2' c2s c1'
+    apply (cases "c2' = CHR 0x00")
      apply simp_all
-      subgoal for c2'
-        by (metis dual_order.order_iff_strict of_char_eqI)
-      by (smt (z3) Suc_length_conv length_0_conv nth_Cons_0 of_char_eq_iff string_comp.simps(3))
-    done
-  done
+    apply (cases "c1' = CHR 0x00")
+      apply (simp_all add: h1)
+    using String_Rewrites.h2 linorder_not_le apply blast
+    using String_Rewrites.h2 linorder_not_le by blast
+  by (smt (verit, ccfv_SIG) String_Rewrites.h2 Suc_length_conv char_of_char length_greater_0_conv list.size(3) nth_Cons_0 string_comp.simps(3))
+
+declare[[show_types]]
+declare[[show_sorts]]
 
 
+lemma [rewrite_str_in_re_range_elim]:
+  fixes s::"char list" and c1::"char list" and c2::"char list"
+  shows "smtlib_str_len c1 = (1::int) \<Longrightarrow>
+   smtlib_str_len c2 = (1::int) \<Longrightarrow>
+   (smtlib_str_to_code c1 \<le> smtlib_str_to_code s \<and>
+    smtlib_str_to_code s \<le> smtlib_str_to_code c2)
+\<longrightarrow> smtlib_str_in_re s (smtlib_re_range c1 c2)"
 
 
 end

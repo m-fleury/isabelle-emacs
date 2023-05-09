@@ -641,7 +641,7 @@ definition smtlib_re_opt  :: "RegLan \<Rightarrow> RegLan" where
           \<lbrakk>re.range\<rbrakk>(\<lbrakk>""c""\<rbrakk>, \<lbrakk>""a""\<rbrakk>) =  \<emptyset> *)
 
 definition smtlib_re_range  :: "string \<Rightarrow> string \<Rightarrow> RegLan" where
- "smtlib_re_range w1 w2 = (if length w1 = 1 \<and> length w2 = 1 then {w . smtlib_str_leq w1 w \<and> smtlib_str_leq w w2} else {})" 
+ "smtlib_re_range w1 w2 = (if length w1 = 1 \<and> length w2 = 1 then {w . smtlib_str_leq w1 w \<and> smtlib_str_leq w w2 \<and> length w = 1} else {})" 
 
 
 (*------------------------------------------------------------------------------------------------*)
