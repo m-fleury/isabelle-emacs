@@ -1505,20 +1505,6 @@ declare [[smt_trace=false,smt_timeout=5000000]]
 check_smt "~/Documents/repos/SMTLIB/UFLIA/boogie-unsat/AdvancedTypes_AdvancedTypes.Advanced2_SubLessType_notnull-orderStrength_1.smt2"
   "~/Documents/repos/SMTLIB/UFLIA/boogie-unsat/AdvancedTypes_AdvancedTypes.Advanced2_SubLessType_notnull-orderStrength_1.alethe"
 
-lemma
-"(\<forall>pc::int.
-        pc \<noteq> nullObject \<and>
-        (select2 Heap pc allocated = Smt_true) = True \<and>
-        select2 Heap pc ownerRef = select2 Heap slt_in ownerRef \<and>
-        select2 Heap pc ownerFrame = select2 Heap slt_in ownerFrame \<longrightarrow>
-        select2 Heap pc inv = typeof pc \<and> select2 Heap pc localinv = typeof pc) =
-    (\<forall>pc::int.
-        nullObject \<noteq> pc \<and>
-        Smt_true = select2 Heap pc allocated \<and>
-        select2 Heap slt_in ownerRef = select2 Heap pc ownerRef \<and>
-        select2 Heap slt_in ownerFrame = select2 Heap pc ownerFrame \<longrightarrow>
-        typeof pc = select2 Heap pc inv \<and> typeof pc = select2 Heap pc localinv)"
-  apply force
 
 
 (*
