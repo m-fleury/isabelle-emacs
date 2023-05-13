@@ -15,9 +15,9 @@ re_concat,
 str_concat,
 *)
 
-named_theorems bool_double_not_elim \<open>automatically_generated\<close>
+named_theorems rewrite_bool_double_not_elim \<open>automatically_generated\<close>
 
-lemma [bool_double_not_elim]:
+lemma [rewrite_bool_double_not_elim]:
   fixes t::"bool"
   shows "(\<not> \<not> t) = t"
   by auto

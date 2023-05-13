@@ -101,7 +101,8 @@ fun verit_rule_of "bind" = Bind
      else if r = Lethe_Proof.th_resolution_rule then Theory_Resolution
      else if r = Lethe_Proof.equiv_pos2_rule then Equiv_pos2
      else if r = Lethe_Proof.and_pos_rule then And_Pos
-     else (@{print} ("Unsupport rule", r); Unsupported)
+     else if r = Lethe_Proof.hole then Hole
+     else (@{print} ("Unrecognized rule", r); Unsupported)
 
 
 (* Combining all together *)

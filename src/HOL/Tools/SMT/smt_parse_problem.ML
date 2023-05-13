@@ -131,6 +131,11 @@ fun dest_seq (SMTLIB.S ts) = ts
 
 val desymbolize = Name.desymbolize (SOME false) o perhaps (try (unprefix "?"))
 
+val fix_invalid_name =
+  raw_explode
+  #> map (fn "." => "__#__" | a => a) (*fudge replacement*)
+  #> implode
+
 fun parse_declare (cs: string list) ({context,typs,terms,ll_defs,rewrite_rules,assms}: SMT_Translate.replay_data, assms_nbr)
    =
   let
@@ -141,7 +146,8 @@ fun parse_declare (cs: string list) ({context,typs,terms,ll_defs,rewrite_rules,a
       |> map SMTLIB.parse
       |> (fn [SMTLIB.S [SMTLIB.Sym "declare-fun", n, tys, ty]] => (n, tys, ty))
     
-     val name = dest_name n
+     val raw_name = dest_name n
+     val name = fix_invalid_name raw_name
      val ctxt = SMTLIB_Proof.empty_context context typs terms
      val Ts = map (SMTLIB_Proof.type_of ctxt) (dest_seq tys)
      val T = SMTLIB_Proof.type_of ctxt ty
@@ -149,7 +155,7 @@ fun parse_declare (cs: string list) ({context,typs,terms,ll_defs,rewrite_rules,a
     val ([n'], ctxt') =  Variable.variant_fixes [name] context
 
     val t = Free (n', Ts ---> T)
-    val terms = Symtab.update (name, t) terms
+    val terms = Symtab.update (raw_name, t) terms
 (*|>  @{print} *)
 (*
      val Ts = map (SMTLIB_Proof.type_of context) (dest_seq tys)

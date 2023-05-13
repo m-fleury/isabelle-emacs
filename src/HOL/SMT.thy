@@ -784,7 +784,7 @@ options.
 
 
 declare [[cvc4_options = "--full-saturate-quant --inst-when=full-last-call --inst-no-entail --term-db-mode=relevant --multi-trigger-linear"]]
-declare [[cvc5_options = ""]]
+declare [[cvc5_options = "--proof-format-mode=alethe --proof-granularity=dsl-rewrite --full-saturate-quant --inst-when=full-last-call --inst-no-entail --term-db-mode=relevant --multi-trigger-linear"]]
 declare [[verit_options = ""]]
 declare [[z3_options = ""]]
 
@@ -1415,7 +1415,7 @@ ML \<open>
 val _ = Outer_Syntax.local_theory \<^command_keyword>\<open>check_smt\<close> "parse a file in SMTLIB2 format and check proof. <problem_file,proof_file>"
     (Scan.optional (\<^keyword>\<open>(\<close> |-- Parse.string --|
       \<^keyword>\<open>)\<close>)
-     "cvc4" --
+     "cvc5" --
     (Parse.string -- Parse.string)
     >> (fn (prover, (problem_file_name,proof_file_name)) => fn lthy =>
   let
@@ -1425,9 +1425,6 @@ val _ = Outer_Syntax.local_theory \<^command_keyword>\<open>check_smt\<close> "p
     val proof_file_path = Path.explode proof_file_name
     val problem_lines = (Bytes.split_lines (Bytes.read problem_file_path));
     val proof_lines = (Bytes.split_lines (Bytes.read proof_file_path));
-    (*TODO: This weird empty line is added at the end. Investigate*)
-    val proof_lines = take (length proof_lines - 1) proof_lines
-    val problem_lines = take (length problem_lines - 1) problem_lines
     (*val _ = @{print} ("problem_lines", problem_lines)
     val _ = @{print} ("proof_lines", proof_lines)*)
 
@@ -1438,7 +1435,7 @@ val _ = Outer_Syntax.local_theory \<^command_keyword>\<open>check_smt\<close> "p
     val _ = SMT_Config.verbose_msg ctxt (pretty "Proof to be checked:") proof_lines
 
     (*Replay proof*)
-    val _ = SMT_Solver.replay_only "" ctxt problem_lines proof_lines
+    val _ = SMT_Solver.replay_only prover ctxt problem_lines proof_lines
     val _ = (SMT_Config.verbose_msg ctxt (K ("Checked Alethe proof")) ())
 in lthy end))
 
@@ -1446,14 +1443,10 @@ in lthy end))
 
 
 
-ML \<open>case @{typ "'a"} of TFree a => @{print} a\<close>
-ML \<open>
-Thm.cterm_of ( @{context})
-  @{term "a :: 'alpha"}\<close>
 declare [[smt_trace=true,smt_cvc_lethe = true]]
 lemma "f x a = f x b \<Longrightarrow> f x (f x a) = f x (f x b)"
   supply  [[smt_cvc_lethe = true]]
-  apply (smt (cvc4))
+  apply (smt (cvc5))
   oops
 ML \<open>
 Thm.cterm_of (Variable.declare_typ (TFree ("'alpha", ["HOL.type"])) @{context})
@@ -1478,7 +1471,7 @@ ML \<open>
 val _ = Outer_Syntax.local_theory \<^command_keyword>\<open>check_smt_dir\<close> "parse a directory with SMTLIB2 format and check proof. <dir>"
     ((Scan.optional (\<^keyword>\<open>(\<close> |-- Parse.string --|
       \<^keyword>\<open>)\<close>)
-     "cvc4" -- Parse.string)
+     "cvc5" -- Parse.string)
     >> (fn (prover, dir_name) => fn lthy =>
   let
     val _ = SMT_Regress.test_all_benchmarks prover dir_name lthy
@@ -1503,16 +1496,35 @@ check_smt "~/Sources/QF_UF/Test1/test.smt2"
 
 
 
-check_smt "~/Sources/QF_UF/20170829-Rodin/smt2080745738819601301.smt2"
-"~/Sources/QF_UF/20170829-Rodin/smt2080745738819601301.alethe"
+declare [[smt_trace=false,show_types=false,smt_debug_verit=false,smt_verbose=false]]
+check_smt ("cvc5") "~/Documents/repos/SMTLIB/QF_UF/20170829-Rodin/smt2080745738819601301.smt2"
+"~/Documents/repos/SMTLIB/QF_UF/20170829-Rodin/smt2080745738819601301.smt2.alethe"
+thm Builtin_Rewrites.bool_double_neg_elim
 
+declare [[smt_trace=false,smt_timeout=5000000]]
+check_smt "~/Documents/repos/SMTLIB/UFLIA/boogie-unsat/AdvancedTypes_AdvancedTypes.Advanced2_SubLessType_notnull-orderStrength_1.smt2"
+  "~/Documents/repos/SMTLIB/UFLIA/boogie-unsat/AdvancedTypes_AdvancedTypes.Advanced2_SubLessType_notnull-orderStrength_1.alethe"
+
+lemma
+"(\<forall>pc::int.
+        pc \<noteq> nullObject \<and>
+        (select2 Heap pc allocated = Smt_true) = True \<and>
+        select2 Heap pc ownerRef = select2 Heap slt_in ownerRef \<and>
+        select2 Heap pc ownerFrame = select2 Heap slt_in ownerFrame \<longrightarrow>
+        select2 Heap pc inv = typeof pc \<and> select2 Heap pc localinv = typeof pc) =
+    (\<forall>pc::int.
+        nullObject \<noteq> pc \<and>
+        Smt_true = select2 Heap pc allocated \<and>
+        select2 Heap slt_in ownerRef = select2 Heap pc ownerRef \<and>
+        select2 Heap slt_in ownerFrame = select2 Heap pc ownerFrame \<longrightarrow>
+        typeof pc = select2 Heap pc inv \<and> typeof pc = select2 Heap pc localinv)"
+  apply force
+
+
+(*
+check_smt_dir "~/Documents/repos/SMTLIB/QF_UF/2018-Goel-hwbench_unsat/"
+*)
 (*check_smt_dir "~/Sources/QF_UF/2018-Goel-hwbench/"
 check_smt_dir "~/Sources/QF_UF/20170829-Rodin/"
 *)
-value "(a::int set) - b"
-
-
-value "[1,(2::nat)]!1"
-
-
 end

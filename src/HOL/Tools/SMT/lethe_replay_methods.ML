@@ -48,7 +48,7 @@ sig
      Eq_Simplify | ITE_Simplify | Sum_Simplify | Prod_Simplify | All_Simplify |
      Qnt_Simplify | Not_Not | Tautological_Clause | Duplicate_Literals |
      (*Unsupported rule*)
-     Unsupported |
+     Unsupported | Hole |
      (*For compression*)
      Theory_Resolution2 |
      (*Extended rules*)
@@ -241,7 +241,7 @@ datatype verit_rule =
    Eq_Simplify | ITE_Simplify | Sum_Simplify | Prod_Simplify | All_Simplify |
    Qnt_Simplify | Not_Not | Tautological_Clause | Duplicate_Literals |
    (*Unsupported rule*)
-   Unsupported |
+   Unsupported | Hole |
    (*For compression*)
    Theory_Resolution2 |
    (*Extended rules*)
@@ -1271,20 +1271,18 @@ let
 val _ = @{print}("rewrite_theories",rewrite_theories)*)
 
 (*This is completely WTF and has no change to work even remotely*)
-val is_BV = Named_Theorems.exists ctxt ("BV_Rewrites."^rewrite_name) (*have exist already give out the thm list? I don't want to change named_theorem so much*)
-val is_Bool = Named_Theorems.exists ctxt ("Boolean_Rewrites."^rewrite_name)
-val is_Arith = Named_Theorems.exists ctxt ("Arith_Rewrites."^rewrite_name)
-val is_String = Named_Theorems.exists ctxt ("String_Rewrites."^rewrite_name)
+fun is_BV rewrite_name = Named_Theorems.exists ctxt ("BV_Rewrites."^rewrite_name) (*have exist already give out the thm list? I don't want to change named_theorem so much*)
+fun is_Bool rewrite_name = Named_Theorems.exists ctxt ("Boolean_Rewrites."^rewrite_name)
+fun is_Arith rewrite_name = Named_Theorems.exists ctxt ("Arith_Rewrites."^rewrite_name)
+fun is_String rewrite_name = Named_Theorems.exists ctxt ("String_Rewrites."^rewrite_name)
 
  fun rewrite_lemma rewrite_name =
-       (*The Hell?*)
        if rewrite_name = "bool_double_not_elim" then nth (Named_Theorems.get ctxt ("Boolean_Rewrites.rewrite_"^rewrite_name)) 0
-       else if is_BV then nth (Named_Theorems.get ctxt ("BV_Rewrites."^rewrite_name)) 0
-       else if is_Bool then nth (Named_Theorems.get ctxt ("Boolean_Rewrites."^rewrite_name)) 0
-       else if is_Arith then nth (Named_Theorems.get ctxt ("Arith_Rewrites."^rewrite_name)) 0
-       else if is_String then nth (Named_Theorems.get ctxt ("String_Rewrites."^rewrite_name)) 0
+       else if is_BV rewrite_name then nth (Named_Theorems.get ctxt ("BV_Rewrites."^rewrite_name)) 0
+       else if is_Bool rewrite_name then nth (Named_Theorems.get ctxt ("Boolean_Rewrites."^rewrite_name)) 0
+       else if is_Arith rewrite_name then nth (Named_Theorems.get ctxt ("Arith_Rewrites."^rewrite_name)) 0
+       else if is_String rewrite_name then nth (Named_Theorems.get ctxt ("String_Rewrites."^rewrite_name)) 0
        else nth (Named_Theorems.get ctxt ("Builtin_Rewrites."^rewrite_name)) 0
-
  fun rewrite_lemma_inst rewrite_name [t]  =
     (Drule.infer_instantiate' ctxt (map (SOME o Thm.cterm_of ctxt) [t]) (rewrite_lemma rewrite_name)) |
  rewrite_lemma_inst rewrite_name (t :: ts) =
@@ -1311,7 +1309,7 @@ fun test4 thm = Seq.list_of ((NO_CONTEXT_TACTIC ctxt
 [(rewrite_lemma_inst rewrite_name (rev args))])) thm)
 
 in
- (@{print} ("rewrite_name with initialization given", rewrite_name);
+ ((*@{print} ("rewrite_name with initialization given", rewrite_name);*)
    SMT_Replay_Methods.prove ctxt t (fn a =>
        (*K (print_tac ctxt ("all-simplify at the beginning "))*
        THEN'*)  Method.insert_tac ctxt
@@ -1319,8 +1317,6 @@ in
        (*THEN' (Method.insert_tac ctxt test2)*)
        (*THEN' K (HEADGOAL (EqSubst.eqsubst_tac ctxt [1] test3))*)
       (*THEN' K (HEADGOAL (EqSubst.eqsubst_tac ctxt [1] test4))*)
-(*testm*)
-      THEN' K (print_tac ctxt ("all-simplify after adding initialized lemma"))
       (*THEN' TRY' (Method.assm_tac ctxt)*)
       THEN' TRY' (simplify_tac ctxt [@{lemma \<open>A = B ==> A = B\<close> by blast}])
       THEN' TRY' (resolve_tac ctxt [@{thm refl}])
@@ -1330,11 +1326,10 @@ in
 ))
 end
 
-fun get_tac [Free (rewrite_name, _)] ctxt t =
+fun get_tac (Free (rewrite_name, _) :: args) ctxt t =
    if rewrite_name = "evaluate" then (@{print} "Found evaluate, try to simplify"; try_simp ctxt t)
-    else dsl_tac_initialize rewrite_name [] ctxt t |
- get_tac (Free (rewrite_name, _)::initializations) ctxt t = dsl_tac_initialize rewrite_name initializations ctxt t |
- get_tac _ ctxt t = (@{print} "No dsl rule found, try to simplify"; try_simp ctxt t)
+    else dsl_tac_initialize rewrite_name args ctxt t |
+ get_tac x ctxt t = (@{print} "No dsl rule found, try to simplify"; @{print} x; try_simp ctxt t)
 
 in 
   fun all_simplify ctxt _ args t = (

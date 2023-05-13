@@ -121,6 +121,7 @@ fun cvc4_rule_of "bind" = Bind
      else if r = Lethe_Proof.theory_resolution2_rule then Theory_Resolution2
      else if r = Lethe_Proof.th_resolution_rule then Theory_Resolution
      else if r = Lethe_Proof.equiv_pos2_rule then Equiv_pos2
+     else if r = Lethe_Proof.hole orelse r = "undefined" then Hole
      else (@{print} ("Unsupport rule", r); Unsupported)
 
 fun normalized_input ctxt prems t = SMT_Replay_Methods.prove ctxt t (fn _ =>
@@ -138,15 +139,14 @@ fun qnt_simplify ctxt _ t = SMT_Replay_Methods.prove ctxt t (fn _ =>
       K (Clasimp.auto_tac ctxt))
 
 
-fun unsupported_failback ctxt prems t = SMT_Replay_Methods.prove ctxt t (fn _ =>
-let
-    val _ = @{print} "fallback!"
-
-in
-  Method.insert_tac ctxt prems
+fun hole ctxt prems t = SMT_Replay_Methods.prove ctxt t (fn _ =>
+  K (print_tac ctxt "stuff")
+    THEN' Method.insert_tac ctxt prems
     (*TODO: should only be used for lambda encoding*)
+THEN' K (print_tac ctxt "stuff")
     THEN' Clasimp.force_tac ctxt
-end)
+THEN' K (print_tac ctxt "stuff")
+)
 
 (*
 Example:
@@ -265,7 +265,9 @@ fun choose And = ignore_args and_rule
   | choose BV_Bitblast_Step_Bvequal = ignore_args bv_bitblast_step_bvequal
   | choose BV_Bitblast_Step_Concat = ignore_args bv_bitblast_step_concat
   | choose Tmp_Quantifier_Simplify = ignore_args qnt_simplify
-  | choose r = ignore_args unsupported_failback
+  | choose Hole = ignore_args hole
+  | choose r = ignore_args hole
+(*unsupported (string_of_verit_rule r)*)
 
 type verit_method = Proof.context -> thm list -> term -> thm
 type abs_context = int * term Termtab.table

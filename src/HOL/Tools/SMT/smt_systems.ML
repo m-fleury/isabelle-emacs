@@ -118,7 +118,7 @@ val cvc4: SMT_Solver.solver_config = {
      ((2, 256, meshN), ["--finite-model-find", "--fmf-inst-engine"])],
   outcome = on_first_line (outcome_of "unsat" "sat" "unknown" "timeout"),
   parse_proof = SOME (K CVC_Proof_Parse.parse_proof),
-  replay = SOME CVC4_Replay.replay }
+  replay = NONE }
 
 val cvc5: SMT_Solver.solver_config = {
   name = "cvc5",
@@ -138,7 +138,7 @@ val cvc5: SMT_Solver.solver_config = {
      ((2, 256, meshN), ["--finite-model-find", "--fmf-inst-engine"])],
   outcome = on_first_line (outcome_of "unsat" "sat" "unknown" "timeout"),
   parse_proof = SOME (K CVC_Proof_Parse.parse_proof),
-  replay = NONE }
+  replay = SOME CVC4_Replay.replay }
 
 end
 

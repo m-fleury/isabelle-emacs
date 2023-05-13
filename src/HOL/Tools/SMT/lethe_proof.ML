@@ -71,6 +71,7 @@ datatype raw_lethe_node = Raw_Lethe_Node of {
   val theory_resolution2_rule: string
   val equiv_pos2_rule: string
   val and_pos_rule: string
+  val hole: string
   val th_resolution_rule: string
 
   val is_skolemization: string -> bool
@@ -173,6 +174,7 @@ val theory_resolution2_rule = "__theory_resolution2" (*arbitrary*)
 val equiv_pos2_rule = "equiv_pos2"
 val th_resolution_rule = "th_resolution"
 val and_pos_rule = "and_pos"
+val hole = "hole"
 
 val is_lethe_def = String.isSuffix lethe_def
 val skolemization_steps = ["sko_forall", "sko_ex"]
