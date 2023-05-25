@@ -53,6 +53,8 @@ sig
      Theory_Resolution2 |
      (*Extended rules*)
      Symm | Not_Symm | Reordering | Tmp_Quantifier_Simplify |
+     (*Extensions*)
+     Other_Rule of string |
      (*Bitvector*)
      (*TODO: Move all bv reconstruction related stuff to separate file*)
      BV_Bitblast_Step_Var | BV_Bitblast_Step_Const |
@@ -169,6 +171,11 @@ sig
   val bv_bitblast_step_bvult: lethe_tac
   val bv_bitblast_step_bvule: lethe_tac
 
+  (*Extension to declare new alethe rules*)
+  val declare_alethe_rule:  string -> lethe_tac -> Context.generic -> Context.generic
+  val rm_alethe_rule: string -> Context.generic -> Context.generic
+  val get_alethe_tac: string -> Context.generic -> lethe_tac option
+
 (*
   val : lethe_tac
 *)
@@ -185,6 +192,8 @@ type lethe_tac_args = Proof.context -> thm list -> term list -> term -> thm
 type lethe_tac = Proof.context -> thm list -> term -> thm
 type lethe_tac2 = Proof.context -> thm list -> term list -> term Symtab.table -> term -> thm
 
+
+(**  Rules **)
 (*Some general comments on the proof format:
   1. Double negations are not always removed. This means for example that the equivalence rules
      cannot assume that the double negations have already been removed. Therefore, we match the
@@ -246,6 +255,8 @@ datatype verit_rule =
    Theory_Resolution2 |
    (*Extended rules*)
    Symm | Not_Symm | Reordering | Tmp_Quantifier_Simplify |
+   (*Extensions*)
+   Other_Rule of string |
    (*Bitvector*)
    BV_Bitblast_Step_Var | BV_Bitblast_Step_Const |
    BV_Bitblast_Step_Bvand | BV_Bitblast_Step_Bvor | BV_Bitblast_Step_Bvxor |
@@ -352,8 +363,59 @@ fun string_of_verit_rule Bind = "Bind"
   | string_of_verit_rule Tautological_Clause = "tautology"
   | string_of_verit_rule Duplicate_Literals = Lethe_Proof.contract_rule
   | string_of_verit_rule Qnt_CNF = "qnt_cnf"
+  | string_of_verit_rule (Other_Rule r) = r
   | string_of_verit_rule r = "Unknown rule: " ^ \<^make_string> r
 
+
+(** Context Extension for Rules **)
+(*We currently do not distinguish between the extension required for each solver. Maybe later
+it will be needed.*)
+type alethe_rule_ext = {rules: (string * lethe_tac) list}
+
+fun mk_alethe_rule_ext rules : alethe_rule_ext = 
+   {rules=rules}
+
+val empty_data = mk_alethe_rule_ext []
+
+fun merge_data ({rules=rules1}:alethe_rule_ext, {rules=rules2}:alethe_rule_ext) : alethe_rule_ext =
+  mk_alethe_rule_ext (AList.merge (op =) (fn _ => true) (rules1, rules2))
+
+structure Data = Generic_Data
+(
+  type T = alethe_rule_ext
+  val empty = empty_data
+  val merge = merge_data
+)
+
+fun declare_alethe_rule rule tac context =
+  let
+    val {rules} = Data.get context
+  in
+    Data.map
+      (K (mk_alethe_rule_ext (AList.update (op =) (rule, tac) rules)))
+      context
+  end
+
+fun rm_alethe_rule stgy context =
+  let
+    val {rules} = Data.get context
+  in
+    Data.map
+      (K (mk_alethe_rule_ext (AList.delete (op =) stgy rules)))
+      context
+  end
+
+
+fun get_alethe_tac rule context =
+  let
+    val {rules} = Data.get context
+  in
+    AList.lookup (op =) rules rule
+  end
+
+
+(** Tactics for Reconstruction **)
+(**)
 fun replay_error ctxt msg rule thms t =
   SMT_Replay_Methods.replay_error ctxt msg (string_of_verit_rule rule) thms t
 
