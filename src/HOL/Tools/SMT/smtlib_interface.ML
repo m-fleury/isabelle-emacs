@@ -60,8 +60,6 @@ val setup_builtins =
     (\<^Const>\<open>uminus \<^Type>\<open>int\<close>\<close>, "-"),
     (\<^Const>\<open>plus \<^Type>\<open>int\<close>\<close>, "+"),
     (\<^Const>\<open>divide \<^Type>\<open>int\<close>\<close>, "/"),
-    (\<^Const>\<open>divide \<^Type>\<open>Real.real\<close>\<close>, "/"), (*TODO Hanna: This should go in a CVC5_Interface file similar to Z3_Interface.*)
-(*Shouldn't this be done elsewhere? Might be the bug Mathias mentioned about not using the Real files correctly*)
     (\<^Const>\<open>minus \<^Type>\<open>int\<close>\<close>, "-")] #>
   SMT_Builtin.add_builtin_fun smtlibC
     (Term.dest_Const \<^Const>\<open>times \<^Type>\<open>int\<close>\<close>, times)

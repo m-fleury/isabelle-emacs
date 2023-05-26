@@ -116,6 +116,8 @@ fun core_type_parser (SMTLIB.Sym "Bool", []) = SOME \<^typ>\<open>HOL.bool\<clos
   | core_type_parser (SMTLIB.Sym "Int", []) = SOME \<^typ>\<open>Int.int\<close>
   | core_type_parser (SMTLIB.Sym "ListVar", [t1]) = SOME (Type ("Dsl_Nary_Ops.cvc_ListVar",[t1]))
   | core_type_parser (SMTLIB.Sym "?", []) = SOME dummyT
+(*
+TODO should be an extra parser
   | core_type_parser xs = 
   (case SMT_String.string_type_parser xs of
     SOME x => SOME x |
@@ -123,7 +125,7 @@ fun core_type_parser (SMTLIB.Sym "Bool", []) = SOME \<^typ>\<open>HOL.bool\<clos
       case SMT_Set.set_type_parser xs of
         SOME y => SOME y |
         NONE => SMT_Array.array_type_parser xs)
-
+*)
 
 fun mk_unary n t =
   let val T = fastype_of t
@@ -186,11 +188,12 @@ fun core_term_parser (SMTLIB.Sym "true", _) = SOME \<^Const>\<open>True\<close>
           val _ = @{print} ("Type of t2", T2)
           in () end
 
-        val (t1',t2',T3) = if T1 = \<^typ>\<open>Int.int\<close> andalso T2 = \<^typ>\<open>Real.real\<close>
+(*TODO FIXME*)
+        val (t1',t2',T3) = (*if T1 = \<^typ>\<open>Int.int\<close> andalso T2 = \<^typ>\<open>Real.real\<close>
                            then (Const ( \<^const_name>\<open>of_int\<close>, T1 --> T2)  $ t1,t2, T2)
                            else (if T1 = \<^typ>\<open>Real.real\<close> andalso T2 = \<^typ>\<open>Int.int\<close>
                                 then (t1, Const ( \<^const_name>\<open>of_int\<close>, T2 --> T1)  $ t2,T1)
-                                else (t1,t2,T1))
+                                else*) (t1,t2,T1)
      in
        SOME ( Const (\<^const_name>\<open>HOL.eq\<close>, T3 --> T3 --> \<^typ>\<open>HOL.bool\<close>) $ t1' $ t2')
      end
@@ -214,11 +217,12 @@ fun core_term_parser (SMTLIB.Sym "true", _) = SOME \<^Const>\<open>True\<close>
       let
          val T1 = fastype_of t1
          val T2 = fastype_of t2
-         val (t1',t2',T3) = if T1 = \<^typ>\<open>Int.int\<close> andalso T2 = \<^typ>\<open>Real.real\<close>
+(*TODO FIXME*)
+         val (t1',t2',T3) = (*if T1 = \<^typ>\<open>Int.int\<close> andalso T2 = \<^typ>\<open>Real.real\<close>
                             then (Const ( \<^const_name>\<open>of_int\<close>, T1 --> T2)  $ t1,t2, T2)
                             else (if T1 = \<^typ>\<open>Real.real\<close> andalso T2 = \<^typ>\<open>Int.int\<close>
                                  then (t1, Const ( \<^const_name>\<open>of_int\<close>, T2 --> T1)  $ t2,T1)
-                                 else (t1,t2,T1))
+                                 else*) (t1,t2,T1)
       in
       (*SOME ( Const (\<^const_name>\<open>Groups.times\<close>, [T3, T3] ---> TVar (("?a", serial ()),  \<^sort>\<open>ab_semigroup_mult\<close> )) $ t1' $ t2')
       *)
@@ -248,7 +252,9 @@ use that. Otherwise use ?a from the beginning?*)
       (*$ (HOLogic.mk_list (TVar (("?a", serial ()), [])) ts))*)
       $ (HOLogic.mk_list \<^typ>\<open>HOL.bool\<close> ts))
   | core_term_parser (SMTLIB.Sym "emptyString", []) = SOME (Free ("''''", \<^typ>\<open>String.string\<close>))
- | core_term_parser xs =
+ | core_term_parser xs = NONE
+(*
+TODO extra parser
  ((*@{print}("In core term parser, not able to parse ", xs);*)
 case SMT_String.string_term_parser xs of
 SOME x => SOME x |
@@ -256,7 +262,7 @@ NONE =>
       case SMT_Set.set_term_parser xs of
         SOME y => SOME y |
         NONE => SMT_Array.array_term_parser xs)
-
+*)
 (* custom type and term parsers *)
 
 type type_parser = SMTLIB.tree * typ list -> typ option

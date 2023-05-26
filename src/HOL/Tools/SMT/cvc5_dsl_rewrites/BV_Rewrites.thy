@@ -1,5 +1,5 @@
 theory BV_Rewrites
-  imports BV_Rewrites_Lemmas
+  imports BV_Rewrites_Lemmas HOL.SMT
 begin
 
 (*TODO: Talk about signed_take_bit*)
