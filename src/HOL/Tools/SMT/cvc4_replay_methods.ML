@@ -42,10 +42,6 @@ fun cvc4_rule_of "bind" = Bind
   | cvc4_rule_of "ac_simp" = AC_Simp
   | cvc4_rule_of "and" = And
   | cvc4_rule_of "not_and" = Not_And
-  | cvc4_rule_of "xor_pos1" = Xor_Pos1
-  | cvc4_rule_of "xor_pos2" = Xor_Pos2
-  | cvc4_rule_of "xor_neg1" = Xor_Neg1
-  | cvc4_rule_of "xor_neg2" = Xor_Neg2
   | cvc4_rule_of "and_pos" = And_Pos
   | cvc4_rule_of "and_neg" = And_Neg
   | cvc4_rule_of "or_pos" = Or_Pos
@@ -98,15 +94,6 @@ fun cvc4_rule_of "bind" = Bind
   | cvc4_rule_of "symm" = Symm
   | cvc4_rule_of "not_symm" = Not_Symm
   | cvc4_rule_of "reordering" = Reordering
-  | cvc4_rule_of "bv_bitblast_step_var" = BV_Bitblast_Step_Var
-  | cvc4_rule_of "bv_bitblast_step_const" = BV_Bitblast_Step_Const
-  | cvc4_rule_of "bv_bitblast_step_bvadd" = BV_Bitblast_Step_Bvadd
-  | cvc4_rule_of "bv_bitblast_step_bvneg" = BV_Bitblast_Step_Bvneg
-  | cvc4_rule_of "bv_bitblast_step_bvult" = BV_Bitblast_Step_Bvult
-  | cvc4_rule_of "bv_bitblast_step_bvule" = BV_Bitblast_Step_Bvule
-  | cvc4_rule_of "bv_bitblast_step_extract" = BV_Bitblast_Step_Extract
-  | cvc4_rule_of "bv_bitblast_step_bvequal" = BV_Bitblast_Step_Bvequal
-  | cvc4_rule_of "bv_bitblast_step_concat" = BV_Bitblast_Step_Concat
   | cvc4_rule_of "unary_minus_simplify" = Minus_Simplify
   | cvc4_rule_of "quantifier_simplify" = Tmp_Quantifier_Simplify (*TODO Remove*)
   | cvc4_rule_of r =
@@ -122,7 +109,7 @@ fun cvc4_rule_of "bind" = Bind
      else if r = Lethe_Proof.th_resolution_rule then Theory_Resolution
      else if r = Lethe_Proof.equiv_pos2_rule then Equiv_pos2
      else if r = Lethe_Proof.hole orelse r = "undefined" then Hole
-     else (@{print} ("Unsupport rule", r); Unsupported)
+     else (@{print} ("maybe unsupported rule", r); Other_Rule r)
 
 fun normalized_input ctxt prems t = SMT_Replay_Methods.prove ctxt t (fn _ =>
 let
@@ -216,10 +203,12 @@ fun choose _ And = ignore_args and_rule
   | choose _ NLA_Generic = ignore_args SMT_Replay_Methods.arith_th_lemma_wo_shallow
   | choose _ Normalized_Input = ignore_args normalized_input
   | choose _ Not_And = ignore_args not_and_rule
+(*
   | choose _ Xor_Pos1 = ignore_args xor_pos1
   | choose _ Xor_Pos2 = ignore_args xor_pos2
   | choose _ Xor_Neg1 = ignore_args xor_neg1
   | choose _ Xor_Neg2 = ignore_args xor_neg2
+*)
   | choose _ Not_Equiv1 = ignore_args not_equiv1
   | choose _ Not_Equiv2 = ignore_args not_equiv2
   | choose _ Not_Implies1 = ignore_args not_implies1
@@ -235,7 +224,9 @@ fun choose _ And = ignore_args and_rule
   | choose _ Or_Simplify = ignore_args rewrite_or_simplify
   | choose _ Theory_Resolution2 = ignore_args theory_resolution2
   | choose _ Prod_Simplify = ignore_args prod_simplify
+(*
   | choose _ All_Simplify = ignore_insts all_simplify
+*)
   | choose _ Qnt_Join = ignore_args qnt_join
   | choose _ Qnt_Rm_Unused = ignore_args qnt_rm_unused
   | choose _ Onepoint = ignore_args onepoint
@@ -255,6 +246,7 @@ fun choose _ And = ignore_args and_rule
   | choose _ Symm = ignore_args symm
   | choose _ Not_Symm = ignore_args not_symm
   | choose _ Reordering = ignore_args reordering
+(*
   | choose _ BV_Bitblast_Step_Var = ignore_args bv_bitblast_step_var
   | choose _ BV_Bitblast_Step_Const = ignore_args bv_bitblast_step_const
   | choose _ BV_Bitblast_Step_Bvadd = ignore_args bv_bitblast_step_bvadd
@@ -264,10 +256,11 @@ fun choose _ And = ignore_args and_rule
   | choose _ BV_Bitblast_Step_Extract = ignore_args bv_bitblast_step_extract
   | choose _ BV_Bitblast_Step_Bvequal = ignore_args bv_bitblast_step_bvequal
   | choose _ BV_Bitblast_Step_Concat = ignore_args bv_bitblast_step_concat
+*)
   | choose _ Tmp_Quantifier_Simplify = ignore_args qnt_simplify
   | choose ctxt (x as Other_Rule r) = 
     (case get_alethe_tac r ctxt of 
-      None => unsupported (string_of_verit_rule x)
+      NONE => unsupported (string_of_verit_rule x)
     | SOME a => ignore_args a)
   | choose _ Hole = ignore_args hole
   | choose _ r = ignore_args hole

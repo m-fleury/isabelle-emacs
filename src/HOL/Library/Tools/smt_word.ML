@@ -203,7 +203,7 @@ fun mk_extract i j u =
     val T = fastype_of u
     val TU = i - j + 1
           |> Word_Lib.mk_wordT
-  in Const (\<^const_name>\<open>SMT.smt_extract\<close>, @{typ nat} --> @{typ nat} --> T --> TU) $ J $ I $ u end;
+  in Const (\<^const_name>\<open>SMT_Word.smt_extract\<close>, @{typ nat} --> @{typ nat} --> T --> TU) $ J $ I $ u end;
 
 fun mk_zero_extend i u =
   let
@@ -314,7 +314,7 @@ fun bv_term_parser (SMTLIB.Sym bv, []) =
 
        val t1' = if T1 = \<^typ>\<open>Int.int\<close> then Const ( \<^const_name>\<open>nat\<close>, T1 -->  \<^typ>\<open>Nat.nat\<close>) $ t1 else t1
        val t2' = if T2 = \<^typ>\<open>Int.int\<close> then Const ( \<^const_name>\<open>nat\<close>, T2 -->  \<^typ>\<open>Nat.nat\<close>) $ t2 else t2
-    in SOME (Const (\<^const_name>\<open>SMT.smt_extract\<close>, @{typ nat} --> @{typ nat} --> dummyT --> dummyT) $ t1' $ t2' $ t3)
+    in SOME (Const (\<^const_name>\<open>SMT_Word.smt_extract\<close>, @{typ nat} --> @{typ nat} --> dummyT --> dummyT) $ t1' $ t2' $ t3)
     end
 
   | bv_term_parser (SMTLIB.Sym "bvnand", [t1, t2]) =
@@ -332,7 +332,7 @@ fun bv_term_parser (SMTLIB.Sym bv, []) =
          $ t1' $ t2'))
      end
   | bv_term_parser (SMTLIB.Sym "int.ispow2", [t1]) =
-      SOME (Const (\<^const_name>\<open>SMT.is_pow2\<close>,\<^typ>\<open>Int.int\<close> --> \<^typ>\<open>bool\<close>) $ t1)
+      SOME (Const (\<^const_name>\<open>SMT_Word.is_pow2\<close>,\<^typ>\<open>Int.int\<close> --> \<^typ>\<open>bool\<close>) $ t1)
   | bv_term_parser (SMTLIB.Sym "bvugt", [t1,t2]) =
       SOME (HOLogic.mk_binrel \<^const_name>\<open>Orderings.less\<close> (t2, t1))
   | bv_term_parser (SMTLIB.Sym "bvuge", [t1,t2]) =
@@ -372,7 +372,7 @@ fun bv_term_parser (SMTLIB.Sym bv, []) =
     let
       val T2 = fastype_of t2
     in
-      SOME (Const (\<^const_name>\<open>SMT.smt_repeat\<close>,\<^typ>\<open>Nat.nat\<close>--> T2 --> dummyT) $ (Const (\<^const_name>\<open>nat\<close>, \<^typ>\<open>Int.int\<close> --> \<^typ>\<open>Nat.nat\<close>) $ t1) $ t2)
+      SOME (Const (\<^const_name>\<open>SMT_Word.smt_repeat\<close>,\<^typ>\<open>Nat.nat\<close>--> T2 --> dummyT) $ (Const (\<^const_name>\<open>nat\<close>, \<^typ>\<open>Int.int\<close> --> \<^typ>\<open>Nat.nat\<close>) $ t1) $ t2)
     end
   | bv_term_parser (SMTLIB.Sym "rotate_left", [t1, t2]) =
     let

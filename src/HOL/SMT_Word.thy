@@ -1,62 +1,29 @@
 theory SMT_Word
-  imports SMT "HOL-Library.Word" "HOL.Real" "Tools/SMT/cvc5_dsl_rewrites/Rare_Interface"
+  imports SMT "HOL-Library.Word" "HOL.Real" (*"Tools/SMT/cvc5_dsl_rewrites/Rare_Interface"*)
 "HOL-Library.Sublist" "HOL-Library.Log_Nat" "Tools/SMT/cvc5_dsl_rewrites/Boolean_Rewrites"
+"Tools/SMT/cvc5_dsl_rewrites/Builtin_Rewrites"
+  keywords "parse_rare_file" "parse_rare" :: diag
 begin
+declare  [[smt_cvc_lethe = true]]
+check_smt_dir "~/Documents/repos/SMTLIB/QF_UF/2018-Goel-hwbench_unsat/"
+check_smt ("cvc5") "~/Documents/repos/SMTLIB/QF_UF/2018-Goel-hwbench_unsat/QF_UF_Heap_ab_br_max.smt2"
+  "~/Documents/repos/SMTLIB/QF_UF/2018-Goel-hwbench_unsat/QF_UF_Heap_ab_br_max.alethe"
 
+thm Builtin_Rewrites.bool_double_neg_elim
+ML \<open>
 
-subsection \<open>Setup for SMT\<close>
-
-ML_file \<open>Tools/SMT/smt_real.ML\<close>
-ML_file \<open>Tools/SMT/SMT_real.ML\<close>
-
-lemma [z3_rule]:
-  "0 + x = x"
-  "x + 0 = x"
-  "0 * x = 0"
-  "1 * x = x"
-  "-x = -1 * x"
-  "x + y = y + x"
-  for x y :: real
+\<close>
+lemma cvc_ListOp_neutral_bv_and [cvc_ListOp_neutral]: "cvc_isListOp (ListOp (semiring_bit_operations_class.and) (-1::'a::len word))"
   by auto
+lemma [cvc_list_right_transfer_op]:
+  "cvc_list_right (word_cat) y (ListVar xs) = (if xs = [] then y else (word_cat) y (fold (word_cat) (butlast xs) (last xs)))"
+  apply (induction xs)
+   apply (simp add: cvc_list_right_def)
+  by (metis (no_types, opaque_lifting) Dsl_Nary_Ops.cvc_nary_op_fold_Cons Dsl_Nary_Ops.cvc_nary_op_fold_Nil butlast.simps(2) cvc_bin_op2.simps cvc_list_right_def fold_simps(1) fold_simps(2) last.simps neq_Nil_conv word_cat_id)
 
-lemma [smt_arith_multiplication]:
-  fixes A B :: real and p n :: real
-  assumes "A \<le> B" "0 < n" "p > 0"
-  shows "(A / n) * p \<le> (B / n) * p"
-  using assms by (auto simp: field_simps)
-
-lemma [smt_arith_multiplication]:
-  fixes A B :: real and p n :: real
-  assumes "A < B" "0 < n" "p > 0"
-  shows "(A / n) * p < (B / n) * p"
-  using assms by (auto simp: field_simps)
-
-lemma [smt_arith_multiplication]:
-  fixes A B :: real and p n :: int
-  assumes "A \<le> B" "0 < n" "p > 0"
-  shows "(A / n) * p \<le> (B / n) * p"
-  using assms by (auto simp: field_simps)
-
-lemma [smt_arith_multiplication]:
-  fixes A B :: real and p n :: int
-  assumes "A < B" "0 < n" "p > 0"
-  shows "(A / n) * p < (B / n) * p"
-  using assms by (auto simp: field_simps)
-
-lemmas [smt_arith_multiplication] =
-  verit_le_mono_div[THEN mult_left_mono, unfolded int_distrib, of _ _ \<open>nat (floor (_ :: real))\<close>  \<open>nat (floor (_ :: real))\<close>]
-  div_le_mono[THEN mult_left_mono, unfolded int_distrib, of _ _ \<open>nat (floor (_ :: real))\<close>  \<open>nat (floor (_ :: real))\<close>]
-  verit_le_mono_div_int[THEN mult_left_mono, unfolded int_distrib, of _ _ \<open>floor (_ :: real)\<close>  \<open>floor (_ :: real)\<close>]
-  zdiv_mono1[THEN mult_left_mono, unfolded int_distrib, of _ _ \<open>floor (_ :: real)\<close>  \<open>floor (_ :: real)\<close>]
-  arg_cong[of _ _ \<open>\<lambda>a :: real. a / real (n::nat) * real (p::nat)\<close> for n p :: nat, THEN sym]
-  arg_cong[of _ _ \<open>\<lambda>a :: real. a / real_of_int n * real_of_int p\<close> for n p :: int, THEN sym]
-  arg_cong[of _ _ \<open>\<lambda>a :: real. a / n * p\<close> for n p :: real, THEN sym]
-
-lemmas [smt_arith_simplify] =
-   floor_one floor_numeral div_by_1 times_divide_eq_right
-   nonzero_mult_div_cancel_left division_ring_divide_zero div_0
-  divide_minus_left zero_less_divide_iff
-
+lemma [cvc_list_right_transfer_op]:
+  "cvc_list_right (semiring_bit_operations_class.and) y (ListVar xs) = (semiring_bit_operations_class.and) y (foldr (semiring_bit_operations_class.and) xs (-1::'a::len word))"
+  by (simp add: cvc_list_right_transfer smtlib_str_concat_def)
 
 
 subsection \<open>Tool support\<close>
@@ -170,8 +137,10 @@ definition smt_srem :: "'a::len word \<Rightarrow> 'a::len word \<Rightarrow> 'a
 end
 
 
+ML_file \<open>Tools/SMT/lethe_replay_bv_methods.ML\<close>
 ML_file \<open>~~/src/HOL/Library/Tools/smt_word.ML\<close> (*TODO: Mathias*)
 
+ML \<open>Lethe_Replay_Methods.print_alethe_tac (Context.Proof @{context})\<close>
 ML \<open>
 local
 
@@ -274,6 +243,7 @@ declare [[show_types=true]]
 declare [[cvc4_options = "--proof-format-mode=alethe --produce-proofs --simplification=none --dag-thres=0 --lang=smt2 --full-saturate-quant"]]
 
 declare [[smt_nat_as_int_bv=true,smt_nat_as_int]]
+
 
 (*
 definition bound :: nat where
@@ -424,38 +394,6 @@ ML \<open>
     "cvc4"
 )
 \<close>
-ML \<open>
-
-(*Call replay from SMT_Solver and add replay_data on your own*)
-val _ = Outer_Syntax.local_theory \<^command_keyword>\<open>check_smt\<close> "parse a file in SMTLIB2 format and check proof. <problem_file,proof_file>"
-    (Scan.optional (\<^keyword>\<open>(\<close> |-- Parse.string --|
-      \<^keyword>\<open>)\<close>)
-     "cvc5" --
-    (Parse.string -- Parse.string)
-    >> (fn (prover, (problem_file_name,proof_file_name)) => fn lthy =>
-  let
-    (*Get problem and proof file*)
-    val ctxt = Local_Theory.target_of lthy
-    val problem_file_path = Path.explode problem_file_name
-    val proof_file_path = Path.explode proof_file_name
-    val problem_lines = (Bytes.split_lines (Bytes.read problem_file_path));
-    val proof_lines = (Bytes.split_lines (Bytes.read proof_file_path));
-    (*val _ = @{print} ("problem_lines", problem_lines)
-    val _ = @{print} ("proof_lines", proof_lines)*)
-
-    (*Output information*)
-    fun pretty tag lines = Pretty.string_of (Pretty.big_list tag (map Pretty.str lines))
-    val _ = SMT_Config.verbose_msg ctxt (pretty "Checking Alethe proof...") []
-    val _ = SMT_Config.verbose_msg ctxt (pretty "Problem:") problem_lines
-    val _ = SMT_Config.verbose_msg ctxt (pretty "Proof to be checked:") proof_lines
-
-    (*Replay proof*)
-    val _ = SMT_Solver.replay_only prover ctxt problem_lines proof_lines
-    val _ = (SMT_Config.verbose_msg ctxt (K ("Checked Alethe proof")) ())
-in lthy end))
-
-\<close>
-
 lemmas [arith_poly_norm] =  realrel_def
 
 ML_file \<open>Tools/SMT/SMT_string.ML\<close>
@@ -482,4 +420,10 @@ fold (SMT_Builtin.add_builtin_fun' SMTLIB_Interface.smtlibC) [
     (Term.dest_Const \<^Const>\<open>times \<^Type>\<open>int\<close>\<close>, times)
 end
 \<close>
+
+declare [[smt_trace=false,smt_timeout=5000000,smt_cvc_lethe = true]]
+check_smt "~/Documents/repos/SMTLIB/UFLIA/boogie-unsat/AdvancedTypes_AdvancedTypes.Advanced2_SubLessType_notnull-orderStrength_1.smt2"
+  "~/Documents/repos/SMTLIB/UFLIA/boogie-unsat/AdvancedTypes_AdvancedTypes.Advanced2_SubLessType_notnull-orderStrength_1.alethe"
+
+
 end

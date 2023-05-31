@@ -1,5 +1,5 @@
 theory Dsl_Nary_Ops
-  imports Main Smtlib_String "HOL-Library.Word"
+  imports Smtlib_String
 begin
 
 datatype 'a cvc_ListVar = ListVar "'a list"
@@ -39,8 +39,7 @@ lemma cvc_ListOp_neutral_bv_xor [cvc_ListOp_neutral]: "cvc_isListOp (ListOp (sem
   by simp
 lemma cvc_ListOp_neutral_bv_or [cvc_ListOp_neutral]: "cvc_isListOp (ListOp (semiring_bit_operations_class.or) 0)"
   by simp  
-lemma cvc_ListOp_neutral_bv_and [cvc_ListOp_neutral]: "cvc_isListOp (ListOp (semiring_bit_operations_class.and) (-1::'a::len word))"
-  by auto
+
 
 
 fun cvc_nary_op_fold :: "('a \<Rightarrow> 'a \<Rightarrow> 'a) \<Rightarrow> 'a list \<Rightarrow> 'a" where
@@ -257,16 +256,6 @@ lemma [cvc_list_right_transfer_op]:
 
 lemma [cvc_list_right_transfer_op]:
   "cvc_list_right (semiring_bit_operations_class.or) y (ListVar xs) = (semiring_bit_operations_class.or) y (foldr (semiring_bit_operations_class.or) xs 0)"
-  by (simp add: cvc_list_right_transfer smtlib_str_concat_def)
-
-lemma [cvc_list_right_transfer_op]:
-  "cvc_list_right (word_cat) y (ListVar xs) = (if xs = [] then y else (word_cat) y (fold (word_cat) (butlast xs) (last xs)))"
-  apply (induction xs)
-   apply (simp add: cvc_list_right_def)
-  by (metis (no_types, opaque_lifting) Dsl_Nary_Ops.cvc_nary_op_fold_Cons Dsl_Nary_Ops.cvc_nary_op_fold_Nil butlast.simps(2) cvc_bin_op2.simps cvc_list_right_def fold_simps(1) fold_simps(2) last.simps neq_Nil_conv word_cat_id)
-
-lemma [cvc_list_right_transfer_op]:
-  "cvc_list_right (semiring_bit_operations_class.and) y (ListVar xs) = (semiring_bit_operations_class.and) y (foldr (semiring_bit_operations_class.and) xs (-1::'a::len word))"
   by (simp add: cvc_list_right_transfer smtlib_str_concat_def)
 
 lemma [cvc_list_right_transfer_op]:

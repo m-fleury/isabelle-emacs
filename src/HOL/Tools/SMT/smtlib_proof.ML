@@ -116,6 +116,7 @@ fun core_type_parser (SMTLIB.Sym "Bool", []) = SOME \<^typ>\<open>HOL.bool\<clos
   | core_type_parser (SMTLIB.Sym "Int", []) = SOME \<^typ>\<open>Int.int\<close>
   | core_type_parser (SMTLIB.Sym "ListVar", [t1]) = SOME (Type ("Dsl_Nary_Ops.cvc_ListVar",[t1]))
   | core_type_parser (SMTLIB.Sym "?", []) = SOME dummyT
+  | core_type_parser _ = NONE
 (*
 TODO should be an extra parser
   | core_type_parser xs = 
@@ -245,13 +246,15 @@ fun core_term_parser (SMTLIB.Sym "true", _) = SOME \<^Const>\<open>True\<close>
     in 
       SOME (mk_lassoc'\<^const_name>\<open>HOL.conj\<close> (hd (pairwise ts ts)) (tl (pairwise ts ts)))
     end
-  | core_term_parser (SMTLIB.Sym "cvc5_nary_op", ts) = (*TODO*)
+(*  | core_term_parser (SMTLIB.Sym "cvc5_nary_op", ts) = 
+TODO move to new parser
 (*Plan: If there is some content in ts try to figure out what type it has. If it has no dummy type
 use that. Otherwise use ?a from the beginning?*)
     SOME(Const( \<^const_name>\<open>ListVar\<close> , \<^typ>\<open>HOL.bool list \<Rightarrow>  HOL.bool cvc_ListVar \<close>)
       (*$ (HOLogic.mk_list (TVar (("?a", serial ()), [])) ts))*)
       $ (HOLogic.mk_list \<^typ>\<open>HOL.bool\<close> ts))
   | core_term_parser (SMTLIB.Sym "emptyString", []) = SOME (Free ("''''", \<^typ>\<open>String.string\<close>))
+*)
  | core_term_parser xs = NONE
 (*
 TODO extra parser
@@ -345,7 +348,8 @@ fun type_of cx ty =
   | NONE =>
       (case ty of
         SMTLIB.S (ty' :: tys) => parse_type cx ty' (map (type_of cx) tys)
-      | _ => raise SMTLIB_PARSE ("bad SMT type", ty)))
+      | _ => 
+      (@{print} (ty, cx); raise SMTLIB_PARSE ("bad SMT type", ty))))
 
 fun dest_var cx (SMTLIB.S [SMTLIB.Sym name, ty]) = (name, (desymbolize name, type_of cx ty))
   | dest_var cx (SMTLIB.S [SMTLIB.Sym name, SMTLIB.Sym "ListVar", ty]) (*TODO*)

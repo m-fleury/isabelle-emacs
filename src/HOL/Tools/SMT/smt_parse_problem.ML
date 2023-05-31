@@ -106,7 +106,7 @@ fun add_typ T proper (cx as (names, typs, terms)) =
 fun parse_sort (cs: string list) ({context,typs: typ Symtab.table,terms,ll_defs,rewrite_rules,assms}: SMT_Translate.replay_data, assms_nbr)
  =
 let
-    (*val _ = @{print} ("declaration", cs)*)
+  (*val _ = @{print} ("declaration", cs)*)
   val typ = (*This also removes pattern usually but I deleted it here for now*)
     [implode cs]
     |> map single

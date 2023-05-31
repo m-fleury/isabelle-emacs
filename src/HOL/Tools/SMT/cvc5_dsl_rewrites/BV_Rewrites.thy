@@ -519,6 +519,8 @@ lemma [rewrite_bv_sdivo_eliminate]:
 mask_full[where 'a="'b"]
     by (metis bit.compl_zero one_word_def word_size zero_word_def)
 
+declare [[smt_nat_as_int]]
+
   
 
 named_theorems rewrite_bv_smod_eliminate \<open>automatically_generated\<close>

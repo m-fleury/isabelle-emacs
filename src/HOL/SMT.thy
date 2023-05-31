@@ -6,12 +6,12 @@
 section \<open>Bindings to Satisfiability Modulo Theories (SMT) solvers based on SMT-LIB 2\<close>
 
 theory SMT
-  imports Divides Numeral_Simprocs "Tools/SMT/cvc5_dsl_rewrites/Rare_Interface"
+  imports Divides Numeral_Simprocs (*"Tools/SMT/cvc5_dsl_rewrites/Boolean_Rewrites"*)
 (*
 "Boolean_Rewrites" "BV_Rewrites" "String_Rewrites" "Builtin_Rewrites"*)
  (*"HOL-Library.Word" "HOL.Real" "Tools/SMT/cvc5_dsl_rewrites/Rare_Interface"
 "HOL-Library.Sublist" "HOL-Library.Log_Nat" "Tools/SMT/cvc5_dsl_rewrites/Boolean_Rewrites"*)
-  keywords "smt_status" (* "parse_rare_file" "parse_rare" "check_smt"  "check_smt_dir"*) :: diag
+  keywords "smt_status" (* "parse_rare_file" "parse_rare" *) "check_smt_dir"  "check_smt" :: diag
 begin
 
 subsection \<open>A skolemization tactic and proof method\<close>
@@ -685,6 +685,9 @@ named_theorems rbl_xor_temp \<open>xor_def.\<close>
 
 named_theorems all_simplify_temp \<open>Theorems to reconstruct bitvector theorems concerning list function, e.g. take.\<close>
 
+
+
+
 subsection \<open>Setup\<close>
 
 ML_file \<open>Tools/SMT/smt_util.ML\<close>
@@ -992,22 +995,6 @@ hide_const (open) Symb_Nil Symb_Cons trigger pat nopat fun_app z3div z3mod
 
 
 
-
-declare [[smt_trace=true,smt_cvc_lethe = true]]
-lemma "f x a = f x b \<Longrightarrow> f x (f x a) = f x (f x b)"
-  supply  [[smt_cvc_lethe = true]]
-  apply (smt (cvc5))
-  oops
-ML \<open>
-Thm.cterm_of (Variable.declare_typ (TFree ("'alpha", ["HOL.type"])) @{context})
-  @{term "a :: 'alpha"}\<close>
-declare [[smt_trace,show_types=false,smt_debug_verit]]
-check_smt "~/Sources/Benchmark/regress0/uf/NEQ016_size5_reduced2a.smtv1.smt2"
-"~/Sources/Benchmark/regress0/uf/NEQ016_size5_reduced2a.smtv1.alethe"
-
-check_smt "~/Sources/QF_UF/Test1/smt249825283571301584.smt2"
-"~/Sources/QF_UF/Test1/smt249825283571301584.alethe"
-
 ML_file \<open>Tools/SMT/smtlib_regress.ML\<close>
 
 ML \<open>
@@ -1032,6 +1019,58 @@ in lthy end))
 
 declare[[smt_trace=false]]
 declare[[smt_debug_verit=false]]
+
+
+ML \<open>
+(*Call replay from SMT_Solver and add replay_data on your own*)
+val _ = Outer_Syntax.local_theory \<^command_keyword>\<open>check_smt\<close> "parse a file in SMTLIB2 format and check proof. <problem_file,proof_file>"
+    (Scan.optional (\<^keyword>\<open>(\<close> |-- Parse.string --|
+      \<^keyword>\<open>)\<close>)
+     "cvc5" --
+    (Parse.string -- Parse.string)
+    >> (fn (prover, (problem_file_name,proof_file_name)) => fn lthy =>
+  let
+    (*Get problem and proof file*)
+    val ctxt = Local_Theory.target_of lthy
+    val problem_file_path = Path.explode problem_file_name
+    val proof_file_path = Path.explode proof_file_name
+    val problem_lines = (Bytes.split_lines (Bytes.read problem_file_path));
+    val proof_lines = (Bytes.split_lines (Bytes.read proof_file_path));
+    (*val _ = @{print} ("problem_lines", problem_lines)
+    val _ = @{print} ("proof_lines", proof_lines)*)
+
+    (*Output information*)
+    fun pretty tag lines = Pretty.string_of (Pretty.big_list tag (map Pretty.str lines))
+
+    val _ = SMT_Config.verbose_msg ctxt (pretty "Checking Alethe proof...") []
+(*
+    val _ = SMT_Config.verbose_msg ctxt (pretty "Problem:") problem_lines
+    val _ = SMT_Config.verbose_msg ctxt (pretty "Proof to be checked:") proof_lines
+*)
+    (*Replay proof*)
+    val _ = SMT_Solver.replay_only prover ctxt problem_lines proof_lines
+    val _ = (SMT_Config.verbose_msg ctxt (K ("Checked Alethe proof")) ())
+in lthy end))
+\<close>
+
+
+(*
+
+declare [[smt_trace=true,smt_cvc_lethe = true]]
+lemma "f x a = f x b \<Longrightarrow> f x (f x a) = f x (f x b)"
+  supply  [[smt_cvc_lethe = true]]
+  apply (smt (cvc5))
+  oops
+ML \<open>
+Thm.cterm_of (Variable.declare_typ (TFree ("'alpha", ["HOL.type"])) @{context})
+  @{term "a :: 'alpha"}\<close>
+declare [[smt_trace,show_types=false,smt_debug_verit]]
+check_smt "~/Sources/Benchmark/regress0/uf/NEQ016_size5_reduced2a.smtv1.smt2"
+"~/Sources/Benchmark/regress0/uf/NEQ016_size5_reduced2a.smtv1.alethe"
+
+check_smt "~/Sources/QF_UF/Test1/smt249825283571301584.smt2"
+"~/Sources/QF_UF/Test1/smt249825283571301584.alethe"
+
 (*check_smt_dir "~/Sources/Benchmark/regress0/uf/"*)
 
 check_smt "~/Sources/Benchmark/regress0/uf/SEQ032_size2.smtv1.smt2"
@@ -1062,5 +1101,13 @@ check_smt_dir "~/Documents/repos/SMTLIB/QF_UF/2018-Goel-hwbench_unsat/"
 *)
 (*check_smt_dir "~/Sources/QF_UF/2018-Goel-hwbench/"
 check_smt_dir "~/Sources/QF_UF/20170829-Rodin/"
+*)
+
+*)
+
+(*
+declare  [[smt_cvc_lethe = true,smt_trace=false]]
+check_smt ("cvc5") "~/Documents/repos/SMTLIB/QF_UF/2018-Goel-hwbench_unsat/QF_UF_Heap_ab_br_max.smt2"
+  "~/Documents/repos/SMTLIB/QF_UF/2018-Goel-hwbench_unsat/QF_UF_Heap_ab_br_max.alethe"
 *)
 end
