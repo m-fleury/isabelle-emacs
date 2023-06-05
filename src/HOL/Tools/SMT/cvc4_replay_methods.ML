@@ -86,7 +86,7 @@ fun cvc4_rule_of "bind" = Bind
   | cvc4_rule_of "minus_simplify" = Minus_Simplify
   | cvc4_rule_of "sum_simplify" = Sum_Simplify
   | cvc4_rule_of "prod_simplify" = Prod_Simplify
-  | cvc4_rule_of "all_simplify" = All_Simplify
+  | cvc4_rule_of "all_simplify" = Other_Rule "all_simplify" (*CVC4 has a more complicate all_simplify so new rule*)
   | cvc4_rule_of "comp_simplify" = Comp_Simplify
   | cvc4_rule_of "qnt_simplify" = Qnt_Simplify
   | cvc4_rule_of "tautology" = Tautological_Clause
@@ -151,9 +151,9 @@ fun trans ctxt prems t =
 fun unsupported rule ctxt thms _ _ _ = SMT_Replay_Methods.replay_error ctxt "Unsupported verit rule"
   rule thms
 
-fun ignore_args f ctxt thm _ _ _ t = f ctxt thm t
+fun ignore_args  f ctxt thm _    _     _ t = f ctxt thm t
 fun ignore_decls f ctxt thm args insts _ t = f ctxt thm args insts t
-fun ignore_insts f ctxt thm args _ _ t = f ctxt thm args t
+fun ignore_insts f ctxt thm args  _    _ t = f ctxt thm args t
 
 fun choose _ And = ignore_args and_rule
   | choose _ And_Neg = ignore_args and_neg_rule
@@ -224,9 +224,6 @@ fun choose _ And = ignore_args and_rule
   | choose _ Or_Simplify = ignore_args rewrite_or_simplify
   | choose _ Theory_Resolution2 = ignore_args theory_resolution2
   | choose _ Prod_Simplify = ignore_args prod_simplify
-(*
-  | choose _ All_Simplify = ignore_insts all_simplify
-*)
   | choose _ Qnt_Join = ignore_args qnt_join
   | choose _ Qnt_Rm_Unused = ignore_args qnt_rm_unused
   | choose _ Onepoint = ignore_args onepoint
@@ -261,9 +258,9 @@ fun choose _ And = ignore_args and_rule
   | choose ctxt (x as Other_Rule r) = 
     (case get_alethe_tac r ctxt of 
       NONE => unsupported (string_of_verit_rule x)
-    | SOME a => ignore_args a)
+    | SOME a => ignore_insts a)
   | choose _ Hole = ignore_args hole
-  | choose _ r = ignore_args hole
+  | choose _ r = (@{print} ("unknown rule", r); ignore_args hole)
 (*unsupported (string_of_verit_rule r)*)
 
 type verit_method = Proof.context -> thm list -> term -> thm

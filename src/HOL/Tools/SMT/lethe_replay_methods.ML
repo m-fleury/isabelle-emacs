@@ -182,9 +182,9 @@ sig
 *)
 
   (*Extension to declare new alethe rules*)
-  val declare_alethe_rule:  string -> lethe_tac -> Context.generic -> Context.generic
+  val declare_alethe_rule:  string -> lethe_tac_args -> Context.generic -> Context.generic
   val rm_alethe_rule: string -> Context.generic -> Context.generic
-  val get_alethe_tac: string -> Context.generic -> lethe_tac option
+  val get_alethe_tac: string -> Context.generic -> lethe_tac_args option
   val print_alethe_tac: Context.generic -> Pretty.T
 
 (*
@@ -387,7 +387,7 @@ fun string_of_verit_rule Bind = "Bind"
 (** Context Extension for Rules **)
 (*We currently do not distinguish between the extension required for each solver. Maybe later
 it will be needed.*)
-type alethe_rule_ext = {rules: (string * lethe_tac) list}
+type alethe_rule_ext = {rules: (string * lethe_tac_args) list}
 
 fun mk_alethe_rule_ext rules : alethe_rule_ext = 
    {rules=rules}
@@ -526,25 +526,11 @@ val extract_quantified_names =
   extract_quantified_names_ba
   #> (op @)
 
-val extract_all_forall_quantified_names =
-  SMT_Replay_Methods.dest_prop
-  #> HOLogic.dest_eq
-  #> fst
-  #> extract_all_forall_quantified_names_q
-
-
 fun extract_all_exists_quantified_names_q (Const(\<^const_name>\<open>HOL.Ex\<close>, _) $ Abs (name, _, t)) =
       name :: (extract_all_exists_quantified_names_q t)
   | extract_all_exists_quantified_names_q (t $ u) =
       extract_all_exists_quantified_names_q t @ extract_all_exists_quantified_names_q u
   | extract_all_exists_quantified_names_q _ = []
-
-val extract_all_exists_quantified_names =
-  SMT_Replay_Methods.dest_prop
-  #> HOLogic.dest_eq
-  #> fst
-  #> extract_all_exists_quantified_names_q
-
 
 fun extract_all_forall_exists_quantified_names_q (Const(\<^const_name>\<open>HOL.Ex\<close>, _) $ Abs (name, _, t)) =
       name :: (extract_all_forall_exists_quantified_names_q t)
@@ -554,23 +540,35 @@ fun extract_all_forall_exists_quantified_names_q (Const(\<^const_name>\<open>HOL
       extract_all_forall_exists_quantified_names_q t @ extract_all_forall_exists_quantified_names_q u
   | extract_all_forall_exists_quantified_names_q _ = []
 
+(*
+This was only observed when checking some proof steps loaded with check_smt and
+it is unclead why some name get a '_'.
+*)
+fun fix_var_name v = 
+  try (unsuffix "_") v
+  |> the_default v
+
 val extract_bind_names =
    HOLogic.dest_eq
-   #> apply2 (fn (Free (name, _)) => name)
+   #> apply2 (fn (Free (name, _)) => fix_var_name name)
 
 fun combine_quant ctxt ((n1, n2) :: bounds) (n1' :: formula) =
     TRY' (if n1 = n1'
      then if n1 <> n2
        then
          resolve_tac ctxt bind_thms
+THEN' K (print_tac ctxt "combine 1")
          THEN' TRY'(resolve_tac ctxt [@{thm refl}])
+THEN' K (print_tac ctxt "combine 10")
          THEN' combine_quant ctxt bounds formula
        else resolve_tac ctxt bind_thms_same_name THEN' combine_quant ctxt bounds formula
+THEN' K (print_tac ctxt "combine same_name else")
      else resolve_tac ctxt @{thms allI} THEN' combine_quant ctxt ((n1, n2) :: bounds) formula)
+THEN' K (print_tac ctxt "combine same_name then")
   | combine_quant _ _ _ = K all_tac
 
 fun bind_quants ctxt args t =
-  combine_quant ctxt (map extract_bind_names args) (extract_quantified_names t)
+  combine_quant ctxt (@{print}(map extract_bind_names args)) (@{print}(extract_quantified_names t))
 
 fun generalize_prems_q [] prems = prems
   | generalize_prems_q (_ :: quants) prems =
@@ -581,6 +579,7 @@ fun generalize_prems t = generalize_prems_q (fst (extract_quantified_names_ba t)
 fun bind ctxt [prems] args t =
   SMT_Replay_Methods.prove ctxt t (fn _ =>
     bind_quants ctxt args t
+THEN' K (print_tac ctxt "post bind")
     THEN' TRY' (SOLVED' (resolve_tac ctxt [generalize_prems t prems]
       THEN_ALL_NEW TRY' (assume_tac ctxt ORELSE' resolve_tac ctxt @{thms refl}))))
  | bind ctxt thms _ t = replay_error ctxt "invalid bind application" Bind thms t
@@ -588,12 +587,12 @@ fun bind ctxt [prems] args t =
 
 (* Congruence/Refl *)
 
-fun cong ctxt thms = try_provers ctxt
+fun cong ctxt thms = let val ctxt = Config.put SMT_Config.trace true ctxt in try_provers ctxt
     (string_of_verit_rule Cong) [
   ("basic", SMT_Replay_Methods.cong_basic ctxt thms),
   ("unfolding then reflexivity", SMT_Replay_Methods.cong_unfolding_trivial ctxt thms),
   ("unfolding then auto", SMT_Replay_Methods.cong_unfolding_first ctxt thms),
-  ("full", SMT_Replay_Methods.cong_full ctxt thms)] thms
+  ("full", SMT_Replay_Methods.cong_full ctxt thms)] thms end
 
 fun refl ctxt thm t =
   (case find_first (fn thm => t = Thm.full_prop_of thm) thm of
@@ -729,9 +728,13 @@ fun skolem_tac extractor thm1 thm2 ctxt thms t  =
       in map (fn v => (v, AList.lookup (op =) thm_names_with_var v)) var_order end
   in
     SMT_Replay_Methods.prove ctxt t (fn _ =>
-      K (unfold_tac ctxt ctxt_eq)
+K (print_tac ctxt "stuff ~1")
+      THEN'      K (unfold_tac ctxt ctxt_eq)
+THEN' K (print_tac ctxt "stuff 1")
       THEN' rewrite_all_skolems thm2 ctxt (ordered_definitions ())
+THEN' K (print_tac ctxt "stuff 10")
       THEN' (eqsubst_all ctxt (map (fn thm => thm RS sym) other))
+THEN' K (print_tac ctxt "stuff 100")
       THEN_ALL_NEW TRY' (resolve_tac ctxt @{thms refl})
       THEN' K (unfold_tac ctxt ctxt_eq)
       THEN' TRY' (partial_simplify_tac ctxt (@{thms eq_commute})))

@@ -1,18 +1,10 @@
 theory SMT_Word
-  imports SMT "HOL-Library.Word" "HOL.Real" (*"Tools/SMT/cvc5_dsl_rewrites/Rare_Interface"*)
-"HOL-Library.Sublist" "HOL-Library.Log_Nat" "Tools/SMT/cvc5_dsl_rewrites/Boolean_Rewrites"
-"Tools/SMT/cvc5_dsl_rewrites/Builtin_Rewrites"
+  imports SMT_CVC "HOL-Library.Word" "HOL.Real" "Tools/SMT/cvc5_dsl_rewrites/Rare_Interface"
+    "HOL-Library.Sublist" "HOL-Library.Log_Nat"
   keywords "parse_rare_file" "parse_rare" :: diag
 begin
 declare  [[smt_cvc_lethe = true]]
-check_smt_dir "~/Documents/repos/SMTLIB/QF_UF/2018-Goel-hwbench_unsat/"
-check_smt ("cvc5") "~/Documents/repos/SMTLIB/QF_UF/2018-Goel-hwbench_unsat/QF_UF_Heap_ab_br_max.smt2"
-  "~/Documents/repos/SMTLIB/QF_UF/2018-Goel-hwbench_unsat/QF_UF_Heap_ab_br_max.alethe"
 
-thm Builtin_Rewrites.bool_double_neg_elim
-ML \<open>
-
-\<close>
 lemma cvc_ListOp_neutral_bv_and [cvc_ListOp_neutral]: "cvc_isListOp (ListOp (semiring_bit_operations_class.and) (-1::'a::len word))"
   by auto
 lemma [cvc_list_right_transfer_op]:
@@ -24,7 +16,6 @@ lemma [cvc_list_right_transfer_op]:
 lemma [cvc_list_right_transfer_op]:
   "cvc_list_right (semiring_bit_operations_class.and) y (ListVar xs) = (semiring_bit_operations_class.and) y (foldr (semiring_bit_operations_class.and) xs (-1::'a::len word))"
   by (simp add: cvc_list_right_transfer smtlib_str_concat_def)
-
 
 subsection \<open>Tool support\<close>
 
@@ -420,10 +411,5 @@ fold (SMT_Builtin.add_builtin_fun' SMTLIB_Interface.smtlibC) [
     (Term.dest_Const \<^Const>\<open>times \<^Type>\<open>int\<close>\<close>, times)
 end
 \<close>
-
-declare [[smt_trace=false,smt_timeout=5000000,smt_cvc_lethe = true]]
-check_smt "~/Documents/repos/SMTLIB/UFLIA/boogie-unsat/AdvancedTypes_AdvancedTypes.Advanced2_SubLessType_notnull-orderStrength_1.smt2"
-  "~/Documents/repos/SMTLIB/UFLIA/boogie-unsat/AdvancedTypes_AdvancedTypes.Advanced2_SubLessType_notnull-orderStrength_1.alethe"
-
 
 end

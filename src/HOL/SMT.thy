@@ -6,12 +6,8 @@
 section \<open>Bindings to Satisfiability Modulo Theories (SMT) solvers based on SMT-LIB 2\<close>
 
 theory SMT
-  imports Divides Numeral_Simprocs (*"Tools/SMT/cvc5_dsl_rewrites/Boolean_Rewrites"*)
-(*
-"Boolean_Rewrites" "BV_Rewrites" "String_Rewrites" "Builtin_Rewrites"*)
- (*"HOL-Library.Word" "HOL.Real" "Tools/SMT/cvc5_dsl_rewrites/Rare_Interface"
-"HOL-Library.Sublist" "HOL-Library.Log_Nat" "Tools/SMT/cvc5_dsl_rewrites/Boolean_Rewrites"*)
-  keywords "smt_status" (* "parse_rare_file" "parse_rare" *) "check_smt_dir"  "check_smt" :: diag
+  imports Divides Numeral_Simprocs
+  keywords "smt_status" "check_smt_dir"  "check_smt" :: diag
 begin
 
 subsection \<open>A skolemization tactic and proof method\<close>

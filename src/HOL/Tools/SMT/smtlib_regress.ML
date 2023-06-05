@@ -13,14 +13,14 @@ fun check_smt prover problem_file_name proof_file_name lthy =
     val ctxt = Local_Theory.target_of lthy
     val problem_file_path = Path.explode problem_file_name
     val proof_file_path = Path.explode proof_file_name
-    (*val _ = @{print}("problem_file_path",problem_file_path)
-    val _ = @{print}("proof_file_path",proof_file_path)*)
+    val _ = @{print}("problem_file_path",problem_file_path)
+    val _ = @{print}("proof_file_path",proof_file_path)
 
     val problem_lines = (Bytes.split_lines (Bytes.read problem_file_path));
     val proof_lines = (Bytes.split_lines (Bytes.read proof_file_path));
-    (*TODO: This weird empty line is added at the end. Investigate*)
+(*    (*TODO: This weird empty line is added at the end. Investigate*)
     val proof_lines = take (length proof_lines - 1) proof_lines
-    val problem_lines = take (length problem_lines - 1) problem_lines
+    val problem_lines = take (length problem_lines - 1) problem_lines*)
     (*Replay proof*)
     val _ = SMT_Solver.replay_only prover ctxt problem_lines proof_lines
 in lthy end
