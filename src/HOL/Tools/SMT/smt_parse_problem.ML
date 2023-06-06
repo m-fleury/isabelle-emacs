@@ -177,6 +177,8 @@ fun read (cs as "("::"a"::"s"::"s"::"e"::"r"::"t"::" "::_) replay_data =
   | read ("("::"s"::"e"::"t"::"-"::"l"::"o"::"g"::"i"::"c" :: _) replay_data = replay_data
   | read ("("::"c"::"h"::"e"::"c"::"k"::"-"::"s"::"a"::"t"::")" :: _) replay_data = replay_data
   | read ("("::"e"::"x"::"i"::"t"::")" :: _) replay_data = replay_data
+  | read ("("::"g"::"e"::"t"::"-"::"p"::"r"::"o"::"o"::"f"::")":: _) replay_data = replay_data
+  | read ("("::"s"::"e"::"t"::"-"::"o"::"p"::"t"::"i"::"o"::"n":: _) replay_data = replay_data
   | read x replay_data  = (warning ("found garbage when parsing SMT problem, ignoring: " ^ @{make_string} x); replay_data)
 
 

@@ -506,6 +506,8 @@ fun collect_skolem_defs (Raw_Lethe_Node {rule, subproof = subproof, args, ...}) 
   (if is_skolemization rule then map (fn id => id ^ lethe_def) (skolems_introduced_by_rule args) else []) @
   flat (map collect_skolem_defs subproof)
 
+val desymbolize = Name.desymbolize (SOME false) o perhaps (try (unprefix "?"))
+
 (*The postprocessing does:
   1. translate the terms to Isabelle syntax, taking care of free variables
   2. remove the ambiguity in the proof terms:
@@ -608,7 +610,7 @@ fun postprocess_proof compress ctxt step cx =
       (*val _ = @{print} ("termified_args",termified_args)*)
 
       val insts = Symtab.empty
-        |> fold (fn (x, t) => fn insts => Symtab.update_new (x, t) insts) termified_args
+        |> fold (fn (x, t) => fn insts => Symtab.update_new (desymbolize x, t) insts) termified_args
         |> Symtab.map (K unsk_and_rewrite)
 
       (* declarations *)

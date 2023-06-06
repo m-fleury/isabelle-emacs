@@ -11,7 +11,7 @@ ML \<open>
 
 declare [[smt_trace=false,smt_timeout=5000000,smt_cvc_lethe = true]]
 check_smt "~/Documents/repos/SMTLIB/UFLIA/boogie-unsat/AdvancedTypes_AdvancedTypes.Advanced2_SubLessType_notnull-orderStrength_1.smt2"
-  "~/Documents/repos/SMTLIB/UFLIA/boogie-unsat/AdvancedTypes_AdvancedTypes.Advanced2_SubLessType_notnull-orderStrength_1.alethe"
+  "~/Documents/repos/SMTLIB/UFLIA/boogie-unsat/AdvancedTypes_AdvancedTypes.Advanced2_SubLessType_notnull-orderStrength_1.alethe2"
 (*
 why is 'T' transformed in 't'?
 SMT: Successfully checked step t176.t8 

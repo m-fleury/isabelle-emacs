@@ -587,12 +587,12 @@ THEN' K (print_tac ctxt "post bind")
 
 (* Congruence/Refl *)
 
-fun cong ctxt thms = let val ctxt = Config.put SMT_Config.trace true ctxt in try_provers ctxt
+fun cong ctxt thms = try_provers ctxt
     (string_of_verit_rule Cong) [
   ("basic", SMT_Replay_Methods.cong_basic ctxt thms),
   ("unfolding then reflexivity", SMT_Replay_Methods.cong_unfolding_trivial ctxt thms),
   ("unfolding then auto", SMT_Replay_Methods.cong_unfolding_first ctxt thms),
-  ("full", SMT_Replay_Methods.cong_full ctxt thms)] thms end
+  ("full", SMT_Replay_Methods.cong_full ctxt thms)] thms
 
 fun refl ctxt thm t =
   (case find_first (fn thm => t = Thm.full_prop_of thm) thm of
@@ -607,6 +607,8 @@ fun refl ctxt thm t =
 local
 fun dropWhile _ [] = []
   | dropWhile f (x :: xs) = if f x then dropWhile f xs else x :: xs
+
+val desymbolize = Name.desymbolize (SOME false) o perhaps (try (unprefix "?"))
 in
 
 fun forall_inst ctxt _ _ insts t =
@@ -617,7 +619,9 @@ fun forall_inst ctxt _ _ insts t =
           val quants = t
             |> SMT_Replay_Methods.dest_prop
             |> extract_forall_quantified_names_q
-          val insts = map (Symtab.lookup insts o fst) (rev quants)
+          val insts =
+            rev quants
+            |> map (Symtab.lookup insts o fst)
             |> dropWhile (curry (op =) NONE)
             |> rev
           fun option_map _ NONE = NONE
@@ -728,13 +732,9 @@ fun skolem_tac extractor thm1 thm2 ctxt thms t  =
       in map (fn v => (v, AList.lookup (op =) thm_names_with_var v)) var_order end
   in
     SMT_Replay_Methods.prove ctxt t (fn _ =>
-K (print_tac ctxt "stuff ~1")
-      THEN'      K (unfold_tac ctxt ctxt_eq)
-THEN' K (print_tac ctxt "stuff 1")
+      K (unfold_tac ctxt ctxt_eq)
       THEN' rewrite_all_skolems thm2 ctxt (ordered_definitions ())
-THEN' K (print_tac ctxt "stuff 10")
       THEN' (eqsubst_all ctxt (map (fn thm => thm RS sym) other))
-THEN' K (print_tac ctxt "stuff 100")
       THEN_ALL_NEW TRY' (resolve_tac ctxt @{thms refl})
       THEN' K (unfold_tac ctxt ctxt_eq)
       THEN' TRY' (partial_simplify_tac ctxt (@{thms eq_commute})))
@@ -811,7 +811,6 @@ let
     val _ = (SMT_Config.verit_msg ctxt) (fn () => \<^print> ("normalized input prems in lethe_replay =",prems))
 in
   Method.insert_tac ctxt prems
-THEN' K (print_tac ctxt "steff")
   THEN' TRY' (K (unfold_tac ctxt @{thms SMT.trigger_def}))
   THEN' TRY' (partial_simplify_tac ctxt @{thms eq_commute})
 end)
