@@ -117,16 +117,7 @@ fun core_type_parser (SMTLIB.Sym "Bool", []) = SOME \<^typ>\<open>HOL.bool\<clos
   | core_type_parser (SMTLIB.Sym "ListVar", [t1]) = SOME (Type ("Dsl_Nary_Ops.cvc_ListVar",[t1]))
   | core_type_parser (SMTLIB.Sym "?", []) = SOME dummyT
   | core_type_parser _ = NONE
-(*
-TODO should be an extra parser
-  | core_type_parser xs = 
-  (case SMT_String.string_type_parser xs of
-    SOME x => SOME x |
-    NONE => 
-      case SMT_Set.set_type_parser xs of
-        SOME y => SOME y |
-        NONE => SMT_Array.array_type_parser xs)
-*)
+
 
 fun mk_unary n t =
   let val T = fastype_of t
@@ -145,9 +136,6 @@ fun mk_rassoc f t ts =
 fun mk_lassoc f t ts = fold (fn u1 => fn u2 => f u2 u1) ts t
 
 fun mk_lassoc' n = mk_lassoc (mk_binary n)
-
-fun mk_lassoc'' n S t
- = mk_lassoc (mk_binary' n (fastype_of t) (TVar (("?a", serial ()), S))) t 
 
 fun mk_binary_pred n S t1 t2 =
   let
@@ -168,10 +156,7 @@ fun core_term_parser (SMTLIB.Sym "true", _) = SOME \<^Const>\<open>True\<close>
   | core_term_parser (SMTLIB.Sym "false", _) = SOME \<^Const>\<open>False\<close>
   | core_term_parser (SMTLIB.Sym "not", [t]) = SOME (HOLogic.mk_not t)
   | core_term_parser (SMTLIB.Sym "and", t :: ts) = SOME (mk_rassoc (curry HOLogic.mk_conj) t ts)
- (*TODO: ASK Mathias and is left_assoc in SMTLIB. Answer: Probably to save parenthesis*)
   | core_term_parser (SMTLIB.Sym "or", t :: ts) = SOME (mk_rassoc (curry HOLogic.mk_disj) t ts)
-(*TODO Hanna: This works (and_pos error still there) but do I want this?*)
-  (*| core_term_parser (SMTLIB.Sym "xor",[t1,t2]) = SOME (HOLogic.mk_not (HOLogic.mk_eq (t1, t2)))*)
   | core_term_parser (SMTLIB.Sym "=>", [t1, t2]) = SOME (HOLogic.mk_imp (t1, t2))
   | core_term_parser (SMTLIB.Sym "implies", [t1, t2]) = SOME (HOLogic.mk_imp (t1, t2))
   | core_term_parser (SMTLIB.Sym "=", [t1, t2]) =
@@ -234,38 +219,12 @@ fun core_term_parser (SMTLIB.Sym "true", _) = SOME \<^Const>\<open>True\<close>
   | core_term_parser (SMTLIB.Sym "div", [t1, t2]) = SOME (mk_binary \<^const_name>\<open>z3div\<close> t1 t2)
   | core_term_parser (SMTLIB.Sym "mod", [t1, t2]) = SOME (mk_binary \<^const_name>\<open>z3mod\<close> t1 t2)
   | core_term_parser (SMTLIB.Sym "<", [t1, t2]) = SOME (mk_less t1 t2)
-(*Is that a good idea with rewrites? HANNA*)
   | core_term_parser (SMTLIB.Sym ">", [t1, t2]) = SOME (mk_less t2 t1)
   | core_term_parser (SMTLIB.Sym "<=", [t1, t2]) = SOME (mk_less_eq t1 t2)
   | core_term_parser (SMTLIB.Sym ">=", [t1, t2]) = SOME (mk_less_eq t2 t1)
-  | core_term_parser (SMTLIB.Sym "distinct", ts)
-    =
-    let
-     fun pairwise [] _ = []
-       | pairwise (t1::tss) (_::uss) = (map (fn t2 => HOLogic.mk_not (HOLogic.mk_binrel \<^const_name>\<open>HOL.eq\<close> (t1,t2))) uss) @ pairwise tss uss
-    in 
-      SOME (mk_lassoc'\<^const_name>\<open>HOL.conj\<close> (hd (pairwise ts ts)) (tl (pairwise ts ts)))
-    end
-(*  | core_term_parser (SMTLIB.Sym "cvc5_nary_op", ts) = 
-TODO move to new parser
-(*Plan: If there is some content in ts try to figure out what type it has. If it has no dummy type
-use that. Otherwise use ?a from the beginning?*)
-    SOME(Const( \<^const_name>\<open>ListVar\<close> , \<^typ>\<open>HOL.bool list \<Rightarrow>  HOL.bool cvc_ListVar \<close>)
-      (*$ (HOLogic.mk_list (TVar (("?a", serial ()), [])) ts))*)
-      $ (HOLogic.mk_list \<^typ>\<open>HOL.bool\<close> ts))
-  | core_term_parser (SMTLIB.Sym "emptyString", []) = SOME (Free ("''''", \<^typ>\<open>String.string\<close>))
-*)
- | core_term_parser xs = NONE
-(*
-TODO extra parser
- ((*@{print}("In core term parser, not able to parse ", xs);*)
-case SMT_String.string_term_parser xs of
-SOME x => SOME x |
-NONE => 
-      case SMT_Set.set_term_parser xs of
-        SOME y => SOME y |
-        NONE => SMT_Array.array_term_parser xs)
-*)
+ | core_term_parser _ = NONE
+
+
 (* custom type and term parsers *)
 
 type type_parser = SMTLIB.tree * typ list -> typ option
@@ -392,15 +351,6 @@ end
 
 and quant q vars body cx =
   let val vs = map (dest_var cx) vars
-      (*val _ = @{print} "In quant"
-      val _ = @{print} ("vs",vs)
-      val _ = @{print} ("(dest_body body)",(dest_body body))
-      val _ = @{print} ("term_of(dest_body body)", (term_of(dest_body body) cx))
-      val _ = @{print} ("cx",cx)
-
-val _ = @{print}("test", cx
-    |> with_bindings (map (apsnd (Term o Free)) vs) (term_of (dest_body body))
-    |>> fold_rev (fn (_, (n, T)) => fn t => q (n, T, t)) vs)*)
   in
     cx
     |> with_bindings (map (apsnd (Term o Free)) vs) (term_of (dest_body body))

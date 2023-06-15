@@ -695,8 +695,6 @@ ML_file \<open>Tools/SMT/smt_normalize.ML\<close>
 ML_file \<open>Tools/SMT/smt_translate.ML\<close>
 ML_file \<open>Tools/SMT/smtlib.ML\<close>
 ML_file \<open>Tools/SMT/smtlib_interface.ML\<close>
-ML_file \<open>Tools/SMT/SMT_set.ML\<close>
-ML_file \<open>Tools/SMT/SMT_array.ML\<close>
 ML_file \<open>Tools/SMT/smtlib_proof.ML\<close>
 ML_file \<open>Tools/SMT/smtlib_isar.ML\<close>
 ML_file \<open>Tools/SMT/z3_proof.ML\<close>
