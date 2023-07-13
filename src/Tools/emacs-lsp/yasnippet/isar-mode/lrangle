@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: langle
+# key: «
+# --
+\<langle>$0\<rangle>
