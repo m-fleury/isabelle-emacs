@@ -75,7 +75,7 @@ A typical example is
    (replace-regexp-in-string
       (regexp-quote \"/mnt/doc/isabelle/afp-2020\")
       \"/home/zmaths/Documents/isabelle/afp-2020\"
-      path nil 'literal)
+      path nil \\='literal)
 
 where the path are replaced by what you need to be
 replaced. Remember that Isabelle canonicalize paths
@@ -91,7 +91,7 @@ A typical example is
    (replace-regexp-in-string
       (regexp-quote \"/mnt/doc/isabelle/afp-2020\")
       \"/home/zmaths/Documents/isabelle/afp-2020\"
-      path nil 'literal)
+      path nil \\='literal)
 
 where the path are replaced by what you need to be
 replaced. Remember that Isabelle canonicalize paths
@@ -197,8 +197,8 @@ buffer in current window."
 (defun lsp-isar-open-output-and-progress-right ()
   "Opens the *lsp-isar-output* and *lsp-isar-progress* buffers on the right.
 
-It can be used for example by ``(add-hook 'lsp-isar-init-hook
-'lsp-isar-open-output-and-progress-right-spacemacs)'."
+It can be used for example by ``(add-hook \\='lsp-isar-init-hook
+\\='lsp-isar-open-output-and-progress-right-spacemacs)''."
   (cond
    ((eq lsp-isar-split-pattern 'lsp-isar-split-pattern-two-columns)
     (lsp-isar-open-output-and-progress-right-two-columns))
@@ -263,7 +263,10 @@ Set `lsp-isabelle-options' for other options (like importing the AFP)."
 (when (>= emacs-major-version 28)
   ;; fix for Emacs 28 (https://github.com/emacs-lsp/lsp-mode/issues/2514#issuecomment-759452037)
   (defun start-file-process-shell-command@around (start-file-process-shell-command name buffer &rest args)
-    "Start a program in a subprocess.  Return the process object for it. Similar to `start-process-shell-command', but calls `start-file-process'."
+    "Start a program in a subprocess and returs the process object.
+
+Return the process object for it. Similar to
+ `start-process-shell-command', but calls `start-file-process'."
     (let ((command (mapconcat 'identity args " ")))
       (funcall start-file-process-shell-command name buffer command)))
 
@@ -354,8 +357,8 @@ the AFP and other options."
   "Setup the LSP client if required and start LSP in the current buffer.
 
 This is the main entry point of the lsp-isar client.  To start the
-mode automically, use `(add-hook 'isar-mode-hook
-#'lsp-isar-define-client-and-start)'"
+mode automically, use `(add-hook \\='isar-mode-hook
+#\\='lsp-isar-define-client-and-start)'"
   ;; starting lsp
   (when (or (not lsp-isar-use-lsp) lsp-isar-parse-args-noisabelle)
     (message "not starting the server! Set lsp-isar-use-lsp to t for that and do not pass '--noisabelle' as argument to Emacs."))
