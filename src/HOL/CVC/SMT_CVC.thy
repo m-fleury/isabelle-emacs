@@ -1,5 +1,6 @@
 theory SMT_CVC
   imports HOL.SMT "cvc5_dsl_rewrites/Boolean_Rewrites" "cvc5_dsl_rewrites/Builtin_Rewrites"
+  keywords "smt_status" "check_smt_dir"  "check_smt" :: diag
 begin
 
 named_theorems all_simplify_temp \<open>Theorems to reconstruct bitvector theorems concerning list function, e.g. take.\<close>
@@ -15,6 +16,60 @@ ML_file\<open>ML/lethe_replay_all_simplify_methods.ML\<close>
 ML_file \<open>ML/SMT_string.ML\<close>
 ML_file \<open>ML/SMT_set.ML\<close>
 ML_file \<open>ML/SMT_array.ML\<close>
+ML_file \<open>ML/smt_parse_problem.ML\<close>
+ML_file \<open>ML/smtlib_regress.ML\<close>
+
+ML \<open>
+val x = SMT_Regress.test_all_benchmarks
+\<close>
+
+ML \<open>
+
+(*Call replay from SMT_Solver and add replay_data on your own*)
+(*The problem (name.smt2) and proof files (name.alethe) should be in the same directory.*)
+val _ = Outer_Syntax.local_theory \<^command_keyword>\<open>check_smt_dir\<close> "parse a directory with SMTLIB2 format and check proof. <dir>"
+    ((Scan.optional (\<^keyword>\<open>(\<close> |-- Parse.string --|
+      \<^keyword>\<open>)\<close>)
+     "cvc5" -- Parse.string)
+    >> (fn (prover, dir_name) => fn lthy =>
+  let
+    val _ = SMT_Regress.test_all_benchmarks prover dir_name lthy
+in lthy end))
+
+\<close>
+
+
+ML \<open>
+(*Call replay from SMT_Solver and add replay_data on your own*)
+val _ = Outer_Syntax.local_theory \<^command_keyword>\<open>check_smt\<close> "parse a file in SMTLIB2 format and check proof. <problem_file,proof_file>"
+    (Scan.optional (\<^keyword>\<open>(\<close> |-- Parse.string --|
+      \<^keyword>\<open>)\<close>)
+     "cvc5" --
+    (Parse.string -- Parse.string)
+    >> (fn (prover, (problem_file_name,proof_file_name)) => fn lthy =>
+  let
+    (*Get problem and proof file*)
+    val ctxt = Local_Theory.target_of lthy
+    val problem_file_path = Path.explode problem_file_name
+    val proof_file_path = Path.explode proof_file_name
+    val problem_lines = (Bytes.split_lines (Bytes.read problem_file_path));
+    val proof_lines = (Bytes.split_lines (Bytes.read proof_file_path));
+    (*val _ = @{print} ("problem_lines", problem_lines)
+    val _ = @{print} ("proof_lines", proof_lines)*)
+
+    (*Output information*)
+    fun pretty tag lines = Pretty.string_of (Pretty.big_list tag (map Pretty.str lines))
+
+    val _ = SMT_Config.verbose_msg ctxt (pretty "Checking Alethe proof...") []
+(*
+    val _ = SMT_Config.verbose_msg ctxt (pretty "Problem:") problem_lines
+    val _ = SMT_Config.verbose_msg ctxt (pretty "Proof to be checked:") proof_lines
+*)
+    (*Replay proof*)
+    val _ = SMT_Regress.replay_only prover ctxt problem_lines proof_lines
+    val _ = (SMT_Config.verbose_msg ctxt (K ("Checked Alethe proof")) ())
+in lthy end))
+\<close>
 
 ML \<open>
 
