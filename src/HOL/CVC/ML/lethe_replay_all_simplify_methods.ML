@@ -28,11 +28,11 @@ let
 (*val rewrite_theories = Theory.parents_of (Proof_Context.theory_of (Proof_Context.get_global (Theory.get_pure ()) "Rare_Interface.thy"))
 val _ = @{print}("rewrite_theories",rewrite_theories)*)
 
-(*This is completely WTF and has no change to work even remotely*)
-fun is_BV rewrite_name = Named_Theorems.get ctxt ("BV_Rewrites."^rewrite_name) |> List.null (*have exist already give out the thm list? I don't want to change named_theorem so much*)
-fun is_Bool rewrite_name = Named_Theorems.get ctxt ("Boolean_Rewrites."^rewrite_name)|> List.null
-fun is_Arith rewrite_name = Named_Theorems.get ctxt ("Arith_Rewrites."^rewrite_name)|> List.null
-fun is_String rewrite_name = Named_Theorems.get ctxt ("String_Rewrites."^rewrite_name)|> List.null
+fun test_lemma theory rewrite_name = try (Named_Theorems.get ctxt) (theory^rewrite_name) |> Option.isSome
+val is_BV = test_lemma "BV_Rewrites."
+val is_Bool = test_lemma "Boolean_Rewrites."
+val is_Arith = test_lemma "Arith_Rewrites." 
+val is_String = test_lemma "String_Rewrites."
 
  fun rewrite_lemma rewrite_name =
        if rewrite_name = "bool_double_not_elim" then nth (Named_Theorems.get ctxt ("Boolean_Rewrites.rewrite_"^rewrite_name)) 0
