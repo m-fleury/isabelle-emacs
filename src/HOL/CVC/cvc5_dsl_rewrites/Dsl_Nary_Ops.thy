@@ -229,8 +229,10 @@ lemma cvc_list_both_transfer:
   shows "cvc_list_both op neutral (ListVar ys) (ListVar xs) = foldr op ys (foldr op xs neutral)"
   using assms
   unfolding cvc_list_both_def
-  apply(cases \<open>(op,(ListVar ys),(ListVar xs),neutral)\<close>  rule: cvc_bin_op3.cases)
+  apply(cases \<open>(op,(ListVar ys),(ListVar xs),neutral)\<close> rule: cvc_bin_op3.cases)
   by (simp_all add: cvc_bin_op_fold_transfer cvc_nary_op_fold_transfer)
+
+(*TODO: Hopefully these can be safely deleted after testing is complete*)
 
 named_theorems cvc_list_both_transfer_op \<open>cvc_list_both_transfer instantiated with operator\<close>
 
@@ -312,23 +314,18 @@ lemma cvc_list_both_Cons: "cvc_list_both op neutral (ListVar (x#xs)) (ListVar (y
   apply (induction xs)
   by auto
 
+(*Tests*)
 
 lemma bool_and_flatten_test_help:
-  shows  "foldr (\<and>) c (b \<and> foldr (\<and>) d True \<and> foldr (\<and>) e True) = foldr (\<and>) c (foldr (\<and>) e (b \<and> foldr (\<and>) d True))"
-  apply (induction c)
-   apply simp
-   apply (induction d)
-    apply simp
-    apply (induction e)
-     apply simp
-    apply simp
-    apply blast
-   apply (induction e)
-    apply simp
-  apply auto[1]
-   apply (induction d)
-   apply simp
-  by simp
+  shows "foldr (\<and>) xss ((b \<and> foldr (\<and>) yss True) \<and> foldr (\<and>) zss True) = foldr (\<and>) xss (foldr (\<and>) zss (b \<and> foldr (\<and>) yss True))"
+  apply (induction xss)
+   apply simp_all
+   apply (induct_tac[!] yss)
+   apply simp_all
+   apply (induct_tac[!] zss)
+     apply simp_all
+  apply blast
+  by blast
 
 lemma bool_and_flatten_test:
   fixes xs ys zs :: "bool cvc_ListVar"
@@ -337,16 +334,15 @@ lemma bool_and_flatten_test:
   apply (cases xs)
   apply (cases ys)
   apply (cases zs)
-  apply simp_all
   subgoal for xss yss zss
-  unfolding cvc_list_left_transfer
-  unfolding cvc_list_right_transfer_op
-  using bool_and_flatten_test_help by auto
+    apply simp
+    unfolding cvc_list_left_transfer
+    unfolding cvc_list_right_transfer_op
+    using bool_and_flatten_test_help by auto
   done
 
-lemma test: "a \<and> (c \<and> (b \<and> d)) \<longrightarrow> (a \<and> (c \<and> (b \<and> d)))"
+lemma bool_and_flatten_test_reconstruction: "a \<and> (c \<and> (b \<and> d)) \<longrightarrow> (a \<and> (c \<and> (b \<and> d)))"
   using bool_and_flatten_test[of "ListVar [a,c]" b "ListVar [d]" "ListVar []"]
-  apply (unfold cvc_list_right_Nil)
   unfolding cvc_list_right_Nil cvc_list_left_Nil
   unfolding cvc_list_right_Cons cvc_list_left_Cons
   unfolding cvc_list_right_Nil cvc_list_left_Nil
