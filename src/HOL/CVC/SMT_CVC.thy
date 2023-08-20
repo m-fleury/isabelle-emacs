@@ -1,9 +1,10 @@
 theory SMT_CVC
-  imports HOL.SMT "cvc5_dsl_rewrites/Boolean_Rewrites" "cvc5_dsl_rewrites/Builtin_Rewrites"
-  keywords "smt_status" "check_smt_dir"  "check_smt" :: diag
+  imports HOL.SMT "cvc5_dsl_rewrites/Rare_Interface"
+  keywords "smt_status" "check_smt_dir" "check_smt" :: diag
 begin
 
-named_theorems all_simplify_temp \<open>Theorems to reconstruct bitvector theorems concerning list function, e.g. take.\<close>
+named_theorems all_simplify_temp \<open>Theorems to reconstruct bitvector theorems concerning list
+                                  functions, e.g. take.\<close>
 named_theorems arith_simp_cvc5 \<open>Might be temp and integrated into smt_arith_simplify \<close>
 
 lemmas [arith_simp_cvc5] = Groups.monoid_mult_class.mult_1_right Nat.mult_Suc_right
@@ -12,28 +13,24 @@ lemmas [arith_simp_cvc5] = Groups.monoid_mult_class.mult_1_right Nat.mult_Suc_ri
                      Nat.Suc_less_eq Nat.zero_less_Suc minus_nat.diff_0 Nat.diff_Suc_Suc Nat.le0
 
 ML_file\<open>ML/lethe_replay_all_simplify_methods.ML\<close>
-
 ML_file \<open>ML/SMT_string.ML\<close>
 ML_file \<open>ML/SMT_set.ML\<close>
 ML_file \<open>ML/SMT_array.ML\<close>
 ML_file \<open>ML/smt_parse_problem.ML\<close>
-ML_file \<open>ML/smtlib_regress.ML\<close>
-
-ML \<open>
-val x = SMT_Regress.test_all_benchmarks
-\<close>
+ML_file \<open>ML/smt_check_external.ML\<close>
 
 ML \<open>
 
 (*Call replay from SMT_Solver and add replay_data on your own*)
 (*The problem (name.smt2) and proof files (name.alethe) should be in the same directory.*)
-val _ = Outer_Syntax.local_theory \<^command_keyword>\<open>check_smt_dir\<close> "parse a directory with SMTLIB2 format and check proof. <dir>"
+val _ = Outer_Syntax.local_theory \<^command_keyword>\<open>check_smt_dir\<close>
+         "parse a directory with SMTLIB2 format and check proof. <dir>"
     ((Scan.optional (\<^keyword>\<open>(\<close> |-- Parse.string --|
       \<^keyword>\<open>)\<close>)
      "cvc5" -- Parse.string)
     >> (fn (prover, dir_name) => fn lthy =>
   let
-    val _ = SMT_Regress.test_all_benchmarks prover dir_name lthy
+    val _ = SMT_Check_External.test_all_benchmarks prover dir_name lthy
 in lthy end))
 
 \<close>
@@ -66,7 +63,7 @@ val _ = Outer_Syntax.local_theory \<^command_keyword>\<open>check_smt\<close> "p
     val _ = SMT_Config.verbose_msg ctxt (pretty "Proof to be checked:") proof_lines
 *)
     (*Replay proof*)
-    val _ = SMT_Regress.replay_only prover ctxt problem_lines proof_lines
+    val _ = SMT_CHECK_EXTERNAL.replay_only prover ctxt problem_lines proof_lines
     val _ = (SMT_Config.verbose_msg ctxt (K ("Checked Alethe proof")) ())
 in lthy end))
 \<close>
