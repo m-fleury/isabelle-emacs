@@ -63,7 +63,7 @@ val _ = Outer_Syntax.local_theory \<^command_keyword>\<open>check_smt\<close> "p
     val _ = SMT_Config.verbose_msg ctxt (pretty "Proof to be checked:") proof_lines
 *)
     (*Replay proof*)
-    val _ = SMT_CHECK_EXTERNAL.replay_only prover ctxt problem_lines proof_lines
+    val _ = SMT_Check_External.replay_only prover ctxt problem_lines proof_lines
     val _ = (SMT_Config.verbose_msg ctxt (K ("Checked Alethe proof")) ())
 in lthy end))
 \<close>
@@ -120,8 +120,8 @@ val _ = Theory.setup (Context.theory_map (
 \<close>
 
 declare [[smt_trace=false,smt_timeout=5000000,smt_cvc_lethe = true]]
-check_smt "~/Documents/repos/SMTLIB/UFLIA/boogie-unsat/AdvancedTypes_AdvancedTypes.Advanced2_SubLessType_notnull-orderStrength_1.smt2"
-  "~/Documents/repos/SMTLIB/UFLIA/boogie-unsat/AdvancedTypes_AdvancedTypes.Advanced2_SubLessType_notnull-orderStrength_1.alethe2"
+(*check_smt "~/Documents/repos/SMTLIB/UFLIA/boogie-unsat/AdvancedTypes_AdvancedTypes.Advanced2_SubLessType_notnull-orderStrength_1.smt2"
+  "~/Documents/repos/SMTLIB/UFLIA/boogie-unsat/AdvancedTypes_AdvancedTypes.Advanced2_SubLessType_notnull-orderStrength_1.alethe2"*)
 (*
 why is 'T' transformed in 't'?
 SMT: Successfully checked step t176.t8 
