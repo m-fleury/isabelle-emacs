@@ -40,8 +40,7 @@ in lthy end
 
 fun test_all_benchmarks prover files_dir local_thy = 
 let
-  val files_dir_path = Path.explode files_dir
-  val dir_content = File.read_dir files_dir_path
+  val dir_content = files_dir |> Path.explode |> File.read_dir
   val problems_path = filter (fn filename => String.isSuffix ".smt2" filename) dir_content
 
   fun check_all [] i = ((),i) |
@@ -63,8 +62,7 @@ let
               => (@{print}("Error parsing SMTLIB into SMTLIB Tree: " ^ err ^ " in line " ^ Int.toString l ,problem_path);(local_thy,i)) |
             (SMT_Failure.SMT err)
               => (@{print}("Error parsing SMTLIB into SMTLIB Tree: " ^ SMT_Failure.string_of_failure err,problem_path);(local_thy,i)) |
-            exp => (error (@{make_string}("Some error occured while checking the proof",problem_path));(local_thy,i))
-     (*How to print exp so I can see what it is?*)
+            exp => (error (@{make_string}("Some error occured while checking the proof" ^ General.exnMessage exp,problem_path));(local_thy,i))
         in
          check_all ts i
         end
@@ -83,7 +81,5 @@ let
 in 
   ()
 end
-
-val run_regress = true
 
 end
