@@ -1,7 +1,6 @@
 theory SMT_Word
   imports SMT_CVC "HOL-Library.Word" "HOL.Real" "cvc5_dsl_rewrites/Rare_Interface"
     "HOL-Library.Sublist" "HOL-Library.Log_Nat"
-  keywords "parse_rare_file" "parse_rare" :: diag
 begin
 declare  [[smt_cvc_lethe = true]]
 
@@ -126,10 +125,7 @@ definition smt_srem :: "'a::len word \<Rightarrow> 'a::len word \<Rightarrow> 'a
 "
 
 end
-
-
-ML_file \<open>Tools/SMT/lethe_replay_bv_methods.ML\<close>
-ML_file \<open>~~/src/HOL/Library/Tools/smt_word.ML\<close> (*TODO: Mathias*)
+(*
 
 ML \<open>Lethe_Replay_Methods.print_alethe_tac (Context.Proof @{context})\<close>
 ML \<open>
@@ -317,68 +313,6 @@ end
 \<close>
 *)
 
-ML \<open> 
-val x =
-SMT_Word.bv_type_parser (SMTLIB.S [SMTLIB.Sym "_", SMTLIB.Sym "BitVec", SMTLIB.Num 3], [])
-
-val y =
-SMT_Word.bv_term_parser (SMTLIB.Sym "bvneg",  [Free ("x", \<^typ>\<open>32 word\<close>)])
-
-val z =
-SMT_Word.bv_term_parser (SMTLIB.Sym "bvneg",  [Free ("x", \<^typ>\<open>'a word\<close>)])
-
-
-\<close>
-
-ML_file \<open>Tools/SMT/cvc5_dsl_rewrites/parse_rewrites.ML\<close>
-ML_file \<open>Tools/SMT/cvc5_dsl_rewrites/rewrites_to_lemma.ML\<close>
-
-ML \<open>
-open PARSE_REWRITE
-open WRITE_LEMMA
-
-fun print_item string_of (modes, arg) = Toplevel.keep (fn state =>
-  Print_Mode.with_modes modes (fn () => writeln (string_of state (hd arg))) ())
-
-(*TODO: Can I use: Library.cat_lines?*)
-fun string_of_rewrite ctxt s
-= foldr1 (op^) (List.concat (WRITE_LEMMA.write_lemmas (PARSE_REWRITE.parse_rewrites [s]) "THEORY_NAME" "IMPORTING_THEORIES" ctxt))
-
-fun print_rewrite (cs:string) (t:Toplevel.transition) :  Toplevel.transition =
-Toplevel.keep (fn toplevel => (fn state =>
-  Print_Mode.with_modes [] (fn () => writeln (string_of_rewrite state cs)) ()) (Toplevel.context_of toplevel)) t
-
-val _ =
-  Outer_Syntax.command \<^command_keyword>\<open>parse_rare\<close> "parse a single rule in rare format (provided as a string) and output lemma"
-    ( Parse.string >> print_rewrite);
-
-
-
-val semi = Scan.option \<^keyword>\<open>;\<close>; (*TODO: Do not need?*)
-
-val _ =  Outer_Syntax.local_theory \<^command_keyword>\<open>parse_rare_file\<close> "parse file in rare format and output lemmas. <rare_file, import theories, target_theory>"
-    (((Parse.string -- Parse.string)  -- Parse.string)
-    >> (fn ((file_name,theory_imports),theory_name) => fn lthy =>
-  let
-          (*Built new path*)
-          val file_path = Path.explode file_name
-          val new_theory_name = theory_name ^ ".thy"
-          val ctxt = Local_Theory.target_of lthy
-          val res_path = Path.append (Path.dir file_path) (Path.basic new_theory_name)
-
-          (*Calculate result*)
-          val lines = (Bytes.split_lines (Bytes.read file_path)) ;
-          val res = foldr1 (op^) (List.concat (WRITE_LEMMA.write_lemmas (PARSE_REWRITE.parse_rewrites lines) theory_name theory_imports ctxt))
-          val _ = (Output.writeln res)
-
-          val _ =
-           Bytes.write
-            res_path (Bytes.string res)
-          val _ = @{print} ("done writing to file", res_path)
-in  lthy
-end))
-\<close>
-
 ML \<open>
 (Scan.optional (\<^keyword>\<open>(\<close> |-- (Parse.string ) --|
       \<^keyword>\<open>)\<close>)
@@ -411,5 +345,5 @@ fold (SMT_Builtin.add_builtin_fun' SMTLIB_Interface.smtlibC) [
     (Term.dest_Const \<^Const>\<open>times \<^Type>\<open>int\<close>\<close>, times)
 end
 \<close>
-
+*)
 end
