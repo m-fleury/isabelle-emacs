@@ -1,13 +1,13 @@
-signature SMT_REGRESS =
+signature SMT_CHECK_EXTERNAL =
 sig
-  val test_all_benchmarks : string -> string -> local_theory -> unit
-  val run_regress : bool
   val replay_only: string -> Proof.context -> string list -> string list -> thm
+  val check_smt: string -> string -> string -> local_theory -> local_theory
+  val test_all_benchmarks : string -> string -> local_theory -> unit
 end
 
-structure SMT_Regress : SMT_REGRESS =
+structure SMT_Check_External : SMT_CHECK_EXTERNAL =
 struct
-(*TODO should probably go to SMT_Solver*)
+
 fun replay_only solver ctxt problem proof =
   let
     (*Set solver (for replay but not for invoking)*)
@@ -20,15 +20,7 @@ fun replay_only solver ctxt problem proof =
     val (name, {command, smt_options, replay, ...}) = SMT_Solver.name_and_info_of ctxt
     val (replay_data, _) = SMT_Parse_Problem.parse problem ctxt
  
-    (*Print replay data for debugging*)
-    val {context, typs, terms, ll_defs , rewrite_rules , assms} = replay_data
-   (* val _ = @{print}("In replay_only")
-    val _ = @{print}("assms",assms)
-    val _ = @{print}("terms",terms)
-    val _ = @{print}("typs",typs)
-    val _ = @{print}("rewrite_rules",rewrite_rules)
-    val _ = @{print}("ll_defs",ll_defs)
-    val _ = @{print}("End in replay_only")*)
+    val {context, ...} = replay_data
     val thm = replay context replay_data proof
     val _ =  Proof_Context.export context ctxt [thm]
 
@@ -40,18 +32,11 @@ fun check_smt prover problem_file_name proof_file_name lthy =
     val ctxt = Local_Theory.target_of lthy
     val problem_file_path = Path.explode problem_file_name
     val proof_file_path = Path.explode proof_file_name
-    val _ = @{print}("problem_file_path",problem_file_path)
-    val _ = @{print}("proof_file_path",proof_file_path)
 
-    val problem_lines = (Bytes.split_lines (Bytes.read problem_file_path));
-    val proof_lines = (Bytes.split_lines (Bytes.read proof_file_path));
-(*    (*TODO: This weird empty line is added at the end. Investigate*)
-    val proof_lines = take (length proof_lines - 1) proof_lines
-    val problem_lines = take (length problem_lines - 1) problem_lines*)
-    (*Replay proof*)
+    val problem_lines = problem_file_path |> Bytes.read |> Bytes.split_lines;
+    val proof_lines = proof_file_path |> Bytes.read |> Bytes.split_lines;
     val _ = replay_only prover ctxt problem_lines proof_lines
 in lthy end
-
 
 fun test_all_benchmarks prover files_dir local_thy = 
 let
