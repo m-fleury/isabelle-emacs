@@ -22,50 +22,35 @@ ML_file \<open>ML/smt_check_external.ML\<close>
 ML \<open>
 
 (*Call replay from SMT_Solver and add replay_data on your own*)
-(*The problem (name.smt2) and proof files (name.alethe) should be in the same directory.*)
-val _ = Outer_Syntax.local_theory \<^command_keyword>\<open>check_smt_dir\<close>
-         "parse a directory with SMTLIB2 format and check proof. <dir>"
-    ((Scan.optional (\<^keyword>\<open>(\<close> |-- Parse.string --|
-      \<^keyword>\<open>)\<close>)
-     "cvc5" -- Parse.string)
-    >> (fn (prover, dir_name) => fn lthy =>
-  let
-    val _ = SMT_Check_External.test_all_benchmarks prover dir_name lthy
-in lthy end))
-
-\<close>
-
-
-ML \<open>
-(*Call replay from SMT_Solver and add replay_data on your own*)
-val _ = Outer_Syntax.local_theory \<^command_keyword>\<open>check_smt\<close> "parse a file in SMTLIB2 format and check proof. <problem_file,proof_file>"
-    (Scan.optional (\<^keyword>\<open>(\<close> |-- Parse.string --|
-      \<^keyword>\<open>)\<close>)
-     "cvc5" --
+val _ = Outer_Syntax.local_theory \<^command_keyword>\<open>check_smt\<close>
+          "parse a file in SMTLIB2 format and check proof. <problem_file,proof_file>"
+    (Scan.optional (\<^keyword>\<open>(\<close> |-- Parse.string --| \<^keyword>\<open>)\<close>) "cvc5" --
     (Parse.string -- Parse.string)
     >> (fn (prover, (problem_file_name,proof_file_name)) => fn lthy =>
   let
-    (*Get problem and proof file*)
     val ctxt = Local_Theory.target_of lthy
-    val problem_file_path = Path.explode problem_file_name
-    val proof_file_path = Path.explode proof_file_name
-    val problem_lines = (Bytes.split_lines (Bytes.read problem_file_path));
-    val proof_lines = (Bytes.split_lines (Bytes.read proof_file_path));
-    (*val _ = @{print} ("problem_lines", problem_lines)
-    val _ = @{print} ("proof_lines", proof_lines)*)
-
-    (*Output information*)
-    fun pretty tag lines = Pretty.string_of (Pretty.big_list tag (map Pretty.str lines))
-
+    fun pretty tag lines = map Pretty.str lines |> Pretty.big_list tag |> Pretty.string_of
     val _ = SMT_Config.verbose_msg ctxt (pretty "Checking Alethe proof...") []
-(*
-    val _ = SMT_Config.verbose_msg ctxt (pretty "Problem:") problem_lines
-    val _ = SMT_Config.verbose_msg ctxt (pretty "Proof to be checked:") proof_lines
-*)
+
     (*Replay proof*)
-    val _ = SMT_Check_External.replay_only prover ctxt problem_lines proof_lines
+    val _ = SMT_Check_External.check_smt prover problem_file_name proof_file_name
     val _ = (SMT_Config.verbose_msg ctxt (K ("Checked Alethe proof")) ())
-in lthy end))
+  in
+   lthy
+  end))
+
+(*Call replay from SMT_Solver and add replay_data on your own*)
+(*The problem (name.smt2) and proof files (name.alethe) should be in the same directory.*)
+val _ = Outer_Syntax.local_theory \<^command_keyword>\<open>check_smt_dir\<close>
+         "parse a directory with SMTLIB2 format and check proof. <dir>"
+    ((Scan.optional (\<^keyword>\<open>(\<close> |-- Parse.string --| \<^keyword>\<open>)\<close>) "cvc5" -- Parse.string)
+    >> (fn (prover, dir_name) => fn lthy =>
+  let
+    val _ = SMT_Check_External.test_all_benchmarks prover dir_name lthy
+  in
+   lthy
+   end))
+
 \<close>
 
 ML \<open>
