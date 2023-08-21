@@ -53,6 +53,7 @@ val _ = Outer_Syntax.local_theory \<^command_keyword>\<open>check_smt_dir\<close
 
 \<close>
 
+
 ML \<open>
 
 fun mk_binary' n T U t1 t2 = Const (n, [T, T] ---> U) $ t1 $ t2
@@ -67,15 +68,30 @@ fun mk_lassoc' n = mk_lassoc (mk_binary n)
 
 fun mk_lassoc'' n S t
  = mk_lassoc (mk_binary' n (fastype_of t) (TVar (("?a", serial ()), S))) t 
-(*TODO split all this*)
-fun cvc_term_parser (SMTLIB.Sym "xor",[t1,t2]) = SOME (HOLogic.mk_not (HOLogic.mk_eq (t1, t2)))
-  | cvc_term_parser (SMTLIB.Sym "cvc5_nary_op", ts) = 
 
-(*Plan: If there is some content in ts try to figure out what type it has. If it has no dummy type
-use that. Otherwise use ?a from the beginning?*)
-    SOME(Const( \<^const_name>\<open>ListVar\<close> , \<^typ>\<open>HOL.bool list \<Rightarrow>  HOL.bool cvc_ListVar \<close>)
-      (*$ (HOLogic.mk_list (TVar (("?a", serial ()), [])) ts))*)
-      $ (HOLogic.mk_list \<^typ>\<open>HOL.bool\<close> ts))
+(*cvc5 specific terms that are not present in veriT's output*)
+fun cvc_term_parser (SMTLIB.Sym "xor",[t1,t2]) = SOME (HOLogic.mk_not (HOLogic.mk_eq (t1, t2)))
+  | cvc_term_parser (SMTLIB.Sym "cvc5_nary_op", []) = 
+    SOME(Const( \<^const_name>\<open>ListVar\<close> , \<^typ>\<open>'a \<Rightarrow> HOL.bool cvc_ListVar \<close>)
+       $ Const( \<^const_name>\<open>List.Nil\<close>, \<^typ>\<open>'a\<close> ))
+  | cvc_term_parser (SMTLIB.Sym "cvc5_nary_op", ts) = 
+    let
+      (*Figure out if types are different, this should only be the case if they have different
+        bitwidths*)
+      fun remove_duplicates [] = []
+        | remove_duplicates (x::xs) = x::remove_duplicates(List.filter (fn y => y <> x) xs)
+
+      val types_eq = map fastype_of ts |> remove_duplicates |> length 
+      val new_ts =
+         if types_eq > 0
+         then ts
+         else (map (fn t => Const( \<^const_name>\<open>unsigned\<close>, \<^typ>\<open>'a::len word \<Rightarrow> Nat.nat \<close>) $ t) ts)
+      val new_type = if types_eq > 0 then fastype_of (hd ts) else \<^typ>\<open>Nat.nat\<close>
+
+    in
+    SOME(Const( \<^const_name>\<open>ListVar\<close>, Type(\<^type_name>\<open>fun\<close>,[new_type, \<^typ>\<open> HOL.bool cvc_ListVar\<close>]))
+      $ (HOLogic.mk_list new_type new_ts))
+    end
   | cvc_term_parser (SMTLIB.Sym "emptyString", []) = SOME (Free ("''''", \<^typ>\<open>String.string\<close>))
   | cvc_term_parser (SMTLIB.Sym "distinct", ts)
     =
