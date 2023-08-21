@@ -97,9 +97,12 @@ fun cvc_term_parser (SMTLIB.Sym "xor",[t1,t2]) = SOME (HOLogic.mk_not (HOLogic.m
     =
     let
      fun pairwise [] _ = []
-       | pairwise (t1::tss) (_::uss) = (map (fn t2 => HOLogic.mk_not (HOLogic.mk_binrel \<^const_name>\<open>HOL.eq\<close> (t1,t2))) uss) @ pairwise tss uss
+       | pairwise _ [] = []
+       | pairwise (t1::tss) (_::uss)
+           = (map (fn u => HOLogic.mk_not (HOLogic.mk_binrel \<^const_name>\<open>HOL.eq\<close> (t1,u))) uss)
+               @ pairwise tss uss
     in 
-      SOME (mk_lassoc'\<^const_name>\<open>HOL.conj\<close> (hd (pairwise ts ts)) (tl (pairwise ts ts)))
+      SOME (mk_lassoc' \<^const_name>\<open>HOL.conj\<close> (hd (pairwise ts ts)) (tl (pairwise ts ts)))
     end
   | cvc_term_parser _ = NONE
 
@@ -121,26 +124,7 @@ val _ = Theory.setup (Context.theory_map (
 \<close>
 
 declare [[smt_trace=false,smt_timeout=5000000,smt_cvc_lethe = true]]
-(*check_smt "~/Documents/repos/SMTLIB/UFLIA/boogie-unsat/AdvancedTypes_AdvancedTypes.Advanced2_SubLessType_notnull-orderStrength_1.smt2"
-  "~/Documents/repos/SMTLIB/UFLIA/boogie-unsat/AdvancedTypes_AdvancedTypes.Advanced2_SubLessType_notnull-orderStrength_1.alethe2"*)
-(*
-why is 'T' transformed in 't'?
-SMT: Successfully checked step t176.t8 
-SMT: Goal: "bind"
-       assumptions:
-         ((IsNotNull_ ?o ?T = Smt__#__true) = (?o \<noteq> nullObject \<and> Is_ ?o ?T = Smt__#__true)) = ((Smt__#__true = IsNotNull_ ?o ?T) = (nullObject \<noteq> ?o \<and> Smt__#__true = Is_ ?o ?T))
-       proposition:
-         (\<forall>o t. (IsNotNull_ o t = Smt__#__true) = (o \<noteq> nullObject \<and> Is_ o t = Smt__#__true)) = (\<forall>o t. (Smt__#__true = IsNotNull_ o t) = (nullObject \<noteq> o \<and> Smt__#__true = Is_ o t)) 
-[("o", "o"), ("T", "T")] (line 571 of "~~/src/HOL/Tools/SMT/lethe_replay_methods.ML") 
-*)
 
-(*
-
-declare  [[smt_cvc_lethe = true,smt_trace]]
-check_smt_dir "~/Documents/repos/SMTLIB/QF_UF/2018-Goel-hwbench_unsat/"
-check_smt ("cvc5") "~/Documents/repos/SMTLIB/QF_UF/2018-Goel-hwbench_unsat/QF_UF_Heap_ab_br_max.smt2"
-  "~/Documents/repos/SMTLIB/QF_UF/2018-Goel-hwbench_unsat/QF_UF_Heap_ab_br_max.alethe"
-*)
 ML \<open> 
 Config.put SMT_Config.trace true\<close>
 end
