@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: inductive
+# key: inductive
+# --
+inductive $1 :: \<open>${2:_} \<Rightarrow> bool\<close> where
+\<open>$1\<close>
+if $3
