@@ -316,7 +316,7 @@ remote in order to edit files remotely over tramp.  Remember that
 
 Set `lsp-remote-isabelle-options' and `lsp-isabelle-options' to
 the AFP and other options."
-  (message "installing config (tramp: %s)" (if lsp-isar-parse-args-tramp "Yes" "No"))
+  ;;(message "installing config (tramp: %s)" (if lsp-isar-parse-args-tramp "Yes" "No"))
   ;; declare the lsp mode
   (push  '(isar-mode .  "isabelle") lsp-language-id-configuration)
 
