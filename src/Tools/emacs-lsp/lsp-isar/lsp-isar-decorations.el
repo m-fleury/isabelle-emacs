@@ -799,7 +799,6 @@ more memory), so we only remove some with a short timeout."
   (inline-letevals (news olds end_char_offset overlays-to-reuse face)
     (inline-quote
      (progn
-       (declare (cl-optimize (speed 3) (safety 3)))
        (let ((lnews (length ,news))
 	     (lolds (length ,olds))
 	     (inew 0)
@@ -938,6 +937,7 @@ one.  This a performance critical function."
 
 (defun lsp-isar-decorations-update-and-reprint (_workspace params)
   "Reprint all decorations as given by Isabelle in PARAMS."
+  (declare (cl-optimize (speed 3) (safety 3)))
   (lsp-isar-decorations-update-cached-decorations-overlays params))
 
 
@@ -956,6 +956,7 @@ one.  This a performance critical function."
 
 (defun lsp-isar-decorations--print-delayed-buffer-decorations (file params)
   "Prints the decorations from buffer FILE that were not printed so far."
+  (declare (cl-optimize (speed 3) (safety 0)))
   (save-excursion
     (let ((buffer (get-file-buffer file)))
       (when (and buffer params (get-buffer-window buffer 'visible))
