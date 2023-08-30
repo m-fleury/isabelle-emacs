@@ -135,12 +135,10 @@ you can decide at startup what you want."
 (defcustom lsp-isar-split-pattern 'lsp-isar-split-pattern-two-columns
   "Split motif for the columns."
   :type
-  '(alist
-    :key-type
-    (choice
-     (const :tag "Split in two columns" 'lsp-isar-split-pattern-two-columns)
+  '(choice
+     (const :tag "Split in two columns" lsp-isar-split-pattern-two-columns)
      (const :tag "Split in three columns (with progress on the right)"
-	    'lsp-isar-split-pattern-three-columns)))
+	    lsp-isar-split-pattern-three-columns))
   :group 'isabelle);;
 
 ;; taken from
