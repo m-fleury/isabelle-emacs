@@ -54,9 +54,8 @@
 
 (require 'thingatpt)
 
-(if (>= emacs-major-version 28)
-    (defun lsp-isar-indent-thing-at-point (thing &optional no-properties)
-      "Return the THING at point.
+(defun lsp-isar-indent-thing-at-point (thing &optional no-properties)
+  "Return the THING at point.
 
 See thing-at-point for usage. Does not respect fields, making it
 much faster than thing-at-point (since commit 7db376e5604 from Emacs).
@@ -64,6 +63,7 @@ much faster than thing-at-point (since commit 7db376e5604 from Emacs).
 The fact that I need to duplicate the function is really
 unfortunate, but the speed difference is several orders of
 magnitude (think: at least one second per call vs instant)."
+  (if (>= emacs-major-version 28)
       (save-restriction
         (let ((text
 	       (cond
@@ -81,8 +81,7 @@ magnitude (think: at least one second per call vs instant)."
           (when (and text no-properties (sequencep text))
 	    (set-text-properties 0 (length text) nil text))
           text)))
-  (defun lsp-isar-indent-thing-at-point (thing &optional no-properties)
-    (thing-at-point thing no-properties)))
+  (thing-at-point thing no-properties))
 
 (defun lsp-isar-indent-word-at-point (&optional no-properties)
   "Return the word at point.  See `lsp-isar-indent-thing-at-point'."

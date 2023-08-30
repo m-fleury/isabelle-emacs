@@ -260,16 +260,16 @@ Set `lsp-isabelle-options' for other options (like importing the AFP)."
    lsp-isabelle-options))
 
 ;; tramp fixes for emacs 28 (i.e. devel)
-(when (>= emacs-major-version 28)
-  ;; fix for Emacs 28 (https://github.com/emacs-lsp/lsp-mode/issues/2514#issuecomment-759452037)
-  (defun start-file-process-shell-command@around (start-file-process-shell-command name buffer &rest args)
-    "Start a program in a subprocess and returs the process object.
+;; fix for Emacs 28 (https://github.com/emacs-lsp/lsp-mode/issues/2514#issuecomment-759452037)
+(defun start-file-process-shell-command@around (start-file-process-shell-command name buffer &rest args)
+  "Start a program in a subprocess and returs the process object.
 
 Return the process object for it. Similar to
  `start-process-shell-command', but calls `start-file-process'."
-    (let ((command (mapconcat 'identity args " ")))
-      (funcall start-file-process-shell-command name buffer command)))
+  (let ((command (mapconcat 'identity args " ")))
+    (funcall start-file-process-shell-command name buffer command)))
 
+(when (>= emacs-major-version 28)
   (advice-add 'start-file-process-shell-command :around #'start-file-process-shell-command@around)
 
   ;; work-around to make sure no brace is lost during transmission
