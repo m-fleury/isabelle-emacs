@@ -7,12 +7,23 @@ Proof method for replaying Alethe proofs for all-simplify
 
 signature LETHE_REPLAY_ALL_SIMPLIFY_METHODS =
 sig
+  val all_rewrite_thys : theory list
   val all_simplify: Lethe_Replay_Methods.lethe_tac_args
-
 end;
 
 structure Lethe_Replay_All_Simplify_Methods: LETHE_REPLAY_ALL_SIMPLIFY_METHODS =
 struct
+
+val all_rewrite_thys =
+let
+ (*This is a little hacky; get theory HOL-CVC.Rare_Interface without registering it (which would 
+   involve registering all parents)*)
+ val SMT_CVC_parent_thys = Theory.parents_of @{theory}
+ val Rare_Interface_thy =
+   nth (filter (fn thy => Context.theory_long_name thy = "HOL-CVC.Rare_Interface") SMT_CVC_parent_thys) 0
+in
+  Theory.parents_of Rare_Interface_thy
+end
 
 val TRY' = Lethe_Replay_Methods.TRY'
 val simplify_tac = Lethe_Replay_Methods.simplify_tac
@@ -32,8 +43,6 @@ fun test_lemma theory rewrite_name = try (Named_Theorems.get ctxt) (theory^rewri
  fun rewrite_lemma rewrite_name =
 let
 
-(*Little bit of a hack to get theory HOL-CVC.Rare_Interface without registering it (which would 
-involve registering all parents)*)
 val Rare_Interface_thy
  = filter (fn thy => Context.theory_long_name thy = "HOL-CVC.Rare_Interface") (Theory.parents_of @{theory})
 val Rare_Rules_thy = nth (map Theory.parents_of Rare_Interface_thy) 0
