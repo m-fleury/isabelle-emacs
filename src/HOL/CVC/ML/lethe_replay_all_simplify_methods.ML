@@ -11,7 +11,6 @@ sig
 
 end;
 
-
 structure Lethe_Replay_All_Simplify_Methods: LETHE_REPLAY_ALL_SIMPLIFY_METHODS =
 struct
 
@@ -29,18 +28,32 @@ let
 val _ = @{print}("rewrite_theories",rewrite_theories)*)
 
 fun test_lemma theory rewrite_name = try (Named_Theorems.get ctxt) (theory^rewrite_name) |> Option.isSome
-val is_BV = test_lemma "BV_Rewrites."
-val is_Bool = test_lemma "Boolean_Rewrites."
-val is_Arith = test_lemma "Arith_Rewrites." 
-val is_String = test_lemma "String_Rewrites."
 
  fun rewrite_lemma rewrite_name =
-       if rewrite_name = "bool_double_not_elim" then nth (Named_Theorems.get ctxt ("Boolean_Rewrites.rewrite_"^rewrite_name)) 0
-       else if is_BV rewrite_name then nth (Named_Theorems.get ctxt ("BV_Rewrites."^rewrite_name)) 0
-       else if is_Bool rewrite_name then nth (Named_Theorems.get ctxt ("Boolean_Rewrites."^rewrite_name)) 0
-       else if is_Arith rewrite_name then nth (Named_Theorems.get ctxt ("Arith_Rewrites."^rewrite_name)) 0
-       else if is_String rewrite_name then nth (Named_Theorems.get ctxt ("String_Rewrites."^rewrite_name)) 0
-       else nth (Named_Theorems.get ctxt ("Builtin_Rewrites."^rewrite_name)) 0
+let
+
+(*Little bit of a hack to get theory HOL-CVC.Rare_Interface without registering it (which would 
+involve registering all parents)*)
+val Rare_Interface_thy
+ = filter (fn thy => Context.theory_long_name thy = "HOL-CVC.Rare_Interface") (Theory.parents_of @{theory})
+val Rare_Rules_thy = nth (map Theory.parents_of Rare_Interface_thy) 0
+
+fun each_Thy []  = nth (Named_Theorems.get ctxt ("Builtin_Rewrites."^rewrite_name)) 0 | (*TODO: Error*)
+    each_Thy (thy::thys) =
+      let
+        val thy_name = (Context.theory_base_name thy)
+      in
+      if test_lemma thy_name rewrite_name
+      then nth (Named_Theorems.get ctxt (thy_name^rewrite_name)) 0 (*TODO: Do we need named theorems anymore?*)
+(*If we do we can just map to names above and not work on theory list here*)
+      else each_Thy thys
+end
+
+in 
+each_Thy Rare_Rules_thy
+
+end
+
  fun rewrite_lemma_inst rewrite_name [t]  =
     (Drule.infer_instantiate' ctxt (map (SOME o Thm.cterm_of ctxt) [t]) (rewrite_lemma rewrite_name)) |
  rewrite_lemma_inst rewrite_name (t :: ts) =
