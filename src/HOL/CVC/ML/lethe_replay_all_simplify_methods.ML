@@ -33,33 +33,27 @@ val replay_error = Lethe_Replay_Methods.replay_error
 fun dsl_tac_initialize rewrite_name args ctxt t =
 let
 
-(*Get all parent theories of Rare_Interface. TODO: Maybe do this somewhere else so it doesn't has to be redone every time*)
-(*Need to get the theory Rare_Interface for this? How? Only way seems to use a context?*)
-(*val rewrite_theories = Theory.parents_of (Proof_Context.theory_of (Proof_Context.get_global (Theory.get_pure ()) "Rare_Interface.thy"))
-val _ = @{print}("rewrite_theories",rewrite_theories)*)
-
-fun test_lemma theory rewrite_name = try (Named_Theorems.get ctxt) (theory^rewrite_name) |> Option.isSome
+ fun test_lemma theory_name rewrite_name = try (Named_Theorems.get ctxt) (theory_name ^ "." ^ rewrite_name) |> Option.isSome
 
  fun rewrite_lemma rewrite_name =
 let
 
-val Rare_Interface_thy
- = filter (fn thy => Context.theory_long_name thy = "HOL-CVC.Rare_Interface") (Theory.parents_of @{theory})
-val Rare_Rules_thy = nth (map Theory.parents_of Rare_Interface_thy) 0
-
-fun each_Thy []  = nth (Named_Theorems.get ctxt ("Builtin_Rewrites."^rewrite_name)) 0 | (*TODO: Error*)
-    each_Thy (thy::thys) =
+fun find_Thy []  = nth (Named_Theorems.get ctxt ("Builtin_Rewrites."^rewrite_name)) 0 | (*TODO: Error*)
+    find_Thy (thy::thys) =
       let
         val thy_name = (Context.theory_base_name thy)
+        val _= @{print} ("name",(thy_name ^ "."^rewrite_name))
+        val _= @{print} ("test lemma",test_lemma thy_name rewrite_name)
+
       in
-      if test_lemma thy_name rewrite_name
-      then nth (Named_Theorems.get ctxt (thy_name^rewrite_name)) 0 (*TODO: Do we need named theorems anymore?*)
+      if test_lemma thy_name rewrite_name (*TODO: Don't do this twice*)
+      then nth (Named_Theorems.get ctxt (thy_name^"."^rewrite_name)) 0 (*TODO: Do we need named theorems anymore?*)
 (*If we do we can just map to names above and not work on theory list here*)
-      else each_Thy thys
+      else find_Thy thys
 end
 
 in 
-each_Thy Rare_Rules_thy
+find_Thy all_rewrite_thys
 
 end
 
@@ -112,25 +106,26 @@ local
 fun try_simp ctxt t = 
   SMT_Replay_Methods.prove ctxt t (fn a =>
      TRY'(K (HEADGOAL (simplify_tac ctxt ((Named_Theorems.get ctxt @{named_theorems all_simplify_temp})))))
-THEN' K (print_tac ctxt "stuff 1")
      THEN' TRY'(K (HEADGOAL (simplify_tac ctxt @{thms arith_simps verit_minus_simplify})))
-THEN' K (print_tac ctxt "stuff 10")
      THEN' TRY'(K (HEADGOAL (simplify_tac ctxt ((Named_Theorems.get ctxt @{named_theorems arith_simp_cvc5})))))
-THEN' K (print_tac ctxt "stuff 20")
      THEN' TRY' (K (Clasimp.auto_tac ctxt))
-  THEN' K (print_tac ctxt "stuff 30")
+     THEN' K (print_tac ctxt "debug in try simp")
   )
 
-
-
-fun get_tac (Free (rewrite_name, _) :: args) ctxt t =
-   if rewrite_name = "evaluate" then (@{print} "Found evaluate, try to simplify"; try_simp ctxt t)
-    else dsl_tac_initialize rewrite_name args ctxt t |
- get_tac x ctxt t = (@{print} "No dsl rule found, try to simplify"; @{print} x; try_simp ctxt t)
+fun pretty tag lines = map Pretty.str lines |> Pretty.big_list tag |> Pretty.string_of
 
 in 
-  fun all_simplify ctxt (_ : thm list) args t = (
-warning (@{make_string} (" found all-simplify with args",args)); get_tac args ctxt t)
+
+ fun all_simplify ctxt (_ : thm list) (Free (rewrite_name, _) :: args) t =
+  if rewrite_name = "evaluate"
+  then
+   (SMT_Config.verbose_msg ctxt (pretty ("Found evaluate, try to simplify")) []; try_simp ctxt t)
+  else
+    dsl_tac_initialize rewrite_name args ctxt t |
+ all_simplify ctxt (_ : thm list) args t =
+  (SMT_Config.verbose_msg ctxt (pretty ("No dsl rule found, try to simplify" ^
+  List.foldr op^ "" (map ML_Syntax.print_term args))) []; try_simp ctxt t)
+
 end
 
 val rules = [
