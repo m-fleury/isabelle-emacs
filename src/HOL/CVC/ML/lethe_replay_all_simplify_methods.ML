@@ -33,12 +33,12 @@ val replay_error = Lethe_Replay_Methods.replay_error
 fun dsl_tac_initialize rewrite_name args ctxt t =
 let
 
- fun test_lemma theory_name rewrite_name = try (Named_Theorems.get ctxt) (theory_name ^ "." ^ rewrite_name) |> Option.isSome
+ fun test_lemma theory_name rewrite_name = try (Named_Theorems.get ctxt) (theory_name ^ ".rewrite_" ^ rewrite_name) |> Option.isSome
 
  fun rewrite_lemma rewrite_name =
 let
 
-fun find_Thy []  = nth (Named_Theorems.get ctxt ("Builtin_Rewrites."^rewrite_name)) 0 | (*TODO: Error*)
+fun find_Thy []  = nth (Named_Theorems.get ctxt ("Builtin_Rewrites.rewrite_"^rewrite_name)) 0 | (*TODO: Error*)
     find_Thy (thy::thys) =
       let
         val thy_name = (Context.theory_base_name thy)
@@ -47,7 +47,7 @@ fun find_Thy []  = nth (Named_Theorems.get ctxt ("Builtin_Rewrites."^rewrite_nam
 
       in
       if test_lemma thy_name rewrite_name (*TODO: Don't do this twice*)
-      then nth (Named_Theorems.get ctxt (thy_name^"."^rewrite_name)) 0 (*TODO: Do we need named theorems anymore?*)
+      then nth (Named_Theorems.get ctxt (thy_name^".rewrite_"^rewrite_name)) 0 (*TODO: Do we need named theorems anymore?*)
 (*If we do we can just map to names above and not work on theory list here*)
       else find_Thy thys
 end
