@@ -124,84 +124,18 @@ lemma uint_smt_extract:
   fixes x::"'a::len word"
   shows  "i \<le> j \<Longrightarrow> j < size x \<Longrightarrow> LENGTH('b) = j + 1 - i
  \<Longrightarrow> uint ((smt_extract j i (x::'a::len word))::'b::len word)
-   = drop_bit i (take_bit (Suc j) (unsigned x))" 
-  apply (cases "i=0")
-proof-
-  assume a0: "i = (0::nat) " and a1: "i \<le> j" "j < size x" "LENGTH('b) = j + 1 - i"
-  then have t0: "LENGTH('b) \<le> LENGTH('a)"
-    by (simp add: size_word.rep_eq)
-  have "uint (smt_extract j i x::'b::len word) = uint (ucast (take_bit (Suc j) x ::'a::len word)::'b::len word)"
-   unfolding smt_extract_def slice_def slice1_def
-   by (simp add: a0)
-  also have "... = uint (take_bit (Suc j) x ::'a::len word)"
-    by (simp add: a1 a0 unsigned_take_bit_eq unsigned_ucast_eq)
-  also have "... = take_bit (Suc j) (unsigned x)" 
-    using Word.semiring_bit_operations_class.unsigned_take_bit_eq
-    by auto
-  finally show "uint ((smt_extract j i (x::'a::len word))::'b::len word) = drop_bit i (take_bit (Suc j) (unsigned x))" 
-    using a0 by force
-next
-  assume a0: "i \<noteq> (0::nat)" and a1: "i \<le> j" "j < size x" "LENGTH('b) = j + 1 - i"
-  then have t0: "LENGTH('b) \<le> LENGTH('a)"
-    by (metis Suc_eq_plus1 Suc_leI diff_le_self le_trans size_word.rep_eq)
-  have t1: "i < LENGTH('a)"
-    by (metis a1(1,2) dual_order.strict_trans2 size_word.rep_eq)
-  have "uint (smt_extract j i x::'b::len word) = uint (ucast (drop_bit i (take_bit (Suc j) x))::'b::len word)"
-    unfolding smt_extract_def slice_def slice1_def
-    using a0 t1 by force
-  also have "... = uint (drop_bit i (take_bit (Suc j) x))"
-    by (metis (no_types, lifting) Suc_eq_plus1 a1(3) drop_bit_take_bit min.idem take_bit_take_bit unsigned_take_bit_eq unsigned_ucast_eq)
-  also have "... = drop_bit i (take_bit LENGTH('a::len) (unsigned (take_bit (Suc j) x)))" 
-    using unsigned_drop_bit_eq[of i "take_bit (Suc j) x"] by blast
-  also have "... = drop_bit i (take_bit LENGTH('a::len) (take_bit (Suc j) (unsigned x)))" 
-    using unsigned_take_bit_eq[of "Suc j" x] by metis
-  finally have "uint (smt_extract j i x::'b::len word) = drop_bit i (take_bit LENGTH('a::len) (take_bit (Suc j) (unsigned x)))" 
-    by auto
-  moreover have "(min LENGTH('a::len) (Suc j)) = Suc j"
-    by (metis Suc_leI a1(2) min_absorb2 word_size)
-  ultimately show "uint (smt_extract j i x::'b::len word) = drop_bit i (take_bit (Suc j) (unsigned x))" 
-    using take_bit_take_bit[of "LENGTH('a)" "Suc j" "unsigned x"]
-    by auto
-qed
+   = drop_bit i (take_bit (Suc j) (unsigned x))"
+  apply (subst uint_nat)
+  apply (simp add: unat_smt_extract)
+  by (metis Word.of_nat_unat of_nat_drop_bit take_bit_of_nat)
 
 lemma sint_smt_extract:
   fixes x::"'a::len word"
   shows  "i \<le> j \<and> j < size x \<and> LENGTH('b) = j + 1 - i
  \<Longrightarrow> sint ((smt_extract j i (x::'a::len word))::'b::len word)
 = signed_take_bit (LENGTH('b::len) - Suc (0::nat)) (drop_bit i (take_bit (Suc j) (unsigned x)))"
-  apply (cases "i=0")
-proof-
-  assume a0: "i = (0::nat) " and a1: "i \<le> j \<and> j < size x \<and> LENGTH('b) = j + 1 - i"
-  then have t0: "LENGTH('b) \<le> LENGTH('a)"
-    by (simp add: size_word.rep_eq)
-  have "sint (smt_extract j i x::'b::len word) = sint (ucast (take_bit (Suc j) x ::'a::len word)::'b::len word)"
-   unfolding smt_extract_def slice_def slice1_def
-   by (simp add: a0)
-  also have "... = signed_take_bit (LENGTH('b::len) - Suc (0::nat)) (unsigned (take_bit (Suc j) x))"
-    using signed_ucast_eq[of "(take_bit (Suc j) x ::'a::len word)"]
-    by blast
-  also have "... = signed_take_bit (LENGTH('b::len) - Suc (0::nat)) (take_bit (Suc j) (unsigned x))"
-    by (simp add: uint_take_bit_eq)
-  finally show "sint ((smt_extract j i (x::'a::len word))::'b::len word) = signed_take_bit (LENGTH('b::len) - Suc (0::nat)) (drop_bit i (take_bit (Suc j) (unsigned x)))" 
-    using a0 by force
-next
-  assume a0: "i \<noteq> (0::nat)" and a1: "i \<le> j \<and> j < size x \<and> LENGTH('b) = j + 1 - i"
-  then have t0: "LENGTH('b) \<le> LENGTH('a)"
-    by (metis Suc_eq_plus1 Suc_leI diff_le_self le_trans size_word.rep_eq)
-  have t1: "i < LENGTH('a)"
-    by (metis a1 dual_order.strict_trans2 size_word.rep_eq)
-  have "sint (smt_extract j i x::'b::len word) = sint (ucast (drop_bit i (take_bit (Suc j) x))::'b::len word)"
-    unfolding smt_extract_def slice_def slice1_def
-    using a0 t1 by force
-  also have "... = signed_take_bit (LENGTH('b::len) - Suc (0::nat)) (unsigned (drop_bit i (take_bit (Suc j) x)))"
-    using signed_ucast_eq by blast
-  also have "... = signed_take_bit (LENGTH('b::len) - Suc (0::nat)) (drop_bit i (unsigned (take_bit (Suc j) x)))"
-    by (metis take_bit_length_eq unsigned_drop_bit_eq unsigned_take_bit_eq)
-  also have "... = signed_take_bit (LENGTH('b::len) - Suc (0::nat)) (drop_bit i (take_bit (Suc j) (unsigned x)))"
-    by (simp add: unsigned_take_bit_eq)
-  finally show "sint ((smt_extract j i (x::'a::len word))::'b::len word) = signed_take_bit (LENGTH('b::len) - Suc (0::nat)) (drop_bit i (take_bit (Suc j) (unsigned x)))" 
-    using unsigned_drop_bit_eq[of i "take_bit (Suc j) x"] by blast
-qed
+  apply (subst sint_uint)
+  by (simp add: uint_smt_extract)
 
 definition replicate_nat :: \<open>_ \<Rightarrow> _ \<Rightarrow> nat\<close> where
  \<open>replicate_nat i s = (\<Sum>k=0..(i-1). 2^(s*k))\<close>
@@ -241,7 +175,7 @@ lemma ex_word_repeat:
   by (rule ex_unat_nat) (auto intro: replicate_nat_le)
 
 lemma word_repeat_prop:
-  \<open>i\<ge>1 \<Longrightarrow> LENGTH('b) = i * size n\<Longrightarrow> unat ((word_repeat i n) :: 'b :: len word) = replicate_nat i (size n) * (unat n)\<close>
+  \<open>i\<ge>1 \<Longrightarrow> LENGTH('b) = i * size n \<Longrightarrow> unat ((word_repeat i n) :: 'b :: len word) = replicate_nat i (size n) * (unat n)\<close>
   using ex_word_repeat[of i n, where 'b='b]
     theI[where P = \<open>\<lambda>x :: 'b::len word. LENGTH('b) = i * size n \<and> unat x = replicate_nat i (size n) * (unat n)\<close>,
     unfolded word_repeat_def[symmetric]]
@@ -286,56 +220,9 @@ lemma word_repeat_word_cat:
     subgoal using assms by auto
     subgoal using assms by (auto simp: algebra_simps word_size)
     done
-(*This cannot be added as a lemma, has to be implemented as a tactic*)
-named_theorems rewrite_bv_extract_concat_2 \<open>automatically_generated\<close>
-
-lemma [rewrite_bv_extract_concat_2]:
-  fixes x::"'a::len word" and xs::"'b::len word cvc_ListVar" and y::"'b::len word" and i::"int" and j::"int"
-  shows "i < int (size x) \<and> int (size x) \<le> j \<longrightarrow>
-   smt_extract (nat j) (nat i)
-    (word_cat (cvc_list_left word_cat xs y) x) =
-   word_cat
-    (smt_extract (nat (j - int (size x))) (nat (0::int))
-      (cvc_list_left word_cat xs y))
-    (smt_extract (nat (int (size x) - (1::int))) (nat i) x)"
-  oops
-
-(*This cannot be added as a lemma, has to be implemented as a tactic*)
-named_theorems rewrite_bv_extract_concat_3 \<open>automatically_generated\<close>
-
-lemma [rewrite_bv_extract_concat_3]:
-  fixes x::"'a::len word" and y::"'b::len word" and xs::"'b::len word cvc_ListVar" and i::"int" and j::"int"
-  shows "int (size x) \<le> i \<longrightarrow>
-   smt_extract (nat j) (nat i)
-    (word_cat (cvc_list_left word_cat xs y) x) =
-   smt_extract (nat (j - int (size x))) (nat (i - int (size x)))
-    (cvc_list_left word_cat xs y)"
-  oops
-
-(*This cannot be added as a lemma, has to be implemented as a tactic*)
-named_theorems rewrite_bv_extract_concat_4 \<open>automatically_generated\<close>
-
-lemma [rewrite_bv_extract_concat_4]:
-  fixes x::"'a::len word" and y::"'a::len word" and xs::"'a::len word cvc_ListVar" and i::"int" and j::"int"
-  shows "j < int (size (word_cat (cvc_list_right word_cat x xs) y)) -
-       int (size x) \<longrightarrow>
-   smt_extract (nat j) (nat i)
-    (word_cat (cvc_list_right word_cat x xs) y) =
-   smt_extract (nat j) (nat i) (cvc_list_left word_cat xs y)"
-  oops
 
 definition smt_repeat :: "nat \<Rightarrow> 'a::len word \<Rightarrow> 'b::len word" where
   \<open>smt_repeat i x = (if i = 0 then (ucast x::'b::len word) else word_repeat i x)\<close>
-
-definition xor :: "bool \<Rightarrow> bool \<Rightarrow> bool" (infixl "[+1]" 60)
-  where "(A [+1] B) \<equiv> (\<not>(A = B))"
-
-
-(*
-
-(define-rule bv-redor-eliminate ((x ?BitVec)) (bvredor x) (not (bvcomp x (bv 0 (bvsize x)))))
-(define-rule bv-redand-eliminate ((x ?BitVec)) (bvredand x) (not (bvcomp x (not (bv 0 (bvsize x))))))
-*)
 
 definition smt_comp :: "'a::len word \<Rightarrow> 'a::len word \<Rightarrow> 1 word" where
   \<open>smt_comp x y = (if (x = y) then 1 else 0)\<close>
