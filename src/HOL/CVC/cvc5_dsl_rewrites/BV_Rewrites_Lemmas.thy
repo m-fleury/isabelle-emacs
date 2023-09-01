@@ -227,26 +227,77 @@ definition smt_repeat :: "nat \<Rightarrow> 'a::len word \<Rightarrow> 'b::len w
 definition smt_comp :: "'a::len word \<Rightarrow> 'a::len word \<Rightarrow> 1 word" where
   \<open>smt_comp x y = (if (x = y) then 1 else 0)\<close>
 
+lemma smt_comp_cast_0 [simp]:
+  assumes "x = y"
+  shows "unat (smt_comp x y) = 1"
+        "uint (smt_comp x y) = 1"
+        "sint (smt_comp x y) = -1"
+  by (simp_all add: smt_comp_def assms)
+
+lemma smt_comp_cast_1 [simp]:
+  assumes "x \<noteq> y"
+  shows "unat (smt_comp x y) = 0"
+        "uint (smt_comp x y) = 0"
+        "sint (smt_comp x y) = 0"
+  by (simp_all add: smt_comp_def assms)
+
 definition smt_redor :: "'a::len word \<Rightarrow> 1 word" where
   \<open>smt_redor x = not (smt_comp x 0)\<close>
 
+lemma smt_redor_cast_0 [simp]:
+  assumes "x = 0"
+  shows "unat (smt_redor x) = 0"
+        "uint (smt_redor x) = 0"
+        "sint (smt_redor x) = 0"
+  by (simp_all add: smt_redor_def smt_comp_def assms)
+
+lemma smt_redor_cast_1 [simp]:
+  assumes "x \<noteq> 0"
+  shows "unat (smt_redor x) = 1"
+        "uint (smt_redor x) = 1"
+        "sint (smt_redor x) = -1"
+    apply (simp_all add: smt_redor_def smt_comp_def assms)
+  by (simp_all add: unsigned_minus_1_eq_mask)
+
 definition smt_redand :: "'a::len word \<Rightarrow> 1 word" where
-  \<open>smt_redand x = not (smt_comp x (not (0::'a word)))\<close>
+  \<open>smt_redand x = smt_comp x (not (0::'a word))\<close>
+
+lemma smt_redand_cast_0 [simp]:
+  assumes "x \<noteq> -1"
+  shows "unat (smt_redand x) = 0"
+        "uint (smt_redand x) = 0"
+        "sint (smt_redand x) = 0"
+  by (simp_all add: smt_redand_def smt_comp_def assms)
+
+lemma smt_redand_cast_1 [simp]:
+  assumes "x = -1"
+  shows "unat (smt_redand x) = 1"  
+        "uint (smt_redand x) = 1"
+        "sint (smt_redand x) = -1"
+  by (simp_all add: smt_redand_def smt_comp_def assms)
 
 (*'c is 'a + 1*)
-definition smt_uaddo  :: "'a::len word \<Rightarrow> 'b::len word \<Rightarrow> bool" where
-"smt_uaddo x y = (smt_extract (size x) (size x)
+definition smt_uaddo :: "'c::len itself \<Rightarrow> 'a::len word \<Rightarrow> 'b::len word \<Rightarrow> bool" where
+"smt_uaddo TYPE('c) x y = (smt_extract (size x - 1) (size x - 1)
  ((Word.word_cat (0::1 word) x) + (Word.word_cat (0::1 word) y) :: 'c::len word) = (1:: 1 word))"
 
-definition smt_saddo :: "'a::len word \<Rightarrow> 'b::len word \<Rightarrow> bool" where
-"smt_saddo x y = (smt_extract ((size x)-1) ((size y)-1)
- ((Word.word_cat (0::1 word) x) + (Word.word_cat (0::1 word) y) :: 'c::len word) = (1:: 1 word))"
+definition smt_saddo :: "'a::len word \<Rightarrow> 'a::len word \<Rightarrow> bool" where
+"smt_saddo x y = 
+(let sign0=smt_extract (size x - 1) (size x - 1) x in
+ let sign1=smt_extract (size x - 1) (size x - 1) y in
+ let signa=smt_extract (size x - 1) (size x - 1) (x+y) in
+ let both_neg=((sign0 = (1::1 word)) \<and> (sign1 = (1::1 word))) in
+ let both_pos=((sign0 = (0::1 word)) \<and> (sign1 = (0::1 word))) in
+ let result_neg=(signa = (1::1 word)) in
+ let result_pos=(signa = (0::1 word)) in 
+((both_neg \<and> result_pos) \<or> (both_pos \<and> result_neg))
+)"
 
-definition smt_sdivo :: "'a::len word \<Rightarrow> 'b::len word \<Rightarrow> bool" where
-"smt_sdivo x y = (x = (word_cat (1::1 word) (0::'c::len word)::'a word) \<and> y = (mask (size y)::'b word))"
+definition smt_sdivo :: "'c::len itself \<Rightarrow> 'a::len word \<Rightarrow> 'b::len word \<Rightarrow> bool" where
+"smt_sdivo TYPE('c) x y = (x = (word_cat (1::1 word) (0::'c::len word)::'a word) \<and> y = (mask (size y)::'b word))"
 
-definition smt_usubo :: "'a::len word \<Rightarrow> 'a::len word \<Rightarrow> bool" where
-"smt_usubo x y = ((smt_extract ((size x)-1) ((size y)-1) (Word.cast x -Word.cast y)) = (1::1 word))"
+definition smt_usubo :: "'c::len itself \<Rightarrow> 'a::len word \<Rightarrow> 'a::len word \<Rightarrow> bool" where
+"smt_usubo TYPE('c) x y = ((smt_extract ((size x)-1) ((size y)-1) ((Word.cast x::'c::len word) - Word.cast y)) = (1::1 word))"
 
 definition smt_ssubo :: "'a::len word \<Rightarrow> 'a::len word \<Rightarrow> bool" where (*TODO*)
 "smt_ssubo x y = 
