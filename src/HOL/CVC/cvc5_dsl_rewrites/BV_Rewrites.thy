@@ -2,48 +2,9 @@ theory BV_Rewrites
   imports BV_Rewrites_Lemmas HOL.SMT
 begin
 
-(*TODO: Talk about signed_take_bit*)
-
-
-(* This is a theory automatically created from a rare file! All that remains to do is to prove
-any lemma whose provided proof fails and to to import this file in thy. 
-If your rare statements use nary operators over lists that would be binarised by Isabelle 
-you have to add it in Dsl_Nary_Ops.thy. Currently already supported are the operators:
-and,
-or,
-plus,
-times,
-append,
-re_concat,
-str_concat,
-*)
-
-(*This cannot be added as a lemma, has to be implemented as a tactic*)
-named_theorems rewrite_bv_concat_flatten \<open>automatically_generated\<close>
-
-lemma [rewrite_bv_concat_flatten]:
-  fixes xs::"'a::len word cvc_ListVar" and s::"'a::len word" and ys::"'a::len word cvc_ListVar" and zs::"'a::len word cvc_ListVar"
-  shows "cvc_list_right word_cat
-    (cvc_list_left word_cat xs (cvc_list_right word_cat s ys)) zs =
-   cvc_list_right word_cat
-    (cvc_list_right word_cat (cvc_list_left word_cat xs s) ys) zs"
-  oops
-
-
-(*This cannot be added as a lemma, has to be implemented as a tactic*)
-named_theorems rewrite_bv_concat_extract_merge \<open>automatically_generated\<close>
-
-lemma [rewrite_bv_concat_extract_merge]:
-  fixes xs::"'a::len word cvc_ListVar" and s::"'b::len word" and ys::"'a::len word cvc_ListVar" and i::"int" and j::"int" and j1::"int" and k::"int"
-  shows "j1 = j + (1::int) \<longrightarrow>
-   cvc_list_right word_cat
-    (word_cat
-      (cvc_list_left word_cat xs (smt_extract (nat k) (nat j1) s))
-      (smt_extract (nat j) (nat i) s))
-    ys =
-   cvc_list_right word_cat
-    (cvc_list_left word_cat xs (smt_extract (nat k) (nat i) s)) ys"
-  oops
+(* This is a theory automatically created from a RARE file! All that remains to do is to prove
+any lemma whose provided proof fails and to to import this file in SMT.thy (if you want to use it
+for proof reconstruction).*)
 
 named_theorems rewrite_bv_extract_extract \<open>automatically_generated\<close>
 
@@ -87,44 +48,6 @@ lemma [rewrite_bv_extract_concat_1]:
    smt_extract (nat j) (nat i)
     (word_cat (cvc_list_left word_cat xs y) x) =
    smt_extract (nat j) (nat i) x"
-  oops
-
-(*This cannot be added as a lemma, has to be implemented as a tactic*)
-named_theorems rewrite_bv_extract_concat_2 \<open>automatically_generated\<close>
-
-lemma [rewrite_bv_extract_concat_2]:
-  fixes x::"'a::len word" and xs::"'b::len word cvc_ListVar" and y::"'b::len word" and i::"int" and j::"int"
-  shows "i < int (size x) \<and> int (size x) \<le> j \<longrightarrow>
-   smt_extract (nat j) (nat i)
-    (word_cat (cvc_list_left word_cat xs y) x) =
-   word_cat
-    (smt_extract (nat (j - int (size x))) (nat (0::int))
-      (cvc_list_left word_cat xs y))
-    (smt_extract (nat (int (size x) - (1::int))) (nat i) x)"
-  oops
-
-(*This cannot be added as a lemma, has to be implemented as a tactic*)
-named_theorems rewrite_bv_extract_concat_3 \<open>automatically_generated\<close>
-
-lemma [rewrite_bv_extract_concat_3]:
-  fixes x::"'a::len word" and y::"'b::len word" and xs::"'b::len word cvc_ListVar" and i::"int" and j::"int"
-  shows "int (size x) \<le> i \<longrightarrow>
-   smt_extract (nat j) (nat i)
-    (word_cat (cvc_list_left word_cat xs y) x) =
-   smt_extract (nat (j - int (size x))) (nat (i - int (size x)))
-    (cvc_list_left word_cat xs y)"
-  oops
-
-(*This cannot be added as a lemma, has to be implemented as a tactic*)
-named_theorems rewrite_bv_extract_concat_4 \<open>automatically_generated\<close>
-
-lemma [rewrite_bv_extract_concat_4]:
-  fixes x::"'a::len word" and y::"'a::len word" and xs::"'a::len word cvc_ListVar" and i::"int" and j::"int"
-  shows "j < int (size (word_cat (cvc_list_right word_cat x xs) y)) -
-       int (size x) \<longrightarrow>
-   smt_extract (nat j) (nat i)
-    (word_cat (cvc_list_right word_cat x xs) y) =
-   smt_extract (nat j) (nat i) (cvc_list_left word_cat xs y)"
   oops
 
 named_theorems rewrite_bv_ugt_eliminate \<open>automatically_generated\<close>
@@ -193,7 +116,7 @@ named_theorems rewrite_bv_redand_eliminate \<open>automatically_generated\<close
 
 lemma [rewrite_bv_redand_eliminate]:
   fixes x::"'a ::len word"
-  shows "smt_redand x = not (smt_comp x (not (Word.Word (0::int))))"
+  shows "smt_redand x = smt_comp x (not (Word.Word (0::int)))"
   unfolding smt_redand_def by auto
 
 named_theorems rewrite_bv_sub_eliminate \<open>automatically_generated\<close>
@@ -217,14 +140,41 @@ lemma [rewrite_bv_comp_eliminate]:
   shows "smt_comp x y = (if x = y then Word.Word (1::int) else Word.Word (0::int))"
   by (metis one_word.abs_eq smt_comp_def zero_word.abs_eq)
 
-(*TODO: repeat*)
 named_theorems rewrite_bv_repeat_eliminate_1 \<open>automatically_generated\<close>
 
 lemma [rewrite_bv_repeat_eliminate_1]:
   fixes x::"'a ::len word" and n::"int"
-  shows "(1::int) < n \<longrightarrow>
-   smt_repeat (nat n) x = word_cat x (smt_repeat (nat (n - (1::int))) x)"
-  oops
+  assumes "1 < n" "LENGTH('c) = (n-1) * LENGTH('a)" "LENGTH('b) = n * LENGTH('a)"
+  shows "(smt_repeat (nat n) x::'b::len word) = (word_cat x (smt_repeat (nat (n - (1::int))) x::'c::len word)::'b::len word)"
+proof- 
+  have t0: "LENGTH('c::len) = (nat n - (1::nat)) * size (x::'a::len word)"
+    apply (simp add: assms)
+    by (metis One_nat_def assms(1) assms(2) int_one_le_iff_zero_less mult.commute nat_diff_distrib' nat_int nat_mult_distrib of_nat_0_le_iff of_nat_1 order_less_imp_le wsst_TYs(3))
+
+  have "unat (word_repeat (nat n) x::'b::len word) = replicate_nat (nat n) (size x) * unat x"
+    apply (subst word_repeat_prop[of "nat n" x, where 'b='b])
+    using assms(1) apply auto[1]
+     apply (metis assms(3) mult.commute nat_int nat_mult_distrib of_nat_0_le_iff size_word.rep_eq)
+    by simp
+  also have "... =
+ (replicate_nat (nat n - (1::nat)) (size x) + (2::nat) ^ ((nat n - (1::nat)) * size x)) * unat x"
+    using replicate_nat_Suc[of "nat n - 1" "size x"] add_0 assms(1) by fastforce
+  also have "... = replicate_nat (nat n - (1::nat)) (size x) * unat x + (2::nat) ^ ((nat n - (1::nat)) * size x) * unat x"
+    by (metis distrib_left mult.commute)
+  also have "... = unat (word_repeat (nat n-1) x::'c::len word) + (2::nat) ^ ((nat n - (1::nat)) * size x) * unat x"
+    apply (subst word_repeat_prop[symmetric,of "nat n-1" x, where 'b='c])
+    using assms(1) apply linarith
+      apply (metis assms(1,2) int_minus int_one_le_iff_zero_less int_ops(2) less_le_not_le mult.commute nat_0_le nat_int nat_mult_distrib of_nat_0_le_iff wsst_TYs(3))
+    by blast
+  also have "... = push_bit LENGTH('c::len) (unat x) + unat (word_repeat (nat n-1) x::'c::len word)"
+    by (simp add: push_bit_eq_mult t0)
+  also have "... = unat (word_cat x (smt_repeat (nat (n - (1::int))) x::'c::len word)::'b::len word)"
+    apply (subst unat_word_cat[of x "(smt_repeat (nat (n - (1::int))) x::'c::len word)", where 'c='b])
+    using assms(2,3) int_distrib(3) apply auto[1]
+    by (metis assms(1) int_one_le_iff_zero_less len_gt_0 less_le_not_le mult_zero_left nat_diff_distrib' nat_int of_nat_0_le_iff of_nat_1 smt_repeat_def t0)
+  finally show ?thesis
+    by (metis assms(1) less_nat_zero_code one_less_nat_eq smt_repeat_def word_unat_eq_iff)
+qed
 
 (*TODO: repeat*)
 named_theorems rewrite_bv_repeat_eliminate_2 \<open>automatically_generated\<close>
