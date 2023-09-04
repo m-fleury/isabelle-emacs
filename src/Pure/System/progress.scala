@@ -139,12 +139,12 @@ object Progress {
         })
     }
 
-    def next_messages_serial(db: SQL.Database, context: Long): Long =
+    def read_messages_serial(db: SQL.Database, context: Long): Long =
       db.execute_query_statementO(
         Messages.table.select(
           List(Messages.serial.max), sql = Base.context.where_equal(context)),
         _.long(Messages.serial)
-      ).getOrElse(0L) + 1L
+      ).getOrElse(0L)
 
     def read_messages(db: SQL.Database, context: Long, seen: Long = 0): Messages.T =
       db.execute_query_statement(
@@ -167,16 +167,16 @@ object Progress {
     def write_messages(
       db: SQL.Database,
       context: Long,
-      serial: Long,
-      message: Message
+      messages: List[(Long, Message)]
     ): Unit = {
-      db.execute_statement(Messages.table.insert(), body = { stmt =>
-        stmt.long(1) = context
-        stmt.long(2) = serial
-        stmt.int(3) = message.kind.id
-        stmt.string(4) = message.text
-        stmt.bool(5) = message.verbose
-      })
+      db.execute_batch_statement(Messages.table.insert(), batch =
+        for ((serial, message) <- messages) yield { (stmt: SQL.Statement) =>
+          stmt.long(1) = context
+          stmt.long(2) = serial
+          stmt.int(3) = message.kind.id
+          stmt.string(4) = message.text
+          stmt.bool(5) = message.verbose
+        })
     }
   }
 }
@@ -217,6 +217,7 @@ class Progress {
     if (Thread.interrupted()) is_stopped = true
     is_stopped
   }
+  def stopped_local: Boolean = false
 
   final def interrupt_handler[A](e: => A): A = POSIX_Interrupt.handler { stop() } { e }
   final def expose_interrupt(): Unit = if (stopped) throw Exn.Interrupt()
@@ -262,17 +263,26 @@ extends Progress {
 /* database progress */
 
 class Database_Progress(
-  val db: SQL.Database,
-  val base_progress: Progress,
-  val kind: String = "progress",
-  val hostname: String = Isabelle_System.hostname(),
-  val context_uuid: String = UUID.random().toString)
+  db: SQL.Database,
+  base_progress: Progress,
+  input_messages: Boolean = false,
+  output_stopped: Boolean = false,
+  kind: String = "progress",
+  hostname: String = Isabelle_System.hostname(),
+  context_uuid: String = UUID.random().toString,
+  timeout: Option[Time] = None)
 extends Progress {
   database_progress =>
+
+  if (UUID.unapply(context_uuid).isEmpty) {
+    error("Bad Database_Progress.context_uuid: " + quote(context_uuid))
+  }
 
   private var _agent_uuid: String = ""
   private var _context: Long = -1
   private var _serial: Long = 0
+  private var _stopped_db: Boolean = false
+  private var _consumer: Consumer_Thread[Progress.Output] = null
 
   def agent_uuid: String = synchronized { _agent_uuid }
 
@@ -310,10 +320,41 @@ extends Progress {
       })
     }
     if (context_uuid == _agent_uuid) db.vacuum(Progress.private_data.tables.list)
+
+    def consume(bulk_output: List[Progress.Output]): List[Exn.Result[Unit]] = sync_database {
+      if (bulk_output.nonEmpty) {
+        for (out <- bulk_output) {
+          out match {
+            case message: Progress.Message =>
+              if (do_output(message)) base_progress.output(message)
+            case theory: Progress.Theory => base_progress.theory(theory)
+          }
+        }
+
+        val messages =
+          for ((out, i) <- bulk_output.zipWithIndex)
+            yield (_serial + i + 1) -> out.message
+
+        Progress.private_data.write_messages(db, _context, messages)
+        _serial = messages.last._1
+      }
+      bulk_output.map(_ => Exn.Res(()))
+    }
+
+    _consumer = Consumer_Thread.fork_bulk[Progress.Output](name = "Database_Progress.consumer")(
+      bulk = _ => true, timeout = timeout,
+      consume = { bulk_output =>
+        val results =
+          if (bulk_output.isEmpty) consume(Nil)
+          else bulk_output.grouped(200).toList.flatMap(consume)
+        (results, true) })
   }
 
   def exit(close: Boolean = false): Unit = synchronized {
     if (_context > 0) {
+      _consumer.shutdown()
+      _consumer = null
+
       Progress.private_data.transaction_lock(db, label = "Database_Progress.exit") {
         Progress.private_data.update_agent(db, _agent_uuid, _serial, stop_now = true)
       }
@@ -322,55 +363,55 @@ extends Progress {
     if (close) db.close()
   }
 
-  private def sync_database[A](body: => A): A = synchronized {
+  private def sync_context[A](body: => A): A = synchronized {
     if (_context < 0) throw new IllegalStateException("Database_Progress before init")
     if (_context == 0) throw new IllegalStateException("Database_Progress after exit")
 
-    Progress.private_data.transaction_lock(db, label = "Database_Progress.sync") {
-      val stopped_db = Progress.private_data.read_progress_stopped(db, _context)
-      val stopped = base_progress.stopped
+    body
+  }
 
-      if (stopped_db && !stopped) base_progress.stop()
-      if (stopped && !stopped_db) Progress.private_data.write_progress_stopped(db, _context, true)
+  private def sync_database[A](body: => A): A = synchronized {
+    Progress.private_data.transaction_lock(db, label = "Database_Progress.sync_database") {
+      _stopped_db = Progress.private_data.read_progress_stopped(db, _context)
 
-      val messages = Progress.private_data.read_messages(db, _context, seen = _serial)
-      for ((message_serial, message) <- messages) {
-        if (base_progress.do_output(message)) base_progress.output(message)
-        _serial = _serial max message_serial
+      if (_stopped_db && !base_progress.stopped) base_progress.stop()
+      if (!_stopped_db && base_progress.stopped && output_stopped) {
+        Progress.private_data.write_progress_stopped(db, _context, true)
       }
-      if (messages.nonEmpty) Progress.private_data.update_agent(db, _agent_uuid, _serial)
 
-      body
+      val serial0 = _serial
+      if (input_messages) {
+        val messages = Progress.private_data.read_messages(db, _context, seen = _serial)
+        for ((message_serial, message) <- messages) {
+          if (base_progress.do_output(message)) base_progress.output(message)
+          _serial = _serial max message_serial
+        }
+      }
+      else {
+        _serial = _serial max Progress.private_data.read_messages_serial(db, _context)
+      }
+
+      val res = body
+
+      if (_serial != serial0) Progress.private_data.update_agent(db, _agent_uuid, _serial)
+
+      res
     }
   }
 
-  def sync(): Unit = sync_database {}
+  private def sync(): Unit = sync_database {}
 
-  private def output_database(out: Progress.Output): Unit =
-    sync_database {
-      _serial = _serial max Progress.private_data.next_messages_serial(db, _context)
-
-      Progress.private_data.write_messages(db, _context, _serial, out.message)
-
-      out match {
-        case message: Progress.Message =>
-          if (do_output(message)) base_progress.output(message)
-        case theory: Progress.Theory => base_progress.theory(theory)
-      }
-
-      Progress.private_data.update_agent(db, _agent_uuid, _serial)
-    }
-
-  override def output(message: Progress.Message): Unit = output_database(message)
-  override def theory(theory: Progress.Theory): Unit = output_database(theory)
+  override def output(message: Progress.Message): Unit = sync_context { _consumer.send(message) }
+  override def theory(theory: Progress.Theory): Unit = sync_context { _consumer.send(theory) }
 
   override def nodes_status(nodes_status: Document_Status.Nodes_Status): Unit =
     base_progress.nodes_status(nodes_status)
 
   override def verbose: Boolean = base_progress.verbose
 
-  override def stop(): Unit = synchronized { base_progress.stop(); sync() }
-  override def stopped: Boolean = sync_database { base_progress.stopped }
+  override def stop(): Unit = sync_context { base_progress.stop(); sync() }
+  override def stopped: Boolean = sync_context { base_progress.stopped }
+  override def stopped_local: Boolean = sync_context { base_progress.stopped && !_stopped_db }
 
   override def toString: String = super.toString + ": database " + db
 

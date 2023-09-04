@@ -9,17 +9,18 @@ package isabelle
 
 import scala.annotation.tailrec
 import scala.util.matching.Regex
+import scala.collection.mutable
 
 
 object Export {
   /* artefact names */
 
-  val DOCUMENT_ID = "PIDE/document_id"
-  val FILES = "PIDE/files"
-  val MARKUP = "PIDE/markup"
-  val MESSAGES = "PIDE/messages"
-  val DOCUMENT_PREFIX = "document/"
-  val DOCUMENT_LATEX = DOCUMENT_PREFIX + "latex"
+  val DOCUMENT_ID: String = "PIDE/document_id"
+  val FILES: String = "PIDE/files"
+  val MARKUP: String = "PIDE/markup"
+  val MESSAGES: String = "PIDE/messages"
+  val DOCUMENT_PREFIX: String = "document/"
+  val DOCUMENT_LATEX: String = DOCUMENT_PREFIX + "latex"
   val THEORY_PREFIX: String = "theory/"
   val PROOFS_PREFIX: String = "proofs/"
 
@@ -54,10 +55,30 @@ object Export {
     def clean_session(db: SQL.Database, session_name: String): Unit =
       db.execute_statement(Base.table.delete(sql = where_equal(session_name)))
 
-    def readable_entry(db: SQL.Database, entry_name: Entry_Name): Boolean = {
-      db.execute_query_statementB(
-        Base.table.select(List(Base.name),
-          sql = where_equal(entry_name.session, entry_name.theory, entry_name.name)))
+    def known_entries(db: SQL.Database, entry_names: Iterable[Entry_Name]): Set[Entry_Name] = {
+      val it = entry_names.iterator
+      if (it.isEmpty) Set.empty[Entry_Name]
+      else {
+        val sql_preds =
+          List.from(
+            for (entry_name <- it) yield {
+              SQL.and(
+                Base.session_name.equal(entry_name.session),
+                Base.theory_name.equal(entry_name.theory),
+                Base.name.equal(entry_name.name)
+              )
+            })
+        db.execute_query_statement(
+          Base.table.select(List(Base.session_name, Base.theory_name, Base.name),
+            sql = SQL.where(SQL.OR(sql_preds))),
+          Set.from[Entry_Name],
+          { res =>
+            val session_name = res.string(Base.session_name)
+            val theory_name = res.string(Base.theory_name)
+            val name = res.string(Base.name)
+            Entry_Name(session_name, theory_name, name)
+          })
+      }
     }
 
     def read_entry(db: SQL.Database, entry_name: Entry_Name, cache: XML.Cache): Option[Entry] =
@@ -73,17 +94,17 @@ object Export {
         }
       )
 
-    def write_entry(db: SQL.Database, entry: Entry): Unit = {
-      val (compressed, bs) = entry.body.join
-      db.execute_statement(Base.table.insert(), body = { stmt =>
-        stmt.string(1) = entry.session_name
-        stmt.string(2) = entry.theory_name
-        stmt.string(3) = entry.name
-        stmt.bool(4) = entry.executable
-        stmt.bool(5) = compressed
-        stmt.bytes(6) = bs
-      })
-    }
+    def write_entries(db: SQL.Database, entries: List[Entry]): Unit =
+      db.execute_batch_statement(Base.table.insert(), batch =
+        for (entry <- entries) yield { (stmt: SQL.Statement) =>
+          val (compressed, bs) = entry.body.join
+          stmt.string(1) = entry.session_name
+          stmt.string(2) = entry.theory_name
+          stmt.string(3) = entry.name
+          stmt.bool(4) = entry.executable
+          stmt.bool(5) = compressed
+          stmt.bytes(6) = bs
+        })
 
     def read_theory_names(db: SQL.Database, session_name: String): List[String] =
       db.execute_query_statement(
@@ -232,31 +253,46 @@ object Export {
   class Consumer private[Export](db: SQL.Database, cache: XML.Cache, progress: Progress) {
     private val errors = Synchronized[List[String]](Nil)
 
+    private def consume(args: List[(Entry, Boolean)]): List[Exn.Result[Unit]] = {
+      for ((entry, _) <- args) {
+        if (progress.stopped) entry.cancel() else entry.body.join
+      }
+      private_data.transaction_lock(db, label = "Export.consumer(" + args.length + ")") {
+        var known = private_data.known_entries(db, args.map(p => p._1.entry_name))
+        val buffer = new mutable.ListBuffer[Option[Entry]]
+
+        for ((entry, strict) <- args) {
+          if (progress.stopped || known(entry.entry_name)) {
+            buffer += None
+            if (strict && known(entry.entry_name)) {
+              val msg = message("Duplicate export", entry.theory_name, entry.name)
+              errors.change(msg :: _)
+            }
+          }
+          else {
+            buffer += Some(entry)
+            known += entry.entry_name
+          }
+        }
+
+        val entries = buffer.toList
+        try {
+          private_data.write_entries(db, entries.flatten)
+          val ok = Exn.Res[Unit](())
+          entries.map(_ => ok)
+        }
+        catch {
+          case exn: Throwable =>
+            val err = Exn.Exn[Unit](exn)
+            entries.map(_ => err)
+        }
+      }
+    }
+
     private val consumer =
       Consumer_Thread.fork_bulk[(Entry, Boolean)](name = "export")(
         bulk = { case (entry, _) => entry.is_finished },
-        consume =
-          { (args: List[(Entry, Boolean)]) =>
-            val results =
-              private_data.transaction_lock(db, label = "Export.consumer(" + args.length + ")") {
-                for ((entry, strict) <- args)
-                yield {
-                  if (progress.stopped) {
-                    entry.cancel()
-                    Exn.Res(())
-                  }
-                  else if (private_data.readable_entry(db, entry.entry_name)) {
-                    if (strict) {
-                      val msg = message("Duplicate export", entry.theory_name, entry.name)
-                      errors.change(msg :: _)
-                    }
-                    Exn.Res(())
-                  }
-                  else Exn.capture { private_data.write_entry(db, entry) }
-                }
-              }
-            (results, true)
-          })
+        consume = args => (args.grouped(20).toList.flatMap(consume), true))
 
     def make_entry(session_name: String, args: Protocol.Export.Args, body: Bytes): Unit = {
       if (!progress.stopped && !body.is_empty) {
