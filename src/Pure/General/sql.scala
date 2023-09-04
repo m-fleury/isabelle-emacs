@@ -10,7 +10,7 @@ package isabelle
 
 
 import java.time.OffsetDateTime
-import java.sql.{DriverManager, Connection, PreparedStatement, ResultSet, SQLException}
+import java.sql.{DriverManager, Connection, PreparedStatement, ResultSet}
 
 import org.sqlite.jdbc4.JDBC4Connection
 import org.postgresql.{PGConnection, PGNotification}
@@ -19,8 +19,6 @@ import scala.collection.mutable
 
 
 object SQL {
-  lazy val time_start = Time.now()
-
   /** SQL language **/
 
   type Source = String
@@ -61,10 +59,6 @@ object SQL {
   val join_outer: Source = " LEFT OUTER JOIN "
   val join_inner: Source = " INNER JOIN "
   def join(outer: Boolean): Source = if (outer) join_outer else join_inner
-
-  def MULTI(args: Iterable[Source]): Source =
-    args.iterator.filter(_.nonEmpty).mkString(";\n")
-  def multi(args: Source*): Source = MULTI(args)
 
   def infix(op: Source, args: Iterable[Source]): Source = {
     val body = args.iterator.filter(_.nonEmpty).mkString(" " + op + " ")
@@ -272,8 +266,6 @@ object SQL {
 
   /* statements */
 
-  class Batch_Error(val results: List[Int]) extends SQLException
-
   class Statement private[SQL](val db: Database, val rep: PreparedStatement) extends AutoCloseable {
     stmt =>
 
@@ -322,18 +314,6 @@ object SQL {
     }
 
     def execute(): Boolean = rep.execute()
-
-    def execute_batch(batch: IterableOnce[Statement => Unit]): Unit = {
-      val it = batch.iterator
-      if (it.nonEmpty) {
-        for (body <- it) { body(this); rep.addBatch() }
-        val res = rep.executeBatch()
-        if (!res.forall(i => i >= 0 || i == java.sql.Statement.SUCCESS_NO_INFO)) {
-          throw new Batch_Error(res.toList)
-        }
-      }
-    }
-
     def execute_query(): Result = new Result(this, rep.executeQuery())
 
     override def close(): Unit = rep.close()
@@ -481,10 +461,7 @@ object SQL {
       def trace(msg: String): Unit = {
         val trace_time = Time.now() - trace_start
         if (trace_time >= trace_min) {
-          time_start
-          val nl =
-            if (trace_nl) ""
-            else { trace_nl = true; "\nnow = " + (Time.now() - time_start).toString + "\n" }
+          val nl = if (trace_nl) "" else { trace_nl = true; "\n" }
           log(nl + trace_time + " transaction " + trace_count +
             if_proper(label, " " + label) + ": " + msg)
         }
@@ -520,11 +497,6 @@ object SQL {
 
     def execute_statement(sql: Source, body: Statement => Unit = _ => ()): Unit =
       using_statement(sql) { stmt => body(stmt); stmt.execute() }
-
-    def execute_batch_statement(
-      sql: Source,
-      batch: IterableOnce[Statement => Unit] = Nil
-    ): Unit = using_statement(sql) { stmt => stmt.execute_batch(batch) }
 
     def execute_query_statement[A, B](
       sql: Source,
@@ -676,8 +648,7 @@ object PostgreSQL {
     val url = "jdbc:postgresql://" + server.host + ":" + server.port + "/" + name
     val ssh = server.ssh_system.ssh_session
     val print =
-      "server " + quote(user + "@" + server + "/" + name) +
-        if_proper(ssh, " via ssh " + quote(ssh.get.toString))
+      "server " + user + "@" + server + "/" + name + if_proper(ssh, " via ssh " + ssh.get)
 
     val connection = DriverManager.getConnection(url, user, password)
     val db = new Database(connection, print, server, server_close)

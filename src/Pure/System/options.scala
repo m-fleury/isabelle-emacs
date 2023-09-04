@@ -19,21 +19,10 @@ object Options {
 
     def ISABELLE_BUILD_OPTIONS: List[Spec] =
       Word.explode(Isabelle_System.getenv("ISABELLE_BUILD_OPTIONS")).map(make)
-
-    def print_value(s: String): String =
-      s match {
-        case Value.Boolean(_) => s
-        case Value.Long(_) => s
-        case Value.Double(_) => s
-        case _ => Token.quote_name(specs_syntax.keywords, s)
-      }
-
-    def print(name: String, value: String): String = Properties.Eq(name, print_value(value))
   }
 
   sealed case class Spec(name: String, value: Option[String] = None, permissive: Boolean = false) {
     override def toString: String = name + if_proper(value, "=" + value.get)
-    def print: String = name + if_proper(value, "=" + Spec.print_value(value.get))
   }
 
   sealed case class Change(name: String, value: String, unknown: Boolean) {
@@ -312,9 +301,6 @@ final class Options private(
     cat_lines(iterator.filter(filter).toList.sortBy(_.name).map(print_entry))
 
   def description(name: String): String = check_name(name).description
-
-  def spec(name: String): Options.Spec =
-    Options.Spec(name, Some(check_name(name).value))
 
 
   /* check */
