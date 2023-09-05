@@ -1,5 +1,5 @@
 theory SMT_Word
-  imports "HOL-Library.Word"
+  imports "HOL-Library.Word" "Word_Lib.Many_More"
 begin
 declare  [[smt_cvc_lethe = true]]
 
@@ -91,9 +91,8 @@ proof -
   show ?thesis  
     apply (simp add: word_cat_eq' concat_bit_eq take_bit_eq_mod push_bit_eq_mult)
     apply (simp add: unat_word_ariths unat_ucast_upcast B1 B2)
-    (*by (metis B2 \<open>LENGTH('l\<^sub>2) < LENGTH('l\<^sub>3)\<close> add.commute add_leD2 add_lessD1 assms nat_mod_eq'
-        unat_pow_le_intro unat_power_lower unat_ucast)*)
-    sorry
+    by (metis B2 \<open>LENGTH('l\<^sub>2) < LENGTH('l\<^sub>3)\<close> add.commute add_leD2 add_lessD1 assms nat_mod_eq'
+        unat_pow_le_intro unat_power_lower unat_ucast)
 qed
 
 (*end of stolen*)
