@@ -30,14 +30,14 @@ fun smtlib_logic "z3" ts =
 (* SMT-LIB builtins *)
 
 local
-  val smtlibC = SMTLIB_Interface.smtlibC @ SMTLIB_Interface.bvsmlibC
+  val smtlibC = SMTLIB_Interface.bvsmlibC
      val _ = @{print}("in bv builtin")
 
   val wordT = \<^typ>\<open>'a::len word\<close>
   val wordT_concrete = \<^typ>\<open>num \<Rightarrow> 'a::len word\<close>
 
-  fun index1 s i = "(_ eee" ^ s ^ " " ^ string_of_int i ^ ")"
-  fun index2 s i j = "(_ qwer" ^ s ^ " " ^ string_of_int i ^ " " ^ string_of_int j ^ ")"
+  fun index1 s i = "(_ " ^ s ^ " " ^ string_of_int i ^ ")"
+  fun index2 s i j = "(_ " ^ s ^ " " ^ string_of_int i ^ " " ^ string_of_int j ^ ")"
 
   fun word_typ (Type (\<^type_name>\<open>word\<close>, [T])) =
 let 
@@ -56,6 +56,8 @@ Option.map (rpair [] o index1 "BitVec") (try dest_binT T)
    will be ignored according to the SMT-LIB*)
   fun word_num (Type (\<^type_name>\<open>word\<close>, [T])) k =
         let
+val _ = @{print}  "word_num"
+val _ = @{print}  k
           val size = try dest_binT T
           fun max_int size = Integer.pow size 2
           val _ = @{print}("IN word_num", size)
@@ -140,9 +142,9 @@ Option.map (rpair [] o index1 "BitVec") (try dest_binT T)
 in
 
 val setup_builtins =
-  SMT_Builtin.add_builtin_typ smtlibC (wordT, word_typ, word_num) #>
+  SMT_Builtin.add_builtin_typ SMTLIB_Interface.bvsmlibC (wordT, word_typ, word_num) #>
 (*Isabelle typ, typ uebersetzung, term uebersetzung*)
-  SMT_Builtin.add_builtin_typ SMTLIB_Interface.smtlibC
+  SMT_Builtin.add_builtin_typ SMTLIB_Interface.bvsmlibC
     (\<^typ>\<open>Num.num \<Rightarrow> 'a::len word\<close>, word_typ, word_num) #>
   fold (add_word_fun if_fixed_all) [
     (\<^term>\<open>uminus :: 'a::len word \<Rightarrow> _\<close>, "bvneg"),
@@ -171,7 +173,7 @@ val setup_builtins =
     (\<^term>\<open>less_eq :: 'a::len word \<Rightarrow> _\<close>, "bvule"),
     (\<^term>\<open>word_sless\<close>, "bvslt"),
     (\<^term>\<open>word_sle\<close>, "bvsle") ] #>
-  fold (SMT_Builtin.add_builtin_fun' SMTLIB_Interface.smtlibC) [
+  fold (SMT_Builtin.add_builtin_fun' SMTLIB_Interface.bvsmlibC) [
     (\<^term>\<open>unsigned :: 'a::len word \<Rightarrow> Nat.nat\<close>, "bv2nat"),
     (\<^term>\<open>unsigned :: 'a::len word \<Rightarrow> Int.int\<close>, "bv2nat")
    ]

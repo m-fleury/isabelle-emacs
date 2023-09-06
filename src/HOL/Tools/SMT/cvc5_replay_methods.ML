@@ -112,9 +112,8 @@ fun cvc5_rule_of "bind" = Bind
 
 fun normalized_input ctxt prems t = SMT_Replay_Methods.prove ctxt t (fn _ =>
 let
-    val _ = (SMT_Config.verit_msg ctxt) (fn () => \<^print> ("normalized input t =",t))
-    val _ = (SMT_Config.verit_msg ctxt) (fn () => \<^print> ("normalized ipput prems =",prems))
-
+    val _ = (SMT_Config.verit_msg ctxt) (fn () => \<^print> ("conclusion t t =",t))
+    val _ = (SMT_Config.verit_msg ctxt) (fn () => \<^print> ("normalized input prems =",prems))
 in
   resolve_tac ctxt prems
     (*TODO: should only be used for lambda encoding*)
