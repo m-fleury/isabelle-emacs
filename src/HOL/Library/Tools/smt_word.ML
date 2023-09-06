@@ -222,15 +222,7 @@ fun mk_test (t1, t2) = (Const (\<^const_name>\<open>Word.word_cat\<close>, dummy
 fun bv_term_parser (SMTLIB.Sym bv, []) =
       (case try (unprefix "bv") bv of
         NONE => NONE
-(*TODO*)
-      (*| SOME t => SOME (HOLogic.mk_number \<^typ>\<open>Int.int\<close> (fst (read_int (raw_explode t)))))*)
       | SOME t => SOME ((HOLogic.mk_term_of \<^typ>\<open>32 word\<close> (HOLogic.mk_string t))))
-  (*| bv_term_parser (SMTLIB.BV (int,base), []) =    
-    let
-        val ty = Word_Lib.mk_wordT base
-      in
-        SOME (HOLogic.mk_number ty int)
-      end*)
   | bv_term_parser (SMTLIB.Sym "_", [int, base]) =
       let
         val ty = Word_Lib.mk_wordT (snd (HOLogic.dest_number base))
@@ -255,15 +247,7 @@ fun bv_term_parser (SMTLIB.Sym bv, []) =
         SOME (fold (curry (HOLogic.mk_binop \<^const_name>\<open>Groups.minus\<close>)) xs a)
       end
   | bv_term_parser (SMTLIB.Sym "bv", [int,(Const ("Nat.semiring_1_class.of_nat", _) $ (Const ("Nat.size_class.size", _) $
-     Free ("x", typ)))]) =
-      let
-     val _ = @{print}("int",int)
-     val _ = @{print}("typ",typ)
-        (*This might not be possible since int might not be a int*)
-      (*  val num = snd (HOLogic.dest_number int)
-      in SOME (HOLogic.mk_number typ num) end*)
-      (*Only possibility I see is to add a cast from int to word in these cases*)
-      in SOME (Const  (\<^const_name>\<open>Word.Word\<close>,\<^typ>\<open>Int.int\<close>--> typ) $ int) end
+     Free ("x", typ)))]) = SOME (Const  (\<^const_name>\<open>Word.Word\<close>,\<^typ>\<open>Int.int\<close>--> typ) $ int)
   | bv_term_parser (SMTLIB.Sym "bvmul", (t::ts)) =
       let
         val T = fastype_of t
@@ -292,33 +276,17 @@ fun bv_term_parser (SMTLIB.Sym bv, []) =
       SOME (mk_unary \<^const_name>\<open>ring_bit_operations_class.not\<close> (HOLogic.mk_binop \<^const_name>\<open>semiring_bit_operations_class.xor\<close> (t1, t2)))
   | bv_term_parser (SMTLIB.Sym "bvnot", [t1]) =
       SOME (mk_unary \<^const_name>\<open>ring_bit_operations_class.not\<close> t1)
-  | bv_term_parser (SMTLIB.Sym "xor", [t1, t2]) =
- (*TODO Hanna: Move somewhere else to general parsing of proof? Nothing bv specific, although
-  only present in bv proofs.*)
-      SOME (Const ("Word.xor", \<^typ>\<open>HOL.bool\<close> --> \<^typ>\<open>HOL.bool\<close> --> \<^typ>\<open>HOL.bool\<close> ) $ t1 $ t2)
   | bv_term_parser (SMTLIB.Sym "concat", [t1, t2]) =
       SOME (mk_concat (t1, t2))
-  | bv_term_parser (SMTLIB.Sym "concat", t::ts) = 
-      SOME (mk_lassoc (curry mk_test) t ts)
   | bv_term_parser (SMTLIB.S [SMTLIB.Sym "_", SMTLIB.Sym "zero_extend", SMTLIB.Num i], [t]) =
       SOME (mk_zero_extend i t)
   | bv_term_parser (SMTLIB.S [SMTLIB.Sym "_", SMTLIB.Sym "sign_extend", SMTLIB.Num i], [t]) =
       SOME (mk_scast i t)
-  | bv_term_parser xs = ((*@{print}("IN BV_TERM PARSER",xs);*)NONE)
-
-val dummyLenWord =  \<^typ>\<open>'a::len word\<close>
-val dummyLenWord2 = Type(\<^type_name>\<open>word\<close>,[TFree(\<^type_name>\<open>dummy\<close>,@{sort "len"})])
-val temp = (Type (\<^type_name>\<open>word\<close>, [dummyT]))
+  | bv_term_parser _ = NONE
 
 fun bv_type_parser (SMTLIB.S [SMTLIB.Sym "_", SMTLIB.Sym "BitVec", SMTLIB.Num x], []) =
     SOME (Word_Lib.mk_wordT x)
-  | bv_type_parser (SMTLIB.S [SMTLIB.Sym "_", SMTLIB.Sym "BitVec", SMTLIB.Sym x], []) =
-    SOME (Word_Lib.mk_wordT 8) (*TODO: Delete*)
-  | bv_type_parser (SMTLIB.Sym "?BitVec", []) = SOME temp (*TODO: Here it should be a 'a::len word not a word *)
-  | bv_type_parser (SMTLIB.S [SMTLIB.Sym "?BitVec"], []) = SOME temp (*TODO*)
-  | bv_type_parser (SMTLIB.Sym "?BitVec", []) = SOME (Type (\<^type_name>\<open>word\<close>, [dummyT])) (*TODO *)
-  (*| bv_type_parser (SMTLIB.Sym "?BitVec", []) = SOME (Type (\<^type_name>\<open>word\<close>, [ \<^typ>\<open>'a\<close>])) (*TODO*)*)
-  | bv_type_parser xs = ((*@{print} ("bv_type_parser", xs);*)NONE)
+  | bv_type_parser _ = NONE
 
 (* setup *)
 
@@ -327,6 +295,7 @@ val _ = Theory.setup (Context.theory_map (
   setup_builtins))
 
 val _ = Theory.setup (Context.theory_map (
+  SMTLIB_Proof.add_type_parser bv_type_parser #>
   SMTLIB_Proof.add_term_parser bv_term_parser))
 
 end
