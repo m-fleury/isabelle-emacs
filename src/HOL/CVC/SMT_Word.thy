@@ -642,6 +642,10 @@ fun bv_term_parser (SMTLIB.Sym "bbT", xs) =
       SOME (Const (\<^const_name>\<open>smt_usubo\<close>,Type("itself",[dummyT]) --> fastype_of t1--> fastype_of t2 --> dummyT) $ Free("itself",dummyT) $ t1 $ t2)
   | bv_term_parser (SMTLIB.Sym "bvssubo", [t1,t2]) =
       SOME (HOLogic.mk_binrel \<^const_name>\<open>smt_ssubo\<close> (t1, t2))
+  | bv_term_parser (SMTLIB.Sym "xor", [t1, t2]) =
+      SOME (Const ("Word.xor", \<^typ>\<open>HOL.bool\<close> --> \<^typ>\<open>HOL.bool\<close> --> \<^typ>\<open>HOL.bool\<close> ) $ t1 $ t2)
+  | bv_term_parser (SMTLIB.Sym "concat", t::ts) = 
+      SOME (mk_lassoc (curry mk_test) t ts)
   | bv_term_parser (SMTLIB.Sym "bv", [int,base]) = (*TODO: Can get rid of case distinction now*)
      let
      (*There is one special case that is caught here, that is if the base is the size of another bitvector *)
@@ -692,6 +696,13 @@ end
     in
       SOME (Const (\<^const_name>\<open>signed_drop_bit\<close>, \<^typ>\<open>Nat.nat\<close> --> T1 --> T1) $ (Const ( \<^const_name>\<open>unsigned\<close>, T1 --> \<^typ>\<open>Nat.nat\<close> ) $ t1) $ t2)
    end
+
+val temp = (Type (\<^type_name>\<open>word\<close>, [dummyT]))
+
+ fun bv_type_parser (SMTLIB.Sym "?BitVec", []) = SOME temp (*TODO: Here it should be a 'a::len word not a word *)
+  | bv_type_parser (SMTLIB.S [SMTLIB.Sym "?BitVec"], []) = SOME temp (*TODO*)
+  | bv_type_parser (SMTLIB.Sym "?BitVec", []) = SOME (Type (\<^type_name>\<open>word\<close>, [dummyT])) (*TODO *)
+  (*| bv_type_parser (SMTLIB.Sym "?BitVec", []) = SOME (Type (\<^type_name>\<open>word\<close>, [ \<^typ>\<open>'a\<close>])) (*TODO*)*)
 
 val _ = Theory.setup (Context.theory_map (
   SMTLIB_Proof.add_term_parser bv_term_parser))
