@@ -9,7 +9,7 @@ sig
   (*solver*)
   type solver_info = {
     name: string,
-    class: Proof.context -> SMT_Util.class,
+    class: Proof.context -> SMT_Util.class list,
     avail: unit -> bool,
     options: Proof.context -> string list }
   val add_solver: solver_info -> Context.generic -> Context.generic
@@ -19,7 +19,7 @@ sig
   val available_solvers_of: Proof.context -> string list
   val select_solver: string -> Context.generic -> Context.generic
   val solver_of: Proof.context -> string
-  val solver_class_of: Proof.context -> SMT_Util.class
+  val solver_class_of: Proof.context -> SMT_Util.class list
   val solver_options_of: Proof.context -> string list
 
   (*options*)
@@ -72,7 +72,7 @@ struct
 
 type solver_info = {
   name: string,
-  class: Proof.context -> SMT_Util.class,
+  class: Proof.context -> SMT_Util.class list,
   avail: unit -> bool,
   options: Proof.context -> string list}
 
