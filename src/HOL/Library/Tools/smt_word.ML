@@ -1,5 +1,6 @@
 (*  Title:      HOL/Library/Tools/smt_word.ML
     Author:     Sascha Boehme, TU Muenchen
+    Author:     Hanna Lachnitt, Stanford University
 
 SMT setup for words.
 *)
@@ -30,15 +31,26 @@ fun smtlib_logic "z3" ts =
 
 local
   val smtlibC = SMTLIB_Interface.smtlibC @ SMTLIB_Interface.bvsmlibC
+     val _ = @{print}("in bv builtin")
 
   val wordT = \<^typ>\<open>'a::len word\<close>
+  val wordT_concrete = \<^typ>\<open>num \<Rightarrow> 'a::len word\<close>
 
-  fun index1 s i = "(_ " ^ s ^ " " ^ string_of_int i ^ ")"
-  fun index2 s i j = "(_ " ^ s ^ " " ^ string_of_int i ^ " " ^ string_of_int j ^ ")"
+  fun index1 s i = "(_ eee" ^ s ^ " " ^ string_of_int i ^ ")"
+  fun index2 s i j = "(_ qwer" ^ s ^ " " ^ string_of_int i ^ " " ^ string_of_int j ^ ")"
 
   fun word_typ (Type (\<^type_name>\<open>word\<close>, [T])) =
-      Option.map (rpair [] o index1 "BitVec") (try dest_binT T)
-    | word_typ _ = NONE
+let 
+     val _ = @{print}("Finally in word_typ", T)
+     val temp = Option.map (rpair [] o index1 "BitVec") (try dest_binT T)
+     val _ = @{print}("temp", temp)
+
+in
+temp
+end |
+  word_typ (Type (_, [T])) =
+Option.map (rpair [] o index1 "BitVec") (try dest_binT T)
+    | word_typ T = (@{print}("Finally in word_typ but none found", T);NONE)
 
   (*CVC4 does not support "_bvk T" when k does not fit in the BV of size T, so remove the bits that
    will be ignored according to the SMT-LIB*)
@@ -46,12 +58,13 @@ local
         let
           val size = try dest_binT T
           fun max_int size = Integer.pow size 2
+          val _ = @{print}("IN word_num", size)
         in
           (case size of
             NONE => NONE
           | SOME size => SOME (index1 ("bv" ^ string_of_int (Int.rem(k, max_int size))) size))
         end
-    | word_num _ _ = NONE
+    | word_num _ _ = (@{print}("IN word_num2");NONE)
 
   fun if_fixed pred m n T ts =
     let val (Us, U) = Term.strip_type T
@@ -128,6 +141,9 @@ in
 
 val setup_builtins =
   SMT_Builtin.add_builtin_typ smtlibC (wordT, word_typ, word_num) #>
+(*Isabelle typ, typ uebersetzung, term uebersetzung*)
+  SMT_Builtin.add_builtin_typ SMTLIB_Interface.smtlibC
+    (\<^typ>\<open>Num.num \<Rightarrow> 'a::len word\<close>, word_typ, word_num) #>
   fold (add_word_fun if_fixed_all) [
     (\<^term>\<open>uminus :: 'a::len word \<Rightarrow> _\<close>, "bvneg"),
     (\<^term>\<open>plus :: 'a::len word \<Rightarrow> _\<close>, "bvadd"),
@@ -154,12 +170,155 @@ val setup_builtins =
     (\<^term>\<open>less :: 'a::len word \<Rightarrow> _\<close>, "bvult"),
     (\<^term>\<open>less_eq :: 'a::len word \<Rightarrow> _\<close>, "bvule"),
     (\<^term>\<open>word_sless\<close>, "bvslt"),
-    (\<^term>\<open>word_sle\<close>, "bvsle") ]
+    (\<^term>\<open>word_sle\<close>, "bvsle") ] #>
+  fold (SMT_Builtin.add_builtin_fun' SMTLIB_Interface.smtlibC) [
+    (\<^term>\<open>unsigned :: 'a::len word \<Rightarrow> Nat.nat\<close>, "bv2nat"),
+    (\<^term>\<open>unsigned :: 'a::len word \<Rightarrow> Int.int\<close>, "bv2nat")
+   ]
 
 val add_word_shift' = add_word_fun shift'
 
 end
 
+
+(* Proof Reconstruction *)
+
+fun mk_unary n t =
+  let val T = fastype_of t
+  in Const (n, T --> T) $ t end
+
+val split_last =
+  let fun split_last [a] = ([], a)
+       | split_last (x :: xs) = apfst (curry (op ::) x) (split_last xs)
+  in apfst List.rev o split_last end
+
+fun mk_concat (t, u) =
+  let
+    val T = fastype_of t
+    val _ = @{print}("fastype_of t",fastype_of t)
+    val U = fastype_of u
+
+    (*TODO: If one of them is not concrete we need to use LENGTH('a) here. But how to add the extra restriction that LENGTH('c) = LENGTH('a) + LENGTH('b)?*)
+    (*val TU = Word_Lib.dest_wordT T + Word_Lib.dest_wordT U
+          |> Word_Lib.mk_wordT*)
+    val TU = (TVar (("?a", serial ()), []))
+  in Const (\<^const_name>\<open>Word.word_cat\<close>, T --> U --> TU) $ t $ u end;
+
+fun mk_zero_extend i u =
+  let
+    val T = fastype_of u
+    val TU = Word_Lib.mk_wordT i
+  in Const (\<^const_name>\<open>Word.cast\<close>, T --> TU) $ u end;
+
+fun mk_scast i u =
+  let
+    val T = fastype_of u
+    val TU = Word_Lib.mk_wordT i
+  in Const (\<^const_name>\<open>Word.signed\<close>, T --> TU) $ u end;
+
+fun mk_lassoc f t ts = fold (fn u1 => fn u2 => f u2 u1) ts t
+fun mk_test (t1, t2) = (Const (\<^const_name>\<open>Word.word_cat\<close>, dummyT --> dummyT --> dummyT))  $ t1 $ t2
+
+fun bv_term_parser (SMTLIB.Sym bv, []) =
+      (case try (unprefix "bv") bv of
+        NONE => NONE
+(*TODO*)
+      (*| SOME t => SOME (HOLogic.mk_number \<^typ>\<open>Int.int\<close> (fst (read_int (raw_explode t)))))*)
+      | SOME t => SOME ((HOLogic.mk_term_of \<^typ>\<open>32 word\<close> (HOLogic.mk_string t))))
+  (*| bv_term_parser (SMTLIB.BV (int,base), []) =    
+    let
+        val ty = Word_Lib.mk_wordT base
+      in
+        SOME (HOLogic.mk_number ty int)
+      end*)
+  | bv_term_parser (SMTLIB.Sym "_", [int, base]) =
+      let
+        val ty = Word_Lib.mk_wordT (snd (HOLogic.dest_number base))
+        val num = snd (HOLogic.dest_number int)
+      in
+        SOME (HOLogic.mk_number ty num)
+      end
+  | bv_term_parser (SMTLIB.Sym "bvult", [t1, t2]) = 
+      SOME (HOLogic.mk_binrel \<^const_name>\<open>Orderings.less\<close> (t1, t2))
+  | bv_term_parser (SMTLIB.Sym "bvule", [t1, t2]) =
+      SOME (HOLogic.mk_binrel \<^const_name>\<open>Orderings.less_eq\<close> (t1, t2))
+  | bv_term_parser (SMTLIB.Sym "bvneg", [t]) =
+      SOME (mk_unary \<^const_name>\<open>uminus_class.uminus\<close> t)
+  | bv_term_parser (SMTLIB.Sym "bvadd", t) =
+      let val (xs, a) = split_last t
+      in
+        SOME (fold (curry (HOLogic.mk_binop \<^const_name>\<open>Groups.plus\<close>)) xs a)
+      end
+  | bv_term_parser (SMTLIB.Sym "bvsub", t) =
+      let val (xs, a) = split_last t
+      in
+        SOME (fold (curry (HOLogic.mk_binop \<^const_name>\<open>Groups.minus\<close>)) xs a)
+      end
+  | bv_term_parser (SMTLIB.Sym "bv", [int,(Const ("Nat.semiring_1_class.of_nat", _) $ (Const ("Nat.size_class.size", _) $
+     Free ("x", typ)))]) =
+      let
+     val _ = @{print}("int",int)
+     val _ = @{print}("typ",typ)
+        (*This might not be possible since int might not be a int*)
+      (*  val num = snd (HOLogic.dest_number int)
+      in SOME (HOLogic.mk_number typ num) end*)
+      (*Only possibility I see is to add a cast from int to word in these cases*)
+      in SOME (Const  (\<^const_name>\<open>Word.Word\<close>,\<^typ>\<open>Int.int\<close>--> typ) $ int) end
+  | bv_term_parser (SMTLIB.Sym "bvmul", (t::ts)) =
+      let
+        val T = fastype_of t
+      in 
+        SOME (mk_lassoc (fn t1 => fn t2 => (Const ( \<^const_name>\<open>Groups.times\<close>, T --> T --> T)) $ t1 $ t2) t ts)
+      end
+  | bv_term_parser (SMTLIB.Sym "bvand", (t::ts)) =
+      let
+        val T = fastype_of t
+      in 
+        SOME (mk_lassoc (fn t1 => fn t2 => (Const ( \<^const_name>\<open>semiring_bit_operations_class.and\<close>, T --> T --> T)) $ t1 $ t2) t ts)
+      end
+  | bv_term_parser (SMTLIB.Sym "bvor", (t::ts)) =
+      let
+        val T = fastype_of t
+      in 
+        SOME (mk_lassoc (fn t1 => fn t2 => (Const ( \<^const_name>\<open>semiring_bit_operations_class.or\<close>, T --> T --> T)) $ t1 $ t2) t ts)
+      end
+  | bv_term_parser (SMTLIB.Sym "bvxor", (t::ts)) =
+      let
+        val T = fastype_of t
+      in 
+        SOME (mk_lassoc (fn t1 => fn t2 => (Const ( \<^const_name>\<open>semiring_bit_operations_class.xor\<close>, T --> T --> T)) $ t1 $ t2) t ts)
+      end
+  | bv_term_parser (SMTLIB.Sym "bvxnor", [t1, t2]) =
+      SOME (mk_unary \<^const_name>\<open>ring_bit_operations_class.not\<close> (HOLogic.mk_binop \<^const_name>\<open>semiring_bit_operations_class.xor\<close> (t1, t2)))
+  | bv_term_parser (SMTLIB.Sym "bvnot", [t1]) =
+      SOME (mk_unary \<^const_name>\<open>ring_bit_operations_class.not\<close> t1)
+  | bv_term_parser (SMTLIB.Sym "xor", [t1, t2]) =
+ (*TODO Hanna: Move somewhere else to general parsing of proof? Nothing bv specific, although
+  only present in bv proofs.*)
+      SOME (Const ("Word.xor", \<^typ>\<open>HOL.bool\<close> --> \<^typ>\<open>HOL.bool\<close> --> \<^typ>\<open>HOL.bool\<close> ) $ t1 $ t2)
+  | bv_term_parser (SMTLIB.Sym "concat", [t1, t2]) =
+      SOME (mk_concat (t1, t2))
+  | bv_term_parser (SMTLIB.Sym "concat", t::ts) = 
+      SOME (mk_lassoc (curry mk_test) t ts)
+  | bv_term_parser (SMTLIB.S [SMTLIB.Sym "_", SMTLIB.Sym "zero_extend", SMTLIB.Num i], [t]) =
+      SOME (mk_zero_extend i t)
+  | bv_term_parser (SMTLIB.S [SMTLIB.Sym "_", SMTLIB.Sym "sign_extend", SMTLIB.Num i], [t]) =
+      SOME (mk_scast i t)
+  | bv_term_parser xs = ((*@{print}("IN BV_TERM PARSER",xs);*)NONE)
+
+val dummyLenWord =  \<^typ>\<open>'a::len word\<close>
+val dummyLenWord2 = Type(\<^type_name>\<open>word\<close>,[TFree(\<^type_name>\<open>dummy\<close>,@{sort "len"})])
+val temp = (Type (\<^type_name>\<open>word\<close>, [dummyT]))
+
+fun bv_type_parser (SMTLIB.S [SMTLIB.Sym "_", SMTLIB.Sym "BitVec", SMTLIB.Num x], []) =
+    SOME (Word_Lib.mk_wordT x)
+  | bv_type_parser (SMTLIB.S [SMTLIB.Sym "_", SMTLIB.Sym "BitVec", SMTLIB.Sym x], []) =
+    SOME (Word_Lib.mk_wordT 8) (*TODO: Delete*)
+  | bv_type_parser (SMTLIB.Sym "?BitVec", []) = SOME temp (*TODO: Here it should be a 'a::len word not a word *)
+  | bv_type_parser (SMTLIB.S [SMTLIB.Sym "?BitVec"], []) = SOME temp (*TODO*)
+  | bv_type_parser (SMTLIB.Sym "?BitVec", []) = SOME (Type (\<^type_name>\<open>word\<close>, [dummyT])) (*TODO *)
+  (*| bv_type_parser (SMTLIB.Sym "?BitVec", []) = SOME (Type (\<^type_name>\<open>word\<close>, [ \<^typ>\<open>'a\<close>])) (*TODO*)*)
+  | bv_type_parser xs = ((*@{print} ("bv_type_parser", xs);*)NONE)
 
 (* setup *)
 
@@ -167,4 +326,7 @@ val _ = Theory.setup (Context.theory_map (
   SMTLIB_Interface.add_logic (20, smtlib_logic) #>
   setup_builtins))
 
-end;
+val _ = Theory.setup (Context.theory_map (
+  SMTLIB_Proof.add_term_parser bv_term_parser))
+
+end
