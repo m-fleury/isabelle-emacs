@@ -53,7 +53,7 @@ let
           val (_,i) = (check_smt prover problem_path proof_path local_thy,i+1)
             handle
             (Fail err)
-              => (@{print}("Proof could not be checked! " ^ err,problem_path);(local_thy,i)) |
+              => (@{print}("Proof could not be checked! " ^ err,problem_path);(local_thy,i)) | (*TODO: Throw error*)
             (SMTLIB_Proof.SMTLIB_PARSE ("unknown SMT type",t)) 
               => (@{print}(("Either theory is not supported or parsing instructions for the term are not included in the parser", t),problem_path);(local_thy,i)) |
             (SMTLIB_Proof.SMTLIB_PARSE(err,t))
