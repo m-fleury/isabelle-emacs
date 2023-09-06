@@ -268,7 +268,7 @@ lemma smtlib_re_star_smtlib_re_none [simp]:
   done
 
 (*------------------------------------------------------------------------------------------------*)
-(*-------------------------------------------- re.\<le> ----------------------------------------------*)
+(*-------------------------------------------- re.\<le> ---------------------------------------------*)
 (*------------------------------------------------------------------------------------------------*)
 
 (* (str.<= String String Bool)
@@ -375,7 +375,7 @@ lemma smtlib_str_contains_equal: "smtlib_str_contains w w2 = smtlib_str_contains
       apply simp_all
       apply force
     apply (metis add.left_commute le_add1 length_Cons length_append linorder_not_less)
-  by (metis Cons_eq_appendI Cons_eq_append_conv append_eq_append_conv2 append_eq_conv_conj append_self_conv2 append_take_drop_id)
+  by (metis Cons_eq_append_conv append_eq_append_conv2 append_eq_conv_conj append_self_conv2 append_take_drop_id)
   done
 
 lemma smtlib_str_contains_append: 
@@ -458,10 +458,10 @@ lemma smtlib_str_replace_empty [simp]:
 
 lemma smtlib_str_replace_empty_length [simp]:
  "smtlib_str_len (smtlib_str_replace [] w1 w2) = (if w1 = [] then smtlib_str_len w2 else 0)"
-  by (simp add: smtlib_str_len_def smtlib_str_replace_empty)
+  by (simp add: smtlib_str_len_def)
 
 lemma h2: "smtlib_str_contains (s' # ss) s \<Longrightarrow> \<not> prefix s (s' # ss) \<Longrightarrow> smtlib_str_contains ss s"
-  by (metis smtlib_str_contains_def smtlib_str_contains_ind.simps take_is_prefix)
+  by (metis smtlib_str_contains_def smtlib_str_contains_ind.simps(2) take_is_prefix)
 
 lemma smtlib_str_replace_length_h1:
  "smtlib_str_len s = smtlib_str_len r \<Longrightarrow>
