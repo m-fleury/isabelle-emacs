@@ -24,9 +24,9 @@ end;
 structure Z3_Interface: Z3_INTERFACE =
 struct
 
-val z3C = ["z3"]
+val z3C = ["z3_extension"]
 
-val smtlib_z3C = SMTLIB_Interface.smtlibC @ SMTLIB_Interface.bvsmlibC @ z3C
+val smtlib_z3C = z3C
 
 
 (* interface *)
@@ -45,9 +45,11 @@ local
   val have_int_div_mod = exists (Term.exists_subterm is_div_mod o Thm.prop_of)
 
   fun add_div_mod _ (thms, extra_thms) =
+let val _ = @{print} thms in
     if have_int_div_mod thms orelse have_int_div_mod extra_thms then
       (thms, @{thms div_as_z3div mod_as_z3mod} @ extra_thms)
     else (thms, extra_thms)
+end
 
   val setup_builtins =
     SMT_Builtin.add_builtin_fun' smtlib_z3C (\<^Const>\<open>times \<^Type>\<open>int\<close>\<close>, "*") #>

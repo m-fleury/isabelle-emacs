@@ -481,18 +481,42 @@ structure Configs = Generic_Data
 
 fun add_config (cs, cfg) = Configs.map (SMT_Util.dict_update (cs, cfg))
 
-fun get_config ctxt =
-  let val cs = SMT_Config.solver_class_of ctxt
+fun get_config ctxt : config list =
+  let
+    val cs = SMT_Config.solver_class_of ctxt
+    val cfgs = 
+      map (SMT_Util.dict_get (Configs.get (Context.Proof ctxt))) cs
+      |> filter is_some
+      |> map ((fn f => f ctxt) o the)
   in
-    (case SMT_Util.dict_get (Configs.get (Context.Proof ctxt)) cs of
-      SOME cfg => cfg ctxt
-    | NONE => error ("SMT: no translation configuration found " ^
-        "for solver class " ^ quote (SMT_Util.string_of_class cs)))
+    (case cfgs of
+      (_ :: _) => cfgs
+    | _ => error ("SMT: no translation configuration found " ^
+        "for solver class " ^ commas_quote (map SMT_Util.string_of_class cs)))
+  end
+
+fun merge_logics (prover: string) (logics: string list) =
+  let
+val _ = @{print} logics
+    val z3_extension = is_some (List.find (curry (op =) "") logics)
+    val BV = is_some (List.find (curry (op =) "(set-logic AUFBVLIRA)\n") logics)
+    val R = is_some (List.find (curry (op =) "(set-logic AUFLIRA)\n") logics)
+  in
+    if prover = "z3" andalso (z3_extension orelse BV orelse R) then ""
+    else if prover = "verit" andalso BV then raise (Fail "unsupported logic")
+    else "(set-logic " ^ "AUF" ^ (if BV then "BV" else "") ^ "LI" ^ (if R then "R" else "") ^ "A" ^ ")\n"
   end
 
 fun translate ctxt prover smt_options comments (ithms : ((int * SMT_Util.role) * thm) list) =
   let
-    val {order, logic, fp_kinds, serialize} = get_config ctxt
+    val order = map #order (get_config ctxt)
+    val logics = map #logic (get_config ctxt)
+    fun logic prover ts = merge_logics prover (map (fn f => f prover ts) logics)
+    val fp_kinds = map #fp_kinds (get_config ctxt) |> foldr1 (op @)
+    (*There is a single serialize function anyway*)
+    val serialize = map #serialize (get_config ctxt) |> hd
+    val first_order = is_some (List.find (curry (op =) SMT_Util.First_Order) order)
+
 
     fun no_dtyps (tr_context, ctxt) ts =
       ((Termtab.empty, [], tr_context, ctxt), ts)
@@ -524,12 +548,21 @@ fun translate ctxt prover smt_options comments (ithms : ((int * SMT_Util.role) *
       |-> (fn (ts', ll_defs) => fn ctxt' =>
         let
           val ts'' = map (pair SMT_Util.Axiom o mk_trigger) ll_defs @ ts'
-            |> order = SMT_Util.First_Order ? intro_explicit_application ctxt' funcs
+            |> first_order ? intro_explicit_application ctxt' funcs
         in
           (ctxt', (ts'', ll_defs))
         end)
     val ((rewrite_rules, builtin), ts4) = folify ctxt2 ts3
-      |>> order = SMT_Util.First_Order ? apfst (cons fun_app_eq)
+      |>> first_order ? apfst (cons fun_app_eq)
+|> @{print}
+val test = map (fn x => 
+    (ts4, tr_context)
+|> @{print}
+    |-> intermediate (logic prover o map snd) dtyps (builtin SMT_Builtin.dest_builtin) ctxt2
+|> @{print}
+    |>> uncurry (x smt_options comments))
+(map #serialize (get_config ctxt))
+|> @{print}
   in
     (ts4, tr_context)
     |-> intermediate (logic prover o map snd) dtyps (builtin SMT_Builtin.dest_builtin) ctxt2

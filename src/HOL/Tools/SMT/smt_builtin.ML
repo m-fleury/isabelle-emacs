@@ -71,7 +71,9 @@ fun merge_ttab ttabp = SMT_Util.dict_merge (Ord_List.merge typ_ord) ttabp
 fun lookup_ttab ctxt ttab T =
   let fun match (U, _) = Sign.typ_instance (Proof_Context.theory_of ctxt) (T, U)
   in
-    get_first (find_first match) (SMT_Util.dict_lookup ttab (SMT_Config.solver_class_of ctxt))
+    map (fn class => (SMT_Util.dict_lookup ttab class)) (SMT_Config.solver_class_of ctxt)
+    |> flat
+    |> (get_first (find_first match))
   end
 
 type ('a, 'b) btab = ('a, 'b) ttab Symtab.table

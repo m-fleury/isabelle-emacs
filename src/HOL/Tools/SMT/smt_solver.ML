@@ -16,7 +16,7 @@ sig
 
   type solver_config =
     {name: string,
-     class: Proof.context -> SMT_Util.class,
+     class: Proof.context -> SMT_Util.class list,
      avail: unit -> bool,
      command: unit -> string list,
      options: Proof.context -> string list,
@@ -163,7 +163,7 @@ type parsed_proof =
 
 type solver_config =
   {name: string,
-   class: Proof.context -> SMT_Util.class,
+   class: Proof.context -> SMT_Util.class list,
    avail: unit -> bool,
    command: unit -> string list,
    options: Proof.context -> string list,

@@ -24,8 +24,8 @@ struct
 val hoC = ["ho"]
 
 val smtlibC = ["smtlib"]   (* SMT-LIB 2 *)
-val hosmtlibC = smtlibC @ hoC   (* possibly SMT-LIB 3 *)
-val bvsmlibC = smtlibC @ ["BV"] (* if BV are supported *)
+val hosmtlibC = hoC   (* possibly SMT-LIB 3 *)
+val bvsmlibC = ["BV"] (* if BV are supported *)
 val realsmlibC = ["Real"]
 
 (* builtins *)
