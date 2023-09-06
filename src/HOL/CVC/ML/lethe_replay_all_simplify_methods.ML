@@ -36,7 +36,7 @@ let
  find_Thy (thy::thys) =
   let
    val thy_name = (Context.theory_base_name thy)
-  in
+  in (* Long-term might change named_theorem to normal theorem *)
    case try (Named_Theorems.get ctxt) (thy_name ^ ".rewrite_" ^ rewrite_name) of
     NONE => find_Thy thys |
     (SOME thm) => nth thm 0
@@ -49,7 +49,7 @@ let
 
  val cvc_list_defs = @{thms cvc_list_right_Nil cvc_list_left_Nil cvc_list_right_Cons cvc_list_left_Cons}
  val inst_lemma = rev args |> rewrite_lemma_inst
-in
+in (*TODO: fixed-point rules*)
  (SMT_Replay_Methods.prove ctxt t (fn _ => Method.insert_tac ctxt
  [Simplifier.simplify ((put_simpset HOL_basic_ss (empty_simpset ctxt)) addsimps cvc_list_defs) inst_lemma]
   THEN' K (print_tac ctxt ("all-simplify did not resolve after instantiation "))
