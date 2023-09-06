@@ -1,6 +1,15 @@
 theory SMT_Word
-  imports "HOL-Library.Word"
+  imports "HOL-Library.Word" Word_Lib.More_Word
 begin
+(*Erstmal diese Theory Afp abhaengig sein
+Soll zweiten bv_term_parser enthalten, der alle cvc5 bv definitionen enthaelt
+
+BV_Rewrite muss hiervon erben
+
+SMT.thy  
+
+*)
+
 declare  [[smt_cvc_lethe = true]]
 
 subsection \<open>Tool support\<close>
@@ -476,6 +485,217 @@ lemma uint_word_cat: "LENGTH('c) = LENGTH('a) + LENGTH('b) \<Longrightarrow>
 uint (word_cat (x::'a::len word) (y::'b::len word)::'c::len word) =
 push_bit LENGTH('b::len) (uint x) + uint y"
   by (metis (mono_tags, lifting) int_plus push_bit_of_nat uint_nat unat_word_cat)
+
+
+ML\<open>
+
+open Word_Lib
+
+fun mk_unary n t =
+  let val T = fastype_of t
+  in Const (n, T --> T) $ t end
+
+val mk_nat = HOLogic.mk_number \<^typ>\<open>nat\<close>
+
+fun mk_extract i j u =
+  let
+    val I = HOLogic.mk_number \<^typ>\<open>nat\<close> i
+    val J = HOLogic.mk_number \<^typ>\<open>nat\<close> j
+    val T = fastype_of u
+    val TU = i - j + 1
+          |> Word_Lib.mk_wordT
+  in Const (\<^const_name>\<open>SMT_Word.smt_extract\<close>, @{typ nat} --> @{typ nat} --> T --> TU) $ J $ I $ u end;
+
+fun mk_zero_extend i u =
+  let
+    val T = fastype_of u
+    val TU = Word_Lib.mk_wordT i
+  in Const (\<^const_name>\<open>Word.cast\<close>, T --> TU) $ u end;
+
+fun mk_scast i u =
+  let
+    val T = fastype_of u
+    val TU = Word_Lib.mk_wordT i
+  in Const (\<^const_name>\<open>Word.signed\<close>, T --> TU) $ u end;
+
+fun bv_term_parser (SMTLIB.Sym "bbT", xs) =
+        SOME ((Const ("Reversed_Bit_Lists.of_bl", \<^typ>\<open>HOL.bool list\<close> --> mk_wordT(length xs))) 
+        $ ((Const (\<^const_name>\<open>List.rev\<close>, \<^typ>\<open>HOL.bool list\<close> -->  \<^typ>\<open>HOL.bool list\<close>)) $ (HOLogic.mk_list \<^typ>\<open>bool\<close> xs)))
+  | bv_term_parser (SMTLIB.S [SMTLIB.Sym "_", SMTLIB.Sym "bitOf", SMTLIB.Num i], [t]) =
+      SOME (Const (\<^const_name>\<open>semiring_bits_class.bit\<close>, (fastype_of t) --> HOLogic.natT --> \<^typ>\<open>HOL.bool\<close>)
+      $ t $ (HOLogic.mk_nat i))
+
+  | bv_term_parser (SMTLIB.Sym "bv2nat", [t1]) =
+      SOME (Const (\<^const_name>\<open>unsigned\<close>, (fastype_of t1) --> \<^typ>\<open>int\<close>) $ t1)
+ (*TODO: These are in SMTLIB3 syntax for parametric bitwidths. Put in own parser? 
+         Also should variants for concrete bitwidths be added for when smtlib3 terms appear in proofs?*)
+  | bv_term_parser (SMTLIB.Sym "extract", [t1,t2,t3]) =
+    let 
+       val T1 = fastype_of t1
+       val T2 = fastype_of t2
+
+       val t1' = if T1 = \<^typ>\<open>Int.int\<close> then Const ( \<^const_name>\<open>nat\<close>, T1 -->  \<^typ>\<open>Nat.nat\<close>) $ t1 else t1
+       val t2' = if T2 = \<^typ>\<open>Int.int\<close> then Const ( \<^const_name>\<open>nat\<close>, T2 -->  \<^typ>\<open>Nat.nat\<close>) $ t2 else t2
+    in SOME (Const (\<^const_name>\<open>SMT_Word.smt_extract\<close>, @{typ nat} --> @{typ nat} --> dummyT --> dummyT) $ t1' $ t2' $ t3)
+    end
+
+  | bv_term_parser (SMTLIB.Sym "bvnand", [t1, t2]) =
+      SOME (mk_unary \<^const_name>\<open>ring_bit_operations_class.not\<close> (HOLogic.mk_binop \<^const_name>\<open>semiring_bit_operations_class.and\<close> (t1, t2)))
+  | bv_term_parser (SMTLIB.Sym "bvnor", [t1, t2]) =
+      SOME (mk_unary \<^const_name>\<open>ring_bit_operations_class.not\<close> (HOLogic.mk_binop \<^const_name>\<open>semiring_bit_operations_class.or\<close> (t1, t2)))
+ (* | bv_term_parser (SMTLIB.Sym "int.log2", [t1]) =
+    let
+         val T1 = fastype_of t1
+         val t1' = (Const (\<^const_name>\<open>nat\<close>, T1 --> \<^typ>\<open>Nat.nat\<close>) $ t1)
+         val t2' = HOLogic.mk_number \<^typ>\<open>Nat.nat\<close> 2
+        
+     in
+      SOME (Const (\<^const_name>\<open>of_nat\<close>, \<^typ>\<open>Nat.nat\<close> --> \<^typ>\<open>Int.int\<close> ) $ (Const (\<^const_name>\<open>Log_Nat.floorlog\<close>, \<^typ>\<open>Nat.nat\<close> --> \<^typ>\<open>Nat.nat\<close> --> \<^typ>\<open>Nat.nat\<close>)
+         $ t1' $ t2'))
+     end*)
+  | bv_term_parser (SMTLIB.Sym "int.ispow2", [t1]) =
+      SOME (Const (\<^const_name>\<open>SMT_Word.is_pow2\<close>,\<^typ>\<open>Int.int\<close> --> \<^typ>\<open>bool\<close>) $ t1)
+  | bv_term_parser (SMTLIB.Sym "bvugt", [t1,t2]) =
+      SOME (HOLogic.mk_binrel \<^const_name>\<open>Orderings.less\<close> (t2, t1))
+  | bv_term_parser (SMTLIB.Sym "bvuge", [t1,t2]) =
+      SOME (HOLogic.mk_binrel \<^const_name>\<open>Orderings.less_eq\<close> (t2, t1))
+  | bv_term_parser (SMTLIB.Sym "bvsgt", [t1,t2]) =
+      SOME (HOLogic.mk_binrel \<^const_name>\<open>word_sless\<close> (t2, t1))
+  | bv_term_parser (SMTLIB.Sym "bvslt", [t1,t2]) =
+      SOME (HOLogic.mk_binrel \<^const_name>\<open>word_sless\<close> (t1, t2))
+  | bv_term_parser (SMTLIB.Sym "bvsge", [t1,t2]) =
+      SOME (HOLogic.mk_binrel \<^const_name>\<open>word_sle\<close> (t2, t1))
+  | bv_term_parser (SMTLIB.Sym "bvsle", [t1,t2]) =
+      SOME (HOLogic.mk_binrel \<^const_name>\<open>word_sle\<close> (t1, t2))
+  | bv_term_parser (SMTLIB.Sym "bvsmod", [t1,t2]) =
+      SOME (HOLogic.mk_binop \<^const_name>\<open>smt_smod\<close> (t1, t2))
+  | bv_term_parser (SMTLIB.Sym "bvurem", [t1,t2]) =
+      SOME (HOLogic.mk_binop \<^const_name>\<open>smt_urem\<close> (t1, t2))
+  | bv_term_parser (SMTLIB.Sym "bvsrem", [t1,t2]) =
+      SOME (HOLogic.mk_binop \<^const_name>\<open>smt_srem\<close> (t1, t2))
+  | bv_term_parser (SMTLIB.Sym "bvcomp", [t1,t2]) =
+    let
+      val T1 = fastype_of t1
+    in
+      SOME (Const (\<^const_name>\<open>smt_comp\<close>, T1 --> T1 --> \<^typ>\<open>1 word\<close>) $ t1 $ t2)
+    end
+  | bv_term_parser (SMTLIB.Sym "bvredor", [t1]) =
+      SOME (Const (\<^const_name>\<open>smt_redor\<close>, fastype_of t1 --> \<^typ>\<open>1 word\<close>) $ t1)
+  | bv_term_parser (SMTLIB.Sym "bvredand", [t1]) =
+      SOME (Const (\<^const_name>\<open>smt_redand\<close>, fastype_of t1 --> \<^typ>\<open>1 word\<close>) $ t1)
+  | bv_term_parser (SMTLIB.Sym "bvite", [t1,t2,t3]) =
+      let
+        val T = fastype_of t2
+        val c = Const (\<^const_name>\<open>HOL.If\<close>, [\<^typ>\<open>HOL.bool\<close>, T, T] ---> T)
+        val t1' = (Const (\<^const_name>\<open>semiring_bits_class.bit\<close>, fastype_of t1 --> \<^typ>\<open>Nat.nat\<close> --> \<^typ>\<open>HOL.bool\<close>) $ t1 $ mk_nat 0)
+      in SOME (c $ t1' $ t2 $ t3) end
+(*TODO: Proofread until here*)
+  | bv_term_parser (SMTLIB.Sym "repeat", [t1, t2]) =
+    let
+      val T2 = fastype_of t2
+    in
+      SOME (Const (\<^const_name>\<open>SMT_Word.smt_repeat\<close>,\<^typ>\<open>Nat.nat\<close>--> T2 --> dummyT) $ (Const (\<^const_name>\<open>nat\<close>, \<^typ>\<open>Int.int\<close> --> \<^typ>\<open>Nat.nat\<close>) $ t1) $ t2)
+    end
+  | bv_term_parser (SMTLIB.Sym "rotate_left", [t1, t2]) =
+    let
+      val T2 = fastype_of t2
+    in
+      SOME (Const (\<^const_name>\<open>word_rotl\<close>,\<^typ>\<open>Nat.nat\<close>--> T2 --> T2) $ (Const ( \<^const_name>\<open>nat\<close>,\<^typ>\<open>Int.int\<close> -->  \<^typ>\<open>Nat.nat\<close> ) $ t1) $ t2)
+    end
+  | bv_term_parser (SMTLIB.Sym "rotate_right", [t1,t2]) =
+    let
+      val T2 = fastype_of t2
+      val _ = @{print}("rotate_right t1",t1)
+      val _ = @{print}("rotate_right t2",t2)
+      val _ = @{print}("rotate_right T2",T2)
+(*("rotate_right t1", Free ("amount", "int")) (line 351 of "/home/lachnitt/Sources/isabelle-git/isabelle-emacs/src/HOL/Library/Tools/smt_word.ML") 
+("rotate_right t2", Free ("x", "_ word")) (line 352 of "/home/lachnitt/Sources/isabelle-git/isabelle-emacs/src/HOL/Library/Tools/smt_word.ML") 
+("rotate_right T2", "_ word") (line 353 of "/home/lachnitt/Sources/isabelle-git/isabelle-emacs/src/HOL/Library/Tools/smt_word.ML") 
+("bvsize t1", Free ("x", "_ word")) (line 413 of "/home/lachnitt/Sources/isabelle-git/isabelle-emacs/src/HOL/Library/Tools/smt_word.ML") *)
+
+    in
+      SOME (Const (\<^const_name>\<open>word_rotr\<close>,\<^typ>\<open>Nat.nat\<close>--> T2 --> T2) $ (Const ( \<^const_name>\<open>nat\<close>, \<^typ>\<open>Int.int\<close> --> \<^typ>\<open>Nat.nat\<close>) $ t1) $ t2)
+    end
+  | bv_term_parser (SMTLIB.Sym "zero_extend", [t1, t2]) = (*This should push t1 0's before t2, solution above uses ucast, should I do too?*)
+  let
+    val T = fastype_of t2
+    val TU = dummyT (*TODO: If known add concrete bitwidth*)
+  in SOME (Const (\<^const_name>\<open>Word.cast\<close>, T --> TU) $ t2) end
+  | bv_term_parser (SMTLIB.Sym "sign_extend", [t1, t2]) =
+  let
+    val _ = @{print}("sign_extend t1",t1)
+    val _ = @{print}("sign_extend t2",t2)
+    (*("sign_extend t1", Free ("n", "int")) (line 368 of "/home/lachnitt/Sources/isabelle-git/isabelle-emacs/src/HOL/Library/Tools/smt_word.ML") 
+    ("sign_extend t2", Free ("x", "_ word"))*)
+    (*If type of t2 is known I could calculate type of t1, otherwise I would just ignore t1? Maybe better don't use signed*)
+  in
+   (*SOME (Const (\<^const_name>\<open>signed_take_bit\<close>,\<^typ>\<open>Nat.nat\<close>--> fastype_of t2 --> dummyT) $ (Const ( \<^const_name>\<open>nat\<close>, \<^typ>\<open>Int.int\<close> --> \<^typ>\<open>Nat.nat\<close>) $ t1) $ t2)*)
+    SOME (Const (\<^const_name>\<open>Word.signed_cast\<close>, fastype_of t2 --> dummyT) $ t2)
+  end
+  | bv_term_parser (SMTLIB.Sym "bvuaddo", [t1, t2]) =
+      SOME (Const (\<^const_name>\<open>smt_uaddo\<close>,Type("itself",[dummyT]) --> fastype_of t1--> fastype_of t2 --> dummyT) $ Free("itself",dummyT) $ t1 $ t2)
+  | bv_term_parser (SMTLIB.Sym "bvsaddo", [t1, t2]) =
+      SOME (Const (\<^const_name>\<open>smt_saddo\<close>,Type("itself",[dummyT]) --> fastype_of t1--> fastype_of t2 --> dummyT) $ Free("itself",dummyT) $ t1 $ t2)
+  | bv_term_parser (SMTLIB.Sym "bvsdivo", [t1,t2]) = (*TODO*)
+      SOME (Const (\<^const_name>\<open>smt_sdivo\<close>,Type("itself",[dummyT]) --> fastype_of t1--> fastype_of t2 --> dummyT) $ Free("itself",dummyT) $ t1 $ t2)
+  | bv_term_parser (SMTLIB.Sym "bvusubo", [t1,t2]) =
+      SOME (Const (\<^const_name>\<open>smt_usubo\<close>,Type("itself",[dummyT]) --> fastype_of t1--> fastype_of t2 --> dummyT) $ Free("itself",dummyT) $ t1 $ t2)
+  | bv_term_parser (SMTLIB.Sym "bvssubo", [t1,t2]) =
+      SOME (HOLogic.mk_binrel \<^const_name>\<open>smt_ssubo\<close> (t1, t2))
+  | bv_term_parser (SMTLIB.Sym "bv", [int,base]) = (*TODO: Can get rid of case distinction now*)
+     let
+     (*There is one special case that is caught here, that is if the base is the size of another bitvector *)
+     val _ = @{print}("int",int)
+     val _ = @{print}("base",base)
+ in
+         SOME (Const  (\<^const_name>\<open>Word.Word\<close>,\<^typ>\<open>Int.int\<close>--> dummyT) $ int) (*TODO: Use ty*)
+      end
+
+(*(Sym "bv",
+  [Const ("Groups.one_class.one", "int"),
+   Const ("Word.size_word_inst.size_word", "_ \<Rightarrow> _") $
+     Free ("x",
+           "_")]*)
+  | bv_term_parser (SMTLIB.Sym "bvsize", [t1]) =
+let
+     val _ = @{print}("bvsize t1",t1)
+     val T = fastype_of t1
+     val _ = @{print}("T",T)
+
+     val _ = @{print}("bvsize t1",(Const ( \<^const_name>\<open>of_nat\<close>,  \<^typ>\<open>Nat.nat\<close> -->  \<^typ>\<open>Int.int\<close>) $
+Const ( \<^const_name>\<open>size\<close>, dummyT -->  \<^typ>\<open>Nat.nat\<close>) $ t1))
+in
+      SOME (Const ( \<^const_name>\<open>of_nat\<close>,  \<^typ>\<open>Nat.nat\<close> -->  \<^typ>\<open>Int.int\<close>) $
+(Const ( \<^const_name>\<open>size\<close>, dummyT -->  \<^typ>\<open>Nat.nat\<close>) $ t1))
+(*SOME (Const ( \<^const_name>\<open>Groups.one\<close>, \<^typ>\<open>Int.int\<close>))*)
+
+end
+  | bv_term_parser (SMTLIB.Sym "bvsdiv", [t1,t2]) = (*TODO*)
+      SOME (HOLogic.mk_binop \<^const_name>\<open>Rings.divide\<close> (mk_unary \<^const_name>\<open>unsigned\<close> t1, mk_unary \<^const_name>\<open>unsigned\<close> t2))
+ | bv_term_parser (SMTLIB.Sym "bvudiv", [t1,t2]) =
+      SOME (HOLogic.mk_binop \<^const_name>\<open>Rings.divide\<close> (t1, t2)) (*TODO: What about the case whre t2 is 0? SMTLIB semantics says it should be mask *)
+  | bv_term_parser (SMTLIB.Sym "bvshl", [t1, t2]) = 
+    let
+      val T1 = fastype_of t1
+    in
+      SOME (Const (\<^const_name>\<open>semiring_bit_operations_class.push_bit\<close>, \<^typ>\<open>Nat.nat\<close> --> T1 --> T1) $ (Const ( \<^const_name>\<open>unsigned\<close>, T1 --> \<^typ>\<open>Nat.nat\<close> ) $ t2) $ t1)
+   end
+  | bv_term_parser (SMTLIB.Sym "bvlshr", [t1, t2]) = 
+    let
+      val T1 = fastype_of t1
+    in
+      SOME (Const (\<^const_name>\<open>semiring_bit_operations_class.drop_bit\<close>, \<^typ>\<open>Nat.nat\<close> --> T1 --> T1) $ (Const ( \<^const_name>\<open>unsigned\<close>, T1 --> \<^typ>\<open>Nat.nat\<close> ) $ t1) $ t2)
+   end
+  | bv_term_parser (SMTLIB.Sym "bvashr", [t1, t2]) = 
+    let
+      val T1 = fastype_of t1
+    in
+      SOME (Const (\<^const_name>\<open>signed_drop_bit\<close>, \<^typ>\<open>Nat.nat\<close> --> T1 --> T1) $ (Const ( \<^const_name>\<open>unsigned\<close>, T1 --> \<^typ>\<open>Nat.nat\<close> ) $ t1) $ t2)
+   end
+
+val _ = Theory.setup (Context.theory_map (
+  SMTLIB_Proof.add_term_parser bv_term_parser))
+\<close>
 
 
 end
