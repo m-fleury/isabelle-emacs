@@ -1,7 +1,11 @@
 theory SMT_CVC
-  imports HOL.SMT "cvc5_dsl_rewrites/Rare_Interface"
+  imports HOL.SMT "HOL-CVC.SMT_Word" "cvc5_dsl_rewrites/Rare_Interface"
   keywords "smt_status" "check_smt_dir" "check_smt" :: diag
 begin
+
+lemma cvc_ListOp_neutral_bv_and [cvc_ListOp_neutral]:
+ "cvc_isListOp (ListOp (semiring_bit_operations_class.and) (-1::'a::len word))"
+  by auto
 
 named_theorems all_simplify_temp \<open>Theorems to reconstruct bitvector theorems concerning list
                                   functions, e.g. take.\<close>
@@ -34,7 +38,7 @@ val _ = Outer_Syntax.local_theory \<^command_keyword>\<open>check_smt\<close>
 
     (*Replay proof*)
     val _ = SMT_Check_External.check_smt prover problem_file_name proof_file_name
-    val _ = (SMT_Config.verbose_msg ctxt (K ("Checked Alethe proof")) ())
+    val _ = SMT_Config.verbose_msg ctxt (pretty "Checked Alethe proof") []
   in
    lthy
   end))
@@ -66,11 +70,15 @@ fun mk_lassoc f t ts = fold (fn u1 => fn u2 => f u2 u1) ts t
 
 fun mk_lassoc' n = mk_lassoc (mk_binary n)
 
+val s =  \<^typ>\<open>'a::type list\<close>
+val s2 = Type ("dummy::type", [])
+
 (*cvc5 specific terms that are not present in veriT's output*)
 fun cvc_term_parser (SMTLIB.Sym "xor",[t1,t2]) = SOME (HOLogic.mk_not (HOLogic.mk_eq (t1, t2)))
-  | cvc_term_parser (SMTLIB.Sym "cvc5_nary_op", []) = 
-    SOME(Const( \<^const_name>\<open>ListVar\<close> , \<^typ>\<open>'a \<Rightarrow> HOL.bool cvc_ListVar \<close>)
-       $ Const( \<^const_name>\<open>List.Nil\<close>, \<^typ>\<open>'a\<close> ))
+  | cvc_term_parser (SMTLIB.Sym "cvc5_nary_op", []) =
+   (*If there are no elements in the list we cannot know the type at this point*)
+    SOME(Const( \<^const_name>\<open>ListVar\<close> ,dummyT --> dummyT)
+       $ Const( \<^const_name>\<open>List.Nil\<close>, dummyT))
   | cvc_term_parser (SMTLIB.Sym "cvc5_nary_op", ts) = 
     let
       (*Figure out if types are different, this should only be the case if they have different
@@ -86,7 +94,7 @@ fun cvc_term_parser (SMTLIB.Sym "xor",[t1,t2]) = SOME (HOLogic.mk_not (HOLogic.m
       val new_type = if types_eq > 0 then fastype_of (hd ts) else \<^typ>\<open>Nat.nat\<close>
 
     in
-    SOME(Const( \<^const_name>\<open>ListVar\<close>, Type(\<^type_name>\<open>fun\<close>,[new_type, \<^typ>\<open> HOL.bool cvc_ListVar\<close>]))
+    SOME(Const( \<^const_name>\<open>ListVar\<close>,  Type(\<^type_name>\<open>List.list\<close>,[new_type])  --> Type(\<^type_name>\<open>cvc_ListVar\<close>,[new_type]))
       $ (HOLogic.mk_list new_type new_ts))
     end
   | cvc_term_parser (SMTLIB.Sym "emptyString", []) = SOME (Free ("''''", \<^typ>\<open>String.string\<close>))
