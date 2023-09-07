@@ -70,9 +70,6 @@ fun mk_lassoc f t ts = fold (fn u1 => fn u2 => f u2 u1) ts t
 
 fun mk_lassoc' n = mk_lassoc (mk_binary n)
 
-val s =  \<^typ>\<open>'a::type list\<close>
-val s2 = Type ("dummy::type", [])
-
 (*cvc5 specific terms that are not present in veriT's output*)
 fun cvc_term_parser (SMTLIB.Sym "xor",[t1,t2]) = SOME (HOLogic.mk_not (HOLogic.mk_eq (t1, t2)))
   | cvc_term_parser (SMTLIB.Sym "cvc5_nary_op", []) =
