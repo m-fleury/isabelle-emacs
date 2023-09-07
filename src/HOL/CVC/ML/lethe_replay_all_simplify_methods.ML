@@ -41,14 +41,30 @@ let
     NONE => find_Thy thys |
     (SOME thm) => nth thm 0
   end
+
  val rewrite_lemma = find_Thy all_rewrite_thys
 
- fun rewrite_lemma_inst []  = rewrite_lemma |
-  rewrite_lemma_inst (a :: args') =
-   Drule.infer_instantiate' ctxt (map (SOME o Thm.cterm_of ctxt) [a]) (rewrite_lemma_inst args')
+ val get_types = map snd (rev (Term.add_vars (Thm.full_prop_of rewrite_lemma) []))
 
- val cvc_list_defs = @{thms cvc_list_right_Nil cvc_list_left_Nil cvc_list_right_Cons cvc_list_left_Cons}
- val inst_lemma = rev args |> rewrite_lemma_inst
+ fun rewrite_lemma_inst [] _  = rewrite_lemma |
+  rewrite_lemma_inst _ []  = rewrite_lemma | (*TODO: throw error*)
+  rewrite_lemma_inst (a :: args') (t::typs') = 
+    if (Const ("Dsl_Nary_Ops.cvc_ListVar.ListVar", dummyT --> dummyT) $ Const ("List.list.Nil", dummyT) = a)
+    then
+      let
+        val t' = dest_Type t |> snd |> hd
+        val new_a = Const ( \<^const_name>\<open>ListVar\<close>, Type(\<^type_name>\<open>List.list\<close>,[t']) --> Type(\<^type_name>\<open>cvc_ListVar\<close>,[t']))
+                  $ Const ("List.list.Nil", Type(\<^type_name>\<open>List.list\<close>,[t']))
+      in
+        Drule.infer_instantiate' ctxt (map (SOME o Thm.cterm_of ctxt) [new_a]) (rewrite_lemma_inst args' typs') 
+      end
+    else
+      Drule.infer_instantiate' ctxt (map (SOME o Thm.cterm_of ctxt) [a]) (rewrite_lemma_inst args' typs')
+
+ val cvc_list_defs = @{thms cvc_list_right_Nil cvc_list_left_Nil cvc_list_both_Singleton
+                            cvc_list_right_Cons cvc_list_left_Cons cvc_list_both_Cons}
+ val inst_lemma = rewrite_lemma_inst (rev args) (rev get_types)
+
 in (*TODO: fixed-point rules*)
  (SMT_Replay_Methods.prove ctxt t (fn _ => Method.insert_tac ctxt
  [Simplifier.simplify ((put_simpset HOL_basic_ss (empty_simpset ctxt)) addsimps cvc_list_defs) inst_lemma]
@@ -76,7 +92,7 @@ in
   then
    (SMT_Config.verbose_msg ctxt (pretty ("Found evaluate, try to simplify")) []; try_simp ctxt t)
   else
-    dsl_tac_initialize rewrite_name args ctxt t th |
+    (SMT_Config.verbose_msg ctxt (pretty ("Found rewrite rule " ^ rewrite_name)) []; dsl_tac_initialize rewrite_name args ctxt t th) |
  all_simplify ctxt (_ : thm list) args t =
   (SMT_Config.verbose_msg ctxt (pretty ("No dsl rule found, try to simplify" ^
   List.foldr op^ "" (map ML_Syntax.print_term args))) []; try_simp ctxt t)
