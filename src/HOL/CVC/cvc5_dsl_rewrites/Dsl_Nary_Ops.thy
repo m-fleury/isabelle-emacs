@@ -3,7 +3,7 @@ theory Dsl_Nary_Ops
 begin
 
 datatype 'a cvc_ListVar = ListVar "'a list"
-datatype 'a cvc_ListOp = ListOp "'a \<Rightarrow> 'a \<Rightarrow> 'a" "'a"
+datatype ('a,'b) cvc_ListOp = ListOp "'a \<Rightarrow> 'b \<Rightarrow> 'b" "'a"
 
 fun cvc_isListOp where
  "cvc_isListOp (ListOp op neutralElement) =
@@ -45,13 +45,13 @@ fun cvc_nary_op_fold :: "('a \<Rightarrow> 'a \<Rightarrow> 'a) \<Rightarrow> 'a
  cvc_nary_op_fold_Nil: "cvc_nary_op_fold op [x] = x" |
  cvc_nary_op_fold_Cons: "cvc_nary_op_fold op (x#xs) = (op x (cvc_nary_op_fold op xs))"
 
-fun cvc_bin_op_fold :: "('a \<Rightarrow> 'a \<Rightarrow> 'a) \<Rightarrow> 'a list \<Rightarrow> 'a \<Rightarrow> 'a" where
+fun cvc_bin_op_fold :: "('a \<Rightarrow> 'b \<Rightarrow> 'b) \<Rightarrow> 'a list \<Rightarrow> 'b \<Rightarrow> 'b" where
  cvc_bin_op_fold_Nil: "cvc_bin_op_fold op [] y = y" |
  cvc_bin_op_fold_Cons: "cvc_bin_op_fold op (x#xs) y = (op x (cvc_bin_op_fold op xs y))"
 
-fun cvc_bin_op where
+fun cvc_bin_op :: "('a \<Rightarrow> 'b \<Rightarrow> 'b) \<Rightarrow> 'a cvc_ListVar \<Rightarrow> 'b \<Rightarrow> 'b" where
  "cvc_bin_op op (ListVar xs) y = cvc_bin_op_fold op xs y"
-fun cvc_bin_op2 where
+fun cvc_bin_op2 :: "('a \<Rightarrow> 'a \<Rightarrow> 'a) \<Rightarrow> 'a \<Rightarrow> 'a cvc_ListVar \<Rightarrow> 'a" where
  "cvc_bin_op2 op y (ListVar xs) = (if xs = [] then y else op y (cvc_nary_op_fold op xs))"
 fun cvc_bin_op3 where
   "cvc_bin_op3 op (ListVar []) (ListVar []) neutral = neutral" | 
@@ -62,6 +62,30 @@ definition cvc_list_left where "cvc_list_left op lv y = cvc_bin_op op lv y"
 definition cvc_list_right where "cvc_list_right op y lv = cvc_bin_op2 op y lv"
 definition cvc_list_both where "cvc_list_both op neutral lv1 lv2 = cvc_bin_op3 op lv1 lv2 neutral"
 
+
+(*test*)
+
+fun cvc_nary_op_fold' :: "('a \<Rightarrow> 'b \<Rightarrow> 'b) \<Rightarrow> 'a list \<Rightarrow> 'b \<Rightarrow> 'b" where
+  "cvc_nary_op_fold' op [] neutral = neutral" |
+  "cvc_nary_op_fold' op (x#xs) neutral = (op x (cvc_nary_op_fold' op xs neutral))"
+
+fun cvc_bin_op3' :: "('a \<Rightarrow> 'b \<Rightarrow> 'b) \<Rightarrow> 'a cvc_ListVar \<Rightarrow> 'a cvc_ListVar \<Rightarrow> 'b \<Rightarrow> 'b" where
+  "cvc_bin_op3' op (ListVar []) (ListVar []) neutral = neutral" | 
+  "cvc_bin_op3' op (ListVar xs) (ListVar []) neutral = cvc_nary_op_fold' op xs neutral" | 
+  "cvc_bin_op3' op (ListVar xs) (ListVar ys) neutral = cvc_bin_op_fold op xs (cvc_nary_op_fold' op ys neutral)"
+
+definition cvc_list_right' where "cvc_list_right' op neutral y lv = cvc_bin_op3' op (ListVar [y]) lv neutral"
+definition cvc_list_both' where "cvc_list_both' op neutral lv1 lv2 = cvc_bin_op3' op lv1 lv2 neutral"
+
+
+
+(*
+ (foldr op (y#xs) neutral)"
+primrec foldr :: "('a \<Rightarrow> 'b \<Rightarrow> 'b) \<Rightarrow> 'a list \<Rightarrow> 'b \<Rightarrow> 'b" where
+foldr_Nil:  "foldr f [] b = b" |
+foldr_Cons: "foldr f (x # xs) b = f x (foldr f xs b)"
+  shows "cvc_list_left op (ListVar xs) y = foldr op xs y"
+*)
 lemma cvc_nary_op_fold_transfer_h1:
   assumes "1 \<le> n" "cvc_isListOp (ListOp op neutral)"
   shows "\<forall>xs. n = length xs \<longrightarrow> cvc_nary_op_fold op xs = foldr op xs neutral"
