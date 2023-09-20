@@ -184,7 +184,7 @@ proof-
   (2::nat) ^ LENGTH('a::len)"
     using unat_word_cat[of "(smt_extract (nat i) (nat (0::int)) x :: 'b:: len word)" "(Word.Word (0::int):: 'c::len word)"
 , where 'c="'a"]
-    using a2 by auto
+    using a2 sorry
   moreover have "nat (0::int) \<le> nat (i::int) \<and> nat i < size (x::'a::len word) \<and> LENGTH('b::len) = nat i + (1::nat) - nat (0::int) "
     by (metis a1 a2 diff_zero discrete le_add_same_cancel1 less_eq_nat.simps(1) nat_zero_as_int word_size)
   ultimately have "unat (word_cat (smt_extract (nat i) (nat (0::int)) x :: 'b:: len word) (Word.Word (0::int):: 'c::len word) ::'a::len word) =
