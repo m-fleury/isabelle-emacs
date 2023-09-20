@@ -851,8 +851,6 @@ lemma h1: "(of_char c1::int) \<ge> -1"
 lemma h2: "(of_char c1::int) > -1"
   unfolding of_char_def by simp
 
-lemma h2: "(of_char c1) > -1"
-  nitpick
 
 lemma [rewrite_str_in_re_range_elim]:
   fixes s::"char list" and c1::"char list" and c2::"char list"
@@ -884,15 +882,6 @@ lemma [rewrite_str_in_re_range_elim]:
 
 declare[[show_types]]
 declare[[show_sorts]]
-
-
-lemma [rewrite_str_in_re_range_elim]:
-  fixes s::"char list" and c1::"char list" and c2::"char list"
-  shows "smtlib_str_len c1 = (1::int) \<Longrightarrow>
-   smtlib_str_len c2 = (1::int) \<Longrightarrow>
-   (smtlib_str_to_code c1 \<le> smtlib_str_to_code s \<and>
-    smtlib_str_to_code s \<le> smtlib_str_to_code c2)
-\<longrightarrow> smtlib_str_in_re s (smtlib_re_range c1 c2)"
 
 
 end
