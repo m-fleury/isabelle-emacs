@@ -41,32 +41,27 @@ local
 
   fun word_typ (Type (\<^type_name>\<open>word\<close>, [T])) =
 let 
-     val _ = @{print}("Finally in word_typ", T)
      val temp = Option.map (rpair [] o index1 "BitVec") (try dest_binT T)
-     val _ = @{print}("temp", temp)
 
 in
 temp
 end |
   word_typ (Type (_, [T])) =
 Option.map (rpair [] o index1 "BitVec") (try dest_binT T)
-    | word_typ T = (@{print}("Finally in word_typ but none found", T);NONE)
+    | word_typ T = NONE
 
   (*CVC4 does not support "_bvk T" when k does not fit in the BV of size T, so remove the bits that
    will be ignored according to the SMT-LIB*)
   fun word_num (Type (\<^type_name>\<open>word\<close>, [T])) k =
         let
-val _ = @{print}  "word_num"
-val _ = @{print}  k
           val size = try dest_binT T
           fun max_int size = Integer.pow size 2
-          val _ = @{print}("IN word_num", size)
         in
           (case size of
             NONE => NONE
           | SOME size => SOME (index1 ("bv" ^ string_of_int (Int.rem(k, max_int size))) size))
         end
-    | word_num _ _ = (@{print}("IN word_num2");NONE)
+    | word_num _ _ = NONE
 
   fun if_fixed pred m n T ts =
     let val (Us, U) = Term.strip_type T
@@ -219,7 +214,6 @@ fun mk_scast i u =
   in Const (\<^const_name>\<open>Word.signed\<close>, T --> TU) $ u end;
 
 fun mk_lassoc f t ts = fold (fn u1 => fn u2 => f u2 u1) ts t
-fun mk_test (t1, t2) = (Const (\<^const_name>\<open>Word.word_cat\<close>, dummyT --> dummyT --> dummyT))  $ t1 $ t2
 
 fun bv_term_parser (SMTLIB.Sym bv, []) =
       (case try (unprefix "bv") bv of
