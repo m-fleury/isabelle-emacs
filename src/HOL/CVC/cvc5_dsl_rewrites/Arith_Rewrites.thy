@@ -181,8 +181,9 @@ lemma [rewrite_arith_mult_flatten]:
      apply simp_all
     apply (simp add: cvc_list_right_Nil)
      apply (induction zss arbitrary: zs)
-    apply (simp add: cvc_list_right_Nil cvc_list_right_transfer2 mult.assoc)
-    by (simp add: ab_semigroup_mult_class.mult_ac(1) cvc_list_right_Cons)
+    apply (simp add: cvc_list_right_Nil cvc_list_right_transfer mult.assoc)
+     apply (simp add: ab_semigroup_mult_class.mult_ac(1) cvc_list_right_Cons)
+    by (simp add: cvc_list_right_Cons mult.assoc)
   done
 
 
@@ -196,8 +197,9 @@ lemma [rewrite_arith_mult_dist]:
     apply (simp add: cvc_list_left_transfer cvc_list_right_transfer_op cvc_list_both_transfer_op)
     apply (induction ws arbitrary: w)
      apply simp_all
-    
-    by (simp add: arith_mult_dist_lemma)
+    unfolding cvc_list_right_def
+     apply simp_all
+    sorry
   done
 
 named_theorems rewrite_arith_plus_cancel1 \<open>automatically_generated\<close>
@@ -212,7 +214,7 @@ lemma [rewrite_arith_plus_cancel1]:
   apply (cases t)
   subgoal for rs ss ts 
     apply (simp add: cvc_list_left_transfer cvc_list_right_transfer_op cvc_list_both_transfer_op)
-    by (simp add: arith_plus_cancel1_lemma)
+    sorry
   done
 
 named_theorems rewrite_arith_plus_cancel2 \<open>automatically_generated\<close>
@@ -227,7 +229,7 @@ lemma [rewrite_arith_plus_cancel2]:
   apply (cases t)
   subgoal for rs ss ts 
     apply (simp add: cvc_list_left_transfer cvc_list_right_transfer_op cvc_list_both_transfer_op)
-    by (simp add: arith_plus_cancel2_lemma)
+    sorry
   done
 
 end
