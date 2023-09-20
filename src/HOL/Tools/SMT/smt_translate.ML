@@ -554,15 +554,11 @@ fun translate ctxt prover smt_options comments (ithms : ((int * SMT_Util.role) *
         end)
     val ((rewrite_rules, builtin), ts4) = folify ctxt2 ts3
       |>> first_order ? apfst (cons fun_app_eq)
-|> @{print}
 val test = map (fn x => 
     (ts4, tr_context)
-|> @{print}
     |-> intermediate (logic prover o map snd) dtyps (builtin SMT_Builtin.dest_builtin) ctxt2
-|> @{print}
     |>> uncurry (x smt_options comments))
 (map #serialize (get_config ctxt))
-|> @{print}
   in
     (ts4, tr_context)
     |-> intermediate (logic prover o map snd) dtyps (builtin SMT_Builtin.dest_builtin) ctxt2
