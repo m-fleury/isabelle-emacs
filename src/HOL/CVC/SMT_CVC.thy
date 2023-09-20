@@ -37,7 +37,7 @@ val _ = Outer_Syntax.local_theory \<^command_keyword>\<open>check_smt\<close>
     val _ = SMT_Config.verbose_msg ctxt (pretty "Checking Alethe proof...") []
 
     (*Replay proof*)
-    val _ = SMT_Check_External.check_smt prover problem_file_name proof_file_name
+    val _ = SMT_Check_External.check_smt prover problem_file_name proof_file_name NONE
     val _ = SMT_Config.verbose_msg ctxt (pretty "Checked Alethe proof") []
   in
    lthy
@@ -50,7 +50,7 @@ val _ = Outer_Syntax.local_theory \<^command_keyword>\<open>check_smt_dir\<close
     ((Scan.optional (\<^keyword>\<open>(\<close> |-- Parse.string --| \<^keyword>\<open>)\<close>) "cvc5" -- Parse.string)
     >> (fn (prover, dir_name) => fn lthy =>
   let
-    val _ = SMT_Check_External.test_all_benchmarks prover dir_name lthy
+    val _ = SMT_Check_External.test_all_benchmarks prover dir_name NONE lthy
   in
    lthy
    end))
