@@ -89,20 +89,17 @@ proof -
     using assms 
     by (metis add_diff_cancel_right' add_leD2 diff_is_0_eq' le_neq_implies_less len_not_eq_0)
   then have B2: "unat w\<^sub>2 + unat w\<^sub>1 * unat ((2::'l\<^sub>3 word) ^ LENGTH('l\<^sub>2)) < 2 ^ LENGTH('l\<^sub>3)"
-    (*apply simp
+    apply simp
     apply (rule order.strict_trans2[OF unat_bit_shift_add_bound])
-    using assms by simp*)
-    sorry
-
+    using assms by simp
   have B1: "unat w\<^sub>1 * unat ((2::'l\<^sub>3 word) ^ LENGTH('l\<^sub>2)) < 2 ^ LENGTH('l\<^sub>3)" 
     using B2 by linarith
           
   show ?thesis  
     apply (simp add: word_cat_eq' concat_bit_eq take_bit_eq_mod push_bit_eq_mult)
     apply (simp add: unat_word_ariths unat_ucast_upcast B1 B2)
-    (*by (metis B2 \<open>LENGTH('l\<^sub>2) < LENGTH('l\<^sub>3)\<close> add.commute add_leD2 add_lessD1 assms nat_mod_eq'
-        unat_pow_le_intro unat_power_lower unat_ucast)*)
-    sorry
+    by (metis B2 \<open>LENGTH('l\<^sub>2) < LENGTH('l\<^sub>3)\<close> add.commute add_leD2 add_lessD1 assms nat_mod_eq'
+        unat_pow_le_intro unat_power_lower unat_ucast)
 qed
 
 (*end of stolen*)
@@ -265,6 +262,36 @@ lemma word_repeat_word_cat:
 
 definition smt_repeat :: "nat \<Rightarrow> 'a::len word \<Rightarrow> 'b::len word" where
   \<open>smt_repeat i x = (if i = 0 then (ucast x::'b::len word) else word_repeat i x)\<close>
+
+lemma smt_repeat_zeros: "n = LENGTH('a) \<Longrightarrow> n > 0 \<Longrightarrow> (smt_repeat n (0::1 word)::'a::len word) = 0"
+  unfolding smt_repeat_def
+  unfolding word_repeat_def
+  apply simp
+  by (metis (mono_tags, lifting) One_nat_def ex_unat_nat len_num1 less_2_cases_iff less_numeral_extra(3) nat_zero_less_power_iff size_word.rep_eq the_equality unat_gt_0)
+
+lemma smt_repeat_ones_mask: "n = LENGTH('a) \<Longrightarrow> n > 0 \<Longrightarrow> (smt_repeat n (1::1 word)::'a::len word) = mask (Suc n)"
+  unfolding smt_repeat_def
+  unfolding word_repeat_def
+  apply simp
+proof
+  show "n = LENGTH('a) \<Longrightarrow> Suc (0::nat) = size (1::1 word) \<and> unat (mask (Suc LENGTH('a))::'a word) = replicate_nat LENGTH('a) (size (1::1 word))"
+    unfolding replicate_nat_def mask_eq_exp_minus_1
+    apply simp
+    apply (rule conjI)
+    apply (simp add: size_word.rep_eq)
+    apply (simp add: unat_minus_one_word)
+    apply (simp add: size_word.rep_eq)
+    by (metis Suc_pred atLeast0AtMost bot_nat_0.not_eq_extremum len_not_eq_0 lessThan_Suc_atMost lessThan_def mask_eq_sum_exp_nat)
+next
+  show "\<And>x::'a word. n = LENGTH('a) \<Longrightarrow>
+       Suc (0::nat) = size (1::1 word) \<and> unat x = replicate_nat LENGTH('a) (size (1::1 word)) \<Longrightarrow> x = mask (Suc LENGTH('a))"
+    subgoal for x
+      unfolding replicate_nat_def mask_eq_exp_minus_1
+      apply simp
+    apply (simp add: size_word.rep_eq)
+      by (metis One_nat_def Suc_pred' atLeast0AtMost len_gt_0 lessThan_Suc_atMost lessThan_def mask_eq_sum_exp_nat unat_minus_one_word word_unat_eq_iff)
+  done
+qed
 
 definition smt_comp :: "'a::len word \<Rightarrow> 'a::len word \<Rightarrow> 1 word" where
   \<open>smt_comp x y = (if (x = y) then 1 else 0)\<close>
@@ -497,6 +524,9 @@ fun mk_unary n t =
 
 val mk_nat = HOLogic.mk_number \<^typ>\<open>nat\<close>
 
+fun mk_lassoc f t ts = fold (fn u1 => fn u2 => f u2 u1) ts t
+fun mk_test (t1, t2) = (Const (\<^const_name>\<open>Word.word_cat\<close>, dummyT --> dummyT --> dummyT))  $ t1 $ t2
+
 fun mk_extract i j u =
   let
     val I = HOLogic.mk_number \<^typ>\<open>nat\<close> i
@@ -526,7 +556,9 @@ fun bv_term_parser (SMTLIB.Sym "bbT", xs) =
       $ t $ (HOLogic.mk_nat i))
 
   | bv_term_parser (SMTLIB.Sym "bv2nat", [t1]) =
-      SOME (Const (\<^const_name>\<open>unsigned\<close>, (fastype_of t1) --> \<^typ>\<open>int\<close>) $ t1)
+(*t1 could be in the form. In that case no further cast is needed Const ("Num.numeral_class.numeral", "num \<Rightarrow> int") $ ts*)
+     SOME (Const (\<^const_name>\<open>unsigned\<close>, (fastype_of t1) --> \<^typ>\<open>int\<close>) $ t1)
+      (*SOME ( t1)*)
  (*TODO: These are in SMTLIB3 syntax for parametric bitwidths. Put in own parser? 
          Also should variants for concrete bitwidths be added for when smtlib3 terms appear in proofs?*)
   | bv_term_parser (SMTLIB.Sym "extract", [t1,t2,t3]) =
@@ -696,6 +728,10 @@ end
     in
       SOME (Const (\<^const_name>\<open>signed_drop_bit\<close>, \<^typ>\<open>Nat.nat\<close> --> T1 --> T1) $ (Const ( \<^const_name>\<open>unsigned\<close>, T1 --> \<^typ>\<open>Nat.nat\<close> ) $ t1) $ t2)
    end
+  | bv_term_parser _ = NONE
+
+
+
 
 val temp = (Type (\<^type_name>\<open>word\<close>, [dummyT]))
 
