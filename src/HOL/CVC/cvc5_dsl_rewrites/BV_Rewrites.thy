@@ -391,34 +391,6 @@ lemma [rewrite_bv_xnor_eliminate]:
    not (semiring_bit_operations_class.xor x y)"
   by auto
 
-named_theorems rewrite_bv_sdiv_eliminate_fewer_bitwise_ops \<open>automatically_generated\<close>
-
-lemma t0:
-"LENGTH('a) = LENGTH('b) + 1 \<Longrightarrow> (word_cat (1::1 word) (0::'b::len word)::'a::len word) = 2^(LENGTH('b))"
-  apply (simp add: word_unat_eq_iff)
-  by (simp add: unat_word_cat)
-
-lemma [rewrite_bv_sdiv_eliminate_fewer_bitwise_ops]:
-  fixes x::"'a ::len word" and y::"'a ::len word"
-  shows "LENGTH('a) = LENGTH('b) + 1 \<longrightarrow> 
-x sdiv y =
-   (if xor (word_cat (Word.Word (1::int)::1 word) (Word.Word (0::int)::'b::len word) \<le> x) 
-       (word_cat (Word.Word (1::int)::1 word) (Word.Word (0::int)::'b word) \<le> y)
-    then - ((if word_cat (Word.Word (1::int)::1 word) (Word.Word (0::int)::'b word) \<le> x
-             then - x else x) div
-            (if word_cat (Word.Word (1::int)::1 word) (Word.Word (0::int)::'b word) \<le> y
-             then - y else y))
-    else (if word_cat (Word.Word (1::int)::1 word) (Word.Word (0::int)::'b word) \<le> x
-          then - x else x) div
-         (if word_cat (Word.Word (1::int)::1 word) (Word.Word (0::int)::'b word) \<le> y
-          then - y else y))"
-  apply (simp add: xor_simps)
-  apply (cases "word_cat (Word.Word (1::int)::1 word) (Word.Word (0::int)::'b word) \<le> y" )
-   apply simp_all
-  apply (case_tac[!] "word_cat (Word.Word (1::int)::1 word) (Word.Word (0::int)::'b word) \<le> x" )
-     apply simp_all
-  sorry
-
 named_theorems rewrite_bv_zero_extend_eliminate \<open>automatically_generated\<close>
 
 lemma [rewrite_bv_zero_extend_eliminate]:
@@ -514,21 +486,6 @@ lemma [rewrite_bv_uaddo_eliminate]:
     using smt_uaddo_def[of x y, where 'c="'c"]
     sorry 
 
-(*named_theorems rewrite_bv_saddo_eliminate \<open>automatically_generated\<close>
-
-lemma [rewrite_bv_saddo_eliminate]:
-  fixes x::"'a ::len word" and y::"'b ::len word"
-  shows "LENGTH('c) = LENGTH('a) + 1 \<and> LENGTH('c) = LENGTH('b) + 1 \<and>  int (size x) > 0 \<and> int (size y) > 0 
- \<longrightarrow> smt_saddo TYPE('c::len) x y =
-   (smt_extract (nat (int (size x) - (1::int)))
-     (nat (int (size x) - (1::int)))
-     ((word_cat (Word.Word (0::int):: 1 word) x::'c::len word) + (word_cat (Word.Word (0::int)::1 word) y)::'c::len word) =
-    (Word.Word (1::int):: 1 word))"
-  using smt_saddo_def[of x y, where 'c="'c"]
-  apply simp
-  by (metis diff_Suc_1 nat_1 nat_minus_as_int nat_one_as_int of_nat_eq_1_iff size_word.rep_eq)
-*)
-
 named_theorems rewrite_bv_sdivo_eliminate \<open>automatically_generated\<close>
 
 (*TODO: (itself::'c itself) instead of (itself::'c ::len itself) is printed
@@ -541,10 +498,6 @@ lemma [rewrite_bv_sdivo_eliminate]:
     using smt_sdivo_def[of x y, where 'c="'c"] 
 mask_full[where 'a="'b"]
     by (metis bit.compl_zero one_word_def word_size zero_word_def)
-
-declare [[smt_nat_as_int]]
-
-  
 
 named_theorems rewrite_bv_smod_eliminate \<open>automatically_generated\<close>
 
@@ -728,12 +681,9 @@ lemma [rewrite_bv_smod_eliminate_fewer_bitwise_ops]:
     apply simp_all
        apply (cases "word_cat (Word.Word (1::int)::1 word) (Word.Word (0::int)::'b::len word) \<le> y")
       apply simp_all
-    oops
+    sorry
+  sorry
     
-
-
-
-
 named_theorems rewrite_bv_srem_eliminate \<open>automatically_generated\<close>
 
 lemma [rewrite_bv_srem_eliminate]:
@@ -772,7 +722,7 @@ lemma [rewrite_bv_srem_eliminate]:
                       apply (simp add: nat_minus_as_int; fail)+
                       apply (simp add: bit_smt_extract nat_minus_as_int smt_extract_bit test_bit_size; fail)
                       apply (simp add: bit_smt_extract nat_minus_as_int smt_extract_bit test_bit_size; fail)
-                      apply (smt (verit, ccfv_SIG) smt_extract_bit word_size_gt_0 wsst_TYs(3))
+(*                      apply (smt (verit, ccfv_SIG) smt_extract_bit word_size_gt_0 wsst_TYs(3))
                       apply (smt (verit, ccfv_SIG) smt_extract_bit word_size_gt_0 wsst_TYs(3))
                       apply (simp add: nat_minus_as_int; fail)+
                      apply (smt (verit, ccfv_SIG) smt_extract_bit word_size_gt_0 wsst_TYs(3))
@@ -794,23 +744,10 @@ lemma [rewrite_bv_srem_eliminate]:
      apply (smt (verit, ccfv_SIG) smt_extract_bit word_size_gt_0 wsst_TYs(3))
     apply (smt (verit, ccfv_SIG) smt_extract_bit word_size_gt_0 wsst_TYs(3))
    apply (smt (verit, ccfv_SIG) smt_extract_bit word_size_gt_0 wsst_TYs(3))
-  apply (smt (verit, ccfv_SIG) smt_extract_bit word_size_gt_0 wsst_TYs(3))
-  done
-
+  apply (smt (verit, ccfv_SIG) smt_extract_bit word_size_gt_0 wsst_TYs(3))*)
+  sorry
 
 named_theorems rewrite_bv_srem_eliminate_fewer_bitwise_ops \<open>automatically_generated\<close>
-
-(*(define-rule bv-srem-eliminate-fewer-bitwise-ops
- ((x ?BitVec) (y ?BitVec))
- (def (n (bvsize x))
- (xLt0 (bvuge x (concat (bv 1 1) (bv 0 (- n 1)))))
- (yLt0 (bvuge y (concat (bv 1 1) (bv 0 (- n 1))))) 
-(xAbs (ite xLt0 (bvneg x) x))
- (yAbs (ite yLt0 (bvneg y) y))
- (u (bvurem xAbs yAbs)) )
- (bvsrem x y)
- (ite xLt0 (bvneg u) u))
-*)
 
 lemma [rewrite_bv_srem_eliminate_fewer_bitwise_ops]:
   fixes x::"'a ::len word" and y::"'a ::len word"
@@ -834,8 +771,7 @@ smt_srem x y =
    apply (cases "word_cat (Word.Word (1::int)::1 word) (Word.Word (0::int)::'b::len word) \<le> y")
     apply simp_all
   oops
-  
- 
+
 named_theorems rewrite_bv_usubo_eliminate \<open>automatically_generated\<close>
 
 lemma [rewrite_bv_usubo_eliminate]:
@@ -882,7 +818,6 @@ lemma [rewrite_bv_ssubo_eliminate]:
     apply (simp add: nat_diff_distrib')
     apply (simp add: nat_minus_as_int)
   sorry
-
 
 named_theorems rewrite_bv_ite_equal_children \<open>automatically_generated\<close>
 
@@ -970,7 +905,6 @@ lemma [rewrite_bv_shl_by_const_0]:
   shows "push_bit (unat (Word.Word (0::int))) x = x"
   by auto
 
-
 named_theorems rewrite_bv_shl_by_const_1 \<open>automatically_generated\<close>
 
 lemma [rewrite_bv_shl_by_const_1]:
@@ -987,21 +921,6 @@ LENGTH('a) = LENGTH('b) + LENGTH('c) \<longrightarrow>
       (nat (0::int)) x::'c::len word)
     (Word.Word (0::int)::'b::len word)"
   by (simp add: size_word.rep_eq)
-
-named_theorems rewrite_bv_shl_by_const_1' \<open>automatically_generated\<close>
-
-lemma [rewrite_bv_shl_by_const_1]:
-  fixes x::"'a ::len word" and amount::"int" and sz::"int"
-  shows "amount < int (size x) \<longrightarrow>
-(int (size x)) - (amount + 1) \<ge> 0 \<longrightarrow> (int (size x)) - (amount + 1) \<le> (int (size x)) \<longrightarrow> 
-LENGTH('b) = (size x - (1 + amount)) + 1  \<longrightarrow>
-LENGTH('c) + LENGTH('b) = LENGTH('a) \<longrightarrow>  
-   (push_bit (unat (Word.Word amount::'d::len word)) x::'a::len word) =
-   word_cat
-    (smt_extract (nat (int (size x) - ((1::int) + amount))) 0 x::'b::len word)
-    (Word.Word (0::int)::'c::len word)"
-  apply (rule impI)+
-  sorry
 
 named_theorems rewrite_bv_shl_by_const_2 \<open>automatically_generated\<close>
 
@@ -1273,7 +1192,6 @@ lemma [rewrite_bv_udiv_pow2_1n]:
         (nat (int (floorlog (nat (- v)) (2::nat)))) x)"
   sorry
 
-
 named_theorems rewrite_bv_udiv_pow2_2p \<open>automatically_generated\<close>
 
 lemma [rewrite_bv_udiv_pow2_2p]:
@@ -1366,36 +1284,6 @@ lemma [rewrite_bv_ashr_zero]:
   shows "signed_drop_bit (unat a) (Word.Word (0::int)) = Word.Word (0::int)"
   by auto
 
-(*This cannot be added as a lemma, has to be implemented as a tactic*)
-named_theorems rewrite_bv_and_concat_pullup \<open>automatically_generated\<close>
-
-lemma [rewrite_bv_and_concat_pullup]:
-  fixes x::"'a::len word" and y::"'b::len word" and z::"'c::len word" and ys::"'c::len word cvc_ListVar"
-  shows "LENGTH('c) = i - size y \<longrightarrow> size y \<le> size x - 1 \<longrightarrow> 
-
-  and x (word_cat (cvc_list_left word_cat ys z) y) =
-   word_cat
-    (and (smt_extract (nat (int (size x) - (1::int)))
-           (nat (int (size y))) x :: 'c::len word)
-      (cvc_list_left word_cat ys z))
-    (and (smt_extract (nat (int (size y) - (1::int))) (nat (0::int)) x :: 'b::len word)
-      y)"
-  oops
-
-(*This cannot be added as a lemma, has to be implemented as a tactic*)
-named_theorems rewrite_bv_or_concat_pullup \<open>automatically_generated\<close>
-
-lemma [rewrite_bv_or_concat_pullup]:
-  fixes x::"'a::len word" and y::"'b::len word" and z::"'c::len word" and ys::"'c::len word cvc_ListVar"
-  shows "or x (word_cat (cvc_list_left word_cat ys z) y) =
-   word_cat
-    (or (smt_extract (nat (int (size x) - (1::int)))
-          (nat (int (size y))) x)
-      (cvc_list_left word_cat ys z))
-    (or (smt_extract (nat (int (size y) - (1::int))) (nat (0::int)) x)
-      y)"
-  oops
-
 named_theorems rewrite_bv_ugt_urem \<open>automatically_generated\<close>
 
 lemma [rewrite_bv_ugt_urem]:
@@ -1456,7 +1344,6 @@ proof
   by (metis \<open>(sint (x::'a::len word) < (0::int)) = (signed_take_bit (0::nat) (drop_bit (size x - (1::nat)) (take_bit (Suc (size x - (1::nat))) (uint x))) = - (1::int))\<close> calculation len_num1 signed_1 word_eq_iff_signed)
 qed
 
-
 named_theorems rewrite_bv_zero_ult \<open>automatically_generated\<close>
 
 lemma [rewrite_bv_zero_ult]:
@@ -1475,7 +1362,7 @@ i \<ge> 0 \<longrightarrow> j \<ge> 0 \<longrightarrow>
   by (simp add: is_up.rep_eq scast_up_scast)
 
 named_theorems rewrite_bv_merge_sign_extend_2 \<open>automatically_generated\<close>
-thm signed_ucast_eq[of x]
+
 lemma [rewrite_bv_merge_sign_extend_2]:
   fixes x::"'a::len word" and i::"int" and j::"int"
   shows "(1::int) < j \<longrightarrow> LENGTH('c) = LENGTH('b) + i \<longrightarrow> i \<ge> 0 \<longrightarrow>
@@ -1513,7 +1400,7 @@ lemma [rewrite_bv_sign_extend_eq_const_1]:
     x = smt_extract (nat (int (size x) - (1::int))) (nat (0::int)) (Word.Word c::'b::len word))"
   apply (rule impI)+
   sorry
-(*
+
 named_theorems rewrite_bv_sign_extend_eq_const_2 \<open>automatically_generated\<close>
 
 lemma [rewrite_bv_sign_extend_eq_const_2]:
@@ -1528,7 +1415,7 @@ lemma [rewrite_bv_sign_extend_eq_const_2]:
     x =
     smt_extract (nat (int (size x) - (1::int))) (nat (0::int))
      (Word.Word c))"
-  by auto
+  sorry
 
 named_theorems rewrite_bv_zero_extend_eq_const_1 \<open>automatically_generated\<close>
 
@@ -1561,7 +1448,7 @@ LENGTH('b) = nm -1 + 1 - (size x -1) \<longrightarrow>
     apply (metis One_nat_def int_minus int_ops(2) nat_int_comparison(2) word_size)
   apply (metis Suc_diff_1 nat_minus_as_int of_nat_1 word_size_gt_0)
   apply (simp add: uint_word_of_int_eq[of c, where 'a="'c"])
-
+  sorry
 
 
 
@@ -1576,7 +1463,7 @@ lemma [rewrite_bv_zero_extend_eq_const_2]:
     x =
     smt_extract (nat (int (size x) - (1::int))) (nat (0::int))
      (Word.Word c))"
-  by auto
+  sorry
 
 
 named_theorems rewrite_bv_sign_extend_ult_const_1 \<open>automatically_generated\<close>
@@ -1589,7 +1476,7 @@ lemma [rewrite_bv_sign_extend_ult_const_1]:
    \<le> Word.Word c \<longrightarrow>
    (signed_take_bit (nat m) x < Word.Word c) =
    (x < smt_extract (nat (int (size x) - 1)) (nat 0) (Word.Word c))"
-  by auto
+  sorry
 
 named_theorems rewrite_bv_sign_extend_ult_const_2 \<open>automatically_generated\<close>
 
@@ -1603,7 +1490,7 @@ lemma [rewrite_bv_sign_extend_ult_const_2]:
    (signed_take_bit (nat m) x < Word.Word c) =
    (smt_extract (nat (int (size x) - 1)) (nat (int (size x) - 1)) x =
     Word.Word 0)"
-  by auto
+  sorry
 
 named_theorems rewrite_bv_sign_extend_ult_const_3 \<open>automatically_generated\<close>
 
@@ -1615,7 +1502,7 @@ lemma [rewrite_bv_sign_extend_ult_const_3]:
    \<le> Word.Word c \<longrightarrow>
    (Word.Word c < signed_take_bit (nat m) x) =
    (smt_extract (nat (int (size x) - 1)) (nat 0) (Word.Word c) < x)"
-  by auto
+  sorry
 
 named_theorems rewrite_bv_sign_extend_ult_const_4 \<open>automatically_generated\<close>
 
@@ -1629,7 +1516,7 @@ lemma [rewrite_bv_sign_extend_ult_const_4]:
    (Word.Word c < signed_take_bit (nat m) x) =
    (smt_extract (nat (int (size x) - 1)) (nat (int (size x) - 1)) x =
     Word.Word 0)"
-  by auto
+  sorry
 
 named_theorems rewrite_bv_zero_extend_ult_const_1 \<open>automatically_generated\<close>
 
@@ -1639,17 +1526,17 @@ lemma [rewrite_bv_zero_extend_ult_const_1]:
    Word.Word 0 \<longrightarrow>
    (push_bit (nat m) x < Word.Word c) =
    (x < smt_extract (nat (int (size x) - 1)) (nat 0) (Word.Word c))"
-  by auto
+  sorry
 
 named_theorems rewrite_bv_zero_extend_ult_const_2 \<open>automatically_generated\<close>
 
 lemma [rewrite_bv_zero_extend_ult_const_2]:
   fixes x::"'a ::len word" and m::"int" and c::"int" and nm::"int"
-  shows "SMT.smt_extract (nat (nm - 1)) (nat (int (size x))) (Word.Word c) =
+  shows "smt_extract (nat (nm - 1)) (nat (int (size x))) (Word.Word c) =
    Word.Word 0 \<longrightarrow>
    (Word.Word c < push_bit (nat m) x) =
-   (SMT.smt_extract (nat (int (size x) - 1)) (nat 0) (Word.Word c) < x)"
-  by auto
+   (smt_extract (nat (int (size x) - 1)) (nat 0) (Word.Word c) < x)"
+  sorry
 
 named_theorems rewrite_bv_extract_bitwise_and \<open>automatically_generated\<close>
 
@@ -1753,60 +1640,42 @@ semiring_bit_operations_class.xor (smt_extract (nat i) (nat j) x::'b::len word)
 proof-
   assume a0: "0 \<le> j" and a1: "nat i < size x" and a2: "int LENGTH('b) = i + 1 - j" and a3: "j \<le> i"
 
-  have t0: "unat (smt_extract (nat i) (nat j) (xor x y)::'b::len word) = drop_bit (nat j) (take_bit (Suc (nat i)) (xor (unat x) (unat y)))"
+  have t0: "unat (smt_extract (nat i) (nat j) (semiring_bit_operations_class.xor x y)::'b::len word)
+ = drop_bit (nat j) (take_bit (Suc (nat i)) (semiring_bit_operations_class.xor (unat x) (unat y)))"
   proof-
-    have "unat (smt_extract (nat i) (nat j) (xor x y)::'b::len word) = drop_bit (nat j) (take_bit (Suc (nat i)) (unat (xor x y)))"
-      using unat_smt_extract[of "nat j" "nat i" "(xor x y)", where 'b="'b"]  
+    have "unat (smt_extract (nat i) (nat j) (semiring_bit_operations_class.xor x y)::'b::len word) = drop_bit (nat j) (take_bit (Suc (nat i)) (unat (semiring_bit_operations_class.xor x y)))"
+      using unat_smt_extract[of "nat j" "nat i" "(semiring_bit_operations_class.xor x y)", where 'b="'b"]  
       by (metis Suc_as_int Suc_eq_plus1 a0 a1 a2 a3 int_nat_eq nat_diff_distrib' nat_int nat_mono not_less_eq_eq order_trans word_size)
-    then show "unat (smt_extract (nat i) (nat j) (xor x y)::'b::len word) = drop_bit (nat j) (take_bit (Suc (nat i)) (xor (unat x) (unat y)))"
+    then show "unat (smt_extract (nat i) (nat j) (semiring_bit_operations_class.xor x y)::'b::len word)
+ = drop_bit (nat j) (take_bit (Suc (nat i)) (semiring_bit_operations_class.xor (unat x) (unat y)))"
       using unsigned_xor_eq by metis
   qed
-  moreover have "unat (xor ((smt_extract (nat i) (nat j) x)::'b::len word) ((smt_extract (nat i) (nat j) y)::'b::len word))
-  = (xor (drop_bit (nat j) (take_bit (Suc (nat i)) (unat x))) (drop_bit (nat j) (take_bit (Suc (nat i)) (unat y))))"
+  moreover have "unat (semiring_bit_operations_class.xor ((smt_extract (nat i) (nat j) x)::'b::len word) ((smt_extract (nat i) (nat j) y)::'b::len word))
+  = (semiring_bit_operations_class.xor (drop_bit (nat j) (take_bit (Suc (nat i)) (unat x))) (drop_bit (nat j) (take_bit (Suc (nat i)) (unat y))))"
     proof-
-      have "unat (xor ((smt_extract (nat i) (nat j) x)::'b::len word) ((smt_extract (nat i) (nat j) y)::'b::len word))
-        = (xor (unat ((smt_extract (nat i) (nat j) x)::'b::len word)) (unat ((smt_extract (nat i) (nat j) y)::'b::len word)))"
+      have "unat (semiring_bit_operations_class.xor ((smt_extract (nat i) (nat j) x)::'b::len word) ((smt_extract (nat i) (nat j) y)::'b::len word))
+        = (semiring_bit_operations_class.xor (unat ((smt_extract (nat i) (nat j) x)::'b::len word)) (unat ((smt_extract (nat i) (nat j) y)::'b::len word)))"
     using unsigned_xor_eq by blast
     moreover have " nat (j::int) \<le> nat (i::int) \<and> nat i < size (x::'a::len word) \<and> LENGTH('b::len) = nat i + (1::nat) - nat j "
       using a0 a1 a2 a3 by force
     moreover have "nat i < size (y::'a::len word)"
       by (metis a1 size_word.rep_eq)
-    ultimately show t1: "unat (xor ((smt_extract (nat i) (nat j) x)::'b::len word) ((smt_extract (nat i) (nat j) y)::'b::len word))
-    = (xor (drop_bit (nat j) (take_bit (Suc (nat i)) (unat x))) (drop_bit (nat j) (take_bit (Suc (nat i)) (unat y))))"
+    ultimately show t1: "unat (semiring_bit_operations_class.xor ((smt_extract (nat i) (nat j) x)::'b::len word) ((smt_extract (nat i) (nat j) y)::'b::len word))
+    = (semiring_bit_operations_class.xor (drop_bit (nat j) (take_bit (Suc (nat i)) (unat x))) (drop_bit (nat j) (take_bit (Suc (nat i)) (unat y))))"
     using unat_smt_extract[of "nat j" "nat i" "x", where 'b="'b"]
     using unat_smt_extract[of "nat j" "nat i" "y", where 'b="'b"]
     by presburger
   qed
-  moreover have  "drop_bit (nat j) (take_bit (Suc (nat i)) (xor (unat x) (unat y)))
-  = (xor (drop_bit (nat j) (take_bit (Suc (nat i)) (unat x))) (drop_bit (nat j) (take_bit (Suc (nat i)) (unat y))))"
+  moreover have  "drop_bit (nat j) (take_bit (Suc (nat i)) (semiring_bit_operations_class.xor (unat x) (unat y)))
+  = (semiring_bit_operations_class.xor (drop_bit (nat j) (take_bit (Suc (nat i)) (unat x))) (drop_bit (nat j) (take_bit (Suc (nat i)) (unat y))))"
     by auto
-  ultimately show "(smt_extract (nat i) (nat j) (xor x y)::'b::len word) =
-   xor ((smt_extract (nat i) (nat j) x)::'b::len word) 
+  ultimately show "(smt_extract (nat i) (nat j) (semiring_bit_operations_class.xor x y)::'b::len word) =
+   semiring_bit_operations_class.xor ((smt_extract (nat i) (nat j) x)::'b::len word) 
     ((smt_extract (nat i) (nat j) y)::'b::len word)"
     by (metis unsigned_word_eqI)
 qed
 
-
-
-
-named_theorems rewrite_bv_extract_bitwise_xor \<open>automatically_generated\<close>
-
-lemma [rewrite_bv_extract_bitwise_xor]:
-  fixes x::"'a ::len word" and y::"'a ::len word" and i::"int" and j::"int"
-  shows "smt_extract (nat i) (nat j) (semiring_bit_operations_class.xor x y) =
-   semiring_bit_operations_class.xor (smt_extract (nat i) (nat j) x)
-    (smt_extract (nat i) (nat j) y)"
-  by auto
-    
 named_theorems rewrite_bv_extract_not \<open>automatically_generated\<close>
-
-lemma "uint (not x::'a::len word) = take_bit LENGTH('a::len) (not (unsigned x))"
-  using unsigned_not_eq by auto
-
-(*  Bit_Operations.not_int_div_2: not (?k::int) div (2::int) = not (?k div (2::int))
-*)
-
-
 
 lemma [rewrite_bv_extract_not]:
   fixes x::"'a ::len word" and i::"int" and j::"int"
@@ -1888,19 +1757,9 @@ qed
     by presburger
 qed
 
-*)
-
 named_theorems rewrite_bv_extract_sign_extend_1 \<open>automatically_generated\<close>
 
-(*
-(define-cond-rule bv-extract-sign-extend-1
-  ((x ?BitVec) (low Int) (high Int) (k Int))
-  (< high (bvsize x))
-  (extract high low (sign_extend k x))
-  (extract high low x)
-  )
-*)
-(*
+
 lemma [rewrite_bv_extract_sign_extend_1]:
   fixes x::"'a ::len word" and low::"int" and high::"int" and k::"int"
   shows "
@@ -1949,19 +1808,8 @@ signed_take_bit (LENGTH('c) - Suc (0::nat))
   ultimately show "(smt_extract (nat high) (nat low) (Word.signed_cast x::'b::len word)::'c::len word) =
    smt_extract (nat high) (nat low) x"
     apply (simp add: signed_cast.abs_eq)
-    
+    sorry
 qed
-
-
-named_theorems rewrite_bv_extract_sign_extend_1 \<open>automatically_generated\<close>
-
-lemma [rewrite_bv_extract_sign_extend_1]:
-  fixes x::"'a::len ::len word" and low::"int" and high::"int" and k::"int"
-  shows "high < int (size x) \<longrightarrow>
-   SMT.smt_extract (nat high) (nat low) (Word.signed_cast x) =
-   SMT.smt_extract (nat high) (nat low) x"
- sorry
-  
 
 named_theorems rewrite_bv_extract_sign_extend_2 \<open>automatically_generated\<close>
 
@@ -1971,8 +1819,8 @@ lemma [rewrite_bv_extract_sign_extend_2]:
    smt_extract (nat high) (nat low) (signed_take_bit (nat k) x) =
    signed_take_bit (nat (1 + (high - int (size x))))
     (smt_extract (nat (int (size x) - 1)) (nat low) x)"
-  by auto
-*)
+  sorry
+
 named_theorems rewrite_bv_extract_sign_extend_3 \<open>automatically_generated\<close>
 
 lemma [rewrite_bv_extract_sign_extend_3]:
@@ -2054,11 +1902,10 @@ lemma [rewrite_bv_not_xor]:
   done
 
 named_theorems rewrite_bv_and_simplify_1 \<open>automatically_generated\<close>
-(*
-(*TODO: I would have to add assumption during parsing*)
+
 lemma [rewrite_bv_and_simplify_1]:
   fixes xs::"'b::len word cvc_ListVar" and ys::"'b::len word cvc_ListVar" and zs::"'b::len word cvc_ListVar" and x::"'b::len word"
-  shows "
+  shows "\<not> (xs = (ListVar []) \<and> ys = (ListVar [])) \<Longrightarrow>
      cvc_list_right and
     (and (cvc_list_right and (cvc_list_left and xs x) ys) x) zs =
    cvc_list_right and (cvc_list_right and (cvc_list_left and xs x) ys) zs"
@@ -2066,16 +1913,13 @@ lemma [rewrite_bv_and_simplify_1]:
   apply (cases ys)
   apply (cases xs)
   subgoal for zss yss xss 
-    apply (simp add: cvc_list_left_transfer cvc_list_right_transfer_op cvc_list_both_transfer_op)
+    apply (simp add: cvc_list_left_transfer cvc_list_right_transfer_op cvc_list_both_transfer_op)    
     apply (induction xss arbitrary: xs)
      apply simp_all
     apply (induction yss arbitrary: ys)
      apply simp_all
     apply (induction zss arbitrary: zs)
-      apply simp_all
-      apply (simp add: and.assoc and.left_commute)
-    apply (simp add: and.commute)
-    by (simp add: word_bw_assocs(1))
+    sorry
   done
 
 named_theorems rewrite_bv_and_simplify_2 \<open>automatically_generated\<close>
@@ -2098,8 +1942,7 @@ cvc_list_right and
      apply simp_all
     apply (induction zss arbitrary: zs)
      apply simp_all
-     apply (metis (no_types, lifting) bit.double_compl mask_eq_0_eq_x word_ao_absorbs(1) word_ao_absorbs(6))
-    by (metis and_zero_eq word_bw_assocs(1))
+    sorry
   done
 
 named_theorems rewrite_bv_or_simplify_1 \<open>automatically_generated\<close>
@@ -2260,18 +2103,10 @@ lemma [rewrite_bv_concat_to_mult]:
    x * (push_bit (unat (Word.Word m :: 'a::len word)) (Word.Word (1::int)::'a::len word)::'a::len word)"
   using BV_Rewrites_Lemmas.rewrite_bv_concat_to_mult by blast
 
-*)
-
 
 named_theorems rewrite_bv_mult_slt_mult_1 \<open>automatically_generated\<close>
 
-(*(define-rule bv-mult-slt-mult-1 ((x ?BitVec) (t ?BitVec) (a ?BitVec) (n Int) (m Int))
- (def (tn (bvsize t)) (an (bvsize a)) )
- (bvslt (bvmul (sign_extend n (bvadd x t)) (sign_extend m a)) (bvmul (sign_extend n x) (sign_extend m a)))
- (and (not (= t (bv 0 tn))) (not (= a (bv 0 an))) (= (bvslt (bvadd x t) x) (bvsgt a (bv 0 an)))))
-*)
-(*TODO: bvslt needs to generate conditions for its extracts.*)
-(*
+(*TODO: bvslt needs to generate conditions for its extracts. Proofsketch in sdiv*)
 lemma [rewrite_bv_mult_slt_mult_1]:
   fixes x::"'a ::len word" and t::"'a ::len word" and a::"'a ::len word" and n::"int" and m::"int"
   shows "nat n < LENGTH('a) \<Longrightarrow> LENGTH('a) > 1 \<Longrightarrow> 
@@ -2280,123 +2115,8 @@ lemma [rewrite_bv_mult_slt_mult_1]:
    (t \<noteq> (Word.Word 0::'a::len word) \<and>
     a \<noteq> (Word.Word 0::'a::len word) \<and>
    (x + t <s x) = (Word.Word 0 <s a))"
-  apply (cases "t = (Word.Word 0::'a::len word)")
-   apply simp
-  apply (cases "a = (Word.Word 0::'a::len word)")
-   apply simp
-  apply (cases "(x + t <s x) = (Word.Word 0 <s a)")
-   apply simp_all
-proof-
-  assume a00: "nat n < LENGTH('a)" and a01: " Suc (0::nat) < LENGTH('a)" and a0: "t \<noteq> (0::'a word)"
-  and a1: "a \<noteq> (0::'a word)"
-  and a2: "(x + t <s x) = ((0::'a word) <s a)"
+  sorry
 
-have t0: "sint (signed_take_bit (nat n) x) =
-   (or (take_bit (nat n) (sint x))
-       (signed_take_bit (LENGTH('a) - 1) ((if (bit x (nat n)) then 1 else 0)
-   * signed_take_bit LENGTH('a::len) (not (signed (mask (nat n)::'a::len word))))))"
-proof-
-  have "sint (signed_take_bit (nat n) x) =
-   sint (or (take_bit (nat n) x) (of_bool (bit x (nat n)) * not (mask (nat n))))"
-    using signed_take_bit_def[of "nat n" "x"] signed_or_eq
-    by simp
-  then have "sint (signed_take_bit (nat n) x) =
-   (or (sint (take_bit (nat n) x::'a::len word)) (sint (of_bool (bit x (nat n)) * not (mask (nat n))::'a::len word)))"
-    using signed_or_eq by simp
- then have "sint (signed_take_bit (nat n) x) =
-   (or (take_bit (nat n) (sint x)) (sint (of_bool (bit x (nat n)) * not (mask (nat n))::'a::len word)))"
-  using signed_take_bit_eq[of "nat n" "x"] a00 by simp
-then have "sint (signed_take_bit (nat n) x) =
-   (or (take_bit (nat n) (sint x)) (sint ((if (bit x (nat n)) then 1 else 0) * not (mask (nat n))::'a::len word)))"
-  using of_bool_def by simp
-then have "sint (signed_take_bit (nat n) x) =
-   (or (take_bit (nat n) (sint x))
-       (signed_take_bit (LENGTH('a) - 1) (sint (if (bit x (nat n)) then 1 else 0::'a::len word) * sint (not (mask (nat n))::'a::len word))))"
-  by (simp add: sint_word_ariths(3))
-then have "sint (signed_take_bit (nat n) x) =
-   (or (take_bit (nat n) (sint x))
-       (signed_take_bit (LENGTH('a) - 1) ( (if (bit x (nat n)) then sint (1::'a::len word) else sint (0::'a::len word)) * sint (not (mask (nat n))::'a::len word))))"
-  by simp
-  moreover have "sint (1::'a::len word) = (1::int)"
-    using a01 by fastforce
-  moreover have "sint (0::'a::len word) = (0::int)"
-    by simp
-  ultimately have "sint (signed_take_bit (nat n) x) =
-   (or (take_bit (nat n) (sint x))
-       (signed_take_bit (LENGTH('a) - 1) ((if (bit x (nat n)) then 1 else 0) * sint (not (mask (nat n))::'a::len word))))"
-    by presburger
-then have "sint (signed_take_bit (nat n) x) =
-   (or (take_bit (nat n) (sint x))
-       (signed_take_bit (LENGTH('a) - 1) ((if (bit x (nat n)) then 1 else 0)
-   * signed_take_bit LENGTH('a::len) (not (signed (mask (nat n)::'a::len word))))))"
-  using signed_not_eq[of "mask (nat n)"] by metis
-  then show ?thesis 
-    by blast
-qed
-
- have t1: "sint (signed_take_bit (nat n) (x + t)) =
-   (or (take_bit (nat n) (signed_take_bit (LENGTH('a) - 1) (sint x + sint t)))
-       (signed_take_bit (LENGTH('a) - 1) ((if (bit (x + t) (nat n)) then 1 else 0)
-   * signed_take_bit LENGTH('a::len) (not (signed (mask (nat n)::'a::len word))))))"
-proof-
-  have "sint (signed_take_bit (nat n) (x + t) * signed_take_bit (nat m) a) =
-   signed_take_bit (LENGTH('a::len) - (1::nat)) (sint (signed_take_bit (nat n) (x + t)) * sint (signed_take_bit (nat m) a))"
-    using sint_word_ariths(3) by simp
-  have "sint (signed_take_bit (nat n) (x + t)) =
-   sint (or (take_bit (nat n) (x + t)) (of_bool (bit (x + t) (nat n)) * not (mask (nat n))))"
-    using signed_take_bit_def[of "nat n" "x+t"] signed_or_eq
-    by simp
-  then have "sint (signed_take_bit (nat n) (x + t)) =
-   (or (sint (take_bit (nat n) (x + t)::'a::len word)) (sint (of_bool (bit (x + t) (nat n)) * not (mask (nat n))::'a::len word)))"
-    using signed_or_eq by simp
- then have "sint (signed_take_bit (nat n) (x + t)) =
-   (or (take_bit (nat n) (sint (x + t))) (sint (of_bool (bit (x + t) (nat n)) * not (mask (nat n))::'a::len word)))"
-  using signed_take_bit_eq[of "nat n" "x+t"] a00 by simp
-then have "sint (signed_take_bit (nat n) (x + t)) =
-   (or (take_bit (nat n) (signed_take_bit (LENGTH('a) - 1) (sint x + sint t))) (sint (of_bool (bit (x + t) (nat n)) * not (mask (nat n))::'a::len word)))"
-  using sint_word_ariths(1) by metis
-then have "sint (signed_take_bit (nat n) (x + t)) =
-   (or (take_bit (nat n) (signed_take_bit (LENGTH('a) - 1) (sint x + sint t))) (sint ((if (bit (x + t) (nat n)) then 1 else 0) * not (mask (nat n))::'a::len word)))"
-  using of_bool_def by simp
-then have "sint (signed_take_bit (nat n) (x + t)) =
-   (or (take_bit (nat n) (signed_take_bit (LENGTH('a) - 1) (sint x + sint t)))
-       (signed_take_bit (LENGTH('a) - 1) (sint (if (bit (x + t) (nat n)) then 1 else 0::'a::len word) * sint (not (mask (nat n))::'a::len word))))"
-  by (simp add: sint_word_ariths(3))
-then have "sint (signed_take_bit (nat n) (x + t)) =
-   (or (take_bit (nat n) (signed_take_bit (LENGTH('a) - 1) (sint x + sint t)))
-       (signed_take_bit (LENGTH('a) - 1) ( (if (bit (x + t) (nat n)) then sint (1::'a::len word) else sint (0::'a::len word)) * sint (not (mask (nat n))::'a::len word))))"
-  by simp
-  moreover have "sint (1::'a::len word) = (1::int)"
-    using a01 by fastforce
-  moreover have "sint (0::'a::len word) = (0::int)"
-    by simp
-  ultimately have "sint (signed_take_bit (nat n) (x + t)) =
-   (or (take_bit (nat n) (signed_take_bit (LENGTH('a) - 1) (sint x + sint t)))
-       (signed_take_bit (LENGTH('a) - 1) ((if (bit (x + t) (nat n)) then 1 else 0) * sint (not (mask (nat n))::'a::len word))))"
-    by presburger
-then have "sint (signed_take_bit (nat n) (x + t)) =
-   (or (take_bit (nat n) (signed_take_bit (LENGTH('a) - 1) (sint x + sint t)))
-       (signed_take_bit (LENGTH('a) - 1) ((if (bit (x + t) (nat n)) then 1 else 0)
-   * signed_take_bit LENGTH('a::len) (not (signed (mask (nat n)::'a::len word))))))"
-  using signed_not_eq[of "mask (nat n)"] by metis
-  then show ?thesis 
-    by blast
-qed
-
-  show " signed_take_bit (nat n) (x + t) * signed_take_bit (nat m) a <s signed_take_bit (nat n) x * signed_take_bit (nat m) a"
-    apply (simp add: word_sless_alt)
-    apply (simp add: sint_word_ariths(3))
-    apply (simp add: t0 t1)
-    apply (cases "bit (x + t) (nat n)")
-    apply (case_tac "bit x (nat n)")
-      apply simp_all
-    unfolding take_bit_eq_mod bit_or_iff
-    apply simp
-qed
-
-
-
-*)
 
 named_theorems rewrite_bv_mult_slt_mult_2 \<open>automatically_generated\<close>
 
@@ -2493,7 +2213,7 @@ lemma [rewrite_bv_ult_ones]:
   shows "y = not (Word.Word (0::int)) \<longrightarrow> (x < y) = (x \<noteq> y)"
   using word_order.not_eq_extremum by auto
 
-(*
+
 named_theorems rewrite_bv_or_flatten \<open>automatically_generated\<close>
 
 lemma [rewrite_bv_or_flatten]:
@@ -2511,10 +2231,9 @@ lemma [rewrite_bv_or_flatten]:
      apply simp_all
     apply (induction zss arbitrary: zs)
       apply simp_all
-    apply (metis (no_types, opaque_lifting) Dsl_Nary_Ops.cvc_bin_op_fold_Nil and_zero_eq cvc_bin_op_fold_transfer or.left_commute word_ao_absorbs(6))
+    sorry
+    done
 
-  done*)
-(*
 
 named_theorems rewrite_bv_xor_flatten \<open>automatically_generated\<close>
 
@@ -2541,10 +2260,10 @@ lemma [rewrite_bv_xor_flatten]:
      apply simp_all
      apply (metis (no_types, opaque_lifting) bit.xor_left_self word_bw_assocs(3))
     unfolding bit_xor_iff
-    by (simp add: bv_xor_flatten_lemma)
+    sorry
   done
-*)
-(*
+
+
 named_theorems rewrite_bv_and_flatten \<open>automatically_generated\<close>
 
 lemma [rewrite_bv_and_flatten]:
@@ -2556,9 +2275,9 @@ lemma [rewrite_bv_and_flatten]:
   apply (cases xs)
   subgoal for zss yss xss 
     apply (simp add: cvc_list_left_transfer cvc_list_right_transfer_op cvc_list_both_transfer_op)
-    by (simp add: bv_and_flatten_lemma)
+    sorry
   done
-*)
+
 
 
 named_theorems rewrite_bv_mul_flatten \<open>automatically_generated\<close>
