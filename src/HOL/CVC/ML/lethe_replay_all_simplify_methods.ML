@@ -95,10 +95,10 @@ in
   then
    (SMT_Config.verbose_msg ctxt (pretty ("Found evaluate, try to simplify")) []; try_simp ctxt t)
   else
-   (SMT_Config.verbose_msg ctxt (pretty ("Found evaluate, try to simplify")) []; try_simp ctxt t)  |
+   (SMT_Config.verbose_msg ctxt (pretty ("Found rewrite rule " ^ rewrite_name)) []; dsl_tac_initialize rewrite_name args ctxt t th) |
 
-    (*(SMT_Config.verbose_msg ctxt (pretty ("Found rewrite rule " ^ rewrite_name)) []; dsl_tac_initialize rewrite_name args ctxt t th) |*)
-   (*(SMT_Config.verbose_msg ctxt (pretty ("Found evaluate, try to simplify")) []; try_simp ctxt t)|*)
+    (*( dsl_tac_initialize rewrite_name args ctxt t th) |*)
+   (*( try_auto_solo ctxt t)|*)
  all_simplify ctxt (_ : thm list) args t =
   (SMT_Config.verbose_msg ctxt (pretty ("No dsl rule found, try to simplify" ^
   List.foldr op^ "" (map ML_Syntax.print_term args))) []; try_simp ctxt t)
