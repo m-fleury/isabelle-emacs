@@ -169,7 +169,6 @@ val setup_builtins =
     (\<^term>\<open>word_sless\<close>, "bvslt"),
     (\<^term>\<open>word_sle\<close>, "bvsle") ] #>
   fold (SMT_Builtin.add_builtin_fun' SMTLIB_Interface.bvsmlibC) [
-    (\<^term>\<open>unsigned :: 'a::len word \<Rightarrow> Nat.nat\<close>, "bv2nat"),
     (\<^term>\<open>unsigned :: 'a::len word \<Rightarrow> Int.int\<close>, "bv2nat")
    ]
 
