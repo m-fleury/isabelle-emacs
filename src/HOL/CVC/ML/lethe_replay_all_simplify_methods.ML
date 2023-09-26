@@ -84,6 +84,9 @@ fun try_simp ctxt t =
      THEN' K (print_tac ctxt "debug in try simp")
   )
 
+fun try_auto_solo ctxt t = 
+  SMT_Replay_Methods.prove ctxt t (fn _ => TRY' (K (Clasimp.auto_tac ctxt)))
+
 local 
  fun pretty tag lines = map Pretty.str lines |> Pretty.big_list tag |> Pretty.string_of
 in 
