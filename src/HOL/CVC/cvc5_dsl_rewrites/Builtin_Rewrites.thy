@@ -1,19 +1,6 @@
 theory Builtin_Rewrites
-  imports Dsl_Nary_Ops Dsl_Nary_Ops
+  imports Dsl_Nary_Ops
 begin
-
-(* This is a theory automatically created from a rare file! All that remains to do is to prove
-any lemma whose provided proof fails and to to import this file in SMT.thy. 
-If your rare statements use nary operators over lists that would be binarised by Isabelle 
-you have to add it in Dsl_Nary_Ops.thy. Currently already supported are the operators:
-and,
-or,
-plus,
-times,
-append,
-re_concat,
-str_concat,
-*)
 
 named_theorems rewrite_ite_true_cond \<open>automatically_generated\<close>
 
@@ -78,16 +65,5 @@ lemma [rewrite_bool_double_neg_elim]:
   shows "\<not> (\<not>x) = x"
   by auto
 
-named_theorems rewrite_eq_symm \<open>added by hand\<close>
-
-lemma [rewrite_eq_symm]:
-  shows "a = b \<longleftrightarrow> b = a"
-  by auto
-
-named_theorems rewrite_eq_refl \<open>added by hand\<close>
-
-lemma rewrite_[rewrite_eq_refl]:
-  shows "a = a"
-  by auto
 
 end
