@@ -16,7 +16,7 @@ lemmas [arith_simp_cvc5] = Groups.monoid_mult_class.mult_1_right Nat.mult_Suc_ri
                      Num.numeral_2_eq_2 Nat.One_nat_def Num.numeral_2_eq_2 Nat.One_nat_def
                      Nat.Suc_less_eq Nat.zero_less_Suc minus_nat.diff_0 Nat.diff_Suc_Suc Nat.le0
 
-ML_file\<open>ML/lethe_replay_all_simplify_methods.ML\<close>
+ML_file \<open>ML/lethe_replay_all_simplify_methods.ML\<close>
 ML_file \<open>ML/SMT_string.ML\<close>
 ML_file \<open>ML/SMT_set.ML\<close>
 ML_file \<open>ML/SMT_array.ML\<close>
@@ -35,9 +35,8 @@ val _ = Outer_Syntax.local_theory \<^command_keyword>\<open>check_smt\<close>
     val ctxt = Local_Theory.target_of lthy
     fun pretty tag lines = map Pretty.str lines |> Pretty.big_list tag |> Pretty.string_of
     val _ = SMT_Config.verbose_msg ctxt (pretty "Checking Alethe proof...") []
-
     (*Replay proof*)
-    val _ = SMT_Check_External.check_smt prover problem_file_name proof_file_name NONE
+    val _ = SMT_Check_External.check_smt prover problem_file_name proof_file_name NONE lthy
     val _ = SMT_Config.verbose_msg ctxt (pretty "Checked Alethe proof") []
   in
    lthy

@@ -56,14 +56,14 @@ fun check_smt prover problem_file_name proof_file_name opt_output_file lthy =
     val _ = replay_only prover ctxt problem_lines proof_lines opt_output_file
 in lthy end
 
-fun test_all_benchmarks prover files_dir opt_output_file local_thy = 
+fun test_all_benchmarks prover files_dir opt_output_file local_thy =
 let
   val dir_content = files_dir |> Path.explode |> File.read_dir
   val problems_path = filter (fn filename => String.isSuffix ".smt2" filename) dir_content
-  val _ = File_Stream.open_output (fn stream => File_Stream.outputs stream []) (Path.explode (Option.valOf opt_output_file))
-
-
-
+  val _ = if Option.isSome opt_output_file 
+          then
+            File_Stream.open_output (fn stream => File_Stream.outputs stream []) (Path.explode (Option.valOf opt_output_file))
+          else ()
 
   fun check_all [] i = ((),i) |
       check_all (problem_path::ts) i =
