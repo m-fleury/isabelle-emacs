@@ -921,44 +921,118 @@ lemma [rewrite_bv_shl_by_const_0]:
   by auto
 
 named_theorems rewrite_bv_shl_by_const_1 \<open>automatically_generated\<close>
+(*
 
+
+(define-cond-rule bv-shl-by-const-1
+  ((x ?BitVec) (amount Int) (sz Int))
+  (< amount (bvsize x))
+  (bvshl x (bv amount sz))
+  (concat (extract (- (bvsize x) (+ 1 amount)) 0 x) (bv 0 amount)))
+
+size (bv 0 amount) = amount
+size (extract (- (bvsize x) (+ 1 amount)) 0 x) = (1 + (((bvsize x) - (1 + amount)) - 0)) =  (bvsize x) - amount)
+size (concat (extract (- (bvsize x) (+ 1 amount)) 0 x) (bv 0 amount))) = bvsize x
+size (bvshl x (bv amount sz)) = bvsize x
+
+(bvsize x) - amount \<ge> 0
+amount \<ge> 0 
+(bvsize x) \<ge> 0
+sz \<ge> 0*)
+
+(*TODO: I needed to add amount < (2::int) ^ LENGTH('d). Is this implicit in cvc5? Probably*)
 lemma [rewrite_bv_shl_by_const_1]:
   fixes x::"'a::len word" and amount::"int" and sz::"int"
   shows "amount < int (size x) \<longrightarrow>
 LENGTH('b) = amount \<longrightarrow>
 size x - (1 + amount) \<ge> 0 \<longrightarrow>
 size x - (1 + amount) < size x \<longrightarrow> 
-LENGTH('c) = size x - (1 + amount) - 1 \<longrightarrow>
+amount \<ge> 0 \<longrightarrow>
+LENGTH('c) = 1 + ((size x - (1 + amount)) - 0) \<longrightarrow>
 LENGTH('a) = LENGTH('b) + LENGTH('c) \<longrightarrow>
-   (push_bit (unat (Word.Word amount)) x ::'a::len word)=
+LENGTH('d) = sz \<longrightarrow>
+amount < (2::int) ^ LENGTH('d) \<longrightarrow>
+   (push_bit (unat (Word.Word amount::'d::len word)) x ::'a::len word)=
    word_cat
     (smt_extract (nat (int (size x) - ((1::int) + amount)))
       (nat (0::int)) x::'c::len word)
     (Word.Word (0::int)::'b::len word)"
-  by (simp add: size_word.rep_eq)
+  apply rule+
+proof-
+  assume a0:
+    "amount < int (size x)"
+    "int LENGTH('b) = amount"
+    "(0::int) \<le> int (size x) - ((1::int) + amount)"
+    "int (size x) - ((1::int) + amount) < int (size x)"
+    "amount \<ge> 0"
+    "int LENGTH('c) = (1::int) + (int (size x) - ((1::int) + amount) - (0::int))"
+    "LENGTH('a) = LENGTH('b) + LENGTH('c)"
+    "int LENGTH('d) = sz"
+    "amount < (2::int) ^ LENGTH('d)"
+  have t0: "(nat (int (size x) - ((1::int) + amount))) = (size x - 1 - nat amount::nat)"
+    using a0(3) a0(4) by auto
+  have t1: "(unat (Word.Word amount::'d::len word)) = nat amount"
+    apply simp
+    apply (simp add: unsigned_of_int)
+    apply (subst take_bit_int_eq_self)
+    by (simp_all add: a0)
 
-named_theorems rewrite_bv_shl_by_const_1' \<open>automatically_generated\<close>
+  have "word_cat
+    (smt_extract (nat (int (size x) - ((1::int) + amount)))
+      (nat (0::int)) x::'c::len word)
+    (Word.Word (0::int)::'b::len word)
+  = word_cat (smt_extract (size x - 1 - nat amount) 0 x::'c::len word) (0::'b::len word)"
+    using t0 by simp
+  also have "...
+  = word_cat (slice (0::nat) (take_bit (Suc (size x - (1::nat) - nat amount)) x::'a::len word)::'c::len word) (0::'b ::len word)"
+    unfolding smt_extract_def by simp
+  also have "...
+  = word_cat (slice (0::nat) (take_bit (size x - nat amount) x::'a::len word)::'c::len word) (0::'b ::len word)"
+    using Suc_diff_Suc a0(1) a0(4) by force
+ also have "...
+  = word_cat (ucast (take_bit (size x - nat amount) x::'a::len word)::'c::len word) (0::'b ::len word)"
+   by (simp add: ucast_slice)
+   also have "...
+  =  push_bit LENGTH('b::len) (ucast (ucast (take_bit (size x - nat amount) x::'a::len word)::'c::len word)::'a::len word) + (ucast (0::'b::len word)::'a::len word)"
+     using word_cat_eq[of "(ucast (take_bit (size x - nat amount) x::'a::len word)::'c::len word)" "(0::'b ::len word)"]
+     by simp
+ also have "...
+  =  push_bit LENGTH('b::len) (ucast (ucast (take_bit (size x - nat amount) x::'a::len word)::'c::len word)::'a::len word)"
+   by auto
+ also have "...
+  =  push_bit (unat (Word.Word amount::'d::len word)) (ucast (ucast (take_bit (size x - nat amount) x::'a::len word)::'c::len word)::'a::len word)"
+   using t1 a0(2) by force
+ also have "...
+  =  push_bit (unat (Word.Word amount::'d::len word)) (take_bit LENGTH('c::len) (unsigned (take_bit (size x - nat amount) x::'a::len word)::'a::len word))"
+   apply (subst unsigned_ucast_eq[of "(take_bit (size x - nat amount) x::'a::len word)"])
+   by simp
+also have "...
+  =  push_bit (unat (Word.Word amount::'d::len word)) (take_bit LENGTH('c::len) (take_bit (size x - nat amount) (unsigned x::'a::len word)))"
+  by (simp add: unsigned_take_bit_eq)
+also have "...
+  =  (push_bit (unat (Word.Word amount::'d::len word)) (take_bit (size x - nat amount) (unsigned x::'a::len word))::'a::len word)"
+  using take_bit_take_bit
+  by (metis a0(2) a0(5) a0(7) nat_eq_iff2 push_bit_take_bit t1 take_bit_length_eq)
+also have "...
+  =  (push_bit (unat (Word.Word amount::'d::len word)) x::'a::len word)"
+  by (metis t1 take_bit_length_eq take_bit_push_bit ucast_id word_size)
 
-lemma [rewrite_bv_shl_by_const_1]:
-  fixes x::"'a ::len word" and amount::"int" and sz::"int"
-  shows "amount < int (size x) \<longrightarrow>
-(int (size x)) - (amount + 1) \<ge> 0 \<longrightarrow> (int (size x)) - (amount + 1) \<le> (int (size x)) \<longrightarrow> 
-LENGTH('b) = (size x - (1 + amount)) + 1  \<longrightarrow>
-LENGTH('c) + LENGTH('b) = LENGTH('a) \<longrightarrow>  
-   (push_bit (unat (Word.Word amount::'d::len word)) x::'a::len word) =
+  finally  show "(push_bit (unat (Word.Word amount::'d::len word)) x ::'a::len word)=
    word_cat
-    (smt_extract (nat (int (size x) - ((1::int) + amount))) 0 x::'b::len word)
-    (Word.Word (0::int)::'c::len word)"
-  apply (rule impI)+
-  sorry
+    (smt_extract (nat (int (size x) - ((1::int) + amount)))
+      (nat (0::int)) x::'c::len word)
+    (Word.Word (0::int)::'b::len word)"
+    by presburger
+qed
+
 
 named_theorems rewrite_bv_shl_by_const_2 \<open>automatically_generated\<close>
 
 lemma [rewrite_bv_shl_by_const_2]:
   fixes x::"'a ::len word" and amount::"int" and sz::"int"
-  shows "int (size x) \<le> amount \<longrightarrow>
-   push_bit (unat (Word.Word amount)) x = Word.Word (0::int)"
-  sorry
+  shows "int (size x) \<le> amount \<longrightarrow> LENGTH('b) = sz \<longrightarrow> amount < 2^LENGTH('b) \<longrightarrow>
+   push_bit (unat (Word.Word amount::'b::len word)) x = (Word.Word (0::int)::'a::len word)"
+  by (simp add: take_bit_int_eq_self unsigned_of_int word_size)
 
 named_theorems rewrite_bv_lshr_by_const_1 \<open>automatically_generated\<close>
 
