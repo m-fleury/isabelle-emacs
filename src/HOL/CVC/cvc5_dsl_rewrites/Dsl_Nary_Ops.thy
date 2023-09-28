@@ -319,7 +319,6 @@ lemma cvc_list_right_Nil: "cvc_list_right op y (ListVar []) = y"
 by parsing*)
 lemma cvc_list_both_Singleton: "cvc_list_both op neutral (ListVar [x]) (ListVar []) = x"
                      "cvc_list_both op neutral (ListVar []) (ListVar [x]) = x"
-                     "cvc_list_both op neutral (ListVar []) (ListVar [x]) = x"
   unfolding cvc_list_both_def
   by auto
 
@@ -334,6 +333,14 @@ lemma cvc_list_right_Cons: "cvc_list_right op y (ListVar (x#xs))
   unfolding cvc_list_right_def
   apply (induction xs)
   by auto
+
+lemma cvc_list_both_Cons_0: "cvc_list_both op neutral (ListVar (x#xs)) (ListVar [])
+       = cvc_list_right op x (ListVar xs)"
+  by (metis Dsl_Nary_Ops.cvc_nary_op_fold_Cons Dsl_Nary_Ops.cvc_nary_op_fold_Nil cvc_bin_op2.simps cvc_bin_op3.simps(2) cvc_list_both_def cvc_list_right_def list.exhaust)
+
+lemma cvc_list_both_Cons_1: "cvc_list_both op neutral (ListVar []) (ListVar (y#ys))
+       = cvc_list_right op y (ListVar ys)"
+  by (metis Dsl_Nary_Ops.cvc_bin_op_fold_Nil cvc_bin_op3.simps(2) cvc_bin_op3.simps(4) cvc_list_both_Cons_0 cvc_list_both_def)
 
 lemma cvc_list_both_Cons: "cvc_list_both op neutral (ListVar (x#xs)) (ListVar (y#ys))
        = op x (cvc_list_both op neutral (ListVar xs) (ListVar (y#ys)))"

@@ -30,6 +30,10 @@ end
 
 fun dsl_tac_initialize rewrite_name args ctxt t th =
 let
+ (*val _ = @{print}("dsl_tac_initialize t",t )
+ val _ = @{print}("dsl_tac_initialize args",args )*)
+ val _ = @{print}("rewrite_name",rewrite_name)
+
  fun find_Thy [] = Lethe_Replay_Methods.replay_error ctxt
   "No corresponding rewrite lemma found, add yours manually in RARE_Interface.thy or use IsaRARE for automatic support.. "
    Lethe_Replay_Methods.All_Simplify th t |
@@ -43,11 +47,11 @@ let
   end
 
  val rewrite_lemma = find_Thy all_rewrite_thys
-
  val get_types = map snd (rev (Term.add_vars (Thm.full_prop_of rewrite_lemma) []))
 
- fun rewrite_lemma_inst [] _  = rewrite_lemma |
-  rewrite_lemma_inst _ []  = rewrite_lemma | (*TODO: throw error*)
+ fun rewrite_lemma_inst [] []  = rewrite_lemma |
+  rewrite_lemma_inst [] _  = (@{print}("Too little arguments. TODO: throw error");rewrite_lemma) | (*TODO: throw error*)
+  rewrite_lemma_inst _ []  = (@{print}("Too many arguments. TODO: throw error");rewrite_lemma) | (*TODO: throw error*)
   rewrite_lemma_inst (a :: args') (t::typs') = 
     if (Const ("Dsl_Nary_Ops.cvc_ListVar.ListVar", dummyT --> dummyT) $ Const ("List.list.Nil", dummyT) = a)
     then
@@ -62,17 +66,24 @@ let
       Drule.infer_instantiate' ctxt (map (SOME o Thm.cterm_of ctxt) [a]) (rewrite_lemma_inst args' typs')
 
  val cvc_list_defs = @{thms cvc_list_right_Nil cvc_list_left_Nil cvc_list_both_Singleton
-                            cvc_list_right_Cons cvc_list_left_Cons cvc_list_both_Cons}
+                            cvc_list_right_Cons cvc_list_left_Cons cvc_list_both_Cons
+                            cvc_list_both_Cons_0 cvc_list_both_Cons_1}
  val inst_lemma = rewrite_lemma_inst (rev args) (rev get_types)
+val inst_lemma_without_list 
+ = (Local_Defs.unfold ctxt) cvc_list_defs inst_lemma
+
+ val _ = @{print}("inst_lemma",inst_lemma)
+ val _ = @{print}("inst_lemma_without_list",inst_lemma_without_list)
+
 
 in (*TODO: fixed-point rules*)
- (SMT_Replay_Methods.prove ctxt t (fn _ => Method.insert_tac ctxt
- [Simplifier.simplify ((put_simpset HOL_basic_ss (empty_simpset ctxt)) addsimps cvc_list_defs) inst_lemma]
-  THEN' K (print_tac ctxt ("all-simplify did not resolve after instantiation "))
-  THEN' TRY' (simplify_tac ctxt [@{lemma \<open>A = B ==> A = B\<close> by blast}])
-  THEN' TRY' (resolve_tac ctxt [@{thm refl}])
-
-))
+ (SMT_Replay_Methods.prove ctxt t (fn _ =>
+ K (print_tac ctxt "debug in dsl_tac_initialize 0")
+ THEN' TRY' (EqSubst.eqsubst_tac ctxt [0] [inst_lemma_without_list])
+ THEN' (resolve_tac ctxt [@{thm refl}])
+ THEN' K (print_tac ctxt "debug in dsl_tac_initialize 0")
+)
+)
 end
 
 fun try_simp ctxt t = 
@@ -95,7 +106,7 @@ in
   then
    (SMT_Config.verbose_msg ctxt (pretty ("Found evaluate, try to simplify")) []; try_simp ctxt t)
   else
-   (SMT_Config.verbose_msg ctxt (pretty ("Found rewrite rule " ^ rewrite_name)) []; dsl_tac_initialize rewrite_name args ctxt t th) |
+   ( dsl_tac_initialize rewrite_name args ctxt t th) |
 
     (*( dsl_tac_initialize rewrite_name args ctxt t th) |*)
    (*( try_auto_solo ctxt t)|*)
