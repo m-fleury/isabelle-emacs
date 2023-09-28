@@ -468,13 +468,18 @@ fun filter_split _ [] = ([], [])
   | filter_split f (a :: xs) =
      (if f a then apfst (curry op :: a) else apsnd (curry op :: a)) (filter_split f xs)
 
-fun extract_types_of_args (SMTLIB.S [var, typ, t as SMTLIB.S [SMTLIB.Sym "choice", _, _]]) =
+fun extract_types_of_args (SMTLIB.S [var, typ, t as SMTLIB.S [SMTLIB.Sym "choice", _, _]]) rule_name =
     (SMTLIB.S [var, typ, t], SOME typ)
     |> single
- | extract_types_of_args (SMTLIB.S t) =
+ | extract_types_of_args (SMTLIB.S t) rule_name =
   let
-    fun extract_types_of_arg (SMTLIB.S [eq as SMTLIB.Sym "=", SMTLIB.S [var, typ], t]) = (SMTLIB.S [eq, var, t], SOME typ)
-      | extract_types_of_arg t = (t, NONE)
+
+    fun extract_types_of_arg (SMTLIB.S [eq as SMTLIB.Sym "=", SMTLIB.S [var, typ], t]) =
+      if rule_name = "bind" orelse rule_name="sko_forall"
+      then (SMTLIB.S [eq, var, t], SOME typ)
+      else (SMTLIB.S [eq, SMTLIB.S [var, typ], t], NONE)
+    | extract_types_of_arg t = (t, NONE)
+
   in
     t
     |> map extract_types_of_arg
@@ -500,7 +505,7 @@ fun postprocess_proof compress ctxt step cx =
   let
     fun postprocess (Raw_Lethe_Node {id, rule, args, prems, declarations, concl, subproof}) (cx, rew) =
     let
-      val args = extract_types_of_args args
+      val args = extract_types_of_args args rule
       val globally_bound_vars = declared_csts cx rule args
       val cx = fold (update_binding o (fn (s, typ) => (s, Term (Free (s, type_of cx typ)))))
            globally_bound_vars cx
