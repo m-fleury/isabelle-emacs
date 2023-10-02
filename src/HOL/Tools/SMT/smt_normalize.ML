@@ -530,7 +530,7 @@ fun add_extra_norm (cs, norm) = Extra_Norms.map (SMT_Util.dict_update (cs, norm)
 
 fun apply_extra_norms ctxt ithms =
   let
-    val cs = SMT_Config.solver_class_of ctxt |> @{print}
+    val cs = SMT_Config.solver_class_of ctxt
     val es = map (SMT_Util.dict_lookup (Extra_Norms.get (Context.Proof ctxt))) cs |> flat
   in burrow_ids (fold (fn e => e ctxt) es o rpair []) ithms end
 
