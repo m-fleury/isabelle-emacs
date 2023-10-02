@@ -238,11 +238,11 @@ fun choose _ And = ignore_args and_rule
   | choose _ Tmp_Quantifier_Simplify = ignore_args qnt_simplify
   | choose ctxt (x as Other_Rule r) =
     (case get_alethe_tac r ctxt of
-      NONE => unsupported (string_of_verit_rule x)
+      NONE => unsupported (string_of_lethe_rule x)
     | SOME a => ignore_insts a)
   | choose _ Hole = ignore_args hole
   | choose _ r = (@{print} ("unknown rule, using hole", r); ignore_args hole)
-(*unsupported (string_of_verit_rule r)*)
+(*unsupported (string_of_lethe_rule r)*)
 
 type verit_method = Proof.context -> thm list -> term -> thm
 type abs_context = int * term Termtab.table

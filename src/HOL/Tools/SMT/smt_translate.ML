@@ -497,7 +497,6 @@ fun get_config ctxt : config list =
 
 fun merge_logics (prover: string) (logics: string list) =
   let
-val _ = @{print} logics
     val z3_extension = is_some (List.find (curry (op =) "") logics)
     val BV = is_some (List.find (curry (op =) "(set-logic AUFBVLIRA)\n") logics)
     val R = is_some (List.find (curry (op =) "(set-logic AUFLIRA)\n") logics)

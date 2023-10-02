@@ -192,7 +192,7 @@ fun choose And = ignore_args and_rule
   | choose Bfun_Elim = ignore_args bfun_elim
   | choose Qnt_CNF = ignore_args qnt_cnf
   | choose Trans = ignore_args trans
-  | choose r = unsupported (string_of_verit_rule r)
+  | choose r = unsupported (string_of_lethe_rule r)
 
 type verit_method = Proof.context -> thm list -> term -> thm
 type abs_context = int * term Termtab.table

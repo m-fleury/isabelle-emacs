@@ -58,7 +58,7 @@ sig
   val requires_subproof_assms : string list -> string -> bool
   val requires_local_input: string list -> string -> bool
 
-  val string_of_verit_rule: verit_rule -> string
+  val string_of_lethe_rule: verit_rule -> string
 
   type lethe_tac_args = Proof.context -> thm list -> term list -> term -> thm
   type lethe_tac = Proof.context -> thm list -> term -> thm
@@ -229,90 +229,90 @@ datatype verit_rule =
    Other_Rule of string |
    Hole
 
-fun string_of_verit_rule Bind = "Bind"
-  | string_of_verit_rule Cong = "Cong"
-  | string_of_verit_rule Refl = "Refl"
-  | string_of_verit_rule Equiv1 = "Equiv1"
-  | string_of_verit_rule Equiv2 = "Equiv2"
-  | string_of_verit_rule Equiv_pos1 = "Equiv_pos1"
-  | string_of_verit_rule Equiv_pos2 = "Equiv_pos2"
-  | string_of_verit_rule Equiv_neg1 = "Equiv_neg1"
-  | string_of_verit_rule Equiv_neg2 = "Equiv_neg2"
-  | string_of_verit_rule Skolem_Forall = "Skolem_Forall"
-  | string_of_verit_rule Skolem_Ex = "Skolem_Ex"
-  | string_of_verit_rule Eq_Reflexive = "Eq_Reflexive"
-  | string_of_verit_rule Theory_Resolution = "Theory_Resolution"
-  | string_of_verit_rule Theory_Resolution2 = "Theory_Resolution2"
-  | string_of_verit_rule Forall_Inst = "forall_inst"
-  | string_of_verit_rule Or = "Or"
-  | string_of_verit_rule Not_Or = "Not_Or"
-  | string_of_verit_rule Resolution = "Resolution"
-  | string_of_verit_rule Eq_Congruent = "eq_congruent"
-  | string_of_verit_rule Trans = "trans"
-  | string_of_verit_rule False = "false"
-  | string_of_verit_rule And = "and"
-  | string_of_verit_rule And_Pos = "and_pos"
-  | string_of_verit_rule Not_And = "not_and"
-  | string_of_verit_rule And_Neg = "and_neg"
-  | string_of_verit_rule Or_Pos = "or_pos"
-  | string_of_verit_rule Or_Neg = "or_neg"
-  | string_of_verit_rule AC_Simp = "ac_simp"
-  | string_of_verit_rule Not_Equiv1 = "not_equiv1"
-  | string_of_verit_rule Not_Equiv2 = "not_equiv2"
-  | string_of_verit_rule Not_Implies1 = "not_implies1"
-  | string_of_verit_rule Not_Implies2 = "not_implies2"
-  | string_of_verit_rule Implies_Neg1 = "implies_neg1"
-  | string_of_verit_rule Implies_Neg2 = "implies_neg2"
-  | string_of_verit_rule Implies = "implies"
-  | string_of_verit_rule Bfun_Elim = "bfun_elim"
-  | string_of_verit_rule ITE1 = "ite1"
-  | string_of_verit_rule ITE2 = "ite2"
-  | string_of_verit_rule Not_ITE1 = "not_ite1"
-  | string_of_verit_rule Not_ITE2 = "not_ite2"
-  | string_of_verit_rule ITE_Pos1 = "ite_pos1"
-  | string_of_verit_rule ITE_Pos2 = "ite_pos2"
-  | string_of_verit_rule ITE_Neg1 = "ite_neg1"
-  | string_of_verit_rule ITE_Neg2 = "ite_neg2"
-  | string_of_verit_rule ITE_Intro = "ite_intro"
-  | string_of_verit_rule LA_Disequality = "la_disequality"
-  | string_of_verit_rule LA_Generic = "la_generic"
-  | string_of_verit_rule LIA_Generic = "lia_generic"
-  | string_of_verit_rule LA_Tautology = "la_tautology"
-  | string_of_verit_rule LA_RW_Eq = "la_rw_eq"
-  | string_of_verit_rule LA_Totality = "LA_Totality"
-  | string_of_verit_rule NLA_Generic = "nla_generic"
-  | string_of_verit_rule Eq_Transitive = "eq_transitive"
-  | string_of_verit_rule Qnt_Rm_Unused = "qnt_remove_unused"
-  | string_of_verit_rule Onepoint = "onepoint"
-  | string_of_verit_rule Qnt_Join = "qnt_join"
-  | string_of_verit_rule Eq_Congruent_Pred = "eq_congruent_pred"
-  | string_of_verit_rule Normalized_Input = Lethe_Proof.normalized_input_rule
-  | string_of_verit_rule Local_Input = Lethe_Proof.local_input_rule
-  | string_of_verit_rule Subproof = "subproof"
-  | string_of_verit_rule Bool_Simplify = "bool_simplify"
-  | string_of_verit_rule Equiv_Simplify = "equiv_simplify"
-  | string_of_verit_rule Eq_Simplify = "eq_simplify"
-  | string_of_verit_rule Not_Simplify = "not_simplify"
-  | string_of_verit_rule And_Simplify = "and_simplify"
-  | string_of_verit_rule Or_Simplify = "or_simplify"
-  | string_of_verit_rule ITE_Simplify = "ite_simplify"
-  | string_of_verit_rule Implies_Simplify = "implies_simplify"
-  | string_of_verit_rule Connective_Def = "connective_def"
-  | string_of_verit_rule Minus_Simplify = "minus_simplify"
-  | string_of_verit_rule Sum_Simplify = "sum_simplify"
-  | string_of_verit_rule Prod_Simplify = "prod_simplify"
-  | string_of_verit_rule All_Simplify = "all_simplify"
-  | string_of_verit_rule Comp_Simplify = "comp_simplify"
-  | string_of_verit_rule Qnt_Simplify = "qnt_simplify"
-  | string_of_verit_rule Symm = "symm"
-  | string_of_verit_rule Not_Symm = "not_symm"
-  | string_of_verit_rule Reordering = "reordering"
-  | string_of_verit_rule Not_Not = Lethe_Proof.not_not_rule
-  | string_of_verit_rule Tautological_Clause = "tautology"
-  | string_of_verit_rule Duplicate_Literals = Lethe_Proof.contract_rule
-  | string_of_verit_rule Qnt_CNF = "qnt_cnf"
-  | string_of_verit_rule (Other_Rule r) = r
-  | string_of_verit_rule r = "Unknown rule: " ^ \<^make_string> r
+fun string_of_lethe_rule Bind = "Bind"
+  | string_of_lethe_rule Cong = "Cong"
+  | string_of_lethe_rule Refl = "Refl"
+  | string_of_lethe_rule Equiv1 = "Equiv1"
+  | string_of_lethe_rule Equiv2 = "Equiv2"
+  | string_of_lethe_rule Equiv_pos1 = "Equiv_pos1"
+  | string_of_lethe_rule Equiv_pos2 = "Equiv_pos2"
+  | string_of_lethe_rule Equiv_neg1 = "Equiv_neg1"
+  | string_of_lethe_rule Equiv_neg2 = "Equiv_neg2"
+  | string_of_lethe_rule Skolem_Forall = "Skolem_Forall"
+  | string_of_lethe_rule Skolem_Ex = "Skolem_Ex"
+  | string_of_lethe_rule Eq_Reflexive = "Eq_Reflexive"
+  | string_of_lethe_rule Theory_Resolution = "Theory_Resolution"
+  | string_of_lethe_rule Theory_Resolution2 = "Theory_Resolution2"
+  | string_of_lethe_rule Forall_Inst = "forall_inst"
+  | string_of_lethe_rule Or = "Or"
+  | string_of_lethe_rule Not_Or = "Not_Or"
+  | string_of_lethe_rule Resolution = "Resolution"
+  | string_of_lethe_rule Eq_Congruent = "eq_congruent"
+  | string_of_lethe_rule Trans = "trans"
+  | string_of_lethe_rule False = "false"
+  | string_of_lethe_rule And = "and"
+  | string_of_lethe_rule And_Pos = "and_pos"
+  | string_of_lethe_rule Not_And = "not_and"
+  | string_of_lethe_rule And_Neg = "and_neg"
+  | string_of_lethe_rule Or_Pos = "or_pos"
+  | string_of_lethe_rule Or_Neg = "or_neg"
+  | string_of_lethe_rule AC_Simp = "ac_simp"
+  | string_of_lethe_rule Not_Equiv1 = "not_equiv1"
+  | string_of_lethe_rule Not_Equiv2 = "not_equiv2"
+  | string_of_lethe_rule Not_Implies1 = "not_implies1"
+  | string_of_lethe_rule Not_Implies2 = "not_implies2"
+  | string_of_lethe_rule Implies_Neg1 = "implies_neg1"
+  | string_of_lethe_rule Implies_Neg2 = "implies_neg2"
+  | string_of_lethe_rule Implies = "implies"
+  | string_of_lethe_rule Bfun_Elim = "bfun_elim"
+  | string_of_lethe_rule ITE1 = "ite1"
+  | string_of_lethe_rule ITE2 = "ite2"
+  | string_of_lethe_rule Not_ITE1 = "not_ite1"
+  | string_of_lethe_rule Not_ITE2 = "not_ite2"
+  | string_of_lethe_rule ITE_Pos1 = "ite_pos1"
+  | string_of_lethe_rule ITE_Pos2 = "ite_pos2"
+  | string_of_lethe_rule ITE_Neg1 = "ite_neg1"
+  | string_of_lethe_rule ITE_Neg2 = "ite_neg2"
+  | string_of_lethe_rule ITE_Intro = "ite_intro"
+  | string_of_lethe_rule LA_Disequality = "la_disequality"
+  | string_of_lethe_rule LA_Generic = "la_generic"
+  | string_of_lethe_rule LIA_Generic = "lia_generic"
+  | string_of_lethe_rule LA_Tautology = "la_tautology"
+  | string_of_lethe_rule LA_RW_Eq = "la_rw_eq"
+  | string_of_lethe_rule LA_Totality = "LA_Totality"
+  | string_of_lethe_rule NLA_Generic = "nla_generic"
+  | string_of_lethe_rule Eq_Transitive = "eq_transitive"
+  | string_of_lethe_rule Qnt_Rm_Unused = "qnt_remove_unused"
+  | string_of_lethe_rule Onepoint = "onepoint"
+  | string_of_lethe_rule Qnt_Join = "qnt_join"
+  | string_of_lethe_rule Eq_Congruent_Pred = "eq_congruent_pred"
+  | string_of_lethe_rule Normalized_Input = Lethe_Proof.normalized_input_rule
+  | string_of_lethe_rule Local_Input = Lethe_Proof.local_input_rule
+  | string_of_lethe_rule Subproof = "subproof"
+  | string_of_lethe_rule Bool_Simplify = "bool_simplify"
+  | string_of_lethe_rule Equiv_Simplify = "equiv_simplify"
+  | string_of_lethe_rule Eq_Simplify = "eq_simplify"
+  | string_of_lethe_rule Not_Simplify = "not_simplify"
+  | string_of_lethe_rule And_Simplify = "and_simplify"
+  | string_of_lethe_rule Or_Simplify = "or_simplify"
+  | string_of_lethe_rule ITE_Simplify = "ite_simplify"
+  | string_of_lethe_rule Implies_Simplify = "implies_simplify"
+  | string_of_lethe_rule Connective_Def = "connective_def"
+  | string_of_lethe_rule Minus_Simplify = "minus_simplify"
+  | string_of_lethe_rule Sum_Simplify = "sum_simplify"
+  | string_of_lethe_rule Prod_Simplify = "prod_simplify"
+  | string_of_lethe_rule All_Simplify = "all_simplify"
+  | string_of_lethe_rule Comp_Simplify = "comp_simplify"
+  | string_of_lethe_rule Qnt_Simplify = "qnt_simplify"
+  | string_of_lethe_rule Symm = "symm"
+  | string_of_lethe_rule Not_Symm = "not_symm"
+  | string_of_lethe_rule Reordering = "reordering"
+  | string_of_lethe_rule Not_Not = Lethe_Proof.not_not_rule
+  | string_of_lethe_rule Tautological_Clause = "tautology"
+  | string_of_lethe_rule Duplicate_Literals = Lethe_Proof.contract_rule
+  | string_of_lethe_rule Qnt_CNF = "qnt_cnf"
+  | string_of_lethe_rule (Other_Rule r) = r
+  | string_of_lethe_rule r = "Unknown rule: " ^ \<^make_string> r
 
 (** Context Extension for Rules **)
 (*We currently do not distinguish between the extension required for each solver. Maybe later
@@ -373,7 +373,7 @@ fun print_alethe_tac context =
 (** Tactics for Reconstruction **)
 (**)
 fun replay_error ctxt msg rule thms t =
-  SMT_Replay_Methods.replay_error ctxt msg (string_of_verit_rule rule) thms t
+  SMT_Replay_Methods.replay_error ctxt msg (string_of_lethe_rule rule) thms t
 
 (* utility function *)
 
@@ -520,7 +520,7 @@ fun bind ctxt [prems] args t =
 (* Congruence/Refl *)
 
 fun cong name ctxt thms = try_provers name ctxt
-    (string_of_verit_rule Cong) [
+    (string_of_lethe_rule Cong) [
   ("basic", SMT_Replay_Methods.cong_basic ctxt thms),
   ("unfolding then reflexivity", SMT_Replay_Methods.cong_unfolding_trivial ctxt thms),
   ("unfolding then auto", SMT_Replay_Methods.cong_unfolding_first ctxt thms),
