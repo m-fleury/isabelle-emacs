@@ -548,7 +548,9 @@ fun mk_scast i u =
     val TU = Word_Lib.mk_wordT i
   in Const (\<^const_name>\<open>Word.signed\<close>, T --> TU) $ u end;
 
-fun bv_term_parser (SMTLIB.Sym "bbT", xs) =
+fun bv_term_parser (SMTLIB.BVNum (i, base), xs) = 
+      SOME (HOLogic.mk_number \<^typ>\<open>32 word\<close> i)
+  | bv_term_parser (SMTLIB.Sym "bbT", xs) =
         SOME ((Const ("Reversed_Bit_Lists.of_bl", \<^typ>\<open>HOL.bool list\<close> --> mk_wordT(length xs))) 
         $ ((Const (\<^const_name>\<open>List.rev\<close>, \<^typ>\<open>HOL.bool list\<close> -->  \<^typ>\<open>HOL.bool list\<close>)) $ (HOLogic.mk_list \<^typ>\<open>bool\<close> xs)))
   | bv_term_parser (SMTLIB.S [SMTLIB.Sym "_", SMTLIB.Sym "bitOf", SMTLIB.Num i], [t]) =
@@ -556,8 +558,14 @@ fun bv_term_parser (SMTLIB.Sym "bbT", xs) =
       $ t $ (HOLogic.mk_nat i))
 
   | bv_term_parser (SMTLIB.Sym "bv2nat", [t1]) =
+let 
+  val _ = @{print} ("t1=", t1, (fastype_of t1))
+  val _ = @{print} ("bv2nat t1=", Thm.cterm_of @{context} t1)
+  val _ = @{print} ("bv2nat t1=", Thm.cterm_of @{context} (Const (\<^const_name>\<open>unsigned\<close>, (fastype_of t1) --> \<^typ>\<open>int\<close>) $ t1))
+in
 (*t1 could be in the form. In that case no further cast is needed Const ("Num.numeral_class.numeral", "num \<Rightarrow> int") $ ts*)
      SOME (Const (\<^const_name>\<open>unsigned\<close>, (fastype_of t1) --> \<^typ>\<open>int\<close>) $ t1)
+end
       (*SOME ( t1)*)
  (*TODO: These are in SMTLIB3 syntax for parametric bitwidths. Put in own parser? 
          Also should variants for concrete bitwidths be added for when smtlib3 terms appear in proofs?*)
@@ -728,6 +736,7 @@ end
     in
       SOME (Const (\<^const_name>\<open>signed_drop_bit\<close>, \<^typ>\<open>Nat.nat\<close> --> T1 --> T1) $ (Const ( \<^const_name>\<open>unsigned\<close>, T1 --> \<^typ>\<open>Nat.nat\<close> ) $ t1) $ t2)
    end
+  | bv_term_parser (SMTLIB.Num n, _) = (ignore (@{print} ("n=", n)); NONE)
   | bv_term_parser _ = NONE
 
 
@@ -743,6 +752,102 @@ val temp = (Type (\<^type_name>\<open>word\<close>, [dummyT]))
 val _ = Theory.setup (Context.theory_map (
   SMTLIB_Proof.add_term_parser bv_term_parser))
 \<close>
+
+
+ML \<open>
+let
+local
+  fun smt_mk_builtin_typ (Z3_Interface.Sym ("word", _)) = SOME \<^typ>\<open>_ word\<close>
+    | smt_mk_builtin_typ (Z3_Interface.Sym ("Word", _)) = SOME \<^typ>\<open>_ word\<close>
+        (*FIXME: delete*)
+    | smt_mk_builtin_typ _ = NONE
+
+  fun smt_mk_builtin_num _ i T =
+let val _ = @{print} T in
+    if Word_Lib.is_wordT T then SOME (Numeral.mk_cnumber (Thm.ctyp_of @{context} T) i)
+    else NONE
+end
+
+  fun mk_nary _ cu [] = cu
+    | mk_nary ct _ cts = uncurry (fold_rev (Thm.mk_binop ct)) (split_last cts)
+
+  val mk_uminus = Thm.apply \<^cterm>\<open>uminus :: _::len word \<Rightarrow> _\<close>
+  val add = \<^cterm>\<open>(+) :: _ word \<Rightarrow> _\<close>
+(*  val real0 = Numeral.mk_cnumber \<^ctyp>\<open>_ word\<close> 0*)
+  val mk_sub = Thm.mk_binop \<^cterm>\<open>(-) :: 'a::len word \<Rightarrow> _\<close>
+  val mk_mul = Thm.mk_binop \<^cterm>\<open>(*) :: 'a::len word \<Rightarrow> _\<close>
+  val mk_lt = Thm.mk_binop \<^cterm>\<open>(<) :: 'a::len word \<Rightarrow> _\<close>
+  val mk_le = Thm.mk_binop \<^cterm>\<open>(\<le>) :: 'a::len word \<Rightarrow> _\<close>
+
+  fun smt_mk_builtin_fun (Z3_Interface.Sym ("-", _)) [ct] = SOME (mk_uminus ct)
+(*    | smt_mk_builtin_fun (Z3_Interface.Sym ("+", _)) cts = SOME (mk_nary add real0 cts)*)
+    | smt_mk_builtin_fun (Z3_Interface.Sym ("-", _)) [ct, cu] = SOME (mk_sub ct cu)
+    | smt_mk_builtin_fun (Z3_Interface.Sym ("*", _)) [ct, cu] = SOME (mk_mul ct cu)
+    | smt_mk_builtin_fun (Z3_Interface.Sym ("<", _)) [ct, cu] = SOME (mk_lt ct cu)
+    | smt_mk_builtin_fun (Z3_Interface.Sym ("<=", _)) [ct, cu] = SOME (mk_le ct cu)
+    | smt_mk_builtin_fun (Z3_Interface.Sym (">", _)) [ct, cu] = SOME (mk_lt cu ct)
+    | smt_mk_builtin_fun (Z3_Interface.Sym (">=", _)) [ct, cu] = SOME (mk_le cu ct)
+    | smt_mk_builtin_fun _ _ = NONE
+in
+val smt_mk_builtins = {
+  mk_builtin_typ = smt_mk_builtin_typ,
+  mk_builtin_num = smt_mk_builtin_num,
+  mk_builtin_fun = (fn _ => fn sym => fn cts =>
+    (case try (Thm.typ_of_cterm o hd) cts of
+      SOME a => if  Word_Lib.is_wordT a then smt_mk_builtin_fun sym cts else NONE
+    | _ => NONE)) }
+end
+in
+  Theory.setup (Context.theory_map (Z3_Interface.add_mk_builtins smt_mk_builtins))
+end
+\<close>
+
+ML \<open>
+let
+  fun smt_mk_builtin_num T i =
+   let val _ = @{print} T in
+       if Word_Lib.is_wordT T then SOME (Numeral.mk_cnumber (Thm.ctyp_of @{context} T) i)
+       else NONE
+   end
+
+val setup_builtins =
+SMT_Builtin.add_builtin_typ SMTLIB_Interface.bvsmlibC
+  (\<^typ>\<open>'a word\<close>, K (SOME ("word", [])), K (K (NONE)))
+
+
+in
+()
+end
+\<close>
+
+
+term " (0 :: 32 word)"
+ML \<open>@{typ "32 word"} = \<^typ>\<open>_ word\<close>\<close>
+ML \<open>@{print} (Numeral.mk_cnumber \<^ctyp>\<open>43 word\<close> 0) \<close>
+lemma "- (- 1 :: int) \<le> 2"
+  supply [[smt_trace,smt_debug_verit]]
+  by (smt (cvc5))
+
+
+lemma "x = (1 :: 32 word) \<Longrightarrow> x \<le> 2"
+  supply [[smt_trace,smt_debug_verit]]
+  by (smt (cvc5))
+
+lemma " (1 :: 32 word) \<le> 2"
+  supply [[smt_trace,smt_debug_verit]]
+  by (smt (cvc5) )
+
+lemma " (1 :: 32 word) \<le> 2"
+  supply [[smt_trace,smt_debug_verit,z3_extensions]]
+  by (smt (cvc5) )
+
+lemma "uint (1 :: 32 word) \<le> 2"
+  supply [[smt_trace,smt_debug_verit]]
+by (smt (cvc5) )
+
+lemma "unat (2048 :: 32 word) \<le> 4294967296"
+  supply [[smt_trace]]
+by (smt (cvc5) )
 
 
 end

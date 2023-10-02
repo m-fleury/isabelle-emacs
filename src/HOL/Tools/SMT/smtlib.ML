@@ -9,6 +9,7 @@ sig
   exception PARSE of int * string
   datatype tree = 
     Num of int |
+    BVNum of int * int |
     Dec of int * int |
     Str of string |
     Sym of string |
@@ -28,6 +29,7 @@ exception PARSE of int * string
 
 datatype tree = 
   Num of int |
+  BVNum of int * int |
   Dec of int * int |
   Str of string |
   Sym of string |
@@ -62,7 +64,12 @@ fun read_num l cs =
 
 fun is_bin c = (c = "0" orelse c = "1")
 
-fun read_bin l cs = read_raw is_bin l cs |>> Num o fst o read_radix_int 2
+fun read_bin l cs = 
+  let
+    val (str, rest) = read_raw is_bin l cs
+    val num = str |> fst o read_radix_int 2
+    val base = length str
+  in (BVNum (num, base), rest) end
 
 
 (* hex numbers *)
@@ -78,7 +85,12 @@ fun unhex i [] = i
       else if within "A" "F" c then unhex (i * 16 + (ord c - ord "A" + 10)) cs
       else raise Fail ("bad hex character " ^ quote c)
 
-fun read_hex l cs = read_raw is_hex l cs |>> Num o unhex 0
+fun read_hex l cs = 
+  let
+    val (str, rest) = read_raw is_hex l cs
+    val num = str |> unhex 0
+    val base : int = length str
+  in (BVNum (num, 4*base), rest) end
 
 
 (* symbols *)
@@ -168,6 +180,7 @@ fun parse lines = finish (fold add_line lines (1, (None, [[]])))
 (* pretty printer *)
 
 fun pretty_tree (Num i) = Pretty.str (string_of_int i)
+  | pretty_tree (BVNum (i, base)) = Pretty.str (string_of_int i ^ " :: " ^ string_of_int base ^ " word")
   | pretty_tree (Dec (i, j)) =
       Pretty.str (string_of_int i ^ "." ^ string_of_int j)
   | pretty_tree (Str s) =

@@ -146,7 +146,7 @@ fun trans ctxt prems t =
 
 (* Combining all together *)
 
-fun unsupported rule ctxt thms _ _ _ = SMT_Replay_Methods.replay_error ctxt "Unsupported verit rule"
+fun unsupported rule ctxt thms _ _ _ = SMT_Replay_Methods.replay_error ctxt "Unsupported cvc5 rule"
   rule thms
 
 fun ignore_args  f ctxt thm _    _     _ t = f ctxt thm t
