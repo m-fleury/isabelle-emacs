@@ -448,19 +448,6 @@ end
 
 (** combined unfoldings and rewritings **)
 
-fun burrow_ids f ithms =
-  let
-    val (is, thms) = split_list ithms
-    val (thms', extra_thms) = f thms
-  in (is ~~ thms') @ map (pair (~1, SMT_Util.Axiom)) extra_thms end
-
-fun unfold_conv ctxt =
-  rewrite_case_bool_conv ctxt then_conv
-  unfold_abs_min_max_conv ctxt then_conv
-  (if Config.get ctxt SMT_Config.nat_as_int then nat_as_int_conv ctxt
-   else Conv.all_conv) then_conv
-  Thm.beta_conversion true
-
 type extra_normalize = string * (bool Config.T * (Proof.context -> conv) * (thm list -> thm list * thm list))
 
 structure Extra_Normalize = Generic_Data
