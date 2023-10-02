@@ -81,8 +81,8 @@ local
     | SOME t => ["--tlimit", string_of_int (Time.toMilliseconds t)])
 
   fun select_class ctxt =
-   (if Config.get ctxt SMT_Config.higher_order then single CVC_Interface.hosmtlib_cvcC else []) @
    [SMTLIB_Interface.smtlibC] @
+   (if Config.get ctxt SMT_Config.higher_order then single CVC_Interface.hosmtlib_cvcC else []) @
    (if Config.get ctxt SMT_Config.native_bv then single SMTLIB_Interface.bvsmlibC else [])
 in
 
@@ -189,8 +189,8 @@ local
 
   fun select_class ctxt =
     (if Config.get ctxt z3_extensions then single Z3_Interface.smtlib_z3C else []) @
-    (if Config.get ctxt SMT_Config.native_bv then single SMTLIB_Interface.bvsmlibC else []) @
-    single SMTLIB_Interface.smtlibC
+    single SMTLIB_Interface.smtlibC @
+    (if Config.get ctxt SMT_Config.native_bv then single SMTLIB_Interface.bvsmlibC else [])
 in
 
 val z3: SMT_Solver.solver_config = {
