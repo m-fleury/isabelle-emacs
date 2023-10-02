@@ -14,7 +14,6 @@ append,
 re_concat,
 str_concat,
 *)
-value "3::real"
 
 named_theorems rewrite_arith_plus_zero \<open>automatically_generated\<close>
 
@@ -118,7 +117,7 @@ named_theorems rewrite_arith_geq_norm \<open>automatically_generated\<close>
 
 lemma [rewrite_arith_geq_norm]:
   fixes t::"int" and s::"int"
-  shows "(s \<le> t) = ((0::int) \<le> t - s)"
+  shows "NO_MATCH a (undefined t s) ==> (s \<le> t) = ((0::int) \<le> t - s)"
   by auto
 
 named_theorems rewrite_arith_refl_leq \<open>automatically_generated\<close>
@@ -186,11 +185,10 @@ lemma [rewrite_arith_mult_flatten]:
     by (simp add: cvc_list_right_Cons mult.assoc)
   done
 
-
 named_theorems rewrite_arith_mult_dist \<open>automatically_generated\<close>
 
 lemma [rewrite_arith_mult_dist]:
-  fixes x::"'a::{monoid_mult,plus}" and y::"'a::{monoid_mult,plus}" and z::"'a::{monoid_mult,plus}" and w::"'a::{monoid_mult,plus} cvc_ListVar"
+  fixes x::"'a::{ring}" and y::"'a" and z::"'a" and w::"'a cvc_ListVar"
   shows "x * cvc_list_right (+) (y + z) w = x * y + x * cvc_list_right (+) z w"
   apply (cases w)
   subgoal for ws 
@@ -198,22 +196,30 @@ lemma [rewrite_arith_mult_dist]:
     apply (induction ws arbitrary: w)
      apply simp_all
     unfolding cvc_list_right_def
-     apply simp_all
-    sorry
+     apply (simp add: ring_class.ring_distribs(1))
+    by (simp add: ring_class.ring_distribs(1))
   done
 
 named_theorems rewrite_arith_plus_cancel1 \<open>automatically_generated\<close>
 
 lemma [rewrite_arith_plus_cancel1]:
-  fixes t::"int cvc_ListVar" and x::"int" and s::"int cvc_ListVar" and r::"int cvc_ListVar"
+  fixes t::"('a::{zero,plus,one,times,uminus}) cvc_ListVar" and x::"'a::{zero,plus,one,times,uminus}" and s::"'a::{zero,plus,one,times,uminus} cvc_ListVar" 
+and r::"'a::{zero,plus,one,times,uminus} cvc_ListVar"
   shows "cvc_list_right (+)
-    (cvc_list_right (+) (cvc_list_left (+) t x) s + - (1::int) * x) r =
-   cvc_list_right (+) (cvc_list_both (+) (0::int) t s) r"
+    (cvc_list_right (+) (cvc_list_left (+) t x) s + - 1 * x) r =
+   cvc_list_right (+) (cvc_list_both (+) 0 t s) r"
   apply (cases r)
   apply (cases s)
   apply (cases t)
   subgoal for rs ss ts 
     apply (simp add: cvc_list_left_transfer cvc_list_right_transfer_op cvc_list_both_transfer_op)
+    apply (induction rs)
+     apply simp_all
+    apply (induction ts)
+     apply simp_all
+    apply (induction ss)
+     apply simp_all
+    
     sorry
   done
 
