@@ -347,7 +347,8 @@ fun replay outer_ctxt
 
     val ctxt4 =
       ctxt3
-      |> put_simpset (SMT_Replay.make_simpset ctxt3 [])
+(*
+      |> put_simpset (empty_simpset ctxt3 [])*)
       |> Config.put SAT.solver (Config.get ctxt3 SMT_Config.sat_solver)
     val len = Lethe_Proof.number_of_steps actual_steps
     fun steps_with_depth _ [] = []
