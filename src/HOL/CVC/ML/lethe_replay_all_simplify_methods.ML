@@ -49,10 +49,16 @@ let
  val rewrite_lemma = find_Thy all_rewrite_thys
  val get_types = map snd (rev (Term.add_vars (Thm.full_prop_of rewrite_lemma) []))
 
+val _ = @{print}("rewrite_lemma",rewrite_lemma)
+ val _ = @{print}("args",args)
+val _ = @{print}("rev args", (rev args))
+val _ = @{print}("thys", (rev get_types))
+
  fun rewrite_lemma_inst [] []  = rewrite_lemma |
-  rewrite_lemma_inst [] _  = (@{print}("Too little arguments. TODO: throw error");rewrite_lemma) | (*TODO: throw error*)
+  rewrite_lemma_inst [] (t::typs')  = (@{print}("Too little arguments. TODO: throw error",t);rewrite_lemma) | (*TODO: throw error TODO: might be NO_MATCH thing*)
   rewrite_lemma_inst _ []  = (@{print}("Too many arguments. TODO: throw error");rewrite_lemma) | (*TODO: throw error*)
   rewrite_lemma_inst (a :: args') (t::typs') = 
+   (@{print}("t",t);
     if (Const ("Dsl_Nary_Ops.cvc_ListVar.ListVar", dummyT --> dummyT) $ Const ("List.list.Nil", dummyT) = a)
     then
       let
@@ -64,13 +70,21 @@ let
       end
     else
       Drule.infer_instantiate' ctxt (map (SOME o Thm.cterm_of ctxt) [a]) (rewrite_lemma_inst args' typs')
+)
 
  val cvc_list_defs = @{thms cvc_list_right_Nil cvc_list_left_Nil cvc_list_both_Singleton
                             cvc_list_right_Cons cvc_list_left_Cons cvc_list_both_Cons
-                            cvc_list_both_Cons_0 cvc_list_both_Cons_1}
- val inst_lemma = rewrite_lemma_inst (rev args) (rev get_types)
+                            cvc_list_both_Cons_0 cvc_list_both_Cons_1 NO_MATCH_def}
+ val inst_lemma = rewrite_lemma_inst ( (rev args@[Const ("Groups.zero_class.zero",@{typ int})])) (rev get_types)
 val inst_lemma_without_list 
  = (Local_Defs.unfold ctxt) cvc_list_defs inst_lemma
+
+(*Should only happen if we have the extra argument*)
+val inst_lemma_without_true
+ = Basic_Tactic.rule_by_tactic ctxt (resolve_tac ctxt [@{thm TrueI}] 1) inst_lemma_without_list
+
+
+val _ = @{print}("inst_lemma_without_true",inst_lemma_without_true)
 
  val _ = @{print}("inst_lemma",inst_lemma)
  val _ = @{print}("inst_lemma_without_list",inst_lemma_without_list)
@@ -79,9 +93,9 @@ val inst_lemma_without_list
 in (*TODO: fixed-point rules*)
  (SMT_Replay_Methods.prove ctxt t (fn _ =>
  K (print_tac ctxt "debug in dsl_tac_initialize 0")
- THEN' TRY' (EqSubst.eqsubst_tac ctxt [0] [inst_lemma_without_list])
+ THEN' TRY' (EqSubst.eqsubst_tac ctxt [0] [inst_lemma_without_true])
  THEN' (resolve_tac ctxt [@{thm refl}])
- THEN' K (print_tac ctxt "debug in dsl_tac_initialize 0")
+ THEN' K (print_tac ctxt "debug in dsl_tac_initialize 1")
 )
 )
 end
@@ -92,7 +106,7 @@ fun try_simp ctxt t =
      THEN' TRY'(K (HEADGOAL (simplify_tac ctxt @{thms arith_simps verit_minus_simplify})))
      THEN' TRY'(K (HEADGOAL (simplify_tac ctxt ((Named_Theorems.get ctxt @{named_theorems arith_simp_cvc5})))))
      THEN' TRY' (K (Clasimp.auto_tac ctxt))
-     THEN' K (print_tac ctxt "debug in try simp")
+THEN' K (print_tac ctxt "debug in try simp")
   )
 
 fun try_auto_solo ctxt t = 
@@ -106,7 +120,7 @@ in
   then
    (SMT_Config.verbose_msg ctxt (pretty ("Found evaluate, try to simplify")) []; try_simp ctxt t)
   else
-   ( dsl_tac_initialize rewrite_name args ctxt t th) |
+(dsl_tac_initialize rewrite_name args ctxt t th)|
 
     (*( dsl_tac_initialize rewrite_name args ctxt t th) |*)
    (*( try_auto_solo ctxt t)|*)

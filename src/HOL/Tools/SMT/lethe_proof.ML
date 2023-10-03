@@ -473,7 +473,6 @@ fun extract_types_of_args (SMTLIB.S [var, typ, t as SMTLIB.S [SMTLIB.Sym "choice
     |> single
  | extract_types_of_args (SMTLIB.S t) rule_name =
   let
-    val _ = @{print}("rule_name",rule_name)
     fun extract_types_of_arg (SMTLIB.S [eq as SMTLIB.Sym "=", SMTLIB.S [var, typ], t]) =
       if rule_name = "bind" orelse rule_name="sko_forall" orelse
          rule_name= "onepoint" orelse rule_name="forall_inst" orelse
