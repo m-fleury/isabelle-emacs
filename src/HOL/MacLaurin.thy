@@ -292,7 +292,7 @@ corollary exp_lower_Taylor_quadratic: "0 \<le> x \<Longrightarrow> 1 + x + x\<^s
   using Maclaurin_exp_le [of x 3] by (auto simp: numeral_3_eq_3 power2_eq_square)
 
 corollary ln_2_less_1: "ln 2 < (1::real)"
-  by (smt (verit) ln_eq_minus_one ln_le_minus_one)
+  by (metis add_implies_diff exp_gt_zero exp_half_le2 ln_add_one_self_le_self ln_eq_minus_one neg_one_eq_numeral_iff num.simps(4) one_add_one order_less_le order_less_le_trans zero_less_one_class.zero_le_one)
 
 subsection \<open>Version for Sine Function\<close>
 
