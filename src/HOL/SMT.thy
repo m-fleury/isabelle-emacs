@@ -432,6 +432,14 @@ lemma verit_la_disequality:
   \<open>(a :: 'a ::linorder) = b \<or> \<not>a \<le> b \<or> \<not>b \<le> a\<close>
   by auto
 
+lemma alethe_la_mult_pos:
+  \<open>0 < (m::int) \<and> (a \<le> b) \<longrightarrow> m*a \<le> m*a \<close>
+  by simp_all
+
+lemma alethe_la_mult_neg:
+  \<open>m < (0::int) \<and> (a < b) \<longrightarrow> m*a \<ge> m*a \<close>
+  by simp_all
+
 context
 begin
 
