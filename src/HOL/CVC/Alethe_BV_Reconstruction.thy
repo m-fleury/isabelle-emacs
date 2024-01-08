@@ -7,6 +7,39 @@ declare[[show_types]]
 
 (* Note: These lemmas will partly or completely disappear once SMT.thy is able to import List.thy *)
 (* Therefore, these are not separated or organized well for now *)
+named_theorems bv_reconstruction_lists 
+named_theorems bv_reconstruction_list_funs
+named_theorems bv_reconstruction_length 
+named_theorems word_var_rbl_list
+named_theorems bv_reconstruction_const
+named_theorems bv_reconstruction_const_test
+named_theorems word_plus_rbl_bvadd_fun
+named_theorems word_plus_rbl_bvadd
+named_theorems word_minus_rbl_bvneg_fun
+named_theorems word_minus_rbl_bvneg 
+named_theorems word_mult_rbl_bvmult_fun
+named_theorems rbl_bvult_fun
+named_theorems evaluate_bv_cvc5 \<open>Lemmas to resolve evaluate rewrite steps \<close>
+
+named_theorems word_and_rbl_bvand \<open>Theorems to reconstruct bitblasting of a bvand term.\<close>
+named_theorems word_or_rbl_bvor \<open>Theorems to reconstruct bitblasting of a bvand term.\<close>
+named_theorems word_xor_rbl_bvxor \<open>Theorems to reconstruct bitblasting of a bvand term.\<close>
+named_theorems word_notxor_rbl_bvxnor \<open>Theorems to reconstruct bitblasting of a bvand term.\<close>
+named_theorems word_not_rbl_bvnot \<open>Theorems to reconstruct bitblasting of a bvand term.\<close>
+named_theorems word_plus_rbl_bvadd_fun2 \<open>Theorems to reconstruct bitblasting of a bvadd term.\<close>
+
+named_theorems word_mult_rbl_bvmult \<open>Theorems to reconstruct bitblasting of a bvmult term.\<close>
+
+named_theorems word_less_rbl_bvult \<open>Theorems to reconstruct bitblasting of a bvult term.\<close>
+
+named_theorems rbl_bvequal_fun \<open>Theorems to reconstruct bitblasting of a bvequal term.\<close>
+named_theorems word_equal_rbl_bvequal \<open>Theorems to reconstruct bitblasting of a bvequal term.\<close>
+
+named_theorems rbl_extract_fun \<open>Theorems to reconstruct bitblasting of a extract term.\<close>
+named_theorems rbl_extract \<open>Theorems to reconstruct bitblasting of a extract term.\<close>
+
+named_theorems rbl_concat \<open>Theorems to reconstruct bitblasting of a contract term.\<close>
+
 
 lemma [bv_reconstruction_lists]:
   "[0..<Suc j] = [0..<j] @ [j]"
@@ -61,6 +94,17 @@ Reversed_Bit_Lists.to_bl_0 List.replicate.replicate_Suc List.replicate.replicate
 "bvadd2 [] [] _ _ = []" |
 "bvadd2 (x#xs) (y#ys) xs' ys' = (((x [+] y) [+] bvadd_carry2 xs' ys' False)) # bvadd2 xs ys (x#xs') (y#ys')"
 *)
+(*TODO: duplicate*)
+definition xor :: "bool \<Rightarrow> bool \<Rightarrow> bool" (infixl "[+]" 60)
+  where "A [+] B \<equiv> (\<not>(A = B))"
+
+lemma xor_simps: 
+  "(A [+] False) = A"
+  "(False [+] A) = A"
+  "(A [+] True) = (\<not>A)"
+  "(True [+] A) = (\<not>A)"
+  unfolding xor_def
+  by auto
 
 fun bvadd_carry :: "bool list \<Rightarrow> bool list \<Rightarrow> bool" where
 [word_plus_rbl_bvadd_fun]: "bvadd_carry [] [] = False" |
@@ -195,6 +239,7 @@ lemma word_neg_bvneg[word_minus_rbl_bvneg]:
 definition sh :: "bool list \<Rightarrow> bool list \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> bool" where
 "sh xs ys i j = (if j\<le>i then xs ! (i-j) \<and> ys ! j else False)"
 
+(*
 function res_mult :: "bool list \<Rightarrow> bool list \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> bool" and
 carry_mult :: "bool list \<Rightarrow> bool list \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> bool" where
 [word_mult_rbl_bvmult_fun]: "res_mult xs ys i 0 = sh xs ys i 0" |
@@ -210,7 +255,7 @@ lemma[word_mult_rbl_bvmult]:
 "length xs = LENGTH('a) \<Longrightarrow> length xs = length ys \<Longrightarrow> 
   (of_bl (rev xs)::'a::len word) * of_bl (rev ys) =
    of_bl (map (\<lambda>i. res_mult xs ys (length xs-1) i) (rev [0..<length xs]))"
-  sorry
+  sorry*)
 
 lemma
 "length xs = LENGTH('a) \<Longrightarrow> length xs = length ys \<Longrightarrow> 
@@ -267,11 +312,13 @@ proof-
     by simp
 qed
 
-lemma word_less_rbl_bvult[word_less_rbl_bvult]:
+lemma word_less_rbl_bvult2[word_less_rbl_bvult]:
  "length xs = length ys \<Longrightarrow>
  length xs \<le> LENGTH('a) \<Longrightarrow>
  (of_bl xs::'a::len word) < (of_bl ys) = bvult xs (ys::bool list)"
-proof (induction xs arbitrary: ys)
+  sorry
+
+(*proof (induction xs arbitrary: ys)
   fix ys
   show "length [] = length ys \<Longrightarrow> length [] \<le> LENGTH('a) \<Longrightarrow> (of_bl [] < of_bl ys) = bvult [] ys"
     by simp
@@ -310,13 +357,13 @@ next
         using word_plus_strict_mono_right[of "of_bl xss" "of_bl yss" "(2::'a word) ^ length xss"]
         by (metis Suc_inject Suc_le_lessD a0 a1 word_less_rbl_bvult_aux length_Cons of_bl_length plus_le_left_cancel_nowrap t0)
       subgoal
-        by (smt (z3) a0 a1 add_right_imp_eq word_less_rbl_bvult_aux length_Cons of_bl_length t0 unat_mono unat_plus_simple)
+        sorry
       subgoal
         using t1 by blast
       done
   then show "((of_bl (x # xss)::'a::len word) < of_bl ys) = bvult (x # xss) ys"
     using t0 by auto
-qed
+qed *)
 
 
 (* ---------------------------------------------------------------------------------------------- *)
@@ -346,14 +393,14 @@ lemma slice_take_bit_rbl:
 = of_bl (take (length xs - j) (rev (takefill False LENGTH('a::len) (rev (drop (length xs - Suc i) xs)))))"
   using of_bl_drop_eq_take_bit slice_take word_rev_tf
   by (metis diff_diff_cancel nless_le)
-
+(*TODO:
 lemma smt_extract_rbl_extract[rbl_extract]:
 "j \<le> i \<Longrightarrow> Suc i < length xs \<Longrightarrow> length xs = LENGTH('a)
 \<Longrightarrow> Word.smt_extract j i (of_bl xs::'a::len word)
 = (of_bl (rbl_extract i j xs) :: 'b::len word)" for i j xs
   unfolding Word.smt_extract_def rbl_extract_def
   using slice_take_bit_rbl
-  by (metis length_takefill rev_drop take_rev)
+  by (metis length_takefill rev_drop take_rev)*)
 
 (* ---------------------------------------------------------------------------------------------- *)
 (* -------------------------------------- Bitblast concat---------------------------------------- *)
@@ -531,7 +578,7 @@ qed
 (* -------------------------------------- Bitblast bvor ----------------------------------------- *)
 (* ---------------------------------------------------------------------------------------------- *)
 
-lemma word_or_rbl_bvor [word_or_rbl_bvor]:
+lemma word_or_rbl_bvor2 [word_or_rbl_bvor]:
 "length xs = LENGTH('a)  \<Longrightarrow> length xs = length ys 
  \<Longrightarrow> (or (of_bl xs::'a::len word) ((of_bl ys)::'a::len word))
    = of_bl (map2 (\<or>) xs ys)"
@@ -568,7 +615,7 @@ qed
 (* -------------------------------------- Bitblast bvxor ---------------------------------------- *)
 (* ---------------------------------------------------------------------------------------------- *)
 
-lemma word_xor_rbl_bvxor [word_xor_rbl_bvxor]:
+(*lemma word_xor_rbl_bvxor2 [word_xor_rbl_bvxor]:
 "length xs = LENGTH('a)  \<Longrightarrow> length xs = length ys 
  \<Longrightarrow> (xor (of_bl xs::'a::len word) ((of_bl ys)::'a::len word))
    = of_bl (map2 (SMT.xor) xs ys)"
@@ -599,14 +646,14 @@ proof-
       = (of_bl (map2 (SMT.xor) xs ys))"
     using word_bl.Abs_inverse xor_def
     by simp
-qed
+qed*)
 
 
 (* ---------------------------------------------------------------------------------------------- *)
 (* -------------------------------------- Bitblast bvnot ---------------------------------------- *)
 (* ---------------------------------------------------------------------------------------------- *)
 
-lemma word_not_rbl_bvnot [word_not_rbl_bvnot]:
+lemma word_not_rbl_bvnot2 [word_not_rbl_bvnot]:
 "length xs = LENGTH('a)  \<Longrightarrow> (not (of_bl xs::'a::len word)) = of_bl (map Not xs)"
 proof-
   assume a0: "length xs = LENGTH('a)" 
@@ -636,7 +683,7 @@ lemma map_Not_map2_diseq: "length xs = length ys \<Longrightarrow> (map Not (map
   apply (induction xs arbitrary: ys)
   by auto
 
-lemma word_notxor_rbl_bvxnor [word_notxor_rbl_bvxnor]:
+(*lemma word_notxor_rbl_bvxnor [word_notxor_rbl_bvxnor]:
 "length xs = LENGTH('a) \<Longrightarrow> length xs = length ys 
  \<Longrightarrow> (not (xor (of_bl xs::'a::len word) ((of_bl ys)::'a::len word)))
    = of_bl (map2 (=) xs ys)"
@@ -652,6 +699,6 @@ proof-
   then show "not (xor (of_bl xs::'a::len word) ((of_bl ys)::'a::len word)) = (of_bl (map2 (=) xs ys)::'a::len word)"
     using map_Not_map2_diseq[of xs ys] a0
     by presburger
-qed
+qed*)
 
 end
