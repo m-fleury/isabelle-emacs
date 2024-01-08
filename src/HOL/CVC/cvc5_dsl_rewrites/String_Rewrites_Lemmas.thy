@@ -2,8 +2,15 @@ theory String_Rewrites_Lemmas
   imports Dsl_Nary_Ops
 begin
 
-
 lemma str_eq_ctn_false_lemma:
+ "(\<forall>w1 w3. y \<noteq> w1 @ x @ w3) \<longrightarrow> x \<noteq> y"
+ "(\<forall>w1 w3. y \<noteq> w1 @ x @ w3) \<longrightarrow> a @ concat x1s @ x \<noteq> y"
+ "(\<forall>w1 w3. y \<noteq> w1 @ x @ w3) \<longrightarrow> concat x1s @ x @ a @ concat x2s \<noteq> y "
+    apply (metis append.right_neutral append_Nil)
+   apply (metis append.assoc append.right_neutral)
+  by auto
+
+lemma str_eq_ctn_false_lemma1:
 "\<not> smtlib_str_contains y x \<Longrightarrow> smtlib_str_concat (foldr smtlib_str_concat x1s x) (foldr smtlib_str_concat x2s []) \<noteq> y"
     unfolding smtlib_str_concat_def
     by (metis append.assoc fold_append_concat_rev foldr_conv_fold smtlib_str_contains2_def smtlib_str_contains_equal)
@@ -15,10 +22,16 @@ lemma str_concat_flatten_lemma:
   apply (induction xs)
   by simp_all
 
-lemma str_concat_flatten_eq_lemma: 
+lemma str_concat_flatten_eq_lemma1: 
 "(smtlib_str_concat (smtlib_str_concat x (foldr smtlib_str_concat x1 [])) (foldr smtlib_str_concat x2 []) = y) =
     (y = smtlib_str_concat (smtlib_str_concat x (foldr smtlib_str_concat x1 [])) (foldr smtlib_str_concat x2 []))"
   by blast
+
+lemma str_concat_flatten_eq_lemma:
+ "(x = y) = (y = x)"
+ "(x @ a @ concat x1s = y) = (y = x @ a @ concat x1s)"
+ " (x @ concat x1s @ a @ concat x2s = y) = (y = x @ concat x1s @ a @ concat x2s)"
+  by auto
 
 lemma str_concat_flatten_eq_rev_lemma:
 "(foldr smtlib_str_concat x2 (foldr smtlib_str_concat x1 x) = y) = (y = smtlib_str_concat (foldr smtlib_str_concat x2 (foldr smtlib_str_concat x1 [])) x)"
@@ -211,8 +224,6 @@ lemma str_len_concat_rec_lemma:
 " smtlib_str_len (smtlib_str_concat (smtlib_str_concat s1 s2) (foldr smtlib_str_concat s3s [])) =
     smtlib_str_len s1 + smtlib_str_len (smtlib_str_concat s2 (foldr smtlib_str_concat s3s []))"
   apply (induction s3s)
-   apply simp_all
-  using smtlib_str_concat_length apply auto[1]
-  using smtlib_str_concat_length by presburger
+  by simp_all
 
 end

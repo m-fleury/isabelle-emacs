@@ -1,7 +1,8 @@
 theory BV_Rewrites_Lemmas
   imports Dsl_Nary_Ops "HOL-Library.Word" Word_Lib.More_Word "HOL-Library.Log_Nat" "HOL.Real" "HOL-Library.Sublist" "HOL-CVC.SMT_Word"
+HOL.SMT "Word_Lib.Signed_Division_Word" "Word_Lib.Reversed_Bit_Lists"
 begin
-
+(*
 lemma word_cat_smt_extract: "i \<le> j \<and> j + 1 \<le> k \<and> i \<ge> 0 \<and> k < size x 
  \<and> LENGTH('a) = size x
  \<and> LENGTH('b::len) = k + (1::nat) - Suc j
@@ -38,7 +39,7 @@ using drop_bit_take_bit[of i "Suc j" "unat x"] by simp
  ultimately show "word_cat ((smt_extract k (j+1) (x::'a::len word))::'b::len word) ((smt_extract j i x)::'c::len word) = ((smt_extract k i x)::'d::len word)"
     apply (simp add: word_unat_eq_iff)
     apply (simp add: push_bit_eq_mult drop_bit_eq_div take_bit_eq_mod)
-   sorry
+   by (smt (verit, ccfv_threshold) a0 add_implies_diff div_exp_eq div_mod_decomp le_SucI le_add2 le_add_diff_inverse mod_add_left_eq plus_1_eq_Suc power_add power_mod_div power_one_right word_unat.norm_Rep)
 qed
 
 lemma word_cat_smt_extract_2:
@@ -139,99 +140,6 @@ proof
 qed
 
 
-lemma rewrite_bv_concat_to_mult:
-  fixes x::"'a ::len word" and i::"int" and m::"int"
-  shows "(1::int) + i + m = int (size x) \<longrightarrow> LENGTH('b) = nat i+1 \<longrightarrow> LENGTH('b) + LENGTH('c) = LENGTH('a) \<longrightarrow> int (LENGTH('c)) = m \<longrightarrow> 
-   (word_cat (smt_extract (nat i) (nat (0::int)) x :: 'b:: len word) (Word.Word (0::int):: 'c::len word) ::'a::len word) =
-   x * (push_bit (unat (Word.Word m :: 'a::len word)) (Word.Word (1::int)::'a::len word)::'a::len word)"
-  apply (rule impI)+
-proof-
-  assume a0: "((((1::int) + i) + m) = (int (size x)))"
-  and a1: "(LENGTH('b) = ((nat i) + (1::nat)))"
-  and a2: "((LENGTH('b) + LENGTH('c)) = LENGTH('a))"
-  and a3: "((int LENGTH('c)) = m)"
- 
-  have "m < int LENGTH('a)" 
-    by (metis a2 a3 add.commute add_0 int_eq_iff len_gt_0 less_add_eq_less nat_less_iff)
-  then have t0: "(m mod ((2::int) ^ LENGTH('a))) = m"
-    by (metis a2 a3 n_less_equal_power_2 nat_add_left_cancel_less nat_mod_eq' real_of_nat_eq_numeral_power_cancel_iff trans_less_add2 zmod_int)
-  have t1: "((min LENGTH('a::len) ((Suc (nat (i::int))) + LENGTH('c::len))) = ((Suc (nat i)) + LENGTH('c::len)))"
-    using a1 a2 by presburger
-
-  have "unat (x * (push_bit (unat (Word.Word m :: 'a::len word)) (Word.Word (1::int)::'a::len word)::'a::len word))
-=  unat x * ((2::nat) ^ of_nat (nat (take_bit LENGTH('a::len) m))) mod (2::nat) ^ LENGTH('a)"
-  proof-
-    have "unat (x * (push_bit (unat (Word.Word m :: 'a::len word)) (Word.Word (1::int)::'a::len word)::'a::len word))
-       =  unat x * unat ((2::'a word) ^ unat (word_of_int m::'a::len word)) mod (2::nat) ^ LENGTH('a)"
-      using unat_word_ariths(2) by auto
-    then have "unat (x * (push_bit (unat (Word.Word m :: 'a::len word)) (Word.Word (1::int)::'a::len word)::'a::len word))
-            =  unat x * ((2::nat) ^ unat (word_of_int m ::'a::len word)) mod (2::nat) ^ LENGTH('a)"
-      using unat_p2[of "unat (word_of_int m::'a::len word)"]
-      apply simp
-      sorry
-    then show ?thesis
-      using unsigned_of_int[of m, where 'b="'a"]
-      by metis
-  qed
-  moreover have 
-"unat (word_cat (smt_extract (nat i) (nat (0::int)) x :: 'b:: len word) (Word.Word (0::int):: 'c::len word) ::'a::len word) =
- ((take_bit ((Suc (nat i))+LENGTH('c::len)) (push_bit LENGTH('c::len) (unat x)))
- + take_bit LENGTH('a::len) 0) mod (2::nat) ^ LENGTH('a::len)"
-  proof-
-  have "unat (word_cat (smt_extract (nat i) (nat (0::int)) x :: 'b:: len word) (Word.Word (0::int):: 'c::len word) ::'a::len word) =
-(take_bit LENGTH('a::len) (push_bit LENGTH('c::len) (unat (smt_extract (nat i) (nat (0::int)) x :: 'b:: len word)))
- + take_bit LENGTH('a::len) (unat (Word.Word (0::int)))) mod
-  (2::nat) ^ LENGTH('a::len)"
-    using unat_word_cat[of "(smt_extract (nat i) (nat (0::int)) x :: 'b:: len word)" "(Word.Word (0::int):: 'c::len word)"
-, where 'c="'a"]
-    using a2 sorry
-  moreover have "nat (0::int) \<le> nat (i::int) \<and> nat i < size (x::'a::len word) \<and> LENGTH('b::len) = nat i + (1::nat) - nat (0::int) "
-    by (metis a1 a2 diff_zero discrete le_add_same_cancel1 less_eq_nat.simps(1) nat_zero_as_int word_size)
-  ultimately have "unat (word_cat (smt_extract (nat i) (nat (0::int)) x :: 'b:: len word) (Word.Word (0::int):: 'c::len word) ::'a::len word) =
- (take_bit LENGTH('a::len) (push_bit LENGTH('c::len) (drop_bit (nat (0::int)) (take_bit (Suc (nat i)) (unat x))))
- + take_bit LENGTH('a::len) (unat (Word.Word (0::int)))) mod
-  (2::nat) ^ LENGTH('a::len)"
-    using unat_smt_extract[of "nat 0" "nat i" x, where 'b="'b"] 
-    by auto
-  moreover have "(unat (Word.Word (0::int)::'c::len word)) = 0"
-    by auto
-ultimately have "unat (word_cat (smt_extract (nat i) (nat (0::int)) x :: 'b:: len word) (Word.Word (0::int):: 'c::len word) ::'a::len word) =
- (take_bit LENGTH('a::len) (push_bit LENGTH('c::len) (take_bit (Suc (nat i)) (unat x)))
- + take_bit LENGTH('a::len) 0) mod (2::nat) ^ LENGTH('a::len)"
-  by auto
-then have "unat (word_cat (smt_extract (nat i) (nat (0::int)) x :: 'b:: len word) (Word.Word (0::int):: 'c::len word) ::'a::len word) =
- (take_bit LENGTH('a::len) (take_bit ((Suc (nat i))+LENGTH('c::len)) (push_bit LENGTH('c::len) (unat x)))
- + take_bit LENGTH('a::len) 0) mod (2::nat) ^ LENGTH('a::len)"
-  using push_bit_take_bit[of "LENGTH('c)" "Suc (nat i)"]
-  by (simp add: take_bit_push_bit)
-  moreover have "min (LENGTH('a::len)) ((Suc (nat i))+LENGTH('c::len)) = ((Suc (nat i))+LENGTH('c::len))"
-    using a1 a2 by presburger
-  ultimately show "unat (word_cat (smt_extract (nat i) (nat (0::int)) x :: 'b:: len word) (Word.Word (0::int):: 'c::len word) ::'a::len word) =
- ((take_bit ((Suc (nat i))+LENGTH('c::len)) (push_bit LENGTH('c::len) (unat x)))
- + take_bit LENGTH('a::len) 0) mod (2::nat) ^ LENGTH('a::len)"
-    by (metis take_bit_take_bit)
-qed
-
-  moreover have "unat x * ((2::nat) ^ of_nat (nat (take_bit LENGTH('a::len) m))) mod (2::nat) ^ LENGTH('a)
-= ((take_bit ((Suc (nat i))+LENGTH('c::len)) (push_bit LENGTH('c::len) (unat x)))
- + take_bit LENGTH('a::len) 0) mod (2::nat) ^ LENGTH('a::len)"
-    apply (simp add: take_bit_eq_mod push_bit_eq_mult)
-    apply (simp add: t0)
-    using t1 a1 a2 a3 add.commute add_Suc mod_mod_trivial nat_int plus_1_eq_Suc power_Suc
-  proof -
-    have "1 + (nat i + nat m) = len_of (TYPE('a)::'a itself)"
-      using a1 a2 a3 by force
-    then show "unat x * 2 ^ nat m mod 2 ^ len_of (TYPE('a)::'a itself) = unat x * 2 ^ len_of (TYPE('c)::'c itself) mod (2 * 2 ^ (nat i + len_of (TYPE('c)::'c itself))) mod 2 ^ len_of (TYPE('a)::'a itself)"
-      by (metis a3 mod_mod_trivial nat_int plus_1_eq_Suc power_Suc)
-  qed   
-
-  ultimately show "(word_cat (smt_extract (nat i) (nat (0::int)) x :: 'b:: len word) (Word.Word (0::int):: 'c::len word) ::'a::len word) =
-   x * (push_bit (unat (Word.Word m :: 'a::len word)) (Word.Word (1::int)::'a::len word)::'a::len word)"
-    by (simp add: word_unat_eq_iff)
-qed
-
-
-
 lemma rewrite_bv_ult_add_one:
   fixes x::"'a ::len word" and y::"'a ::len word" and n::"int"
   shows "(x < y + (Word.Word (1::int)::'a::len word)) =
@@ -253,14 +161,7 @@ lemma not_drop_bit: "(not (drop_bit (nat j) (uint x))) = (drop_bit (nat j) (not 
   by simp
 
 
-
-lemma rewrite_bv_extract_not:
-  fixes x::"'a ::len word" and i::"int" and j::"int"
-  shows "j \<ge> 0 \<longrightarrow> i \<ge> j \<longrightarrow> i < int (size x) \<longrightarrow> int (LENGTH('b)) = i + 1 - j \<longrightarrow>
-   (smt_extract (nat i) (nat j) (not x)::'b::len word) =
-   not (smt_extract (nat i) (nat j) x::'b::len word)"
-  apply (rule impI)+
-  apply (simp add: word_uint_eq_iff)
+ (* apply (rule impI)+
 proof-
   assume a0: "(0::int) \<le> j" and a1: "j \<le> i" and a2: "i < int (size x)"
     and a3: "int LENGTH('b) = i + (1::int) - j"
@@ -325,15 +226,7 @@ then show "uint (not (smt_extract (nat i) (nat j) x::'b::len word)) =
 drop_bit (nat j) (take_bit (nat (i + (1::int))) (not (uint x)))"
   using a0 a1 nat_diff_distrib' by auto
 qed
-
-  moreover have "drop_bit (nat j) (take_bit (Suc (nat i)) (not (unsigned x)))
-= drop_bit (nat j) (take_bit (nat (i + (1::int))) (not (uint x)))"
-    by (metis Suc_nat_eq_nat_zadd1 a0 a1 add.commute order_trans)
-
-  ultimately show "uint (smt_extract (nat i) (nat j) (not x)::'b::len word) = uint (not (smt_extract (nat i) (nat j) x ::'b::len word))"
-    by presburger
-qed
-
+  
 
 lemma rewrite_bv_extract_bitwise_and:
   fixes x::"'a ::len word" and y::"'a ::len word" and i::"int" and j::"int"
@@ -375,7 +268,7 @@ proof-
    and ((smt_extract (nat i) (nat j) x)::'b::len word) 
     ((smt_extract (nat i) (nat j) y)::'b::len word)"
     by (metis unsigned_word_eqI)
-qed
+qed*)
 
 
 lemma rewrite_bv_extract_bitwise_or:
@@ -486,5 +379,5 @@ lemma rewrite_bv_slt_eliminate_lemma:
   apply (rule conjI impI)+
    apply (metis add.commute add_lessD1 n_less_equal_power_2 nat_int of_nat_take_bit plus_1_eq_Suc take_bit_nat_eq_self)
   by (metis add.commute add_lessD1 n_less_equal_power_2 nat_int of_nat_take_bit plus_1_eq_Suc take_bit_nat_eq_self)
-
+*)
 end
