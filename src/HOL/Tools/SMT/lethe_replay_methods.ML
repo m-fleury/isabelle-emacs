@@ -29,7 +29,7 @@ sig
      Eq_Congruent | Eq_Reflexive | Eq_Transitive | Eq_Congruent_Pred | Trans |  Refl |  Cong |
      (*Arithmetics:*)
      LA_Disequality | LA_Generic | LA_Tautology |  LIA_Generic | LA_Totality | LA_RW_Eq |
-     NLA_Generic |
+     NLA_Generic | LA_Mult_Pos | LA_Mult_Neg |
      (*Quantifiers:*)
      Forall_Inst | Qnt_Rm_Unused | Qnt_Join | Onepoint | Bind | Skolem_Forall | Skolem_Ex |
      (*Resolution:*)
@@ -107,6 +107,8 @@ sig
   val la_generic: lethe_tac_args
   val la_rw_eq: lethe_tac
   val lia_generic: lethe_tac
+  val la_mult_pos: lethe_tac
+  val la_mult_neg: lethe_tac
   val refl: string -> lethe_tac
   val normalized_input: lethe_tac
   val not_and_rule: lethe_tac
@@ -203,7 +205,7 @@ datatype verit_rule =
    Eq_Congruent | Eq_Reflexive | Eq_Transitive | Eq_Congruent_Pred | Trans |  Refl |  Cong |
    (*Arithmetics:*)
    LA_Disequality | LA_Generic | LA_Tautology |  LIA_Generic | LA_Totality | LA_RW_Eq |
-   NLA_Generic |
+   NLA_Generic |  LA_Mult_Pos | LA_Mult_Neg |
    (*Quantifiers:*)
    Forall_Inst | Qnt_Rm_Unused | Qnt_Join | Onepoint | Bind | Skolem_Forall | Skolem_Ex |
    (*Resolution:*)
@@ -281,6 +283,8 @@ fun string_of_lethe_rule Bind = "Bind"
   | string_of_lethe_rule LA_RW_Eq = "la_rw_eq"
   | string_of_lethe_rule LA_Totality = "LA_Totality"
   | string_of_lethe_rule NLA_Generic = "nla_generic"
+  | string_of_lethe_rule LA_Mult_Pos = "la_mult_pos"
+  | string_of_lethe_rule LA_Mult_Neg = "la_mult_neg"
   | string_of_lethe_rule Eq_Transitive = "eq_transitive"
   | string_of_lethe_rule Qnt_Rm_Unused = "qnt_remove_unused"
   | string_of_lethe_rule Onepoint = "onepoint"
@@ -1249,6 +1253,12 @@ fun lia_generic ctxt _ t =
   SMT_Replay_Methods.prove_arith_rewrite SMT_Replay_Methods.abstract_neq ctxt t
 
 fun la_disequality ctxt _ t =
+  SMT_Replay_Methods.match_instantiate ctxt t @{thm verit_la_disequality}
+
+fun la_mult_pos ctxt _ t =
+  SMT_Replay_Methods.match_instantiate ctxt t @{thm alethe_la_mult_pos}
+
+fun la_mult_neg ctxt _ t =
   SMT_Replay_Methods.match_instantiate ctxt t @{thm verit_la_disequality}
 
 end
