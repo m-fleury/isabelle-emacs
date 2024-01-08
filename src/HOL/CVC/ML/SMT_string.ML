@@ -43,7 +43,7 @@ fun string_type_parser (SMTLIB.Sym "String", []) = SOME \<^typ>\<open>String.str
 
 fun  string_term_parser (SMTLIB.Sym "str.++", t::ts) = SOME (mk_lassoc' \<^const_name>\<open>smtlib_str_concat\<close> \<^typ>\<open>String.string\<close> t ts)
   | string_term_parser (SMTLIB.Sym "str.len", [t1]) = SOME (mk_unary \<^const_name>\<open>smtlib_str_len\<close> \<^typ>\<open>Int.int\<close> t1)
-  | string_term_parser (SMTLIB.Sym "str.const", [t1]) = SOME (Free ("''''", \<^typ>\<open>String.string\<close>))
+  | string_term_parser (SMTLIB.Sym "str.const", [t1]) = (@{print}("If this occurs please investigate",t1);SOME (Free ("''''", \<^typ>\<open>String.string\<close>)))
   | string_term_parser (SMTLIB.Sym "str.const", []) = SOME (Free ("''''", \<^typ>\<open>String.string\<close>))
   (*| string_term_parser (SMTLIB.Sym "str.less", [t1,t2]) = SOME (mk_binary \<^const_name>\<open>smtlib_str_less\<close> \<^typ>\<open>HOL.bool\<close> t1 t2)*)
   | string_term_parser (SMTLIB.Sym "str.to_re", [t1]) = SOME (mk_unary \<^const_name>\<open>smtlib_str_to_re\<close> \<^typ>\<open>RegLan\<close> t1)
