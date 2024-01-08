@@ -31,8 +31,8 @@ end
 fun dsl_tac_initialize rewrite_name args ctxt t th =
 let
  (*val _ = @{print}("dsl_tac_initialize t",t )
- val _ = @{print}("dsl_tac_initialize args",args )*)
- val _ = @{print}("rewrite_name",rewrite_name)
+ val _ = @{print}("dsl_tac_initialize args",args )
+ val _ = @{print}("rewrite_name",rewrite_name)*)
 
  fun find_Thy [] = Lethe_Replay_Methods.replay_error ctxt
   "No corresponding rewrite lemma found, add yours manually in RARE_Interface.thy or use IsaRARE for automatic support.. "
@@ -49,20 +49,21 @@ let
  val rewrite_lemma = find_Thy all_rewrite_thys
  val get_types = map snd (rev (Term.add_vars (Thm.full_prop_of rewrite_lemma) []))
 
-val _ = @{print}("rewrite_lemma",rewrite_lemma)
+(*val _ = @{print}("rewrite_lemma",rewrite_lemma)
  val _ = @{print}("args",args)
 val _ = @{print}("rev args", (rev args))
-val _ = @{print}("thys", (rev get_types))
+val _ = @{print}("thys", (rev get_types))*)
 
  fun rewrite_lemma_inst [] []  = rewrite_lemma |
   rewrite_lemma_inst [] (t::typs')  = (@{print}("Too little arguments. TODO: throw error",t);rewrite_lemma) | (*TODO: throw error TODO: might be NO_MATCH thing*)
   rewrite_lemma_inst _ []  = (@{print}("Too many arguments. TODO: throw error");rewrite_lemma) | (*TODO: throw error*)
   rewrite_lemma_inst (a :: args') (t::typs') = 
-   (@{print}("t",t);
+   (
     if (Const ("Dsl_Nary_Ops.cvc_ListVar.ListVar", dummyT --> dummyT) $ Const ("List.list.Nil", dummyT) = a)
     then
       let
         val t' = dest_Type t |> snd |> hd
+        val _ = @{print}("rewrite_lemma_inst t'",t')
         val new_a = Const ( \<^const_name>\<open>ListVar\<close>, Type(\<^type_name>\<open>List.list\<close>,[t']) --> Type(\<^type_name>\<open>cvc_ListVar\<close>,[t']))
                   $ Const ("List.list.Nil", Type(\<^type_name>\<open>List.list\<close>,[t']))
       in
@@ -84,10 +85,10 @@ val inst_lemma_without_true
  = Basic_Tactic.rule_by_tactic ctxt (resolve_tac ctxt [@{thm TrueI}] 1) inst_lemma_without_list
 
 
-val _ = @{print}("inst_lemma_without_true",inst_lemma_without_true)
-
- val _ = @{print}("inst_lemma",inst_lemma)
- val _ = @{print}("inst_lemma_without_list",inst_lemma_without_list)
+(*val _ = @{print}("inst_lemma_without_true",inst_lemma_without_true)*)
+ val _ = @{print}("Lemma found",rewrite_lemma)
+ val _ = @{print}("Instantiated lemma",inst_lemma)
+ val _ = @{print}("Instantiated lemma without custom definitions",inst_lemma_without_list)
 
 
 in (*TODO: fixed-point rules*)
@@ -100,10 +101,11 @@ in (*TODO: fixed-point rules*)
 )
 end
 
+(*TODO: Have different method based on theory rewrite is in*)
 fun try_simp ctxt t = 
   SMT_Replay_Methods.prove ctxt t (fn _ =>
      TRY'(K (HEADGOAL (simplify_tac ctxt ((Named_Theorems.get ctxt @{named_theorems all_simplify_temp})))))
-     THEN' TRY'(K (HEADGOAL (simplify_tac ctxt @{thms arith_simps verit_minus_simplify})))
+     THEN' TRY'(K (HEADGOAL (simplify_tac ctxt @{thms arith_simps verit_minus_simplify})))  
      THEN' TRY'(K (HEADGOAL (simplify_tac ctxt ((Named_Theorems.get ctxt @{named_theorems arith_simp_cvc5})))))
      THEN' TRY' (K (Clasimp.auto_tac ctxt))
 THEN' K (print_tac ctxt "debug in try simp")
@@ -115,18 +117,20 @@ fun try_auto_solo ctxt t =
 local 
  fun pretty tag lines = map Pretty.str lines |> Pretty.big_list tag |> Pretty.string_of
 in 
+(* all_simplify ctxt [prems] args t*)
  fun all_simplify ctxt (th : thm list) (Free (rewrite_name, _) :: args) t =
   if rewrite_name = "evaluate"
   then
    (SMT_Config.verbose_msg ctxt (pretty ("Found evaluate, try to simplify")) []; try_simp ctxt t)
-  else
-(dsl_tac_initialize rewrite_name args ctxt t th)|
+else
+( dsl_tac_initialize rewrite_name args ctxt t th) |
 
     (*( dsl_tac_initialize rewrite_name args ctxt t th) |*)
    (*( try_auto_solo ctxt t)|*)
- all_simplify ctxt (_ : thm list) args t =
+ all_simplify ctxt (th : thm list) args t =
+(@{print}("T",t);@{print}("args",args);@{print}("th",th);
   (SMT_Config.verbose_msg ctxt (pretty ("No dsl rule found, try to simplify" ^
-  List.foldr op^ "" (map ML_Syntax.print_term args))) []; try_simp ctxt t)
+  List.foldr op^ "" (map ML_Syntax.print_term args))) []; try_simp ctxt t))
 end
 
 val rules = [
