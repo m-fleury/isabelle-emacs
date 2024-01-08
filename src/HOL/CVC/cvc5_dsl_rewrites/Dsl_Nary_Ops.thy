@@ -2,6 +2,8 @@ theory Dsl_Nary_Ops
   imports Smtlib_String
 begin
 
+datatype smt_datatype = String string | Int int
+
 datatype 'a cvc_ListVar = ListVar "'a list"
 datatype ('a,'b) cvc_ListOp = ListOp "'a \<Rightarrow> 'b \<Rightarrow> 'b" "'a"
 
@@ -62,30 +64,15 @@ definition cvc_list_left where "cvc_list_left op lv y = cvc_bin_op op lv y"
 definition cvc_list_right where "cvc_list_right op y lv = cvc_bin_op2 op y lv"
 definition cvc_list_both where "cvc_list_both op neutral lv1 lv2 = cvc_bin_op3 op lv1 lv2 neutral"
 
+fun cvc_nary_op_fold' :: "('b \<Rightarrow> 'a \<Rightarrow> 'a) \<Rightarrow> ('b \<Rightarrow> 'b \<Rightarrow> 'a) \<Rightarrow> 'b list \<Rightarrow> 'a" where
+  "cvc_nary_op_fold' op1 op2 [x,y] = op2 x y" |
+  "cvc_nary_op_fold' op1 op2 (x#xs) = (op1 x (cvc_nary_op_fold' op1 op2 xs))"
 
-(*test*)
+fun cvc_bin_op2' :: "('b \<Rightarrow> 'a \<Rightarrow> 'a) \<Rightarrow> ('b \<Rightarrow> 'b \<Rightarrow> 'a) \<Rightarrow> ('a \<Rightarrow> 'a \<Rightarrow> 'a) \<Rightarrow> 'a \<Rightarrow> 'b cvc_ListVar \<Rightarrow> 'a" where
+ "cvc_bin_op2' op1 op2 op3 y (ListVar xs) = (if xs = [] then y else op3 y (cvc_nary_op_fold' op1 op2 xs))"
 
-fun cvc_nary_op_fold' :: "('a \<Rightarrow> 'b \<Rightarrow> 'b) \<Rightarrow> 'a list \<Rightarrow> 'b \<Rightarrow> 'b" where
-  "cvc_nary_op_fold' op [] neutral = neutral" |
-  "cvc_nary_op_fold' op (x#xs) neutral = (op x (cvc_nary_op_fold' op xs neutral))"
+definition cvc_list_right' where "cvc_list_right' op1 op2 op3 y lv = cvc_bin_op2' op1 op2 op3 y lv"
 
-fun cvc_bin_op3' :: "('a \<Rightarrow> 'b \<Rightarrow> 'b) \<Rightarrow> 'a cvc_ListVar \<Rightarrow> 'a cvc_ListVar \<Rightarrow> 'b \<Rightarrow> 'b" where
-  "cvc_bin_op3' op (ListVar []) (ListVar []) neutral = neutral" | 
-  "cvc_bin_op3' op (ListVar xs) (ListVar []) neutral = cvc_nary_op_fold' op xs neutral" | 
-  "cvc_bin_op3' op (ListVar xs) (ListVar ys) neutral = cvc_bin_op_fold op xs (cvc_nary_op_fold' op ys neutral)"
-
-definition cvc_list_right' where "cvc_list_right' op neutral y lv = cvc_bin_op3' op (ListVar [y]) lv neutral"
-definition cvc_list_both' where "cvc_list_both' op neutral lv1 lv2 = cvc_bin_op3' op lv1 lv2 neutral"
-
-
-
-(*
- (foldr op (y#xs) neutral)"
-primrec foldr :: "('a \<Rightarrow> 'b \<Rightarrow> 'b) \<Rightarrow> 'a list \<Rightarrow> 'b \<Rightarrow> 'b" where
-foldr_Nil:  "foldr f [] b = b" |
-foldr_Cons: "foldr f (x # xs) b = f x (foldr f xs b)"
-  shows "cvc_list_left op (ListVar xs) y = foldr op xs y"
-*)
 lemma cvc_nary_op_fold_transfer_h1:
   assumes "1 \<le> n" "cvc_isListOp (ListOp op neutral)"
   shows "\<forall>xs. n = length xs \<longrightarrow> cvc_nary_op_fold op xs = foldr op xs neutral"
@@ -272,6 +259,14 @@ lemma [cvc_list_both_transfer_op]:
   by (simp add: cvc_list_both_transfer)
 
 lemma [cvc_list_both_transfer_op]:
+  "cvc_list_both (+) (0::'a::{linordered_field}) (ListVar ys) (ListVar xs) = foldr (+) ys (foldr (+) xs 0)"
+  by (simp add: cvc_list_both_transfer)
+
+lemma [cvc_list_both_transfer_op]:
+  "cvc_list_both (*) (1::'a::{linordered_field}) (ListVar ys) (ListVar xs) = foldr (*) ys (foldr (*) xs 1)"
+  by (simp add: cvc_list_both_transfer)
+
+lemma [cvc_list_both_transfer_op]:
   "cvc_list_both (+) (0::int) (ListVar ys) (ListVar xs) = foldr (+) ys (foldr (+) xs 0)"
   by (simp add: cvc_list_both_transfer)
 
@@ -434,4 +429,19 @@ lemma xor_simps:
   unfolding xor_def
   by auto
 
+
+lemma foldr_or_neutral [simp]: "foldr (\<or>) xs True = True"
+  apply (induction xs)
+  by auto
+
+lemma foldr_and_neutral [simp]: "foldr (\<and>) xs False = False"
+  apply (induction xs)
+  by auto
+
+lemmas cvc_rewrites_fold = append.right_neutral append_Nil
+ append.assoc append.right_neutral fold_append_concat_rev foldr_conv_fold
+ append_eq_append_conv concat_append append.left_neutral append_Nil2
+
+lemmas cvc_arith_rewrite_defs = SMT.z3div_def linorder_not_le verit_comp_simplify1
+add1_zle_eq
 end
