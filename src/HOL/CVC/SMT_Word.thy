@@ -1,5 +1,5 @@
 theory SMT_Word
-  imports "HOL-Library.Word" Word_Lib.More_Word
+  imports "HOL-Library.Word" Word_Lib.More_Word "HOL-Library.Log_Nat" "Word_Lib.Reversed_Bit_Lists" Dsl_Nary_Ops
 begin
 (*Erstmal diese Theory Afp abhaengig sein
 Soll zweiten bv_term_parser enthalten, der alle cvc5 bv definitionen enthaelt
@@ -106,8 +106,15 @@ qed
 
 (* SMT-LIB bit-vector definitions *)
 
-definition smt_extract where
+definition smt_extract :: "nat \<Rightarrow> nat \<Rightarrow> 'a ::len word \<Rightarrow> 'b::len word" where
   \<open>smt_extract j i w = slice i (take_bit (Suc j) w)\<close>
+
+
+value "smt_extract (7) 1 (1::4 word)::1 word"
+value "slice 3 (4::8 word)::8 word"
+
+lemma "i+1-j < LENGTH('a) \<Longrightarrow> size (smt_extract j i w::'a::len word) = i+1-j"
+  oops
 
 lemma unat_smt_extract:
   fixes x::"'a::len word"
@@ -350,8 +357,8 @@ definition smt_uaddo :: "'c::len itself \<Rightarrow> 'a::len word \<Rightarrow>
 "smt_uaddo TYPE('c) x y = (smt_extract (size x - 1) (size x - 1)
  ((Word.word_cat (0::1 word) x) + (Word.word_cat (0::1 word) y) :: 'c::len word) = (1:: 1 word))"
 
-definition smt_saddo :: "'a::len word \<Rightarrow> 'a::len word \<Rightarrow> bool" where
-"smt_saddo x y = 
+definition smt_saddo :: "'a::len itself \<Rightarrow> 'a::len word \<Rightarrow> 'a::len word \<Rightarrow> bool" where
+"smt_saddo TYPE('a) x y = 
 (let sign0=smt_extract (size x - 1) (size x - 1) x in
  let sign1=smt_extract (size x - 1) (size x - 1) y in
  let signa=smt_extract (size x - 1) (size x - 1) (x+y) in
@@ -439,6 +446,12 @@ lemma uint_smt_srem:
 definition is_pow2 :: "int \<Rightarrow> bool" where
   \<open>is_pow2 i \<equiv> (i = 0) \<and> (and i (i-1) = 0)\<close>
 
+definition smt_udiv :: "'a::len word \<Rightarrow> 'a::len word \<Rightarrow> 'a::len word" where
+"smt_udiv s t =
+(if (unat t) = 0 then (mask (size s)) else s div t)
+"
+
+
 lemma uint_word_rotl_eq:
   \<open>uint (word_rotl n w) = concat_bit (n mod LENGTH('a))
     (drop_bit (LENGTH('a) - n mod LENGTH('a)) (uint w))
@@ -514,6 +527,148 @@ push_bit LENGTH('b::len) (uint x) + uint y"
   by (metis (mono_tags, lifting) int_plus push_bit_of_nat uint_nat unat_word_cat)
 
 
+lemma word_cat_on_word_cat:
+"LENGTH('a) = size (s::'f1::len word) + size (t::'f2::len word) \<Longrightarrow>
+LENGTH('b) = LENGTH('a) + size (q::'f3::len word) \<Longrightarrow>
+LENGTH('d) = size t + size q \<Longrightarrow>
+LENGTH('b) = size s + LENGTH('d) \<Longrightarrow>
+(word_cat (word_cat s t::'a::len word) q::'b::len word) = word_cat s (word_cat t q::'d::len word)"
+  apply (simp only: word_unat_eq_iff)
+  apply (subst unat_word_cat[of "(word_cat s t::'a::len word)" q, where 'c='b] )
+  using word_size apply auto[1]
+  apply (subst unat_word_cat[of s t, where 'c='a])
+   apply (simp add: word_size)
+  apply (subst unat_word_cat[of s "(word_cat t q::'d::len word)", where 'c='b])
+   apply (simp add: word_size)
+  apply (subst unat_word_cat)
+   apply (simp add: word_size)
+  by (simp add: add.commute push_bit_add size_word.rep_eq)
+
+
+
+fun list_length_0 where
+ "list_length_0 xs = (foldr (\<and>) (map (\<lambda>xs'. length xs' > 0) xs) True)"
+
+fun list_length_0' where
+ "list_length_0' (ListVar xs) = (foldr (\<and>) (map (\<lambda>xs'. length xs' > 0) xs) True)"
+
+lemma list_length_0_monotone:
+"list_length_0 (x#xss) \<Longrightarrow> list_length_0 (xss)"
+  apply (induction xss)
+  by simp_all
+
+fun concat_smt :: "(bool list) list  \<Rightarrow> 'b::len  word" where
+  "concat_smt xss = (THE x :: 'b::len word. length xss > 0 \<and> list_length_0 xss
+ \<and> LENGTH('b) = foldr (+) (map length xss) 0 \<and> x = of_bl (foldr (append) xss []))"
+
+lemmas[simp del] = concat_smt.simps
+
+fun concat_smt2 :: "(bool list) cvc_ListVar  \<Rightarrow> 'b::len  word" where
+  "concat_smt2 (ListVar xss) = (THE x :: 'b::len word. length xss > 0 \<and> list_length_0 xss
+ \<and> LENGTH('b) = foldr (+) (map length xss) 0 \<and> x = of_bl (foldr (append) xss []))"
+
+lemmas[simp del] = concat_smt2.simps
+
+
+fun temp_sum_length where
+"temp_sum_length (ListVar xss) = int (foldr (+) (map length xss) 0)"
+
+lemma concat_smt_singleton: "LENGTH('b) = length xs \<Longrightarrow> length xs > 0 \<Longrightarrow> concat_smt [xs] = (of_bl xs::'b::len word)"
+  by simp
+
+value "concat_smt [[False]]:: 1 word"
+value "concat_smt [[True],[True,False]]:: 3 word"
+
+(*
+value "concat_smt [[True],[True,False]]:: 2 word"
+value "concat_smt [[]]:: 2 word"
+value "concat_smt [[],[]]:: 2 word"
+*)
+
+lemma concat_smt_unique:
+  \<open>LENGTH('b) = foldr (+) (map length xss) 0 \<and> a = concat_smt xss \<Longrightarrow>
+  LENGTH('b::len) = foldr (+) (map length xss) 0  \<and> x = concat_smt xss \<Longrightarrow>
+  x = a\<close>
+  using word_eq_iff_unsigned
+  by metis
+
+lemma ex_concat_smt:
+  fixes n :: \<open>'a :: len word\<close>
+  assumes \<open>LENGTH('b) = foldr (+) (map length xss) 0\<close> "xss \<noteq> []" 
+  shows \<open>\<exists>x::'b::len word. x = concat_smt xss\<close>
+  using assms apply -
+  by simp
+
+lemma unat_concat_smt2:
+"length xss > 0 \<and> list_length_0 xss
+ \<and> LENGTH('b) = foldr (+) (map length xss) 0 
+\<Longrightarrow> unat (concat_smt2 (ListVar xss)::'b::len word) = unat (of_bl (foldr (append) xss [])::'b::len word)"
+  by simp
+
+
+lemma concat_smt_list:
+  shows  "xss \<noteq> [] \<Longrightarrow> length(xs) = LENGTH('c)
+           \<Longrightarrow> LENGTH('b) = LENGTH('c) + LENGTH('d)
+           \<Longrightarrow> LENGTH('b) = foldr (+) (map length (xs # xss)) 0
+           \<Longrightarrow> LENGTH('d) = foldr (+) (map length (xss)) 0 \<Longrightarrow> 
+           list_length_0 (xs#xss) \<Longrightarrow> 
+          (concat_smt (xs # xss)::'b::len word) = word_cat (of_bl xs::'c::len word) (concat_smt xss::'d::len word) "
+proof-
+  assume a0: "xss \<noteq> []"
+     and a1: "length(xs) = LENGTH('c)"
+     and a2: "LENGTH('b) = LENGTH('c) + LENGTH('d)"
+     and a3: "LENGTH('b) = foldr (+) (map length (xs # xss)) 0"
+     and a4: "LENGTH('d) = foldr (+) (map length xss) (0::nat)"
+     and a5: "list_length_0 (xs#xss)"
+
+  have a5b: "list_length_0 (xss)"
+    using list_length_0_monotone a5 by simp
+
+  obtain x where t0: "x = (concat_smt (xs # xss)::'b::len word)" by simp (*(THE x :: 'b::len word. length (xs # xss) > 0 \<and> list_length_0 (xs # xss)  \<and> LENGTH('b) = foldr (+) (map length (xs # xss)) 0 \<and> x = of_bl (foldr (append) (xs # xss) []))"*)
+  obtain y where t1: "y = (concat_smt xss::'d::len word)" by simp
+
+  have t2: "y = (of_bl (foldr (append) ( xss) [])::'d::len word)"
+    using t1 apply simp
+    using a0 a4 a5b by auto
+   have t3: "x = (of_bl (foldr (append) (xs # xss) [])::'b::len word)"
+     using t0 a5 a3 by simp
+
+   have t4: "foldr (@) (xss::bool list list) [] \<in> {bl::bool list. length bl = LENGTH('d::len)}"
+     apply simp
+     apply (simp only: a4)
+     apply (induction xss)
+     by simp_all
+
+  have "word_cat (of_bl xs::'c::len word) (concat_smt xss::'d::len word) = word_cat (of_bl xs::'c::len word) y"
+    using t1 by blast
+  then have "word_cat (of_bl xs::'c::len word) (concat_smt xss::'d::len word)
+     = of_bl (to_bl (of_bl xs::'c::len word) @ to_bl y)"
+    using word_cat_bl[of "(of_bl xs::'c::len word)" "(y::'d::len word)"]
+    by metis
+  then have "word_cat (of_bl xs::'c::len word) (concat_smt xss::'d::len word)
+     = of_bl (xs @ to_bl y)"
+    using word_bl.Abs_inverse[of xs]
+    using a1 by force
+  then have "word_cat (of_bl xs::'c::len word) (concat_smt xss::'d::len word)
+     = of_bl (xs @ to_bl (of_bl (foldr (append) xss [])::'d::len word))"
+   using t2 by simp
+  then have "word_cat (of_bl xs::'c::len word) (concat_smt xss::'d::len word)
+     = of_bl (xs @ (foldr (append) xss []))"
+    using word_bl.Abs_inverse[of "(foldr (append) xss [])", where 'a='d]
+    t4 by simp
+  then have "word_cat (of_bl xs::'c::len word) (concat_smt xss::'d::len word)
+     = of_bl (foldr (append) (xs#xss) [])"
+    by simp
+  then have "word_cat (of_bl xs::'c::len word) (concat_smt xss::'d::len word)
+     = x"
+    using t3 by simp
+  then show "(concat_smt (xs # xss)::'b::len word) = word_cat (of_bl xs::'c::len word) (concat_smt xss::'d::len word) "
+    using t0 by presburger
+qed
+
+named_theorems evaluate_bv_cvc5 \<open>Lemmas to resolve evaluate rewrite steps \<close>
+
+
 ML\<open>
 
 open Word_Lib
@@ -548,20 +703,45 @@ fun mk_scast i u =
     val TU = Word_Lib.mk_wordT i
   in Const (\<^const_name>\<open>Word.signed\<close>, T --> TU) $ u end;
 
-fun bv_term_parser (SMTLIB.BVNum (i, base), xs) = 
-      SOME (HOLogic.mk_number \<^typ>\<open>32 word\<close> i)
+fun bv_term_parser (SMTLIB.BVNum (i, base), xs) = (*TODO*)
+      SOME (HOLogic.mk_number ((Type (\<^type_name>\<open>word\<close>, [dummyT]))) i)
   | bv_term_parser (SMTLIB.Sym "bbT", xs) =
         SOME ((Const ("Reversed_Bit_Lists.of_bl", \<^typ>\<open>HOL.bool list\<close> --> mk_wordT(length xs))) 
         $ ((Const (\<^const_name>\<open>List.rev\<close>, \<^typ>\<open>HOL.bool list\<close> -->  \<^typ>\<open>HOL.bool list\<close>)) $ (HOLogic.mk_list \<^typ>\<open>bool\<close> xs)))
   | bv_term_parser (SMTLIB.S [SMTLIB.Sym "_", SMTLIB.Sym "bitOf", SMTLIB.Num i], [t]) =
       SOME (Const (\<^const_name>\<open>semiring_bits_class.bit\<close>, (fastype_of t) --> HOLogic.natT --> \<^typ>\<open>HOL.bool\<close>)
       $ t $ (HOLogic.mk_nat i))
-
+| bv_term_parser (SMTLIB.S [SMTLIB.Sym "_",SMTLIB.Sym "int2bv", SMTLIB.Num t], xs) = (*TODO*)
+(* ("bad SMT term format",
+             S [Sym "_", Sym "int2bv",
+                Num 32]*)
+let
+(*val _ = @{print}("FOUND")
+val _ = @{print}("bv_term_parser int2bv ",xs)*)
+(*[Const ("Groups.uminus_class.uminus", "int \<Rightarrow> int") $
+    (Const ("Groups.uminus_class.uminus", "int \<Rightarrow> int") $
+      (Const ("Num.numeral_class.numeral", "num \<Rightarrow> int") $
+        (Const ("Num.num.Bit0", "num \<Rightarrow> num") $
+          (Const ("Num.num.Bit0", "num \<Rightarrow> num") $
+            (Const ("Num.num.Bit0", "num \<Rightarrow> num") $
+              (Const ("Num.num.Bit0", "num ... num") $ (Const ("Num.num.Bit0", "...") $ (Const ("...", ...) $ (... $ ...)))))))))]*)
+in                                                  
+      SOME (HOLogic.mk_number ((Type (\<^type_name>\<open>word\<close>, [dummyT]))) (snd (HOLogic.dest_number (hd xs))))
+end
+| bv_term_parser (SMTLIB.Sym "int2bv", xs) = (*TODO*)
+(* ("bad SMT term format",
+             S [Sym "_", Sym "int2bv",
+                Num 32]*)
+let
+val _ = @{print}("FOUND2")
+in
+      SOME (HOLogic.mk_number \<^typ>\<open>32 word\<close> 32)
+end
   | bv_term_parser (SMTLIB.Sym "bv2nat", [t1]) =
 let 
-  val _ = @{print} ("t1=", t1, (fastype_of t1))
+  (*val _ = @{print} ("t1=", t1, (fastype_of t1))
   val _ = @{print} ("bv2nat t1=", Thm.cterm_of @{context} t1)
-  val _ = @{print} ("bv2nat t1=", Thm.cterm_of @{context} (Const (\<^const_name>\<open>unsigned\<close>, (fastype_of t1) --> \<^typ>\<open>int\<close>) $ t1))
+  val _ = @{print} ("bv2nat t1=", Thm.cterm_of @{context} (Const (\<^const_name>\<open>unsigned\<close>, (fastype_of t1) --> \<^typ>\<open>int\<close>) $ t1))*)
 in
 (*t1 could be in the form. In that case no further cast is needed Const ("Num.numeral_class.numeral", "num \<Rightarrow> int") $ ts*)
      SOME (Const (\<^const_name>\<open>unsigned\<close>, (fastype_of t1) --> \<^typ>\<open>int\<close>) $ t1)
@@ -578,12 +758,12 @@ end
        val t2' = if T2 = \<^typ>\<open>Int.int\<close> then Const ( \<^const_name>\<open>nat\<close>, T2 -->  \<^typ>\<open>Nat.nat\<close>) $ t2 else t2
     in SOME (Const (\<^const_name>\<open>SMT_Word.smt_extract\<close>, @{typ nat} --> @{typ nat} --> dummyT --> dummyT) $ t1' $ t2' $ t3)
     end
-
+  | bv_term_parser (SMTLIB.S [SMTLIB.Sym "_",SMTLIB.Sym "extract", SMTLIB.Num i, SMTLIB.Num j],[t]) = SOME (mk_extract i j t)
   | bv_term_parser (SMTLIB.Sym "bvnand", [t1, t2]) =
       SOME (mk_unary \<^const_name>\<open>ring_bit_operations_class.not\<close> (HOLogic.mk_binop \<^const_name>\<open>semiring_bit_operations_class.and\<close> (t1, t2)))
   | bv_term_parser (SMTLIB.Sym "bvnor", [t1, t2]) =
       SOME (mk_unary \<^const_name>\<open>ring_bit_operations_class.not\<close> (HOLogic.mk_binop \<^const_name>\<open>semiring_bit_operations_class.or\<close> (t1, t2)))
- (* | bv_term_parser (SMTLIB.Sym "int.log2", [t1]) =
+  | bv_term_parser (SMTLIB.Sym "int.log2", [t1]) =
     let
          val T1 = fastype_of t1
          val t1' = (Const (\<^const_name>\<open>nat\<close>, T1 --> \<^typ>\<open>Nat.nat\<close>) $ t1)
@@ -592,7 +772,7 @@ end
      in
       SOME (Const (\<^const_name>\<open>of_nat\<close>, \<^typ>\<open>Nat.nat\<close> --> \<^typ>\<open>Int.int\<close> ) $ (Const (\<^const_name>\<open>Log_Nat.floorlog\<close>, \<^typ>\<open>Nat.nat\<close> --> \<^typ>\<open>Nat.nat\<close> --> \<^typ>\<open>Nat.nat\<close>)
          $ t1' $ t2'))
-     end*)
+     end
   | bv_term_parser (SMTLIB.Sym "int.ispow2", [t1]) =
       SOME (Const (\<^const_name>\<open>SMT_Word.is_pow2\<close>,\<^typ>\<open>Int.int\<close> --> \<^typ>\<open>bool\<close>) $ t1)
   | bv_term_parser (SMTLIB.Sym "bvugt", [t1,t2]) =
@@ -682,15 +862,24 @@ end
       SOME (Const (\<^const_name>\<open>smt_usubo\<close>,Type("itself",[dummyT]) --> fastype_of t1--> fastype_of t2 --> dummyT) $ Free("itself",dummyT) $ t1 $ t2)
   | bv_term_parser (SMTLIB.Sym "bvssubo", [t1,t2]) =
       SOME (HOLogic.mk_binrel \<^const_name>\<open>smt_ssubo\<close> (t1, t2))
-  | bv_term_parser (SMTLIB.Sym "xor", [t1, t2]) =
-      SOME (Const ("Word.xor", \<^typ>\<open>HOL.bool\<close> --> \<^typ>\<open>HOL.bool\<close> --> \<^typ>\<open>HOL.bool\<close> ) $ t1 $ t2)
+  (*| bv_term_parser (SMTLIB.Sym "xor", [t1, t2]) =
+      SOME (Const ("Word.xor", \<^typ>\<open>HOL.bool\<close> --> \<^typ>\<open>HOL.bool\<close> --> \<^typ>\<open>HOL.bool\<close> ) $ t1 $ t2)*)
   | bv_term_parser (SMTLIB.Sym "concat", t::ts) = 
       SOME (mk_lassoc (curry mk_test) t ts)
+  | bv_term_parser (SMTLIB.Sym "sum_length",[ts]) =
+      SOME (Const (\<^const_name>\<open>temp_sum_length\<close>, dummyT -->dummyT) $ ts)
+  | bv_term_parser (SMTLIB.Sym "list_length_0",[ts]) =
+      SOME (Const (\<^const_name>\<open>list_length_0'\<close>, dummyT -->dummyT) $ ts)
+  | bv_term_parser (SMTLIB.Sym "length",[ts]) =
+      SOME (Const (\<^const_name>\<open>of_nat\<close>, dummyT -->dummyT) $ (Const (\<^const_name>\<open>size\<close>, dummyT -->dummyT) $ ts))
+
+  | bv_term_parser (SMTLIB.Sym "smt_concat", [t]) = 
+      SOME (Const (\<^const_name>\<open>concat_smt2\<close>, dummyT -->dummyT) $ t)
   | bv_term_parser (SMTLIB.Sym "bv", [int,base]) = (*TODO: Can get rid of case distinction now*)
      let
      (*There is one special case that is caught here, that is if the base is the size of another bitvector *)
-     val _ = @{print}("int",int)
-     val _ = @{print}("base",base)
+    (* val _ = @{print}("int",int)
+     val _ = @{print}("base",base)*)
  in
          SOME (Const  (\<^const_name>\<open>Word.Word\<close>,\<^typ>\<open>Int.int\<close>--> dummyT) $ int) (*TODO: Use ty*)
       end
@@ -717,12 +906,12 @@ end
   | bv_term_parser (SMTLIB.Sym "bvsdiv", [t1,t2]) = (*TODO*)
       SOME (HOLogic.mk_binop \<^const_name>\<open>Rings.divide\<close> (mk_unary \<^const_name>\<open>unsigned\<close> t1, mk_unary \<^const_name>\<open>unsigned\<close> t2))
  | bv_term_parser (SMTLIB.Sym "bvudiv", [t1,t2]) =
-      SOME (HOLogic.mk_binop \<^const_name>\<open>Rings.divide\<close> (t1, t2)) (*TODO: What about the case whre t2 is 0? SMTLIB semantics says it should be mask *)
+      SOME (HOLogic.mk_binop \<^const_name>\<open>smt_udiv\<close> (t1, t2)) (*TODO: What about the case whre t2 is 0? SMTLIB semantics says it should be mask *)
   | bv_term_parser (SMTLIB.Sym "bvshl", [t1, t2]) = 
     let
       val T1 = fastype_of t1
     in
-      SOME (Const (\<^const_name>\<open>semiring_bit_operations_class.push_bit\<close>, \<^typ>\<open>Nat.nat\<close> --> T1 --> T1) $ (Const ( \<^const_name>\<open>unsigned\<close>, T1 --> \<^typ>\<open>Nat.nat\<close> ) $ t2) $ t1)
+      SOME (Const (\<^const_name>\<open>semiring_bit_operations_class.push_bit\<close>, \<^typ>\<open>Nat.nat\<close> --> T1 --> T1) $ (Const ( \<^const_name>\<open>unsigned\<close>, T1 --> \<^typ>\<open>Nat.nat\<close> ) $ t1) $ t2)
    end
   | bv_term_parser (SMTLIB.Sym "bvlshr", [t1, t2]) = 
     let
@@ -744,8 +933,8 @@ end
 
 val temp = (Type (\<^type_name>\<open>word\<close>, [dummyT]))
 
- fun bv_type_parser (SMTLIB.Sym "?BitVec", []) = SOME temp (*TODO: Here it should be a 'a::len word not a word *)
-  | bv_type_parser (SMTLIB.S [SMTLIB.Sym "?BitVec"], []) = SOME temp (*TODO*)
+ fun bv_type_parser (SMTLIB.Sym "?BitVec", []) = SOME (Type (\<^type_name>\<open>word\<close>, [dummyT])) (*TODO: Here it should be a 'a::len word not a word *)
+  | bv_type_parser (SMTLIB.S [SMTLIB.Sym "?BitVec"], []) = SOME (Type (\<^type_name>\<open>word\<close>, [dummyT])) (*TODO*)
   | bv_type_parser (SMTLIB.Sym "?BitVec", []) = SOME (Type (\<^type_name>\<open>word\<close>, [dummyT])) (*TODO *)
   (*| bv_type_parser (SMTLIB.Sym "?BitVec", []) = SOME (Type (\<^type_name>\<open>word\<close>, [ \<^typ>\<open>'a\<close>])) (*TODO*)*)
 

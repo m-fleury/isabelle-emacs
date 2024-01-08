@@ -112,8 +112,8 @@ fun cvc_term_parser (SMTLIB.Sym "xor",[t1,t2]) = SOME (HOLogic.mk_not (HOLogic.m
         SOME y => SOME y |
         NONE => SMT_Array.array_term_parser xs)
 
- fun cvc_type_parser (SMTLIB.Sym "?", []) = SOME dummyT |
-     cvc_type_parser (SMTLIB.Sym "?BitVec", []) = SOME dummyT |
+ fun cvc_type_parser (SMTLIB.Sym "?", _) = SOME dummyT |
+     cvc_type_parser (SMTLIB.Sym "?BitVec", []) = SOME (Type (\<^type_name>\<open>word\<close>, [dummyT])) |
   cvc_type_parser xs =
   (case SMT_String.string_type_parser xs of
     SOME x => SOME x |
@@ -121,7 +121,6 @@ fun cvc_term_parser (SMTLIB.Sym "xor",[t1,t2]) = SOME (HOLogic.mk_not (HOLogic.m
       case SMT_Set.set_type_parser xs of
         SOME y => SOME y |
         NONE => SMT_Array.array_type_parser xs)
-
 \<close>
 
 ML \<open>
