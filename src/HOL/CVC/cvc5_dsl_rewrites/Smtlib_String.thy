@@ -25,7 +25,7 @@ definition smtlib_str_concat :: "string \<Rightarrow> string \<Rightarrow> strin
 definition smtlib_str_len :: "string \<Rightarrow> int" where
   "smtlib_str_len str \<equiv> int (List.length str)"
 
-lemma smtlib_str_concat_length: 
+lemma smtlib_str_concat_length[simp]: 
   "smtlib_str_len (smtlib_str_concat w1 w2) = smtlib_str_len w1 + smtlib_str_len w2"
   by (simp add: smtlib_str_len_def smtlib_str_concat_def)
 
@@ -359,6 +359,17 @@ fun smtlib_str_contains_ind  :: "string \<Rightarrow> string \<Rightarrow> bool"
   "smtlib_str_contains_ind (w#ws) w2 =
    (if length (w#ws) < length w2 then False else
    (if take (length w2) (w#ws) = w2 then True else smtlib_str_contains_ind ws w2))"
+
+lemma smtlib_str_contains_ind_Nil:
+  "smtlib_str_contains_ind [][]"
+  "\<not>smtlib_str_contains_ind [] (x#xs)"
+  by simp_all
+
+lemma smtlib_str_contains_ind_Cons:
+  "length (w#ws) < length w2 \<Longrightarrow> \<not>smtlib_str_contains_ind (w#ws) w2"
+  "length (w#ws) \<ge> length w2 \<Longrightarrow> take (length w2) (w#ws) = w2
+    \<Longrightarrow> smtlib_str_contains_ind (w#ws) w2"
+  by simp_all
 
 definition smtlib_str_contains :: "string \<Rightarrow> string \<Rightarrow> bool" where
   "smtlib_str_contains w w2 \<equiv> smtlib_str_contains_ind w w2"
@@ -788,6 +799,27 @@ definition smtlib_str_update :: "string \<Rightarrow> int \<Rightarrow> string \
  let u2 = take (nat u2_len) w2 in
 u1 @ u2 @ u3
 ))"
+
+
+named_theorems cvc_string_rewrite_defs \<open>All string definitions so they can be unfolded when proving RARE lemmas\<close>
+
+lemmas [cvc_string_rewrite_defs] = 
+smtlib_str_concat_def smtlib_str_len_def smtlib_str_less_def
+smtlib_str_to_re_def smtlib_str_in_re_def smtlib_re_none_def
+smtlib_re_all_def smtlib_re_allchar_def smtlib_re_concat_def
+smtlib_re_union_def smtlib_re_inter_def smtlib_re_star_def
+smtlib_re_star2_def smtlib_re_star_ind_elem1 smtlib_str_leq_def
+smtlib_str_substr_def smtlib_str_at_def smtlib_str_prefixof_def
+smtlib_str_suffixof_def smtlib_str_contains2_def 
+smtlib_str_contains_equal smtlib_str_contains_append smtlib_str_contains_add
+smtlib_str_contains_singleton smtlib_str_contains_append_Singleton
+smtlib_str_indexof_def smtlib_str_replace_def smtlib_str_replace_length
+smtlib_str_replace_all_def smtlib_re_comp_def smtlib_re_diff_def
+smtlib_re_plus_def smtlib_re_opt_def smtlib_re_range_def
+smtlib_str_is_digit_def smtlib_str_to_code_def smtlib_str_from_code_def
+smtlib_str_from_int_def smtlib_str_update_def 
+Let_def smtlib_str_replace2.simps smtlib_str_in_re_def
+
 
 end
 
