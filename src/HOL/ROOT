@@ -1241,15 +1241,13 @@ session "IOA-ex" in "HOLCF/IOA/ex" = IOA +
   theories
     TrivEx
     TrivEx2
- 
-     
+
+
 session "HOL-CVC" in CVC = HOL +
-  options [quick_and_dirty]
+  options [quick_and_dirty] (*TODO: Delete*)
   sessions
     "HOL-Library"
     "Word_Lib"
   directories cvc5_dsl_rewrites
   theories
     SMT_CVC
-    "cvc5_dsl_rewrites/Rare_Interface"
-
