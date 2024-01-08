@@ -1,7 +1,7 @@
 (*  Title:      HOL/Tools/SMT/SMT_string.ML
     Author:     Hanna Lachnitt, Stanford
 
-SMT setup for sets. Note: There is no SMTLIB Set theory.
+SMT setup for sets. Note: There is no SMT-LIB Set theory.
 *)
 
 signature SMT_Set = 
@@ -65,10 +65,12 @@ fun set_term_parser (SMTLIB.Sym "set.card", [t1]) =
    SOME (mk_unary \<^const_name>\<open>card\<close> \<^typ>\<open>nat\<close> t1)
   | set_term_parser _ = NONE
 
-(*val _ = Theory.setup (Context.theory_map (
+(*
+FIXME: This has not worked before, try if it works noe
+val _ = Theory.setup (Context.theory_map (
   SMTLIB_Proof.add_type_parser set_type_parser #>
-  SMTLIB_Proof.add_term_parser set_term_parser))*)
-
+  SMTLIB_Proof.add_term_parser set_term_parser))
+*)
 
 
 end;
