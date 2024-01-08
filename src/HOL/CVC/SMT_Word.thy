@@ -1,5 +1,6 @@
 theory SMT_Word
-  imports "HOL-Library.Word" Word_Lib.More_Word "HOL-Library.Log_Nat" "Word_Lib.Reversed_Bit_Lists" Dsl_Nary_Ops
+  imports "HOL-Library.Word" Word_Lib.More_Word "HOL-Library.Log_Nat"
+ "Word_Lib.Reversed_Bit_Lists" Dsl_Nary_Ops "Alethe_BV_Reconstruction"
 begin
 (*Erstmal diese Theory Afp abhaengig sein
 Soll zweiten bv_term_parser enthalten, der alle cvc5 bv definitionen enthaelt
@@ -573,9 +574,6 @@ lemmas[simp del] = concat_smt2.simps
 fun temp_sum_length where
 "temp_sum_length (ListVar xss) = int (foldr (+) (map length xss) 0)"
 
-lemma concat_smt_singleton: "LENGTH('b) = length xs \<Longrightarrow> length xs > 0 \<Longrightarrow> concat_smt [xs] = (of_bl xs::'b::len word)"
-  by simp
-
 value "concat_smt [[False]]:: 1 word"
 value "concat_smt [[True],[True,False]]:: 3 word"
 
@@ -598,13 +596,6 @@ lemma ex_concat_smt:
   shows \<open>\<exists>x::'b::len word. x = concat_smt xss\<close>
   using assms apply -
   by simp
-
-lemma unat_concat_smt2:
-"length xss > 0 \<and> list_length_0 xss
- \<and> LENGTH('b) = foldr (+) (map length xss) 0 
-\<Longrightarrow> unat (concat_smt2 (ListVar xss)::'b::len word) = unat (of_bl (foldr (append) xss [])::'b::len word)"
-  by simp
-
 
 lemma concat_smt_list:
   shows  "xss \<noteq> [] \<Longrightarrow> length(xs) = LENGTH('c)
@@ -629,9 +620,11 @@ proof-
 
   have t2: "y = (of_bl (foldr (append) ( xss) [])::'d::len word)"
     using t1 apply simp
-    using a0 a4 a5b by auto
+    using a0 a4 a5b
+    by (simp add: concat_smt.simps)
    have t3: "x = (of_bl (foldr (append) (xs # xss) [])::'b::len word)"
-     using t0 a5 a3 by simp
+     using t0 a5 a3 by (simp add: concat_smt.simps)
+
 
    have t4: "foldr (@) (xss::bool list list) [] \<in> {bl::bool list. length bl = LENGTH('d::len)}"
      apply simp
@@ -666,12 +659,59 @@ proof-
     using t0 by presburger
 qed
 
-named_theorems evaluate_bv_cvc5 \<open>Lemmas to resolve evaluate rewrite steps \<close>
+(*named_theorems evaluate_bv_cvc5 \<open>Lemmas to resolve evaluate rewrite steps \<close>
+named_theorems word_var_rbl_list \<open>Theorems to reconstruct bitblasting of a variable.\<close>
 
+named_theorems bv_reconstruction_const \<open>Theorems to reconstruct bitblasting of a constant.\<close>
+named_theorems bv_reconstruction_const_test \<open>Theorems to reconstruct bitblasting of a constant.\<close>
 
+named_theorems word_and_rbl_bvand \<open>Theorems to reconstruct bitblasting of a bvand term.\<close>
+named_theorems word_or_rbl_bvor \<open>Theorems to reconstruct bitblasting of a bvand term.\<close>
+named_theorems word_xor_rbl_bvxor \<open>Theorems to reconstruct bitblasting of a bvand term.\<close>
+named_theorems word_notxor_rbl_bvxnor \<open>Theorems to reconstruct bitblasting of a bvand term.\<close>
+named_theorems word_not_rbl_bvnot \<open>Theorems to reconstruct bitblasting of a bvand term.\<close>
+
+named_theorems word_plus_rbl_bvadd \<open>Theorems to reconstruct bitblasting of a bvadd term.\<close>
+named_theorems word_plus_rbl_bvadd_fun \<open>Theorems to reconstruct bitblasting of a bvadd term.\<close>
+named_theorems word_plus_rbl_bvadd_fun2 \<open>Theorems to reconstruct bitblasting of a bvadd term.\<close>
+
+named_theorems word_minus_rbl_bvneg \<open>Theorems to reconstruct bitblasting of a bvneg term.\<close>
+named_theorems word_minus_rbl_bvneg_fun \<open>Theorems to reconstruct bitblasting of a bvneg term.\<close> (*temp?*)
+
+named_theorems word_mult_rbl_bvmult \<open>Theorems to reconstruct bitblasting of a bvmult term.\<close>
+named_theorems word_mult_rbl_bvmult_fun \<open>Theorems to reconstruct bitblasting of a bvmult term.\<close>
+
+named_theorems rbl_bvult_fun \<open>Theorems to reconstruct bitblasting of a bvult term.\<close>
+named_theorems word_less_rbl_bvult \<open>Theorems to reconstruct bitblasting of a bvult term.\<close>
+
+named_theorems rbl_bvequal_fun \<open>Theorems to reconstruct bitblasting of a bvequal term.\<close>
+named_theorems word_equal_rbl_bvequal \<open>Theorems to reconstruct bitblasting of a bvequal term.\<close>
+
+named_theorems rbl_extract_fun \<open>Theorems to reconstruct bitblasting of a extract term.\<close>
+named_theorems rbl_extract \<open>Theorems to reconstruct bitblasting of a extract term.\<close>
+
+named_theorems rbl_concat \<open>Theorems to reconstruct bitblasting of a contract term.\<close>
+
+named_theorems bv_reconstruction_length \<open>Theorems evaluate LENGTH('a) for a concrete length.\<close>
+named_theorems bv_reconstruction_lists \<open>Theorems to reconstruct bitvector theorems concerning lists.\<close>
+named_theorems bv_reconstruction_list_funs \<open>Theorems to reconstruct bitvector theorems concerning list function, e.g. take.\<close>
+*)
+named_theorems rbl_xor_temp \<open>xor_def.\<close>
+(*TODO: duplicate*)
+named_theorems arith_simp_cvc5 \<open>xor_def.\<close>
+
+lemmas [arith_simp_cvc5] = Groups.monoid_mult_class.mult_1_right Nat.mult_Suc_right
+                     Nat.mult_0_right Nat.add_Suc_right Groups.monoid_add_class.add.right_neutral
+                     Num.numeral_2_eq_2 Nat.One_nat_def Num.numeral_2_eq_2 Nat.One_nat_def
+                     Nat.Suc_less_eq Nat.zero_less_Suc minus_nat.diff_0 Nat.diff_Suc_Suc Nat.le0
+
+named_theorems all_simplify_temp \<open>Theorems to reconstruct bitvector theorems concerning list function, e.g. take.\<close>
+
+ML_file\<open>ML/lethe_replay_bv_methods.ML\<close>
 ML\<open>
 
 open Word_Lib
+open Lethe_Replay_BV_Methods
 
 fun mk_unary n t =
   let val T = fastype_of t
@@ -775,6 +815,16 @@ end
      end
   | bv_term_parser (SMTLIB.Sym "int.ispow2", [t1]) =
       SOME (Const (\<^const_name>\<open>SMT_Word.is_pow2\<close>,\<^typ>\<open>Int.int\<close> --> \<^typ>\<open>bool\<close>) $ t1)
+  | bv_term_parser (SMTLIB.Sym "int.pow2", [t1]) =
+    let
+         val T1 = fastype_of t1
+         val t1' = (Const (\<^const_name>\<open>nat\<close>, T1 --> \<^typ>\<open>Nat.nat\<close>) $ t1)
+         val t2' = HOLogic.mk_number \<^typ>\<open>Nat.nat\<close> 2
+        
+     in
+      SOME (Const (\<^const_name>\<open>of_nat\<close>, \<^typ>\<open>Nat.nat\<close> --> \<^typ>\<open>Int.int\<close> ) $ (Const (\<^const_name>\<open>power\<close>, \<^typ>\<open>Nat.nat\<close> --> \<^typ>\<open>Nat.nat\<close> --> \<^typ>\<open>Nat.nat\<close>)
+         $ t1' $ t2'))
+     end
   | bv_term_parser (SMTLIB.Sym "bvugt", [t1,t2]) =
       SOME (HOLogic.mk_binrel \<^const_name>\<open>Orderings.less\<close> (t2, t1))
   | bv_term_parser (SMTLIB.Sym "bvuge", [t1,t2]) =
@@ -911,19 +961,19 @@ end
     let
       val T1 = fastype_of t1
     in
-      SOME (Const (\<^const_name>\<open>semiring_bit_operations_class.push_bit\<close>, \<^typ>\<open>Nat.nat\<close> --> T1 --> T1) $ (Const ( \<^const_name>\<open>unsigned\<close>, T1 --> \<^typ>\<open>Nat.nat\<close> ) $ t1) $ t2)
+      SOME (Const (\<^const_name>\<open>semiring_bit_operations_class.push_bit\<close>, \<^typ>\<open>Nat.nat\<close> --> T1 --> T1) $ (Const ( \<^const_name>\<open>unsigned\<close>, T1 --> \<^typ>\<open>Nat.nat\<close> ) $ t2) $ t1)
    end
   | bv_term_parser (SMTLIB.Sym "bvlshr", [t1, t2]) = 
     let
       val T1 = fastype_of t1
     in
-      SOME (Const (\<^const_name>\<open>semiring_bit_operations_class.drop_bit\<close>, \<^typ>\<open>Nat.nat\<close> --> T1 --> T1) $ (Const ( \<^const_name>\<open>unsigned\<close>, T1 --> \<^typ>\<open>Nat.nat\<close> ) $ t1) $ t2)
+      SOME (Const (\<^const_name>\<open>semiring_bit_operations_class.drop_bit\<close>, \<^typ>\<open>Nat.nat\<close> --> T1 --> T1) $ (Const ( \<^const_name>\<open>unsigned\<close>, T1 --> \<^typ>\<open>Nat.nat\<close> ) $ t2) $ t1)
    end
   | bv_term_parser (SMTLIB.Sym "bvashr", [t1, t2]) = 
     let
       val T1 = fastype_of t1
     in
-      SOME (Const (\<^const_name>\<open>signed_drop_bit\<close>, \<^typ>\<open>Nat.nat\<close> --> T1 --> T1) $ (Const ( \<^const_name>\<open>unsigned\<close>, T1 --> \<^typ>\<open>Nat.nat\<close> ) $ t1) $ t2)
+      SOME (Const (\<^const_name>\<open>signed_drop_bit\<close>, \<^typ>\<open>Nat.nat\<close> --> T1 --> T1) $ (Const ( \<^const_name>\<open>unsigned\<close>, T1 --> \<^typ>\<open>Nat.nat\<close> ) $ t2) $ t1)
    end
   | bv_term_parser (SMTLIB.Num n, _) = (ignore (@{print} ("n=", n)); NONE)
   | bv_term_parser _ = NONE
@@ -936,10 +986,13 @@ val temp = (Type (\<^type_name>\<open>word\<close>, [dummyT]))
  fun bv_type_parser (SMTLIB.Sym "?BitVec", []) = SOME (Type (\<^type_name>\<open>word\<close>, [dummyT])) (*TODO: Here it should be a 'a::len word not a word *)
   | bv_type_parser (SMTLIB.S [SMTLIB.Sym "?BitVec"], []) = SOME (Type (\<^type_name>\<open>word\<close>, [dummyT])) (*TODO*)
   | bv_type_parser (SMTLIB.Sym "?BitVec", []) = SOME (Type (\<^type_name>\<open>word\<close>, [dummyT])) (*TODO *)
-  (*| bv_type_parser (SMTLIB.Sym "?BitVec", []) = SOME (Type (\<^type_name>\<open>word\<close>, [ \<^typ>\<open>'a\<close>])) (*TODO*)*)
 
 val _ = Theory.setup (Context.theory_map (
   SMTLIB_Proof.add_term_parser bv_term_parser))
+
+(*
+val _ = Theory.setup (Context.theory_map (
+  SMTLIB_Proof.add_type_parser bv_type_parser))*)
 \<close>
 
 
@@ -1016,7 +1069,6 @@ ML \<open>@{print} (Numeral.mk_cnumber \<^ctyp>\<open>43 word\<close> 0) \<close
 lemma "- (- 1 :: int) \<le> 2"
   supply [[smt_trace,smt_debug_verit]]
   by (smt (cvc5))
-
 
 lemma "x = (1 :: 32 word) \<Longrightarrow> x \<le> 2"
   supply [[smt_trace,smt_debug_verit]]
