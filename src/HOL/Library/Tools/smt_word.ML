@@ -124,6 +124,26 @@ Option.map (rpair [] o index1 "BitVec") (try dest_binT T)
           else NONE
       | _ => NONE)
     end
+  fun mk_extend c ts = Term.list_comb (Const c, ts)
+
+  fun power m n T ts =
+    let
+      val _ = @{print}("m",m)
+      val _ = @{print}("n",n)
+      val _ = @{print}("T",T)
+      val _ = @{print}("ts",ts)
+
+      val (U1, U2) = Term.dest_funT T
+      val _ = @{print}("U1",U1)
+      val _ = @{print}("U2",U2)
+
+    in
+      (case (try dest_wordT U1, try dest_wordT U2) of
+        (SOME i, SOME j) =>
+          if j-i >= 0 then SOME (index1 n (j-i), 1, ts, mk_extend (m, T))
+          else NONE
+      | _ => NONE)
+    end
 
   fun mk_rotate c i ts = Term.list_comb (Const c, mk_nat i :: ts)
 
@@ -170,7 +190,10 @@ val setup_builtins =
     (\<^term>\<open>word_sle\<close>, "bvsle") ] #>
   fold (SMT_Builtin.add_builtin_fun' SMTLIB_Interface.bvsmlibC) [
     (\<^term>\<open>unsigned :: 'a::len word \<Rightarrow> Int.int\<close>, "bv2nat")
-   ]
+   ] (*#>
+  fold (add_word_fun power) [
+    (\<^term>\<open>power :: 'a::len word \<Rightarrow> _ \<Rightarrow> _\<close>, "ppower")
+   ]*)
 
 val add_word_shift' = add_word_fun shift'
 
@@ -214,10 +237,21 @@ fun mk_scast i u =
 
 fun mk_lassoc f t ts = fold (fn u1 => fn u2 => f u2 u1) ts t
 
+(*TODO: Jan 8 hier weitermachen*)
 fun bv_term_parser (SMTLIB.Sym bv, []) =
       (case try (unprefix "bv") bv of
         NONE => NONE
-      | SOME t => SOME ((HOLogic.mk_term_of \<^typ>\<open>32 word\<close> (HOLogic.mk_string t))))
+      | SOME t => (@{print}("TODO: when this happens in bv_term_parser investigate: ",bv);
+        SOME ((HOLogic.mk_term_of \<^typ>\<open>32 word\<close> (HOLogic.mk_string t)))))
+  | bv_term_parser (SMTLIB.Sym "bv", [int,(Const ("Nat.semiring_1_class.of_nat", _) $ (Const ("Nat.size_class.size", _) $
+     Free ("x", typ)))]) = SOME (Const (\<^const_name>\<open>Word.Word\<close>,\<^typ>\<open>Int.int\<close>--> typ) $ int)
+  | bv_term_parser (SMTLIB.Sym "bv", [int, base]) =
+     let
+        val ty = Word_Lib.mk_wordT (snd (HOLogic.dest_number base))
+        val num = snd (HOLogic.dest_number int)
+      in
+        SOME (HOLogic.mk_number ty num)
+      end
   | bv_term_parser (SMTLIB.Sym "_", [int, base]) =
       let
         val ty = Word_Lib.mk_wordT (snd (HOLogic.dest_number base))
@@ -241,8 +275,6 @@ fun bv_term_parser (SMTLIB.Sym bv, []) =
       in
         SOME (fold (curry (HOLogic.mk_binop \<^const_name>\<open>Groups.minus\<close>)) xs a)
       end
-  | bv_term_parser (SMTLIB.Sym "bv", [int,(Const ("Nat.semiring_1_class.of_nat", _) $ (Const ("Nat.size_class.size", _) $
-     Free ("x", typ)))]) = SOME (Const  (\<^const_name>\<open>Word.Word\<close>,\<^typ>\<open>Int.int\<close>--> typ) $ int)
   | bv_term_parser (SMTLIB.Sym "bvmul", (t::ts)) =
       let
         val T = fastype_of t
