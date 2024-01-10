@@ -504,7 +504,7 @@ end
 
 local
   fun xor_neg_term ctxt thm (\<^term>\<open>Trueprop\<close> $
-         (\<^term>\<open>HOL.disj\<close> $ (\<^term>\<open>Bit_Operations.xor\<close> $ a $ b) $ _)) =
+         (\<^term>\<open>HOL.disj\<close> $ (\<^term>\<open>Dsl_Nary_Ops.xor\<close> $ a $ b) $ _)) =
          Drule.infer_instantiate' ctxt (map (SOME o Thm.cterm_of ctxt) [a, b]) thm
      | xor_neg_term ctxt thm  t =
         replay_error ctxt "invalid application in xor neg" Lethe_Replay_Methods.Unsupported [thm] t
@@ -512,10 +512,10 @@ local
 
 (*TODO: Might be able to get rid of this with better instantiation *)
   fun xor_pos_term ctxt thm (\<^term>\<open>Trueprop\<close> $
-         (\<^term>\<open>HOL.disj\<close> $ (\<^term>\<open>HOL.Not\<close> $ (\<^term>\<open>Bit_Operations.xor\<close> $ a $ b)) $ _)) =
+         (\<^term>\<open>HOL.disj\<close> $ (\<^term>\<open>HOL.Not\<close> $ (\<^term>\<open>Dsl_Nary_Ops.xor\<close> $ a $ b)) $ _)) =
          Drule.infer_instantiate' ctxt (map (SOME o Thm.cterm_of ctxt) [a, b]) thm
-     | xor_pos_term ctxt thm  t =
-        replay_error ctxt "invalid application in xor pos" Lethe_Replay_Methods.Unsupported [thm] t
+     | xor_pos_term ctxt thm t =(@{print}("thm",thm);@{print}("t",t);
+        replay_error ctxt "invalid application in xor pos" Lethe_Replay_Methods.Unsupported [thm] t)
 
   fun prove_xor_pos_neg xor_pos_neg_term thm ctxt _ t =
     let
@@ -536,14 +536,16 @@ val xor_neg2  = prove_xor_pos_neg xor_neg_term @{thm xor_neg2}
 
 end
 
-val xor_rules = [
+fun ignore_args f ctxt thm _ t = f ctxt thm t
+
+val xor_rules = map (fn (x,y) => (x,ignore_args y)) [
   ("xor_pos1", xor_pos1),
   ("xor_pos2", xor_pos2),
   ("xor_neg1", xor_neg1),
   ("xor_neg2", xor_neg2)]
-(*
+
 val _ = Theory.setup (Context.theory_map (
-   fold (uncurry Lethe_Replay_Methods.declare_alethe_rule) xor_rules))*)
+   fold (uncurry Lethe_Replay_Methods.declare_alethe_rule) xor_rules))
 
 val bv_rules = [
   ("bv_bitblast_step_var", bv_bitblast_step_var) ,
