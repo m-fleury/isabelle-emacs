@@ -105,12 +105,53 @@ Option.map (rpair [] o index1 "BitVec") (try dest_binT T)
   fun mk_extract c i ts = Term.list_comb (Const c, mk_nat i :: ts)
 
   fun extract m n T ts =
-    let val U = Term.range_type (Term.range_type T)
+    let
+      val _ = @{print}("m",m)
+      val _ = @{print}("n",n)
+      val _ = @{print}("ts",ts)
+      val _ = @{print}("T",T)
+
+      val U = Term.range_type (Term.range_type T)
+      val _ = @{print}("U",U)
+
+      (*FIXME: This broke because the first argument was represented as an int casted to a nat
+      e.g., Const ("Int.nat", "int \<Rightarrow> nat") $ Const ("Groups.zero_class.zero", "int")
+      I added handling for this but it is not clear if this should happen in the first place
+      *)
+      val temp = (hd ts)
+      val temp2 = (case temp of
+                    Const ("Int.nat", _) $ xs => xs |
+                    xs => xs)
+
     in
-      (case (try (snd o HOLogic.dest_number o hd) ts, try dest_wordT U) of
-        (SOME lb, SOME i) =>
-          SOME (index2 n (i + lb - 1) lb, 1, tl ts, mk_extract (m, T) lb)
+      (case (try (snd o HOLogic.dest_number) temp2, try dest_wordT U) of
+        (SOME lb, SOME i) => (@{print}("lb",lb);@{print}("lb2",(i + lb - 1));@{print}("i",i);
+@{print}("index2 n (i + lb - 1) lb",index2 n (i + lb - 1) lb); @{print}("tl ts",tl ts);@{print}("mk_extract (m, T) lb",mk_extract (m, T) lb);
+          SOME (index2 n (i + lb - 1) lb, 1, tl ts, mk_extract (m, T) lb))
       | _ => NONE)
+    end
+
+  fun bit m n T [w,i:term] =
+    let
+      val _ = @{print}("bit m",m)
+      val _ = @{print}("bit n",n)
+      val _ = @{print}("bit T",T)
+      val _ = @{print}("bit w",w)
+      val _ = @{print}("bit i",i)
+
+      (*Build up right T for mk_extract*)
+      val (wT, _) = Term.dest_funT T
+      val T = \<^typ>\<open>nat\<close> --> wT --> \<^typ>\<open>1 word\<close>
+      val _ = @{print}("bit wT",wT)
+      val _ = @{print}("T",T)
+
+      val res_str = "(_ " ^ n ^ " " ^ "0" ^ " " ^ "0" ^ ")"
+      val _ = @{print}("res",res_str)
+
+    in  
+     (*(case (try (snd o HOLogic.dest_number) temp, try dest_wordT U) of
+        (SOME lb, SOME i) => SOME (index2 n (i + lb - 1) lb, 1, [i], mk_extract (m, T) lb)
+      | _ => NONE)*) NONE
     end
 
   fun mk_extend c ts = Term.list_comb (Const c, ts)
@@ -190,10 +231,16 @@ val setup_builtins =
     (\<^term>\<open>word_sle\<close>, "bvsle") ] #>
   fold (SMT_Builtin.add_builtin_fun' SMTLIB_Interface.bvsmlibC) [
     (\<^term>\<open>unsigned :: 'a::len word \<Rightarrow> Int.int\<close>, "bv2nat")
-   ] (*#>
+   ] #>
+  fold (add_word_fun bit) [
+    (\<^term>\<open>bit :: 'a::len word \<Rightarrow> _ \<Rightarrow> _\<close>, "extract")
+   ]
+ (*#>
   fold (add_word_fun power) [
     (\<^term>\<open>power :: 'a::len word \<Rightarrow> _ \<Rightarrow> _\<close>, "ppower")
    ]*)
+(*(bit$ w$ n$)*)
+
 
 val add_word_shift' = add_word_fun shift'
 
