@@ -743,8 +743,7 @@ fun mk_scast i u =
     val TU = Word_Lib.mk_wordT i
   in Const (\<^const_name>\<open>Word.signed\<close>, T --> TU) $ u end;
 
-fun bv_term_parser (SMTLIB.BVNum (i, base), xs) = (*TODO*)
-      SOME (HOLogic.mk_number ((Type (\<^type_name>\<open>word\<close>, [dummyT]))) i)
+fun bv_term_parser (SMTLIB.BVNum (i, base), []) = SOME (HOLogic.mk_number (mk_wordT(base)) i)
   | bv_term_parser (SMTLIB.Sym "bbT", xs) =
         SOME ((Const ("Reversed_Bit_Lists.of_bl", \<^typ>\<open>HOL.bool list\<close> --> mk_wordT(length xs))) 
         $ ((Const (\<^const_name>\<open>List.rev\<close>, \<^typ>\<open>HOL.bool list\<close> -->  \<^typ>\<open>HOL.bool list\<close>)) $ (HOLogic.mk_list \<^typ>\<open>bool\<close> xs)))
