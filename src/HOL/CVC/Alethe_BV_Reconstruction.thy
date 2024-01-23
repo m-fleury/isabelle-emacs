@@ -1,5 +1,5 @@
 theory Alethe_BV_Reconstruction
-  imports "Word_Lib.Reversed_Bit_Lists"
+  imports "Word_Lib.Reversed_Bit_Lists" SMT_CVC_Util
 begin
 
 declare[[show_sorts]]
@@ -89,22 +89,6 @@ Reversed_Bit_Lists.to_bl_0 List.replicate.replicate_Suc List.replicate.replicate
 (* ---------------------------------------------------------------------------------------------- *)
 (* -------------------------------------- Bitblast bvadd ---------------------------------------- *)
 (* ---------------------------------------------------------------------------------------------- *)
-
-(*fun bvadd2 :: "bool list \<Rightarrow> bool list \<Rightarrow> bool list \<Rightarrow> bool list \<Rightarrow> bool list" where
-"bvadd2 [] [] _ _ = []" |
-"bvadd2 (x#xs) (y#ys) xs' ys' = (((x [+] y) [+] bvadd_carry2 xs' ys' False)) # bvadd2 xs ys (x#xs') (y#ys')"
-*)
-(*TODO: duplicate*)
-definition xor :: "bool \<Rightarrow> bool \<Rightarrow> bool" (infixl "[+]" 60)
-  where "A [+] B \<equiv> (\<not>(A = B))"
-
-lemma xor_simps: 
-  "(A [+] False) = A"
-  "(False [+] A) = A"
-  "(A [+] True) = (\<not>A)"
-  "(True [+] A) = (\<not>A)"
-  unfolding xor_def
-  by auto
 
 fun bvadd_carry :: "bool list \<Rightarrow> bool list \<Rightarrow> bool" where
 [word_plus_rbl_bvadd_fun]: "bvadd_carry [] [] = False" |

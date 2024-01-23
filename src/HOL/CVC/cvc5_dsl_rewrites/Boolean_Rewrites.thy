@@ -266,23 +266,23 @@ named_theorems rewrite_bool_xor_refl \<open>automatically_generated\<close>
 
 lemma [rewrite_bool_xor_refl]:
   fixes x::"bool"
-  shows "NO_MATCH cvc_a (undefined x) \<Longrightarrow> (x \<noteq> x) = False"
-  by auto
+  shows "NO_MATCH cvc_a (undefined x) \<Longrightarrow> (x [+] x) = False"
+  using xor_def by auto
 
 
 named_theorems rewrite_bool_xor_nrefl \<open>automatically_generated\<close>
 
 lemma [rewrite_bool_xor_nrefl]:
   fixes x::"bool"
-  shows "NO_MATCH cvc_a (undefined x) \<Longrightarrow> (x \<noteq> (\<not> x)) = True"
-  by auto
+  shows "NO_MATCH cvc_a (undefined x) \<Longrightarrow> (x [+] (\<not> x)) = True"
+  using xor_def by auto
 
 
 named_theorems rewrite_bool_xor_false \<open>automatically_generated\<close>
 
 lemma [rewrite_bool_xor_false]:
   fixes x::"bool"
-  shows "NO_MATCH cvc_a (undefined x) \<Longrightarrow> (x \<noteq> False) = x"
+  shows "NO_MATCH cvc_a (undefined x) \<Longrightarrow> (x [+] False) = x"
   by auto
 
 
@@ -290,7 +290,7 @@ named_theorems rewrite_bool_xor_true \<open>automatically_generated\<close>
 
 lemma [rewrite_bool_xor_true]:
   fixes x::"bool"
-  shows "NO_MATCH cvc_a (undefined x) \<Longrightarrow> (x \<noteq> True) = (\<not> x)"
+  shows "NO_MATCH cvc_a (undefined x) \<Longrightarrow> (x [+] True) = (\<not> x)"
   by auto
 
 
@@ -298,15 +298,15 @@ named_theorems rewrite_bool_xor_comm \<open>automatically_generated\<close>
 
 lemma [rewrite_bool_xor_comm]:
   fixes x::"bool" and y::"bool"
-  shows "NO_MATCH cvc_a (undefined x y) \<Longrightarrow> (x \<noteq> y) = (y \<noteq> x)"
-  by auto
+  shows "NO_MATCH cvc_a (undefined x y) \<Longrightarrow> (x [+] y) = (y [+] x)"
+  using xor_def by auto
 
 
 named_theorems rewrite_bool_xor_elim \<open>automatically_generated\<close>
 
 lemma [rewrite_bool_xor_elim]:
   fixes x::"bool" and y::"bool"
-  shows "NO_MATCH cvc_a (undefined x y) \<Longrightarrow> (x \<noteq> y) = (x \<noteq> y)"
+  shows "NO_MATCH cvc_a (undefined x y) \<Longrightarrow> (x [+] y) = (x [+] y)"
   by auto
 
 

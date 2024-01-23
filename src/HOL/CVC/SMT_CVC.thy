@@ -70,7 +70,7 @@ fun mk_lassoc f t ts = fold (fn u1 => fn u2 => f u2 u1) ts t
 fun mk_lassoc' n = mk_lassoc (mk_binary n)
 
 (*cvc5 specific terms that are not present in veriT's output*)
-fun cvc_term_parser (SMTLIB.Sym "xor",[t1,t2]) = SOME(Const(\<^const_name>\<open>Dsl_Nary_Ops.xor\<close>, \<^typ>\<open>bool \<Rightarrow> bool \<Rightarrow> bool\<close>)
+fun cvc_term_parser (SMTLIB.Sym "xor",[t1,t2]) = SOME(Const(\<^const_name>\<open>SMT_CVC_Util.xor\<close>, \<^typ>\<open>bool \<Rightarrow> bool \<Rightarrow> bool\<close>)
        $ t1 $ t2)
   | cvc_term_parser (SMTLIB.Sym "cvc5_nary_op", []) =
    (*If there are no elements in the list we cannot know the type at this point*)
