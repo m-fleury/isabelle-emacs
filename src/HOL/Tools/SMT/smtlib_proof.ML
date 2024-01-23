@@ -155,8 +155,8 @@ fun core_term_parser (SMTLIB.Sym "true", _) = SOME \<^Const>\<open>True\<close>
   | core_term_parser (SMTLIB.Sym "not", [t]) = SOME (HOLogic.mk_not t)
   | core_term_parser (SMTLIB.Sym "and", t :: ts) = SOME (mk_rassoc (curry HOLogic.mk_conj) t ts)
   | core_term_parser (SMTLIB.Sym "or", t :: ts) = SOME (mk_rassoc (curry HOLogic.mk_disj) t ts)
-  | core_term_parser (SMTLIB.Sym "=>", [t1, t2]) = SOME (HOLogic.mk_imp (t1, t2))
-  | core_term_parser (SMTLIB.Sym "implies", [t1, t2]) = SOME (HOLogic.mk_imp (t1, t2))
+  | core_term_parser (SMTLIB.Sym "=>", t :: ts) = SOME (mk_rassoc (curry HOLogic.mk_imp) t ts)
+  | core_term_parser (SMTLIB.Sym "implies", t :: ts) = SOME (mk_rassoc (curry HOLogic.mk_imp) t ts)
   | core_term_parser (SMTLIB.Sym "=", [t1, t2]) = SOME (HOLogic.mk_eq (t1, t2))
   | core_term_parser (SMTLIB.Sym "~", [t1, t2]) = SOME (HOLogic.mk_eq (t1, t2))
   | core_term_parser (SMTLIB.Sym "ite", [t1, t2, t3]) =
