@@ -136,4 +136,9 @@ declare [[smt_trace=false,smt_timeout=5000000,smt_cvc_lethe = true]]
 
 ML \<open> 
 Config.put SMT_Config.trace true\<close>
+
+lemma "LENGTH(64) = 64"
+  supply [[smt_trace,smt_nat_as_int]]
+  apply (smt (verit))
+
 end
