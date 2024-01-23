@@ -65,9 +65,15 @@ fun mk_binary n t1 t2 =
   let val T = fastype_of t1
   in mk_binary' n T T t1 t2 end
 
-fun mk_lassoc f t ts = fold (fn u1 => fn u2 => f u2 u1) ts t
+fun mk_rassoc f ts =
+  let val us = rev ts
+  in fold f (tl us) (hd us) end
 
-fun mk_lassoc' n = mk_lassoc (mk_binary n)
+fun mk_rassoc' n = mk_rassoc (mk_binary n)
+
+fun pairwise _ [] = []
+  | pairwise f (t1::tss)
+           = (map (fn u => f (t1,u)) tss) @ pairwise f tss
 
 (*cvc5 specific terms that are not present in veriT's output*)
 fun cvc_term_parser (SMTLIB.Sym "xor",[t1,t2]) = SOME(Const(\<^const_name>\<open>SMT_CVC_Util.xor\<close>, \<^typ>\<open>bool \<Rightarrow> bool \<Rightarrow> bool\<close>)
@@ -91,21 +97,12 @@ fun cvc_term_parser (SMTLIB.Sym "xor",[t1,t2]) = SOME(Const(\<^const_name>\<open
       val new_type = if types_eq > 0 then fastype_of (hd ts) else \<^typ>\<open>Nat.nat\<close>
 
     in
-    SOME(Const( \<^const_name>\<open>ListVar\<close>,  Type(\<^type_name>\<open>List.list\<close>,[new_type])  --> Type(\<^type_name>\<open>cvc_ListVar\<close>,[new_type]))
+    SOME(Const( \<^const_name>\<open>ListVar\<close>, Type(\<^type_name>\<open>List.list\<close>,[new_type])  --> Type(\<^type_name>\<open>cvc_ListVar\<close>,[new_type]))
       $ (HOLogic.mk_list new_type new_ts))
     end
   | cvc_term_parser (SMTLIB.Sym "emptyString", []) = SOME (Free ("''''", \<^typ>\<open>String.string\<close>))
   | cvc_term_parser (SMTLIB.Sym "distinct", ts)
-    =
-    let
-     fun pairwise [] _ = []
-       | pairwise _ [] = []
-       | pairwise (t1::tss) (_::uss)
-           = (map (fn u => HOLogic.mk_not (HOLogic.mk_binrel \<^const_name>\<open>HOL.eq\<close> (t1,u))) uss)
-               @ pairwise tss uss
-    in 
-      SOME (mk_lassoc' \<^const_name>\<open>HOL.conj\<close> (hd (pairwise ts ts)) (tl (pairwise ts ts)))
-    end
+     = SOME (mk_rassoc' \<^const_name>\<open>HOL.conj\<close> (pairwise (HOLogic.mk_eq #> HOLogic.mk_not) ts))
   | cvc_term_parser xs = (case SMT_String.string_term_parser xs of
     SOME x => SOME x |
     NONE =>
