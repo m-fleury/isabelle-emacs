@@ -637,6 +637,9 @@ proof -
     by (subst H) auto
 qed
 
+named_theorems cvc5_normalized_input \<open>Theorems required to replay
+our more complicated translation\<close>
+
 
 subsection \<open>Setup\<close>
 

@@ -113,14 +113,13 @@ fun cvc5_rule_of "bind" = Bind
      else Other_Rule r
 
 fun normalized_input ctxt prems t = SMT_Replay_Methods.prove ctxt t (fn _ =>
-let
-    val _ = (SMT_Config.verit_msg ctxt) (fn () => \<^print> ("conclusion t t =",t))
-    val _ = (SMT_Config.verit_msg ctxt) (fn () => \<^print> ("normalized input prems =",prems))
-in
-  resolve_tac ctxt prems
-    (*TODO: should only be used for lambda encoding*)
-    ORELSE' Clasimp.force_tac ctxt
-end)
+  let
+     val _ = (SMT_Config.verit_msg ctxt) (fn () => \<^print> ("conclusion t t =",t))
+     val _ = (SMT_Config.verit_msg ctxt) (fn () => \<^print> ("normalized input prems =",prems))
+  in
+    resolve_tac ctxt prems
+     ORELSE' (Method.insert_tac ctxt prems THEN' Clasimp.force_tac (ctxt addsimps @{thms cvc5_normalized_input}))
+  end)
 
 fun qnt_simplify ctxt _ t = SMT_Replay_Methods.prove ctxt t (fn _ =>
       K (Clasimp.auto_tac ctxt))
