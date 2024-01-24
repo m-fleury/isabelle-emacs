@@ -637,6 +637,8 @@ proof -
     by (subst H) auto
 qed
 
+(*TODO: This is a test*)
+named_theorems slice \<open>Theorems to reconstruct arithmetic theorems.\<close>
 
 subsection \<open>Setup\<close>
 

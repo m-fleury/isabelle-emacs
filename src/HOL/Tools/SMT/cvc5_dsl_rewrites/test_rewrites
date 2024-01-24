@@ -1,0 +1,16 @@
+;(define-cond-rule concat-clash-char ((s1 String) (s2 String :list) (s3 String :list) (t1 String) (t2 String :list) (t3 String :list)) (and (not (= s1 t1)) (= (str.len s1) (str.len t1))) (= (str.++ (str.++ s1 s2) s3) (str.++ (str.++ t1 t2) t3)) false)
+
+;(define-cond-rule concat-clash-char ((s1 String) (s2 String :list) (s3 String :list) (t1 String) (t2 String :list) (t3 String :list))
+; (and (not (= s1 t1)) (= (str.len s1) (str.len t1)))
+; (= (str.++ (str.++ s1 s2) s3) (str.++ (str.++ t1 t2) t3))
+; false)
+
+;(define-cond-rule bv-extract-concat-1 ((x ?BitVec) (xs ?BitVec :list) (i Int) (j Int)) (<= j (bvsize x)) (extract j i (concat xs x)) (concat xs (extract j i x)))
+
+;(define-rule test1 ((x ?BitVec) (y ?BitVec) (z ?BitVec)) (concat x y) z)
+
+;(define-rule bv-concat-extract-merge ((xs ?BitVec :list) (s ?BitVec) (ys ?BitVec :list) (i Int) (j Int) (k Int)) (concat xs (extract k (+ j 1) s) (extract j i s) ys) (concat xs (extract k i s) ys))
+
+;(define-rule* bv-neg-add ((x ?BitVec) (y ?BitVec) (zs ?BitVec :list)) (bvneg (bvadd x y zs)) (bvneg (bvadd y zs)) (bvadd (bvneg x) _))
+;(define-rule arith-elim-gt ((t ?) (s ?)) (> t s) (not (<= t s)))
+(define-rule re-all-elim () re.all (re.* re.allchar))

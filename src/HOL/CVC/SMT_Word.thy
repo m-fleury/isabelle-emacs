@@ -726,6 +726,12 @@ fun mk_extract i j u =
   let
     val I = HOLogic.mk_number \<^typ>\<open>nat\<close> i
     val J = HOLogic.mk_number \<^typ>\<open>nat\<close> j
+val _ = @{print}("first index j",j)
+val _ = @{print}("first index J",J)
+
+val _ = @{print}("second index i",i)
+val _ = @{print}("second index I",I)
+
     val T = fastype_of u
     val TU = i - j + 1
           |> Word_Lib.mk_wordT

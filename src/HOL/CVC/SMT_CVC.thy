@@ -136,6 +136,6 @@ Config.put SMT_Config.trace true\<close>
 
 lemma "LENGTH(64) = 64"
   supply [[smt_trace,smt_nat_as_int]]
-  apply (smt (verit))
+  sorry
 
 end

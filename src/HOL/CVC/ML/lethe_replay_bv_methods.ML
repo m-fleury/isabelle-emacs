@@ -202,9 +202,11 @@ local
   let
     (*obtain bitblasted variables*)
     val _ = (SMT_Config.verit_msg ctxt) (fn () => \<^print> ("bv bitblast reconstruction t =",t))
-    fun find_bbT_vars (_ $ (_ $ (_ $ (_ $ x) $ (_ $ y)) $ _)) = (x,y) |
+    fun find_bbT_vars (_ $ (_ $ (_ $ (_ $ (_ $ x)) $ (_ $ (_ $ y))) $ _)) = (x,y) |
         find_bbT_vars _ = error ("Bitblasting step (bvadd) has the wrong form!")
     val bit_blasted_vars = find_bbT_vars t
+    val _ = @{print}("bit_blasted_vars",bit_blasted_vars)
+
     (*val _ = (SMT_Config.verit_msg ctxt) (fn () => \<^print> ("bv bitblast reconstruction t =",t))*)
 
     (*instantiate with bitblasted variable*)
@@ -212,7 +214,7 @@ local
         nth (Named_Theorems.get ctxt @{named_theorems word_plus_rbl_bvadd}) 0
     val word_plus_rbl_bvadd_lemma_inst =
         Drule.infer_instantiate' ctxt (map (SOME o Thm.cterm_of ctxt) [fst bit_blasted_vars,snd bit_blasted_vars]) word_plus_rbl_bvadd_lemma
-
+    val _ = @{print}("word_plus_rbl_bvadd_lemma_inst",word_plus_rbl_bvadd_lemma_inst)
    in  SMT_Replay_Methods.prove ctxt t (fn _ =>(
       K (print_tac ctxt ("bvadd bitblast reconstruction debug 1"))
       THEN' K (HEADGOAL (EqSubst.eqsubst_tac ctxt [1] [word_plus_rbl_bvadd_lemma_inst]))
@@ -504,7 +506,7 @@ end
 
 local
   fun xor_neg_term ctxt thm (\<^term>\<open>Trueprop\<close> $
-         (\<^term>\<open>HOL.disj\<close> $ (\<^term>\<open>Dsl_Nary_Ops.xor\<close> $ a $ b) $ _)) =
+         (\<^term>\<open>HOL.disj\<close> $ (\<^term>\<open>SMT_CVC_Util.xor\<close> $ a $ b) $ _)) =
          Drule.infer_instantiate' ctxt (map (SOME o Thm.cterm_of ctxt) [a, b]) thm
      | xor_neg_term ctxt thm  t =
         replay_error ctxt "invalid application in xor neg" Lethe_Replay_Methods.Unsupported [thm] t
@@ -512,7 +514,7 @@ local
 
 (*TODO: Might be able to get rid of this with better instantiation *)
   fun xor_pos_term ctxt thm (\<^term>\<open>Trueprop\<close> $
-         (\<^term>\<open>HOL.disj\<close> $ (\<^term>\<open>HOL.Not\<close> $ (\<^term>\<open>Dsl_Nary_Ops.xor\<close> $ a $ b)) $ _)) =
+         (\<^term>\<open>HOL.disj\<close> $ (\<^term>\<open>HOL.Not\<close> $ (\<^term>\<open>SMT_CVC_Util.xor\<close> $ a $ b)) $ _)) =
          Drule.infer_instantiate' ctxt (map (SOME o Thm.cterm_of ctxt) [a, b]) thm
      | xor_pos_term ctxt thm t =(@{print}("thm",thm);@{print}("t",t);
         replay_error ctxt "invalid application in xor pos" Lethe_Replay_Methods.Unsupported [thm] t)

@@ -268,7 +268,7 @@ fun replay outer_ctxt
        then (raise SMT_Failure.SMT (SMT_Failure.Other_Failure ("reconstruction with CVC is experimental.\n" ^
          "You must activate it with [[smt_cvc_lethe = true]] and use cvc5 (not included as component) .")))
        else ()
-
+    val _ = @{print}("assms",assms)
     val rewrite_rules =
       filter_out (fn thm => Term.could_unify (Thm.prop_of @{thm verit_eq_true_simplify},
           Thm.prop_of thm))
@@ -282,6 +282,8 @@ fun replay outer_ctxt
 (*Here the premise should still be in the assumption*)
     val (actual_steps, ctxt2) =
       Lethe_Proof.parse_replay typs terms output ctxt
+    val _ = @{print}("actual_steps",actual_steps)
+
     val parsing_time = Time.toNanoseconds (#elapsed (Timing.result start0))
 
     fun step_of_assume (i, th) =
@@ -309,15 +311,20 @@ fun replay outer_ctxt
       end
 
     val used_assert_ids = fold add_used_asserts_in_step actual_steps []
+    val _ = @{print}("used_assert_ids",used_assert_ids)
+
     fun normalize_tac ctxt = let val thy = Proof_Context.theory_of (empty_simpset ctxt) in
       Raw_Simplifier.rewrite_term thy rewrite_rules [] end
     val used_assm_js =
       map_filter (fn (id, th) => let val i = index_of_id id in if i >= 0 then SOME (i, th)
           else NONE end)
         used_assert_ids
+    val _ = @{print}("used_assm_js",used_assm_js)
 
     val assm_steps = map step_of_assume used_assm_js
         |> flat
+    val _ = @{print}("assm_steps",assm_steps) (*Ab hier ist empty*)
+
     fun extract (Lethe_Proof.Lethe_Replay_Node {id, rule, concl, bounds, ...}) =
          (id, rule, concl, map fst bounds)
     fun cond rule = rule = Lethe_Proof.input_rule
@@ -326,6 +333,7 @@ fun replay outer_ctxt
     val ((_, _), (ctxt3, assumed)) =
       add_asssert outer_ctxt rewrite_rules (map (apfst fst) assms)
         (map_filter (remove_rewrite_rules_from_rules num_ll_defs) assm_steps) ctxt2
+    val _ = @{print}("assumed",assumed)
 
      val used_rew_js =
       map_filter (fn (id, th) => let val i = index_of_id id in if i < 0
@@ -340,10 +348,12 @@ fun replay outer_ctxt
         (Symtab.update (name, ([], thm)) assumed, stats)
       end)
       used_rew_js (assumed, Symtab.cons_list ("parsing", parsing_time) Symtab.empty)
+    val _ = @{print}("assumed",assumed)
 
 
     val actual_steps = actual_steps
       |> add_correct_assms_deps ctxt rewrite_rules ll_defs assms
+    val _ = @{print}("actual_steps",actual_steps)
 
     val ctxt4 =
       ctxt3

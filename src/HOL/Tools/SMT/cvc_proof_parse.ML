@@ -32,6 +32,9 @@ fun add_used_asserts_in_step (Lethe_Proof.Lethe_Step {prems, ...}) =
 
 fun cvc_matching_assms ctxt rewrite_rules ll_defs th th' =
   let
+    val rewrite_rules_bv = (Named_Theorems.get ctxt @{named_theorems slice})
+    val rewrite_rules = rewrite_rules_bv @ rewrite_rules
+
     val expand =
        not (null ll_defs) ? SMTLIB_Isar.unlift_term ll_defs
        #> Object_Logic.dest_judgment ctxt o (Thm.cterm_of ctxt)
@@ -39,9 +42,12 @@ fun cvc_matching_assms ctxt rewrite_rules ll_defs th th' =
        #> Thm.prop_of
        #> snd o Logic.dest_equals
        #> Raw_Simplifier.rewrite_term (Proof_Context.theory_of
-          (empty_simpset ctxt addsimps rewrite_rules (*@ @{thms eq_True} still useful?*))) rewrite_rules []
+          (empty_simpset ctxt addsimps rewrite_rules)) (*@ @{thms eq_True} still useful?*)
+            rewrite_rules []
 
-
+       val _ = @{print}("expand",expand th)
+       val _ = @{print}("rewrite_rules",rewrite_rules)
+       val _ = @{print}("slice",(Named_Theorems.get ctxt @{named_theorems slice}))
     val normalize = 
        Object_Logic.dest_judgment ctxt o (Thm.cprop_of)
        #> Thm.eta_long_conversion
@@ -49,6 +55,8 @@ fun cvc_matching_assms ctxt rewrite_rules ll_defs th th' =
        #> snd o Logic.dest_equals
        #> Raw_Simplifier.rewrite_term (Proof_Context.theory_of
           (empty_simpset ctxt addsimps rewrite_rules @ @{thms eq_True})) rewrite_rules []
+       val _ = @{print}("normalize",normalize th')
+
   in (expand th) aconv (normalize th') end
 
 fun parse_proof_unsatcore ({ll_defs, assms, ...} : SMT_Translate.replay_data) xfacts prems _ output =

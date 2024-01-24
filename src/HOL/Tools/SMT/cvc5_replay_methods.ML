@@ -114,6 +114,9 @@ fun cvc5_rule_of "bind" = Bind
 
 fun normalized_input ctxt prems t = SMT_Replay_Methods.prove ctxt t (fn _ =>
 let
+    val _ = @{print}("prems",prems)
+    val _ = @{print}("t",t)
+
     val _ = (SMT_Config.verit_msg ctxt) (fn () => \<^print> ("conclusion t t =",t))
     val _ = (SMT_Config.verit_msg ctxt) (fn () => \<^print> ("normalized input prems =",prems))
 in
@@ -141,9 +144,20 @@ lemma \<open>(\<forall>x y. P x = Q y) \<Longrightarrow> (\<forall> y z. Q y = R
 *)
 fun trans ctxt prems t =
   SMT_Replay_Methods.prove ctxt t (fn _ =>
-    Method.insert_tac ctxt prems
-    THEN' (REPEAT_CHANGED (resolve_tac ctxt @{thms trans} THEN' assume_tac ctxt))
-    THEN' (resolve_tac ctxt @{thms refl}))
+      K (print_tac ctxt ("trans reconstruction debug 0"))
+
+    THEN'
+    ( match_tac ctxt @{thms refl} THEN' K (print_tac ctxt ("trans reconstruction debug 9")))
+  ORELSE'
+    (
+      K (print_tac ctxt ("trans reconstruction debug 0"))
+THEN' Method.insert_tac ctxt prems
+     THEN' K (print_tac ctxt ("trans reconstruction debug 1"))
+    THEN' (REPEAT_CHANGED (resolve_tac ctxt @{thms trans}      THEN' K (print_tac ctxt ("trans reconstruction debug 2"))
+THEN' assume_tac ctxt))
+     THEN' K (print_tac ctxt ("trans reconstruction debug 3"))
+
+    THEN' (resolve_tac ctxt @{thms refl})))
 
 
 (* Combining all together *)

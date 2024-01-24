@@ -4494,6 +4494,11 @@ end
 
 subsection \<open>Tool support\<close>
 
+(*TODO: Hanna*)
+definition smt_bit_word :: \<open>'a::len word \<Rightarrow> nat \<Rightarrow> 1 word\<close>
+  where "smt_bit_word a n = (if (bit a n) then (1::1 word) else (0::1 word))"
+
+
 ML_file \<open>Tools/smt_word.ML\<close>
 
 end

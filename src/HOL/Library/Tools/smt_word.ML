@@ -75,6 +75,8 @@ Option.map (rpair [] o index1 "BitVec") (try dest_binT T)
   fun add_word_fun f (t, n) =
     let val (m, _) = Term.dest_Const t
     in SMT_Builtin.add_builtin_fun smtlibC (Term.dest_Const t, K (f m n)) end
+(*  val add_builtin_fun: SMT_Util.class -> (string * typ) * bfunr option bfun -> Context.generic ->
+    Context.generic*)
 
   val mk_nat = HOLogic.mk_number \<^typ>\<open>nat\<close>
 
@@ -104,6 +106,23 @@ Option.map (rpair [] o index1 "BitVec") (try dest_binT T)
 
   fun mk_extract c i ts = Term.list_comb (Const c, mk_nat i :: ts)
 
+  fun remove_cast (Const ("Int.nat", _) $ x) = x |
+      remove_cast x = x
+(*Third return is what is written in table in the
+end and used to find the string. We can not put the
+current term in there since it needs to be more general
+Think of it as:
+
+f_e = mk_extract (m, T) lb
+
+term       |    string
+----------------------
+ f_e(x)    |    (extract 4 4)
+
+where x is arbitrary and is actually mapped. We are not
+doing the mapping here. We just add a function to the 
+table that is used for mapping
+*)
   fun extract m n T ts =
     let
       val _ = @{print}("m",m)
@@ -114,22 +133,66 @@ Option.map (rpair [] o index1 "BitVec") (try dest_binT T)
       val U = Term.range_type (Term.range_type T)
       val _ = @{print}("U",U)
 
-      (*FIXME: This broke because the first argument was represented as an int casted to a nat
-      e.g., Const ("Int.nat", "int \<Rightarrow> nat") $ Const ("Groups.zero_class.zero", "int")
-      I added handling for this but it is not clear if this should happen in the first place
-      *)
-      val temp = (hd ts)
-      val temp2 = (case temp of
-                    Const ("Int.nat", _) $ xs => xs |
-                    xs => xs)
-
     in
-      (case (try (snd o HOLogic.dest_number) temp2, try dest_wordT U) of
-        (SOME lb, SOME i) => (@{print}("lb",lb);@{print}("lb2",(i + lb - 1));@{print}("i",i);
-@{print}("index2 n (i + lb - 1) lb",index2 n (i + lb - 1) lb); @{print}("tl ts",tl ts);@{print}("mk_extract (m, T) lb",mk_extract (m, T) lb);
+      (case (try (snd o HOLogic.dest_number o remove_cast o hd) ts, try dest_wordT U) of
+        (SOME lb, SOME i) => 
+          (@{print}("lb",lb);@{print}("lb2",(i + lb - 1));@{print}("i",i);
+           @{print}("index2 n (i + lb - 1) lb",index2 n (i + lb - 1) lb);
+           @{print}("tl ts",tl ts);@{print}("mk_extract (m, T) lb",mk_extract (m, T) lb);
+           @{print}("mk_extract (m, T) lb []",mk_extract (m, T) lb []);
+
           SOME (index2 n (i + lb - 1) lb, 1, tl ts, mk_extract (m, T) lb))
       | _ => NONE)
     end
+
+  fun mk_bit c n ts = Const c $ hd ts $ mk_nat n
+
+
+  (* (bit n w) should be translated to (= (extract n n w) #b1) *)
+(*
+Idee: 
+Erst fuege 
+
+(= #b1
+
+hinzu
+
+und mache einen dummy operator bit_word oder so und dann fuege den wieder zur Tabelle hinzu
+
+
+Gucke = an um zu sehen wie das hinzugefuegt wurde
+
+
+fun add_builtin_fun' cs (t, n) =
+  let
+    val c as (m, T) = Term.dest_Const t
+    fun app U ts = Term.list_comb (Const (m, U), ts)
+    fun bfun _ U ts = SOME (n, length (Term.binder_types T), ts, app U)
+  in add_builtin_fun cs (c, bfun) end
+
+ (SMT_Builtin.add_builtin_fun' smtlibC)(\<^Const>\<open>HOL.eq \<^typ>\<open>'a\<close>\<close>, "=")
+
+
+t = \<^Const>\<open>HOL.eq \<^typ>\<open>'a\<close>\<close>
+n = "="
+
+val c as (m, T) = Term.dest_Const \<^Const>\<open>HOL.eq \<^typ>\<open>'a\<close>\<close>
+m = HOL.eq
+T = \<^typ>\<open>'a\<close>
+c = (HOL.eq, \<^typ>\<open>'a\<close>)
+
+
+Don't hardcode #b1 as string! Make word and then let Isabelle deal with it same way it deals with 
+the two ways of equality above
+
+*)
+
+(*fun K x = fn _ => x;*)
+  fun add_word_fun' f (t, n) =
+    let val (m, _) = Term.dest_Const t
+    in SMT_Builtin.add_builtin_fun' smtlibC (t, (f m n)) end
+
+(* (\<^Const>\<open>True\<close>, "true")*)
 
   fun bit m n T [w,i:term] =
     let
@@ -141,18 +204,57 @@ Option.map (rpair [] o index1 "BitVec") (try dest_binT T)
 
       (*Build up right T for mk_extract*)
       val (wT, _) = Term.dest_funT T
-      val T = \<^typ>\<open>nat\<close> --> wT --> \<^typ>\<open>1 word\<close>
+      val T' = wT --> \<^typ>\<open>nat\<close> -->  \<^typ>\<open>1 word\<close>
       val _ = @{print}("bit wT",wT)
       val _ = @{print}("T",T)
 
-      val res_str = "(_ " ^ n ^ " " ^ "0" ^ " " ^ "0" ^ ")"
-      val _ = @{print}("res",res_str)
+      val _ = @{print}("bit mk",mk_bit (m, T) 66 [w])
 
     in  
-     (*(case (try (snd o HOLogic.dest_number) temp, try dest_wordT U) of
-        (SOME lb, SOME i) => SOME (index2 n (i + lb - 1) lb, 1, [i], mk_extract (m, T) lb)
-      | _ => NONE)*) NONE
+       (case (try (snd o HOLogic.dest_number o remove_cast) i, try dest_wordT wT) of
+        (SOME lb, SOME i') =>
+          let
+            (*val res_str = "= #b1 ((_ " ^ n ^ " " ^ Int.toString lb ^ " " ^ Int.toString lb ^ ")"*)
+            val res_str = "="
+            val _ = @{print}("res",res_str)
+            val bit_word = Const("Word.smt_bit_word",T') $ w $ i
+            val _ = @{print}("bit_word",bit_word)
+
+          in
+          SOME (res_str, 2, [\<^term>\<open>1::1 word\<close>,bit_word], mk_bit (m, T) lb)
+          end
+      | _ => NONE)
     end
+
+
+
+ fun bit_word m n T [w,i:term] =
+    let
+      val _ = @{print}("bit word m",m)
+      val _ = @{print}("bit n",n)
+      val _ = @{print}("bit T",T)
+      val _ = @{print}("bit w",w)
+      val _ = @{print}("bit i",i)
+
+      (*Build up right T for mk_extract*)
+      val (wT, _) = Term.dest_funT T
+      val T' = \<^typ>\<open>nat\<close> --> wT --> \<^typ>\<open>1 word\<close>
+      val _ = @{print}("bit wT",wT)
+      val _ = @{print}("T",T)
+
+      val _ = @{print}("bit mk",mk_bit (m, T) 66 [w])
+
+    in  
+       (case (try (snd o HOLogic.dest_number o remove_cast) i, try dest_wordT wT) of
+        (SOME lb, SOME i') =>
+          let
+            val res_str = "(" ^ n ^ " " ^ Int.toString lb ^ " " ^ Int.toString lb ^ ")"
+          in
+          SOME (res_str, 2, [w], mk_extract (m, T) lb)
+          end
+      | _ => NONE)
+    end
+
 
   fun mk_extend c ts = Term.list_comb (Const c, ts)
 
@@ -231,10 +333,15 @@ val setup_builtins =
     (\<^term>\<open>word_sle\<close>, "bvsle") ] #>
   fold (SMT_Builtin.add_builtin_fun' SMTLIB_Interface.bvsmlibC) [
     (\<^term>\<open>unsigned :: 'a::len word \<Rightarrow> Int.int\<close>, "bv2nat")
+   ](* #>
+  fold (add_word_fun' bit) [
+    (\<^term>\<open>bit :: 'a::len word \<Rightarrow> _ \<Rightarrow> _\<close>, "=")
    ] #>
-  fold (add_word_fun bit) [
-    (\<^term>\<open>bit :: 'a::len word \<Rightarrow> _ \<Rightarrow> _\<close>, "extract")
-   ]
+  fold (add_word_fun bit_word) [
+    (\<^term>\<open>smt_bit_word :: 'a::len word \<Rightarrow> _ \<Rightarrow> _\<close>, "extract")
+   ]*)
+
+
  (*#>
   fold (add_word_fun power) [
     (\<^term>\<open>power :: 'a::len word \<Rightarrow> _ \<Rightarrow> _\<close>, "ppower")

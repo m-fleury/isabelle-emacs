@@ -736,10 +736,11 @@ fun theory_resolution2 ctxt prems t =
 end
 
 
-fun normalized_input ctxt prems t = SMT_Replay_Methods.prove ctxt t (fn _ =>
+fun normalized_input ctxt prems t = 
+(SMT_Replay_Methods.prove ctxt t (fn _ =>
   Method.insert_tac ctxt prems
   THEN' TRY' (K (unfold_tac ctxt @{thms SMT.trigger_def}))
-  THEN' TRY' (partial_simplify_tac ctxt @{thms eq_commute}))
+  THEN' TRY' (partial_simplify_tac ctxt @{thms eq_commute})))
 
 val false_rule_thm = @{lemma \<open>\<not>False\<close> by blast}
 
@@ -753,6 +754,9 @@ val trans_bool_thm =
 
 fun trans ctxt thms t =
   let
+    val _ = @{print}("thms",thms)
+    val _ = @{print}("t",t)
+
     val prop_of = HOLogic.dest_Trueprop o Thm.full_prop_of
     fun combine_thms [thm1, thm2] =
           (case (prop_of thm1, prop_of thm2) of
@@ -767,15 +771,23 @@ fun trans ctxt thms t =
           combine_thms (combine_thms [thm1, thm2] :: thms)
       | combine_thms thms = replay_error ctxt "invalid bind application" Trans thms t
      val t' = Thm.eta_long_conversion (Object_Logic.dest_judgment ctxt (Thm.cterm_of ctxt t))
+    val _ = @{print}("t'",t')
+
      val (_, t2) = Logic.dest_equals (Thm.prop_of t')
+    val _ = @{print}("t2",t2)
+
      val thms = map (Conv.fconv_rule Thm.eta_long_conversion) thms
+    val _ = @{print}("thms",thms)
+
      val trans_thm = combine_thms thms
+    val _ = @{print}("trans_thm",trans_thm)
+
   in
-     (case (prop_of trans_thm, t2) of
+     (@{print}("YELL");(case (prop_of trans_thm, t2) of
        ((Const(\<^const_name>\<open>HOL.eq\<close>, _) $ t1 $ _),
              (Const(\<^const_name>\<open>HOL.eq\<close>, _) $ t3 $ _)) =>
        if t1 aconv t3 then trans_thm else trans_thm RS sym
-      | _ => trans_thm (*to be on the safe side*))
+      | _ => trans_thm (*to be on the safe side*)))
   end
 
 
