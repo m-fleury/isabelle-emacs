@@ -74,13 +74,8 @@ fun replay_thm method_for rewrite_rules ll_defs ctxt assumed unchanged_prems pre
 
 fun add_used_asserts_in_step (Lethe_Proof.Lethe_Replay_Node {prems,
     subproof = (_, _, _, subproof), concl, ...}) =
-  let fun f x = (case try (snd o SMTLIB_Interface.role_and_index_of_assert_name) x of
-        NONE => NONE
-      | SOME a => SOME (a, concl))
-  in
-  union (op =) (map_filter f prems @
+  union (op =) (map_filter (try (snd o SMTLIB_Interface.role_and_index_of_assert_name)) prems @
      flat (map (fn x => add_used_asserts_in_step x []) subproof))
-  end
 
 fun remove_rewrite_rules_from_rules n =
   (fn (step as Lethe_Proof.Lethe_Replay_Node {id, ...}) =>
@@ -232,7 +227,7 @@ fun replay_assumed assms ll_defs rewrite_rules stats ctxt term =
 val cvc_assms_prefix = "__repeated_assms_" (*FUDGE*)
 (*The index k is not unique for monomorphised theorems.*)
 fun cvc_assms_name l k = cvc_assms_prefix ^ SMTLIB_Interface.assert_name_of_role_and_index SMT_Util.Axiom k ^ "_" ^ l
-
+(*
 fun add_correct_assms_deps ctxt rewrite_rules ll_defs assms steps =
   let
     fun add_correct_assms_deps (st as Lethe_Proof.Lethe_Replay_Node {id, rule, args, prems, proof_ctxt,
@@ -251,7 +246,7 @@ fun add_correct_assms_deps ctxt rewrite_rules ll_defs assms steps =
        end))
   in
     map add_correct_assms_deps steps
-  end
+  end*)
 
 fun replay_step rewrite_rules ll_defs assumed inputs proof_prems
   (step as Lethe_Proof.Lethe_Replay_Node {rule, ...}) state =
@@ -284,40 +279,30 @@ fun replay outer_ctxt
       Lethe_Proof.parse_replay typs terms output ctxt
     val parsing_time = Time.toNanoseconds (#elapsed (Timing.result start0))
 
-    fun step_of_assume (i, th) =
-      let
-        fun matching (_, th') = CVC_Proof_Parse.cvc_matching_assms ctxt rewrite_rules ll_defs th th'
-      in
-        case List.find matching assms of
-          NONE => []
-        | SOME ((k, role), th') =>
-
-            Lethe_Proof.Lethe_Replay_Node {
-              id = cvc_assms_name (SMTLIB_Interface.assert_name_of_role_and_index role (id_of_index i)) k,
-              rule = Lethe_Proof.input_rule,
-              args = [],
-              prems = [],
-              proof_ctxt = [],
-              concl = Thm.prop_of th'
-                |> Raw_Simplifier.rewrite_term (Proof_Context.theory_of
-                     (empty_simpset ctxt addsimps rewrite_rules)) rewrite_rules [],
-              bounds = [],
-              insts = Symtab.empty,
-              declarations = [],
-              subproof = ([], [], [], [])}
-            |> single
-      end
-
+    fun step_of_assume (j, (_, th)) =
+      Lethe_Proof.Lethe_Replay_Node {
+        id = SMTLIB_Interface.assert_name_of_role_and_index SMT_Util.Axiom (id_of_index j),
+        rule = Lethe_Proof.input_rule,
+        args = [],
+        prems = [],
+        proof_ctxt = [],
+        concl = Thm.prop_of th
+          |> Raw_Simplifier.rewrite_term (Proof_Context.theory_of
+               (empty_simpset ctxt addsimps rewrite_rules)) rewrite_rules [],
+        bounds = [],
+        insts = Symtab.empty,
+        declarations = [],
+        subproof = ([], [], [], [])}
+       
     val used_assert_ids = fold add_used_asserts_in_step actual_steps []
     fun normalize_tac ctxt = let val thy = Proof_Context.theory_of (empty_simpset ctxt) in
       Raw_Simplifier.rewrite_term thy rewrite_rules [] end
     val used_assm_js =
-      map_filter (fn (id, th) => let val i = index_of_id id in if i >= 0 then SOME (i, th)
+      map_filter (fn id => let val i = index_of_id id in if i >= 0 then SOME (i, nth assms i)
           else NONE end)
         used_assert_ids
 
     val assm_steps = map step_of_assume used_assm_js
-        |> flat
     fun extract (Lethe_Proof.Lethe_Replay_Node {id, rule, concl, bounds, ...}) =
          (id, rule, concl, map fst bounds)
     fun cond rule = rule = Lethe_Proof.input_rule
@@ -327,8 +312,8 @@ fun replay outer_ctxt
       add_asssert outer_ctxt rewrite_rules (map (apfst fst) assms)
         (map_filter (remove_rewrite_rules_from_rules num_ll_defs) assm_steps) ctxt2
 
-     val used_rew_js =
-      map_filter (fn (id, th) => let val i = index_of_id id in if i < 0
+    val used_rew_js =
+      map_filter (fn id => let val i = index_of_id id in if i < 0
           then SOME (id, normalize_tac ctxt (nth ll_defs id)) else NONE end)
         used_assert_ids
 
@@ -341,10 +326,10 @@ fun replay outer_ctxt
       end)
       used_rew_js (assumed, Symtab.cons_list ("parsing", parsing_time) Symtab.empty)
 
-
+(*
     val actual_steps = actual_steps
       |> add_correct_assms_deps ctxt rewrite_rules ll_defs assms
-
+*)
     val ctxt4 =
       ctxt3
 (*

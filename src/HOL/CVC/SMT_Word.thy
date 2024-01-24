@@ -1061,7 +1061,7 @@ in
 end
 \<close>
 
-(*
+
 term " (0 :: 32 word)"
 ML \<open>@{typ "32 word"} = \<^typ>\<open>_ word\<close>\<close>
 ML \<open>@{print} (Numeral.mk_cnumber \<^ctyp>\<open>43 word\<close> 0) \<close>
@@ -1088,6 +1088,6 @@ by (smt (cvc5) )
 lemma "unat (2048 :: 32 word) \<le> 4294967296"
   supply [[smt_trace]]
 by (smt (cvc5) )
-*)
+
 
 end
