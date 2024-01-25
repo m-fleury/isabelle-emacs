@@ -1,5 +1,5 @@
 theory SMT_CVC_Word \<comment> \<open>More Setup for CVC that should be in HOL-Word eventually\<close>
-  imports SMT_Word "BV_Rewrites"
+  imports SMT_Word "SMT_CVC" "BV_Rewrites"
 begin
 
 
