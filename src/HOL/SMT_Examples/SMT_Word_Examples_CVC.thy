@@ -7,6 +7,12 @@ section \<open>Word examples for for SMT binding\<close>
 theory SMT_Word_Examples_CVC
 imports "HOL-Library.Word" "HOL-CVC.SMT_CVC_Word"
 begin
+
+lemma "LENGTH(64) = 64"
+  using nat_int
+  supply [[smt_nat_as_int,smt_trace]]
+  by (smt(cvc5))
+
 (*
 declare [[smt_oracle = true]]
 declare [[z3_extensions = true]]

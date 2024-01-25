@@ -278,7 +278,6 @@ fun replay outer_ctxt
     val (actual_steps, ctxt2) =
       Lethe_Proof.parse_replay typs terms output ctxt
     val _ = @{print}("actual_steps",actual_steps)
-
     val parsing_time = Time.toNanoseconds (#elapsed (Timing.result start0))
 
     fun step_of_assume (j, (_, th)) =
