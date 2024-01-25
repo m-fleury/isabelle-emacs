@@ -637,8 +637,8 @@ proof -
     by (subst H) auto
 qed
 
-(*TODO: This is a test*)
-named_theorems slice \<open>Theorems to reconstruct arithmetic theorems.\<close>
+named_theorems cvc5_normalized_input \<open>Theorems required to replay
+our more complicated translation\<close>
 
 subsection \<open>Setup\<close>
 
