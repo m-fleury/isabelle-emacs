@@ -1,6 +1,6 @@
 theory SMT_Word
   imports "HOL-Library.Word" Word_Lib.More_Word "HOL-Library.Log_Nat"
- "Word_Lib.Reversed_Bit_Lists" Dsl_Nary_Ops "Alethe_BV_Reconstruction"
+   "Word_Lib.Reversed_Bit_Lists" Dsl_Nary_Ops "Alethe_BV_Reconstruction"
 begin
 (*Erstmal diese Theory Afp abhaengig sein
 Soll zweiten bv_term_parser enthalten, der alle cvc5 bv definitionen enthaelt

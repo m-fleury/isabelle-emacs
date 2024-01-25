@@ -1,9 +1,9 @@
 signature SMT_PARSE_PROBLEM =
 sig
-  val parse: string list -> Proof.context -> SMT_Translate.replay_data
+  val parse: string list -> Proof.context -> SMT_Translate.replay_data * int
 end;
 
-structure SMT_Parse_Problem =
+structure SMT_Parse_Problem : SMT_PARSE_PROBLEM =
 struct
 
 (*TODO: This file will eventually be integrated into other files (mainly lethe_proof (parse_raw_proof_steps) and smt_solver).
