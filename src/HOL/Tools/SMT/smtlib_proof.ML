@@ -150,6 +150,12 @@ fun mk_binary_pred n S t1 t2 =
 fun mk_less t1 t2 = mk_binary_pred \<^const_name>\<open>ord_class.less\<close> \<^sort>\<open>linorder\<close> t1 t2
 fun mk_less_eq t1 t2 = mk_binary_pred \<^const_name>\<open>ord_class.less_eq\<close> \<^sort>\<open>linorder\<close> t1 t2
 
+fun mk_chain _ [] = [] |
+    mk_chain f (t1::t2::ts) = (f t1 t2) :: (mk_chain f ts)
+
+fun mk_chainable f [t1,t2] = (f t1 t2) |
+  mk_chainable f (t1::t2::ts) = mk_rassoc (curry HOLogic.mk_conj) (f t1 t2) (mk_chain f ts)
+
 fun core_term_parser (SMTLIB.Sym "true", _) = SOME \<^Const>\<open>True\<close>
   | core_term_parser (SMTLIB.Sym "false", _) = SOME \<^Const>\<open>False\<close>
   | core_term_parser (SMTLIB.Sym "not", [t]) = SOME (HOLogic.mk_not t)
@@ -157,7 +163,7 @@ fun core_term_parser (SMTLIB.Sym "true", _) = SOME \<^Const>\<open>True\<close>
   | core_term_parser (SMTLIB.Sym "or", t :: ts) = SOME (mk_rassoc (curry HOLogic.mk_disj) t ts)
   | core_term_parser (SMTLIB.Sym "=>", t :: ts) = SOME (mk_rassoc (curry HOLogic.mk_imp) t ts)
   | core_term_parser (SMTLIB.Sym "implies", t :: ts) = SOME (mk_rassoc (curry HOLogic.mk_imp) t ts)
-  | core_term_parser (SMTLIB.Sym "=", [t1, t2]) = SOME (HOLogic.mk_eq (t1, t2))
+  | core_term_parser (SMTLIB.Sym "=", ts) = SOME (mk_chainable (curry HOLogic.mk_eq) ts)
   | core_term_parser (SMTLIB.Sym "~", [t1, t2]) = SOME (HOLogic.mk_eq (t1, t2))
   | core_term_parser (SMTLIB.Sym "ite", [t1, t2, t3]) =
       let
