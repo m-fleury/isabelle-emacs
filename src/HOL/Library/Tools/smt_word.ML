@@ -297,6 +297,57 @@ the two ways of equality above
         (true, SOME i) => SOME (index1 n i, 1, tl ts, mk_rotate (m, T) i)
       | _ => NONE)
     end
+
+  fun len_of t m n T ts =
+    let 
+      val _ = @{print} ts
+      fun mk_num T x = 
+        let
+          val _ = @{print} ("len_of -->", x, t) 
+          val _ = HOLogic.mk_number HOLogic.intT (dest_binT T)  |> @{print}  
+        in Const (\<^const_name>\<open>nat\<close>, @{typ "int => nat"}) $ 
+            HOLogic.mk_number HOLogic.intT (dest_binT T) end
+    in
+     (case (head_of (hd ts)) |> @{print} of
+         Const (_, Type (\<^type_name>\<open>itself\<close>, [T])) =>
+           SOME ("LENGTHXXXXX", 0, [], (mk_num T))
+       | _ => NONE)
+    end
+  fun add_len_of (t,n) = 
+    let val (m, _) = Term.dest_Const (@{print}(head_of t))
+val _ = @{print} ("len_of", t)
+
+    in SMT_Builtin.add_builtin_fun smtlibC (Term.dest_Const (head_of t), fn x => (@{print} x; 
+   fn x => fn y => @{print} (len_of t m n x y))) |>
+@{print}
+ end
+
+  fun of_nat t m n T ts =
+    let 
+      val _ = @{print} ts
+      fun mk_num T x = 
+        let
+          val _ = @{print} ("of_nat -->", x, t) 
+          val _ = HOLogic.mk_number HOLogic.natT (dest_binT T)  |> @{print}  
+        in HOLogic.mk_number HOLogic.natT (dest_binT T) end
+    in
+     (case (head_of (hd ts)) |> @{print} of
+         Const (_, Type (\<^type_name>\<open>itself\<close>, [T])) =>
+           SOME ("LENGTHXXXXX", 0, [], (mk_num T))
+       | _ => NONE)
+    end
+  fun add_of_nat (a as t,n) = 
+    let val (m, _) = Term.dest_Const (@{print}(t))
+      val _ = @{print} ("of_nat ", t)
+      val n = HOLogic.dest_number t |> snd |> K true
+               handle TERM _ => false
+
+    in 
+      if n then SMT_Builtin.add_builtin_fun smtlibC (Term.dest_Const (head_of t), fn x => (@{print} x; 
+         fn x => fn y => @{print} (of_nat t m n x y))) |>
+        @{print}
+       else  SMT_Builtin.add_builtin_fun smtlibC (Term.dest_Const (head_of t),  K (K (K (NONE))))
+   end
 in
 
 val setup_builtins =
@@ -320,6 +371,10 @@ val setup_builtins =
     (\<^term>\<open>signed_drop_bit :: nat \<Rightarrow> 'a::len word \<Rightarrow> _\<close>, "bvashr") ] #>
   add_word_fun extract
     (\<^term>\<open>slice :: _ \<Rightarrow> 'a::len word \<Rightarrow> _\<close>, "extract") #>
+  add_len_of
+    (\<^term>\<open>len_of :: 'a :: len0 itself => nat\<close>, "IDDD") #>
+  add_of_nat
+    (\<^term>\<open>of_nat :: nat \<Rightarrow> int\<close>, "of_nat") #>
   fold (add_word_fun extend) [
     (\<^term>\<open>ucast :: 'a::len word \<Rightarrow> _\<close>, "zero_extend"),
     (\<^term>\<open>scast :: 'a::len word \<Rightarrow> _\<close>, "sign_extend") ] #>

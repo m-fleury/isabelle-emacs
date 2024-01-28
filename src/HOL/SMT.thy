@@ -640,6 +640,7 @@ qed
 named_theorems cvc5_normalized_input \<open>Theorems required to replay
 our more complicated translation\<close>
 
+
 subsection \<open>Setup\<close>
 
 ML_file \<open>Tools/SMT/smt_util.ML\<close>

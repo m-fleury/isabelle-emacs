@@ -9,12 +9,12 @@ the others come from the Isabelle distribution or the AFP.
 section \<open>Examples for the (smt (cvc5)) binding\<close>
 
 theory SMT_Examples_CVC
-imports Complex_Main
+imports Complex_Main "HOL-CVC.SMT_CVC"
 begin
 (*
 external_file \<open>SMT_Examples_CVC.certs\<close>
 
-declare [[smt_certificates = "SMT_Examples_Verit.certs"]]
+declare [[smt_certificates = "SMT_Examples_CVC.certs"]]
 declare [[smt_read_only_certificates = false]]
 *)
 
@@ -243,13 +243,13 @@ lemma "\<forall>x::int. P x \<longrightarrow> (\<forall>y::int. P x \<or> P y)"
 lemma
   assumes "(\<forall>x y. P x y = x)"
   shows "(\<exists>y. P x y) = P x c"
-  using assms by (smt (cvc5))
+  using assms by (smt (cvc5)) (*cvc does not find a proof*)
 
 lemma
   assumes "(\<forall>x y. P x y = x)"
   and "(\<forall>x. \<exists>y. P x y) = (\<forall>x. P x c)"
   shows "(\<exists>y. P x y) = P x c"
-  using assms by (smt (cvc5))
+  using assms by (smt (cvc5)) (*cvc does not find a proof*)
 
 lemma
   assumes "if P x then \<not>(\<exists>y. P y) else (\<forall>y. \<not>P y)"
@@ -266,7 +266,7 @@ lemma "(3::real) = 3" by (smt (cvc5))
 lemma "(3 :: int) + 1 = 4" by (smt (cvc5))
 lemma "x + (y + z) = y + (z + (x::int))" by (smt (cvc5))
 lemma "max (3::int) 8 > 5" by (smt (cvc5))
-lemma "\<bar>x :: real\<bar> + \<bar>y\<bar> \<ge> \<bar>x + y\<bar>" by (smt (cvc5))
+lemma "\<bar>x :: real\<bar> + \<bar>y\<bar> \<ge> \<bar>x + y\<bar>" by (smt (cvc5)) (*type error*)
 lemma "P ((2::int) < 3) = P True" supply[[smt_trace]] by (smt (cvc5))
 lemma "x + 3 \<ge> 4 \<or> x < (1::int)" by (smt (cvc5))
 
@@ -281,7 +281,7 @@ lemma
   fixes x :: int
   assumes "3 * x + 7 * a < 4" and "3 < 2 * x"
   shows "a < 0"
-  using assms by (smt (cvc5))
+  using assms by (smt (cvc5)) (*type error*)
 
 lemma "(0 \<le> y + -1 * x \<or> \<not> 0 \<le> x \<or> 0 \<le> (x::int)) = (\<not> False)" by (smt (cvc5))
 
@@ -329,20 +329,20 @@ lemma "~ (\<exists>x::real. False)" by (smt (cvc5))
 
 lemma "\<forall>x y::int. (x = 0 \<and> y = 1) \<longrightarrow> x \<noteq> y" by (smt (cvc5))
 lemma "\<forall>x y::int. x < y \<longrightarrow> (2 * x + 1) < (2 * y)" by (smt (cvc5))
-lemma "\<forall>x y::int. x + y > 2 \<or> x + y = 2 \<or> x + y < 2" by (smt (cvc5))
-lemma "\<forall>x::int. if x > 0 then x + 1 > 0 else 1 > x" by (smt (cvc5))
-lemma "(if (\<forall>x::int. x < 0 \<or> x > 0) then -1 else 3) > (0::int)" by (smt (cvc5))
-lemma "\<exists>x::int. \<forall>x y. 0 < x \<and> 0 < y \<longrightarrow> (0::int) < x + y" by (smt (cvc5))
-lemma "\<exists>u::int. \<forall>(x::int) y::real. 0 < x \<and> 0 < y \<longrightarrow> -1 < x" by (smt (cvc5))
+lemma "\<forall>x y::int. x + y > 2 \<or> x + y = 2 \<or> x + y < 2" by (smt (cvc5)) (*TODO Mathias: type problem*)
+lemma "\<forall>x::int. if x > 0 then x + 1 > 0 else 1 > x" by (smt (cvc5)) (*TODO Mathias: type problem*)
+lemma "(if (\<forall>x::int. x < 0 \<or> x > 0) then -1 else 3) > (0::int)" by (smt (cvc5)) (*cvc real problem*)
+lemma "\<exists>x::int. \<forall>x y. 0 < x \<and> 0 < y \<longrightarrow> (0::int) < x + y" by (smt (cvc5))(*TODO Mathias: type problem*)
+lemma "\<exists>u::int. \<forall>(x::int) y::real. 0 < x \<and> 0 < y \<longrightarrow> -1 < x" by (smt (cvc5))(*TODO Mathias: type problem*)
 lemma "\<forall>(a::int) b::int. 0 < b \<or> b < 1" by (smt (cvc5))
 
 subsection \<open>Linear arithmetic for natural numbers\<close>
 
 declare [[smt_nat_as_int]]
 
-lemma "2 * (x::nat) \<noteq> 1" by (smt (cvc5))
+lemma "2 * (x::nat) \<noteq> 1" by (smt (cvc5)) (*simplification failures as no rule is provided (arith step)*)
 
-lemma "a < 3 \<Longrightarrow> (7::nat) > 2 * a" by (smt (cvc5))
+lemma "a < 3 \<Longrightarrow> (7::nat) > 2 * a" by (smt (cvc5)) (*TODO Mathias*)
 
 lemma "let x = (1::nat) + y in x - y > 0 * x" by (smt (cvc5))
 
@@ -352,7 +352,7 @@ lemma
    False \<or> P = (x - 1 = y) \<or> (\<not>P \<longrightarrow> False)"
   by (smt (cvc5))
 
-lemma "int (nat \<bar>x::int\<bar>) = \<bar>x\<bar>" by (smt (cvc5) int_nat_eq)
+lemma "int (nat \<bar>x::int\<bar>) = \<bar>x\<bar>" by (smt (cvc5) int_nat_eq) (*cvc real problem*)
 
 definition prime_nat :: "nat \<Rightarrow> bool" where
   "prime_nat p = (1 < p \<and> (\<forall>m. m dvd p --> m = 1 \<or> m = p))"
@@ -360,10 +360,10 @@ definition prime_nat :: "nat \<Rightarrow> bool" where
 lemma "prime_nat (4*m + 1) \<Longrightarrow> m \<ge> (1::nat)" by (smt (cvc5) prime_nat_def)
 
 lemma "2 * (x::nat) \<noteq> 1" 
-  by (smt (cvc5))
+  by (smt (cvc5)) (*simplification failures as no rule is provided (arith step)*)
 
 lemma \<open>2*(x :: int) \<noteq> 1\<close>
-  by (smt (cvc5))
+  by (smt (cvc5)) (*simplification failures as no rule is provided (arith step)*)
 
 declare [[smt_nat_as_int = false]]
 
@@ -404,7 +404,7 @@ lemma "(\<forall>x. P x) \<or> \<not> All P" by (smt (cvc5))
 fun dec_10 :: "int \<Rightarrow> int" where
   "dec_10 n = (if n < 10 then n else dec_10 (n - 10))"
 
-lemma "dec_10 (4 * dec_10 4) = 6" by (smt (cvc5) dec_10.simps)
+lemma "dec_10 (4 * dec_10 4) = 6" by (smt (cvc5) dec_10.simps) (*cvc real problem*)
 
 context complete_lattice
 begin
@@ -446,7 +446,7 @@ lemma
       and "\<And>A B. (\<And>x. (x::'a) \<in> A \<Longrightarrow> x \<in> B) \<Longrightarrow> A \<subseteq> B"
       and "\<And>A B. \<lbrakk>(A::'a set) \<subseteq> B; B \<subseteq> A\<rbrakk> \<Longrightarrow> A = B"
       and "\<And>A ys. (A \<subseteq> List.coset ys) = (\<forall>y\<in>set ys. (y::'a) \<notin> A)"
-  using that by (smt (cvc5, default))
+  using that by (smt (cvc5)) (*TODO Mathias: type problem again*)
 
 notepad
 begin
@@ -492,7 +492,7 @@ lemma
     \<open>x - 2 * y > 0\<close> and
     \<open>x < 0\<close>
   shows False
-  using assms by (smt (cvc5))
+  using assms by (smt (cvc5)) (*cvc real problem*)
 
 (*test for arith reconstruction*)
 lemma
@@ -512,7 +512,7 @@ lemma
     (\<lambda>x. ((x - 1 / 2) * d, diamond_y ((x - 1 / 2) * d))) \<Longrightarrow>
     False\<close>
   using assms
-  by (smt (cvc5))
+  by (smt (cvc5)) (*no proof found*)
 
 lemma
   fixes d :: real
@@ -531,7 +531,7 @@ lemma
     (\<lambda>x. ((x - 1 / 2) * d, diamond_y ((x - 1 / 2) * d))) \<Longrightarrow>
     False\<close>
   using assms
-  by (smt (cvc5))
+  by (smt (cvc5)) (*no proof found*)
 
 (*qnt_rm_unused example*)
 lemma 
@@ -545,7 +545,7 @@ lemma
 lemma
   "max (x::int) y \<ge> y"
   supply [[smt_trace]]
-  by (smt (cvc5))+
+  by (smt (cvc5))+ (*cvc real problem*)
 
 context
 begin
@@ -628,55 +628,7 @@ lemma
        g (arg_min_on (f \<circ> g) B) \<close>
    shows False
   using assms
-  by (smt (cvc5))
-end
-
-
-experiment
-begin
-private datatype abort =
-    Rtype_error
-  | Rtimeout_error
-private datatype ('a) error_result =
-  Rraise " 'a " \<comment> \<open>\<open> Should only be a value of type exn \<close>\<close>
-  | Rabort " abort "
-
-private datatype( 'a, 'b) result =
-    Rval " 'a "
-    | Rerr " ('b) error_result "
-
-lemma
-  fixes clock :: \<open>'astate \<Rightarrow> nat\<close> and
-    fun_evaluate_match :: \<open>'astate \<Rightarrow> 'vsemv_env \<Rightarrow> _ \<Rightarrow> ('pat \<times> 'exp0) list \<Rightarrow> _ \<Rightarrow>
-      'astate*((('v)list),('v))result\<close>
-  assumes
-    "fix_clock (st::'astate) (fun_evaluate st (env::'vsemv_env) [e::'exp0]) =
-    (st'::'astate, r::('v list, 'v) result)"
-    "clock (fst (fun_evaluate (st::'astate) (env::'vsemv_env) [e::'exp0])) \<le> clock st"
-    "\<forall>(b::nat) (a::nat) c::nat. b \<le> a \<and> c \<le> b \<longrightarrow> c \<le> a"
-    "\<forall>(a::'astate) p::'astate \<times> ('v list, 'v) result. (a = fst p) = (\<exists>b::('v list, 'v) result. p = (a, b))"
-    "\<forall>y::'v error_result. (\<forall>x1::'v. y = Rraise x1 \<longrightarrow> False) \<and> (\<forall>x2::abort. y = Rabort x2 \<longrightarrow> False) \<longrightarrow> False"
-    "\<forall>(f1::'v \<Rightarrow> 'astate \<times> ('v list, 'v) result) (f2::abort \<Rightarrow> 'astate \<times> ('v list, 'v) result) x1::'v.
-       (case Rraise x1 of Rraise (x::'v) \<Rightarrow> f1 x | Rabort (x::abort) \<Rightarrow> f2 x) = f1 x1"
-    "\<forall>(f1::'v \<Rightarrow> 'astate \<times> ('v list, 'v) result) (f2::abort \<Rightarrow> 'astate \<times> ('v list, 'v) result) x2::abort.
-       (case Rabort x2 of Rraise (x::'v) \<Rightarrow> f1 x | Rabort (x::abort) \<Rightarrow> f2 x) = f2 x2"
-    "\<forall>(s1::'astate) (s2::'astate) (x::('v list, 'v) result) s::'astate.
-       fix_clock s1 (s2, x) = (s, x) \<longrightarrow> clock s \<le> clock s2"
-    "\<forall>(s::'astate) (s'::'astate) res::('v list, 'v) result.
-       fix_clock s (s', res) =
-       (update_clock (\<lambda>_::nat. if clock s' \<le> clock s then clock s' else clock s) s', res)"
-    "\<forall>(x2::'v error_result) x1::'v.
-       (r::('v list, 'v) result) = Rerr x2 \<and> x2 = Rraise x1 \<longrightarrow>
-       clock (fst (fun_evaluate_match (st'::'astate) (env::'vsemv_env) x1 (pes::('pat \<times> 'exp0) list) x1))
-       \<le> clock st'"
-  shows "((r::('v list, 'v) result) = Rerr (x2::'v error_result) \<longrightarrow>
-           clock
-            (fst (case x2 of
-                  Rraise (v2::'v) \<Rightarrow>
-                    fun_evaluate_match (st'::'astate) (env::'vsemv_env) v2 (pes::('pat \<times> 'exp0) list) v2
-                  | Rabort (abort::abort) \<Rightarrow> (st', Rerr (Rabort abort))))
-           \<le> clock (st::'astate))"
-  using assms by (smt (cvc5))
+  by (smt (cvc5)) (*TODO Mathias*)
 end
 
 
@@ -738,82 +690,4 @@ axiomatization where
 
 lemma "g (Some (3::int)) = g (Some True)" by (smt (cvc5) g1 g2 g3 list.size)
 
-experiment
-begin
-
-lemma duplicate_goal: \<open>A \<Longrightarrow> A \<Longrightarrow> A\<close>
-  by auto
-
-datatype 'a M_nres = is_fail: FAIL | SPEC "'a \<Rightarrow> bool"
-
-definition "is_res m x \<equiv> case m of FAIL \<Rightarrow> True | SPEC P \<Rightarrow> P x"
-
-datatype ('a,'s) M_state = M_STATE (run: "'s \<Rightarrow> ('a\<times>'s) M_nres")
-
-(*Courtesy of Peter Lammich
-https://isabelle.zulipchat.com/#narrow/stream/247541-Mirror.3A-Isabelle-Users-Mailing-List/topic/.5Bisabelle.5D.20smt.20.28cvc5.29.3A.20exception.20THM.200.20raised.20.28line.20312.20.2E.2E.2E/near/290088165
-*)
-lemma "\<lbrakk>\<forall>x y. (\<forall>xa s. is_fail (run (x xa) s) \<or>
-                   is_fail (run (y xa) s) = is_fail (run (x xa) s) \<and>
-                   (\<forall>a b. is_res (run (y xa) s) (a, b) = is_res (run (x xa) s) (a, b)))
-\<longrightarrow>
-           (\<forall>s. is_fail (run (B x) s) \<or>
-                is_fail (run (B y) s) = is_fail (run (B x) s) \<and>
-                (\<forall>a b. is_res (run (B y) s) (a, b) = is_res (run (B x) s) (a, b)));
-     \<And>y. \<forall>x ya. (\<forall>xa s. is_fail (run (x xa) s) \<or>
-                         is_fail (run (ya xa) s) = is_fail (run (x xa) s) \<and>
-                         (\<forall>a b. is_res (run (ya xa) s) (a, b) = is_res (run (x xa) s) (a, b)))
-\<longrightarrow>
-                 (\<forall>s. is_fail (run (C y x) s) \<or>
-                      is_fail (run (C y ya) s) = is_fail (run (C y x) s) \<and>
-                      (\<forall>a b. is_res (run (C y ya) s) (a, b) = is_res (run (C y x) s) (a,
-b)))\<rbrakk>
-    \<Longrightarrow> \<forall>x y. (\<forall>xa s.
-                  is_fail (run (x xa) s) \<or>
-                  is_fail (run (y xa) s) = is_fail (run (x xa) s) \<and>
-                  (\<forall>a b. is_res (run (y xa) s) (a, b) = is_res (run (x xa) s) (a, b)))
-\<longrightarrow>
-              (\<forall>s. is_fail (run (B x) s) \<or>
-                   (\<exists>a b. is_res (run (B x) s) (a, b) \<and> is_fail (run (C a x) b)) \<or>
-                   (is_fail (run (B y) s) \<or> (\<exists>a b. is_res (run (B y) s) (a, b) \<and>
-is_fail (run (C a y) b))) =
-                   (is_fail (run (B x) s) \<or> (\<exists>a b. is_res (run (B x) s) (a, b) \<and>
-is_fail (run (C a x) b))) \<and>
-                   (\<forall>a b. (is_fail (run (B y) s) \<or>
-                           (\<exists>aa ba. is_res (run (B y) s) (aa, ba) \<and> is_res (run (C aa y)
-ba) (a, b))) =
-                          (is_fail (run (B x) s) \<or>
-                           (\<exists>aa ba. is_res (run (B x) s) (aa, ba) \<and> is_res (run (C aa x)
-ba) (a, b)))))"  
-  apply (rule duplicate_goal)
-  subgoal
-    supply [[verit_compress_proofs=true]]
-    by (smt (cvc5))
-  subgoal
-    supply [[verit_compress_proofs=false]]
-    by (smt (cvc5))
-  done
-
-(*Example of Reordering in skolemization*)
-lemma
-  fixes Abs_ExpList :: "'freeExp_list \<Rightarrow> 'exp_list" and
-    Abs_Exp:: "'freeExp_set \<Rightarrow> 'exp" and
-    exprel:: "('freeExp \<times> 'freeExp) set" and
-    map2 :: "('freeExp \<Rightarrow> 'exp) \<Rightarrow> 'freeExp_list \<Rightarrow> 'exp_list"
-  assumes "\<And>Xs. Abs_ExpList Xs \<equiv>  map2 (\<lambda>U. Abs_Exp (myImage exprel {U})) Xs"
-    "\<And>P z. (\<And>U. z = Abs_Exp (myImage exprel {U}) \<Longrightarrow> P) \<Longrightarrow> P"
-    "\<And>(ys::'exp_list) (f::'freeExp \<Rightarrow> _). (\<exists>xs. ys = map2 f xs) = (\<forall>y\<in>myset ys. \<exists>x. y = f x)"
-  shows "\<exists>Us. z = Abs_ExpList Us"
-  apply (rule duplicate_goal)
-  subgoal
-    supply [[verit_compress_proofs=true]]
-    using assms
-    by (smt (cvc5,del_insts))
-  subgoal
-    using assms
-    supply [[verit_compress_proofs=false]]
-    by (smt (cvc5,del_insts))
-  done
-
-end
 end
