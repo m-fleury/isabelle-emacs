@@ -9,6 +9,10 @@ lemma cvc_ListOp_neutral_bv_and [cvc_ListOp_neutral]:
 
 named_theorems all_simplify_temp \<open>Theorems to reconstruct bitvector theorems concerning list
                                   functions, e.g. take.\<close>
+named_theorems cvc_evaluate \<open>Theorems to reconstruct evaluate steps in cvc5 proofs\<close>
+
+lemmas [cvc_evaluate] = smt_extract_def
+
 named_theorems arith_simp_cvc5 \<open>Might be temp and integrated into smt_arith_simplify \<close>
 
 lemmas [arith_simp_cvc5] = Groups.monoid_mult_class.mult_1_right Nat.mult_Suc_right
