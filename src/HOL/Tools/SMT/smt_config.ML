@@ -36,6 +36,7 @@ sig
   val explicit_application: int Config.T
   val higher_order: bool Config.T
   val native_bv: bool Config.T
+  val native_set: bool Config.T
   val nat_as_int: bool Config.T
   val infer_triggers: bool Config.T
   val debug_files: string Config.T
@@ -198,6 +199,7 @@ val monomorph_instances = Attrib.setup_config_int \<^binding>\<open>smt_monomorp
 val explicit_application = Attrib.setup_config_int \<^binding>\<open>smt_explicit_application\<close> (K 1)
 val higher_order = Attrib.setup_config_bool \<^binding>\<open>smt_higher_order\<close> (K false)
 val native_bv = Attrib.setup_config_bool \<^binding>\<open>native_bv\<close> (K true)
+val native_set = Attrib.setup_config_bool \<^binding>\<open>native_set\<close> (K false)
 val nat_as_int = Attrib.setup_config_bool \<^binding>\<open>smt_nat_as_int\<close> (K false)
 val infer_triggers = Attrib.setup_config_bool \<^binding>\<open>smt_infer_triggers\<close> (K false)
 val debug_files = Attrib.setup_config_string \<^binding>\<open>smt_debug_files\<close> (K "")

@@ -10,6 +10,7 @@ sig
   val smtlibC: SMT_Util.class
   val hosmtlibC: SMT_Util.class
   val bvsmlibC: SMT_Util.class
+  val setsmlibC: SMT_Util.class
   val realsmlibC: SMT_Util.class
   val add_logic: int * (string -> term list -> string option) -> Context.generic -> Context.generic
   val del_logic: int * (string -> term list -> string option) -> Context.generic -> Context.generic
@@ -27,6 +28,7 @@ val smtlibC = ["smtlib"]   (* SMT-LIB 2 *)
 val hosmtlibC = hoC   (* possibly SMT-LIB 3 *)
 val bvsmlibC = ["BV"] (* if BV are supported *)
 val realsmlibC = ["Real"]
+val setsmlibC = ["Set"] (* if non SMT-LIB theory of sets is supported*)
 
 (* builtins *)
 

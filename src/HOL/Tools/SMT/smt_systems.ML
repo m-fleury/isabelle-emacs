@@ -83,7 +83,9 @@ local
   fun select_class ctxt =
    [SMTLIB_Interface.smtlibC] @
    (if Config.get ctxt SMT_Config.higher_order then single CVC_Interface.hosmtlib_cvcC else []) @
-   (if Config.get ctxt SMT_Config.native_bv then single SMTLIB_Interface.bvsmlibC else [])
+   (if Config.get ctxt SMT_Config.native_bv then single SMTLIB_Interface.bvsmlibC else []) @
+   (if Config.get ctxt SMT_Config.native_set andalso (SMT_Config.use_lethe_proof_from_cvc ctxt)
+    then single SMTLIB_Interface.bvsmlibC else [])
 in
 
 val cvc4: SMT_Solver.solver_config = {
