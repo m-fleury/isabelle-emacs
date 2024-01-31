@@ -43,6 +43,7 @@ axiomatization symm_f :: "'a \<Rightarrow> 'a \<Rightarrow> 'a" where
   symm_f: "symm_f x y = symm_f y x"
 
 lemma "a = a \<and> symm_f a b = symm_f b a"
+  supply [[smt_trace]]
   by (smt (cvc5) symm_f)
 
 (*

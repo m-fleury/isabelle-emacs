@@ -1,5 +1,5 @@
 theory SMT_Word
-  imports "HOL-Library.Word" Word_Lib.More_Word "HOL-Library.Log_Nat"
+  imports "HOL-Library.Word" Word_Lib.More_Word "HOL-Library.Log_Nat" SMT_CVC
    "Word_Lib.Reversed_Bit_Lists" Dsl_Nary_Ops "Alethe_BV_Reconstruction"
 begin
 (*Erstmal diese Theory Afp abhaengig sein
@@ -1068,6 +1068,8 @@ end
 \<close>
 
 
+lemmas [cvc_evaluate] = smt_extract_def
+
 term " (0 :: 32 word)"
 ML \<open>@{typ "32 word"} = \<^typ>\<open>_ word\<close>\<close>
 ML \<open>@{print} (Numeral.mk_cnumber \<^ctyp>\<open>43 word\<close> 0) \<close>
@@ -1092,7 +1094,7 @@ lemma "uint (1 :: 32 word) \<le> 2"
 by (smt (cvc5) )
 
 lemma "unat (2048 :: 32 word) \<le> 4294967296"
-  supply [[smt_trace]]
+  supply [[smt_trace,smt_nat_as_int]]
 by (smt (cvc5) )
 
 
