@@ -1058,7 +1058,7 @@ let
    end
 
 val setup_builtins =
-SMT_Builtin.add_builtin_typ SMTLIB_Interface.bvsmlibC
+SMT_Builtin.add_builtin_typ SMTLIB_Interface.bvsmtlibC
   (\<^typ>\<open>'a word\<close>, K (SOME ("word", [])), K (K (NONE)))
 
 

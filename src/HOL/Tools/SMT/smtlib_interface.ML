@@ -9,9 +9,9 @@ signature SMTLIB_INTERFACE =
 sig
   val smtlibC: SMT_Util.class
   val hosmtlibC: SMT_Util.class
-  val bvsmlibC: SMT_Util.class
-  val setsmlibC: SMT_Util.class
-  val realsmlibC: SMT_Util.class
+  val bvsmtlibC: SMT_Util.class
+  val setsmtlibC: SMT_Util.class
+  val realsmtlibC: SMT_Util.class
   val add_logic: int * (string -> term list -> string option) -> Context.generic -> Context.generic
   val del_logic: int * (string -> term list -> string option) -> Context.generic -> Context.generic
   val translate_config: SMT_Util.order -> Proof.context -> SMT_Translate.config
@@ -26,9 +26,9 @@ val hoC = ["ho"]
 
 val smtlibC = ["smtlib"]   (* SMT-LIB 2 *)
 val hosmtlibC = hoC   (* possibly SMT-LIB 3 *)
-val bvsmlibC = ["BV"] (* if BV are supported *)
-val realsmlibC = ["Real"]
-val setsmlibC = ["Set"] (* if non SMT-LIB theory of sets is supported*)
+val bvsmtlibC = ["BV"] (* if BV are supported *)
+val realsmtlibC = ["Real"]
+val setsmtlibC = ["Set"] (* if non SMT-LIB theory of sets is supported*)
 
 (* builtins *)
 

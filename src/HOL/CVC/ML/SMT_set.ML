@@ -101,9 +101,9 @@ fun only_smtlib_types f str =
 map (fn t => (Const(f,t), str)) smt_types
 
 val setup_builtins =
-  SMT_Builtin.add_builtin_typ SMTLIB_Interface.setsmlibC
+  SMT_Builtin.add_builtin_typ SMTLIB_Interface.setsmtlibC
     (\<^typ>\<open>int set\<close>, set_typ, set_term) #>
-  fold (SMT_Builtin.add_builtin_fun' SMTLIB_Interface.setsmlibC) [
+  fold (SMT_Builtin.add_builtin_fun' SMTLIB_Interface.setsmtlibC) [
    (\<^Const>\<open>card \<^typ>\<open>'a\<close>\<close>, "card")
   ]
 
