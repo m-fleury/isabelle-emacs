@@ -231,7 +231,8 @@ fun declared_csts _ "__skolem_definition" [(SMTLIB.S [SMTLIB.Sym x, typ, _], _)]
   | declared_csts _ _ _ = []
 
 fun skolems_introduced_by_rule (SMTLIB.S bds) =
-  fold (fn (SMTLIB.S [SMTLIB.Sym "=", _, SMTLIB.Sym y]) => curry (op ::) y) bds []
+  fold (fn (SMTLIB.S [SMTLIB.Sym "=", _, SMTLIB.Sym y]) => curry (op ::) y
+              | x => (@{print} x; fn x => x)) bds []
 
 (*FIXME there is probably a way to use the information given by onepoint*)
 fun bound_vars_by_rule _ "bind" bds = extract_symbols bds
@@ -427,7 +428,26 @@ fun preprocess compress step =
   let
     fun expand_assms cs =
       map (fn t => case AList.lookup (op =) cs t of NONE => t | SOME a => a)
-    fun match_typing_arguments (SMTLIB.S [SMTLIB.Sym var, typ as SMTLIB.Sym _] :: SMTLIB.S [SMTLIB.Sym "=", SMTLIB.Sym x1, x2] :: xs) =
+    fun match_typing_arguments (SMTLIB.S [SMTLIB.Sym var, typ as SMTLIB.Sym _] :: SMTLIB.S [SMTLIB.Sym "=", SMTLIB.Sym x1, SMTLIB.Sym x2] :: xs) =
+(*
+cvc5 commit 7584ec114ae959e5f21d131446f4f6e354705227:
+lemma 
+  assumes \<open>\<exists>x. P x\<close>
+    \<open>\<forall>x. (P x \<longrightarrow>  (\<exists>y. Q y))\<close>
+    \<open>(\<exists>y. Q y) \<longrightarrow> False\<close>
+  shows \<open>False\<close>
+  using assms supply [[smt_trace]][[smt_cvc_lethe = true]]
+  apply (smt (cvc5))
+  sorry
+
+ (anchor :step t9 :args ((?v0 B$) (:= ?v1 ?v0)))
+  so special handling to support this case
+*)
+       if var = x1 orelse var = x2 then (*CVC5*)
+         SMTLIB.S [SMTLIB.Sym "=", SMTLIB.S [SMTLIB.Sym x1, typ], SMTLIB.Sym x2] :: match_typing_arguments xs
+       else
+         SMTLIB.S [SMTLIB.Sym var, typ] :: match_typing_arguments (SMTLIB.S [SMTLIB.Sym "=", SMTLIB.Sym x1, SMTLIB.Sym x2] :: xs)
+     | match_typing_arguments (SMTLIB.S [SMTLIB.Sym var, typ as SMTLIB.Sym _] :: SMTLIB.S [SMTLIB.Sym "=", SMTLIB.Sym x1, x2] :: xs) =
        if var = x1 then (*CVC5*)
          SMTLIB.S [SMTLIB.Sym "=", SMTLIB.S [SMTLIB.Sym x1, typ], x2] :: match_typing_arguments xs
        else
@@ -468,7 +488,13 @@ fun filter_split _ [] = ([], [])
   | filter_split f (a :: xs) =
      (if f a then apfst (curry op :: a) else apsnd (curry op :: a)) (filter_split f xs)
 
+
+(*TODO are the top patterns even used? Normally not compatible with
+Alethe and leads to breakage later on.*)
 fun extract_types_of_args (SMTLIB.S [var, typ, t as SMTLIB.S [SMTLIB.Sym "choice", _, _]]) rule_name =
+    (SMTLIB.S [var, typ, t], SOME typ)
+    |> single
+ | extract_types_of_args (SMTLIB.S [var, t as SMTLIB.S [SMTLIB.Sym "choice", SMTLIB.S [SMTLIB.S [_, typ]], _]]) rule_name =
     (SMTLIB.S [var, typ, t], SOME typ)
     |> single
  | extract_types_of_args (SMTLIB.S t) rule_name =
@@ -478,12 +504,14 @@ fun extract_types_of_args (SMTLIB.S [var, typ, t as SMTLIB.S [SMTLIB.Sym "choice
          rule_name= "onepoint" orelse rule_name="forall_inst" orelse
          rule_name= "sko_ex"
       then (SMTLIB.S [eq, var, t], SOME typ)
-      else (SMTLIB.S [eq, SMTLIB.S [var, typ], t], NONE)
+      else (SMTLIB.S [eq, SMTLIB.S [var, typ], t], SOME typ)
+    | extract_types_of_arg (SMTLIB.S [eq as SMTLIB.Sym "=", var as SMTLIB.Sym _, t as SMTLIB.S [SMTLIB.Sym "choice", SMTLIB.S [SMTLIB.S [_, typ]], _]]) =
+       (SMTLIB.S [eq, var, t], SOME typ)
     | extract_types_of_arg t = (t, NONE)
 
   in
     t
-    |> map extract_types_of_arg
+    |> map (extract_types_of_arg)
   end
 
 fun collect_skolem_defs (Raw_Lethe_Node {rule, subproof = subproof, args, ...}) =
@@ -597,7 +625,8 @@ fun postprocess_proof compress ctxt step cx =
         |> apfst (map (apsnd unsk_and_rewrite))
 
       (* fix step *)
-      val _ = if bounds <> [] then raise (Fail "found dangling variable in concl") else ()
+      val _ = if bounds <> [] then raise (Fail ("found dangling variable (s) " ^ (@{make_string} bounds) ^
+          " in concl " ^ (@{make_string} concl) ^ " of step" ^ id)) else ()
       val skolem_defs = (if is_skolemization rule
          then map (fn id => id ^ lethe_def) (skolems_introduced_by_rule (SMTLIB.S (map fst args))) else [])
       val skolems_of_subproof = (if compress andalso is_skolemization rule

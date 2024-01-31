@@ -46,7 +46,9 @@ let
     (SOME thm) => nth thm 0
   end
 
- val rewrite_lemma = find_Thy all_rewrite_thys
+ val _ = (if is_none (CVC5_Rare.rare_lookup (Context.Proof ctxt) ("rewrite_" ^ rewrite_name)) 
+         then raise Fail ("undeclared RARE rule:" ^ rewrite_name ^ ". Use cvc5_rare \"full_name\".") else ())
+ val (rewrite_lemma :: _) = CVC5_Rare.rare_rule (Context.Proof ctxt) ("rewrite_" ^ rewrite_name)
  val get_types = map snd (rev (Term.add_vars (Thm.full_prop_of rewrite_lemma) []))
 
 (*val _ = @{print}("rewrite_lemma",rewrite_lemma)

@@ -7,7 +7,9 @@ section \<open>Bindings to Satisfiability Modulo Theories (SMT) solvers based on
 
 theory SMT
   imports Divides Numeral_Simprocs
-  keywords "smt_status" :: diag
+  keywords
+    "smt_status" :: diag and
+    "cvc5_rare" :: thy_decl
 begin
 
 subsection \<open>A skolemization tactic and proof method\<close>
@@ -671,6 +673,7 @@ ML_file \<open>Tools/SMT/z3_replay_rules.ML\<close>
 ML_file \<open>Tools/SMT/z3_replay_methods.ML\<close>
 ML_file \<open>Tools/SMT/z3_replay.ML\<close>
 ML_file \<open>Tools/SMT/lethe_replay_methods.ML\<close>
+ML_file \<open>Tools/SMT/cvc5_rare.ML\<close>
 ML_file \<open>Tools/SMT/cvc5_replay_methods.ML\<close>
 ML_file \<open>Tools/SMT/verit_replay_methods.ML\<close>
 ML_file \<open>Tools/SMT/verit_strategies.ML\<close>

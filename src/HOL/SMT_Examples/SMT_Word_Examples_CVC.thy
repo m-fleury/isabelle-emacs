@@ -43,7 +43,7 @@ lemma "7 * 3 = (21::8 word)" by (smt (cvc5))
 lemma "11 - 27 = (-16::8 word)" by (smt (cvc5))
 lemma "- (- 11) = (11::5 word)" by (smt (cvc5))
 lemma "-40 + 1 = (-39::7 word)" by (smt (cvc5))
-lemma "a + 2 * b + c - b = (b + c) + (a :: 32 word)" by (smt (cvc5))
+lemma "a + 2 * b + c - b = (b + c) + (a :: 32 word)" supply [[smt_trace]] by (smt (cvc5))
 lemma "x = (5 :: 4 word) \<Longrightarrow> 4 * x = 4" by (smt (cvc5))
 
 
