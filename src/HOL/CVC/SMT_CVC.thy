@@ -5,9 +5,8 @@ begin
 
 named_theorems all_simplify_temp \<open>Theorems to reconstruct bitvector theorems concerning list
                                   functions, e.g. take.\<close>
-named_theorems cvc_evaluate \<open>Theorems to reconstruct evaluate steps in cvc5 proofs\<close>
 
-lemmas [cvc_evaluate] = smt_extract_def
+named_theorems cvc_evaluate \<open>Theorems to reconstruct evaluate steps in cvc5 proofs\<close>
 
 named_theorems arith_simp_cvc5 \<open>Might be temp and integrated into smt_arith_simplify \<close>
 
@@ -16,6 +15,8 @@ lemmas [arith_simp_cvc5] = Groups.monoid_mult_class.mult_1_right Nat.mult_Suc_ri
                      Num.numeral_2_eq_2 Nat.One_nat_def Num.numeral_2_eq_2 Nat.One_nat_def
                      Nat.Suc_less_eq Nat.zero_less_Suc minus_nat.diff_0 Nat.diff_Suc_Suc Nat.le0
 
+
+ML_file \<open>ML/SMT_set.ML\<close>
 ML_file \<open>ML/lethe_replay_all_simplify_methods.ML\<close>
 
 ML_file \<open>ML/smt_parse_problem.ML\<close>
@@ -60,5 +61,19 @@ declare [[smt_trace=false,smt_timeout=5000000,smt_cvc_lethe = true]]
 
 ML \<open> 
 Config.put SMT_Config.trace true\<close>
+declare[[smt_nat_as_int=true,smt_trace=true,smt_verbose=true,smt_debug_verit]]
+
+declare[[native_set=true]]
+lemma
+"(A::int set) = {1,2} \<Longrightarrow> card (A::int set) = 2"
+  sorry
+
+
+
+
+
+
+
+
 
 end

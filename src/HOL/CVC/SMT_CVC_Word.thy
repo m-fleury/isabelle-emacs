@@ -2,6 +2,11 @@ theory SMT_CVC_Word \<comment> \<open>More Setup for CVC that should be in HOL-W
   imports SMT_Word "SMT_CVC" "BV_Rewrites"
 begin
 
+(*Evaluation Steps*)
+
+named_theorems cvc_evaluate_bv \<open>Theorems to reconstruct bit-vector evaluate steps in cvc5 proofs\<close>
+lemmas [cvc_evaluate] = cvc_evaluate_bv
+
 
 lemma cvc_ListOp_neutral_bv_and [cvc_ListOp_neutral]:
  "cvc_isListOp (ListOp (semiring_bit_operations_class.and) (-1::'a::len word))"
@@ -9,7 +14,6 @@ lemma cvc_ListOp_neutral_bv_and [cvc_ListOp_neutral]:
 
 
 ML_file \<open>ML/SMT_string.ML\<close>
-ML_file \<open>ML/SMT_set.ML\<close>
 ML_file \<open>ML/SMT_array.ML\<close>
 
 ML \<open>
