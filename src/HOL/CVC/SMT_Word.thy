@@ -731,8 +731,10 @@ val _ = @{print}("second index i",i)
 val _ = @{print}("second index I",I)
 
     val T = fastype_of u
-    val TU = i - j + 1
+    val TU = j - i + 1
           |> Word_Lib.mk_wordT
+val _ = @{print}("second index TU",TU)
+
   in Const (\<^const_name>\<open>SMT_Word.smt_extract\<close>, @{typ nat} --> @{typ nat} --> T --> TU) $ J $ I $ u end;
 
 fun mk_zero_extend i u =
@@ -801,7 +803,8 @@ end
        val t2' = if T2 = \<^typ>\<open>Int.int\<close> then Const ( \<^const_name>\<open>nat\<close>, T2 -->  \<^typ>\<open>Nat.nat\<close>) $ t2 else t2
     in SOME (Const (\<^const_name>\<open>SMT_Word.smt_extract\<close>, @{typ nat} --> @{typ nat} --> dummyT --> dummyT) $ t1' $ t2' $ t3)
     end
-  | bv_term_parser (SMTLIB.S [SMTLIB.Sym "_",SMTLIB.Sym "extract", SMTLIB.Num i, SMTLIB.Num j],[t]) = SOME (mk_extract i j t)
+  | bv_term_parser (SMTLIB.S [SMTLIB.Sym "_",SMTLIB.Sym "extract", SMTLIB.Num i, SMTLIB.Num j],[t]) = 
+    (@{print}("bv_term_parser extract i",i);@{print}("j",j);SOME (mk_extract j i t))
   | bv_term_parser (SMTLIB.Sym "bvnand", [t1, t2]) =
       SOME (mk_unary \<^const_name>\<open>ring_bit_operations_class.not\<close> (HOLogic.mk_binop \<^const_name>\<open>semiring_bit_operations_class.and\<close> (t1, t2)))
   | bv_term_parser (SMTLIB.Sym "bvnor", [t1, t2]) =
@@ -1065,8 +1068,6 @@ in
 end
 \<close>
 
-
-lemmas [cvc_evaluate] = smt_extract_def
 
 term " (0 :: 32 word)"
 ML \<open>@{typ "32 word"} = \<^typ>\<open>_ word\<close>\<close>
