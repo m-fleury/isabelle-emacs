@@ -718,7 +718,6 @@ fun mk_unary n t =
 val mk_nat = HOLogic.mk_number \<^typ>\<open>nat\<close>
 
 fun mk_lassoc f t ts = fold (fn u1 => fn u2 => f u2 u1) ts t
-fun mk_test (t1, t2) = (Const (\<^const_name>\<open>Word.word_cat\<close>, dummyT --> dummyT --> dummyT))  $ t1 $ t2
 
 fun mk_extract i j u =
   let
@@ -749,10 +748,24 @@ fun mk_scast i u =
     val TU = Word_Lib.mk_wordT i
   in Const (\<^const_name>\<open>Word.signed\<close>, T --> TU) $ u end;
 
+fun mk_concat t1 t2 =
+  let
+    val T1 = fastype_of t1 
+    val T2 = fastype_of t2
+  in
+   case (try dest_wordT T1, try dest_wordT T2) of
+    (SOME i, SOME j)
+       => SOME (Const (\<^const_name>\<open>Word.word_cat\<close>, T1 --> T2 --> mk_wordT (i + j)) $ t1 $ t2) |
+     _
+       => NONE
+  end
+
+(*For the FixedSizeBitVectors theory*)
 fun bv_term_parser (SMTLIB.BVNum (i, base), []) = SOME (HOLogic.mk_number (mk_wordT(base)) i)
   | bv_term_parser (SMTLIB.Sym "bbT", xs) =
         SOME ((Const ("Reversed_Bit_Lists.of_bl", \<^typ>\<open>HOL.bool list\<close> --> mk_wordT(length xs))) 
         $ ((Const (\<^const_name>\<open>List.rev\<close>, \<^typ>\<open>HOL.bool list\<close> -->  \<^typ>\<open>HOL.bool list\<close>)) $ (HOLogic.mk_list \<^typ>\<open>bool\<close> xs)))
+  | bv_term_parser (SMTLIB.Sym "concat", [t1,t2]) = mk_concat t1 t2
   | bv_term_parser (SMTLIB.S [SMTLIB.Sym "_", SMTLIB.Sym "bitOf", SMTLIB.Num i], [t]) =
       SOME (Const (\<^const_name>\<open>semiring_bits_class.bit\<close>, (fastype_of t) --> HOLogic.natT --> \<^typ>\<open>HOL.bool\<close>)
       $ t $ (HOLogic.mk_nat i))
@@ -920,8 +933,7 @@ end
       SOME (HOLogic.mk_binrel \<^const_name>\<open>smt_ssubo\<close> (t1, t2))
   (*| bv_term_parser (SMTLIB.Sym "xor", [t1, t2]) =
       SOME (Const ("Word.xor", \<^typ>\<open>HOL.bool\<close> --> \<^typ>\<open>HOL.bool\<close> --> \<^typ>\<open>HOL.bool\<close> ) $ t1 $ t2)*)
-  | bv_term_parser (SMTLIB.Sym "concat", t::ts) = 
-      SOME (mk_lassoc (curry mk_test) t ts)
+  
   | bv_term_parser (SMTLIB.Sym "sum_length",[ts]) =
       SOME (Const (\<^const_name>\<open>temp_sum_length\<close>, dummyT -->dummyT) $ ts)
   | bv_term_parser (SMTLIB.Sym "list_length_0",[ts]) =
