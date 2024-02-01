@@ -19,7 +19,6 @@ named_theorems word_minus_rbl_bvneg_fun
 named_theorems word_minus_rbl_bvneg 
 named_theorems word_mult_rbl_bvmult_fun
 named_theorems rbl_bvult_fun
-named_theorems evaluate_bv_cvc5 \<open>Lemmas to resolve evaluate rewrite steps \<close>
 
 named_theorems word_and_rbl_bvand \<open>Theorems to reconstruct bitblasting of a bvand term.\<close>
 named_theorems word_or_rbl_bvor \<open>Theorems to reconstruct bitblasting of a bvand term.\<close>
