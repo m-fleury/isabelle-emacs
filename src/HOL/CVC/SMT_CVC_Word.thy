@@ -5,6 +5,13 @@ begin
 (*Evaluation Steps*)
 
 named_theorems cvc_evaluate_bv \<open>Theorems to reconstruct bit-vector evaluate steps in cvc5 proofs\<close>
+lemmas [cvc_evaluate_bv] = bv_reconstruction_length
+
+lemmas bit_operations = drop_bit_eq_div take_bit_eq_mod push_bit_eq_mult
+lemmas all_extract = smt_extract_def slice_def slice1_def
+lemmas power = power_0 power_Suc
+
+lemmas [cvc_evaluate_bv] = bit_operations all_extract power
 lemmas [cvc_evaluate] = cvc_evaluate_bv
 
 
