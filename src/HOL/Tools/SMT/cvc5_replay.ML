@@ -263,7 +263,7 @@ fun replay outer_ctxt
        then (raise SMT_Failure.SMT (SMT_Failure.Other_Failure ("reconstruction with CVC is experimental.\n" ^
          "You must activate it with [[smt_cvc_lethe = true]] and use cvc5 (not included as component) .")))
        else ()
-    val _ = @{print}("assms",assms)
+    (*val _ = @{print}("assms",assms)*)
     val rewrite_rules =
       filter_out (fn thm => Term.could_unify (Thm.prop_of @{thm verit_eq_true_simplify},
           Thm.prop_of thm))
@@ -277,7 +277,7 @@ fun replay outer_ctxt
 (*Here the premise should still be in the assumption*)
     val (actual_steps, ctxt2) =
       Lethe_Proof.parse_replay typs terms output ctxt
-    val _ = @{print}("actual_steps",actual_steps)
+    (*val _ = @{print}("actual_steps",actual_steps)*)
     val parsing_time = Time.toNanoseconds (#elapsed (Timing.result start0))
 
     fun step_of_assume (j, (_, th)) =
@@ -304,7 +304,7 @@ fun replay outer_ctxt
       map_filter (fn id => let val i = index_of_id id in if i >= 0 then SOME (i, nth assms i)
           else NONE end)
         used_assert_ids
-    val _ = @{print}("used_assm_js",used_assm_js)
+    (*val _ = @{print}("used_assm_js",used_assm_js)*)
 
     val assm_steps = map step_of_assume used_assm_js
     fun extract (Lethe_Proof.Lethe_Replay_Node {id, rule, concl, bounds, ...}) =
@@ -315,7 +315,7 @@ fun replay outer_ctxt
     val ((_, _), (ctxt3, assumed)) =
       add_asssert outer_ctxt rewrite_rules (map (apfst fst) assms)
         (map_filter (remove_rewrite_rules_from_rules num_ll_defs) assm_steps) ctxt2
-    val _ = @{print}("assumed",assumed)
+    (*val _ = @{print}("assumed",assumed)*)
 
     val used_rew_js =
       map_filter (fn id => let val i = index_of_id id in if i < 0
