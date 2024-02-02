@@ -1,17 +1,68 @@
 theory SMT_CVC_Word \<comment> \<open>More Setup for CVC that should be in HOL-Word eventually\<close>
   imports SMT_Word "SMT_CVC" "BV_Rewrites"
 begin
+declare[[show_types,show_sorts]]
 
 (*Evaluation Steps*)
 
+(*This evaluation should be high in success instead of fast on average*)
 named_theorems cvc_evaluate_bv \<open>Theorems to reconstruct bit-vector evaluate steps in cvc5 proofs\<close>
 lemmas [cvc_evaluate_bv] = bv_reconstruction_length
 
 lemmas bit_operations = drop_bit_eq_div take_bit_eq_mod push_bit_eq_mult
-lemmas all_extract = smt_extract_def slice_def slice1_def
-lemmas power = power_0 power_Suc
+                        numeral_mod_numeral divmod_cancel
 
-lemmas [cvc_evaluate_bv] = bit_operations all_extract power
+lemma evaluate_concat:
+"(word_cat (x::'a::len word) (y::'b::len word)::'c::len word)
+   = ucast x * (2::'c word) ^ LENGTH('b) + ucast y"
+  unfolding word_cat_eq[of x y] push_bit_eq_mult
+  by simp
+
+
+lemma "(smt_extract 1 2 (4::7 word)::2 word) = 0"
+  by (code_simp) (*Benutzt die code regeln aber als simp*)
+
+
+lemma evaluate_extract1:
+ "(smt_extract j i (w::'a::len word)::'b::len word) = 
+    (if 0 < i then ucast (drop_bit i (take_bit (Suc j) w))
+     else push_bit i (ucast (take_bit (Suc j) w)))"
+  (*code generation*)
+  unfolding smt_extract_def slice_def 
+  unfolding slice1_def
+  apply (cases "0 < i")
+   apply simp_all
+  by (metis diff_diff_cancel diff_is_0_eq drop_bit_word_beyond nat_le_linear)
+
+value "(3::int) mod 4"
+
+thm Word.modulo_word_def
+thm modulo_integer_def
+ 
+
+
+
+lemma evaluate_extract2:
+ "(smt_extract j 0 (w::'a::len word)::'b::len word) = (ucast (w) mod ucast ((2::'b::len word) ^ (Suc j)))"
+  apply (simp add: evaluate_extract1[of j 0 w])
+  apply (simp add: take_bit_eq_mod)
+  using unat_mod
+  by (metis power_Suc take_bit_eq_mod unsigned_take_bit_eq)
+
+lemma evaluate_extract3:
+ "(smt_extract j (Suc i) (w::'a::len word)::'b::len word) = ucast (drop_bit (Suc i) (take_bit (Suc j) w))"
+  using evaluate_extract1[of j "Suc i"] by simp
+
+lemmas evaluate_extract = evaluate_extract2 evaluate_extract3
+
+lemmas evaluate_power = power_0 power_Suc
+lemmas evaluate_casts = unsigned_numeral of_nat_numeral 
+lemmas bv_mult = word_mult_def (*Is this the best way?*)
+
+lemmas [cvc_evaluate_bv]
+  = evaluate_casts bit_operations 
+    bv_mult
+    evaluate_concat evaluate_power 
 lemmas [cvc_evaluate] = cvc_evaluate_bv
 
 
