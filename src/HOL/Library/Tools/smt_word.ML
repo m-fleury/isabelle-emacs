@@ -39,16 +39,13 @@ local
   fun index1 s i = "(_ " ^ s ^ " " ^ string_of_int i ^ ")"
   fun index2 s i j = "(_ " ^ s ^ " " ^ string_of_int i ^ " " ^ string_of_int j ^ ")"
 
-  fun word_typ (Type (\<^type_name>\<open>word\<close>, [T])) =
-let 
-     val temp = Option.map (rpair [] o index1 "BitVec") (try dest_binT T)
+  fun word_typ (Type (\<^type_name>\<open>word\<close>, [T]))
+    = Option.map (rpair [] o index1 "BitVec") (try dest_binT T) |
+  word_typ (Type (_, [T])) = Option.map (rpair [] o index1 "BitVec") (try dest_binT T) |
+  word_typ T = NONE
 
-in
-temp
-end |
-  word_typ (Type (_, [T])) =
-Option.map (rpair [] o index1 "BitVec") (try dest_binT T)
-    | word_typ T = NONE
+  fun remove_cast (Const ("Int.nat", _) $ x) = x |
+      remove_cast x = x
 
   (*CVC4 does not support "_bvk T" when k does not fit in the BV of size T, so remove the bits that
    will be ignored according to the SMT-LIB*)
@@ -106,23 +103,6 @@ Option.map (rpair [] o index1 "BitVec") (try dest_binT T)
 
   fun mk_extract c i ts = Term.list_comb (Const c, mk_nat i :: ts)
 
-  fun remove_cast (Const ("Int.nat", _) $ x) = x |
-      remove_cast x = x
-(*Third return is what is written in table in the
-end and used to find the string. We can not put the
-current term in there since it needs to be more general
-Think of it as:
-
-f_e = mk_extract (m, T) lb
-
-term       |    string
-----------------------
- f_e(x)    |    (extract 4 4)
-
-where x is arbitrary and is actually mapped. We are not
-doing the mapping here. We just add a function to the 
-table that is used for mapping
-*)
   fun extract m n T ts =
     let
       val _ = @{print}("m",m)
@@ -135,13 +115,22 @@ table that is used for mapping
 
     in
       (case (try (snd o HOLogic.dest_number o remove_cast o hd) ts, try dest_wordT U) of
-        (SOME lb, SOME i) => 
-          (@{print}("lb",lb);@{print}("lb2",(i + lb - 1));@{print}("i",i);
-           @{print}("index2 n (i + lb - 1) lb",index2 n (i + lb - 1) lb);
-           @{print}("tl ts",tl ts);@{print}("mk_extract (m, T) lb",mk_extract (m, T) lb);
-           @{print}("mk_extract (m, T) lb []",mk_extract (m, T) lb []);
+        (SOME j, SOME i') => 
+         let
+          val i = (i' + j - 1)
+         in
+          if i >= j andalso j >=0 andalso i = i' + j - 1 (*TODO: Mache eigene Funktion fuer slice wo der letzte wert dann fastype ist.*) 
+          then
 
-          SOME (index2 n (i + lb - 1) lb, 1, tl ts, mk_extract (m, T) lb))
+          (@{print}("lb",j);@{print}("lb2",(i' + j - 1));@{print}("i",i');
+           @{print}("index2 n (i + lb - 1) lb",index2 n (i' + j - 1) j);
+           @{print}("tl ts",tl ts);@{print}("mk_extract (m, T) lb",mk_extract (m, T) j);
+           @{print}("mk_extract (m, T) lb []",mk_extract (m, T) j []);
+
+          SOME (index2 n (i' + j - 1) j, 1, tl ts, mk_extract (m, T) j))
+          else
+           NONE
+         end
       | _ => NONE)
     end
 
@@ -351,18 +340,15 @@ val _ = @{print} ("len_of", t)
 in
 
 fun concat op_name smt_name typ terms =
- (case (try Term.dest_funT typ) of
-  (SOME (T1,typ')) =>
-   (case (try Term.dest_funT typ') of
-    SOME (T2,T) =>
+ (case typ of
+   (Type(_,[T1,Type(_,[T2,T])])) =>
      (case (try dest_wordT T1, try dest_wordT T2, try dest_wordT T) of
       (SOME i, SOME j, SOME k) =>
        (if (i + j = k)
         then (if_fixed (forall (can dest_wordT) o (op ::)) op_name smt_name typ terms)
         else NONE) |
       _ => NONE) |
-    NONE => NONE) |
-  NONE => NONE)
+    _ => NONE)
 
 val setup_builtins =
   SMT_Builtin.add_builtin_typ SMTLIB_Interface.bvsmtlibC (wordT, word_typ, word_num) #>
