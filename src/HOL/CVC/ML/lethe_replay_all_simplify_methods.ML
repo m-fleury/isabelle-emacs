@@ -17,6 +17,10 @@ struct
 val TRY' = Lethe_Replay_Methods.TRY'
 val simplify_tac = Lethe_Replay_Methods.simplify_tac
 
+fun code_simp_tac ctxt thms = Code_Simp.dynamic_tac
+
+
+
 val all_rewrite_thys =
 let
  (*This is a little hacky; get theory HOL-CVC.Rare_Interface without registering it (which would 
@@ -115,6 +119,18 @@ fun try_simp ctxt t =
 THEN' K (print_tac ctxt "debug in try simp")
   )
 
+(*Use this for now to make sure all important functions are in cvc_evaluate*)
+fun try_evaluate ctxt t =
+  SMT_Replay_Methods.prove ctxt t (fn _ =>
+      TRY' (Code_Simp.dynamic_tac ctxt )
+     THEN' K (print_tac ctxt "applied code_simp")
+     THEN' TRY' (K (HEADGOAL (simplify_tac ctxt ((Named_Theorems.get ctxt @{named_theorems cvc_evaluate})))))
+     THEN' K (print_tac ctxt "applied evaluation theorems")
+ 
+ )
+
+
+
 fun try_auto_solo ctxt t = 
   SMT_Replay_Methods.prove ctxt t (fn _ => TRY' (K (Clasimp.auto_tac ctxt)))
 
@@ -125,7 +141,7 @@ in
  fun all_simplify ctxt (th : thm list) (Free (rewrite_name, _) :: args) t =
   if rewrite_name = "evaluate"
   then
-   (SMT_Config.verbose_msg ctxt (pretty ("Found evaluate, try to simplify")) []; try_simp ctxt t)
+   (SMT_Config.verbose_msg ctxt (pretty ("Found evaluate, try to simplify")) []; try_evaluate ctxt t)
 else
 ( dsl_tac_initialize rewrite_name args ctxt t th) |
 
