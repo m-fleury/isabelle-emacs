@@ -16,6 +16,7 @@ signature SMT_Set =
 sig 
    val set_type_parser : SMTLIB.tree * typ list -> typ option
    val set_term_parser :  SMTLIB.tree * term list -> term option
+   val setup_builtins : Context.generic -> Context.generic
 end
 
 
@@ -93,8 +94,8 @@ val _ = Theory.setup (Context.theory_map (
 (*Translating from Isabelle into SMT-LIB*)
 
 
-fun set_typ _ = SOME ("Set Int",[])
-fun set_term _ k = (@{print}("YELL",k); SOME "{1, 2}")
+fun set_typ _ = SOME ("Set",[ \<^typ>\<open>int\<close> ])
+fun set_term _ k = (@{print}("YELL",k); SOME "bot")
 val smt_types = [ \<^typ>\<open>Int.int\<close>, \<^typ>\<open>HOL.bool\<close>]
 
 fun only_smtlib_types f str = 
@@ -104,7 +105,10 @@ val setup_builtins =
   SMT_Builtin.add_builtin_typ SMTLIB_Interface.setsmtlibC
     (\<^typ>\<open>int set\<close>, set_typ, set_term) #>
   fold (SMT_Builtin.add_builtin_fun' SMTLIB_Interface.setsmtlibC) [
-   (\<^Const>\<open>card \<^typ>\<open>'a\<close>\<close>, "card")
+   (\<^Const>\<open>card \<^typ>\<open>int set\<close>\<close>, "card"),
+   (\<^Const>\<open>insert \<^typ>\<open>int set\<close>\<close>, "insert"),
+   (\<^Const>\<open>bot \<^typ>\<open>int set\<close>\<close>, "empty")
+
   ]
 
 fun smtlib_logic "cvc5" _ = SOME "QF_UFLIAFS" |
