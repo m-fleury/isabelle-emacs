@@ -720,21 +720,15 @@ val mk_nat = HOLogic.mk_number \<^typ>\<open>nat\<close>
 fun mk_lassoc f t ts = fold (fn u1 => fn u2 => f u2 u1) ts t
 
 fun mk_extract i j u =
-  let
-    val I = HOLogic.mk_number \<^typ>\<open>nat\<close> i
-    val J = HOLogic.mk_number \<^typ>\<open>nat\<close> j
-val _ = @{print}("first index j",j)
-val _ = @{print}("first index J",J)
+ let
+  val I = HOLogic.mk_number \<^typ>\<open>nat\<close> i
+  val J = HOLogic.mk_number \<^typ>\<open>nat\<close> j
 
-val _ = @{print}("second index i",i)
-val _ = @{print}("second index I",I)
-
-    val T = fastype_of u
-    val TU = j - i + 1
-          |> Word_Lib.mk_wordT
-val _ = @{print}("second index TU",TU)
-
-  in Const (\<^const_name>\<open>SMT_Word.smt_extract\<close>, @{typ nat} --> @{typ nat} --> T --> TU) $ J $ I $ u end;
+  val T = fastype_of u
+  val TU = j - i + 1 |> Word_Lib.mk_wordT
+ in
+   Const (\<^const_name>\<open>SMT_Word.smt_extract\<close>, @{typ nat} --> @{typ nat} --> T --> TU) $ J $ I $ u
+ end
 
 fun mk_zero_extend i u =
   let
@@ -748,27 +742,18 @@ fun mk_scast i u =
     val TU = Word_Lib.mk_wordT i
   in Const (\<^const_name>\<open>Word.signed\<close>, T --> TU) $ u end;
 
-fun mk_concat t1 t2 =
-  let
-    val T1 = fastype_of t1 
-    val T2 = fastype_of t2
-  in
-   case (try dest_wordT T1, try dest_wordT T2) of
-    (SOME i, SOME j)
-       => SOME (Const (\<^const_name>\<open>Word.word_cat\<close>, T1 --> T2 --> mk_wordT (i + j)) $ t1 $ t2) |
-     _
-       => NONE
-  end
-
 (*For the FixedSizeBitVectors theory*)
 fun bv_term_parser (SMTLIB.BVNum (i, base), []) = SOME (HOLogic.mk_number (mk_wordT(base)) i)
   | bv_term_parser (SMTLIB.Sym "bbT", xs) =
         SOME ((Const ("Reversed_Bit_Lists.of_bl", \<^typ>\<open>HOL.bool list\<close> --> mk_wordT(length xs))) 
         $ ((Const (\<^const_name>\<open>List.rev\<close>, \<^typ>\<open>HOL.bool list\<close> -->  \<^typ>\<open>HOL.bool list\<close>)) $ (HOLogic.mk_list \<^typ>\<open>bool\<close> xs)))
-  | bv_term_parser (SMTLIB.Sym "concat", [t1,t2]) = mk_concat t1 t2
   | bv_term_parser (SMTLIB.S [SMTLIB.Sym "_", SMTLIB.Sym "bitOf", SMTLIB.Num i], [t]) =
       SOME (Const (\<^const_name>\<open>semiring_bits_class.bit\<close>, (fastype_of t) --> HOLogic.natT --> \<^typ>\<open>HOL.bool\<close>)
       $ t $ (HOLogic.mk_nat i))
+
+  | bv_term_parser (SMTLIB.S [SMTLIB.Sym "_",SMTLIB.Sym "extract", SMTLIB.Num i, SMTLIB.Num j],[t])
+       = SOME (mk_extract j i t)
+
 | bv_term_parser (SMTLIB.S [SMTLIB.Sym "_",SMTLIB.Sym "int2bv", SMTLIB.Num t], xs) = (*TODO*)
 (* ("bad SMT term format",
              S [Sym "_", Sym "int2bv",
@@ -805,19 +790,6 @@ in
      SOME (Const (\<^const_name>\<open>unsigned\<close>, (fastype_of t1) --> \<^typ>\<open>int\<close>) $ t1)
 end
       (*SOME ( t1)*)
- (*TODO: These are in SMTLIB3 syntax for parametric bitwidths. Put in own parser? 
-         Also should variants for concrete bitwidths be added for when smtlib3 terms appear in proofs?*)
-  | bv_term_parser (SMTLIB.Sym "extract", [t1,t2,t3]) =
-    let 
-       val T1 = fastype_of t1
-       val T2 = fastype_of t2
-
-       val t1' = if T1 = \<^typ>\<open>Int.int\<close> then Const ( \<^const_name>\<open>nat\<close>, T1 -->  \<^typ>\<open>Nat.nat\<close>) $ t1 else t1
-       val t2' = if T2 = \<^typ>\<open>Int.int\<close> then Const ( \<^const_name>\<open>nat\<close>, T2 -->  \<^typ>\<open>Nat.nat\<close>) $ t2 else t2
-    in SOME (Const (\<^const_name>\<open>SMT_Word.smt_extract\<close>, @{typ nat} --> @{typ nat} --> dummyT --> dummyT) $ t1' $ t2' $ t3)
-    end
-  | bv_term_parser (SMTLIB.S [SMTLIB.Sym "_",SMTLIB.Sym "extract", SMTLIB.Num i, SMTLIB.Num j],[t]) = 
-    (@{print}("bv_term_parser extract i",i);@{print}("j",j);SOME (mk_extract j i t))
   | bv_term_parser (SMTLIB.Sym "bvnand", [t1, t2]) =
       SOME (mk_unary \<^const_name>\<open>ring_bit_operations_class.not\<close> (HOLogic.mk_binop \<^const_name>\<open>semiring_bit_operations_class.and\<close> (t1, t2)))
   | bv_term_parser (SMTLIB.Sym "bvnor", [t1, t2]) =
@@ -1079,7 +1051,7 @@ in
 ()
 end
 \<close>
-
+(*
 
 term " (0 :: 32 word)"
 ML \<open>@{typ "32 word"} = \<^typ>\<open>_ word\<close>\<close>
@@ -1108,5 +1080,8 @@ lemma "unat (2048 :: 32 word) \<le> 4294967296"
   supply [[smt_trace,smt_nat_as_int]]
 by (smt (cvc5) )
 
+*)
+value "(11::3 word)"
+value "(3::3 word)"
 
 end
