@@ -350,6 +350,20 @@ val _ = @{print} ("len_of", t)
    end
 in
 
+fun concat op_name smt_name typ terms =
+ (case (try Term.dest_funT typ) of
+  (SOME (T1,typ')) =>
+   (case (try Term.dest_funT typ') of
+    SOME (T2,T) =>
+     (case (try dest_wordT T1, try dest_wordT T2, try dest_wordT T) of
+      (SOME i, SOME j, SOME k) =>
+       (if (i + j = k)
+        then (if_fixed (forall (can dest_wordT) o (op ::)) op_name smt_name typ terms)
+        else NONE) |
+      _ => NONE) |
+    NONE => NONE) |
+  NONE => NONE)
+
 val setup_builtins =
   SMT_Builtin.add_builtin_typ SMTLIB_Interface.bvsmtlibC (wordT, word_typ, word_num) #>
 (*Isabelle typ, typ uebersetzung, term uebersetzung*)
@@ -363,8 +377,9 @@ val setup_builtins =
     (\<^term>\<open>not :: 'a::len word \<Rightarrow> _\<close>, "bvnot"),
     (\<^term>\<open>and :: 'a::len word \<Rightarrow> _\<close>, "bvand"),
     (\<^term>\<open>or :: 'a::len word \<Rightarrow> _\<close>, "bvor"),
-    (\<^term>\<open>xor :: 'a::len word \<Rightarrow> _\<close>, "bvxor"),
-    (\<^term>\<open>word_cat :: 'a::len word \<Rightarrow> _\<close>, "concat") ] #>
+    (\<^term>\<open>xor :: 'a::len word \<Rightarrow> _\<close>, "bvxor") ] #>
+  add_word_fun concat
+    (\<^term>\<open>word_cat :: 'a::len word \<Rightarrow> _\<close>, "concat")  #>
   fold (add_word_fun shift) [
     (\<^term>\<open>push_bit :: nat \<Rightarrow> 'a::len word \<Rightarrow> _ \<close>, "bvshl"),
     (\<^term>\<open>drop_bit :: nat \<Rightarrow> 'a::len word \<Rightarrow> _\<close>, "bvlshr"),
@@ -420,17 +435,17 @@ val split_last =
        | split_last (x :: xs) = apfst (curry (op ::) x) (split_last xs)
   in apfst List.rev o split_last end
 
-fun mk_concat (t, u) =
+fun mk_concat t1 t2 =
   let
-    val T = fastype_of t
-    val _ = @{print}("fastype_of t",fastype_of t)
-    val U = fastype_of u
-
-    (*TODO: If one of them is not concrete we need to use LENGTH('a) here. But how to add the extra restriction that LENGTH('c) = LENGTH('a) + LENGTH('b)?*)
-    (*val TU = Word_Lib.dest_wordT T + Word_Lib.dest_wordT U
-          |> Word_Lib.mk_wordT*)
-    val TU = (TVar (("?a", serial ()), []))
-  in Const (\<^const_name>\<open>Word.word_cat\<close>, T --> U --> TU) $ t $ u end;
+    val T1 = fastype_of t1 
+    val T2 = fastype_of t2
+  in
+   case (try dest_wordT T1, try dest_wordT T2) of
+    (SOME i, SOME j)
+       => SOME (Const (\<^const_name>\<open>Word.word_cat\<close>, T1 --> T2 --> mk_wordT (i + j)) $ t1 $ t2) |
+     _
+       => NONE
+  end
 
 fun mk_zero_extend i u =
   let
@@ -446,7 +461,6 @@ fun mk_scast i u =
 
 fun mk_lassoc f t ts = fold (fn u1 => fn u2 => f u2 u1) ts t
 
-(*TODO: Jan 8 hier weitermachen*)
 fun bv_term_parser (SMTLIB.Sym bv, []) =
       (case try (unprefix "bv") bv of
         NONE => NONE
@@ -468,6 +482,7 @@ fun bv_term_parser (SMTLIB.Sym bv, []) =
       in
         SOME (HOLogic.mk_number ty num)
       end
+  | bv_term_parser (SMTLIB.Sym "concat", [t1,t2]) = mk_concat t1 t2
   | bv_term_parser (SMTLIB.Sym "bvult", [t1, t2]) = 
       SOME (HOLogic.mk_binrel \<^const_name>\<open>Orderings.less\<close> (t1, t2))
   | bv_term_parser (SMTLIB.Sym "bvule", [t1, t2]) =
@@ -512,8 +527,6 @@ fun bv_term_parser (SMTLIB.Sym bv, []) =
       SOME (mk_unary \<^const_name>\<open>ring_bit_operations_class.not\<close> (HOLogic.mk_binop \<^const_name>\<open>semiring_bit_operations_class.xor\<close> (t1, t2)))
   | bv_term_parser (SMTLIB.Sym "bvnot", [t1]) =
       SOME (mk_unary \<^const_name>\<open>ring_bit_operations_class.not\<close> t1)
-  | bv_term_parser (SMTLIB.Sym "concat", [t1, t2]) =
-      SOME (mk_concat (t1, t2))
   | bv_term_parser (SMTLIB.S [SMTLIB.Sym "_", SMTLIB.Sym "zero_extend", SMTLIB.Num i], [t]) =
       SOME (mk_zero_extend i t)
   | bv_term_parser (SMTLIB.S [SMTLIB.Sym "_", SMTLIB.Sym "sign_extend", SMTLIB.Num i], [t]) =
