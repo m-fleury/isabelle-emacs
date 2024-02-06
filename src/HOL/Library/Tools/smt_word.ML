@@ -72,8 +72,7 @@ local
   fun add_word_fun f (t, n) =
     let val (m, _) = Term.dest_Const t
     in SMT_Builtin.add_builtin_fun smtlibC (Term.dest_Const t, K (f m n)) end
-(*  val add_builtin_fun: SMT_Util.class -> (string * typ) * bfunr option bfun -> Context.generic ->
-    Context.generic*)
+
 
   val mk_nat = HOLogic.mk_number \<^typ>\<open>nat\<close>
 
@@ -103,7 +102,10 @@ local
 
   fun mk_extract c i ts = Term.list_comb (Const c, mk_nat i :: ts)
 
-  fun extract m n T ts =
+
+
+
+  fun slice m n T ts =
     let
       val _ = @{print}("m",m)
       val _ = @{print}("n",n)
@@ -370,7 +372,7 @@ val setup_builtins =
     (\<^term>\<open>push_bit :: nat \<Rightarrow> 'a::len word \<Rightarrow> _ \<close>, "bvshl"),
     (\<^term>\<open>drop_bit :: nat \<Rightarrow> 'a::len word \<Rightarrow> _\<close>, "bvlshr"),
     (\<^term>\<open>signed_drop_bit :: nat \<Rightarrow> 'a::len word \<Rightarrow> _\<close>, "bvashr") ] #>
-  add_word_fun extract
+  add_word_fun slice
     (\<^term>\<open>slice :: _ \<Rightarrow> 'a::len word \<Rightarrow> _\<close>, "extract") #>
   add_len_of
     (\<^term>\<open>len_of :: 'a :: len0 itself => nat\<close>, "IDDD") #>
