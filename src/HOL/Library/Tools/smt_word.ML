@@ -110,7 +110,7 @@ local
      let
       val i = i' - 1
      in
-      if i >= j andalso k = i - j (*i > k is implicit*)
+      if i >= j andalso k = i' - j (*i > k is implicit*)
       then SOME (index2 n i j, 1, tl ts, mk_extract (m, T) j)
       else NONE
      end
