@@ -102,39 +102,20 @@ local
 
   fun mk_extract c i ts = Term.list_comb (Const c, mk_nat i :: ts)
 
-
-
-
-  fun slice m n T ts =
-    let
-      val _ = @{print}("m",m)
-      val _ = @{print}("n",n)
-      val _ = @{print}("ts",ts)
-      val _ = @{print}("T",T)
-
-      val U = Term.range_type (Term.range_type T)
-      val _ = @{print}("U",U)
-
-    in
-      (case (try (snd o HOLogic.dest_number o remove_cast o hd) ts, try dest_wordT U) of
-        (SOME j, SOME i') => 
-         let
-          val i = (i' + j - 1)
-         in
-          if i >= j andalso j >=0 andalso i = i' + j - 1 (*TODO: Mache eigene Funktion fuer slice wo der letzte wert dann fastype ist.*) 
-          then
-
-          (@{print}("lb",j);@{print}("lb2",(i' + j - 1));@{print}("i",i');
-           @{print}("index2 n (i + lb - 1) lb",index2 n (i' + j - 1) j);
-           @{print}("tl ts",tl ts);@{print}("mk_extract (m, T) lb",mk_extract (m, T) j);
-           @{print}("mk_extract (m, T) lb []",mk_extract (m, T) j []);
-
-          SOME (index2 n (i' + j - 1) j, 1, tl ts, mk_extract (m, T) j))
-          else
-           NONE
-         end
-      | _ => NONE)
-    end
+  fun slice m n (T as (Type(_,[_,Type(_,[Tx,U])]))) ts =
+   (case (try (snd o HOLogic.dest_number o remove_cast o hd) ts,
+          try dest_wordT U,
+          try dest_wordT Tx) of
+    (SOME j, SOME k, SOME i') => 
+     let
+      val i = i' - 1
+     in
+      if i >= j andalso k = i - j (*i > k is implicit*)
+      then SOME (index2 n i j, 1, tl ts, mk_extract (m, T) j)
+      else NONE
+     end
+    | _ => NONE) |
+  slice _ _ _ _ = NONE
 
   fun mk_bit c n ts = Const c $ hd ts $ mk_nat n
 
@@ -341,16 +322,14 @@ val _ = @{print} ("len_of", t)
    end
 in
 
-fun concat op_name smt_name typ terms =
- (case typ of
-   (Type(_,[T1,Type(_,[T2,T])])) =>
-     (case (try dest_wordT T1, try dest_wordT T2, try dest_wordT T) of
-      (SOME i, SOME j, SOME k) =>
-       (if (i + j = k)
-        then (if_fixed (forall (can dest_wordT) o (op ::)) op_name smt_name typ terms)
-        else NONE) |
-      _ => NONE) |
-    _ => NONE)
+fun concat op_name smt_name (typ as (Type(_,[T1,Type(_,[T2,T])]))) terms =
+ (case (try dest_wordT T1, try dest_wordT T2, try dest_wordT T) of
+  (SOME i, SOME j, SOME k) =>
+   (if (i + j = k)
+    then (if_fixed (forall (can dest_wordT) o (op ::)) op_name smt_name typ terms)
+     else NONE) |
+  _ => NONE) |
+ concat _ _ _ _ = NONE
 
 val setup_builtins =
   SMT_Builtin.add_builtin_typ SMTLIB_Interface.bvsmtlibC (wordT, word_typ, word_num) #>
