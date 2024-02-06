@@ -725,9 +725,9 @@ fun mk_extract i j u =
   val J = HOLogic.mk_number \<^typ>\<open>nat\<close> j
 
   val T = fastype_of u
-  val TU = j - i + 1 |> Word_Lib.mk_wordT
+  val TU = i - j + 1 |> Word_Lib.mk_wordT
  in
-   Const (\<^const_name>\<open>SMT_Word.smt_extract\<close>, @{typ nat} --> @{typ nat} --> T --> TU) $ J $ I $ u
+   Const (\<^const_name>\<open>SMT_Word.smt_extract\<close>, @{typ nat} --> @{typ nat} --> T --> TU) $ I $ J $ u
  end
 
 fun mk_zero_extend i u =
@@ -752,7 +752,7 @@ fun bv_term_parser (SMTLIB.BVNum (i, base), []) = SOME (HOLogic.mk_number (mk_wo
       $ t $ (HOLogic.mk_nat i))
 
   | bv_term_parser (SMTLIB.S [SMTLIB.Sym "_",SMTLIB.Sym "extract", SMTLIB.Num i, SMTLIB.Num j],[t])
-       = SOME (mk_extract j i t)
+       = SOME (mk_extract i j t)
 
 | bv_term_parser (SMTLIB.S [SMTLIB.Sym "_",SMTLIB.Sym "int2bv", SMTLIB.Num t], xs) = (*TODO*)
 (* ("bad SMT term format",
@@ -1051,6 +1051,54 @@ in
 ()
 end
 \<close>
+
+
+ML \<open>
+ fun smtlib_logic "z3" ts =
+    if exists (Term.exists_type (Term.exists_subtype is_wordT)) ts then SOME "" else NONE
+  | smtlib_logic "verit" _ = NONE
+  | smtlib_logic _ ts =
+    if exists (Term.exists_type (Term.exists_subtype is_wordT)) ts then SOME "AUFBVLIRA" else NONE
+
+ val smtlibC = SMTLIB_Interface.bvsmtlibC
+
+ fun index2 s i j = "(_ " ^ s ^ " " ^ string_of_int i ^ " " ^ string_of_int j ^ ")"
+
+ fun remove_cast (Const ("Int.nat", _) $ x) = x |
+     remove_cast x = x
+
+ fun add_word_fun f (t, n) =
+  let val (m, _) = Term.dest_Const t
+  in SMT_Builtin.add_builtin_fun smtlibC (Term.dest_Const t, K (f m n)) end
+  
+ fun mk_extract c i j ts = Term.list_comb (Const c, mk_nat i :: mk_nat j :: ts)
+
+ fun extract m n (U as (Type(_,[_,Type(_,[_,Type(_,[Tx,T])])]))) [i,j,x] =
+  (case (try (snd o HOLogic.dest_number o remove_cast) i,
+         try (snd o HOLogic.dest_number o remove_cast) j,
+         try dest_wordT Tx,
+         try dest_wordT T) of
+   (SOME i', SOME j', SOME Tx', SOME T') =>
+    let
+      val k = i' - j' + 1
+    in
+     if j' <= i' andalso k = T' andalso i' < Tx'
+     then SOME (index2 n i' j', 1, [x], mk_extract (m, U) i' j')
+     else NONE
+    end |
+   _ => NONE) |
+ extract _ _ _ _ = NONE
+
+val setup_builtins =
+  add_word_fun extract
+    (\<^term>\<open>smt_extract :: _ \<Rightarrow> _ \<Rightarrow> 'a::len word \<Rightarrow> _\<close>, "extract") 
+
+val _ = Theory.setup (Context.theory_map (
+  SMTLIB_Interface.add_logic (20, smtlib_logic) #>
+  setup_builtins))
+\<close>
+
+
 (*
 
 term " (0 :: 32 word)"
