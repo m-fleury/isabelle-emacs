@@ -500,10 +500,12 @@ fun merge_logics (prover: string) (logics: string list) =
     val z3_extension = is_some (List.find (curry (op =) "") logics)
     val BV = is_some (List.find (curry (op =) "(set-logic AUFBVLIRA)\n") logics)
     val R = is_some (List.find (curry (op =) "(set-logic AUFLIRA)\n") logics)
+    val S = is_some (List.find (curry (op =) "(set-logic QF_UFLIAFS)\n") (logics|> @{print}))
   in
     if prover = "z3" andalso (z3_extension orelse BV orelse R) then ""
     else if prover = "verit" andalso BV then raise (Fail "unsupported logic")
-    else "(set-logic " ^ "AUF" ^ (if BV then "BV" else "") ^ "LI" ^ (if R then "R" else "") ^ "A" ^ ")\n"
+    else "(set-logic " ^ "AUF" ^ (if BV then "BV" else "") ^ "LI" ^ (if R then "R" else "") ^ "A" ^
+       (if S then "FS" else "") ^  ")\n"
   end
 
 fun translate ctxt prover smt_options comments (ithms : ((int * SMT_Util.role) * thm) list) =
