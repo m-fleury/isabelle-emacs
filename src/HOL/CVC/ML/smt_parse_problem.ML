@@ -144,8 +144,9 @@ fun parse_declare (cs: string list) ({context,typs,terms,ll_defs,rewrite_rules,a
       [implode cs]
       |> map single
       |> map SMTLIB.parse
-      |> (fn [SMTLIB.S [SMTLIB.Sym "declare-fun", n, tys, ty]] => (n, tys, ty))
-    
+      |> (fn [SMTLIB.S [SMTLIB.Sym "declare-fun", n, tys, ty]] => (n, tys, ty) |
+             [SMTLIB.S [SMTLIB.Sym "declare-const", n, ty]] => (n, SMTLIB.S [], ty))
+
      val raw_name = dest_name n
      val name = fix_invalid_name raw_name
      val ctxt = SMTLIB_Proof.empty_context context typs terms
@@ -172,6 +173,7 @@ fun parse_declare (cs: string list) ({context,typs,terms,ll_defs,rewrite_rules,a
 fun read (cs as "("::"a"::"s"::"s"::"e"::"r"::"t"::" "::_) replay_data = 
       parse_assert cs replay_data
   | read (cs as "("::"d"::"e"::"c"::"l"::"a"::"r"::"e"::"-"::"f"::"u"::"n"::" ":: _) replay_data = parse_declare cs replay_data
+  | read (cs as "("::"d"::"e"::"c"::"l"::"a"::"r"::"e"::"-"::"c"::"o"::"n"::"s"::"t"::" ":: _) replay_data = parse_declare cs replay_data
   | read (cs as "("::"d"::"e"::"c"::"l"::"a"::"r"::"e"::"-"::"s"::"o"::"r"::"t"::" ":: _) replay_data = parse_sort cs replay_data
   | read ("("::"s"::"e"::"t"::"-"::"i"::"n"::"f"::"o" :: _) replay_data = replay_data
   | read ("("::"s"::"e"::"t"::"-"::"l"::"o"::"g"::"i"::"c" :: _) replay_data = replay_data
