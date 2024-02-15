@@ -94,8 +94,8 @@ val _ = Theory.setup (Context.theory_map (
 (*Translating from Isabelle into SMT-LIB*)
 
 
-fun set_typ _ = SOME ("Set",[ \<^typ>\<open>int\<close> ])
-fun set_term _ k = (@{print}("YELL",k); SOME "bot")
+fun set_typ _ = SOME ("Set",[ \<^typ>\<open>bool\<close> ])
+fun set_term _ k = (@{print}("YELL",k); SOME "botl")
 val smt_types = [ \<^typ>\<open>Int.int\<close>, \<^typ>\<open>HOL.bool\<close>]
 
 fun only_smtlib_types f str = 
@@ -103,19 +103,47 @@ map (fn t => (Const(f,t), str)) smt_types
 
 val setup_builtins =
   SMT_Builtin.add_builtin_typ SMTLIB_Interface.setsmtlibC
-    (\<^typ>\<open>int set\<close>, set_typ, set_term) #>
+    (\<^typ>\<open>bool set\<close>, set_typ, set_term) #>
   fold (SMT_Builtin.add_builtin_fun' SMTLIB_Interface.setsmtlibC) [
-   (\<^Const>\<open>card \<^typ>\<open>int\<close>\<close>, "card"),
-   (\<^Const>\<open>insert \<^typ>\<open>int\<close>\<close>, "insert"),
-   (\<^Const>\<open>bot \<^typ>\<open>int\<close>\<close>, "empty")
+   (\<^Const>\<open>card \<^typ>\<open>bool\<close>\<close>, "set.card"),
+   (\<^Const>\<open>insert \<^typ>\<open>bool\<close>\<close>, "set.insert")
+  ] #>
+  fold (SMT_Builtin.add_builtin_fun' SMTLIB_Interface.setsmtlibC) [
+    (\<^Const>\<open>bot \<^Type>\<open>set \<^typ>\<open>bool\<close>\<close>\<close>, "(as set.empty (Set Bool))") ]
 
-  ]
+(*
+Why do not all work?
 
-fun smtlib_logic "cvc5" _ = SOME "QF_UFLIAFS" |
-    smtlib_logic _ _ = NONE
+fold (SMT_Builtin.add_builtin_fun' SMTLIB_Interface.setsmtlibC) [
+    (\<^Const>\<open>bot \<^Type>\<open>bool\<close>\<close>, "(as set.empty (Set Bool))"),
+    (\<^Const>\<open>bot \<^Type>\<open>set \<^typ>\<open>bool\<close>\<close>\<close>, "(as set.empty (Set Bool))"),
+    (\<^Const>\<open>bot \<^typ>\<open>bool\<close>\<close>, "(as set.empty (Set Bool))"),
+    (\<^Const>\<open>bot \<^typ>\<open>bool set\<close>\<close>, "(as set.empty (Set Bool))"),
+    (\<^Const>\<open>bot \<^typ>\<open>_\<close>\<close>, "(as set.empty (Set Bool))")
+  ]*)
+
+
+
+
+
+(*Sets should just be enabled if the option native_set is true and
+there are actually sets or set operators in the term. For now this
+just supports none of these since I don't have the context to do the first.*)
+fun smtlib_logic context "cvc5" _  = 
+  let
+    (*This does not work unfortunately. It does not contain the latest change to the option. *)
+    val _ = @{print}("SFSDF",Config.get (Context.proof_of context) SMT_Config.native_set )
+  in
+    (if Config.get (Context.proof_of context) SMT_Config.native_set
+     then SOME "QF_UFLIAFS"
+     else SOME "QF_UFLIAFS")
+     (*else NONE)*)
+  end |
+  
+  smtlib_logic _ _ _ = NONE
 
 val _ = Theory.setup (Context.theory_map (
-  SMTLIB_Interface.add_logic (20, smtlib_logic) #>
+  (fn context => SMTLIB_Interface.add_logic (20, smtlib_logic context) context) #>
   setup_builtins))
 
 end;
