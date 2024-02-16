@@ -17,13 +17,21 @@ fun replay_only solver ctxt problem proof opt_output_file =
       |> Context.Proof
       |> SMT_Config.select_solver solver
       |> Context.proof_of
+(*  val name_and_info_of: Proof.context -> string * solver_info*)
     val (_, {command, smt_options, replay, ...}) = SMT_Solver.name_and_info_of ctxt
+
     val (replay_data, _) = SMT_Parse_Problem.parse problem ctxt
- 
+    (*val _ = @{print}("replay_data",replay_data)
+    val _ = @{print}("proof",proof)*)
+
     val {context, ...} = replay_data
 
     val start0 = Timing.start ()
+    val _ = @{print}("here")
+
     val thm = replay context replay_data proof
+    val _ = @{print}("thm",thm)
+
     val parsing_time = Time.toNanoseconds (#elapsed (Timing.result start0))
 
     val _ = if Option.isSome opt_output_file 
@@ -37,6 +45,8 @@ fun replay_only solver ctxt problem proof opt_output_file =
 
 fun check_smt prover problem_file_name proof_file_name opt_output_file lthy =
  let
+  val _ = @{print}("prover",prover)
+
     (*Get problem and proof file*)
     val ctxt = Local_Theory.target_of lthy
     val _ = if Option.isSome opt_output_file 
@@ -58,6 +68,7 @@ in lthy end
 
 fun test_all_benchmarks prover files_dir opt_output_file local_thy =
 let
+  val _ = @{print}("prover",prover)
   val dir_content = files_dir |> Path.explode |> File.read_dir
   val problems_path = filter (fn filename => String.isSuffix ".smt2" filename) dir_content
   val _ = if Option.isSome opt_output_file 

@@ -263,7 +263,6 @@ fun replay outer_ctxt
        then (raise SMT_Failure.SMT (SMT_Failure.Other_Failure ("reconstruction with CVC is experimental.\n" ^
          "You must activate it with [[smt_cvc_lethe = true]] and use cvc5 (not included as component) .")))
        else ()
-    (*val _ = @{print}("assms",assms)*)
     val rewrite_rules =
       filter_out (fn thm => Term.could_unify (Thm.prop_of @{thm verit_eq_true_simplify},
           Thm.prop_of thm))

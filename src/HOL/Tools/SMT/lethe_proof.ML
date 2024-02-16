@@ -370,6 +370,8 @@ fun parse_raw_proof_steps (limit : string option) (ls : SMTLIB.tree list) (cx : 
           let
             val (anchor_id, (anchor_args, (_, cx))) = (p, cx) |> (parse_anchor_step ##> parse_args)
             val (subproof, discharge_step :: remaining_proof, cx) = parse_raw_proof_steps (SOME anchor_id) l cx assms_nbr
+            val _ = @{print}("I think we would need to add variables of anchor let steps to the context here... In extract_and_update_name_bindings?")
+            val _ = @{print}("anchor_id,anchor_args",(anchor_id,anchor_args))
             val (curss, (_, cx)) = parse_normal_step (discharge_step, cx)
             val s = to_raw_node subproof (fst curss, anchor_args)
             val (rp, rl, cx) = parse_raw_proof_steps limit remaining_proof cx assms_nbr

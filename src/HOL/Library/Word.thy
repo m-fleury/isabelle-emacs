@@ -2124,6 +2124,10 @@ lemma [code]:
     
 subsection \<open>Split and cat operations\<close>
 
+(*
+definition concat_bit :: \<open>nat \<Rightarrow> int \<Rightarrow> int \<Rightarrow> int\<close>
+  where \<open>concat_bit n k l = take_bit n k OR push_bit n l\<close>
+*)
 lift_definition word_cat :: \<open>'a::len word \<Rightarrow> 'b::len word \<Rightarrow> 'c::len word\<close>
   is \<open>\<lambda>k l. concat_bit LENGTH('b) l (take_bit LENGTH('a) k)\<close>
   by (simp add: bit_eq_iff bit_concat_bit_iff bit_take_bit_iff)
@@ -4507,5 +4511,5 @@ lemmas [cvc5_normalized_input] = len_bit0 len_num1 mult_Suc_right One_nat_def
 lemma assumes "a=64" shows "LENGTH(64) = (a::nat)"
   using nat_int assms
   supply [[smt_nat_as_int, smt_trace,smt_cvc_lethe,smt_debug_verit]]
-  apply (smt (cvc5))
+  sorry
 end

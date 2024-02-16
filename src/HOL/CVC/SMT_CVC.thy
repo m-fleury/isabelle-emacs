@@ -28,7 +28,9 @@ ML \<open>
 (*Call replay from SMT_Solver and add replay_data on your own*)
 val _ = Outer_Syntax.local_theory \<^command_keyword>\<open>check_smt\<close>
           "parse a file in SMTLIB2 format and check proof. <problem_file,proof_file>"
-    (Scan.optional (\<^keyword>\<open>(\<close> |-- Parse.string --| \<^keyword>\<open>)\<close>) "cvc5" --
+    (*(Scan.optional (\<^keyword>\<open>(\<close> |-- Parse.string --| \<^keyword>\<open>)\<close>) "cvc5" --*)
+    (Scan.optional (\<^keyword>\<open>(\<close> |-- Parse.string --| \<^keyword>\<open>)\<close>) "verit" --
+
     (Parse.string -- Parse.string)
     >> (fn (prover, (problem_file_name,proof_file_name)) => fn lthy =>
   let
@@ -46,7 +48,9 @@ val _ = Outer_Syntax.local_theory \<^command_keyword>\<open>check_smt\<close>
 (*The problem (name.smt2) and proof files (name.alethe) should be in the same directory.*)
 val _ = Outer_Syntax.local_theory \<^command_keyword>\<open>check_smt_dir\<close>
          "parse a directory with SMTLIB2 format and check proof. <dir>"
-    ((Scan.optional (\<^keyword>\<open>(\<close> |-- Parse.string --| \<^keyword>\<open>)\<close>) "cvc5" -- Parse.string)
+    (*((Scan.optional (\<^keyword>\<open>(\<close> |-- Parse.string --| \<^keyword>\<open>)\<close>) "cvc5" -- Parse.string)*)
+    ((Scan.optional (\<^keyword>\<open>(\<close> |-- Parse.string --| \<^keyword>\<open>)\<close>) "verit" -- Parse.string)
+
     >> (fn (prover, dir_name) => fn lthy =>
   let
     val _ = SMT_Check_External.test_all_benchmarks prover dir_name NONE lthy
@@ -64,14 +68,51 @@ ML \<open>
 Config.put SMT_Config.trace true\<close>
 declare[[smt_nat_as_int=true,smt_trace=true,smt_verbose=true,smt_debug_verit]]
 
+ML \<open>
+val x = \<^typ>\<open>bool set\<close>
+val _ = @{print}("x",dest_Type x)
+\<close>
+(*
 declare[[native_set=true]]
 lemma
+"(A::bool set) = {True,False} \<Longrightarrow> (A::bool set) = {False,True}"
+  apply (smt (cvc5))
+
+lemma
+"(A::int set) = {1,2} \<Longrightarrow> (A::int set) = {2,1}"
+  apply (smt (cvc5))
+
+
+lemma
+"(A::bool set) = {True,False} \<Longrightarrow> card (A::bool set) = 2"
+  apply (smt (cvc5))
+
+lemma
 "(A::int set) = {1,2} \<Longrightarrow> card (A::int set) = 2"
-  sorry
+  apply (smt (cvc5))
+  oops
+(* ; --proof-format-mode=alethe --proof-granularity=dsl-rewrite --no-stats --sat-random-seed=1 --lang=smt2 --tlimit 5000000000
+       (set-option :produce-proofs true)
+       (set-logic AUFLIAFS)
+       (declare-sort Nat$ 0)
+       (declare-fun a$ () (Set Int))
+       (declare-fun bot$ () (Set Int))
+       (declare-fun of_nat$ (Nat$) Int)
+       (assert (! (not (=> (= a$ (insert 1 (insert 2 bot$))) (= (of_nat$ (card a$)) 2))) :named a0))
+       (assert (! (<= 0 (of_nat$ (card a$))) :named a1))
+       (check-sat)
+       (get-proof)*)
+lemma
+"(1::int) = (1::int)"
+  apply (smt (cvc5))
+  oops
 
-
-
-
+declare[[native_set=false]]
+lemma
+"(A::int set) = {1,2} \<Longrightarrow> card (A::int set) = 2"
+  apply (smt (cvc5))
+  oops
+*)
 
 
 

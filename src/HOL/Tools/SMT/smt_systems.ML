@@ -36,7 +36,9 @@ fun outcome_of unsat sat unknown timeout solver_name line =
   else if String.isPrefix unknown line then SMT_Solver.Unknown
   else if String.isPrefix timeout line then SMT_Solver.Time_Out
   else raise SMT_Failure.SMT (SMT_Failure.Other_Failure ("Solver " ^ quote solver_name ^
-    " failed -- enable tracing using the " ^ quote (Config.name_of SMT_Config.trace) ^
+    " failed could not find unsat/sat/unknown in the first line as expected." ^
+    " Enable tracing using the "
+    ^ quote (Config.name_of SMT_Config.trace) ^
     " option for details"))
 
 (* When used with bitvectors, CVC4 can produce error messages like:
@@ -81,11 +83,12 @@ local
     | SOME t => ["--tlimit", string_of_int (Time.toMilliseconds t)])
 
   fun select_class ctxt =
+(@{print}("Config.get ctxt SMT_Config.native_set",Config.get ctxt SMT_Config.native_set);
    [SMTLIB_Interface.smtlibC] @
    (if Config.get ctxt SMT_Config.higher_order then single CVC_Interface.hosmtlib_cvcC else []) @
    (if Config.get ctxt SMT_Config.native_bv then single SMTLIB_Interface.bvsmtlibC else []) @
    (if Config.get ctxt SMT_Config.native_set andalso (SMT_Config.use_lethe_proof_from_cvc ctxt)
-    then single SMTLIB_Interface.setsmtlibC else [])
+    then single SMTLIB_Interface.setsmtlibC else []))
 in
 
 val cvc4: SMT_Solver.solver_config = {

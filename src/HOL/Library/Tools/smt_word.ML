@@ -117,7 +117,6 @@ local
     | _ => NONE) |
   slice _ _ _ _ = NONE
 
-  fun mk_bit c n ts = Const c $ hd ts $ mk_nat n
 
 
   (* (bit n w) should be translated to (= (extract n n w) #b1) *)
@@ -157,7 +156,10 @@ c = (HOL.eq, \<^typ>\<open>'a\<close>)
 Don't hardcode #b1 as string! Make word and then let Isabelle deal with it same way it deals with 
 the two ways of equality above
 
+Wir bauen den neuen Term auf, vielleicht wollen wir die 
 *)
+
+fun mk_bit c n ts = Const c $ hd ts $ mk_nat n
 
 (*fun K x = fn _ => x;*)
   fun add_word_fun' f (t, n) =
@@ -166,7 +168,7 @@ the two ways of equality above
 
 (* (\<^Const>\<open>True\<close>, "true")*)
 
-  fun bit m n T [w,i:term] =
+  fun bit2 m n T [w,i:term] =
     let
       val _ = @{print}("bit m",m)
       val _ = @{print}("bit n",n)
@@ -187,15 +189,139 @@ the two ways of equality above
         (SOME lb, SOME i') =>
           let
             (*val res_str = "= #b1 ((_ " ^ n ^ " " ^ Int.toString lb ^ " " ^ Int.toString lb ^ ")"*)
-            val res_str = "="
+            val res_str = ""
             val _ = @{print}("res",res_str)
             val bit_word = Const("Word.smt_bit_word",T') $ w $ i
             val _ = @{print}("bit_word",bit_word)
-
           in
-          SOME (res_str, 2, [\<^term>\<open>1::1 word\<close>,bit_word], mk_bit (m, T) lb)
+          SOME (res_str, 2, [\<^term>\<open>(1::1 word) = Word.smt_bit_word w i\<close>], mk_bit (m, T) lb)
           end
       | _ => NONE)
+    end
+
+ fun mk_extract2 c i j ts = Term.list_comb (Const c, mk_nat i :: mk_nat j :: ts)
+
+(*
+
+  fun add_word_fun f (t, n) =
+    let val (m, _) = Term.dest_Const t
+    in SMT_Builtin.add_builtin_fun smtlibC (Term.dest_Const t, K (f m n)) end
+
+t den wir uebersetzen aus dem Problem. bit bekommt gar nicht den Term nur Name (m), Typ des Terms(T)
+und argumente
+
+ K (f m n): Wenn f als funktion in die Tabelle hinzufuegt wird kommt nach n ein anderes 
+Argument, dass unsere bit funktion nicht haben soll weil es whrs nichts bringt. Deshalb kommt
+bei bit nach m n direkt T.
+
+n has no use here, is useful if we have the same function (e.g. shift) for several bit-vector 
+translations 
+
+In der Tablle steht dann
+
+("Bit_Operations.semiring_bits_class.bit","6 word \<Rightarrow> nat \<Rightarrow> bool") und eine Funktion die bei 
+eingabe von Argumenten einen neuen Term ausgibt
+
+Term T ist ein argument weil der erste Eintrag in der Tabelle genereller sein koennte als der 
+konkrete Term. Zum Beispiel Tabelle hat Eintrag fuer = 'a \<Rightarrow> 'a \<Rightarrow> Bool aber konkreter Term 
+arbeitet auf ints.
+
+
+Funktion f gibt
+ (string * int * term list * (term list -> term)) option
+wenn Uebersetzung nicht funktionert gibt sie NONE sonst SOME
+
+Das erste und zweite Returnvalue scheint nicht zu zaehlen und es ist egal was man reinmacht. 
+
+          SOME (n, 2, [hd (tl ts), HOLogic.mk_number U i], mk_shift (m, T))
+
+Der dritte ist whrs die Terme die rekursive in strings uebersetzt werden sollen
+Das vierte ist ein Term
+*)
+
+  fun bit m n T [w,i:term] =
+    let
+      val _ = @{print}("bit m",m)
+      val _ = @{print}("bit n",n)
+      val _ = @{print}("bit T",T)
+      val _ = @{print}("bit w",w)
+      val _ = @{print}("bit i",i)
+
+      (*Build up right T for mk_extract*)
+      val (wT, _) = Term.dest_funT T
+      val _ = @{print}("bit wT",wT)
+
+      val T' = wT --> \<^typ>\<open>nat\<close> -->  \<^typ>\<open>1 word\<close>
+      val _ = @{print}("T'",T')
+      val T'' = \<^typ>\<open>1 word\<close> --> \<^typ>\<open>1 word\<close> --> \<^typ>\<open>HOL.bool\<close> 
+
+
+      val bit_word = Const("Word.smt_bit_word",T') $ w $ i
+
+
+(*("bit m", "Bit_Operations.semiring_bits_class.bit") (line 203 of "/home/lachnitt/Sources/isabelle-git/isabelle-emacs/src/HOL/Library/Tools/smt_word.ML") 
+("bit n", "=") (line 204 of "/home/lachnitt/Sources/isabelle-git/isabelle-emacs/src/HOL/Library/Tools/smt_word.ML") 
+("bit T", "6 word \<Rightarrow> nat \<Rightarrow> bool") (line 205 of "/home/lachnitt/Sources/isabelle-git/isabelle-emacs/src/HOL/Library/Tools/smt_word.ML") 
+("bit w",
+ Const ("Num.numeral_class.numeral", "num \<Rightarrow> 6 word") $
+   (Const ("Num.num.Bit0", "num \<Rightarrow> num") $
+     (Const ("Num.num.Bit0", "num \<Rightarrow> num") $
+       Const ("Num.num.One", "num")))) (line 206 of "/home/lachnitt/Sources/isabelle-git/isabelle-emacs/src/HOL/Library/Tools/smt_word.ML") 
+("bit i",
+ Const ("Int.nat", "int \<Rightarrow> nat") $
+   (Const ("Num.numeral_class.numeral", "num \<Rightarrow> int") $
+     (Const ("Num.num.Bit0", "num \<Rightarrow> num") $
+       Const ("Num.num.One", "num")))) (line 207 of "/home/lachnitt/Sources/isabelle-git/isabelle-emacs/src/HOL/Library/Tools/smt_word.ML") 
+("bit wT", "6 word") (line 211 of "/home/lachnitt/Sources/isabelle-git/isabelle-emacs/src/HOL/Library/Tools/smt_word.ML") 
+("T'", "6 word \<Rightarrow> nat \<Rightarrow> 1 word") (line 214 of "/home/lachnitt/Sources/isabelle-git/isabelle-emacs/src/HOL/Library/Tools/smt_word.ML") 
+("bit mk",
+ Const ("Bit_Operations.semiring_bits_class.bit", "6 word \<Rightarrow> nat \<Rightarrow> bool") $
+   (Const ("Num.numeral_class.numeral", "num \<Rightarrow> 6 word") $
+     (Const ("Num.num.Bit0", "num \<Rightarrow> num") $ (Const ("Num.num.Bit0", "num \<Rightarrow> num") $ Const ("Num.num.One", "num")))) $
+   (Const ("Num.numeral_class.numeral", "num \<Rightarrow> nat") $
+     (Const ("Num.num.Bit0", "num \<Rightarrow> num") $
+       (Const ("Num.num.Bit1", "num \<Rightarrow> num") $
+         (Const ("Num.num.Bit0", "num \<Rightarrow> num") $
+           (Const ("Num.num.Bit0", "num \<Rightarrow> num") $
+             (Const ("Num.num.Bit0", "... ... ...") $
+               (Const ("Num.num.Bit0", "...") $
+                 Const ("...", ...))))))))) *)
+            fun test_f (m, T) ts = (@{print}("ts!!!!",ts); Term.list_comb (Const (m, T), ts))
+(*("ts!!!!",
+ [Const ("HOL.eq", "1 word \<Rightarrow> 1 word \<Rightarrow> bool") $ Const ("Groups.one_class.one", "1 word") $
+    (Const ("HOL.If", "bool \<Rightarrow> 1 word \<Rightarrow> 1 word \<Rightarrow> 1 word") $
+      (Const ("smt_extract", "nat \<Rightarrow> nat \<Rightarrow> 6 word \<Rightarrow> bool") $
+        (Const ("Int.nat", "int \<Rightarrow> nat") $
+          (Const ("Num.numeral_class.numeral", "num \<Rightarrow> int") $
+            (Const ("Num.num.Bit0", "num \<Rightarrow> num") $ Const ("Num.num.One", "num")))) $
+        (Const ("Int.nat", "int \<Rightarrow> nat") $
+          (Const ("Num.numeral_class.numeral", "num \<Rightarrow> int") $
+            (Const ("Num.num.Bit0", "num ... num") $ Const ("Num.num.One", "num")))) $
+        (Const ("Num.numeral_class.numeral", "num \<Rightarrow> 6 word") $
+          (Const ("Num.num.Bit0", "num \<Rightarrow> num") $
+            (Const ("Num.num.Bit0", "... ... ...") $ Const ("Num.num.One", "..."))))) $
+      Const ("Groups.one_class.one", "1 word") $
+      Const ("Groups.zero_class.zero",
+             "1 word"))])*)
+
+            val test_term = @{term "HOL.eq::1 word => 1 word => bool"}
+                          $ @{term "Groups.one_class.one::1 word"}
+                          $ (Const("HOL.If",@{typ "bool => 1 word => 1 word \<Rightarrow> 1 word"})
+                          $ (Const("smt_extract",@{typ "nat"} --> @{typ "nat"} --> wT --> @{typ "bool"})
+                          $ i $ i$ w ) $ @{term "Groups.one_class.one::1 word"} $ @{term "Groups.zero_class.zero::1 word"})
+
+
+            val _ = @{print}("test_term",test_term)
+(* Const ("HOL.eq", "1 word \<Rightarrow> 1 word \<Rightarrow> bool") $ Const ("Groups.one_class.one", "1 word") $
+   (Const ("HOL.If", "bool \<Rightarrow> 1 word \<Rightarrow> 1 word \<Rightarrow> 1 word") $
+     (Const ("Bit_Operations.semiring_bits_class.bit", "'a::semiring_bits \<Rightarrow> nat \<Rightarrow> bool") $ Free ("w", "'a::semiring_bits") $ Free ("i", "nat")) $
+     Const ("Groups.one_class.one", "1 word") $
+     Const ("Groups.zero_class.zero", "1 word")))*)
+    in  
+   (case (try (snd o HOLogic.dest_number o remove_cast) i) of
+   (SOME i') => 
+          SOME ("", 2, [test_term], test_f (m, T))|
+       _ => NONE)
     end
 
 
@@ -222,7 +348,7 @@ the two ways of equality above
           let
             val res_str = "(" ^ n ^ " " ^ Int.toString lb ^ " " ^ Int.toString lb ^ ")"
           in
-          SOME (res_str, 2, [w], mk_extract (m, T) lb)
+          NONE
           end
       | _ => NONE)
     end
@@ -370,10 +496,10 @@ val setup_builtins =
     (\<^term>\<open>word_sle\<close>, "bvsle") ] #>
   fold (SMT_Builtin.add_builtin_fun' SMTLIB_Interface.bvsmtlibC) [
     (\<^term>\<open>unsigned :: 'a::len word \<Rightarrow> Int.int\<close>, "bv2nat")
-   ](* #>
-  fold (add_word_fun' bit) [
-    (\<^term>\<open>bit :: 'a::len word \<Rightarrow> _ \<Rightarrow> _\<close>, "=")
    ] #>
+  fold (add_word_fun bit) [
+    (\<^term>\<open>bit :: 'a::len word \<Rightarrow> _ \<Rightarrow> _\<close>, "=")
+   ] (*#>
   fold (add_word_fun bit_word) [
     (\<^term>\<open>smt_bit_word :: 'a::len word \<Rightarrow> _ \<Rightarrow> _\<close>, "extract")
    ]*)
