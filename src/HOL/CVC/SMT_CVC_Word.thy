@@ -95,11 +95,11 @@ fun pairwise _ [] = []
 (*cvc5 specific terms that are not present in veriT's output*)
 fun cvc_term_parser (SMTLIB.Sym "xor",[t1,t2]) = SOME(Const(\<^const_name>\<open>SMT_CVC_Util.xor\<close>, \<^typ>\<open>bool \<Rightarrow> bool \<Rightarrow> bool\<close>)
        $ t1 $ t2)
-  | cvc_term_parser (SMTLIB.Sym "cvc5_nary_op", []) =
+  | cvc_term_parser (SMTLIB.Sym "rare-list", []) = (@{print}("rare-list");
    (*If there are no elements in the list we cannot know the type at this point*)
     SOME(Const( \<^const_name>\<open>ListVar\<close> ,dummyT --> dummyT)
-       $ Const( \<^const_name>\<open>List.Nil\<close>, dummyT))
-  | cvc_term_parser (SMTLIB.Sym "cvc5_nary_op", ts) = 
+       $ Const( \<^const_name>\<open>List.Nil\<close>, dummyT)))
+  | cvc_term_parser (SMTLIB.Sym "rare-list", ts) =(@{print}("rare-list");
     let
       (*Figure out if types are different, this should only be the case if they have different
         bitwidths*)
@@ -116,7 +116,7 @@ fun cvc_term_parser (SMTLIB.Sym "xor",[t1,t2]) = SOME(Const(\<^const_name>\<open
     in
     SOME(Const( \<^const_name>\<open>ListVar\<close>, Type(\<^type_name>\<open>List.list\<close>,[new_type])  --> Type(\<^type_name>\<open>cvc_ListVar\<close>,[new_type]))
       $ (HOLogic.mk_list new_type new_ts))
-    end
+    end)
   | cvc_term_parser (SMTLIB.Sym "emptyString", []) = SOME (Free ("''''", \<^typ>\<open>String.string\<close>))
   | cvc_term_parser (SMTLIB.Sym "distinct", ts)
      = SOME (mk_rassoc' \<^const_name>\<open>HOL.conj\<close> (pairwise (HOLogic.mk_eq #> HOLogic.mk_not) ts))

@@ -1,17 +1,17 @@
-(*  Title:      HOL/Tools/SMT/lethe_replay_methods.ML
+(*  Title:      HOL/CVC/ML/lethe_replay_rare_simplify_methods.ML
     Author:     Mathias Fleury, MPII, JKU, University Freiburg
     Author:     Hanna Lachnitt, Stanford University
 
-Proof method for replaying Alethe proofs for all-simplify
+Proof method for replaying Alethe proofs for rare-simplify
 *)
 
-signature LETHE_REPLAY_ALL_SIMPLIFY_METHODS =
+signature LETHE_REPLAY_RARE_SIMPLIFY_METHODS =
 sig
-  val all_rewrite_thys : theory list
-  val all_simplify: Lethe_Replay_Methods.lethe_tac_args
+  val rare_rewrite_thys : theory list
+  val rare_rewrite: Lethe_Replay_Methods.lethe_tac_args
 end;
 
-structure Lethe_Replay_All_Simplify_Methods: LETHE_REPLAY_ALL_SIMPLIFY_METHODS =
+structure Lethe_Replay_RARE_Simplify_Methods: LETHE_REPLAY_RARE_SIMPLIFY_METHODS =
 struct
 
 val TRY' = Lethe_Replay_Methods.TRY'
@@ -21,7 +21,7 @@ fun code_simp_tac ctxt thms = Code_Simp.dynamic_tac
 
 
 
-val all_rewrite_thys =
+val rare_rewrite_thys =
 let
  (*This is a little hacky; get theory HOL-CVC.Rare_Interface without registering it (which would 
    involve registering all parents)*)
@@ -40,7 +40,7 @@ let
 
  fun find_Thy [] = Lethe_Replay_Methods.replay_error ctxt
   "No corresponding rewrite lemma found, add yours manually in RARE_Interface.thy or use IsaRARE for automatic support.. "
-   Lethe_Replay_Methods.All_Simplify th t |
+   Lethe_Replay_Methods.RARE_Rewrite th t |
  find_Thy (thy::thys) =
   let
    val thy_name = (Context.theory_base_name thy)
@@ -112,7 +112,7 @@ fun try_simp ctxt t =
   SMT_Replay_Methods.prove ctxt t (fn _ =>
      TRY' (K (HEADGOAL (simplify_tac ctxt ((Named_Theorems.get ctxt @{named_theorems cvc_evaluate})))))
      THEN' K (print_tac ctxt "applied all cvc_evaluate theorems")
-     THEN' TRY'(K (HEADGOAL (simplify_tac ctxt ((Named_Theorems.get ctxt @{named_theorems all_simplify_temp})))))
+     THEN' TRY'(K (HEADGOAL (simplify_tac ctxt ((Named_Theorems.get ctxt @{named_theorems rare_simplify_temp})))))
      THEN' TRY'(K (HEADGOAL (simplify_tac ctxt @{thms arith_simps verit_minus_simplify})))  
      THEN' TRY'(K (HEADGOAL (simplify_tac ctxt ((Named_Theorems.get ctxt @{named_theorems arith_simp_cvc5})))))
      THEN' TRY' (K (Clasimp.auto_tac ctxt))
@@ -137,8 +137,8 @@ fun try_auto_solo ctxt t =
 local 
  fun pretty tag lines = map Pretty.str lines |> Pretty.big_list tag |> Pretty.string_of
 in 
-(* all_simplify ctxt [prems] args t*)
- fun all_simplify ctxt (th : thm list) (Free (rewrite_name, _) :: args) t =
+(* rare_simplify ctxt [prems] args t*)
+ fun rare_rewrite ctxt (th : thm list) (Free (rewrite_name, _) :: args) t =
   if rewrite_name = "evaluate"
   then
    (SMT_Config.verbose_msg ctxt (pretty ("Found evaluate, try to simplify")) []; try_evaluate ctxt t)
@@ -147,14 +147,14 @@ else
 
     (*( dsl_tac_initialize rewrite_name args ctxt t th) |*)
    (*( try_auto_solo ctxt t)|*)
- all_simplify ctxt (th : thm list) args t =
+ rare_rewrite ctxt (th : thm list) args t =
 (@{print}("T",t);@{print}("args",args);@{print}("th",th);
   (SMT_Config.verbose_msg ctxt (pretty ("No dsl rule found, try to simplify" ^
   List.foldr op^ "" (map ML_Syntax.print_term args))) []; try_simp ctxt t))
 end
 
 val rules = [
-   ("all_simplify", all_simplify)]
+   ("rare_rewrite", rare_rewrite)]
 
 val _ = Theory.setup (Context.theory_map (
    fold (uncurry Lethe_Replay_Methods.declare_alethe_rule) rules))

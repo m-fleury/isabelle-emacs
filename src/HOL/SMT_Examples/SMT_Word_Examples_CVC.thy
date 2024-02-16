@@ -25,14 +25,14 @@ All lemmas are proved using the oracle mechanism.
 \<close>
 
 (*TODO: work around based on the first example below*)
-lemmas [all_simplify_temp] =
+lemmas [rare_simplify_temp] =
  add_num_simps Word.iszero_word_no len_bit0  add.right_neutral
 word_eq_numeral_iff_iszero One_nat_def mult_Suc_right mult_0_right mult_num_simps
 take_bit_num_simps arith_simps pred_numeral_simps option.case ring_1_class.iszero_0
 len_num1 numeral_times_numeral take_bit_numeral_numeral
 
 
-
+declare[[smt_trace]]
 section \<open>Bitvector numbers\<close>
 
 lemma "(27 :: 4 word) = -5" by (smt (cvc5))

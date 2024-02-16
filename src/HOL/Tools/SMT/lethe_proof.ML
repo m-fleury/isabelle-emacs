@@ -392,7 +392,7 @@ fun proof_ctxt_of_rule "bind" t = t
 
 fun args_of_rule "bind" t = t
   | args_of_rule "la_generic" t = t
-  | args_of_rule "all_simplify" t = t
+  | args_of_rule "rare_rewrite" t = t
   | args_of_rule _ _ = []
 
 fun insts_of_forall_inst "forall_inst" t = map (fn SMTLIB.S [_, SMTLIB.Sym x, a] => (x, a)) t
