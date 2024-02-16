@@ -501,13 +501,15 @@ fun get_config ctxt : config list =
         "for solver class " ^ commas_quote (map SMT_Util.string_of_class cs)))
   end
 
-fun merge_logics (prover: string) (logics: string list) =
+fun merge_logics ctxt (prover: string) (logics: string list) =
   let
     val _ = @{print}("logics",logics)
     val z3_extension = is_some (List.find (curry (op =) "") logics)
-    val BV = is_some (List.find (curry (op =) "(set-logic AUFBVLIRA)\n") logics)
+    val BV = Config.get ctxt SMT_Config.native_bv andalso
+      is_some (List.find (curry (op =) "(set-logic AUFBVLIRA)\n") logics)
     val R = is_some (List.find (curry (op =) "(set-logic AUFLIRA)\n") logics)
-    val S = is_some (List.find (curry (op =) "(set-logic QF_UFLIAFS)\n") (logics|> @{print}))
+    val S = Config.get ctxt SMT_Config.native_set andalso
+      is_some (List.find (curry (op =) "(set-logic QF_UFLIAFS)\n") logics)
   in
     if prover = "z3" andalso (z3_extension orelse BV orelse R) then ""
     else if prover = "verit" andalso BV then raise (Fail "unsupported logic")
@@ -520,7 +522,7 @@ fun translate ctxt prover smt_options comments (ithms : ((int * SMT_Util.role) *
   let
     val order = map #order (get_config ctxt)
     val logics = map #logic (get_config ctxt)
-    fun logic prover ts = merge_logics prover (map (fn f => f prover ts) logics)
+    fun logic prover ts = merge_logics ctxt prover (map (fn f => f prover ts) logics)
     val fp_kinds = map #fp_kinds (get_config ctxt) |> foldr1 (op @)
     (*There is a single serialize function anyway*)
     val serialize = map #serialize (get_config ctxt) |> hd
