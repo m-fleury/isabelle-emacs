@@ -94,17 +94,22 @@ val _ = Theory.setup (Context.theory_map (
 (*Translating from Isabelle into SMT-LIB*)
 
 
-fun set_typ _ = SOME ("Set",[ \<^typ>\<open>bool\<close> ])
+fun set_typ t _ = SOME ("Set",[t])
 fun set_term _ k = (@{print}("YELL",k); SOME "botl")
+
+
 val smt_types = [ \<^typ>\<open>Int.int\<close>, \<^typ>\<open>HOL.bool\<close>]
+
 
 fun only_smtlib_types f str = 
 map (fn t => (Const(f,t), str)) smt_types
-
+(*("Set.set", ["bool"])*)
 val setup_builtins =
-  SMT_Builtin.add_builtin_typ SMTLIB_Interface.setsmtlibC
-    (\<^typ>\<open>bool set\<close>, set_typ, set_term) #>
-  fold (SMT_Builtin.add_builtin_fun' SMTLIB_Interface.setsmtlibC) [
+  fold (SMT_Builtin.add_builtin_typ SMTLIB_Interface.setsmtlibC)
+    (map (fn t => (Type("Set.set",[t]), set_typ t , set_term)) smt_types) #>
+
+  fold (SMT_Builtin.add_builtin_fun' SMTLIB_Interface.setsmtlibC)
+ [
    (\<^Const>\<open>card \<^typ>\<open>bool\<close>\<close>, "set.card"),
    (\<^Const>\<open>insert \<^typ>\<open>bool\<close>\<close>, "set.insert")
   ] #>
