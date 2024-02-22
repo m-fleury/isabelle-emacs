@@ -286,7 +286,6 @@ Das vierte ist ein Term
              (Const ("Num.num.Bit0", "... ... ...") $
                (Const ("Num.num.Bit0", "...") $
                  Const ("...", ...))))))))) *)
-            fun test_f (m, T) ts = (@{print}("ts!!!!",ts); Term.list_comb (Const (m, T), ts))
 (*("ts!!!!",
  [Const ("HOL.eq", "1 word \<Rightarrow> 1 word \<Rightarrow> bool") $ Const ("Groups.one_class.one", "1 word") $
     (Const ("HOL.If", "bool \<Rightarrow> 1 word \<Rightarrow> 1 word \<Rightarrow> 1 word") $
@@ -306,10 +305,10 @@ Das vierte ist ein Term
 
             val test_term = @{term "HOL.eq::1 word => 1 word => bool"}
                           $ @{term "Groups.one_class.one::1 word"}
-                          $ (Const("HOL.If",@{typ "bool => 1 word => 1 word \<Rightarrow> 1 word"})
-                          $ (Const("smt_extract",@{typ "nat"} --> @{typ "nat"} --> wT --> @{typ "bool"})
-                          $ i $ i$ w ) $ @{term "Groups.one_class.one::1 word"} $ @{term "Groups.zero_class.zero::1 word"})
-
+                          $ (Const("Word.smt_bit_word",  wT --> @{typ "nat"} --> @{typ "1 word"})
+                            $ w $ i)
+            fun test_f (m, T) ts = (@{print}("ts!!!!", map (Thm.cterm_of @{context}) ts); 
+               test_term)
 
             val _ = @{print}("test_term",test_term)
 (* Const ("HOL.eq", "1 word \<Rightarrow> 1 word \<Rightarrow> bool") $ Const ("Groups.one_class.one", "1 word") $
@@ -320,10 +319,10 @@ Das vierte ist ein Term
     in  
    (case (try (snd o HOLogic.dest_number o remove_cast) i) of
    (SOME i') => 
-          SOME ("", 2, [test_term], test_f (m, T))|
+          SOME ("EXTRABIT", 2, [test_term], test_f (m, T))|
        _ => NONE)
     end
-
+  | bit m n T xs = (@{print} (m,n,T,xs); NONE)
 
 
  fun bit_word m n T [w,i:term] =
@@ -400,7 +399,7 @@ Das vierte ist ein Term
     let 
       fun mk_num T x = 
         let
-          val _ = HOLogic.mk_number HOLogic.intT (dest_binT T)  |> @{print}  
+          val _ = HOLogic.mk_number HOLogic.intT (dest_binT T)
         in Const (\<^const_name>\<open>nat\<close>, @{typ "int => nat"}) $ 
             HOLogic.mk_number HOLogic.intT (dest_binT T) end
     in
@@ -410,7 +409,7 @@ Das vierte ist ein Term
        | _ => NONE)
     end
   fun add_len_of (t,n) = 
-    let val (m, _) = Term.dest_Const (@{print}(head_of t))
+    let val (m, _) = Term.dest_Const (head_of t)
     in SMT_Builtin.add_builtin_fun smtlibC (Term.dest_Const (head_of t), fn _ => (fn x => fn y =>len_of t m n x y))
  end
 
