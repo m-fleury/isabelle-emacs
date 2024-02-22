@@ -433,7 +433,6 @@ fun fold_map_pat f (SPat ts) = fold_map f ts #>> SPat
 
 fun intermediate logic dtyps builtin ctxt ts trx =
   let
-    val _ = @{print}("logic inter", logic)
     fun transT (T as TFree _) = add_typ T true
       | transT (T as TVar _) = (fn _ => raise TYPE ("bad SMT type", [T], []))
       | transT (T as Type _) =
@@ -468,7 +467,6 @@ fun intermediate logic dtyps builtin ctxt ts trx =
       end
 
     val (us, trx') = fold_map (fn (role, t) => apfst (pair role) o trans t) ts trx
-    val _ = @{print}("sign_of (logic ts) dtyps trx'", sign_of (logic ts) dtyps trx')
 
   in ((sign_of (logic ts) dtyps trx', us), trx') end
 
@@ -487,13 +485,10 @@ fun add_config (cs, cfg) = Configs.map (SMT_Util.dict_update (cs, cfg))
 fun get_config ctxt : config list =
   let
     val cs = SMT_Config.solver_class_of ctxt
-    val _ = @{print}("cs",cs)
     val cfgs = 
       map (SMT_Util.dict_get (Configs.get (Context.Proof ctxt))) cs
       |> filter is_some
       |> map ((fn f => f ctxt) o the)
-    val _ = @{print}("cfgs",cfgs)
-
   in
     (case cfgs of
       (_ :: _) => cfgs
@@ -503,7 +498,6 @@ fun get_config ctxt : config list =
 
 fun merge_logics ctxt (prover: string) (logics: string list) =
   let
-    val _ = @{print}("logics",logics)
     val z3_extension = is_some (List.find (curry (op =) "") logics)
     val BV = Config.get ctxt SMT_Config.native_bv andalso
       is_some (List.find (curry (op =) "(set-logic AUFBVLIRA)\n") logics)
@@ -565,21 +559,6 @@ fun translate ctxt prover smt_options comments (ithms : ((int * SMT_Util.role) *
         end)
     val ((rewrite_rules, builtin), ts4) = folify ctxt2 ts3
       |>> first_order ? apfst (cons fun_app_eq)
-val test = map (fn x => 
-    (ts4, tr_context)
-    |-> intermediate (logic prover o map snd) dtyps (builtin SMT_Builtin.dest_builtin) ctxt2
-    |>> uncurry (x smt_options comments))
-(map #serialize (get_config ctxt))
-
-val _ = @{print}("test",test)
-
-val test2 = (logic prover) 
-val _ = @{print}("test2",test2)
-
-val test3 = dtyps
-val _ = @{print}("test3",test3)
-
-
   in
     (ts4, tr_context)
     |-> intermediate (logic prover o map snd) dtyps (builtin SMT_Builtin.dest_builtin) ctxt2

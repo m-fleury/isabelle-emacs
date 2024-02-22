@@ -398,26 +398,20 @@ Das vierte ist ein Term
 
   fun len_of t m n T ts =
     let 
-      val _ = @{print} ts
       fun mk_num T x = 
         let
-          val _ = @{print} ("len_of -->", x, t) 
           val _ = HOLogic.mk_number HOLogic.intT (dest_binT T)  |> @{print}  
         in Const (\<^const_name>\<open>nat\<close>, @{typ "int => nat"}) $ 
             HOLogic.mk_number HOLogic.intT (dest_binT T) end
     in
-     (case (head_of (hd ts)) |> @{print} of
+     (case head_of (hd ts) of
          Const (_, Type (\<^type_name>\<open>itself\<close>, [T])) =>
-           SOME ("LENGTHXXXXX", 0, [], (mk_num T))
+           SOME ("len_of" (*fudge*), 0, [], (mk_num T))
        | _ => NONE)
     end
   fun add_len_of (t,n) = 
     let val (m, _) = Term.dest_Const (@{print}(head_of t))
-val _ = @{print} ("len_of", t)
-
-    in SMT_Builtin.add_builtin_fun smtlibC (Term.dest_Const (head_of t), fn x => (@{print} x; 
-   fn x => fn y => @{print} (len_of t m n x y))) |>
-@{print}
+    in SMT_Builtin.add_builtin_fun smtlibC (Term.dest_Const (head_of t), fn _ => (fn x => fn y =>len_of t m n x y))
  end
 
   fun of_nat t m n T ts =
