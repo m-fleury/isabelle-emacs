@@ -325,7 +325,7 @@ Das vierte ist ein Term
   | bit m n T xs = (@{print} (m,n,T,xs); NONE)
 
 
- fun bit_word m n T [w,i:term] =
+ fun bit_word m n T (ts as [w,i:term]) =
     let
       val _ = @{print}("bit word m",m)
       val _ = @{print}("bit n",n)
@@ -339,7 +339,6 @@ Das vierte ist ein Term
       val _ = @{print}("bit wT",wT)
       val _ = @{print}("T",T)
 
-      val _ = @{print}("bit mk",mk_bit (m, T) 66 [w])
 
     in  
        (case (try (snd o HOLogic.dest_number o remove_cast) i, try dest_wordT wT) of
@@ -347,7 +346,7 @@ Das vierte ist ein Term
           let
             val res_str = "(" ^ n ^ " " ^ Int.toString lb ^ " " ^ Int.toString lb ^ ")"
           in
-          NONE
+          SOME (res_str, 1, [], fn _ => (Const (\<^const_name>\<open>smt_bit_word\<close>, fastype_of w --> @{typ nat} --> @{typ bool}) $ w) $ i)
           end
       | _ => NONE)
     end
@@ -492,10 +491,10 @@ val setup_builtins =
    ] #>
   fold (add_word_fun bit) [
     (\<^term>\<open>bit :: 'a::len word \<Rightarrow> _ \<Rightarrow> _\<close>, "=")
-   ] (*#>
+   ] #>
   fold (add_word_fun bit_word) [
     (\<^term>\<open>smt_bit_word :: 'a::len word \<Rightarrow> _ \<Rightarrow> _\<close>, "extract")
-   ]*)
+   ]
 
 
  (*#>
