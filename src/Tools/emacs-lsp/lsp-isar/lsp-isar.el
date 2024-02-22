@@ -373,7 +373,7 @@ mode automically, use `(add-hook \\='isar-mode-hook
 
 ;; although the communication to the LSP server is done using utf-16,
 ;; we can only use utf-8
-(modify-coding-system-alist 'file "\\.thy\\'" 'utf-8-auto)
+(modify-coding-system-alist 'file "\\.thy\\'" 'utf-8)
 
 (defun lsp-isar-activate-indentation ()
   "Activate automatic indentation by default."
