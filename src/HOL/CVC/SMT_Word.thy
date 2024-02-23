@@ -1054,10 +1054,10 @@ end
 
 
 ML \<open>
- fun smtlib_logic "z3" ts =
+ fun smtlib_logic "z3" ts _ =
     if exists (Term.exists_type (Term.exists_subtype is_wordT)) ts then SOME "" else NONE
-  | smtlib_logic "verit" _ = NONE
-  | smtlib_logic _ ts =
+  | smtlib_logic "verit" _ _ = NONE
+  | smtlib_logic _ ts _ =
     if exists (Term.exists_type (Term.exists_subtype is_wordT)) ts then SOME "AUFBVLIRA" else NONE
 
  val smtlibC = SMTLIB_Interface.bvsmtlibC
@@ -1094,7 +1094,7 @@ val setup_builtins =
     (\<^term>\<open>smt_extract :: _ \<Rightarrow> _ \<Rightarrow> 'a::len word \<Rightarrow> _\<close>, "extract") 
 
 val _ = Theory.setup (Context.theory_map (
-  SMTLIB_Interface.add_logic (20, smtlib_logic) #>
+  SMTLIB_Interface.add_logic (30, smtlib_logic) #>
   setup_builtins))
 \<close>
 
