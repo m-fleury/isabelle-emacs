@@ -142,8 +142,11 @@ in
   if rewrite_name = "evaluate"
   then
    (SMT_Config.verbose_msg ctxt (pretty ("Found evaluate, try to simplify")) []; try_evaluate ctxt t)
-else
-( dsl_tac_initialize rewrite_name args ctxt t th) |
+  else if rewrite_name = "arith_poly_norm"
+  then
+   (SMT_Config.verbose_msg ctxt (pretty ("Found arith_poly_norm, try to simplify")) []; try_simp ctxt t)
+  else
+   ( dsl_tac_initialize rewrite_name args ctxt t th) |
 
     (*( dsl_tac_initialize rewrite_name args ctxt t th) |*)
    (*( try_auto_solo ctxt t)|*)
