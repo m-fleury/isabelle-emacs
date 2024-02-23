@@ -10,7 +10,7 @@ struct
 
 (* SMT-LIB logic *)
 
-fun smtlib_logic _ ts =
+fun smtlib_logic _ ts _ =
   if exists (Term.exists_type (Term.exists_subtype (equal \<^typ>\<open>real\<close>))) ts
   then SOME "AUFLIRA"
   else NONE
