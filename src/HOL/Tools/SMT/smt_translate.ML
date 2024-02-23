@@ -513,7 +513,7 @@ fun merge_logics ctxt (prover: string) (logics: string list) =
   in
     if prover = "z3" andalso (z3_extension orelse BV orelse R) then ""
     else if prover = "verit" andalso BV then raise (Fail "unsupported logic")
-    else if prover = "cvc5" then "(set-logic ALL)\n"
+    (*else if prover = "cvc5" then "(set-logic ALL)\n"*)
     else "(set-logic " ^ "AUF" ^ (if BV then "BV" else "") ^ "LI" ^ (if R then "R" else "") ^ "A" ^
        (if S then "FS" else "") ^  ")\n"
   end
