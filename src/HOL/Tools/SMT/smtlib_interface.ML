@@ -12,7 +12,8 @@ sig
   val bvsmtlibC: SMT_Util.class
   val setsmtlibC: SMT_Util.class
   val realsmtlibC: SMT_Util.class
-  val add_logic: int * (string -> term list -> string option) -> Context.generic -> Context.generic
+  val add_logic: int * (string -> term list -> Proof.context -> string option) -> Context.generic
+    -> Context.generic
   val del_logic: int * (string -> term list -> string option) -> Context.generic -> Context.generic
   val translate_config: SMT_Util.order -> Proof.context -> SMT_Translate.config
   val assert_name_of_role_and_index: SMT_Util.role -> int -> string
@@ -78,7 +79,7 @@ fun fst_int_ord ((i1, _), (i2, _)) = int_ord (i1, i2)
 
 structure Logics = Generic_Data
 (
-  type T = (int * (string -> term list -> string option)) list
+  type T = (int * (string -> term list -> Proof.context -> string option)) list
   val empty = []
   fun merge data = Ord_List.merge fst_int_ord data
 )
@@ -89,7 +90,7 @@ fun del_logic pf = Logics.map (Ord_List.remove fst_int_ord pf)
 fun choose_logic ctxt prover ts =
   let
     fun choose [] = "AUFLIA"
-      | choose ((_, f) :: fs) = (case f prover ts of SOME s => s | NONE => choose fs)
+      | choose ((_, f) :: fs) = (case f prover ts ctxt of SOME s => s | NONE => choose fs)
   in
     (case choose (Logics.get (Context.Proof ctxt)) of
       "" => "" (* for default Z3 logic, a subset of everything *)
