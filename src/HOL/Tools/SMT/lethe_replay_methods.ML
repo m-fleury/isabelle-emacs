@@ -43,7 +43,7 @@ sig
      (*Former cong rules*)
      Bool_Simplify | Or_Simplify | Not_Simplify | And_Simplify | Equiv_Simplify |
      Implies_Simplify | Connective_Def | Minus_Simplify | Comp_Simplify |
-     Eq_Simplify | ITE_Simplify | Sum_Simplify | Prod_Simplify | RARE_Rewrite |
+     Eq_Simplify | ITE_Simplify | Sum_Simplify | Prod_Simplify | All_Simplify | RARE_Rewrite |
      Qnt_Simplify | Not_Not | Tautological_Clause | Duplicate_Literals |
      (*Unsupported rule*)
      Unsupported |
@@ -129,6 +129,7 @@ sig
   val qnt_rm_unused: lethe_tac
   val onepoint: lethe_tac
   val qnt_simplify: lethe_tac
+  val all_simplify: lethe_tac
   val rare_rewrite: lethe_tac
   val unit_res: lethe_tac
   val skolem_ex: lethe_tac
@@ -219,7 +220,7 @@ datatype verit_rule =
    (*Former cong rules*)
    Bool_Simplify | Or_Simplify | Not_Simplify | And_Simplify | Equiv_Simplify |
    Implies_Simplify | Connective_Def | Minus_Simplify | Comp_Simplify |
-   Eq_Simplify | ITE_Simplify | Sum_Simplify | Prod_Simplify | RARE_Rewrite |
+   Eq_Simplify | ITE_Simplify | Sum_Simplify | Prod_Simplify | All_Simplify | RARE_Rewrite |
    Qnt_Simplify | Not_Not | Tautological_Clause | Duplicate_Literals |
    (*Unsupported rule*)
    Unsupported |
@@ -305,6 +306,7 @@ fun string_of_lethe_rule Bind = "Bind"
   | string_of_lethe_rule Minus_Simplify = "minus_simplify"
   | string_of_lethe_rule Sum_Simplify = "sum_simplify"
   | string_of_lethe_rule Prod_Simplify = "prod_simplify"
+  | string_of_lethe_rule All_Simplify = "all_simplify"
   | string_of_lethe_rule RARE_rewrite = "rare_rewrite"
   | string_of_lethe_rule Comp_Simplify = "comp_simplify"
   | string_of_lethe_rule Qnt_Simplify = "qnt_simplify"
@@ -1245,7 +1247,12 @@ fun prod_simplify ctxt _ t =
     THEN' TRY' (K (Clasimp.auto_tac ctxt))) (*TODO: TEMP until cvc5 produces fine grained simplification steps *)
 end
 
+(*TODO: still needed?*)
 fun rare_rewrite ctxt _ t =
+  SMT_Replay_Methods.prove ctxt t (fn _ =>
+     TRY' (K (Clasimp.auto_tac ctxt)))
+
+fun all_simplify ctxt _ t =
   SMT_Replay_Methods.prove ctxt t (fn _ =>
      TRY' (K (Clasimp.auto_tac ctxt))) (*TODO: TEMP until cvc5 produces fine grained simplification steps *)
 
