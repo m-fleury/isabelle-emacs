@@ -61,4 +61,16 @@ lemma [rewrite_sets_union_member]:
   shows "NO_MATCH cvc_a (undefined x y z) \<Longrightarrow> (x \<in> y \<union> z) = (x \<in> y \<or> x \<in> z)"
   by auto
 
+(*Test added by Hanna*)
+
+
+named_theorems rewrite_sets_union_double \<open>automatically_generated\<close>
+
+lemma [rewrite_sets_union_double]:
+  fixes x::"'a::type set" 
+  shows "NO_MATCH cvc_a (undefined x) \<Longrightarrow> (x \<union> x) = x"
+  by auto
+
+cvc5_rare "Set_Rewrites.rewrite_sets_union_double"
+
 end
