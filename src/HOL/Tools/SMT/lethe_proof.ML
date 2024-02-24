@@ -202,10 +202,23 @@ fun add_bound_variables_to_ctxt cx =
     (fn (s, SOME typ) => (s, Term (Free (s, type_of cx typ)))))
 
 local
-  fun extract_symbols bds =
+
+(*
+New? syntax:
+TODO: Figure out if this is really new or was just broken and introduce flag if so
+
+We want to fix this even earlier actually, so that we don't get S [Sym "=", Sym "veriT_vr6", Sym "veriT_vr6"]
+when parsing in (veriT_vr6 S4) 
+("bds",
+ [(S [Sym "=", Sym "veriT_vr6", Sym "veriT_vr6"], SOME (Sym "S4")), (S [Sym "=", Sym "veriT_vr7", Sym "veriT_vr7"], SOME (Sym "S2")),
+  (S [Sym "=", Sym "veriT_vr8", Sym "veriT_vr8"], SOME (Sym "S2")), (S [Sym "=", Sym "v0", Sym "veriT_vr6"], NONE),
+  (S [Sym "=", Sym "v1", Sym "veriT_vr7"], NONE),
+  (S [Sym "=", Sym "v2", Sym "veriT_vr8"], NONE)])
+*)
+  fun extract_symbols bds = (@{print}("bds",bds);
     bds
     |> map (fn (SMTLIB.S [SMTLIB.Sym "=", SMTLIB.Sym x, SMTLIB.Sym y], typ) => [([x, y], typ)]
-           | t => raise (Fail ("match error " ^ @{make_string} t)))
+           | t => raise (Fail ("match error " ^ @{make_string} t))))
     |> flat
 
   (* onepoint can bind a variable to another variable or to a constant *)
@@ -375,6 +388,10 @@ fun parse_raw_proof_steps (limit : string option) (ls : SMTLIB.tree list) (cx : 
             val (curss, (_, cx)) = parse_normal_step (discharge_step, cx)
             val s = to_raw_node subproof (fst curss, anchor_args)
             val (rp, rl, cx) = parse_raw_proof_steps limit remaining_proof cx assms_nbr
+            val _ = @{print}("finished with this anchor",(anchor_id,s))
+
+            (*val _ = @{print}("its name bindings are",(anchor_id,cx))*)
+
           in (s :: rp, rl, cx) end
       | (SKOLEM, p, l) =>
           let
@@ -428,9 +445,9 @@ fun extract_skolem ([SMTLIB.Sym var, typ, choice]) = (var, typ, choice)
 *)
 fun preprocess compress step =
   let
+    val _ = @{print}("Found it! Look here to fix the assumption in bind problem!!!")
     fun expand_assms cs =
       map (fn t => case AList.lookup (op =) cs t of NONE => t | SOME a => a)
-    fun match_typing_arguments (SMTLIB.S [SMTLIB.Sym var, typ as SMTLIB.Sym _] :: SMTLIB.S [SMTLIB.Sym "=", SMTLIB.Sym x1, SMTLIB.Sym x2] :: xs) =
 (*
 cvc5 commit 7584ec114ae959e5f21d131446f4f6e354705227:
 lemma 
@@ -445,17 +462,87 @@ lemma
  (anchor :step t9 :args ((?v0 B$) (:= ?v1 ?v0)))
   so special handling to support this case
 *)
-       if var = x1 orelse var = x2 then (*CVC5*)
-         SMTLIB.S [SMTLIB.Sym "=", SMTLIB.S [SMTLIB.Sym x1, typ], SMTLIB.Sym x2] :: match_typing_arguments xs
-       else
-         SMTLIB.S [SMTLIB.Sym var, typ] :: match_typing_arguments (SMTLIB.S [SMTLIB.Sym "=", SMTLIB.Sym x1, SMTLIB.Sym x2] :: xs)
-     | match_typing_arguments (SMTLIB.S [SMTLIB.Sym var, typ as SMTLIB.Sym _] :: SMTLIB.S [SMTLIB.Sym "=", SMTLIB.Sym x1, x2] :: xs) =
+     (*S [S [Sym "veriT_vr6", Sym "S4"], S [Sym "veriT_vr7", Sym "S2"], S [Sym "veriT_vr8", Sym "S2"], S [Key "=", Sym "v0", Sym "veriT_vr6"],
+       S [Key "=", Sym "v1", Sym "veriT_vr7"], S [Key "=", Sym "v2", Sym "veriT_vr8"]]
+
+       (anchor :step t190 :args ((?v0 (_ BitVec 3)) (:= ?v0 ?v0) (?v1 Nat$) (:= ?v1 ?v1) (?v2 (_ BitVec 3)) (:= ?v2 ?v2)))
+
+
+S [Sym "veriT_vr13", Sym "S8"]*)
+
+    fun match_typing_arguments2a [] _ = [] |
+        match_typing_arguments2a ((SMTLIB.S [SMTLIB.Sym "=", SMTLIB.Sym x1, SMTLIB.Sym x2])::xs) ys =
+          let
+            val (SMTLIB.S [SMTLIB.Sym _, SMTLIB.Sym y2]) = (List.find (fn SMTLIB.S [SMTLIB.Sym x2, SMTLIB.Sym y2] => true | _ => false) ys) |> Option.valOf
+          in
+            (SMTLIB.S [SMTLIB.Sym "=", SMTLIB.S [SMTLIB.Sym x1, SMTLIB.Sym y2], SMTLIB.Sym x2])  :: match_typing_arguments2a xs ys 
+          end
+
+    fun getAssignment [] = [] |
+        getAssignment ((SMTLIB.S [SMTLIB.Sym "=", SMTLIB.Sym x1, SMTLIB.Sym x2])::ys)
+          = (SMTLIB.S [SMTLIB.Sym "=", SMTLIB.Sym x1, SMTLIB.Sym x2]) :: getAssignment ys |
+        getAssignment (x :: ys) = getAssignment ys
+    
+    fun getSorts [] = [] |
+        getSorts ((SMTLIB.S [SMTLIB.Sym "=", SMTLIB.Sym x1, SMTLIB.Sym x2])::ys)
+          =  getSorts ys |
+        getSorts (x :: ys) = x::getSorts ys
+
+(*("sorts",
+ [S [Sym "veriT_vr6", Sym "S4"], S [Sym "veriT_vr7", Sym "S2"],
+  S [Sym "veriT_vr8",
+     Sym "S2"]]) (line 494 of "/home/lachnitt/Sources/isabelle-git/isabelle-emacs/src/HOL/Tools/SMT/lethe_proof.ML") 
+("(getAssignment xs)",
+ [S [Sym "=", Sym "v0", Sym "veriT_vr6"], S [Sym "=", Sym "v1", Sym "veriT_vr7"],
+  S [Sym "=", Sym "v2",
+     Sym "veriT_vr8"]])*)
+    fun match_typing_arguments2 xs = 
+     let
+       val sorts = (getSorts xs)
+       val assign = (getAssignment xs)
+       val _ = @{print}("xs",xs)
+
+       val _ = @{print}("sorts",sorts)
+       val _ = @{print}("(getAssignment xs)",(getAssignment xs))
+
+     in
+      if assign = [] then (@{print}("match_typing_arguments2",xs);xs) else (@{print}("match_typing_arguments2",match_typing_arguments2a assign sorts);match_typing_arguments2a assign sorts)
+     end
+
+    fun match_typing_arguments (SMTLIB.S [SMTLIB.Sym var, typ as SMTLIB.Sym _]:: xs) =
+     let
+                val _ = @{print}("xsss",xs)
+
+(*TODO: What if first assignemnt does not match? Do this completely different*)
+        fun findInList ((SMTLIB.S [SMTLIB.Sym "=", SMTLIB.Sym x1, SMTLIB.Sym x2])::ys) zs = SOME ((x1, x2),rev zs @ ys) |
+            findInList (x :: ys) zs = findInList ys (x::zs) |
+            findInList [] zs = NONE
+
+
+
+     in
+       case findInList xs [] of 
+        SOME ((x1,x2),xs) => 
+         let
+           
+           val _ = @{print}("((x1,x2),xs)",((x1,x2,var),xs))
+           val _ = @{print}("Should be true",var = x2)
+         in
+          SMTLIB.S [SMTLIB.Sym "=", SMTLIB.S [SMTLIB.Sym x1, typ], SMTLIB.Sym x2] :: match_typing_arguments xs
+         end |
+        NONE => SMTLIB.S [SMTLIB.Sym var, typ] :: match_typing_arguments xs
+     end
+     (*| match_typing_arguments (SMTLIB.S [SMTLIB.Sym var, typ as SMTLIB.Sym _] :: SMTLIB.S [SMTLIB.Sym "=", SMTLIB.Sym x1, x2] :: xs) =
        if var = x1 then (*CVC5*)
          SMTLIB.S [SMTLIB.Sym "=", SMTLIB.S [SMTLIB.Sym x1, typ], x2] :: match_typing_arguments xs
        else
          SMTLIB.S [SMTLIB.Sym var, typ] :: match_typing_arguments (SMTLIB.S [SMTLIB.Sym "=", SMTLIB.Sym x1, x2] :: xs)
-     | match_typing_arguments (a :: xs) = a :: match_typing_arguments xs
+     | match_typing_arguments (a :: xs) = a :: match_typing_arguments xs*)
+     | match_typing_arguments xs = (@{print}("xs",xs);[])
+
      | match_typing_arguments [] = []
+
+
     fun expand_lonely_arguments (args as SMTLIB.S [SMTLIB.Sym "=", _, _]) = [args]
       | expand_lonely_arguments (x as SMTLIB.S [SMTLIB.Sym var, _]) = [SMTLIB.S [SMTLIB.Sym "=", x, SMTLIB.Sym var]]
 
@@ -466,9 +553,10 @@ lemma
           |> map
               (fn SMTLIB.S [SMTLIB.Key "=", x, y] => SMTLIB.S [SMTLIB.Sym "=", x, y]
               | x => x)
-          |> (rule = "bind" orelse rule = "onepoint") ? flat o (map expand_lonely_arguments) o match_typing_arguments
+          |> (rule = "bind" orelse rule = "onepoint") ? flat o (map expand_lonely_arguments) o match_typing_arguments2
           |> `(if rule = lethe_def then single o extract_skolem else K [])
           ||> SMTLIB.S
+       val _ = @{print}("stripped_args",stripped_args)
 
         val (subproof, (cx, _)) = fold_map preprocess subproof (cx, remap_assms) |> apfst flat
         val remap_assms = (if rule = "or" then (id, hd prems) :: remap_assms else remap_assms)
@@ -534,18 +622,31 @@ val desymbolize = Name.desymbolize (SOME false) o perhaps (try (unprefix "?"))
 *)
 fun postprocess_proof compress ctxt step cx =
   let
+      val _ = @{print}("step",step)
+
     fun postprocess (Raw_Lethe_Node {id, rule, args, prems, declarations, concl, subproof}) (cx, rew) =
     let
+      val _ = @{print}("id",id)
+
+      val _ = @{print}("args",args)
+
       val args = extract_types_of_args args rule
+      val _ = @{print}("args",args)
+
       val globally_bound_vars = declared_csts cx rule args
+      val _ = @{print}("globally_bound_vars",globally_bound_vars)
+
       val cx = fold (update_binding o (fn (s, typ) => (s, Term (Free (s, type_of cx typ)))))
            globally_bound_vars cx
+      val _ = @{print}("cx",cx)
 
       (*find rebound variables specific to the LHS of the equivalence symbol*)
       val bound_vars = bound_vars_by_rule cx rule args
       val bound_vars_no_typ = map fst bound_vars
       val rhs_vars =
         fold (fn [t', t] => t <> t' ? (curry (op ::) t) | _ => fn x => x) bound_vars_no_typ []
+      val _ = @{print}("bound_vars",bound_vars)
+      val _ = @{print}("bound_vars_no_typ",bound_vars_no_typ)
 
       fun not_already_bound cx t = SMTLIB_Proof.lookup_binding cx t = None andalso
           not (member (op =) rhs_vars t)
@@ -608,11 +709,13 @@ fun postprocess_proof compress ctxt step cx =
 
       (* postprocess arguments *)
       val rule_args = args_of_rule rule stripped_args
+      val _ = @{print}("rule_args",rule_args)
 
       val (termified_args, _) = fold_map term_of rule_args subproof_cx
       val normalized_args = map unsk_and_rewrite termified_args
 
       val rule_args = map subproof_rewriter normalized_args
+      val _ = @{print}("rule_args",rule_args)
 
       val raw_insts = insts_of_forall_inst rule stripped_args
       fun termify_term (x, t) cx = let val (t, cx) = term_of t cx in ((x, t), cx) end
@@ -833,7 +936,8 @@ local
         |> map remove_pattern
       val (raw_steps, _, _) =
         parse_raw_proof_steps NONE smtlib_lines_without_qm SMTLIB_Proof.empty_name_binding 0
-
+(*args are still "okay" here*)
+      val _ = @{print}("raw_steps",raw_steps)
       fun process step (cx, cx') =
         let fun postprocess step (cx, cx') =
           let val (step, cx) = postprocess_proof compress ctxt step cx
