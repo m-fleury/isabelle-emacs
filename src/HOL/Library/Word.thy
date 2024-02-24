@@ -4511,5 +4511,6 @@ lemmas [cvc5_normalized_input] = len_bit0 len_num1 mult_Suc_right One_nat_def
 lemma assumes "a=64" shows "LENGTH(64) = (a::nat)"
   using nat_int assms
   supply [[smt_nat_as_int, smt_trace,smt_cvc_lethe,smt_debug_verit]]
+  apply (smt (cvc5))
   sorry
 end
