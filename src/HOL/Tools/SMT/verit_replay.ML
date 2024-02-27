@@ -28,12 +28,12 @@ fun subst_only_free pairs =
 fun under_fixes f unchanged_prems (prems, nthms) names args insts decls (concl, ctxt) =
   let
     val thms1 = unchanged_prems @ map (SMT_Replay.varify ctxt) prems
-    val _ =  SMT_Config.verit_msg ctxt (fn () => \<^print>  ("names =", names))
+    (*val _ =  SMT_Config.verit_msg ctxt (fn () => \<^print>  ("names =", names))*)
     val thms2 = map snd nthms
-    val _ = SMT_Config.verit_msg ctxt (fn () => \<^print> ("prems=", prems))
+    (*val _ = SMT_Config.verit_msg ctxt (fn () => \<^print> ("prems=", prems))
     val _ = SMT_Config.verit_msg ctxt (fn () => \<^print> ("nthms=", nthms))
     val _ = SMT_Config.verit_msg ctxt (fn () => \<^print> ("thms1=", thms1))
-    val _ = SMT_Config.verit_msg ctxt (fn () => \<^print> ("thms2=", thms2))
+    val _ = SMT_Config.verit_msg ctxt (fn () => \<^print> ("thms2=", thms2))*)
   in (f ctxt (thms1 @ thms2) args insts decls concl) end
 
 
@@ -103,8 +103,11 @@ fun replay_theorem_step rewrite_rules ll_defs assumed inputs proof_prems
     val export_vars = concl_tranformation @
        (ListPair.zip (map Free fixes, map Free (ListPair.zip (names, map snd fixes))))
 
+    (*HL: I added the condition length rewrite_rules > 0 here because this broke when checking
+     external veriT proofs. Not sure if rewrite_rules is not supposed to be empty though?*)
     val post = let val thy = Proof_Context.theory_of (empty_simpset ctxt) in
-        Raw_Simplifier.rewrite_term thy ((if Lethe_Proof.keep_raw_lifting rule then tl rewrite_rules else rewrite_rules)) []
+        Raw_Simplifier.rewrite_term thy ((if Lethe_Proof.keep_raw_lifting rule
+          andalso length rewrite_rules > 0 then tl rewrite_rules else rewrite_rules)) []
         #> Object_Logic.atomize_term ctxt
         #> not (null ll_defs andalso Lethe_Proof.keep_raw_lifting rule) ? SMTLIB_Isar.unlift_term ll_defs
         #> SMTLIB_Isar.unskolemize_names ctxt
