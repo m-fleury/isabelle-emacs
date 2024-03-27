@@ -84,7 +84,7 @@ fun remove_rewrite_rules_from_rules n =
     | SOME a => if a < n then NONE else SOME step))
 
 
-fun replay_theorem_step rewrite_rules ll_defs assumed inputs proof_prems
+fun replay_theorem_step rewrite_rules all_assms ll_defs assumed inputs proof_prems
   (step as Lethe_Proof.Lethe_Replay_Node {id, rule, prems, bounds, args, insts,
      subproof = (fixes, assms, input, subproof), concl, ...}) state =
   let
@@ -128,7 +128,7 @@ fun replay_theorem_step rewrite_rules ll_defs assumed inputs proof_prems
     val input = drop (length assms) all_proof_prems'
     val all_proof_prems = proof_prems @ proof_prems'
 
-    val replay = replay_theorem_step rewrite_rules ll_defs assumed (input @ inputs) all_proof_prems
+    val replay = replay_theorem_step rewrite_rules all_assms ll_defs assumed (input @ inputs) all_proof_prems
     val (proofs', stats, _, _, sub_global_rew) =
        fold replay subproof (proofs, stats, sub_ctxt2, export_vars, global_transformation)
 
@@ -145,6 +145,9 @@ fun replay_theorem_step rewrite_rules ll_defs assumed inputs proof_prems
       |> map_filter (Symtab.lookup proofs)
     val args = map (Term.subst_free concl_tranformation o subst_only_free global_transformation) args
     val insts = Symtab.map (K (Term.subst_free concl_tranformation o subst_only_free global_transformation)) insts
+    val missing_assumptions =
+       if SMT_Config.alethe_no_provided_assms ctxt andalso rule = Lethe_Proof.normalized_input_rule 
+       then all_assms else []
     val proof_prems =
        if Lethe_Replay_Methods.requires_subproof_assms prems rule then proof_prems else []
     val local_inputs =
@@ -152,7 +155,7 @@ fun replay_theorem_step rewrite_rules ll_defs assumed inputs proof_prems
 
 
     val replay = (Timing.timing (replay_thm CVC5_Replay_Methods.method_for rewrite_rules ll_defs
-       ctxt assumed [] (proof_prems @ local_inputs) (nthms @ nthms') concl_tranformation
+       ctxt assumed [] (missing_assumptions @ proof_prems @ local_inputs) (nthms @ nthms') concl_tranformation
        global_transformation args insts))
 
     val ({elapsed, ...}, thm) =
@@ -217,7 +220,7 @@ fun replay_assumed assms ll_defs rewrite_rules stats ctxt term =
     val replay = Timing.timing (SMT_Replay_Methods.prove ctxt (rewrite term))
     val ({elapsed, ...}, thm) =
       SMT_Config.with_time_limit ctxt SMT_Config.reconstruction_step_timeout replay
-         (fn _ => Method.insert_tac ctxt (map snd assms) THEN' Classical.fast_tac ctxt)
+         (fn _ => Method.insert_tac ctxt assms THEN' Classical.fast_tac ctxt)
         handle Timeout.TIMEOUT _ => raise SMT_Failure.SMT SMT_Failure.Time_Out
     val stats' = Symtab.cons_list (Lethe_Proof.input_rule, Time.toNanoseconds elapsed) stats
   in
@@ -248,11 +251,11 @@ fun add_correct_assms_deps ctxt rewrite_rules ll_defs assms steps =
     map add_correct_assms_deps steps
   end*)
 
-fun replay_step rewrite_rules ll_defs assumed inputs proof_prems
+fun replay_step rewrite_rules all_assms ll_defs assumed inputs proof_prems
   (step as Lethe_Proof.Lethe_Replay_Node {rule, ...}) state =
   if rule = Lethe_Proof.lethe_def
   then replay_definition_step rewrite_rules ll_defs assumed inputs proof_prems step state
-  else replay_theorem_step rewrite_rules ll_defs assumed inputs proof_prems step state
+  else replay_theorem_step rewrite_rules all_assms ll_defs assumed inputs proof_prems step state
 
 
 fun replay outer_ctxt
@@ -323,7 +326,7 @@ fun replay outer_ctxt
 
     val (assumed, stats) = fold (fn ((id, thm)) => fn (assumed, stats) =>
       let
-        val (thm, stats) = replay_assumed assms ll_defs rewrite_rules stats ctxt thm
+        val (thm, stats) = replay_assumed (map snd assms) ll_defs rewrite_rules stats ctxt thm
         val name = SMTLIB_Interface.assert_name_of_role_and_index SMT_Util.Axiom id
       in
         (Symtab.update (name, ([], thm)) assumed, stats)
@@ -354,7 +357,7 @@ fun replay outer_ctxt
     val global_transformation : term Termtab.table = Termtab.empty
 
     val (_, (proofs, stats, ctxt5, _, _)) =
-      fold (blockwise (replay_step rewrite_rules ll_defs assumed [] [])) actual_steps
+      fold (blockwise (replay_step rewrite_rules (map snd assms) ll_defs assumed [] [])) actual_steps
         (1, (assumed, stats, ctxt4, [], global_transformation))
 
     val total = Time.toMilliseconds (#elapsed (Timing.result start))

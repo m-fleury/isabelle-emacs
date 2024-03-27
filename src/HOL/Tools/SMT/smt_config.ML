@@ -57,6 +57,7 @@ sig
   val spy_verit: Proof.context -> bool
   val spy_Z3: Proof.context -> bool
   val use_lethe_proof_from_cvc: Proof.context -> bool
+  val alethe_no_provided_assms: Proof.context -> bool
 
   (*certificates*)
   val select_certificates: string -> Context.generic -> Context.generic
@@ -205,6 +206,7 @@ val infer_triggers = Attrib.setup_config_bool \<^binding>\<open>smt_infer_trigge
 val debug_files = Attrib.setup_config_string \<^binding>\<open>smt_debug_files\<close> (K "")
 val sat_solver = Attrib.setup_config_string \<^binding>\<open>smt_sat_solver\<close> (K "cdclite")
 val cvc_experimental_lethe = Attrib.setup_config_bool \<^binding>\<open>smt_cvc_lethe\<close> (K false)
+val lethe_no_assumption = Attrib.setup_config_bool \<^binding>\<open>smt_lethe_no_assumption\<close> (K false)
 
 
 (* diagnostics *)
@@ -222,7 +224,8 @@ fun spy_verit ctxt  = Config.get ctxt spy_verit_attr
 fun spy_Z3 ctxt  = Config.get ctxt spy_z3
 fun compress_verit_proofs ctxt  = Config.get ctxt trace_verit_compression
 
-fun use_lethe_proof_from_cvc ctxt  = Config.get ctxt cvc_experimental_lethe
+fun use_lethe_proof_from_cvc ctxt = Config.get ctxt cvc_experimental_lethe
+fun alethe_no_provided_assms ctxt = Config.get ctxt lethe_no_assumption
 
 
 (* tools *)

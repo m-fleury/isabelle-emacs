@@ -89,7 +89,7 @@ fun remove_rewrite_rules_from_rules n =
     | SOME a => if a < n then NONE else SOME step))
 
 
-fun replay_theorem_step rewrite_rules ll_defs assumed inputs proof_prems
+fun replay_theorem_step rewrite_rules all_assms ll_defs assumed inputs proof_prems
   (step as Lethe_Proof.Lethe_Replay_Node {id, rule, prems, bounds, args, insts,
      subproof = (fixes, assms, input, subproof), concl, ...}) state =
   let
@@ -124,7 +124,7 @@ fun replay_theorem_step rewrite_rules ll_defs assumed inputs proof_prems
     val proof_prems' = take (length assms) all_proof_prems'
     val input = drop (length assms) all_proof_prems'
     val all_proof_prems = proof_prems @ proof_prems'
-    val replay = replay_theorem_step rewrite_rules ll_defs assumed (input @ inputs) all_proof_prems
+    val replay = replay_theorem_step rewrite_rules all_assms ll_defs assumed (input @ inputs) all_proof_prems
     val (proofs', stats, _, _, sub_global_rew) =
        fold replay subproof (proofs, stats, sub_ctxt2, export_vars, global_transformation)
 
@@ -140,12 +140,15 @@ fun replay_theorem_step rewrite_rules ll_defs assumed inputs proof_prems
       |> map_filter (Symtab.lookup proofs)
     val args = map (Term.subst_free concl_tranformation o subst_only_free global_transformation) args
     val insts = Symtab.map (K (Term.subst_free concl_tranformation o subst_only_free global_transformation)) insts
+    val missing_assumptions =
+       if SMT_Config.alethe_no_provided_assms ctxt andalso rule = Lethe_Proof.normalized_input_rule 
+       then all_assms else []
     val proof_prems =
        if Lethe_Replay_Methods.requires_subproof_assms prems rule then proof_prems else []
     val local_inputs =
        if Lethe_Replay_Methods.requires_local_input prems rule then input @ inputs else []
     val replay = Timing.timing (replay_thm Verit_Replay_Methods.method_for rewrite_rules ll_defs
-       ctxt assumed [] (proof_prems @ local_inputs) (nthms @ nthms') concl_tranformation
+       ctxt assumed [] (missing_assumptions @ proof_prems @ local_inputs) (nthms @ nthms') concl_tranformation
        global_transformation args insts)
 
     val ({elapsed, ...}, thm) =
@@ -214,11 +217,11 @@ fun replay_assumed assms ll_defs rewrite_rules stats ctxt term =
   end
 
 
-fun replay_step rewrite_rules ll_defs assumed inputs proof_prems
+fun replay_step rewrite_rules all_assms ll_defs assumed inputs proof_prems
   (step as Lethe_Proof.Lethe_Replay_Node {rule, ...}) state =
   if rule = Lethe_Proof.lethe_def
   then replay_definition_step rewrite_rules ll_defs assumed inputs proof_prems step state
-  else replay_theorem_step rewrite_rules ll_defs assumed inputs proof_prems step state
+  else replay_theorem_step rewrite_rules all_assms ll_defs assumed inputs proof_prems step state
 
 
 fun replay outer_ctxt
@@ -299,7 +302,7 @@ fun replay outer_ctxt
        (if i > next then i + 10 else next, f x y))
     val global_transformation : term Termtab.table = Termtab.empty
     val (_, (proofs, stats, ctxt5, _, _)) =
-      fold (blockwise (replay_step rewrite_rules ll_defs assumed [] [])) actual_steps
+      fold (blockwise (replay_step rewrite_rules (map snd assms) ll_defs assumed [] [])) actual_steps
         (1, (assumed, stats, ctxt4, [], global_transformation))
     val total = Time.toMilliseconds (#elapsed (Timing.result start))
     val (_, (_, Lethe_Proof.Lethe_Replay_Node {id, ...})) = split_last actual_steps
