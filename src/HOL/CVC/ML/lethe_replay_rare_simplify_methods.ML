@@ -69,7 +69,7 @@ val _ = @{print}("thys", (rev get_types))*)
     then
       let
         val t' = dest_Type t |> snd |> hd
-        val _ = @{print}("rewrite_lemma_inst t'",t')
+        (*val _ = @{print}("rewrite_lemma_inst t'",t')*)
         val new_a = Const ( \<^const_name>\<open>ListVar\<close>, Type(\<^type_name>\<open>List.list\<close>,[t']) --> Type(\<^type_name>\<open>cvc_ListVar\<close>,[t']))
                   $ Const ("List.list.Nil", Type(\<^type_name>\<open>List.list\<close>,[t']))
       in
@@ -83,6 +83,8 @@ val _ = @{print}("thys", (rev get_types))*)
                             cvc_list_right_Cons cvc_list_left_Cons cvc_list_both_Cons
                             cvc_list_both_Cons_0 cvc_list_both_Cons_1 NO_MATCH_def}
  val inst_lemma = rewrite_lemma_inst ( (rev args@[Const ("Groups.zero_class.zero",@{typ int})])) (rev get_types)
+(*val _ = @{print}("inst_lemma", inst_lemma)*)
+
 val inst_lemma_without_list 
  = (Local_Defs.unfold ctxt) cvc_list_defs inst_lemma
 
@@ -92,17 +94,17 @@ val inst_lemma_without_true
 
 
 (*val _ = @{print}("inst_lemma_without_true",inst_lemma_without_true)*)
- val _ = @{print}("Lemma found",rewrite_lemma)
+ (*val _ = @{print}("Lemma found",rewrite_lemma)
  val _ = @{print}("Instantiated lemma",inst_lemma)
- val _ = @{print}("Instantiated lemma without custom definitions",inst_lemma_without_list)
+ val _ = @{print}("Instantiated lemma without custom definitions",inst_lemma_without_list)*)
 
 
 in (*TODO: fixed-point rules*)
  (SMT_Replay_Methods.prove ctxt t (fn _ =>
- K (print_tac ctxt "debug in dsl_tac_initialize 0")
- THEN' TRY' (EqSubst.eqsubst_tac ctxt [0] [inst_lemma_without_true])
+ (*K (print_tac ctxt "debug in dsl_tac_initialize 0")
+ THEN'*) TRY' (EqSubst.eqsubst_tac ctxt [0] [inst_lemma_without_true])
  THEN' (resolve_tac ctxt [@{thm refl}])
- THEN' K (print_tac ctxt "debug in dsl_tac_initialize 1")
+ (*THEN' K (print_tac ctxt "debug in dsl_tac_initialize 1")*)
 )
 )
 end
@@ -111,21 +113,21 @@ end
 fun try_simp ctxt t = 
   SMT_Replay_Methods.prove ctxt t (fn _ =>
      TRY' (K (HEADGOAL (simplify_tac ctxt ((Named_Theorems.get ctxt @{named_theorems cvc_evaluate})))))
-     THEN' K (print_tac ctxt "applied all cvc_evaluate theorems")
+     (*THEN' K (print_tac ctxt "applied all cvc_evaluate theorems")*)
      THEN' TRY'(K (HEADGOAL (simplify_tac ctxt ((Named_Theorems.get ctxt @{named_theorems rare_simplify_temp})))))
      THEN' TRY'(K (HEADGOAL (simplify_tac ctxt @{thms arith_simps verit_minus_simplify})))  
      THEN' TRY'(K (HEADGOAL (simplify_tac ctxt ((Named_Theorems.get ctxt @{named_theorems arith_simp_cvc5})))))
      THEN' TRY' (K (Clasimp.auto_tac ctxt))
-THEN' K (print_tac ctxt "debug in try simp")
+(*THEN' K (print_tac ctxt "debug in try simp")*)
   )
 
 (*Use this for now to make sure all important functions are in cvc_evaluate*)
 fun try_evaluate ctxt t =
   SMT_Replay_Methods.prove ctxt t (fn _ =>
       TRY' (Code_Simp.dynamic_tac ctxt )
-     THEN' K (print_tac ctxt "applied code_simp")
+     (*THEN' K (print_tac ctxt "applied code_simp")*)
      THEN' TRY' (K (HEADGOAL (simplify_tac ctxt ((Named_Theorems.get ctxt @{named_theorems cvc_evaluate})))))
-     THEN' K (print_tac ctxt "applied evaluation theorems")
+     (*THEN' K (print_tac ctxt "applied evaluation theorems")*)
  
  )
 
@@ -138,7 +140,7 @@ local
  fun pretty tag lines = map Pretty.str lines |> Pretty.big_list tag |> Pretty.string_of
 in 
 (* rare_simplify ctxt [prems] args t*)
- fun rare_rewrite ctxt (th : thm list) (Free (rewrite_name, _) :: args) t =
+ fun rare_rewrite ctxt (th : thm list) (Free (rewrite_name, _) :: args) t =((*@{print}("In here",rewrite_name);*)
   if rewrite_name = "evaluate"
   then
    (SMT_Config.verbose_msg ctxt (pretty ("Found evaluate, try to simplify")) []; try_evaluate ctxt t)
@@ -146,12 +148,12 @@ in
   then
    (SMT_Config.verbose_msg ctxt (pretty ("Found arith_poly_norm, try to simplify")) []; try_simp ctxt t)
   else
-   ( dsl_tac_initialize rewrite_name args ctxt t th) |
+   ( dsl_tac_initialize rewrite_name args ctxt t th)) |
 
     (*( dsl_tac_initialize rewrite_name args ctxt t th) |*)
    (*( try_auto_solo ctxt t)|*)
  rare_rewrite ctxt (th : thm list) args t =
-(@{print}("T",t);@{print}("args",args);@{print}("th",th);
+((*@{print}("T",t);@{print}("args",args);@{print}("th",th);*)
   (SMT_Config.verbose_msg ctxt (pretty ("No dsl rule found, try to simplify" ^
   List.foldr op^ "" (map ML_Syntax.print_term args))) []; try_simp ctxt t))
 end
