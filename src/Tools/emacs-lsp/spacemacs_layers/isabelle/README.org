@@ -1,0 +1,469 @@
+#+TITLE: Isabelle in Emacs
+Here is a screenshot of Isabelle in emacs:
+[[file:img/normal_emacs_isabelle.png]]
+
+Here is a screenshot of Isabelle in spacemacs:
+[[file:img/spacemacs_isabelle.png]]
+
+(with the sledgehammer interface).
+
+* Heading
+:PROPERTIES:
+:TOC:      this
+:END:
+- [[#description][Description]]
+- [[#preparation][Preparation]]
+  - [[#clone-isabelle-emacs][Clone Isabelle-emacs]]
+- [[#install-as-a-non-developer][Install (as a non-developer)]]
+  - [[#standard-emacs][standard emacs]]
+  - [[#spacemacs][spacemacs]]
+    - [[#create-the-private-layer-isabelle][Create the private layer Isabelle]]
+    - [[#add-the-isabelle-layer-to-spacemacs-and-configure-it][Add the isabelle layer to spacemacs and configure it]]
+- [[#install-as-a-developer][Install (as a developer)]]
+  - [[#standard-emacs][standard emacs]]
+  - [[#spacemacs][spacemacs]]
+    - [[#download-the-isar-mode-package][Download the Isar-mode package]]
+    - [[#create-the-private-layer-isabelle][Create the private layer Isabelle]]
+    - [[#create-the-private-layer-lisp-mode][Create the private layer lisp-mode]]
+    - [[#add-the-isabelle-layer-to-spacemacs-and-configure-it][Add the isabelle layer to spacemacs and configure it]]
+  - [[#doom][doom]]
+    - [[#installing-the-required-packages][Installing the required packages]]
+    - [[#configuration][Configuration]]
+- [[#post-installation][Post-Installation]]
+  - [[#adding-the-afp][Adding the AFP]]
+  - [[#configuration][Configuration]]
+- [[#key-bindings][Key bindings]]
+- Using Isabelle on a remote machine with Tramp
+
+* Description
+This layer allows for editing isabelle theory files. It includes:
+  - syntax highlighting via isar-mode
+  - pretty symbols rewriting
+  - processing via lsp-isar
+  - sledgehammer interface
+  - some keybindings
+
+Remark that only isar-mode and lsp-isar have been developed for this
+project. The rest (and in particular the LSP integration) was
+developed by other people!
+
+* Preparation
+** Clone Isabelle-emacs
+    - The version of Isabelle2023 to download is available at https://github.com/m-fleury/isabelle-emacs in the Isabelle2023-vsce branch
+
+#+BEGIN_SRC sh
+git clone https://github.com/m-fleury/isabelle-emacs.git
+cd isabelle-emacs
+git checkout Isabelle2023-vsce
+#+END_SRC
+
+    - Initialize Isabelle (note that the second and third commands can take a while and require an internet connection)
+
+#+BEGIN_SRC sh
+  ./bin/isabelle components -I
+  ./bin/isabelle components -a
+  ./bin/isabelle build -b HOL
+#+END_SRC
+
+There is no difference between the standard Isabelle and this Isabelle
+version, except for some extensions in the LSP server that does not
+impact Isabelle. A small list of extensions:
+   - support for progress (corresponding to the theory panel in Isabelle/jEdit)
+   - support for outline (corresponding to the sidekick in Isabelle/jEdit)
+
+While none of them is per-se necessary, as a user, you really want to have the first one.
+* Install (as a non-developer)
+
+** standard emacs
+
+Add the following to your =.emacs= (refer to the file =configuration_ex/mini_init.el=):
+#+BEGIN_SRC lisp
+;; initialisation of package (if needed)
+(package-initialize)
+
+(add-to-list 'package-archives '("org" . "http://orgmode.org/elpa/") t)
+(add-to-list 'package-archives '("melpa" . "http://melpa.milkbox.net/packages/") t)
+
+(unless (package-installed-p 'use-package)
+  (message "installing package use-package")
+  (package-refresh-contents)
+  (package-install 'use-package)
+
+  (unless (package-installed-p 'use-package)
+    (error "failed to install use-package"))
+  )
+
+;; install quelpa
+(use-package quelpa
+  :ensure t)
+
+(require 'quelpa)
+
+(quelpa
+ '(quelpa-use-package
+   :fetcher git
+   :url "https://github.com/quelpa/quelpa-use-package.git"))
+
+(require 'quelpa-use-package)
+
+;; install dependencies
+(use-package lsp-mode
+  :ensure t)
+(use-package session-async
+  :ensure t)
+
+
+;; the various required packages
+(use-package isar-mode
+  :ensure t
+  :mode "\\.thy\\'"
+  :quelpa (isar-mode :fetcher github
+		     :repo "m-fleury/isar-mode"
+		     :files ("*.el")
+		     :upgrade t)
+  )
+
+(use-package isar-goal-mode
+  :ensure t
+  :quelpa (isar-goal-mode :fetcher github
+			  :repo "m-fleury/simp-isar-mode"
+		     :files ("*.el")
+		     :upgrade t))
+
+(use-package lsp-isar
+	     :ensure t
+	     :quelpa ((lsp-isar :fetcher github
+				:repo "m-fleury/isabelle-emacs"
+				:branch "Isabelle2023-vsce"
+				:files ("src/Tools/emacs-lsp/lsp-isar/*.el"))
+				:upgrade t)
+  :after lsp-mode
+  :commands lsp-isar-define-client-and-start
+  :defer t
+  :init
+  (add-hook 'isar-mode-hook #'lsp-isar-define-client-and-start)
+  (add-hook 'lsp-isar-init-hook 'lsp-isar-open-output-and-progress-right-spacemacs)
+  :config
+
+  ;; CHANGE HERE: path to isabelle-emacs repo
+  (setq lsp-isar-path-to-isabelle "~/Documents/isabelle/isabelle-emacs")
+
+  )
+#+END_SRC
+
+Change the =CHANGE HERE= part with the correct path to the =isabelle-emacs= clone.
+
+
+** spacemacs
+*** Create the private layer Isabelle
+    - Go to the private directory in your .emacs.d
+#+BEGIN_SRC sh
+  cd ~/.emacs.d/private
+#+END_SRC
+    - Create an Isabelle directory inside `local` and go to it
+#+BEGIN_SRC sh
+  mkdir -p local
+  cd local
+  mkdir isabelle
+#+END_SRC
+    - Create symbolic links to the layer files
+#+BEGIN_SRC sh
+  ln -s ~/isabelle-emacs/src/Tools/emacs-lsp/spacemacs_layers/isabelle/layers.el layers.el
+  ln -s ~/isabelle-emacs/src/Tools/emacs-lsp/spacemacs_layers/isabelle/packages.el packages.el
+  ln -s ~/isabelle-emacs/src/Tools/emacs-lsp/spacemacs_layers/isabelle/funcs.el funcs.el
+#+END_SRC
+    - In `defconst isabelle-packages` at the top of the file, remove the imports of `isar-mode`, `lsp-isar`, and `isar-goal-mode` and replace them by:
+#+BEGIN_SRC elisp
+    (isar-mode :location (recipe
+                             :fetcher github
+                             :repo "m-fleury/isar-mode"))
+    (isar-goal-mode :location (recipe
+                             :fetcher github
+                             :repo "m-fleury/simp-isar-mode"))
+    (lsp-isar :location (recipe
+                             :fetcher github
+                             :repo "m-fleury/isabelle-emacs"
+                 :files ("src/Tools/emacs-lsp/lsp-isar/*.el")))
+#+END_SRC
+
+*** Add the isabelle layer to spacemacs and configure it
+To use this configuration layer, add it to your =~/.spacemacs=. You will need to
+add =isabelle= and =git= (we use =transient= that powers magit) to the existing =dotspacemacs-configuration-layers= list in this
+file.
+
+Then you need to add the following lines in the =dotspacemacs/user-init= function of your =~/.spacemacs= file.
+#+BEGIN_SRC elisp
+  (setq lsp-isar-path-to-isabelle "~/isabelle-emacs")
+  (setq lsp-isabelle-options (list "-d" "~/Example_Dir/Example_Session_Dir" "-S" "Example_Session"))
+#+END_SRC
+Note that the second line contains the command options to start isabelle from the
+command line and must be adapted to each use (see the Isabelle manual for the list of options).
+
+Using the option "-S" (especially if you are importing the AFP in your theories), will speed up the start-up time.
+Note that this option can only be used if a ROOT file is declared for the corresponding session (see the isabelle documentation).
+* Install (as a developer)
+** standard emacs
+#+begin_src elisp
+(setq simp-isar-mode-path (concat repos-directory "simp-isar-mode"))
+
+(use-package isar-mode
+  :load-path simp-isar-mode-path
+  :mode "\\.thy\\'"
+  :config)
+
+(use-package isar-goal-mode
+  :defer t
+  :load-path simp-isar-mode-path)
+
+  (use-package lsp-isar
+    :load-path lsp-isar-path-stable
+    :commands lsp-isar-open-output-and-progress-right-spacemacs lsp-isar-define-client-and-start
+    :defer t
+  )
+#+end_src
+where =simp-isar-mode-path= and =lsp-isar-path-stable= are the corresponding paths.
+** spacemacs
+*** Download the Isar-mode package
+
+#+BEGIN_SRC sh
+  git clone https://github.com/m-fleury/simp-isar-mode.git
+#+END_SRC
+
+In the remainder of these instructions, I assume you have cloned these repos directly in your home directory. The following commands must be adapted with the correct paths otherwise.
+
+*** Create the private layer Isabelle
+    - Go to the private directory in your .emacs.d
+#+BEGIN_SRC sh
+  cd ~/.emacs.d/private
+#+END_SRC
+    - Create an Isabelle directory and go to it
+#+BEGIN_SRC sh
+  mkdir isabelle
+  cd isabelle
+#+END_SRC
+    - Create symbolic links to the layer files
+#+BEGIN_SRC sh
+  ln -s ~/isabelle-emacs/src/Tools/emacs-lsp/spacemacs_layers/isabelle/layers.el layers.el
+  ln -s ~/isabelle-emacs/src/Tools/emacs-lsp/spacemacs_layers/isabelle/packages.el packages.el
+  ln -s ~/isabelle-emacs/src/Tools/emacs-lsp/spacemacs_layers/isabelle/funcs.el funcs.el
+#+END_SRC
+    - Create a `local` folder and go to it
+#+BEGIN_SRC sh
+  mkdir -p local
+  cd local
+  mkdir isabelle
+#+END_SRC
+    - Create symbolic links to local packages
+#+BEGIN_SRC sh
+  ln -s ~/isabelle-emacs/src/Tools/emacs-lsp/lsp-isar/ lsp-isar 
+  ln -s ~/simp-isar-mode/ isar-mode
+#+END_SRC
+
+*** Add the lsp layer to spacemacs
+The LSP layer must be added to your =~/.spacemacs= configuration file. If it is 
+not recursively called by another layer you will need to add =lsp= to the
+existing =dotspacemacs-configuration-layers= list in this file.
+
+
+*** Add the isabelle layer to spacemacs and configure it
+Same as non-developer version
+
+** doom
+*** Installing the required packages
+Add the following to your =packages.el= (replacing the paths with the correct ones): 
+#+BEGIN_src elisp
+(package! isar-mode
+   :recipe (:local-repo ".../path/to/simp-isar-mode"))
+
+(package! isar-goal-mode
+   :recipe (:local-repo ".../path/to/simp-isar-mode"))
+
+(package! lsp-isar
+   :recipe (:local-repo ".../isabelle-emacs/src/Tools/emacs-lsp/lsp-isar/"))
+
+(package! lsp-isar-parse-args
+   :recipe (:local-repo ".../isabelle-emacs/src/Tools/emacs-lsp/lsp-isar/"))
+
+(package! session-async)
+#+END_src
+Now run =doom sync= to install the packages.
+
+*** Configuration
+An example configuration, appended to your =config.el=, might look like this: 
+#+BEGIN_src elisp
+;; Isabelle setup
+(use-package! isar-mode
+  :mode "\\.thy\\'"
+  :config
+  ;; (add-hook 'isar-mode-hook 'turn-on-highlight-indentation-mode)
+  ;; (add-hook 'isar-mode-hook 'flycheck-mode)
+  (add-hook 'isar-mode-hook 'company-mode)
+  (add-hook 'isar-mode-hook
+            (lambda ()
+              (set (make-local-variable 'company-backends)
+                   '((company-dabbrev-code company-yasnippet)))))
+  (add-hook 'isar-mode-hook
+            (lambda ()
+              (set (make-local-variable 'indent-tabs-mode) nil)))
+  (add-hook 'isar-mode-hook
+            (lambda ()
+              (yas-minor-mode)))
+  )
+
+(use-package! lsp-isar-parse-args
+  :custom
+  (lsp-isar-parse-args-nollvm nil))
+
+(use-package! lsp-isar
+  :commands lsp-isar-define-client-and-start
+  :custom
+  (lsp-isar-output-use-async t)
+  (lsp-isar-output-time-before-printing-goal nil)
+  (lsp-isar-experimental t)
+  (lsp-isar-split-pattern 'lsp-isar-split-pattern-three-columns)
+  (lsp-isar-decorations-delayed-printing t)
+  :init
+  (add-hook 'lsp-isar-init-hook 'lsp-isar-open-output-and-progress-right-spacemacs)
+  (add-hook 'isar-mode-hook #'lsp-isar-define-client-and-start)
+
+  (push (concat ".../isabelle-emacs/src/Tools/emacs-lsp/yasnippet")
+   yas-snippet-dirs)
+  (setq lsp-isar-path-to-isabelle ".../isabelle-emacs")
+  )
+#+END_src
+
+If you use evil key bindings in doom, you will also hit issue described at https://github.com/m-fleury/isabelle-release/issues/21. Here is the work-around:
+#+BEGIN_src elisp
+     ;; https://github.com/m-fleury/isabelle-release/issues/21
+   (defun ~/evil-motion-range--wrapper (fn &rest args)
+     "Like `evil-motion-range', but override field-beginning for performance.
+        See URL `https://github.com/ProofGeneral/PG/issues/427'."
+             (cl-letf (((symbol-function 'field-beginning)
+                                     (lambda (&rest args) 1)))
+                          (apply fn args)))
+
+               (advice-add #'evil-motion-range :around #'~/evil-motion-range--wrapper)
+
+#+end_src
+* Post-Installation
+** Adding the AFP
+Append to the file =~/.isabelle/Isabelle2023-vsce/etc/settings=
+#+BEGIN_src sh
+AFP=/path/to/AFP/thys
+#+END_SRC
+
+Then change in the emacs/spacemacs configuration
+#+BEGIN_src elisp
+  (setq lsp-isabelle-options (list "-d" "\$AFP"))
+#+END_src
+This is also the place to include further paths. Remember, however, that including more paths makes Isabelle slower to start.
+** Configuration
+Splitting is possible in two or three columns (see the screenshot on top). This can be controlled by
+#+BEGIN_src elisp
+(setq lsp-isar-split-pattern 'lsp-isar-split-pattern-three-columns)
+#+END_src
+or
+#+BEGIN_src elisp
+(setq lsp-isar-split-pattern 'lsp-isar-split-pattern-two-columns)
+#+END_src
+
+
+If you want to split the screen differently, you just remove the hook from =isar-mode-hooks= (the line looks like):
+#+BEGIN_src elisp
+(add-hook 'isar-mode-hook #'lsp-isar-define-client-and-start)
+#+END_src
+and add your own function to the hook instead!
+* Soft links
+Isabelle is very confused by soft links. The issues you will see are:
+  - no update of decorations when moving the cursor;
+  - the number of goals is twice the real number of goals.
+To solve this issue, you need to set the variables `lsp-isar-file-name-unfollow-links` and
+`lsp-isar-file-name-follow-links`. Setting both currently not described, because we do not really
+understand what is happenning behind the scenes. Please open an issue if you have that problem.
+* Key bindings
+*** Normal emacs
+| Binding | Effect                                                       |
+|---------+--------------------------------------------------------------|
+| C-c C-s | insert sledgehammer command and open the transient interface |
+
+(If you know magit, you will know how to use the interface)
+
+*** Spacemacs
+| Binding | Effect                                                       |
+|---------+--------------------------------------------------------------|
+| ,ii     | insert sledgehammer command and open the transient interface |
+| ,is     | open the transient interface                                 |
+
+(If you know magit, you will know how to use the interface)
+
+
+* Update from previous version
+** Isabelle2020
+The option "-S" was replaced by "-R" (or more precisely, the benefits from "-S" do not exist anymore and, therefore, the option "-S" was discontinued in Isabelle).
+
+* Recommended configuration
+** Emacs Configuration
+We can only recommand to use the values recommended by the [[https://emacs-lsp.github.io/lsp-mode/page/performance/][LSP project]]
+#+BEGIN_src elisp
+  (setq gc-cons-threshold 100000000)
+  (setq read-process-output-max (* 1024 1024)) ;; 1mb
+#+END_src
+
+You can also set the following variable:
+#+BEGIN_src elisp
+(setq lsp-use-plists t)
+#+END_src
+This requires recompiling the LSP projects (delete in your
+=.emacs.d/elpa=, /all/ directories starting with =lsp= and restart
+Emacs)
+
+
+** Emacs Version
+*** Emacs 29
+The upcoming Emacs-29 should have the "noverlay" branch significantly
+improving the performance of overlays (aka all the syntax highlighting
+in our case). The performance is already mostly okay, so this is not
+critical anymore (I spent enough time optimizing it), but it can still
+be useful.
+
+*** Emacs 28
+Remark that you can also use the so-called `gccemacs' version of Emacs
+(now merged under the name native). It should improve the performance,
+but we never run benchmarks to confirm that.
+
+*** Emacs 27
+JSON parsing is significantly faster
+
+
+* Using Isabelle on a remote machine with Tramp
+
+Emacs provides a mode called Tramp to open buffers on remote
+machines. This is useful in the Isabelle context when you are running
+on a low-powered laptop and instead want to use the faster (usually
+office) computer/server. In my experience, this is faster than ssh-ing
+into the machine and running Emacs there.
+
+I have attempted to run it many times. Sometimes it works for some
+time, and then it stops working again and I don't understand why.
+
+  - a fast connection is useful. SSH forwarding works most of the
+    time. Make sure to start Emacs from a terminal with ssh-agent
+    running (or any variant) such that ssh-ing in the machine does not
+    ask you for a password.
+
+  - isabelle *must be* in the path. There is no other way.
+
+  - set the variable to t:
+#+begin_src elip
+(setq lsp-isar-parse-args-tramp t)
+#+end_src
+
+I have an "emacs" option (`--isabelle-tramp`) to decide between locally and remotely.
+
+  - Taken from [[ https://www.reddit.com/r/emacs/comments/y92y4b/tramp_users_slowness_got_you_down_check][here]]:
+#+begin_src elisp
+  (defun my-vc-off-if-remote ()
+    (if (file-remote-p (buffer-file-name))
+	(setq-local vc-handled-backends nil)))
+  (add-hook 'find-file-hook 'my-vc-off-if-remote)
+#+end_src
