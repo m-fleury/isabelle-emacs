@@ -158,4 +158,26 @@ lemma True
 lemma True
   by simp
 
+
+
+locale test =
+  fixes
+    f :: "'a \<Rightarrow> 'a" and 
+    g :: \<open>'a \<Rightarrow> 'a \<Rightarrow> 'a\<close>
+  assumes
+    \<Phi>\<^sub>\<Phi>: "f \<circ> f = id" and
+   "\<And>a. g a o g b = id"
+begin
+notation g ("g\<^bsub>_\<^esub>")
+
+lemma "f \<circ> f \<circ> f \<circ> f = id"
+  sledgehammer
+  using \<Phi>\<^sub>\<Phi> by auto
+lemma \<open>\<And>a. g a o g b = id\<close>
+  using test_axioms unfolding test_def by auto
+
+lemma "g a o g a o g a o g a = id"
+  oops
+(*copy pasting the goal to see if sub is correctly used*)
+term "g\<^bsub>a\<^esub> \<circ> g\<^bsub>a\<^esub> \<circ> g\<^bsub>a\<^esub> \<circ> g\<^bsub>a\<^esub>"
 end
