@@ -70,6 +70,15 @@ fun replay_thm method_for rewrite_rules ll_defs ctxt assumed unchanged_prems pre
         decls
         (concl, ctxt)
       |> Simplifier.simplify (empty_simpset ctxt addsimps rewrite_rules)
+    handle (*temp for testing*)
+     (ERROR msg) =>
+       if Config.get ctxt SMT_Config.rec_evaluation
+       then (raise SMT_Failure.SMT (SMT_Failure.Replay(rule,(ERROR (msg |> YXML.content_of)))))
+       else Exn.reraise (ERROR msg) |
+      err =>
+       if Config.get ctxt SMT_Config.rec_evaluation
+       then (raise SMT_Failure.SMT (SMT_Failure.Replay(rule,err)))
+       else Exn.reraise err
   end
 
 fun add_used_asserts_in_step (Lethe_Proof.Lethe_Replay_Node {prems,
@@ -295,7 +304,7 @@ fun replay outer_ctxt
         subproof = ([], [], [], [])}
        
     val used_assert_ids = fold add_used_asserts_in_step actual_steps []
-    val _ = @{print}("used_assert_ids",used_assert_ids)
+    (*val _ = @{print}("used_assert_ids",used_assert_ids)*)
 
     fun normalize_tac ctxt = let val thy = Proof_Context.theory_of (empty_simpset ctxt) in
       Raw_Simplifier.rewrite_term thy rewrite_rules [] end
@@ -329,7 +338,7 @@ fun replay outer_ctxt
         (Symtab.update (name, ([], thm)) assumed, stats)
       end)
       used_rew_js (assumed, Symtab.cons_list ("parsing", parsing_time) Symtab.empty)
-    val _ = @{print}("assumed",assumed)
+    (*val _ = @{print}("assumed",assumed)*)
 
 (*
     val actual_steps = actual_steps
@@ -365,8 +374,20 @@ fun replay outer_ctxt
 
     val thm_with_defs = Symtab.lookup proofs id |> the |> snd
       |> singleton (Proof_Context.export ctxt5 outer_ctxt)
+
     val _ = SMT_Config.statistics_msg ctxt5
       (Pretty.string_of o SMT_Replay.pretty_statistics "cvc" total) stats
+    fun print_stats stats =
+    let
+      fun print_list xs = fold (fn x => fn msg => msg ^ string_of_int x ^ ",") xs "" |> Library.unsuffix ","
+    in
+      fold (fn (x,y) => fn msg => msg ^ "\"" ^  x ^ "\": [" ^ print_list y ^ "],\n") stats "" |> Library.unsuffix ",\n"
+    end
+    val _ = File.append (Path.explode ("$ISABELLE_HOME_USER/" ^
+      (Config.get ctxt SMT_Config.statistics_file))) (string_of_int total
+      ^ ",\"detail\": {" ^ print_stats (Symtab.dest stats) ^"}}]},\n")
+
+
     val _ = SMT_Replay.spying (SMT_Config.spy_verit ctxt) ctxt
       (fn () => SMT_Replay.print_stats (Symtab.dest stats)) "spy_cvc"
 
