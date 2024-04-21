@@ -258,6 +258,11 @@ lemma verit_and_pos:
   \<open>(\<not>a \<Longrightarrow> A) \<Longrightarrow> a \<or> A\<close>
   by blast+
 
+lemma verit_and_pos2:
+  \<open>(a \<Longrightarrow> \<not>(b \<and> c) \<or> A) \<Longrightarrow> \<not>(a \<and> b \<and> c) \<or> A\<close>
+  \<open>(a \<Longrightarrow> b \<Longrightarrow> A) \<Longrightarrow> \<not>(a \<and> b) \<or> A\<close>
+  by blast+
+
 lemma verit_or_pos:
    \<open>A \<and> A' \<Longrightarrow> (c \<and> A) \<or> (\<not>c \<and> A')\<close>
    \<open>A \<and> A' \<Longrightarrow> (\<not>c \<and> A) \<or> (c \<and> A')\<close>
@@ -435,11 +440,21 @@ lemma verit_la_disequality:
   by auto
 
 lemma alethe_la_mult_pos:
-  \<open>0 < (m::int) \<and> (a \<le> b) \<longrightarrow> m*a \<le> m*a \<close>
+  \<open>0 < (m::int) \<and> (a < b) \<longrightarrow> m*a < m*b\<close>
+  \<open>0 < (m::int) \<and> (a \<le> b) \<longrightarrow> m*a \<le> m*b\<close>
+  \<open>0 < (m::int) \<and> (a = b) \<longrightarrow> m*a = m*b\<close>
+  \<open>0 < (m::int) \<and> \<not>(a = b) \<longrightarrow> \<not>(m*a = m*b)\<close>
+  \<open>0 < (m::int) \<and> (a \<ge> b) \<longrightarrow> m*a \<ge> m*b\<close>
+  \<open>0 < (m::int) \<and> (a > b) \<longrightarrow> m*a > m*b\<close>
   by simp_all
 
 lemma alethe_la_mult_neg:
-  \<open>m < (0::int) \<and> (a < b) \<longrightarrow> m*a \<ge> m*a \<close>
+  \<open>m < (0::int) \<and> (a < b) \<longrightarrow> m*a > m*b\<close>
+  \<open>m < (0::int) \<and> (a \<le> b) \<longrightarrow> m*a \<ge> m*b\<close>
+  \<open>m < (0::int) \<and> (a = b) \<longrightarrow> m*a = m*b\<close>
+  \<open>m < (0::int) \<and> \<not>(a = b) \<longrightarrow> \<not>(m*a = m*b)\<close>
+  \<open>m < (0::int) \<and> (a > b) \<longrightarrow> m*a < m*b\<close>
+  \<open>m < (0::int) \<and> (a \<ge> b) \<longrightarrow> m*a \<le> m*b\<close>
   by simp_all
 
 context
@@ -731,7 +746,8 @@ options.
 \<close>
 
 declare [[cvc4_options = ""]]
-declare [[cvc5_options = "--proof-format-mode=alethe --proof-granularity=dsl-rewrite"]]
+declare [[cvc5_options = "--proof-format-mode=alethe --proof-granularity=dsl-rewrite
+                          --full-saturate-quant --proof-define-skolems --proof-elim-subtypes"]]
 declare [[verit_options = ""]]
 declare [[z3_options = ""]]
 
@@ -934,5 +950,7 @@ lemma [z3_rule]:  (* for def-axiom *)
 
 hide_type (open) symb_list pattern
 hide_const (open) Symb_Nil Symb_Cons trigger pat nopat fun_app z3div z3mod
+
+
 
 end
