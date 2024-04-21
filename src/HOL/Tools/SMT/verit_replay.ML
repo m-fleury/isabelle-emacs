@@ -75,6 +75,15 @@ fun replay_thm method_for rewrite_rules ll_defs ctxt assumed unchanged_prems pre
         decls
         (concl, ctxt)
       |> Simplifier.simplify (empty_simpset ctxt addsimps rewrite_rules)
+    handle (*temp for testing*)
+     (ERROR msg) =>
+       if Config.get ctxt SMT_Config.rec_evaluation
+       then (raise SMT_Failure.SMT (SMT_Failure.Replay(rule,(ERROR (msg |> YXML.content_of)))))
+       else Exn.reraise (ERROR msg) |
+      err =>
+       if Config.get ctxt SMT_Config.rec_evaluation
+       then (raise SMT_Failure.SMT (SMT_Failure.Replay(rule,err)))
+       else Exn.reraise err
   end
 
 fun add_used_asserts_in_step (Lethe_Proof.Lethe_Replay_Node {prems,
@@ -308,6 +317,8 @@ fun replay outer_ctxt
       |> singleton (Proof_Context.export ctxt5 outer_ctxt)
     val _ = SMT_Config.statistics_msg ctxt5
       (Pretty.string_of o SMT_Replay.pretty_statistics "veriT" total) stats
+    val _ = File.append (Path.explode ("$ISABELLE_HOME_USER/" ^
+      (Config.get ctxt SMT_Config.statistics_file))) (string_of_int total ^ "\n")
     val _ = SMT_Replay.spying (SMT_Config.spy_verit ctxt) ctxt
       (fn () => SMT_Replay.print_stats (Symtab.dest stats)) "spy_verit"
   in
