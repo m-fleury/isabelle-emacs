@@ -31,6 +31,8 @@ sig
   val verbose: bool Config.T
   val trace: bool Config.T
   val statistics: bool Config.T
+  val rec_evaluation : bool Config.T (*temp*)
+  val statistics_file: string Config.T (*temp*)
   val monomorph_limit: int Config.T
   val monomorph_instances: int Config.T
   val explicit_application: int Config.T
@@ -41,6 +43,7 @@ sig
   val infer_triggers: bool Config.T
   val debug_files: string Config.T
   val sat_solver: string Config.T
+  val check_external: bool Config.T
   val compress_verit_proofs: Proof.context -> bool
 
   (*tools*)
@@ -194,6 +197,8 @@ val spy_z3 = Attrib.setup_config_bool \<^binding>\<open>smt_spy_z3\<close> (K fa
 val trace_arith_verit = Attrib.setup_config_bool \<^binding>\<open>smt_debug_arith_verit\<close> (K false)
 val trace_verit_compression = Attrib.setup_config_bool \<^binding>\<open>verit_compress_proofs\<close> (K true)
 val statistics = Attrib.setup_config_bool \<^binding>\<open>smt_statistics\<close> (K false)
+val rec_evaluation = Attrib.setup_config_bool \<^binding>\<open>smt_rec_evaluation\<close> (K false)
+val statistics_file = Attrib.setup_config_string \<^binding>\<open>smt_statistics_file\<close> (K "cvc5_with_rewrites")
 val monomorph_limit = Attrib.setup_config_int \<^binding>\<open>smt_monomorph_limit\<close> (K 10)
 val monomorph_instances = Attrib.setup_config_int \<^binding>\<open>smt_monomorph_instances\<close> (K 500)
 val explicit_application = Attrib.setup_config_int \<^binding>\<open>smt_explicit_application\<close> (K 1)
@@ -204,6 +209,7 @@ val nat_as_int = Attrib.setup_config_bool \<^binding>\<open>smt_nat_as_int\<clos
 val infer_triggers = Attrib.setup_config_bool \<^binding>\<open>smt_infer_triggers\<close> (K false)
 val debug_files = Attrib.setup_config_string \<^binding>\<open>smt_debug_files\<close> (K "")
 val sat_solver = Attrib.setup_config_string \<^binding>\<open>smt_sat_solver\<close> (K "cdclite")
+val check_external = Attrib.setup_config_bool \<^binding>\<open>smt_check_external\<close> (K false)
 val cvc_experimental_lethe = Attrib.setup_config_bool \<^binding>\<open>smt_cvc_lethe\<close> (K false)
 
 
