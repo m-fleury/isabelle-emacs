@@ -133,6 +133,8 @@ fun mk_rassoc f t ts =
   let val us = rev (t :: ts)
   in fold f (tl us) (hd us) end
 
+fun mk_rassoc' n = mk_rassoc (mk_binary n)
+
 fun mk_lassoc f t ts = fold (fn u1 => fn u2 => f u2 u1) ts t
 
 fun mk_lassoc' n = mk_lassoc (mk_binary n)
@@ -156,6 +158,18 @@ fun mk_chain _ [] = [] |
 fun mk_chainable f [t1,t2] = (f t1 t2) |
   mk_chainable f (t1::t2::ts) = mk_rassoc (curry HOLogic.mk_conj) (f t1 t2) (mk_chain f ts)
 
+fun pairwise _ [] = [] |
+  pairwise f (t1::tss) = (map (fn u => f (t1,u)) tss) @ pairwise f tss
+
+fun pairwise' f [x,y] = SOME (f (x,y)) |
+  pairwise' f (xs as _::_::_) =
+    let
+      val (hd_pt,tl_pt) = pairwise f xs |> (fn x::xs => (x,xs) | [] => raise Match)
+    in
+      SOME (mk_rassoc' \<^const_name>\<open>HOL.conj\<close> hd_pt tl_pt)
+    end |
+  pairwise' _ _ = NONE
+
 fun core_term_parser (SMTLIB.Sym "true", _) = SOME \<^Const>\<open>True\<close>
   | core_term_parser (SMTLIB.Sym "false", _) = SOME \<^Const>\<open>False\<close>
   | core_term_parser (SMTLIB.Sym "not", [t]) = SOME (HOLogic.mk_not t)
@@ -170,6 +184,7 @@ fun core_term_parser (SMTLIB.Sym "true", _) = SOME \<^Const>\<open>True\<close>
         val T = fastype_of t2
         val c = Const (\<^const_name>\<open>HOL.If\<close>, [\<^typ>\<open>HOL.bool\<close>, T, T] ---> T)
       in SOME (c $ t1 $ t2 $ t3) end
+  | core_term_parser (SMTLIB.Sym "distinct", ts) = pairwise' (HOLogic.mk_eq #> HOLogic.mk_not) ts
   | core_term_parser (SMTLIB.Num i, []) = SOME (HOLogic.mk_number \<^typ>\<open>Int.int\<close> i)
   | core_term_parser (SMTLIB.BVNum _, []) = NONE
   | core_term_parser (SMTLIB.Sym "-", [t]) = SOME (mk_unary \<^const_name>\<open>uminus_class.uminus\<close> t)
@@ -186,6 +201,7 @@ fun core_term_parser (SMTLIB.Sym "true", _) = SOME \<^Const>\<open>True\<close>
   | core_term_parser (SMTLIB.Sym ">", [t1, t2]) = SOME (mk_less t2 t1)
   | core_term_parser (SMTLIB.Sym "<=", [t1, t2]) = SOME (mk_less_eq t1 t2)
   | core_term_parser (SMTLIB.Sym ">=", [t1, t2]) = SOME (mk_less_eq t2 t1)
+  | core_term_parser (SMTLIB.Str s, []) = SOME (HOLogic.mk_string s)
   | core_term_parser _ = NONE
 
 
