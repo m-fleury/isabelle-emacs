@@ -1058,10 +1058,10 @@ local
     | remove_pattern p = p
 
   (* veriT adds "?" before some variables. *)
-  fun rm_all_qm (SMTLIB.Sym v) = SMTLIB.Sym (perhaps (try (unprefix "?")) v)
-    | rm_all_qm (SMTLIB.S l) = SMTLIB.S (map rm_all_qm l)
-    | rm_all_qm (SMTLIB.Key v) = SMTLIB.Key v
-    | rm_all_qm v = v
+  fun remove_all_qm (SMTLIB.Sym v) = SMTLIB.Sym (perhaps (try (unprefix "?")) v)
+    | remove_all_qm (SMTLIB.S l) = SMTLIB.S (map remove_all_qm l)
+    | remove_all_qm (SMTLIB.Key v) = SMTLIB.Key v
+    | remove_all_qm v = v
 
   fun import_proof_and_post_process typs funs lines ctxt =
     let
@@ -1072,7 +1072,7 @@ local
         |> filter_out (fn x => x = "")
         |> map single
         |> map SMTLIB.parse
-        |> map rm_all_qm
+        |> map remove_all_qm
         |> map remove_pattern
       val (raw_steps, _, _) =
         parse_raw_proof_steps NONE smtlib_lines_without_qm SMTLIB_Proof.empty_name_binding 0
