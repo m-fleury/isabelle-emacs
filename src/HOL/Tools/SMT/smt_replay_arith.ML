@@ -71,11 +71,11 @@ fun la_farkas_tac ({context = ctxt, prems, concl,  ...}: Subgoal.focus) args thm
     val combined =
       List.foldl
          (fn (thm1, thm2) =>
-           try_OFs ctxt verit_arith thm1
-           |> (fn thms => try_OFs ctxt thms thm2)
+           try_OFs ctxt verit_arith thm1 |> @{print}
+           |> (fn thms => try_OFs ctxt thms thm2) |> @{print}
            |> the_single)
          n
-         normalized
+         normalized |> @{print}
       |> singleton (Proof_Context.export ctxt_with_assms ctxt)
     val _ = trace (fn () => @{print} combined)
     fun arith_full_simps ctxt thms =

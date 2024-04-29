@@ -43,7 +43,7 @@ fun replay_thm method_for rewrite_rules ll_defs ctxt assumed unchanged_prems pre
     concl_transformation global_transformation args insts
     (Lethe_Proof.Lethe_Replay_Node {id, rule, concl, bounds, declarations = decls, ...}) =
   let
-    val _ = SMT_Config.verit_msg ctxt (fn () => \<^print> id)
+    val _ = SMT_Config.verbose_msg ctxt (fn () => \<^print> id)
     val rewrite = let val thy = Proof_Context.theory_of (empty_simpset ctxt) in
         Raw_Simplifier.rewrite_term thy rewrite_rules []
         #> not (null ll_defs andalso Lethe_Proof.keep_raw_lifting rule) ? SMTLIB_Isar.unlift_term ll_defs
@@ -133,6 +133,8 @@ fun replay_theorem_step rewrite_rules all_assms ll_defs assumed inputs proof_pre
     val proof_prems' = take (length assms) all_proof_prems'
     val input = drop (length assms) all_proof_prems'
     val all_proof_prems = proof_prems @ proof_prems'
+    val _ = @{print}("all_proof_prems",all_proof_prems)
+
     val replay = replay_theorem_step rewrite_rules all_assms ll_defs assumed (input @ inputs) all_proof_prems
     val (proofs', stats, _, _, sub_global_rew) =
        fold replay subproof (proofs, stats, sub_ctxt2, export_vars, global_transformation)
@@ -141,12 +143,17 @@ fun replay_theorem_step rewrite_rules all_assms ll_defs assumed inputs proof_pre
 
     (*for sko_ex and sko_forall, assumptions are in proofs',  but the definition of the skolem
        function is in proofs *)
+    val _ = @{print}("prems",prems)
     val nthms = prems
       |> filter_out Lethe_Proof.is_lethe_def
       |> map (apsnd export_thm) o map_filter (Symtab.lookup (if (null subproof) then proofs else proofs'))
+    val _ = @{print}("nthms",nthms)
+
     val nthms' = (if Lethe_Proof.is_skolemization rule then prems else [])
       |> filter Lethe_Proof.is_lethe_def
       |> map_filter (Symtab.lookup proofs)
+    val _ = @{print}("nthms'",nthms')
+
     val args = map (Term.subst_free concl_tranformation o subst_only_free global_transformation) args
     val insts = Symtab.map (K (Term.subst_free concl_tranformation o subst_only_free global_transformation)) insts
     val missing_assumptions =
@@ -218,7 +225,7 @@ fun replay_assumed assms ll_defs rewrite_rules stats ctxt term =
     val replay = Timing.timing (SMT_Replay_Methods.prove ctxt (rewrite term))
     val ({elapsed, ...}, thm) =
       SMT_Config.with_time_limit ctxt SMT_Config.reconstruction_step_timeout replay
-         (fn _ => Method.insert_tac ctxt (map snd assms) THEN' Classical.fast_tac ctxt)
+         (fn _ => Method.insert_tac ctxt assms THEN' Classical.fast_tac ctxt)
         handle Timeout.TIMEOUT _ => raise SMT_Failure.SMT SMT_Failure.Time_Out
     val stats' = Symtab.cons_list (Lethe_Proof.input_rule, Time.toNanoseconds elapsed) stats
   in
@@ -288,7 +295,7 @@ fun replay outer_ctxt
         used_assert_ids
     val (assumed, stats) = fold (fn ((id, thm)) => fn (assumed, stats) =>
       let
-        val (thm, stats) = replay_assumed assms ll_defs rewrite_rules stats ctxt thm
+        val (thm, stats) = replay_assumed (map snd assms) ll_defs rewrite_rules stats ctxt thm
         val name = SMTLIB_Interface.assert_name_of_role_and_index SMT_Util.Axiom id
       in
         (Symtab.update (name, ([], thm)) assumed, stats)
@@ -310,6 +317,9 @@ fun replay outer_ctxt
       (if i > next then print_runtime_statistics i else ();
        (if i > next then i + 10 else next, f x y))
     val global_transformation : term Termtab.table = Termtab.empty
+    val _ = @{print}("assms",assms)
+    val _ = @{print}("assumed",assumed)
+
     val (_, (proofs, stats, ctxt5, _, _)) =
       fold (blockwise (replay_step rewrite_rules (map snd assms) ll_defs assumed [] [])) actual_steps
         (1, (assumed, stats, ctxt4, [], global_transformation))

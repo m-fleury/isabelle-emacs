@@ -44,7 +44,7 @@ sig
      Bool_Simplify | Or_Simplify | Not_Simplify | And_Simplify | Equiv_Simplify |
      Implies_Simplify | Connective_Def | Minus_Simplify | Comp_Simplify |
      Eq_Simplify | ITE_Simplify | Sum_Simplify | Prod_Simplify | All_Simplify | RARE_Rewrite |
-     Qnt_Simplify | Not_Not | Tautological_Clause | Duplicate_Literals |
+     Qnt_Simplify | Not_Not | Tautological_Clause | Duplicate_Literals | Distinct_Elim |
      (*Unsupported rule*)
      Unsupported |
      (*For compression*)
@@ -79,6 +79,7 @@ sig
   val cong: string -> lethe_tac
   val rewrite_connective_def: lethe_tac
   val duplicate_literals: lethe_tac
+  val distinct_elim: lethe_tac
   val eq_congruent: lethe_tac
   val eq_congruent_pred: lethe_tac
   val eq_reflexive: lethe_tac
@@ -221,7 +222,7 @@ datatype verit_rule =
    Bool_Simplify | Or_Simplify | Not_Simplify | And_Simplify | Equiv_Simplify |
    Implies_Simplify | Connective_Def | Minus_Simplify | Comp_Simplify |
    Eq_Simplify | ITE_Simplify | Sum_Simplify | Prod_Simplify | All_Simplify | RARE_Rewrite |
-   Qnt_Simplify | Not_Not | Tautological_Clause | Duplicate_Literals |
+   Qnt_Simplify | Not_Not | Tautological_Clause | Duplicate_Literals | Distinct_Elim |
    (*Unsupported rule*)
    Unsupported |
    (*For compression*)
@@ -316,6 +317,7 @@ fun string_of_lethe_rule Bind = "Bind"
   | string_of_lethe_rule Not_Not = Lethe_Proof.not_not_rule
   | string_of_lethe_rule Tautological_Clause = "tautology"
   | string_of_lethe_rule Duplicate_Literals = Lethe_Proof.contract_rule
+  | string_of_lethe_rule Destinct_Elim = "distinct_elim"
   | string_of_lethe_rule Qnt_CNF = "qnt_cnf"
   | string_of_lethe_rule (Other_Rule r) = r
   | string_of_lethe_rule r = "Unknown rule: " ^ \<^make_string> r
@@ -638,8 +640,12 @@ local
        val multiple_rew = if SMT_Config.compress_verit_proofs ctxt then REPEAT_CHANGED else fn x => x
      in
        multiple_rew (EqSubst.eqsubst_tac ctxt [0] rewrite_sk_thms
-         THEN' SOLVED' (K (HEADGOAL (partial_simplify_tac ctxt (@{thms eq_commute})))))
+         (*THEN' K (print_tac ctxt "In rewrite_all_skolems")*)
+         THEN' SOLVED' (K (HEADGOAL (partial_simplify_tac ctxt (@{thms eq_commute}))))
+         (*THEN' K (print_tac ctxt "In rewrite_all_skolems 2")*))
        THEN' rewrite_all_skolems thm_indirect ctxt thms
+         (*THEN' K (print_tac ctxt "In rewrite_all_skolems 3")*)
+
      end
    | rewrite_all_skolems thm_indirect ctxt ((_,NONE) :: thms) = rewrite_all_skolems thm_indirect ctxt thms
    | rewrite_all_skolems _ _ [] = K (all_tac)
@@ -654,29 +660,78 @@ local
        in name :: extract_var_name thms end
     | extract_var_name [] = []
 
-fun skolem_tac extractor thm1 thm2 ctxt thms t  =
+fun skolem_tac extractor thm1 thms1 ctxt thms t  =
   let
-    val (ctxt_eq, ts, other) = extract_rewrite_rule_assumption ctxt thms
+    (*val _ = @{print}("thm1",thm1)
+    val _ = @{print}("thms1",thms1)
+    val _ = @{print}("thms",thms)
+    val _ = @{print}("t",t)*)
+
+    val (ctxt_eq, rew, other) = extract_rewrite_rule_assumption ctxt thms
+    (*val _ = @{print}("ctxt_eq",ctxt_eq)
+
+    val _ = @{print}("rew",rew)
+    val _ = @{print}("other",other)*)
 
     fun ordered_definitions () =
       let
         val var_order = extractor t
-        val thm_names_with_var = extract_var_name ts |> flat
+        (*val _ = @{print}("var_order",var_order)*)
+
+        val thm_names_with_var = extract_var_name rew |> flat
+        (*val _ = @{print}("thm_names_with_var",thm_names_with_var)*)
+
       in map (fn v => (v, AList.lookup (op =) thm_names_with_var v)) var_order end
+    (*val _ = @{print}("ordered_definitions ()",ordered_definitions ())*)
   in
     SMT_Replay_Methods.prove ctxt t (fn _ =>
       K (unfold_tac ctxt ctxt_eq)
-      THEN' rewrite_all_skolems thm2 ctxt (ordered_definitions ())
-      THEN' (eqsubst_all ctxt (map (fn thm => thm RS sym) other))
+      (*THEN' K (print_tac ctxt "sko 1")*)
+      THEN' rewrite_all_skolems thms1 ctxt (ordered_definitions ())
+      (*THEN' K (print_tac ctxt "sko 1b")*)
+
+      THEN' (*(((resolve_tac ctxt @{thms refl}) THEN' K (print_tac ctxt "sko 0"))
+      ORELSE' *)
+      ( (*K (print_tac ctxt "sko 2")
+      THEN'*) TRY' (eqsubst_all ctxt (map (fn thm => thm RS sym) other))
+      (*THEN' K (print_tac ctxt "sko 3")*)
       THEN_ALL_NEW TRY' (resolve_tac ctxt @{thms refl})
+      (*THEN' K (print_tac ctxt "sko 4")*)
       THEN' K (unfold_tac ctxt ctxt_eq)
-      THEN' TRY' (partial_simplify_tac ctxt (@{thms eq_commute})))
+      (*THEN' K (print_tac ctxt "sko 5")*)
+      THEN' TRY' (partial_simplify_tac ctxt (@{thms eq_commute}))))
   end
 in
 
+(*forall a b c d e f. P(a,b,c,d,e,f)
+
+extract_all_forall_exists_quantified_names_q: returns a b c d e f
+
+The context has the definitions of the skolems
+Then, they are ordered
+THEN' rewrite_all_skolems thm2 ctxt (ordered_definitions ())
+
+We should be able to stop there:
+but skolems can appear in each other, they might be folded in or only partially
+choices in choices
+in cvc5: order guaranteed to be respected, no choice inside choice.
+
+If 
+      THEN' (eqsubst_all ctxt (map (fn thm => thm RS sym) other))
+unfolding all things that might be in the context (should not happen but never sure)
+if skolem_forall closes subproof that is in another subproof.
+
+Then, we hope that everything works out:
+      THEN_ALL_NEW TRY' (resolve_tac ctxt @{thms refl})
+
+If it doesn't work we brute force it by unfolding everything. And then use the simplifier:
+      THEN' K (unfold_tac ctxt ctxt_eq)
+Mathias does not remember a case where this happens.
+
+*)
 val skolem_forall =
   skolem_tac extract_all_forall_exists_quantified_names_q @{thm verit_sko_forall_indirect}
-    @{thms verit_sko_forall_indirect2  verit_sko_ex_indirect2}
+    @{thms verit_sko_forall_indirect2 verit_sko_ex_indirect2}
 
 val skolem_ex =
   skolem_tac extract_all_forall_exists_quantified_names_q @{thm verit_sko_ex_indirect}
@@ -736,6 +791,10 @@ fun theory_resolution2 ctxt prems t =
   SMT_Replay_Methods.prove ctxt t (fn _ => match_tac ctxt [theory_resolution2_lemma OF prems])
 
 end
+
+
+fun distinct_elim ctxt prems t = (*TODO*)
+    SMT_Replay_Methods.prove ctxt t (fn _ => resolve_tac ctxt @{thms refl})
 
 (*TODO: Roll back once Mathias supports this*)
 fun normalized_input ctxt prems t = 

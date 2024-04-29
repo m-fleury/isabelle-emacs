@@ -144,7 +144,7 @@ local
    |> single
 
   fun veriT_options ctxt =
-   ["--proof-with-sharing",
+   [(*"--proof-with-sharing",*)
     "--proof-define-skolems",
     "--proof-prune",
     "--proof-merge",

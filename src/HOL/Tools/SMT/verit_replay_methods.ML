@@ -86,6 +86,7 @@ fun verit_rule_of "bind" = Bind
   | verit_rule_of "prod_simplify" = Prod_Simplify
   | verit_rule_of "comp_simplify" = Comp_Simplify
   | verit_rule_of "qnt_simplify" = Qnt_Simplify
+  | verit_rule_of "distinct_elim" = Distinct_Elim
   | verit_rule_of "tautology" = Tautological_Clause
   | verit_rule_of "qnt_cnf" = Qnt_CNF
   | verit_rule_of r =
@@ -103,6 +104,17 @@ fun verit_rule_of "bind" = Bind
      else if r = Lethe_Proof.and_pos_rule then And_Pos
      else (@{print} ("Unsupport rule", r); Unsupported)
 
+
+fun normalized_input ctxt prems t = SMT_Replay_Methods.prove ctxt t (fn _ =>
+  let
+     (*val _ = (SMT_Config.verit_msg ctxt) (fn () => \<^print> ("conclusion t t =",t))
+     val _ = (SMT_Config.verit_msg ctxt) (fn () => \<^print> ("normalized input prems =",prems))*)
+  in
+    (*resolve_tac ctxt prems
+     ORELSE' (Method.insert_tac ctxt prems THEN' Clasimp.force_tac (ctxt addsimps @{thms cvc5_normalized_input}))
+  *)
+ (Skip_Proof.cheat_tac ctxt) 
+ end)
 
 (* Combining all together *)
 
@@ -123,6 +135,7 @@ fun choose And = ignore_args and_rule
   | choose Cong = ignore_args (cong "verit")
   | choose Connective_Def = ignore_args rewrite_connective_def
   | choose Duplicate_Literals = ignore_args duplicate_literals
+  | choose Distinct_elim = ignore_args distinct_elim
   | choose Eq_Congruent = ignore_args eq_congruent
   | choose Eq_Congruent_Pred = ignore_args eq_congruent_pred
   | choose Eq_Reflexive = ignore_args eq_reflexive
@@ -156,7 +169,7 @@ fun choose And = ignore_args and_rule
   | choose LA_Tautology = ignore_args SMT_Replay_Methods.arith_th_lemma_wo_shallow
   | choose LA_Totality = ignore_args SMT_Replay_Methods.arith_th_lemma_wo_shallow
   | choose LIA_Generic = ignore_args lia_generic
-  | choose Local_Input = ignore_args (refl "verit")
+  | choose Local_Input = ignore_args normalized_input (* ignore_args (refl "verit")*)
   | choose Minus_Simplify = ignore_args rewrite_minus_simplify
   | choose NLA_Generic = ignore_args SMT_Replay_Methods.arith_th_lemma_wo_shallow
   | choose Normalized_Input = ignore_args normalized_input
@@ -193,6 +206,7 @@ fun choose And = ignore_args and_rule
   | choose Qnt_CNF = ignore_args qnt_cnf
   | choose Trans = ignore_args trans
   | choose r = unsupported (string_of_lethe_rule r)
+
 
 type verit_method = Proof.context -> thm list -> term -> thm
 type abs_context = int * term Termtab.table

@@ -10,10 +10,11 @@ struct
 
 (* SMT-LIB logic *)
 
-fun smtlib_logic _ ts _ =
-  if exists (Term.exists_type (Term.exists_subtype (equal \<^typ>\<open>real\<close>))) ts
-  then SOME "AUFLIRA"
-  else NONE
+fun smtlib_logic "verit" _ _ = NONE
+  | smtlib_logic _ ts _ =
+    if exists (Term.exists_type (Term.exists_subtype (equal \<^typ>\<open>real\<close>))) ts
+    then SOME (SMT_Translate.SL {fixedSizeBitVectors=false,real=true,set=false})
+    else NONE
 
 
 (* SMT-LIB and Z3 built-ins *)

@@ -1,4 +1,4 @@
-(*  Title:      HOL/Tools/SMT/SMT_string.ML
+(*  Title:      HOL/Tools/SMT/SMT_set.ML
     Author:     Hanna Lachnitt, Stanford
 
 SMT setup for sets. Note: There is no SMT-LIB Set theory, this formalization follows this theory
@@ -203,7 +203,7 @@ there are actually sets or set operators in the term. For now this
 just supports none of these since I don't have the context to do the first.*)
 fun smtlib_logic "cvc5" _ ctxt = 
     if Config.get ctxt SMT_Config.native_set
-    then SOME "QF_UFLIAFS"
+    then SOME (SMT_Translate.SL {fixedSizeBitVectors = false, real = false, set = true})
     else NONE |
   smtlib_logic _ _ _ = NONE
 

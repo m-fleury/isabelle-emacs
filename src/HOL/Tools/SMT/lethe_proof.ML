@@ -192,7 +192,7 @@ fun synctactic_var_subst old_name new_name (u $ v) =
   | synctactic_var_subst _ _ t = t
 
 fun synctatic_rew_in_lhs_subst old_name new_name (Const(\<^const_name>\<open>HOL.eq\<close>, T) $ t1 $ t2) =
-     Const(\<^const_name>\<open>HOL.eq\<close>, T) $ synctactic_var_subst old_name new_name t1 $ t2
+     Const(\<^const_name>\<open>HOL.eq\<close>, T) $ synctactic_var_subst old_name new_name t1 $ synctactic_var_subst old_name new_name t2 (*TODO: Change back just want to see what happens*)
   | synctatic_rew_in_lhs_subst old_name new_name (Const(\<^const_name>\<open>Trueprop\<close>, T) $ t1) =
      Const(\<^const_name>\<open>Trueprop\<close>, T) $ (synctatic_rew_in_lhs_subst old_name new_name t1)
   | synctatic_rew_in_lhs_subst _ _ t = t
@@ -200,6 +200,10 @@ fun synctatic_rew_in_lhs_subst old_name new_name (Const(\<^const_name>\<open>HOL
 fun add_bound_variables_to_ctxt cx =
   fold (update_binding o
     (fn (s, SOME typ) => (s, Term (Free (s, type_of cx typ)))))
+
+val add_bound_variables_to_ctxt2 =
+  fold (update_binding o
+    (fn (s, typ) => (s, Term (Free (s, typ)))))
 
 local
 
@@ -215,7 +219,7 @@ when parsing in (veriT_vr6 S4)
   (S [Sym "=", Sym "v1", Sym "veriT_vr7"], NONE),
   (S [Sym "=", Sym "v2", Sym "veriT_vr8"], NONE)])
 *)
-  fun extract_symbols bds = (@{print}("bds",bds);
+  fun extract_symbols bds = ((*@{print}("bds",bds);*)
     bds
     |> map (fn (SMTLIB.S [SMTLIB.Sym "=", SMTLIB.Sym x, SMTLIB.Sym y], typ) => [([x, y], typ)]
            | t => raise (Fail ("match error " ^ @{make_string} t))))
@@ -250,10 +254,13 @@ fun skolems_introduced_by_rule (SMTLIB.S bds) =
 (*FIXME there is probably a way to use the information given by onepoint*)
 fun bound_vars_by_rule _ "bind" bds = extract_symbols bds
   | bound_vars_by_rule cx "onepoint" bds = extract_qnt_symbols cx bds
-  | bound_vars_by_rule _ "sko_forall" bds = extract_symbols_map bds
+  | bound_vars_by_rule _ "sko_forall" bds =  bds
+    |> map (fn (SMTLIB.S [SMTLIB.Sym "=", SMTLIB.Sym x, SMTLIB.Sym y], typ) => [([x,y], typ)])
+    |> flat
   | bound_vars_by_rule _ "sko_ex" bds = extract_symbols_map bds
   | bound_vars_by_rule _ "__skolem_definition" [(SMTLIB.S [SMTLIB.Sym x, typ, _], _)] = [([x], SOME typ)]
   | bound_vars_by_rule _ "__skolem_definition" [(SMTLIB.S [_, SMTLIB.Sym x, _], _)] = [([x], NONE)]
+  | bound_vars_by_rule _ "let" [(SMTLIB.S [_, SMTLIB.Sym x, y], _)] = [([x], NONE)]
   | bound_vars_by_rule _ _ _ = []
 
 (* Lethe adds "?" before some variables. *)
@@ -383,12 +390,12 @@ fun parse_raw_proof_steps (limit : string option) (ls : SMTLIB.tree list) (cx : 
           let
             val (anchor_id, (anchor_args, (_, cx))) = (p, cx) |> (parse_anchor_step ##> parse_args)
             val (subproof, discharge_step :: remaining_proof, cx) = parse_raw_proof_steps (SOME anchor_id) l cx assms_nbr
-            val _ = @{print}("I think we would need to add variables of anchor let steps to the context here... In extract_and_update_name_bindings?")
-            val _ = @{print}("anchor_id,anchor_args",(anchor_id,anchor_args))
+            (*val _ = @{print}("I think we would need to add variables of anchor let steps to the context here... In extract_and_update_name_bindings?")
+            val _ = @{print}("anchor_id,anchor_args",(anchor_id,anchor_args))*)
             val (curss, (_, cx)) = parse_normal_step (discharge_step, cx)
             val s = to_raw_node subproof (fst curss, anchor_args)
             val (rp, rl, cx) = parse_raw_proof_steps limit remaining_proof cx assms_nbr
-            val _ = @{print}("finished with this anchor",(anchor_id,s))
+            (*val _ = @{print}("finished with this anchor",(anchor_id,s))*)
 
             (*val _ = @{print}("its name bindings are",(anchor_id,cx))*)
 
@@ -400,6 +407,10 @@ fun parse_raw_proof_steps (limit : string option) (ls : SMTLIB.tree list) (cx : 
           in (s :: rp, rl, cx) end
   end
 
+val anchor_rules = ["bind","sko_forall","sko_ex","let","onepoint"]
+fun is_anchor_rule rule = List.exists (curry (op =) rule) anchor_rules
+val keep_args_rules = ["rare_rewrite","la_generic","bind"]
+
 fun proof_ctxt_of_rule "bind" t = t
   | proof_ctxt_of_rule "sko_forall" t = t
   | proof_ctxt_of_rule "sko_ex" t = t
@@ -409,7 +420,7 @@ fun proof_ctxt_of_rule "bind" t = t
 
 fun args_of_rule "bind" t = t
   | args_of_rule "la_generic" t = t
-  | args_of_rule "rare_rewrite" t = t
+  | args_of_rule "rare_rewrite" (SMTLIB.Str s :: xs) = (SMTLIB.Sym s) :: xs (*Not sure if I really want to do this here? I also don't want it transformed to a string term though?*)
   | args_of_rule _ _ = []
 
 fun insts_of_forall_inst "forall_inst" t = map (fn SMTLIB.S [_, SMTLIB.Sym x, a] => (x, a)) t
@@ -445,120 +456,107 @@ fun extract_skolem ([SMTLIB.Sym var, typ, choice]) = (var, typ, choice)
 *)
 fun preprocess compress step =
   let
-    val _ = @{print}("Found it! Look here to fix the assumption in bind problem!!!")
+    (*val _ = @{print}("Found it! Look here to fix the assumption in bind problem!!!")*)
     fun expand_assms cs =
       map (fn t => case AList.lookup (op =) cs t of NONE => t | SOME a => a)
-(*
-cvc5 commit 7584ec114ae959e5f21d131446f4f6e354705227:
-lemma 
-  assumes \<open>\<exists>x. P x\<close>
-    \<open>\<forall>x. (P x \<longrightarrow>  (\<exists>y. Q y))\<close>
-    \<open>(\<exists>y. Q y) \<longrightarrow> False\<close>
-  shows \<open>False\<close>
-  using assms supply [[smt_trace]][[smt_cvc_lethe = true]]
-  apply (smt (cvc5))
-  sorry
 
- (anchor :step t9 :args ((?v0 B$) (:= ?v1 ?v0)))
-  so special handling to support this case
-*)
-     (*S [S [Sym "veriT_vr6", Sym "S4"], S [Sym "veriT_vr7", Sym "S2"], S [Sym "veriT_vr8", Sym "S2"], S [Key "=", Sym "v0", Sym "veriT_vr6"],
-       S [Key "=", Sym "v1", Sym "veriT_vr7"], S [Key "=", Sym "v2", Sym "veriT_vr8"]]
+    fun find_sort _ [] ys = (ys,NONE) |
+        find_sort x1 (x::xs) ys =
+          case x of
+            (SMTLIB.S [SMTLIB.Sym x1', y2]) => if x1' = x1 then (xs @ ys, SOME y2) else  find_sort x1 xs (x::ys)|
+             _ => find_sort x1 xs (x::ys)
 
-       (anchor :step t190 :args ((?v0 (_ BitVec 3)) (:= ?v0 ?v0) (?v1 Nat$) (:= ?v1 ?v1) (?v2 (_ BitVec 3)) (:= ?v2 ?v2)))
-
-
-S [Sym "veriT_vr13", Sym "S8"]*)
-
-    fun match_typing_arguments2a [] _ = [] |
-        match_typing_arguments2a ((SMTLIB.S [SMTLIB.Sym "=", SMTLIB.Sym x1, SMTLIB.Sym x2])::xs) ys =
-          let
-            val (SMTLIB.S [SMTLIB.Sym _, SMTLIB.Sym y2]) = (List.find (fn SMTLIB.S [SMTLIB.Sym x2, SMTLIB.Sym y2] => true | _ => false) ys) |> Option.valOf
-          in
-            (SMTLIB.S [SMTLIB.Sym "=", SMTLIB.S [SMTLIB.Sym x1, SMTLIB.Sym y2], SMTLIB.Sym x2])  :: match_typing_arguments2a xs ys 
-          end
-
-    fun getAssignment [] = [] |
-        getAssignment ((SMTLIB.S [SMTLIB.Sym "=", SMTLIB.Sym x1, SMTLIB.Sym x2])::ys)
-          = (SMTLIB.S [SMTLIB.Sym "=", SMTLIB.Sym x1, SMTLIB.Sym x2]) :: getAssignment ys |
-        getAssignment (x :: ys) = getAssignment ys
-    
-    fun getSorts [] = [] |
-        getSorts ((SMTLIB.S [SMTLIB.Sym "=", SMTLIB.Sym x1, SMTLIB.Sym x2])::ys)
-          =  getSorts ys |
-        getSorts (x :: ys) = x::getSorts ys
-
-(*("sorts",
- [S [Sym "veriT_vr6", Sym "S4"], S [Sym "veriT_vr7", Sym "S2"],
-  S [Sym "veriT_vr8",
-     Sym "S2"]]) (line 494 of "/home/lachnitt/Sources/isabelle-git/isabelle-emacs/src/HOL/Tools/SMT/lethe_proof.ML") 
-("(getAssignment xs)",
- [S [Sym "=", Sym "v0", Sym "veriT_vr6"], S [Sym "=", Sym "v1", Sym "veriT_vr7"],
-  S [Sym "=", Sym "v2",
-     Sym "veriT_vr8"]])*)
-    fun match_typing_arguments2 xs = 
-     let
-       val sorts = (getSorts xs)
-       val assign = (getAssignment xs)
-       val _ = @{print}("xs",xs)
-
-       val _ = @{print}("sorts",sorts)
-       val _ = @{print}("(getAssignment xs)",(getAssignment xs))
-
-     in
-      if assign = [] then (@{print}("match_typing_arguments2",xs);xs) else (@{print}("match_typing_arguments2",match_typing_arguments2a assign sorts);match_typing_arguments2a assign sorts)
-     end
-
-    fun match_typing_arguments (SMTLIB.S [SMTLIB.Sym var, typ as SMTLIB.Sym _]:: xs) =
-     let
-                val _ = @{print}("xsss",xs)
-
-(*TODO: What if first assignemnt does not match? Do this completely different*)
-        fun findInList ((SMTLIB.S [SMTLIB.Sym "=", SMTLIB.Sym x1, SMTLIB.Sym x2])::ys) zs = SOME ((x1, x2),rev zs @ ys) |
-            findInList (x :: ys) zs = findInList ys (x::zs) |
-            findInList [] zs = NONE
+    fun match_typing_arguments [] [] = [] |
+      (*0. Argument already has the right form (= (v0 S) t) *)
+        match_typing_arguments ys ((y as SMTLIB.S [SMTLIB.Sym "=", SMTLIB.S [SMTLIB.Sym _, _], _])::xs)
+         = y :: match_typing_arguments ys xs |
+      (*1. Single unsorted v0 or sorted_vars (v0 S) that are not matched by any mapping following
+        AFTER them. For the old veriT syntax where variables can be unsorted this also works due to
+        some transformation applied during parsing*)
+      match_typing_arguments ((y as SMTLIB.S [SMTLIB.Sym var, _])::ys) []
+        = (SMTLIB.S [SMTLIB.Sym "=", y, SMTLIB.Sym var]) :: match_typing_arguments ys [] |
+      (*2. Mapping (:= v0 v1) *)
+      match_typing_arguments ys ((SMTLIB.S [SMTLIB.Sym "=", SMTLIB.Sym x1, t])::xs) =
+        (case find_sort x1 ys [] of
+          (*2a. Mapping follows after sorted_var (v0 S) or (v1 S) in args list
+                If both are in, both need to be deleted from the list but we only need to give x1
+                type y2 not x2 as well.*)
+          (zs,SOME y2) => (SMTLIB.S [SMTLIB.Sym "=", SMTLIB.S [SMTLIB.Sym x1, y2], t]) :: match_typing_arguments zs xs |
+          (*2b. Mapping without any corresponding sorted_var (v0 S) or (v1 S) in args list *)
+          (zs,NONE) =>
+            (case t of
+              SMTLIB.Sym y1 =>
+                (case find_sort y1 ys [] of
+                  (zs',SOME y2) => ((SMTLIB.S [SMTLIB.Sym "=", SMTLIB.S [SMTLIB.Sym x1, y2], t]) :: match_typing_arguments zs' xs) |
+              _ => (SMTLIB.S [SMTLIB.Sym "=", SMTLIB.Sym x1, t]) :: match_typing_arguments zs xs) |
+              _ => (SMTLIB.S [SMTLIB.Sym "=", SMTLIB.Sym x1, t]) :: match_typing_arguments zs xs)
+        ) |
+      (*3. Sorted variable found (v0 S) *)
+      match_typing_arguments ys ((SMTLIB.S [SMTLIB.Sym x1, y2])::xs) = 
+        match_typing_arguments ((SMTLIB.S [SMTLIB.Sym x1, y2])::ys) xs |
+      (*4. Old veriT syntax where variables can be unsorted v0. During preprocessing we transformed
+        them to (v0 v0). Since they don't have a type they are not useful in step 2. However, one could
+        argue that if we would not add them to the variable list in case of
+        another argument that defines the same variable earlier in the list the matching could use
+        the same type. We don't expect this syntax to be matched with sorted variables but still*)
+      match_typing_arguments ys ((SMTLIB.S [SMTLIB.Sym x1, SMTLIB.Sym "type"])::xs) = 
+        match_typing_arguments ((SMTLIB.S [SMTLIB.Sym x1, SMTLIB.Sym "type"])::ys) xs |
+      match_typing_arguments _ ys = (@{print}("this should not be here?");raise Fail ("error parsing in arguments " ^ \<^make_string> ys))
 
 
+    fun match_typing_arguments2 ys xs =
+      let
+       (* val _ = @{print}("xs",xs)
+        val _ = @{print}("ys",ys)*)
+        val temp = match_typing_arguments ys xs
+        (*val _ = @{print}("temp",temp)*)
 
-     in
-       case findInList xs [] of 
-        SOME ((x1,x2),xs) => 
-         let
-           
-           val _ = @{print}("((x1,x2),xs)",((x1,x2,var),xs))
-           val _ = @{print}("Should be true",var = x2)
-         in
-          SMTLIB.S [SMTLIB.Sym "=", SMTLIB.S [SMTLIB.Sym x1, typ], SMTLIB.Sym x2] :: match_typing_arguments xs
-         end |
-        NONE => SMTLIB.S [SMTLIB.Sym var, typ] :: match_typing_arguments xs
-     end
-     (*| match_typing_arguments (SMTLIB.S [SMTLIB.Sym var, typ as SMTLIB.Sym _] :: SMTLIB.S [SMTLIB.Sym "=", SMTLIB.Sym x1, x2] :: xs) =
-       if var = x1 then (*CVC5*)
-         SMTLIB.S [SMTLIB.Sym "=", SMTLIB.S [SMTLIB.Sym x1, typ], x2] :: match_typing_arguments xs
-       else
-         SMTLIB.S [SMTLIB.Sym var, typ] :: match_typing_arguments (SMTLIB.S [SMTLIB.Sym "=", SMTLIB.Sym x1, x2] :: xs)
-     | match_typing_arguments (a :: xs) = a :: match_typing_arguments xs*)
-     | match_typing_arguments xs = (@{print}("xs",xs);[])
+      in temp end
 
-     | match_typing_arguments [] = []
+        (* TODO: Should only be activated whenever we check SMT-LIB benchmarks with check_smt *)
 
 
-    fun expand_lonely_arguments (args as SMTLIB.S [SMTLIB.Sym "=", _, _]) = [args]
-      | expand_lonely_arguments (x as SMTLIB.S [SMTLIB.Sym var, _]) = [SMTLIB.S [SMTLIB.Sym "=", x, SMTLIB.Sym var]]
+fun normalize_name name = if String.explode name |> hd |> Char.isUpper  then "isabelle_internal_" ^ name  else name
+
+fun smtlib_types t = (t="Bool") orelse (t="Int")
+fun normalize_tree (SMTLIB.Sym s) = if smtlib_types s then SMTLIB.Sym s else SMTLIB.Sym (normalize_name s) |
+    normalize_tree (SMTLIB.S xs) = SMTLIB.S (map normalize_tree xs) |
+    normalize_tree x = x
+
 
     fun preprocess (Raw_Lethe_Node {id, rule, args, prems, concl, subproof, ...}) (cx, remap_assms)  =
       let
+       (*val _ = @{print}("args in pre",args)
+       val _ = @{print}("id",id)
+       val _ = @{print}("rule",rule)
+       val _ = @{print}("cx",cx)
+       val _ = @{print}("remap_assms",remap_assms)*)
+
+
+       (* If we check external proofs we need to change term names starting with an upper character
+          since this is not allowed in Isabelle *)
+       val ctxt = #ctxt cx
+       val args = if Config.get ctxt SMT_Config.check_external then normalize_tree args else args
+       val concl = if Config.get ctxt SMT_Config.check_external then normalize_tree concl else concl
+       (*val _ = @{print}("args after normalization",args)
+       val _ = @{print}("concl after normalization",concl)*)
+
+
+
         val (skolem_names, stripped_args) = args
           |> (fn SMTLIB.S args => args)
           |> map
               (fn SMTLIB.S [SMTLIB.Key "=", x, y] => SMTLIB.S [SMTLIB.Sym "=", x, y]
               | x => x)
-          |> (rule = "bind" orelse rule = "onepoint") ? flat o (map expand_lonely_arguments) o match_typing_arguments2
+              (*TODO: Why did Mathias remove rules here? They are handled in extract_types_of_arg*)
+          |>  (rule = "bind" orelse rule = "onepoint" orelse rule="let" orelse rule="sko_forall") ? (match_typing_arguments2 [])
           |> `(if rule = lethe_def then single o extract_skolem else K [])
           ||> SMTLIB.S
-       val _ = @{print}("stripped_args",stripped_args)
+       (*val _ = @{print}("stripped_args",stripped_args)*)
 
         val (subproof, (cx, _)) = fold_map preprocess subproof (cx, remap_assms) |> apfst flat
+       (*val _ = @{print}("cx_after sub",cx)*)
+
         val remap_assms = (if rule = "or" then (id, hd prems) :: remap_assms else remap_assms)
         (* declare variables in the context *)
         val declarations =
@@ -579,8 +577,6 @@ fun filter_split _ [] = ([], [])
      (if f a then apfst (curry op :: a) else apsnd (curry op :: a)) (filter_split f xs)
 
 
-(*TODO are the top patterns even used? Normally not compatible with
-Alethe and leads to breakage later on.*)
 fun extract_types_of_args (SMTLIB.S [var, typ, t as SMTLIB.S [SMTLIB.Sym "choice", _, _]]) rule_name =
     (SMTLIB.S [var, typ, t], SOME typ)
     |> single
@@ -590,9 +586,7 @@ fun extract_types_of_args (SMTLIB.S [var, typ, t as SMTLIB.S [SMTLIB.Sym "choice
  | extract_types_of_args (SMTLIB.S t) rule_name =
   let
     fun extract_types_of_arg (SMTLIB.S [eq as SMTLIB.Sym "=", SMTLIB.S [var, typ], t]) =
-      if rule_name = "bind" orelse rule_name="sko_forall" orelse
-         rule_name= "onepoint" orelse rule_name="forall_inst" orelse
-         rule_name= "sko_ex"
+      if is_anchor_rule rule_name
       then (SMTLIB.S [eq, var, t], SOME typ)
       else (SMTLIB.S [eq, SMTLIB.S [var, typ], t], SOME typ)
     | extract_types_of_arg (SMTLIB.S [eq as SMTLIB.Sym "=", var as SMTLIB.Sym _, t as SMTLIB.S [SMTLIB.Sym "choice", SMTLIB.S [SMTLIB.S [_, typ]], _]]) =
@@ -610,6 +604,7 @@ fun collect_skolem_defs (Raw_Lethe_Node {rule, subproof = subproof, args, ...}) 
 
 val desymbolize = Name.desymbolize (SOME false) o perhaps (try (unprefix "?"))
 
+
 (*The postprocessing does:
   1. translate the terms to Isabelle syntax, taking care of free variables
   2. remove the ambiguity in the proof terms:
@@ -622,58 +617,172 @@ val desymbolize = Name.desymbolize (SOME false) o perhaps (try (unprefix "?"))
 *)
 fun postprocess_proof compress ctxt step cx =
   let
-      val _ = @{print}("step",step)
 
     fun postprocess (Raw_Lethe_Node {id, rule, args, prems, declarations, concl, subproof}) (cx, rew) =
     let
-      val _ = @{print}("id",id)
+      val trace=false
+      val _ = if trace then (@{print}("In postprocessing:");()) else ()
+      val _ = if trace then (@{print}("id",id);()) else ()
+      val _ = if trace then (@{print}("args",args);()) else ()
+      val _ = if trace then (@{print}("rew",rew);()) else ()
+      val _ = if trace then (@{print}("cx before postprocessing",cx);()) else ()
+      val _ = if trace then ((if rew=[] then () else (@{print}("ATTENTION: figure out what this does rew",rew);()))) else ()
 
-      val _ = @{print}("args",args)
+      val args_types = extract_types_of_args args rule
+      val _ = if trace then (@{print}("args after extract_types_of_args ",args);()) else ()
 
-      val args = extract_types_of_args args rule
-      val _ = @{print}("args",args)
-
-      val globally_bound_vars = declared_csts cx rule args
-      val _ = @{print}("globally_bound_vars",globally_bound_vars)
-
+      (*Only interesting for __skolem_definition rule*)
+      val globally_bound_vars = declared_csts cx rule args_types
       val cx = fold (update_binding o (fn (s, typ) => (s, Term (Free (s, type_of cx typ)))))
            globally_bound_vars cx
-      val _ = @{print}("cx",cx)
 
       (*find rebound variables specific to the LHS of the equivalence symbol*)
-      val bound_vars = bound_vars_by_rule cx rule args
+      val bound_vars = bound_vars_by_rule cx rule args_types
+      val _ = if trace then (@{print}("bound_vars",bound_vars);()) else ()
       val bound_vars_no_typ = map fst bound_vars
+      (*TODO: fn x => x muss vielleicht fuer let vllt geloescht werden*)
       val rhs_vars =
         fold (fn [t', t] => t <> t' ? (curry (op ::) t) | _ => fn x => x) bound_vars_no_typ []
-      val _ = @{print}("bound_vars",bound_vars)
-      val _ = @{print}("bound_vars_no_typ",bound_vars_no_typ)
+      val _ = if trace then (@{print}("rhs_vars",rhs_vars);()) else ()
 
       fun not_already_bound cx t = SMTLIB_Proof.lookup_binding cx t = None andalso
           not (member (op =) rhs_vars t)
+      (* (= v0 y) habe aber schon im Kontext ein anderes y, weil vorher schon (= x y)
+         In Alethe ist das egal aber in Isabelle funktioniert das nicht so. 
+         	Schon gebundene Variablen muessen umbenannt werden. Collect them rebound_lhs_var
+
+         shadowing_var sind alle die neu sind, weil sie ab jetzt shadowen
+      *)
       val (shadowing_vars, rebound_lhs_vars) = bound_vars
         |> filter_split (fn ([t, _], typ) => not_already_bound cx t | _ => true)
         |>> map (apfst (hd))
         |>> (fn vars => vars @ flat (map (fn ([_, t], typ) => [(t, typ)] | _ => []) bound_vars))
+      val _ = if trace then (@{print}("shadowing_vars",shadowing_vars);()) else ()
+      val _ = if trace then (@{print}("rebound_lhs_vars",rebound_lhs_vars);()) else ()
+      val _ = if trace then (@{print}("see",flat (map (fn ([_, t], typ) => [(t, typ)] | _ => []) bound_vars));()) else ()
+
+      (*
+        schreibe recursiv subcontexte
+        rew sind die die schon hast, die alten rewrites
+        
+      *)
       val subproof_rew = fold (fn [t, t'] => curry (op ::) (t, t ^ t'))
         (map fst rebound_lhs_vars) rew
       val subproof_rewriter = fold (fn (t, t') => synctatic_rew_in_lhs_subst t t')
          subproof_rew
 
-      val ((concl, bounds), cx') = node_of concl cx
+      val subproof_rewriter_temp = fold (fn (t, t') => synctactic_var_subst t t')
+         subproof_rew
+      val _ = if trace then (@{print}("rew",rew);()) else ()
+      val _ = if trace then (@{print}("subproof_rew",subproof_rew);()) else ()
+      val _ = if subproof_rew = [] then () else (if trace then (@{print}("YELL FOUND PROOF with subproof_rew",subproof_rew);()) else ())
 
+      (*concl nur die conclu des bind steps. Foralls haben immer sorted variablen*)
+
+      val _ = if trace then (@{print}("concl",concl);()) else ()
+
+      val ((termified_concl, bounds), cx') = node_of concl cx (*concl is name for both term and SMTLIB.Tree*)  
+     
+      val _ = if trace then (@{print}("cx'",cx');()) else ()
+      val _ = if trace then (@{print}("bounds after node_of",bounds);()) else ()
+      val _ = if trace then (@{print}("termified_concl after node_of ",termified_concl);()) else ()
+ 
+
+      (* Sanity check if conclusion has extra terms *)
+      val _ = if bounds <> [] then raise (Fail ("found dangling variable (s) " ^ (@{make_string} bounds) ^
+          " in concl " ^ (@{make_string} concl) ^ " of step" ^ id)) else ()
+
+
+
+      (*Gebe denen neue Namen, weil sie ja schon im Kontext drin sind und es sonst probleme gaebe
+      Namen sind unique, weil a unique ist oder so
+      *)
+(*TODO: Might be able to simplify not using extra_lhs_vars since that is not used anywhere else *)
       val extra_lhs_vars = map (fn ([a,b], typ) => (a, a^b, typ)) rebound_lhs_vars
-      val old_lhs_vars = map (fn (a, _, typ) => (a, typ)) extra_lhs_vars
+      val old_lhs_vars = map (fn (a, _, typ) => (a, typ)) extra_lhs_vars 
       val new_lhs_vars = map (fn (_, newvar, typ) => (newvar, typ)) extra_lhs_vars
+      val _ = if trace then (@{print}("extra_lhs_vars",extra_lhs_vars);()) else ()
+      val _ = if trace then (@{print}("old_lhs_vars",old_lhs_vars);()) else ()
+      val _ = if trace then (@{print}("new_lhs_vars",new_lhs_vars);()) else ()
 
       (* postprocess conclusion *)
-      val concl = SMTLIB_Isar.unskolemize_names ctxt (subproof_rewriter concl)
+(*unskolemize_names weil Isabelle bei Namen __ macht, wird bei Sledgehammer auch so gemacht. Irgendwie kommen die rein*)
+(*Hier werden die rewrites angewendet*)
+      val termified_concl = SMTLIB_Isar.unskolemize_names ctxt (subproof_rewriter termified_concl)
+      val _ = if trace then (@{print}("termified_concl ",termified_concl);()) else ()
 
+
+   (*ML: ((string * (string * typ)) list, ''a)
+    SMTLIB_Proof.context
+cx'
+ML: ((string * (string * typ)) list, ''a)
+    SMTLIB_Proof.context
+*)
+
+(* (string * SMTLIB.tree option) ->  (string * typ) *)
+
+(*Erst sammele alle (string * typ) von den argumenten*)
+      fun give_type cx2 (SMTLIB.S [SMTLIB.Sym "=",  SMTLIB.S [SMTLIB.Sym x, typ], t] :: args) =
+         let
+           val cx2 = add_bound_variables_to_ctxt cx2 [(x, SOME typ)] cx2
+           val rhs = (case t of
+             SMTLIB.Sym y => [(y,type_of cx2 typ)] |
+             _ => [])
+         in
+            (x,type_of cx2 typ) :: rhs @ give_type cx2 args
+         end |
+         give_type cx2 (SMTLIB.S [SMTLIB.Sym "=", SMTLIB.Sym x, t] :: args) =
+         let
+           val (y', cx2) = term_of t cx2
+           val cx2 = fold (update_binding o (fn (s, SOME typ) => (s, Term (Free (s, fastype_of y'))))) [(x,SOME (SMTLIB.Sym x))] cx2
+           val rhs = (case t of
+             SMTLIB.Sym y => [(y,fastype_of y')]  |
+             _ => [])   
+         in
+            (*HOLogic.mk_eq (x',tm) :: give_type cx' args*)
+            (x,fastype_of y') :: rhs @ give_type cx2 args
+         end |
+         give_type _ [] = [] |
+         give_type _ (x::_) =[]
+
+(*
+("(shadowing_vars @ new_lhs_vars)",
+ [("veriT_vr2", NONE), ("veriT_sk0", NONE)]) (line 644 of "/home/lachnitt/Sources/isabelle-git/isabelle-emacs/src/HOL/Tools/SMT/lethe_proof.ML") 
+("args_types",
+ [("veriT_vr2", "int"), ("veriT_sk0", "int")]) (line 679 of "/home/lachnitt/Sources/isabelle-git/isabelle-emacs/src/HOL/Tools/SMT/lethe_proof.ML") 
+exception Fail raised (line 684 of "/home/lach*)
+      val args_types2 = give_type cx' ((fn (SMTLIB.S t) => t) args)
+      val _ = if trace then (@{print}("args_types2",args_types2);()) else ()
+
+      (*'a * SMTLIB.tree option -> 'a * typ*)
+      (*fun give_proper_type (s, SOME typ) = (s, type_of cx typ)*)
       fun give_proper_type (s, SOME typ) = (s, type_of cx typ)
-       | give_proper_type (s, NONE) = raise (Fail ("could not find type of var " ^ @{make_string} s ^ " in step " ^ id ^ " in " ^  @{make_string} concl))
+       | give_proper_type (s, NONE) =
+          let
+            fun findIn [] = NONE |
+              findIn ((s2,typ)::xs) = (if s=s2 then SOME typ else findIn xs)
+          in
+           (case findIn args_types2 of 
+            SOME typ => (s, typ) |
+            NONE => raise (Fail ("could not find type of var " ^ @{make_string} s ^ " in step " ^ id ^ " in " ^  @{make_string} concl)))
+          end
       val bound_tvars = map give_proper_type (shadowing_vars @ new_lhs_vars)
-      val subproof_cx =
-         add_bound_variables_to_ctxt cx (shadowing_vars @ new_lhs_vars) cx
+      val _ = if trace then (@{print}("bound_tvars",bound_tvars);()) else ()
 
+      (*val subproof_cx_old =
+        add_bound_variables_to_ctxt cx (shadowing_vars @ new_lhs_vars) cx*)
+        (*Wir wollen im Kontext, die die neu sind weil sie neu eingefuerht wurden (shadowing) und 
+die die umbenannt wurden weil sie neu aber schon mit dem selben Namen existiert haben*)
+      val subproof_cx =
+        add_bound_variables_to_ctxt2 bound_tvars cx
+      (*val _ = @{print}("subproof_cx_old",subproof_cx_old)*)
+      val _ = if trace then (@{print}("subproof_cx",subproof_cx);()) else ()
+
+
+      (*Optimizierung compression: In Isabelle sind alpha umbenennung viel effizienter deswegen wird das hier
+        gleich gemacht*)
+      (*Wenn es ein Subproof ist der einfach nur umbenennt kann er komplett weg*)
+      (*Isabelle benutzt de bruijn umbenennung, statt gebundene Variablen steht 1,2,3,4 *)
       fun could_unify (Bound i, Bound j) = i = j
         | could_unify (Var v, Var v') = v = v'
         | could_unify (Free v, Free v') = v = v'
@@ -687,39 +796,62 @@ fun postprocess_proof compress ctxt step cx =
           |> HOLogic.dest_eq
           |> could_unify
         handle TERM _ => false
-      val alpha_conversion = rule = "bind" andalso is_alpha_renaming concl
+      val alpha_conversion = rule = "bind" andalso is_alpha_renaming termified_concl
 
       val can_remove_subproof =
         compress andalso (is_skolemization rule orelse alpha_conversion)
+      val _ = if trace then (@{print}("can_remove_subproof ",can_remove_subproof);()) else ()
+
+      (*Wenn nicht comprimiert mache postprocess, rekursiv*)
       val (fixed_subproof : lethe_replay_node list, _) =
          fold_map postprocess (if can_remove_subproof then [] else subproof)
            (subproof_cx, subproof_rew)
 
+
       val unsk_and_rewrite = SMTLIB_Isar.unskolemize_names ctxt o subproof_rewriter
 
       (* postprocess assms *)
-      val stripped_args = map fst args
+      val stripped_args = map fst args_types
+      (*Wirf argumente weg wenn nicht bestimmte Regel*)
       val sanitized_args = proof_ctxt_of_rule rule stripped_args
+      val _ = if trace then (@{print}("sanitized_args",sanitized_args);()) else ()
 
-      val arg_cx = add_bound_variables_to_ctxt cx (shadowing_vars @ old_lhs_vars) subproof_cx
+      (* y ist schon im Kontext. Jetzt ueberschreiben wir y
+         Anstatt y in cx zu ueberschreiben, bennen wir y lieber um
+         Jetzt machen wir das ueberschreiben wir subproof_cx
+         Warum? 
+      *)
+
+      (*Nimmt alte Namen und neue Namen weil wir die orginal argumente uebersetzen und die ja nicht
+        die umbenannte namen haben*)
+      val arg_cx =
+        add_bound_variables_to_ctxt2 (map give_proper_type (shadowing_vars @ old_lhs_vars)) subproof_cx
+      val _ = if trace then (@{print}("arg_cx",arg_cx);()) else ()
+
       val (termified_args, _) = fold_map node_of sanitized_args arg_cx |> apfst (map fst)
-      val normalized_args = map unsk_and_rewrite termified_args
+      val normalized_args = map unsk_and_rewrite (if rule = "rare_rewrite" then map subproof_rewriter_temp termified_args else termified_args) (*TODO: I added the rewriter here*)
+      val _ = if trace then (@{print}("normalized_args",normalized_args);()) else ()
 
-      val subproof_assms = proof_ctxt_of_rule rule normalized_args
+      val subproof_assms = proof_ctxt_of_rule rule normalized_args (*Das ist whrs unoetig, weil es oben ja shon gemacht wird*)
 
       (* postprocess arguments *)
+      (*Fix fuer RARE?*)
       val rule_args = args_of_rule rule stripped_args
-      val _ = @{print}("rule_args",rule_args)
+      val _ = if trace then (@{print}("rule_args",rule_args);()) else ()
 
       val (termified_args, _) = fold_map term_of rule_args subproof_cx
-      val normalized_args = map unsk_and_rewrite termified_args
+      val _ = if trace then (@{print}("termified_args",termified_args);()) else ()
+
+      val normalized_args = map unsk_and_rewrite (if rule = "rare_rewrite" then map subproof_rewriter_temp termified_args else termified_args) (*TODO: I added the rewriter here*)
+      val _ = if trace then (@{print}("normalized_args",normalized_args);()) else ()
 
       val rule_args = map subproof_rewriter normalized_args
-      val _ = @{print}("rule_args",rule_args)
+      val _ = if trace then (@{print}("rule_args",rule_args);()) else ()
 
       val raw_insts = insts_of_forall_inst rule stripped_args
       fun termify_term (x, t) cx = let val (t, cx) = term_of t cx in ((x, t), cx) end
       val (termified_args, _) = fold_map termify_term raw_insts subproof_cx
+      val _ = if trace then (@{print}("termified_args",termified_args);()) else ()
 
       val insts = Symtab.empty
         |> fold (fn (x, t) => fn insts => Symtab.update_new (desymbolize x, t) insts) termified_args
@@ -730,15 +862,26 @@ fun postprocess_proof compress ctxt step cx =
         |> apfst (map (apsnd unsk_and_rewrite))
 
       (* fix step *)
-      val _ = if bounds <> [] then raise (Fail ("found dangling variable (s) " ^ (@{make_string} bounds) ^
-          " in concl " ^ (@{make_string} concl) ^ " of step" ^ id)) else ()
+      (* Vom subproof *)
       val skolem_defs = (if is_skolemization rule
-         then map (fn id => id ^ lethe_def) (skolems_introduced_by_rule (SMTLIB.S (map fst args))) else [])
+         then map (fn id => id ^ lethe_def) (skolems_introduced_by_rule (SMTLIB.S (map fst args_types))) else [])
+      val _ = if trace then (@{print}("skolem_defs ",skolem_defs);()) else ()
+
       val skolems_of_subproof = (if compress andalso is_skolemization rule
          then flat (map collect_skolem_defs subproof) else [])
-      val fixed_prems =
+      val _ = if trace then (@{print}("skolems_of_subproof ",skolems_of_subproof);()) else ()
+
+      val _ = if trace then (@{print}("prems ",prems);()) else ()
+      val fixed_prems =                                                       
         prems @ (if is_assm_repetition id rule then [id] else []) @
         skolem_defs @ skolems_of_subproof @ (id_of_last_step fixed_subproof)
+      val _ = if trace then (@{print}("fixed_subproof ",fixed_subproof);()) else ()
+
+      val _ = if trace then (@{print}("fixed_prems ",fixed_prems);()) else ()
+val _ = @{print}("id",id)
+val _ = @{print}("rule",rule)
+val _ = @{print}("(id_of_last_step fixed_subproof)",(id_of_last_step fixed_subproof))
+val _ = @{print}("fixed_prems",fixed_prems)
 
       (* fix subproof *)
       val normalized_rule = normalized_rule_name id rule
@@ -747,8 +890,11 @@ fun postprocess_proof compress ctxt step cx =
       val extra_assms2 =
         (if rule = subproof_rule then extract_assumptions_from_subproof fixed_subproof else [])
 
-      val step = mk_replay_node id normalized_rule rule_args fixed_prems subproof_assms concl
+      val step = mk_replay_node id normalized_rule rule_args fixed_prems subproof_assms termified_concl
         [] insts declarations (bound_tvars, subproof_assms, extra_assms2, fixed_subproof)
+      (*val _ = @{print}("step",step)*)
+      val _ = if trace then (@{print}("rule_args",rule_args);()) else ()
+
 
     in
        (step, (cx', rew))
@@ -937,11 +1083,12 @@ local
       val (raw_steps, _, _) =
         parse_raw_proof_steps NONE smtlib_lines_without_qm SMTLIB_Proof.empty_name_binding 0
 (*args are still "okay" here*)
-      val _ = @{print}("raw_steps",raw_steps)
+      (*val _ = @{print}("raw_steps",raw_steps)*)
       fun process step (cx, cx') =
         let fun postprocess step (cx, cx') =
           let val (step, cx) = postprocess_proof compress ctxt step cx
           in (step, (cx, cx')) end
+          (*val _ = @{print}("after preprocessing", (preprocess compress step (cx, cx')))*)
         in uncurry (fold_map postprocess) (preprocess compress step (cx, cx')) end
       val step =
         (empty_context ctxt typs funs, [])

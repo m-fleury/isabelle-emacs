@@ -443,21 +443,21 @@ lemma verit_la_disequality:
   by auto
 
 lemma alethe_la_mult_pos:
-  \<open>0 < (m::int) \<and> (a < b) \<longrightarrow> m*a < m*b\<close>
-  \<open>0 < (m::int) \<and> (a \<le> b) \<longrightarrow> m*a \<le> m*b\<close>
-  \<open>0 < (m::int) \<and> (a = b) \<longrightarrow> m*a = m*b\<close>
-  \<open>0 < (m::int) \<and> \<not>(a = b) \<longrightarrow> \<not>(m*a = m*b)\<close>
-  \<open>0 < (m::int) \<and> (a \<ge> b) \<longrightarrow> m*a \<ge> m*b\<close>
-  \<open>0 < (m::int) \<and> (a > b) \<longrightarrow> m*a > m*b\<close>
+  \<open>(0 :: 'a :: linordered_field) < m \<and> (a < b) \<longrightarrow> m*a < m*b\<close>
+  \<open>(0 :: 'a :: linordered_field) < m \<and> (a \<le> b) \<longrightarrow> m*a \<le> m*b\<close>
+  \<open>(0 :: 'a :: linordered_field) < m \<and> (a = b) \<longrightarrow> m*a = m*b\<close>
+  \<open>(0 :: 'a :: linordered_field) < m \<and> \<not>(a = b) \<longrightarrow> \<not>(m*a = m*b)\<close>
+  \<open>(0 :: 'a :: linordered_field) < m \<and> (a \<ge> b) \<longrightarrow> m*a \<ge> m*b\<close>
+  \<open>(0 :: 'a :: linordered_field) < m \<and> (a > b) \<longrightarrow> m*a > m*b\<close>
   by simp_all
 
-lemma alethe_la_mult_neg:
-  \<open>m < (0::int) \<and> (a < b) \<longrightarrow> m*a > m*b\<close>
-  \<open>m < (0::int) \<and> (a \<le> b) \<longrightarrow> m*a \<ge> m*b\<close>
-  \<open>m < (0::int) \<and> (a = b) \<longrightarrow> m*a = m*b\<close>
-  \<open>m < (0::int) \<and> \<not>(a = b) \<longrightarrow> \<not>(m*a = m*b)\<close>
-  \<open>m < (0::int) \<and> (a > b) \<longrightarrow> m*a < m*b\<close>
-  \<open>m < (0::int) \<and> (a \<ge> b) \<longrightarrow> m*a \<le> m*b\<close>
+lemma alethe_la_mult_neg:          
+  \<open>m < (0 :: 'a :: linordered_field) \<and> (a < b) \<longrightarrow> m*a > m*b\<close>
+  \<open>m < (0 :: 'a :: linordered_field) \<and> (a \<le> b) \<longrightarrow> m*a \<ge> m*b\<close>
+  \<open>m < (0 :: 'a :: linordered_field) \<and> (a = b) \<longrightarrow> m*a = m*b\<close>
+  \<open>m < (0 :: 'a :: linordered_field) \<and> \<not>(a = b) \<longrightarrow> \<not>(m*a = m*b)\<close>
+  \<open>m < (0 :: 'a :: linordered_field) \<and> (a > b) \<longrightarrow> m*a < m*b\<close>
+  \<open>m < (0 :: 'a :: linordered_field) \<and> (a \<ge> b) \<longrightarrow> m*a \<le> m*b\<close>
   by simp_all
 
 context
@@ -670,6 +670,7 @@ ML_file \<open>Tools/SMT/smt_builtin.ML\<close>
 ML_file \<open>Tools/SMT/smt_datatypes.ML\<close>
 ML_file \<open>Tools/SMT/smt_normalize.ML\<close>
 ML_file \<open>Tools/SMT/smt_translate.ML\<close>
+ML_file \<open>Tools/SMT/smt_parser_util.ML\<close>
 ML_file \<open>Tools/SMT/smtlib.ML\<close>
 ML_file \<open>Tools/SMT/smtlib_interface.ML\<close>
 ML_file \<open>Tools/SMT/smtlib_proof.ML\<close>

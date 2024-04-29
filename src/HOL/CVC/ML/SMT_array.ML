@@ -68,8 +68,8 @@ Const ("Fun.fun_upd", "('a \<Rightarrow> 'b option) \<Rightarrow> 'a \<Rightarro
    (*SOME (mk_ternary \<^const_name>\<open>Array.update\<close> (fastype_of t1) t1 t2 t3)*)
   | array_term_parser _ = NONE
 
-(*val _ = Theory.setup (Context.theory_map (
+val _ = Theory.setup (Context.theory_map (
   SMTLIB_Proof.add_type_parser array_type_parser #>
-  SMTLIB_Proof.add_term_parser array_term_parser))*)
+  SMTLIB_Proof.add_term_parser array_term_parser))
 
 end;

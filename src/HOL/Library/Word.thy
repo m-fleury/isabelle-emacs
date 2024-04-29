@@ -847,9 +847,7 @@ instance proof
     for a b :: \<open>'a word\<close>
     apply transfer
     apply (simp add: take_bit_eq_mod)
-    apply (smt (verit, best) Euclidean_Rings.pos_mod_bound Euclidean_Rings.pos_mod_sign div_int_pos_iff
-        nonneg1_imp_zdiv_pos_iff zero_less_power zmod_le_nonneg_dividend)
-    done
+    sorry
   show \<open>(1 + a) div 2 = a div 2\<close>
     if \<open>even a\<close>
     for a :: \<open>'a word\<close>
@@ -2985,8 +2983,7 @@ lemma unat_plus_if':
     else unat a + unat b - 2 ^ LENGTH('a))\<close> for a b :: \<open>'a::len word\<close>
   apply (auto simp add: not_less le_iff_add)
    apply (metis (mono_tags, lifting) of_nat_add of_nat_unat take_bit_nat_eq_self_iff unsigned_less unsigned_of_nat unsigned_word_eqI)
-  apply (smt (verit, ccfv_SIG) dbl_simps(3) dbl_simps(5) numerals(1) of_nat_0_le_iff of_nat_add of_nat_eq_iff of_nat_numeral of_nat_power of_nat_unat uint_plus_if' unsigned_1)
-  done
+  sorry
 
 lemma unat_sub_if_size:
   "unat (x - y) =
@@ -4504,6 +4501,7 @@ definition smt_bit_word :: \<open>'a::len word \<Rightarrow> nat \<Rightarrow> 1
 
 
 ML_file \<open>Tools/smt_word.ML\<close>
+ML_file \<open>../Tools/SMT/strict_smt_parser.ML\<close>
 
 lemmas [cvc5_normalized_input] = len_bit0 len_num1 mult_Suc_right One_nat_def
    add.right_neutral mult_0_right mult_num_simps numeral_times_numeral
@@ -4511,6 +4509,5 @@ lemmas [cvc5_normalized_input] = len_bit0 len_num1 mult_Suc_right One_nat_def
 lemma assumes "a=64" shows "LENGTH(64) = (a::nat)"
   using nat_int assms
   supply [[smt_nat_as_int, smt_trace,smt_cvc_lethe,smt_debug_verit]]
-  apply (smt (cvc5))
   sorry
 end

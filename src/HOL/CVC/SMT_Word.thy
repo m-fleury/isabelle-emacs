@@ -742,18 +742,19 @@ fun mk_scast i u =
     val TU = Word_Lib.mk_wordT i
   in Const (\<^const_name>\<open>Word.signed\<close>, T --> TU) $ u end;
 
-(*For the FixedSizeBitVectors theory*)
-fun bv_term_parser (SMTLIB.BVNum (i, base), []) = SOME (HOLogic.mk_number (mk_wordT(base)) i)
+fun
+  (*From the FixedSizeBitVectors theory*)
+  (*| bv_term_parser (SMTLIB.Sym "concat", [t1,t2]) = mk_concat t1 t2*)
+  bv_term_parser (SMTLIB.S [SMTLIB.Sym "_",SMTLIB.Sym "extract", SMTLIB.Num i, SMTLIB.Num j],[t])
+       = SOME (mk_extract i j t)
+
   | bv_term_parser (SMTLIB.Sym "bbT", xs) =
         SOME ((Const ("Reversed_Bit_Lists.of_bl", \<^typ>\<open>HOL.bool list\<close> --> mk_wordT(length xs))) 
         $ ((Const (\<^const_name>\<open>List.rev\<close>, \<^typ>\<open>HOL.bool list\<close> -->  \<^typ>\<open>HOL.bool list\<close>)) $ (HOLogic.mk_list \<^typ>\<open>bool\<close> xs)))
   | bv_term_parser (SMTLIB.S [SMTLIB.Sym "_", SMTLIB.Sym "bitOf", SMTLIB.Num i], [t]) =
       SOME (Const (\<^const_name>\<open>semiring_bits_class.bit\<close>, (fastype_of t) --> HOLogic.natT --> \<^typ>\<open>HOL.bool\<close>)
       $ t $ (HOLogic.mk_nat i))
-
-  | bv_term_parser (SMTLIB.S [SMTLIB.Sym "_",SMTLIB.Sym "extract", SMTLIB.Num i, SMTLIB.Num j],[t])
-       = SOME (mk_extract i j t)
-
+ 
 | bv_term_parser (SMTLIB.S [SMTLIB.Sym "_",SMTLIB.Sym "int2bv", SMTLIB.Num t], xs) = (*TODO*)
 (* ("bad SMT term format",
              S [Sym "_", Sym "int2bv",
@@ -877,11 +878,11 @@ end
     in
       SOME (Const (\<^const_name>\<open>word_rotr\<close>,\<^typ>\<open>Nat.nat\<close>--> T2 --> T2) $ (Const ( \<^const_name>\<open>nat\<close>, \<^typ>\<open>Int.int\<close> --> \<^typ>\<open>Nat.nat\<close>) $ t1) $ t2)
     end
-  | bv_term_parser (SMTLIB.Sym "zero_extend", [t1, t2]) = (*This should push t1 0's before t2, solution above uses ucast, should I do too?*)
+  | bv_term_parser (SMTLIB.S [SMTLIB.Sym "_",SMTLIB.Sym "zero_extend", SMTLIB.Num i],[t])= (*This should push t1 0's before t2, solution above uses ucast, should I do too?*)
   let
-    val T = fastype_of t2
+     val I = HOLogic.mk_number \<^typ>\<open>nat\<close> i
     val TU = dummyT (*TODO: If known add concrete bitwidth*)
-  in SOME (Const (\<^const_name>\<open>Word.cast\<close>, T --> TU) $ t2) end
+  in SOME (Const (\<^const_name>\<open>Word.cast\<close>, dummyT  --> TU) $ I) end
   | bv_term_parser (SMTLIB.Sym "sign_extend", [t1, t2]) =
   let
     val _ = @{print}("sign_extend t1",t1)
@@ -915,39 +916,11 @@ end
 
   | bv_term_parser (SMTLIB.Sym "smt_concat", [t]) = 
       SOME (Const (\<^const_name>\<open>concat_smt2\<close>, dummyT -->dummyT) $ t)
-  | bv_term_parser (SMTLIB.Sym "bv", [int,base]) = (*TODO: Can get rid of case distinction now*)
-     let
-     (*There is one special case that is caught here, that is if the base is the size of another bitvector *)
-    (* val _ = @{print}("int",int)
-     val _ = @{print}("base",base)*)
- in
-         SOME (Const  (\<^const_name>\<open>Word.Word\<close>,\<^typ>\<open>Int.int\<close>--> dummyT) $ int) (*TODO: Use ty*)
-      end
-
-(*(Sym "bv",
-  [Const ("Groups.one_class.one", "int"),
-   Const ("Word.size_word_inst.size_word", "_ \<Rightarrow> _") $
-     Free ("x",
-           "_")]*)
-  | bv_term_parser (SMTLIB.Sym "bvsize", [t1]) =
-let
-     val _ = @{print}("bvsize t1",t1)
-     val T = fastype_of t1
-     val _ = @{print}("T",T)
-
-     val _ = @{print}("bvsize t1",(Const ( \<^const_name>\<open>of_nat\<close>,  \<^typ>\<open>Nat.nat\<close> -->  \<^typ>\<open>Int.int\<close>) $
-Const ( \<^const_name>\<open>size\<close>, dummyT -->  \<^typ>\<open>Nat.nat\<close>) $ t1))
-in
-      SOME (Const ( \<^const_name>\<open>of_nat\<close>,  \<^typ>\<open>Nat.nat\<close> -->  \<^typ>\<open>Int.int\<close>) $
-(Const ( \<^const_name>\<open>size\<close>, dummyT -->  \<^typ>\<open>Nat.nat\<close>) $ t1))
-(*SOME (Const ( \<^const_name>\<open>Groups.one\<close>, \<^typ>\<open>Int.int\<close>))*)
-
-end
   | bv_term_parser (SMTLIB.Sym "bvsdiv", [t1,t2]) = (*TODO*)
       SOME (HOLogic.mk_binop \<^const_name>\<open>Rings.divide\<close> (mk_unary \<^const_name>\<open>unsigned\<close> t1, mk_unary \<^const_name>\<open>unsigned\<close> t2))
  | bv_term_parser (SMTLIB.Sym "bvudiv", [t1,t2]) =
       SOME (HOLogic.mk_binop \<^const_name>\<open>smt_udiv\<close> (t1, t2)) (*TODO: What about the case whre t2 is 0? SMTLIB semantics says it should be mask *)
-  | bv_term_parser (SMTLIB.Sym "bvshl", [t1, t2]) = 
+  (*| bv_term_parser (SMTLIB.Sym "bvshl", [t1, t2]) = 
     let
       val T1 = fastype_of t1
     in
@@ -964,7 +937,7 @@ end
       val T1 = fastype_of t1
     in
       SOME (Const (\<^const_name>\<open>signed_drop_bit\<close>, \<^typ>\<open>Nat.nat\<close> --> T1 --> T1) $ (Const ( \<^const_name>\<open>unsigned\<close>, T1 --> \<^typ>\<open>Nat.nat\<close> ) $ t2) $ t1)
-   end
+   end*)
   | bv_term_parser (SMTLIB.Num n, _) = (ignore (@{print} ("n=", n)); NONE)
   | bv_term_parser _ = NONE
 
@@ -1055,10 +1028,14 @@ end
 
 ML \<open>
  fun smtlib_logic "z3" ts _ =
-    if exists (Term.exists_type (Term.exists_subtype is_wordT)) ts then SOME "" else NONE
+    (*if exists (Term.exists_type (Term.exists_subtype is_wordT)) ts then SOME [""] else NONE*)
+    if exists (Term.exists_type (Term.exists_subtype is_wordT)) ts then SOME (SMT_Translate.NO_LOGIC) else NONE
+
   | smtlib_logic "verit" _ _ = NONE
   | smtlib_logic _ ts _ =
-    if exists (Term.exists_type (Term.exists_subtype is_wordT)) ts then SOME "AUFBVLIRA" else NONE
+    if exists (Term.exists_type (Term.exists_subtype is_wordT)) ts 
+    then SOME (SMT_Translate.SL { fixedSizeBitVectors=true, real=true, set=true }) else NONE
+    (*if exists (Term.exists_type (Term.exists_subtype is_wordT)) ts then SOME ["AUFBVLIRA"] else NONE*)
 
  val smtlibC = SMTLIB_Interface.bvsmtlibC
 

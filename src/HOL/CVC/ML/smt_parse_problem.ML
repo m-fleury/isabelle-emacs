@@ -57,6 +57,13 @@ Ich versuche diese Woche, sonst uebernimmt Mathias.
   "(?P::bool) = True \<equiv> ?P"]) (line 270 of "/home/lachnitt/Sources/isabelle-git/isabelle-emacs/src/HOL/Tools/SMT/smt_solver.ML") 
 ("ll_defs", []*)
 
+fun normalize_name name = if String.explode name |> hd |> Char.isUpper  then "isabelle_internal_" ^ name  else name
+
+fun smtlib_types t = (t="Bool") orelse (t="Int") orelse (t="BitVec") orelse (t="String")
+fun normalize_tree (SMTLIB.Sym s) = if smtlib_types s then SMTLIB.Sym s else SMTLIB.Sym (normalize_name s) |
+    normalize_tree (SMTLIB.S xs) = SMTLIB.S (map normalize_tree xs) |
+    normalize_tree x = x
+
 fun parse_assert cs ({context,typs,terms,ll_defs,rewrite_rules,assms}: SMT_Translate.replay_data, assms_nbr)
  =
 let
@@ -66,6 +73,8 @@ let
     implode cs
     |> single
     |> SMTLIB.parse
+    |> normalize_tree
+
   val ([step], _, cx) = Lethe_Proof.parse_raw_proof_steps NONE [smtlib_lines_without_qm]
    SMTLIB_Proof.empty_name_binding 0
 
@@ -113,6 +122,7 @@ let
     [implode cs]
     |> map single
     |> map SMTLIB.parse
+    |> map normalize_tree
     |> (fn [SMTLIB.S [SMTLIB.Sym "declare-sort", SMTLIB.Sym typ, SMTLIB.Num 0]] => typ)
     (*|> @{print}*)
     val T = TFree (typ, ["HOL.type"])
@@ -146,11 +156,14 @@ fun parse_declare (cs: string list) ({context,typs,terms,ll_defs,rewrite_rules,a
       [implode cs]
       |> map single
       |> map SMTLIB.parse
+      |> map normalize_tree
       |> (fn [SMTLIB.S [SMTLIB.Sym "declare-fun", n, tys, ty]] => (n, tys, ty) |
              [SMTLIB.S [SMTLIB.Sym "declare-const", n, ty]] => (n, SMTLIB.S [], ty))
 
      val raw_name = dest_name n
      val name = fix_invalid_name raw_name
+     val name = normalize_name name
+
      val ctxt = SMTLIB_Proof.empty_context context typs terms
      val Ts = map (SMTLIB_Proof.type_of ctxt) (dest_seq tys)
      val T = SMTLIB_Proof.type_of ctxt ty

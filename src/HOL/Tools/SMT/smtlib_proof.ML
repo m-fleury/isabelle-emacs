@@ -119,56 +119,10 @@ fun core_type_parser (SMTLIB.Sym "Bool", []) = SOME \<^typ>\<open>HOL.bool\<clos
   | core_type_parser (SMTLIB.Sym "Int", []) = SOME \<^typ>\<open>Int.int\<close>
   | core_type_parser _ = NONE
 
-fun mk_unary n t =
-  let val T = fastype_of t
-  in Const (n, T --> T) $ t end
-
-fun mk_binary' n T U t1 t2 = Const (n, [T, T] ---> U) $ t1 $ t2
-
-fun mk_binary n t1 t2 =
-  let val T = fastype_of t1
-  in mk_binary' n T T t1 t2 end
-
-fun mk_rassoc f t ts =
-  let val us = rev (t :: ts)
-  in fold f (tl us) (hd us) end
-
-fun mk_rassoc' n = mk_rassoc (mk_binary n)
-
-fun mk_lassoc f t ts = fold (fn u1 => fn u2 => f u2 u1) ts t
-
-fun mk_lassoc' n = mk_lassoc (mk_binary n)
-
-fun mk_binary_pred n S t1 t2 =
-  let
-    val T1 = fastype_of t1
-    val T2 = fastype_of t2
-    val T =
-      if T1 <> Term.dummyT then T1
-      else if T2 <> Term.dummyT then T2
-      else TVar (("?a", serial ()), S)
-  in mk_binary' n T \<^typ>\<open>HOL.bool\<close> t1 t2 end
+open SMT_Parser_Util
 
 fun mk_less t1 t2 = mk_binary_pred \<^const_name>\<open>ord_class.less\<close> \<^sort>\<open>linorder\<close> t1 t2
 fun mk_less_eq t1 t2 = mk_binary_pred \<^const_name>\<open>ord_class.less_eq\<close> \<^sort>\<open>linorder\<close> t1 t2
-
-fun mk_chain _ [] = [] |
-    mk_chain f (t1::t2::ts) = (f t1 t2) :: (mk_chain f ts)
-
-fun mk_chainable f [t1,t2] = (f t1 t2) |
-  mk_chainable f (t1::t2::ts) = mk_rassoc (curry HOLogic.mk_conj) (f t1 t2) (mk_chain f ts)
-
-fun pairwise _ [] = [] |
-  pairwise f (t1::tss) = (map (fn u => f (t1,u)) tss) @ pairwise f tss
-
-fun pairwise' f [x,y] = SOME (f (x,y)) |
-  pairwise' f (xs as _::_::_) =
-    let
-      val (hd_pt,tl_pt) = pairwise f xs |> (fn x::xs => (x,xs) | [] => raise Match)
-    in
-      SOME (mk_rassoc' \<^const_name>\<open>HOL.conj\<close> hd_pt tl_pt)
-    end |
-  pairwise' _ _ = NONE
 
 fun core_term_parser (SMTLIB.Sym "true", _) = SOME \<^Const>\<open>True\<close>
   | core_term_parser (SMTLIB.Sym "false", _) = SOME \<^Const>\<open>False\<close>

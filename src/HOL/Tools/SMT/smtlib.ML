@@ -109,16 +109,20 @@ fun read_sym f l cs = read_raw is_sym l cs |>> f o implode
 
 fun read_quoted stop (escape, replacement) cs =
   let
+
     fun read _ [] = NONE
-      | read rs (cs as (c :: cs')) =
+      | read rs (cs as (c :: cs')) = ((*@{print}("cs",cs);@{print}("is_prefix (op =) stop cs",is_prefix (op =) stop cs);*)
           if is_prefix (op =) stop cs then
             SOME (implode (rev rs), drop (length stop) cs)
           else if not (null escape) andalso is_prefix (op =) escape cs then
             read (replacement :: rs) (drop (length escape) cs)
-          else read (c :: rs) cs'
+          else read (c :: rs) cs')
   in read [] cs end
 
-fun read_string cs = read_quoted ["\\", "\""] (["\\", "\\"], "\\") cs
+(*TODO: repair this, should be okay test with Z3 Examples and veriT *)
+(*fun read_string cs = read_quoted ["\\", "\""] (["\\", "\\"], "\\") cs |> @{print}
+*)
+fun read_string cs = read_quoted ["\""] (["\\", "\\"], "\\") cs (*|> @{print}*)
 fun read_symbol cs = read_quoted ["|"] ([], "") cs
 
 
@@ -152,12 +156,13 @@ fun read _ [] rest tss = (rest, tss)
 
 and token f l cs ts tss =
   let val (t, cs') = f l cs
+      (*val _ = @{print}("t",t)*)
   in read l cs' None ((t :: ts) :: tss) end
 
 and quoted r f g l s cs ts tss =
   (case r cs of
     NONE => (f (s ^ implode cs), ts :: tss)
-  | SOME (s', cs') => read l cs' None ((g (s ^ s') :: ts) :: tss))
+  | SOME (s', cs') => ((*@{print}("g (s ^ s') ",g (s ^ s') ); *)read l cs' None ((g (s ^ s') :: ts) :: tss)))
   
 
 
@@ -167,9 +172,9 @@ fun read_line l line = read l (raw_explode line)
 
 fun add_line line (l, (None, tss)) =
       if size line = 0 orelse nth_string line 0 = ";" then (l + 1, (None, tss))
-      else (l + 1, read_line l line None tss)
+      else (l + 1, read_line l line None tss (*|> @{print}*))
   | add_line line (l, (unfinished, tss)) =
-      (l + 1, read_line l line unfinished tss)
+      (l + 1, read_line l line unfinished tss (* |> @{print}*))
 
 fun finish (_, (None, [[t]])) = t
   | finish (l, _) = raise PARSE (l, "bad nesting")

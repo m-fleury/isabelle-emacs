@@ -43,7 +43,8 @@ in thm end
 fun check_smt prover problem_file_name proof_file_name opt_output_file lthy =
 let
   (*Get problem and proof file*)
-  val ctxt = Local_Theory.target_of lthy
+  val ctxt = Local_Theory.target_of lthy |> Config.put SMT_Config.check_external true
+  val _ = @{print}(SMT_Config.alethe_no_provided_assms ctxt)
   val _ =
     if Option.isSome opt_output_file
     then
@@ -142,9 +143,12 @@ let
             (SMT_Failure.SMT (SMT_Failure.Replay(rule,ERROR msg)))
               => (@{print}("Error replaying step" ^ rule ^ " is: " ^ msg);
                   print_reconstruction_error_to_file ctxt 6 rule; (local_thy,i)) |
-            (SMT_Failure.SMT (SMT_Failure.Replay(rule,_)))
-              => (@{print}("Error replaying step" ^ rule);
-                  print_reconstruction_error_to_file ctxt 6 rule; (local_thy,i)) |
+            (SMT_Failure.SMT (SMT_Failure.Replay(rule,INTERRUPT)))
+               => (@{print}("Timeout");
+                  print_error_to_file ctxt 7; (local_thy,i)) |
+            (SMT_Failure.SMT (SMT_Failure.Replay(rule,exn)))
+              => (@{print}("Error replaying step" ^ rule ^ " is: " ^ General.exnMessage exn);
+                  print_reconstruction_error_to_file ctxt 1 rule; (local_thy,i)) |
             (*Timeout*)
             (SMT_Failure.SMT SMT_Failure.Time_Out)
                => (@{print}("Timeout");
@@ -163,7 +167,8 @@ let
   val _ = @{print}(Library.string_of_int nr_checked_successfully ^ "/"
     ^ Library.string_of_int (length problems_path) ^ " proofs checked without errors. This means that there were: "
     ^ Library.string_of_int (length problems_path - nr_checked_successfully) ^ " errors!")
-  val ctxt = Local_Theory.target_of local_thy
+
+
   val _ = SMT_Config.verbose_msg ctxt (pretty ("------------------------------------------")) []
   val _ = SMT_Config.verbose_msg ctxt (pretty ("------------------------------------------")) []
   val _ = SMT_Config.verbose_msg ctxt (pretty ("------------------------------------------")) []

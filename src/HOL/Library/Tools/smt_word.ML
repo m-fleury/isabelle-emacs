@@ -21,10 +21,14 @@ open Word_Lib
 (* "QF_AUFBV" is too restrictive for Isabelle's problems, which contain aritmetic and quantifiers.
    Better set the logic to "" and make at least Z3 happy. *)
 fun smtlib_logic "z3" ts _ =
-    if exists (Term.exists_type (Term.exists_subtype is_wordT)) ts then SOME "" else NONE
+    if exists (Term.exists_type (Term.exists_subtype is_wordT)) ts
+    then SOME (SMT_Translate.NO_LOGIC)
+    else NONE
   | smtlib_logic "verit" _ _ = NONE
   | smtlib_logic _ ts _ =
-    if exists (Term.exists_type (Term.exists_subtype is_wordT)) ts then SOME "AUFBVLIRA" else NONE
+    if exists (Term.exists_type (Term.exists_subtype is_wordT)) ts
+    then SOME (SMT_Translate.SL ({fixedSizeBitVectors=true,real=true,set=false}:SMT_Translate.smtlib_theories))
+    else NONE
 
 
 (* SMT-LIB builtins *)
@@ -487,7 +491,9 @@ val setup_builtins =
     (\<^term>\<open>word_sless\<close>, "bvslt"),
     (\<^term>\<open>word_sle\<close>, "bvsle") ] #>
   fold (SMT_Builtin.add_builtin_fun' SMTLIB_Interface.bvsmtlibC) [
-    (\<^term>\<open>unsigned :: 'a::len word \<Rightarrow> Int.int\<close>, "bv2nat")
+    (\<^term>\<open>unsigned :: 'a::len word \<Rightarrow> Int.int\<close>, "bv2nat"),
+    (\<^term>\<open>of_int ::  Int.int => 'a::len word\<close>, "nat2bv")
+
    ] #>
   fold (add_word_fun bit) [
     (\<^term>\<open>bit :: 'a::len word \<Rightarrow> _ \<Rightarrow> _\<close>, "=")
@@ -511,9 +517,7 @@ end
 
 (* Proof Reconstruction *)
 
-fun mk_unary n t =
-  let val T = fastype_of t
-  in Const (n, T --> T) $ t end
+open SMT_Parser_Util
 
 val split_last =
   let fun split_last [a] = ([], a)
@@ -544,14 +548,21 @@ fun mk_scast i u =
     val TU = Word_Lib.mk_wordT i
   in Const (\<^const_name>\<open>Word.signed\<close>, T --> TU) $ u end;
 
-fun mk_lassoc f t ts = fold (fn u1 => fn u2 => f u2 u1) ts t
-
-fun bv_term_parser (SMTLIB.Sym bv, []) =
+fun
+  (*From the FixedSizeBitVectors theory*)
+  bv_term_parser (SMTLIB.BVNum (i, base), []) = SOME (HOLogic.mk_number (mk_wordT(base)) i)
+  | bv_term_parser (SMTLIB.Sym "bvnot", [t1]) =
+      SOME (mk_unary \<^const_name>\<open>ring_bit_operations_class.not\<close> t1)
+  | bv_term_parser (SMTLIB.Sym "bvneg", [t]) =
+      SOME (mk_unary \<^const_name>\<open>uminus_class.uminus\<close> t)
+  | bv_term_parser (SMTLIB.Sym "bvand", (t::ts)) =
+      SOME (mk_lassoc' \<^const_name>\<open>semiring_bit_operations_class.and\<close> t ts)
+ | bv_term_parser (SMTLIB.Sym bv, []) =
       (case try (unprefix "bv") bv of
         NONE => NONE
       | SOME t => (@{print}("TODO: when this happens in bv_term_parser investigate: ",bv);
         SOME ((HOLogic.mk_term_of \<^typ>\<open>32 word\<close> (HOLogic.mk_string t)))))
-  | bv_term_parser (SMTLIB.Sym "bv", [int,(Const ("Nat.semiring_1_class.of_nat", _) $ (Const ("Nat.size_class.size", _) $
+  (*| bv_term_parser (SMTLIB.Sym "bv", [int,(Const ("Nat.semiring_1_class.of_nat", _) $ (Const ("Nat.size_class.size", _) $
      Free ("x", typ)))]) = SOME (Const (\<^const_name>\<open>Word.Word\<close>,\<^typ>\<open>Int.int\<close>--> typ) $ int)
   | bv_term_parser (SMTLIB.Sym "bv", [int, base]) =
      let
@@ -559,7 +570,7 @@ fun bv_term_parser (SMTLIB.Sym bv, []) =
         val num = snd (HOLogic.dest_number int)
       in
         SOME (HOLogic.mk_number ty num)
-      end
+      end*)
   | bv_term_parser (SMTLIB.Sym "_", [int, base]) =
       let
         val ty = Word_Lib.mk_wordT (snd (HOLogic.dest_number base))
@@ -567,13 +578,11 @@ fun bv_term_parser (SMTLIB.Sym bv, []) =
       in
         SOME (HOLogic.mk_number ty num)
       end
-  | bv_term_parser (SMTLIB.Sym "concat", [t1,t2]) = mk_concat t1 t2
   | bv_term_parser (SMTLIB.Sym "bvult", [t1, t2]) = 
       SOME (HOLogic.mk_binrel \<^const_name>\<open>Orderings.less\<close> (t1, t2))
   | bv_term_parser (SMTLIB.Sym "bvule", [t1, t2]) =
       SOME (HOLogic.mk_binrel \<^const_name>\<open>Orderings.less_eq\<close> (t1, t2))
-  | bv_term_parser (SMTLIB.Sym "bvneg", [t]) =
-      SOME (mk_unary \<^const_name>\<open>uminus_class.uminus\<close> t)
+
   | bv_term_parser (SMTLIB.Sym "bvadd", t) =
       let val (xs, a) = split_last t
       in
@@ -590,12 +599,7 @@ fun bv_term_parser (SMTLIB.Sym bv, []) =
       in 
         SOME (mk_lassoc (fn t1 => fn t2 => (Const ( \<^const_name>\<open>Groups.times\<close>, T --> T --> T)) $ t1 $ t2) t ts)
       end
-  | bv_term_parser (SMTLIB.Sym "bvand", (t::ts)) =
-      let
-        val T = fastype_of t
-      in 
-        SOME (mk_lassoc (fn t1 => fn t2 => (Const ( \<^const_name>\<open>semiring_bit_operations_class.and\<close>, T --> T --> T)) $ t1 $ t2) t ts)
-      end
+ 
   | bv_term_parser (SMTLIB.Sym "bvor", (t::ts)) =
       let
         val T = fastype_of t
@@ -610,8 +614,7 @@ fun bv_term_parser (SMTLIB.Sym bv, []) =
       end
   | bv_term_parser (SMTLIB.Sym "bvxnor", [t1, t2]) =
       SOME (mk_unary \<^const_name>\<open>ring_bit_operations_class.not\<close> (HOLogic.mk_binop \<^const_name>\<open>semiring_bit_operations_class.xor\<close> (t1, t2)))
-  | bv_term_parser (SMTLIB.Sym "bvnot", [t1]) =
-      SOME (mk_unary \<^const_name>\<open>ring_bit_operations_class.not\<close> t1)
+
   | bv_term_parser (SMTLIB.S [SMTLIB.Sym "_", SMTLIB.Sym "zero_extend", SMTLIB.Num i], [t]) =
       SOME (mk_zero_extend i t)
   | bv_term_parser (SMTLIB.S [SMTLIB.Sym "_", SMTLIB.Sym "sign_extend", SMTLIB.Num i], [t]) =

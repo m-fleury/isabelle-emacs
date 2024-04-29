@@ -15,6 +15,14 @@ sig
     SQua of squant * string list * sterm spattern list * sterm
 
   (*translation configuration*)
+  type smtlib_theories = {
+    fixedSizeBitVectors : bool,
+    real : bool,
+    set : bool
+  }
+  datatype smtlib_logic = SL of smtlib_theories | NO_LOGIC | ALL | ALL_SUPPORTED
+  val merge_smtlib_logic: smtlib_logic -> smtlib_logic -> smtlib_logic
+
   type sign = {
     logic: string,
     sorts: string list,
@@ -22,7 +30,7 @@ sig
     funcs: (string * (string list * string)) list }
   type config = {
     order: SMT_Util.order,
-    logic: string -> term list -> string,
+    logic: string -> term list -> smtlib_logic,
     fp_kinds: BNF_Util.fp_kind list,
     serialize: (string * string) list -> string list -> sign -> (SMT_Util.role * sterm) list ->
       string }
@@ -60,6 +68,75 @@ datatype sterm =
 
 (* translation configuration *)
 
+type smtlib_theories = {
+  fixedSizeBitVectors : bool,
+  real : bool,
+  (*int : bool,*)
+  set : bool
+}
+
+val solver_supports = [
+  ("cvc5", ({fixedSizeBitVectors=true,real=true,set=true}:smtlib_theories)),
+  ("verit", ({fixedSizeBitVectors=false,real=false,set=false}:smtlib_theories)),
+  ("z3", ({fixedSizeBitVectors=true,real=true,set=false}:smtlib_theories))                    
+]
+
+fun get_supported_theories solver =
+ (case List.find (fn x => fst x = solver) solver_supports of
+      SOME (_,supported) => supported |
+      NONE => raise (Fail ("Could not find which logics are supported for solver " ^ solver
+        ^ ". Please add that information or set specific SMTLIB-theories instead of using "
+        ^ "ALL_SUPPORTED as smt-lib logic")))
+
+fun solver_support_theories solver
+  ({fixedSizeBitVectors=l1_bv,real=l1_real,set=l1_set}:smtlib_theories) =
+let
+  val {fixedSizeBitVectors=l2_bv,real=l2_real,set=l2_set} = get_supported_theories solver
+in
+  (not l1_bv orelse l2_bv) andalso (not l1_real orelse l2_real) andalso (not l1_set orelse l2_set)
+end
+
+
+fun print_smtlib_theories solver (l as {fixedSizeBitVectors,real,set}) =
+  if solver_support_theories solver l then 
+    "AUF" ^ (if fixedSizeBitVectors then "BV" else "") ^ "LI"
+    ^ (if real then "R" else "") ^ "A" ^ (if set then "FS" else "")
+  else raise (Fail ("Solver " ^ solver ^ " does not support a theory that has been set:\n"
+    ^ (if fixedSizeBitVectors then "fixedSizeBitVectors\n" else "")
+    ^ (if real then "real\n" else "")
+    ^ (if set then "set\n" else "")
+    ^ "\n"))
+
+fun merge_smtlib_theory ({fixedSizeBitVectors=l1_bv,real=l1_real,set=l1_set}:smtlib_theories)
+                        ({fixedSizeBitVectors=l2_bv,real=l2_real,set=l2_set}:smtlib_theories)
+  =
+  ({fixedSizeBitVectors=(l1_bv orelse l2_bv),
+    real=(l1_real orelse l2_real),
+    set=(l1_set orelse l2_set)
+   })
+
+
+datatype smtlib_logic = SL of smtlib_theories | NO_LOGIC | ALL | ALL_SUPPORTED
+
+fun print_set_logic x = "(set-logic " ^ x ^ ")\n"
+
+fun print_smtlib_logic ALL _ = print_set_logic "ALL" |
+  print_smtlib_logic ALL_SUPPORTED solver
+    = get_supported_theories solver |> print_smtlib_theories solver |
+  print_smtlib_logic NO_LOGIC _ = "" |
+  print_smtlib_logic (SL {fixedSizeBitVectors=true,set=false,...}) "z3" = "" |
+  print_smtlib_logic (SL {real=true,set=false,...}) "z3" = "" |
+  print_smtlib_logic (SL l) solver
+    = print_smtlib_theories solver l |> print_set_logic 
+
+fun merge_smtlib_logic NO_LOGIC _ = NO_LOGIC |
+  merge_smtlib_logic _ NO_LOGIC = NO_LOGIC | 
+  merge_smtlib_logic ALL _ = ALL |
+  merge_smtlib_logic _ ALL = ALL | 
+  merge_smtlib_logic _ ALL_SUPPORTED = ALL_SUPPORTED | 
+  merge_smtlib_logic ALL_SUPPORTED _ = ALL_SUPPORTED | 
+  merge_smtlib_logic (SL l1) (SL l2)  = SL (merge_smtlib_theory l1 l2 )
+
 type sign = {
   logic: string,
   sorts: string list,
@@ -68,7 +145,7 @@ type sign = {
 
 type config = {
   order: SMT_Util.order,
-  logic: string -> term list -> string,
+  logic: string -> term list -> smtlib_logic,
   fp_kinds: BNF_Util.fp_kind list,
   serialize: (string * string) list -> string list -> sign -> (SMT_Util.role * sterm) list ->
     string }
@@ -496,28 +573,60 @@ fun get_config ctxt : config list =
         "for solver class " ^ commas_quote (map SMT_Util.string_of_class cs)))
   end
 
-fun merge_logics ctxt (prover: string) (logics: string list) =
-  let
-    val z3_extension = is_some (List.find (curry (op =) "") logics)
-    val BV = Config.get ctxt SMT_Config.native_bv andalso
-      is_some (List.find (curry (op =) "(set-logic AUFBVLIRA)\n") logics)
-    val R = is_some (List.find (curry (op =) "(set-logic AUFLIRA)\n") logics)
-    val S = Config.get ctxt SMT_Config.native_set andalso
-      is_some (List.find (curry (op =) "(set-logic QF_UFLIAFS)\n") logics)
+
+(*I want to make this even better, I don't want smt_logics be saved in a list but in a structure
+where during merging they are turned on. Best would be to completely make this unecessary though
+what does choose logic actually do?*)
+(*fun merge_logics ctxt (prover: string) (logics: smtlib_logic_ext list) =
+  if is_some (List.find (curry (op =) ALL_SUPPORTED) logics)
+    then (if prover="z3" then "" else if prover="veriT" then "UFLIA" else if prover = "cvc5" then "AUFBVLIRAFS" else "ALL") 
+  else if is_some (List.find (curry (op =) ALL) logics)
+    then (if prover="z3" then "" else "ALL") 
+  else if (prover="z3" andalso is_some (List.find (curry (op =) Z3) logics))
+    then ""
+  else
+   let
+     val B = is_some (List.find (curry (op =) (SL BV)) logics)
+     val R = is_some (List.find (curry (op =) (SL Real)) logics)
+     val S = is_some (List.find (curry (op =) (SL Set)) logics)
   in
-    if prover = "z3" andalso (z3_extension orelse BV orelse R) then ""
-    else if prover = "verit" andalso BV then raise (Fail "unsupported logic")
+    if prover = "z3" then
+       if S then raise (Fail "unsupported logic")
+       else if (B orelse R) then ""
+       else "(set-logic UFLIA)"
+    else if prover = "verit" then
+       if (B orelse R orelse S) then raise (Fail "unsupported logic")
+       else "(set-logic UFLIA)"
+    else if prover="cvc" then
+      "(set-logic " ^ "AUF" ^ (if B then "BV" else "") ^ "LI" ^ (if R then "R" else "") ^ "A" ^
+       (if S then "FS" else "") ^  ")\n"
+    else "ALL"
+  end
+*)
+
+
+(*fun merge_logics ctxt (prover: string) (logics: smtlib_logic_ext list) =
+  let
+    val _ = @{print}("logics",logics)
+    val z3_extension = is_some (List.find (curry (op =) Z3) logics)
+    val B = is_some (List.find (curry (op =) (SL BV)) logics)
+    val R = is_some (List.find (curry (op =) (SL Real)) logics)
+    val S = is_some (List.find (curry (op =) (SL Set)) logics)
+  in
+    if prover = "z3" andalso (z3_extension orelse B orelse R) then ""
+    else if prover = "verit" andalso B then raise (Fail "unsupported logic")
     (*else if prover = "cvc5" then "(set-logic ALL)\n"*)
-    else "(set-logic " ^ "AUF" ^ (if BV then "BV" else "") ^ "LI" ^ (if R then "R" else "") ^ "A" ^
+    else "(set-logic " ^ "AUF" ^ (if B then "BV" else "") ^ "LI" ^ (if R then "R" else "") ^ "A" ^
        (if S then "FS" else "") ^  ")\n"
   end
+*)
 
 fun translate ctxt prover smt_options comments (ithms : ((int * SMT_Util.role) * thm) list) =
   let
     val order = map #order (get_config ctxt)
     val logics = map #logic (get_config ctxt)
-    fun logic prover ts = merge_logics ctxt prover (map (fn f => f prover ts) logics)
-    val fp_kinds = map #fp_kinds (get_config ctxt) |> foldr1 (op @)
+    fun logic prover ts = print_smtlib_logic (Library.foldr1 (uncurry (merge_smtlib_logic)) (map (fn f => f prover ts) logics)) prover
+    val fp_kinds = map #fp_kinds (get_config ctxt) |> foldr1 (op @)               
     (*There is a single serialize function anyway*)
     val serialize = map #serialize (get_config ctxt) |> hd
     val first_order = is_some (List.find (curry (op =) SMT_Util.First_Order) order)

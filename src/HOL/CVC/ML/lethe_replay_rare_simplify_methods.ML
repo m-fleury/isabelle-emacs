@@ -52,6 +52,14 @@ let
 
  val _ = (if is_none (CVC5_Rare.rare_lookup (Context.Proof ctxt) ("rewrite_" ^ rewrite_name)) 
          then raise Fail ("undeclared RARE rule:" ^ rewrite_name ^ ". Use cvc5_rare \"full_name\".") else ())
+
+    (*val _ = 
+      if Config.get ctxt SMT_Config.rec_evaluation andalso args <> []
+      then File.append (Path.explode ("$ISABELLE_HOME_USER/" ^
+        (Config.get ctxt SMT_Config.statistics_file))) (rewrite_name ^ ", ")
+      else ()*)
+
+
  val (rewrite_lemma :: _) = CVC5_Rare.rare_rule (Context.Proof ctxt) ("rewrite_" ^ rewrite_name)
  val get_types = map snd (rev (Term.add_vars (Thm.full_prop_of rewrite_lemma) []))
 
@@ -148,7 +156,9 @@ in
   then
    (SMT_Config.verbose_msg ctxt (pretty ("Found arith_poly_norm, try to simplify")) []; try_simp ctxt t)
   else
-   ( dsl_tac_initialize rewrite_name args ctxt t th)) |
+   let
+   
+   in ( dsl_tac_initialize rewrite_name args ctxt t th) end )|
 
     (*( dsl_tac_initialize rewrite_name args ctxt t th) |*)
    (*( try_auto_solo ctxt t)|*)

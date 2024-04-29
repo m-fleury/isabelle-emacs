@@ -28,8 +28,9 @@ fun subst_only_free pairs =
 
 fun under_fixes f unchanged_prems (prems, nthms) names args insts decls (concl, ctxt) =
   let
-    val thms1 = unchanged_prems @ map (SMT_Replay.varify ctxt) prems
-    val thms2 = map snd nthms
+    val thms1 = unchanged_prems @ map (SMT_Replay.varify ctxt) prems(* |> @{print}*)
+    val thms2 = map snd nthms(* |> @{print}*)
+    (*val _ = @{print}("decls",decls)*)
   in (f ctxt (thms1 @ thms2) args insts decls concl) end
 
 
@@ -75,6 +76,10 @@ fun replay_thm method_for rewrite_rules ll_defs ctxt assumed unchanged_prems pre
        if Config.get ctxt SMT_Config.rec_evaluation
        then (raise SMT_Failure.SMT (SMT_Failure.Replay(rule,(ERROR (msg |> YXML.content_of)))))
        else Exn.reraise (ERROR msg) |
+     (Fail msg)=>
+       if Config.get ctxt SMT_Config.rec_evaluation
+       then (raise SMT_Failure.SMT (SMT_Failure.Replay(rule,ERROR "failure")))
+       else Exn.reraise (Fail msg) |
       err =>
        if Config.get ctxt SMT_Config.rec_evaluation
        then (raise SMT_Failure.SMT (SMT_Failure.Replay(rule,err)))
@@ -104,6 +109,7 @@ fun replay_theorem_step rewrite_rules all_assms ll_defs assumed inputs proof_pre
     val _ = @{print}("replay_theorem_step inputs", inputs)
     val _ = @{print}("replay_theorem_step assumed", assumed)
     val _ = @{print}("replay_theorem_step proof_prems", proof_prems)*)
+    (*val _ = @{print}("subproof", subproof)*)
 
     val (proofs, stats, ctxt, concl_tranformation, global_transformation) = state
     val (_, ctxt) = Variable.variant_fixes (map fst bounds) ctxt
@@ -147,11 +153,34 @@ fun replay_theorem_step rewrite_rules all_assms ll_defs assumed inputs proof_pre
        function is in proofs *)
     val nthms =
       prems
+      |> filter_out Lethe_Proof.is_lethe_def (*Alle fakten ausser skolem defs*)
       |> map (apsnd export_thm) o map_filter (Symtab.lookup (if (null subproof) then proofs else proofs'))
+ (*
+ map_filter (Symtab.lookup (if (null subproof) then proofs else proofs'))
+Wir filtern die aus nicht im Kontext existieren (DAS SOLLTE NICHT PASSIEREN!)
+Wir mappen Namen zu ihrem Thorem
+
+map (apsnd export_thm) macht dann noch iwleche transformationen
+*)
+
+
+
+
+    (*val _ = @{print}("nthms",nthms)*)
+(*proof ist in proof' drin, aber nicht andersrum *)
+(*proof' sind mapping von namen zu theoremen fuer den Subproof *)
+(*proof sind alle vorherigen *)
+
+
 
     val nthms' = (if Lethe_Proof.is_skolemization rule
          then prems else [])
-      |> map_filter (Symtab.lookup proofs)
+      |> filter Lethe_Proof.is_lethe_def (*Nur die skolem definitionen aus*)
+      |> map_filter (Symtab.lookup proofs) (*Skolem definitionen sind immer im auesseren Kontext*)
+    (*val _ = @{print}("nthms'",nthms')*)
+
+
+
     val args = map (Term.subst_free concl_tranformation o subst_only_free global_transformation) args
     val insts = Symtab.map (K (Term.subst_free concl_tranformation o subst_only_free global_transformation)) insts
     val missing_assumptions =
@@ -162,7 +191,7 @@ fun replay_theorem_step rewrite_rules all_assms ll_defs assumed inputs proof_pre
     val local_inputs =
        if Lethe_Replay_Methods.requires_local_input prems rule then input @ inputs else []
 
-
+    (*val _ = @{print}("(nthms @ nthms')",(nthms @ nthms'))*)
     val replay = (Timing.timing (replay_thm CVC5_Replay_Methods.method_for rewrite_rules ll_defs
        ctxt assumed [] (missing_assumptions @ proof_prems @ local_inputs) (nthms @ nthms') concl_tranformation
        global_transformation args insts))
@@ -386,9 +415,13 @@ fun replay outer_ctxt
     in
       fold (fn (x,y) => fn msg => msg ^ "\"" ^  x ^ "\": [" ^ print_list y ^ "],\n") stats "" |> Library.unsuffix ",\n"
     end
-    val _ = File.append (Path.explode ("$ISABELLE_HOME_USER/" ^
-      (Config.get ctxt SMT_Config.statistics_file))) (string_of_int total
-      ^ ",\"detail\": {" ^ print_stats (Symtab.dest stats) ^"}}]},\n")
+    (*TEMP*)
+    val _ = 
+      if Config.get ctxt SMT_Config.rec_evaluation
+      then File.append (Path.explode ("$ISABELLE_HOME_USER/" ^
+        (Config.get ctxt SMT_Config.statistics_file))) (string_of_int total
+       ^ ",\"detail\": {" ^ print_stats (Symtab.dest stats) ^"}}]},\n")
+      else ()
 
 
     val _ = SMT_Replay.spying (SMT_Config.spy_verit ctxt) ctxt
