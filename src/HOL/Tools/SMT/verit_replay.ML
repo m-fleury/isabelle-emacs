@@ -157,8 +157,8 @@ fun replay_theorem_step rewrite_rules all_assms ll_defs assumed inputs proof_pre
     val args = map (Term.subst_free concl_tranformation o subst_only_free global_transformation) args
     val insts = Symtab.map (K (Term.subst_free concl_tranformation o subst_only_free global_transformation)) insts
     val missing_assumptions =
-       if SMT_Config.alethe_no_provided_assms ctxt andalso rule = Lethe_Proof.normalized_input_rule 
        then all_assms else []
+       if SMT_Config.alethe_no_provided_assms ctxt andalso (rule = Lethe_Proof.local_input_rule orelse rule = Lethe_Proof.normalized_input_rule)
     val proof_prems =
        if Lethe_Replay_Methods.requires_subproof_assms prems rule then proof_prems else []
     val local_inputs =

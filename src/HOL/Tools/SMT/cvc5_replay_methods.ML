@@ -113,7 +113,8 @@ fun cvc5_rule_of "bind" = Bind
      else if r = Lethe_Proof.hole orelse r = "undefined" then Hole
      else Other_Rule r
 
-fun normalized_input ctxt prems t = SMT_Replay_Methods.prove ctxt t (fn _ =>
+(*work-around should not be needed anymore*)
+fun normalized_input' ctxt prems t = SMT_Replay_Methods.prove ctxt t (fn _ =>
   let
      (*val _ = (SMT_Config.verit_msg ctxt) (fn () => \<^print> ("conclusion t t =",t))
      val _ = (SMT_Config.verit_msg ctxt) (fn () => \<^print> ("normalized input prems =",prems))*)

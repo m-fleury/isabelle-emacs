@@ -105,17 +105,6 @@ fun verit_rule_of "bind" = Bind
      else (@{print} ("Unsupport rule", r); Unsupported)
 
 
-fun normalized_input ctxt prems t = SMT_Replay_Methods.prove ctxt t (fn _ =>
-  let
-     (*val _ = (SMT_Config.verit_msg ctxt) (fn () => \<^print> ("conclusion t t =",t))
-     val _ = (SMT_Config.verit_msg ctxt) (fn () => \<^print> ("normalized input prems =",prems))*)
-  in
-    (*resolve_tac ctxt prems
-     ORELSE' (Method.insert_tac ctxt prems THEN' Clasimp.force_tac (ctxt addsimps @{thms cvc5_normalized_input}))
-  *)
- (Skip_Proof.cheat_tac ctxt) 
- end)
-
 (* Combining all together *)
 
 fun unsupported rule ctxt thms _ _ _ = SMT_Replay_Methods.replay_error ctxt "Unsupported verit rule"

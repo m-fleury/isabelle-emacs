@@ -797,17 +797,39 @@ fun distinct_elim ctxt prems t = (*TODO*)
     SMT_Replay_Methods.prove ctxt t (fn _ => resolve_tac ctxt @{thms refl})
 
 (*TODO: Roll back once Mathias supports this*)
+fun is_same_assms_eq_ac (Abs (_, _,  u)) (Abs (_, _, u')) = 
+     is_same_assms_eq_ac u u' (*the name cannot be relevant due to implicit eta-contraction*)
+  | is_same_assms_eq_ac (Free (var, _)) (Free (var', _)) =
+    (var = var')
+  | is_same_assms_eq_ac (Bound var) (Bound var') =
+    (var = var')
+  | is_same_assms_eq_ac (Const (var, _)) (Const (var', _)) =
+    (var = var')
+  | is_same_assms_eq_ac (Const (\<^const_name>\<open>HOL.eq\<close>, _) $ u $ v) (Const (\<^const_name>\<open>HOL.eq\<close>, _) $ u' $ v') =
+    (is_same_assms_eq_ac u u' andalso is_same_assms_eq_ac v v') orelse
+    (is_same_assms_eq_ac u v' andalso is_same_assms_eq_ac v u')
+  | is_same_assms_eq_ac (u $ v) (u' $ v') =
+    (is_same_assms_eq_ac u u' andalso is_same_assms_eq_ac v v')
+  | is_same_assms_eq_ac u v  = (@{print}("different", u,v);false)
+
 fun normalized_input ctxt prems t = 
-(SMT_Replay_Methods.prove ctxt t (fn _ =>
-(*(K (print_tac ctxt ("In normalized_input, skip checking")))
-THEN'*) (Skip_Proof.cheat_tac ctxt)
-))
-(*
-  THEN' Method.insert_tac ctxt prems
-  THEN' (K (print_tac ctxt ("normalized input")))
-  THEN' TRY' (K (unfold_tac ctxt @{thms SMT.trigger_def}))
-  THEN' TRY' (partial_simplify_tac ctxt @{thms eq_commute})))
-*)
+  let
+    val all_assms = SMT_Config.alethe_no_provided_assms ctxt
+    val termify = Thm.prop_of #> (fn x=> single (0, x)) #> SMT_Translate.eta_expand ctxt Termtab.empty #> hd #> snd
+    fun matched_assm () =
+      (case find_first (is_same_assms_eq_ac t o termify) prems of
+        SOME thm => [thm]
+      | NONE => [])
+    val prems = (if all_assms then matched_assm () else prems)
+  in
+    (SMT_Replay_Methods.prove ctxt t (fn _ =>
+      Method.insert_tac ctxt prems
+      THEN' (K (print_tac ctxt ("normalized input XX0")))
+      THEN' TRY' (K (unfold_tac ctxt @{thms SMT.trigger_def}))
+      THEN' TRY' (partial_simplify_tac ctxt @{thms eq_commute})
+      THEN' (K (print_tac ctxt ("normalized input XX10")))))
+end
+
 val false_rule_thm = @{lemma \<open>\<not>False\<close> by blast}
 
 fun false_rule ctxt _ t = SMT_Replay_Methods.match_instantiate ctxt t false_rule_thm
