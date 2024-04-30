@@ -43,7 +43,9 @@ in thm end
 fun check_smt prover problem_file_name proof_file_name opt_output_file lthy =
 let
   (*Get problem and proof file*)
-  val ctxt = Local_Theory.target_of lthy |> Config.put SMT_Config.check_external true
+  val ctxt = Local_Theory.target_of lthy
+    |> Config.put SMT_Config.check_external true
+    |> SMT_Config.alethe_set_no_provided_assms true
   val _ = @{print}(SMT_Config.alethe_no_provided_assms ctxt)
   val _ =
     if Option.isSome opt_output_file
