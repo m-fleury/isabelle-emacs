@@ -109,7 +109,7 @@ datatype lethe_node = Lethe_Node of {
 fun mk_node id rule prems proof_ctxt concl =
   Lethe_Node {id = id, rule = rule, prems = prems, proof_ctxt = proof_ctxt, concl = concl}
 
-datatype lethe_replay_node = Lethe_Replay_Node of {
+datatype lethe_replay_node = Lethe_Replay_Node of { (*Hier wuerde ich was veraendern*)
   id: string,
   rule: string,
   args: term list,
@@ -117,7 +117,7 @@ datatype lethe_replay_node = Lethe_Replay_Node of {
   proof_ctxt: term list,
   concl: term,
   bounds: (string * typ) list,
-  insts: term Symtab.table,
+  insts: term Symtab.table, (*nur fuer forall_inst gebraucht*)
   declarations: (string * term) list,
   subproof: (string * typ) list * term list * term list * lethe_replay_node list}
 
@@ -263,20 +263,8 @@ fun bound_vars_by_rule _ "bind" bds = extract_symbols bds
   | bound_vars_by_rule _ "let" [(SMTLIB.S [_, SMTLIB.Sym x, y], _)] = [([x], NONE)]
   | bound_vars_by_rule _ _ _ = []
 
-(* Lethe adds "?" before some variables. *)
-fun remove_all_qm (SMTLIB.Sym v :: l) =
-    SMTLIB.Sym (perhaps (try (unprefix "?")) v) :: remove_all_qm l
-  | remove_all_qm (SMTLIB.S l :: l') = SMTLIB.S (remove_all_qm l) :: remove_all_qm l'
-  | remove_all_qm (SMTLIB.Key v :: l) = SMTLIB.Key v :: remove_all_qm l
-  | remove_all_qm (v :: l) = v :: remove_all_qm l
-  | remove_all_qm [] = []
-
-fun remove_all_qm2 (SMTLIB.Sym v) = SMTLIB.Sym (perhaps (try (unprefix "?")) v)
-  | remove_all_qm2 (SMTLIB.S l) = SMTLIB.S (remove_all_qm l)
-  | remove_all_qm2 (SMTLIB.Key v) = SMTLIB.Key v
-  | remove_all_qm2 v = v
-
 end
+
 
 datatype step_kind = ASSUME | ASSERT | ANCHOR | NO_STEP | NORMAL_STEP | SKOLEM
 
@@ -874,7 +862,7 @@ die die umbenannt wurden weil sie neu aber schon mit dem selben Namen existiert 
       val _ = if trace then (@{print}("prems ",prems);()) else ()
       val fixed_prems =                                                       
         prems @ (if is_assm_repetition id rule then [id] else []) @
-        skolem_defs @ skolems_of_subproof @ (id_of_last_step fixed_subproof)
+        skolem_defs @ skolems_of_subproof @ (id_of_last_step fixed_subproof) (*TODO: Hier rausnehmen, wo anders reinschreiben*)
       val _ = if trace then (@{print}("fixed_subproof ",fixed_subproof);()) else ()
 
       val _ = if trace then (@{print}("fixed_prems ",fixed_prems);()) else ()
@@ -1069,6 +1057,12 @@ local
     | remove_pattern (SMTLIB.S xs) = SMTLIB.S (map remove_pattern xs)
     | remove_pattern p = p
 
+  (* veriT adds "?" before some variables. *)
+  fun remove_all_qm (SMTLIB.Sym v) = SMTLIB.Sym (perhaps (try (unprefix "?")) v)
+    | remove_all_qm (SMTLIB.S l) = SMTLIB.S (map remove_all_qm l)
+    | remove_all_qm (SMTLIB.Key v) = SMTLIB.Key v
+    | remove_all_qm v = v
+
   fun import_proof_and_post_process typs funs lines ctxt =
     let
       val compress = SMT_Config.compress_verit_proofs ctxt
@@ -1078,7 +1072,7 @@ local
         |> filter_out (fn x => x = "")
         |> map single
         |> map SMTLIB.parse
-        |> map remove_all_qm2
+        |> map remove_all_qm
         |> map remove_pattern
       val (raw_steps, _, _) =
         parse_raw_proof_steps NONE smtlib_lines_without_qm SMTLIB_Proof.empty_name_binding 0
