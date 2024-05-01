@@ -47,6 +47,8 @@ sig
   val translate: Proof.context -> string -> (string * string) list -> string list ->
     ((int * SMT_Util.role) * thm) list ->
     string * replay_data
+
+  val eta_expand: Proof.context -> int Termtab.table -> ('a * term) list -> ('a * term) list
 end;
 
 structure SMT_Translate: SMT_TRANSLATE =

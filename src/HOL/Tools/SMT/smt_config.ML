@@ -61,6 +61,7 @@ sig
   val spy_Z3: Proof.context -> bool
   val use_lethe_proof_from_cvc: Proof.context -> bool
   val alethe_no_provided_assms: Proof.context -> bool
+  val alethe_set_no_provided_assms: bool -> Proof.context -> Proof.context
 
   (*certificates*)
   val select_certificates: string -> Context.generic -> Context.generic
@@ -232,7 +233,7 @@ fun compress_verit_proofs ctxt  = Config.get ctxt trace_verit_compression
 
 fun use_lethe_proof_from_cvc ctxt = Config.get ctxt cvc_experimental_lethe
 fun alethe_no_provided_assms ctxt = Config.get ctxt lethe_no_assumption
-
+fun alethe_set_no_provided_assms b = Config.map lethe_no_assumption (K b)
 
 (* tools *)
 
