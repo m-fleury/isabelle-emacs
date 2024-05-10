@@ -15,9 +15,7 @@ sig
     rule: string,
     prems: string list,
     proof_ctxt: term list,
-    concl: term,
-    fixes: string list}
-
+    concl: term}
 
   datatype lethe_replay_node = Lethe_Replay_Node of {
     id: string,
@@ -173,12 +171,10 @@ datatype lethe_step = Lethe_Step of {
   rule: string,
   prems: string list,
   proof_ctxt: term list,
-  concl: term,
-  fixes: string list}
+  concl: term}
 
 fun mk_step id rule prems proof_ctxt concl fixes =
-  Lethe_Step {id = id, rule = rule, prems = prems, proof_ctxt = proof_ctxt, concl = concl,
-    fixes = fixes}
+  Lethe_Step {id = id, rule = rule, prems = prems, proof_ctxt = proof_ctxt, concl = concl}
 
 exception LETHE_PROOF_PARSE of string
 fun throw_lethe_ex str = LETHE_PROOF_PARSE ("Error parsing Alethe proof step: " ^ str)

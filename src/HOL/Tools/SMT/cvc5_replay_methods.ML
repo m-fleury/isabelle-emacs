@@ -8,7 +8,7 @@ Proof method for replaying cvc5 proofs.
 signature CVC5_REPLAY_METHODS =
 sig
   (*methods for verit proof rules*)
-  val method_for: string -> Proof.context -> thm list -> term list -> term Symtab.table ->
+  val method_for: string -> Proof.context -> thm list -> term list -> term list -> term Symtab.table ->
      (string * term) list -> term -> thm
 
   val discharge: Proof.context -> thm list -> term -> thm
@@ -92,6 +92,7 @@ fun cvc5_rule_of "bind" = Bind
   | cvc5_rule_of "qnt_simplify" = Qnt_Simplify
   | cvc5_rule_of "all_simplify" = All_Simplify
   | cvc5_rule_of "tautology" = Tautological_Clause
+  | cvc5_rule_of "rare_rewrite" = Hole
   | cvc5_rule_of "qnt_cnf" = Qnt_CNF
   | cvc5_rule_of "symm" = Symm
   | cvc5_rule_of "not_symm" = Not_Symm
@@ -162,18 +163,19 @@ THEN' assume_tac ctxt))
 
 (* Combining all together *)
 
-fun unsupported rule ctxt thms _ _ _ = SMT_Replay_Methods.replay_error ctxt "Unsupported cvc5 rule"
-  rule thms
+fun unsupported rule ctxt thms _ _ _ _ = SMT_Replay_Methods.replay_error ctxt "Unsupported cvc5 rule"
+  rule thms []
 
-fun ignore_args  f ctxt thm _    _     _ t = f ctxt thm t
-fun ignore_decls f ctxt thm args insts _ t = f ctxt thm args insts t
-fun ignore_insts f ctxt thm args  _    _ t = f ctxt thm args t
+fun ignore_args  f ctxt thm _    _ _     _ t = f ctxt thm t
+fun ignore_decls f ctxt thm args _ insts _ t = f ctxt thm args insts t
+fun ignore_insts f ctxt thm args _ _    _ t = f ctxt thm args t
+fun only_context_ass f ctxt thm _ context_ass _ _ t = f ctxt thm context_ass t
 
 fun choose _ And = ignore_args and_rule
   | choose _ And_Neg = ignore_args and_neg_rule
   | choose _ And_Pos = ignore_args and_pos
   | choose _ And_Simplify = ignore_args rewrite_and_simplify
-  | choose _ Bind = ignore_insts bind
+  | choose _ Bind = only_context_ass bind
   | choose _ Bool_Simplify = ignore_args rewrite_bool_simplify
   | choose _ Comp_Simplify = ignore_args rewrite_comp_simplify
   | choose _ Cong = ignore_args (cong "cvc5")
@@ -266,9 +268,9 @@ fun choose _ And = ignore_args and_rule
 type verit_method = Proof.context -> thm list -> term -> thm
 type abs_context = int * term Termtab.table
 
-fun with_tracing rule method ctxt thms args insts decls t =
-  let val _ = SMT_Replay_Methods.trace_goal ctxt rule thms t
-  in method ctxt thms args insts decls t end
+fun with_tracing rule method ctxt thms step_args context_assignment insts decls t =
+  let val _ = SMT_Replay_Methods.trace_goal ctxt rule thms step_args t
+  in method ctxt thms step_args context_assignment insts decls t end
 
 fun method_for rule ctxt = with_tracing rule (choose (Context.Proof ctxt) (cvc5_rule_of rule)) ctxt
 

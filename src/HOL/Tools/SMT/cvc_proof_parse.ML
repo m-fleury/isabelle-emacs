@@ -77,7 +77,7 @@ fun parse_proof_lethe
       in
           Lethe_Proof.Lethe_Step 
            {id = SMTLIB_Interface.assert_name_of_role_and_index role (id_of_index i),
-            rule = input_rule, prems = [], proof_ctxt = [], concl = th, fixes = []}
+            rule = input_rule, prems = [], proof_ctxt = [], concl = th}
           |> single
       end
 
