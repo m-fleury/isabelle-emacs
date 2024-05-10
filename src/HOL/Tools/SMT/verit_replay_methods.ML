@@ -108,7 +108,7 @@ fun verit_rule_of "bind" = Bind
 (* Combining all together *)
 
 fun unsupported rule ctxt thms _ _ _ = SMT_Replay_Methods.replay_error ctxt "Unsupported verit rule"
-  rule thms
+  rule thms []
 
 fun ignore_args f ctxt thm _ _ _ t = f ctxt thm t
 fun ignore_decls f ctxt thm args insts _ t = f ctxt thm args insts t
@@ -201,7 +201,7 @@ type verit_method = Proof.context -> thm list -> term -> thm
 type abs_context = int * term Termtab.table
 
 fun with_tracing rule method ctxt thms args insts decls t =
-  let val _ = SMT_Replay_Methods.trace_goal ctxt rule thms t
+  let val _ = SMT_Replay_Methods.trace_goal ctxt rule thms [] t
   in method ctxt thms args insts decls t end
 
 fun method_for rule = with_tracing rule (choose (verit_rule_of rule))

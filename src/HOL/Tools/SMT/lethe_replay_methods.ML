@@ -158,7 +158,7 @@ sig
   val TRY': ('a -> tactic) -> 'a -> tactic
 
   val simplify_tac: Proof.context -> thm list -> int -> tactic
-  val replay_error: Proof.context -> string -> verit_rule -> thm list -> term -> 'a
+  val replay_error: Proof.context -> string -> verit_rule -> thm list -> term list -> term -> 'a
 
 end;
 
@@ -380,8 +380,8 @@ fun print_alethe_tac context =
 
 (** Tactics for Reconstruction **)
 (**)
-fun replay_error ctxt msg rule thms t =
-  SMT_Replay_Methods.replay_error ctxt msg (string_of_lethe_rule rule) thms t
+fun replay_error ctxt msg rule thms args t =
+  SMT_Replay_Methods.replay_error ctxt msg (string_of_lethe_rule rule) thms args t
 
 (* utility function *)
 
@@ -497,6 +497,23 @@ val extract_bind_names =
    HOLogic.dest_eq
    #> apply2 (fn (Free (name, _)) => name)
 
+fun temp [] = [] |
+    temp (Const ("HOL.Trueprop", _) $ Free (_, _) :: xs) = temp xs |
+    temp (Const ("HOL.Trueprop", _) $ t :: xs) = t::temp xs
+
+
+(*("args",
+ [Const ("HOL.eq", "int \<Rightarrow> int \<Rightarrow> bool") $ Free ("v0", "int") $
+    Free ("v0",
+          "int")])
+          ("args",
+ [Const ("HOL.Trueprop", "bool \<Rightarrow> prop") $ Free ("v0", "int"),
+  Const ("HOL.Trueprop", "bool \<Rightarrow> prop") $
+    (Const ("HOL.eq", "int \<Rightarrow> int \<Rightarrow> bool") $ Free ("v0", "int") $
+      Free ("v0",
+            "int"))])
+          *)
+
 fun combine_quant ctxt ((n1, n2) :: bounds) (n1' :: formula) =
     TRY' (if n1 = n1'
      then if n1 <> n2
@@ -509,7 +526,7 @@ fun combine_quant ctxt ((n1, n2) :: bounds) (n1' :: formula) =
   | combine_quant _ _ _ = K all_tac
 
 fun bind_quants ctxt args t =
-  combine_quant ctxt (map extract_bind_names args) (extract_quantified_names t)
+  combine_quant ctxt (map extract_bind_names (temp args)) (extract_quantified_names t)
 
 fun generalize_prems_q [] prems = prems
   | generalize_prems_q (_ :: quants) prems =
@@ -517,12 +534,13 @@ fun generalize_prems_q [] prems = prems
 
 fun generalize_prems t = generalize_prems_q (fst (extract_quantified_names_ba t))
 
-fun bind ctxt [prems] args t =
+fun bind ctxt [prems] context_ass t =
+(@{print}("context_ass",context_ass);
   SMT_Replay_Methods.prove ctxt t (fn _ =>
-    bind_quants ctxt args t
+    bind_quants ctxt context_ass t
     THEN' TRY' (SOLVED' (resolve_tac ctxt [generalize_prems t prems]
-      THEN_ALL_NEW TRY' (assume_tac ctxt ORELSE' resolve_tac ctxt @{thms refl}))))
- | bind ctxt thms _ t = replay_error ctxt "invalid bind application" Bind thms t
+      THEN_ALL_NEW TRY' (assume_tac ctxt ORELSE' resolve_tac ctxt @{thms refl})))))
+ | bind ctxt thms _ t = replay_error ctxt "invalid bind application" Bind thms [] t
 
 
 (* Congruence/Refl *)
@@ -532,7 +550,7 @@ fun cong name ctxt thms = try_provers name ctxt
   ("basic", SMT_Replay_Methods.cong_basic ctxt thms),
   ("unfolding then reflexivity", SMT_Replay_Methods.cong_unfolding_trivial ctxt thms),
   ("unfolding then auto", SMT_Replay_Methods.cong_unfolding_first ctxt thms),
-  ("full", SMT_Replay_Methods.cong_full ctxt thms)] thms
+  ("full", SMT_Replay_Methods.cong_full ctxt thms)] thms []
 
 fun refl name ctxt thm t =
   (case find_first (fn thm => t = Thm.full_prop_of thm) thm of
@@ -575,7 +593,7 @@ fun forall_inst ctxt _ _ insts t =
            THEN' TRY' (blast_tac ctxt)) i
         end
      | instantiate_and_solve _ ({context = ctxt, prems = thms, ...}: Subgoal.focus) =
-         replay_error ctxt "invalid application" Forall_Inst thms t
+         replay_error ctxt "invalid application" Forall_Inst thms [] t
   in
     SMT_Replay_Methods.prove ctxt t (fn _ =>
       match_tac ctxt [@{thm disj_not1} RSN (1, @{thm iffD2}) OF [@{thm impI}]]
@@ -587,7 +605,7 @@ end
 (* Or *)
 
 fun or _ (thm :: _) _ = thm
-  | or ctxt thms t = replay_error ctxt "invalid bind application" Or thms t
+  | or ctxt thms t = replay_error ctxt "invalid bind application" Or thms [] t
 
 
 (* Implication *)
@@ -662,16 +680,16 @@ local
 
 fun skolem_tac extractor thm1 thms1 ctxt thms t  =
   let
-    (*val _ = @{print}("thm1",thm1)
+    val _ = @{print}("thm1",thm1)
     val _ = @{print}("thms1",thms1)
     val _ = @{print}("thms",thms)
-    val _ = @{print}("t",t)*)
+    val _ = @{print}("t",t)
 
     val (ctxt_eq, rew, other) = extract_rewrite_rule_assumption ctxt thms
-    (*val _ = @{print}("ctxt_eq",ctxt_eq)
+    val _ = @{print}("ctxt_eq",ctxt_eq)
 
     val _ = @{print}("rew",rew)
-    val _ = @{print}("other",other)*)
+    val _ = @{print}("other",other)
 
     fun ordered_definitions () =
       let
@@ -857,7 +875,7 @@ fun trans ctxt thms t =
           | _ => trans_bool_thm OF [thm1, thm2])
       | combine_thms (thm1 :: thm2 :: thms) =
           combine_thms (combine_thms [thm1, thm2] :: thms)
-      | combine_thms thms = replay_error ctxt "invalid bind application" Trans thms t
+      | combine_thms thms = replay_error ctxt "invalid bind application" Trans thms [] t
      val t' = Thm.eta_long_conversion (Object_Logic.dest_judgment ctxt (Thm.cterm_of ctxt t))
     (*val _ = @{print}("t'",t')*)
 
@@ -954,7 +972,7 @@ local
   fun prove_equiv equiv_thm ctxt [thm] t = SMT_Replay_Methods.prove ctxt t (fn _ =>
         Method.insert_tac ctxt [equiv_thm OF [thm]]
         THEN' TRY' (assume_tac ctxt))
-    | prove_equiv _ ctxt thms t = replay_error ctxt "invalid application in some equiv rule" Unsupported thms t
+    | prove_equiv _ ctxt thms t = replay_error ctxt "invalid application in some equiv rule" Unsupported thms [] t
 in
 
 val not_equiv1 = prove_equiv @{lemma \<open>\<not>(A \<longleftrightarrow> B) \<Longrightarrow> A \<or> B\<close> by blast}
@@ -996,7 +1014,7 @@ local
          (\<^term>\<open>HOL.disj\<close> $ (\<^term>\<open>HOL.implies\<close> $ a $ b) $ _)) =
          Drule.infer_instantiate' ctxt (map (SOME o Thm.cterm_of ctxt) [a, b]) thm
      | implies_pos_neg_term ctxt thm  t =
-        replay_error ctxt "invalid application in Implies" Unsupported [thm] t
+        replay_error ctxt "invalid application in Implies" Unsupported [thm] [] t
 
   fun prove_implies_pos_neg thm ctxt _ t =
     let val thm = implies_pos_neg_term ctxt thm t
@@ -1207,7 +1225,7 @@ fun subproof ctxt [prem] t =
         THEN' TRY' (assume_tac ctxt))
       ORELSE' TRY' (Method.insert_tac ctxt [prem] THEN' Blast.blast_tac ctxt))
   | subproof ctxt prems t =
-      replay_error ctxt "invalid application, only one assumption expected" Subproof prems t
+      replay_error ctxt "invalid application, only one assumption expected" Subproof prems [] t
 
 
 (* Simplifying Steps *)
@@ -1375,7 +1393,7 @@ local
   fun prove_symm symm_thm ctxt [thm] t = SMT_Replay_Methods.prove ctxt t (fn _ =>
         Method.insert_tac ctxt [symm_thm OF [thm]]
         THEN' TRY' (assume_tac ctxt))
-    | prove_symm _  ctxt thms t = replay_error ctxt "invalid application in some symm rule" Unsupported thms t
+    | prove_symm _  ctxt thms t = replay_error ctxt "invalid application in some symm rule" Unsupported thms [] t
 in
   val symm_thm =
   @{lemma \<open>(B = A) \<Longrightarrow> A = B\<close> by blast }
@@ -1397,7 +1415,7 @@ local
       THEN' REPEAT'(ematch_tac ctxt @{thms notE} THEN' TRY' (assume_tac ctxt))
       ))
     | prove_reordering ctxt thms t =
-        replay_error ctxt "invalid application in some reordering rule" Unsupported thms t
+        replay_error ctxt "invalid application in some reordering rule" Unsupported thms [] t
 in
   val reordering = prove_reordering
 end
