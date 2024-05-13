@@ -7,8 +7,8 @@ Proof method for replaying veriT proofs.
 signature VERIT_REPLAY_METHODS =
 sig
   (*methods for verit proof rules*)
-  val method_for: string -> Proof.context -> thm list -> term list -> term Symtab.table ->
-     (string * term) list -> term -> thm
+  val method_for: string -> Proof.context -> thm list -> term list -> term list -> term ->
+     Lethe_Node.tactic_args option -> thm
 
   val discharge: Proof.context -> thm list -> term -> thm
 end;
@@ -104,21 +104,19 @@ fun verit_rule_of "bind" = Bind
      else if r = Lethe_Proof.and_pos_rule then And_Pos
      else (@{print} ("Unsupport rule", r); Unsupported)
 
+fun unsupported rule ctxt prems _ _ t _ = SMT_Replay_Methods.replay_error ctxt "Unsupported verit rule"
+  rule prems [] t
 
-(* Combining all together *)
-
-fun unsupported rule ctxt thms _ _ _ = SMT_Replay_Methods.replay_error ctxt "Unsupported verit rule"
-  rule thms []
-
-fun ignore_args f ctxt thm _ _ _ t = f ctxt thm t
-fun ignore_decls f ctxt thm args insts _ t = f ctxt thm args insts t
-fun ignore_insts f ctxt thm args _ _ t = f ctxt thm args t
+fun ignore_args       f ctxt prems _ _ t _ = f ctxt prems t
+fun include_step_args f ctxt prems step_args _ t _ = f ctxt prems step_args t
+fun include_context_ass f ctxt prems _ context_ass t _ = f ctxt prems context_ass t
+fun include_args f ctxt prems _ _ t args = f ctxt prems args t
 
 fun choose And = ignore_args and_rule
   | choose And_Neg = ignore_args and_neg_rule
   | choose And_Pos = ignore_args and_pos
   | choose And_Simplify = ignore_args rewrite_and_simplify
-  | choose Bind = ignore_insts bind
+  | choose Bind = include_context_ass bind
   | choose Bool_Simplify = ignore_args rewrite_bool_simplify
   | choose Comp_Simplify = ignore_args rewrite_comp_simplify
   | choose Cong = ignore_args (cong "verit")
@@ -138,7 +136,7 @@ fun choose And = ignore_args and_rule
   | choose Equiv_pos2 = ignore_args equiv_pos2
   | choose Equiv_Simplify = ignore_args rewrite_equiv_simplify
   | choose False = ignore_args false_rule
-  | choose Forall_Inst = ignore_decls forall_inst
+  (*| choose Forall_Inst = ignore_decls forall_inst*)
   | choose Implies = ignore_args implies_rules
   | choose Implies_Neg1 = ignore_args implies_neg1
   | choose Implies_Neg2 = ignore_args implies_neg2
@@ -153,7 +151,7 @@ fun choose And = ignore_args and_rule
   | choose ITE_Pos2 = ignore_args ite_pos2
   | choose ITE_Simplify = ignore_args rewrite_ite_simplify
   | choose LA_Disequality = ignore_args la_disequality
-  | choose LA_Generic = ignore_insts la_generic
+  | choose LA_Generic = include_step_args la_generic
   | choose LA_RW_Eq = ignore_args la_rw_eq
   | choose LA_Tautology = ignore_args SMT_Replay_Methods.arith_th_lemma_wo_shallow
   | choose LA_Totality = ignore_args SMT_Replay_Methods.arith_th_lemma_wo_shallow
@@ -200,11 +198,12 @@ fun choose And = ignore_args and_rule
 type verit_method = Proof.context -> thm list -> term -> thm
 type abs_context = int * term Termtab.table
 
-fun with_tracing rule method ctxt thms args insts decls t =
-  let val _ = SMT_Replay_Methods.trace_goal ctxt rule thms [] t
-  in method ctxt thms args insts decls t end
+fun with_tracing rule method ctxt prems step_args context_assignment t args =
+  let val _ = SMT_Replay_Methods.trace_goal ctxt rule prems step_args t
+  in method ctxt prems step_args context_assignment t args end
 
-fun method_for rule = with_tracing rule (choose (verit_rule_of rule))
+fun method_for rule ctxt
+= with_tracing rule (choose (verit_rule_of rule)) ctxt
 
 fun discharge ctxt [thm] t =
   SMT_Replay_Methods.prove ctxt t (fn _ =>
