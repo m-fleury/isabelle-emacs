@@ -8,8 +8,8 @@ Proof method for replaying cvc5 proofs.
 signature CVC5_REPLAY_METHODS =
 sig
   (*methods for verit proof rules*)
-  val method_for: string -> Proof.context -> thm list -> term list -> term list -> term Symtab.table ->
-     (string * term) list -> term -> thm
+  val method_for: string -> Proof.context -> thm list -> term list -> term list -> term ->
+     Lethe_Node.tactic_args option -> thm
 
   val discharge: Proof.context -> thm list -> term -> thm
 end;
@@ -29,8 +29,8 @@ fun cvc5_rule_of "bind" = Bind
    (*Equiv_pos2 covered below*)
   | cvc5_rule_of "equiv_neg1" = Equiv_neg1
   | cvc5_rule_of "equiv_neg2" = Equiv_neg2
-  | cvc5_rule_of "sko_forall" = Skolem_Forall
-  | cvc5_rule_of "sko_ex" = Skolem_Ex
+  | cvc5_rule_of "sko_forall" = Sko_Forall
+  | cvc5_rule_of "sko_ex" = Sko_Ex
   | cvc5_rule_of "eq_reflexive" = Eq_Reflexive
   | cvc5_rule_of "forall_inst" = Forall_Inst
   | cvc5_rule_of "implies_pos" = Implies_Pos
@@ -102,7 +102,7 @@ fun cvc5_rule_of "bind" = Bind
   | cvc5_rule_of r =
      if r = Lethe_Proof.normalized_input_rule then Normalized_Input
      else if r = Lethe_Proof.local_input_rule then Local_Input
-     else if r = Lethe_Proof.lethe_def then Definition
+     else if r = Lethe_Proof.skolem_def then Definition
      else if r = Lethe_Proof.not_not_rule then Not_Not
      else if r = Lethe_Proof.contract_rule orelse r = "duplicate_literals" then Duplicate_Literals
      else if r = Lethe_Proof.ite_intro_rule then ITE_Intro
@@ -166,16 +166,17 @@ THEN' assume_tac ctxt))
 fun unsupported rule ctxt thms _ _ _ _ = SMT_Replay_Methods.replay_error ctxt "Unsupported cvc5 rule"
   rule thms []
 
-fun ignore_args  f ctxt thm _    _ _     _ t = f ctxt thm t
-fun ignore_decls f ctxt thm args _ insts _ t = f ctxt thm args insts t
-fun ignore_insts f ctxt thm args _ _    _ t = f ctxt thm args t
-fun only_context_ass f ctxt thm _ context_ass _ _ t = f ctxt thm context_ass t
+(*ctxt thms step_args context_assignment t args*)
+fun ignore_args       f ctxt prems _ _ t _ = f ctxt prems t
+fun include_step_args f ctxt prems step_args _ t _ = f ctxt prems step_args t
+fun include_context_ass f ctxt prems _ context_ass t _ = f ctxt prems context_ass t
+fun include_args f ctxt prems _ _ t args = f ctxt prems args t
 
 fun choose _ And = ignore_args and_rule
   | choose _ And_Neg = ignore_args and_neg_rule
   | choose _ And_Pos = ignore_args and_pos
   | choose _ And_Simplify = ignore_args rewrite_and_simplify
-  | choose _ Bind = only_context_ass bind
+  | choose _ Bind = include_context_ass bind
   | choose _ Bool_Simplify = ignore_args rewrite_bool_simplify
   | choose _ Comp_Simplify = ignore_args rewrite_comp_simplify
   | choose _ Cong = ignore_args (cong "cvc5")
@@ -194,7 +195,7 @@ fun choose _ And = ignore_args and_rule
   | choose _ Equiv_pos2 = ignore_args equiv_pos2
   | choose _ Equiv_Simplify = ignore_args rewrite_equiv_simplify
   | choose _ False = ignore_args false_rule
-  | choose _ Forall_Inst = ignore_decls forall_inst
+  (*| choose _ Forall_Inst = include_args forall_inst*)
   | choose _ Implies = ignore_args implies_rules
   | choose _ Implies_Neg1 = ignore_args implies_neg1
   | choose _ Implies_Neg2 = ignore_args implies_neg2
@@ -209,7 +210,7 @@ fun choose _ And = ignore_args and_rule
   | choose _ ITE_Pos2 = ignore_args ite_pos2
   | choose _ ITE_Simplify = ignore_args rewrite_ite_simplify
   | choose _ LA_Disequality = ignore_args la_disequality
-  | choose _ LA_Generic = ignore_insts la_generic
+  | choose _ LA_Generic = include_step_args la_generic
   | choose _ LA_RW_Eq = ignore_args la_rw_eq
   | choose _ LA_Tautology = ignore_args SMT_Replay_Methods.arith_th_lemma_wo_shallow
   | choose _ LA_Totality = ignore_args SMT_Replay_Methods.arith_th_lemma_wo_shallow
@@ -257,20 +258,17 @@ fun choose _ And = ignore_args and_rule
   | choose _ Not_Symm = ignore_args not_symm
   | choose _ Reordering = ignore_args reordering
   | choose _ Tmp_Quantifier_Simplify = ignore_args qnt_simplify
-  | choose ctxt (x as Other_Rule r) =
+ (* | choose ctxt (x as Other_Rule r) =
     (case get_alethe_tac r ctxt of
       NONE => unsupported (string_of_lethe_rule x)
-    | SOME a => ignore_insts a)
+    | SOME a => include_step_args a)*)
   | choose _ Hole = ignore_args hole
   | choose _ r = (@{print} ("unknown rule, using hole", r); ignore_args hole)
 (*unsupported (string_of_lethe_rule r)*)
 
-type verit_method = Proof.context -> thm list -> term -> thm
-type abs_context = int * term Termtab.table
-
-fun with_tracing rule method ctxt thms step_args context_assignment insts decls t =
-  let val _ = SMT_Replay_Methods.trace_goal ctxt rule thms step_args t
-  in method ctxt thms step_args context_assignment insts decls t end
+fun with_tracing rule method ctxt prems step_args context_assignment t args =
+  let val _ = SMT_Replay_Methods.trace_goal ctxt rule prems step_args t
+  in method ctxt prems step_args context_assignment t args end
 
 fun method_for rule ctxt = with_tracing rule (choose (Context.Proof ctxt) (cvc5_rule_of rule)) ctxt
 

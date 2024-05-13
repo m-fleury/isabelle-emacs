@@ -31,7 +31,7 @@ sig
      LA_Disequality | LA_Generic | LA_Tautology |  LIA_Generic | LA_Totality | LA_RW_Eq |
      NLA_Generic | LA_Mult_Pos | LA_Mult_Neg |
      (*Quantifiers:*)
-     Forall_Inst | Qnt_Rm_Unused | Qnt_Join | Onepoint | Bind | Skolem_Forall | Skolem_Ex |
+     Forall_Inst | Qnt_Rm_Unused | Qnt_Join | Onepoint | Bind | Sko_Forall | Sko_Ex |
      (*Resolution:*)
      Theory_Resolution | Resolution |
      (*Temporary rules, that the verit developers want to remove:*)
@@ -135,8 +135,8 @@ sig
   val all_simplify: lethe_tac
   val rare_rewrite: lethe_tac
   val unit_res: lethe_tac
-  val skolem_ex: lethe_tac
-  val skolem_forall: lethe_tac
+  val sko_ex: lethe_tac
+  val sko_forall: lethe_tac
   val subproof: lethe_tac
   val sum_simplify: lethe_tac
   val tautological_clause: lethe_tac
@@ -212,7 +212,7 @@ datatype alethe_rule =
    LA_Disequality | LA_Generic | LA_Tautology |  LIA_Generic | LA_Totality | LA_RW_Eq |
    NLA_Generic |  LA_Mult_Pos | LA_Mult_Neg |
    (*Quantifiers:*)
-   Forall_Inst | Qnt_Rm_Unused | Qnt_Join | Onepoint | Bind | Skolem_Forall | Skolem_Ex |
+   Forall_Inst | Qnt_Rm_Unused | Qnt_Join | Onepoint | Bind | Sko_Forall | Sko_Ex |
    (*Resolution:*)
    Theory_Resolution | Resolution |
    (*Temporary rules, that the verit developpers want to remove:*)
@@ -245,8 +245,8 @@ fun string_of_lethe_rule Bind = "Bind"
   | string_of_lethe_rule Equiv_pos2 = "Equiv_pos2"
   | string_of_lethe_rule Equiv_neg1 = "Equiv_neg1"
   | string_of_lethe_rule Equiv_neg2 = "Equiv_neg2"
-  | string_of_lethe_rule Skolem_Forall = "Skolem_Forall"
-  | string_of_lethe_rule Skolem_Ex = "Skolem_Ex"
+  | string_of_lethe_rule Sko_Forall = "Sko_Forall"
+  | string_of_lethe_rule Sko_Ex = "Sko_Ex"
   | string_of_lethe_rule Eq_Reflexive = "Eq_Reflexive"
   | string_of_lethe_rule Theory_Resolution = "Theory_Resolution"
   | string_of_lethe_rule Theory_Resolution2 = "Theory_Resolution2"
@@ -750,11 +750,11 @@ If it doesn't work we brute force it by unfolding everything. And then use the s
 Mathias does not remember a case where this happens.
 
 *)
-val skolem_forall =
+val sko_forall =
   skolem_tac extract_all_forall_exists_quantified_names_q @{thm verit_sko_forall_indirect}
     @{thms verit_sko_forall_indirect2 verit_sko_ex_indirect2}
 
-val skolem_ex =
+val sko_ex =
   skolem_tac extract_all_forall_exists_quantified_names_q @{thm verit_sko_ex_indirect}
     @{thms verit_sko_ex_indirect2 verit_sko_forall_indirect2}
 
