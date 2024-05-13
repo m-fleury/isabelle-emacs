@@ -8,7 +8,7 @@ signature LETHE_REPLAY_METHODS =
 sig
 
 
-  datatype verit_rule =
+  datatype alethe_rule =
      False | True |
 
      (*input: a repeated (normalized) assumption of  assumption of in a subproof*)
@@ -58,12 +58,14 @@ sig
   val requires_subproof_assms : string list -> string -> bool
   val requires_local_input: string list -> string -> bool
 
-  val string_of_lethe_rule: verit_rule -> string
+  val string_of_lethe_rule: alethe_rule -> string
 
-  type lethe_tac_args = Proof.context -> thm list -> term list -> term -> thm
+  type lethe_tac_step_args = Proof.context -> thm list -> term list -> term -> thm
+  type lethe_tac_context_args = Proof.context -> thm list -> term list -> term -> thm
+  type lethe_tac_args = Proof.context -> thm list -> term list -> term -> Lethe_Node.tactic_args -> thm
   type lethe_tac = Proof.context -> thm list -> term -> thm
-  type lethe_tac2 = Proof.context -> thm list -> term list -> term Symtab.table -> term -> thm
-  val bind: lethe_tac_args
+
+  val bind: lethe_tac_context_args
   val and_rule: lethe_tac
   val and_neg_rule: lethe_tac
   val and_pos: lethe_tac
@@ -91,7 +93,7 @@ sig
   val equiv_pos1: lethe_tac
   val equiv_pos2: lethe_tac
   val false_rule: lethe_tac
-  val forall_inst: lethe_tac2
+  val forall_inst: lethe_tac_args
   val implies_rules: lethe_tac
   val implies_neg1: lethe_tac
   val implies_neg2: lethe_tac
@@ -105,7 +107,7 @@ sig
   val ite_pos2: lethe_tac
   val rewrite_ite_simplify: lethe_tac
   val la_disequality: lethe_tac
-  val la_generic: lethe_tac_args
+  val la_generic: lethe_tac_step_args
   val la_rw_eq: lethe_tac
   val lia_generic: lethe_tac
   val la_mult_pos: lethe_tac
@@ -148,9 +150,9 @@ sig
 
 
   (*Extension to declare new alethe rules*)
-  val declare_alethe_rule:  string -> lethe_tac_args -> Context.generic -> Context.generic
+  val declare_alethe_rule:  string -> lethe_tac_step_args -> Context.generic -> Context.generic
   val rm_alethe_rule: string -> Context.generic -> Context.generic
-  val get_alethe_tac: string -> Context.generic -> lethe_tac_args option
+  val get_alethe_tac: string -> Context.generic -> lethe_tac_step_args option
   val print_alethe_tac: Context.generic -> Pretty.T
 
   (*Useful lifting of tactics*)
@@ -158,7 +160,7 @@ sig
   val TRY': ('a -> tactic) -> 'a -> tactic
 
   val simplify_tac: Proof.context -> thm list -> int -> tactic
-  val replay_error: Proof.context -> string -> verit_rule -> thm list -> term list -> term -> 'a
+  val replay_error: Proof.context -> string -> alethe_rule -> thm list -> term list -> term -> 'a
 
 end;
 
@@ -166,9 +168,10 @@ end;
 structure Lethe_Replay_Methods: LETHE_REPLAY_METHODS =
 struct
 
-type lethe_tac_args = Proof.context -> thm list -> term list -> term -> thm
+type lethe_tac_step_args = Proof.context -> thm list -> term list -> term -> thm
+type lethe_tac_context_args = Proof.context -> thm list -> term list -> term -> thm
+type lethe_tac_args = Proof.context -> thm list -> term list -> term -> Lethe_Node.tactic_args -> thm
 type lethe_tac = Proof.context -> thm list -> term -> thm
-type lethe_tac2 = Proof.context -> thm list -> term list -> term Symtab.table -> term -> thm
 
 (*Some general comments on the proof format:
   1. Double negations are not always removed. This means for example that the equivalence rules
@@ -186,7 +189,7 @@ type lethe_tac2 = Proof.context -> thm list -> term list -> term Symtab.table ->
 *)
 
 
-datatype verit_rule =
+datatype alethe_rule =
    False | True |
 
    (*input: a repeated (normalized) assumption of  assumption of in a subproof*)
@@ -325,7 +328,7 @@ fun string_of_lethe_rule Bind = "Bind"
 (** Context Extension for Rules **)
 (*We currently do not distinguish between the extension required for each solver. Maybe later
 it will be needed.*)
-type alethe_rule_ext = {rules: (string * lethe_tac_args) list}
+type alethe_rule_ext = {rules: (string * lethe_tac_step_args) list}
 
 fun mk_alethe_rule_ext rules : alethe_rule_ext = 
    {rules=rules}
@@ -567,7 +570,7 @@ fun dropWhile _ [] = []
   | dropWhile f (x :: xs) = if f x then dropWhile f xs else x :: xs
 in
 
-fun forall_inst ctxt _ _ insts t =
+fun forall_inst ctxt _ _ t (Insts insts) = (*TODO*)
   let
     fun instantiate_and_solve i ({context = ctxt, prems = [prem], ...}: Subgoal.focus) =
         let
