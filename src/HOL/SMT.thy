@@ -679,7 +679,12 @@ ML_file \<open>Tools/SMT/z3_proof.ML\<close>
 ML_file \<open>Tools/SMT/z3_isar.ML\<close>
 ML_file \<open>Tools/SMT/smt_solver.ML\<close>
 ML_file \<open>Tools/SMT/cvc_interface.ML\<close>
+ML_file \<open>Tools/SMT/lethe_node.ML\<close>
+
 ML_file \<open>Tools/SMT/lethe_proof.ML\<close>
+(*ML_file \<open>Tools/SMT/lethe_proof.ML\<close>*)
+ML_file \<open>Tools/SMT/lethe_smt_problem.ML\<close>
+
 ML_file \<open>Tools/SMT/lethe_isar.ML\<close>
 ML_file \<open>Tools/SMT/lethe_proof_parse.ML\<close>
 ML_file \<open>Tools/SMT/cvc_proof_parse.ML\<close>
@@ -697,7 +702,9 @@ ML_file \<open>Tools/SMT/cvc5_replay_methods.ML\<close>
 ML_file \<open>Tools/SMT/verit_replay_methods.ML\<close>
 ML_file \<open>Tools/SMT/verit_strategies.ML\<close>
 ML_file \<open>Tools/SMT/verit_replay.ML\<close>
+(*ML_file \<open>Tools/SMT/verit_replay.ML\<close>*)
 ML_file \<open>Tools/SMT/cvc5_replay.ML\<close>
+(*ML_file \<open>Tools/SMT/cvc5_replay.ML\<close>*)
 ML_file \<open>Tools/SMT/smt_systems.ML\<close>
 
 
@@ -954,7 +961,6 @@ lemma [z3_rule]:  (* for def-axiom *)
 
 hide_type (open) symb_list pattern
 hide_const (open) Symb_Nil Symb_Cons trigger pat nopat fun_app z3div z3mod
-
 
 
 end

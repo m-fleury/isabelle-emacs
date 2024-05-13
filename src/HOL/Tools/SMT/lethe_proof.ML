@@ -3,85 +3,17 @@
     Author:     Sascha Boehme, TU Muenchen
     Author:     Hanna Lachnitt, Stanford University
 
-Lethe proofs: parsing and abstract syntax tree.
+Lethe proofs: parsing into abstract syntax trees
 *)
+
+open Lethe_Node
 
 signature LETHE_PROOF =
 sig
-
-  (*proofs*)
-  datatype lethe_step = Lethe_Step of {
-    id: string,
-    rule: string,
-    prems: string list,
-    proof_ctxt: term list,
-    concl: term}
-
-  datatype lethe_replay_node = Lethe_Replay_Node of {
-    id: string,
-    rule: string,
-    step_args: term list,
-    context_assignments: term list,
-    prems: string list,
-    concl: term,
-    sko_defs : term list, (*only used for sko_forall and sko_exists*)
-    declarations: (string * term) list, (*only used for sko_definitions *)
-    insts: term Symtab.table, (*only used for forall_inst*)
-    subproof: (string * typ) list * term list * term list * lethe_replay_node list}
-
-(*proof_ctxt: We don't know yet what it does but seems to be dead code*)
-(*bounds could be used for fixed variables \<rightarrow> einfacher als tuple fuer context_assignments*)
-
-(*
-  datatype lethe_replay_node = Lethe_Replay_Node of {
-    id: string,
-    rule: string,
-    args: term list, (*both context_annotation and args_annotation, exception: forall_inst*)
-    prems: string list,
-    proof_ctxt: term list, (*not super clear... It says subproof_assms but it seems to be arguments of anchors?*)
-    concl: term,
-    bounds: (string * typ) list, (*Should be empty, Mathias thinks he copy pasted from z3 where it is needed *)
-    declarations: (string * term) list, (*only used for sko_definitions *)
-    insts: term Symtab.table, (*only used for forall_inst*)
-    subproof: (string * typ) list * term list * term list * lethe_replay_node list}
-*)
-
-  (*val mk_replay_node: string -> string -> term list -> string list -> term list ->
-     term -> (string * typ) list -> term Symtab.table -> (string * term) list ->
-     (string * typ) list * term list * term list * lethe_replay_node list -> lethe_replay_node*)
-
-  datatype raw_lethe_node = Raw_Lethe_Node of {
-    id: string,
-    rule: string,
-    step_args: SMTLIB.tree list,
-    context_assignments: SMTLIB.tree list,
-    prems: string list,
-    concl: SMTLIB.tree,
-    declarations: (string * SMTLIB.tree) list, (*Fuer skolem_def stehen statt in der conclusion die in der declarations drin, koennte man auch in concl machen*)
-    subproof: raw_lethe_node list} (*TODO: Dokumentiere, dass anchors verschwinden, und dann schritte bis zum schliessen des subproofs hier als kind der regel die den proof schliesst gespeichert werden*)
- (*TODO Problem commands (assert) should not be parsed into this*)
- (* | Raw_Definition_Node of {
-    concl: SMTLIB.tree
-  }*)
-
- (* datatype raw_lethe_node = Raw_Lethe_Node of {
-    id: string,
-    rule: string,
-    args: SMTLIB.tree,
-    prems: string list,
-    concl: SMTLIB.tree,
-    declarations: (string * SMTLIB.tree) list,
-    subproof: raw_lethe_node list}*)
-
- val parse_raw_problem_steps: SMTLIB.tree list -> SMTLIB_Proof.name_bindings ->
-     int -> raw_lethe_node list * SMTLIB.tree list * SMTLIB_Proof.name_bindings
-
-  val parse_raw_proof_steps: string option -> SMTLIB.tree list -> SMTLIB_Proof.name_bindings ->
-     int -> raw_lethe_node list * SMTLIB.tree list * SMTLIB_Proof.name_bindings
-
-  (*proof parser*)
   exception LETHE_PROOF_PARSE of string
 
+  val parse_raw_proof_steps: string option -> SMTLIB.tree list -> SMTLIB_Proof.name_bindings ->
+     raw_lethe_node list * SMTLIB.tree list * SMTLIB_Proof.name_bindings
   val parse: typ Symtab.table -> term Symtab.table -> string list ->
     Proof.context -> lethe_step list * Proof.context
   val parse_replay: typ Symtab.table -> term Symtab.table -> string list ->
@@ -95,9 +27,8 @@ sig
   val la_generic_rule : string
   val rewrite_rule : string
   val simp_arith_rule : string
-  val lethe_deep_skolemize_rule : string
-  val lethe_def : string
-  val is_lethe_def : string -> bool
+  val skolem_def : string
+  val is_skolem_def : string -> bool
   val subproof_rule : string
   val local_input_rule : string
   val not_not_rule : string
@@ -123,58 +54,7 @@ structure Lethe_Proof: LETHE_PROOF =
 struct
 
 open SMTLIB_Proof
-
-datatype raw_lethe_node = Raw_Lethe_Node of {
-    id: string,
-    rule: string,
-    step_args: SMTLIB.tree list,
-    context_assignments: SMTLIB.tree list,
-    prems: string list,
-    concl: SMTLIB.tree,
-    declarations: (string * SMTLIB.tree) list,
-    subproof: raw_lethe_node list}
-
-fun mk_raw_node id rule step_args context_ass  prems declarations concl subproof =
-  Raw_Lethe_Node {id = id, rule = rule, step_args = step_args,
-    context_assignments = context_ass, prems = prems, declarations = declarations,
-    concl = concl, subproof = subproof}
-
-datatype lethe_node = Lethe_Node of {
-  id: string,
-  rule: string,
-  prems: string list,
-  proof_ctxt: term list,
-  concl: term}
-
-fun mk_node id rule prems proof_ctxt concl =
-  Lethe_Node {id = id, rule = rule, prems = prems, proof_ctxt = proof_ctxt, concl = concl}
-
-datatype lethe_replay_node = Lethe_Replay_Node of {
-  id: string,
-  rule: string,
-  step_args: term list,
-  context_assignments: term list,
-  prems: string list,
-  concl: term,
-  sko_defs : term list, (*only used for sko_forall and sko_exists*)
-  declarations: (string * term) list, (*only used for sko_definitions *)
-  insts: term Symtab.table, (*only used for forall_inst*)
-  subproof: (string * typ) list * term list * term list * lethe_replay_node list}
-
-fun mk_replay_node id rule step_args context_ass prems concl sko_defs insts declarations subproof =
-  Lethe_Replay_Node {id = id, rule = rule, step_args = step_args,
-    context_assignments = context_ass, prems = prems, concl = concl, sko_defs = sko_defs, insts = insts,
-    declarations = declarations, subproof = subproof}
-
-datatype lethe_step = Lethe_Step of {
-  id: string,
-  rule: string,
-  prems: string list,
-  proof_ctxt: term list,
-  concl: term}
-
-fun mk_step id rule prems proof_ctxt concl fixes =
-  Lethe_Step {id = id, rule = rule, prems = prems, proof_ctxt = proof_ctxt, concl = concl}
+open Lethe_Node
 
 exception LETHE_PROOF_PARSE of string
 fun throw_lethe_ex str = LETHE_PROOF_PARSE ("Error parsing Alethe proof step: " ^ str)
@@ -187,7 +67,7 @@ val rewrite_rule = "__rewrite" (*arbitrary*)
 val subproof_rule = "subproof"
 val local_input_rule = "__local_input" (*arbitrary*)
 val simp_arith_rule = "simp_arith"
-val lethe_def = "__skolem_definition" (*arbitrary*)
+val skolem_def = "__skolem_definition" (*arbitrary*)
 val not_not_rule = "not_not"
 val contract_rule = "contraction"
 val forall_inst_rule = "forall_inst"
@@ -201,7 +81,9 @@ val th_resolution_rule = "th_resolution"
 val and_pos_rule = "and_pos"
 val hole = "hole"
 
-val is_lethe_def = String.isSuffix lethe_def
+val is_skolem_def = String.isSuffix skolem_def
+fun get_skolem_def_id id = id ^ skolem_def
+
 val skolemization_steps = ["sko_forall", "sko_ex"]
 val is_skolemization = member (op =) skolemization_steps
 val keep_app_symbols = member (op =) [eq_congruent_pred_rule, eq_congruent_rule, ite_intro_rule, and_pos_rule]
@@ -218,11 +100,6 @@ fun lethe_proof_parsing_tracing' ctxt str a  =
     val _ = lethe_proof_parsing_trace ctxt (fn () => str)
     val _ = lethe_proof_parsing_trace ctxt (fn () => a)
    in a end
-
-
-
-(* Even the lethe developers do not know if the following rule can still appear in proofs: *)
-val lethe_deep_skolemize_rule = "deep_skolemize"
 
 fun number_of_steps [] = 0
   | number_of_steps ((Lethe_Replay_Node {subproof = (_, _, _, subproof), ...}) :: pf) =
@@ -255,22 +132,22 @@ fun syntactic_rew_in_lhs_subst old_name new_name (Const(\<^const_name>\<open>HOL
 
 local
 
-  fun parse_fun_def (SMTLIB.S [SMTLIB.Sym "define-fun", SMTLIB.Sym id,  _, typ,
-           SMTLIB.S (SMTLIB.Sym "!" :: t :: [SMTLIB.Key _, SMTLIB.Sym name])]) cx =
          (*replace the name binding by the constant instead of the full term in order to reduce
            the size of the generated terms and therefore the reconstruction time*)
+  fun parse_fun_def (SMTLIB.S [SMTLIB.Sym "define-fun", SMTLIB.Sym id,  _, typ,
+           SMTLIB.S (SMTLIB.Sym "!" :: t :: [SMTLIB.Key _, SMTLIB.Sym name])]) cx =
          let val (l, cx) = (fst oo SMTLIB_Proof.extract_and_update_name_bindings) t cx
             |> apsnd (SMTLIB_Proof.update_name_binding (name, SMTLIB.Sym id))
          in
-           (*(mk_raw_node (id ^ lethe_def) lethe_def (SMTLIB.S [SMTLIB.Sym id, typ, l]) [] []
+           (*(mk_raw_node (id ^ skolem_def) skolem_def (SMTLIB.S [SMTLIB.Sym id, typ, l]) [] []
               (SMTLIB.S [SMTLIB.Sym "=", SMTLIB.Sym id, l]) [], cx)*)
-            (mk_raw_node (id ^ lethe_def) lethe_def [(SMTLIB.S [SMTLIB.Sym id, typ, l])] [] [] []
+            (mk_raw_node (id ^ skolem_def) skolem_def [(SMTLIB.S [SMTLIB.Sym id, typ,l])] [] [] []
               (SMTLIB.S [SMTLIB.Sym "=", SMTLIB.Sym id, l]) [], cx)
          end
       | parse_fun_def (SMTLIB.S [SMTLIB.Sym "define-fun", SMTLIB.Sym id,  _, typ, SMTLIB.S l]) cx =
          let val (l, cx) = (fst oo SMTLIB_Proof.extract_and_update_name_bindings) (SMTLIB.S l) cx
          in
-           (mk_raw_node (id ^ lethe_def) lethe_def [(SMTLIB.S [SMTLIB.Sym id, typ, l])] [] [] []
+           (mk_raw_node (id ^ skolem_def) skolem_def [(SMTLIB.S [SMTLIB.Sym id, typ,l])] [] [] []
               (SMTLIB.S [SMTLIB.Sym "=", SMTLIB.Sym id, l]) [], cx)
          end
       | parse_fun_def t _ = raise Fail ("unrecognized Lethe proof " ^ \<^make_string> t)
@@ -278,62 +155,11 @@ local
 
 in
 
-datatype command_kind = ASSERT | FUN_DEF | FUN_DECL
 
-fun parse_raw_problem_steps (commands : SMTLIB.tree list) (cx : name_bindings) (assms_nbr : int):
-     (raw_lethe_node list * SMTLIB.tree list * name_bindings) =
-  let
-    fun command_kind "assert" = ASSERT
-      | command_kind "define-fun" = FUN_DEF
-      | command_kind "declare-fun" = FUN_DECL
-      | command_kind kind = raise throw_lethe_ex ("kind of command unrec: " ^ @{make_string} kind)
-    
-    fun split_commands [] = NONE
-      | split_commands ((step as SMTLIB.S (SMTLIB.Sym kind :: _)) :: remaining_steps) =
-          SOME (command_kind kind, step, remaining_steps)
-      | split_commands steps = raise throw_lethe_ex ("malformed command: " ^ @{make_string} steps)
-
-    fun parse_fun_decl (SMTLIB.S [SMTLIB.Sym "declare-fun", SMTLIB.Sym id, typ, def]) cx =
-         (*replace the name binding by the constant instead of the full term in order to reduce
-           the size of the generated terms and therefore the reconstruction time*)
-         let val (l, cx) = (fst oo SMTLIB_Proof.extract_and_update_name_bindings) def cx
-         in
-           (mk_raw_node (id ^ lethe_def) lethe_def [(SMTLIB.S [SMTLIB.Sym id, typ, l])] [] [] []
-              (SMTLIB.S [SMTLIB.Sym "=", SMTLIB.Sym id, def]) [], cx)
-         end
-
-  in
-    case split_commands commands of
-     SOME (ASSERT, p, l) => 
-          let
-            val (id, term) = (case p of
-                SMTLIB.S [SMTLIB.Sym "assert", SMTLIB.S [SMTLIB.Sym "!", term, SMTLIB.Key "named", SMTLIB.Sym id]] => (id, term)
-              | SMTLIB.S [SMTLIB.Sym "assert", term] => (Int.toString assms_nbr, term))
-            val ((t, cx), _) = SMTLIB_Proof.extract_and_update_name_bindings term cx
-            val s = mk_raw_node id input_rule [] [] [] [] t []
-            val (rp, rl, cx) = parse_raw_problem_steps l cx (assms_nbr + 1)
-       in (s :: rp, rl, cx) end
-      | SOME (FUN_DEF, p, l) =>
-          let
-            val (s, cx) = parse_fun_def p cx
-            val (rp, rl, cx) = parse_raw_problem_steps l cx assms_nbr
-          in (s :: rp, rl, cx) end
-      | SOME (FUN_DECL, p, l) =>
-          let
-            val (s, cx) = parse_fun_decl p cx
-            val (rp, rl, cx) = parse_raw_problem_steps l cx assms_nbr
-          in (s :: rp, rl, cx) end
-      |  NONE => ([],[], cx)
-      | x => let val _ = @{print}("x",x) in raise ERROR "" end
-    (*  | SOME (FUN_DEF, p, l) => (parse_fun_def p cx,assms_nbr)
-      | SOME (FUN_DECL, p, l) => (parse_fun_decl p cx,assms_nbr)
-*)
-
-  end
 
 datatype step_kind = ASSUME | ANCHOR | NO_STEP | NORMAL_STEP | SKOLEM
 
-fun parse_raw_proof_steps (curr_anchor_id : string option) (smtlib_lines : SMTLIB.tree list) (cx : name_bindings) (assms_nbr : int):
+fun parse_raw_proof_steps (curr_anchor_id : string option) (smtlib_lines : SMTLIB.tree list) (cx : name_bindings):
      (raw_lethe_node list * SMTLIB.tree list * name_bindings) =
   let
     fun step_kind "anchor" = ANCHOR
@@ -408,7 +234,7 @@ fun parse_raw_proof_steps (curr_anchor_id : string option) (smtlib_lines : SMTLI
               val (step', (_, cx)) =  (step, cx)
                 |> parse_normal_step
                 |>>  (to_raw_node [])
-              val (rp, rl, cx) = parse_raw_proof_steps curr_anchor_id rest cx assms_nbr
+              val (rp, rl, cx) = parse_raw_proof_steps curr_anchor_id rest cx
             in (step' :: rp, rl, cx) end
       | (ASSUME, step, rest) =>
           let
@@ -416,20 +242,20 @@ fun parse_raw_proof_steps (curr_anchor_id : string option) (smtlib_lines : SMTLI
             val ((t, cx), _) = SMTLIB_Proof.extract_and_update_name_bindings t cx
             val s = mk_raw_node id input_rule [] [] [] [] t []
             (*Recursive call to parse rest of the steps.*)
-            val (rstep, rrest, cx) = parse_raw_proof_steps curr_anchor_id rest cx (assms_nbr + 1)
+            val (rstep, rrest, cx) = parse_raw_proof_steps curr_anchor_id rest cx
           in (s :: rstep, rrest, cx) end
       | (ANCHOR, p, l) =>
           let
             val (anchor_id, (anchor_args, (_, cx))) = (p, cx) |> (parse_anchor_step ##> parse_args)
-            val (subproof, discharge_step :: remaining_proof, cx) = parse_raw_proof_steps (SOME anchor_id) l cx assms_nbr
+            val (subproof, discharge_step :: remaining_proof, cx) = parse_raw_proof_steps (SOME anchor_id) l cx
             val (curss, (_, cx)) = parse_normal_step (discharge_step, cx)
             val s = to_raw_node2 subproof (fst curss, anchor_args)
-            val (rp, rl, cx) = parse_raw_proof_steps curr_anchor_id remaining_proof cx assms_nbr
+            val (rp, rl, cx) = parse_raw_proof_steps curr_anchor_id remaining_proof cx
           in (s :: rp, rl, cx) end
       | (SKOLEM, p, l) =>
           let
             val (s, cx) = parse_fun_def p cx
-            val (rp, rl, cx) = parse_raw_proof_steps curr_anchor_id l cx (assms_nbr)
+            val (rp, rl, cx) = parse_raw_proof_steps curr_anchor_id l cx
           in (s :: rp, rl, cx) end
   end
 end
@@ -446,7 +272,7 @@ val context_assignment_rules = ["bind","sko_forall","sko_ex","let","onepoint"]
 val allows_context_assignment = member (op =) context_assignment_rules
 (*forall_inst has mapping *)
 
-val step_args_rules = ["rare_rewrite","la_generic","forall_inst"] @ [lethe_def]
+val step_args_rules = ["rare_rewrite","la_generic","forall_inst"] @ [skolem_def]
 val allows_step_args = member (op =) step_args_rules
 
 
@@ -625,7 +451,7 @@ fun preprocess compress step =
         val _ = @{print}("stripped_step_args",stripped_step_args)
 
         val declarations =
-          if rule = lethe_def
+          if rule = skolem_def
           then
             stripped_step_args
             |> lethe_proof_parsing_tracing ctxt "... found skolem definition. Transform arguments. "
@@ -644,15 +470,17 @@ fun preprocess compress step =
           ersetzt werden.*)
         (*Ist nur fuer den if case noetig, restrukturiere code*)
         val remap_assms = 
-          if rule = "or" andalso compress (*TODO: Document that compress also does this*)
+          if rule = "or" andalso compress
           then (id, hd prems) :: remap_assms
-            |> lethe_proof_parsing_tracing ctxt "Or rules TODO "
+            |> lethe_proof_parsing_tracing ctxt "Skip or step "
           else remap_assms
 
-        val remap_prems = if compress then expand_assms remap_assms prems else prems
+        val remap_prems = if compress then expand_assms remap_assms prems
+               |> lethe_proof_parsing_tracing ctxt "If any premise of the current step has been skipped the premise is updated to that premise's premise "
+else prems
 
       in
-        if compress andalso rule = "or"
+        if rule = "or" andalso compress
         then 
           ([], (cx, remap_assms))
         else ([mk_raw_node id rule stripped_step_args stripped_context_assignments remap_prems declarations concl subproof],
@@ -700,7 +528,7 @@ fun split_context_ass cx context_assignments = split_context_assignment cx conte
 
 
 fun collect_skolem_defs (Raw_Lethe_Node {rule, subproof = subproof, context_assignments, ...}) =
-  (if is_skolemization rule then map (fn id => id ^ lethe_def) (skolems_introduced_by_rule context_assignments) else []) @
+  (if is_skolemization rule then map get_skolem_def_id (skolems_introduced_by_rule context_assignments) else []) @
   flat (map collect_skolem_defs subproof)
 
 val desymbolize = Name.desymbolize (SOME false) o perhaps (try (unprefix "?"))
@@ -733,7 +561,7 @@ val desymbolize = Name.desymbolize (SOME false) o perhaps (try (unprefix "?"))
 fun postprocess_proof compress ctxt step cx =
   let
 
-  fun process_context_assignments context_assignments new_variable_names cx = 
+  fun process_context_assignments context_assignments cx = 
     let
       val _ = lethe_proof_parsing_trace ctxt (fn () => \<^print> ("... process context assignments ", context_assignments))
     
@@ -754,11 +582,11 @@ fun postprocess_proof compress ctxt step cx =
       (*Urspruenglich war fixed variable immer ein neuer Name*)
       (*TODO: Mache Schleife um zu sehen ob Name schon vergeben (not_already_bound), sonst fuege _isabelle1 hinzu, suche nochmal*)
       (*Sollte nicht wirklich ein Problem sein*)
-      val subproof_rew = fold (fn t => curry (op ::) (t, t ^ "_isabelle")) (map fst rebound_lhs_vars) new_variable_names
+      val new_variable_names = fold (fn t => curry (op ::) (t, t ^ "_isabelle")) (map fst rebound_lhs_vars) []
             |> lethe_proof_parsing_tracing ctxt "... mapping between new variables introduced in the anchor and their original names"
             |> @{print}
 
-    in (shadowing_vars, rebound_lhs_vars, substitute_terms, subproof_rew) end
+    in ((shadowing_vars, rebound_lhs_vars, substitute_terms), new_variable_names) end
 
 
     fun postprocess (Raw_Lethe_Node {id, rule, step_args, context_assignments, prems, declarations, concl, subproof}) (cx, new_variable_names) =
@@ -766,64 +594,68 @@ fun postprocess_proof compress ctxt step cx =
       val _ = lethe_proof_parsing_trace ctxt (fn () => \<^print> ("postprocessing started for rule: ", id))
       val anchor_rule = is_anchor_rule rule
 
-      (* Preprocess context arguments *)
-      val _ = @{print}("cx",cx)
-      val cx = if rule <> lethe_def then cx else
+     (* Update proof context *) 
+      val cx = if rule <> skolem_def then cx else
         let
-          fun declared_csts [SMTLIB.S [SMTLIB.Sym x, typ, _]] = [(x, typ)]
-            | declared_csts t = raise throw_lethe_ex ("unrecognized skolem_definition " ^ @{make_string} t)
+          val _ = @{print}("cx",cx)
+          fun declared_csts [SMTLIB.S [SMTLIB.Sym x, typ,_]] = (x, Term (Free (x, type_of cx typ)))
+            | declared_csts t = (@{print}t;raise throw_lethe_ex ("unrecognized skolem_definition " ^ @{make_string} t))
           val globally_bound_vars = declared_csts step_args
             |> lethe_proof_parsing_tracing ctxt "... extracted globally bound vars from skolem definition "
-          fun skolem_to_term (x, typ) = (x, Term (Free (x, type_of cx typ)))
-        in fold (update_binding o skolem_to_term) globally_bound_vars cx end
-      val (shadowing_vars,rebound_lhs_vars,substitute_terms,new_variable_names) =
-        if not anchor_rule then ([],[],[],new_variable_names)
-        else process_context_assignments context_assignments new_variable_names cx
+            |> @{print}
+        in update_binding globally_bound_vars cx end
+    
+     (* Preprocess context arguments *) 
+     val ((shadowing_vars,rebound_lhs_vars,substitute_terms),new_variable_names) =
+        (if not anchor_rule then (([],[],[]),[])
+         else process_context_assignments context_assignments cx)
+         ||> (curry (op @)) new_variable_names
 
       (* Functions for rewriting terms and the context *)
       val subproof_rewriter = fold (fn (t, t') => syntactic_rew_in_lhs_subst t t') new_variable_names
       fun add_bound_variables_to_cx ts cx = fold update_binding ts cx
+      val unsk_and_rewrite = SMTLIB_Isar.unskolemize_names ctxt o subproof_rewriter
 
       (* Process conclusion *)
       val _ = lethe_proof_parsing_trace ctxt (fn () => \<^print> ("... transform conclusion ", concl))
-      val ((termified_concl, extra_var), cx') = node_of concl cx
-      val _ = lethe_proof_parsing_trace ctxt (fn () => \<^print> ("... transformed conclusion into Isabelle term", termified_concl))
-      val _ = if extra_var <> []
-        then raise throw_lethe_ex ("found dangling variable (s) " ^ (@{make_string} extra_var) ^
-          " in concl " ^ (@{make_string} concl) ^ " of step" ^ id) else ()
-      val termified_concl = SMTLIB_Isar.unskolemize_names ctxt (subproof_rewriter termified_concl)
+      val (cx',termified_concl) =
+        let
+          val ((termified_concl, extra_var), cx') = node_of concl cx
+          val _ = lethe_proof_parsing_trace ctxt (fn () => \<^print> ("... transformed conclusion into Isabelle term", termified_concl))
+          val _ = if extra_var <> []
+            then raise throw_lethe_ex ("found dangling variable (s) " ^ (@{make_string} extra_var) ^
+              " in concl " ^ (@{make_string} concl) ^ " of step" ^ id) else ()
+          val termified_concl = unsk_and_rewrite termified_concl
              |> lethe_proof_parsing_tracing' ctxt "... rewrite conclusion with new variable names introduced by prior anchors"
-      val _ = @{print}("termified_concl",termified_concl)
-
+          val _ = @{print}("termified_concl",termified_concl)
+        in (cx',termified_concl) end
 
       (* Process subproof *)
-      val _ = if subproof <> [] then lethe_proof_parsing_trace ctxt (fn () => \<^print> ("... transform subproof ")) else ()
-
-      val (subproof_cx,new_subproof,alpha_conversion) = 
-        if not anchor_rule then (cx,subproof,false)
+      val alpha_conversion = rule = "bind" andalso is_alpha_renaming termified_concl
+      val (subproof_cx,new_subproof) = 
+        if not anchor_rule then (cx,[])
         else
           let
+            val _ = lethe_proof_parsing_trace ctxt (fn () => \<^print> ("... transform subproof "))
             val subproof_cx =
               add_bound_variables_to_cx (map (fn (a,b) => (a,Term b)) (shadowing_vars @ rebound_lhs_vars)) cx
               |> lethe_proof_parsing_tracing' ctxt "... add new variables to context "
               |> @{print}
-            val alpha_conversion = rule = "bind" andalso is_alpha_renaming termified_concl
             val can_remove_subproof =
               compress andalso (is_skolemization rule orelse alpha_conversion)
              |> lethe_proof_parsing_tracing ctxt "... does the subproof only rename variables and therefore can be removed? "
              |> @{print}
             val new_subproof = (if can_remove_subproof then [] else subproof)
-         in (subproof_cx,new_subproof,alpha_conversion) end
 
-      val (fixed_subproof : lethe_replay_node list, _) =
-         fold_map postprocess new_subproof (subproof_cx, new_variable_names)
-         |> new_subproof <> [] ? lethe_proof_parsing_tracing ctxt ("Finished postprocessing subproofs. Returning to rule with id"  ^ @{make_string} id)
+            (*TODO: Moved this inside the let. Make sure there are no other rules than anchor rules using subproof atm*)
+            val (new_subproof : lethe_replay_node list, _) =
+              fold_map postprocess new_subproof (subproof_cx, new_variable_names)
+              |> new_subproof <> [] ? lethe_proof_parsing_tracing ctxt ("Finished postprocessing subproofs. Returning to rule with id"  ^ @{make_string} id)
+         in (subproof_cx,new_subproof) end
 
 
       (* Process step and context arguments *)
-      val unsk_and_rewrite = SMTLIB_Isar.unskolemize_names ctxt o subproof_rewriter
-
-      val normalized_step_args = if not (allows_step_args rule) orelse rule = lethe_def then [] else
+      val normalized_step_args = if not (allows_step_args rule) orelse rule = skolem_def then [] else
         let
           val (termified_step_args,_) = fold_map node_of_term step_args cx
           val normalized_step_args = map unsk_and_rewrite (map subproof_rewriter termified_step_args)
@@ -853,44 +685,62 @@ fun postprocess_proof compress ctxt step cx =
       val _ = @{print}("normalized_context_ass",normalized_context_ass)
 
 
-      (* postprocess arguments *)
+      (* add arguments *)
+      val tactic_args = case rule of
+        "forall_inst" =>
+         let
+           (* special handling: forall_inst *)
+           val raw_insts = insts_of_forall_inst rule step_args
+           fun termify_term (x, t) cx = let val (t, cx) = term_of t cx in ((x, t), cx) end
+           val (termified_inst, _) = fold_map termify_term raw_insts subproof_cx
+           val insts = Symtab.empty
+            |> fold (fn (x, t) => fn insts => Symtab.update_new (desymbolize x, t) insts) termified_inst
+            |> Symtab.map (K unsk_and_rewrite)
+         in SOME (Insts insts) end |
+        "sko_forall" =>
+         let
+           (* special handling: skolem *)
+           fun termify_term (x, t) cx = let val (t, cx) = term_of t cx in ((x, t), cx) end
+           val (declarations, _) = fold_map termify_term declarations cx
+            |> apfst (map (apsnd unsk_and_rewrite))
+           val skolems_of_subproof = (if compress andalso is_skolemization rule
+             then flat (map collect_skolem_defs subproof) else [])
+         in SOME (Declarations declarations) end |
+        "sko_exists" =>
+         let
+           (* special handling: skolem *)
+           fun termify_term (x, t) cx = let val (t, cx) = term_of t cx in ((x, t), cx) end
+           val (declarations, _) = fold_map termify_term declarations cx
+            |> apfst (map (apsnd unsk_and_rewrite))
+         in SOME (Declarations declarations) end |
+         _ => NONE
 
-      (* special handling: forall_inst *)
-      val raw_insts = insts_of_forall_inst rule step_args
-      fun termify_term (x, t) cx = let val (t, cx) = term_of t cx in ((x, t), cx) end
-      val (termified_inst, _) = fold_map termify_term raw_insts subproof_cx
-      val insts = Symtab.empty
-        |> fold (fn (x, t) => fn insts => Symtab.update_new (desymbolize x, t) insts) termified_inst
-        |> Symtab.map (K unsk_and_rewrite)
-      (* special handling: skolem *)
-      val (declarations, _) = fold_map termify_term declarations cx
-        |> apfst (map (apsnd unsk_and_rewrite))
-      (* special handling: subproof *)
-      val assms_from_subproof =
-        (if rule = subproof_rule then extract_assumptions_from_subproof fixed_subproof else [])
-
+      (* fix assumptions *)
+       val assms_from_subproof =
+         (if rule = subproof_rule then extract_assumptions_from_subproof new_subproof else [])
+      
       (* fix premises *)
-      val skolem_defs = (if is_skolemization rule
-         then map (fn id => id ^ lethe_def) (map (fn SMTLIB.Sym x => x) (map fst substitute_terms)) else [])
-      val skolems_of_subproof = (if compress andalso is_skolemization rule
-         then flat (map collect_skolem_defs subproof) else [])
       val normalized_premises =                                                       
-        prems @ ((if is_assm_repetition id rule then [id] else []) @
-        skolem_defs @ skolems_of_subproof @  (*TODO: Hier rausnehmen, wo anders reinschreiben*)
-        (id_of_last_step fixed_subproof) (*I guess this is empty if this is not an anchor step*)
-        |> lethe_proof_parsing_tracing' ctxt ("New set of premises "))
+        prems @
+        (if is_assm_repetition id rule then [id] else []) @
+        (if is_skolemization rule then (map (get_skolem_def_id o (fn SMTLIB.Sym x => x) o fst) substitute_terms) else []) @
+        (if anchor_rule then id_of_last_step new_subproof else [])
+        |> lethe_proof_parsing_tracing ctxt ("New set of premises ")
+        |> @{print}
 
-      (* fix subproof *)
+      (* fix rule *)
       val normalized_rule =
         if rule = input_rule
         then normalized_input_rule_name id |> (if compress andalso alpha_conversion then K "refl" else I) (*TODO: Make the compression part better better, maybe move into let above*)
           |> lethe_proof_parsing_tracing' ctxt ("New rule: " )
+          |> @{print}
         else rule
 
       val step =
         mk_replay_node id normalized_rule normalized_step_args normalized_context_ass
-        normalized_premises termified_concl [] insts declarations
-        ( (map (fn (a,b) => (a, fastype_of b)) (shadowing_vars @ rebound_lhs_vars)), [], assms_from_subproof, fixed_subproof)
+        normalized_premises termified_concl
+        ((map (fn (a,b) => (a, fastype_of b)) (shadowing_vars @ rebound_lhs_vars)), [], assms_from_subproof, new_subproof)
+        tactic_args
     in
        (step, (cx', new_variable_names))
     end
@@ -903,14 +753,12 @@ fun combine_proof_steps ((step1 : lethe_replay_node) :: step2 :: steps) =
       let
         val (Lethe_Replay_Node {id = id1, rule = rule1, step_args = step_args1,
             context_assignments = context_assignment1, prems = prems1,
-             concl = concl1, sko_defs = sko_defs1, insts = insts1,
-            declarations = declarations1,
-            subproof = (bound_sub1, assms_sub1, assms_extra1, subproof1)}) = step1
+             concl = concl1,
+            subproof = (bound_sub1, assms_sub1, assms_extra1, subproof1),args = args1}) = step1
         val (Lethe_Replay_Node {id = id2, rule = rule2, step_args = step_args2,
             context_assignments = context_assignment2, prems = prems2,
-            concl = concl2, sko_defs = sko_defs2, insts = insts2,
-            declarations = declarations2,
-            subproof = (bound_sub2, assms_sub2, assms_extra2, subproof2)}) = step2
+            concl = concl2,
+            subproof = (bound_sub2, assms_sub2, assms_extra2, subproof2),args = args2}) = step2
         val goals1 =
           (case concl1 of
             _ $ (Const (\<^const_name>\<open>HOL.disj\<close>, _) $ _ $
@@ -922,25 +770,25 @@ fun combine_proof_steps ((step1 : lethe_replay_node) :: step2 :: steps) =
           andalso member (op =) goals1 goal2
         then
           mk_replay_node id2 theory_resolution2_rule step_args2 context_assignment2 (filter_out (curry (op =) id1) prems2)
-             concl2 sko_defs2 insts2 declarations2
-            (bound_sub2, assms_sub2, assms_extra2, combine_proof_steps subproof2) ::
+             concl2
+            (bound_sub2, assms_sub2, assms_extra2, combine_proof_steps subproof2) args2 ::
           combine_proof_steps steps
         else
           mk_replay_node id1 rule1 step_args1 context_assignment1 prems1
-             concl1 sko_defs2 insts1 declarations1
-            (bound_sub1, assms_sub1, assms_extra1, combine_proof_steps subproof1) ::
+             concl1
+            (bound_sub1, assms_sub1, assms_extra1, combine_proof_steps subproof1) args1 ::
           combine_proof_steps (step2 :: steps)
       end
   | combine_proof_steps steps = steps
 
 
 val linearize_proof =
-  let
-    fun map_node_concl f (Lethe_Node {id, rule, prems, proof_ctxt, concl}) =
-       mk_node id rule prems proof_ctxt (f concl)
+  let                          
+    fun map_node_concl f (Lethe_Step {id, rule, prems, proof_ctxt, concl}) =
+       mk_step id rule prems proof_ctxt (f concl)
     fun linearize (Lethe_Replay_Node {id = id, rule = rule, step_args = _, context_assignments = _, prems = prems,
-        concl = concl, sko_defs = sko_defs2, insts = _, declarations = _,
-        subproof = (bounds', assms, inputs, subproof)}) =
+        concl = concl,
+        subproof = (bounds', assms, inputs, subproof), args = args}) =
       let
         fun mk_prop_of_term concl =
           concl |> fastype_of concl = \<^typ>\<open>bool\<close> ? curry (op $) \<^term>\<open>Trueprop\<close>
@@ -949,26 +797,23 @@ val linearize_proof =
         fun add_assumption assumption concl =
           \<^Const>\<open>Pure.imp for \<open>mk_prop_of_term assumption\<close> \<open>mk_prop_of_term concl\<close>\<close>
         fun inline_assumption assumption assumption_id
-            (Lethe_Node {id, rule, prems, proof_ctxt, concl}) =
-          mk_node id rule (remove_assumption_id assumption_id prems) proof_ctxt
+            (Lethe_Step {id, rule, prems, proof_ctxt, concl}) =
+          mk_step id rule (remove_assumption_id assumption_id prems) proof_ctxt
             (add_assumption assumption concl)
         fun find_input_steps_and_inline [] = []
           | find_input_steps_and_inline
-              (Lethe_Node {id = id', rule, prems, concl, ...} :: steps) =
+              (Lethe_Step {id = id', rule, prems, concl, ...} :: steps) =
             if rule = input_rule then
               find_input_steps_and_inline (map (inline_assumption concl id') steps)
             else
-              mk_node (id') rule prems [] concl :: find_input_steps_and_inline steps
-(*
-        fun free_bounds bounds (concl) =
-          fold (fn (var, typ) => fn t => Logic.all (Free (var, typ)) t) bounds concl
+              mk_step (id') rule prems [] concl :: find_input_steps_and_inline steps
+
         val subproof = subproof
           |> flat o map linearize
           |> map (map_node_concl (fold add_assumption (assms @ inputs)))
           |> find_input_steps_and_inline
-        val concl = free_bounds concl*)
       in
-        subproof (*@ [mk_node id rule prems proof_ctxt concl]*)
+        subproof @ [mk_step id rule prems [] concl] (*TODO: proof_ctxt*)
       end
   in linearize end
 
@@ -1015,9 +860,8 @@ fun remove_skolem_definitions_proof steps =
     fun remove_skolem_definitions (Lethe_Replay_Node {id = id, rule = rule, step_args = step_args,
         context_assignments = context_assignments,
          prems = prems,
-         concl = concl, sko_defs=sko_defs, insts = insts,
-        declarations = declarations,
-        subproof = (vars, assms', extra_assms', subproof)}) (prems_to_remove, skolems) =
+         concl = concl,
+        subproof = (vars, assms', extra_assms', subproof), args = args}) (prems_to_remove, skolems) =
     let
       val prems = prems
         |> filter_out (member (op =) prems_to_remove)
@@ -1042,11 +886,11 @@ fun remove_skolem_definitions_proof steps =
         |> flat
       val concl = concl
         |> is_skolem ? replace_equivalent_by_imp
-      val step = (if skolem_step_to_skip orelse rule = lethe_def orelse trivial_step then []
-        else mk_replay_node id rule step_args context_assignments prems concl sko_defs insts declarations
-            (vars, assms', extra_assms', subproof)
+      val step = (if skolem_step_to_skip orelse rule = skolem_def orelse trivial_step then []
+        else mk_replay_node id rule step_args context_assignments prems concl
+            (vars, assms', extra_assms', subproof) NONE (*TODO*)
           |> single)
-      val defs = (if rule = lethe_def orelse trivial_step then id :: prems_to_remove
+      val defs = (if rule = skolem_def orelse trivial_step then id :: prems_to_remove
          else prems_to_remove)
       val skolems = (if skolem_step_to_skip then id :: skolems else skolems)
     in
@@ -1083,9 +927,8 @@ local
         |> map remove_all_qm
         |> map remove_pattern
       val (raw_steps, _, _) =
-        parse_raw_proof_steps NONE smtlib_lines_without_qm SMTLIB_Proof.empty_name_binding 0
-(*args are still "okay" here*)
-      (*val _ = @{print}("raw_steps",raw_steps)*)
+        parse_raw_proof_steps NONE smtlib_lines_without_qm SMTLIB_Proof.empty_name_binding
+
       fun process step (cx, cx') =
         let fun postprocess step (cx, cx') =
           let val (step, cx) = postprocess_proof compress ctxt step cx
@@ -1106,8 +949,8 @@ fun parse typs funs lines ctxt =
     val t = u
        |> remove_skolem_definitions_proof
        |> flat o (map linearize_proof)
-    fun node_to_step (Lethe_Node {id, rule, prems, concl, ...}) =
-      mk_step id rule prems [] concl []
+    fun node_to_step (Lethe_Step {id, rule, prems, concl, ...}) =
+      mk_step id rule prems [] concl
   in
     ((*map node_to_step t*)[], ctxt_of env)
   end

@@ -33,7 +33,7 @@ fun parse_proof
     val index_of_id = Integer.add (~ num_ll_defs)
 
     fun step_of_assume j ((_, role), th) =
-      Lethe_Proof.Lethe_Step
+      Lethe_Node.Lethe_Step
         {id = SMTLIB_Interface.assert_name_of_role_and_index role (id_of_index j),
         rule = input_rule, prems = [], proof_ctxt = [], concl = Thm.prop_of th}
 

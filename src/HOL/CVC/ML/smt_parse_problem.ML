@@ -76,7 +76,7 @@ let
     |> normalize_tree
 
   val ([step], _, cx) = Lethe_Proof.parse_raw_problem_steps [smtlib_lines_without_qm]
-   SMTLIB_Proof.empty_name_binding 0
+   SMTLIB_Proof.empty_name_binding
 
   val (Lethe_Proof.Raw_Lethe_Node {concl, ...} : Lethe_Proof.raw_lethe_node) = step
 

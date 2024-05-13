@@ -38,7 +38,7 @@ fun under_fixes f unchanged_prems (prems, nthms) names step_args context_assignm
 
 fun replay_thm method_for rewrite_rules ll_defs ctxt assumed unchanged_prems prems nthms
     concl_transformation global_transformation args context_assignments insts
-    (Lethe_Proof.Lethe_Replay_Node {id, rule, concl, declarations = decls, ...}) =
+    (Lethe_Node.Lethe_Replay_Node {id, rule, concl, ...}) =
   let
     val rewrite = let val thy = Proof_Context.theory_of (empty_simpset ctxt) in
         Raw_Simplifier.rewrite_term thy rewrite_rules []
@@ -69,7 +69,7 @@ fun replay_thm method_for rewrite_rules ll_defs ctxt assumed unchanged_prems pre
         (map rewrite args)
         (map rewrite context_assignments)
         (Symtab.map (K rewrite) insts)
-        decls
+        [] (*decls*) (*TODO*)
         (concl, ctxt)
       |> Simplifier.simplify (empty_simpset ctxt addsimps rewrite_rules)
     handle (*temp for testing*)
@@ -87,20 +87,20 @@ fun replay_thm method_for rewrite_rules ll_defs ctxt assumed unchanged_prems pre
        else Exn.reraise err
   end
 
-fun add_used_asserts_in_step (Lethe_Proof.Lethe_Replay_Node {prems,
+fun add_used_asserts_in_step (Lethe_Node.Lethe_Replay_Node {prems,
     subproof = (_, _, _, subproof), concl, ...}) =
   union (op =) (map_filter (try (snd o SMTLIB_Interface.role_and_index_of_assert_name)) prems @
      flat (map (fn x => add_used_asserts_in_step x []) subproof))
 
 fun remove_rewrite_rules_from_rules n =
-  (fn (step as Lethe_Proof.Lethe_Replay_Node {id, ...}) =>
+  (fn (step as Lethe_Node.Lethe_Replay_Node {id, ...}) =>
     (case try (snd o SMTLIB_Interface.role_and_index_of_assert_name) id of
       NONE => SOME step
     | SOME a => if a < n then NONE else SOME step))
 
 
 fun replay_theorem_step rewrite_rules all_assms ll_defs assumed inputs proof_prems
-  (step as Lethe_Proof.Lethe_Replay_Node {id, rule, prems, step_args, context_assignments, insts,
+  (step as Lethe_Node.Lethe_Replay_Node {id, rule, prems, step_args, context_assignments, 
      subproof = (fixes, assms, input, subproof), concl, ...}) state =
   let
    (* val _ = @{print}("replay_theorem_step rule", rule)
@@ -154,7 +154,7 @@ fun replay_theorem_step rewrite_rules all_assms ll_defs assumed inputs proof_pre
        function is in proofs *)
     val nthms =
       prems
-      |> filter_out Lethe_Proof.is_lethe_def (*Alle fakten ausser skolem defs*)
+      |> filter_out Lethe_Proof.is_skolem_def (*Alle fakten ausser skolem defs*)
       |> map (apsnd export_thm) o map_filter (Symtab.lookup (if (null subproof) then proofs else proofs'))
  (*
  map_filter (Symtab.lookup (if (null subproof) then proofs else proofs'))
@@ -176,14 +176,14 @@ map (apsnd export_thm) macht dann noch iwleche transformationen
 
     val nthms' = (if Lethe_Proof.is_skolemization rule
          then prems else [])
-      |> filter Lethe_Proof.is_lethe_def (*Nur die skolem definitionen aus*)
+      |> filter Lethe_Proof.is_skolem_def (*Nur die skolem definitionen aus*)
       |> map_filter (Symtab.lookup proofs) (*Skolem definitionen sind immer im auesseren Kontext*)
     (*val _ = @{print}("nthms'",nthms')*)
 
 
 
     val args = map (Term.subst_free concl_tranformation o subst_only_free global_transformation) step_args
-    val insts = Symtab.map (K (Term.subst_free concl_tranformation o subst_only_free global_transformation)) insts
+    val insts = Symtab.map (K (Term.subst_free concl_tranformation o subst_only_free global_transformation)) Symtab.empty (*insts TODO*)
     val missing_assumptions =
        if SMT_Config.alethe_no_provided_assms ctxt andalso rule = Lethe_Proof.normalized_input_rule 
        then all_assms else []
@@ -210,7 +210,7 @@ map (apsnd export_thm) macht dann noch iwleche transformationen
        concl_tranformation, sub_global_rew) end
 
 fun replay_definition_step rewrite_rules ll_defs _ _ _
-  (Lethe_Proof.Lethe_Replay_Node {id, declarations = raw_declarations, subproof = (_, _, _, subproof), ...}) state =
+  (Lethe_Node.Lethe_Replay_Node {id, subproof = (_, _, _, subproof), ...}) state =
   let
     val _ = if null subproof then ()
           else raise (Fail ("unrecognized cvc5 proof, definition has a subproof"))
@@ -221,7 +221,7 @@ fun replay_definition_step rewrite_rules ll_defs _ _ _
         #> not (null ll_defs) ? SMTLIB_Isar.unlift_term ll_defs
       end
     val start0 = Timing.start ()
-    val declaration = map (apsnd (rewrite o global_transformer)) raw_declarations
+    val declaration = map (apsnd (rewrite o global_transformer)) [] (*TODO: raw_declarations*)
     val (names, ctxt) = Variable.variant_fixes (map fst declaration) ctxt
        ||> fold Variable.declare_term (map Free (map (apsnd fastype_of) declaration))
     val old_names = map Free (map (fn (a, b) => (a, fastype_of b)) declaration)
@@ -291,8 +291,8 @@ fun add_correct_assms_deps ctxt rewrite_rules ll_defs assms steps =
   end*)
 
 fun replay_step rewrite_rules all_assms ll_defs assumed inputs proof_prems
-  (step as Lethe_Proof.Lethe_Replay_Node {rule, ...}) state =
-  if rule = Lethe_Proof.lethe_def
+  (step as Lethe_Node.Lethe_Replay_Node {rule, ...}) state =
+  if rule = Lethe_Proof.skolem_def
   then replay_definition_step rewrite_rules ll_defs assumed inputs proof_prems step state
   else replay_theorem_step rewrite_rules all_assms ll_defs assumed inputs proof_prems step state
 
@@ -322,7 +322,7 @@ fun replay outer_ctxt
     val parsing_time = Time.toNanoseconds (#elapsed (Timing.result start0))
 
     fun step_of_assume (j, (_, th)) =
-      Lethe_Proof.Lethe_Replay_Node {
+      Lethe_Node.Lethe_Replay_Node {
         id = SMTLIB_Interface.assert_name_of_role_and_index SMT_Util.Axiom (id_of_index j),
         rule = Lethe_Proof.input_rule,
         step_args = [],
@@ -331,9 +331,10 @@ fun replay outer_ctxt
         concl = Thm.prop_of th
           |> Raw_Simplifier.rewrite_term (Proof_Context.theory_of
                (empty_simpset ctxt addsimps rewrite_rules)) rewrite_rules [],
-        sko_defs=[],
+        args = NONE,
+        (*sko_defs=[],
         insts = Symtab.empty,
-        declarations = [],
+        declarations = [],*)
         subproof = ([], [], [], [])}
        
     val used_assert_ids = fold add_used_asserts_in_step actual_steps []
@@ -348,7 +349,7 @@ fun replay outer_ctxt
     (*val _ = @{print}("used_assm_js",used_assm_js)*)
 
     val assm_steps = map step_of_assume used_assm_js
-    fun extract (Lethe_Proof.Lethe_Replay_Node {id, rule, concl, ...}) =
+    fun extract (Lethe_Node.Lethe_Replay_Node {id, rule, concl, ...}) =
          (id, rule, concl, [])
     fun cond rule = rule = Lethe_Proof.input_rule
     val add_asssert = SMT_Replay.add_asserted Symtab.update Symtab.empty extract cond
@@ -401,7 +402,7 @@ fun replay outer_ctxt
 
     val total = Time.toMilliseconds (#elapsed (Timing.result start))
 
-    val (_, (_, Lethe_Proof.Lethe_Replay_Node {id, ...})) = split_last actual_steps
+    val (_, (_, Lethe_Node.Lethe_Replay_Node {id, ...})) = split_last actual_steps
 
     val _ = print_runtime_statistics len
 
