@@ -62,7 +62,7 @@ sig
 
   type lethe_tac_step_args = Proof.context -> thm list -> term list -> term -> thm
   type lethe_tac_context_args = Proof.context -> thm list -> term list -> term -> thm
-  type lethe_tac_args = Proof.context -> thm list -> term list -> term -> Lethe_Node.tactic_args -> thm
+  type lethe_tac_args = Proof.context -> thm list -> term -> Lethe_Node.tactic_args option -> thm
   type lethe_tac = Proof.context -> thm list -> term -> thm
 
   val bind: lethe_tac_context_args
@@ -135,8 +135,8 @@ sig
   val all_simplify: lethe_tac
   val rare_rewrite: lethe_tac
   val unit_res: lethe_tac
-  val sko_ex: lethe_tac
-  val sko_forall: lethe_tac
+  val sko_ex: lethe_tac_args
+  val sko_forall: lethe_tac_args
   val subproof: lethe_tac
   val sum_simplify: lethe_tac
   val tautological_clause: lethe_tac
@@ -170,7 +170,7 @@ struct
 
 type lethe_tac_step_args = Proof.context -> thm list -> term list -> term -> thm
 type lethe_tac_context_args = Proof.context -> thm list -> term list -> term -> thm
-type lethe_tac_args = Proof.context -> thm list -> term list -> term -> Lethe_Node.tactic_args -> thm
+type lethe_tac_args = Proof.context -> thm list -> term -> Lethe_Node.tactic_args option -> thm
 type lethe_tac = Proof.context -> thm list -> term -> thm
 
 (*Some general comments on the proof format:
@@ -570,7 +570,7 @@ fun dropWhile _ [] = []
   | dropWhile f (x :: xs) = if f x then dropWhile f xs else x :: xs
 in
 
-fun forall_inst ctxt _ _ t (Insts insts) = (*TODO*)
+fun forall_inst ctxt _ t (SOME (Insts insts)) = (*TODO*)
   let
     fun instantiate_and_solve i ({context = ctxt, prems = [prem], ...}: Subgoal.focus) =
         let
@@ -681,14 +681,14 @@ local
        in name :: extract_var_name thms end
     | extract_var_name [] = []
 
-fun skolem_tac extractor thm1 thms1 ctxt thms t  =
+fun skolem_tac extractor thm1 thms1 ctxt prems (decl:tactic_args) t =
   let
     val _ = @{print}("thm1",thm1)
     val _ = @{print}("thms1",thms1)
-    val _ = @{print}("thms",thms)
+    val _ = @{print}("prems",prems)
     val _ = @{print}("t",t)
 
-    val (ctxt_eq, rew, other) = extract_rewrite_rule_assumption ctxt thms
+    val (ctxt_eq, rew, other) = extract_rewrite_rule_assumption ctxt prems
     val _ = @{print}("ctxt_eq",ctxt_eq)
 
     val _ = @{print}("rew",rew)
@@ -749,14 +749,16 @@ If it doesn't work we brute force it by unfolding everything. And then use the s
       THEN' K (unfold_tac ctxt ctxt_eq)
 Mathias does not remember a case where this happens.
 
-*)
-val sko_forall =
-  skolem_tac extract_all_forall_exists_quantified_names_q @{thm verit_sko_forall_indirect}
-    @{thms verit_sko_forall_indirect2 verit_sko_ex_indirect2}
+  type lethe_tac_args = Proof.context -> thm list -> term -> Lethe_Node.tactic_args -> thm
 
-val sko_ex =
+*)
+fun sko_forall ctxt prems t (SOME (Declarations decl)) =
+  skolem_tac extract_all_forall_exists_quantified_names_q @{thm verit_sko_forall_indirect}
+    @{thms verit_sko_forall_indirect2 verit_sko_ex_indirect2} ctxt prems (Declarations decl) t
+
+fun sko_ex ctxt prems t (SOME (Declarations decl)) =
   skolem_tac extract_all_forall_exists_quantified_names_q @{thm verit_sko_ex_indirect}
-    @{thms verit_sko_ex_indirect2 verit_sko_forall_indirect2}
+    @{thms verit_sko_ex_indirect2 verit_sko_forall_indirect2} ctxt prems (Declarations decl) t
 
 end
 

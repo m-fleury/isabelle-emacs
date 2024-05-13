@@ -167,10 +167,10 @@ fun unsupported rule ctxt thms _ _ _ _ = SMT_Replay_Methods.replay_error ctxt "U
   rule thms []
 
 (*ctxt thms step_args context_assignment t args*)
-fun ignore_args       f ctxt prems _ _ t _ = f ctxt prems t
-fun include_step_args f ctxt prems step_args _ t _ = f ctxt prems step_args t
-fun include_context_ass f ctxt prems _ context_ass t _ = f ctxt prems context_ass t
-fun include_args f ctxt prems _ _ t args = f ctxt prems args t
+fun ignore_args       f ctxt prems _ _ goal _ = f ctxt prems goal
+fun include_step_args f ctxt prems step_args _ goal _ = f ctxt prems step_args goal
+fun include_context_ass f ctxt prems _ context_ass goal _ = f ctxt prems context_ass goal
+fun include_args f ctxt prems _ _ goal args = f ctxt prems goal args
 
 fun choose _ And = ignore_args and_rule
   | choose _ And_Neg = ignore_args and_neg_rule
@@ -244,8 +244,8 @@ fun choose _ And = ignore_args and_rule
   | choose _ Qnt_Simplify = ignore_args qnt_simplify
   | choose _ Refl = ignore_args (refl "cvc5")
   | choose _ Resolution = ignore_args unit_res
-  | choose _ Skolem_Ex = ignore_args skolem_ex
-  | choose _ Skolem_Forall = ignore_args skolem_forall
+  | choose _ Sko_Ex = include_args sko_ex
+  | choose _ Sko_Forall = include_args sko_forall
   | choose _ Subproof = ignore_args subproof
   | choose _ Sum_Simplify = ignore_args sum_simplify
   | choose _ Tautological_Clause = ignore_args tautological_clause
