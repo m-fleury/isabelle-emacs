@@ -697,22 +697,27 @@ fun postprocess_proof compress ctxt step cx =
             |> fold (fn (x, t) => fn insts => Symtab.update_new (desymbolize x, t) insts) termified_inst
             |> Symtab.map (K unsk_and_rewrite)
          in SOME (Insts insts) end |
-        "sko_forall" =>
+        "__skolem_definition" =>
          let
            (* special handling: skolem *)
            fun termify_term (x, t) cx = let val (t, cx) = term_of t cx in ((x, t), cx) end
            val (declarations, _) = fold_map termify_term declarations cx
             |> apfst (map (apsnd unsk_and_rewrite))
-           val skolems_of_subproof = (if compress andalso is_skolemization rule
-             then flat (map collect_skolem_defs subproof) else [])
-         in SOME (Declarations declarations) end |
+         in SOME (Declarations (declarations)) end |
         "sko_exists" =>
-         let
-           (* special handling: skolem *)
-           fun termify_term (x, t) cx = let val (t, cx) = term_of t cx in ((x, t), cx) end
-           val (declarations, _) = fold_map termify_term declarations cx
-            |> apfst (map (apsnd unsk_and_rewrite))
-         in SOME (Declarations declarations) end |
+       let
+          val skolems_of_subproof = (if compress andalso is_skolemization rule
+             then flat (map collect_skolem_defs subproof) else []) (*TODO*)
+          val skolem_defs = (map (get_skolem_def_id o (fn SMTLIB.Sym x => x) o fst) substitute_terms)
+
+         in SOME (Sko_Def_Prems (skolems_of_subproof,skolem_defs)) end |
+        "sko_forall" =>
+       let
+          val skolems_of_subproof = (if compress andalso is_skolemization rule
+             then flat (map collect_skolem_defs subproof) else []) (*TODO*)
+          val skolem_defs = (map (get_skolem_def_id o (fn SMTLIB.Sym x => x) o fst) substitute_terms)
+
+         in SOME (Sko_Def_Prems (skolems_of_subproof,skolem_defs)) end |
          _ => NONE
 
       (* fix assumptions *)
@@ -723,7 +728,6 @@ fun postprocess_proof compress ctxt step cx =
       val normalized_premises =                                                       
         prems @
         (if is_assm_repetition id rule then [id] else []) @
-        (if is_skolemization rule then (map (get_skolem_def_id o (fn SMTLIB.Sym x => x) o fst) substitute_terms) else []) @
         (if anchor_rule then id_of_last_step new_subproof else [])
         |> lethe_proof_parsing_tracing ctxt ("New set of premises ")
         |> @{print}
@@ -735,7 +739,7 @@ fun postprocess_proof compress ctxt step cx =
           |> lethe_proof_parsing_tracing' ctxt ("New rule: " )
           |> @{print}
         else rule
-
+      val _ = @{print}("tactic_args",tactic_args)
       val step =
         mk_replay_node id normalized_rule normalized_step_args normalized_context_ass
         normalized_premises termified_concl

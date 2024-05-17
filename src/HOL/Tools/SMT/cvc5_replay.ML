@@ -58,6 +58,9 @@ fun replay_thm method_for rewrite_rules ll_defs ctxt assumed unchanged_prems pre
       |> Term.subst_free concl_transformation
       |> subst_only_free global_transformation
       |> post
+
+    val args = if rule = "refl" then SOME (Solver_Name "cvc5") else args
+
   in
     if rule = Lethe_Proof.input_rule then
       (case Symtab.lookup assumed id of
@@ -97,21 +100,26 @@ fun remove_rewrite_rules_from_rules n =
       NONE => SOME step
     | SOME a => if a < n then NONE else SOME step))
 
-
+(*SMT context cx wird nur zum parsen benutzt, wir fangen komplett mir einem neuen Isabelle context an*)
 fun replay_theorem_step rewrite_rules all_assms ll_defs assumed inputs proof_prems
   (step as Lethe_Node.Lethe_Replay_Node {id, rule, prems, step_args, context_assignments, 
      subproof = (fixes, assms, input, subproof), concl,  args, ...}) state =
   let
     val (proofs, stats, ctxt, concl_tranformation, global_transformation) = state
+    (*Variablen werden jetzt im Isabelle context declariert, wir nehmen sie aus der Conclusion*)
     val (_, ctxt) = Variable.variant_fixes [] ctxt
       |> (fn (names, ctxt) => (names,
         fold Variable.declare_term [SMTLIB_Isar.unskolemize_names ctxt concl] ctxt))
 
+    (*Macht dasselbe aber fuer den Subcontext, nimmt variablen die in fixes drin sind und declariert sie*)
     val (names, sub_ctxt) = Variable.variant_fixes (map fst fixes) ctxt
        ||> fold Variable.declare_term (map Free fixes)
+    (*Namen sind nicht immer identisch weil Isabelle sich die Namen selbst aussucht (von variablen die wir declariert haben ) e.g., Isabelle sagt v0 mag ich nicht 
+    nennen wir es v0a*)
     val export_vars = concl_tranformation @
        (ListPair.zip (map Free fixes, map Free (ListPair.zip (names, map snd fixes))))
 
+    (*Normalisierung um lambda terme wieder rauszumachen*)
     val post =
       let val thy = Proof_Context.theory_of (empty_simpset ctxt) in
         Raw_Simplifier.rewrite_term thy ((if Lethe_Proof.keep_raw_lifting rule andalso not (null rewrite_rules) then tl rewrite_rules else rewrite_rules)) []
@@ -121,24 +129,34 @@ fun replay_theorem_step rewrite_rules all_assms ll_defs assumed inputs proof_pre
         #> HOLogic.mk_Trueprop
       end
 
+    (*Ersetzen assumes and inputs mit neuen Namen (die die Isabelle gegeben hat)*)
     val assms = map (subst_only_free global_transformation o Term.subst_free (export_vars) o post) assms
     val input = map (subst_only_free global_transformation o Term.subst_free (export_vars) o post) input
 
+    (*Mache aus allen Annahmen die der beweis braucht theorems. Premises sind nicht dabei! *)
     val (all_proof_prems', sub_ctxt2) = Assumption.add_assumes (map (Thm.cterm_of sub_ctxt) (assms @ input))
       sub_ctxt
     fun is_refl thm = Thm.concl_of thm |> (fn (_ $ t) => t) |> HOLogic.dest_eq |> (op =) handle TERM _=> false
+    (*Filtern wir alle assumptions raus die x=x sind. sonst wird der simplifier verrueckt*)
     val all_proof_prems' =
         all_proof_prems'
         |> filter_out is_refl
     val proof_prems' = take (length assms) all_proof_prems'
 
+    (*Nicht ganz klar, loesche implicit angewandete Annahmen*)
+    (*Inputs sind bei subproofs die assumes. Die sollen aber nicht implizit angewandt werden *)
+    (*Man koennte  Assumption.add_assumes (map (Thm.cterm_of sub_ctxt) (assms @ input)) aufteilen dann braucht man das nicht*)
     val input = drop (length assms) all_proof_prems'
     val all_proof_prems = proof_prems @ proof_prems'
 
+    (*Schritt wird reconstruiert*)
     val replay = replay_theorem_step rewrite_rules all_assms ll_defs assumed (input @ inputs) all_proof_prems
+    (*Tabelle mit mapping von Namen (id oder fuer skolem var_def) zu theoremen von allen Schritten auf die ich lokal zugreifen kann*)
     val (proofs', stats, _, _, sub_global_rew) =
        fold replay subproof (proofs, stats, sub_ctxt2, export_vars, global_transformation)
 
+    (*Wir waren im Context wo theorem drin war jetzt holen wir das wieder raus. Es hat sich veraendert. v0 wird jetzt implizit fuer alle quantifiziert*)
+    (*Wenn ich assumes block im subproof habe dann sollte es erlaubt sein das conclusion vom subproof kann mehrere Schritte referenzieren*)
     val export_thm = singleton (Proof_Context.export sub_ctxt2 ctxt)
 
     (*for sko_ex and sko_forall, assumptions are in proofs',  but the definition of the skolem
@@ -165,6 +183,8 @@ map (apsnd export_thm) macht dann noch iwleche transformationen
       |> map_filter (Symtab.lookup proofs) (*Skolem definitionen sind immer im auesseren Kontext*)
 
     val step_args = map (Term.subst_free concl_tranformation o subst_only_free global_transformation) step_args
+    val context_assignments = map (Term.subst_free concl_tranformation o subst_only_free global_transformation) context_assignments
+
     val missing_assumptions =
        if SMT_Config.alethe_no_provided_assms ctxt andalso rule = Lethe_Proof.normalized_input_rule 
        then all_assms else []

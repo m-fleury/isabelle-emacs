@@ -13,7 +13,7 @@ sig
     id: string,
     rule: string,
     prems: string list,
-    proof_ctxt: term list, (*TODO: Delete?*)
+    proof_ctxt: term list, (*TODO: Delete? Should be empty?*)
     concl: term}
 
   val mk_step : string -> string -> string list -> term list -> term -> lethe_step
@@ -22,7 +22,8 @@ sig
   datatype tactic_args =
     Declarations of (string * term) list | (*only used for sko_definitions *)
     Insts of term Symtab.table | (*only used for forall_inst*)
-    Sko_Def_Prems of term list (*only used for sko_forall and sko_exists*)
+    Sko_Def_Prems of string list * string list | (*only used for sko_forall and sko_exists*)
+    Solver_Name of string (*only used for refl*)
 
   datatype lethe_replay_node = Lethe_Replay_Node of {
     id: string,
@@ -99,7 +100,8 @@ preprocessing to the reconstruction tactic. *)
 datatype tactic_args =
   Declarations of (string * term) list | (*only used for sko_definitions *)
   Insts of term Symtab.table | (*only used for forall_inst*)
-  Sko_Def_Prems of term list (*only used for sko_forall and sko_exists*)
+  Sko_Def_Prems of string list * string list | (*only used for sko_forall and sko_exists*)
+  Solver_Name of string (*only used for refl*)
 
 datatype lethe_replay_node = Lethe_Replay_Node of {
   id: string,

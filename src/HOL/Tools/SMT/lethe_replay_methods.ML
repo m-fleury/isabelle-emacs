@@ -63,6 +63,7 @@ sig
   type lethe_tac_step_args = Proof.context -> thm list -> term list -> term -> thm
   type lethe_tac_context_args = Proof.context -> thm list -> term list -> term -> thm
   type lethe_tac_args = Proof.context -> thm list -> term -> Lethe_Node.tactic_args option -> thm
+  type lethe_tac_context_args_and_arg = Proof.context -> thm list -> term list -> term -> Lethe_Node.tactic_args option -> thm
   type lethe_tac = Proof.context -> thm list -> term -> thm
 
   val bind: lethe_tac_context_args
@@ -78,7 +79,7 @@ sig
   val rewrite_equiv_simplify: lethe_tac
   val rewrite_implies_simplify: lethe_tac
   val rewrite_or_simplify: lethe_tac
-  val cong: string -> lethe_tac
+  val cong: lethe_tac_args
   val rewrite_connective_def: lethe_tac
   val duplicate_literals: lethe_tac
   val distinct_elim: lethe_tac
@@ -112,7 +113,7 @@ sig
   val lia_generic: lethe_tac
   val la_mult_pos: lethe_tac
   val la_mult_neg: lethe_tac
-  val refl: string -> lethe_tac
+  val refl: lethe_tac_args
   val normalized_input: lethe_tac
   val not_and_rule: lethe_tac
   val not_equiv1: lethe_tac
@@ -135,8 +136,8 @@ sig
   val all_simplify: lethe_tac
   val rare_rewrite: lethe_tac
   val unit_res: lethe_tac
-  val sko_ex: lethe_tac_args
-  val sko_forall: lethe_tac_args
+  val sko_ex: lethe_tac_context_args_and_arg
+  val sko_forall: lethe_tac_context_args_and_arg
   val subproof: lethe_tac
   val sum_simplify: lethe_tac
   val tautological_clause: lethe_tac
@@ -171,6 +172,7 @@ struct
 type lethe_tac_step_args = Proof.context -> thm list -> term list -> term -> thm
 type lethe_tac_context_args = Proof.context -> thm list -> term list -> term -> thm
 type lethe_tac_args = Proof.context -> thm list -> term -> Lethe_Node.tactic_args option -> thm
+type lethe_tac_context_args_and_arg = Proof.context -> thm list -> term list -> term -> Lethe_Node.tactic_args option -> thm
 type lethe_tac = Proof.context -> thm list -> term -> thm
 
 (*Some general comments on the proof format:
@@ -548,19 +550,22 @@ fun bind ctxt [prems] context_ass t =
 
 (* Congruence/Refl *)
 
-fun cong name ctxt thms = try_provers name ctxt
+fun get_solver_name (SOME (Solver_Name name)) = name |
+  get_solver_name _ = "unkown solver name"  
+
+fun cong ctxt thms t args = try_provers (get_solver_name args) ctxt
     (string_of_lethe_rule Cong) [
   ("basic", SMT_Replay_Methods.cong_basic ctxt thms),
   ("unfolding then reflexivity", SMT_Replay_Methods.cong_unfolding_trivial ctxt thms),
   ("unfolding then auto", SMT_Replay_Methods.cong_unfolding_first ctxt thms),
-  ("full", SMT_Replay_Methods.cong_full ctxt thms)] thms []
+  ("full", SMT_Replay_Methods.cong_full ctxt thms)] thms [] t
 
-fun refl name ctxt thm t =
+fun refl ctxt thm t args =
   (case find_first (fn thm => t = Thm.full_prop_of thm) thm of
       SOME thm => thm
     | NONE =>
         (case try (fn t => SMT_Replay_Methods.match_instantiate ctxt t @{thm refl}) t of
-          NONE => cong name ctxt thm t
+          NONE => cong ctxt thm t args
         | SOME thm => thm))
 
 (* Instantiation *)
@@ -681,12 +686,41 @@ local
        in name :: extract_var_name thms end
     | extract_var_name [] = []
 
-fun skolem_tac extractor thm1 thms1 ctxt prems (decl:tactic_args) t =
+fun skolem_tac extractor thm1 thms1 ctxt prems context_ass (decl:string list * string list) t =
   let
+
+    val (context_ass_thm,_) = Assumption.add_assumes (map (Thm.cterm_of ctxt) context_ass) ctxt
+    val context_ass_thm_sym = @{thm sym} OF context_ass_thm (*TODO*)
+    val _ = @{print}("context_ass_thm",context_ass_thm)
+    val _ = @{print}("context_ass_thm_sym",context_ass_thm_sym)
+
+(*
+lemma verit_sko_forall: \<open>(\<forall>x. P x) \<longleftrightarrow> P (SOME x. \<not>P x)\<close>
+  using someI[of \<open>\<lambda>x. \<not>P x\<close>]
+  by auto
+
+lemma verit_sko_forall': \<open>P (SOME x. \<not>P x) = A \<Longrightarrow> (\<forall>x. P x) = A\<close>
+  by (subst verit_sko_forall)
+
+lemma verit_sko_forall'': \<open>B = A \<Longrightarrow> (SOME x. P x) = A \<equiv> (SOME x. P x) = B\<close>
+  by auto
+
+lemma verit_sko_forall_indirect: \<open>x = (SOME x. \<not>P x) \<Longrightarrow> (\<forall>x. P x) \<longleftrightarrow> P x\<close>
+  using someI[of \<open>\<lambda>x. \<not>P x\<close>]
+  by auto
+
+lemma verit_sko_forall_indirect2:
+    \<open>x = (SOME x. \<not>P x) \<Longrightarrow> (\<And>x :: 'a. (P x = P' x)) \<Longrightarrow>(\<forall>x. P' x) \<longleftrightarrow> P x\<close>
+  using someI[of \<open>\<lambda>x. \<not>P x\<close>]
+  by auto*)
+
     val _ = @{print}("thm1",thm1)
     val _ = @{print}("thms1",thms1)
     val _ = @{print}("prems",prems)
+    val _ = @{print}("context_ass",context_ass)
+
     val _ = @{print}("t",t)
+    val _ = @{print}("decl",decl)
 
     val (ctxt_eq, rew, other) = extract_rewrite_rule_assumption ctxt prems
     val _ = @{print}("ctxt_eq",ctxt_eq)
@@ -706,8 +740,8 @@ fun skolem_tac extractor thm1 thms1 ctxt prems (decl:tactic_args) t =
     (*val _ = @{print}("ordered_definitions ()",ordered_definitions ())*)
   in
     SMT_Replay_Methods.prove ctxt t (fn _ =>
-      K (unfold_tac ctxt ctxt_eq)
-      (*THEN' K (print_tac ctxt "sko 1")*)
+      K (unfold_tac ctxt [context_ass_thm_sym])
+      THEN' K (print_tac ctxt "sko 1")
       THEN' rewrite_all_skolems thms1 ctxt (ordered_definitions ())
       (*THEN' K (print_tac ctxt "sko 1b")*)
 
@@ -752,13 +786,13 @@ Mathias does not remember a case where this happens.
   type lethe_tac_args = Proof.context -> thm list -> term -> Lethe_Node.tactic_args -> thm
 
 *)
-fun sko_forall ctxt prems t (SOME (Declarations decl)) =
+fun sko_forall ctxt prems context_ass t (SOME (Sko_Def_Prems decl)) =
   skolem_tac extract_all_forall_exists_quantified_names_q @{thm verit_sko_forall_indirect}
-    @{thms verit_sko_forall_indirect2 verit_sko_ex_indirect2} ctxt prems (Declarations decl) t
+    @{thms verit_sko_forall_indirect2 verit_sko_ex_indirect2} ctxt prems context_ass decl t
 
-fun sko_ex ctxt prems t (SOME (Declarations decl)) =
+fun sko_ex ctxt prems context_ass t (SOME (Sko_Def_Prems decl)) =
   skolem_tac extract_all_forall_exists_quantified_names_q @{thm verit_sko_ex_indirect}
-    @{thms verit_sko_ex_indirect2 verit_sko_forall_indirect2} ctxt prems (Declarations decl) t
+    @{thms verit_sko_ex_indirect2 verit_sko_forall_indirect2} ctxt prems context_ass decl t
 
 end
 

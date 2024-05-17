@@ -62,6 +62,8 @@ fun replay_thm method_for rewrite_rules ll_defs ctxt assumed unchanged_prems pre
       |> Term.subst_free concl_transformation
       |> subst_only_free global_transformation
       |> post
+    val args = if rule = "refl" then SOME (Solver_Name "cvc5") else args
+
   in
     if rule = Lethe_Proof.input_rule then
       (case Symtab.lookup assumed id of
