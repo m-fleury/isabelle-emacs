@@ -150,7 +150,9 @@ object LSP {
         ),
         "hoverProvider" -> true,
         "definitionProvider" -> true,
-        "documentHighlightProvider" -> true)
+        "documentHighlightProvider" -> true,
+        "rangeFormatter" -> false,
+        "documentSymbolProvider" -> true)
   }
 
   object Initialized extends Notification0("initialized")
@@ -441,7 +443,7 @@ object LSP {
   ) {
     def json: JSON.T =
       Message.empty + ("range" -> Range(range)) + ("message" -> message) ++
-      JSON.optional("severity" -> severity) ++
+      JSON.optional("severity" -> Some(severity.getOrElse(1))) ++
       JSON.optional("code" -> code) ++
       JSON.optional("source" -> source)
   }
@@ -572,5 +574,130 @@ object LSP {
           "column" -> column,
           "label" -> label,
           "content" -> content))
+  }
+
+  /* Structure of the document */
+  object SymbolKind
+  {
+    val File = 1
+    val Module = 2
+    val Namespace = 3
+    val Package = 4
+    val Class = 5
+    val Method = 6
+    val Property = 7
+    val Field = 8
+    val Constructor = 9
+    val Enum = 10
+    val Interface = 11
+    val Function = 12
+    val Variable = 13
+    val Constant = 14
+    val String = 15
+    val Number = 16
+    val Boolean = 17
+    val Array = 18
+    val Object = 19
+    val Key = 20
+    val Null = 21
+    val EnumMember = 22
+    val Struct = 23
+    val Event = 24
+    val Operator = 25
+    val TypeParameter = 26
+  }
+
+  object DocumentSymbol
+  {
+    def apply(name : String, detail: Option[String] = None, kind: Int,
+      deprecated: Option[Boolean] = None, range: Line.Range, selectionRange: Line.Range,
+      children: List[JSON.T]): JSON.Object.T =
+    {
+
+      JSON.Object("name" -> name) ++
+      JSON.optional("detail" -> detail) ++
+      JSON.Object("kind" -> kind) ++
+      JSON.optional("deprecated" -> deprecated) ++
+      JSON.Object("range" -> Range(range),
+        "selectionRange" -> Range(selectionRange),
+        "children" -> children)
+    }
+  }
+
+  object DocumentSymbols
+  {
+    def apply(id: Id, symbols: List[JSON.Object.T]): JSON.T =
+    {
+      ResponseMessage(id, Some(symbols))
+    }
+  }
+
+  object Document_Symbols_Request
+  {
+    def unapply(json: JSON.T): Option[(Id, JFile)] =
+      json match {
+        case RequestMessage(id, "textDocument/documentSymbol", Some(params)) =>
+          for {
+            textdoc <- JSON.value(params, "textDocument")
+            uri <- JSON.string(textdoc, "uri")
+            if Url.is_wellformed_file(uri)
+          } yield (id, Url.absolute_file(uri))
+        case _ => None
+      }
+  }
+
+  /* Progress indication */
+  object Progress_Node
+  {
+    def apply(name : String, node_status: isabelle.Document_Status.Node_Status): JSON.Object.T =
+    {
+
+      node_status match {
+        case isabelle.Document_Status.Node_Status(is_suppressed, unprocessed, running, warned,
+          failed, finished, canceled, terminated, initialized, finalized, consolidated) =>
+          JSON.Object(
+            "name" -> name,
+            "unprocessed" -> unprocessed,
+            "running" -> running,
+            "warned" -> warned,
+            "failed" -> failed,
+            "finished" -> finished,
+            "initialized" -> initialized,
+            "consolidated" -> consolidated,
+            "canceled" -> canceled,
+            "terminated" -> terminated
+          )
+      }
+    }
+  }
+
+  object Progress_Nodes
+  {
+    def apply(nodes_status: List[JSON.Object.T]): JSON.T =
+    {
+       Notification("PIDE/progress", JSON.Object("nodes-status" -> nodes_status))
+    }
+  }
+
+  object Progress_Node_Request
+  {
+    def unapply(json: JSON.T): Option[Unit] =
+      for {
+        method <- JSON.string(json, "method")
+        if method == "PIDE/progress_request"
+      } yield ()
+  }
+
+
+  object Set_Message_Margin
+  {
+    def unapply(json: JSON.T): Option[Int] =
+      json match {
+        case Notification("PIDE/set_message_margin", Some(params)) =>
+          for {
+            value <- JSON.int(params, "value")
+          } yield (value)
+        case _ => None
+      }
   }
 }
