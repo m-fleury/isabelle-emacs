@@ -281,7 +281,7 @@ returns the command to execute."
 		 (list (regexp-quote (file-remote-p default-directory))
                        "direct-async-process" t))
     (list :connect (lambda (filter sentinel name environment-fn _workspace)
-                     (let* ((final-command (lsp-resolve-final-function
+                     (let* ((final-command (lsp-resolve-final-command
 					    local-command))
                             (_stderr (or (when generate-error-file-fn
                                            (funcall generate-error-file-fn name))
@@ -301,7 +301,7 @@ returns the command to execute."
                                    :sentinel sentinel
                                    :file-handler t)))
                        (cons proc proc)))
-          :test? (lambda () (-> local-command lsp-resolve-final-function
+          :test? (lambda () (-> local-command lsp-resolve-final-command
 				lsp-server-present?)))))
 
 
