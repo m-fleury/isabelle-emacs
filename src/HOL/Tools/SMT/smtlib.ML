@@ -56,8 +56,21 @@ fun read_num l cs =
   (case read_raw Symbol.is_ascii_digit l cs of
     (cs1, "." :: cs') =>
       let val (cs2, cs'') = read_raw Symbol.is_ascii_digit l cs'
-      in (Dec (int_of cs1, int_of cs2), cs'') end
-  | (cs1, cs2) => (Num (int_of cs1), cs2))
+      in (Dec (int_of cs1, int_of cs2), cs'') end |
+    (cs1, "/" :: cs') =>
+       let val (cs2, cs'') = read_raw Symbol.is_ascii_digit l cs'
+      in (S[Sym "/", (Dec (int_of cs1, 0)),(Dec (int_of cs2,0))], cs'') end |
+    (cs1, cs2) => (Num (int_of cs1), cs2))
+
+fun read_int l ("-"::cs) =
+  (case read_raw Symbol.is_ascii_digit l cs of
+    (cs1, "." :: cs') =>
+      let val (cs2, cs'') = read_raw Symbol.is_ascii_digit l cs'
+      in (Dec (~ (int_of cs1), int_of cs2), cs'') end |
+    (cs1, "/" :: cs') =>
+       let val (cs2, cs'') = read_raw Symbol.is_ascii_digit l cs'
+      in (S[Sym "/", (Dec ((~ (int_of cs1)), 0)),(Dec (int_of cs2,0))], cs'') end |
+    (cs1, cs2) => (Num (~ (int_of cs1)), cs2))
 
 
 (* binary numbers *)
@@ -147,6 +160,7 @@ fun read _ [] rest tss = (rest, tss)
   | read l (c :: cs) None (ts :: tss) =
       if Symbol.is_ascii_blank c then read l cs None (ts :: tss)
       else if Symbol.is_digit c then token read_num l (c :: cs) ts tss
+      else if c = "-" andalso (if cs |> null then false else cs |> hd |> Symbol.is_digit) then token read_int l (c :: cs) ts tss (*TODO: make more elegant*)
       else token (read_sym Sym) l (c :: cs) ts tss
   | read l cs (String s) (ts :: tss) =
       quoted read_string String Str l s cs ts tss

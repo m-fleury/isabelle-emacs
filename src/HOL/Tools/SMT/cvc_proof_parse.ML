@@ -26,7 +26,7 @@ open Lethe_Isar
 open Lethe_Proof
 
 (*taken from verit*)
-fun add_used_asserts_in_step (Lethe_Proof.Lethe_Step {prems, ...}) =
+fun add_used_asserts_in_step (Lethe_Node.Lethe_Step {prems, ...}) =
   union (op =) (map_filter (try (snd o SMTLIB_Interface.role_and_index_of_assert_name)) prems)
 
 fun parse_proof_unsatcore ({ll_defs, assms, ...} : SMT_Translate.replay_data) xfacts prems _ output =
@@ -75,7 +75,7 @@ fun parse_proof_lethe
       let
         val th = Thm.prop_of th
       in
-          Lethe_Proof.Lethe_Step 
+          Lethe_Node.Lethe_Step 
            {id = SMTLIB_Interface.assert_name_of_role_and_index role (id_of_index i),
             rule = input_rule, prems = [], proof_ctxt = [], concl = th}
           |> single

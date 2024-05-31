@@ -5,7 +5,7 @@
 Proof method for replaying Alethe proofs for bitvector steps.
 *)
 
-(*TODO: Had to make this work again quickly and changed all lethe_tac to lethe_tac_args. 
+(*TODO: Had to make this work again quickly and changed all lethe_tac to lethe_tac_step_args. 
 This could be changed back but declare_alethe_rule would need to accept rules without arguments*)
 signature LETHE_REPLAY_BV_METHODS =
 sig
@@ -14,21 +14,21 @@ sig
   val xor_neg1: Lethe_Replay_Methods.lethe_tac
   val xor_neg2: Lethe_Replay_Methods.lethe_tac
 
-  val bv_bitblast_step_var: Lethe_Replay_Methods.lethe_tac_args
-  val bv_bitblast_step_const: Lethe_Replay_Methods.lethe_tac_args
-  val bv_bitblast_step_bvand: Lethe_Replay_Methods.lethe_tac_args
-  val bv_bitblast_step_bvor: Lethe_Replay_Methods.lethe_tac_args
-  val bv_bitblast_step_bvxor: Lethe_Replay_Methods.lethe_tac_args
-  val bv_bitblast_step_bvxnor: Lethe_Replay_Methods.lethe_tac_args
-  val bv_bitblast_step_bvnot: Lethe_Replay_Methods.lethe_tac_args
-  val bv_bitblast_step_bvadd: Lethe_Replay_Methods.lethe_tac_args
-  val bv_bitblast_step_bvneg: Lethe_Replay_Methods.lethe_tac_args
-  val bv_bitblast_step_bvmult: Lethe_Replay_Methods.lethe_tac_args
-  val bv_bitblast_step_extract: Lethe_Replay_Methods.lethe_tac_args
-  val bv_bitblast_step_concat: Lethe_Replay_Methods.lethe_tac_args
-  val bv_bitblast_step_bvequal: Lethe_Replay_Methods.lethe_tac_args
-  val bv_bitblast_step_bvult: Lethe_Replay_Methods.lethe_tac_args
-  val bv_bitblast_step_bvule: Lethe_Replay_Methods.lethe_tac_args
+  val bv_bitblast_step_var: Lethe_Replay_Methods.lethe_tac_step_args
+  val bv_bitblast_step_const: Lethe_Replay_Methods.lethe_tac_step_args
+  val bv_bitblast_step_bvand: Lethe_Replay_Methods.lethe_tac_step_args
+  val bv_bitblast_step_bvor: Lethe_Replay_Methods.lethe_tac_step_args
+  val bv_bitblast_step_bvxor: Lethe_Replay_Methods.lethe_tac_step_args
+  val bv_bitblast_step_bvxnor: Lethe_Replay_Methods.lethe_tac_step_args
+  val bv_bitblast_step_bvnot: Lethe_Replay_Methods.lethe_tac_step_args
+  val bv_bitblast_step_bvadd: Lethe_Replay_Methods.lethe_tac_step_args
+  val bv_bitblast_step_bvneg: Lethe_Replay_Methods.lethe_tac_step_args
+  val bv_bitblast_step_bvmult: Lethe_Replay_Methods.lethe_tac_step_args
+  val bv_bitblast_step_extract: Lethe_Replay_Methods.lethe_tac_step_args
+  val bv_bitblast_step_concat: Lethe_Replay_Methods.lethe_tac_step_args
+  val bv_bitblast_step_bvequal: Lethe_Replay_Methods.lethe_tac_step_args
+  val bv_bitblast_step_bvult: Lethe_Replay_Methods.lethe_tac_step_args
+  val bv_bitblast_step_bvule: Lethe_Replay_Methods.lethe_tac_step_args
 
 end;
 
@@ -509,7 +509,7 @@ local
          (\<^term>\<open>HOL.disj\<close> $ (\<^term>\<open>SMT_CVC_Util.xor\<close> $ a $ b) $ _)) =
          Drule.infer_instantiate' ctxt (map (SOME o Thm.cterm_of ctxt) [a, b]) thm
      | xor_neg_term ctxt thm  t =
-        replay_error ctxt "invalid application in xor neg" Lethe_Replay_Methods.Unsupported [thm] t
+        replay_error ctxt "invalid application in xor neg" Lethe_Replay_Methods.Unsupported [thm] [] t
 
 
 (*TODO: Might be able to get rid of this with better instantiation *)
@@ -517,7 +517,7 @@ local
          (\<^term>\<open>HOL.disj\<close> $ (\<^term>\<open>HOL.Not\<close> $ (\<^term>\<open>SMT_CVC_Util.xor\<close> $ a $ b)) $ _)) =
          Drule.infer_instantiate' ctxt (map (SOME o Thm.cterm_of ctxt) [a, b]) thm
      | xor_pos_term ctxt thm t =(@{print}("thm",thm);@{print}("t",t);
-        replay_error ctxt "invalid application in xor pos" Lethe_Replay_Methods.Unsupported [thm] t)
+        replay_error ctxt "invalid application in xor pos" Lethe_Replay_Methods.Unsupported [thm] [] t)
 
   fun prove_xor_pos_neg xor_pos_neg_term thm ctxt _ t =
     let

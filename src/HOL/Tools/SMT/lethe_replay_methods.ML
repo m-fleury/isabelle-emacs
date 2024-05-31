@@ -520,6 +520,7 @@ fun temp [] = [] |
           *)
 
 fun combine_quant ctxt ((n1, n2) :: bounds) (n1' :: formula) =
+(@{print}("n1",n1);@{print}("n2",n2);@{print}("n1'",n1');
     TRY' (if n1 = n1'
      then if n1 <> n2
        then
@@ -528,7 +529,7 @@ fun combine_quant ctxt ((n1, n2) :: bounds) (n1' :: formula) =
          THEN' combine_quant ctxt bounds formula
        else resolve_tac ctxt bind_thms_same_name THEN' combine_quant ctxt bounds formula
      else resolve_tac ctxt @{thms allI} THEN' combine_quant ctxt ((n1, n2) :: bounds) formula)
-  | combine_quant _ _ _ = K all_tac
+)  | combine_quant _ _ _ = K all_tac
 
 fun bind_quants ctxt args t =
   combine_quant ctxt (map extract_bind_names (temp args)) (extract_quantified_names t)
@@ -540,9 +541,15 @@ fun generalize_prems_q [] prems = prems
 fun generalize_prems t = generalize_prems_q (fst (extract_quantified_names_ba t))
 
 fun bind ctxt [prems] context_ass t =
-(@{print}("context_ass",context_ass);
+(@{print}("context_ass",context_ass);@{print}("generalize_prems t prems",generalize_prems t prems);
   SMT_Replay_Methods.prove ctxt t (fn _ =>
+ TRY' (K (print_tac ctxt "bin"))
+
+THEN'
     bind_quants ctxt context_ass t
+ THEN' TRY' (K (print_tac ctxt "bin"))
+ (*   THEN' REPEAT' (resolve_tac ctxt bind_thms THEN' TRY' (K (print_tac ctxt "bin")))*)
+    
     THEN' TRY' (SOLVED' (resolve_tac ctxt [generalize_prems t prems]
       THEN_ALL_NEW TRY' (assume_tac ctxt ORELSE' resolve_tac ctxt @{thms refl})))))
  | bind ctxt thms _ t = replay_error ctxt "invalid bind application" Bind thms [] t
@@ -560,14 +567,14 @@ fun cong ctxt thms t args = try_provers (get_solver_name args) ctxt
   ("unfolding then auto", SMT_Replay_Methods.cong_unfolding_first ctxt thms),
   ("full", SMT_Replay_Methods.cong_full ctxt thms)] thms [] t
 
-fun refl ctxt thm t args =
+fun refl ctxt thm t args = (@{print}("t",t);
   (case find_first (fn thm => t = Thm.full_prop_of thm) thm of
       SOME thm => thm
     | NONE =>
         (case try (fn t => SMT_Replay_Methods.match_instantiate ctxt t @{thm refl}) t of
           NONE => cong ctxt thm t args
         | SOME thm => thm))
-
+)
 (* Instantiation *)
 
 local
@@ -740,10 +747,9 @@ lemma verit_sko_forall_indirect2:
     (*val _ = @{print}("ordered_definitions ()",ordered_definitions ())*)
   in
     SMT_Replay_Methods.prove ctxt t (fn _ =>
-      K (unfold_tac ctxt [context_ass_thm_sym])
-      THEN' K (print_tac ctxt "sko 1")
+      K (print_tac ctxt "sko 1")
       THEN' rewrite_all_skolems thms1 ctxt (ordered_definitions ())
-      (*THEN' K (print_tac ctxt "sko 1b")*)
+      THEN' K (print_tac ctxt "sko 2")
 
       THEN' (*(((resolve_tac ctxt @{thms refl}) THEN' K (print_tac ctxt "sko 0"))
       ORELSE' *)
@@ -867,7 +873,7 @@ fun is_same_assms_eq_ac (Abs (_, _,  u)) (Abs (_, _, u')) =
     (is_same_assms_eq_ac u v' andalso is_same_assms_eq_ac v u')
   | is_same_assms_eq_ac (u $ v) (u' $ v') =
     (is_same_assms_eq_ac u u' andalso is_same_assms_eq_ac v v')
-  | is_same_assms_eq_ac u v  = (@{print}("different", u,v);false)
+  | is_same_assms_eq_ac u v  = (false)
 
 fun normalized_input ctxt prems t = 
   let
@@ -881,10 +887,10 @@ fun normalized_input ctxt prems t =
   in
     (SMT_Replay_Methods.prove ctxt t (fn _ =>
       Method.insert_tac ctxt prems
-      THEN' (K (print_tac ctxt ("normalized input XX0")))
+      (*THEN' (K (print_tac ctxt ("normalized input XX0")))*)
       THEN' TRY' (K (unfold_tac ctxt @{thms SMT.trigger_def}))
       THEN' TRY' (partial_simplify_tac ctxt @{thms eq_commute})
-      THEN' (K (print_tac ctxt ("normalized input XX10")))))
+      (*THEN' (K (print_tac ctxt ("normalized input XX10")))*)))
 end
 
 val false_rule_thm = @{lemma \<open>\<not>False\<close> by blast}
@@ -1393,18 +1399,33 @@ end
 (*TODO: still needed?*)
 fun rare_rewrite ctxt _ t =
   SMT_Replay_Methods.prove ctxt t (fn _ =>
-     TRY' (K (Clasimp.auto_tac ctxt)))
+     TRY' (K (Clasimp.auto_tac ctxt)
+     THEN' TRY' (Code_Simp.dynamic_tac ctxt )
+))
+local
+  fun simplify_arith ctxt thms = partial_simplify_tac ctxt
+    (thms @ Named_Theorems.get ctxt @{named_theorems ac_simps} @ @{thms arith_simps})
+in
 
 fun all_simplify ctxt _ t =
   SMT_Replay_Methods.prove ctxt t (fn _ => (*K (print_tac ctxt "in all_simp")
-     THEN'*) TRY' (K (Clasimp.auto_tac ctxt))) (*TODO: TEMP until cvc5 produces fine grained simplification steps *)
+     THEN'*) TRY' (K (Clasimp.auto_tac ctxt))
+     THEN' K (print_tac ctxt "in all_simp")
+     THEN' TRY' (Code_Simp.dynamic_tac ctxt )
+     THEN' TRY' (simplify_arith ctxt @{thms verit_sum_simplify arith_special})
+     THEN' TRY' (simplify_arith ctxt @{thms verit_prod_simplify})
+     THEN' TRY' (Code_Simp.dynamic_tac ctxt )
+     THEN' K (print_tac ctxt "in all_simp")
+     THEN' TRY' (K (Clasimp.auto_tac ctxt))
+     THEN' K (print_tac ctxt "in all_simp")
+) (*TODO: TEMP until cvc5 produces fine grained simplification steps *)
+end
 
 (* Arithmetics *)
 local
-
-val la_rw_eq_thm = @{lemma \<open>(a :: nat) = b \<or> (a \<le> b) \<or> (a \<ge> b)\<close> by auto}
+val la_rw_eq_thm = @{lemma \<open>((a :: 'a :: linorder) = b) = ((a \<le> b) \<and> (b \<le> a))\<close> by auto}
 in
-fun la_rw_eq ctxt _ t = SMT_Replay_Methods.match_instantiate ctxt t la_rw_eq_thm
+fun la_rw_eq ctxt _ t = (@{print}("t", Thm.cterm_of ctxt t |> Thm.assume);@{print}("t",la_rw_eq_thm);SMT_Replay_Methods.match_instantiate ctxt t la_rw_eq_thm)
 
 fun la_generic_prove args ctxt _ = SMT_Replay_Arith.la_farkas args ctxt
 
@@ -1417,8 +1438,25 @@ fun lia_generic ctxt _ t =
 fun la_disequality ctxt _ t =
   SMT_Replay_Methods.match_instantiate ctxt t @{thm verit_la_disequality}
 
+fun la_mult_extract (Const ("HOL.Trueprop", _) $ (Const ("HOL.implies", _) 
+ $ (Const ("HOL.conj",_) $ (_ $ _ $ factor) $ (rel $ l $ r))
+ $ _)) = (rel,(factor,l,r))
+
+fun to_lemma "Orderings.ord_class.less" = @{thm alethe_la_mult_pos_less}
+
+
 fun la_mult_pos ctxt _ t =
-SMT_Replay_Methods.prove ctxt t (fn _ => match_tac ctxt @{thms alethe_la_mult_pos})
+let
+  val (rel,(factor,l,r)) = la_mult_extract t
+(*  val _ = @{print}("factor",(Thm.cterm_of ctxt factor))
+  val _ = @{print}("lemma",infer_instantiate' ctxt [SOME (Thm.cterm_of ctxt factor),NONE,NONE] @{thm alethe_la_mult_pos_less} )
+  val _ = @{print}("lemma",infer_instantiate' ctxt [SOME (Thm.cterm_of ctxt factor),SOME (Thm.cterm_of ctxt l),SOME (Thm.cterm_of ctxt r)] @{thm alethe_la_mult_pos_less} )
+*)
+in 
+ (* SMT_Replay_Methods.prove ctxt t (fn _ => match_tac ctxt [infer_instantiate' ctxt [SOME (Thm.cterm_of ctxt factor),NONE,NONE] @{thm alethe_la_mult_pos_less} ]))*)
+  SMT_Replay_Methods.prove ctxt t (fn _ => match_tac ctxt @{thms alethe_la_mult_pos})
+
+end
 
 fun la_mult_neg ctxt _ t =
 SMT_Replay_Methods.prove ctxt t (fn _ => match_tac ctxt @{thms alethe_la_mult_neg})

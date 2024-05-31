@@ -25,6 +25,8 @@ sig
     Sko_Def_Prems of string list * string list | (*only used for sko_forall and sko_exists*)
     Solver_Name of string (*only used for refl*)
 
+  val transform_tactic_args : (term -> term) -> tactic_args option -> tactic_args option
+
   datatype lethe_replay_node = Lethe_Replay_Node of {
     id: string,
     rule: string,
@@ -102,6 +104,11 @@ datatype tactic_args =
   Insts of term Symtab.table | (*only used for forall_inst*)
   Sko_Def_Prems of string list * string list | (*only used for sko_forall and sko_exists*)
   Solver_Name of string (*only used for refl*)
+
+fun transform_tactic_args _ NONE = NONE |
+  transform_tactic_args f (SOME (Insts insts)) = SOME (Insts (Symtab.map (K f) insts)) |
+  transform_tactic_args f (SOME (Declarations xs)) = SOME (Declarations xs) |
+  transform_tactic_args f x = x
 
 datatype lethe_replay_node = Lethe_Replay_Node of {
   id: string,

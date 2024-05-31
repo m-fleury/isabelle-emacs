@@ -13,6 +13,13 @@ end;
 structure CVC5_Replay: CVC5_REPLAY =
 struct
 
+val trace = true
+fun cvc5_replay_trace ctxt (x : unit -> 'a) = if trace then (@{print} (x ());ignore(x ())) else () (*Eventually, will use option in context, so leaving ctxt as argument*)
+fun cvc5_replay_trace' ctxt (str : string) a  =
+   let
+    val _ = cvc5_replay_trace ctxt (fn () => str)
+   in a end
+
 fun subst_only_free pairs =
   let
      fun substf u =
@@ -100,27 +107,26 @@ fun remove_rewrite_rules_from_rules n =
       NONE => SOME step
     | SOME a => if a < n then NONE else SOME step))
 
-(*SMT context cx wird nur zum parsen benutzt, wir fangen komplett mir einem neuen Isabelle context an*)
 fun replay_theorem_step rewrite_rules all_assms ll_defs assumed inputs proof_prems
   (step as Lethe_Node.Lethe_Replay_Node {id, rule, prems, step_args, context_assignments, 
      subproof = (fixes, assms, input, subproof), concl,  args, ...}) state =
   let
     val (proofs, stats, ctxt, concl_tranformation, global_transformation) = state
-    (*Variablen werden jetzt im Isabelle context declariert, wir nehmen sie aus der Conclusion*)
+    val _ = cvc5_replay_trace ctxt (fn () => "Replaying theorem step: " ^ \<^make_string> id)
+
     val (_, ctxt) = Variable.variant_fixes [] ctxt
       |> (fn (names, ctxt) => (names,
         fold Variable.declare_term [SMTLIB_Isar.unskolemize_names ctxt concl] ctxt))
+    val _ = cvc5_replay_trace ctxt (fn () => "Build up a new Isabelle context with the term names from the step's conclusion")
 
-    (*Macht dasselbe aber fuer den Subcontext, nimmt variablen die in fixes drin sind und declariert sie*)
     val (names, sub_ctxt) = Variable.variant_fixes (map fst fixes) ctxt
        ||> fold Variable.declare_term (map Free fixes)
-    (*Namen sind nicht immer identisch weil Isabelle sich die Namen selbst aussucht (von variablen die wir declariert haben ) e.g., Isabelle sagt v0 mag ich nicht 
-    nennen wir es v0a*)
+    val _ = cvc5_replay_trace ctxt (fn () => "Add variables from fixes to subcontext. There should be no fixes though")
     val export_vars = concl_tranformation @
        (ListPair.zip (map Free fixes, map Free (ListPair.zip (names, map snd fixes))))
-
-    (*Normalisierung um lambda terme wieder rauszumachen*)
-    val post =
+    val _ = cvc5_replay_trace' ctxt "Obtained mapping from variable names to the possibly new name that Isabelle chose." export_vars
+                
+    val remove_lambdas =
       let val thy = Proof_Context.theory_of (empty_simpset ctxt) in
         Raw_Simplifier.rewrite_term thy ((if Lethe_Proof.keep_raw_lifting rule andalso not (null rewrite_rules) then tl rewrite_rules else rewrite_rules)) []
         #> Object_Logic.atomize_term ctxt
@@ -128,28 +134,44 @@ fun replay_theorem_step rewrite_rules all_assms ll_defs assumed inputs proof_pre
         #> SMTLIB_Isar.unskolemize_names ctxt
         #> HOLogic.mk_Trueprop
       end
+    val _ = cvc5_replay_trace ctxt (fn () => "Obtained rewriter to remove lambda expressions from a term")
 
-    (*Ersetzen assumes and inputs mit neuen Namen (die die Isabelle gegeben hat)*)
-    val assms = map (subst_only_free global_transformation o Term.subst_free (export_vars) o post) assms
-    val input = map (subst_only_free global_transformation o Term.subst_free (export_vars) o post) input
-
-    (*Mache aus allen Annahmen die der beweis braucht theorems. Premises sind nicht dabei! *)
-    val (all_proof_prems', sub_ctxt2) = Assumption.add_assumes (map (Thm.cterm_of sub_ctxt) (assms @ input))
-      sub_ctxt
+    val term_rewriter = (subst_only_free global_transformation o Term.subst_free (export_vars) o remove_lambdas o SMTLIB_Isar.unskolemize_names ctxt)
     fun is_refl thm = Thm.concl_of thm |> (fn (_ $ t) => t) |> HOLogic.dest_eq |> (op =) handle TERM _=> false
-    (*Filtern wir alle assumptions raus die x=x sind. sonst wird der simplifier verrueckt*)
-    val all_proof_prems' =
-        all_proof_prems'
-        |> filter_out is_refl
-    val proof_prems' = take (length assms) all_proof_prems'
+    (*TODO: Do somewhere else?*)
+    fun is_mapping (x as  \<^term>\<open>Trueprop\<close> $ (Const(\<^const_name>\<open>HOL.eq\<close>, _) $ _ $ _ )) = true |
+        is_mapping _ = false
 
-    (*Nicht ganz klar, loesche implicit angewandete Annahmen*)
-    (*Inputs sind bei subproofs die assumes. Die sollen aber nicht implizit angewandt werden *)
-    (*Man koennte  Assumption.add_assumes (map (Thm.cterm_of sub_ctxt) (assms @ input)) aufteilen dann braucht man das nicht*)
-    val input = drop (length assms) all_proof_prems'
-    val all_proof_prems = proof_prems @ proof_prems'
 
-    (*Schritt wird reconstruiert*)
+    fun mk_thms t sctxt = Assumption.add_assumes (map (Thm.cterm_of sctxt) t) sctxt |>> filter_out is_refl
+    val _ = cvc5_replay_trace ctxt (fn () => "Obtained rewriter filter out refl steps and transform into theorem")
+
+    val _ = cvc5_replay_trace ctxt (fn () => "Apply rewriter")
+    val _ = @{print}("all_proof_prems", assms @ context_assignments)
+    val _ = @{print}("prems", proof_prems)
+
+    val assms = map term_rewriter assms
+      |> cvc5_replay_trace' ctxt "Rewrite assms"
+    val input = map term_rewriter input
+      |> cvc5_replay_trace' ctxt "Rewrite input (assumes in subproofs)"
+    val step_args = map term_rewriter step_args
+      |> cvc5_replay_trace' ctxt "Rewrite step arguments"
+    val context_assignments = map term_rewriter context_assignments
+      |> cvc5_replay_trace' ctxt "Rewrite context assignments"
+
+    val (assms, sub_ctxt2) = mk_thms assms sub_ctxt
+      |> cvc5_replay_trace' ctxt "Filter out refl assms and transform to theorem"
+    val (input, sub_ctxt2) = mk_thms input sub_ctxt2
+      |> cvc5_replay_trace' ctxt "Filter out refl inputs and transform to theorem"
+    val context_assignments = List.filter is_mapping context_assignments
+    val _ = @{print}("context_assignments",context_assignments)
+
+    val (context_assignments2, sub_ctxt2) = mk_thms context_assignments sub_ctxt2
+      |> cvc5_replay_trace' ctxt "Filter out refl context assigments and transform to theorem"
+
+    val all_proof_prems = proof_prems @ assms @ context_assignments2
+    val _ = @{print}("all_proof_prems",all_proof_prems)
+
     val replay = replay_theorem_step rewrite_rules all_assms ll_defs assumed (input @ inputs) all_proof_prems
     (*Tabelle mit mapping von Namen (id oder fuer skolem var_def) zu theoremen von allen Schritten auf die ich lokal zugreifen kann*)
     val (proofs', stats, _, _, sub_global_rew) =
@@ -188,6 +210,7 @@ map (apsnd export_thm) macht dann noch iwleche transformationen
     val missing_assumptions =
        if SMT_Config.alethe_no_provided_assms ctxt andalso rule = Lethe_Proof.normalized_input_rule 
        then all_assms else []
+(*Wir wollen mappings vom Context assignment als premises an "refl", "sko_forall", "sko_ex", "cong" steps uebergeben*)
     val proof_prems =
        if Lethe_Replay_Methods.requires_subproof_assms prems rule then proof_prems else []
     val local_inputs =
@@ -214,7 +237,7 @@ map (apsnd export_thm) macht dann noch iwleche transformationen
        concl_tranformation, sub_global_rew) end
 
 fun replay_definition_step rewrite_rules ll_defs _ _ _
-  (Lethe_Node.Lethe_Replay_Node {id, subproof = (_, _, _, subproof), ...}) state =
+  (Lethe_Node.Lethe_Replay_Node {id, subproof = (_, _, _, subproof), args, ...}) state =
   let
     val _ = if null subproof then ()
           else raise (Fail ("unrecognized cvc5 proof, definition has a subproof"))
@@ -225,7 +248,7 @@ fun replay_definition_step rewrite_rules ll_defs _ _ _
         #> not (null ll_defs) ? SMTLIB_Isar.unlift_term ll_defs
       end
     val start0 = Timing.start ()
-    val declaration = map (apsnd (rewrite o global_transformer)) [] (*TODO: raw_declarations*)
+    val declaration = map (apsnd (rewrite o global_transformer)) (case args of SOME (Declarations xs) => xs | _ => []) (*TODO: raw_declarations*)
     val (names, ctxt) = Variable.variant_fixes (map fst declaration) ctxt
        ||> fold Variable.declare_term (map Free (map (apsnd fastype_of) declaration))
     val old_names = map Free (map (fn (a, b) => (a, fastype_of b)) declaration)
@@ -276,8 +299,8 @@ fun cvc_assms_name l k = cvc_assms_prefix ^ SMTLIB_Interface.assert_name_of_role
 (*
 fun add_correct_assms_deps ctxt rewrite_rules ll_defs assms steps =
   let
-    fun add_correct_assms_deps (st as Lethe_Proof.Lethe_Replay_Node {id, rule, args, prems, proof_ctxt,
-        concl, bounds, insts, declarations, subproof}) =
+    fun add_correct_assms_deps (st as Lethe_Node.Lethe_Replay_Node {id, rule, step_args, context_assignments, prems,
+        concl, subproof, args}) =
      (case try (snd o SMTLIB_Interface.role_and_index_of_assert_name) id of
        NONE => st
      | SOME _ =>
@@ -287,13 +310,13 @@ fun add_correct_assms_deps ctxt rewrite_rules ll_defs assms steps =
        let
           val assms_prem = cvc_assms_name id k
        in
-        Lethe_Proof.mk_replay_node id rule args (assms_prem :: prems) proof_ctxt concl bounds insts declarations
-         subproof
+        Lethe_Node.mk_replay_node id rule  step_args context_assignments (assms_prem :: prems) concl
+         subproof args
        end))
   in
     map add_correct_assms_deps steps
-  end*)
-
+  end
+*)
 fun replay_step rewrite_rules all_assms ll_defs assumed inputs proof_prems
   (step as Lethe_Node.Lethe_Replay_Node {rule, ...}) state =
   if rule = Lethe_Proof.skolem_def
@@ -319,10 +342,8 @@ fun replay outer_ctxt
 
     val start0 = Timing.start ()
 
-(*Here the premise should still be in the assumption*)
     val (actual_steps, ctxt2) =
       Lethe_Proof.parse_replay typs terms output ctxt
-    (*val _ = @{print}("actual_steps",actual_steps)*)
     val parsing_time = Time.toNanoseconds (#elapsed (Timing.result start0))
 
     fun step_of_assume (j, (_, th)) =
@@ -335,14 +356,10 @@ fun replay outer_ctxt
         concl = Thm.prop_of th
           |> Raw_Simplifier.rewrite_term (Proof_Context.theory_of
                (empty_simpset ctxt addsimps rewrite_rules)) rewrite_rules [],
-        args = NONE,
-        (*sko_defs=[],
-        insts = Symtab.empty,
-        declarations = [],*)
-        subproof = ([], [], [], [])}
+        subproof = ([], [], [], []),
+        args = NONE}
        
     val used_assert_ids = fold add_used_asserts_in_step actual_steps []
-    (*val _ = @{print}("used_assert_ids",used_assert_ids)*)
 
     fun normalize_tac ctxt = let val thy = Proof_Context.theory_of (empty_simpset ctxt) in
       Raw_Simplifier.rewrite_term thy rewrite_rules [] end
@@ -350,7 +367,6 @@ fun replay outer_ctxt
       map_filter (fn id => let val i = index_of_id id in if i >= 0 then SOME (i, nth assms i)
           else NONE end)
         used_assert_ids
-    (*val _ = @{print}("used_assm_js",used_assm_js)*)
 
     val assm_steps = map step_of_assume used_assm_js
     fun extract (Lethe_Node.Lethe_Replay_Node {id, rule, concl, ...}) =
@@ -361,7 +377,6 @@ fun replay outer_ctxt
     val ((_, _), (ctxt3, assumed)) =
       add_asssert outer_ctxt rewrite_rules (map (apfst fst) assms)
         (map_filter (remove_rewrite_rules_from_rules num_ll_defs) assm_steps) ctxt2
-    (*val _ = @{print}("assumed",assumed)*)
 
     val used_rew_js =
       map_filter (fn id => let val i = index_of_id id in if i < 0
@@ -382,6 +397,7 @@ fun replay outer_ctxt
     val actual_steps = actual_steps
       |> add_correct_assms_deps ctxt rewrite_rules ll_defs assms
 *)
+
     val ctxt4 =
       ctxt3
 (*

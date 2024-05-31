@@ -8,7 +8,7 @@ Proof method for replaying Alethe proofs for rare-simplify
 signature LETHE_REPLAY_RARE_SIMPLIFY_METHODS =
 sig
   val rare_rewrite_thys : theory list
-  val rare_rewrite: Lethe_Replay_Methods.lethe_tac_args
+  val rare_rewrite: Lethe_Replay_Methods.lethe_tac_step_args
 end;
 
 structure Lethe_Replay_RARE_Simplify_Methods: LETHE_REPLAY_RARE_SIMPLIFY_METHODS =
@@ -40,7 +40,7 @@ let
 
  fun find_Thy [] = Lethe_Replay_Methods.replay_error ctxt
   "No corresponding rewrite lemma found, add yours manually in RARE_Interface.thy or use IsaRARE for automatic support.. "
-   Lethe_Replay_Methods.RARE_Rewrite th t |
+   Lethe_Replay_Methods.RARE_Rewrite th [] t |
  find_Thy (thy::thys) =
   let
    val thy_name = (Context.theory_base_name thy)

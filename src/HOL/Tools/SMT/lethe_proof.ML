@@ -92,7 +92,7 @@ val is_SH_trivial = member (op =) [not_not_rule, contract_rule]
 
 fun is_skolemization_step (Lethe_Replay_Node {id, ...}) = is_skolemization id
 
-val trace = true
+val trace = false
 fun lethe_proof_parsing_trace ctxt (x : unit -> 'a) = if trace then ignore(x ()) else () (*Eventually, will use option in context, so leaving ctxt as argument*)
 fun lethe_proof_parsing_tracing ctxt str a  = let val _ = lethe_proof_parsing_trace ctxt (fn () => \<^print> str) in a end (*Eventually, will use option in context, so leaving ctxt as argument*)
 fun lethe_proof_parsing_tracing' ctxt str a  =
@@ -391,7 +391,7 @@ fun preprocess compress step =
       match_typing_arguments tab (x::xs) = x :: match_typing_arguments tab xs
 
       fun normalize_name name = if String.explode name |> hd |> Char.isUpper  then "isabelle_internal_" ^ name  else name
-      fun smtlib_types t = (t="Bool") orelse (t="Int")
+      fun smtlib_types t = (t="Bool") orelse (t="Int") orelse (t="Real") orelse (t="String")
       fun normalize_tree (SMTLIB.Sym s) = if smtlib_types s then SMTLIB.Sym s else SMTLIB.Sym (normalize_name s) |
           normalize_tree (SMTLIB.S xs) = SMTLIB.S (map normalize_tree xs) |
           normalize_tree x = x
@@ -404,12 +404,9 @@ fun preprocess compress step =
         (* If we check external proofs we need to change term names starting with an upper character
            since this is not allowed in Isabelle *)
         (* I am not too happy about this since it works on all expressions, I want to change this maybe able do in smtlib_proof? *)
-        (*val step_args = if Config.get ctxt SMT_Config.check_external andalso Option.isSome step_args then SOME (normalize_tree (Option.valOf step_args)) else step_args
-        val context_assignments = if Config.get ctxt SMT_Config.check_external andalso Option.isSome context_assignments then SOME (normalize_tree (Option.valOf context_assignments)) else context_assignments
-        val concl = if Config.get ctxt SMT_Config.check_external then normalize_tree concl else concl*)
-
-        val _ = @{print}("step_args",step_args)
-        val _ = @{print}("context_assignments",context_assignments)
+        val step_args = if Config.get ctxt SMT_Config.check_external then (map normalize_tree step_args) else step_args
+        val context_assignments = if Config.get ctxt SMT_Config.check_external then (map normalize_tree context_assignments) else context_assignments
+        val concl = if Config.get ctxt SMT_Config.check_external then normalize_tree concl else concl
 
         (* Sanity checks *)
         val context_assignments =
@@ -448,18 +445,17 @@ fun preprocess compress step =
            then step_args |> map (fn SMTLIB.S [SMTLIB.Key "=", x, y] => SMTLIB.S [SMTLIB.Sym "=", x, y] | x => x)
                             |> lethe_proof_parsing_tracing' ctxt "... changed assignment symbols (:=) to equalities (=) "
            else step_args
-        val _ = @{print}("stripped_step_args",stripped_step_args)
 
         val declarations =
           if rule = skolem_def
           then
             stripped_step_args
             |> lethe_proof_parsing_tracing ctxt "... found skolem definition. Transform arguments. "
-            |> @{print}
+            |> trace ? @{print}
             |> extract_skolem
             |> single
             |> lethe_proof_parsing_tracing ctxt "... extracted skolems from skolem definition"
-            |> @{print}
+            |> trace ? @{print}
             |> map (fn (name, _, choice) => (name, choice)) (*TODO: Could this not be part of extract_skolem? Does not seem to be used anywhere else *)
           else []
 
@@ -567,7 +563,7 @@ fun postprocess_proof compress ctxt step cx =
     
       val (fixed_vars,substituted_vars,substitute_terms) = split_context_ass cx context_assignments
             |> lethe_proof_parsing_tracing ctxt "... split up context assignments (fixed variables, substituted variables, substitute terms)"
-            |> @{print}
+            |> trace ? @{print}
 
       fun not_already_bound cx t = SMTLIB_Proof.lookup_binding cx (fst t) = None
 
@@ -575,16 +571,16 @@ fun postprocess_proof compress ctxt step cx =
         substituted_vars @ fixed_vars
         |> filter_split (not_already_bound cx)
         |>> lethe_proof_parsing_tracing ctxt "... new variables "
-        |>> @{print}
+        |>> trace ? @{print}
         ||> lethe_proof_parsing_tracing ctxt "... already bound variables "
-        ||> @{print}
+        ||> trace ? @{print}
 
       (*Urspruenglich war fixed variable immer ein neuer Name*)
       (*TODO: Mache Schleife um zu sehen ob Name schon vergeben (not_already_bound), sonst fuege _isabelle1 hinzu, suche nochmal*)
       (*Sollte nicht wirklich ein Problem sein*)
       val new_variable_names = fold (fn t => curry (op ::) (t, t ^ "_isabelle")) (map fst rebound_lhs_vars) []
             |> lethe_proof_parsing_tracing ctxt "... mapping between new variables introduced in the anchor and their original names"
-            |> @{print}
+            |> trace ? @{print}
 
     in ((shadowing_vars, rebound_lhs_vars, substitute_terms), new_variable_names) end
 
@@ -597,12 +593,11 @@ fun postprocess_proof compress ctxt step cx =
      (* Update proof context *) 
       val cx = if rule <> skolem_def then cx else
         let
-          val _ = @{print}("cx",cx)
           fun declared_csts [SMTLIB.S [SMTLIB.Sym x, typ,_]] = (x, Term (Free (x, type_of cx typ)))
             | declared_csts t = (@{print}t;raise throw_lethe_ex ("unrecognized skolem_definition " ^ @{make_string} t))
           val globally_bound_vars = declared_csts step_args
             |> lethe_proof_parsing_tracing ctxt "... extracted globally bound vars from skolem definition "
-            |> @{print}
+            |> trace ? @{print}
         in update_binding globally_bound_vars cx end
     
      (* Preprocess context arguments *) 
@@ -623,11 +618,11 @@ fun postprocess_proof compress ctxt step cx =
           val ((termified_concl, extra_var), cx') = node_of concl cx
           val _ = lethe_proof_parsing_trace ctxt (fn () => \<^print> ("... transformed conclusion into Isabelle term", termified_concl))
           val _ = if extra_var <> []
-            then raise throw_lethe_ex ("found dangling variable (s) " ^ (@{make_string} extra_var) ^
+            then raise ERROR ("found dangling variable (s) " ^ (@{make_string} extra_var) ^
               " in concl " ^ (@{make_string} concl) ^ " of step" ^ id) else ()
           val termified_concl = unsk_and_rewrite termified_concl
-             |> lethe_proof_parsing_tracing' ctxt "... rewrite conclusion with new variable names introduced by prior anchors"
-          val _ = @{print}("termified_concl",termified_concl)
+             |> lethe_proof_parsing_tracing ctxt "... rewrite conclusion with new variable names introduced by prior anchors"
+             |> trace ? @{print}
         in (cx',termified_concl) end
 
       (* Process subproof *)
@@ -640,11 +635,11 @@ fun postprocess_proof compress ctxt step cx =
             val subproof_cx =
               add_bound_variables_to_cx (map (fn (a,b) => (a,Term b)) (shadowing_vars @ rebound_lhs_vars)) cx
               |> lethe_proof_parsing_tracing' ctxt "... add new variables to context "
-              |> @{print}
+              |> trace ? @{print}
             val can_remove_subproof =
               compress andalso (is_skolemization rule orelse alpha_conversion)
              |> lethe_proof_parsing_tracing ctxt "... does the subproof only rename variables and therefore can be removed? "
-             |> @{print}
+             |> trace ? @{print}
             val new_subproof = (if can_remove_subproof then [] else subproof)
 
             (*TODO: Moved this inside the let. Make sure there are no other rules than anchor rules using subproof atm*)
@@ -660,7 +655,7 @@ fun postprocess_proof compress ctxt step cx =
           val (termified_step_args,_) = fold_map node_of_term step_args cx
           val normalized_step_args = map unsk_and_rewrite (map subproof_rewriter termified_step_args)
              |> lethe_proof_parsing_tracing ctxt ("Termified and normalized steps args: ")
-             |> @{print}
+             |> trace ? @{print}
         in normalized_step_args end
 
      (* We are not sure how step args and context args play together. Can step args use new variables?*)
@@ -668,22 +663,23 @@ fun postprocess_proof compress ctxt step cx =
      val context_ass_cx =
         add_bound_variables_to_cx (map (fn (a,b) => (a,Term b)) (shadowing_vars @ rebound_lhs_vars)) cx
          |> lethe_proof_parsing_tracing ctxt ("New context for anchor arguments")
-         |> @{print}
+         |> trace ? @{print}
 
       val normalized_context_ass = if not (allows_context_assignment rule) then [] else
         let
-          val _ = @{print}("context_assignments",[(hd context_assignments)])
           fun rm_types [] = [] |
               rm_types (SMTLIB.S [SMTLIB.Sym v,typ]::xs) = SMTLIB.Sym v::rm_types xs |
               rm_types (SMTLIB.S [SMTLIB.Sym "=", SMTLIB.S [SMTLIB.Sym v,typ],t]::xs) = SMTLIB.S [SMTLIB.Sym "=",SMTLIB.Sym v,t]::rm_types xs
 
           val (termified_context_ass, _) = fold_map node_of (rm_types context_assignments) context_ass_cx |> apfst (map fst)
-          val _ = @{print}("termified_context_ass",termified_context_ass)
-          val normalized_context_ass = map unsk_and_rewrite (map subproof_rewriter termified_context_ass)
-             |> lethe_proof_parsing_tracing' ctxt ("Termified and normalized normalized_context_ass: ")
-        in normalized_context_ass end
-      val _ = @{print}("normalized_context_ass",normalized_context_ass)
+            |> lethe_proof_parsing_tracing ctxt ("termified_context_ass")
+            |> trace ? @{print}
 
+          val normalized_context_ass = map unsk_and_rewrite (map subproof_rewriter termified_context_ass)
+             |> lethe_proof_parsing_tracing ctxt ("Termified and normalized normalized_context_ass: ")
+             |> trace ? @{print}
+
+        in normalized_context_ass end
 
       (* add arguments *)
       val tactic_args = case rule of
@@ -729,17 +725,18 @@ fun postprocess_proof compress ctxt step cx =
         prems @
         (if is_assm_repetition id rule then [id] else []) @
         (if anchor_rule then id_of_last_step new_subproof else [])
+        @ (map (get_skolem_def_id o (fn SMTLIB.Sym x => x) o fst) substitute_terms) (*TODO: Not sure yet if I should add them here or in Sko_Def_Prems*)
         |> lethe_proof_parsing_tracing ctxt ("New set of premises ")
-        |> @{print}
+        |> trace ? @{print}
 
       (* fix rule *)
       val normalized_rule =
         if rule = input_rule
         then normalized_input_rule_name id |> (if compress andalso alpha_conversion then K "refl" else I) (*TODO: Make the compression part better better, maybe move into let above*)
           |> lethe_proof_parsing_tracing' ctxt ("New rule: " )
-          |> @{print}
+          |> trace ? @{print}
         else rule
-      val _ = @{print}("tactic_args",tactic_args)
+
       val step =
         mk_replay_node id normalized_rule normalized_step_args normalized_context_ass
         normalized_premises termified_concl

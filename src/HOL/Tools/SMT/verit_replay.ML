@@ -137,7 +137,7 @@ fun replay_theorem_step rewrite_rules all_assms ll_defs assumed inputs proof_pre
     val proof_prems' = take (length assms) all_proof_prems'
     val input = drop (length assms) all_proof_prems'
     val all_proof_prems = proof_prems @ proof_prems'
-    val _ = @{print}("all_proof_prems",all_proof_prems)
+    (*val _ = @{print}("all_proof_prems",all_proof_prems)*)
 
     val replay = replay_theorem_step rewrite_rules all_assms ll_defs assumed (input @ inputs) all_proof_prems
     val (proofs', stats, _, _, sub_global_rew) =
@@ -147,16 +147,16 @@ fun replay_theorem_step rewrite_rules all_assms ll_defs assumed inputs proof_pre
 
     (*for sko_ex and sko_forall, assumptions are in proofs',  but the definition of the skolem
        function is in proofs *)
-    val _ = @{print}("prems",prems)
+    (*val _ = @{print}("prems",prems)*)
     val nthms = prems
       |> filter_out Lethe_Proof.is_skolem_def
       |> map (apsnd export_thm) o map_filter (Symtab.lookup (if (null subproof) then proofs else proofs'))
-    val _ = @{print}("nthms",nthms)
+    (*val _ = @{print}("nthms",nthms)*)
 
     val nthms' = (if Lethe_Proof.is_skolemization rule then prems else [])
       |> filter Lethe_Proof.is_skolem_def
       |> map_filter (Symtab.lookup proofs)
-    val _ = @{print}("nthms'",nthms')
+    (*val _ = @{print}("nthms'",nthms')*)
 
     val step_args = map (Term.subst_free concl_tranformation o subst_only_free global_transformation) step_args
     val insts = Symtab.empty (*Symtab.map (K (Term.subst_free concl_tranformation o subst_only_free global_transformation)) insts*)
@@ -319,8 +319,8 @@ fun replay outer_ctxt
       (if i > next then print_runtime_statistics i else ();
        (if i > next then i + 10 else next, f x y))
     val global_transformation : term Termtab.table = Termtab.empty
-    val _ = @{print}("assms",assms)
-    val _ = @{print}("assumed",assumed)
+    (*val _ = @{print}("assms",assms)
+    val _ = @{print}("assumed",assumed)*)
 
     val (_, (proofs, stats, ctxt5, _, _)) =
       fold (blockwise (replay_step rewrite_rules (map snd assms) ll_defs assumed [] [])) actual_steps
@@ -332,8 +332,18 @@ fun replay outer_ctxt
       |> singleton (Proof_Context.export ctxt5 outer_ctxt)
     val _ = SMT_Config.statistics_msg ctxt5
       (Pretty.string_of o SMT_Replay.pretty_statistics "veriT" total) stats
-    val _ = File.append (Path.explode ("$ISABELLE_HOME_USER/" ^
-      (Config.get ctxt SMT_Config.statistics_file))) (string_of_int total ^ "\n")
+    fun print_stats stats =
+    let
+      fun print_list xs = fold (fn x => fn msg => msg ^ string_of_int x ^ ",") xs "" |> Library.unsuffix ","
+    in
+      fold (fn (x,y) => fn msg => msg ^ "\"" ^  x ^ "\": [" ^ print_list y ^ "],\n") stats "" |> Library.unsuffix ",\n"
+    end
+    val _ = 
+      if Config.get ctxt SMT_Config.rec_evaluation
+      then File.append (Path.explode ("$ISABELLE_HOME_USER/" ^
+        (Config.get ctxt SMT_Config.statistics_file))) (string_of_int total
+       ^ ",\"detail\": {" ^ print_stats (Symtab.dest stats) ^"}}]},\n")
+      else ()
     val _ = SMT_Replay.spying (SMT_Config.spy_verit ctxt) ctxt
       (fn () => SMT_Replay.print_stats (Symtab.dest stats)) "spy_verit"
   in
