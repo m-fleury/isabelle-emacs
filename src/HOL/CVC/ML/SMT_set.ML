@@ -77,10 +77,16 @@ fun set_term_parser (SMTLIB.Sym "set.card", [t1]) =
    SOME (mk_unary \<^const_name>\<open>uminus\<close> (fastype_of t1) t1)
   | set_term_parser (SMTLIB.Sym "set.card", [t1]) =
    SOME (mk_unary \<^const_name>\<open>card\<close> \<^typ>\<open>nat\<close> t1)
+ | set_term_parser (SMTLIB.Sym "set.empty", []) =
+   SOME (Const (\<^const_name>\<open>bot\<close>,Type(\<^type_name>\<open>Set.set\<close>,[dummyT])))
+ | set_term_parser (SMTLIB.Sym "set.is_empty", [t1]) =
+   SOME (mk_unary \<^const_name>\<open>Set.is_empty\<close> \<^typ>\<open>bool\<close> t1) 
+
+
+
 (* These don't work yet. Their semantics is more intricate.
    They are also written as (as set.empty (Set Int))
-  | set_term_parser (SMTLIB.Sym "set.empty", []) =
-   SOME (Const (\<^const_name>\<open>bot\<close>,Type(\<^type_name>\<open>Set.set\<close>,[dummyT])))
+  
   | set_term_parser (SMTLIB.Sym "set.universe", []) =
    SOME (Const (\<^const_name>\<open>Pow\<close>,Type(\<^type_name>\<open>Set.set\<close>,[dummyT]))
        $(Const (\<^const_name>\<open>top\<close>,Type(\<^type_name>\<open>Set.set\<close>,[dummyT]))))
