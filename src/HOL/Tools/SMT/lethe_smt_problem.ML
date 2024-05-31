@@ -34,15 +34,15 @@ local
          let val (l, cx) = (fst oo SMTLIB_Proof.extract_and_update_name_bindings) t cx
             |> apsnd (SMTLIB_Proof.update_name_binding (name, SMTLIB.Sym id))
          in
-           (*(mk_raw_node (id ^ lethe_def) lethe_def (SMTLIB.S [SMTLIB.Sym id, typ, l]) [] []
+           (*(mk_raw_node (id ^ skolem_def) skolem_def (SMTLIB.S [SMTLIB.Sym id, typ, l]) [] []
               (SMTLIB.S [SMTLIB.Sym "=", SMTLIB.Sym id, l]) [], cx)*)
-            (mk_raw_node (id ^ Lethe_Proof.lethe_def) Lethe_Proof.lethe_def [(SMTLIB.S [SMTLIB.Sym id, typ, l])] [] [] []
+            (mk_raw_node (id ^ Lethe_Proof.skolem_def) Lethe_Proof.skolem_def [(SMTLIB.S [SMTLIB.Sym id, typ, l])] [] [] []
               (SMTLIB.S [SMTLIB.Sym "=", SMTLIB.Sym id, l]) [], cx)
          end
       | parse_fun_def (SMTLIB.S [SMTLIB.Sym "define-fun", SMTLIB.Sym id,  _, typ, SMTLIB.S l]) cx =
          let val (l, cx) = (fst oo SMTLIB_Proof.extract_and_update_name_bindings) (SMTLIB.S l) cx
          in
-           (mk_raw_node (id ^ Lethe_Proof.lethe_def) Lethe_Proof.lethe_def [(SMTLIB.S [SMTLIB.Sym id, typ, l])] [] [] []
+           (mk_raw_node (id ^ Lethe_Proof.skolem_def) Lethe_Proof.skolem_def [(SMTLIB.S [SMTLIB.Sym id, typ, l])] [] [] []
               (SMTLIB.S [SMTLIB.Sym "=", SMTLIB.Sym id, l]) [], cx)
          end
       | parse_fun_def t _ = raise Fail ("unrecognized Lethe proof " ^ \<^make_string> t)
@@ -68,7 +68,7 @@ fun parse_raw_problem_steps (commands : SMTLIB.tree list) (cx : name_bindings) (
            the size of the generated terms and therefore the reconstruction time*)
          let val (l, cx) = (fst oo SMTLIB_Proof.extract_and_update_name_bindings) def cx
          in
-           (mk_raw_node (id ^ Lethe_Proof.lethe_def) Lethe_Proof.lethe_def [(SMTLIB.S [SMTLIB.Sym id, typ, l])] [] [] []
+           (mk_raw_node (id ^ Lethe_Proof.skolem_def) Lethe_Proof.skolem_def [(SMTLIB.S [SMTLIB.Sym id, typ, l])] [] [] []
               (SMTLIB.S [SMTLIB.Sym "=", SMTLIB.Sym id, def]) [], cx)
          end
 
