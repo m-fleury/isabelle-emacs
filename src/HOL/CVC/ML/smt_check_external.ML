@@ -1,6 +1,6 @@
 signature SMT_CHECK_EXTERNAL =
 sig
-  val replay_only: string -> Proof.context -> string list -> string list -> string option -> thm
+  val replay_only: string -> Proof.context -> string -> string list -> string option -> thm
   val check_smt: string -> string -> string -> string option -> local_theory -> local_theory
   val check_all_benchmarks : string -> string -> string option -> local_theory -> unit
 end
@@ -46,7 +46,7 @@ let
   val ctxt = Local_Theory.target_of lthy
     |> Config.put SMT_Config.check_external true
     |> SMT_Config.alethe_set_no_provided_assms true
-  val _ = @{print}(SMT_Config.alethe_no_provided_assms ctxt)
+
   val _ =
     if Option.isSome opt_output_file
     then
@@ -62,7 +62,7 @@ let
   val problem_file_path = Path.explode problem_file_name
   val proof_file_path = Path.explode proof_file_name
 
-  val problem_lines = problem_file_path |> Bytes.read |> Bytes.split_lines;
+  val problem_lines = problem_file_path |> Bytes.read |> Bytes.content;
   val proof_lines = proof_file_path |> Bytes.read |> Bytes.split_lines;
 
   val _ = replay_only prover ctxt problem_lines proof_lines opt_output_file
@@ -123,7 +123,7 @@ let
       if Path.explode proof_path |> File.is_file
       then
         let
-          val (_,i) = (check_smt prover problem_path proof_path opt_output_file local_thy,i+1)
+          val (_,i) = (Timeout.apply (seconds 30.0) (fn () => check_smt prover problem_path proof_path opt_output_file local_thy) () ,i+1)
             handle
             (*Error during Parsing into AST*)
             (SMTLIB.PARSE(l,err))
@@ -147,7 +147,7 @@ let
                   print_reconstruction_error_to_file ctxt 6 rule; (local_thy,i)) |
             (SMT_Failure.SMT (SMT_Failure.Replay(rule,INTERRUPT)))
                => (@{print}("Timeout");
-                  print_error_to_file ctxt 7; (local_thy,i)) |
+                  print_reconstruction_error_to_file ctxt 7 rule; (local_thy,i)) |
             (SMT_Failure.SMT (SMT_Failure.Replay(rule,exn)))
               => (@{print}("Error replaying step" ^ rule ^ " is: " ^ General.exnMessage exn);
                   print_reconstruction_error_to_file ctxt 1 rule; (local_thy,i)) |

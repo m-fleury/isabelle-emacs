@@ -18,21 +18,20 @@ lemmas [arith_simp_cvc5] = Groups.monoid_mult_class.mult_1_right Nat.mult_Suc_ri
 lemmas [cvc_evaluate] = arith_simp_cvc5
 
 (*Theories currently only supported by cvc5*)
+
 ML_file \<open>ML/SMT_set.ML\<close>
 ML_file \<open>ML/SMT_string.ML\<close>
 ML_file \<open>ML/SMT_array.ML\<close>
 
+(*Term rewrites*)
+
 ML_file \<open>ML/lethe_replay_rare_simplify_methods.ML\<close>
-
-
-ML_file \<open>ML/smt_parse_problem.ML\<close>
-ML_file \<open>ML/smt_check_external.ML\<close>
 
 ML \<open>
 fun cvc_term_parser (SMTLIB.Sym "rare-list", []) = (@{print}("rare-list");
    (*If there are no elements in the list we cannot know the type at this point*)
     SOME(Const( \<^const_name>\<open>ListVar\<close> ,dummyT --> dummyT)
-       $ Const( \<^const_name>\<open>List.Nil\<close>, dummyT)))
+       $ Const( \<^const_name>\<open>List.Nil\<close>, dummyT))|> @{print})
   | cvc_term_parser (SMTLIB.Sym "rare-list", ts) =(@{print}("rare-list");
     let
       (*Figure out if types are different, this should only be the case if they have different
@@ -58,6 +57,15 @@ fun cvc_term_parser (SMTLIB.Sym "rare-list", []) = (@{print}("rare-list");
 val _ = Theory.setup (Context.theory_map (
   SMTLIB_Proof.add_term_parser cvc_term_parser)
 )
+\<close>
+
+
+(*External proof checking*)
+ML_file \<open>ML/smt_parse_problem.ML\<close>
+ML_file \<open>ML/smt_check_external.ML\<close>
+
+ML \<open>
+
 (*Call replay from SMT_Solver and add replay_data on your own*)
 val _ = Outer_Syntax.local_theory \<^command_keyword>\<open>check_smt\<close>
           "parse a file in SMTLIB2 format and check proof. <problem_file,proof_file>"
@@ -70,7 +78,7 @@ val _ = Outer_Syntax.local_theory \<^command_keyword>\<open>check_smt\<close>
     val _ = SMT_Config.verbose_msg ctxt (pretty "Checking Alethe proof...") []
     (*Replay proof*)
     val _ = SMT_Check_External.check_smt prover problem_file_name proof_file_name NONE lthy
-    val _ = SMT_Config.verbose_msg ctxt (pretty "Checked Alethe proof") []
+    val _ = SMT_Config.verbose_msg ctxt (pretty "Finished checking Alethe proof!") []
   in
    lthy
   end))

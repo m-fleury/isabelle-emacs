@@ -1,62 +1,22 @@
+(*TODO: This file will eventually be integrated into other files (mainly lethe_smt_problem.ML)
+ It only exists for easier development*)
+(*TODO: Spoke to Mathias should be combined with lethe_smt_problem (which will be
+renamed smt_parse_problem.*)
 signature SMT_PARSE_PROBLEM =
 sig
-  val parse: string list -> Proof.context -> SMT_Translate.replay_data * int
+  exception SMT_PROBLEM_PARSE of string
+
+  val parse: string -> Proof.context -> SMT_Translate.replay_data * int
 end;
 
 structure SMT_Parse_Problem : SMT_PARSE_PROBLEM =
 struct
 
-(*TODO: This file will eventually be integrated into other files (mainly lethe_proof (parse_raw_proof_steps) and smt_solver).
- It is only used for easier development*)
+exception SMT_PROBLEM_PARSE of string
 
-(* The define-fun functionality is already implemented in lethe-proof and should be reused*)
-
-(* 
-To declare a term and put it into the context:
-  ||> fold Variable.declare_term (map Free fixes)
-This is also used in verit_replay (replay_theorem_step)
-
-It gives the term a new name that is why we also need to do: 
-
-  val export_vars = concl_tranformation @
-       (ListPair.zip (map Free fixes, map Free (ListPair.zip (names, map snd fixes))))
-
-The same has to be done for assumptions:
-
- val (all_proof_prems', sub_ctxt2) = Assumption.add_assumes (map (Thm.cterm_of sub_ctxt) (assms @ input))
-      sub_ctxt
-*)
-
-(*
-Mathias Plan to implement functionality:
-
-Traverse problem:
-  - If you see declare-fun add to context and fill up replay-data (probably just put in declare-fun directly into terms and eventually add in typs)
-  - If you see assert do the same
-
-Afterwards you should be able to call the replay directly. 
-
-You cannot make a theorem out of it, so use export_theorem
-
-At the end you want to export the theorem from local to global context. For this use 
-
-    val export_thm = singleton (Proof_Context.export sub_ctxt2 ctxt)
-
-Because in the local context you have the assumptions but not in global one
-
-Ich versuche diese Woche, sonst uebernimmt Mathias.
-
-*)
-
-(*"In apply_solver_and_replay" (line 266 of "/home/lachnitt/Sources/isabelle-git/isabelle-emacs/src/HOL/Tools/SMT/smt_solver.ML") 
-("assms", [((0, Axiom), "\<not> True"  [.])]) (line 267 of "/home/lachnitt/Sources/isabelle-git/isabelle-emacs/src/HOL/Tools/SMT/smt_solver.ML") 
-("terms", {}) (line 268 of "/home/lachnitt/Sources/isabelle-git/isabelle-emacs/src/HOL/Tools/SMT/smt_solver.ML") 
-("typs", {}) (line 269 of "/home/lachnitt/Sources/isabelle-git/isabelle-emacs/src/HOL/Tools/SMT/smt_solver.ML") 
-("rewrite_rules",
- ["SMT.fun_app (?y::?'a) \<equiv> ?y", "Let (?s::?'a) (?f::?'a \<Rightarrow> ?'b) \<equiv> ?f ?s",
-  "(?P::bool) = True \<equiv> ?P"]) (line 270 of "/home/lachnitt/Sources/isabelle-git/isabelle-emacs/src/HOL/Tools/SMT/smt_solver.ML") 
-("ll_defs", []*)
-
+(*FIXME: I'd rather not do this this way. If we really need to put it in util class*)
+(*TODO: Discussed with Mathias and this can be done in parse_raw_proof_steps (and parse_raw_problem_steps) or after but at least in 
+lethe_proof. There I know what a type is and what not. Make separate function after so that we can deactivate it.*)
 fun normalize_name name = if String.explode name |> hd |> Char.isUpper  then "isabelle_internal_" ^ name  else name
 
 fun smtlib_types t = (t="Bool") orelse (t="Int") orelse (t="BitVec") orelse (t="String")
@@ -64,21 +24,51 @@ fun normalize_tree (SMTLIB.Sym s) = if smtlib_types s then SMTLIB.Sym s else SMT
     normalize_tree (SMTLIB.S xs) = SMTLIB.S (map normalize_tree xs) |
     normalize_tree x = x
 
-fun parse_assert cs ({context,typs,terms,ll_defs,rewrite_rules,assms}: SMT_Translate.replay_data, assms_nbr)
- =
-let
-  (*val _ = @{print} ("assert", cs)*)
 
-  val smtlib_lines_without_qm = (*This also removes pattern usually but I deleted it here for now*)
+(*         let val (l, cx) = (fst oo SMTLIB_Proof.extract_and_update_name_bindings) t cx
+            |> apsnd (SMTLIB_Proof.update_name_binding (name, SMTLIB.Sym id))
+         in*)
+
+(*TODO: MAKE SURE REMOVE_PATTERN is done after SMTLIB_Proof.extract_and_update_name_bindings *)
+(*!named in problem can be used in proof! \<rightarrow> ASK CESARE if this is really the case*)
+(*If so make sure same naming binding is used*)
+(*TODO: Merge*)
+(*Add named as define-funs*)
+fun collect_named ((SMTLIB.S (SMTLIB.Sym "!" :: t :: [SMTLIB.Key "named", name])),collect) = collect_named (t,name::collect)
+  | collect_named ((SMTLIB.S (x::xs)),collect) =
+    let
+     val (x',names) = collect_named (x,collect)
+    in
+     collect_named (SMTLIB.S (x'::xs),names)
+    end
+  | collect_named (t',collect) = (t',collect)
+
+fun remove_pattern (SMTLIB.S (SMTLIB.Sym "!" :: t :: [SMTLIB.Key _, SMTLIB.S _])) = t
+  | remove_pattern (SMTLIB.S xs) = SMTLIB.S (map remove_pattern xs)
+  | remove_pattern p = p
+
+(*This also removes pattern usually but I deleted it here for now*)
+(*Should remove pattern, however make sure they are added before to name binding (steht im cx) *)
+fun smtlib_lines_without_qm cs =
     implode cs
     |> single
     |> SMTLIB.parse
     |> normalize_tree
 
-  val ([step], _, cx) = Lethe_Proof.parse_raw_problem_steps [smtlib_lines_without_qm]
-   SMTLIB_Proof.empty_name_binding
 
-  val (Lethe_Proof.Raw_Lethe_Node {concl, ...} : Lethe_Proof.raw_lethe_node) = step
+
+
+fun parse_assert cs ({context,typs,terms,ll_defs,rewrite_rules,assms}: SMT_Translate.replay_data, assms_nbr)
+ =
+let
+  val smtlib_lines_without_qm = smtlib_lines_without_qm cs
+
+  val (step,cx) =
+   (fn ([step], _, cx) => (step,cx) | _ => raise ERROR "Problem could not be parsed")
+   (Lethe_SMT_Problem.parse_raw_problem_steps [smtlib_lines_without_qm] SMTLIB_Proof.empty_name_binding 0)
+
+
+  val (Lethe_Node.Raw_Lethe_Node {concl, ...} : Lethe_Node.raw_lethe_node) = step
 
   val cx = (SMTLIB_Proof.empty_context context typs terms)
   val t2 = SMTLIB_Proof.term_of concl cx |> fst
@@ -92,44 +82,29 @@ in
 assms = assm :: assms}, assms_nbr+1)
 end
 
-(*Taken from stuff*)
-fun add_components_of_typ (Type (s, Ts)) =
-    cons (Long_Name.base_name s) #> fold_rev add_components_of_typ Ts
-  | add_components_of_typ (TFree (s, _)) = cons (perhaps (try (unprefix "'")) s)
-  | add_components_of_typ _ = I;
 
-fun suggested_name_of_typ T = space_implode "_" (add_components_of_typ T []);
+(*Why is this now called Proof.context and not ctxt? Variable seems to use ctxt
 
-fun suggested_name_of_term (Const (s, _)) = Long_Name.base_name s
-  | suggested_name_of_term (Free (s, _)) = s
-  | suggested_name_of_term _ = Name.uu
+Firm naming conventions:
+   thy, thy', thy1, thy2: theory
+   ctxt, ctxt', ctxt1, ctxt2: Proof.context
+   context: Context.generic
 
-fun add_typ T proper (cx as (names, typs, terms)) =
-  (case Typtab.lookup typs T of
-    SOME (name, _) => (name, cx)
-  | NONE =>
-      let
-        val sugg = Name.desymbolize (SOME true) (suggested_name_of_typ T) ^ "$"
-        val (name, names') = Name.variant sugg names
-        val typs' = Typtab.update (T, (name, proper)) typs
-      in (name, (names', typs', terms)) end)
-(**)
-fun parse_sort (cs: string list) ({context,typs: typ Symtab.table,terms,ll_defs,rewrite_rules,assms}: SMT_Translate.replay_data, assms_nbr)
- =
+I think this might be a mistake and I can rename it. Yes, replay data should be named ctxt
+
+*)
+fun parse_sort (cs: string list)                                              
+ ({context,typs: typ Symtab.table,terms,ll_defs,rewrite_rules,assms}: SMT_Translate.replay_data, assms_nbr) =
 let
-  (*val _ = @{print} ("sort declaration", cs)*)
-  val typ = (*This also removes pattern usually but I deleted it here for now*)
-    [implode cs]
-    |> map single
-    |> map SMTLIB.parse
-    |> map normalize_tree
-    |> (fn [SMTLIB.S [SMTLIB.Sym "declare-sort", SMTLIB.Sym typ, SMTLIB.Num 0]] => typ)
-    (*|> @{print}*)
-    val T = TFree (typ, ["HOL.type"])
-    val context = Variable.declare_typ T context
+  fun extract_sort_symbol (SMTLIB.S [SMTLIB.Sym "declare-sort", SMTLIB.Sym typ, SMTLIB.Num 0]) = typ |
+    extract_sort_symbol (SMTLIB.S [SMTLIB.Sym "declare-sort", SMTLIB.Sym _, SMTLIB.Num _]) =
+      raise SMT_PROBLEM_PARSE "we currently only support sorts of arity 0." |
+    extract_sort_symbol _ = raise SMT_PROBLEM_PARSE "declare-sort has wrong form"
 
-   val typs = Symtab.update (typ, T) typs
-(*|> @{print}*)
+  val sort_symbol = cs |> smtlib_lines_without_qm |> extract_sort_symbol                                                        
+  val T = TFree (sort_symbol, ["HOL.type"])
+  val context = Variable.declare_typ T context
+  val typs = Symtab.update (sort_symbol, T) typs
 in
  ({context = context,typs = typs,terms = terms,ll_defs = ll_defs,rewrite_rules = rewrite_rules,assms = assms}, assms_nbr)
 end
@@ -183,8 +158,25 @@ fun parse_declare (cs: string list) ({context,typs,terms,ll_defs,rewrite_rules,a
     ({context = context, typs = typs,terms = terms,ll_defs = ll_defs,rewrite_rules = rewrite_rules,assms = assms}, assms_nbr)
   end
 
+val ignore_commands =
+ ["check-sat","check-sat_assuming","echo","get-assertions","get-assignment",
+  "get-info","get-model","get-option","get-proof","get-unsat-assumptions","get-unsat-core",
+  "get-value","set-option"]
+val not_supported =
+ ["declare-datatype","declare-datatypes","define-fun-rec","define-fun-recs",
+  "exit","reset","reset_assertions","pop","push","set-logic","set-info"]
+val supported_commands = ["assert","declare-sort","define-fun","declare-fun","define-sort"]
 
-(*This obviously could be done better but since it is only temporary:*)
+fun any_prefix list = 
+ Scan.first (map (fn l => (fn str => if String.isPrefix l str then  (str,l) else Scan.fail "")) list)
+ 
+
+fun read_command replay_data =
+  $$ "("
+  |-- Scan.many (curry (op =) " ")
+  (*|-- Scan.ahead (fn cs => any_prefix ignore_commands cs)*)
+
+
 fun read (cs as "("::"a"::"s"::"s"::"e"::"r"::"t"::" "::_) replay_data = 
       parse_assert cs replay_data
   | read (cs as "("::"d"::"e"::"c"::"l"::"a"::"r"::"e"::"-"::"f"::"u"::"n"::" ":: _) replay_data = parse_declare cs replay_data
@@ -212,36 +204,62 @@ fun add_line line (l, replay_data) =
   end
 
 
-fun count_parenthesis n ("(" :: line)  = count_parenthesis (n+1) line
-  | count_parenthesis n (")" :: line)  = count_parenthesis (n-1) line
-  | count_parenthesis n (_ :: line)  = count_parenthesis (n) line
-  | count_parenthesis n []  = n
 
-(*TODO this is ugly and not very efficient and does not support
-(assert ..) (assert ...)
+datatype token = None | Unfinished of string list * int | Finished of string list * string list
+exception TOKEN of string
+
+fun parse_token s [] = s |
+  parse_token None ("("::cs) = parse_token (Unfinished(["("],1)) cs |
+  parse_token None (" "::cs) = parse_token None cs |
+  parse_token None (")"::cs) = Scan.fail cs |
+  parse_token None cs = Finished (Scan.catch Scan.many (fn c => c <> " " andalso c <> ")") cs) |
+  parse_token (Unfinished (s,i)) ("("::cs) = parse_token (Unfinished ("("::s,i+1)) cs |
+  parse_token (Unfinished (_,0)) (")"::_) = raise TOKEN("too many closing parenthesis") |
+  parse_token (Unfinished (s,1)) (")"::xs) = Finished(rev (")"::s),xs) |
+  parse_token (Unfinished (s,i)) (")"::cs) = parse_token (Unfinished (")"::s,i-1)) cs |
+  parse_token (Unfinished (s,i)) (c::cs) = parse_token (Unfinished (c::s,i)) cs |
+  parse_token _ _ = raise TOKEN("error parsing token")
+
+fun lexer_add_line ctxt l line uf =
+let
+  val trimmed_lines = raw_explode line |> Library.trim (curry (op =) " ")
+in
+  case trimmed_lines of
+    [] => uf | (*skip empty line*)
+    (";"::_) => uf | (*skip comment line*)
+    _ => 
+      let (*non-empty line*)
+        (* cut comments in line *)
+        val sanitized_lines =
+          Library.take (Library.find_index (curry (op =) ";") trimmed_lines) trimmed_lines |> Library.trim (curry (op =) " ")
+        val token = parse_token uf sanitized_lines
+      in
+        case token of
+          None => raise ERROR ("expected opening parenthesis in line" ^ Int.toString(l)) |
+          t => t
+       end
+end
 
 
-but supports
+fun lexer _ [] (Unfinished (s,i)) _ l_start =
+    raise ERROR ("expected eof but last command (starting at line nr "
+      ^ Int.toString(l_start) ^ ") was not closed. Counted " ^ Int.toString(i)
+      ^ " opened but not closed parenthesis far. Part already parsed in: \n"
+      ^ (rev s |> String.concat)) |
+  lexer _ [] _ _ _ = [] | (*Finished lexing*)
+  lexer ctxt (line::lines) uf l l_start =
+    case lexer_add_line ctxt l line uf of
+      Finished (s,[]) => (l_start,String.concat s) :: lexer ctxt lines None (l+1) (l+1) |
+      Finished (_,s') => raise ERROR ("text after final closing parenthesis found! "
+        ^ String.concat s') |
+      Unfinished (s,s') => lexer ctxt lines (Unfinished ([" "] @ s,s')) (l+1) l_start |
+      None => lexer ctxt lines uf (l+1) (l+1)
 
-(assert (or 
-   a
-   b))
-
-
-*)
-fun fix_lines acc _ [] = [acc]
-  | fix_lines acc m (l :: lines) =
-    let val n = count_parenthesis m (raw_explode l)
-    in 
-      if n = 0 then acc ^ l :: fix_lines "" 0 lines
-      else fix_lines (acc ^ l) n (lines)
-    end
+fun split_up_lines ctxt cs = lexer ctxt [cs] None 1 1 |> map snd
 
 fun parse lines ctxt
- = snd (fold add_line (fix_lines "" 0 lines) (1,
+ = snd (fold add_line (split_up_lines ctxt lines) (1,
  ({context = ctxt, typs = Symtab.empty, terms = Symtab.empty, ll_defs = [], rewrite_rules = [], assms = []}: SMT_Translate.replay_data, 0)))
- (*= print (fst (Lethe_Proof.parse Symtab.empty Symtab.empty lines ctxt))*)
-
 
 
 end
