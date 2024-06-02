@@ -136,7 +136,7 @@ fun replay_theorem_step rewrite_rules all_assms ll_defs assumed inputs proof_pre
       end
     val _ = cvc5_replay_trace ctxt (fn () => "Obtained rewriter to remove lambda expressions from a term")
 
-    val term_rewriter = (subst_only_free global_transformation o Term.subst_free (export_vars) o remove_lambdas o SMTLIB_Isar.unskolemize_names ctxt)
+    val term_rewriter = (SMTLIB_Isar.unskolemize_names ctxt o subst_only_free global_transformation o Term.subst_free (export_vars) o remove_lambdas)
     fun is_refl thm = Thm.concl_of thm |> (fn (_ $ t) => t) |> HOLogic.dest_eq |> (op =) handle TERM _=> false
     (*TODO: Do somewhere else?*)
     fun is_mapping (x as  \<^term>\<open>Trueprop\<close> $ (Const(\<^const_name>\<open>HOL.eq\<close>, _) $ _ $ _ )) = true |
@@ -152,19 +152,33 @@ fun replay_theorem_step rewrite_rules all_assms ll_defs assumed inputs proof_pre
 
     val assms = map term_rewriter assms
       |> cvc5_replay_trace' ctxt "Rewrite assms"
+      |> trace ? @{print}
+
     val input = map term_rewriter input
       |> cvc5_replay_trace' ctxt "Rewrite input (assumes in subproofs)"
+      |> trace ? @{print}
+
     val step_args = map term_rewriter step_args
       |> cvc5_replay_trace' ctxt "Rewrite step arguments"
+      |> trace ? @{print}
+
     val context_assignments = map term_rewriter context_assignments
       |> cvc5_replay_trace' ctxt "Rewrite context assignments"
+      |> trace ? @{print}
+
 
     val (assms, sub_ctxt2) = mk_thms assms sub_ctxt
       |> cvc5_replay_trace' ctxt "Filter out refl assms and transform to theorem"
+      |> trace ? @{print}
+
     val (input, sub_ctxt2) = mk_thms input sub_ctxt2
       |> cvc5_replay_trace' ctxt "Filter out refl inputs and transform to theorem"
+      |> trace ? @{print}
+
     val context_assignments = List.filter is_mapping context_assignments
     val _ = @{print}("context_assignments",context_assignments)
+      |> trace ? @{print}
+
 
     val (context_assignments2, sub_ctxt2) = mk_thms context_assignments sub_ctxt2
       |> cvc5_replay_trace' ctxt "Filter out refl context assigments and transform to theorem"
@@ -208,7 +222,8 @@ map (apsnd export_thm) macht dann noch iwleche transformationen
     val context_assignments = map (Term.subst_free concl_tranformation o subst_only_free global_transformation) context_assignments
 
     val missing_assumptions =
-       if SMT_Config.alethe_no_provided_assms ctxt andalso rule = Lethe_Proof.normalized_input_rule 
+       if SMT_Config.alethe_no_provided_assms ctxt andalso
+         (rule = Lethe_Proof.local_input_rule orelse rule = Lethe_Proof.input_rule)
        then all_assms else []
 (*Wir wollen mappings vom Context assignment als premises an "refl", "sko_forall", "sko_ex", "cong" steps uebergeben*)
     val proof_prems =
