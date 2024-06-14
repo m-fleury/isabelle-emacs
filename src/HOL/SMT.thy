@@ -683,8 +683,8 @@ ML_file \<open>Tools/SMT/smtlib.ML\<close>
 ML_file \<open>Tools/SMT/smtlib_interface.ML\<close>
 ML_file \<open>Tools/SMT/smtlib_proof.ML\<close>
 ML_file \<open>Tools/SMT/smtlib_isar.ML\<close>
-ML_file \<open>Tools/SMT/z3_proof.ML\<close>
-ML_file \<open>Tools/SMT/z3_isar.ML\<close>
+ML_file \<open>Tools/SMT/z3/z3_proof.ML\<close>
+ML_file \<open>Tools/SMT/z3/z3_isar.ML\<close>
 ML_file \<open>Tools/SMT/smt_solver.ML\<close>
 ML_file \<open>Tools/SMT/cvc_interface.ML\<close>
 ML_file \<open>Tools/SMT/lethe_node.ML\<close>
@@ -700,10 +700,10 @@ ML_file \<open>Tools/SMT/conj_disj_perm.ML\<close>
 ML_file \<open>Tools/SMT/smt_replay_methods.ML\<close>
 ML_file \<open>Tools/SMT/smt_replay.ML\<close>
 ML_file \<open>Tools/SMT/smt_replay_arith.ML\<close>
-ML_file \<open>Tools/SMT/z3_interface.ML\<close>
-ML_file \<open>Tools/SMT/z3_replay_rules.ML\<close>
-ML_file \<open>Tools/SMT/z3_replay_methods.ML\<close>
-ML_file \<open>Tools/SMT/z3_replay.ML\<close>
+ML_file \<open>Tools/SMT/z3/z3_interface.ML\<close>
+ML_file \<open>Tools/SMT/z3/z3_replay_rules.ML\<close>
+ML_file \<open>Tools/SMT/z3/z3_replay_methods.ML\<close>
+ML_file \<open>Tools/SMT/z3/z3_replay.ML\<close>
 ML_file \<open>Tools/SMT/lethe_replay_methods.ML\<close>
 ML_file \<open>Tools/SMT/cvc5_rare.ML\<close>
 ML_file \<open>Tools/SMT/cvc5_replay_methods.ML\<close>
