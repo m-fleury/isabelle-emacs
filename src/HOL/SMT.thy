@@ -686,16 +686,16 @@ ML_file \<open>Tools/SMT/smtlib_isar.ML\<close>
 ML_file \<open>Tools/SMT/z3/z3_proof.ML\<close>
 ML_file \<open>Tools/SMT/z3/z3_isar.ML\<close>
 ML_file \<open>Tools/SMT/smt_solver.ML\<close>
-ML_file \<open>Tools/SMT/cvc_interface.ML\<close>
-ML_file \<open>Tools/SMT/lethe_node.ML\<close>
+ML_file \<open>Tools/SMT/alethe/cvc_interface.ML\<close>
+ML_file \<open>Tools/SMT/alethe/lethe_node.ML\<close>
 
 ML_file \<open>Tools/SMT/lethe_proof.ML\<close>
 (*ML_file \<open>Tools/SMT/lethe_proof.ML\<close>*)
-ML_file \<open>Tools/SMT/lethe_smt_problem.ML\<close>
+ML_file \<open>Tools/SMT/alethe/lethe_smt_problem.ML\<close>
 
-ML_file \<open>Tools/SMT/lethe_isar.ML\<close>
-ML_file \<open>Tools/SMT/lethe_proof_parse.ML\<close>
-ML_file \<open>Tools/SMT/cvc_proof_parse.ML\<close>
+ML_file \<open>Tools/SMT/alethe/lethe_isar.ML\<close>
+ML_file \<open>Tools/SMT/alethe/lethe_proof_parse.ML\<close>
+ML_file \<open>Tools/SMT/alethe/cvc_proof_parse.ML\<close>
 ML_file \<open>Tools/SMT/conj_disj_perm.ML\<close>
 ML_file \<open>Tools/SMT/smt_replay_methods.ML\<close>
 ML_file \<open>Tools/SMT/smt_replay.ML\<close>
@@ -704,14 +704,14 @@ ML_file \<open>Tools/SMT/z3/z3_interface.ML\<close>
 ML_file \<open>Tools/SMT/z3/z3_replay_rules.ML\<close>
 ML_file \<open>Tools/SMT/z3/z3_replay_methods.ML\<close>
 ML_file \<open>Tools/SMT/z3/z3_replay.ML\<close>
-ML_file \<open>Tools/SMT/lethe_replay_methods.ML\<close>
-ML_file \<open>Tools/SMT/cvc5_rare.ML\<close>
-ML_file \<open>Tools/SMT/cvc5_replay_methods.ML\<close>
-ML_file \<open>Tools/SMT/verit_replay_methods.ML\<close>
-ML_file \<open>Tools/SMT/verit_strategies.ML\<close>
-ML_file \<open>Tools/SMT/verit_replay.ML\<close>
+ML_file \<open>Tools/SMT/alethe/lethe_replay_methods.ML\<close>
+ML_file \<open>Tools/SMT/alethe/cvc5_rare.ML\<close>
+ML_file \<open>Tools/SMT/alethe/cvc5_replay_methods.ML\<close>
+ML_file \<open>Tools/SMT/alethe/verit_replay_methods.ML\<close>
+ML_file \<open>Tools/SMT/alethe/verit_strategies.ML\<close>
+ML_file \<open>Tools/SMT/alethe/verit_replay.ML\<close>
 (*ML_file \<open>Tools/SMT/verit_replay.ML\<close>*)
-ML_file \<open>Tools/SMT/cvc5_replay.ML\<close>
+ML_file \<open>Tools/SMT/alethe/cvc5_replay.ML\<close>
 (*ML_file \<open>Tools/SMT/cvc5_replay.ML\<close>*)
 ML_file \<open>Tools/SMT/smt_systems.ML\<close>
 
