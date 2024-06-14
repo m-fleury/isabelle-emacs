@@ -567,7 +567,8 @@ fun cong ctxt thms t args = try_provers (get_solver_name args) ctxt
   ("unfolding then auto", SMT_Replay_Methods.cong_unfolding_first ctxt thms),
   ("full", SMT_Replay_Methods.cong_full ctxt thms)] thms [] t
 
-fun refl ctxt thm t args = (@{print}("t",t);
+fun refl ctxt thm t args = (@{print}("t",t);@{print}("prems",thm |> map Thm.cprop_of);
+@{print}("args",args);
   (case find_first (fn thm => t = Thm.full_prop_of thm) thm of
       SOME thm => thm
     | NONE =>
@@ -1261,14 +1262,55 @@ end
 
 (* Subproof *)
 
+(* Reordering *)
+val split_neq = @{lemma "\<not>a \<or> \<not>c \<Longrightarrow> a \<or> c ==> a \<noteq> c" by auto}
+
+local
+  fun prove_reordering ctxt = 
+      REPEAT' (resolve_tac ctxt [split_neq])
+        THEN' K (print_tac ctxt "reorder0")
+
+      THEN' K (unfold_tac ctxt @{thms de_Morgan_disj})
+        THEN' K (print_tac ctxt "reorder0")
+
+      THEN' TRY o CHANGED_PROP o REPEAT_ALL_NEW (ematch_tac ctxt @{thms conjE})
+        THEN' K (print_tac ctxt "reorder1")
+
+      THEN' CHANGED_PROP o REPEAT_ALL_NEW (ematch_tac ctxt @{thms disjE})
+        THEN' K (print_tac ctxt "reorder2")
+
+      THEN' REPEAT'(ematch_tac ctxt @{thms notE}         THEN' K (print_tac ctxt "reorder4")
+THEN' TRY' (assume_tac ctxt))
+     
+in
+  val reordering2 = prove_reordering
+end
+
 fun subproof ctxt [prem] t =
+
      SMT_Replay_Methods.prove ctxt t (fn _ =>
-      (REPEAT' (resolve_tac ctxt [@{thm disj_not1} RSN (1, @{thm iffD2}) OF [@{thm impI}],
+           (K (print_tac ctxt "debug00"))
+THEN'
+      ((REPEAT' (resolve_tac ctxt [@{thm disj_not1} RSN (1, @{thm iffD2}) OF [@{thm impI}],
            @{thm disj_not1[of \<open>\<not>_\<close>, unfolded not_not]} RSN (1, @{thm iffD2}) OF [@{thm impI}]])
+          THEN' (K (print_tac ctxt "debug0a"))
+
         THEN' resolve_tac ctxt [prem]
-        THEN_ALL_NEW assume_tac ctxt
+        THEN_ALL_NEW (
+          (assume_tac ctxt
+          THEN' (K (print_tac ctxt "debug0"))
+          THEN' TRY' (assume_tac ctxt))
+        ORELSE'
+          SOLVED' ((partial_simplify_tac ctxt @{thms eq_commute ac_simps}
+          THEN' (K (print_tac ctxt "debug1"))
+          THEN' TRY' (assume_tac ctxt))))
+        THEN' (K (print_tac ctxt "debug2"))
         THEN' TRY' (assume_tac ctxt))
-      ORELSE' TRY' (Method.insert_tac ctxt [prem] THEN' Blast.blast_tac ctxt))
+      ORELSE' TRY' (Method.insert_tac ctxt [prem]
+        THEN' (K (print_tac ctxt "went into blast"))
+
+        THEN' TRY' (partial_simplify_tac ctxt @{thms eq_commute ac_simps})
+        THEN' TRY' (Blast.blast_tac ctxt))))
   | subproof ctxt prems t =
       replay_error ctxt "invalid application, only one assumption expected" Subproof prems [] t
 
@@ -1375,6 +1417,41 @@ fun rewrite_comp_simplify ctxt _ t =
 fun rewrite_ite_simplify ctxt _ t =
   SMT_Replay_Methods.prove ctxt t (fn _ =>
    (rewrite_only_thms_tmp ctxt @{thms verit_ite_simplify}))
+
+local
+  fun simplify_arith ctxt thms = partial_simplify_tac ctxt
+    (thms @ Named_Theorems.get ctxt @{named_theorems ac_simps} @ @{thms arith_simps})
+in
+
+fun all_simplify ctxt _ t =
+  SMT_Replay_Methods.prove ctxt t (fn _ => K (print_tac ctxt "in all_simp0")
+     THEN' TRY' (K (Clasimp.auto_tac ctxt))
+     THEN' K (print_tac ctxt "in all_simp1")
+     THEN' TRY' (Code_Simp.dynamic_tac ctxt )
+     THEN' K (print_tac ctxt "in all_simp2")
+
+     THEN' TRY' (Lin_Arith.tac ctxt)
+     THEN' K (print_tac ctxt "in all_simp3")
+
+     THEN' TRY' (simplify_arith ctxt @{thms verit_sum_simplify arith_special zmult_eq_1_iff})
+      THEN' K (print_tac ctxt "in all_simp4")
+ 
+     THEN' TRY' (simplify_arith ctxt @{thms verit_prod_simplify})
+      THEN' K (print_tac ctxt "in all_simp5")
+
+     THEN' TRY' (chain_rewrite_two_step_with_ac_simps ctxt
+         @{thms arith_simps verit_minus_simplify}
+         (Named_Theorems.get ctxt @{named_theorems ac_simps} @
+          @{thms numerals arith_simps arith_special
+             numeral_class.numeral.numeral_One}))
+      THEN' K (print_tac ctxt "in all_simp6")
+
+     THEN' TRY' (Code_Simp.dynamic_tac ctxt )
+     THEN' K (print_tac ctxt "in all_simp7")
+     THEN' TRY' (K (Clasimp.auto_tac ctxt))
+     THEN' K (print_tac ctxt "in all_simp8")
+) (*TODO: TEMP until cvc5 produces fine grained simplification steps *)
+end
 end
 
 
@@ -1402,24 +1479,7 @@ fun rare_rewrite ctxt _ t =
      TRY' (K (Clasimp.auto_tac ctxt)
      THEN' TRY' (Code_Simp.dynamic_tac ctxt )
 ))
-local
-  fun simplify_arith ctxt thms = partial_simplify_tac ctxt
-    (thms @ Named_Theorems.get ctxt @{named_theorems ac_simps} @ @{thms arith_simps})
-in
 
-fun all_simplify ctxt _ t =
-  SMT_Replay_Methods.prove ctxt t (fn _ => (*K (print_tac ctxt "in all_simp")
-     THEN'*) TRY' (K (Clasimp.auto_tac ctxt))
-     THEN' K (print_tac ctxt "in all_simp")
-     THEN' TRY' (Code_Simp.dynamic_tac ctxt )
-     THEN' TRY' (simplify_arith ctxt @{thms verit_sum_simplify arith_special})
-     THEN' TRY' (simplify_arith ctxt @{thms verit_prod_simplify})
-     THEN' TRY' (Code_Simp.dynamic_tac ctxt )
-     THEN' K (print_tac ctxt "in all_simp")
-     THEN' TRY' (K (Clasimp.auto_tac ctxt))
-     THEN' K (print_tac ctxt "in all_simp")
-) (*TODO: TEMP until cvc5 produces fine grained simplification steps *)
-end
 
 (* Arithmetics *)
 local

@@ -259,7 +259,7 @@ lemma
 section \<open>Arithmetic\<close>
 
 subsection \<open>Linear arithmetic over integers and reals\<close>
-
+declare[[smt_trace]]
 lemma "(3::int) = 3" by (smt (verit))
 lemma "(3::real) = 3" by (smt (verit))
 lemma "(3 :: int) + 1 = 4" by (smt (verit))
@@ -325,6 +325,8 @@ subsection \<open>Linear arithmetic with quantifiers\<close>
 lemma "~ (\<exists>x::int. False)" by (smt (verit))
 lemma "~ (\<exists>x::real. False)" by (smt (verit))
 
+declare [[verit_options=" --proof-define-skolems --proof-prune --proof-merge 
+--disable-print-success --disable-banner"]]
 
 lemma "\<forall>x y::int. (x = 0 \<and> y = 1) \<longrightarrow> x \<noteq> y" by (smt (verit))
 lemma "\<forall>x y::int. x < y \<longrightarrow> (2 * x + 1) < (2 * y)" by (smt (verit))

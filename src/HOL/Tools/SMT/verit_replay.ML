@@ -106,6 +106,12 @@ fun replay_theorem_step rewrite_rules all_assms ll_defs assumed inputs proof_pre
   (step as Lethe_Node.Lethe_Replay_Node {id, rule, prems, step_args, context_assignments,
      subproof = (fixes, assms, input, subproof), concl, args, ...}) state =
   let
+   val _ = @{print}("id",id)
+   val _ = @{print}("prems",prems)
+   val _ = @{print}("assms",assms)
+   val _ = @{print}("input",input)
+   val _ = @{print}("inputs",inputs)
+
     val (proofs, stats, ctxt, concl_tranformation, global_transformation) = state
     val (_, ctxt) = Variable.variant_fixes [] ctxt
       |> (fn (names, ctxt) => (names,
@@ -135,8 +141,8 @@ fun replay_theorem_step rewrite_rules all_assms ll_defs assumed inputs proof_pre
         all_proof_prems'
         |> filter_out is_refl
     val proof_prems' = take (length assms) all_proof_prems'
-    val input = drop (length assms) all_proof_prems'
-    val all_proof_prems = proof_prems @ proof_prems'
+    val input = drop (length assms) all_proof_prems' |> @{print}
+    val all_proof_prems = proof_prems @ proof_prems' 
     (*val _ = @{print}("all_proof_prems",all_proof_prems)*)
 
     val replay = replay_theorem_step rewrite_rules all_assms ll_defs assumed (input @ inputs) all_proof_prems
@@ -161,12 +167,17 @@ fun replay_theorem_step rewrite_rules all_assms ll_defs assumed inputs proof_pre
     val step_args = map (Term.subst_free concl_tranformation o subst_only_free global_transformation) step_args
     val insts = Symtab.empty (*Symtab.map (K (Term.subst_free concl_tranformation o subst_only_free global_transformation)) insts*)
     val missing_assumptions =
-       if SMT_Config.alethe_no_provided_assms ctxt andalso rule = Lethe_Proof.local_input_rule
+       if SMT_Config.alethe_no_provided_assms ctxt andalso
+         (rule = Lethe_Proof.local_input_rule orelse rule = Lethe_Proof.input_rule)
        then all_assms else []
     val proof_prems =
        if Lethe_Replay_Methods.requires_subproof_assms prems rule then proof_prems else []
+    (*val _ = @{print}("proof_prems",proof_prems)*)
+
     val local_inputs =
        if Lethe_Replay_Methods.requires_local_input prems rule then input @ inputs else []
+    val _ = @{print}("local_inputs",local_inputs)
+
     val replay = Timing.timing (replay_thm Verit_Replay_Methods.method_for rewrite_rules ll_defs
        ctxt assumed [] (missing_assumptions @ proof_prems @ local_inputs) (nthms @ nthms') concl_tranformation
        global_transformation step_args context_assignments args)
@@ -176,6 +187,8 @@ fun replay_theorem_step rewrite_rules all_assms ll_defs assumed inputs proof_pre
         handle Timeout.TIMEOUT _ => raise SMT_Failure.SMT SMT_Failure.Time_Out
     val stats' = Symtab.cons_list (rule, Time.toNanoseconds elapsed) stats
     val proofs = Symtab.update (id, ([], thm)) proofs
+    val _ = (SMT_Config.verbose_msg ctxt (K ("Successfully checked step " ^ id)) ())
+
   in (proofs, stats', ctxt,
        concl_tranformation, sub_global_rew) end
 
@@ -342,7 +355,8 @@ fun replay outer_ctxt
       if Config.get ctxt SMT_Config.rec_evaluation
       then File.append (Path.explode ("$ISABELLE_HOME_USER/" ^
         (Config.get ctxt SMT_Config.statistics_file))) (string_of_int total
-       ^ ",\"detail\": {" ^ print_stats (Symtab.dest stats) ^"}}]},\n")
+       (*^ ",\"detail\": {" ^ print_stats (Symtab.dest stats) ^"}" *) ^
+       "}]},\n")
       else ()
     val _ = SMT_Replay.spying (SMT_Config.spy_verit ctxt) ctxt
       (fn () => SMT_Replay.print_stats (Symtab.dest stats)) "spy_verit"

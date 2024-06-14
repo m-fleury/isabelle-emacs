@@ -101,7 +101,7 @@ val _ = Outer_Syntax.local_theory \<^command_keyword>\<open>check_smt_dir\<close
 
 declare [[smt_trace=false,smt_timeout=5000000,smt_cvc_lethe = true]]
 
-ML \<open> 
+ML \<open>
 Config.put SMT_Config.trace true\<close>
 declare[[smt_nat_as_int=true,smt_trace=true,smt_verbose=true,smt_debug_verit]]
 

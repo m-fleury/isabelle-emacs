@@ -1,6 +1,6 @@
 signature SMT_CHECK_EXTERNAL =
 sig
-  val replay_only: string -> Proof.context -> string -> string list -> string option -> thm
+  val replay_only: string -> Proof.context -> string list -> string list -> string option -> thm
   val check_smt: string -> string -> string -> string option -> local_theory -> local_theory
   val check_all_benchmarks : string -> string -> string option -> local_theory -> unit
 end
@@ -22,7 +22,7 @@ let
 
   val (_, {command, smt_options, replay, ...}) = SMT_Solver.name_and_info_of ctxt
 
-  val (replay_data, _) = SMT_Parse_Problem.parse problem ctxt
+  val replay_data = SMT_Parse_Problem.parse problem ctxt
   val {context, ...} = replay_data
 
   val start0 = Timing.start ()
@@ -62,7 +62,7 @@ let
   val problem_file_path = Path.explode problem_file_name
   val proof_file_path = Path.explode proof_file_name
 
-  val problem_lines = problem_file_path |> Bytes.read |> Bytes.content;
+  val problem_lines = problem_file_path |> Bytes.read |> Bytes.split_lines;
   val proof_lines = proof_file_path |> Bytes.read |> Bytes.split_lines;
 
   val _ = replay_only prover ctxt problem_lines proof_lines opt_output_file
@@ -125,6 +125,10 @@ let
         let
           val (_,i) = (Timeout.apply (seconds 30.0) (fn () => check_smt prover problem_path proof_path opt_output_file local_thy) () ,i+1)
             handle
+            (*Error Parsing problem*)
+            (SMT_Parse_Problem.SMT_PROBLEM_PARSE(msg))
+            => (@{print}("Error parsing SMT-LIB problem: " ^ msg , problem_path);
+                  print_error_to_file ctxt 5; (local_thy,i)) |
             (*Error during Parsing into AST*)
             (SMTLIB.PARSE(l,err))
               => (@{print}("Error parsing SMTLIB into SMTLIB Tree: " ^ err ^ " in line " ^ Int.toString l , problem_path);

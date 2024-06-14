@@ -213,6 +213,8 @@ lemma verit_sko_forall_indirect2:
   using someI[of \<open>\<lambda>x. \<not>P x\<close>]
   by auto
 
+thm verit_sko_forall_indirect[of v0]
+
 lemma verit_sko_ex: \<open>(\<exists>x. P x) \<longleftrightarrow> P (SOME x. P x)\<close>
   using someI[of \<open>\<lambda>x. P x\<close>]
   by auto
@@ -442,22 +444,28 @@ lemma verit_la_disequality:
   \<open>(a :: 'a ::linorder) = b \<or> \<not>a \<le> b \<or> \<not>b \<le> a\<close>
   by auto
 
+lemma alethe_la_mult_pos_less:
+  \<open>(0 :: 'a :: linordered_idom) < m \<and> (a < b) \<longrightarrow> m*a < m*b\<close>
+  by simp
+
+thm alethe_la_mult_pos_less[of "3::int" "x::int" "y::int"]
+
 lemma alethe_la_mult_pos:
-  \<open>(0 :: 'a :: linordered_field) < m \<and> (a < b) \<longrightarrow> m*a < m*b\<close>
-  \<open>(0 :: 'a :: linordered_field) < m \<and> (a \<le> b) \<longrightarrow> m*a \<le> m*b\<close>
-  \<open>(0 :: 'a :: linordered_field) < m \<and> (a = b) \<longrightarrow> m*a = m*b\<close>
-  \<open>(0 :: 'a :: linordered_field) < m \<and> \<not>(a = b) \<longrightarrow> \<not>(m*a = m*b)\<close>
-  \<open>(0 :: 'a :: linordered_field) < m \<and> (a \<ge> b) \<longrightarrow> m*a \<ge> m*b\<close>
-  \<open>(0 :: 'a :: linordered_field) < m \<and> (a > b) \<longrightarrow> m*a > m*b\<close>
+  \<open>(0 :: 'a :: linordered_idom) < m \<and> (a < b) \<longrightarrow> m*a < m*b\<close>
+  \<open>(0 :: 'a :: linordered_idom) < m \<and> (a \<le> b) \<longrightarrow> m*a \<le> m*b\<close>
+  \<open>(0 :: 'a :: linordered_idom) < m \<and> (a = b) \<longrightarrow> m*a = m*b\<close>
+  \<open>(0 :: 'a :: linordered_idom) < m \<and> \<not>(a = b) \<longrightarrow> \<not>(m*a = m*b)\<close>
+  \<open>(0 :: 'a :: linordered_idom) < m \<and> (a \<ge> b) \<longrightarrow> m*a \<ge> m*b\<close>
+  \<open>(0 :: 'a :: linordered_idom) < m \<and> (a > b) \<longrightarrow> m*a > m*b\<close>
   by simp_all
 
 lemma alethe_la_mult_neg:          
-  \<open>m < (0 :: 'a :: linordered_field) \<and> (a < b) \<longrightarrow> m*a > m*b\<close>
-  \<open>m < (0 :: 'a :: linordered_field) \<and> (a \<le> b) \<longrightarrow> m*a \<ge> m*b\<close>
-  \<open>m < (0 :: 'a :: linordered_field) \<and> (a = b) \<longrightarrow> m*a = m*b\<close>
-  \<open>m < (0 :: 'a :: linordered_field) \<and> \<not>(a = b) \<longrightarrow> \<not>(m*a = m*b)\<close>
-  \<open>m < (0 :: 'a :: linordered_field) \<and> (a > b) \<longrightarrow> m*a < m*b\<close>
-  \<open>m < (0 :: 'a :: linordered_field) \<and> (a \<ge> b) \<longrightarrow> m*a \<le> m*b\<close>
+  \<open>m < (0 :: 'a :: linordered_idom) \<and> (a < b) \<longrightarrow> m*a > m*b\<close>
+  \<open>m < (0 :: 'a :: linordered_idom) \<and> (a \<le> b) \<longrightarrow> m*a \<ge> m*b\<close>
+  \<open>m < (0 :: 'a :: linordered_idom) \<and> (a = b) \<longrightarrow> m*a = m*b\<close>
+  \<open>m < (0 :: 'a :: linordered_idom) \<and> \<not>(a = b) \<longrightarrow> \<not>(m*a = m*b)\<close>
+  \<open>m < (0 :: 'a :: linordered_idom) \<and> (a > b) \<longrightarrow> m*a < m*b\<close>
+  \<open>m < (0 :: 'a :: linordered_idom) \<and> (a \<ge> b) \<longrightarrow> m*a \<le> m*b\<close>
   by simp_all
 
 context

@@ -6,7 +6,7 @@ signature SMT_PARSE_PROBLEM =
 sig
   exception SMT_PROBLEM_PARSE of string
 
-  val parse: string -> Proof.context -> SMT_Translate.replay_data * int
+  val parse: string list -> Proof.context -> SMT_Translate.replay_data
 end;
 
 structure SMT_Parse_Problem : SMT_PARSE_PROBLEM =
@@ -63,12 +63,12 @@ fun parse_assert cs ({context,typs,terms,ll_defs,rewrite_rules,assms}: SMT_Trans
 let
   val smtlib_lines_without_qm = smtlib_lines_without_qm cs
 
-  val (step,cx) =
+  val (assertion,name_bindings) =
    (fn ([step], _, cx) => (step,cx) | _ => raise ERROR "Problem could not be parsed")
    (Lethe_SMT_Problem.parse_raw_problem_steps [smtlib_lines_without_qm] SMTLIB_Proof.empty_name_binding 0)
 
 
-  val (Lethe_Node.Raw_Lethe_Node {concl, ...} : Lethe_Node.raw_lethe_node) = step
+  val (Lethe_Node.Raw_Lethe_Node {concl, ...} : Lethe_Node.raw_lethe_node) = assertion
 
   val cx = (SMTLIB_Proof.empty_context context typs terms)
   val t2 = SMTLIB_Proof.term_of concl cx |> fst
@@ -158,52 +158,49 @@ fun parse_declare (cs: string list) ({context,typs,terms,ll_defs,rewrite_rules,a
     ({context = context, typs = typs,terms = terms,ll_defs = ll_defs,rewrite_rules = rewrite_rules,assms = assms}, assms_nbr)
   end
 
+
+fun !!! text scan =
+  let
+    fun err (syms, msg) = fn () =>
+      text ^ (case msg of NONE => "" | SOME m => "\n" ^ m ());
+  in Scan.!! err scan end;
+
 val ignore_commands =
  ["check-sat","check-sat_assuming","echo","get-assertions","get-assignment",
   "get-info","get-model","get-option","get-proof","get-unsat-assumptions","get-unsat-core",
-  "get-value","set-option"]
+  "get-value","set-option","set-logic","exit","set-info"]
+
 val not_supported =
  ["declare-datatype","declare-datatypes","define-fun-rec","define-fun-recs",
-  "exit","reset","reset_assertions","pop","push","set-logic","set-info"]
-val supported_commands = ["assert","declare-sort","define-fun","declare-fun","define-sort"]
+  "reset","reset_assertions","pop","push"]
 
-fun any_prefix list = 
- Scan.first (map (fn l => (fn str => if String.isPrefix l str then  (str,l) else Scan.fail "")) list)
- 
+fun ignore _ replay_data = replay_data
+fun is_not_supported keyword _ _ = raise SMT_PROBLEM_PARSE ("command not supported: " ^ keyword) 
 
-fun read_command replay_data =
-  $$ "("
-  |-- Scan.many (curry (op =) " ")
-  (*|-- Scan.ahead (fn cs => any_prefix ignore_commands cs)*)
+fun method_for "assert" = parse_assert |
+ method_for "declare-const" = parse_declare |
+ method_for "declare-fun" = parse_declare |
+ method_for "declare-sort" = parse_sort |
+ method_for keyword =
+   if Library.member (op =) not_supported keyword then is_not_supported keyword
+   else if Library.member (op =) ignore_commands keyword then ignore
+   else (warning ("found garbage when parsing SMT problem, ignoring: " ^ @{make_string} keyword); ignore)
 
+val command_name_scanner = Scan.many1 (fn c => c <> " " andalso c <> ")")
 
-fun read (cs as "("::"a"::"s"::"s"::"e"::"r"::"t"::" "::_) replay_data = 
-      parse_assert cs replay_data
-  | read (cs as "("::"d"::"e"::"c"::"l"::"a"::"r"::"e"::"-"::"f"::"u"::"n"::" ":: _) replay_data = parse_declare cs replay_data
-  | read (cs as "("::"d"::"e"::"c"::"l"::"a"::"r"::"e"::"-"::"c"::"o"::"n"::"s"::"t"::" ":: _) replay_data = parse_declare cs replay_data
-  | read (cs as "("::"d"::"e"::"c"::"l"::"a"::"r"::"e"::"-"::"s"::"o"::"r"::"t"::" ":: _) replay_data = parse_sort cs replay_data
-  | read ("("::"s"::"e"::"t"::"-"::"i"::"n"::"f"::"o" :: _) replay_data = replay_data
-  | read ("("::"s"::"e"::"t"::"-"::"l"::"o"::"g"::"i"::"c" :: _) replay_data = replay_data
-  | read ("("::"c"::"h"::"e"::"c"::"k"::"-"::"s"::"a"::"t"::")" :: _) replay_data = replay_data
-  | read ("("::"e"::"x"::"i"::"t"::")" :: _) replay_data = replay_data
-  | read ("("::"g"::"e"::"t"::"-"::"p"::"r"::"o"::"o"::"f"::")":: _) replay_data = replay_data
-  | read ("("::"s"::"e"::"t"::"-"::"o"::"p"::"t"::"i"::"o"::"n":: _) replay_data = replay_data
-  | read x replay_data  = (warning ("found garbage when parsing SMT problem, ignoring: " ^ @{make_string} x); replay_data)
+val command_scanner =
+  Scan.error (
+    !!!  "Could not find opening parenthesis" ($$ "(")
+    |-- (Scan.many (curry (op =) " ")) 
+    |-- !!!  "Could not find name of command" command_name_scanner
+  )
 
-
-(* overall parser *)
-(*TODO: assertions and declarations can go over multiple lines. For now assume they don't*)
-fun add_line line (l, replay_data) =
-  let
-    (*val _ = @{print}("current line to parse",line)*)
-    val line_list = (raw_explode line)
-  in
-    if size line = 0 then (l + 1, replay_data) (*Skip empty lines*)
-    else if hd line_list = ";" then (l + 1, replay_data) (*Skip comments*)
-    else (l + 1, read (raw_explode line) replay_data)
-  end
-
-
+fun current_command cs replay_data =
+let
+  val command = command_scanner cs |> fst |> implode
+in
+  method_for command cs replay_data
+end
 
 datatype token = None | Unfinished of string list * int | Finished of string list * string list
 exception TOKEN of string
@@ -235,14 +232,14 @@ in
         val token = parse_token uf sanitized_lines
       in
         case token of
-          None => raise ERROR ("expected opening parenthesis in line" ^ Int.toString(l)) |
+          None => raise SMT_PROBLEM_PARSE ("expected opening parenthesis in line" ^ Int.toString(l)) |
           t => t
        end
 end
 
 
 fun lexer _ [] (Unfinished (s,i)) _ l_start =
-    raise ERROR ("expected eof but last command (starting at line nr "
+    raise SMT_PROBLEM_PARSE ("expected eof but last command (starting at line nr "
       ^ Int.toString(l_start) ^ ") was not closed. Counted " ^ Int.toString(i)
       ^ " opened but not closed parenthesis far. Part already parsed in: \n"
       ^ (rev s |> String.concat)) |
@@ -250,16 +247,20 @@ fun lexer _ [] (Unfinished (s,i)) _ l_start =
   lexer ctxt (line::lines) uf l l_start =
     case lexer_add_line ctxt l line uf of
       Finished (s,[]) => (l_start,String.concat s) :: lexer ctxt lines None (l+1) (l+1) |
-      Finished (_,s') => raise ERROR ("text after final closing parenthesis found! "
+      Finished (_,s') => raise SMT_PROBLEM_PARSE ("text after final closing parenthesis found! "
         ^ String.concat s') |
       Unfinished (s,s') => lexer ctxt lines (Unfinished ([" "] @ s,s')) (l+1) l_start |
       None => lexer ctxt lines uf (l+1) (l+1)
 
-fun split_up_lines ctxt cs = lexer ctxt [cs] None 1 1 |> map snd
+fun lex_lines ctxt cs = lexer ctxt cs None 1 1 |> map snd
+
+fun parser_add_line line replay_data = current_command (raw_explode line) replay_data
+
+fun mk_empty_replay_data ctxt =
+ ({context = ctxt, typs = Symtab.empty, terms = Symtab.empty, ll_defs = [], rewrite_rules = [], assms = []}: SMT_Translate.replay_data)
 
 fun parse lines ctxt
- = snd (fold add_line (split_up_lines ctxt lines) (1,
- ({context = ctxt, typs = Symtab.empty, terms = Symtab.empty, ll_defs = [], rewrite_rules = [], assms = []}: SMT_Translate.replay_data, 0)))
+ = fst (fold parser_add_line (lex_lines ctxt lines) (mk_empty_replay_data ctxt, 0))
 
 
 end

@@ -557,14 +557,22 @@ fun
       SOME (mk_unary \<^const_name>\<open>uminus_class.uminus\<close> t)
   | bv_term_parser (SMTLIB.Sym "bvand", (t::ts)) =
       SOME (mk_lassoc' \<^const_name>\<open>semiring_bit_operations_class.and\<close> t ts)
- | bv_term_parser (SMTLIB.Sym bv, []) =
+ (*| bv_term_parser (SMTLIB.Sym bv, []) =
       (case try (unprefix "bv") bv of
         NONE => NONE
       | SOME t => (@{print}("TODO: when this happens in bv_term_parser investigate: ",bv);
         SOME ((HOLogic.mk_term_of \<^typ>\<open>32 word\<close> (HOLogic.mk_string t)))))
+*)
   (*| bv_term_parser (SMTLIB.Sym "bv", [int,(Const ("Nat.semiring_1_class.of_nat", _) $ (Const ("Nat.size_class.size", _) $
-     Free ("x", typ)))]) = SOME (Const (\<^const_name>\<open>Word.Word\<close>,\<^typ>\<open>Int.int\<close>--> typ) $ int)
+     Free ("x", typ)))]) = SOME (Const (\<^const_name>\<open>Word.Word\<close>,\<^typ>\<open>Int.int\<close>--> typ) $ int)*)
   | bv_term_parser (SMTLIB.Sym "bv", [int, base]) =
+     let
+        val ty = Word_Lib.mk_wordT (snd (HOLogic.dest_number base))
+        val num = snd (HOLogic.dest_number int)
+      in
+        SOME (HOLogic.mk_number ty num)
+      end
+ (* | bv_term_parser (SMTLIB.Sym "@bv", [int, base]) =
      let
         val ty = Word_Lib.mk_wordT (snd (HOLogic.dest_number base))
         val num = snd (HOLogic.dest_number int)

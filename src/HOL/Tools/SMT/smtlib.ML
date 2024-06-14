@@ -41,70 +41,99 @@ datatype unfinished = None | String of string | Symbol of string
 
 (* utilities *)
 
-fun read_raw pred l cs =
-  (case chop_prefix pred cs of
-    ([], []) => raise PARSE (l, "empty token")
-  | ([], c :: _) => raise PARSE (l, "unexpected character " ^ quote c)
-  | x => x)
+fun !!! l text scan =
+  let
+    fun err (syms, msg) = (raise PARSE (l,
+      "SMTLIB term parser: " ^ text ^ " in token starting with: " ^  implode syms ^ 
+      (case msg of NONE => "" | SOME m => "\n" ^ m ())));
+  in (Scan.error (Scan.!! err scan)) end;
+ 
+fun read_while pred l = 
+  !!! l "empty token"
+  (Scan.permissive (
+    (!!! l "unexpected character" (Scan.one pred)) ::: (Scan.finite Symbol.stopper (Scan.many pred))
+  ))
+
+(* The library version does not keep track of the bit-width and cannot be used for
+bases bigger than 10. *)
+fun read_radix_int' radix cs =
+  let
+    val zero = Char.ord #"0";
+    val lower_a = Char.ord #"a";
+    val upper_A = Char.ord #"A";
+
+    val dec_radix =
+      if radix < 10 then radix
+      else if radix <= 35 then radix - 10
+      else raise ERROR ("Base too big, can only parse numbers made up of digits and characters a-z/A-Z")
+
+    val limit = zero + radix;
+    val limit_lower_alphabetic = lower_a + dec_radix
+    val limit_upper_alphabetic = upper_A + dec_radix
+
+    fun scan ((num,i), []) = ((num,i), [])
+      | scan ((num,i), c :: cs) =
+          if zero <= ord c andalso ord c < limit then
+            scan ((radix * num + (ord c - zero),(i+1)), cs)
+          else if lower_a <= ord c andalso ord c < limit_lower_alphabetic then
+            scan ((radix * num + (ord c - lower_a + 10),(i+1)), cs)
+          else if upper_A <= ord c andalso ord c < limit_upper_alphabetic then
+            scan ((radix * num + (ord c - upper_A + 10),(i+1)), cs) 
+          else ((num,i), c :: cs);
+
+  in scan ((0,0), cs) end;
 
 
 (* numerals and decimals *)
 
+fun read_num sign = read_int >> sign >> Num
+fun read_dec sign = (read_int >> sign) --| $$ "." -- read_int >> Dec
+
+
+fun mk_smt_num (n, NONE) = Num n |
+  mk_smt_num (n,SOME m) = Dec (n,m)
+fun read_num2 sign = ((read_int >> sign)
+ -- (Scan.option ($$ "." |-- read_int))) >> mk_smt_num (*Can parse 024.*)
+val is_neg = Scan.optional ($$ "-" >> K ~) I
+
+
+fun scan_num l = !!! l "Could not read numeral" (is_neg :-- (read_num2 ) >> snd)
+
+
+val x = scan_num 4 (raw_explode "-064.3")
+val _ = @{print}("x",x)
+
+
 fun int_of cs = fst (read_int cs)
 
 fun read_num l cs =
-  (case read_raw Symbol.is_ascii_digit l cs of
+  (case read_while Symbol.is_ascii_digit l cs of
     (cs1, "." :: cs') =>
-      let val (cs2, cs'') = read_raw Symbol.is_ascii_digit l cs'
+      let val (cs2, cs'') = read_while Symbol.is_ascii_digit l cs'
       in (Dec (int_of cs1, int_of cs2), cs'') end |
     (cs1, "/" :: cs') =>
-       let val (cs2, cs'') = read_raw Symbol.is_ascii_digit l cs'
+       let val (cs2, cs'') = read_while Symbol.is_ascii_digit l cs'
       in (S[Sym "/", (Dec (int_of cs1, 0)),(Dec (int_of cs2,0))], cs'') end |
     (cs1, cs2) => (Num (int_of cs1), cs2))
 
 fun read_int l ("-"::cs) =
-  (case read_raw Symbol.is_ascii_digit l cs of
+  (case read_while Symbol.is_ascii_digit l cs of
     (cs1, "." :: cs') =>
-      let val (cs2, cs'') = read_raw Symbol.is_ascii_digit l cs'
+      let val (cs2, cs'') = read_while Symbol.is_ascii_digit l cs'
       in (Dec (~ (int_of cs1), int_of cs2), cs'') end |
     (cs1, "/" :: cs') =>
-       let val (cs2, cs'') = read_raw Symbol.is_ascii_digit l cs'
+       let val (cs2, cs'') = read_while Symbol.is_ascii_digit l cs'
       in (S[Sym "/", (Dec ((~ (int_of cs1)), 0)),(Dec (int_of cs2,0))], cs'') end |
     (cs1, cs2) => (Num (~ (int_of cs1)), cs2))
 
 
 (* binary numbers *)
 
-fun is_bin c = (c = "0" orelse c = "1")
-
-fun read_bin l cs = 
-  let
-    val (str, rest) = read_raw is_bin l cs
-    val num = str |> fst o read_radix_int 2
-    val base = length str
-  in (BVNum (num, base), rest) end
-
+fun read_bin l = !!! l "Could not parse binary number" (read_radix_int' 2 >> BVNum)
 
 (* hex numbers *)
 
-val is_hex = member (op =) (raw_explode "0123456789abcdefABCDEF")
-
-fun within c1 c2 c = (ord c1 <= ord c andalso ord c <= ord c2)
-
-fun unhex i [] = i
-  | unhex i (c :: cs) =
-      if within "0" "9" c then unhex (i * 16 + (ord c - ord "0")) cs
-      else if within "a" "f" c then unhex (i * 16 + (ord c - ord "a" + 10)) cs
-      else if within "A" "F" c then unhex (i * 16 + (ord c - ord "A" + 10)) cs
-      else raise Fail ("bad hex character " ^ quote c)
-
-fun read_hex l cs = 
-  let
-    val (str, rest) = read_raw is_hex l cs
-    val num = str |> unhex 0
-    val base : int = length str
-  in (BVNum (num, 4*base), rest) end
-
+fun read_hex l = !!! l "Could not parse hex number" (read_radix_int' 16 >> apsnd (curry (op *) 4) >> BVNum)
 
 (* symbols *)
 
@@ -115,7 +144,7 @@ fun is_sym c =
   Symbol.is_ascii_digit c orelse
   member (op =) symbol_chars c
 
-fun read_sym f l cs = read_raw is_sym l cs |>> f o implode
+fun read_sym f l cs = read_while is_sym l cs |>> f o implode
 
 
 (* quoted tokens *)
@@ -140,6 +169,15 @@ fun read_symbol cs = read_quoted ["|"] ([], "") cs
 
 
 (* core parser *)
+
+(*
+fun read l
+  = (($$"(" |-- (Scan.repeat (read l --| Scan.many1 (curry (op =) " ") )) --| $$")") >> S) || (*Der letzte braucht kein Leerzeichen!*)
+    ($$"#" |-- (($$"x" |-- read_bin l) || ($$"b" |-- read_bin l))) ||
+    ($$":" |-- (read_sym Key l))
+
+val y = @{print}("d",read 4 (raw_explode "(sdf"))
+*)
 
 fun read _ [] rest tss = (rest, tss)
   | read l ("(" :: cs) None tss = read l cs None ([] :: tss)
@@ -186,9 +224,9 @@ fun read_line l line = read l (raw_explode line)
 
 fun add_line line (l, (None, tss)) =
       if size line = 0 orelse nth_string line 0 = ";" then (l + 1, (None, tss))
-      else (l + 1, read_line l line None tss (*|> @{print}*))
+      else (l + 1, read_line l line None tss)
   | add_line line (l, (unfinished, tss)) =
-      (l + 1, read_line l line unfinished tss (* |> @{print}*))
+      (l + 1, read_line l line unfinished tss)
 
 fun finish (_, (None, [[t]])) = t
   | finish (l, _) = raise PARSE (l, "bad nesting")

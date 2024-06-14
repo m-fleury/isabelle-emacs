@@ -55,10 +55,13 @@ fun mk_binary_pred n S t1 t2 =
   in mk_binary' n T \<^typ>\<open>HOL.bool\<close> t1 t2 end
 
 fun mk_chain _ [] = [] |
-    mk_chain f (t1::t2::ts) = (f t1 t2) :: (mk_chain f ts)
+    mk_chain f (t1::t2::ts) = (f t1 t2) :: (mk_chain f ts) |
+    mk_chain _ _ = raise Match
 
 fun mk_chainable f [t1,t2] = (f t1 t2) |
-  mk_chainable f (t1::t2::ts) = mk_rassoc (curry HOLogic.mk_conj) (f t1 t2) (mk_chain f ts)
+  mk_chainable f (t1::t2::ts) = mk_rassoc (curry HOLogic.mk_conj) (f t1 t2) (mk_chain f ts) |
+  mk_chainable _ _ = raise Match
+
 
 fun pairwise _ [] = [] |
   pairwise f (t1::tss) = (map (fn u => f (t1,u)) tss) @ pairwise f tss

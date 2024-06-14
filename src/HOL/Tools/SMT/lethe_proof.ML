@@ -171,7 +171,7 @@ fun parse_raw_proof_steps (curr_anchor_id : string option) (smtlib_lines : SMTLI
     fun split_step [] = (NO_STEP, SMTLIB.S [], [])
       | split_step ((step as SMTLIB.S (SMTLIB.Sym kind :: _)) :: remaining_steps) =
           (step_kind kind, step, remaining_steps)
-      | split_step steps = raise throw_lethe_ex ("malformed step: " ^ @{make_string} steps)
+      | split_step steps = (@{print}("steps",steps);raise throw_lethe_ex ("malformed step: " ^ @{make_string} steps))
 
     fun get_id (SMTLIB.S ((SMTLIB.Sym _) :: (SMTLIB.Sym id) :: l)) = (id, l)
       | get_id t = raise throw_lethe_ex ("unrecognized Lethe proof " ^ \<^make_string> t)
@@ -719,7 +719,7 @@ fun postprocess_proof compress ctxt step cx =
       (* fix assumptions *)
        val assms_from_subproof =
          (if rule = subproof_rule then extract_assumptions_from_subproof new_subproof else [])
-      
+      val _ = @{print}("assms_from_subproof",assms_from_subproof)
       (* fix premises *)
       val normalized_premises =                                                       
         prems @
