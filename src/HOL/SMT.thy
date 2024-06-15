@@ -689,7 +689,7 @@ ML_file \<open>Tools/SMT/smt_solver.ML\<close>
 ML_file \<open>Tools/SMT/alethe/cvc_interface.ML\<close>
 ML_file \<open>Tools/SMT/alethe/lethe_node.ML\<close>
 
-ML_file \<open>Tools/SMT/lethe_proof.ML\<close>
+ML_file \<open>Tools/SMT/alethe/lethe_proof.ML\<close>
 (*ML_file \<open>Tools/SMT/lethe_proof.ML\<close>*)
 ML_file \<open>Tools/SMT/alethe/lethe_smt_problem.ML\<close>
 

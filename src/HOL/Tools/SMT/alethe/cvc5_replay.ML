@@ -346,7 +346,7 @@ fun replay_step rewrite_rules all_assms ll_defs assumed inputs proof_prems
 
 
 fun replay outer_ctxt
-    ({context = ctxt, typs, terms, rewrite_rules, assms, ll_defs, ...} : SMT_Translate.replay_data)
+    ({ctxt = ctxt, typs, terms, rewrite_rules, assms, ll_defs, ...} : SMT_Translate.replay_data)
      output =
   let
     val _ = if not (SMT_Config.use_lethe_proof_from_cvc ctxt)

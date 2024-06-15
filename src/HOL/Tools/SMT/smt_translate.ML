@@ -35,7 +35,7 @@ sig
     serialize: (string * string) list -> string list -> sign -> (SMT_Util.role * sterm) list ->
       string }
   type replay_data = {
-    context: Proof.context,
+    ctxt: Proof.context,
     typs: typ Symtab.table,
     terms: term Symtab.table,
     ll_defs: term list,
@@ -153,7 +153,7 @@ type config = {
     string }
 
 type replay_data = {
-  context: Proof.context,
+  ctxt: Proof.context,
   typs: typ Symtab.table,
   terms: term Symtab.table,
   ll_defs: term list,
@@ -211,7 +211,7 @@ fun replay_data_of ctxt ll_defs rules assms (_, typs, terms) =
     fun add_fun (t, (n, _)) = Symtab.update (n, t)
     val terms' = Termtab.fold add_fun terms Symtab.empty
   in
-    {context = ctxt, typs = typs', terms = terms', ll_defs = ll_defs, rewrite_rules = rules,
+    {ctxt = ctxt, typs = typs', terms = terms', ll_defs = ll_defs, rewrite_rules = rules,
      assms = assms}
   end
 

@@ -105,8 +105,6 @@ fun number_of_steps [] = 0
   | number_of_steps ((Lethe_Replay_Node {subproof = (_, _, _, subproof), ...}) :: pf) =
       1 + number_of_steps subproof + number_of_steps pf
 
-(* proof parser *)
-
 fun node_of p cx =
   ([], cx)
   ||>> `(with_fresh_names (term_of p))
@@ -114,7 +112,6 @@ fun node_of p cx =
 
 fun node_of_term p cx = (term_of p cx)
  
-
 fun synctactic_var_subst old_name new_name (u $ v) =
     (synctactic_var_subst old_name new_name u $ synctactic_var_subst old_name new_name v)
   | synctactic_var_subst old_name new_name (Abs (v, T, u)) =
@@ -129,6 +126,9 @@ fun syntactic_rew_in_lhs_subst old_name new_name (Const(\<^const_name>\<open>HOL
   | syntactic_rew_in_lhs_subst old_name new_name (Const(\<^const_name>\<open>Trueprop\<close>, T) $ t1) =
      Const(\<^const_name>\<open>Trueprop\<close>, T) $ (syntactic_rew_in_lhs_subst old_name new_name t1)
   | syntactic_rew_in_lhs_subst _ _ t = t
+
+
+(* proof parser *)
 
 local
 

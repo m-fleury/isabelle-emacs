@@ -61,7 +61,7 @@ fun parse_proof_unsatcore ({ll_defs, assms, ...} : SMT_Translate.replay_data) xf
 
 
 fun parse_proof_lethe
-    ({context = ctxt, typs, terms, ll_defs, rewrite_rules, assms} : SMT_Translate.replay_data)
+    ({ctxt = ctxt, typs, terms, ll_defs, rewrite_rules, assms} : SMT_Translate.replay_data)
     xfacts prems concl output =
    if exists (String.isPrefix "(error \"This build of CVC4 doesn't have proof support") output then
      {outcome = NONE, fact_ids = NONE, atp_proof = K []}
@@ -119,7 +119,7 @@ fun parse_proof_lethe
        fact_helper_ts prem_ids conjecture_id fact_helper_ids' steps}
   end
 
-fun parse_proof (rep as {context = ctxt, ...}) =
+fun parse_proof (rep as {ctxt = ctxt, ...}) =
   if SMT_Config.use_lethe_proof_from_cvc ctxt
   then parse_proof_unsatcore rep
   else parse_proof_unsatcore rep

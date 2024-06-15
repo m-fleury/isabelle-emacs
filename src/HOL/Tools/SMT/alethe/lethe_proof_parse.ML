@@ -24,7 +24,7 @@ open Lethe_Isar
 open Lethe_Proof
 
 fun parse_proof
-    ({context = ctxt, typs, terms, ll_defs, rewrite_rules, assms} : SMT_Translate.replay_data)
+    ({ctxt = ctxt, typs, terms, ll_defs, rewrite_rules, assms} : SMT_Translate.replay_data)
     xfacts prems concl output =
   let
     val num_ll_defs = length ll_defs
