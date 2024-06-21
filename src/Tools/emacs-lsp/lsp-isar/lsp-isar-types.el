@@ -54,6 +54,7 @@ the end of the overlay."
 
 (lsp-interface
  (lsp-isar:DecorationRange (:range) nil)
+ (lsp-isar:DecorationRangesFromEntry (:type :content) nil)
  (lsp-isar:Decorations (:uri :entries) nil))
 
 (lsp-interface
