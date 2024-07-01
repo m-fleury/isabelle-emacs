@@ -1096,6 +1096,7 @@ ML \<open>
          try dest_wordT T) of
    (SOME i', SOME j', SOME Tx', SOME T') =>
     let
+val _ = @{print}("did go in here!")
       val k = i' - j' + 1
     in
      if j' <= i' andalso k = T' andalso i' < Tx'
@@ -1110,7 +1111,7 @@ val setup_builtins =
     (\<^term>\<open>smt_extract :: _ \<Rightarrow> _ \<Rightarrow> 'a::len word \<Rightarrow> _\<close>, "extract") 
 
 val _ = Theory.setup (Context.theory_map (
-  SMTLIB_Interface.add_logic (30, smtlib_logic) #>
+  SMTLIB_Interface.add_logic (100, smtlib_logic) #>
   setup_builtins))
 \<close>
 

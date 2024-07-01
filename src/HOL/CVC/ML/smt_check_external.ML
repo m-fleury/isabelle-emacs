@@ -23,7 +23,7 @@ let
   val (_, {command, smt_options, replay, ...}) = SMT_Solver.name_and_info_of ctxt
 
   val replay_data = SMT_Parse_Problem.parse problem ctxt
-  val {context, ...} = replay_data
+  val {ctxt=context, ...} = replay_data
 
   val start0 = Timing.start ()
   val thm = replay context replay_data proof

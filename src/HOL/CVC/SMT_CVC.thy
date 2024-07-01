@@ -63,7 +63,7 @@ val _ = Theory.setup (Context.theory_map (
 (*External proof checking*)
 ML_file \<open>ML/smt_parse_problem.ML\<close>
 ML_file \<open>ML/smt_check_external.ML\<close>
-
+                
 ML \<open>
 
 (*Call replay from SMT_Solver and add replay_data on your own*)

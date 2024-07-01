@@ -58,7 +58,7 @@ fun smtlib_lines_without_qm cs =
 
 
 
-fun parse_assert cs ({context,typs,terms,ll_defs,rewrite_rules,assms}: SMT_Translate.replay_data, assms_nbr)
+fun parse_assert cs ({ctxt,typs,terms,ll_defs,rewrite_rules,assms}: SMT_Translate.replay_data, assms_nbr)
  =
 let
   val smtlib_lines_without_qm = smtlib_lines_without_qm cs
@@ -70,15 +70,15 @@ let
 
   val (Lethe_Node.Raw_Lethe_Node {concl, ...} : Lethe_Node.raw_lethe_node) = assertion
 
-  val cx = (SMTLIB_Proof.empty_context context typs terms)
+  val cx = (SMTLIB_Proof.empty_context ctxt typs terms)
   val t2 = SMTLIB_Proof.term_of concl cx |> fst
 
-  val ([all_proof_prems'], sub_ctxt2) = Assumption.add_assumes (map (Thm.apply \<^cterm>\<open>Trueprop\<close> o Thm.cterm_of context) [t2]) context
+  val ([all_proof_prems'], sub_ctxt2) = Assumption.add_assumes (map (Thm.apply \<^cterm>\<open>Trueprop\<close> o Thm.cterm_of ctxt) [t2]) ctxt
  
  val assm = ((assms_nbr,SMT_Util.Axiom),all_proof_prems'):((int * SMT_Util.role) * thm)
 
 in
- ({context = sub_ctxt2,typs = typs,terms = terms,ll_defs = ll_defs,rewrite_rules = rewrite_rules,
+ ({ctxt = sub_ctxt2,typs = typs,terms = terms,ll_defs = ll_defs,rewrite_rules = rewrite_rules,
 assms = assm :: assms}, assms_nbr+1)
 end
 
@@ -94,7 +94,7 @@ I think this might be a mistake and I can rename it. Yes, replay data should be 
 
 *)
 fun parse_sort (cs: string list)                                              
- ({context,typs: typ Symtab.table,terms,ll_defs,rewrite_rules,assms}: SMT_Translate.replay_data, assms_nbr) =
+ ({ctxt,typs: typ Symtab.table,terms,ll_defs,rewrite_rules,assms}: SMT_Translate.replay_data, assms_nbr) =
 let
   fun extract_sort_symbol (SMTLIB.S [SMTLIB.Sym "declare-sort", SMTLIB.Sym typ, SMTLIB.Num 0]) = typ |
     extract_sort_symbol (SMTLIB.S [SMTLIB.Sym "declare-sort", SMTLIB.Sym _, SMTLIB.Num _]) =
@@ -103,10 +103,10 @@ let
 
   val sort_symbol = cs |> smtlib_lines_without_qm |> extract_sort_symbol                                                        
   val T = TFree (sort_symbol, ["HOL.type"])
-  val context = Variable.declare_typ T context
+  val context = Variable.declare_typ T ctxt
   val typs = Symtab.update (sort_symbol, T) typs
 in
- ({context = context,typs = typs,terms = terms,ll_defs = ll_defs,rewrite_rules = rewrite_rules,assms = assms}, assms_nbr)
+ ({ctxt = ctxt,typs = typs,terms = terms,ll_defs = ll_defs,rewrite_rules = rewrite_rules,assms = assms}, assms_nbr)
 end
 
 
@@ -123,7 +123,7 @@ val fix_invalid_name =
   #> map (fn "." => "__#__" | a => a) (*fudge replacement*)
   #> implode
 
-fun parse_declare (cs: string list) ({context,typs,terms,ll_defs,rewrite_rules,assms}: SMT_Translate.replay_data, assms_nbr)
+fun parse_declare (cs: string list) ({ctxt,typs,terms,ll_defs,rewrite_rules,assms}: SMT_Translate.replay_data, assms_nbr)
    =
   let
     (*val _ = @{print} ("declaration", cs)*)
@@ -139,11 +139,11 @@ fun parse_declare (cs: string list) ({context,typs,terms,ll_defs,rewrite_rules,a
      val name = fix_invalid_name raw_name
      val name = normalize_name name
 
-     val ctxt = SMTLIB_Proof.empty_context context typs terms
-     val Ts = map (SMTLIB_Proof.type_of ctxt) (dest_seq tys)
-     val T = SMTLIB_Proof.type_of ctxt ty
+     val ctxt' = SMTLIB_Proof.empty_context ctxt typs terms
+     val Ts = map (SMTLIB_Proof.type_of ctxt') (dest_seq tys)
+     val T = SMTLIB_Proof.type_of ctxt' ty
 
-    val ([n'], ctxt') =  Variable.variant_fixes [name] context
+    val ([n'], ctxt') =  Variable.variant_fixes [name] ctxt
 
     val t = Free (n', Ts ---> T)
     val terms = Symtab.update (raw_name, t) terms
@@ -155,7 +155,7 @@ fun parse_declare (cs: string list) ({context,typs,terms,ll_defs,rewrite_rules,a
    (*     in parse' ts (declare_fun name (Ts ---> T) cx) end*)
    (* val _ = @{print} ("declaration", (n, tys, ty))*)
   in
-    ({context = context, typs = typs,terms = terms,ll_defs = ll_defs,rewrite_rules = rewrite_rules,assms = assms}, assms_nbr)
+    ({ctxt = ctxt, typs = typs,terms = terms,ll_defs = ll_defs,rewrite_rules = rewrite_rules,assms = assms}, assms_nbr)
   end
 
 
@@ -257,7 +257,7 @@ fun lex_lines ctxt cs = lexer ctxt cs None 1 1 |> map snd
 fun parser_add_line line replay_data = current_command (raw_explode line) replay_data
 
 fun mk_empty_replay_data ctxt =
- ({context = ctxt, typs = Symtab.empty, terms = Symtab.empty, ll_defs = [], rewrite_rules = [], assms = []}: SMT_Translate.replay_data)
+ ({ctxt = ctxt, typs = Symtab.empty, terms = Symtab.empty, ll_defs = [], rewrite_rules = [], assms = []}: SMT_Translate.replay_data)
 
 fun parse lines ctxt
  = fst (fold parser_add_line (lex_lines ctxt lines) (mk_empty_replay_data ctxt, 0))
