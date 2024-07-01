@@ -9,7 +9,7 @@ the others come from the Isabelle distribution or the AFP.
 section \<open>Examples for the (smt (cvc5)) binding\<close>
 
 theory SMT_Examples_CVC
-  imports HOL.SMT HOL.Real
+  imports HOL.SMT (*HOL.Real*)
 begin
 (*
 external_file \<open>SMT_Examples_CVC.certs\<close>
@@ -17,7 +17,7 @@ external_file \<open>SMT_Examples_CVC.certs\<close>
 declare [[smt_certificates = "SMT_Examples_CVC.certs"]]
 declare [[smt_read_only_certificates = false]]
 *)
-declare [[smt_trace]]
+declare [[smt_trace=false]]
 section \<open>Propositional and first-order logic\<close>
 
 declare [[smt_cvc_lethe = true]]
@@ -240,6 +240,7 @@ shows False
 (*--proof-granularity=dsl-rewrite*)
 declare[[cvc5_options="--dag-thres=0 --proof-format-mode=alethe  --full-saturate-quant --proof-define-skolems --proof-elim-subtypes --no-stats --sat-random-seed=1 --lang=smt2"]]
 
+declare[[ML_print_depth=1000]]
 
 lemma "\<forall>x::int. P x \<longrightarrow> (\<forall>y::int. P x \<or> P y)"
   by (smt (cvc5))
