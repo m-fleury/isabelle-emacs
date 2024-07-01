@@ -4,7 +4,7 @@ session HOL (main) = Pure +
   description "
     Classical Higher-order Logic.
   "
-  options [strict_facts]
+  options [quick_and_dirty,strict_facts]
   sessions Tools
   theories
     Main (global)
