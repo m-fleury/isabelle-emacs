@@ -878,6 +878,9 @@ fun is_same_assms_eq_ac (Abs (_, _,  u)) (Abs (_, _, u')) =
 
 fun normalized_input ctxt prems t = 
   let
+    val _ = @{print}("prems",prems)
+    val _ = @{print}("t",t)
+
     val all_assms = SMT_Config.alethe_no_provided_assms ctxt
     val termify = Thm.prop_of #> (fn x=> single (0, x)) #> SMT_Translate.eta_expand ctxt Termtab.empty #> hd #> snd
     fun matched_assm () =

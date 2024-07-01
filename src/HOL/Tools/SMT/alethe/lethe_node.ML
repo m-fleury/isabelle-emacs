@@ -50,9 +50,11 @@ sig
     concl: SMTLIB.tree,
     declarations: (string * SMTLIB.tree) list, (*Fuer skolem_def stehen statt in der conclusion die in der declarations drin, koennte man auch in concl machen*)
     subproof: raw_lethe_node list}
- (* | Raw_Definition_Node of {
+  | Raw_Definition_Node of {
+    id: string,
+    rule: string,
     concl: SMTLIB.tree
-  }*)
+  }
 
   val mk_raw_node : string ->
       string ->
@@ -80,11 +82,18 @@ datatype raw_lethe_node = Raw_Lethe_Node of {
     concl: SMTLIB.tree,
     declarations: (string * SMTLIB.tree) list,
     subproof: raw_lethe_node list}
+  | Raw_Definition_Node of {
+    id: string,
+    rule: string,
+    concl: SMTLIB.tree
+  }
 
 fun mk_raw_node id rule step_args context_ass  prems declarations concl subproof =
   Raw_Lethe_Node {id = id, rule = rule, step_args = step_args,
     context_assignments = context_ass, prems = prems, declarations = declarations,
     concl = concl, subproof = subproof}
+
+fun mk_raw_definition_node concl id rule = Raw_Definition_Node {id=id, rule=rule, concl=concl}
 
 
   datatype lethe_step = Lethe_Step of {
