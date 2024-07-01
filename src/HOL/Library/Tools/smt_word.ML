@@ -312,7 +312,10 @@ Das vierte ist ein Term
                           $ (Const("Word.smt_bit_word",  wT --> @{typ "nat"} --> @{typ "1 word"})
                             $ w $ i)
             fun test_f (m, T) ts = (@{print}("ts!!!!", map (Thm.cterm_of @{context}) ts); 
-               test_term)
+               @{term "HOL.eq::1 word => 1 word => bool"}
+                          $ @{term "Groups.one_class.one::1 word"}
+                          $ (Const("Word.smt_bit_word",  wT --> @{typ "nat"} --> @{typ "1 word"})
+                            $ w $ i))
 
             val _ = @{print}("test_term",test_term)
 (* Const ("HOL.eq", "1 word \<Rightarrow> 1 word \<Rightarrow> bool") $ Const ("Groups.one_class.one", "1 word") $
@@ -343,14 +346,18 @@ Das vierte ist ein Term
       val _ = @{print}("bit wT",wT)
       val _ = @{print}("T",T)
 
+      val i_as_nat = (HOLogic.dest_number o remove_cast) i |> snd |> HOLogic.mk_number @{typ nat}
+      val _ = @{print}("i_as_nat",i_as_nat)
 
     in  
        (case (try (snd o HOLogic.dest_number o remove_cast) i, try dest_wordT wT) of
         (SOME lb, SOME i') =>
           let
-            val res_str = "(" ^ n ^ " " ^ Int.toString lb ^ " " ^ Int.toString lb ^ ")"
+            val res_str = "(_ " ^ n ^ " " ^ Int.toString lb ^ " " ^ Int.toString lb ^ ")"
+            val T1 = mk_wordT (i'- lb)
+            val _ = @{print}("T1",T1)
           in
-          SOME (res_str, 1, [], fn _ => (Const (\<^const_name>\<open>smt_bit_word\<close>, fastype_of w --> @{typ nat} --> @{typ bool}) $ w) $ i)
+          SOME (res_str, 2, [], fn _ => (Const (\<^const_name>\<open>slice\<close>, @{typ nat} --> fastype_of w  --> @{typ "1 word"}) $ i $ (Const (\<^const_name>\<open>take_bit\<close>,  @{typ nat} --> fastype_of w --> fastype_of w ) $ i $ w)) )
           end
       | _ => NONE)
     end
@@ -494,13 +501,13 @@ val setup_builtins =
     (\<^term>\<open>unsigned :: 'a::len word \<Rightarrow> Int.int\<close>, "bv2nat"),
     (\<^term>\<open>of_int ::  Int.int => 'a::len word\<close>, "nat2bv")
 
-   ] #>
+   ] (*#>
   fold (add_word_fun bit) [
     (\<^term>\<open>bit :: 'a::len word \<Rightarrow> _ \<Rightarrow> _\<close>, "=")
    ] #>
   fold (add_word_fun bit_word) [
     (\<^term>\<open>smt_bit_word :: 'a::len word \<Rightarrow> _ \<Rightarrow> _\<close>, "extract")
-   ]
+   ]*)
 
 
  (*#>
