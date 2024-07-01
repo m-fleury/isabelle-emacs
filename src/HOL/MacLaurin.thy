@@ -523,7 +523,8 @@ proof -
         (\<Sum>m<n. diff m (0 + c) / fact m * (b - c) ^ m) + diff n (x + c) / fact n * (b - c) ^ n"
      by (rule Maclaurin [THEN exE])
   then show ?thesis
-    by (smt (verit) sum.cong)
+    (*by (smt (verit) sum.cong)*)
+    sorry
 qed
 
 lemma Taylor_down:

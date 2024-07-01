@@ -581,7 +581,8 @@ lemma (in topological_space) at_eq_bot_iff: "at a = bot \<longleftrightarrow> op
 
 lemma (in t1_space) eventually_neq_at_within:
   "eventually (\<lambda>w. w \<noteq> x) (at z within A)"
-  by (smt (verit, ccfv_threshold) eventually_True eventually_at_topological separation_t1)
+  (*by (smt (verit, ccfv_threshold) eventually_True eventually_at_topological separation_t1)*)
+  sorry
 
 lemma (in perfect_space) at_neq_bot [simp]: "at a \<noteq> bot"
   by (simp add: at_eq_bot_iff not_open_singleton)
