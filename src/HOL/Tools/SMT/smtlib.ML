@@ -133,7 +133,8 @@ fun read_bin l = !!! l "Could not parse binary number" (read_radix_int' 2 >> BVN
 
 (* hex numbers *)
 
-fun read_hex l = !!! l "Could not parse hex number" (read_radix_int' 16 >> apsnd (curry (op *) 4) >> BVNum)
+fun read_hex l
+  = !!! l "Could not parse hex number" (read_radix_int' 16 >> apsnd (curry (op *) 4) >> BVNum)
 
 (* symbols *)
 
