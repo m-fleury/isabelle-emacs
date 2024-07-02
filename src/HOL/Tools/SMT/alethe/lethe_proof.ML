@@ -34,6 +34,7 @@ sig
   val not_not_rule : string
   val contract_rule : string
   val ite_intro_rule : string
+  val forall_inst_rule : string
   val eq_congruent_rule : string
   val eq_congruent_pred_rule : string
   val skolemization_steps : string list
@@ -97,7 +98,7 @@ datatype debugging_verbosity = low | middle | high
 fun debug_to_int low = 0 |
     debug_to_int middle = 1 |
     debug_to_int high = 2
-val debug = true
+val debug = false
 val debugging_level = high (*0 low, 1 middle, 2 high verbosity*)
 
 fun lproof_trace_msg cond (x : unit -> 'a) = if cond then ignore(x ()) else ()
