@@ -659,6 +659,10 @@ fun postprocess_proof compress ctxt step cx =
 
 
       (* Process step and context arguments *)
+      (*TODO: la_generic aendere reals, erwarte div und keine reele zahlen. 
+(div 1 4) anstelle vom 0.25 als auch 1.0/4.0 
+=> Fuege in Isabelle-alethe hinzu (es ist keine restriktion, aber um zu checken dass das bei keiner anderen Regel passiert)
+*)
       val normalized_step_args = if not (allows_step_args rule) orelse rule = skolem_def then [] else
         let
           val (termified_step_args,_) = fold_map node_of_term step_args cx
