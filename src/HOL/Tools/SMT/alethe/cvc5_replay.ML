@@ -116,7 +116,7 @@ fun add_used_asserts_in_step (Lethe_Node.Lethe_Replay_Node {prems,
 
 fun remove_rewrite_rules_from_rules n =
   (fn Lethe_Node.Lethe_Replay_Node {id, ...} =>
-    (case try (snd o SMTLIB_Interface.role_and_index_of_assert_name) id |> @{print} of
+    (case try (snd o SMTLIB_Interface.role_and_index_of_assert_name) id of
       NONE => true
     | SOME a => (a >= n)))
 
@@ -132,7 +132,7 @@ fun replay_theorem_step rewrite_rules all_assms ll_defs assumed (inputs : thm li
     val _ = rtrace (fn () => @{print} ("Replaying theorem step: ", id))
 
     val (globally_known_facts, stats, ctxt, concl_tranformation, global_transformation) = state
-   
+
     val ctxt = Variable.variant_fixes [] ctxt
       |> (fn (_, ctxt) => fold Variable.declare_term [SMTLIB_Isar.unskolemize_names ctxt concl] ctxt)
     val (names, sub_ctxt) = Variable.variant_fixes (map fst fixes) ctxt
@@ -341,8 +341,6 @@ fun replay outer_ctxt
          "You must activate it with [[smt_cvc_lethe = true]] and use cvc5 (not included as component) .")))
        else ()
     val _ = rtrace (fn () => @{print} ("Replaying proof"))
-    val _ = rtrace (fn () => @{print} ("assms",assms))
-
 
     (* Rewriting Util *)
     val rewrite_rules =
@@ -375,8 +373,8 @@ fun replay outer_ctxt
         args = NONE}
     val used_assert_ids = fold add_used_asserts_in_step parsed_proof_steps []
     val real_assms =
-      map_filter (fn id => let val i = index_of_id id in if i >= 0 then SOME (i, nth assms i)
-          else NONE end)
+      map_filter (fn id => let val i = index_of_id id in if i >= 0 then SOME (i, nth (rev assms) i)
+          else NONE end) (*FIXME: nth is not a good way to do this! We had to add a rev several times now and assms do have ideas so it might be okay to use these!*)
         used_assert_ids
     val real_assms_steps = map step_of_assume real_assms 
     val _ = debug_rtrace middle 
@@ -399,19 +397,20 @@ fun replay outer_ctxt
       ctxt_with_asserts
    (* |> put_simpset (empty_simpset ctxt_with_asserts [])*) (*FIXME: commented out for easier development but should be added again since it will make auto faster (but also know less simplification rules)*)
       |> Config.put SAT.solver (Config.get ctxt_with_asserts SMT_Config.sat_solver)
-    val _ = debug_rtrace high (fn () => @{print} ("Added input rules as assertions"))
+    val _ = debug_rtrace high (fn () => @{print} ("Added input rules as assertions",assumed))
     val _ = rtrace (fn () => @{print} ("num_ll_defs",num_ll_defs))
-    val _ = rtrace (fn () => @{print} ("(filter (remove_rewrite_rules_from_rules num_ll_defs) real_assms_steps)",(filter (remove_rewrite_rules_from_rules num_ll_defs) real_assms_steps)))
+    val _ = rtrace (fn () => @{print} ("(filter (remove_rewrite_rules_from_rules num_ll_defs) real_assms_steps)",map (fn (Lethe_Replay_Node {id=idk,...}:lethe_replay_node) => idk) ((filter (remove_rewrite_rules_from_rules num_ll_defs) real_assms_steps))))
 
     (* Process Lambda Lifting Definitions *)
     fun normalize_tac ctxt = let val thy = Proof_Context.theory_of (empty_simpset ctxt) in
       Raw_Simplifier.rewrite_term thy rewrite_rules [] end
     val used_rew_js = (*Nur die die Lambda lifting sind, die heissen rewrites, fuer Isabelle sind das keine assumptions, weil tautologies sind, es sind auch keine theoreme (koennten sie nicht umwandeln)*)
       map_filter (fn id => let val i = index_of_id id in if i < 0
-          then SOME (id, normalize_tac ctxt (nth ll_defs id)) |> @{print} else NONE end)
+          then SOME (id, normalize_tac ctxt (nth ll_defs id))  else NONE end)
         used_assert_ids (* Whrs unfolded dies die lambda lifting defs fuer die benutzen assumptions. Vielleicht gibt es eine lldef pro assumption?*)
- |> @{print}  
- val (assumed, stats) = fold (fn ((id, thm)) => fn (assumed, stats) =>
+    val _ = debug_rtrace high (fn () => @{print} ("used_rew_js ",used_rew_js))
+
+ val (assumed, stats) = fold (fn ((id, thm)) => fn (assumed, stats) => (*TODO: assumed is currently wrong Jul6 evening*)
       let
         val (thm, stats) = replay_assumed (map snd assms) ll_defs rewrite_rules stats ctxt thm (*replay assumptions*)
         val name = SMTLIB_Interface.assert_name_of_role_and_index SMT_Util.Axiom id
@@ -446,7 +445,6 @@ fun replay outer_ctxt
     val thm_with_defs = Symtab.lookup proofs id |> the |> snd
       |> singleton (Proof_Context.export ctxt5 outer_ctxt)
     val _ = debug_rtrace middle (fn () => @{print} ("Last step (id " ^ id ^ ")", thm_with_defs))
-
 (*TODO: Schaue mit beispiel mit skolems an*)
 
     (*Statistics*)
