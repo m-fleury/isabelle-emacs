@@ -583,7 +583,7 @@ fun dropWhile _ [] = []
   | dropWhile f (x :: xs) = if f x then dropWhile f xs else x :: xs
 in
 
-fun forall_inst ctxt _ t (SOME (Insts insts)) = (*TODO*)
+fun forall_inst ctxt _ t (SOME (Insts insts)) =
   let
     fun instantiate_and_solve i ({context = ctxt, prems = [prem], ...}: Subgoal.focus) =
         let
@@ -603,9 +603,12 @@ fun forall_inst ctxt _ t (SOME (Insts insts)) = (*TODO*)
               (map (option_map (Thm.cterm_of ctxt)) insts)
               prem
         in
-           (Method.insert_tac ctxt [inst_thm]
+           ( (K (print_tac ctxt "sd 0")) THEN' Method.insert_tac ctxt [inst_thm]
+           THEN' (K (print_tac ctxt "sd 0"))
            THEN' TRY' (fn i => assume_tac ctxt i)
+           THEN' (K (print_tac ctxt "sd 1"))
            THEN' TRY' (partial_simplify_tac ctxt @{thms eq_commute ac_simps})
+           THEN' (K (print_tac ctxt "sd 2"))
            THEN' TRY' (blast_tac ctxt)) i
         end
      | instantiate_and_solve _ ({context = ctxt, prems = thms, ...}: Subgoal.focus) =
@@ -614,7 +617,9 @@ fun forall_inst ctxt _ t (SOME (Insts insts)) = (*TODO*)
     SMT_Replay_Methods.prove ctxt t (fn _ =>
       match_tac ctxt [@{thm disj_not1} RSN (1, @{thm iffD2}) OF [@{thm impI}]]
       THEN' (fn i => Subgoal.FOCUS (instantiate_and_solve i) ctxt i))
-  end
+  end |
+ forall_inst ctxt _ t _ = raise Fail ""
+
 end
 
 
@@ -861,6 +866,7 @@ fun distinct_elim ctxt prems t = (*TODO*)
     SMT_Replay_Methods.prove ctxt t (fn _ => resolve_tac ctxt @{thms refl})
 
 (*TODO: Roll back once Mathias supports this*)
+(*Modulo implicit reordering*)
 fun is_same_assms_eq_ac (Abs (_, _,  u)) (Abs (_, _, u')) = 
      is_same_assms_eq_ac u u' (*the name cannot be relevant due to implicit eta-contraction*)
   | is_same_assms_eq_ac (Free (var, _)) (Free (var', _)) =
@@ -881,6 +887,8 @@ fun normalized_input ctxt prems t =
     val _ = @{print}("prems",prems)
     val _ = @{print}("t",t)
 
+    (*Fuer externe Problem (bei denen wir nicht wissen welche assumption zu welcher assertion gehoert)
+    *)
     val all_assms = SMT_Config.alethe_no_provided_assms ctxt
     val termify = Thm.prop_of #> (fn x=> single (0, x)) #> SMT_Translate.eta_expand ctxt Termtab.empty #> hd #> snd
     fun matched_assm () =
