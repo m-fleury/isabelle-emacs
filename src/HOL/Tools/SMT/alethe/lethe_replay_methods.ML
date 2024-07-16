@@ -985,7 +985,7 @@ local
 
   fun and_rule_prove ctxt prems =
      Method.insert_tac ctxt prems
-     THEN' (fn i => REPEAT (dresolve_tac ctxt @{thms conjE} i THEN assume_tac ctxt (i+1)))
+     THEN' REPEAT' (eresolve_tac ctxt @{thms conjE} THEN' TRY' (assume_tac ctxt))
      THEN' TRY' (assume_tac ctxt)
 
   fun and_neg_rule_prove ctxt _ =
