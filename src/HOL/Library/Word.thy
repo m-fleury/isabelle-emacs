@@ -4495,6 +4495,7 @@ end
 
 subsection \<open>Tool support\<close>
 
+
 (*TODO: Hanna*)
 definition smt_bit_word :: \<open>'a::len word \<Rightarrow> nat \<Rightarrow> 1 word\<close>
   where "smt_bit_word a n = (if (bit a n) then (1::1 word) else (0::1 word))"
@@ -4503,6 +4504,178 @@ definition smt_bit_word :: \<open>'a::len word \<Rightarrow> nat \<Rightarrow> 1
 ML_file \<open>Tools/smt_word.ML\<close>
 ML_file \<open>../Tools/SMT/strict_smt_parser.ML\<close>
 
+
+(*
+shift m n T ts
+m=Bit_Operations.semiring_bit_operations_class.push_bit
+n= bvshl
+T="nat \<Rightarrow> 3 word \<Rightarrow> 3 word"
+ts=[Const ("Num.numeral_class.numeral", "num \<Rightarrow> nat") $
+    (Const ("Num.num.Bit0", "num \<Rightarrow> num") $ (Const ("Num.num.Bit0", "num \<Rightarrow> num") $ Const ("Num.num.One", "num"))),
+  Const ("Num.numeral_class.numeral", "num \<Rightarrow> 3 word") $
+    (Const ("Num.num.Bit0", "num \<Rightarrow> num") $
+      Const ("Num.num.One", "num"))]
+
+Return:
+Option type, wenn SOME dann wie der Term danach aussieht
+
+SOME (n, 2, [hd ts, HOLogic.mk_number U i], mk_shift' (m, T))
+
+n ist nicht geprinted, scheint der Name fuer die hashtabelle reinkommt
+
+("[hd (tl ts), HOLogic.mk_number U i]",
+ [Const ("Num.numeral_class.numeral", "num \<Rightarrow> 3 word") $ (Const ("Num.num.Bit0", "num \<Rightarrow> num") $ Const ("Num.num.One", "num")),
+  Const ("Num.numeral_class.numeral", "num \<Rightarrow> 3 word") $
+    (Const ("Num.num.Bit0", "num \<Rightarrow> num") $
+      (Const ("Num.num.Bit0", "num \<Rightarrow> num") $
+        Const ("Num.num.One", "num")))])
+
+Die werden jetzt rekursiv uebersetzt
+
+SOME (r0,r1,r2,r3)
+
+In traverse in smt_translate wird der Name r0 ignoriert
+
+Alles was wir in r3 reintun wird nicht mehr traversed.
+*)
+declare[[smt_cvc_lethe = true]]
+declare[[smt_verbose = true,smt_trace]]
+declare[[smt_nat_as_int]]
+
+ML\<open>
+
+val x = @{term "(extract n' (n'::nat) w' = (1::1 word)) "}
+\<close>
+(*
+lemma bit_test: "take_bit 0 (2::3 word) = 0"
+  by (smt (cvc5))
+
+
+
+lemma bit_test: "bit (2::3 word) (1::nat)"
+  by (smt (cvc5))
+
+
+
+lemma bvshl_test: "push_bit 4 (2::3 word) = (0::3 word)"
+  by (smt (cvc5))
+
+lemma bvshl_test: "push_bit 4 (push_bit 0 (2::3 word)) = (0::3 word)"
+  by (smt (cvc5))
+*)
+
+(*  shows  "bit x n =(( slice n (take_bit (Suc n) x)) = (1::1 word))"
+*)
+lemma "bit x n =(( slice n (take_bit (Suc n) x)) = (1::1 word))" sorry
+term "(if a then b else c)"
+
+value "take_bit 4 (13::4 word)" (*1101  \<longrightarrow> 1101*)
+value "take_bit 3 (13::4 word)" (*1101  \<longrightarrow> 0101*)
+value "take_bit 2 (13::4 word)" (*1101  \<longrightarrow> 0001*)
+value "take_bit 1 (13::4 word)" (*1101  \<longrightarrow> 0001*)
+value "take_bit 0 (13::4 word)" (*1101  \<longrightarrow> 0000*)
+
+value "push_bit 1 (13::4 word)" (*1101 ---> 1010*)
+value "drop_bit 1 (13::4 word)" (*1101 ---> 0110*)
+
+value "slice 1 (10::4 word)::4 word" (*1010 ---> 0101*)
+
+value "word_rotl 3 (13::4 word)"
+value "(slice 2 (13::4 word)::4 word)" (*1101*)
+
+lemma 
+  fixes x::"'a::len word" and n::nat
+  defines "k \<equiv> LENGTH('a)-n"
+  assumes "LENGTH('a)>n"
+  shows "take_bit n (x::'a::len word)
+ = (slice k (push_bit k x::'a::len word))"
+  unfolding slice_def assms slice1_def
+  using assms
+  apply simp
+  oops
+
+(*
+push_bit     *
+drop_bit     div
+take_bit     mod
+
+
+Questions:
+- take_bit
+- bvsmod
+- translation bit
+- shifts non-numerical
+- More efficient? take_bit
+
+
+Mathias:
+
+- Wenn ich arithmetic vermeiden kann tue es! bvmult etc teurer als bvadd. shifts sind
+weniger teuer. extract sind gratis
+- extract muss ich konkrete indices haben... Koennte trotzdem sinn machen in extract
+zu uebersetzen wenn ich ein konkretes n habe
+
+take_bit = zero_extend + extract fuer konkrete n's
+
+Koennte sein das substraction nicht so schlimm ist fuer konkrete n's dann brauche 
+man nicht beide. Und der solver wuerde das vereinfachen. pushbit (size x -n) (drop_bit (size x-n))
+das ist alles im solver.
+*)
+
+lemma "take_bit n x = x - push_bit n (drop_bit n x)"
+  using bits_ident[of n x]
+  by (metis add_diff_cancel_left')
+
+lemma "push_bit 3 (7::3 word) = 0"
+  supply[[smt_nat_as_int=true]]
+  apply (smt (cvc5))
+  oops
+
+
+lemma "push_bit 3 (7::4 word) = 8"
+  supply[[smt_nat_as_int=true]]
+  apply (smt (cvc5))
+  oops
+
+lemma "drop_bit 3 (7::3 word) = 0"
+  supply[[smt_nat_as_int=true]]
+  apply (smt (cvc5))
+  oops
+
+lemma "push_bit 3 (x::4 word) = 2"
+  supply[[smt_nat_as_int=true]]
+  apply (smt (cvc5))
+  oops
+
+lemma "push_bit 3 (drop_bit 3 (7::3 word)) = 0"
+  supply[[smt_nat_as_int=true]]
+  apply (smt (cvc5))
+  oops
+
+lemma "take_bit 3 (7::3 word) = 7"
+  supply[[smt_nat_as_int=true]]
+  apply (smt (cvc5))
+  oops
+
+
+lemma "bit (7::3 word) 1"
+  supply[[smt_nat_as_int=true]]
+  apply (smt (cvc5))
+  oops
+
+
+(*
+
+bit x n
+
+(= (smt_extract n n x) (1::1 word))
+
+(= ((_ extract n n) x') #b1)
+
+
+*)
+
+
 lemmas [cvc5_normalized_input] = len_bit0 len_num1 mult_Suc_right One_nat_def
    add.right_neutral mult_0_right mult_num_simps numeral_times_numeral
 
@@ -4510,4 +4683,5 @@ lemma assumes "a=64" shows "LENGTH(64) = (a::nat)"
   using nat_int assms
   supply [[smt_nat_as_int, smt_trace,smt_cvc_lethe,smt_debug_verit]]
   sorry
+
 end

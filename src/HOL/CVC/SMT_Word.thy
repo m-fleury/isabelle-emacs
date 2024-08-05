@@ -755,8 +755,8 @@ fun mk_scast i u =
 
 fun
   (*From the FixedSizeBitVectors theory*)
-  (*| bv_term_parser (SMTLIB.Sym "concat", [t1,t2]) = mk_concat t1 t2*)
-  bv_term_parser (SMTLIB.S [SMTLIB.Sym "_",SMTLIB.Sym "extract", SMTLIB.Num i, SMTLIB.Num j],[t])
+   bv_term_parser (SMTLIB.Sym "concat", t1 :: t2 :: ts) = (@{print}("here todo make nary");SOME (@{term "word_cat"} $ t1 $ t2))
+  | bv_term_parser (SMTLIB.S [SMTLIB.Sym "_",SMTLIB.Sym "extract", SMTLIB.Num i, SMTLIB.Num j],[t])
        = SOME (mk_extract i j t)
 
   (*SMT-LIB3 Syntax. First, we wanted to automatically map SMT-LIB2 syntax to this in preprocessing
@@ -1087,10 +1087,11 @@ ML \<open>
   let val (m, _) = Term.dest_Const t
   in SMT_Builtin.add_builtin_fun smtlibC (Term.dest_Const t, K (f m n)) end
   
- fun mk_extract c i j ts = Term.list_comb (Const c, mk_nat i :: mk_nat j :: ts)
-
+ fun mk_extract c i j ts = Term.list_comb (Const c, HOLogic.mk_number @{typ nat} i :: mk_nat j :: ts)
+                                                      
  fun extract m n (U as (Type(_,[_,Type(_,[_,Type(_,[Tx,T])])]))) [i,j,x] =
-  (case (try (snd o HOLogic.dest_number o remove_cast) i,
+(@{print}("i",i);
+  (case (try (snd o HOLogic.dest_number o remove_cast) i, (*Interesting HOLogic.dest_nat instead of this does not work*)
          try (snd o HOLogic.dest_number o remove_cast) j,
          try dest_wordT Tx,
          try dest_wordT T) of
@@ -1098,25 +1099,32 @@ ML \<open>
     let
 val _ = @{print}("did go in here!")
       val k = i' - j' + 1
+      val U' = @{typ "nat"} --> @{typ "nat"} --> Tx --> T
     in
      if j' <= i' andalso k = T' andalso i' < Tx'
-     then SOME (index2 n i' j', 1, [x], mk_extract (m, U) i' j')
+     then SOME (index2 n i' j', 1, [x], mk_extract (m, U') i' j')
      else NONE
     end |
-   _ => NONE) |
- extract _ _ _ _ = NONE
+   _ => NONE)) |
+ extract _ _ _ _ = (@{print}("did go ther"); NONE)
 
 val setup_builtins =
   add_word_fun extract
     (\<^term>\<open>smt_extract :: _ \<Rightarrow> _ \<Rightarrow> 'a::len word \<Rightarrow> _\<close>, "extract") 
 
 val _ = Theory.setup (Context.theory_map (
-  SMTLIB_Interface.add_logic (100, smtlib_logic) #>
+  SMTLIB_Interface.add_logic (1, smtlib_logic) #>
   setup_builtins))
+\<close>
+declare[[smt_verbose = true,smt_trace]]
+
+ML\<open>
+
+val x = @{term "x + (1::nat)" }
 \<close>
 
 
-(*
+
 
 term " (0 :: 32 word)"
 ML \<open>@{typ "32 word"} = \<^typ>\<open>_ word\<close>\<close>
@@ -1145,8 +1153,30 @@ lemma "unat (2048 :: 32 word) \<le> 4294967296"
   supply [[smt_trace,smt_nat_as_int]]
 by (smt (cvc5) )
 
-*)
+lemma "\<not>bit (1 :: 32 word) 1"
+  using slice_def
+  supply [[smt_trace,smt_debug_verit,z3_extensions]]
+  by (smt (cvc5) )
+
 value "(11::3 word)"
 value "(3::3 word)"
+
+lemma
+  fixes x::"'a::len word"
+  assumes "n < size x"
+  shows  "bit x n =(( slice n (take_bit (Suc n) x)) = (1::1 word))"
+proof-
+  have "bit x n = (if (smt_extract n n x) = (1::1 word) then True else False)"
+    using smt_extract_bit[of n x] assms
+    by simp
+  then have "bit x n = (if ( slice n (take_bit (Suc n) x)) = (1::1 word) then True else False)"
+    unfolding smt_extract_def[of n n x] by simp
+  then show ?thesis by simp
+qed
+
+
+
+
+
 
 end
