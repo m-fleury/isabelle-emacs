@@ -884,8 +884,8 @@ fun is_same_assms_eq_ac (Abs (_, _,  u)) (Abs (_, _, u')) =
 
 fun normalized_input ctxt prems t = 
   let
-    val _ = @{print}("prems",prems)
-    val _ = @{print}("t",t)
+    (*val _ = @{print}("prems",prems)
+    val _ = @{print}("t",t)*)
 
     (*Fuer externe Problem (bei denen wir nicht wissen welche assumption zu welcher assertion gehoert)
     *)
@@ -1435,32 +1435,26 @@ local
 in
 
 fun all_simplify ctxt _ t =
-  SMT_Replay_Methods.prove ctxt t (fn _ => K (print_tac ctxt "in all_simp0")
-     THEN' TRY' (K (Clasimp.auto_tac ctxt))
-     THEN' K (print_tac ctxt "in all_simp1")
+  SMT_Replay_Methods.prove ctxt t (fn _ => (*K (print_tac ctxt "in all_simp0")
+     THEN'*) TRY' (K (Clasimp.auto_tac ctxt))
+     (*THEN' K (print_tac ctxt "in all_simp1")*)
      THEN' TRY' (Code_Simp.dynamic_tac ctxt )
-     THEN' K (print_tac ctxt "in all_simp2")
+     (*THEN' K (print_tac ctxt "in all_simp2")*)
 
      THEN' TRY' (Lin_Arith.tac ctxt)
-     THEN' K (print_tac ctxt "in all_simp3")
 
      THEN' TRY' (simplify_arith ctxt @{thms verit_sum_simplify arith_special zmult_eq_1_iff})
-      THEN' K (print_tac ctxt "in all_simp4")
  
      THEN' TRY' (simplify_arith ctxt @{thms verit_prod_simplify})
-      THEN' K (print_tac ctxt "in all_simp5")
 
      THEN' TRY' (chain_rewrite_two_step_with_ac_simps ctxt
          @{thms arith_simps verit_minus_simplify}
          (Named_Theorems.get ctxt @{named_theorems ac_simps} @
           @{thms numerals arith_simps arith_special
              numeral_class.numeral.numeral_One}))
-      THEN' K (print_tac ctxt "in all_simp6")
 
      THEN' TRY' (Code_Simp.dynamic_tac ctxt )
-     THEN' K (print_tac ctxt "in all_simp7")
      THEN' TRY' (K (Clasimp.auto_tac ctxt))
-     THEN' K (print_tac ctxt "in all_simp8")
 ) (*TODO: TEMP until cvc5 produces fine grained simplification steps *)
 end
 end
