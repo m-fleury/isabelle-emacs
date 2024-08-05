@@ -13,12 +13,12 @@ end;
 structure CVC5_Replay: CVC5_REPLAY =
 struct
 
-val trace = true
+val trace = false
 datatype debugging_verbosity = low | middle | high
 fun debug_to_int low = 0 |
     debug_to_int middle = 1 |
     debug_to_int high = 2
-val debug = true
+val debug = false
 val debugging_level = high (*0 low, 1 middle, 2 high verbosity*)
 
 fun replay_trace_msg cond (x : unit -> 'a) = if cond then ignore(x ()) else ()
@@ -187,7 +187,7 @@ fun replay_theorem_step rewrite_rules all_assms ll_defs assumed (inputs : thm li
  
     (* Processing Subproof *)
     val _ = debug_crtrace (not (null subproof)) low (fn () => @{print} ("Interrupting the replay of the current step " ^ id ^ " to replay its subproof"))
-    val _ = @{print}("input",input)
+    (*val _ = @{print}("input",input)*)
     val replay = replay_theorem_step rewrite_rules all_assms ll_defs assumed (input_as_thm @ inputs) updated_local_assumptions
     val (locally_known_facts, stats, _, _, sub_global_rew) =                                       
        fold replay subproof (globally_known_facts, stats, sub_ctxt2, export_vars, global_transformation)
@@ -198,7 +198,7 @@ fun replay_theorem_step rewrite_rules all_assms ll_defs assumed (inputs : thm li
     (* Processing Components with new Context *)
     val export_thm = singleton (Proof_Context.export sub_ctxt2 ctxt)
     val subst_transform = (Term.subst_free concl_tranformation o subst_only_free global_transformation)
-    val _ = @{print}("concl_tranformation",global_transformation)
+    (*val _ = @{print}("concl_tranformation",global_transformation)*)
     val id_to_thm = (Symtab.lookup (if (null subproof) then globally_known_facts else locally_known_facts))
     val (prems_skolem_def,non_skolem_prems) = filter_split Lethe_Proof.is_skolem_def prems
     val prems_as_thms_with_context_assms =
@@ -237,7 +237,7 @@ fun replay_theorem_step rewrite_rules all_assms ll_defs assumed (inputs : thm li
     val _ = debug_crtrace (not (null local_inputs)) low (fn () => @{print} ("local_inputs: subproof rule assumptions",local_inputs))
 
 
-    val _ = @{print}("concl_tranformation",concl_tranformation)
+    (*val _ = @{print}("concl_tranformation",concl_tranformation)*)
 (*Counter of what concl_trans is supposed to do?*)
  (*   fun remove_skolem_names (Free (a,b)) = Free(if String.isSuffix "__" a then Library.unsuffix "__" a else a,b) |
      remove_skolem_names x = x

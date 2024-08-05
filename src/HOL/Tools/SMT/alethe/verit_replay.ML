@@ -106,11 +106,11 @@ fun replay_theorem_step rewrite_rules all_assms ll_defs assumed inputs proof_pre
   (step as Lethe_Node.Lethe_Replay_Node {id, rule, prems, step_args, context_assignments,
      subproof = (fixes, assms, input, subproof), concl, args, ...}) state =
   let
-   val _ = @{print}("id",id)
+   (*val _ = @{print}("id",id)
    val _ = @{print}("prems",prems)
    val _ = @{print}("assms",assms)
    val _ = @{print}("input",input)
-   val _ = @{print}("inputs",inputs)
+   val _ = @{print}("inputs",inputs)*)
 
     val (proofs, stats, ctxt, concl_tranformation, global_transformation) = state
     val (_, ctxt) = Variable.variant_fixes [] ctxt
@@ -176,7 +176,7 @@ fun replay_theorem_step rewrite_rules all_assms ll_defs assumed inputs proof_pre
 
     val local_inputs =
        if Lethe_Replay_Methods.requires_local_input prems rule then input @ inputs else []
-    val _ = @{print}("local_inputs",local_inputs)
+   (* val _ = @{print}("local_inputs",local_inputs)*)
 
     val replay = Timing.timing (replay_thm Verit_Replay_Methods.method_for rewrite_rules ll_defs
        ctxt assumed [] (missing_assumptions @ proof_prems @ local_inputs) (nthms @ nthms') concl_tranformation
