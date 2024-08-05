@@ -66,6 +66,9 @@ local
 
   fun if_fixed pred m n T ts =
     let val (Us, U) = Term.strip_type T
+        val _ = @{print}("m",m)
+        val _ = @{print}("n",n)
+
     in
       if pred (U, Us) then SOME (n, length Us, ts, Term.list_comb o pair (Const (m, T))) else NONE
     end
@@ -80,15 +83,36 @@ local
 
   val mk_nat = HOLogic.mk_number \<^typ>\<open>nat\<close>
 
-  fun mk_shift c [u, t] = Const c $ mk_nat (snd (HOLogic.dest_number u)) $ t
+  fun mk_shift c [t,u] =
+(case try HOLogic.dest_number u of
+NONE => (@{print}("u",u);Const c $ mk_nat ( (HOLogic.dest_numeral u)) $ t) |
+SOME _ =>  (@{print}("u",u);Const c $ mk_nat (snd (HOLogic.dest_number u)) $ t))
     | mk_shift c ts = raise TERM ("bad arguments", Const c :: ts)
+  fun mk_shift_numeral c [u, t] = (@{print}("u",u);@{print}("t",t);Const c $ mk_nat (HOLogic.dest_numeral u) $ t)
+    | mk_shift_numeral c ts = raise TERM ("bad arguments", Const c :: ts)
 
   fun shift m n T ts =
-    let val U = Term.domain_type (Term.range_type T)
+    let
+      val _ = @{print}("------------------------")
+
+      val _ = @{print}("m",m)
+      val _ = @{print}("n",n)
+      val _ = @{print}("T",T)
+      val _ = @{print}("ts",ts)
+      val ts = ts |> map (fn (Const ("Int.nat", _) $ x) => x | x => x) 
+
+      val U = Term.domain_type (Term.range_type T)
+      val _ = @{print}("U",U)
+
     in
       (case (can dest_wordT U, try (snd o HOLogic.dest_number o hd) ts) of
         (true, SOME i) =>
-          SOME (n, 2, [hd (tl ts), HOLogic.mk_number U i], mk_shift (m, T))
+          let 
+            val _ = @{print}("i",i)
+            val _ = @{print}("[hd (tl ts), HOLogic.mk_number U i]",[hd (tl ts), HOLogic.mk_number U i])
+
+          in
+          SOME (n, 2, [hd (tl ts), HOLogic.mk_number U i], mk_shift (m, T)) end
       | _ => NONE)   (* FIXME: also support non-numerical shifts *)
     end
 
@@ -100,6 +124,7 @@ local
     in
       (case (can dest_wordT U, try (snd o HOLogic.dest_number o hd o tl) ts) of
         (true, SOME i) =>
+
           SOME (n, 2, [hd ts, HOLogic.mk_number U i], mk_shift' (m, T))
       | _ => NONE)   (* FIXME: also support non-numerical shifts *)
     end
@@ -112,18 +137,112 @@ local
           try dest_wordT Tx) of
     (SOME j, SOME k, SOME i') => 
      let
+     val _ = @{print}("In slice9",(j,k,i'))
       val i = i' - 1
      in
       if i >= j andalso k = i' - j (*i > k is implicit*)
-      then SOME (index2 n i j, 1, tl ts, mk_extract (m, T) j)
+      then ( @{print}("In slice9");SOME (index2 n i j, 1, tl ts, mk_extract (m, T) j))
       else NONE
      end
     | _ => NONE) |
-  slice _ _ _ _ = NONE
+  slice _ _ _ _ = (@{print}("In slice1");NONE)
 
 
 
-  (* (bit n w) should be translated to (= (extract n n w) #b1) *)
+(* (bit n w) should be translated to (= (extract n n w) #b1) *)
+(*
+
+SOME (_, 2, [n,w], (fn [n',w'] \<Rightarrow> Const ("=") $ (Const ("extract") $ n' n' w') (Word 1))
+
+Erstes Argument egal
+Zweites: zwei, weil 2 arguments
+
+
+
+*)
+fun take_bit m n T ts =
+    let
+     
+      val ts = ts |> map (fn (Const ("Int.nat", _) $ x) => x | x => x) 
+      val offset = hd ts
+      val word= hd (tl ts)
+      val U = Term.domain_type (Term.range_type T)
+
+    in
+      (case (can dest_wordT U, try (snd o HOLogic.dest_number o hd) ts) of
+        (true, SOME i) =>
+          let 
+            val str=""
+            val offset' = HOLogic.mk_number @{typ "nat"} i
+            val minus=  Const(\<^const_name>\<open>minus\<close>, U --> U --> U)
+
+            val drop=  Const(\<^const_name>\<open>drop_bit\<close>, @{typ "nat"} --> U --> U)
+            val push=  Const(\<^const_name>\<open>push_bit\<close>, @{typ "nat"} --> U --> U)
+            fun mk_take_bit c ts = hd ts
+
+            val new_term = minus $ word $
+ (push $ offset' $ (drop $ offset' $ word))
+            val _ = @{print}("new args",new_term)
+          in
+          SOME (str, 1, [new_term], mk_take_bit (m, T)) end
+      | _ => NONE)   (* FIXME: also support non-numerical shifts *)
+    end
+
+
+
+
+fun bit m n T ts =
+    let
+      val _ = @{print}("m",m)
+      val _ = @{print}("n",n)
+      val _ = @{print}("T",T)
+      val _ = @{print}("ts",ts)
+
+
+      val word = hd ts
+      val pos = hd (tl ts) (* |> (fn (Const ("Int.nat", _) $ x) => x | x => x) *)
+      val _ = @{print}("word",word)
+      val _ = @{print}("pos",pos)
+
+      val suc_simplified =  
+      (case (try (snd o HOLogic.dest_number o remove_cast) pos) of
+        (SOME i') => (HOLogic.mk_number @{typ "int"} (i'+1))|
+        NONE => (Const(\<^const_name>\<open>Nat.Suc\<close>,@{typ "nat"} --> @{typ "nat"}) $ pos))
+
+
+      fun cond i =
+      Const(\<^const_name>\<open>slice\<close>, @{typ "nat"} --> fastype_of (word) --> @{typ "1 word"})
+        $ i
+        $ (Const (\<^const_name>\<open>take_bit\<close>,@{typ "nat"} --> fastype_of word --> fastype_of word)
+          $ i
+          $ word)
+
+      
+      fun new_ts i =
+          Const(\<^const_name>\<open>HOL.eq\<close>, @{typ "1 word"} -->  @{typ "1 word"} --> @{typ "bool"}) $
+          cond i $
+          @{term "1::1 word"}
+    
+
+      val _ = @{print}("new_ts pos",new_ts suc_simplified)
+
+      fun mk_bit ts = (@{print}("mk_bit ts",ts);hd ts)
+
+
+    in  SOME ("", 1, [new_ts suc_simplified], mk_bit) end
+
+(*
+      val U = Term.domain_type (Term.range_type T)
+      fun mk_bit [w',n'] = Const ("HOL.eq", @{typ "1 word \<Rightarrow> 1 word \<Rightarrow> bool"})
+      $ (Const ("smt_extract", @{typ "nat"} -->  @{typ "nat"} --> fastype_of w' --> @{typ "1 word"}  ) $ n' $ n' $ w') $
+     Const ("Groups.one_class.one", @{typ "1 word"})
+in SOME (n, 2, [nth ts 0, nth ts 1], mk_bit) end
+*)
+
+
+
+
+
 (*
 Idee: 
 Erst fuege 
@@ -242,7 +361,7 @@ Das erste und zweite Returnvalue scheint nicht zu zaehlen und es ist egal was ma
 Der dritte ist whrs die Terme die rekursive in strings uebersetzt werden sollen
 Das vierte ist ein Term
 *)
-
+(*
   fun bit m n T [w,i:term] =
     let
       val _ = @{print}("bit m",m)
@@ -330,7 +449,7 @@ Das vierte ist ein Term
        _ => NONE)
     end
   | bit m n T xs = (@{print} (m,n,T,xs); NONE)
-
+*)
 
  fun bit_word m n T (ts as [w,i:term]) =
     let
@@ -501,19 +620,22 @@ val setup_builtins =
     (\<^term>\<open>unsigned :: 'a::len word \<Rightarrow> Int.int\<close>, "bv2nat"),
     (\<^term>\<open>of_int ::  Int.int => 'a::len word\<close>, "nat2bv")
 
-   ] (*#>
-  fold (add_word_fun bit) [
-    (\<^term>\<open>bit :: 'a::len word \<Rightarrow> _ \<Rightarrow> _\<close>, "=")
    ] #>
+  fold (add_word_fun take_bit) [
+    (\<^term>\<open>take_bit :: _ \<Rightarrow> 'a::len word \<Rightarrow> _\<close>, "TODO")
+   ] #>
+  fold (add_word_fun bit) [
+    (\<^term>\<open>bit :: 'a::len word \<Rightarrow> _ \<Rightarrow> _\<close>, "bit")
+   ] (*#>
   fold (add_word_fun bit_word) [
     (\<^term>\<open>smt_bit_word :: 'a::len word \<Rightarrow> _ \<Rightarrow> _\<close>, "extract")
    ]*)
 
 
- (*#>
+ #>
   fold (add_word_fun power) [
-    (\<^term>\<open>power :: 'a::len word \<Rightarrow> _ \<Rightarrow> _\<close>, "ppower")
-   ]*)
+    (\<^term>\<open>power :: 'a::len word \<Rightarrow> _ \<Rightarrow> _\<close>, "^")
+   ]
 (*(bit$ w$ n$)*)
 
 
@@ -597,7 +719,26 @@ fun
       SOME (HOLogic.mk_binrel \<^const_name>\<open>Orderings.less\<close> (t1, t2))
   | bv_term_parser (SMTLIB.Sym "bvule", [t1, t2]) =
       SOME (HOLogic.mk_binrel \<^const_name>\<open>Orderings.less_eq\<close> (t1, t2))
-
+  | bv_term_parser (SMTLIB.Sym "bvshl", [t1, t2]) = 
+    let
+      val T1 = fastype_of t1
+      val (_,t2') = HOLogic.dest_number t2
+      val t2'' =  HOLogic.mk_number @{typ "int"} t2'
+      val _ = @{print}("bvshl",t2'')
+    in
+      SOME (Const (\<^const_name>\<open>semiring_bit_operations_class.push_bit\<close>, \<^typ>\<open>Nat.nat\<close> --> T1 --> T1)
+        $ (Const ( \<^const_name>\<open>nat\<close>,  \<^typ>\<open>int\<close>  --> \<^typ>\<open>Nat.nat\<close> ) $ t2'') $ t1)
+   end
+  | bv_term_parser (SMTLIB.Sym "bvlshr", [t1, t2]) = 
+    let
+      val T1 = fastype_of t1
+      val (_,t2') = HOLogic.dest_number t2
+      val t2'' =  HOLogic.mk_number @{typ "int"} t2'
+      val _ = @{print}("bvlshr",t2'')
+    in
+      SOME (Const (\<^const_name>\<open>semiring_bit_operations_class.drop_bit\<close>, \<^typ>\<open>Nat.nat\<close> --> T1 --> T1)
+        $ (Const ( \<^const_name>\<open>nat\<close>,  \<^typ>\<open>int\<close>  --> \<^typ>\<open>Nat.nat\<close> ) $ t2'') $ t1)
+   end
   | bv_term_parser (SMTLIB.Sym "bvadd", t) =
       let val (xs, a) = split_last t
       in
