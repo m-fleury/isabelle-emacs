@@ -4126,6 +4126,65 @@ next
       (simp_all only: horner_sum_uint_exp_Cons_eq, simp_all add: bit_concat_bit_iff le_div_geq le_mod_geq bit_uint_iff Cons)
 qed
 
+subsection \<open>Extract\<close>
+
+definition smt_extract :: "nat \<Rightarrow> nat \<Rightarrow> 'a ::len word \<Rightarrow> 'b::len word" where
+  \<open>smt_extract j i w = slice i (take_bit (Suc j) w)\<close>
+
+lemma unat_smt_extract:
+  fixes x::"'a::len word"
+  assumes "i \<le> j" "j < size x" "LENGTH('b) = j + 1 - i"
+  shows "unat ((smt_extract j i (x::'a::len word))::'b::len word)
+   = drop_bit i (take_bit (Suc j) (unat x))"
+  apply (cases "i=0")
+proof-
+  assume a0: "i = (0::nat)"
+  have "unat (smt_extract j i x::'b::len word) = unat (ucast (take_bit (Suc j) x ::'a::len word)::'b::len word)"
+   unfolding smt_extract_def slice_def slice1_def
+   by (simp add: a0)
+  also have "... = unat (take_bit (Suc j) x ::'a::len word)"
+    by (simp add: assms a0 unsigned_take_bit_eq unsigned_ucast_eq)
+  also have "... = take_bit (Suc j) (unsigned x)" 
+    using unsigned_take_bit_eq by auto
+  finally show ?thesis
+    using a0 by force
+next
+  assume a0: "i \<noteq> (0::nat)"
+  have t1: "i < LENGTH('a)"
+    by (metis assms(1,2) dual_order.strict_trans2 size_word.rep_eq)
+  have "unat (smt_extract j i x::'b::len word) = unat (ucast (drop_bit i (take_bit (Suc j) x))::'b::len word)"
+    unfolding smt_extract_def slice_def slice1_def
+    using a0 t1 by force
+  also have "... = take_bit (LENGTH('b)) (unat (drop_bit i (take_bit (Suc j) x)))"
+    by (simp add: unsigned_ucast_eq)
+  also have "... = take_bit (LENGTH('b)) (drop_bit i (unat (take_bit (Suc j) x)))"
+    using unat_drop_bit_eq by metis
+  also have "... = take_bit (LENGTH('b)) (drop_bit i (take_bit (Suc j) (unsigned x)))" 
+    by (simp add: unsigned_take_bit_eq)
+  also have "... = (drop_bit i (take_bit (LENGTH('b)+i) (take_bit (Suc j) (unsigned x))))" 
+    by (simp add: take_bit_drop_bit)
+  also have "... = (drop_bit i (take_bit (Suc j) (unsigned x)))" 
+      using take_bit_take_bit assms by simp
+  finally show "unat ((smt_extract j i (x::'a::len word))::'b::len word) = drop_bit i (take_bit (Suc j) (unat x))"
+    by simp
+qed
+
+lemma uint_smt_extract:
+  fixes x::"'a::len word"
+  shows  "i \<le> j \<Longrightarrow> j < size x \<Longrightarrow> LENGTH('b) = j + 1 - i
+ \<Longrightarrow> uint ((smt_extract j i (x::'a::len word))::'b::len word)
+   = drop_bit i (take_bit (Suc j) (unsigned x))"
+  apply (subst uint_nat)
+  apply (simp add: unat_smt_extract)
+  by (metis Word.of_nat_unat of_nat_drop_bit take_bit_of_nat)
+
+lemma sint_smt_extract:
+  fixes x::"'a::len word"
+  shows  "i \<le> j \<and> j < size x \<and> LENGTH('b) = j + 1 - i
+ \<Longrightarrow> sint ((smt_extract j i (x::'a::len word))::'b::len word)
+= signed_take_bit (LENGTH('b::len) - Suc (0::nat)) (drop_bit i (take_bit (Suc j) (unsigned x)))"
+  apply (subst sint_uint)
+  by (simp add: uint_smt_extract)
 
 subsection \<open>Rotation\<close>
 
