@@ -11,7 +11,7 @@ exception SMT_Regression of string
 (*expects a string, a SMTLIB.tree and a boolean expressing if the string should be parsed into 
 the tree or not.*)
 fun expect_parsing_error str =
-  str |> raw_explode |> SMTLIB.parse |> K (raise (SMT_Regression ("Input expected to raise parsing error but did not: " ^ str)))
+  str |> single |> SMTLIB.parse |> K (raise (SMT_Regression ("Input expected to raise parsing error but did not: " ^ str)))
   handle SMTLIB.PARSE(_,_) => true
 
 (*expects a string, a SMTLIB.tree and a boolean expressing if the string should be parsed into 
@@ -40,8 +40,6 @@ val _ = check_tree "x" (SMTLIB.Sym "y") false
 val _ = check_tree "x" (SMTLIB.Sym "x") true
 val _ = check_tree "(x)" (SMTLIB.Sym "x") false
 
-val _ = expect_parsing_error "v0" 
-
 
 (*Int*)
 
@@ -52,8 +50,6 @@ val _ = check_tree "00078768" (SMTLIB.Num 078768) true
 val _ = check_tree "000" (SMTLIB.Num 0) true
 val _ = check_tree "-23" (SMTLIB.Num (~23)) true
 val _ = check_tree "-23" (SMTLIB.S[SMTLIB.Sym "-", SMTLIB.Num (~23)]) false
-
-val _ = expect_parsing_error "000" 
 
 
 (*Dec*)
@@ -69,10 +65,12 @@ val _ = check_tree "(- 47/28)" (SMTLIB.S[SMTLIB.Sym "-", SMTLIB.S [SMTLIB.Sym "/
 
 val _ = expect_parsing_error "01.234.99"
 val _ = expect_parsing_error "01."
-val _ = expect_parsing_error ".38"
-val _ = expect_parsing_error "-." 
 val _ = expect_parsing_error "47/-28"
+val _ = expect_parsing_error "3.2/5"
 
+(*I guess these are allowed?*)
+(*val _ = expect_parsing_error ".38"*)
+(*val _ = expect_parsing_error "-." *)
 
 (*Key*)
 

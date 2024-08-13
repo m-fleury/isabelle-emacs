@@ -55,7 +55,7 @@ fun read_while pred l =
   ))
 
 (* The library version does not keep track of the bit-width and cannot be used for
-bases bigger than 10. *)
+bases bigger than 10. It also fails silently if no int can be parsed*)
 fun read_radix_int' radix cs =
   let
     val zero = Char.ord #"0";
@@ -81,51 +81,30 @@ fun read_radix_int' radix cs =
             scan ((radix * num + (ord c - upper_A + 10),(i+1)), cs) 
           else ((num,i), c :: cs);
 
-  in scan ((0,0), cs) end;
+     val (scanned as (n,_)) = scan ((0,0), cs)
+     val _ = @{print}("n",n)
+
+     val _ = @{print}("n",n=(0,0))
+  in (if n = (0,0) then Scan.fail cs else scanned) end;
 
 
 (* numerals and decimals *)
 
-fun read_num sign = read_int >> sign >> Num
-fun read_dec sign = (read_int >> sign) --| $$ "." -- read_int >> Dec
+fun read_int' l cs = (!!! l "Expected numeral but could not find it." (read_radix_int' 10 >> fst)) cs 
 
+fun read_num' l sign =
+ ((read_int' l >> sign) :--
+ (fn n => (
+    ((Scan.permissive ($$ ".")) |-- read_int' l >> (Dec o pair n)) || 
+    ((Scan.permissive ($$ "/")) |-- read_int' l >> (fn m => S[Sym "/", (Dec (n, 0)),(Dec (m,0))])) ||
+    (pair (Num n))
+    )
+  )
+) >> snd
 
-fun mk_smt_num (n, NONE) = Num n |
-  mk_smt_num (n,SOME m) = Dec (n,m)
-fun read_num2 sign = ((read_int >> sign)
- -- (Scan.option ($$ "." |-- read_int))) >> mk_smt_num (*Can parse 024.*)
 val is_neg = Scan.optional ($$ "-" >> K ~) I
 
-
-fun scan_num l = !!! l "Could not read numeral" (is_neg :-- (read_num2 ) >> snd)
-
-
-val x = scan_num 4 (raw_explode "-064.3")
-val _ = @{print}("x",x)
-
-
-fun int_of cs = fst (read_int cs)
-
-fun read_num l cs =
-  (case read_while Symbol.is_ascii_digit l cs of
-    (cs1, "." :: cs') =>
-      let val (cs2, cs'') = read_while Symbol.is_ascii_digit l cs'
-      in (Dec (int_of cs1, int_of cs2), cs'') end |
-    (cs1, "/" :: cs') =>
-       let val (cs2, cs'') = read_while Symbol.is_ascii_digit l cs'
-      in (S[Sym "/", (Dec (int_of cs1, 0)),(Dec (int_of cs2,0))], cs'') end |
-    (cs1, cs2) => (Num (int_of cs1), cs2))
-
-fun read_int l ("-"::cs) =
-  (case read_while Symbol.is_ascii_digit l cs of
-    (cs1, "." :: cs') =>
-      let val (cs2, cs'') = read_while Symbol.is_ascii_digit l cs'
-      in (Dec (~ (int_of cs1), int_of cs2), cs'') end |
-    (cs1, "/" :: cs') =>
-       let val (cs2, cs'') = read_while Symbol.is_ascii_digit l cs'
-      in (S[Sym "/", (Dec ((~ (int_of cs1)), 0)),(Dec (int_of cs2,0))], cs'') end |
-    (cs1, cs2) => (Num (~ (int_of cs1)), cs2))
-
+fun scan_num l = !!! l "Could not read numeral" (is_neg :--read_num' l >> snd)
 
 (* binary numbers *)
 
@@ -198,8 +177,9 @@ fun read _ [] rest tss = (rest, tss)
       token (fn _ => pair (Sym c)) l cs ts tss
   | read l (c :: cs) None (ts :: tss) =
       if Symbol.is_ascii_blank c then read l cs None (ts :: tss)
-      else if Symbol.is_digit c then token read_num l (c :: cs) ts tss
-      else if c = "-" andalso (if cs |> null then false else cs |> hd |> Symbol.is_digit) then token read_int l (c :: cs) ts tss (*TODO: make more elegant*)
+      else if Symbol.is_digit c
+      orelse (c = "-" andalso (if cs |> null then false else cs |> hd |> Symbol.is_digit))
+      then token scan_num l (c :: cs) ts tss
       else token (read_sym Sym) l (c :: cs) ts tss
   | read l cs (String s) (ts :: tss) =
       quoted read_string String Str l s cs ts tss
