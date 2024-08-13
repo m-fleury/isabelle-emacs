@@ -11,7 +11,7 @@ exception SMT_Regression of string
 (*expects a string, a SMTLIB.tree and a boolean expressing if the string should be parsed into 
 the tree or not.*)
 fun expect_parsing_error str =
-  str |> single |> SMTLIB.parse |> K (raise (SMT_Regression ("Input expected to raise parsing error but did not: " ^ str)))
+  str |> single |> Timeout.apply (seconds 5.0) SMTLIB.parse |> K (raise (SMT_Regression ("Input expected to raise parsing error but did not: " ^ str)))
   handle SMTLIB.PARSE(_,_) => true
 
 (*expects a string, a SMTLIB.tree and a boolean expressing if the string should be parsed into 
@@ -39,6 +39,13 @@ val _ = check_tree "()" (SMTLIB.S []) true
 val _ = check_tree "x" (SMTLIB.Sym "y") false
 val _ = check_tree "x" (SMTLIB.Sym "x") true
 val _ = check_tree "(x)" (SMTLIB.Sym "x") false
+val _ = check_tree "|x|" (SMTLIB.Sym "x") true
+val _ = check_tree "|<|" (SMTLIB.Sym "<") true
+val _ = check_tree "@my+var<3" (SMTLIB.Sym "@my+var<3") true
+val _ = check_tree "| my test|" (SMTLIB.Sym " my test") true
+val _ = check_tree "||" (SMTLIB.Sym "") true
+
+val _ = expect_parsing_error "|s||"
 
 
 (*Int*)
@@ -84,6 +91,7 @@ val _ = expect_parsing_error ": spacebeforepattern"
 val _ = check_tree "\"sdf\"" (SMTLIB.Str "sdf") true
 val _ = check_tree "\"\"" (SMTLIB.Str "") true
 val _ = check_tree "\" \"" (SMTLIB.Str "") false
+val _ = check_tree "\"these should be replaced: \\\\\"" (SMTLIB.Str "these should be replaced: \\") true
 
 val _ = expect_parsing_error "\"notclosed"
 val _ = expect_parsing_error "notclosedopen\""
@@ -100,6 +108,7 @@ val _ = check_tree "()" (SMTLIB.S []) true
 val _ = check_tree "( )" (SMTLIB.S []) true
 val _ = check_tree "(op)" (SMTLIB.S [SMTLIB.Sym "op"]) true
 val _ = check_tree "(op arg1 arg2)" (SMTLIB.S [SMTLIB.Sym "op",SMTLIB.Sym "arg1",SMTLIB.Sym "arg2"]) true
+val _ = expect_parsing_error "(01"
 
 \<close>
 

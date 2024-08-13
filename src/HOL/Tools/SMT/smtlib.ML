@@ -82,9 +82,6 @@ fun read_radix_int' radix cs =
           else ((num,i), c :: cs);
 
      val (scanned as (n,_)) = scan ((0,0), cs)
-     val _ = @{print}("n",n)
-
-     val _ = @{print}("n",n=(0,0))
   in (if n = (0,0) then Scan.fail cs else scanned) end;
 
 
@@ -133,7 +130,7 @@ fun read_quoted stop (escape, replacement) cs =
   let
 
     fun read _ [] = NONE
-      | read rs (cs as (c :: cs')) = ((*@{print}("cs",cs);@{print}("is_prefix (op =) stop cs",is_prefix (op =) stop cs);*)
+      | read rs (cs as (c :: cs')) = (
           if is_prefix (op =) stop cs then
             SOME (implode (rev rs), drop (length stop) cs)
           else if not (null escape) andalso is_prefix (op =) escape cs then
@@ -149,15 +146,6 @@ fun read_symbol cs = read_quoted ["|"] ([], "") cs
 
 
 (* core parser *)
-
-(*
-fun read l
-  = (($$"(" |-- (Scan.repeat (read l --| Scan.many1 (curry (op =) " ") )) --| $$")") >> S) || (*Der letzte braucht kein Leerzeichen!*)
-    ($$"#" |-- (($$"x" |-- read_bin l) || ($$"b" |-- read_bin l))) ||
-    ($$":" |-- (read_sym Key l))
-
-val y = @{print}("d",read 4 (raw_explode "(sdf"))
-*)
 
 fun read _ [] rest tss = (rest, tss)
   | read l ("(" :: cs) None tss = read l cs None ([] :: tss)
@@ -189,13 +177,12 @@ fun read _ [] rest tss = (rest, tss)
 
 and token f l cs ts tss =
   let val (t, cs') = f l cs
-      (*val _ = @{print}("t",t)*)
   in read l cs' None ((t :: ts) :: tss) end
 
 and quoted r f g l s cs ts tss =
   (case r cs of
     NONE => (f (s ^ implode cs), ts :: tss)
-  | SOME (s', cs') => ((*@{print}("g (s ^ s') ",g (s ^ s') ); *)read l cs' None ((g (s ^ s') :: ts) :: tss)))
+  | SOME (s', cs') => (read l cs' None ((g (s ^ s') :: ts) :: tss)))
   
 
 
