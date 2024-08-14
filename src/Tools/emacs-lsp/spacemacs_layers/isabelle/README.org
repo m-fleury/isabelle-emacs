@@ -126,7 +126,7 @@ Add the following to your =.emacs= (refer to the file =configuration_ex/mini_ini
 (use-package isar-goal-mode
   :ensure t
   :quelpa (isar-goal-mode :fetcher github
-			  :repo "m-fleury/simp-isar-mode"
+			  :repo "m-fleury/isar-mode"
 		     :files ("*.el")
 		     :upgrade t))
 
@@ -179,7 +179,7 @@ Change the =CHANGE HERE= part with the correct path to the =isabelle-emacs= clon
                              :repo "m-fleury/isar-mode"))
     (isar-goal-mode :location (recipe
                              :fetcher github
-                             :repo "m-fleury/simp-isar-mode"))
+                             :repo "m-fleury/isar-mode"))
     (lsp-isar :location (recipe
                              :fetcher github
                              :repo "m-fleury/isabelle-emacs"
@@ -204,16 +204,16 @@ Note that this option can only be used if a ROOT file is declared for the corres
 * Install (as a developer)
 ** standard emacs
 #+begin_src elisp
-(setq simp-isar-mode-path (concat repos-directory "simp-isar-mode"))
+(setq isar-mode-path (concat repos-directory "isar-mode"))
 
 (use-package isar-mode
-  :load-path simp-isar-mode-path
+  :load-path isar-mode-path
   :mode "\\.thy\\'"
   :config)
 
 (use-package isar-goal-mode
   :defer t
-  :load-path simp-isar-mode-path)
+  :load-path isar-mode-path)
 
   (use-package lsp-isar
     :load-path lsp-isar-path-stable
@@ -221,12 +221,12 @@ Note that this option can only be used if a ROOT file is declared for the corres
     :defer t
   )
 #+end_src
-where =simp-isar-mode-path= and =lsp-isar-path-stable= are the corresponding paths.
+where =isar-mode-path= and =lsp-isar-path-stable= are the corresponding paths.
 ** spacemacs
 *** Download the Isar-mode package
 
 #+BEGIN_SRC sh
-  git clone https://github.com/m-fleury/simp-isar-mode.git
+  git clone https://github.com/m-fleury/isar-mode.git
 #+END_SRC
 
 In the remainder of these instructions, I assume you have cloned these repos directly in your home directory. The following commands must be adapted with the correct paths otherwise.
@@ -256,7 +256,7 @@ In the remainder of these instructions, I assume you have cloned these repos dir
     - Create symbolic links to local packages
 #+BEGIN_SRC sh
   ln -s ~/isabelle-emacs/src/Tools/emacs-lsp/lsp-isar/ lsp-isar 
-  ln -s ~/simp-isar-mode/ isar-mode
+  ln -s ~/isar-mode/ isar-mode
 #+END_SRC
 
 *** Add the lsp layer to spacemacs
@@ -273,10 +273,10 @@ Same as non-developer version
 Add the following to your =packages.el= (replacing the paths with the correct ones): 
 #+BEGIN_src elisp
 (package! isar-mode
-   :recipe (:local-repo ".../path/to/simp-isar-mode"))
+   :recipe (:local-repo ".../path/to/isar-mode"))
 
 (package! isar-goal-mode
-   :recipe (:local-repo ".../path/to/simp-isar-mode"))
+   :recipe (:local-repo ".../path/to/isar-mode"))
 
 (package! lsp-isar
    :recipe (:local-repo ".../isabelle-emacs/src/Tools/emacs-lsp/lsp-isar/"))
