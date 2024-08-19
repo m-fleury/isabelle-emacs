@@ -18,12 +18,13 @@ sig
 
   val mk_step : string -> string -> string list -> term list -> term -> lethe_step
 
-  (* Pass information added during pre-processing to reconstruction  *)
+  (* Pass information added during pre-processing to reconstruction *)
   datatype tactic_args =
-    Declarations of (string * term) list | (*only used for sko_definitions *)
+    Declarations of (string * term) list | (*only used for sko_definitions*)
     Insts of term Symtab.table | (*only used for forall_inst*)
     Sko_Def_Prems of string list * string list | (*only used for sko_forall and sko_exists*)
-    Solver_Name of string (*only used for refl*)
+    Solver_Name of string | (*used for refl and cong*)
+    Index of int (*used for and, not_or, and_pos and or_neg*)
 
   val transform_tactic_args : (term -> term) -> tactic_args option -> tactic_args option
 
@@ -48,11 +49,11 @@ sig
     context_assignments: SMTLIB.tree list,
     prems: string list,
     concl: SMTLIB.tree,
-    declarations: (string * SMTLIB.tree) list, (*Fuer skolem_def stehen statt in der conclusion die in der declarations drin, koennte man auch in concl machen*)
     subproof: raw_lethe_node list}
   | Raw_Definition_Node of {
     id: string,
     rule: string,
+    declarations: (string * SMTLIB.tree) list, (*Fuer skolem_def stehen statt in der conclusion die in der declarations drin, koennte man auch in concl machen*)
     concl: SMTLIB.tree
   }
 
@@ -61,10 +62,10 @@ sig
         SMTLIB.tree list ->
           SMTLIB.tree list ->
             string list ->
-              (string * SMTLIB.tree) list ->
                 SMTLIB.tree ->
                   raw_lethe_node list -> raw_lethe_node
 
+  val mk_raw_definition_node : string -> string -> (string * SMTLIB.tree) list -> SMTLIB.tree -> raw_lethe_node
 
 end;
 
@@ -80,20 +81,20 @@ datatype raw_lethe_node = Raw_Lethe_Node of {
     context_assignments: SMTLIB.tree list,
     prems: string list,
     concl: SMTLIB.tree,
-    declarations: (string * SMTLIB.tree) list,
     subproof: raw_lethe_node list}
   | Raw_Definition_Node of {
     id: string,
     rule: string,
+    declarations: (string * SMTLIB.tree) list, (*Fuer skolem_def stehen statt in der conclusion die in der declarations drin, koennte man auch in concl machen*)
     concl: SMTLIB.tree
   }
 
-fun mk_raw_node id rule step_args context_ass  prems declarations concl subproof =
+fun mk_raw_node id rule step_args context_ass prems concl subproof =
   Raw_Lethe_Node {id = id, rule = rule, step_args = step_args,
-    context_assignments = context_ass, prems = prems, declarations = declarations,
+    context_assignments = context_ass, prems = prems,
     concl = concl, subproof = subproof}
 
-fun mk_raw_definition_node concl id rule = Raw_Definition_Node {id=id, rule=rule, concl=concl}
+fun mk_raw_definition_node id rule declarations concl = Raw_Definition_Node {id=id, rule=rule, declarations=declarations, concl=concl}
 
 
   datatype lethe_step = Lethe_Step of {
@@ -112,7 +113,8 @@ datatype tactic_args =
   Declarations of (string * term) list | (*only used for sko_definitions *)
   Insts of term Symtab.table | (*only used for forall_inst*)
   Sko_Def_Prems of string list * string list | (*only used for sko_forall and sko_exists*)
-  Solver_Name of string (*only used for refl*)
+  Solver_Name of string |  (*used for refl and cong*)
+  Index of int (*used for and, not_or, and_pos and or_neg*)
 
 fun transform_tactic_args _ NONE = NONE |
   transform_tactic_args f (SOME (Insts insts)) = SOME (Insts (Symtab.map (K f) insts)) |
