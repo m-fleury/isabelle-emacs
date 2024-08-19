@@ -25,31 +25,6 @@ open Lethe_Node
 
 datatype command_kind = ASSERT | FUN_DEF | FUN_DECL
 
-local
-
-  fun parse_fun_def (SMTLIB.S [SMTLIB.Sym "define-fun", SMTLIB.Sym id,  _, typ,
-           SMTLIB.S (SMTLIB.Sym "!" :: t :: [SMTLIB.Key _, SMTLIB.Sym name])]) cx =
-         (*replace the name binding by the constant instead of the full term in order to reduce
-           the size of the generated terms and therefore the reconstruction time*)
-         let val (l, cx) = (fst oo SMTLIB_Proof.extract_and_update_name_bindings) t cx
-            |> apsnd (SMTLIB_Proof.update_name_binding (name, SMTLIB.Sym id))
-         in
-           (*(mk_raw_node (id ^ skolem_def) skolem_def (SMTLIB.S [SMTLIB.Sym id, typ, l]) [] []
-              (SMTLIB.S [SMTLIB.Sym "=", SMTLIB.Sym id, l]) [], cx)*)
-            (mk_raw_node (id ^ Lethe_Proof.skolem_def) Lethe_Proof.skolem_def [(SMTLIB.S [SMTLIB.Sym id, typ, l])] [] [] []
-              (SMTLIB.S [SMTLIB.Sym "=", SMTLIB.Sym id, l]) [], cx)
-         end
-      | parse_fun_def (SMTLIB.S [SMTLIB.Sym "define-fun", SMTLIB.Sym id,  _, typ, SMTLIB.S l]) cx =
-         let val (l, cx) = (fst oo SMTLIB_Proof.extract_and_update_name_bindings) (SMTLIB.S l) cx
-         in
-           (mk_raw_node (id ^ Lethe_Proof.skolem_def) Lethe_Proof.skolem_def [(SMTLIB.S [SMTLIB.Sym id, typ, l])] [] [] []
-              (SMTLIB.S [SMTLIB.Sym "=", SMTLIB.Sym id, l]) [], cx)
-         end
-      | parse_fun_def t _ = raise Fail ("unrecognized Lethe proof " ^ \<^make_string> t)
-
-
-in
-
 fun parse_raw_problem_steps (commands : SMTLIB.tree list) (cx : name_bindings) (assms_nbr : int):
      (raw_lethe_node list * SMTLIB.tree list * name_bindings) =
   let
@@ -68,7 +43,7 @@ fun parse_raw_problem_steps (commands : SMTLIB.tree list) (cx : name_bindings) (
            the size of the generated terms and therefore the reconstruction time*)
          let val (l, cx) = (fst oo SMTLIB_Proof.extract_and_update_name_bindings) def cx
          in
-           (mk_raw_node (id ^ Lethe_Proof.skolem_def) Lethe_Proof.skolem_def [(SMTLIB.S [SMTLIB.Sym id, typ, l])] [] [] []
+           (mk_raw_node (id ^ Lethe_Proof.skolem_def) Lethe_Proof.skolem_def [(SMTLIB.S [SMTLIB.Sym id, typ, l])]  [] []
               (SMTLIB.S [SMTLIB.Sym "=", SMTLIB.Sym id, def]) [], cx)
          end
 
@@ -80,12 +55,12 @@ fun parse_raw_problem_steps (commands : SMTLIB.tree list) (cx : name_bindings) (
                 SMTLIB.S [SMTLIB.Sym "assert", SMTLIB.S [SMTLIB.Sym "!", term, SMTLIB.Key "named", SMTLIB.Sym id]] => (id, term)
               | SMTLIB.S [SMTLIB.Sym "assert", term] => (Int.toString assms_nbr, term))
             val ((t, cx), _) = SMTLIB_Proof.extract_and_update_name_bindings term cx
-            val s = mk_raw_node id Lethe_Proof.input_rule [] [] [] [] t []
+            val s = mk_raw_node id Lethe_Proof.input_rule [] []  [] t []
             val (rp, rl, cx) = parse_raw_problem_steps l cx (assms_nbr + 1)
        in (s :: rp, rl, cx) end
       | SOME (FUN_DEF, p, l) =>
           let
-            val (s, cx) = parse_fun_def p cx
+            val (s, cx) = Lethe_Proof.parse_fun_def p cx
             val (rp, rl, cx) = parse_raw_problem_steps l cx assms_nbr
           in (s :: rp, rl, cx) end
       | SOME (FUN_DECL, p, l) =>
@@ -100,5 +75,4 @@ fun parse_raw_problem_steps (commands : SMTLIB.tree list) (cx : name_bindings) (
 *)
 
   end
-end
 end;

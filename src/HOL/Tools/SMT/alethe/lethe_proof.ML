@@ -147,22 +147,21 @@ fun syntactic_rew_in_lhs_subst old_name new_name (Const(\<^const_name>\<open>HOL
 the size of the generated terms and therefore the reconstruction time*)
 local 
   fun new_concl id def = (SMTLIB.S [SMTLIB.Sym "=", SMTLIB.Sym id, def])
+  fun prelim_declarations id typ l = [("",SMTLIB.S [SMTLIB.Sym id, typ,l])]
 in
   fun parse_fun_def (SMTLIB.S [SMTLIB.Sym "define-fun", SMTLIB.Sym id,  _, typ,
     SMTLIB.S (SMTLIB.Sym "!" :: t :: [SMTLIB.Key _, SMTLIB.Sym name])]) cx =
     let
       val (l, cx) = (fst oo SMTLIB_Proof.extract_and_update_name_bindings) t cx
         |> apsnd (SMTLIB_Proof.update_name_binding (name, SMTLIB.Sym id))
-      val prelim_declarations = [("",SMTLIB.S [SMTLIB.Sym id, typ,l])]
     in
-      (mk_raw_definition_node (id ^ skolem_def) skolem_def prelim_declarations (new_concl id l), cx)
+      (mk_raw_definition_node (id ^ skolem_def) skolem_def (prelim_declarations id typ l) (new_concl id l), cx)
     end |
    parse_fun_def (SMTLIB.S [SMTLIB.Sym "define-fun", SMTLIB.Sym id,  _, typ, SMTLIB.S l]) cx =
     let
-       val (l, cx) = (fst oo SMTLIB_Proof.extract_and_update_name_bindings) (SMTLIB.S l) cx
-      val prelim_declarations = [("",SMTLIB.S [SMTLIB.Sym id, typ,l])]
+      val (l, cx) = (fst oo SMTLIB_Proof.extract_and_update_name_bindings) (SMTLIB.S l) cx
     in
-      (mk_raw_definition_node (id ^ skolem_def) skolem_def prelim_declarations (new_concl id l), cx)
+      (mk_raw_definition_node (id ^ skolem_def) skolem_def (prelim_declarations id typ l) (new_concl id l), cx)
     end |
    parse_fun_def t _ = raise Fail ("unrecognized Lethe proof " ^ \<^make_string> t)
 end
