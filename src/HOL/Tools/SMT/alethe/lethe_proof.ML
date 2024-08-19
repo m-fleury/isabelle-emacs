@@ -19,6 +19,10 @@ sig
   val parse_replay: typ Symtab.table -> term Symtab.table -> string list ->
     Proof.context -> lethe_replay_node list * Proof.context
 
+  val parse_fun_def: SMTLIB.tree ->
+      SMTLIB_Proof.name_bindings ->
+        raw_lethe_node * SMTLIB_Proof.name_bindings
+
   val step_prefix : string
   val input_rule: string
   val keep_app_symbols: string -> bool
@@ -80,6 +84,7 @@ val theory_resolution2_rule = "__theory_resolution2" (*arbitrary*)
 val equiv_pos2_rule = "equiv_pos2"
 val th_resolution_rule = "th_resolution"
 val and_pos_rule = "and_pos"
+val or_rule = "or"
 val hole = "hole"
 
 val is_skolem_def = String.isSuffix skolem_def
@@ -87,8 +92,10 @@ fun get_skolem_def_id id = id ^ skolem_def
 
 val skolemization_steps = ["sko_forall", "sko_ex"]
 val is_skolemization = member (op =) skolemization_steps
-val keep_app_symbols = member (op =) [eq_congruent_pred_rule, eq_congruent_rule, ite_intro_rule, and_pos_rule]
-val keep_raw_lifting = member (op =) [eq_congruent_pred_rule, eq_congruent_rule, ite_intro_rule, and_pos_rule]
+val keep_app_symbols = member (op =) [eq_congruent_pred_rule, eq_congruent_rule, ite_intro_rule, and_pos_rule,forall_inst_rule]
+(*application symbols app_fun, partially applied function*)
+val keep_raw_lifting = member (op =) [eq_congruent_pred_rule, eq_congruent_rule, ite_intro_rule, and_pos_rule,forall_inst_rule] 
+(*keep_raw_lifting = wann soll die lambda def unfolded werden und wann nicht!*)
 val is_SH_trivial = member (op =) [not_not_rule, contract_rule]
 
 fun is_skolemization_step (Lethe_Replay_Node {id, ...}) = is_skolemization id
@@ -98,7 +105,7 @@ datatype debugging_verbosity = low | middle | high
 fun debug_to_int low = 0 |
     debug_to_int middle = 1 |
     debug_to_int high = 2
-val debug = false
+val debug = true
 val debugging_level = high (*0 low, 1 middle, 2 high verbosity*)
 
 fun lproof_trace_msg cond (x : unit -> 'a) = if cond then ignore(x ()) else ()
@@ -135,28 +142,30 @@ fun syntactic_rew_in_lhs_subst old_name new_name (Const(\<^const_name>\<open>HOL
 
 (* proof parser *)
 
-local
 
-         (*replace the name binding by the constant instead of the full term in order to reduce
-           the size of the generated terms and therefore the reconstruction time*)
-  fun parse_fun_def (SMTLIB.S [SMTLIB.Sym "define-fun", SMTLIB.Sym id,  _, typ,
-           SMTLIB.S (SMTLIB.Sym "!" :: t :: [SMTLIB.Key _, SMTLIB.Sym name])]) cx =
-         let val (l, cx) = (fst oo SMTLIB_Proof.extract_and_update_name_bindings) t cx
-            |> apsnd (SMTLIB_Proof.update_name_binding (name, SMTLIB.Sym id))
-         in
-            (mk_raw_node (id ^ skolem_def) skolem_def [(SMTLIB.S [SMTLIB.Sym id, typ,l])] [] [] []
-              (SMTLIB.S [SMTLIB.Sym "=", SMTLIB.Sym id, l]) [], cx)
-         end
-      | parse_fun_def (SMTLIB.S [SMTLIB.Sym "define-fun", SMTLIB.Sym id,  _, typ, SMTLIB.S l]) cx =
-         let val (l, cx) = (fst oo SMTLIB_Proof.extract_and_update_name_bindings) (SMTLIB.S l) cx
-         in
-           (mk_raw_node (id ^ skolem_def) skolem_def [(SMTLIB.S [SMTLIB.Sym id, typ,l])] [] [] []
-              (SMTLIB.S [SMTLIB.Sym "=", SMTLIB.Sym id, l]) [], cx)
-         end
-      | parse_fun_def t _ = raise Fail ("unrecognized Lethe proof " ^ \<^make_string> t)
-
-
+(*replace the name binding by the constant instead of the full term in order to reduce
+the size of the generated terms and therefore the reconstruction time*)
+local 
+  fun new_concl id def = (SMTLIB.S [SMTLIB.Sym "=", SMTLIB.Sym id, def])
 in
+  fun parse_fun_def (SMTLIB.S [SMTLIB.Sym "define-fun", SMTLIB.Sym id,  _, typ,
+    SMTLIB.S (SMTLIB.Sym "!" :: t :: [SMTLIB.Key _, SMTLIB.Sym name])]) cx =
+    let
+      val (l, cx) = (fst oo SMTLIB_Proof.extract_and_update_name_bindings) t cx
+        |> apsnd (SMTLIB_Proof.update_name_binding (name, SMTLIB.Sym id))
+      val prelim_declarations = [("",SMTLIB.S [SMTLIB.Sym id, typ,l])]
+    in
+      (mk_raw_definition_node (id ^ skolem_def) skolem_def prelim_declarations (new_concl id l), cx)
+    end |
+   parse_fun_def (SMTLIB.S [SMTLIB.Sym "define-fun", SMTLIB.Sym id,  _, typ, SMTLIB.S l]) cx =
+    let
+       val (l, cx) = (fst oo SMTLIB_Proof.extract_and_update_name_bindings) (SMTLIB.S l) cx
+      val prelim_declarations = [("",SMTLIB.S [SMTLIB.Sym id, typ,l])]
+    in
+      (mk_raw_definition_node (id ^ skolem_def) skolem_def prelim_declarations (new_concl id l), cx)
+    end |
+   parse_fun_def t _ = raise Fail ("unrecognized Lethe proof " ^ \<^make_string> t)
+end
 
 
 
@@ -218,10 +227,10 @@ fun parse_raw_proof_steps (curr_anchor_id : string option) (smtlib_lines : SMTLI
 
 (*TODO: merge*)
     fun to_raw_node subproof ((((id, concl), rule), prems), step_args) =
-        mk_raw_node id rule step_args [] (the_default [] prems) [] concl subproof
+        mk_raw_node id rule step_args [] (the_default [] prems) concl subproof
 
    fun to_raw_node2 subproof ((((id, concl), rule), prems), context_assignment) = 
-        mk_raw_node id rule [] context_assignment (the_default [] prems) [] concl subproof
+        mk_raw_node id rule [] context_assignment (the_default [] prems) concl subproof
 
     fun closes_subproof NONE _ = false
       | closes_subproof (SOME id) step = step |> get_id |> fst |> (curry (op =) id)
@@ -233,7 +242,6 @@ fun parse_raw_proof_steps (curr_anchor_id : string option) (smtlib_lines : SMTLI
           then ([], smtlib_lines, cx)
           else
             let
-             (*ignores content of "discharge": Isabelle is keeping track of it via the context*)
               val (step', (_, cx)) =  (step, cx)
                 |> parse_normal_step
                 |>>  (to_raw_node [])
@@ -241,16 +249,19 @@ fun parse_raw_proof_steps (curr_anchor_id : string option) (smtlib_lines : SMTLI
             in (step' :: rp, rl, cx) end
       | (ASSUME, step, rest) =>
           let
-            val (id, t) = step |> get_id ||> the_single
-            val ((t, cx), _) = SMTLIB_Proof.extract_and_update_name_bindings t cx
-            val s = mk_raw_node id input_rule [] [] [] [] t []
-            (*Recursive call to parse rest of the steps.*)
+            val (id, t) = step |> get_id ||> the_single |> @{print}
+            val ((t, cx), _) = SMTLIB_Proof.extract_and_update_name_bindings t cx |> @{print}
+            val s = mk_raw_node id input_rule [] [] [] t []
             val (rstep, rrest, cx) = parse_raw_proof_steps curr_anchor_id rest cx
           in (s :: rstep, rrest, cx) end
       | (ANCHOR, p, l) =>
           let
             val (anchor_id, (anchor_args, (_, cx))) = (p, cx) |> (parse_anchor_step ##> parse_args)
-            val (subproof, discharge_step :: remaining_proof, cx) = parse_raw_proof_steps (SOME anchor_id) l cx
+            val (subproof, rest, cx) = parse_raw_proof_steps (SOME anchor_id) l cx
+            val (discharge_step, remaining_proof) =
+              (case rest of
+                (x::xs) => (x,xs) |
+                _ => raise throw_lethe_ex ("Could not parse subproof " ^ @{make_string} anchor_id))
             val (curss, (_, cx)) = parse_normal_step (discharge_step, cx)
             val s = to_raw_node2 subproof (fst curss, anchor_args)
             val (rp, rl, cx) = parse_raw_proof_steps curr_anchor_id remaining_proof cx
@@ -261,7 +272,6 @@ fun parse_raw_proof_steps (curr_anchor_id : string option) (smtlib_lines : SMTLI
             val (rp, rl, cx) = parse_raw_proof_steps curr_anchor_id l cx
           in (s :: rp, rl, cx) end
   end
-end
 
 (* context "arguments"
 bind,onepoint: fixed_vars list, mapping list
@@ -342,8 +352,6 @@ fun args_of_rule "bind" t = t
   | args_of_rule "rare_rewrite" (SMTLIB.Str s :: xs) = (SMTLIB.Sym s) :: xs (*Not sure if I really want to do this here? I also don't want it transformed to a string term though?*)
   | args_of_rule _ _ = []
 
-fun insts_of_forall_inst "forall_inst" t = map (fn SMTLIB.S [_, SMTLIB.Sym x, a] => (x, a)) t
-  | insts_of_forall_inst _ _ = []
 
 fun id_of_last_step prems =
   if null prems then []
@@ -472,7 +480,7 @@ fun preprocess compress step =
           ersetzt werden.*)
         (*Ist nur fuer den if case noetig, restrukturiere code*)
         val remap_assms = 
-          if rule = "or" andalso compress
+          if rule = or_rule andalso compress
           then
            let val _ = debug_lptrace low (fn () => \<^print> ("Compress proof by skipping current 'or' step")) in (id, hd prems) :: remap_assms end
           else remap_assms
@@ -485,10 +493,13 @@ fun preprocess compress step =
           else prems
 
       in
-        if rule = "or" andalso compress
+        if rule = or_rule andalso compress
         then 
           ([], (cx, remap_assms))
-        else ([mk_raw_node id rule stripped_step_args stripped_context_assignments remap_prems declarations concl subproof],
+        else if rule = skolem_def
+        then 
+          ([mk_raw_definition_node id rule declarations concl], (cx, remap_assms))
+        else ([mk_raw_node id rule stripped_step_args stripped_context_assignments remap_prems concl subproof],
           (cx, remap_assms))
       end
   in preprocess step end
@@ -594,9 +605,10 @@ fun postprocess_proof compress ctxt step cx =
     in ((shadowing_vars, rebound_lhs_vars, substitute_terms), new_variable_names) end
 
 
-    fun postprocess (Raw_Lethe_Node {id, rule, step_args, context_assignments, prems, declarations, concl, subproof}) (cx, new_variable_names) =
+(*TODO: Add case for definition node*)
+    fun postprocess (Raw_Lethe_Node {id, rule, step_args, context_assignments, prems, concl, subproof}) (cx, new_variable_names) =
     let
-     (* val _ = lethe_proof_parsing_trace ctxt (fn () => \<^print> ("postprocessing started for rule: ", id))*)
+      val _ = debug_lptrace low (fn () => \<^print> ("postprocessing started for rule: ", id))
       val anchor_rule = is_anchor_rule rule
 
      (* Update proof context *) 
@@ -621,17 +633,18 @@ fun postprocess_proof compress ctxt step cx =
       val unsk_and_rewrite = SMTLIB_Isar.unskolemize_names ctxt o subproof_rewriter
 
       (* Process conclusion *)
-     (* val _ = lethe_proof_parsing_trace ctxt (fn () => \<^print> ("... transform conclusion ", concl))*)
+      val _ = debug_lptrace middle (fn () => \<^print> ("... transform conclusion ", concl))
       val (cx',termified_concl) =
         let
           val ((termified_concl, extra_var), cx') = node_of concl cx
-          (*val _ = lethe_proof_parsing_trace ctxt (fn () => \<^print> ("... transformed conclusion into Isabelle term", termified_concl))*)
+          val _ = debug_lptrace high (fn () => \<^print> ("... transformed conclusion into Isabelle term", termified_concl))
+
           val _ = if extra_var <> []
             then raise ERROR ("found dangling variable (s) " ^ (@{make_string} extra_var) ^
               " in concl " ^ (@{make_string} concl) ^ " of step" ^ id) else ()
           val termified_concl = unsk_and_rewrite termified_concl
-             (*|> lethe_proof_parsing_tracing ctxt "... rewrite conclusion with new variable names introduced by prior anchors"
-             |> trace ? @{print}*)
+          val _ = debug_lptrace middle (fn () => \<^print> ("... rewrite conclusion with new variable names introduced by prior anchors", termified_concl))
+
         in (cx',termified_concl) end
 
       (* Process subproof *)
@@ -640,21 +653,22 @@ fun postprocess_proof compress ctxt step cx =
         if not anchor_rule then (cx,[])
         else
           let
-           (* val _ = lethe_proof_parsing_trace ctxt (fn () => \<^print> ("... transform subproof "))*)
+            val _ = debug_lptrace low (fn () => \<^print> ("... transform subproof "))
+
             val subproof_cx =
               add_bound_variables_to_cx (map (fn (a,b) => (a,Term b)) (shadowing_vars @ rebound_lhs_vars)) cx
-              (*|> lethe_proof_parsing_tracing' ctxt "... add new variables to context "
-              |> trace ? @{print}*)
+            val _ = debug_lptrace high (fn () => \<^print> ("... add new variables to context"))
+
             val can_remove_subproof =
               compress andalso (is_skolemization rule orelse alpha_conversion)
-            (* |> lethe_proof_parsing_tracing ctxt "... does the subproof only rename variables and therefore can be removed? "
-             |> trace ? @{print}*)
+            val _ = debug_lptrace high (fn () => \<^print> ("... does the subproof only rename variables and therefore can be removed?",can_remove_subproof))
+
             val new_subproof = (if can_remove_subproof then [] else subproof)
 
             (*TODO: Moved this inside the let. Make sure there are no other rules than anchor rules using subproof atm*)
             val (new_subproof : lethe_replay_node list, _) =
               fold_map postprocess new_subproof (subproof_cx, new_variable_names)
-            (*  |> new_subproof <> [] ? lethe_proof_parsing_tracing ctxt ("Finished postprocessing subproofs. Returning to rule with id"  ^ @{make_string} id)*)
+            val _ = debug_lptrace low (fn () => \<^print> ("Finished postprocessing subproof. Returning to rule with id",id))
          in (subproof_cx,new_subproof) end
 
 
@@ -699,20 +713,35 @@ fun postprocess_proof compress ctxt step cx =
         "forall_inst" =>
          let
            (* special handling: forall_inst *)
-           val raw_insts = insts_of_forall_inst rule step_args
+           fun get_foralls (SMTLIB.S [_,SMTLIB.S[_,SMTLIB.S [_,SMTLIB.S[_,SMTLIB.S xs,_]],_]]) step_args =
+            let
+                fun get_vars [] _ = [] |
+                    get_vars (SMTLIB.S[v,_]::ys) (z::zs) = SMTLIB.S[SMTLIB.Sym "=",v,z]:: get_vars ys zs
+              (* ("x",
+ [S [Sym "v0", Sym "Int_int_fun$"], S [Sym "v1", Sym "Int"],
+  S [Sym "v2", Sym "Int_list$"]]
+I cannot do this on the SMTLIB term after all... Or at least not this easily. Names might
+be different... TODO*)
+            in get_vars xs step_args end
+            val _ = @{print}("step_args",step_args)
+           val _ = @{print}("x",get_foralls concl step_args)
+
+fun insts_of_forall_inst "forall_inst" t = map (fn SMTLIB.S [_, SMTLIB.Sym x, a] => (x, a)) t
+  | insts_of_forall_inst _ _ = []
+           val raw_insts = insts_of_forall_inst rule (get_foralls concl step_args)
            fun termify_term (x, t) cx = let val (t, cx) = term_of t cx in ((x, t), cx) end
            val (termified_inst, _) = fold_map termify_term raw_insts subproof_cx
            val insts = Symtab.empty
             |> fold (fn (x, t) => fn insts => Symtab.update_new (desymbolize x, t) insts) termified_inst
             |> Symtab.map (K unsk_and_rewrite)
          in SOME (Insts insts) end |
-        "__skolem_definition" =>
+        (*"__skolem_definition" =>
          let
            (* special handling: skolem *)
            fun termify_term (x, t) cx = let val (t, cx) = term_of t cx in ((x, t), cx) end
            val (declarations, _) = fold_map termify_term declarations cx
             |> apfst (map (apsnd unsk_and_rewrite))
-         in SOME (Declarations (declarations)) end |
+         in SOME (Declarations (declarations)) end |*)
         "sko_exists" =>
        let
           val skolems_of_subproof = (if compress andalso is_skolemization rule
@@ -938,8 +967,8 @@ local
         |> filter_out (fn x => x = "")
         |> map single
         |> map SMTLIB.parse
-        |> map remove_all_qm
-        |> map remove_pattern
+        |> map remove_all_qm |> @{print}
+        |> map remove_pattern |> @{print}
       val (raw_steps, _, _) =
         parse_raw_proof_steps NONE smtlib_lines_without_qm SMTLIB_Proof.empty_name_binding
 
