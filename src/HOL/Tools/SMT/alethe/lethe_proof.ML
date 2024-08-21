@@ -398,6 +398,17 @@ fun preprocess compress step =
           normalize_tree (SMTLIB.S xs) = SMTLIB.S (map normalize_tree xs) |
           normalize_tree x = x
 
+
+      fun ignore_unexpected ctxt msg rule f xs =
+        if xs <> [] andalso not (f rule)
+        then
+          let val _ = (SMT_Config.verit_msg ctxt) (fn () => \<^print> ("Ignored unexpected " ^ msg ^ " Rule has kind: ", rule))
+          in [] end
+        else xs
+
+      fun normalize_tree_if ctxt cond xs = if Config.get ctxt cond then (map normalize_tree xs) else xs
+
+
     fun preprocess (Raw_Definition_Node {id, rule, declarations, concl, ...}) (cx : ('a list, 'b) context, remap_prems)  =
       let
         (*TODO: Some processing done above should maybe be done here*)
@@ -421,42 +432,34 @@ fun preprocess compress step =
         (* If we check external proofs we need to change term names starting with an upper character
            since this is not allowed in Isabelle *)
         (* I am not too happy about this since it works on all expressions, I want to change this maybe able do in smtlib_proof? *)
-        val step_args = if Config.get ctxt SMT_Config.check_external then (map normalize_tree step_args) else step_args
-        val context_assignments = if Config.get ctxt SMT_Config.check_external then (map normalize_tree context_assignments) else context_assignments
-        val concl = if Config.get ctxt SMT_Config.check_external then normalize_tree concl else concl
+        val step_args = normalize_tree_if ctxt SMT_Config.check_external step_args
+        val context_assignments = normalize_tree_if ctxt SMT_Config.check_external context_assignments
+        val concl = normalize_tree_if ctxt SMT_Config.check_external [concl] |> hd
 
-        (* Sanity checks *)
-        fun ignore_unexpected msg rule f xs =
-          if xs <> [] andalso not (f rule)
-          then
-            let val _ = (SMT_Config.verit_msg ctxt) (fn () => \<^print> ("Ignored unexpected " ^ msg ^ " Rule has kind: ", rule))
-            in [] end
-          else xs
-        val context_assignments = ignore_unexpected "context annotation" rule allows_context_assignment context_assignments
-        val step_args = ignore_unexpected "args" rule allows_step_args step_args
+        (* Sanity Checks *)
+        val context_assignments = ignore_unexpected ctxt "context annotation" rule allows_context_assignment context_assignments
+        val step_args = ignore_unexpected ctxt "args" rule allows_step_args step_args
+        val replace_assignment_sym = (fn SMTLIB.S [SMTLIB.Key "=", x, y] => SMTLIB.S [SMTLIB.Sym "=", x, y] | x => x)
 
-        val assignment_sym_to_eq_sym = (fn SMTLIB.S [SMTLIB.Key "=", x, y] => SMTLIB.S [SMTLIB.Sym "=", x, y] | x => x)
-        val stripped_context_assignments =
-          if context_assignments = [] then []
-          else
-            let
-              val _ = debug_lptrace middle (fn () => \<^print> ("rule with context assignment found: ", context_assignments))
-              val _ = debug_lptrace high (fn () => \<^print> ("... change assignment symbols (:=) to equalities (=)"))
-              val _ = debug_lptrace high (fn () => \<^print> ("... add type information syntactically (for legacy versions of veriT)"))
-              val context_assignments'=
-                context_assignments
-                |> map assignment_sym_to_eq_sym
-                |> match_typing_arguments Symtab.empty
-              val _ = debug_lptrace middle (fn () => \<^print> ("New context assignments: ", context_assignments'))
-            in
-             context_assignments'
-            end
-
-
-        val stripped_step_args =
+        (* Legacy Transformations of Arguments*)
+        val (context_assignments,stripped_step_args) = 
+        let
+          val sanitized_context_assignments =
+            context_assignments
+            |> map replace_assignment_sym
+            |> match_typing_arguments Symtab.empty
+          val stripped_step_args =
            if rule = forall_inst_rule
-           then step_args |> map (fn SMTLIB.S [SMTLIB.Key "=", x, y] => SMTLIB.S [SMTLIB.Sym "=", x, y] | x => x)
+           then step_args |> map replace_assignment_sym
            else step_args
+          val legacy_proof = (context_assignments = sanitized_context_assignments) orelse (stripped_step_args = step_args)
+          val _ = if legacy_proof then (*TODO: Test if this is executed*)
+            let val _ = debug_lptrace middle (fn () => \<^print> ("Found a legacy context assignment. Add type information syntactically (for legacy versions of veriT) ", context_assignments))
+            in () end else ()
+        in 
+          (sanitized_context_assignments,stripped_step_args)
+        end
+           
 
 
 
