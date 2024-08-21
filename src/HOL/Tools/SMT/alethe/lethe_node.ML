@@ -53,7 +53,7 @@ sig
   | Raw_Definition_Node of {
     id: string,
     rule: string,
-    declarations: (string * SMTLIB.tree) list, (*Fuer skolem_def stehen statt in der conclusion die in der declarations drin, koennte man auch in concl machen*)
+    declarations: (string * SMTLIB.tree) list, (*TODO: Why list if it seems there is only ever one argument in this*)
     concl: SMTLIB.tree
   }
 
