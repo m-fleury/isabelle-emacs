@@ -442,7 +442,7 @@ fun preprocess compress step =
         val replace_assignment_sym = (fn SMTLIB.S [SMTLIB.Key "=", x, y] => SMTLIB.S [SMTLIB.Sym "=", x, y] | x => x)
 
         (* Legacy Transformations of Arguments*)
-        val (context_assignments,stripped_step_args) = 
+        val (stripped_context_assignments,stripped_step_args) = 
         let
           val sanitized_context_assignments =
             context_assignments
@@ -471,10 +471,12 @@ fun preprocess compress step =
         (*Ist nur fuer den if case noetig, restrukturiere code*)
    
         fun compress_or_rule remap_prems =
-          let val _ = debug_lptrace low (fn () => \<^print> ("Compress proof by skipping current 'or' step")) in (id, hd prems) :: remap_prems end
+          let val _ = debug_lptrace low (fn () => \<^print> ("Compress proof by skipping current 'or' step"))
+          in (id, hd prems) :: remap_prems end
 
+        val comp = compress_or_rule remap_prems
 
-        val remap_prems =
+        val new_prems =
           if compress
           then
            let val _ = debug_lptrace low (fn () => \<^print> ("If any premise of the current step has been skipped the premise is updated to that premise's premise"))
@@ -484,8 +486,8 @@ fun preprocess compress step =
       in
         if rule = or_rule andalso compress
         then 
-          ([], (cx, compress_or_rule remap_prems))
-        else ([mk_raw_node id rule stripped_step_args stripped_context_assignments remap_prems concl subproof],
+          ([], (cx, comp))
+        else ([mk_raw_node id rule stripped_step_args stripped_context_assignments new_prems concl subproof],
           (cx, remap_prems))
       end
   in preprocess step end
