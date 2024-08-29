@@ -128,7 +128,6 @@ fun read_sym f l cs = read_while is_sym l cs |>> f o implode
 
 fun read_quoted stop (escape, replacement) cs =
   let
-
     fun read _ [] = NONE
       | read rs (cs as (c :: cs')) = (
           if is_prefix (op =) stop cs then
