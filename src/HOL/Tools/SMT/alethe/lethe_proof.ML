@@ -111,12 +111,12 @@ val step_args_rules = index_rules @ ["rare_rewrite","la_generic","forall_inst", 
 val allows_step_args = member (op =) step_args_rules
 
 
-val trace = true
+val trace = false
 datatype debugging_verbosity = low | middle | high
 fun debug_to_int low = 0 |
     debug_to_int middle = 1 |
     debug_to_int high = 2
-val debug = true
+val debug = false
 val debugging_level = high (*0 low, 1 middle, 2 high verbosity*)
 
 fun lproof_trace_msg cond (x : unit -> 'a) = if cond then ignore(x ()) else ()
@@ -196,7 +196,7 @@ fun parse_raw_proof_steps (curr_anchor_id : string option) (smtlib_lines : SMTLI
     fun split_step [] = (NO_STEP, SMTLIB.S [], [])
       | split_step ((step as SMTLIB.S (SMTLIB.Sym kind :: _)) :: remaining_steps) =
           (step_kind kind, step, remaining_steps)
-      | split_step steps = raise throw_lethe_ex ("malformed step: " ^ @{make_string} steps)
+      | split_step steps = raise throw_lethe_ex ("malformed step: " ^ String.concat (map SMTLIB.str_of steps))
 
     fun parse_id (SMTLIB.S ((SMTLIB.Sym _) :: (SMTLIB.Sym id) :: l)) = (id, l)
       | parse_id t = raise throw_lethe_ex ("unrecognized Lethe proof " ^ \<^make_string> t)
@@ -316,7 +316,7 @@ fun declared_csts _ "__skolem_definition" [(SMTLIB.S [SMTLIB.Sym x, typ, _], _)]
 fun skolems_introduced_by_rule [] = [] |
    skolems_introduced_by_rule bds =
   fold (fn (SMTLIB.S [SMTLIB.Sym "=", _, SMTLIB.Sym y]) => curry (op ::) y
-              | x => (@{print} x; fn x => x)) bds [] 
+              | x => (fn x => x)) bds [] 
 
 
 (*FIXME there is probably a way to use the information given by onepoint*)
@@ -448,47 +448,46 @@ fun preprocess compress step =
             context_assignments
             |> map replace_assignment_sym
             |> match_typing_arguments Symtab.empty
+
           val stripped_step_args =
            if rule = forall_inst_rule
            then step_args |> map replace_assignment_sym
            else step_args
-          val legacy_proof = (context_assignments = sanitized_context_assignments) orelse (stripped_step_args = step_args)
-          val _ = if legacy_proof then (*TODO: Test if this is executed*)
+
+          val legacy_proof =
+            ((not (context_assignments = [])) andalso (context_assignments = sanitized_context_assignments))
+            orelse ((not (step_args = [])) andalso (stripped_step_args = step_args))
+
+          val _ = if legacy_proof then
             let val _ = debug_lptrace middle (fn () => \<^print> ("Found a legacy context assignment. Add type information syntactically (for legacy versions of veriT) ", context_assignments))
             in () end else ()
         in 
           (sanitized_context_assignments,stripped_step_args)
         end
            
-
-
-
-        (*val _ = if subproof <> [] then lethe_proof_parsing_trace ctxt (fn () => \<^print> ("... process subproof")) else ()*)
+        (* Recursive Call to Preprocess Subproof*)
         val (subproof, (cx, _)) = fold_map preprocess subproof (cx, remap_prems) |> apfst flat
 
-        (*Or regeln machen nichts in Isabelle, deshalb werden sie rausgenommen, deshalb muss jede die eine premise hat die eine or regel hat
-          ersetzt werden.*)
-        (*Ist nur fuer den if case noetig, restrukturiere code*)
-   
+        (* Compression of `or` Steps *)
         fun compress_or_rule remap_prems =
           let val _ = debug_lptrace low (fn () => \<^print> ("Compress proof by skipping current 'or' step"))
           in (id, hd prems) :: remap_prems end
+        val mk_empty_node = ([], (cx, compress_or_rule remap_prems))
+        val skip_step = rule = or_rule andalso compress
 
-        val comp = compress_or_rule remap_prems
-
-        val new_prems =
+        val repaired_prems =
           if compress
           then
            let val _ = debug_lptrace low (fn () => \<^print> ("If any premise of the current step has been skipped the premise is updated to that premise's premise"))
            in expand_assms remap_prems prems end
           else prems
+        val preprocessed_node = ([mk_raw_node id rule stripped_step_args stripped_context_assignments repaired_prems concl subproof],
+          (cx, remap_prems))
 
       in
-        if rule = or_rule andalso compress
-        then 
-          ([], (cx, comp))
-        else ([mk_raw_node id rule stripped_step_args stripped_context_assignments new_prems concl subproof],
-          (cx, remap_prems))
+        if skip_step
+        then mk_empty_node 
+        else preprocessed_node
       end
   in preprocess step end
 
@@ -711,8 +710,7 @@ fun postprocess_proof compress ctxt step cx =
 I cannot do this on the SMTLIB term after all... Or at least not this easily. Names might
 be different... TODO*)
             in get_vars xs step_args end
-            val _ = @{print}("step_args",step_args)
-           val _ = @{print}("x",get_foralls concl step_args)
+           
 
 fun insts_of_forall_inst "forall_inst" t = map (fn SMTLIB.S [_, SMTLIB.Sym x, a] => (x, a)) t
   | insts_of_forall_inst _ _ = []
@@ -955,8 +953,8 @@ local
         |> filter_out (fn x => x = "")
         |> map single
         |> map SMTLIB.parse
-        |> map remove_all_qm |> @{print}
-        |> map remove_pattern |> @{print}
+        |> map remove_all_qm
+        |> map remove_pattern
       val (raw_steps, _, _) =
         parse_raw_proof_steps NONE smtlib_lines_without_qm SMTLIB_Proof.empty_name_binding
 
