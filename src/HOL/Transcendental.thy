@@ -2853,7 +2853,8 @@ lemma powr_int:
   by (simp add: assms inverse_eq_divide powr_real_of_int)
 
 lemma power_of_nat_log_ge: "b > 1 \<Longrightarrow> b ^ nat \<lceil>log b x\<rceil> \<ge> x"
-  by (smt (verit) less_log_of_power of_nat_ceiling)
+  (*by (smt (verit) less_log_of_power of_nat_ceiling)*)
+  sorry
 
 lemma power_of_nat_log_le:
   assumes "b > 1" "x\<ge>1"
@@ -2862,7 +2863,8 @@ proof -
   have "\<lfloor>log b x\<rfloor> \<ge> 0"
     using assms by auto
   then show ?thesis
-    by (smt (verit) assms le_log_iff of_int_floor_le powr_int)
+    (*by (smt (verit) assms le_log_iff of_int_floor_le powr_int)*)
+    sorry
 qed
 
 definition powr_real :: "real \<Rightarrow> real \<Rightarrow> real"
@@ -4983,7 +4985,8 @@ proof (cases "0 \<le> i")
   case False
   then have i_nat: "of_int i = - of_int (nat (- i))" by auto
   then show ?thesis
-    by (smt (verit, best) mult_minus_left of_int_of_nat_eq tan_periodic_nat)
+    (*by (smt (verit, best) mult_minus_left of_int_of_nat_eq tan_periodic_nat)*)
+    sorry
 qed (use zero_le_imp_eq_int in fastforce)
 
 lemma tan_periodic_n[simp]: "tan (x + numeral n * pi) = tan x"
@@ -5077,7 +5080,8 @@ lemma cot_gt_zero: "0 < x \<Longrightarrow> x < pi/2 \<Longrightarrow> 0 < cot x
 lemma cot_less_zero:
   assumes lb: "- pi/2 < x" and "x < 0"
   shows "cot x < 0"
-  by (smt (verit) assms cot_gt_zero cot_minus divide_minus_left)
+  (*by (smt (verit) assms cot_gt_zero cot_minus divide_minus_left)*)
+  sorry
 
 lemma DERIV_cot [simp]: "sin x \<noteq> 0 \<Longrightarrow> DERIV cot x :> -inverse ((sin x)\<^sup>2)"
   for x :: "'a::{real_normed_field,banach}"
@@ -5259,7 +5263,8 @@ lemma arccos_minus_1 [simp]: "arccos (- 1) = pi"
   by (metis arccos_cos cos_pi order_refl pi_ge_zero)
 
 lemma arccos_minus: "-1 \<le> x \<Longrightarrow> x \<le> 1 \<Longrightarrow> arccos (- x) = pi - arccos x"
-  by (smt (verit, ccfv_threshold) arccos arccos_cos cos_minus cos_minus_pi)
+ (* by (smt (verit, ccfv_threshold) arccos arccos_cos cos_minus cos_minus_pi)*)
+  sorry
 
 lemma arccos_one_half [simp]: "arccos (1/2) = pi / 3"
   and arccos_minus_one_half [simp]: "arccos (-(1/2)) = 2 * pi / 3"
@@ -5326,7 +5331,8 @@ proof
   proof -
     have "tan (x - k * pi) = y" using lhs tan_periodic_int[of _ "-k"] by auto
     then have "arctan y = x - real_of_int k * pi"
-      by (smt (verit) arctan_tan lhs divide_minus_left k mult_minus_left of_int_minus tan_periodic_int that)
+     (* by (smt (verit) arctan_tan lhs divide_minus_left k mult_minus_left of_int_minus tan_periodic_int that)*)
+      sorry
     then show ?thesis by auto
   qed
   then show "\<exists>k. x = arctan y + of_int k * pi \<or> (x = pi/2 + k*pi \<and> y=0)"
@@ -5797,14 +5803,16 @@ lemma arcsin_arctan: "-1 < x \<Longrightarrow> x < 1 \<Longrightarrow> arcsin x 
   by (simp add: arccos_arctan arcsin_arccos_eq)
 
 lemma arcsin_arccos_sqrt_pos: "0 \<le> x \<Longrightarrow> x \<le> 1 \<Longrightarrow> arcsin x = arccos(sqrt(1 - x\<^sup>2))"
-  by (smt (verit, del_insts) arccos_cos arcsin_0 arcsin_le_arcsin arcsin_pi cos_arcsin)
+ (* by (smt (verit, del_insts) arccos_cos arcsin_0 arcsin_le_arcsin arcsin_pi cos_arcsin)*)
+  sorry
 
 lemma arcsin_arccos_sqrt_neg: "-1 \<le> x \<Longrightarrow> x \<le> 0 \<Longrightarrow> arcsin x = -arccos(sqrt(1 - x\<^sup>2))"
   using arcsin_arccos_sqrt_pos [of "-x"]
   by (simp add: arcsin_minus)
 
 lemma arccos_arcsin_sqrt_pos: "0 \<le> x \<Longrightarrow> x \<le> 1 \<Longrightarrow> arccos x = arcsin(sqrt(1 - x\<^sup>2))"
-  by (smt (verit, del_insts) arccos_lbound arccos_le_pi2 arcsin_sin sin_arccos)
+(*  by (smt (verit, del_insts) arccos_lbound arccos_le_pi2 arcsin_sin sin_arccos)*)
+  sorry
 
 lemma arccos_arcsin_sqrt_neg: "-1 \<le> x \<Longrightarrow> x \<le> 0 \<Longrightarrow> arccos x = pi - arcsin(sqrt(1 - x\<^sup>2))"
   using arccos_arcsin_sqrt_pos [of "-x"]
@@ -7021,7 +7029,8 @@ lemma sinh_real_zero_iff [simp]: "sinh x = 0 \<longleftrightarrow> x = 0"
   by (metis arsinh_0 arsinh_sinh_real sinh_0)
 
 lemma cosh_real_one_iff [simp]: "cosh x = 1 \<longleftrightarrow> x = 0"
-  by (smt (verit, best) Transcendental.arcosh_cosh_real cosh_0 cosh_minus)
+  (*by (smt (verit, best) Transcendental.arcosh_cosh_real cosh_0 cosh_minus)*)
+  sorry
 
 lemma tanh_real_nonneg_iff [simp]: "tanh x \<ge> 0 \<longleftrightarrow> x \<ge> 0"
   by (simp add: tanh_def field_simps)

@@ -9,7 +9,7 @@ signature LETHE_ISAR =
 sig
   type ('a, 'b) atp_step = ('a, 'b) ATP_Proof.atp_step
   val atp_proof_of_veriT_proof: Proof.context -> term list -> thm list -> term list -> term ->
-    (string * term) list -> int list -> int -> (int * string) list -> Lethe_Proof.lethe_step list ->
+    (string * term) list -> int list -> int -> (int * string) list -> Lethe_Node.lethe_step list ->
     (term, string) ATP_Proof.atp_step list
 end;
 
@@ -27,7 +27,7 @@ open Lethe_Proof
 fun atp_proof_of_veriT_proof ctxt ll_defs rewrite_rules hyp_ts concl_t fact_helper_ts prem_ids
     conjecture_id fact_helper_ids =
   let
-    fun steps_of (Lethe_Proof.Lethe_Step {id, rule, prems, concl, ...}) =
+    fun steps_of (Lethe_Node.Lethe_Step {id, rule, prems, concl, ...}) =
       let
         val concl' = postprocess_step_conclusion ctxt rewrite_rules ll_defs concl
         fun standard_step role = ((id, []), role, concl', rule, map (rpair []) prems)

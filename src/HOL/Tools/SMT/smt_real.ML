@@ -10,10 +10,11 @@ struct
 
 (* SMT-LIB logic *)
 
-fun smtlib_logic _ ts =
-  if exists (Term.exists_type (Term.exists_subtype (equal \<^typ>\<open>real\<close>))) ts
-  then SOME "AUFLIRA"
-  else NONE
+fun smtlib_logic "verit" _ _ = NONE
+  | smtlib_logic _ ts _ =
+    if exists (Term.exists_type (Term.exists_subtype (equal \<^typ>\<open>real\<close>))) ts
+    then SOME (SMT_Translate.SL {fixedSizeBitVectors=false,real=true,set=false})
+    else NONE
 
 
 (* SMT-LIB and Z3 built-ins *)
@@ -36,7 +37,7 @@ fun real_type_parser (SMTLIB.Sym "Real", []) = SOME \<^typ>\<open>Real.real\<clo
 fun real_term_parser (SMTLIB.Dec (i, 0), []) = SOME (HOLogic.mk_number \<^typ>\<open>Real.real\<close> i)
   | real_term_parser (SMTLIB.Sym "/", [t1, t2]) =
       SOME (\<^term>\<open>Rings.divide :: real => _\<close> $ t1 $ t2)
-  | real_term_parser (SMTLIB.Sym "to_real", [t]) = SOME (\<^term>\<open>Int.of_int :: int => _\<close> $ t)
+  | real_term_parser (SMTLIB.Sym "to_real", [t]) = SOME (\<^term>\<open>Int.of_int :: int => Real.real\<close> $ t)
   | real_term_parser _ = NONE
 
 fun abstract abs t =

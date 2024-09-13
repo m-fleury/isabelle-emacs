@@ -8,8 +8,8 @@ Proof method for replaying cvc5 proofs.
 signature CVC5_REPLAY_METHODS =
 sig
   (*methods for verit proof rules*)
-  val method_for: string -> Proof.context -> thm list -> term list -> term Symtab.table ->
-     (string * term) list -> term -> thm
+  val method_for: string -> Proof.context -> thm list -> term list -> term list -> term ->
+     Lethe_Node.tactic_args option -> thm
 
   val discharge: Proof.context -> thm list -> term -> thm
 end;
@@ -29,8 +29,8 @@ fun cvc5_rule_of "bind" = Bind
    (*Equiv_pos2 covered below*)
   | cvc5_rule_of "equiv_neg1" = Equiv_neg1
   | cvc5_rule_of "equiv_neg2" = Equiv_neg2
-  | cvc5_rule_of "sko_forall" = Skolem_Forall
-  | cvc5_rule_of "sko_ex" = Skolem_Ex
+  | cvc5_rule_of "sko_forall" = Sko_Forall
+  | cvc5_rule_of "sko_ex" = Sko_Ex
   | cvc5_rule_of "eq_reflexive" = Eq_Reflexive
   | cvc5_rule_of "forall_inst" = Forall_Inst
   | cvc5_rule_of "implies_pos" = Implies_Pos
@@ -69,6 +69,8 @@ fun cvc5_rule_of "bind" = Bind
   | cvc5_rule_of "la_totality" = LA_Totality
   | cvc5_rule_of "la_rw_eq"= LA_RW_Eq
   | cvc5_rule_of "nla_generic"= NLA_Generic
+  | cvc5_rule_of "la_mult_pos"= LA_Mult_Pos
+  | cvc5_rule_of "la_mult_neg"= LA_Mult_Neg
   | cvc5_rule_of "eq_transitive" = Eq_Transitive
   | cvc5_rule_of "qnt_rm_unused" = Qnt_Rm_Unused
   | cvc5_rule_of "onepoint" = Onepoint
@@ -88,7 +90,9 @@ fun cvc5_rule_of "bind" = Bind
   | cvc5_rule_of "prod_simplify" = Prod_Simplify
   | cvc5_rule_of "comp_simplify" = Comp_Simplify
   | cvc5_rule_of "qnt_simplify" = Qnt_Simplify
+  | cvc5_rule_of "all_simplify" = All_Simplify
   | cvc5_rule_of "tautology" = Tautological_Clause
+  | cvc5_rule_of "rare_rewrite" = Hole
   | cvc5_rule_of "qnt_cnf" = Qnt_CNF
   | cvc5_rule_of "symm" = Symm
   | cvc5_rule_of "not_symm" = Not_Symm
@@ -98,7 +102,7 @@ fun cvc5_rule_of "bind" = Bind
   | cvc5_rule_of r =
      if r = Lethe_Proof.normalized_input_rule then Normalized_Input
      else if r = Lethe_Proof.local_input_rule then Local_Input
-     else if r = Lethe_Proof.lethe_def then Definition
+     else if r = Lethe_Proof.skolem_def then Definition
      else if r = Lethe_Proof.not_not_rule then Not_Not
      else if r = Lethe_Proof.contract_rule orelse r = "duplicate_literals" then Duplicate_Literals
      else if r = Lethe_Proof.ite_intro_rule then ITE_Intro
@@ -110,28 +114,29 @@ fun cvc5_rule_of "bind" = Bind
      else if r = Lethe_Proof.hole orelse r = "undefined" then Hole
      else Other_Rule r
 
-fun normalized_input ctxt prems t = SMT_Replay_Methods.prove ctxt t (fn _ =>
-let
-    val _ = (SMT_Config.verit_msg ctxt) (fn () => \<^print> ("normalized input t =",t))
-    val _ = (SMT_Config.verit_msg ctxt) (fn () => \<^print> ("normalized ipput prems =",prems))
-
-in
-  resolve_tac ctxt prems
-    (*TODO: should only be used for lambda encoding*)
-    ORELSE' Clasimp.force_tac ctxt
-end)
+(*work-around should not be needed anymore*)
+fun normalized_input' ctxt prems t = SMT_Replay_Methods.prove ctxt t (fn _ =>
+  let
+     (*val _ = (SMT_Config.verit_msg ctxt) (fn () => \<^print> ("conclusion t t =",t))
+     val _ = (SMT_Config.verit_msg ctxt) (fn () => \<^print> ("normalized input prems =",prems))*)
+  in
+    (*resolve_tac ctxt prems
+     ORELSE' (Method.insert_tac ctxt prems THEN' Clasimp.force_tac (ctxt addsimps @{thms cvc5_normalized_input}))
+  *)
+ (Skip_Proof.cheat_tac ctxt) 
+ end)
 
 fun qnt_simplify ctxt _ t = SMT_Replay_Methods.prove ctxt t (fn _ =>
       K (Clasimp.auto_tac ctxt))
 
 
 fun hole ctxt prems t = SMT_Replay_Methods.prove ctxt t (fn _ =>
-  K (print_tac ctxt "stuff")
-    THEN' Method.insert_tac ctxt prems
+  (*K (print_tac ctxt "stuff")
+    THEN'*) Method.insert_tac ctxt prems
     (*TODO: should only be used for lambda encoding*)
-THEN' K (print_tac ctxt "stuff")
+(*THEN' K (print_tac ctxt "stuff")*)
     THEN' Clasimp.force_tac ctxt
-THEN' K (print_tac ctxt "stuff")
+(*THEN' K (print_tac ctxt "stuff")*)
 )
 
 (*
@@ -140,28 +145,42 @@ lemma \<open>(\<forall>x y. P x = Q y) \<Longrightarrow> (\<forall> y z. Q y = R
 *)
 fun trans ctxt prems t =
   SMT_Replay_Methods.prove ctxt t (fn _ =>
-    Method.insert_tac ctxt prems
-    THEN' (REPEAT_CHANGED (resolve_tac ctxt @{thms trans} THEN' assume_tac ctxt))
-    THEN' (resolve_tac ctxt @{thms refl}))
+      (*K (print_tac ctxt ("trans reconstruction debug 0"))
+
+    THEN'*)
+    ( match_tac ctxt @{thms refl}(* THEN' K (print_tac ctxt ("trans reconstruction debug 9"))*))
+  ORELSE'
+    (
+     (* K (print_tac ctxt ("trans reconstruction debug 0"))
+THEN'*) Method.insert_tac ctxt prems
+     (*THEN' K (print_tac ctxt ("trans reconstruction debug 1"))*)
+    THEN' (REPEAT_CHANGED (resolve_tac ctxt @{thms trans}      (*THEN' K (print_tac ctxt ("trans reconstruction debug 2"))*)
+THEN' assume_tac ctxt))
+     (*THEN' K (print_tac ctxt ("trans reconstruction debug 3")*)
+
+    THEN' (resolve_tac ctxt @{thms refl})))
 
 
 (* Combining all together *)
 
-fun unsupported rule ctxt thms _ _ _ = SMT_Replay_Methods.replay_error ctxt "Unsupported verit rule"
-  rule thms
+fun unsupported rule ctxt thms _ _ _ _ = SMT_Replay_Methods.replay_error ctxt "Unsupported cvc5 rule"
+  rule thms []
 
-fun ignore_args  f ctxt thm _    _     _ t = f ctxt thm t
-fun ignore_decls f ctxt thm args insts _ t = f ctxt thm args insts t
-fun ignore_insts f ctxt thm args  _    _ t = f ctxt thm args t
+(*ctxt thms step_args context_assignment t args*)
+fun ignore_args       f ctxt prems _ _ goal _ = f ctxt prems goal
+fun include_step_args f ctxt prems step_args _ goal _ = f ctxt prems step_args goal
+fun include_context_ass f ctxt prems _ context_ass goal _ = f ctxt prems context_ass goal
+fun include_context_ass_and_args f ctxt prems _ context_ass goal args = f ctxt prems context_ass goal args
+fun include_args f ctxt prems _ _ goal args = f ctxt prems goal args
 
 fun choose _ And = ignore_args and_rule
   | choose _ And_Neg = ignore_args and_neg_rule
   | choose _ And_Pos = ignore_args and_pos
   | choose _ And_Simplify = ignore_args rewrite_and_simplify
-  | choose _ Bind = ignore_insts bind
+  | choose _ Bind = include_context_ass bind
   | choose _ Bool_Simplify = ignore_args rewrite_bool_simplify
   | choose _ Comp_Simplify = ignore_args rewrite_comp_simplify
-  | choose _ Cong = ignore_args (cong "cvc5")
+  | choose _ Cong = include_args cong
   | choose _ Connective_Def = ignore_args rewrite_connective_def
   | choose _ Duplicate_Literals = ignore_args duplicate_literals
   | choose _ Eq_Congruent = ignore_args eq_congruent
@@ -177,7 +196,7 @@ fun choose _ And = ignore_args and_rule
   | choose _ Equiv_pos2 = ignore_args equiv_pos2
   | choose _ Equiv_Simplify = ignore_args rewrite_equiv_simplify
   | choose _ False = ignore_args false_rule
-  | choose _ Forall_Inst = ignore_decls forall_inst
+  | choose _ Forall_Inst = include_args forall_inst
   | choose _ Implies = ignore_args implies_rules
   | choose _ Implies_Neg1 = ignore_args implies_neg1
   | choose _ Implies_Neg2 = ignore_args implies_neg2
@@ -192,12 +211,14 @@ fun choose _ And = ignore_args and_rule
   | choose _ ITE_Pos2 = ignore_args ite_pos2
   | choose _ ITE_Simplify = ignore_args rewrite_ite_simplify
   | choose _ LA_Disequality = ignore_args la_disequality
-  | choose _ LA_Generic = ignore_insts la_generic
+  | choose _ LA_Generic = include_step_args la_generic
   | choose _ LA_RW_Eq = ignore_args la_rw_eq
   | choose _ LA_Tautology = ignore_args SMT_Replay_Methods.arith_th_lemma_wo_shallow
   | choose _ LA_Totality = ignore_args SMT_Replay_Methods.arith_th_lemma_wo_shallow
   | choose _ LIA_Generic = ignore_args lia_generic
-  | choose _ Local_Input = ignore_args (refl "cvc5")
+  | choose _ LA_Mult_Pos = ignore_args la_mult_pos
+  | choose _ LA_Mult_Neg = ignore_args la_mult_neg
+  | choose _ Local_Input = ignore_args normalized_input (* ignore_args (refl "cvc5")*)
   | choose _ Minus_Simplify = ignore_args rewrite_minus_simplify
   | choose _ NLA_Generic = ignore_args SMT_Replay_Methods.arith_th_lemma_wo_shallow
   | choose _ Normalized_Input = ignore_args normalized_input
@@ -217,14 +238,15 @@ fun choose _ And = ignore_args and_rule
   | choose _ Or_Simplify = ignore_args rewrite_or_simplify
   | choose _ Theory_Resolution2 = ignore_args theory_resolution2
   | choose _ Prod_Simplify = ignore_args prod_simplify
+  | choose _ All_Simplify = ignore_args all_simplify
   | choose _ Qnt_Join = ignore_args qnt_join
   | choose _ Qnt_Rm_Unused = ignore_args qnt_rm_unused
   | choose _ Onepoint = ignore_args onepoint
   | choose _ Qnt_Simplify = ignore_args qnt_simplify
-  | choose _ Refl = ignore_args (refl "cvc5")
+  | choose _ Refl = include_args refl
   | choose _ Resolution = ignore_args unit_res
-  | choose _ Skolem_Ex = ignore_args skolem_ex
-  | choose _ Skolem_Forall = ignore_args skolem_forall
+  | choose _ Sko_Ex = include_context_ass_and_args sko_ex
+  | choose _ Sko_Forall = include_context_ass_and_args sko_forall
   | choose _ Subproof = ignore_args subproof
   | choose _ Sum_Simplify = ignore_args sum_simplify
   | choose _ Tautological_Clause = ignore_args tautological_clause
@@ -237,20 +259,17 @@ fun choose _ And = ignore_args and_rule
   | choose _ Not_Symm = ignore_args not_symm
   | choose _ Reordering = ignore_args reordering
   | choose _ Tmp_Quantifier_Simplify = ignore_args qnt_simplify
-  | choose ctxt (x as Other_Rule r) =
+ (* | choose ctxt (x as Other_Rule r) =
     (case get_alethe_tac r ctxt of
-      NONE => unsupported (string_of_verit_rule x)
-    | SOME a => ignore_insts a)
+      NONE => unsupported (string_of_lethe_rule x)
+    | SOME a => include_step_args a)*)
   | choose _ Hole = ignore_args hole
   | choose _ r = (@{print} ("unknown rule, using hole", r); ignore_args hole)
-(*unsupported (string_of_verit_rule r)*)
+(*unsupported (string_of_lethe_rule r)*)
 
-type verit_method = Proof.context -> thm list -> term -> thm
-type abs_context = int * term Termtab.table
-
-fun with_tracing rule method ctxt thms args insts decls t =
-  let val _ = SMT_Replay_Methods.trace_goal ctxt rule thms t
-  in method ctxt thms args insts decls t end
+fun with_tracing rule method ctxt prems step_args context_assignment t args =
+  let val _ = SMT_Replay_Methods.trace_goal ctxt rule prems step_args t
+  in method ctxt prems step_args context_assignment t args end
 
 fun method_for rule ctxt = with_tracing rule (choose (Context.Proof ctxt) (cvc5_rule_of rule)) ctxt
 

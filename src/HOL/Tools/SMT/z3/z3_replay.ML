@@ -119,7 +119,7 @@ fun discharge rules outer_ctxt inner_ctxt =
   #> discharge_assms outer_ctxt (make_discharge_rules rules)
 
 fun parse_proof outer_ctxt
-    ({context = ctxt, typs, terms, ll_defs, rewrite_rules, assms} : SMT_Translate.replay_data)
+    ({ctxt = ctxt, typs, terms, ll_defs, rewrite_rules, assms} : SMT_Translate.replay_data)
     xfacts prems concl output =
   let
     val (steps, ctxt2) = Z3_Proof.parse typs terms output ctxt
@@ -149,7 +149,7 @@ fun parse_proof outer_ctxt
   end
 
 fun replay outer_ctxt
-    ({context = ctxt, typs, terms, rewrite_rules, assms, ...} : SMT_Translate.replay_data) output =
+    ({ctxt = ctxt, typs, terms, rewrite_rules, assms, ...} : SMT_Translate.replay_data) output =
   let
     val (steps, ctxt2) = Z3_Proof.parse typs terms output ctxt
     val ((_, rules), (ctxt3, assumed)) =

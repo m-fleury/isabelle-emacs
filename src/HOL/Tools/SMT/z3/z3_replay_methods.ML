@@ -52,20 +52,20 @@ type z3_method = Proof.context -> thm list -> term -> thm
 (* utility functions *)
 
 fun replay_error ctxt msg rule thms t =
-  SMT_Replay_Methods.replay_error ctxt msg (Z3_Proof.string_of_rule rule) thms t
+  SMT_Replay_Methods.replay_error ctxt msg (Z3_Proof.string_of_rule rule) thms [] t
 
 fun replay_rule_error ctxt rule thms t =
-  SMT_Replay_Methods.replay_rule_error "Z3" ctxt (Z3_Proof.string_of_rule rule) thms t
+  SMT_Replay_Methods.replay_rule_error "Z3" ctxt (Z3_Proof.string_of_rule rule) thms [] t
 
 fun trace_goal ctxt rule thms t =
-  SMT_Replay_Methods.trace_goal ctxt (Z3_Proof.string_of_rule rule) thms t
+  SMT_Replay_Methods.trace_goal ctxt (Z3_Proof.string_of_rule rule) thms [] t
 
 fun dest_prop (Const (\<^const_name>\<open>Trueprop\<close>, _) $ t) = t
   | dest_prop t = t
 
 fun dest_thm thm = dest_prop (Thm.concl_of thm)
 
-val try_provers = SMT_Replay_Methods.try_provers "Z3"
+fun try_provers ctxt rule np thms = SMT_Replay_Methods.try_provers "Z3" ctxt rule np thms []
 
 fun prop_tac ctxt prems =
   Method.insert_tac ctxt prems

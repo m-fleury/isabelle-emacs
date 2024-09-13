@@ -1802,7 +1802,7 @@ lemmas [nitpick_unfold] = inverse_real_inst.inverse_real one_real_inst.one_real
 subsection \<open>Setup for SMT\<close>
 
 ML_file \<open>Tools/SMT/smt_real.ML\<close>
-ML_file \<open>Tools/SMT/z3_real.ML\<close>
+ML_file \<open>Tools/SMT/z3/z3_real.ML\<close>
 
 lemma [z3_rule]:
   "0 + x = x"

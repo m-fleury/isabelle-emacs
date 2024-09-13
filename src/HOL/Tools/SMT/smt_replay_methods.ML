@@ -9,13 +9,13 @@ Proof methods for replaying SMT proofs.
 signature SMT_REPLAY_METHODS =
 sig
   (*Printing*)
-  val pretty_goal: Proof.context -> string -> string -> thm list -> term -> Pretty.T
-  val trace_goal: Proof.context -> string -> thm list -> term -> unit
+  val pretty_goal: Proof.context -> string -> string -> thm list -> term list -> term -> Pretty.T
+  val trace_goal: Proof.context -> string -> thm list -> term list -> term -> unit
   val trace: Proof.context -> (unit -> string) -> unit
 
   (*Replaying*)
-  val replay_error: Proof.context -> string -> string -> thm list -> term -> 'a
-  val replay_rule_error: string -> Proof.context -> string -> thm list -> term -> 'a
+  val replay_error: Proof.context -> string -> string -> thm list -> term list -> term -> 'a
+  val replay_rule_error: string -> Proof.context -> string -> thm list -> term list -> term -> 'a
 
   (*theory lemma methods*)
   type th_lemma_method = Proof.context -> thm list -> term -> thm
@@ -63,7 +63,7 @@ sig
   val prove_abstract': Proof.context -> term -> (Proof.context -> thm list -> int -> tactic) ->
     (abs_context -> term * abs_context) -> thm
   val try_provers:  string -> Proof.context -> string -> (string * (term -> 'a)) list -> thm list ->
-    term -> 'a
+    term list -> term -> 'a
 
   (*shared tactics*)
   val cong_unfolding_trivial: Proof.context -> thm list -> term -> thm
@@ -92,21 +92,24 @@ fun trace ctxt f = SMT_Config.trace_msg ctxt f ()
 
 fun pretty_thm ctxt thm = Syntax.pretty_term ctxt (Thm.concl_of thm)
 
-fun pretty_goal ctxt msg rule thms t =
+fun pretty_goal ctxt msg rule thms args t =
   let
     val full_msg = msg ^ ": " ^ quote rule
     val assms =
       if null thms then []
       else [Pretty.big_list "assumptions:" (map (pretty_thm ctxt) thms)]
+    val args =
+      if null args then []
+      else [Pretty.big_list "arguments:" (map (Syntax.pretty_term ctxt) args)]
     val concl = Pretty.big_list "proposition:" [Syntax.pretty_term ctxt t]
-  in Pretty.big_list full_msg (assms @ [concl]) end
+  in Pretty.big_list full_msg (assms @ args @ [concl]) end
 
-fun replay_error ctxt msg rule thms t = error (Pretty.string_of (pretty_goal ctxt msg rule thms t))
+fun replay_error ctxt msg rule thms args t = error (Pretty.string_of (pretty_goal ctxt msg rule thms args t))
 
 fun replay_rule_error name ctxt = replay_error ctxt ("Failed to replay " ^ name ^ " proof step")
 
-fun trace_goal ctxt rule thms t =
-  trace ctxt (fn () => Pretty.string_of (pretty_goal ctxt "Goal" rule thms t))
+fun trace_goal ctxt rule thms args t =
+  trace ctxt (fn () => Pretty.string_of (pretty_goal ctxt "Goal" rule thms args t))
 
 fun as_prop (t as Const (\<^const_name>\<open>Trueprop\<close>, _) $ _) = t
   | as_prop t = HOLogic.mk_Trueprop t
@@ -377,11 +380,11 @@ fun abstract_arith_shallow ctxt u =
 
 (* theory lemmas *)
 
-fun try_provers prover_name ctxt rule [] thms t = replay_rule_error prover_name ctxt rule thms t
-  | try_provers prover_name ctxt rule ((name, prover) :: named_provers) thms t =
+fun try_provers prover_name ctxt rule [] thms args t = replay_rule_error prover_name ctxt rule thms args t
+  | try_provers prover_name ctxt rule ((name, prover) :: named_provers) thms args t =
       (case (trace ctxt (K ("Trying prover " ^ quote name)); try prover t) of
         SOME thm => thm
-      | NONE => try_provers prover_name ctxt rule named_provers thms t)
+      | NONE => try_provers prover_name ctxt rule named_provers thms args t)
 
 (*theory-lemma*)
 

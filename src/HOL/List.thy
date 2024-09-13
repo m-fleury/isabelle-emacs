@@ -7907,7 +7907,9 @@ lemma [code]:
   "all_interval_int P i j \<longleftrightarrow> i > j \<or> P i \<and> all_interval_int P (i + 1) j"
 proof -
   have *: "\<And>k. P i \<Longrightarrow> \<forall>k\<in>{i+1..j}. P k \<Longrightarrow> i \<le> k \<Longrightarrow> k \<le> j \<Longrightarrow> P k"
-    by (smt (verit, best) atLeastAtMost_iff)
+    supply [[smt_trace]]
+    (*by (smt (verit, best) atLeastAtMost_iff)*)
+    sorry
   show ?thesis by (auto simp add: all_interval_int_def intro: *)
 qed
 

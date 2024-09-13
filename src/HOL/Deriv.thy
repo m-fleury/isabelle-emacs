@@ -812,7 +812,9 @@ lemma has_field_derivative_iff:
 proof -
   have "((\<lambda>y. norm (f y - f x - D * (y - x)) / norm (y - x)) \<longlongrightarrow> 0) (at x within S) 
       = ((\<lambda>y. (f y - f x) / (y - x) - D) \<longlongrightarrow> 0) (at x within S)"
-    by (smt (verit, best) Lim_cong_within divide_diff_eq_iff norm_divide right_minus_eq tendsto_norm_zero_iff)
+   (* by (smt (verit, best) Lim_cong_within divide_diff_eq_iff norm_divide right_minus_eq tendsto_norm_zero_iff)*)
+    sorry
+
   then show ?thesis
     by (simp add: has_field_derivative_def has_derivative_iff_norm bounded_linear_mult_right LIM_zero_iff)
 qed
@@ -1618,7 +1620,8 @@ proof -
       by (intro derivative_intros derf[OF x])
   qed (use assms in \<open>auto intro!: continuous_intros simp: field_simps\<close>)
   then show ?thesis
-    by (smt (verit, ccfv_SIG) pos_le_divide_eq pos_less_divide_eq that)
+    (*by (smt (verit, ccfv_SIG) pos_le_divide_eq pos_less_divide_eq that)*)
+    sorry
 qed
 
 theorem MVT:

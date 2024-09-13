@@ -20,7 +20,7 @@ declare [[smt_read_only_certificates = true]]
 
 section \<open>Propositional and first-order logic\<close>
 
-lemma "True" by (smt (verit))
+lemma "True" supply [[smt_trace]] by (smt (verit))
 lemma "p \<or> \<not>p" by (smt (verit))
 lemma "(p \<and> True) = p" by (smt (verit))
 lemma "(p \<or> q) \<and> \<not>p \<Longrightarrow> q" by (smt (verit))
@@ -259,7 +259,7 @@ lemma
 section \<open>Arithmetic\<close>
 
 subsection \<open>Linear arithmetic over integers and reals\<close>
-
+declare[[smt_trace]]
 lemma "(3::int) = 3" by (smt (verit))
 lemma "(3::real) = 3" by (smt (verit))
 lemma "(3 :: int) + 1 = 4" by (smt (verit))
@@ -325,6 +325,8 @@ subsection \<open>Linear arithmetic with quantifiers\<close>
 lemma "~ (\<exists>x::int. False)" by (smt (verit))
 lemma "~ (\<exists>x::real. False)" by (smt (verit))
 
+declare [[verit_options=" --proof-define-skolems --proof-prune --proof-merge 
+--disable-print-success --disable-banner"]]
 
 lemma "\<forall>x y::int. (x = 0 \<and> y = 1) \<longrightarrow> x \<noteq> y" by (smt (verit))
 lemma "\<forall>x y::int. x < y \<longrightarrow> (2 * x + 1) < (2 * y)" by (smt (verit))
@@ -825,7 +827,6 @@ context
     fset :: "'afset \<Rightarrow> 'a set" and
     union_fset :: "'afset \<Rightarrow> 'afset \<Rightarrow> 'afset" (infixr "|\<union>|" 50)
 begin
-term "a |\<union>| b"
 
 fun L2_matches_L3 where
   "L2_matches_L3 N2 (Ur2, Uff2) N3 (Urr3, Uff3) \<longleftrightarrow>

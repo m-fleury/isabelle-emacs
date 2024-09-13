@@ -16,7 +16,7 @@ sig
 
   type solver_config =
     {name: string,
-     class: Proof.context -> SMT_Util.class,
+     class: Proof.context -> SMT_Util.class list,
      avail: unit -> bool,
      command: unit -> string list,
      options: Proof.context -> string list,
@@ -122,7 +122,7 @@ fun trace_assms ctxt =
   SMT_Config.trace_msg ctxt (Pretty.string_of o
     Pretty.big_list "Assertions:" o map (Thm.pretty_thm ctxt o snd))
 
-fun trace_replay_data ({context = ctxt, typs, terms, ...} : SMT_Translate.replay_data) =
+fun trace_replay_data ({ctxt = ctxt, typs, terms, ...} : SMT_Translate.replay_data) =
   let
     fun pretty_eq n p = Pretty.block [Pretty.str n, Pretty.str " = ", p]
     fun p_typ (n, T) = pretty_eq n (Syntax.pretty_typ ctxt T)
@@ -141,7 +141,7 @@ fun invoke name command options smt_options ithms ctxt =
     val options = options @ SMT_Config.solver_options_of ctxt
     val comments = [space_implode " " options]
 
-    val (str, replay_data as {context = ctxt', ...}) =
+    val (str, replay_data as {ctxt = ctxt', ...}) =
       ithms
       |> tap (trace_assms ctxt)
       |> SMT_Translate.translate ctxt name smt_options comments
@@ -162,7 +162,7 @@ type parsed_proof =
 
 type solver_config =
   {name: string,
-   class: Proof.context -> SMT_Util.class,
+   class: Proof.context -> SMT_Util.class list,
    avail: unit -> bool,
    command: unit -> string list,
    options: Proof.context -> string list,
@@ -216,7 +216,7 @@ local
     | (result, _) => raise SMT_Failure.SMT (SMT_Failure.Counterexample (result = Sat)))
 
   fun replay outcome replay0 oracle outer_ctxt
-      (replay_data as {context = ctxt, ...} : SMT_Translate.replay_data) output =
+      (replay_data as {ctxt = ctxt, ...} : SMT_Translate.replay_data) output =
     (case outcome output of
       (Unsat, lines) =>
         if Config.get ctxt SMT_Config.oracle then

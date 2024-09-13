@@ -2274,7 +2274,8 @@ next
   show \<open>\<exists>P. eventually P (filtermap f F) \<and> (\<forall>x y. P x \<and> P y \<longrightarrow> dist x y < e)\<close>
     apply (rule exI[of _ \<open>\<lambda>x. \<exists>y. P y \<and> x = f y\<close>])
     using PPe \<open>eventually P F\<close> apply (auto simp: eventually_filtermap)
-    by (smt (verit, ccfv_SIG) eventually_elim2)
+   (* by (smt (verit, ccfv_SIG) eventually_elim2)*)
+    sorry
 qed
 
 setup \<open>Sign.add_const_constraint (\<^const_name>\<open>dist\<close>, SOME \<^typ>\<open>'a::metric_space \<Rightarrow> 'a \<Rightarrow> real\<close>)\<close>

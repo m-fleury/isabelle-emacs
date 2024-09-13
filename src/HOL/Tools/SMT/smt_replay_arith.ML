@@ -32,7 +32,7 @@ fun try_OF_inst ctxt thm1 ((r, q, pos), thm2) =
       (try_OF ctxt thm1 thm2)
   handle THM _ => []
 
-fun try_OF_insts ctxt thms thm = map (fn thm1 => try_OF_inst ctxt thm1 thm) thms |> flat
+fun try_OF_insts ctxt thms thm = (@{print}("thms",thms);@{print}("thm",thm);map (fn thm1 => try_OF_inst ctxt thm1 thm) thms |> flat)
 
 fun try_OFs ctxt thms thm = map (fn thm1 => try_OF ctxt thm1 thm) thms |> flat
 
@@ -54,10 +54,13 @@ fun la_farkas_tac ({context = ctxt, prems, concl,  ...}: Subgoal.focus) args thm
        if pos then thm
        else map (fn thm0 => try_OF ctxt thm0 thm) @{thms verit_negate_coefficient}
          |> flat |> the_single
+    val _ = trace (fn () => @{print} "")
+
     val normalized =
-      map (try_OF_insts ctxt verit_arith_multiplication) coeff_prems
+      map (try_OF_insts ctxt verit_arith_multiplication) coeff_prems |> @{print}
       |> flat
       |> map negate_if_needed
+|> @{print}
     fun import_assumption thm (Trues, ctxt) =
        let val (assms, ctxt) = Assumption.add_assumes ((map (Thm.cterm_of ctxt) o Thm.prems_of) thm) ctxt in
          (thm OF assms, (Trues + length assms, ctxt)) end

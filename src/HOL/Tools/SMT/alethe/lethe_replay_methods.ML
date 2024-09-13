@@ -8,7 +8,7 @@ signature LETHE_REPLAY_METHODS =
 sig
 
 
-  datatype verit_rule =
+  datatype alethe_rule =
      False | True |
 
      (*input: a repeated (normalized) assumption of  assumption of in a subproof*)
@@ -29,9 +29,9 @@ sig
      Eq_Congruent | Eq_Reflexive | Eq_Transitive | Eq_Congruent_Pred | Trans |  Refl |  Cong |
      (*Arithmetics:*)
      LA_Disequality | LA_Generic | LA_Tautology |  LIA_Generic | LA_Totality | LA_RW_Eq |
-     NLA_Generic |
+     NLA_Generic | LA_Mult_Pos | LA_Mult_Neg |
      (*Quantifiers:*)
-     Forall_Inst | Qnt_Rm_Unused | Qnt_Join | Onepoint | Bind | Skolem_Forall | Skolem_Ex |
+     Forall_Inst | Qnt_Rm_Unused | Qnt_Join | Onepoint | Bind | Sko_Forall | Sko_Ex |
      (*Resolution:*)
      Theory_Resolution | Resolution |
      (*Temporary rules, that the verit developers want to remove:*)
@@ -43,8 +43,8 @@ sig
      (*Former cong rules*)
      Bool_Simplify | Or_Simplify | Not_Simplify | And_Simplify | Equiv_Simplify |
      Implies_Simplify | Connective_Def | Minus_Simplify | Comp_Simplify |
-     Eq_Simplify | ITE_Simplify | Sum_Simplify | Prod_Simplify | All_Simplify |
-     Qnt_Simplify | Not_Not | Tautological_Clause | Duplicate_Literals |
+     Eq_Simplify | ITE_Simplify | Sum_Simplify | Prod_Simplify | All_Simplify | RARE_Rewrite |
+     Qnt_Simplify | Not_Not | Tautological_Clause | Duplicate_Literals | Distinct_Elim |
      (*Unsupported rule*)
      Unsupported |
      (*For compression*)
@@ -58,12 +58,15 @@ sig
   val requires_subproof_assms : string list -> string -> bool
   val requires_local_input: string list -> string -> bool
 
-  val string_of_verit_rule: verit_rule -> string
+  val string_of_lethe_rule: alethe_rule -> string
 
-  type lethe_tac_args = Proof.context -> thm list -> term list -> term -> thm
+  type lethe_tac_step_args = Proof.context -> thm list -> term list -> term -> thm
+  type lethe_tac_context_args = Proof.context -> thm list -> term list -> term -> thm
+  type lethe_tac_args = Proof.context -> thm list -> term -> Lethe_Node.tactic_args option -> thm
+  type lethe_tac_context_args_and_arg = Proof.context -> thm list -> term list -> term -> Lethe_Node.tactic_args option -> thm
   type lethe_tac = Proof.context -> thm list -> term -> thm
-  type lethe_tac2 = Proof.context -> thm list -> term list -> term Symtab.table -> term -> thm
-  val bind: lethe_tac_args
+
+  val bind: lethe_tac_context_args
   val and_rule: lethe_tac
   val and_neg_rule: lethe_tac
   val and_pos: lethe_tac
@@ -76,9 +79,10 @@ sig
   val rewrite_equiv_simplify: lethe_tac
   val rewrite_implies_simplify: lethe_tac
   val rewrite_or_simplify: lethe_tac
-  val cong: string -> lethe_tac
+  val cong: lethe_tac_args
   val rewrite_connective_def: lethe_tac
   val duplicate_literals: lethe_tac
+  val distinct_elim: lethe_tac
   val eq_congruent: lethe_tac
   val eq_congruent_pred: lethe_tac
   val eq_reflexive: lethe_tac
@@ -90,7 +94,7 @@ sig
   val equiv_pos1: lethe_tac
   val equiv_pos2: lethe_tac
   val false_rule: lethe_tac
-  val forall_inst: lethe_tac2
+  val forall_inst: lethe_tac_args
   val implies_rules: lethe_tac
   val implies_neg1: lethe_tac
   val implies_neg2: lethe_tac
@@ -104,10 +108,12 @@ sig
   val ite_pos2: lethe_tac
   val rewrite_ite_simplify: lethe_tac
   val la_disequality: lethe_tac
-  val la_generic: lethe_tac_args
+  val la_generic: lethe_tac_step_args
   val la_rw_eq: lethe_tac
   val lia_generic: lethe_tac
-  val refl: string -> lethe_tac
+  val la_mult_pos: lethe_tac
+  val la_mult_neg: lethe_tac
+  val refl: lethe_tac_args
   val normalized_input: lethe_tac
   val not_and_rule: lethe_tac
   val not_equiv1: lethe_tac
@@ -128,9 +134,10 @@ sig
   val onepoint: lethe_tac
   val qnt_simplify: lethe_tac
   val all_simplify: lethe_tac
+  val rare_rewrite: lethe_tac
   val unit_res: lethe_tac
-  val skolem_ex: lethe_tac
-  val skolem_forall: lethe_tac
+  val sko_ex: lethe_tac_context_args_and_arg
+  val sko_forall: lethe_tac_context_args_and_arg
   val subproof: lethe_tac
   val sum_simplify: lethe_tac
   val tautological_clause: lethe_tac
@@ -144,9 +151,9 @@ sig
 
 
   (*Extension to declare new alethe rules*)
-  val declare_alethe_rule:  string -> lethe_tac_args -> Context.generic -> Context.generic
+  val declare_alethe_rule:  string -> lethe_tac_step_args -> Context.generic -> Context.generic
   val rm_alethe_rule: string -> Context.generic -> Context.generic
-  val get_alethe_tac: string -> Context.generic -> lethe_tac_args option
+  val get_alethe_tac: string -> Context.generic -> lethe_tac_step_args option
   val print_alethe_tac: Context.generic -> Pretty.T
 
   (*Useful lifting of tactics*)
@@ -154,7 +161,7 @@ sig
   val TRY': ('a -> tactic) -> 'a -> tactic
 
   val simplify_tac: Proof.context -> thm list -> int -> tactic
-  val replay_error: Proof.context -> string -> verit_rule -> thm list -> term -> 'a
+  val replay_error: Proof.context -> string -> alethe_rule -> thm list -> term list -> term -> 'a
 
 end;
 
@@ -162,9 +169,11 @@ end;
 structure Lethe_Replay_Methods: LETHE_REPLAY_METHODS =
 struct
 
-type lethe_tac_args = Proof.context -> thm list -> term list -> term -> thm
+type lethe_tac_step_args = Proof.context -> thm list -> term list -> term -> thm
+type lethe_tac_context_args = Proof.context -> thm list -> term list -> term -> thm
+type lethe_tac_args = Proof.context -> thm list -> term -> Lethe_Node.tactic_args option -> thm
+type lethe_tac_context_args_and_arg = Proof.context -> thm list -> term list -> term -> Lethe_Node.tactic_args option -> thm
 type lethe_tac = Proof.context -> thm list -> term -> thm
-type lethe_tac2 = Proof.context -> thm list -> term list -> term Symtab.table -> term -> thm
 
 (*Some general comments on the proof format:
   1. Double negations are not always removed. This means for example that the equivalence rules
@@ -182,7 +191,7 @@ type lethe_tac2 = Proof.context -> thm list -> term list -> term Symtab.table ->
 *)
 
 
-datatype verit_rule =
+datatype alethe_rule =
    False | True |
 
    (*input: a repeated (normalized) assumption of  assumption of in a subproof*)
@@ -203,9 +212,9 @@ datatype verit_rule =
    Eq_Congruent | Eq_Reflexive | Eq_Transitive | Eq_Congruent_Pred | Trans |  Refl |  Cong |
    (*Arithmetics:*)
    LA_Disequality | LA_Generic | LA_Tautology |  LIA_Generic | LA_Totality | LA_RW_Eq |
-   NLA_Generic |
+   NLA_Generic |  LA_Mult_Pos | LA_Mult_Neg |
    (*Quantifiers:*)
-   Forall_Inst | Qnt_Rm_Unused | Qnt_Join | Onepoint | Bind | Skolem_Forall | Skolem_Ex |
+   Forall_Inst | Qnt_Rm_Unused | Qnt_Join | Onepoint | Bind | Sko_Forall | Sko_Ex |
    (*Resolution:*)
    Theory_Resolution | Resolution |
    (*Temporary rules, that the verit developpers want to remove:*)
@@ -217,8 +226,8 @@ datatype verit_rule =
    (*Former cong rules*)
    Bool_Simplify | Or_Simplify | Not_Simplify | And_Simplify | Equiv_Simplify |
    Implies_Simplify | Connective_Def | Minus_Simplify | Comp_Simplify |
-   Eq_Simplify | ITE_Simplify | Sum_Simplify | Prod_Simplify | All_Simplify |
-   Qnt_Simplify | Not_Not | Tautological_Clause | Duplicate_Literals |
+   Eq_Simplify | ITE_Simplify | Sum_Simplify | Prod_Simplify | All_Simplify | RARE_Rewrite |
+   Qnt_Simplify | Not_Not | Tautological_Clause | Duplicate_Literals | Distinct_Elim |
    (*Unsupported rule*)
    Unsupported |
    (*For compression*)
@@ -229,95 +238,99 @@ datatype verit_rule =
    Other_Rule of string |
    Hole
 
-fun string_of_verit_rule Bind = "Bind"
-  | string_of_verit_rule Cong = "Cong"
-  | string_of_verit_rule Refl = "Refl"
-  | string_of_verit_rule Equiv1 = "Equiv1"
-  | string_of_verit_rule Equiv2 = "Equiv2"
-  | string_of_verit_rule Equiv_pos1 = "Equiv_pos1"
-  | string_of_verit_rule Equiv_pos2 = "Equiv_pos2"
-  | string_of_verit_rule Equiv_neg1 = "Equiv_neg1"
-  | string_of_verit_rule Equiv_neg2 = "Equiv_neg2"
-  | string_of_verit_rule Skolem_Forall = "Skolem_Forall"
-  | string_of_verit_rule Skolem_Ex = "Skolem_Ex"
-  | string_of_verit_rule Eq_Reflexive = "Eq_Reflexive"
-  | string_of_verit_rule Theory_Resolution = "Theory_Resolution"
-  | string_of_verit_rule Theory_Resolution2 = "Theory_Resolution2"
-  | string_of_verit_rule Forall_Inst = "forall_inst"
-  | string_of_verit_rule Or = "Or"
-  | string_of_verit_rule Not_Or = "Not_Or"
-  | string_of_verit_rule Resolution = "Resolution"
-  | string_of_verit_rule Eq_Congruent = "eq_congruent"
-  | string_of_verit_rule Trans = "trans"
-  | string_of_verit_rule False = "false"
-  | string_of_verit_rule And = "and"
-  | string_of_verit_rule And_Pos = "and_pos"
-  | string_of_verit_rule Not_And = "not_and"
-  | string_of_verit_rule And_Neg = "and_neg"
-  | string_of_verit_rule Or_Pos = "or_pos"
-  | string_of_verit_rule Or_Neg = "or_neg"
-  | string_of_verit_rule AC_Simp = "ac_simp"
-  | string_of_verit_rule Not_Equiv1 = "not_equiv1"
-  | string_of_verit_rule Not_Equiv2 = "not_equiv2"
-  | string_of_verit_rule Not_Implies1 = "not_implies1"
-  | string_of_verit_rule Not_Implies2 = "not_implies2"
-  | string_of_verit_rule Implies_Neg1 = "implies_neg1"
-  | string_of_verit_rule Implies_Neg2 = "implies_neg2"
-  | string_of_verit_rule Implies = "implies"
-  | string_of_verit_rule Bfun_Elim = "bfun_elim"
-  | string_of_verit_rule ITE1 = "ite1"
-  | string_of_verit_rule ITE2 = "ite2"
-  | string_of_verit_rule Not_ITE1 = "not_ite1"
-  | string_of_verit_rule Not_ITE2 = "not_ite2"
-  | string_of_verit_rule ITE_Pos1 = "ite_pos1"
-  | string_of_verit_rule ITE_Pos2 = "ite_pos2"
-  | string_of_verit_rule ITE_Neg1 = "ite_neg1"
-  | string_of_verit_rule ITE_Neg2 = "ite_neg2"
-  | string_of_verit_rule ITE_Intro = "ite_intro"
-  | string_of_verit_rule LA_Disequality = "la_disequality"
-  | string_of_verit_rule LA_Generic = "la_generic"
-  | string_of_verit_rule LIA_Generic = "lia_generic"
-  | string_of_verit_rule LA_Tautology = "la_tautology"
-  | string_of_verit_rule LA_RW_Eq = "la_rw_eq"
-  | string_of_verit_rule LA_Totality = "LA_Totality"
-  | string_of_verit_rule NLA_Generic = "nla_generic"
-  | string_of_verit_rule Eq_Transitive = "eq_transitive"
-  | string_of_verit_rule Qnt_Rm_Unused = "qnt_remove_unused"
-  | string_of_verit_rule Onepoint = "onepoint"
-  | string_of_verit_rule Qnt_Join = "qnt_join"
-  | string_of_verit_rule Eq_Congruent_Pred = "eq_congruent_pred"
-  | string_of_verit_rule Normalized_Input = Lethe_Proof.normalized_input_rule
-  | string_of_verit_rule Local_Input = Lethe_Proof.local_input_rule
-  | string_of_verit_rule Subproof = "subproof"
-  | string_of_verit_rule Bool_Simplify = "bool_simplify"
-  | string_of_verit_rule Equiv_Simplify = "equiv_simplify"
-  | string_of_verit_rule Eq_Simplify = "eq_simplify"
-  | string_of_verit_rule Not_Simplify = "not_simplify"
-  | string_of_verit_rule And_Simplify = "and_simplify"
-  | string_of_verit_rule Or_Simplify = "or_simplify"
-  | string_of_verit_rule ITE_Simplify = "ite_simplify"
-  | string_of_verit_rule Implies_Simplify = "implies_simplify"
-  | string_of_verit_rule Connective_Def = "connective_def"
-  | string_of_verit_rule Minus_Simplify = "minus_simplify"
-  | string_of_verit_rule Sum_Simplify = "sum_simplify"
-  | string_of_verit_rule Prod_Simplify = "prod_simplify"
-  | string_of_verit_rule All_Simplify = "all_simplify"
-  | string_of_verit_rule Comp_Simplify = "comp_simplify"
-  | string_of_verit_rule Qnt_Simplify = "qnt_simplify"
-  | string_of_verit_rule Symm = "symm"
-  | string_of_verit_rule Not_Symm = "not_symm"
-  | string_of_verit_rule Reordering = "reordering"
-  | string_of_verit_rule Not_Not = Lethe_Proof.not_not_rule
-  | string_of_verit_rule Tautological_Clause = "tautology"
-  | string_of_verit_rule Duplicate_Literals = Lethe_Proof.contract_rule
-  | string_of_verit_rule Qnt_CNF = "qnt_cnf"
-  | string_of_verit_rule (Other_Rule r) = r
-  | string_of_verit_rule r = "Unknown rule: " ^ \<^make_string> r
+fun string_of_lethe_rule Bind = "Bind"
+  | string_of_lethe_rule Cong = "Cong"
+  | string_of_lethe_rule Refl = "Refl"
+  | string_of_lethe_rule Equiv1 = "Equiv1"
+  | string_of_lethe_rule Equiv2 = "Equiv2"
+  | string_of_lethe_rule Equiv_pos1 = "Equiv_pos1"
+  | string_of_lethe_rule Equiv_pos2 = "Equiv_pos2"
+  | string_of_lethe_rule Equiv_neg1 = "Equiv_neg1"
+  | string_of_lethe_rule Equiv_neg2 = "Equiv_neg2"
+  | string_of_lethe_rule Sko_Forall = "Sko_Forall"
+  | string_of_lethe_rule Sko_Ex = "Sko_Ex"
+  | string_of_lethe_rule Eq_Reflexive = "Eq_Reflexive"
+  | string_of_lethe_rule Theory_Resolution = "Theory_Resolution"
+  | string_of_lethe_rule Theory_Resolution2 = "Theory_Resolution2"
+  | string_of_lethe_rule Forall_Inst = "forall_inst"
+  | string_of_lethe_rule Or = "Or"
+  | string_of_lethe_rule Not_Or = "Not_Or"
+  | string_of_lethe_rule Resolution = "Resolution"
+  | string_of_lethe_rule Eq_Congruent = "eq_congruent"
+  | string_of_lethe_rule Trans = "trans"
+  | string_of_lethe_rule False = "false"
+  | string_of_lethe_rule And = "and"
+  | string_of_lethe_rule And_Pos = "and_pos"
+  | string_of_lethe_rule Not_And = "not_and"
+  | string_of_lethe_rule And_Neg = "and_neg"
+  | string_of_lethe_rule Or_Pos = "or_pos"
+  | string_of_lethe_rule Or_Neg = "or_neg"
+  | string_of_lethe_rule AC_Simp = "ac_simp"
+  | string_of_lethe_rule Not_Equiv1 = "not_equiv1"
+  | string_of_lethe_rule Not_Equiv2 = "not_equiv2"
+  | string_of_lethe_rule Not_Implies1 = "not_implies1"
+  | string_of_lethe_rule Not_Implies2 = "not_implies2"
+  | string_of_lethe_rule Implies_Neg1 = "implies_neg1"
+  | string_of_lethe_rule Implies_Neg2 = "implies_neg2"
+  | string_of_lethe_rule Implies = "implies"
+  | string_of_lethe_rule Bfun_Elim = "bfun_elim"
+  | string_of_lethe_rule ITE1 = "ite1"
+  | string_of_lethe_rule ITE2 = "ite2"
+  | string_of_lethe_rule Not_ITE1 = "not_ite1"
+  | string_of_lethe_rule Not_ITE2 = "not_ite2"
+  | string_of_lethe_rule ITE_Pos1 = "ite_pos1"
+  | string_of_lethe_rule ITE_Pos2 = "ite_pos2"
+  | string_of_lethe_rule ITE_Neg1 = "ite_neg1"
+  | string_of_lethe_rule ITE_Neg2 = "ite_neg2"
+  | string_of_lethe_rule ITE_Intro = "ite_intro"
+  | string_of_lethe_rule LA_Disequality = "la_disequality"
+  | string_of_lethe_rule LA_Generic = "la_generic"
+  | string_of_lethe_rule LIA_Generic = "lia_generic"
+  | string_of_lethe_rule LA_Tautology = "la_tautology"
+  | string_of_lethe_rule LA_RW_Eq = "la_rw_eq"
+  | string_of_lethe_rule LA_Totality = "LA_Totality"
+  | string_of_lethe_rule NLA_Generic = "nla_generic"
+  | string_of_lethe_rule LA_Mult_Pos = "la_mult_pos"
+  | string_of_lethe_rule LA_Mult_Neg = "la_mult_neg"
+  | string_of_lethe_rule Eq_Transitive = "eq_transitive"
+  | string_of_lethe_rule Qnt_Rm_Unused = "qnt_remove_unused"
+  | string_of_lethe_rule Onepoint = "onepoint"
+  | string_of_lethe_rule Qnt_Join = "qnt_join"
+  | string_of_lethe_rule Eq_Congruent_Pred = "eq_congruent_pred"
+  | string_of_lethe_rule Normalized_Input = Lethe_Proof.normalized_input_rule
+  | string_of_lethe_rule Local_Input = Lethe_Proof.local_input_rule
+  | string_of_lethe_rule Subproof = "subproof"
+  | string_of_lethe_rule Bool_Simplify = "bool_simplify"
+  | string_of_lethe_rule Equiv_Simplify = "equiv_simplify"
+  | string_of_lethe_rule Eq_Simplify = "eq_simplify"
+  | string_of_lethe_rule Not_Simplify = "not_simplify"
+  | string_of_lethe_rule And_Simplify = "and_simplify"
+  | string_of_lethe_rule Or_Simplify = "or_simplify"
+  | string_of_lethe_rule ITE_Simplify = "ite_simplify"
+  | string_of_lethe_rule Implies_Simplify = "implies_simplify"
+  | string_of_lethe_rule Connective_Def = "connective_def"
+  | string_of_lethe_rule Minus_Simplify = "minus_simplify"
+  | string_of_lethe_rule Sum_Simplify = "sum_simplify"
+  | string_of_lethe_rule Prod_Simplify = "prod_simplify"
+  | string_of_lethe_rule All_Simplify = "all_simplify"
+  | string_of_lethe_rule RARE_rewrite = "rare_rewrite"
+  | string_of_lethe_rule Comp_Simplify = "comp_simplify"
+  | string_of_lethe_rule Qnt_Simplify = "qnt_simplify"
+  | string_of_lethe_rule Symm = "symm"
+  | string_of_lethe_rule Not_Symm = "not_symm"
+  | string_of_lethe_rule Reordering = "reordering"
+  | string_of_lethe_rule Not_Not = Lethe_Proof.not_not_rule
+  | string_of_lethe_rule Tautological_Clause = "tautology"
+  | string_of_lethe_rule Duplicate_Literals = Lethe_Proof.contract_rule
+  | string_of_lethe_rule Destinct_Elim = "distinct_elim"
+  | string_of_lethe_rule Qnt_CNF = "qnt_cnf"
+  | string_of_lethe_rule (Other_Rule r) = r
+  | string_of_lethe_rule r = "Unknown rule: " ^ \<^make_string> r
 
 (** Context Extension for Rules **)
 (*We currently do not distinguish between the extension required for each solver. Maybe later
 it will be needed.*)
-type alethe_rule_ext = {rules: (string * lethe_tac_args) list}
+type alethe_rule_ext = {rules: (string * lethe_tac_step_args) list}
 
 fun mk_alethe_rule_ext rules : alethe_rule_ext = 
    {rules=rules}
@@ -372,8 +385,8 @@ fun print_alethe_tac context =
 
 (** Tactics for Reconstruction **)
 (**)
-fun replay_error ctxt msg rule thms t =
-  SMT_Replay_Methods.replay_error ctxt msg (string_of_verit_rule rule) thms t
+fun replay_error ctxt msg rule thms args t =
+  SMT_Replay_Methods.replay_error ctxt msg (string_of_lethe_rule rule) thms args t
 
 (* utility function *)
 
@@ -489,7 +502,25 @@ val extract_bind_names =
    HOLogic.dest_eq
    #> apply2 (fn (Free (name, _)) => name)
 
+fun temp [] = [] |
+    temp (Const ("HOL.Trueprop", _) $ Free (_, _) :: xs) = temp xs |
+    temp (Const ("HOL.Trueprop", _) $ t :: xs) = t::temp xs
+
+
+(*("args",
+ [Const ("HOL.eq", "int \<Rightarrow> int \<Rightarrow> bool") $ Free ("v0", "int") $
+    Free ("v0",
+          "int")])
+          ("args",
+ [Const ("HOL.Trueprop", "bool \<Rightarrow> prop") $ Free ("v0", "int"),
+  Const ("HOL.Trueprop", "bool \<Rightarrow> prop") $
+    (Const ("HOL.eq", "int \<Rightarrow> int \<Rightarrow> bool") $ Free ("v0", "int") $
+      Free ("v0",
+            "int"))])
+          *)
+
 fun combine_quant ctxt ((n1, n2) :: bounds) (n1' :: formula) =
+(@{print}("n1",n1);@{print}("n2",n2);@{print}("n1'",n1');
     TRY' (if n1 = n1'
      then if n1 <> n2
        then
@@ -498,10 +529,10 @@ fun combine_quant ctxt ((n1, n2) :: bounds) (n1' :: formula) =
          THEN' combine_quant ctxt bounds formula
        else resolve_tac ctxt bind_thms_same_name THEN' combine_quant ctxt bounds formula
      else resolve_tac ctxt @{thms allI} THEN' combine_quant ctxt ((n1, n2) :: bounds) formula)
-  | combine_quant _ _ _ = K all_tac
+)  | combine_quant _ _ _ = K all_tac
 
 fun bind_quants ctxt args t =
-  combine_quant ctxt (map extract_bind_names args) (extract_quantified_names t)
+  combine_quant ctxt (map extract_bind_names (temp args)) (extract_quantified_names t)
 
 fun generalize_prems_q [] prems = prems
   | generalize_prems_q (_ :: quants) prems =
@@ -509,31 +540,42 @@ fun generalize_prems_q [] prems = prems
 
 fun generalize_prems t = generalize_prems_q (fst (extract_quantified_names_ba t))
 
-fun bind ctxt [prems] args t =
+fun bind ctxt [prems] context_ass t =
+(@{print}("context_ass",context_ass);@{print}("generalize_prems t prems",generalize_prems t prems);
   SMT_Replay_Methods.prove ctxt t (fn _ =>
-    bind_quants ctxt args t
+ TRY' (K (print_tac ctxt "bin"))
+
+THEN'
+    bind_quants ctxt context_ass t
+ THEN' TRY' (K (print_tac ctxt "bin"))
+ (*   THEN' REPEAT' (resolve_tac ctxt bind_thms THEN' TRY' (K (print_tac ctxt "bin")))*)
+    
     THEN' TRY' (SOLVED' (resolve_tac ctxt [generalize_prems t prems]
-      THEN_ALL_NEW TRY' (assume_tac ctxt ORELSE' resolve_tac ctxt @{thms refl}))))
- | bind ctxt thms _ t = replay_error ctxt "invalid bind application" Bind thms t
+      THEN_ALL_NEW TRY' (assume_tac ctxt ORELSE' resolve_tac ctxt @{thms refl})))))
+ | bind ctxt thms _ t = replay_error ctxt "invalid bind application" Bind thms [] t
 
 
 (* Congruence/Refl *)
 
-fun cong name ctxt thms = try_provers name ctxt
-    (string_of_verit_rule Cong) [
+fun get_solver_name (SOME (Solver_Name name)) = name |
+  get_solver_name _ = "unkown solver name"  
+
+fun cong ctxt thms t args = try_provers (get_solver_name args) ctxt
+    (string_of_lethe_rule Cong) [
   ("basic", SMT_Replay_Methods.cong_basic ctxt thms),
   ("unfolding then reflexivity", SMT_Replay_Methods.cong_unfolding_trivial ctxt thms),
   ("unfolding then auto", SMT_Replay_Methods.cong_unfolding_first ctxt thms),
-  ("full", SMT_Replay_Methods.cong_full ctxt thms)] thms
+  ("full", SMT_Replay_Methods.cong_full ctxt thms)] thms [] t
 
-fun refl name ctxt thm t =
+fun refl ctxt thm t args = (@{print}("t",t);@{print}("prems",thm |> map Thm.cprop_of);
+@{print}("args",args);
   (case find_first (fn thm => t = Thm.full_prop_of thm) thm of
       SOME thm => thm
     | NONE =>
         (case try (fn t => SMT_Replay_Methods.match_instantiate ctxt t @{thm refl}) t of
-          NONE => cong name ctxt thm t
+          NONE => cong ctxt thm t args
         | SOME thm => thm))
-
+)
 (* Instantiation *)
 
 local
@@ -541,7 +583,7 @@ fun dropWhile _ [] = []
   | dropWhile f (x :: xs) = if f x then dropWhile f xs else x :: xs
 in
 
-fun forall_inst ctxt _ _ insts t =
+fun forall_inst ctxt _ t (SOME (Insts insts)) =
   let
     fun instantiate_and_solve i ({context = ctxt, prems = [prem], ...}: Subgoal.focus) =
         let
@@ -561,25 +603,30 @@ fun forall_inst ctxt _ _ insts t =
               (map (option_map (Thm.cterm_of ctxt)) insts)
               prem
         in
-           (Method.insert_tac ctxt [inst_thm]
+           ( (K (print_tac ctxt "sd 0")) THEN' Method.insert_tac ctxt [inst_thm]
+           THEN' (K (print_tac ctxt "sd 0"))
            THEN' TRY' (fn i => assume_tac ctxt i)
+           THEN' (K (print_tac ctxt "sd 1"))
            THEN' TRY' (partial_simplify_tac ctxt @{thms eq_commute ac_simps})
+           THEN' (K (print_tac ctxt "sd 2"))
            THEN' TRY' (blast_tac ctxt)) i
         end
      | instantiate_and_solve _ ({context = ctxt, prems = thms, ...}: Subgoal.focus) =
-         replay_error ctxt "invalid application" Forall_Inst thms t
+         replay_error ctxt "invalid application" Forall_Inst thms [] t
   in
     SMT_Replay_Methods.prove ctxt t (fn _ =>
       match_tac ctxt [@{thm disj_not1} RSN (1, @{thm iffD2}) OF [@{thm impI}]]
       THEN' (fn i => Subgoal.FOCUS (instantiate_and_solve i) ctxt i))
-  end
+  end |
+ forall_inst ctxt _ t _ = raise Fail ""
+
 end
 
 
 (* Or *)
 
 fun or _ (thm :: _) _ = thm
-  | or ctxt thms t = replay_error ctxt "invalid bind application" Or thms t
+  | or ctxt thms t = replay_error ctxt "invalid bind application" Or thms [] t
 
 
 (* Implication *)
@@ -632,8 +679,12 @@ local
        val multiple_rew = if SMT_Config.compress_verit_proofs ctxt then REPEAT_CHANGED else fn x => x
      in
        multiple_rew (EqSubst.eqsubst_tac ctxt [0] rewrite_sk_thms
-         THEN' SOLVED' (K (HEADGOAL (partial_simplify_tac ctxt (@{thms eq_commute})))))
+         (*THEN' K (print_tac ctxt "In rewrite_all_skolems")*)
+         THEN' SOLVED' (K (HEADGOAL (partial_simplify_tac ctxt (@{thms eq_commute}))))
+         (*THEN' K (print_tac ctxt "In rewrite_all_skolems 2")*))
        THEN' rewrite_all_skolems thm_indirect ctxt thms
+         (*THEN' K (print_tac ctxt "In rewrite_all_skolems 3")*)
+
      end
    | rewrite_all_skolems thm_indirect ctxt ((_,NONE) :: thms) = rewrite_all_skolems thm_indirect ctxt thms
    | rewrite_all_skolems _ _ [] = K (all_tac)
@@ -648,33 +699,112 @@ local
        in name :: extract_var_name thms end
     | extract_var_name [] = []
 
-fun skolem_tac extractor thm1 thm2 ctxt thms t  =
+fun skolem_tac extractor thm1 thms1 ctxt prems context_ass (decl:string list * string list) t =
   let
-    val (ctxt_eq, ts, other) = extract_rewrite_rule_assumption ctxt thms
+
+    val (context_ass_thm,_) = Assumption.add_assumes (map (Thm.cterm_of ctxt) context_ass) ctxt
+    val context_ass_thm_sym = @{thm sym} OF context_ass_thm (*TODO*)
+    val _ = @{print}("context_ass_thm",context_ass_thm)
+    val _ = @{print}("context_ass_thm_sym",context_ass_thm_sym)
+
+(*
+lemma verit_sko_forall: \<open>(\<forall>x. P x) \<longleftrightarrow> P (SOME x. \<not>P x)\<close>
+  using someI[of \<open>\<lambda>x. \<not>P x\<close>]
+  by auto
+
+lemma verit_sko_forall': \<open>P (SOME x. \<not>P x) = A \<Longrightarrow> (\<forall>x. P x) = A\<close>
+  by (subst verit_sko_forall)
+
+lemma verit_sko_forall'': \<open>B = A \<Longrightarrow> (SOME x. P x) = A \<equiv> (SOME x. P x) = B\<close>
+  by auto
+
+lemma verit_sko_forall_indirect: \<open>x = (SOME x. \<not>P x) \<Longrightarrow> (\<forall>x. P x) \<longleftrightarrow> P x\<close>
+  using someI[of \<open>\<lambda>x. \<not>P x\<close>]
+  by auto
+
+lemma verit_sko_forall_indirect2:
+    \<open>x = (SOME x. \<not>P x) \<Longrightarrow> (\<And>x :: 'a. (P x = P' x)) \<Longrightarrow>(\<forall>x. P' x) \<longleftrightarrow> P x\<close>
+  using someI[of \<open>\<lambda>x. \<not>P x\<close>]
+  by auto*)
+
+    val _ = @{print}("thm1",thm1)
+    val _ = @{print}("thms1",thms1)
+    val _ = @{print}("prems",prems)
+    val _ = @{print}("context_ass",context_ass)
+
+    val _ = @{print}("t",t)
+    val _ = @{print}("decl",decl)
+
+    val (ctxt_eq, rew, other) = extract_rewrite_rule_assumption ctxt prems
+    val _ = @{print}("ctxt_eq",ctxt_eq)
+
+    val _ = @{print}("rew",rew)
+    val _ = @{print}("other",other)
 
     fun ordered_definitions () =
       let
         val var_order = extractor t
-        val thm_names_with_var = extract_var_name ts |> flat
+        (*val _ = @{print}("var_order",var_order)*)
+
+        val thm_names_with_var = extract_var_name rew |> flat
+        (*val _ = @{print}("thm_names_with_var",thm_names_with_var)*)
+
       in map (fn v => (v, AList.lookup (op =) thm_names_with_var v)) var_order end
+    (*val _ = @{print}("ordered_definitions ()",ordered_definitions ())*)
   in
     SMT_Replay_Methods.prove ctxt t (fn _ =>
-      K (unfold_tac ctxt ctxt_eq)
-      THEN' rewrite_all_skolems thm2 ctxt (ordered_definitions ())
-      THEN' (eqsubst_all ctxt (map (fn thm => thm RS sym) other))
+      K (print_tac ctxt "sko 1")
+      THEN' rewrite_all_skolems thms1 ctxt (ordered_definitions ())
+      THEN' K (print_tac ctxt "sko 2")
+
+      THEN' (*(((resolve_tac ctxt @{thms refl}) THEN' K (print_tac ctxt "sko 0"))
+      ORELSE' *)
+      ( (*K (print_tac ctxt "sko 2")
+      THEN'*) TRY' (eqsubst_all ctxt (map (fn thm => thm RS sym) other))
+      (*THEN' K (print_tac ctxt "sko 3")*)
       THEN_ALL_NEW TRY' (resolve_tac ctxt @{thms refl})
+      (*THEN' K (print_tac ctxt "sko 4")*)
       THEN' K (unfold_tac ctxt ctxt_eq)
-      THEN' TRY' (partial_simplify_tac ctxt (@{thms eq_commute})))
+      (*THEN' K (print_tac ctxt "sko 5")*)
+      THEN' TRY' (partial_simplify_tac ctxt (@{thms eq_commute}))))
   end
 in
 
-val skolem_forall =
-  skolem_tac extract_all_forall_exists_quantified_names_q @{thm verit_sko_forall_indirect}
-    @{thms verit_sko_forall_indirect2  verit_sko_ex_indirect2}
+(*forall a b c d e f. P(a,b,c,d,e,f)
 
-val skolem_ex =
+extract_all_forall_exists_quantified_names_q: returns a b c d e f
+
+The context has the definitions of the skolems
+Then, they are ordered
+THEN' rewrite_all_skolems thm2 ctxt (ordered_definitions ())
+
+We should be able to stop there:
+but skolems can appear in each other, they might be folded in or only partially
+choices in choices
+in cvc5: order guaranteed to be respected, no choice inside choice.
+
+If 
+      THEN' (eqsubst_all ctxt (map (fn thm => thm RS sym) other))
+unfolding all things that might be in the context (should not happen but never sure)
+if skolem_forall closes subproof that is in another subproof.
+
+Then, we hope that everything works out:
+      THEN_ALL_NEW TRY' (resolve_tac ctxt @{thms refl})
+
+If it doesn't work we brute force it by unfolding everything. And then use the simplifier:
+      THEN' K (unfold_tac ctxt ctxt_eq)
+Mathias does not remember a case where this happens.
+
+  type lethe_tac_args = Proof.context -> thm list -> term -> Lethe_Node.tactic_args -> thm
+
+*)
+fun sko_forall ctxt prems context_ass t (SOME (Sko_Def_Prems decl)) =
+  skolem_tac extract_all_forall_exists_quantified_names_q @{thm verit_sko_forall_indirect}
+    @{thms verit_sko_forall_indirect2 verit_sko_ex_indirect2} ctxt prems context_ass decl t
+
+fun sko_ex ctxt prems context_ass t (SOME (Sko_Def_Prems decl)) =
   skolem_tac extract_all_forall_exists_quantified_names_q @{thm verit_sko_ex_indirect}
-    @{thms verit_sko_ex_indirect2 verit_sko_forall_indirect2}
+    @{thms verit_sko_ex_indirect2 verit_sko_forall_indirect2} ctxt prems context_ass decl t
 
 end
 
@@ -732,10 +862,48 @@ fun theory_resolution2 ctxt prems t =
 end
 
 
-fun normalized_input ctxt prems t = SMT_Replay_Methods.prove ctxt t (fn _ =>
-  Method.insert_tac ctxt prems
-  THEN' TRY' (K (unfold_tac ctxt @{thms SMT.trigger_def}))
-  THEN' TRY' (partial_simplify_tac ctxt @{thms eq_commute}))
+fun distinct_elim ctxt prems t = (*TODO*)
+    SMT_Replay_Methods.prove ctxt t (fn _ => resolve_tac ctxt @{thms refl})
+
+(*TODO: Roll back once Mathias supports this*)
+(*Modulo implicit reordering*)
+fun is_same_assms_eq_ac (Abs (_, _,  u)) (Abs (_, _, u')) = 
+     is_same_assms_eq_ac u u' (*the name cannot be relevant due to implicit eta-contraction*)
+  | is_same_assms_eq_ac (Free (var, _)) (Free (var', _)) =
+    (var = var')
+  | is_same_assms_eq_ac (Bound var) (Bound var') =
+    (var = var')
+  | is_same_assms_eq_ac (Const (var, _)) (Const (var', _)) =
+    (var = var')
+  | is_same_assms_eq_ac (Const (\<^const_name>\<open>HOL.eq\<close>, _) $ u $ v) (Const (\<^const_name>\<open>HOL.eq\<close>, _) $ u' $ v') =
+    (is_same_assms_eq_ac u u' andalso is_same_assms_eq_ac v v') orelse
+    (is_same_assms_eq_ac u v' andalso is_same_assms_eq_ac v u')
+  | is_same_assms_eq_ac (u $ v) (u' $ v') =
+    (is_same_assms_eq_ac u u' andalso is_same_assms_eq_ac v v')
+  | is_same_assms_eq_ac u v  = (false)
+
+fun normalized_input ctxt prems t = 
+  let
+    (*val _ = @{print}("prems",prems)
+    val _ = @{print}("t",t)*)
+
+    (*Fuer externe Problem (bei denen wir nicht wissen welche assumption zu welcher assertion gehoert)
+    *)
+    val all_assms = SMT_Config.alethe_no_provided_assms ctxt
+    val termify = Thm.prop_of #> (fn x=> single (0, x)) #> SMT_Translate.eta_expand ctxt Termtab.empty #> hd #> snd
+    fun matched_assm () =
+      (case find_first (is_same_assms_eq_ac t o termify) prems of
+        SOME thm => [thm]
+      | NONE => [])
+    val prems = (if all_assms then matched_assm () else prems)
+  in
+    (SMT_Replay_Methods.prove ctxt t (fn _ =>
+      Method.insert_tac ctxt prems
+      (*THEN' (K (print_tac ctxt ("normalized input XX0")))*)
+      THEN' TRY' (K (unfold_tac ctxt @{thms SMT.trigger_def}))
+      THEN' TRY' (partial_simplify_tac ctxt @{thms eq_commute})
+      (*THEN' (K (print_tac ctxt ("normalized input XX10")))*)))
+end
 
 val false_rule_thm = @{lemma \<open>\<not>False\<close> by blast}
 
@@ -749,6 +917,9 @@ val trans_bool_thm =
 
 fun trans ctxt thms t =
   let
+    (*val _ = @{print}("thms",thms)
+    val _ = @{print}("t",t)*)
+
     val prop_of = HOLogic.dest_Trueprop o Thm.full_prop_of
     fun combine_thms [thm1, thm2] =
           (case (prop_of thm1, prop_of thm2) of
@@ -761,17 +932,25 @@ fun trans ctxt thms t =
           | _ => trans_bool_thm OF [thm1, thm2])
       | combine_thms (thm1 :: thm2 :: thms) =
           combine_thms (combine_thms [thm1, thm2] :: thms)
-      | combine_thms thms = replay_error ctxt "invalid bind application" Trans thms t
+      | combine_thms thms = replay_error ctxt "invalid bind application" Trans thms [] t
      val t' = Thm.eta_long_conversion (Object_Logic.dest_judgment ctxt (Thm.cterm_of ctxt t))
+    (*val _ = @{print}("t'",t')*)
+
      val (_, t2) = Logic.dest_equals (Thm.prop_of t')
+    (*val _ = @{print}("t2",t2)*)
+
      val thms = map (Conv.fconv_rule Thm.eta_long_conversion) thms
+    (*val _ = @{print}("thms",thms)*)
+
      val trans_thm = combine_thms thms
+    (*val _ = @{print}("trans_thm",trans_thm)*)
+
   in
-     (case (prop_of trans_thm, t2) of
+     ((*@{print}("YELL");*)(case (prop_of trans_thm, t2) of
        ((Const(\<^const_name>\<open>HOL.eq\<close>, _) $ t1 $ _),
              (Const(\<^const_name>\<open>HOL.eq\<close>, _) $ t3 $ _)) =>
        if t1 aconv t3 then trans_thm else trans_thm RS sym
-      | _ => trans_thm (*to be on the safe side*))
+      | _ => trans_thm (*to be on the safe side*)))
   end
 
 
@@ -806,7 +985,7 @@ local
 
   fun and_rule_prove ctxt prems =
      Method.insert_tac ctxt prems
-     THEN' (fn i => REPEAT (dresolve_tac ctxt @{thms conjE} i THEN assume_tac ctxt (i+1)))
+     THEN' REPEAT' (eresolve_tac ctxt @{thms conjE} THEN' TRY' (assume_tac ctxt))
      THEN' TRY' (assume_tac ctxt)
 
   fun and_neg_rule_prove ctxt _ =
@@ -850,7 +1029,7 @@ local
   fun prove_equiv equiv_thm ctxt [thm] t = SMT_Replay_Methods.prove ctxt t (fn _ =>
         Method.insert_tac ctxt [equiv_thm OF [thm]]
         THEN' TRY' (assume_tac ctxt))
-    | prove_equiv _ ctxt thms t = replay_error ctxt "invalid application in some equiv rule" Unsupported thms t
+    | prove_equiv _ ctxt thms t = replay_error ctxt "invalid application in some equiv rule" Unsupported thms [] t
 in
 
 val not_equiv1 = prove_equiv @{lemma \<open>\<not>(A \<longleftrightarrow> B) \<Longrightarrow> A \<or> B\<close> by blast}
@@ -892,7 +1071,7 @@ local
          (\<^term>\<open>HOL.disj\<close> $ (\<^term>\<open>HOL.implies\<close> $ a $ b) $ _)) =
          Drule.infer_instantiate' ctxt (map (SOME o Thm.cterm_of ctxt) [a, b]) thm
      | implies_pos_neg_term ctxt thm  t =
-        replay_error ctxt "invalid application in Implies" Unsupported [thm] t
+        replay_error ctxt "invalid application in Implies" Unsupported [thm] [] t
 
   fun prove_implies_pos_neg thm ctxt _ t =
     let val thm = implies_pos_neg_term ctxt thm t
@@ -1094,16 +1273,57 @@ end
 
 (* Subproof *)
 
+(* Reordering *)
+val split_neq = @{lemma "\<not>a \<or> \<not>c \<Longrightarrow> a \<or> c ==> a \<noteq> c" by auto}
+
+local
+  fun prove_reordering ctxt = 
+      REPEAT' (resolve_tac ctxt [split_neq])
+        THEN' K (print_tac ctxt "reorder0")
+
+      THEN' K (unfold_tac ctxt @{thms de_Morgan_disj})
+        THEN' K (print_tac ctxt "reorder0")
+
+      THEN' TRY o CHANGED_PROP o REPEAT_ALL_NEW (ematch_tac ctxt @{thms conjE})
+        THEN' K (print_tac ctxt "reorder1")
+
+      THEN' CHANGED_PROP o REPEAT_ALL_NEW (ematch_tac ctxt @{thms disjE})
+        THEN' K (print_tac ctxt "reorder2")
+
+      THEN' REPEAT'(ematch_tac ctxt @{thms notE}         THEN' K (print_tac ctxt "reorder4")
+THEN' TRY' (assume_tac ctxt))
+     
+in
+  val reordering2 = prove_reordering
+end
+
 fun subproof ctxt [prem] t =
+
      SMT_Replay_Methods.prove ctxt t (fn _ =>
-      (REPEAT' (resolve_tac ctxt [@{thm disj_not1} RSN (1, @{thm iffD2}) OF [@{thm impI}],
+           (K (print_tac ctxt "debug00"))
+THEN'
+      ((REPEAT' (resolve_tac ctxt [@{thm disj_not1} RSN (1, @{thm iffD2}) OF [@{thm impI}],
            @{thm disj_not1[of \<open>\<not>_\<close>, unfolded not_not]} RSN (1, @{thm iffD2}) OF [@{thm impI}]])
+          THEN' (K (print_tac ctxt "debug0a"))
+
         THEN' resolve_tac ctxt [prem]
-        THEN_ALL_NEW assume_tac ctxt
+        THEN_ALL_NEW (
+          (assume_tac ctxt
+          THEN' (K (print_tac ctxt "debug0"))
+          THEN' TRY' (assume_tac ctxt))
+        ORELSE'
+          SOLVED' ((partial_simplify_tac ctxt @{thms eq_commute ac_simps}
+          THEN' (K (print_tac ctxt "debug1"))
+          THEN' TRY' (assume_tac ctxt))))
+        THEN' (K (print_tac ctxt "debug2"))
         THEN' TRY' (assume_tac ctxt))
-      ORELSE' TRY' (Method.insert_tac ctxt [prem] THEN' Blast.blast_tac ctxt))
+      ORELSE' TRY' (Method.insert_tac ctxt [prem]
+        THEN' (K (print_tac ctxt "went into blast"))
+
+        THEN' TRY' (partial_simplify_tac ctxt @{thms eq_commute ac_simps})
+        THEN' TRY' (Blast.blast_tac ctxt))))
   | subproof ctxt prems t =
-      replay_error ctxt "invalid application, only one assumption expected" Subproof prems t
+      replay_error ctxt "invalid application, only one assumption expected" Subproof prems [] t
 
 
 (* Simplifying Steps *)
@@ -1208,6 +1428,35 @@ fun rewrite_comp_simplify ctxt _ t =
 fun rewrite_ite_simplify ctxt _ t =
   SMT_Replay_Methods.prove ctxt t (fn _ =>
    (rewrite_only_thms_tmp ctxt @{thms verit_ite_simplify}))
+
+local
+  fun simplify_arith ctxt thms = partial_simplify_tac ctxt
+    (thms @ Named_Theorems.get ctxt @{named_theorems ac_simps} @ @{thms arith_simps})
+in
+
+fun all_simplify ctxt _ t =
+  SMT_Replay_Methods.prove ctxt t (fn _ => (*K (print_tac ctxt "in all_simp0")
+     THEN'*) TRY' (K (Clasimp.auto_tac ctxt))
+     (*THEN' K (print_tac ctxt "in all_simp1")*)
+     THEN' TRY' (Code_Simp.dynamic_tac ctxt )
+     (*THEN' K (print_tac ctxt "in all_simp2")*)
+
+     THEN' TRY' (Lin_Arith.tac ctxt)
+
+     THEN' TRY' (simplify_arith ctxt @{thms verit_sum_simplify arith_special zmult_eq_1_iff})
+ 
+     THEN' TRY' (simplify_arith ctxt @{thms verit_prod_simplify})
+
+     THEN' TRY' (chain_rewrite_two_step_with_ac_simps ctxt
+         @{thms arith_simps verit_minus_simplify}
+         (Named_Theorems.get ctxt @{named_theorems ac_simps} @
+          @{thms numerals arith_simps arith_special
+             numeral_class.numeral.numeral_One}))
+
+     THEN' TRY' (Code_Simp.dynamic_tac ctxt )
+     THEN' TRY' (K (Clasimp.auto_tac ctxt))
+) (*TODO: TEMP until cvc5 produces fine grained simplification steps *)
+end
 end
 
 
@@ -1229,16 +1478,19 @@ fun prod_simplify ctxt _ t =
     THEN' TRY' (K (Clasimp.auto_tac ctxt))) (*TODO: TEMP until cvc5 produces fine grained simplification steps *)
 end
 
-fun all_simplify ctxt _ t =
+(*TODO: still needed?*)
+fun rare_rewrite ctxt _ t =
   SMT_Replay_Methods.prove ctxt t (fn _ =>
-     TRY' (K (Clasimp.auto_tac ctxt))) (*TODO: TEMP until cvc5 produces fine grained simplification steps *)
+     TRY' (K (Clasimp.auto_tac ctxt)
+     THEN' TRY' (Code_Simp.dynamic_tac ctxt )
+))
+
 
 (* Arithmetics *)
 local
-
-val la_rw_eq_thm = @{lemma \<open>(a :: nat) = b \<or> (a \<le> b) \<or> (a \<ge> b)\<close> by auto}
+val la_rw_eq_thm = @{lemma \<open>((a :: 'a :: linorder) = b) = ((a \<le> b) \<and> (b \<le> a))\<close> by auto}
 in
-fun la_rw_eq ctxt _ t = SMT_Replay_Methods.match_instantiate ctxt t la_rw_eq_thm
+fun la_rw_eq ctxt _ t = (@{print}("t", Thm.cterm_of ctxt t |> Thm.assume);@{print}("t",la_rw_eq_thm);SMT_Replay_Methods.match_instantiate ctxt t la_rw_eq_thm)
 
 fun la_generic_prove args ctxt _ = SMT_Replay_Arith.la_farkas args ctxt
 
@@ -1251,6 +1503,29 @@ fun lia_generic ctxt _ t =
 fun la_disequality ctxt _ t =
   SMT_Replay_Methods.match_instantiate ctxt t @{thm verit_la_disequality}
 
+fun la_mult_extract (Const ("HOL.Trueprop", _) $ (Const ("HOL.implies", _) 
+ $ (Const ("HOL.conj",_) $ (_ $ _ $ factor) $ (rel $ l $ r))
+ $ _)) = (rel,(factor,l,r))
+
+fun to_lemma "Orderings.ord_class.less" = @{thm alethe_la_mult_pos_less}
+
+
+fun la_mult_pos ctxt _ t =
+let
+  val (rel,(factor,l,r)) = la_mult_extract t
+(*  val _ = @{print}("factor",(Thm.cterm_of ctxt factor))
+  val _ = @{print}("lemma",infer_instantiate' ctxt [SOME (Thm.cterm_of ctxt factor),NONE,NONE] @{thm alethe_la_mult_pos_less} )
+  val _ = @{print}("lemma",infer_instantiate' ctxt [SOME (Thm.cterm_of ctxt factor),SOME (Thm.cterm_of ctxt l),SOME (Thm.cterm_of ctxt r)] @{thm alethe_la_mult_pos_less} )
+*)
+in 
+ (* SMT_Replay_Methods.prove ctxt t (fn _ => match_tac ctxt [infer_instantiate' ctxt [SOME (Thm.cterm_of ctxt factor),NONE,NONE] @{thm alethe_la_mult_pos_less} ]))*)
+  SMT_Replay_Methods.prove ctxt t (fn _ => match_tac ctxt @{thms alethe_la_mult_pos})
+
+end
+
+fun la_mult_neg ctxt _ t =
+SMT_Replay_Methods.prove ctxt t (fn _ => match_tac ctxt @{thms alethe_la_mult_neg})
+
 end
 
 
@@ -1260,7 +1535,7 @@ local
   fun prove_symm symm_thm ctxt [thm] t = SMT_Replay_Methods.prove ctxt t (fn _ =>
         Method.insert_tac ctxt [symm_thm OF [thm]]
         THEN' TRY' (assume_tac ctxt))
-    | prove_symm _  ctxt thms t = replay_error ctxt "invalid application in some symm rule" Unsupported thms t
+    | prove_symm _  ctxt thms t = replay_error ctxt "invalid application in some symm rule" Unsupported thms [] t
 in
   val symm_thm =
   @{lemma \<open>(B = A) \<Longrightarrow> A = B\<close> by blast }
@@ -1282,7 +1557,7 @@ local
       THEN' REPEAT'(ematch_tac ctxt @{thms notE} THEN' TRY' (assume_tac ctxt))
       ))
     | prove_reordering ctxt thms t =
-        replay_error ctxt "invalid application in some reordering rule" Unsupported thms t
+        replay_error ctxt "invalid application in some reordering rule" Unsupported thms [] t
 in
   val reordering = prove_reordering
 end

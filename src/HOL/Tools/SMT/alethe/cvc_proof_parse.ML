@@ -12,7 +12,6 @@ sig
   val parse_proof_lethe: SMT_Translate.replay_data ->
     ((string * ATP_Problem_Generate.stature) * thm) list -> term list -> term -> string list ->
     SMT_Solver.parsed_proof
-  val cvc_matching_assms: Proof.context -> thm list -> term list -> term -> thm -> bool
 
 end;
 
@@ -27,29 +26,8 @@ open Lethe_Isar
 open Lethe_Proof
 
 (*taken from verit*)
-fun add_used_asserts_in_step (Lethe_Proof.Lethe_Step {prems, ...}) =
+fun add_used_asserts_in_step (Lethe_Node.Lethe_Step {prems, ...}) =
   union (op =) (map_filter (try (snd o SMTLIB_Interface.role_and_index_of_assert_name)) prems)
-
-fun cvc_matching_assms ctxt rewrite_rules ll_defs th th' =
-  let
-    val expand =
-       not (null ll_defs) ? SMTLIB_Isar.unlift_term ll_defs
-       #> Object_Logic.dest_judgment ctxt o (Thm.cterm_of ctxt)
-       #> Thm.eta_long_conversion
-       #> Thm.prop_of
-       #> snd o Logic.dest_equals
-       #> Raw_Simplifier.rewrite_term (Proof_Context.theory_of
-          (empty_simpset ctxt addsimps rewrite_rules (*@ @{thms eq_True} still useful?*))) rewrite_rules []
-
-
-    val normalize = 
-       Object_Logic.dest_judgment ctxt o (Thm.cprop_of)
-       #> Thm.eta_long_conversion
-       #> Thm.prop_of
-       #> snd o Logic.dest_equals
-       #> Raw_Simplifier.rewrite_term (Proof_Context.theory_of
-          (empty_simpset ctxt addsimps rewrite_rules @ @{thms eq_True})) rewrite_rules []
-  in (expand th) aconv (normalize th') end
 
 fun parse_proof_unsatcore ({ll_defs, assms, ...} : SMT_Translate.replay_data) xfacts prems _ output =
   if exists (String.isPrefix "(error \"This build of CVC4 doesn't have proof support") output then
@@ -83,7 +61,7 @@ fun parse_proof_unsatcore ({ll_defs, assms, ...} : SMT_Translate.replay_data) xf
 
 
 fun parse_proof_lethe
-    ({context = ctxt, typs, terms, ll_defs, rewrite_rules, assms} : SMT_Translate.replay_data)
+    ({ctxt = ctxt, typs, terms, ll_defs, rewrite_rules, assms} : SMT_Translate.replay_data)
     xfacts prems concl output =
    if exists (String.isPrefix "(error \"This build of CVC4 doesn't have proof support") output then
      {outcome = NONE, fact_ids = NONE, atp_proof = K []}
@@ -96,14 +74,10 @@ fun parse_proof_lethe
     fun step_of_assume i ((_, role), th) =
       let
         val th = Thm.prop_of th
-        fun matching (_, th') = cvc_matching_assms ctxt rewrite_rules ll_defs th th'
       in
-        case List.find matching assms of
-          NONE => []
-        | SOME (k, _) =>
-          Lethe_Proof.Lethe_Step 
+          Lethe_Node.Lethe_Step 
            {id = SMTLIB_Interface.assert_name_of_role_and_index role (id_of_index i),
-            rule = input_rule, prems = [], proof_ctxt = [], concl = th, fixes = []}
+            rule = input_rule, prems = [], proof_ctxt = [], concl = th}
           |> single
       end
 
@@ -145,7 +119,7 @@ fun parse_proof_lethe
        fact_helper_ts prem_ids conjecture_id fact_helper_ids' steps}
   end
 
-fun parse_proof (rep as {context = ctxt, ...}) =
+fun parse_proof (rep as {ctxt = ctxt, ...}) =
   if SMT_Config.use_lethe_proof_from_cvc ctxt
   then parse_proof_unsatcore rep
   else parse_proof_unsatcore rep

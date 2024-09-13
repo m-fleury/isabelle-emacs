@@ -23,7 +23,8 @@ val hosmtlib_cvcC = SMTLIB_Interface.hosmtlibC @ cvcC
 local
   fun translate_config order ctxt =
     {order = order,
-     logic = K (K "(set-logic ALL_SUPPORTED)\n"),
+     (*logic = K (K "(set-logic ALL_SUPPORTED)\n"),*)
+     logic = K (K SMT_Translate.ALL),
      fp_kinds = [BNF_Util.Least_FP, BNF_Util.Greatest_FP],
      serialize = #serialize (SMTLIB_Interface.translate_config order ctxt)}
 in

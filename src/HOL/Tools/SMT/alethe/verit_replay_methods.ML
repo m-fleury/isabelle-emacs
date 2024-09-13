@@ -7,8 +7,8 @@ Proof method for replaying veriT proofs.
 signature VERIT_REPLAY_METHODS =
 sig
   (*methods for verit proof rules*)
-  val method_for: string -> Proof.context -> thm list -> term list -> term Symtab.table ->
-     (string * term) list -> term -> thm
+  val method_for: string -> Proof.context -> thm list -> term list -> term list -> term ->
+     Lethe_Node.tactic_args option -> thm
 
   val discharge: Proof.context -> thm list -> term -> thm
 end;
@@ -28,8 +28,8 @@ fun verit_rule_of "bind" = Bind
    (*Equiv_pos2 covered below*)
   | verit_rule_of "equiv_neg1" = Equiv_neg1
   | verit_rule_of "equiv_neg2" = Equiv_neg2
-  | verit_rule_of "sko_forall" = Skolem_Forall
-  | verit_rule_of "sko_ex" = Skolem_Ex
+  | verit_rule_of "sko_forall" = Sko_Forall
+  | verit_rule_of "sko_ex" = Sko_Ex
   | verit_rule_of "eq_reflexive" = Eq_Reflexive
   | verit_rule_of "forall_inst" = Forall_Inst
   | verit_rule_of "implies_pos" = Implies_Pos
@@ -86,12 +86,21 @@ fun verit_rule_of "bind" = Bind
   | verit_rule_of "prod_simplify" = Prod_Simplify
   | verit_rule_of "comp_simplify" = Comp_Simplify
   | verit_rule_of "qnt_simplify" = Qnt_Simplify
+  | verit_rule_of "all_simplify" = All_Simplify
+  | verit_rule_of "hole" = All_Simplify
+  | verit_rule_of "la_mult_pos"= LA_Mult_Pos
+  | verit_rule_of "la_mult_neg"= LA_Mult_Neg
+  | verit_rule_of "reordering" = Reordering
+  | verit_rule_of "symm" = Symm
+  | verit_rule_of "not_symm" = Not_Symm
+  | verit_rule_of "rare_rewrite" = RARE_Rewrite
+  | verit_rule_of "distinct_elim" = Distinct_Elim
   | verit_rule_of "tautology" = Tautological_Clause
   | verit_rule_of "qnt_cnf" = Qnt_CNF
   | verit_rule_of r =
      if r = Lethe_Proof.normalized_input_rule then Normalized_Input
      else if r = Lethe_Proof.local_input_rule then Local_Input
-     else if r = Lethe_Proof.lethe_def then Definition
+     else if r = Lethe_Proof.skolem_def then Definition
      else if r = Lethe_Proof.not_not_rule then Not_Not
      else if r = Lethe_Proof.contract_rule then Duplicate_Literals
      else if r = Lethe_Proof.ite_intro_rule then ITE_Intro
@@ -103,26 +112,26 @@ fun verit_rule_of "bind" = Bind
      else if r = Lethe_Proof.and_pos_rule then And_Pos
      else (@{print} ("Unsupport rule", r); Unsupported)
 
+fun unsupported rule ctxt prems _ _ t _ = SMT_Replay_Methods.replay_error ctxt "Unsupported verit rule"
+  rule prems [] t
 
-(* Combining all together *)
-
-fun unsupported rule ctxt thms _ _ _ = SMT_Replay_Methods.replay_error ctxt "Unsupported verit rule"
-  rule thms
-
-fun ignore_args f ctxt thm _ _ _ t = f ctxt thm t
-fun ignore_decls f ctxt thm args insts _ t = f ctxt thm args insts t
-fun ignore_insts f ctxt thm args _ _ t = f ctxt thm args t
+fun ignore_args       f ctxt prems _ _ t _ = f ctxt prems t
+fun include_step_args f ctxt prems step_args _ t _ = f ctxt prems step_args t
+fun include_context_ass f ctxt prems _ context_ass t _ = f ctxt prems context_ass t
+fun include_args f ctxt prems _ _ t args = f ctxt prems t args
+fun include_context_ass_and_args f ctxt prems _ context_ass goal args = f ctxt prems context_ass goal args
 
 fun choose And = ignore_args and_rule
   | choose And_Neg = ignore_args and_neg_rule
   | choose And_Pos = ignore_args and_pos
   | choose And_Simplify = ignore_args rewrite_and_simplify
-  | choose Bind = ignore_insts bind
+  | choose Bind = include_context_ass bind
   | choose Bool_Simplify = ignore_args rewrite_bool_simplify
   | choose Comp_Simplify = ignore_args rewrite_comp_simplify
-  | choose Cong = ignore_args (cong "verit")
+  | choose Cong = include_args cong
   | choose Connective_Def = ignore_args rewrite_connective_def
   | choose Duplicate_Literals = ignore_args duplicate_literals
+  | choose Distinct_Elim = ignore_args distinct_elim
   | choose Eq_Congruent = ignore_args eq_congruent
   | choose Eq_Congruent_Pred = ignore_args eq_congruent_pred
   | choose Eq_Reflexive = ignore_args eq_reflexive
@@ -136,7 +145,7 @@ fun choose And = ignore_args and_rule
   | choose Equiv_pos2 = ignore_args equiv_pos2
   | choose Equiv_Simplify = ignore_args rewrite_equiv_simplify
   | choose False = ignore_args false_rule
-  | choose Forall_Inst = ignore_decls forall_inst
+  (*| choose Forall_Inst = ignore_decls forall_inst*)
   | choose Implies = ignore_args implies_rules
   | choose Implies_Neg1 = ignore_args implies_neg1
   | choose Implies_Neg2 = ignore_args implies_neg2
@@ -151,12 +160,12 @@ fun choose And = ignore_args and_rule
   | choose ITE_Pos2 = ignore_args ite_pos2
   | choose ITE_Simplify = ignore_args rewrite_ite_simplify
   | choose LA_Disequality = ignore_args la_disequality
-  | choose LA_Generic = ignore_insts la_generic
+  | choose LA_Generic = include_step_args la_generic
   | choose LA_RW_Eq = ignore_args la_rw_eq
   | choose LA_Tautology = ignore_args SMT_Replay_Methods.arith_th_lemma_wo_shallow
   | choose LA_Totality = ignore_args SMT_Replay_Methods.arith_th_lemma_wo_shallow
   | choose LIA_Generic = ignore_args lia_generic
-  | choose Local_Input = ignore_args (refl "verit")
+  | choose Local_Input = ignore_args normalized_input (* ignore_args (refl "verit")*)
   | choose Minus_Simplify = ignore_args rewrite_minus_simplify
   | choose NLA_Generic = ignore_args SMT_Replay_Methods.arith_th_lemma_wo_shallow
   | choose Normalized_Input = ignore_args normalized_input
@@ -180,10 +189,18 @@ fun choose And = ignore_args and_rule
   | choose Qnt_Rm_Unused = ignore_args qnt_rm_unused
   | choose Onepoint = ignore_args onepoint
   | choose Qnt_Simplify = ignore_args qnt_simplify
-  | choose Refl = ignore_args (refl "verit")
+(*TODO: Added for Carcara valuation*)
+  | choose All_Simplify = ignore_args all_simplify
+  | choose LA_Mult_Pos = ignore_args la_mult_pos
+  | choose LA_Mult_Neg = ignore_args la_mult_neg
+  | choose RARE_Rewrite = ignore_args rare_rewrite
+  | choose Reordering = ignore_args reordering
+  | choose Symm = ignore_args symm
+  | choose Not_Symm = ignore_args not_symm
+  | choose Refl = include_args refl
   | choose Resolution = ignore_args unit_res
-  | choose Skolem_Ex = ignore_args skolem_ex
-  | choose Skolem_Forall = ignore_args skolem_forall
+  | choose Sko_Ex = include_context_ass_and_args sko_ex
+  | choose Sko_Forall = include_context_ass_and_args sko_forall
   | choose Subproof = ignore_args subproof
   | choose Sum_Simplify = ignore_args sum_simplify
   | choose Tautological_Clause = ignore_args tautological_clause
@@ -192,16 +209,18 @@ fun choose And = ignore_args and_rule
   | choose Bfun_Elim = ignore_args bfun_elim
   | choose Qnt_CNF = ignore_args qnt_cnf
   | choose Trans = ignore_args trans
-  | choose r = unsupported (string_of_verit_rule r)
+  | choose r = unsupported (string_of_lethe_rule r)
+
 
 type verit_method = Proof.context -> thm list -> term -> thm
 type abs_context = int * term Termtab.table
 
-fun with_tracing rule method ctxt thms args insts decls t =
-  let val _ = SMT_Replay_Methods.trace_goal ctxt rule thms t
-  in method ctxt thms args insts decls t end
+fun with_tracing rule method ctxt prems step_args context_assignment t args =
+  let val _ = SMT_Replay_Methods.trace_goal ctxt rule prems step_args t
+  in method ctxt prems step_args context_assignment t args end
 
-fun method_for rule = with_tracing rule (choose (verit_rule_of rule))
+fun method_for rule ctxt
+= with_tracing rule (choose (verit_rule_of rule)) ctxt
 
 fun discharge ctxt [thm] t =
   SMT_Replay_Methods.prove ctxt t (fn _ =>

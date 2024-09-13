@@ -6,8 +6,10 @@
 section \<open>Bindings to Satisfiability Modulo Theories (SMT) solvers based on SMT-LIB 2\<close>
 
 theory SMT
-  imports Numeral_Simprocs
-  keywords "smt_status" :: diag
+  imports Divides Numeral_Simprocs
+  keywords
+    "smt_status" :: diag and
+    "cvc5_rare" :: thy_decl
 begin
 
 subsection \<open>A skolemization tactic and proof method\<close>
@@ -188,6 +190,8 @@ lemma verit_sko_forall_indirect2:
   using someI[of \<open>\<lambda>x. \<not>P x\<close>]
   by auto
 
+thm verit_sko_forall_indirect[of v0]
+
 lemma verit_sko_ex: \<open>(\<exists>x. P x) \<longleftrightarrow> P (SOME x. P x)\<close>
   using someI[of \<open>\<lambda>x. P x\<close>]
   by auto
@@ -234,6 +238,11 @@ lemma verit_and_pos:
 lemma verit_farkas:
   \<open>(a \<Longrightarrow> A) \<Longrightarrow> \<not>a \<or> A\<close>
   \<open>(\<not>a \<Longrightarrow> A) \<Longrightarrow> a \<or> A\<close>
+  by blast+
+
+lemma verit_and_pos2:
+  \<open>(a \<Longrightarrow> \<not>(b \<and> c) \<or> A) \<Longrightarrow> \<not>(a \<and> b \<and> c) \<or> A\<close>
+  \<open>(a \<Longrightarrow> b \<Longrightarrow> A) \<Longrightarrow> \<not>(a \<and> b) \<or> A\<close>
   by blast+
 
 lemma verit_or_pos:
@@ -411,6 +420,30 @@ lemmas verit_comp_simplify =
 lemma verit_la_disequality:
   \<open>(a :: 'a ::linorder) = b \<or> \<not>a \<le> b \<or> \<not>b \<le> a\<close>
   by auto
+
+lemma alethe_la_mult_pos_less:
+  \<open>(0 :: 'a :: linordered_idom) < m \<and> (a < b) \<longrightarrow> m*a < m*b\<close>
+  by simp
+
+thm alethe_la_mult_pos_less[of "3::int" "x::int" "y::int"]
+
+lemma alethe_la_mult_pos:
+  \<open>(0 :: 'a :: linordered_idom) < m \<and> (a < b) \<longrightarrow> m*a < m*b\<close>
+  \<open>(0 :: 'a :: linordered_idom) < m \<and> (a \<le> b) \<longrightarrow> m*a \<le> m*b\<close>
+  \<open>(0 :: 'a :: linordered_idom) < m \<and> (a = b) \<longrightarrow> m*a = m*b\<close>
+  \<open>(0 :: 'a :: linordered_idom) < m \<and> \<not>(a = b) \<longrightarrow> \<not>(m*a = m*b)\<close>
+  \<open>(0 :: 'a :: linordered_idom) < m \<and> (a \<ge> b) \<longrightarrow> m*a \<ge> m*b\<close>
+  \<open>(0 :: 'a :: linordered_idom) < m \<and> (a > b) \<longrightarrow> m*a > m*b\<close>
+  by simp_all
+
+lemma alethe_la_mult_neg:          
+  \<open>m < (0 :: 'a :: linordered_idom) \<and> (a < b) \<longrightarrow> m*a > m*b\<close>
+  \<open>m < (0 :: 'a :: linordered_idom) \<and> (a \<le> b) \<longrightarrow> m*a \<ge> m*b\<close>
+  \<open>m < (0 :: 'a :: linordered_idom) \<and> (a = b) \<longrightarrow> m*a = m*b\<close>
+  \<open>m < (0 :: 'a :: linordered_idom) \<and> \<not>(a = b) \<longrightarrow> \<not>(m*a = m*b)\<close>
+  \<open>m < (0 :: 'a :: linordered_idom) \<and> (a > b) \<longrightarrow> m*a < m*b\<close>
+  \<open>m < (0 :: 'a :: linordered_idom) \<and> (a \<ge> b) \<longrightarrow> m*a \<le> m*b\<close>
+  by simp_all
 
 context
 begin
@@ -609,6 +642,9 @@ proof -
     by (subst H) auto
 qed
 
+named_theorems cvc5_normalized_input \<open>Theorems required to replay
+our more complicated translation\<close>
+
 
 subsection \<open>Setup\<close>
 
@@ -619,32 +655,41 @@ ML_file \<open>Tools/SMT/smt_builtin.ML\<close>
 ML_file \<open>Tools/SMT/smt_datatypes.ML\<close>
 ML_file \<open>Tools/SMT/smt_normalize.ML\<close>
 ML_file \<open>Tools/SMT/smt_translate.ML\<close>
+ML_file \<open>Tools/SMT/smt_parser_util.ML\<close>
 ML_file \<open>Tools/SMT/smtlib.ML\<close>
 ML_file \<open>Tools/SMT/smtlib_interface.ML\<close>
 ML_file \<open>Tools/SMT/smtlib_proof.ML\<close>
 ML_file \<open>Tools/SMT/smtlib_isar.ML\<close>
-ML_file \<open>Tools/SMT/z3_proof.ML\<close>
-ML_file \<open>Tools/SMT/z3_isar.ML\<close>
+ML_file \<open>Tools/SMT/z3/z3_proof.ML\<close>
+ML_file \<open>Tools/SMT/z3/z3_isar.ML\<close>
 ML_file \<open>Tools/SMT/smt_solver.ML\<close>
-ML_file \<open>Tools/SMT/cvc_interface.ML\<close>
-ML_file \<open>Tools/SMT/lethe_proof.ML\<close>
-ML_file \<open>Tools/SMT/lethe_isar.ML\<close>
-ML_file \<open>Tools/SMT/lethe_proof_parse.ML\<close>
-ML_file \<open>Tools/SMT/cvc_proof_parse.ML\<close>
+ML_file \<open>Tools/SMT/alethe/cvc_interface.ML\<close>
+ML_file \<open>Tools/SMT/alethe/lethe_node.ML\<close>
+
+ML_file \<open>Tools/SMT/alethe/lethe_proof.ML\<close>
+(*ML_file \<open>Tools/SMT/lethe_proof.ML\<close>*)
+ML_file \<open>Tools/SMT/alethe/lethe_smt_problem.ML\<close>
+
+ML_file \<open>Tools/SMT/alethe/lethe_isar.ML\<close>
+ML_file \<open>Tools/SMT/alethe/lethe_proof_parse.ML\<close>
+ML_file \<open>Tools/SMT/alethe/cvc_proof_parse.ML\<close>
 ML_file \<open>Tools/SMT/conj_disj_perm.ML\<close>
 ML_file \<open>Tools/SMT/smt_replay_methods.ML\<close>
 ML_file \<open>Tools/SMT/smt_replay.ML\<close>
 ML_file \<open>Tools/SMT/smt_replay_arith.ML\<close>
-ML_file \<open>Tools/SMT/z3_interface.ML\<close>
-ML_file \<open>Tools/SMT/z3_replay_rules.ML\<close>
-ML_file \<open>Tools/SMT/z3_replay_methods.ML\<close>
-ML_file \<open>Tools/SMT/z3_replay.ML\<close>
-ML_file \<open>Tools/SMT/lethe_replay_methods.ML\<close>
-ML_file \<open>Tools/SMT/cvc5_replay_methods.ML\<close>
-ML_file \<open>Tools/SMT/verit_replay_methods.ML\<close>
-ML_file \<open>Tools/SMT/verit_strategies.ML\<close>
-ML_file \<open>Tools/SMT/verit_replay.ML\<close>
-ML_file \<open>Tools/SMT/cvc5_replay.ML\<close>
+ML_file \<open>Tools/SMT/z3/z3_interface.ML\<close>
+ML_file \<open>Tools/SMT/z3/z3_replay_rules.ML\<close>
+ML_file \<open>Tools/SMT/z3/z3_replay_methods.ML\<close>
+ML_file \<open>Tools/SMT/z3/z3_replay.ML\<close>
+ML_file \<open>Tools/SMT/alethe/lethe_replay_methods.ML\<close>
+ML_file \<open>Tools/SMT/alethe/cvc5_rare.ML\<close>
+ML_file \<open>Tools/SMT/alethe/cvc5_replay_methods.ML\<close>
+ML_file \<open>Tools/SMT/alethe/verit_replay_methods.ML\<close>
+ML_file \<open>Tools/SMT/alethe/verit_strategies.ML\<close>
+ML_file \<open>Tools/SMT/alethe/verit_replay.ML\<close>
+(*ML_file \<open>Tools/SMT/verit_replay.ML\<close>*)
+ML_file \<open>Tools/SMT/alethe/cvc5_replay.ML\<close>
+(*ML_file \<open>Tools/SMT/cvc5_replay.ML\<close>*)
 ML_file \<open>Tools/SMT/smt_systems.ML\<close>
 
 
