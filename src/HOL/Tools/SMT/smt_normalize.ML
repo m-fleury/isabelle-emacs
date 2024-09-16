@@ -42,11 +42,11 @@ local
     in Thm.instantiate (TVars.empty, Vars.make1 (dest_Var (Thm.term_of cv), ct)) thm end
 in
 
-fun instantiate_elim thm =
+fun instantiate_elim thm = (
   (case Thm.concl_of thm of
     \<^Const_>\<open>Trueprop for \<open>Var (_, \<^Type>\<open>bool\<close>)\<close>\<close> => inst Thm.dest_arg cfalse thm
   | Var _ => inst I cpfalse thm
-  | _ => thm)
+  | _ => thm))
 
 end
 
@@ -54,11 +54,12 @@ end
 (** normalize definitions **)
 
 fun norm_def thm =
+(
   (case Thm.prop_of thm of
-    \<^Const_>\<open>Trueprop for \<^Const>\<open>HOL.eq _ for _ \<open>Abs _\<close>\<close>\<close> => norm_def (thm RS @{thm fun_cong})
+    \<^Const_>\<open>Trueprop for \<^Const>\<open>HOL.eq _ for _ \<open>Abs _\<close>\<close>\<close> => norm_def ((thm RS @{thm fun_cong} ))
   | \<^Const_>\<open>Pure.eq _ for _ \<open>Abs _\<close>\<close> => norm_def (HOLogic.mk_obj_eq thm)
   | _ => thm)
-
+)
 
 (** atomization **)
 
@@ -396,16 +397,20 @@ local
     "\<forall>n::nat. nat (int n) = n"
     "\<forall>i::int. int (nat i) = (if 0 <= i then i else 0)"
     by simp_all}
-  val var = Term.dest_Var (Thm.term_of (funpow 3 Thm.dest_arg (Thm.cprop_of int_thm)))
+  val var = Term.dest_Var (Thm.term_of (funpow 3 Thm.dest_arg (Thm.cprop_of int_thm))) 
 in
 
 fun nat_as_int_conv ctxt = SMT_Util.if_exists_conv is_nat_const (nat_to_int_conv ctxt)
 
 fun add_int_of_nat_constraints thms =
   let val (q, cts) = fold (add_apps add_int_of_nat [] o Thm.cprop_of) thms (false, [])
+      (*val _ = @{print}("thms",thms)
+      val _ = @{print}("q",q)
+      val _ = @{print}("cts",cts)*)
+
   in
     if q then (thms, nat_int_thms)
-    else (thms, map (fn ct => Thm.instantiate (TVars.empty, Vars.make1 (var, ct)) int_thm) cts)
+    else (thms, map (fn ct => (Thm.instantiate (TVars.empty, Vars.make1 (var, ct)) int_thm)) cts)
   end
 
 val setup_nat_as_int =

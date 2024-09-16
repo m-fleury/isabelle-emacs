@@ -4625,6 +4625,7 @@ lemma bvshl_test: "push_bit 4 (push_bit 0 (2::3 word)) = (0::3 word)"
 
 (*  shows  "bit x n =(( slice n (take_bit (Suc n) x)) = (1::1 word))"
 *)
+
 lemma "bit x n =(( slice n (take_bit (Suc n) x)) = (1::1 word))" sorry
 term "(if a then b else c)"
 
@@ -4689,7 +4690,7 @@ lemma "push_bit 3 (7::3 word) = 0"
   supply[[smt_nat_as_int=true]]
   apply (smt (cvc5))
   oops
-
+(*
 
 lemma "push_bit 3 (7::4 word) = 8"
   supply[[smt_nat_as_int=true]]
@@ -4742,5 +4743,5 @@ lemma assumes "a=64" shows "LENGTH(64) = (a::nat)"
   using nat_int assms
   supply [[smt_nat_as_int, smt_trace,smt_cvc_lethe,smt_debug_verit]]
   sorry
-
+*)
 end

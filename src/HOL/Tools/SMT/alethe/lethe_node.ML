@@ -53,7 +53,7 @@ sig
   | Raw_Definition_Node of {
     id: string,
     rule: string,
-    declarations: (string * SMTLIB.tree) list, (*TODO: Why list if it seems there is only ever one argument in this*)
+    declarations: (string * SMTLIB.tree),
     concl: SMTLIB.tree
   }
 
@@ -65,7 +65,7 @@ sig
                 SMTLIB.tree ->
                   raw_lethe_node list -> raw_lethe_node
 
-  val mk_raw_definition_node : string -> string -> (string * SMTLIB.tree) list -> SMTLIB.tree -> raw_lethe_node
+  val mk_raw_definition_node : string -> string -> (string * SMTLIB.tree) -> SMTLIB.tree -> raw_lethe_node
 
 end;
 
@@ -85,7 +85,7 @@ datatype raw_lethe_node = Raw_Lethe_Node of {
   | Raw_Definition_Node of {
     id: string,
     rule: string,
-    declarations: (string * SMTLIB.tree) list, (*Fuer skolem_def stehen statt in der conclusion die in der declarations drin, koennte man auch in concl machen*)
+    declarations: (string * SMTLIB.tree),
     concl: SMTLIB.tree
   }
 

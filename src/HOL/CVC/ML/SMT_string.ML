@@ -15,6 +15,8 @@ end
 structure SMT_String: SMT_String =
 struct
 
+(*parsing*)
+
 fun mk_const n U = Const (n, U)
 
 fun mk_unary n U t =
@@ -86,5 +88,53 @@ fun  string_term_parser (SMTLIB.Sym "str.++", t::ts) = SOME (mk_lassoc' \<^const
 val _ = Theory.setup (Context.theory_map (
   SMTLIB_Proof.add_type_parser string_type_parser #>
   SMTLIB_Proof.add_term_parser string_term_parser))
+
+(*translation*)
+
+fun int_num _ i = SOME ("")
+
+
+(*FIXME: This is pretty naive, there are probably a million better ways since there is already
+and embedding of chars into strings. Wanted to play around with this a little to understand the
+builtins better though*)
+
+fun bytes_to_string t =
+let
+  fun bool_to_int @{term "False"} = 0 |
+      bool_to_int @{term "True"} = 1
+  fun horner_sum_of_bool [] = 0 |
+      horner_sum_of_bool (x::xs) = bool_to_int x + 2 * horner_sum_of_bool xs
+in
+ t |> Term.args_of |> horner_sum_of_bool |> Char.chr |> Char.toString
+end
+
+fun bytes_to_string2 _ _ (t::[t1]) =
+let
+  fun rest (\<^Const>\<open>List.Nil \<^typ>\<open>char\<close>\<close>) = "" |
+      rest (\<^Const>\<open>List.Cons \<^typ>\<open>char\<close>\<close>$x$xs) = rest x ^ rest xs |
+      rest xs = bytes_to_string xs
+  val string = (rest t ^ rest t1) |> Library.quote  |> Library.quote
+in
+ SOME (string, 0, [], K( \<^Const>\<open>List.Cons \<^typ>\<open>char\<close>\<close> $ t $ t1))
+end
+
+val setup_builtins =
+  fold (SMT_Builtin.add_builtin_typ ["smtlib"]) [
+    (\<^typ>\<open>string\<close>, K (SOME ("String", [])), int_num),
+    (\<^typ>\<open>char\<close>, K (SOME ("String", [])), int_num)] #>
+  fold (SMT_Builtin.add_builtin_typ_ext) [
+    (\<^typ>\<open>char\<close>, K(K true))
+    ] #>
+
+  fold (SMT_Builtin.add_builtin_fun' ["smtlib"]) [
+    
+    (\<^Const>\<open>List.Nil \<^typ>\<open>char\<close>\<close>, "\"\"\"\"")] #>
+
+  SMT_Builtin.add_builtin_fun ["smtlib"]
+  (dest_Const \<^Const>\<open>List.Cons \<^typ>\<open>char\<close>\<close>, bytes_to_string2)
+
+
+val _ = Theory.setup (Context.theory_map
+  setup_builtins )
 
 end;

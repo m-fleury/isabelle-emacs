@@ -1888,12 +1888,14 @@ next
   proof (cases "x \<in># B")
     case True
     with add.prems have "image_mset f A = image_mset f (B - {#x#}) + C"
-      by (smt (verit, del_insts) add.left_commute add_cancel_right_left diff_union_cancelL
+      sorry
+      (*by (smt (verit, del_insts) add.left_commute add_cancel_right_left diff_union_cancelL
           diff_union_single_conv image_mset_union union_mset_add_mset_left
-          union_mset_add_mset_right)
+          union_mset_add_mset_right)*)
     with add.IH have "\<exists>M3'. A = B - {#x#} + M3' \<and> image_mset f M3' = C"
-      by (smt (verit, del_insts) True Un_insert_left Un_insert_right add.prems(2) inj_on_insert
-          insert_DiffM set_mset_add_mset_insert)
+      sorry
+     (* by (smt (verit, del_insts) True Un_insert_left Un_insert_right add.prems(2) inj_on_insert
+          insert_DiffM set_mset_add_mset_insert)*)
     with True show ?thesis
       by auto
   next

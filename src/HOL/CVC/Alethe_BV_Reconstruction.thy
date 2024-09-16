@@ -260,6 +260,17 @@ carry_mult :: "bool list \<Rightarrow> bool list \<Rightarrow> nat \<Rightarrow>
 fun res_j where "res_j xs ys j = (map (\<lambda>i. res_mult xs ys i j) [0..<length xs])"
 fun sh_j where "sh_j xs ys j = (map (\<lambda>i. sh xs ys i j) [0..<length xs])"
 
+lemma sh_take:
+ fixes xs :: "bool list" and ys :: "bool list" and i::nat and j::nat
+ shows "Suc j \<le> length ys \<Longrightarrow> k \<ge> (Suc j) \<Longrightarrow> (sh_j xs ys j) = (sh_j xs (take k ys) j)"
+  unfolding sh_j.simps
+  apply simp
+  unfolding sh_def
+  apply simp
+  unfolding nth_take
+  done
+
+
 lemma sh_temp: "j \<ge> i  \<Longrightarrow> i < length xs \<Longrightarrow> length xs=length zs \<Longrightarrow> length ys = length zs \<Longrightarrow>
 bvadd_carry4 xs (sh_j ys zs j) i = False"
   apply (subst temp_bvadd_carry4[of i "(sh_j ys zs j)" xs])
@@ -284,17 +295,6 @@ lemma res_mult_already_calculated:
     unfolding sh_def
     by simp
   done
-
-
-lemma res_mult_drop:
- fixes xs :: "bool list" and ys :: "bool list" and i::nat and j::nat
- defines n_def: "n \<equiv> length xs"
- shows "i < n \<longrightarrow> length xs = length ys \<longrightarrow> res_mult xs ys i (n-1) = res_mult (take n xs) (take n ys) i (n-1) "
-  unfolding n_def
-  apply (induction n arbitrary: xs ys i)
-  by simp_all
-
-
 
 
 lemma main1: 
@@ -446,6 +446,119 @@ proof-
   ultimately show ?thesis
     using n_def assms by auto
 qed
+
+(*
+lemma
+  fixes xs :: "bool list" and ys :: "bool list" and i::nat and j::nat
+  defines n_def: "n \<equiv> length xs"
+  assumes "Suc i < n" and "Suc j < n" and "length ys \<le> length xs"
+  shows "k \<le> i \<Longrightarrow> res_mult xs ys i j = res_mult xs (take k ys) i j"
+  using assms
+  apply (induction k arbitrary: xs ys j i)
+   defer
+  subgoal for k xs ys j i
+  proof-
+    assume IH: " (\<And>(xs::bool list) (ys::bool list) (j::nat) i::nat.
+        k \<le> i \<Longrightarrow> n = length xs \<Longrightarrow> Suc i < n \<Longrightarrow> Suc j < n \<Longrightarrow> length ys \<le> length xs \<Longrightarrow> res_mult xs ys i j = res_mult xs (take k ys) i j)"
+      and a0: "Suc k \<le> i" and a1: "n = length xs" and a2: "Suc i < n" "Suc j < n" "length ys \<le> length xs"
+    define n' where "n' \<equiv> length xs - 1"
+
+    have "Suc j < length xs"
+      using a2 a1 by simp
+    moreover have "Suc i < length xs"
+      using a2 a1 by simp
+    ultimately have "res_mult xs ys (Suc i) (Suc j) = bvadd4 (res_j xs ys j) (sh_j xs ys (Suc j)) (Suc i)"
+      apply (subst main2[of j xs i ys])
+          apply (simp_all add: a0 a2 a1)
+      sorry
+    moreover have "(sh_j xs ys (Suc j)) = (sh_j xs (take n' ys) (Suc j))"
+      using sh_take[of "Suc j" ys n' xs]
+
+
+      unfolding res_j.simps sorry
+    show " res_mult xs ys (Suc i) j = res_mult xs (take (Suc i) ys) (Suc i) j"
+*)
+
+
+
+
+
+
+lemma
+fixes xs :: "bool list" and ys :: "bool list" and i::nat and j::nat
+  defines n_def: "n \<equiv> length xs"
+  assumes "Suc j = n-1" and "n > 1"
+  shows "Suc i < n-1  \<longrightarrow> length xs = length ys
+ \<longrightarrow>  res_mult xs ys (Suc i) (Suc j) = res_mult (butlast xs) (butlast ys) (Suc i) j
+"
+  using assms
+  apply (induction i arbitrary: xs ys)
+
+(*
+
+
+
+
+        x0 x1 x2 x3 * y0 y1 y2 y3
+-------------------------------------------------------
+                      x0*y0    x0*y1    x0*y2    x0*y3
+                               x1*y0    x1*y1    x1*y2    x1*y3
+                                        x2*y0    x2*y1    x2*y2    x2*y3
+                                                 x3*y0    x3*y1    x3*y2    x3*y3
+                              + carry   + carry  + carry  + carry  + carry  + carry
+-------------------------------------------------------
+                     res_0^3  res_1^3   res_2^3  res_3^3
+                     1        2         3        4
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        x0 x1 x2 x3 * y0 y1 y2 y3
+-------------------------------------------------------
+sh^0    (x0*y0)  (x1*y0)  (x2*y0)  (x3*y0)
+-------------------------------------------------------
+r^0     (x0*y0)  (x1*y0)  (x2*y0)  (x3*y0)                is sh^0
+sh^1      \<bottom>      (x0*y1)  (x1*y1)  (x2*y1)  (x3*y1)
+-------------------------------------------------------
+r^1     (x0*y0)   r_1^1                                              is sh^1 + r^0*)
+
+
+
+
+
+
+
+lemma
+  "to_bl v = vbl \<longrightarrow> to_bl w = wbl \<longrightarrow> n = length wbl \<longrightarrow> length wbl = length vbl \<longrightarrow>
+    to_bl (v * w) = rev (map (\<lambda>i. res_mult (rev vbl) (rev wbl) i (n-1)) [0..<n])"
+  apply (induct n arbitrary: v w vbl wbl)
+   apply clarsimp
+  subgoal for n v w vbl wbl
+  apply (case_tac "bit v 0")
+    apply simp_all
+          
+
+
+
+
+
+
 
 
 (*
@@ -611,7 +724,7 @@ next
 
 
 *)
-
+(*
 lemma
   fixes xs :: "bool list" and ys :: "bool list" and i::nat and j::nat
   defines "n \<equiv> length xs"
@@ -634,33 +747,39 @@ lemma
     apply (cases "i=length xs")
       oops
 
-(*
+lemma re_mult:
+  "k \<le> n \<longrightarrow> rev(bin_to_bl k (bina * binb)) = (map (\<lambda>i. res_mult (rev (bin_to_bl n bina)) (rev (bin_to_bl n binb)) i (n-1)) [0..<k])"
+  apply (induct k arbitrary: bina binb n)
+   apply (simp_all del: bin_to_bl_def)
+  apply (unfold bin_to_bl_def)
+  apply clarsimp
+  apply (case_tac bina rule: bin_exhaust)
+  apply (case_tac binb rule: bin_exhaust)
+  unfolding bin_to_bl_aux_alt
+  apply (simp_all add: rbbl_Cons rbl_mult_Suc rbl_add algebra_simps)
+  subgoal for n' bina' binb' xb' b' xa' a'
+    apply (cases b')
+     apply simp_all
+     apply (case_tac [!] a')
+    apply simp_all
+  done
+
+
 lemma
   "to_bl v = vbl \<longrightarrow> to_bl w = wbl \<longrightarrow> n = length wbl \<longrightarrow> length wbl = length vbl \<longrightarrow>
     to_bl (v * w) = rev (map (\<lambda>i. res_mult (rev vbl) (rev wbl) i (n-1)) [0..<n])"
   apply transfer
   subgoal for v vbl w wbl n
-    apply (unfold bin_to_bl_def)
-    apply (cases v)
-    subgoal for v'
-      apply (cases v')
-      apply simp
-
-lemma
-  "to_bl v = vbl \<longrightarrow> to_bl w = wbl \<longrightarrow> n = length wbl \<longrightarrow> length wbl = length vbl \<longrightarrow>
-    to_bl (v * w) = rev (map (\<lambda>i. res_mult (rev vbl) (rev wbl) i (n-1)) [0..<n])"
-  apply transfer
-  subgoal for v vbl w wbl n
-    apply (unfold bin_to_bl_def)
-
-
   apply (case_tac v rule: bin_exhaust)
     subgoal for vbl' v0
   apply (case_tac w rule: bin_exhaust)
       subgoal for wbl' w0
       apply simp
-
-
+      apply (case_tac [!] v0)
+      apply simp_all
+     apply (case_tac [!] w0)
+           apply simp_all
+     
 
 lemma
   fixes xs :: "bool list" and ys :: "bool list" and i::nat and j::nat

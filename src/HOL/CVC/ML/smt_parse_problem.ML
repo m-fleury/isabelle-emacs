@@ -172,7 +172,7 @@ val ignore_commands =
 
 val not_supported =
  ["declare-datatype","declare-datatypes","define-fun-rec","define-fun-recs",
-  "reset","reset_assertions","pop","push"]
+  "reset","reset_assertions","pop","push","define-fun"]
 
 fun ignore _ replay_data = replay_data
 fun is_not_supported keyword _ _ = raise SMT_PROBLEM_PARSE ("command not supported: " ^ keyword) 

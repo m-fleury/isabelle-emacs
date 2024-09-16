@@ -44,7 +44,7 @@ sig
   val debug_files: string Config.T
   val sat_solver: string Config.T
   val check_external: bool Config.T
-  val compress_verit_proofs: Proof.context -> bool
+  val compress_verit_proofs: Proof.context -> bool (*TODO: Rename to lethe if this works. Otherwise, we need two separate ones since or steps should also be skipped in cvc5*)
 
   (*tools*)
   val get_timeout: Proof.context -> Time.time option

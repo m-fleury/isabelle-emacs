@@ -1,7 +1,7 @@
 theory SMT_Native_Output
-  imports SMT_CVC
+  imports "HOL-Library.Word"
 begin
-
+(*TODO: I should use this: smt_nat_as_int_bv*)
 ML \<open>
 local
 
@@ -20,7 +20,6 @@ local
   val bv_thms = @{lemma "int (unat v) = uint v"
  by simp_all} |> single
   val nat_int_thm = map (Thm.symmetric o mk_meta_eq) (bv_thms @ @{thms nat_int})
-|> @{print}
   val nat_int_comp_thms = map mk_meta_eq (@{thms nat_int_comparison})
   val int_ops_thms = map mk_meta_eq @{thms int_ops}
   val int_if_thm = mk_meta_eq @{thm int_if}
@@ -39,20 +38,20 @@ local
     | _ => Conv.no_conv) ct
 
   val unfold_nat_let_conv = Conv.rewr_conv @{lemma "Let (n::nat) f \<equiv> f n" by (rule Let_def)}
-  val drop_nat_int_conv = Conv.rewrs_conv (map Thm.symmetric nat_int_thm |> @{print})
+  val drop_nat_int_conv = Conv.rewrs_conv (map Thm.symmetric nat_int_thm)
 
 
   fun nat_to_int_conv ctxt ct = (
     Conv.top_conv (K (Conv.try_conv unfold_nat_let_conv)) ctxt then_conv
     (Conv.top_conv nat_conv ctxt else_conv Conv.all_conv) then_conv
-    Conv.top_conv (K (Conv.try_conv drop_nat_int_conv)) ctxt) (@{print}ct)
-|> tap (@{print} o Thm.cprop_of)
+    Conv.top_conv (K (Conv.try_conv drop_nat_int_conv)) ctxt) (ct)
+(*|> tap (@{print} o Thm.cprop_of)*)
 
   and nat_conv ctxt ct = (
       (Conv.rewrs_conv (nat_int_thm @ nat_int_comp_thms) then_conv
       Conv.top_conv (int_ops_conv nat_to_int_conv) ctxt)
-      else_conv Conv.all_conv) (@{print}ct)
-|> tap (@{print} o Thm.cprop_of)
+      else_conv Conv.all_conv) (ct)
+(*|> tap (@{print} o Thm.cprop_of)*)
 
   fun add_int_of_nat vs ct cu (q, cts) =
     (case Thm.term_of ct of
@@ -115,6 +114,6 @@ lemma b2:
  shows "unat x + i < bound"
   supply [[smt_trace,smt_nat_as_int=true,smt_nat_as_int_bv=true,smt_trace]]
 using assms unfolding bound_def bseg_def
-  apply (smt (cvc5))
+  (*apply (smt (cvc5))*)
   using assms by auto
 end

@@ -66,8 +66,8 @@ local
 
   fun if_fixed pred m n T ts =
     let val (Us, U) = Term.strip_type T
-        val _ = @{print}("m",m)
-        val _ = @{print}("n",n)
+        (*val _ = @{print}("m",m)
+        val _ = @{print}("n",n)*)
 
     in
       if pred (U, Us) then SOME (n, length Us, ts, Term.list_comb o pair (Const (m, T))) else NONE
@@ -188,6 +188,26 @@ fun take_bit m n T ts =
       | _ => NONE)   (* FIXME: also support non-numerical shifts *)
     end
 
+ fun mk_extract c i j ts = Term.list_comb (Const c, HOLogic.mk_number @{typ nat} i :: mk_nat j :: ts)
+                                                      
+ fun extract m n (U as (Type(_,[_,Type(_,[_,Type(_,[Tx,T])])]))) [i,j,x] =
+(@{print}("i",i);
+  (case (try (snd o HOLogic.dest_number o remove_cast) i, (*Interesting HOLogic.dest_nat instead of this does not work*)
+         try (snd o HOLogic.dest_number o remove_cast) j,
+         try dest_wordT Tx,
+         try dest_wordT T) of
+   (SOME i', SOME j', SOME Tx', SOME T') =>
+    let
+val _ = @{print}("did go in here!")
+      val k = i' - j' + 1
+      val U' = @{typ "nat"} --> @{typ "nat"} --> Tx --> T
+    in
+     if j' <= i' andalso k = T' andalso i' < Tx'
+     then SOME (index2 n i' j', 1, [x], mk_extract (m, U') i' j')
+     else NONE
+    end |
+   _ => NONE)) |
+ extract _ _ _ _ = (@{print}("did go ther"); NONE)
 
 
 
@@ -206,30 +226,48 @@ fun bit m n T ts =
 
       val suc_simplified =  
       (case (try (snd o HOLogic.dest_number o remove_cast) pos) of
-        (SOME i') => (HOLogic.mk_number @{typ "int"} (i'+1))|
+        (SOME i') => (HOLogic.mk_number @{typ "nat"} (i'+1))|
+        NONE => (Const(\<^const_name>\<open>Nat.Suc\<close>,@{typ "nat"} --> @{typ "nat"}) $ pos))
+ 
+    val suc_simplified2 =  
+      (case (try (snd o HOLogic.dest_number o remove_cast) pos) of
+        (SOME i') => (HOLogic.mk_number @{typ "nat"} (i'+2))|
+        NONE => (Const(\<^const_name>\<open>Nat.Suc\<close>,@{typ "nat"} --> @{typ "nat"}) $ pos))
+ 
+
+
+ val pos_simplified =  
+      (case (try (snd o HOLogic.dest_number o remove_cast) pos) of
+        (SOME i') => (HOLogic.mk_number @{typ "nat"} (i'))|
         NONE => (Const(\<^const_name>\<open>Nat.Suc\<close>,@{typ "nat"} --> @{typ "nat"}) $ pos))
 
 
-      fun cond i =
+      fun cond2 i i_suc =
       Const(\<^const_name>\<open>slice\<close>, @{typ "nat"} --> fastype_of (word) --> @{typ "1 word"})
         $ i
         $ (Const (\<^const_name>\<open>take_bit\<close>,@{typ "nat"} --> fastype_of word --> fastype_of word)
-          $ i
+          $ i_suc
           $ word)
 
-      
-      fun new_ts i =
+          fun cond i i_suc =
+      (Const(\<^const_name>\<open>smt_extract\<close>, @{typ "nat"} --> @{typ "nat"} --> fastype_of (word) --> @{typ "1 word"})
+        $ i $ i
+          $ word)
+
+
+
+      fun new_ts i i_suc =
           Const(\<^const_name>\<open>HOL.eq\<close>, @{typ "1 word"} -->  @{typ "1 word"} --> @{typ "bool"}) $
-          cond i $
+          cond i i_suc $
           @{term "1::1 word"}
     
 
-      val _ = @{print}("new_ts pos",new_ts suc_simplified)
+      val _ = @{print}("new_ts pos",new_ts pos_simplified suc_simplified)
 
       fun mk_bit ts = (@{print}("mk_bit ts",ts);hd ts)
 
 
-    in  SOME ("", 1, [new_ts suc_simplified], mk_bit) end
+    in  SOME ("", 1, [new_ts pos_simplified suc_simplified ], mk_bit) end
 
 (*
       val U = Term.domain_type (Term.range_type T)
@@ -626,7 +664,12 @@ val setup_builtins =
    ] #>
   fold (add_word_fun bit) [
     (\<^term>\<open>bit :: 'a::len word \<Rightarrow> _ \<Rightarrow> _\<close>, "bit")
-   ] (*#>
+   ] #>
+  add_word_fun extract
+    (\<^term>\<open>smt_extract :: _ \<Rightarrow> _ \<Rightarrow> 'a::len word \<Rightarrow> _\<close>, "extract") 
+
+
+ (*#>
   fold (add_word_fun bit_word) [
     (\<^term>\<open>smt_bit_word :: 'a::len word \<Rightarrow> _ \<Rightarrow> _\<close>, "extract")
    ]*)
@@ -676,6 +719,28 @@ fun mk_scast i u =
     val T = fastype_of u
     val TU = Word_Lib.mk_wordT i
   in Const (\<^const_name>\<open>Word.signed\<close>, T --> TU) $ u end;
+
+fun mk_extract i j u =
+ let
+  val I = HOLogic.mk_number \<^typ>\<open>nat\<close> i
+  val J = HOLogic.mk_number \<^typ>\<open>nat\<close> j
+
+  val T = fastype_of u
+  val TU = i - j + 1 |> Word_Lib.mk_wordT
+ in
+   Const (\<^const_name>\<open>smt_extract\<close>, @{typ nat} --> @{typ nat} --> T --> TU) $ I $ J $ u
+ end
+
+fun mk_extract_from_terms i j u =
+ let
+  val I = HOLogic.dest_number i |> snd
+  val J = HOLogic.dest_number j |> snd
+
+  val T = fastype_of u
+  val TU = I - J + 1 |> Word_Lib.mk_wordT
+ in
+   Const (\<^const_name>\<open>smt_extract\<close>, @{typ nat} --> @{typ nat} --> T --> TU) $ i $ j $ u
+ end
 
 fun
   (*From the FixedSizeBitVectors theory*)
@@ -775,6 +840,33 @@ fun
       SOME (mk_zero_extend i t)
   | bv_term_parser (SMTLIB.S [SMTLIB.Sym "_", SMTLIB.Sym "sign_extend", SMTLIB.Num i], [t]) =
       SOME (mk_scast i t)
+  | bv_term_parser (SMTLIB.S [SMTLIB.Sym "_",SMTLIB.Sym "extract", SMTLIB.Num i, SMTLIB.Num j],[t])
+       = SOME (mk_extract i j t)
+  | bv_term_parser (SMTLIB.Sym "extract",[ i, j ,t])
+       = SOME (mk_extract_from_terms i j t)
+  | bv_term_parser (SMTLIB.Sym "concat", t1 :: t2 :: ts) =
+  let
+    val T1 = fastype_of t1
+    val T2 = fastype_of t2
+
+    fun cat_op I1 I2 O = (Const ( \<^const_name>\<open>word_cat\<close>, I1 --> I2 --> O))
+    fun res_type I1 I2 = (dest_wordT I1 + dest_wordT I2) |> mk_wordT
+
+
+    fun bitwidthConcat [x] = (x,(fastype_of x)) |
+    bitwidthConcat (x::xs)
+    =
+    let
+      val (curr_t, currT) = bitwidthConcat xs 
+      val xT = fastype_of x
+      val resT = res_type xT currT
+    in
+      (((cat_op xT currT resT) $ x $ curr_t),resT)
+    end
+val (res,_) = bitwidthConcat (t1::t2::ts)
+
+in (@{print}("here todo make nary");SOME (res)) end
+
   | bv_term_parser _ = NONE
 
 fun bv_type_parser (SMTLIB.S [SMTLIB.Sym "_", SMTLIB.Sym "BitVec", SMTLIB.Num x], []) =

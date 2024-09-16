@@ -113,6 +113,14 @@ lemma smt_extract_bit: "k < size (x::'a::len word) \<Longrightarrow> (smt_extrac
   apply (simp_all add: nth_slice bit_take_bit_iff)
   by (metis add_0 bot_nat_0.not_eq_extremum)
 
+lemma bit_smt_extract2: "k < size (x::'a::len word) \<Longrightarrow> bit x k = ((smt_extract k k x) = (1::1 word))" 
+  using smt_extract_bit
+  by (metis zero_neq_one)
+
+lemma bit_smt_extract2': "k < size (x::'a::len word) \<Longrightarrow> bit x k = (slice k (take_bit (Suc k) x) = (1::1 word))" 
+  unfolding smt_extract_def bit_smt_extract2
+  by simp
+
 lemma bit_smt_extract: "bit (smt_extract j i x::'b::len word) n = ((n + i < Suc j \<and> bit x (n + i)) \<and> n < LENGTH('b::len))"
   unfolding smt_extract_def
   using nth_slice[of i "(take_bit (Suc j) x)" n, where 'a="'b"] bit_take_bit_iff[of "Suc j" x "n+i"]
@@ -661,7 +669,7 @@ fun mk_extract i j u =
   val T = fastype_of u
   val TU = i - j + 1 |> Word_Lib.mk_wordT
  in
-   Const (\<^const_name>\<open>SMT_Word.smt_extract\<close>, @{typ nat} --> @{typ nat} --> T --> TU) $ I $ J $ u
+   Const (\<^const_name>\<open>Word.smt_extract\<close>, @{typ nat} --> @{typ nat} --> T --> TU) $ I $ J $ u
  end
 
 fun mk_extract_from_terms i j u =
@@ -672,7 +680,7 @@ fun mk_extract_from_terms i j u =
   val T = fastype_of u
   val TU = I - J + 1 |> Word_Lib.mk_wordT
  in
-   Const (\<^const_name>\<open>SMT_Word.smt_extract\<close>, @{typ nat} --> @{typ nat} --> T --> TU) $ i $ j $ u
+   Const (\<^const_name>\<open>Word.smt_extract\<close>, @{typ nat} --> @{typ nat} --> T --> TU) $ i $ j $ u
  end
 
 fun mk_zero_extend i u =
@@ -699,10 +707,10 @@ fun
   | bv_term_parser (SMTLIB.Sym "extract",[ i, j ,t])
        = SOME (mk_extract_from_terms i j t)
 
-  | bv_term_parser (SMTLIB.Sym "bbT", xs) =
+  | bv_term_parser (SMTLIB.Sym "@bbT", xs) =
         SOME ((Const ("Reversed_Bit_Lists.of_bl", \<^typ>\<open>HOL.bool list\<close> --> mk_wordT(length xs))) 
         $ ((Const (\<^const_name>\<open>List.rev\<close>, \<^typ>\<open>HOL.bool list\<close> -->  \<^typ>\<open>HOL.bool list\<close>)) $ (HOLogic.mk_list \<^typ>\<open>bool\<close> xs)))
-  | bv_term_parser (SMTLIB.S [SMTLIB.Sym "_", SMTLIB.Sym "bitOf", SMTLIB.Num i], [t]) =
+  | bv_term_parser (SMTLIB.S [SMTLIB.Sym "_", SMTLIB.Sym "@bitOf", SMTLIB.Num i], [t]) =
       SOME (Const (\<^const_name>\<open>semiring_bits_class.bit\<close>, (fastype_of t) --> HOLogic.natT --> \<^typ>\<open>HOL.bool\<close>)
       $ t $ (HOLogic.mk_nat i))
  | bv_term_parser (SMTLIB.Sym "@bvsize", [t1]) =
@@ -1059,7 +1067,7 @@ val x = @{term "x + (1::nat)" }
 
 
 
-
+(*
 term " (0 :: 32 word)"
 ML \<open>@{typ "32 word"} = \<^typ>\<open>_ word\<close>\<close>
 ML \<open>@{print} (Numeral.mk_cnumber \<^ctyp>\<open>43 word\<close> 0) \<close>
@@ -1107,7 +1115,7 @@ proof-
     unfolding smt_extract_def[of n n x] by simp
   then show ?thesis by simp
 qed
-
+*)
 
 
 

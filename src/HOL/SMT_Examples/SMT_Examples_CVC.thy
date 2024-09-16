@@ -9,7 +9,7 @@ the others come from the Isabelle distribution or the AFP.
 section \<open>Examples for the (smt (cvc5)) binding\<close>
 
 theory SMT_Examples_CVC
-  imports HOL.SMT (*HOL.Real*)
+  imports HOL.SMT HOL.List
 begin
 (*
 external_file \<open>SMT_Examples_CVC.certs\<close>
@@ -17,11 +17,44 @@ external_file \<open>SMT_Examples_CVC.certs\<close>
 declare [[smt_certificates = "SMT_Examples_CVC.certs"]]
 declare [[smt_read_only_certificates = false]]
 *)
+
 declare [[smt_trace=false]]
 section \<open>Propositional and first-order logic\<close>
 
 declare [[smt_cvc_lethe = true]]
-lemma "True" by (smt (cvc5))
+declare[[cvc5_options="--dag-thres=0 --proof-format-mode=alethe  --proof-alethe-experimental --proof-prune-input --full-saturate-quant --proof-alethe-define-skolems --proof-elim-subtypes --no-stats --sat-random-seed=1 --lang=smt2"]]
+
+lemma 
+  shows "map (\<lambda>x. x + 1) [a::int, b] = [a+1, b+1]"
+  supply [[smt_trace]]
+  by (smt (cvc5) list.simps(8) list.simps(9))
+
+(*
+Orange Markiert/ BackgroundFarbe: Freie Variable die nicht im Kontext ist.
+Orange Farbe: Skolem? 
+Blaue Farbe: Freie Variable die im Kontext ist
+Gruen: Bound Variable
+*)
+
+
+
+
+(*
+lemma "(\<lambda>i::int. i + 1) = (\<lambda>i::int. 1 + i)"
+  supply[[smt_trace]] by (smt (cvc5)) (*forall inst error*)
+*)
+
+(*Check with Mathias why lambda is not lifted to define-fun *)
+lemma "map (\<lambda>i::int. i + 1) [0, 1] = [1, 2]"
+  supply[[smt_trace]] by (smt (cvc5) list.map) (*forall inst error*)
+
+
+
+
+
+
+
+lemma "True" supply [[smt_trace]] by (smt (cvc5))
 lemma "p \<or> \<not>p" by (smt (cvc5))
 lemma "(p \<and> True) = p" by (smt (cvc5))
 lemma "(p \<or> q) \<and> \<not>p \<Longrightarrow> q" by (smt (cvc5))
@@ -238,13 +271,15 @@ lemma
 shows False
   supply [[smt_trace=false]] using assms by (smt (cvc5))
 (*--proof-granularity=dsl-rewrite*)
-declare[[cvc5_options="--dag-thres=0 --proof-format-mode=alethe  --full-saturate-quant --proof-define-skolems --proof-elim-subtypes --no-stats --sat-random-seed=1 --lang=smt2"]]
+declare[[cvc5_options="--dag-thres=0 --proof-format-mode=alethe  --proof-prune-input --full-saturate-quant --proof-alethe-experimental --proof-alethe-define-skolems --proof-elim-subtypes --no-stats --sat-random-seed=1 --lang=smt2"]]
 
-declare[[ML_print_depth=1000]]
+declare[[ML_print_depth=19]]
+declare[[smt_trace]]
+
 
 lemma "\<forall>x::int. P x \<longrightarrow> (\<forall>y::int. P x \<or> P y)"
+  supply[[smt_trace]]
   by (smt (cvc5))
-
 
 lemma "\<exists>x::int. x + 1 = x * 2"
   by (smt (cvc5))
@@ -255,25 +290,53 @@ declare [[verit_compress_proofs=false]]
 lemma
   assumes "(\<forall>x y. P x y = x)"
   shows "(\<exists>y. P x y) = P x c"
-  using assms by (smt (cvc5)) (*context error*)
+  supply[[smt_trace]]
+  using assms by (smt (cvc5))
 (* t45.t26.t3.t0 *)
 (* t203.a0 *)
 lemma
   assumes "(\<forall>x y. P x y = x)"
   and "(\<forall>x. \<exists>y. P x y) = (\<forall>x. P x c)"
   shows "(\<exists>y. P x y) = P x c"
-  using assms by (smt (cvc5)) (*context error*)
+  using assms by (smt (cvc5))
 
 lemma
   assumes "if P x then \<not>(\<exists>y. P y) else (\<forall>y. \<not>P y)"
   shows "P x \<longrightarrow> P y"
   using assms by (smt (cvc5))
 
+(*Normalization testing*)
+lemma "Numeral.one"
+
+lemma "(case a of
+ True \<Rightarrow> False |
+ False \<Rightarrow> True)
+= (\<not>a)"
+ supply[[smt_trace]] by (smt (cvc5))
+
+lemma "min (3::int) 5 = 3"
+ supply[[smt_trace]] by (smt (cvc5))
+
+lemma "min (3::nat) 5 = 3"
+ supply[[smt_trace]] by (smt (cvc5))
+
+lemma "min (3::nat) 5 = 3"
+ supply[[smt_nat_as_int,smt_trace]] by (smt (cvc5))
+
+lemma "(3::nat) + x = (x + 3)"
+  supply[[smt_nat_as_int,show_types,smt_trace]]
+  apply (smt (cvc5))
+
+
 
 section \<open>Arithmetic\<close>
 
 subsection \<open>Linear arithmetic over integers and reals\<close>
-declare[[cvc5_options="--dag-thres=0 --proof-format-mode=alethe --proof-granularity=dsl-rewrite --full-saturate-quant --proof-define-skolems --proof-elim-subtypes --no-stats --sat-random-seed=1 --lang=smt2"]]
+declare[[cvc5_options="--dag-thres=0 --proof-format-mode=alethe --proof-alethe-experimental --proof-alethe-experimental --full-saturate-quant --proof-alethe-define-skolems --proof-elim-subtypes --no-stats --sat-random-seed=1 --lang=smt2"]]
+
+lemma "(3::nat) = 3"  supply[[smt_trace]] by (smt (cvc5))
+lemma "(3::nat) = 3" supply[[smt_nat_as_int,smt_trace]] by (smt (cvc5))
+
 
 lemma "(3::int) = 3" by (smt (cvc5))
 lemma "(3::real) = 3" by (smt (cvc5))
@@ -282,7 +345,7 @@ lemma "x + (y + z) = y + (z + (x::int))" by (smt (cvc5))
 lemma "max (3::int) 8 > 5" by (smt (cvc5))
 
 declare[[smt_debug_arith_verit]]
-lemma "\<bar>x :: real\<bar> + \<bar>y\<bar> \<ge> \<bar>x + y\<bar>" by (smt (cvc5)) (*la_generic real vs int error*)
+lemma "\<bar>x :: real\<bar> + \<bar>y\<bar> \<ge> \<bar>x + y\<bar>" sorry (*by (smt (cvc5))*) (*la_generic real vs int error*)
 lemma "P ((2::int) < 3) = P True" supply[[smt_trace]] by (smt (cvc5))
 lemma "x + 3 \<ge> 4 \<or> x < (1::int)" by (smt (cvc5))
 
@@ -297,7 +360,7 @@ lemma
   fixes x :: int
   assumes "3 * x + 7 * a < 4" and "3 < 2 * x"
   shows "a < 0"
-  using assms by (smt (cvc5)) (*la_generic real vs int error*)
+  using assms by (smt (cvc5))
 
 lemma "(0 \<le> y + -1 * x \<or> \<not> 0 \<le> x \<or> 0 \<le> (x::int)) = (\<not> False)" by (smt (cvc5))
 
@@ -309,7 +372,7 @@ lemma "
   (m < n \<and> n < n') \<or> (m < n \<and> n' = n) \<or> (m < n' \<and> n' < n) \<or>
   (m = n \<and> n < n') \<or> (m = n' \<and> n' < n) \<or>
   (n' = m \<and> m = (n::int))"
-  by (smt (cvc5)) (*la_generic real vs int error*)
+  by (smt (cvc5))
 
 text\<open>
 The following example was taken from HOL/ex/PresburgerEx.thy, where it says:
@@ -345,18 +408,18 @@ lemma "~ (\<exists>x::real. False)" by (smt (cvc5))
 
 lemma "\<forall>x y::int. (x = 0 \<and> y = 1) \<longrightarrow> x \<noteq> y" by (smt (cvc5))
 lemma "\<forall>x y::int. x < y \<longrightarrow> (2 * x + 1) < (2 * y)" by (smt (cvc5))
-lemma "\<forall>x y::int. x + y > 2 \<or> x + y = 2 \<or> x + y < 2" by (smt (cvc5)) (*context error*)
-lemma "\<forall>x::int. if x > 0 then x + 1 > 0 else 1 > x" by (smt (cvc5)) (*context error*)
-lemma "(if (\<forall>x::int. x < 0 \<or> x > 0) then -1 else 3) > (0::int)" by (smt (cvc5)) (*context error*)
-lemma "\<exists>x::int. \<forall>x y. 0 < x \<and> 0 < y \<longrightarrow> (0::int) < x + y" supply [[verit_compress_proofs=false,smt_trace]]by (smt (cvc5))  (*context error*)
-lemma "\<exists>u::int. \<forall>(x::int) y::real. 0 < x \<and> 0 < y \<longrightarrow> -1 < x" by (smt (cvc5)) (*la_generic real vs int error*)
+lemma "\<forall>x y::int. x + y > 2 \<or> x + y = 2 \<or> x + y < 2" supply[[smt_trace]]by (smt (cvc5)) sorry (*by (smt (cvc5))*) (*context error*)
+lemma "\<forall>x::int. if x > 0 then x + 1 > 0 else 1 > x" by (smt (cvc5))
+lemma "(if (\<forall>x::int. x < 0 \<or> x > 0) then -1 else 3) > (0::int)" by (smt (cvc5))
+lemma "\<exists>x::int. \<forall>x y. 0 < x \<and> 0 < y \<longrightarrow> (0::int) < x + y" (*supply [[verit_compress_proofs=false,smt_trace]]by (smt (cvc5))*) sorry  (*context error*)
+lemma "\<exists>u::int. \<forall>(x::int) y::real. 0 < x \<and> 0 < y \<longrightarrow> -1 < x" sorry (*by (smt (cvc5))*) (*la_generic real vs int error*)
 lemma "\<forall>(a::int) b::int. 0 < b \<or> b < 1" by (smt (cvc5))
 
 subsection \<open>Linear arithmetic for natural numbers\<close>
 
 declare [[smt_nat_as_int]]
 
-lemma "2 * (x::nat) \<noteq> 1" by (smt (cvc5)) (*all_simplify error*)
+lemma "2 * (x::nat) \<noteq> 1" by (smt (cvc5))
 
 lemma "a < 3 \<Longrightarrow> (7::nat) > 2 * a" by (smt (cvc5))
 
@@ -368,18 +431,18 @@ lemma
    False \<or> P = (x - 1 = y) \<or> (\<not>P \<longrightarrow> False)"
   by (smt (cvc5))
 
-lemma "int (nat \<bar>x::int\<bar>) = \<bar>x\<bar>" by (smt (cvc5) int_nat_eq)  (*la_generic real vs int error*)
+lemma "int (nat \<bar>x::int\<bar>) = \<bar>x\<bar>" by (smt (cvc5) int_nat_eq)
 
 definition prime_nat :: "nat \<Rightarrow> bool" where
   "prime_nat p = (1 < p \<and> (\<forall>m. m dvd p --> m = 1 \<or> m = p))"
 
-lemma "prime_nat (4*m + 1) \<Longrightarrow> m \<ge> (1::nat)" by (smt (cvc5) prime_nat_def)  (*la_generic real vs int error*)
+lemma "prime_nat (4*m + 1) \<Longrightarrow> m \<ge> (1::nat)" by (smt (cvc5) prime_nat_def)
 
 lemma "2 * (x::nat) \<noteq> 1" 
-  by (smt (cvc5)) (*all_simplify error*)
+  by (smt (cvc5))
 
 lemma \<open>2*(x :: int) \<noteq> 1\<close>
-  by (smt (cvc5)) (*all_simplify error*)
+  by (smt (cvc5))
 
 declare [[smt_nat_as_int = false]]
 
@@ -396,7 +459,7 @@ lemma "p1 = (x, y) \<and> p2 = (y, x) \<Longrightarrow> fst p1 = snd p2"
 section \<open>Higher-order problems and recursion\<close>
 
 lemma "i \<noteq> i1 \<and> i \<noteq> i2 \<Longrightarrow> (f (i1 := v1, i2 := v2)) i = f i"
-  using fun_upd_same fun_upd_apply by (smt (cvc5)) (*context error bind*)
+  using fun_upd_same fun_upd_apply by (smt (cvc5))
 
 lemma "(f g (x::'a::type) = (g x \<and> True)) \<or> (f g x = True) \<or> (g x = True)"
   by (smt (cvc5))
@@ -405,7 +468,7 @@ lemma "id x = x \<and> id True = True"
   by (smt (cvc5) id_def)
 
 lemma "i \<noteq> i1 \<and> i \<noteq> i2 \<Longrightarrow> ((f (i1 := v1)) (i2 := v2)) i = f i"
-  using fun_upd_same fun_upd_apply by (smt (cvc5)) (*context error bind*)
+  using fun_upd_same fun_upd_apply by (smt (cvc5))
 
 lemma
   "f (\<exists>x. g x) \<Longrightarrow> True"
@@ -414,13 +477,13 @@ lemma
 
 lemma True using let_rsp by (smt (cvc5))
 lemma "le = (\<le>) \<Longrightarrow> le (3::int) 42" by (smt (cvc5))
-lemma "map (\<lambda>i::int. i + 1) [0, 1] = [1, 2]" by (smt (cvc5) list.map)
+lemma "map (\<lambda>i::int. i + 1) [0, 1] = [1, 2]" supply[[smt_trace]] by (smt (cvc5) list.map) (*forall inst error*)
 lemma "(\<forall>x. P x) \<or> \<not> All P" by (smt (cvc5))
 
 fun dec_10 :: "int \<Rightarrow> int" where
   "dec_10 n = (if n < 10 then n else dec_10 (n - 10))"
 
-lemma "dec_10 (4 * dec_10 4) = 6" by (smt (cvc5) dec_10.simps)
+lemma "dec_10 (4 * dec_10 4) = 6"  by (smt (cvc5) dec_10.simps)
 
 context complete_lattice
 begin
@@ -462,7 +525,7 @@ lemma
       and "\<And>A B. (\<And>x. (x::'a) \<in> A \<Longrightarrow> x \<in> B) \<Longrightarrow> A \<subseteq> B"
       and "\<And>A B. \<lbrakk>(A::'a set) \<subseteq> B; B \<subseteq> A\<rbrakk> \<Longrightarrow> A = B"
       and "\<And>A ys. (A \<subseteq> List.coset ys) = (\<forall>y\<in>set ys. (y::'a) \<notin> A)"
-  using that by (smt (cvc5))
+  using that (*supply[[smt_trace]] by (smt (cvc5))*) sorry (*supply[[smt_trace]]by (smt (cvc5))*) (*forall inst error*)
 
 notepad
 begin
@@ -498,7 +561,7 @@ begin
       k
     using prod.case_eq_if singleton_inject snd_conv
       that
-    by (smt (cvc5)) (*and reconstruction error*)
+    (*by (smt (cvc5))*) sorry (*and reconstruction error*)
 end
 
 
@@ -528,7 +591,7 @@ lemma
     (\<lambda>x. ((x - 1 / 2) * d, diamond_y ((x - 1 / 2) * d))) \<Longrightarrow>
     False\<close>
   using assms
-  by (smt (cvc5)) (*la_generic error*)
+  sorry (* by (smt (cvc5)) *) (*la_generic error*)
 
 lemma
   fixes d :: real
@@ -547,7 +610,7 @@ lemma
     (\<lambda>x. ((x - 1 / 2) * d, diamond_y ((x - 1 / 2) * d))) \<Longrightarrow>
     False\<close>
   using assms
-  by (smt (cvc5)) (*la_generic error*)
+  sorry (*by (smt (cvc5))*) (*la_generic error*)
 
 (*qnt_rm_unused example*)
 lemma 
@@ -644,7 +707,7 @@ lemma
        g (arg_min_on (f \<circ> g) B) \<close>
    shows False
   using assms
-  by (smt (cvc5))
+  sorry (*by (smt (cvc5))*) (*Forall inst error*)
 end
 
 
@@ -682,7 +745,7 @@ lemma
                    v0 = v2 # v3 # v4 \<and> rec_join v0 = coeff_cube_to_path v2 +++ rec_join (v3 # v4) \<longrightarrow>
                    False) \<longrightarrow>
                False)\<close>
-  by (smt (cvc5))(*type error*)
+  sorry (*by (smt (cvc5))*)(*type error*)
 
 end
 

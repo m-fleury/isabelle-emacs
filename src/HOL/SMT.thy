@@ -765,8 +765,8 @@ options.
 \<close>
 
 declare [[cvc4_options = ""]]
-declare [[cvc5_options = "--proof-format-mode=alethe --proof-granularity=dsl-rewrite
-                          --full-saturate-quant --proof-define-skolems --proof-elim-subtypes"]]
+declare [[cvc5_options = "--proof-format-mode=alethe --proof-granularity=dsl-rewrite --proof-alethe-experimental
+                          --full-saturate-quant --proof-alethe-define-skolems --proof-elim-subtypes"]]
 declare [[verit_options = ""]]
 declare [[z3_options = ""]]
 
@@ -970,5 +970,94 @@ lemma [z3_rule]:  (* for def-axiom *)
 hide_type (open) symb_list pattern
 hide_const (open) Symb_Nil Symb_Cons trigger pat nopat fun_app z3div z3mod
 
+(*
+lemma "((t1 \<and> t2 ) \<and> (t3 \<and> t5)) \<and> t4 \<Longrightarrow> (t3 \<and> t5)"
+  apply (tactic \<open>HEADGOAL (fn i => 
+       (print_tac @{context} "and0")
+       THEN REPEAT (eresolve_tac @{context} @{thms conjE} i
+       THEN (print_tac @{context} "and1")
 
+       THEN TRY (assume_tac @{context} 1))) \<close>)
+
+lemma "((t1 \<and> t2 ) \<and> t3 ) \<and> t4 \<Longrightarrow> (t1 \<and> t2 ) \<and> t3"
+  apply (tactic \<open>HEADGOAL (fn i => 
+       (print_tac @{context} "and0")
+       THEN REPEAT (eresolve_tac @{context} @{thms conjE} i
+       THEN (print_tac @{context} "and1")
+
+       THEN TRY (assume_tac @{context} 2))) \<close>)
+
+
+
+lemma "((t1 \<and> t2 ) \<and> t3 ) \<and> t4 \<Longrightarrow> (t1 \<and> t2 ) \<and> t3"
+
+ apply (tactic \<open>HEADGOAL (
+      K (print_tac @{context} "and0")
+     THEN' (fn i => REPEAT (dresolve_tac @{context} @{thms conjE} i
+     THEN (print_tac @{context} "and1")
+     THEN assume_tac @{context} (i+1)
+     THEN (print_tac @{context} "and2")))
+ (*(fn i => 
+       REPEAT (eresolve_tac ctxt @{thms conjE} i
+       THEN TRY (assume_tac ctxt 1)))*)
+     ) \<close>)
+
+*)
+
+  
+  (*apply (tactic \<open>HEADGOAL (
+      K (print_tac @{context} "and0")
+     THEN' (fn i => REPEAT (dresolve_tac @{context} @{thms conjE} i THEN (print_tac @{context} "and1") THEN assume_tac @{context} (i+1)))
+ (*(fn i => 
+       REPEAT (eresolve_tac ctxt @{thms conjE} i
+       THEN TRY (assume_tac ctxt 1)))*)
+     ) \<close>)*)
+(*
+ML \<open>
+val x = dest_Type @{typ "'a \<Rightarrow> 'b"}
+val x = ("fun", ["'a", "'b"]): string * typ list
+\<close>
+
+lemma "(\<lambda>x. (g::'a \<Rightarrow> 'b) x) = f"
+  supply[[smt_trace]]
+  apply (smt (cvc5))
+lemma "(\<lambda>x. (g::'a set \<Rightarrow> 'b set) x) = f"
+  supply[[smt_trace]]
+  apply (smt (cvc5))
+
+
+lemma "(f::int \<Rightarrow> 'b)= f"
+  supply[[smt_trace]]
+  apply (smt (cvc5))
+
+
+lemma "(f::int \<Rightarrow> 'b \<Rightarrow> 'c)= f"
+  supply[[smt_trace]]
+  apply (smt (cvc5))
+
+
+
+lemma "(f::'a \<Rightarrow> 'b \<Rightarrow> 'c) (g::'a) = f g"
+  supply[[smt_trace]]
+  apply (smt (cvc5))
+lemma "(f::('a set\<Rightarrow> int) \<Rightarrow> 'b \<Rightarrow> ('c \<Rightarrow> 'd)) (g::'a set \<Rightarrow> int) w = f g w"
+  supply[[smt_trace]]
+  apply (smt (cvc5))
+*)
+
+(* 
+       (set-option :produce-proofs true)
+       (set-logic AUFLIA)
+       (declare-sort Int_int_fun$ 0)
+       (declare-fun f$ () Int_int_fun$)
+       (assert (! (not (= f$ f$)) :named a0))
+       (check-sat)
+       (get-proof)
+
+  (set-option :produce-proofs true)
+       (set-logic AUFLIA)
+       (declare-fun f$ () (-> Int Int))
+       (assert (! (not (= f$ f$)) :named a0))
+       (check-sat)
+       (get-proof)*)
 end

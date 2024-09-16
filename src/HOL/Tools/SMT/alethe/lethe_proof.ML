@@ -163,7 +163,7 @@ fun syntactic_rew_in_lhs_subst old_name new_name (Const(\<^const_name>\<open>HOL
 the size of the generated terms and therefore the reconstruction time*)
 local 
   fun new_concl id def = (SMTLIB.S [SMTLIB.Sym "=", SMTLIB.Sym id, def])
-  fun prelim_declarations id typ l = [(id,SMTLIB.S [SMTLIB.Sym id, typ,l])]
+  fun prelim_declarations id typ l = (id,SMTLIB.S [SMTLIB.Sym id, typ,l])
 in
   fun parse_fun_def (SMTLIB.S [SMTLIB.Sym "define-fun", SMTLIB.Sym id,  _, typ,
     SMTLIB.S (SMTLIB.Sym "!" :: t :: [SMTLIB.Key ":named", SMTLIB.Sym name])]) cx =
@@ -414,15 +414,14 @@ fun preprocess compress step =
         (*TODO: Some processing done above should maybe be done here*)
         val _ = debug_lptrace high (fn () => \<^print> ("preprocess skolem definition: ", id))
 
-        fun extract_skolem [(SMTLIB.S [SMTLIB.Sym var, typ, choice])] = (var, choice)
+        fun extract_skolem (SMTLIB.S [SMTLIB.Sym var, typ, choice]) = (var, choice)
           | extract_skolem t = raise Fail ("fail to extract name and definition of skolem function" ^ @{make_string} t)
 
        (*TODO: not quite sure why declarations needs to be a list, maybe something is added later*)
         val declarations =
             declarations
-            |> map snd
+            |> snd
             |> extract_skolem
-            |> single
       in ([mk_raw_definition_node id rule declarations concl], (cx, remap_prems)) end |
      preprocess (Raw_Lethe_Node {id, rule, step_args, context_assignments, prems, concl, subproof, ...}) (cx : ('a list, 'b) context, remap_prems)  =
       let
@@ -619,11 +618,19 @@ let
     (* Update proof context *) 
     val cx = if rule <> skolem_def then cx else (*Check needed?*)
     let
-      fun declared_csts [(name,SMTLIB.S [SMTLIB.Sym x, typ,_])] = (name, Term (Free (x, type_of cx typ)))
+      fun declared_csts (name,SMTLIB.S [SMTLIB.Sym x, typ,_]) = (name, Term (Free (x, type_of cx typ)))
         | declared_csts t = (raise throw_lethe_ex ("unrecognized skolem_definition " ^ @{make_string} t))
       val globally_bound_vars = declared_csts declarations
       val _ = debug_lptrace middle (fn () => \<^print> ("... extracted globally bound vars from skolem definition", fst globally_bound_vars))
     in update_binding globally_bound_vars cx end
+
+        (*"__skolem_definition" =>
+         let
+           (* special handling: skolem *)
+           fun termify_term (x, t) cx = let val (t, cx) = term_of t cx in ((x, t), cx) end
+           val (declarations, _) = fold_map termify_term declarations cx
+            |> apfst (map (apsnd unsk_and_rewrite))
+         in SOME (Declarations (declarations)) end |*)
 
   in
     postprocess step (cx,new_variable_names) (*TODO*)
@@ -731,7 +738,7 @@ let
   in
     (step, (cx', new_variable_names))
   end
-  else
+  else (*Non anchor steps*)
   let
     val _ = debug_lptrace low (fn () => \<^print> ("postprocessing started for rule: ", id))
 
@@ -739,55 +746,43 @@ let
     val _ = debug_lptrace middle (fn () => \<^print> ("... transform conclusion ", concl))
     val (cx',termified_concl) = transform_concl concl id (cx, new_variable_names)
 
-      (* Process step and context arguments *)
-      (*TODO: la_generic aendere reals, erwarte div und keine reele zahlen. 
-(div 1 4) anstelle vom 0.25 als auch 1.0/4.0 
-=> Fuege in Isabelle-alethe hinzu (es ist keine restriktion, aber um zu checken dass das bei keiner anderen Regel passiert)
-*)
-     val normalized_step_args = transform_step_args rule step_args (cx, new_variable_names)
+    (* Process step arguments *)
+    (*TODO: la_generic aendere reals, erwarte div und keine reele zahlen. 
+    (div 1 4) anstelle vom 0.25 als auch 1.0/4.0 
+    => Fuege in Isabelle-alethe hinzu (es ist keine restriktion, aber um zu checken dass das bei keiner anderen Regel passiert)*)
+    val normalized_step_args = transform_step_args rule step_args (cx, new_variable_names)
 
-   val (subproof_cx,new_subproof) = (cx,[])
+    (*val (subproof_cx,new_subproof) = (cx,[])*)
 
-    
+    (* add arguments *)
+    val tactic_args =
+    case rule of
+      "forall_inst" =>
+      let
 
-      (* add arguments *)
-      val tactic_args = case rule of
-        "forall_inst" =>
-         let
-           (* special handling: forall_inst *)
-           fun get_foralls (SMTLIB.S [_,SMTLIB.S[_,SMTLIB.S [_,SMTLIB.S[_,SMTLIB.S xs,_]],_]]) step_args =
-            let
-                fun get_vars [] _ = [] |
-                    get_vars (SMTLIB.S[v,_]::ys) (z::zs) = SMTLIB.S[SMTLIB.Sym "=",v,z]:: get_vars ys zs
+        fun get_foralls (SMTLIB.S [_,SMTLIB.S[_,SMTLIB.S [_,SMTLIB.S[_,SMTLIB.S xs,_]],_]]) step_args =
+        let
+          fun get_vars [] _ = [] |
+            get_vars (SMTLIB.S[v,_]::ys) (z::zs) = SMTLIB.S[SMTLIB.Sym "=",v,z]:: get_vars ys zs
               (* ("x",
- [S [Sym "v0", Sym "Int_int_fun$"], S [Sym "v1", Sym "Int"],
-  S [Sym "v2", Sym "Int_list$"]]
-I cannot do this on the SMTLIB term after all... Or at least not this easily. Names might
-be different... TODO*)
-            in get_vars xs step_args end
+           [S [Sym "v0", Sym "Int_int_fun$"], S [Sym "v1", Sym "Int"],
+            S [Sym "v2", Sym "Int_list$"]]
+          I cannot do this on the SMTLIB term after all... Or at least not this easily. Names might
+          be different... TODO*)
+        in get_vars xs step_args end
            
 
-           fun insts_of_forall_inst "forall_inst" t = map (fn SMTLIB.S [_, SMTLIB.Sym x, a] => (x, a)) t
-             | insts_of_forall_inst _ _ = []
-           val raw_insts = insts_of_forall_inst rule (get_foralls concl step_args)
-           fun termify_term (x, t) cx = let val (t, cx) = term_of t cx in ((x, t), cx) end
-           val (termified_inst, _) = fold_map termify_term raw_insts subproof_cx
-           val insts = Symtab.empty
-            |> fold (fn (x, t) => fn insts => Symtab.update_new (desymbolize x, t) insts) termified_inst
-            |> Symtab.map (K (unsk_and_rewrite new_variable_names))
+        fun insts_of_forall_inst "forall_inst" t = map (fn SMTLIB.S [_, SMTLIB.Sym x, a] => (x, a)) t
+        | insts_of_forall_inst _ _ = []
+        val raw_insts = insts_of_forall_inst rule (get_foralls concl step_args)
+        fun termify_term (x, t) cx = let val (t, cx) = term_of t cx in ((x, t), cx) end
+        val (termified_inst, _) = fold_map termify_term raw_insts cx
+        val insts = Symtab.empty
+          |> fold (fn (x, t) => fn insts => Symtab.update_new (desymbolize x, t) insts) termified_inst
+          |> Symtab.map (K (unsk_and_rewrite new_variable_names))
          in SOME (Insts insts) end |
-        (*"__skolem_definition" =>
-         let
-           (* special handling: skolem *)
-           fun termify_term (x, t) cx = let val (t, cx) = term_of t cx in ((x, t), cx) end
-           val (declarations, _) = fold_map termify_term declarations cx
-            |> apfst (map (apsnd unsk_and_rewrite))
-         in SOME (Declarations (declarations)) end |*)
-        
-         _ => NONE
-
-      (* fix assumptions *)
-       val assms_from_subproof = []
+      
+      _ => NONE
 
       (* fix premises *)
       val normalized_premises = prems @ (if is_assm_repetition id rule then [id] else [])
@@ -802,7 +797,7 @@ be different... TODO*)
       val step =
         mk_replay_node id normalized_rule normalized_step_args []
         normalized_premises termified_concl
-        ([], [], assms_from_subproof, new_subproof)
+        ([], [], [], [])
         tactic_args
     in
        (step, (cx', new_variable_names))

@@ -70,10 +70,15 @@ fun replay_thm method_for rewrite_rules ll_defs ctxt assumed unchanged_prems pre
     val post = let val thy = Proof_Context.theory_of (empty_simpset ctxt) in
         Raw_Simplifier.rewrite_term thy rewrite_concl []
         #> Object_Logic.atomize_term ctxt
-        #> not (null ll_defs) ? SMTLIB_Isar.unlift_term ll_defs
+        #>  ((not (null ll_defs)) andalso (not (Lethe_Proof.keep_raw_lifting rule) |> tap @{print})) ? SMTLIB_Isar.unlift_term ll_defs
         #> SMTLIB_Isar.unskolemize_names ctxt
         #> HOLogic.mk_Trueprop
       end
+(*val _ = @{print}("rule",rule )
+val _ = @{print}("rule",not (Lethe_Proof.keep_raw_lifting rule ))
+val _ = @{print}("rule",not (null ll_defs ))
+
+val _ = @{print}("here",(not (null ll_defs) andalso not (Lethe_Proof.keep_raw_lifting rule) ))*)
     val concl = concl
       |> Term.subst_free concl_transformation
       |> subst_only_free global_transformation
@@ -327,11 +332,6 @@ fun replay_step rewrite_rules all_assms ll_defs assumed inputs all_local_assumpt
   then replay_definition_step rewrite_rules ll_defs assumed inputs all_local_assumptions step state
   else replay_theorem_step rewrite_rules all_assms ll_defs assumed inputs all_local_assumptions step state
 
-(*
-ll_defs: lambda_lifting defs, higher-order to first-order. Auf der Isabelle Seite habe ich einen
-lambda term auf der SMT seite keine. Das sollte fuer jeden Term unfolded werden
-
-*)
 fun replay outer_ctxt
     ({ctxt = ctxt, typs, terms, rewrite_rules, assms, ll_defs, ...} : SMT_Translate.replay_data)
      raw_proof_steps =
@@ -373,9 +373,9 @@ fun replay outer_ctxt
         args = NONE}
     val used_assert_ids = fold add_used_asserts_in_step parsed_proof_steps []
     val real_assms =
-      map_filter (fn id => let val i = index_of_id id in if i >= 0 then SOME (i, nth (rev assms) i)
+      map_filter (fn id => let val i = index_of_id id in if i >= 0 then SOME (i, nth ( assms) i)
           else NONE end) (*FIXME: nth is not a good way to do this! We had to add a rev several times now and assms do have ideas so it might be okay to use these!*)
-        used_assert_ids
+        used_assert_ids (*FIXME 2: Ahh, the rev is needed for external proofs but not for external ones.*)
     val real_assms_steps = map step_of_assume real_assms 
     val _ = debug_rtrace middle 
       (fn () => @{print} ("Id's of all top-level assertions that appear as assumes in the proof",used_assert_ids))

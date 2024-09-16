@@ -75,6 +75,12 @@ fun print_error_to_file ctxt i =
     ^ (Config.get ctxt SMT_Config.statistics_file))) ("-" ^ Int.toString i ^ "}]},\n")
   else ()
 
+fun print_error_to_file_with_msg ctxt i str =
+  if Config.get ctxt SMT_Config.rec_evaluation
+  then File.append (Path.explode ("$ISABELLE_HOME_USER/"
+    ^ (Config.get ctxt SMT_Config.statistics_file))) ("-" ^ Int.toString i ^
+    ", \"err_msg\": \"" ^ str ^ "\"}]},\n")
+  else ()
   
 fun print_reconstruction_error_to_file ctxt i str =
   if Config.get ctxt SMT_Config.rec_evaluation
@@ -127,8 +133,12 @@ let
             handle
             (*Error Parsing problem*)
             (SMT_Parse_Problem.SMT_PROBLEM_PARSE(msg))
-            => (@{print}("Error parsing SMT-LIB problem: " ^ msg , problem_path);
-                  print_error_to_file ctxt 5; (local_thy,i)) |
+            => (if String.isPrefix "command not supported: " msg then
+                  (@{print}("Unsupported SMT-LIB command in problem: " ^ msg , problem_path);
+                  print_error_to_file_with_msg ctxt 5 msg; (local_thy,i))
+                  else
+                (@{print}("Error parsing SMT-LIB problem: " ^ msg , problem_path);
+                  print_error_to_file_with_msg ctxt 5 msg; (local_thy,i))) |
             (*Error during Parsing into AST*)
             (SMTLIB.PARSE(l,err))
               => (@{print}("Error parsing SMTLIB into SMTLIB Tree: " ^ err ^ " in line " ^ Int.toString l , problem_path);
@@ -162,6 +172,8 @@ let
             (SMT_Failure.SMT err)
                => (@{print}("Unkown SMT error " ^ SMT_Failure.string_of_failure err, problem_path);
                   print_error_to_file ctxt 5; (local_thy,i)) |
+             (Timeout.TIMEOUT _) => (@{print}("Timeout");
+                  print_error_to_file ctxt 7; (local_thy,i)) |
              exp => (@{print}("Some unkown error occured while checking the proof " ^ problem_path);
                   @{print}("exp",exp);
                   print_error_to_file ctxt 1; (local_thy,i))
