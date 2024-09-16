@@ -37,6 +37,13 @@ sig
     concl: term,
     subproof: (string * typ) list * term list * term list * lethe_replay_node list,
     args: tactic_args option}
+  | Lethe_Definition_Node of {
+    id: string,
+    rule: string,
+    skolem_name : string,
+    skolem_term : term
+  }
+
 
   val mk_replay_node: string -> string -> term list -> term list -> string list -> term ->
    (string * typ) list * term list * term list * lethe_replay_node list -> tactic_args option
@@ -53,8 +60,8 @@ sig
   | Raw_Definition_Node of {
     id: string,
     rule: string,
-    declarations: (string * SMTLIB.tree),
-    concl: SMTLIB.tree
+    skolem_name : string,
+    skolem_term : SMTLIB.tree
   }
 
   val mk_raw_node : string ->
@@ -65,7 +72,7 @@ sig
                 SMTLIB.tree ->
                   raw_lethe_node list -> raw_lethe_node
 
-  val mk_raw_definition_node : string -> string -> (string * SMTLIB.tree) -> SMTLIB.tree -> raw_lethe_node
+  val mk_raw_definition_node : string -> string -> string -> SMTLIB.tree -> raw_lethe_node
 
 end;
 
@@ -85,8 +92,8 @@ datatype raw_lethe_node = Raw_Lethe_Node of {
   | Raw_Definition_Node of {
     id: string,
     rule: string,
-    declarations: (string * SMTLIB.tree),
-    concl: SMTLIB.tree
+    skolem_name : string,
+    skolem_term : SMTLIB.tree
   }
 
 fun mk_raw_node id rule step_args context_ass prems concl subproof =
@@ -94,7 +101,7 @@ fun mk_raw_node id rule step_args context_ass prems concl subproof =
     context_assignments = context_ass, prems = prems,
     concl = concl, subproof = subproof}
 
-fun mk_raw_definition_node id rule declarations concl = Raw_Definition_Node {id=id, rule=rule, declarations=declarations, concl=concl}
+fun mk_raw_definition_node id rule skolem_name skolem_term = Raw_Definition_Node {id=id, rule=rule, skolem_name=skolem_name, skolem_term=skolem_term}
 
 
   datatype lethe_step = Lethe_Step of {
@@ -129,7 +136,13 @@ datatype lethe_replay_node = Lethe_Replay_Node of {
   prems: string list,
   concl: term,
   subproof: (string * typ) list * term list * term list * lethe_replay_node list,
-  args: tactic_args option}
+  args: tactic_args option} |
+ Lethe_Definition_Node of {
+    id: string,
+    rule: string,
+    skolem_name : string,
+    skolem_term : term
+  }
 
 fun mk_replay_node id rule step_args context_ass prems concl subproof tactic_args =
   Lethe_Replay_Node {id = id, rule = rule, step_args = step_args,

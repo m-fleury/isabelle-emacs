@@ -127,6 +127,7 @@ fun debug_lptrace i v = (lproof_trace_msg (debug andalso debug_to_int i <= debug
 fun number_of_steps [] = 0
   | number_of_steps ((Lethe_Replay_Node {subproof = (_, _, _, subproof), ...}) :: pf) =
       1 + number_of_steps subproof + number_of_steps pf
+  | number_of_steps (_ :: pf) = 1 + number_of_steps pf
 
 fun node_of p cx =
   ([], cx)
@@ -161,26 +162,22 @@ fun syntactic_rew_in_lhs_subst old_name new_name (Const(\<^const_name>\<open>HOL
 
 (*replace the name binding by the constant instead of the full term in order to reduce
 the size of the generated terms and therefore the reconstruction time*)
-local 
-  fun new_concl id def = (SMTLIB.S [SMTLIB.Sym "=", SMTLIB.Sym id, def])
-  fun prelim_declarations id typ l = (id,SMTLIB.S [SMTLIB.Sym id, typ,l])
-in
-  fun parse_fun_def (SMTLIB.S [SMTLIB.Sym "define-fun", SMTLIB.Sym id,  _, typ,
-    SMTLIB.S (SMTLIB.Sym "!" :: t :: [SMTLIB.Key ":named", SMTLIB.Sym name])]) cx =
-    let
-      val (l, cx) = (fst oo SMTLIB_Proof.extract_and_update_name_bindings) t cx
-        |> apsnd (SMTLIB_Proof.update_name_binding (name, SMTLIB.Sym id))
-    in
-      (mk_raw_definition_node (id ^ skolem_def) skolem_def (prelim_declarations id typ l) (new_concl id l), cx)
-    end |
-   parse_fun_def (SMTLIB.S [SMTLIB.Sym "define-fun", SMTLIB.Sym id,  _, typ, SMTLIB.S l]) cx =
-    let
-      val (l, cx) = (fst oo SMTLIB_Proof.extract_and_update_name_bindings) (SMTLIB.S l) cx
-    in
-      (mk_raw_definition_node (id ^ skolem_def) skolem_def (prelim_declarations id typ l) (new_concl id l), cx)
-    end |
-   parse_fun_def t _ = raise Fail ("unrecognized Lethe proof " ^ \<^make_string> t)
-end
+fun parse_fun_def (SMTLIB.S [SMTLIB.Sym "define-fun", SMTLIB.Sym id,  _, typ,
+  SMTLIB.S (SMTLIB.Sym "!" :: t :: [SMTLIB.Key ":named", SMTLIB.Sym name])]) cx =
+  let
+    val (l, cx) = (fst oo SMTLIB_Proof.extract_and_update_name_bindings) t cx
+    |> apsnd (SMTLIB_Proof.update_name_binding (name, SMTLIB.Sym id))
+  in
+    (mk_raw_definition_node (id ^ skolem_def) skolem_def id l, cx)
+  end |
+  parse_fun_def (SMTLIB.S [SMTLIB.Sym "define-fun", SMTLIB.Sym id,  _, typ, SMTLIB.S l]) cx =
+  let
+    val (l, cx) = (fst oo SMTLIB_Proof.extract_and_update_name_bindings) (SMTLIB.S l) cx
+  in
+    (mk_raw_definition_node (id ^ skolem_def) skolem_def id l, cx)
+  end |
+  parse_fun_def t _ = raise Fail ("unrecognized Lethe proof " ^ \<^make_string> t)
+
 
 datatype step_kind = ASSUME | ANCHOR | NO_STEP | NORMAL_STEP | SKOLEM
 
@@ -409,20 +406,7 @@ fun preprocess compress step =
       fun normalize_tree_if ctxt cond xs = if Config.get ctxt cond then (map normalize_tree xs) else xs
 
 
-    fun preprocess (Raw_Definition_Node {id, rule, declarations, concl, ...}) (cx : ('a list, 'b) context, remap_prems)  =
-      let
-        (*TODO: Some processing done above should maybe be done here*)
-        val _ = debug_lptrace high (fn () => \<^print> ("preprocess skolem definition: ", id))
-
-        fun extract_skolem (SMTLIB.S [SMTLIB.Sym var, typ, choice]) = (var, choice)
-          | extract_skolem t = raise Fail ("fail to extract name and definition of skolem function" ^ @{make_string} t)
-
-       (*TODO: not quite sure why declarations needs to be a list, maybe something is added later*)
-        val declarations =
-            declarations
-            |> snd
-            |> extract_skolem
-      in ([mk_raw_definition_node id rule declarations concl], (cx, remap_prems)) end |
+    fun preprocess (x as Raw_Definition_Node _) (cx : ('a list, 'b) context, remap_prems) = ([x], (cx, remap_prems)) |
      preprocess (Raw_Lethe_Node {id, rule, step_args, context_assignments, prems, concl, subproof, ...}) (cx : ('a list, 'b) context, remap_prems)  =
       let
         val ctxt = #ctxt cx
@@ -611,29 +595,29 @@ let
 
 
 
-  fun postprocess (Raw_Definition_Node {id, rule, declarations, concl}) (cx, new_variable_names) =
+  fun postprocess (Raw_Definition_Node {id, rule, skolem_name, skolem_term}) (cx, new_variable_names) =
   let
     val _ = debug_lptrace low (fn () => \<^print> ("postprocessing started for definition: ", (id,rule)))
 
     (* Update proof context *) 
-    val cx = if rule <> skolem_def then cx else (*Check needed?*)
+    val cx =
     let
-      fun declared_csts (name,SMTLIB.S [SMTLIB.Sym x, typ,_]) = (name, Term (Free (x, type_of cx typ)))
+      fun extract_type (SMTLIB.S [SMTLIB.Sym "choice", SMTLIB.S [SMTLIB.S [_,typ]], _]) = typ |
+          extract_type x = x |> @{print}
+      fun declared_csts (name,typ) = (name, Term (Free (name, type_of cx typ)))
         | declared_csts t = (raise throw_lethe_ex ("unrecognized skolem_definition " ^ @{make_string} t))
-      val globally_bound_vars = declared_csts declarations
+      val globally_bound_vars = declared_csts (skolem_name,extract_type skolem_term)
       val _ = debug_lptrace middle (fn () => \<^print> ("... extracted globally bound vars from skolem definition", fst globally_bound_vars))
     in update_binding globally_bound_vars cx end
 
-        (*"__skolem_definition" =>
-         let
-           (* special handling: skolem *)
-           fun termify_term (x, t) cx = let val (t, cx) = term_of t cx in ((x, t), cx) end
-           val (declarations, _) = fold_map termify_term declarations cx
-            |> apfst (map (apsnd unsk_and_rewrite))
-         in SOME (Declarations (declarations)) end |*)
+    val (termified_concl,cx') = node_of_term skolem_term cx
+    val normalized_concl = unsk_and_rewrite new_variable_names termified_concl
+    
+
+    val step = Lethe_Definition_Node {id=id,rule=rule,skolem_name=skolem_name,skolem_term=normalized_concl}
 
   in
-    postprocess step (cx,new_variable_names) (*TODO*)
+    (step, (cx', new_variable_names))
   end
  |
   postprocess (Raw_Lethe_Node {id, rule, step_args, context_assignments, prems, concl, subproof}) (cx, new_variable_names) =
@@ -808,8 +792,20 @@ let
     |> (fn (step, (cx, _)) => (step, cx))
   end
 
+(*
+Compression
+Wenn du renaming machst:
 
-fun combine_proof_steps ((step1 : lethe_replay_node) :: step2 :: steps) =
+gleichheit
+equiv_pos2
+RHS
+
+Das hier macht einen Schritt daraus.
+Geht nochmal den gesamten Beweis durch, lohnt sich aber fuer veriT
+
+Fuer cvc5 lohnt es sich vielleicht nicht \<rightarrow> TODO: mache note
+*)
+fun combine_proof_steps ((step1 as Lethe_Replay_Node _ : lethe_replay_node) :: (step2 as Lethe_Replay_Node _) :: steps) =
       let
         val (Lethe_Replay_Node {id = id1, rule = rule1, step_args = step_args1,
             context_assignments = context_assignment1, prems = prems1,
@@ -839,6 +835,8 @@ fun combine_proof_steps ((step1 : lethe_replay_node) :: step2 :: steps) =
             (bound_sub1, assms_sub1, assms_extra1, combine_proof_steps subproof1) args1 ::
           combine_proof_steps (step2 :: steps)
       end
+  | combine_proof_steps ((step1 as Lethe_Definition_Node _ : lethe_replay_node) :: steps) =
+     step1 :: combine_proof_steps steps
   | combine_proof_steps steps = steps
 
 

@@ -117,7 +117,8 @@ val _ = @{print}("here",(not (null ll_defs) andalso not (Lethe_Proof.keep_raw_li
 fun add_used_asserts_in_step (Lethe_Node.Lethe_Replay_Node {prems,
     subproof = (_, _, _, subproof), concl, ...}) =
   union (op =) (map_filter (try (snd o SMTLIB_Interface.role_and_index_of_assert_name)) prems @
-     flat (map (fn x => add_used_asserts_in_step x []) subproof))
+     flat (map (fn x => add_used_asserts_in_step x []) subproof)) |
+  add_used_asserts_in_step (Lethe_Node.Lethe_Definition_Node _) = (fn x => x)
 
 fun remove_rewrite_rules_from_rules n =
   (fn Lethe_Node.Lethe_Replay_Node {id, ...} =>
@@ -269,10 +270,8 @@ fun replay_theorem_step rewrite_rules all_assms ll_defs assumed (inputs : thm li
        concl_tranformation, sub_global_rew) end
 
 fun replay_definition_step rewrite_rules ll_defs _ _ _
-  (Lethe_Node.Lethe_Replay_Node {id, subproof = (_, _, _, subproof), args, ...}) state =
+  (Lethe_Node.Lethe_Definition_Node {id, skolem_name, skolem_term, ...}) state =
   let
-    val _ = if null subproof then ()
-          else raise (Fail ("unrecognized cvc5 proof, definition has a subproof"))
     val (proofs, stats, ctxt, concl_tranformation, global_transformation) = state
 
     val global_transformer = subst_only_free global_transformation
@@ -281,16 +280,16 @@ fun replay_definition_step rewrite_rules ll_defs _ _ _
         #> not (null ll_defs) ? SMTLIB_Isar.unlift_term ll_defs
       end
     val start0 = Timing.start ()
-    val declaration = map (apsnd (rewrite o global_transformer)) (case args of SOME (Declarations xs) => xs | _ => []) (*TODO: raw_declarations*)
-    val (names, ctxt) = Variable.variant_fixes (map fst declaration) ctxt
-       ||> fold Variable.declare_term (map Free (map (apsnd fastype_of) declaration))
-    val old_names = map Free (map (fn (a, b) => (a, fastype_of b)) declaration)
-    val new_names = map Free (ListPair.zip (names, map (fastype_of o snd) declaration))
+    val declaration = (rewrite o global_transformer) skolem_term
+    val ([name], ctxt) = Variable.variant_fixes [skolem_name] ctxt
+       ||> Variable.declare_term (Free (skolem_name, fastype_of declaration))
+    val old_names = (Free (skolem_name, fastype_of declaration))
+    val new_names = (Free (name, fastype_of declaration))
     fun update_mapping (a, b) tab =
           if a <> b andalso Termtab.lookup tab a = NONE
           then Termtab.update_new (a, b) tab else tab
     val global_transformation = global_transformation
-     |> fold update_mapping (ListPair.zip (old_names, new_names))
+     |> update_mapping (old_names, new_names)
     val global_transformer = subst_only_free global_transformation
 
     val generate_definition =
@@ -299,10 +298,10 @@ fun replay_definition_step rewrite_rules ll_defs _ _ _
             Free (name, fastype_of term) $ term)))
       #> global_transformer
       #> Thm.cterm_of ctxt
-    val decls = map generate_definition declaration
-    val (defs, ctxt) = Assumption.add_assumes decls ctxt
-    val thms_with_old_name = ListPair.zip (map fst declaration, defs)
-    val proofs = fold
+    val decls = generate_definition (skolem_name,declaration)
+    val ([def], ctxt) = Assumption.add_assumes [decls] ctxt
+    val thms_with_old_name = (declaration, def)
+    val proofs = 
       (fn (name, thm) => Symtab.update (id, ([name], @{thm sym} OF [thm])))
       thms_with_old_name proofs
     val total = Time.toNanoseconds (#elapsed (Timing.result start0))
@@ -327,10 +326,12 @@ fun replay_assumed assms ll_defs rewrite_rules stats ctxt term =
   end
 
 fun replay_step rewrite_rules all_assms ll_defs assumed inputs all_local_assumptions
-  (step as Lethe_Node.Lethe_Replay_Node {rule, ...}) state =
-  if rule = Lethe_Proof.skolem_def
-  then replay_definition_step rewrite_rules ll_defs assumed inputs all_local_assumptions step state
-  else replay_theorem_step rewrite_rules all_assms ll_defs assumed inputs all_local_assumptions step state
+  (step as Lethe_Node.Lethe_Replay_Node {...}) state =
+   replay_theorem_step rewrite_rules all_assms ll_defs assumed inputs all_local_assumptions step state |
+replay_step rewrite_rules _ ll_defs assumed inputs all_local_assumptions
+  (step as Lethe_Node.Lethe_Definition_Node {...}) state =
+   replay_definition_step rewrite_rules ll_defs assumed inputs all_local_assumptions step state
+ 
 
 fun replay outer_ctxt
     ({ctxt = ctxt, typs, terms, rewrite_rules, assms, ll_defs, ...} : SMT_Translate.replay_data)

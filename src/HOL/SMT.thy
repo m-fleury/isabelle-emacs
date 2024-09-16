@@ -1060,4 +1060,16 @@ lemma "(f::('a set\<Rightarrow> int) \<Rightarrow> 'b \<Rightarrow> ('c \<Righta
        (assert (! (not (= f$ f$)) :named a0))
        (check-sat)
        (get-proof)*)
+
+
+declare[[smt_cvc_lethe = true]]
+
+lemma
+  assumes "(\<exists>x. P x)" "(\<forall>x. P x \<longrightarrow> False)"
+  shows "False"
+  using assms
+  supply [[smt_trace]]
+  apply (smt (cvc5))
+
+
 end
