@@ -126,7 +126,7 @@ let
           val (_,i) = (Timeout.apply (seconds 30.0) (fn () => check_smt prover problem_path proof_path opt_output_file local_thy) () ,i+1)
             handle
             (*Error Parsing problem*)
-            (SMT_Parse_Problem.SMT_PROBLEM_PARSE(msg))
+            SMT_Parse_Problem.SMT_PROBLEM_PARSE(msg)
             => (@{print}("Error parsing SMT-LIB problem: " ^ msg , problem_path);
                   print_error_to_file ctxt 5; (local_thy,i)) |
             (*Error during Parsing into AST*)
@@ -161,10 +161,7 @@ let
                   print_error_to_file ctxt 7; (local_thy,i)) |
             (SMT_Failure.SMT err)
                => (@{print}("Unkown SMT error " ^ SMT_Failure.string_of_failure err, problem_path);
-                  print_error_to_file ctxt 5; (local_thy,i)) |
-             exp => (@{print}("Some unkown error occured while checking the proof " ^ problem_path);
-                  @{print}("exp",exp);
-                  print_error_to_file ctxt 1; (local_thy,i))
+                  print_error_to_file ctxt 5; (local_thy,i))
         in check_all ts i end
       else raise ERROR("Could not find proof for problem:" ^ problem_path)
     end

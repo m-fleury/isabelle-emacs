@@ -37,7 +37,9 @@ lemma
       and "\<not> (d \<or> False) \<or> c"
       and "\<not> (c \<or> (\<not> p \<and> (p \<or> (q \<and> \<not> q))))"
   shows False
-  using assms by (smt (cvc5))
+  using assms 
+  supply [[smt_trace]]
+  by (smt (cvc5))
 
 axiomatization symm_f :: "'a \<Rightarrow> 'a \<Rightarrow> 'a" where
   symm_f: "symm_f x y = symm_f y x"

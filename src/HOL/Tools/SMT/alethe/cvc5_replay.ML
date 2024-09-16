@@ -369,7 +369,7 @@ fun replay outer_ctxt
         args = NONE}
     val used_assert_ids = fold add_used_asserts_in_step parsed_proof_steps []
     val real_assms =
-      map_filter (fn id => let val i = index_of_id id in if i >= 0 then SOME (i, nth (rev assms) i)
+      map_filter (fn id => let val i = index_of_id id in if i >= 0 then SOME (i, nth (assms) i)
           else NONE end) (*FIXME: nth is not a good way to do this! We had to add a rev several times now and assms do have ideas so it might be okay to use these!*)
         used_assert_ids
     val real_assms_steps = map step_of_assume real_assms 

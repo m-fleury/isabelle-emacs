@@ -947,4 +947,12 @@ lemma [z3_rule]:  (* for def-axiom *)
 hide_type (open) symb_list pattern
 hide_const (open) Symb_Nil Symb_Cons trigger pat nopat fun_app z3div z3mod
 
+
+axiomatization symm_f :: "'a \<Rightarrow> 'a \<Rightarrow> 'a" where
+  symm_f: "symm_f x y = symm_f y x"
+
+lemma "a = a \<and> symm_f a b = symm_f b a"
+  supply [[smt_trace, smt_cvc_lethe]]
+  by (smt (cvc5) symm_f)
+
 end
