@@ -78,7 +78,7 @@ type smtlib_theories = {
 }
 
 val solver_supports = [
-  ("cvc5", ({fixedSizeBitVectors=true,real=true,set=true}:smtlib_theories)),
+  ("cvc5_proof", ({fixedSizeBitVectors=true,real=true,set=true}:smtlib_theories)),
   ("verit", ({fixedSizeBitVectors=false,real=false,set=false}:smtlib_theories)),
   ("z3", ({fixedSizeBitVectors=true,real=true,set=false}:smtlib_theories))                    
 ]
@@ -87,7 +87,7 @@ fun get_supported_theories solver =
  (case List.find (fn x => fst x = solver) solver_supports of
       SOME (_,supported) => supported |
       NONE => raise (Fail ("Could not find which logics are supported for solver " ^ solver
-        ^ ". Please add that information or set specific SMTLIB-theories instead of using "
+        ^ " in " ^ @{make_string} solver_supports ^ ". Please add that information or set specific SMTLIB-theories instead of using "
         ^ "ALL_SUPPORTED as smt-lib logic")))
 
 fun solver_support_theories solver
