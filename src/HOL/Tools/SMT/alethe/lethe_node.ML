@@ -36,13 +36,12 @@ sig
     prems: string list,
     concl: term,
     subproof: (string * typ) list * term list * term list * lethe_replay_node list,
-    args: tactic_args option}
+    args: tactic_args option }
   | Lethe_Definition_Node of {
     id: string,
     rule: string,
     skolem_name : string,
-    skolem_term : term
-  }
+    skolem_term : term }
 
 
   val mk_replay_node: string -> string -> term list -> term list -> string list -> term ->
@@ -128,7 +127,8 @@ fun transform_tactic_args _ NONE = NONE |
   transform_tactic_args f (SOME (Declarations xs)) = SOME (Declarations xs) |
   transform_tactic_args f x = x
 
-datatype lethe_replay_node = Lethe_Replay_Node of {
+datatype lethe_replay_node =
+ Lethe_Replay_Node of {
   id: string,
   rule: string,
   step_args: term list,
@@ -136,13 +136,12 @@ datatype lethe_replay_node = Lethe_Replay_Node of {
   prems: string list,
   concl: term,
   subproof: (string * typ) list * term list * term list * lethe_replay_node list,
-  args: tactic_args option} |
+  args: tactic_args option } |
  Lethe_Definition_Node of {
-    id: string,
-    rule: string,
-    skolem_name : string,
-    skolem_term : term
-  }
+  id: string,
+  rule: string,
+  skolem_name : string,
+  skolem_term : term }
 
 fun mk_replay_node id rule step_args context_ass prems concl subproof tactic_args =
   Lethe_Replay_Node {id = id, rule = rule, step_args = step_args,
