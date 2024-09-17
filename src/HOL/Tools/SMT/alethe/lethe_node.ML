@@ -20,11 +20,12 @@ sig
 
   (* Pass information added during pre-processing to reconstruction *)
   datatype tactic_args =
-    Declarations of (string * term) list | (*only used for sko_definitions*)
+    Declarations of (string * term) list | (*only used for sko_definitions*) (*TODO: Delete*)
     Insts of term Symtab.table | (*only used for forall_inst*)
     Sko_Def_Prems of string list * string list | (*only used for sko_forall and sko_exists*)
     Solver_Name of string | (*used for refl and cong*)
-    Index of int (*used for and, not_or, and_pos and or_neg*)
+    Index of int | (*used for and, not_or, and_pos and or_neg*)
+    Farkas_Coefficients of (int * int) list
 
   val transform_tactic_args : (term -> term) -> tactic_args option -> tactic_args option
 
@@ -120,7 +121,8 @@ datatype tactic_args =
   Insts of term Symtab.table | (*only used for forall_inst*)
   Sko_Def_Prems of string list * string list | (*only used for sko_forall and sko_exists*)
   Solver_Name of string |  (*used for refl and cong*)
-  Index of int (*used for and, not_or, and_pos and or_neg*)
+  Index of int | (*used for and, not_or, and_pos and or_neg*)
+  Farkas_Coefficients of (int * int) list
 
 fun transform_tactic_args _ NONE = NONE |
   transform_tactic_args f (SOME (Insts insts)) = SOME (Insts (Symtab.map (K f) insts)) |
