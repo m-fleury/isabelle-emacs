@@ -273,74 +273,22 @@ fun parse_raw_proof_steps (curr_anchor_id : string option) (smtlib_lines : SMTLI
 
 (* Second parsing pass: parse proof into lethe replay nodes *)
 
-fun skolems_introduced_by_rule [] = [] |
-    skolems_introduced_by_rule bds = fold
-      (fn (SMTLIB.S [SMTLIB.Sym "=", _, SMTLIB.Sym y]) => curry (op ::) y | _ => (fn x => x))
-      bds [] 
-
-fun id_of_last_step prems =
-  if null prems then []
-  else
-    case List.last prems of
-      Lethe_Replay_Node {id, ...} => [id] |
-      Lethe_Definition_Node {id, ...} => [id]
-
-fun extract_assumptions_from_subproof subproof =
-  let
-    fun extract_assumptions (Lethe_Replay_Node {rule, concl, ...}) assms =
-      if rule = local_input_rule then concl :: assms else assms |
-      extract_assumptions (Lethe_Definition_Node _) assms = assms 
-  in
-    fold extract_assumptions subproof []
-  end
-
-fun normalized_input_rule_name id = if can SMTLIB_Interface.role_and_index_of_assert_name id then normalized_input_rule else local_input_rule
-
-
-
 (* The preprocessing takes care of:
      1. unfolding the shared terms
      2. extract the declarations of skolems to make sure that there are not unfolded
-TODO: Update this comment
+     3. ignore unexpected arguments (both step args and context assignments)
 *)
 fun preprocess compress step =
   let
     fun expand_assms cs =
       map (fn t => case AList.lookup (op =) cs t of NONE => t | SOME a => a)
 
-    (*
-      For legacy versions of veriT. If argument list contains (x S) and (= y x) change the latter
-      to (= (y S) x). It is possible to have argument lists such as (x S) (x T) (= y x), so we need
-      the most up-to-date sort of x
-    *)
-    fun match_typing_arguments _ [] = [] |
-      (*1. Sorted variable found (v0 S) *)
-      match_typing_arguments tab ((x as (SMTLIB.S [SMTLIB.Sym x1, y2]))::xs) = 
-        x :: match_typing_arguments (Symtab.update (x1,y2) tab) xs  |
-      (*2. Mapping without type found (:= v0 v1) *)
-      match_typing_arguments tab ((x as (SMTLIB.S [SMTLIB.Sym "=", SMTLIB.Sym x1, t]))::xs) =
-        (case Symtab.lookup tab x1 of
-          NONE => x :: match_typing_arguments tab xs (*Nothing to be done we have to try later to add the type*) |
-          (SOME y2) => (SMTLIB.S [SMTLIB.Sym "=", (SMTLIB.S [SMTLIB.Sym x1, y2]), t]) :: match_typing_arguments tab xs) |
-      (*3. All other cases*)
-      match_typing_arguments tab (x::xs) = x :: match_typing_arguments tab xs
-
-      fun normalize_name name = if String.explode name |> hd |> Char.isUpper  then "isabelle_internal_" ^ name  else name
-      fun smtlib_types t = (t="Bool") orelse (t="Int") orelse (t="Real") orelse (t="String")
-      fun normalize_tree (SMTLIB.Sym s) = if smtlib_types s then SMTLIB.Sym s else SMTLIB.Sym (normalize_name s) |
-          normalize_tree (SMTLIB.S xs) = SMTLIB.S (map normalize_tree xs) |
-          normalize_tree x = x
-
-
-      fun ignore_unexpected ctxt msg rule f xs =
-        if xs <> [] andalso not (f rule)
-        then
-          let val _ = (SMT_Config.verit_msg ctxt) (fn () => \<^print> ("Ignored unexpected " ^ msg ^ " Rule has kind: ", rule))
-          in [] end
-        else xs
-
-      fun normalize_tree_if ctxt cond xs = if Config.get ctxt cond then (map normalize_tree xs) else xs
-
+    fun ignore_unexpected ctxt msg rule f xs =
+      if xs <> [] andalso not (f rule)
+      then
+        let val _ = (SMT_Config.verit_msg ctxt) (fn () => \<^print> ("Ignored unexpected " ^ msg ^ " Rule has kind: ", rule))
+        in [] end
+      else xs
 
     fun preprocess (x as Raw_Definition_Node _) (cx : ('a list, 'b) context, remap_prems) = ([x], (cx, remap_prems)) |
      preprocess (Raw_Lethe_Node {id, rule, step_args, context_assignments, prems, concl, subproof, ...}) (cx : ('a list, 'b) context, remap_prems)  =
@@ -348,9 +296,15 @@ fun preprocess compress step =
         val ctxt = #ctxt cx
         val _ = debug_lptrace high (fn () => \<^print> ("preprocessing started for rule: ", id))
 
-        (* If we check external proofs we need to change term names starting with an upper character
+        (* TODO: If we check external proofs we need to change term names starting with an upper character
            since this is not allowed in Isabelle *)
         (* I am not too happy about this since it works on all expressions, I want to change this maybe able do in smtlib_proof? *)
+        fun normalize_name name = if String.explode name |> hd |> Char.isUpper then "isabelle_internal_" ^ name  else name
+        fun smtlib_types t = (t="Bool") orelse (t="Int") orelse (t="Real") orelse (t="String")
+        fun normalize_tree (SMTLIB.Sym s) = if smtlib_types s then SMTLIB.Sym s else SMTLIB.Sym (normalize_name s) |
+            normalize_tree (SMTLIB.S xs) = SMTLIB.S (map normalize_tree xs) |
+            normalize_tree x = x
+        fun normalize_tree_if ctxt cond xs = if Config.get ctxt cond then (map normalize_tree xs) else xs
         val step_args = normalize_tree_if ctxt SMT_Config.check_external step_args
         val context_assignments = normalize_tree_if ctxt SMT_Config.check_external context_assignments
         val concl = normalize_tree_if ctxt SMT_Config.check_external [concl] |> hd
@@ -359,31 +313,7 @@ fun preprocess compress step =
         val context_assignments = ignore_unexpected ctxt "context annotation" rule allows_context_assignment context_assignments
         val step_args = ignore_unexpected ctxt "args" rule allows_step_args step_args
         val replace_assignment_sym = (fn SMTLIB.S [SMTLIB.Key "=", x, y] => SMTLIB.S [SMTLIB.Sym "=", x, y] | x => x)
-
-        (* Legacy Transformations of Arguments*)
-        val (stripped_context_assignments,stripped_step_args) = 
-        let
-          val sanitized_context_assignments =
-            context_assignments
-            |> map replace_assignment_sym
-            |> match_typing_arguments Symtab.empty
-
-          val stripped_step_args =
-           if rule = forall_inst_rule
-           then step_args |> map replace_assignment_sym
-           else step_args
-
-          val legacy_proof =
-            ((not (context_assignments = [])) andalso (context_assignments = sanitized_context_assignments))
-            orelse ((not (step_args = [])) andalso (stripped_step_args = step_args))
-
-          val _ = if legacy_proof then
-            let val _ = debug_lptrace middle (fn () => \<^print> ("Found a legacy context assignment. Add type information syntactically (for legacy versions of veriT) ", context_assignments))
-            in () end else ()
-        in 
-          (sanitized_context_assignments,stripped_step_args)
-        end
-           
+     
         (* Recursive Call to Preprocess Subproof*)
         val (subproof, (cx, _)) = fold_map preprocess subproof (cx, remap_prems) |> apfst flat
 
@@ -397,7 +327,7 @@ fun preprocess compress step =
            let val _ = debug_lptrace low (fn () => \<^print> ("If any premise of the current step has been skipped the premise is updated to that premise's premise"))
            in expand_assms remap_prems prems end
           else prems
-        val preprocessed_node = ([mk_raw_node id rule stripped_step_args stripped_context_assignments repaired_prems concl subproof],
+        val preprocessed_node = ([mk_raw_node id rule step_args context_assignments repaired_prems concl subproof],
           (cx, remap_prems))
 
       in
@@ -447,6 +377,11 @@ fun split_context_assignment cx [] (fixed : (string * term) list) substituted su
 fun split_context_ass cx context_assignments = split_context_assignment cx context_assignments [] [] []
 
 
+fun skolems_introduced_by_rule [] = [] |
+    skolems_introduced_by_rule bds = fold
+      (fn (SMTLIB.S [SMTLIB.Sym "=", _, SMTLIB.Sym y]) => curry (op ::) y | _ => (fn x => x))
+      bds [] 
+
 fun collect_skolem_defs (Raw_Lethe_Node {rule, subproof = subproof, context_assignments, ...}) =
   (if is_skolemization rule then map get_skolem_def_id (skolems_introduced_by_rule context_assignments) else []) @
   flat (map collect_skolem_defs subproof)
@@ -480,6 +415,21 @@ val desymbolize = Name.desymbolize (SOME false) o perhaps (try (unprefix "?"))
 *)
 fun postprocess_proof compress ctxt step cx =
 let
+
+fun id_of_last_step prems =
+  if null prems then []
+  else
+    case List.last prems of
+      Lethe_Replay_Node {id, ...} => [id] |
+      Lethe_Definition_Node {id, ...} => [id]
+fun extract_assumptions_from_subproof subproof =
+  let
+    fun extract_assumptions (Lethe_Replay_Node {rule, concl, ...}) assms =
+      if rule = local_input_rule then concl :: assms else assms |
+      extract_assumptions (Lethe_Definition_Node _) assms = assms 
+  in
+    fold extract_assumptions subproof []
+  end
 
   fun process_context_assignments context_assignments cx = 
   let
@@ -717,6 +667,7 @@ let
       val normalized_premises = prems @ (if is_assm_repetition id rule then [id] else [])
 
       (* fix rule *)
+      fun normalized_input_rule_name id = if can SMTLIB_Interface.role_and_index_of_assert_name id then normalized_input_rule else local_input_rule
       val normalized_rule =
         if rule = input_rule
         then normalized_input_rule_name id
