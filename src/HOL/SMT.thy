@@ -637,6 +637,10 @@ lemma [smt_arith_combine]:
   by (auto intro: ordered_cancel_ab_semigroup_add_class.add_strict_right_mono
     ordered_ab_semigroup_add_class.add_right_mono)
 
+lemma [smt_arith_combine]:
+  "c = d \<Longrightarrow> e = f \<Longrightarrow> c + e = d + f"
+  by simp
+
 lemma verit_negate_coefficient:
   \<open>a \<le> (b :: 'a :: {ordered_ab_group_add}) \<Longrightarrow> -a \<ge> -b\<close>
   \<open>a < b \<Longrightarrow> -a > -b\<close>
