@@ -274,9 +274,10 @@ fun parse_raw_proof_steps (curr_anchor_id : string option) (smtlib_lines : SMTLI
 (* Second parsing pass: parse proof into lethe replay nodes *)
 
 (* The preprocessing takes care of:
-     1. unfolding the shared terms
-     2. extract the declarations of skolems to make sure that there are not unfolded
+     1. unfolding the shared terms TODO: Where?
+     2. extract the declarations of skolems to make sure that there are not unfolded TODO: Where?
      3. ignore unexpected arguments (both step args and context assignments)
+     4. compressing of or steps if compression is activated
 *)
 fun preprocess compress step =
   let
@@ -310,9 +311,8 @@ fun preprocess compress step =
         val concl = normalize_tree_if ctxt SMT_Config.check_external [concl] |> hd
 
         (* Sanity Checks *)
-        val context_assignments = ignore_unexpected ctxt "context annotation" rule allows_context_assignment context_assignments
-        val step_args = ignore_unexpected ctxt "args" rule allows_step_args step_args
-        val replace_assignment_sym = (fn SMTLIB.S [SMTLIB.Key "=", x, y] => SMTLIB.S [SMTLIB.Sym "=", x, y] | x => x)
+        val sanitized_context_assignments = ignore_unexpected ctxt "context annotation" rule allows_context_assignment context_assignments
+        val sanitized_step_args = ignore_unexpected ctxt "args" rule allows_step_args step_args
      
         (* Recursive Call to Preprocess Subproof*)
         val (subproof, (cx, _)) = fold_map preprocess subproof (cx, remap_prems) |> apfst flat
@@ -320,20 +320,21 @@ fun preprocess compress step =
         (* Compression of `or` Steps *)
         val skip_step = rule = or_rule andalso compress
         fun compress_or_rule remap_prems = (id, hd prems) :: remap_prems
-
         val repaired_prems =
           if compress
           then
            let val _ = debug_lptrace low (fn () => \<^print> ("If any premise of the current step has been skipped the premise is updated to that premise's premise"))
            in expand_assms remap_prems prems end
           else prems
-        val preprocessed_node = ([mk_raw_node id rule step_args context_assignments repaired_prems concl subproof],
+
+        val preprocessed_node = ([mk_raw_node id rule sanitized_step_args sanitized_context_assignments repaired_prems concl subproof],
           (cx, remap_prems))
+        val skipped_step = ([], (cx, compress_or_rule remap_prems))
 
       in
         if skip_step
-        then (debug_lptrace low (fn () => \<^print> ("Compress proof by skipping current 'or' step"));
-              ([], (cx, compress_or_rule remap_prems))) 
+        then let val _ = debug_lptrace low (fn () => \<^print> ("Compress proof by skipping current 'or' step"))
+          in skipped_step end
         else preprocessed_node
       end
   in preprocess step end
