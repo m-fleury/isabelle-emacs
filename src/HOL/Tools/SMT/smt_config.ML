@@ -44,7 +44,7 @@ sig
   val debug_files: string Config.T
   val sat_solver: string Config.T
   val check_external: bool Config.T
-  val compress_verit_proofs: Proof.context -> bool (*TODO: Rename to lethe if this works. Otherwise, we need two separate ones since or steps should also be skipped in cvc5*)
+  val compress_verit_proofs: Proof.context -> bool (*TODO: Rename to alethe if this works. Otherwise, we need two separate ones since or steps should also be skipped in cvc5*)
 
   (*tools*)
   val get_timeout: Proof.context -> Time.time option
@@ -59,7 +59,7 @@ sig
   val verit_arith_msg: Proof.context -> (unit -> 'a) -> unit
   val spy_verit: Proof.context -> bool
   val spy_Z3: Proof.context -> bool
-  val use_lethe_proof_from_cvc: Proof.context -> bool
+  val use_alethe_proof_from_cvc: Proof.context -> bool
   val alethe_no_provided_assms: Proof.context -> bool
   val alethe_set_no_provided_assms: bool -> Proof.context -> Proof.context
 
@@ -212,8 +212,8 @@ val infer_triggers = Attrib.setup_config_bool \<^binding>\<open>smt_infer_trigge
 val debug_files = Attrib.setup_config_string \<^binding>\<open>smt_debug_files\<close> (K "")
 val sat_solver = Attrib.setup_config_string \<^binding>\<open>smt_sat_solver\<close> (K "cdclite")
 val check_external = Attrib.setup_config_bool \<^binding>\<open>smt_check_external\<close> (K false)
-val cvc_experimental_lethe = Attrib.setup_config_bool \<^binding>\<open>smt_cvc_lethe\<close> (K false)
-val lethe_no_assumption = Attrib.setup_config_bool \<^binding>\<open>smt_lethe_no_assumption\<close> (K false)
+val cvc_experimental_alethe = Attrib.setup_config_bool \<^binding>\<open>smt_cvc_alethe\<close> (K false)
+val alethe_no_assumption = Attrib.setup_config_bool \<^binding>\<open>smt_alethe_no_assumption\<close> (K false)
 
 
 (* diagnostics *)
@@ -231,9 +231,9 @@ fun spy_verit ctxt  = Config.get ctxt spy_verit_attr
 fun spy_Z3 ctxt  = Config.get ctxt spy_z3
 fun compress_verit_proofs ctxt  = Config.get ctxt trace_verit_compression
 
-fun use_lethe_proof_from_cvc ctxt = Config.get ctxt cvc_experimental_lethe
-fun alethe_no_provided_assms ctxt = Config.get ctxt lethe_no_assumption
-fun alethe_set_no_provided_assms b = Config.map lethe_no_assumption (K b)
+fun use_alethe_proof_from_cvc ctxt = Config.get ctxt cvc_experimental_alethe
+fun alethe_no_provided_assms ctxt = Config.get ctxt alethe_no_assumption
+fun alethe_set_no_provided_assms b = Config.map alethe_no_assumption (K b)
 
 (* tools *)
 

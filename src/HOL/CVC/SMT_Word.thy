@@ -11,7 +11,7 @@ SMT.thy
 
 *)
 
-declare  [[smt_cvc_lethe = true]]
+declare  [[smt_cvc_alethe = true]]
 
 subsection \<open>Tool support\<close>
 
@@ -647,11 +647,11 @@ lemmas [arith_simp_cvc5] = Groups.monoid_mult_class.mult_1_right Nat.mult_Suc_ri
                      Num.numeral_2_eq_2 Nat.One_nat_def Num.numeral_2_eq_2 Nat.One_nat_def
                      Nat.Suc_less_eq Nat.zero_less_Suc minus_nat.diff_0 Nat.diff_Suc_Suc Nat.le0
 
-ML_file\<open>ML/lethe_replay_bv_methods.ML\<close>
+ML_file\<open>ML/alethe_replay_bv_methods.ML\<close>
 ML\<open>
 
 open Word_Lib
-open Lethe_Replay_BV_Methods
+open Alethe_Replay_BV_Methods
 
 fun mk_unary n t =
   let val T = fastype_of t

@@ -27,7 +27,7 @@ ML_file \<open>ML/SMT_array.ML\<close>
 
 (*Term rewrites*)
 
-ML_file \<open>ML/lethe_replay_rare_simplify_methods.ML\<close>
+ML_file \<open>ML/alethe_replay_rare_simplify_methods.ML\<close>
 
 ML \<open>
 fun cvc_term_parser (SMTLIB.Sym "rare-list", []) = (@{print}("rare-list");
@@ -101,7 +101,7 @@ val _ = Outer_Syntax.local_theory \<^command_keyword>\<open>check_smt_dir\<close
 
 
 
-declare [[smt_trace=false,smt_timeout=5000000,smt_cvc_lethe = true]]
+declare [[smt_trace=false,smt_timeout=5000000,smt_cvc_alethe = true]]
 
 ML \<open>
 Config.put SMT_Config.trace true\<close>

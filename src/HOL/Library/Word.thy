@@ -4597,7 +4597,7 @@ In traverse in smt_translate wird der Name r0 ignoriert
 
 Alles was wir in r3 reintun wird nicht mehr traversed.
 *)
-declare[[smt_cvc_lethe = true]]
+declare[[smt_cvc_alethe = true]]
 declare[[smt_verbose = true,smt_trace]]
 declare[[smt_nat_as_int]]
 
@@ -4741,7 +4741,7 @@ lemmas [cvc5_normalized_input] = len_bit0 len_num1 mult_Suc_right One_nat_def
 
 lemma assumes "a=64" shows "LENGTH(64) = (a::nat)"
   using nat_int assms
-  supply [[smt_nat_as_int, smt_trace,smt_cvc_lethe,smt_debug_verit]]
+  supply [[smt_nat_as_int, smt_trace,smt_cvc_alethe,smt_debug_verit]]
   sorry
 *)
 end

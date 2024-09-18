@@ -9,7 +9,7 @@ signature CVC5_REPLAY_METHODS =
 sig
   (*methods for verit proof rules*)
   val method_for: string -> Proof.context -> thm list -> term list -> term list -> term ->
-     Lethe_Node.tactic_args option -> thm
+     Alethe_Node.tactic_args option -> thm
 
   val discharge: Proof.context -> thm list -> term -> thm
 end;
@@ -18,7 +18,7 @@ end;
 structure CVC5_Replay_Methods: CVC5_REPLAY_METHODS =
 struct
 
-open Lethe_Replay_Methods
+open Alethe_Replay_Methods
 
 fun cvc5_rule_of "bind" = Bind
   | cvc5_rule_of "cong" = Cong
@@ -100,18 +100,18 @@ fun cvc5_rule_of "bind" = Bind
   | cvc5_rule_of "unary_minus_simplify" = Minus_Simplify
   | cvc5_rule_of "quantifier_simplify" = Tmp_Quantifier_Simplify (*TODO Remove*)
   | cvc5_rule_of r =
-     if r = Lethe_Proof.normalized_input_rule then Normalized_Input
-     else if r = Lethe_Proof.local_input_rule then Local_Input
-     else if r = Lethe_Proof.skolem_def then Definition
-     else if r = Lethe_Proof.not_not_rule then Not_Not
-     else if r = Lethe_Proof.contract_rule orelse r = "duplicate_literals" then Duplicate_Literals
-     else if r = Lethe_Proof.ite_intro_rule then ITE_Intro
-     else if r = Lethe_Proof.eq_congruent_rule then Eq_Congruent
-     else if r = Lethe_Proof.eq_congruent_pred_rule then Eq_Congruent_Pred
-     else if r = Lethe_Proof.theory_resolution2_rule then Theory_Resolution2
-     else if r = Lethe_Proof.th_resolution_rule then Theory_Resolution
-     else if r = Lethe_Proof.equiv_pos2_rule then Equiv_pos2
-     else if r = Lethe_Proof.hole orelse r = "undefined" then Hole
+     if r = Alethe_Proof.normalized_input_rule then Normalized_Input
+     else if r = Alethe_Proof.local_input_rule then Local_Input
+     else if r = Alethe_Proof.skolem_def then Definition
+     else if r = Alethe_Proof.not_not_rule then Not_Not
+     else if r = Alethe_Proof.contract_rule orelse r = "duplicate_literals" then Duplicate_Literals
+     else if r = Alethe_Proof.ite_intro_rule then ITE_Intro
+     else if r = Alethe_Proof.eq_congruent_rule then Eq_Congruent
+     else if r = Alethe_Proof.eq_congruent_pred_rule then Eq_Congruent_Pred
+     else if r = Alethe_Proof.theory_resolution2_rule then Theory_Resolution2
+     else if r = Alethe_Proof.th_resolution_rule then Theory_Resolution
+     else if r = Alethe_Proof.equiv_pos2_rule then Equiv_pos2
+     else if r = Alethe_Proof.hole orelse r = "undefined" then Hole
      else Other_Rule r
 
 (*work-around should not be needed anymore*)
@@ -261,13 +261,13 @@ fun choose _ And = ignore_args and_rule
   | choose _ Tmp_Quantifier_Simplify = ignore_args qnt_simplify
   | choose ctxt (x as Other_Rule r) =
     (case get_alethe_tac r ctxt of
-      NONE => ignore_args hole(*unsupported (string_of_lethe_rule x)*)
+      NONE => ignore_args hole(*unsupported (string_of_alethe_rule x)*)
     | SOME a => include_step_args a)
   | choose _ Hole = ignore_args hole
   | choose _ RARE_Rewrite = ignore_args rare_rewrite
 
   | choose _ r = (@{print} ("unknown rule, using hole", r); ignore_args hole)
-(*unsupported (string_of_lethe_rule r)*)
+(*unsupported (string_of_alethe_rule r)*)
 
 fun with_tracing rule method ctxt prems step_args context_assignment t args =
   let val _ = SMT_Replay_Methods.trace_goal ctxt rule prems step_args t

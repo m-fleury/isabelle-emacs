@@ -699,7 +699,7 @@ ML_file \<open>Tools/SMT/alethe/cvc_interface.ML\<close>
 ML_file \<open>Tools/SMT/alethe/alethe_node.ML\<close>
 
 ML_file \<open>Tools/SMT/alethe/alethe_proof.ML\<close>
-(*ML_file \<open>Tools/SMT/lethe_proof.ML\<close>*)
+(*ML_file \<open>Tools/SMT/alethe_proof.ML\<close>*)
 ML_file \<open>Tools/SMT/alethe/alethe_smt_problem.ML\<close>
 
 ML_file \<open>Tools/SMT/alethe/alethe_isar.ML\<close>
@@ -1071,7 +1071,7 @@ lemma "(f::('a set\<Rightarrow> int) \<Rightarrow> 'b \<Rightarrow> ('c \<Righta
        (get-proof)*)
 
 
-declare[[smt_cvc_lethe = true]]
+declare[[smt_cvc_alethe = true]]
 
 
 end

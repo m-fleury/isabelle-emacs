@@ -113,23 +113,23 @@ val _ = expect_parsing_error "(01"
 \<close>
 
 
-(* Test lethe_proof.ML *)
+(* Test alethe_proof.ML *)
 (* Purely syntactical testing! *)
 
 
 ML\<open>
 exception SMT_Regression of string
 open SMTLIB
-open Lethe_Proof
+open Alethe_Proof
 
 (*expects 
-a SMTLIB.tree list, and a raw_lethe_node list, and a boolean indicating
-if the SMTLIB.tree list should be parsed into a the raw_lethe_node or not.
+a SMTLIB.tree list, and a raw_alethe_node list, and a boolean indicating
+if the SMTLIB.tree list should be parsed into a the raw_alethe_node or not.
 The current_anchor_id is set to NONE and the name bindings to the empty name bindings
 SMTLIB_Proof.empty_name_binding*)
 fun expect_parsing_error trees =
    (Timeout.apply (seconds 5.0) parse_raw_proof_steps) NONE trees SMTLIB_Proof.empty_name_binding|> K (raise (SMT_Regression ("Input expected to raise parsing error but did not")))
-  handle LETHE_PROOF_PARSE _ => true |
+  handle ALETHE_PROOF_PARSE _ => true |
    Fail _ => true
 
 
@@ -137,13 +137,13 @@ fun expect_parsing_error trees =
 the tree or not.*)
 fun check_raw_node trees raw_node expected_value =
 let
-  val node = Lethe_Proof.parse_raw_proof_steps NONE trees SMTLIB_Proof.empty_name_binding
+  val node = Alethe_Proof.parse_raw_proof_steps NONE trees SMTLIB_Proof.empty_name_binding
   val match = (expected_value = ((fn (a,_,_) => a) node =  raw_node))
   (*val _ = @{print}("node",node)*)
 in 
  case match of
   true => true |
-  false => raise (SMT_Regression ("Lethe_Proof.parse_raw_proof_steps does not give expected output instead resulted in "))
+  false => raise (SMT_Regression ("Alethe_Proof.parse_raw_proof_steps does not give expected output instead resulted in "))
 end
 
 
@@ -168,7 +168,7 @@ val _ = expect_parsing_error [malformed_args]
 
 val testTree = SMTLIB.parse ["(step t99 (cl) :rule resolution)"]
 val resTree = 
-  Raw_Lethe_Node {concl = Sym "false", context_assignments = [], id = "t99", prems = [], rule = "resolution", step_args = [], subproof = []}
+  Raw_Alethe_Node {concl = Sym "false", context_assignments = [], id = "t99", prems = [], rule = "resolution", step_args = [], subproof = []}
 val _ = check_raw_node [testTree] [resTree] true
 
 
@@ -177,38 +177,38 @@ val _ = check_raw_node [testTree] [resTree] true
 
 (* No step argument given for argument optional rule *)
 val testTree = SMTLIB.parse ["(step t17 (cl (+ @p_517 0)) :rule hole)"]
-val resTree = Raw_Lethe_Node
+val resTree = Raw_Alethe_Node
       {concl = S [Sym "or", S [Sym "+", Sym "@p_517",Num 0]], context_assignments = [], id = "t17", prems = [], rule = "hole", step_args = [], subproof = []}
 val _ = check_raw_node [testTree] [resTree] true
 
 (* Step argument given but not added *)
 val testTree = SMTLIB.parse ["(step t17 (cl) :rule hole :args (0))"]
-val resTree = Raw_Lethe_Node
+val resTree = Raw_Alethe_Node
       {concl = Sym "false", context_assignments = [], id = "t17", prems = [], rule = "hole", step_args = [], subproof = []}
 val _ = check_raw_node [testTree] [resTree] false
 
 (* Step argument given and properly added *)
 val testTree = SMTLIB.parse ["(step t17 (cl) :rule hole :args (0))"]
-val resTree = Raw_Lethe_Node
+val resTree = Raw_Alethe_Node
       {concl = Sym "false", context_assignments = [], id = "t17", prems = [], rule = "hole", step_args = [Num 0], subproof = []}
 val _ = check_raw_node [testTree] [resTree] true
 
 (* Rule does not allow step argument and none given *)
 val testTree = SMTLIB.parse ["(step t17 (cl (not (not (not a))) a) :rule not_not)"]
-val resTree = Raw_Lethe_Node
+val resTree = Raw_Alethe_Node
       {concl =  S [Sym "or", S [Sym "not", S [Sym "not", S [Sym "not", Sym "a"]]], Sym "a"], context_assignments = [], id = "t17", prems = [], rule = "not_not", step_args = [], subproof = []}
 val _ = check_raw_node [testTree] [resTree] true
 
 (* Unexpected step argument given TODO*)
 val testTree = SMTLIB.parse ["(step t17 (cl (not (not (not a))) a) :rule not_not :args (0))"]
 val _ = check_raw_node [testTree] [resTree] false
-val resTree = Raw_Lethe_Node
+val resTree = Raw_Alethe_Node
       {concl =  S [Sym "or", S [Sym "not", S [Sym "not", S [Sym "not", Sym "a"]]], Sym "a"], context_assignments = [], id = "t17", prems = [], rule = "not_not", step_args = [Num 0], subproof = []}
 val x = check_raw_node [testTree] [resTree] true
 
 
 
-val testNode = Lethe_Proof.parse_raw_proof_steps NONE [testTree] SMTLIB_Proof.empty_name_binding
+val testNode = Alethe_Proof.parse_raw_proof_steps NONE [testTree] SMTLIB_Proof.empty_name_binding
 
 
 \<close>

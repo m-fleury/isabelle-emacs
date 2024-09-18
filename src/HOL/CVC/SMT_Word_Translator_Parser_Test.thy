@@ -8,7 +8,7 @@ begin
 
 declare[[cvc5_options = "--proof-prune-input --proof-format-mode=alethe
   --lang=smt2 --dag-thres=0 "]] (*--proof-granularity=dsl-rewrite*)
-declare [[smt_cvc_lethe,smt_verbose,smt_trace,smt_nat_as_int]]
+declare [[smt_cvc_alethe,smt_verbose,smt_trace,smt_nat_as_int]]
 declare[[show_types,show_sorts]]
 
 

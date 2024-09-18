@@ -8,7 +8,7 @@ signature VERIT_REPLAY_METHODS =
 sig
   (*methods for verit proof rules*)
   val method_for: string -> Proof.context -> thm list -> term list -> term list -> term ->
-     Lethe_Node.tactic_args option -> thm
+     Alethe_Node.tactic_args option -> thm
 
   val discharge: Proof.context -> thm list -> term -> thm
 end;
@@ -17,7 +17,7 @@ end;
 structure Verit_Replay_Methods: VERIT_REPLAY_METHODS =
 struct
 
-open Lethe_Replay_Methods
+open Alethe_Replay_Methods
 
 fun verit_rule_of "bind" = Bind
   | verit_rule_of "cong" = Cong
@@ -98,18 +98,18 @@ fun verit_rule_of "bind" = Bind
   | verit_rule_of "tautology" = Tautological_Clause
   | verit_rule_of "qnt_cnf" = Qnt_CNF
   | verit_rule_of r =
-     if r = Lethe_Proof.normalized_input_rule then Normalized_Input
-     else if r = Lethe_Proof.local_input_rule then Local_Input
-     else if r = Lethe_Proof.skolem_def then Definition
-     else if r = Lethe_Proof.not_not_rule then Not_Not
-     else if r = Lethe_Proof.contract_rule then Duplicate_Literals
-     else if r = Lethe_Proof.ite_intro_rule then ITE_Intro
-     else if r = Lethe_Proof.eq_congruent_rule then Eq_Congruent
-     else if r = Lethe_Proof.eq_congruent_pred_rule then Eq_Congruent_Pred
-     else if r = Lethe_Proof.theory_resolution2_rule then Theory_Resolution2
-     else if r = Lethe_Proof.th_resolution_rule then Theory_Resolution
-     else if r = Lethe_Proof.equiv_pos2_rule then Equiv_pos2
-     else if r = Lethe_Proof.and_pos_rule then And_Pos
+     if r = Alethe_Proof.normalized_input_rule then Normalized_Input
+     else if r = Alethe_Proof.local_input_rule then Local_Input
+     else if r = Alethe_Proof.skolem_def then Definition
+     else if r = Alethe_Proof.not_not_rule then Not_Not
+     else if r = Alethe_Proof.contract_rule then Duplicate_Literals
+     else if r = Alethe_Proof.ite_intro_rule then ITE_Intro
+     else if r = Alethe_Proof.eq_congruent_rule then Eq_Congruent
+     else if r = Alethe_Proof.eq_congruent_pred_rule then Eq_Congruent_Pred
+     else if r = Alethe_Proof.theory_resolution2_rule then Theory_Resolution2
+     else if r = Alethe_Proof.th_resolution_rule then Theory_Resolution
+     else if r = Alethe_Proof.equiv_pos2_rule then Equiv_pos2
+     else if r = Alethe_Proof.and_pos_rule then And_Pos
      else (@{print} ("Unsupport rule", r); Unsupported)
 
 fun unsupported rule ctxt prems _ _ t _ = SMT_Replay_Methods.replay_error ctxt "Unsupported verit rule"
@@ -209,7 +209,7 @@ fun choose And = ignore_args and_rule
   | choose Bfun_Elim = ignore_args bfun_elim
   | choose Qnt_CNF = ignore_args qnt_cnf
   | choose Trans = ignore_args trans
-  | choose r = unsupported (string_of_lethe_rule r)
+  | choose r = unsupported (string_of_alethe_rule r)
 
 
 type verit_method = Proof.context -> thm list -> term -> thm

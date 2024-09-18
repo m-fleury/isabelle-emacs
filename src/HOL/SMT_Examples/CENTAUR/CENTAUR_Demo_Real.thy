@@ -1,7 +1,7 @@
 theory CENTAUR_Demo_Real
   imports HOL.SMT HOL.Real
 begin
-declare [[smt_cvc_lethe]]
+declare [[smt_cvc_alethe]]
 declare [[smt_trace]]
 declare [[z3_extensions]]
 

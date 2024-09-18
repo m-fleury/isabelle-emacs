@@ -8,7 +8,7 @@ not proof producing in cvc5 yet so fine-grained reconstruction is not possible y
 theory can be used to get an unsat core from cvc5.
 
 TODO: Hard to test before real problem in the Alethe printer is fixed
-TODO: We probably don't want to enable this if smt_cvc_lethe is set since the reconstruction
+TODO: We probably don't want to enable this if smt_cvc_alethe is set since the reconstruction
 does not work?
 *)
 

@@ -1,21 +1,21 @@
-(*  Title:      HOL/CVC/ML/lethe_replay_rare_simplify_methods.ML
+(*  Title:      HOL/CVC/ML/alethe_replay_rare_simplify_methods.ML
     Author:     Mathias Fleury, MPII, JKU, University Freiburg
     Author:     Hanna Lachnitt, Stanford University
 
 Proof method for replaying Alethe proofs for rare-simplify
 *)
 
-signature LETHE_REPLAY_RARE_SIMPLIFY_METHODS =
+signature ALETHE_REPLAY_RARE_SIMPLIFY_METHODS =
 sig
   val rare_rewrite_thys : theory list
-  val rare_rewrite: Lethe_Replay_Methods.lethe_tac_step_args
+  val rare_rewrite: Alethe_Replay_Methods.alethe_tac_step_args
 end;
 
-structure Lethe_Replay_RARE_Simplify_Methods: LETHE_REPLAY_RARE_SIMPLIFY_METHODS =
+structure Alethe_Replay_RARE_Simplify_Methods: ALETHE_REPLAY_RARE_SIMPLIFY_METHODS =
 struct
 
-val TRY' = Lethe_Replay_Methods.TRY'
-val simplify_tac = Lethe_Replay_Methods.simplify_tac
+val TRY' = Alethe_Replay_Methods.TRY'
+val simplify_tac = Alethe_Replay_Methods.simplify_tac
 
 fun code_simp_tac ctxt thms = Code_Simp.dynamic_tac
 
@@ -38,9 +38,9 @@ let
  val _ = @{print}("dsl_tac_initialize args",args )
  val _ = @{print}("rewrite_name",rewrite_name)*)
 
- fun find_Thy [] = Lethe_Replay_Methods.replay_error ctxt
+ fun find_Thy [] = Alethe_Replay_Methods.replay_error ctxt
   "No corresponding rewrite lemma found, add yours manually in RARE_Interface.thy or use IsaRARE for automatic support.. "
-   Lethe_Replay_Methods.RARE_Rewrite th [] t |
+   Alethe_Replay_Methods.RARE_Rewrite th [] t |
  find_Thy (thy::thys) =
   let
    val thy_name = (Context.theory_base_name thy)
@@ -172,6 +172,6 @@ val rules = [
    ("rare_rewrite", rare_rewrite)]
 
 val _ = Theory.setup (Context.theory_map (
-   fold (uncurry Lethe_Replay_Methods.declare_alethe_rule) rules))
+   fold (uncurry Alethe_Replay_Methods.declare_alethe_rule) rules))
 
 end

@@ -9,8 +9,15 @@ the others come from the Isabelle distribution or the AFP.
 section \<open>Examples for the (smt (cvc5)) binding\<close>
 
 theory SMT_Examples_CVC
-  imports HOL.SMT HOL.List
+  imports HOL.SMT HOL.Real
 begin
+
+
+lemma
+  fixes x :: int
+  assumes "3 * x + 7 * a < 4" and "3 < 2 * x"
+  shows "a < 0"
+  using assms supply [[smt_trace]] by (smt (cvc5))
 (*
 external_file \<open>SMT_Examples_CVC.certs\<close>
 
@@ -21,7 +28,7 @@ declare [[smt_read_only_certificates = false]]
 declare [[smt_trace=false]]
 section \<open>Propositional and first-order logic\<close>
 
-declare [[smt_cvc_lethe = true]]
+declare [[smt_cvc_alethe = true]]
 declare[[cvc5_options="--dag-thres=0 --proof-format-mode=alethe  --proof-alethe-experimental --proof-prune-input --full-saturate-quant --proof-alethe-define-skolems --proof-elim-subtypes --no-stats --sat-random-seed=1 --lang=smt2"]]
 
 lemma 
@@ -326,6 +333,7 @@ lemma "min (3::nat) 5 = 3"
 lemma "(3::nat) + x = (x + 3)"
   supply[[smt_nat_as_int,show_types,smt_trace]]
   apply (smt (cvc5))
+  done
 
 
 
@@ -345,16 +353,29 @@ lemma "x + (y + z) = y + (z + (x::int))" by (smt (cvc5))
 lemma "max (3::int) 8 > 5" by (smt (cvc5))
 
 declare[[smt_debug_arith_verit]]
-lemma "\<bar>x :: real\<bar> + \<bar>y\<bar> \<ge> \<bar>x + y\<bar>" sorry (*by (smt (cvc5))*) (*la_generic real vs int error*)
+declare[[ML_print_depth=100]]
+
+lemma temp_arith[smt_arith_combine]:
+"c = d \<Longrightarrow> e = f \<Longrightarrow> c + e = d + f"
+  by simp
+
+
+lemma "\<bar>x :: real\<bar> + \<bar>y\<bar> \<ge> \<bar>x + y\<bar>" supply[[smt_trace=false]] by (smt (cvc5)) sorry (*by (smt (cvc5))*) (*la_generic real vs int error*)
 lemma "P ((2::int) < 3) = P True" supply[[smt_trace]] by (smt (cvc5))
 lemma "x + 3 \<ge> 4 \<or> x < (1::int)" by (smt (cvc5))
-
+thm smt_arith_combine
 lemma
   assumes "x \<ge> (3::int)" and "y = x + 4"
   shows "y - x > 0"
   using assms by (smt (cvc5))
 
 lemma "let x = (2 :: int) in x + x \<noteq> 5" by (smt (cvc5))
+
+thm smt_arith_multiplication
+lemma [smt_arith_multiplication]:
+  "a \<le> a' \<Longrightarrow> 0 < b \<Longrightarrow> 0 \<le> c \<Longrightarrow> c * (a div b) \<le> c * (a' div b)"
+  
+
 
 lemma
   fixes x :: int
