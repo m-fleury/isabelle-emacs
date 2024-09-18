@@ -327,10 +327,6 @@ fun preprocess compress step =
            in expand_assms remap_prems prems end
           else prems
 
-        val preprocessed_node = ([mk_raw_node id rule sanitized_step_args sanitized_context_assignments repaired_prems concl subproof],
-          (cx, remap_prems))
-val _ = @{print}("here")
-
       in
         if skip_step
         then
@@ -338,7 +334,10 @@ val _ = @{print}("here")
             val _ = debug_lptrace low (fn () => \<^print> ("Compress proof by skipping current 'or' step"))
             val skipped_step = ([], (cx, compress_or_rule remap_prems))
           in skipped_step end
-        else preprocessed_node
+        else
+          let
+            val preprocessed_node = [mk_raw_node id rule sanitized_step_args sanitized_context_assignments repaired_prems concl subproof]
+         in (preprocessed_node,(cx, remap_prems)) end
       end
   in preprocess step end
 
