@@ -130,7 +130,7 @@ val context_assignment_rules = ["bind","sko_forall","sko_ex","let","onepoint"]
 val allows_context_assignment = member (op =) context_assignment_rules
 
 val index_rules = ["and","not_or","and_pos","or_neg"]
-val step_args_rules = index_rules @ ["rare_rewrite","forall_inst", skolem_def]
+val step_args_rules = index_rules @ ["rare_rewrite","forall_inst", skolem_def,la_generic_rule]
 val allows_step_args = member (op =) step_args_rules
 
 fun number_of_steps [] = 0
@@ -612,7 +612,8 @@ fun extract_assumptions_from_subproof subproof =
     (*TODO: la_generic aendere reals, erwarte div und keine reele zahlen. 
     (div 1 4) anstelle vom 0.25 als auch 1.0/4.0 
     => Fuege in Isabelle-alethe hinzu (es ist keine restriktion, aber um zu checken dass das bei keiner anderen Regel passiert)*)
-    val normalized_step_args = transform_step_args rule step_args (cx, new_variable_names)
+    val normalized_step_args = if rule = la_generic_rule 
+    then [] else transform_step_args rule step_args (cx, new_variable_names)
 
     (* add arguments *)
     val tactic_args =
@@ -632,8 +633,9 @@ fun extract_assumptions_from_subproof subproof =
            in
              (res_num,offset) :: extract_coefficients coeffs
            end
-          
+                     val _ = @{print}("step_args", step_args)
 
+           val _ = @{print}("extract_coefficients step_args",extract_coefficients step_args)
   
       in SOME (Farkas_Coefficients (extract_coefficients step_args)) end
     | "forall_inst" =>
