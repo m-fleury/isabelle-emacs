@@ -18,7 +18,7 @@ end;
 structure CVC5_Replay_Methods: CVC5_REPLAY_METHODS =
 struct
 
-open Lethe_Replay_Methods
+open Alethe_Replay_Methods
 
 fun cvc5_rule_of "bind" = Bind
   | cvc5_rule_of "cong" = Cong
@@ -96,18 +96,18 @@ fun cvc5_rule_of "bind" = Bind
   | cvc5_rule_of "unary_minus_simplify" = Minus_Simplify
   | cvc5_rule_of "quantifier_simplify" = Tmp_Quantifier_Simplify (*TODO Remove*)
   | cvc5_rule_of r =
-     if r = Lethe_Proof.normalized_input_rule then Normalized_Input
-     else if r = Lethe_Proof.local_input_rule then Local_Input
-     else if r = Lethe_Proof.lethe_def then Definition
-     else if r = Lethe_Proof.not_not_rule then Not_Not
-     else if r = Lethe_Proof.contract_rule orelse r = "duplicate_literals" then Duplicate_Literals
-     else if r = Lethe_Proof.ite_intro_rule then ITE_Intro
-     else if r = Lethe_Proof.eq_congruent_rule then Eq_Congruent
-     else if r = Lethe_Proof.eq_congruent_pred_rule then Eq_Congruent_Pred
-     else if r = Lethe_Proof.theory_resolution2_rule then Theory_Resolution2
-     else if r = Lethe_Proof.th_resolution_rule then Theory_Resolution
-     else if r = Lethe_Proof.equiv_pos2_rule then Equiv_pos2
-     else if r = Lethe_Proof.hole orelse r = "undefined" then Hole
+     if r = Alethe_Proof.normalized_input_rule then Normalized_Input
+     else if r = Alethe_Proof.local_input_rule then Local_Input
+     else if r = Alethe_Proof.alethe_def then Definition
+     else if r = Alethe_Proof.not_not_rule then Not_Not
+     else if r = Alethe_Proof.contract_rule orelse r = "duplicate_literals" then Duplicate_Literals
+     else if r = Alethe_Proof.ite_intro_rule then ITE_Intro
+     else if r = Alethe_Proof.eq_congruent_rule then Eq_Congruent
+     else if r = Alethe_Proof.eq_congruent_pred_rule then Eq_Congruent_Pred
+     else if r = Alethe_Proof.theory_resolution2_rule then Theory_Resolution2
+     else if r = Alethe_Proof.th_resolution_rule then Theory_Resolution
+     else if r = Alethe_Proof.equiv_pos2_rule then Equiv_pos2
+     else if r = Alethe_Proof.hole orelse r = "undefined" then Hole
      else Other_Rule r
 
 fun normalized_input ctxt prems t = SMT_Replay_Methods.prove ctxt t (fn _ =>

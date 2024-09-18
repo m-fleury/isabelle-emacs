@@ -17,7 +17,7 @@ end;
 structure Verit_Replay_Methods: VERIT_REPLAY_METHODS =
 struct
 
-open Lethe_Replay_Methods
+open Alethe_Replay_Methods
 
 fun verit_rule_of "bind" = Bind
   | verit_rule_of "cong" = Cong
@@ -89,18 +89,18 @@ fun verit_rule_of "bind" = Bind
   | verit_rule_of "tautology" = Tautological_Clause
   | verit_rule_of "qnt_cnf" = Qnt_CNF
   | verit_rule_of r =
-     if r = Lethe_Proof.normalized_input_rule then Normalized_Input
-     else if r = Lethe_Proof.local_input_rule then Local_Input
-     else if r = Lethe_Proof.lethe_def then Definition
-     else if r = Lethe_Proof.not_not_rule then Not_Not
-     else if r = Lethe_Proof.contract_rule then Duplicate_Literals
-     else if r = Lethe_Proof.ite_intro_rule then ITE_Intro
-     else if r = Lethe_Proof.eq_congruent_rule then Eq_Congruent
-     else if r = Lethe_Proof.eq_congruent_pred_rule then Eq_Congruent_Pred
-     else if r = Lethe_Proof.theory_resolution2_rule then Theory_Resolution2
-     else if r = Lethe_Proof.th_resolution_rule then Theory_Resolution
-     else if r = Lethe_Proof.equiv_pos2_rule then Equiv_pos2
-     else if r = Lethe_Proof.and_pos_rule then And_Pos
+     if r = Alethe_Proof.normalized_input_rule then Normalized_Input
+     else if r = Alethe_Proof.local_input_rule then Local_Input
+     else if r = Alethe_Proof.alethe_def then Definition
+     else if r = Alethe_Proof.not_not_rule then Not_Not
+     else if r = Alethe_Proof.contract_rule then Duplicate_Literals
+     else if r = Alethe_Proof.ite_intro_rule then ITE_Intro
+     else if r = Alethe_Proof.eq_congruent_rule then Eq_Congruent
+     else if r = Alethe_Proof.eq_congruent_pred_rule then Eq_Congruent_Pred
+     else if r = Alethe_Proof.theory_resolution2_rule then Theory_Resolution2
+     else if r = Alethe_Proof.th_resolution_rule then Theory_Resolution
+     else if r = Alethe_Proof.equiv_pos2_rule then Equiv_pos2
+     else if r = Alethe_Proof.and_pos_rule then And_Pos
      else (@{print} ("Unsupport rule", r); Unsupported)
 
 

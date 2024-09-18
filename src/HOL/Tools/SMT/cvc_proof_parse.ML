@@ -9,7 +9,7 @@ sig
   val parse_proof: SMT_Translate.replay_data ->
     ((string * ATP_Problem_Generate.stature) * thm) list -> term list -> term -> string list ->
     SMT_Solver.parsed_proof
-  val parse_proof_lethe: SMT_Translate.replay_data ->
+  val parse_proof_alethe: SMT_Translate.replay_data ->
     ((string * ATP_Problem_Generate.stature) * thm) list -> term list -> term -> string list ->
     SMT_Solver.parsed_proof
   val cvc_matching_assms: Proof.context -> thm list -> term list -> term -> thm -> bool
@@ -23,11 +23,11 @@ open ATP_Util
 open ATP_Problem
 open ATP_Proof
 open ATP_Proof_Reconstruct
-open Lethe_Isar
-open Lethe_Proof
+open Alethe_Isar
+open Alethe_Proof
 
 (*taken from verit*)
-fun add_used_asserts_in_step (Lethe_Proof.Lethe_Step {prems, ...}) =
+fun add_used_asserts_in_step (Alethe_Proof.Alethe_Step {prems, ...}) =
   union (op =) (map_filter (try (snd o SMTLIB_Interface.role_and_index_of_assert_name)) prems)
 
 fun cvc_matching_assms ctxt rewrite_rules ll_defs th th' =
@@ -82,7 +82,7 @@ fun parse_proof_unsatcore ({ll_defs, assms, ...} : SMT_Translate.replay_data) xf
     end
 
 
-fun parse_proof_lethe
+fun parse_proof_alethe
     ({context = ctxt, typs, terms, ll_defs, rewrite_rules, assms} : SMT_Translate.replay_data)
     xfacts prems concl output =
    if exists (String.isPrefix "(error \"This build of CVC4 doesn't have proof support") output then
@@ -101,13 +101,13 @@ fun parse_proof_lethe
         case List.find matching assms of
           NONE => []
         | SOME (k, _) =>
-          Lethe_Proof.Lethe_Step 
+          Alethe_Proof.Alethe_Step
            {id = SMTLIB_Interface.assert_name_of_role_and_index role (id_of_index i),
             rule = input_rule, prems = [], proof_ctxt = [], concl = th, fixes = []}
           |> single
       end
 
-    val (actual_steps, _) = Lethe_Proof.parse typs terms output ctxt
+    val (actual_steps, _) = Alethe_Proof.parse typs terms output ctxt
     val used_assert_ids = fold add_used_asserts_in_step actual_steps []
     val used_assm_js =
       map_filter (fn id => let val i = index_of_id id in if i >= 0 then SOME i else NONE end)
@@ -146,7 +146,7 @@ fun parse_proof_lethe
   end
 
 fun parse_proof (rep as {context = ctxt, ...}) =
-  if SMT_Config.use_lethe_proof_from_cvc ctxt
+  if SMT_Config.use_alethe_proof_from_cvc ctxt
   then parse_proof_unsatcore rep
   else parse_proof_unsatcore rep
 

@@ -1,10 +1,10 @@
-(*  Title:      HOL/Tools/SMT/lethe_replay_methods.ML
+(*  Title:      HOL/Tools/SMT/alethe_replay_methods.ML
     Author:     Mathias Fleury, MPII, JKU, University Freiburg
 
 Proof method for replaying veriT proofs.
 *)
 
-signature LETHE_REPLAY_METHODS =
+signature ALETHE_REPLAY_METHODS =
 sig
 
 
@@ -60,93 +60,93 @@ sig
 
   val string_of_verit_rule: verit_rule -> string
 
-  type lethe_tac_args = Proof.context -> thm list -> term list -> term -> thm
-  type lethe_tac = Proof.context -> thm list -> term -> thm
-  type lethe_tac2 = Proof.context -> thm list -> term list -> term Symtab.table -> term -> thm
-  val bind: lethe_tac_args
-  val and_rule: lethe_tac
-  val and_neg_rule: lethe_tac
-  val and_pos: lethe_tac
-  val rewrite_and_simplify: lethe_tac
-  val rewrite_bool_simplify: lethe_tac
-  val rewrite_comp_simplify: lethe_tac
-  val rewrite_minus_simplify: lethe_tac
-  val rewrite_not_simplify: lethe_tac
-  val rewrite_eq_simplify: lethe_tac
-  val rewrite_equiv_simplify: lethe_tac
-  val rewrite_implies_simplify: lethe_tac
-  val rewrite_or_simplify: lethe_tac
-  val cong: string -> lethe_tac
-  val rewrite_connective_def: lethe_tac
-  val duplicate_literals: lethe_tac
-  val eq_congruent: lethe_tac
-  val eq_congruent_pred: lethe_tac
-  val eq_reflexive: lethe_tac
-  val eq_transitive: lethe_tac
-  val equiv1: lethe_tac
-  val equiv2: lethe_tac
-  val equiv_neg1: lethe_tac
-  val equiv_neg2: lethe_tac
-  val equiv_pos1: lethe_tac
-  val equiv_pos2: lethe_tac
-  val false_rule: lethe_tac
-  val forall_inst: lethe_tac2
-  val implies_rules: lethe_tac
-  val implies_neg1: lethe_tac
-  val implies_neg2: lethe_tac
-  val implies_pos: lethe_tac
-  val ite1: lethe_tac
-  val ite2: lethe_tac
-  val ite_intro: lethe_tac
-  val ite_neg1: lethe_tac
-  val ite_neg2: lethe_tac
-  val ite_pos1: lethe_tac
-  val ite_pos2: lethe_tac
-  val rewrite_ite_simplify: lethe_tac
-  val la_disequality: lethe_tac
-  val la_generic: lethe_tac_args
-  val la_rw_eq: lethe_tac
-  val lia_generic: lethe_tac
-  val refl: string -> lethe_tac
-  val normalized_input: lethe_tac
-  val not_and_rule: lethe_tac
-  val not_equiv1: lethe_tac
-  val not_equiv2: lethe_tac
-  val not_implies1: lethe_tac
-  val not_implies2: lethe_tac
-  val not_ite1: lethe_tac
-  val not_ite2: lethe_tac
-  val not_not: lethe_tac
-  val not_or_rule: lethe_tac
-  val or: lethe_tac
-  val or_neg_rule: lethe_tac
-  val or_pos_rule: lethe_tac
-  val theory_resolution2: lethe_tac
-  val prod_simplify: lethe_tac
-  val qnt_join: lethe_tac
-  val qnt_rm_unused: lethe_tac
-  val onepoint: lethe_tac
-  val qnt_simplify: lethe_tac
-  val all_simplify: lethe_tac
-  val unit_res: lethe_tac
-  val skolem_ex: lethe_tac
-  val skolem_forall: lethe_tac
-  val subproof: lethe_tac
-  val sum_simplify: lethe_tac
-  val tautological_clause: lethe_tac
-  val tmp_AC_rule: lethe_tac
-  val bfun_elim: lethe_tac
-  val qnt_cnf: lethe_tac
-  val trans: lethe_tac
-  val symm: lethe_tac
-  val not_symm: lethe_tac
-  val reordering: lethe_tac
+  type alethe_tac_args = Proof.context -> thm list -> term list -> term -> thm
+  type alethe_tac = Proof.context -> thm list -> term -> thm
+  type alethe_tac2 = Proof.context -> thm list -> term list -> term Symtab.table -> term -> thm
+  val bind: alethe_tac_args
+  val and_rule: alethe_tac
+  val and_neg_rule: alethe_tac
+  val and_pos: alethe_tac
+  val rewrite_and_simplify: alethe_tac
+  val rewrite_bool_simplify: alethe_tac
+  val rewrite_comp_simplify: alethe_tac
+  val rewrite_minus_simplify: alethe_tac
+  val rewrite_not_simplify: alethe_tac
+  val rewrite_eq_simplify: alethe_tac
+  val rewrite_equiv_simplify: alethe_tac
+  val rewrite_implies_simplify: alethe_tac
+  val rewrite_or_simplify: alethe_tac
+  val cong: string -> alethe_tac
+  val rewrite_connective_def: alethe_tac
+  val duplicate_literals: alethe_tac
+  val eq_congruent: alethe_tac
+  val eq_congruent_pred: alethe_tac
+  val eq_reflexive: alethe_tac
+  val eq_transitive: alethe_tac
+  val equiv1: alethe_tac
+  val equiv2: alethe_tac
+  val equiv_neg1: alethe_tac
+  val equiv_neg2: alethe_tac
+  val equiv_pos1: alethe_tac
+  val equiv_pos2: alethe_tac
+  val false_rule: alethe_tac
+  val forall_inst: alethe_tac2
+  val implies_rules: alethe_tac
+  val implies_neg1: alethe_tac
+  val implies_neg2: alethe_tac
+  val implies_pos: alethe_tac
+  val ite1: alethe_tac
+  val ite2: alethe_tac
+  val ite_intro: alethe_tac
+  val ite_neg1: alethe_tac
+  val ite_neg2: alethe_tac
+  val ite_pos1: alethe_tac
+  val ite_pos2: alethe_tac
+  val rewrite_ite_simplify: alethe_tac
+  val la_disequality: alethe_tac
+  val la_generic: alethe_tac_args
+  val la_rw_eq: alethe_tac
+  val lia_generic: alethe_tac
+  val refl: string -> alethe_tac
+  val normalized_input: alethe_tac
+  val not_and_rule: alethe_tac
+  val not_equiv1: alethe_tac
+  val not_equiv2: alethe_tac
+  val not_implies1: alethe_tac
+  val not_implies2: alethe_tac
+  val not_ite1: alethe_tac
+  val not_ite2: alethe_tac
+  val not_not: alethe_tac
+  val not_or_rule: alethe_tac
+  val or: alethe_tac
+  val or_neg_rule: alethe_tac
+  val or_pos_rule: alethe_tac
+  val theory_resolution2: alethe_tac
+  val prod_simplify: alethe_tac
+  val qnt_join: alethe_tac
+  val qnt_rm_unused: alethe_tac
+  val onepoint: alethe_tac
+  val qnt_simplify: alethe_tac
+  val all_simplify: alethe_tac
+  val unit_res: alethe_tac
+  val skolem_ex: alethe_tac
+  val skolem_forall: alethe_tac
+  val subproof: alethe_tac
+  val sum_simplify: alethe_tac
+  val tautological_clause: alethe_tac
+  val tmp_AC_rule: alethe_tac
+  val bfun_elim: alethe_tac
+  val qnt_cnf: alethe_tac
+  val trans: alethe_tac
+  val symm: alethe_tac
+  val not_symm: alethe_tac
+  val reordering: alethe_tac
 
 
   (*Extension to declare new alethe rules*)
-  val declare_alethe_rule:  string -> lethe_tac_args -> Context.generic -> Context.generic
+  val declare_alethe_rule:  string -> alethe_tac_args -> Context.generic -> Context.generic
   val rm_alethe_rule: string -> Context.generic -> Context.generic
-  val get_alethe_tac: string -> Context.generic -> lethe_tac_args option
+  val get_alethe_tac: string -> Context.generic -> alethe_tac_args option
   val print_alethe_tac: Context.generic -> Pretty.T
 
   (*Useful lifting of tactics*)
@@ -159,12 +159,12 @@ sig
 end;
 
 
-structure Lethe_Replay_Methods: LETHE_REPLAY_METHODS =
+structure Alethe_Replay_Methods: ALETHE_REPLAY_METHODS =
 struct
 
-type lethe_tac_args = Proof.context -> thm list -> term list -> term -> thm
-type lethe_tac = Proof.context -> thm list -> term -> thm
-type lethe_tac2 = Proof.context -> thm list -> term list -> term Symtab.table -> term -> thm
+type alethe_tac_args = Proof.context -> thm list -> term list -> term -> thm
+type alethe_tac = Proof.context -> thm list -> term -> thm
+type alethe_tac2 = Proof.context -> thm list -> term list -> term Symtab.table -> term -> thm
 
 (*Some general comments on the proof format:
   1. Double negations are not always removed. This means for example that the equivalence rules
@@ -286,8 +286,8 @@ fun string_of_verit_rule Bind = "Bind"
   | string_of_verit_rule Onepoint = "onepoint"
   | string_of_verit_rule Qnt_Join = "qnt_join"
   | string_of_verit_rule Eq_Congruent_Pred = "eq_congruent_pred"
-  | string_of_verit_rule Normalized_Input = Lethe_Proof.normalized_input_rule
-  | string_of_verit_rule Local_Input = Lethe_Proof.local_input_rule
+  | string_of_verit_rule Normalized_Input = Alethe_Proof.normalized_input_rule
+  | string_of_verit_rule Local_Input = Alethe_Proof.local_input_rule
   | string_of_verit_rule Subproof = "subproof"
   | string_of_verit_rule Bool_Simplify = "bool_simplify"
   | string_of_verit_rule Equiv_Simplify = "equiv_simplify"
@@ -307,9 +307,9 @@ fun string_of_verit_rule Bind = "Bind"
   | string_of_verit_rule Symm = "symm"
   | string_of_verit_rule Not_Symm = "not_symm"
   | string_of_verit_rule Reordering = "reordering"
-  | string_of_verit_rule Not_Not = Lethe_Proof.not_not_rule
+  | string_of_verit_rule Not_Not = Alethe_Proof.not_not_rule
   | string_of_verit_rule Tautological_Clause = "tautology"
-  | string_of_verit_rule Duplicate_Literals = Lethe_Proof.contract_rule
+  | string_of_verit_rule Duplicate_Literals = Alethe_Proof.contract_rule
   | string_of_verit_rule Qnt_CNF = "qnt_cnf"
   | string_of_verit_rule (Other_Rule r) = r
   | string_of_verit_rule r = "Unknown rule: " ^ \<^make_string> r
@@ -317,9 +317,9 @@ fun string_of_verit_rule Bind = "Bind"
 (** Context Extension for Rules **)
 (*We currently do not distinguish between the extension required for each solver. Maybe later
 it will be needed.*)
-type alethe_rule_ext = {rules: (string * lethe_tac_args) list}
+type alethe_rule_ext = {rules: (string * alethe_tac_args) list}
 
-fun mk_alethe_rule_ext rules : alethe_rule_ext = 
+fun mk_alethe_rule_ext rules : alethe_rule_ext =
    {rules=rules}
 
 val empty_data = mk_alethe_rule_ext []
@@ -394,7 +394,7 @@ fun requires_subproof_assms _ t =
   member (op =) ["refl", "sko_forall", "sko_ex", "cong"] t
 
 fun requires_local_input _ t =
-  member (op =) [Lethe_Proof.local_input_rule] t
+  member (op =) [Alethe_Proof.local_input_rule] t
 
 (*This is a weaker simplification form. It is weaker, but is also less likely to loop*)
 fun partial_simplify_tac ctxt thms =
