@@ -108,7 +108,7 @@ sig
   val ite_pos2: lethe_tac
   val rewrite_ite_simplify: lethe_tac
   val la_disequality: lethe_tac
-  val la_generic: lethe_tac_step_args
+  val la_generic: lethe_tac_args
   val la_rw_eq: lethe_tac
   val lia_generic: lethe_tac
   val la_mult_pos: lethe_tac
@@ -1494,8 +1494,8 @@ fun la_rw_eq ctxt _ t = (@{print}("t", Thm.cterm_of ctxt t |> Thm.assume);@{prin
 
 fun la_generic_prove args ctxt _ = SMT_Replay_Arith.la_farkas args ctxt
 
-fun la_generic ctxt _ args =
-  prove_abstract (SMT_Replay_Methods.abstract_arith_shallow ctxt) (la_generic_prove args) ctxt []
+fun la_generic ctxt thms t args =
+  prove_abstract (SMT_Replay_Methods.abstract_arith_shallow ctxt) (la_generic_prove args) ctxt [] t
 
 fun lia_generic ctxt _ t =
   SMT_Replay_Methods.prove_arith_rewrite SMT_Replay_Methods.abstract_neq ctxt t

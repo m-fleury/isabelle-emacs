@@ -6,8 +6,8 @@ Proof methods for replaying arithmetic steps with Farkas Lemma.
 
 signature SMT_REPLAY_ARITH =
 sig
-  val la_farkas_tac: Subgoal.focus -> term list -> thm -> thm Seq.seq;
-  val la_farkas: term list -> Proof.context -> int -> tactic;
+  val la_farkas_tac: Subgoal.focus -> tactic_args option -> thm -> thm Seq.seq;
+  val la_farkas: tactic_args option -> Proof.context -> int -> tactic;
 end;
 
 structure SMT_Replay_Arith: SMT_REPLAY_ARITH =
@@ -36,24 +36,42 @@ fun try_OF_insts ctxt thms thm = (@{print}("thms",thms);@{print}("thm",thm);map 
 
 fun try_OFs ctxt thms thm = map (fn thm1 => try_OF ctxt thm1 thm) thms |> flat
 
-fun la_farkas_tac ({context = ctxt, prems, concl,  ...}: Subgoal.focus) args thm =
+fun la_farkas_tac ({context = ctxt, prems, concl,  ...}: Subgoal.focus) (SOME (Farkas_Coefficients coeffs)) thm =
   let
     fun trace v = (SMT_Config.verit_arith_msg ctxt v; v)
     val _ = trace (fn () => @{print} (prems, concl))
     val arith_thms = Named_Theorems.get ctxt @{named_theorems smt_arith_simplify}
     val verit_arith = Named_Theorems.get ctxt @{named_theorems smt_arith_combine}
     val verit_arith_multiplication = Named_Theorems.get ctxt @{named_theorems smt_arith_multiplication}
+
+    val typ = hd prems
+      |> @{print}
+      |> Thm.concl_of
+      |> Thm.cterm_of ctxt
+       |> Object_Logic.dest_judgment ctxt
+       |> Thm.term_of
+      |> @{print}
+       |> (fn (Const _ $ r1 $r2) => r1)
+       |> fastype_of
+|> @{print}
+    fun convert_coefficients (a,b) =
+     (HOLogic.mk_number typ (if a < 0 then ~a else a), HOLogic.mk_number typ b, a > 0)
+    val coeff_prems = map convert_coefficients coeffs |> @{print}
+
+       |> (fn xs => ListPair.zip (xs, prems))
+
+
     val _ = trace (fn () => @{print}  "******************************************************")
     val _ = trace (fn () => @{print}  "       Multiply by constants                          ")
     val _ = trace (fn () => @{print}  "******************************************************")
-    val coeff_prems =
+    (*val coeff_prems =
        map extract_number args
-       |> (fn xs => ListPair.zip (xs, prems))
+       |> (fn xs => ListPair.zip (xs, prems))*)
     val _ = trace (fn () => @{print} coeff_prems)
     fun negate_if_needed (thm, pos) =
-       if pos then thm
+       if pos |> @{print}then thm
        else map (fn thm0 => try_OF ctxt thm0 thm) @{thms verit_negate_coefficient}
-         |> flat |> the_single
+         |> flat |> the_single |> @{print}
     val _ = trace (fn () => @{print} "")
 
     val normalized =
@@ -74,11 +92,11 @@ fun la_farkas_tac ({context = ctxt, prems, concl,  ...}: Subgoal.focus) args thm
     val combined =
       List.foldl
          (fn (thm1, thm2) =>
-           try_OFs ctxt verit_arith thm1
-           |> (fn thms => try_OFs ctxt thms thm2)
-           |> the_single)
+           (try_OFs ctxt verit_arith (thm1 |> @{print}) |> @{print})
+           |> (fn thms => try_OFs ctxt thms thm2) |> @{print}
+           |> the_single|> @{print})
          n
-         normalized
+         normalized|> @{print}
       |> singleton (Proof_Context.export ctxt_with_assms ctxt)
     val _ = trace (fn () => @{print} combined)
     fun arith_full_simps ctxt thms =
