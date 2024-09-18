@@ -291,6 +291,8 @@ fun preprocess compress step =
         in [] end
       else xs
 
+    val replace_assignment_sym = (fn SMTLIB.S [SMTLIB.Key "=", x, y] => SMTLIB.S [SMTLIB.Sym "=", x, y] | x => x)
+
     fun preprocess (x as Raw_Definition_Node _) (cx : ('a list, 'b) context, remap_prems) = ([x], (cx, remap_prems)) |
      preprocess (Raw_Alethe_Node {id, rule, step_args, context_assignments, prems, concl, subproof, ...}) (cx : ('a list, 'b) context, remap_prems)  =
       let
@@ -310,10 +312,18 @@ fun preprocess compress step =
         val context_assignments = normalize_tree_if ctxt SMT_Config.check_external context_assignments
         val concl = normalize_tree_if ctxt SMT_Config.check_external [concl] |> hd
 
-        (* Sanity Checks *)
-        val sanitized_context_assignments = ignore_unexpected ctxt "context annotation" rule allows_context_assignment context_assignments
-        val sanitized_step_args = ignore_unexpected ctxt "args" rule allows_step_args step_args
-     
+        val sanitized_context_assignments =
+          context_assignments
+          |> ignore_unexpected ctxt "context annotation" rule allows_context_assignment
+          |> map replace_assignment_sym
+
+        val sanitized_step_args =
+          step_args
+          |> ignore_unexpected ctxt "args" rule allows_step_args
+          |> (if rule = forall_inst_rule
+              then map replace_assignment_sym
+              else (fn x => x))
+
         (* Recursive Call to Preprocess Subproof*)
         val (subproof, (cx, _)) = fold_map preprocess subproof (cx, remap_prems) |> apfst flat
 
