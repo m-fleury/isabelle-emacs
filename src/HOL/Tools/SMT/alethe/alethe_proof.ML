@@ -77,7 +77,7 @@ datatype debugging_verbosity = low | middle | high
 fun debug_to_int low = 0 |
     debug_to_int middle = 1 |
     debug_to_int high = 2
-val debug = false
+val debug = true
 val debugging_level = high (*0 low, 1 middle, 2 high verbosity*)
 
 fun lproof_trace_msg cond (x : unit -> 'a) = if cond then ignore(x ()) else ()
@@ -329,11 +329,14 @@ fun preprocess compress step =
 
         val preprocessed_node = ([mk_raw_node id rule sanitized_step_args sanitized_context_assignments repaired_prems concl subproof],
           (cx, remap_prems))
-        val skipped_step = ([], (cx, compress_or_rule remap_prems))
+val _ = @{print}("here")
 
       in
         if skip_step
-        then let val _ = debug_lptrace low (fn () => \<^print> ("Compress proof by skipping current 'or' step"))
+        then
+          let
+            val _ = debug_lptrace low (fn () => \<^print> ("Compress proof by skipping current 'or' step"))
+            val skipped_step = ([], (cx, compress_or_rule remap_prems))
           in skipped_step end
         else preprocessed_node
       end
