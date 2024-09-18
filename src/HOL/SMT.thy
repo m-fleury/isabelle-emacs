@@ -610,6 +610,11 @@ lemmas [smt_arith_multiplication] =
   arg_cong[of _ _ \<open>\<lambda>a :: nat. a div n * p\<close> for n p :: nat, THEN sym]
   arg_cong[of _ _ \<open>\<lambda>a :: int. a div n * p\<close> for n p :: int, THEN sym]
 
+thm smt_arith_multiplication
+lemma [smt_arith_multiplication]:
+  "x = y \<Longrightarrow> y div n * p = x div n * p"
+  by simp
+
 lemma [smt_arith_combine]:
   "a < b \<Longrightarrow> c < d \<Longrightarrow> a + c + 2 \<le> b + d"
   "a < b \<Longrightarrow> c \<le> d \<Longrightarrow> a + c + 1 \<le> b + d"
@@ -1067,13 +1072,6 @@ lemma "(f::('a set\<Rightarrow> int) \<Rightarrow> 'b \<Rightarrow> ('c \<Righta
 
 
 declare[[smt_cvc_lethe = true]]
-
-lemma
-  assumes "(\<exists>x. P x)" "(\<forall>x. P x \<longrightarrow> False)"
-  shows "False"
-  using assms
-  supply [[smt_trace]]
-  apply (smt (cvc5))
 
 
 end
