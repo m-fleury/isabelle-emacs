@@ -627,9 +627,9 @@ ML_file \<open>Tools/SMT/z3_proof.ML\<close>
 ML_file \<open>Tools/SMT/z3_isar.ML\<close>
 ML_file \<open>Tools/SMT/smt_solver.ML\<close>
 ML_file \<open>Tools/SMT/cvc_interface.ML\<close>
-ML_file \<open>Tools/SMT/lethe_proof.ML\<close>
-ML_file \<open>Tools/SMT/lethe_isar.ML\<close>
-ML_file \<open>Tools/SMT/lethe_proof_parse.ML\<close>
+ML_file \<open>Tools/SMT/alethe_proof.ML\<close>
+ML_file \<open>Tools/SMT/alethe_isar.ML\<close>
+ML_file \<open>Tools/SMT/alethe_proof_parse.ML\<close>
 ML_file \<open>Tools/SMT/cvc_proof_parse.ML\<close>
 ML_file \<open>Tools/SMT/conj_disj_perm.ML\<close>
 ML_file \<open>Tools/SMT/smt_replay_methods.ML\<close>
@@ -639,7 +639,7 @@ ML_file \<open>Tools/SMT/z3_interface.ML\<close>
 ML_file \<open>Tools/SMT/z3_replay_rules.ML\<close>
 ML_file \<open>Tools/SMT/z3_replay_methods.ML\<close>
 ML_file \<open>Tools/SMT/z3_replay.ML\<close>
-ML_file \<open>Tools/SMT/lethe_replay_methods.ML\<close>
+ML_file \<open>Tools/SMT/alethe_replay_methods.ML\<close>
 ML_file \<open>Tools/SMT/cvc5_replay_methods.ML\<close>
 ML_file \<open>Tools/SMT/verit_replay_methods.ML\<close>
 ML_file \<open>Tools/SMT/verit_strategies.ML\<close>
