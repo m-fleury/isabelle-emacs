@@ -9,8 +9,6 @@ sig
   (*methods for verit proof rules*)
   val method_for: string -> Proof.context -> thm list -> term list -> term list -> term ->
      Alethe_Node.tactic_args option -> thm
-
-  val discharge: Proof.context -> thm list -> term -> thm
 end;
 
 
@@ -222,8 +220,5 @@ fun with_tracing rule method ctxt prems step_args context_assignment t args =
 fun method_for rule ctxt
 = with_tracing rule (choose (verit_rule_of rule)) ctxt
 
-fun discharge ctxt [thm] t =
-  SMT_Replay_Methods.prove ctxt t (fn _ =>
-    resolve_tac ctxt [thm] THEN_ALL_NEW (resolve_tac ctxt @{thms refl}))
 
 end;

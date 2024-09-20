@@ -163,9 +163,6 @@ THEN' assume_tac ctxt))
 
 (* Combining all together *)
 
-fun unsupported rule ctxt thms _ _ _ = SMT_Replay_Methods.replay_error ctxt "Unsupported cvc5 rule"
-  rule thms []
-
 (*ctxt thms step_args context_assignment t args*)
 fun ignore_args       f ctxt prems _ _ goal _ = f ctxt prems goal
 fun include_step_args f ctxt prems step_args _ goal _ = f ctxt prems step_args goal

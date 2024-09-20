@@ -502,22 +502,9 @@ val extract_bind_names =
    HOLogic.dest_eq
    #> apply2 (fn (Free (name, _)) => name)
 
-fun temp [] = [] |
-    temp (Const ("HOL.Trueprop", _) $ Free (_, _) :: xs) = temp xs |
-    temp (Const ("HOL.Trueprop", _) $ t :: xs) = t::temp xs
-
-
-(*("args",
- [Const ("HOL.eq", "int \<Rightarrow> int \<Rightarrow> bool") $ Free ("v0", "int") $
-    Free ("v0",
-          "int")])
-          ("args",
- [Const ("HOL.Trueprop", "bool \<Rightarrow> prop") $ Free ("v0", "int"),
-  Const ("HOL.Trueprop", "bool \<Rightarrow> prop") $
-    (Const ("HOL.eq", "int \<Rightarrow> int \<Rightarrow> bool") $ Free ("v0", "int") $
-      Free ("v0",
-            "int"))])
-          *)
+fun ignore_new_bound_var [] = [] |
+    ignore_new_bound_var (Free (_, _) :: xs) = ignore_new_bound_var xs |
+    ignore_new_bound_var (t :: xs) = t::ignore_new_bound_var xs
 
 fun combine_quant ctxt ((n1, n2) :: bounds) (n1' :: formula) =
 (
@@ -529,10 +516,15 @@ fun combine_quant ctxt ((n1, n2) :: bounds) (n1' :: formula) =
          THEN' combine_quant ctxt bounds formula
        else resolve_tac ctxt bind_thms_same_name THEN' combine_quant ctxt bounds formula
      else resolve_tac ctxt @{thms allI} THEN' combine_quant ctxt ((n1, n2) :: bounds) formula)
-)  | combine_quant _ _ _ = K all_tac
+end
+  | combine_quant ctxt [] (_ :: formula) = 
+      resolve_tac ctxt bind_thms_same_name THEN' combine_quant ctxt [] formula
+  | combine_quant ctxt _ _ = K (print_tac ctxt "binfanl") THEN' K all_tac
 
 fun bind_quants ctxt args t =
-  combine_quant ctxt (map extract_bind_names (temp args)) (extract_quantified_names t)
+  combine_quant ctxt 
+  (map extract_bind_names (ignore_new_bound_var (map HOLogic.dest_Trueprop args)))
+    (extract_quantified_names t)
 
 fun generalize_prems_q [] prems = prems
   | generalize_prems_q (_ :: quants) prems =
