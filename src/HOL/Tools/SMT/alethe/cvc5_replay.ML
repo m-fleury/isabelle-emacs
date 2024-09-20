@@ -160,12 +160,12 @@ fun replay_theorem_step rewrite_rules all_assms ll_defs assumed (inputs : thm li
       let val thy = Proof_Context.theory_of (empty_simpset ctxt) in
         Raw_Simplifier.rewrite_term thy ((if Alethe_Proof.keep_raw_lifting rule andalso not (null rewrite_rules) then tl rewrite_rules else rewrite_rules)) []
         #> Object_Logic.atomize_term ctxt
-        #> not (null ll_defs andalso Alethe_Proof.keep_raw_lifting rule) ? SMTLIB_Isar.unlift_term ll_defs
+        #> not (null ll_defs orelse Alethe_Proof.keep_raw_lifting rule) ? SMTLIB_Isar.unlift_term ll_defs
         #> SMTLIB_Isar.unskolemize_names ctxt
         #> HOLogic.mk_Trueprop
       end
-    val term_rewriter = (SMTLIB_Isar.unskolemize_names ctxt o subst_only_free global_transformation o Term.subst_free (export_vars) o remove_lambdas)
     val term_rewriter2 = (subst_only_free global_transformation o Term.subst_free (export_vars) o remove_lambdas)
+    val term_rewriter = (SMTLIB_Isar.unskolemize_names ctxt o term_rewriter2)
 
     fun is_refl thm = Thm.concl_of thm |> (fn (_ $ t) => t | _ => raise TERM ("",[])) |> HOLogic.dest_eq |> (op =) handle TERM _=> false
     fun mk_thms sctxt t = Assumption.add_assumes (map (Thm.cterm_of sctxt) t) sctxt |>> filter_out is_refl
@@ -209,7 +209,8 @@ val _ = @{print} updated_local_assumptions
 
     (* Processing Components with new Context *)
     val export_thm = singleton (Proof_Context.export sub_ctxt2 ctxt)
-    val subst_transform = (Term.subst_free concl_tranformation o subst_only_free global_transformation)
+    val subst_transform = (Raw_Simplifier.rewrite_term (Proof_Context.theory_of (empty_simpset ctxt)) ((if (Alethe_Proof.keep_raw_lifting rule) andalso not (null rewrite_rules) then tl rewrite_rules else rewrite_rules)) []
+         o SMTLIB_Isar.unlift_term ll_defs o Term.subst_free concl_tranformation o subst_only_free global_transformation)
     (*val _ = @{print}("concl_tranformation",global_transformation)*)
     val id_to_thm = (Symtab.lookup (if (null subproof) then globally_known_facts else locally_known_facts))
     val (prems_skolem_def,non_skolem_prems) = filter_split Alethe_Proof.is_skolem_def prems
@@ -226,7 +227,6 @@ val _ = @{print} updated_local_assumptions
       (case args of
         SOME (Alethe_Node.Insts tab) => SOME (Alethe_Node.Insts (Symtab.map (K subst_transform) tab)) |
         _ => args)
-    val input = map subst_transform input
     val context_assignments = map subst_transform context_assignments
     val  _ = debug_crtrace (length non_skolem_prems <> length prems_as_thms_with_context_assms) low (fn () => 
       @{print} ("Warning, there were premises that are not accessible to the current step (i.e., that are not in the context). This should not happen. These were ignored."))
@@ -274,8 +274,7 @@ val _ = @{print} updated_local_assumptions
 
   in (globally_known_facts, stats', ctxt,
        concl_tranformation, sub_global_rew) end
- |
-replay_theorem_step _ _ _ _ _ _ _ _   = raise (Fail "TODO")
+ | replay_theorem_step _ _ _ _ _ _ _ _   = raise (Fail "TODO")
 
 
 fun replay_definition_step rewrite_rules ll_defs _ _ _

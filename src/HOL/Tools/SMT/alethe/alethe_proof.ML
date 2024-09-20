@@ -120,8 +120,8 @@ val is_skolemization = member (op =) skolemization_steps
 fun is_assm_repetition id rule =
   rule = input_rule andalso can SMTLIB_Interface.role_and_index_of_assert_name id
 
-val keep_app_symbols = member (op =) [eq_congruent_pred_rule, eq_congruent_rule, ite_intro_rule, and_pos_rule,forall_inst_rule]
-val keep_raw_lifting = member (op =) [eq_congruent_pred_rule, eq_congruent_rule, ite_intro_rule, and_pos_rule,forall_inst_rule] 
+val keep_app_symbols = member (op =) [eq_congruent_pred_rule, eq_congruent_rule, ite_intro_rule, and_pos_rule]
+val keep_raw_lifting = member (op =) [eq_congruent_pred_rule, eq_congruent_rule, ite_intro_rule, and_pos_rule] 
 
 val anchor_rules = ["bind","sko_forall","sko_ex","let","onepoint","subproof"]
 val is_anchor_rule = member (op =) anchor_rules
