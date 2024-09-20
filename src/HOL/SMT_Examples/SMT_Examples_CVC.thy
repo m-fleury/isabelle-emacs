@@ -12,12 +12,6 @@ theory SMT_Examples_CVC
   imports HOL.SMT HOL.Real
 begin
 
-
-lemma
-  fixes x :: int
-  assumes "3 * x + 7 * a < 4" and "3 < 2 * x"
-  shows "a < 0"
-  using assms supply [[smt_trace]] by (smt (cvc5))
 (*
 external_file \<open>SMT_Examples_CVC.certs\<close>
 
@@ -31,10 +25,99 @@ section \<open>Propositional and first-order logic\<close>
 declare [[smt_cvc_alethe = true]]
 declare[[cvc5_options="--dag-thres=0 --proof-format-mode=alethe  --proof-alethe-experimental --proof-prune-input --full-saturate-quant --proof-alethe-define-skolems --proof-elim-subtypes --no-stats --sat-random-seed=1 --lang=smt2"]]
 
-lemma 
-  shows "map (\<lambda>x. x + 1) [a::int, b] = [a+1, b+1]"
-  supply [[smt_trace]]
-  by (smt (cvc5) list.simps(8) list.simps(9))
+(*
+lemma
+ "0 < 1 \<Longrightarrow>
+  0 < 1 \<Longrightarrow>
+  0 < 1 \<Longrightarrow>
+  0 < 1 \<Longrightarrow>
+  (0 + - 1 * 0 + - 1 * 0 + 0) / 1 * 1 +
+  ((t2 + t3 + - 1 * t1) / 1 * 1 +
+   (- (- 1 * 0 / 1 * 1) + (- (- 1 * 0 / 1 * 1) + (- (- 1 * 0 / 1 * 1) + (- (- 1 * 0 / 1 * 1) + (- (0 / 1 * 1) + - (0 / 1 * 1)))))))
+  < (x + y + t1 + - 1 * (y + t2) + - 1 * (x + t3) + (t2 + t3 + - 1 * t1)) / 1 * 1 +
+    (0 / 1 * 1 +
+     (- (- 1 * (x + t3) / 1 * 1) +
+      (- (- 1 * (x + t3) / 1 * 1) +
+       (- (- 1 * (y + t2) / 1 * 1) + (- (- 1 * (y + t2) / 1 * 1) + (- ((x + y + t1) / 1 * 1) + - ((x + y + t1) / 1 * 1)))))))"
+ for t2::real
+  supply[[simp_trace=false]]
+ apply (tactic \<open>HEADGOAL (let val ctxt = 
+      @{context}
+       |> empty_simpset
+      |> put_simpset HOL_basic_ss
+       |> (fn ctxt => ctxt addsimps (Named_Theorems.get ctxt @{named_theorems ac_simps})
+           addsimps @{thms smt_arith_simplify}
+           addsimprocs [@{simproc int_div_cancel_numeral_factors}, @{simproc int_combine_numerals},
+             @{simproc divide_cancel_numeral_factor}, @{simproc intle_cancel_numerals},
+             @{simproc field_combine_numerals}, @{simproc intless_cancel_numerals}])
+      in Simplifier.asm_full_simp_tac ctxt end)
+  
+ \<close>)  
+  sorry
+
+
+
+
+lemma
+ "0 + - 1 * 0 + - 1 * 0 + 0 \<le> x + y + t1 + - 1 * (y + t2) + - 1 * (x + t3) + (t2 + t3 + - 1 * t1)" for t1 ::real
+  supply[[simp_trace=false]]
+ apply (tactic \<open>HEADGOAL (let val ctxt = 
+      @{context}
+       |> empty_simpset
+      |> put_simpset HOL_basic_ss
+       |> (fn ctxt => ctxt addsimps (Named_Theorems.get ctxt @{named_theorems ac_simps})
+           addsimps @{thms smt_arith_simplify}
+           addsimprocs [@{simproc int_div_cancel_numeral_factors}, @{simproc int_combine_numerals},
+             @{simproc divide_cancel_numeral_factor}, @{simproc intle_cancel_numerals},
+             @{simproc field_combine_numerals}, @{simproc intless_cancel_numerals}])
+      in Simplifier.asm_full_simp_tac ctxt end)
+  
+ \<close>)  
+  apply (simp only: smt_arith_simplify)
+  sorry
+
+lemma
+"(x + y + t1 + - 1 * (y + t2) + - 1 * (x + t3) + (t2 + t3 + - 1 * t1) =0)"
+for t2::real
+  apply simp
+
+
+
+lemma
+"x + y + t1 \<noteq> 0 \<or>
+- 1 * (y + t2) \<noteq> - 1 * 0 \<or>
+- 1 * (x + t3) \<noteq> - 1 * 0 \<or>
+\<not> t2 + t3 + - 1 * t1 < 0 \<or> x + y + t1 + - 1 * (y + t2) + - 1 * (x + t3) + (t2 + t3 + - 1 * t1) < 0 + - 1 * 0 + - 1 * 0 + 0"
+for x::real
+  supply [[linarith_trace]]
+  apply linarith
+
+
+*)
+
+
+
+declare[[ML_print_depth=100]]
+lemma "\<bar>x :: real\<bar> + \<bar>y\<bar> \<ge> \<bar>x + y\<bar>" supply[[smt_trace=true,smt_timeout=1000,smt_reconstruction_step_timeout=1000]] 
+  supply[[smt_debug_arith_verit]]
+  by (smt (cvc5))  (*la_generic real vs int error*)
+lemma "(if (\<forall>x::int. x < 0 \<or> x > 0) then -1 else 3) > (0::int)" by (smt (cvc5)) (*la_generic real vs int error*)
+
+
+(*
+       proposition:
+         x + y + (if 0 \<le> x + y then x + y else - 1 * x + - 1 * y) \<noteq> 0 \<or>
+         - 1 * (y + (if 0 \<le> y then y else - 1 * y)) \<noteq> - 1 * 0 \<or>
+         - 1 * (x + (if 0 \<le> x then x else - 1 * x)) \<noteq> - 1 * 0 \<or>
+         \<not> (if 0 \<le> y then y else - 1 * y) + (if 0 \<le> x then x else - 1 * x) + - 1 * (if 0 \<le> x + y then x + y else - 1 * x + - 1 * y) < 0 \<or>
+         x + y + (if 0 \<le> x + y then x + y else - 1 * x + - 1 * y) + - 1 * (y + (if 0 \<le> y then y else - 1 * y)) +
+         - 1 * (x + (if 0 \<le> x then x else - 1 * x)) +
+         ((if 0 \<le> y then y else - 1 * y) + (if 0 \<le> x then x else - 1 * x) + - 1 * (if 0 \<le> x + y then x + y else - 1 * x + - 1 * y))
+         < 0 + - 1 * 0 + - 1 * 0 + 0 
+
+*)
+
+
 
 (*
 Orange Markiert/ BackgroundFarbe: Freie Variable die nicht im Kontext ist.
@@ -43,31 +126,13 @@ Blaue Farbe: Freie Variable die im Kontext ist
 Gruen: Bound Variable
 *)
 
-
-
-
-(*
-lemma "(\<lambda>i::int. i + 1) = (\<lambda>i::int. 1 + i)"
-  supply[[smt_trace]] by (smt (cvc5)) (*forall inst error*)
-*)
-
-(*Check with Mathias why lambda is not lifted to define-fun *)
-lemma "map (\<lambda>i::int. i + 1) [0, 1] = [1, 2]"
-  supply[[smt_trace]] by (smt (cvc5) list.map) (*forall inst error*)
-
-
-
-
-
-
-
-lemma "True" supply [[smt_trace]] by (smt (cvc5))
-lemma "p \<or> \<not>p" by (smt (cvc5))
-lemma "(p \<and> True) = p" by (smt (cvc5))
-lemma "(p \<or> q) \<and> \<not>p \<Longrightarrow> q" by (smt (cvc5))
-lemma "(a \<and> b) \<or> (c \<and> d) \<Longrightarrow> (a \<and> b) \<or> (c \<and> d)" by (smt (cvc5))
-lemma "(p1 \<and> p2) \<or> p3 \<longrightarrow> (p1 \<longrightarrow> (p3 \<and> p2) \<or> (p1 \<and> p3)) \<or> p1" by (smt (cvc5))
-lemma "P = P = P = P = P = P = P = P = P = P" by (smt (cvc5))
+lemma "True" supply [[smt_trace]] by (smt (cvc5)) (*success*)
+lemma "p \<or> \<not>p" by (smt (cvc5)) (*success*)
+lemma "(p \<and> True) = p" by (smt (cvc5)) (*success*)
+lemma "(p \<or> q) \<and> \<not>p \<Longrightarrow> q" by (smt (cvc5)) (*success*)
+lemma "(a \<and> b) \<or> (c \<and> d) \<Longrightarrow> (a \<and> b) \<or> (c \<and> d)" by (smt (cvc5)) (*success*)
+lemma "(p1 \<and> p2) \<or> p3 \<longrightarrow> (p1 \<longrightarrow> (p3 \<and> p2) \<or> (p1 \<and> p3)) \<or> p1" by (smt (cvc5)) (*success*)
+lemma "P = P = P = P = P = P = P = P = P = P" by (smt (cvc5)) (*success*)
 
 lemma
   assumes "a \<or> b \<or> c \<or> d"
@@ -77,14 +142,14 @@ lemma
       and "\<not> (d \<or> False) \<or> c"
       and "\<not> (c \<or> (\<not> p \<and> (p \<or> (q \<and> \<not> q))))"
   shows False
-  using assms by (smt (cvc5))
+  using assms by (smt (cvc5)) (*success*)
 
 axiomatization symm_f :: "'a \<Rightarrow> 'a \<Rightarrow> 'a" where
   symm_f: "symm_f x y = symm_f y x"
 
 lemma "a = a \<and> symm_f a b = symm_f b a"
   supply [[smt_trace]]
-  by (smt (cvc5) symm_f)
+  by (smt (cvc5) symm_f) (*success*)
 
 (*
 Taken from ~~/src/HOL/ex/SAT_Examples.thy.
@@ -276,20 +341,15 @@ lemma
   and "~x29 \<or> ~x58"
   and "~x28 \<or> ~x58"
 shows False
-  supply [[smt_trace=false]] using assms by (smt (cvc5))
-(*--proof-granularity=dsl-rewrite*)
-declare[[cvc5_options="--dag-thres=0 --proof-format-mode=alethe  --proof-prune-input --full-saturate-quant --proof-alethe-experimental --proof-alethe-define-skolems --proof-elim-subtypes --no-stats --sat-random-seed=1 --lang=smt2"]]
-
-declare[[ML_print_depth=19]]
-declare[[smt_trace]]
+  supply [[smt_trace=false]] using assms by (smt (cvc5)) (*success*)
 
 
 lemma "\<forall>x::int. P x \<longrightarrow> (\<forall>y::int. P x \<or> P y)"
   supply[[smt_trace]]
-  by (smt (cvc5))
+  by (smt (cvc5)) (*success*)
 
-lemma "\<exists>x::int. x + 1 = x * 2"
-  by (smt (cvc5))
+lemma "\<exists>x::int. x + 1 = x * 2" (*Added later*)
+  by (smt (cvc5)) (*success*)
 
 declare [[verit_compress_proofs=false]]
 
@@ -297,40 +357,38 @@ declare [[verit_compress_proofs=false]]
 lemma
   assumes "(\<forall>x y. P x y = x)"
   shows "(\<exists>y. P x y) = P x c"
-  supply[[smt_trace]]
-  using assms by (smt (cvc5))
-(* t45.t26.t3.t0 *)
-(* t203.a0 *)
+  supply[[smt_trace=false]]
+  using assms by (smt (cvc5)) (*success*)
+
 lemma
   assumes "(\<forall>x y. P x y = x)"
   and "(\<forall>x. \<exists>y. P x y) = (\<forall>x. P x c)"
   shows "(\<exists>y. P x y) = P x c"
-  using assms by (smt (cvc5))
+  using assms by (smt (cvc5)) (*success*)
 
 lemma
   assumes "if P x then \<not>(\<exists>y. P y) else (\<forall>y. \<not>P y)"
   shows "P x \<longrightarrow> P y"
-  using assms by (smt (cvc5))
+  using assms by (smt (cvc5)) (*success*)
 
 (*Normalization testing*)
-lemma "Numeral.one"
 
 lemma "(case a of
  True \<Rightarrow> False |
  False \<Rightarrow> True)
-= (\<not>a)"
+= (\<not>a)" (*Added later*)
  supply[[smt_trace]] by (smt (cvc5))
 
-lemma "min (3::int) 5 = 3"
+lemma "min (3::int) 5 = 3" (*Added later*)
  supply[[smt_trace]] by (smt (cvc5))
 
-lemma "min (3::nat) 5 = 3"
- supply[[smt_trace]] by (smt (cvc5))
+lemma "min (3::nat) 5 = 3" (*Added later*)
+ supply[[smt_trace,smt_nat_as_int]] by (smt (cvc5))
 
-lemma "min (3::nat) 5 = 3"
+lemma "min (3::nat) 5 = 3" (*Added later*)
  supply[[smt_nat_as_int,smt_trace]] by (smt (cvc5))
 
-lemma "(3::nat) + x = (x + 3)"
+lemma "(3::nat) + x = (x + 3)" (*Added later*)
   supply[[smt_nat_as_int,show_types,smt_trace]]
   apply (smt (cvc5))
   done
@@ -342,48 +400,35 @@ section \<open>Arithmetic\<close>
 subsection \<open>Linear arithmetic over integers and reals\<close>
 declare[[cvc5_options="--dag-thres=0 --proof-format-mode=alethe --proof-alethe-experimental --proof-alethe-experimental --full-saturate-quant --proof-alethe-define-skolems --proof-elim-subtypes --no-stats --sat-random-seed=1 --lang=smt2"]]
 
-lemma "(3::nat) = 3"  supply[[smt_trace]] by (smt (cvc5))
-lemma "(3::nat) = 3" supply[[smt_nat_as_int,smt_trace]] by (smt (cvc5))
-
-
-lemma "(3::int) = 3" by (smt (cvc5))
-lemma "(3::real) = 3" by (smt (cvc5))
-lemma "(3 :: int) + 1 = 4" by (smt (cvc5))
-lemma "x + (y + z) = y + (z + (x::int))" by (smt (cvc5))
-lemma "max (3::int) 8 > 5" by (smt (cvc5))
-
 declare[[smt_debug_arith_verit]]
 declare[[ML_print_depth=100]]
 
-lemma temp_arith[smt_arith_combine]:
-"c = d \<Longrightarrow> e = f \<Longrightarrow> c + e = d + f"
-  by simp
 
+lemma "(3::nat) = 3"  supply[[smt_trace]] by (smt (cvc5)) (*success*)
+lemma "(3::int) = 3" by (smt (cvc5)) (*Added later*)
+lemma "(3::real) = 3" by (smt (cvc5)) (*success*)
+lemma "(3 :: int) + 1 = 4" by (smt (cvc5)) (*success*)
+lemma "x + (y + z) = y + (z + (x::int))" by (smt (cvc5)) (*success*)
+lemma "max (3::int) 8 > 5" by (smt (cvc5)) (*success*)
+lemma "\<bar>x :: real\<bar> + \<bar>y\<bar> \<ge> \<bar>x + y\<bar>" supply[[smt_trace=false]] by (smt (cvc5))  (*la_generic real vs int error*)
+lemma "P ((2::int) < 3) = P True" supply[[smt_trace]] by (smt (cvc5)) (*success*)
+lemma "x + 3 \<ge> 4 \<or> x < (1::int)" by (smt (cvc5)) (*success*)
 
-lemma "\<bar>x :: real\<bar> + \<bar>y\<bar> \<ge> \<bar>x + y\<bar>" supply[[smt_trace=false]] by (smt (cvc5)) sorry (*by (smt (cvc5))*) (*la_generic real vs int error*)
-lemma "P ((2::int) < 3) = P True" supply[[smt_trace]] by (smt (cvc5))
-lemma "x + 3 \<ge> 4 \<or> x < (1::int)" by (smt (cvc5))
-thm smt_arith_combine
 lemma
   assumes "x \<ge> (3::int)" and "y = x + 4"
   shows "y - x > 0"
-  using assms by (smt (cvc5))
+  using assms by (smt (cvc5)) (*success*)
 
-lemma "let x = (2 :: int) in x + x \<noteq> 5" by (smt (cvc5))
-
-thm smt_arith_multiplication
-lemma [smt_arith_multiplication]:
-  "a \<le> a' \<Longrightarrow> 0 < b \<Longrightarrow> 0 \<le> c \<Longrightarrow> c * (a div b) \<le> c * (a' div b)"
-  
+lemma "let x = (2 :: int) in x + x \<noteq> 5" by (smt (cvc5)) (*success*)
 
 
 lemma
   fixes x :: int
   assumes "3 * x + 7 * a < 4" and "3 < 2 * x"
   shows "a < 0"
-  using assms by (smt (cvc5))
+  using assms by (smt (cvc5)) (*success*)
 
-lemma "(0 \<le> y + -1 * x \<or> \<not> 0 \<le> x \<or> 0 \<le> (x::int)) = (\<not> False)" by (smt (cvc5))
+lemma "(0 \<le> y + -1 * x \<or> \<not> 0 \<le> x \<or> 0 \<le> (x::int)) = (\<not> False)" by (smt (cvc5)) (*success*)
 
 lemma "
   (n < m \<and> m < n') \<or> (n < m \<and> m = n') \<or> (n < n' \<and> n' < m) \<or>
@@ -393,7 +438,7 @@ lemma "
   (m < n \<and> n < n') \<or> (m < n \<and> n' = n) \<or> (m < n' \<and> n' < n) \<or>
   (m = n \<and> n < n') \<or> (m = n' \<and> n' < n) \<or>
   (n' = m \<and> m = (n::int))"
-  by (smt (cvc5))
+  by (smt (cvc5)) (*success*)
 
 text\<open>
 The following example was taken from HOL/ex/PresburgerEx.thy, where it says:
@@ -406,15 +451,17 @@ The following example was taken from HOL/ex/PresburgerEx.thy, where it says:
 
   Warning: it takes (in 2006) over 4.2 minutes!
 
-There, it is proved by "arith". (smt (cvc5)) is able to prove this within a fraction
+There, it is proved by "arith". (smt (cvc5)) is not able to prove this within a fraction
 of one second. With proof reconstruction, it takes about 13 seconds on a Core2
 processor.
 \<close>
+
 (*
 lemma "\<lbrakk> x3 = \<bar>x2\<bar> - x1; x4 = \<bar>x3\<bar> - x2; x5 = \<bar>x4\<bar> - x3;
          x6 = \<bar>x5\<bar> - x4; x7 = \<bar>x6\<bar> - x5; x8 = \<bar>x7\<bar> - x6;
          x9 = \<bar>x8\<bar> - x7; x10 = \<bar>x9\<bar> - x8; x11 = \<bar>x10\<bar> - x9 \<rbrakk>
  \<Longrightarrow> x1 = x10 \<and> x2 = (x11::int)"
+  supply[[smt_trace]]
   by (smt (cvc5))
 *)
 
@@ -423,24 +470,39 @@ lemma "let P = 2 * x + 1 > x + (x::real) in P \<or> False \<or> P" by (smt (cvc5
 
 subsection \<open>Linear arithmetic with quantifiers\<close>
 
-lemma "~ (\<exists>x::int. False)" by (smt (cvc5))
-lemma "~ (\<exists>x::real. False)" by (smt (cvc5))
+lemma "~ (\<exists>x::int. False)" by (smt (cvc5)) (*success*)
+lemma "~ (\<exists>x::real. False)" by (smt (cvc5)) (*success*)
 
 
-lemma "\<forall>x y::int. (x = 0 \<and> y = 1) \<longrightarrow> x \<noteq> y" by (smt (cvc5))
-lemma "\<forall>x y::int. x < y \<longrightarrow> (2 * x + 1) < (2 * y)" by (smt (cvc5))
-lemma "\<forall>x y::int. x + y > 2 \<or> x + y = 2 \<or> x + y < 2" supply[[smt_trace]]by (smt (cvc5)) sorry (*by (smt (cvc5))*) (*context error*)
-lemma "\<forall>x::int. if x > 0 then x + 1 > 0 else 1 > x" by (smt (cvc5))
-lemma "(if (\<forall>x::int. x < 0 \<or> x > 0) then -1 else 3) > (0::int)" by (smt (cvc5))
-lemma "\<exists>x::int. \<forall>x y. 0 < x \<and> 0 < y \<longrightarrow> (0::int) < x + y" (*supply [[verit_compress_proofs=false,smt_trace]]by (smt (cvc5))*) sorry  (*context error*)
-lemma "\<exists>u::int. \<forall>(x::int) y::real. 0 < x \<and> 0 < y \<longrightarrow> -1 < x" sorry (*by (smt (cvc5))*) (*la_generic real vs int error*)
+
+(*
+Bei veriT kann die conclusion reordered sein wenn ein neuer Term produziert wird. Waehrend der Isabelle
+code darauf ausgelegt ist dass das nicht passiert, ist der Standard eigentlich genereller. Ueberall 
+ist diese Assumption mit eingebaut.
+
+[ ] 4: Only allow implicit reordering of equalities in assume commands (both top-level and in subproofs)
+
+Einige Reconstructions koennten
+
+
+*)
+
+
+
+lemma "\<forall>x y::int. (x = 0 \<and> y = 1) \<longrightarrow> x \<noteq> y" by (smt (cvc5)) (*success*)
+lemma "\<forall>x y::int. x < y \<longrightarrow> (2 * x + 1) < (2 * y)" by (smt (cvc5)) (*success*)
+lemma "\<forall>x y::int. x + y > 2 \<or> x + y = 2 \<or> x + y < 2" supply[[smt_trace]]by (smt (cvc5))  (*context error*)
+lemma "\<forall>x::int. if x > 0 then x + 1 > 0 else 1 > x" by (smt (cvc5)) (*success*)
+lemma "(if (\<forall>x::int. x < 0 \<or> x > 0) then -1 else 3) > (0::int)" by (smt (cvc5)) (*la_generic real vs int error*)
+lemma "\<exists>x::int. \<forall>x y. 0 < x \<and> 0 < y \<longrightarrow> (0::int) < x + y" supply [[verit_compress_proofs=false,smt_trace]]by (smt (cvc5))  (*context error*)
+lemma "\<exists>u::int. \<forall>(x::int) y::real. 0 < x \<and> 0 < y \<longrightarrow> -1 < x" by (smt (cvc5))   (*context error*)
 lemma "\<forall>(a::int) b::int. 0 < b \<or> b < 1" by (smt (cvc5))
 
 subsection \<open>Linear arithmetic for natural numbers\<close>
 
 declare [[smt_nat_as_int]]
 
-lemma "2 * (x::nat) \<noteq> 1" by (smt (cvc5))
+lemma "2 * (x::nat) \<noteq> 1" supply[[smt_trace]] by (smt (cvc5)) (*hole error*)
 
 lemma "a < 3 \<Longrightarrow> (7::nat) > 2 * a" by (smt (cvc5))
 
@@ -452,12 +514,12 @@ lemma
    False \<or> P = (x - 1 = y) \<or> (\<not>P \<longrightarrow> False)"
   by (smt (cvc5))
 
-lemma "int (nat \<bar>x::int\<bar>) = \<bar>x\<bar>" by (smt (cvc5) int_nat_eq)
+lemma "int (nat \<bar>x::int\<bar>) = \<bar>x\<bar>" by (smt (cvc5) int_nat_eq) (*la_generic real vs int error*)
 
 definition prime_nat :: "nat \<Rightarrow> bool" where
   "prime_nat p = (1 < p \<and> (\<forall>m. m dvd p --> m = 1 \<or> m = p))"
 
-lemma "prime_nat (4*m + 1) \<Longrightarrow> m \<ge> (1::nat)" by (smt (cvc5) prime_nat_def)
+lemma "prime_nat (4*m + 1) \<Longrightarrow> m \<ge> (1::nat)" by (smt (cvc5) prime_nat_def) (*la_generic real vs int error*)
 
 lemma "2 * (x::nat) \<noteq> 1" 
   by (smt (cvc5))
@@ -497,24 +559,25 @@ lemma
   by (smt (cvc5))+
 
 lemma True using let_rsp by (smt (cvc5))
-lemma "le = (\<le>) \<Longrightarrow> le (3::int) 42" by (smt (cvc5))
-lemma "map (\<lambda>i::int. i + 1) [0, 1] = [1, 2]" supply[[smt_trace]] by (smt (cvc5) list.map) (*forall inst error*)
+lemma "le = (\<le>) \<Longrightarrow> le (3::int) 42" supply[[smt_trace]]by (smt (cvc5)) (*context error*)
+lemma "map (\<lambda>i::int. i + 1) [0, 1] = [1, 2]" supply[[smt_trace]] by (smt (cvc5) list.map)  (*context error*)
 lemma "(\<forall>x. P x) \<or> \<not> All P" by (smt (cvc5))
 
 fun dec_10 :: "int \<Rightarrow> int" where
   "dec_10 n = (if n < 10 then n else dec_10 (n - 10))"
 
-lemma "dec_10 (4 * dec_10 4) = 6"  by (smt (cvc5) dec_10.simps)
+lemma "dec_10 (4 * dec_10 4) = 6"  by (smt (cvc5) dec_10.simps)(*la_generic real vs int error*)
 
 context complete_lattice
 begin
 
+(*
 lemma
   assumes "Sup {a | i::bool. True} \<le> Sup {b | i::bool. True}"
   and "Sup {b | i::bool. True} \<le> Sup {a | i::bool. True}"
   shows "Sup {a | i::bool. True} \<le> Sup {a | i::bool. True}"
   using assms by (smt (cvc5) order_trans)
-
+*)
 end
 
 lemma

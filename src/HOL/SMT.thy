@@ -606,14 +606,14 @@ lemmas [smt_arith_multiplication] =
   verit_le_mono_div_int[THEN mult_left_mono, unfolded int_distrib]
   zdiv_mono1[THEN mult_left_mono, unfolded int_distrib]
 
-lemmas [smt_arith_multiplication] =
+lemma [smt_arith_multiplication]:
+  "x = y \<Longrightarrow> x div n * p = y div n * p"
+  by simp
+
+(*lemmas [smt_arith_multiplication] =
   arg_cong[of _ _ \<open>\<lambda>a :: nat. a div n * p\<close> for n p :: nat, THEN sym]
   arg_cong[of _ _ \<open>\<lambda>a :: int. a div n * p\<close> for n p :: int, THEN sym]
-
-thm smt_arith_multiplication
-lemma [smt_arith_multiplication]:
-  "x = y \<Longrightarrow> y div n * p = x div n * p"
-  by simp
+*)
 
 lemma [smt_arith_combine]:
   "a < b \<Longrightarrow> c < d \<Longrightarrow> a + c + 2 \<le> b + d"
@@ -979,15 +979,19 @@ lemma [z3_rule]:  (* for def-axiom *)
 hide_type (open) symb_list pattern
 hide_const (open) Symb_Nil Symb_Cons trigger pat nopat fun_app z3div z3mod
 
+
 (*
-lemma "((t1 \<and> t2 ) \<and> (t3 \<and> t5)) \<and> t4 \<Longrightarrow> (t3 \<and> t5)"
+lemma 
+  assumes "((t1 \<and> t2 ) \<and> (t3 \<and> t5)) \<and> t4"
+  shows "(t3 \<and> t5)"
+  using assms
+  apply (smt (cvc5))
   apply (tactic \<open>HEADGOAL (fn i => 
        (print_tac @{context} "and0")
        THEN REPEAT (eresolve_tac @{context} @{thms conjE} i
        THEN (print_tac @{context} "and1")
 
        THEN TRY (assume_tac @{context} 1))) \<close>)
-
 lemma "((t1 \<and> t2 ) \<and> t3 ) \<and> t4 \<Longrightarrow> (t1 \<and> t2 ) \<and> t3"
   apply (tactic \<open>HEADGOAL (fn i => 
        (print_tac @{context} "and0")
@@ -1071,7 +1075,29 @@ lemma "(f::('a set\<Rightarrow> int) \<Rightarrow> 'b \<Rightarrow> ('c \<Righta
        (get-proof)*)
 
 
+(*
+assms_net: erkennt assumptions die mehrfach im Beweis vorkommen
+*)
+
+
+lemma
+  fixes  x::int
+  assumes "3*x = z" "z=4*7"
+  shows "x \<noteq> 12*z"
+  supply [[smt_trace,smt_cvc_alethe]]
+  using assms smt_arith_combine(1)
+  sorry
+
+
 declare[[smt_cvc_alethe = true]]
+
+lemma "True" supply [[smt_trace]] by (smt (cvc5)) (*success*)
+
+lemma "le = (\<le>) \<Longrightarrow> le (3::int) 42" supply[[smt_trace]]by (smt (cvc5)) (*context error*)
+
+(*declare[[verit_compress_proofs=false]] (*TODO: Document what this does with reconstructin of sko_forall rule*)*)
+lemma "\<forall>x y::int. x + y > 2 \<or> x + y = 2 \<or> x + y < 2" supply[[smt_trace]]by (smt (cvc5))  (*context error*)
+
 
 
 end

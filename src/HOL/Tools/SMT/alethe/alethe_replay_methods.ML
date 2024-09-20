@@ -701,9 +701,10 @@ fun skolem_tac extractor thm1 thms1 ctxt prems context_ass (decl:string list * s
   let
 
     val (context_ass_thm,_) = Assumption.add_assumes (map (Thm.cterm_of ctxt) context_ass) ctxt
-    val context_ass_thm_sym = @{thm sym} OF context_ass_thm (*TODO*)
     val _ = @{print}("context_ass_thm",context_ass_thm)
-    val _ = @{print}("context_ass_thm_sym",context_ass_thm_sym)
+
+  (*  val context_ass_thm_sym = map (fn x => @{thm sym} OF [x]) context_ass_thm
+    val _ = @{print}("context_ass_thm_sym",context_ass_thm_sym))*)
 
 (*
 lemma verit_sko_forall: \<open>(\<forall>x. P x) \<longleftrightarrow> P (SOME x. \<not>P x)\<close>
@@ -896,11 +897,11 @@ fun normalized_input ctxt prems t =
     val prems = (if all_assms then matched_assm () else prems)
   in
     (SMT_Replay_Methods.prove ctxt t (fn _ =>
-      Skip_Proof.cheat_tac ctxt
-      (*Method.insert_tac ctxt prems
+      (*Skip_Proof.cheat_tac ctxt*)
+      Method.insert_tac ctxt prems
       (*THEN' (K (print_tac ctxt ("normalized input XX0")))*)
       THEN' TRY' (K (unfold_tac ctxt @{thms SMT.trigger_def}))
-      THEN' TRY' (partial_simplify_tac ctxt @{thms eq_commute})*)
+      THEN' TRY' (partial_simplify_tac ctxt @{thms eq_commute})
       (*THEN' (K (print_tac ctxt ("normalized input XX10")))*)))
 end
 
@@ -1088,6 +1089,17 @@ val implies_neg2_thm = @{lemma \<open>(a \<longrightarrow> b) \<or> \<not>b\<clo
 val implies_neg2 = prove_implies_pos_neg implies_neg2_thm
 
 val implies_thm = @{lemma \<open>(a \<longrightarrow> b) \<Longrightarrow> \<not>a \<or> b\<close> by blast}
+
+(*<eigentlich will man backwards proven, aber zu dem Zeitpunkt war das reordering der conclusion
+noch nicht klar, ausserdem einfacher zu debuggen
+
+Um es backwards zu machen:
+
+resolve_tac ctxt [implies_thm OF prems]
+
+Koennte man am schluss aendern
+
+*)
 fun implies_rules ctxt prems t = SMT_Replay_Methods.prove ctxt t (fn _ =>
   Method.insert_tac ctxt [implies_thm OF prems]
   THEN' TRY' (assume_tac ctxt))

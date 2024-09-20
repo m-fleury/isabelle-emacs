@@ -32,12 +32,14 @@ fun try_OF_inst ctxt thm1 ((r, q, pos), thm2) =
       (try_OF ctxt thm1 thm2)
   handle THM _ => []
 
-fun try_OF_insts ctxt thms thm = (@{print}("thms",thms);@{print}("thm",thm);map (fn thm1 => try_OF_inst ctxt thm1 thm) thms |> flat)
+fun try_OF_insts ctxt thms thm = (map (fn thm1 => try_OF_inst ctxt thm1 thm) thms |> flat)
 
 fun try_OFs ctxt thms thm = map (fn thm1 => try_OF ctxt thm1 thm) thms |> flat
 
 fun la_farkas_tac ({context = ctxt, prems, concl,  ...}: Subgoal.focus) (SOME (Farkas_Coefficients coeffs)) thm =
   let
+    val _ = @{print}("coeffs",coeffs)
+
     fun trace v = (SMT_Config.verit_arith_msg ctxt v; v)
     val _ = trace (fn () => @{print} (prems, concl))
     val arith_thms = Named_Theorems.get ctxt @{named_theorems smt_arith_simplify}
@@ -45,18 +47,16 @@ fun la_farkas_tac ({context = ctxt, prems, concl,  ...}: Subgoal.focus) (SOME (F
     val verit_arith_multiplication = Named_Theorems.get ctxt @{named_theorems smt_arith_multiplication}
 
     val typ = hd prems
-      |> @{print}
       |> Thm.concl_of
       |> Thm.cterm_of ctxt
        |> Object_Logic.dest_judgment ctxt
        |> Thm.term_of
-      |> @{print}
        |> (fn (Const _ $ r1 $r2) => r1)
        |> fastype_of
-|> @{print}
+
     fun convert_coefficients (a,b) =
      (HOLogic.mk_number typ (if a < 0 then ~a else a), HOLogic.mk_number typ b, a > 0)
-    val coeff_prems = map convert_coefficients coeffs |> @{print}
+    val coeff_prems = map convert_coefficients coeffs
 
        |> (fn xs => ListPair.zip (xs, prems))
 
@@ -69,16 +69,16 @@ fun la_farkas_tac ({context = ctxt, prems, concl,  ...}: Subgoal.focus) (SOME (F
        |> (fn xs => ListPair.zip (xs, prems))*)
     val _ = trace (fn () => @{print} coeff_prems)
     fun negate_if_needed (thm, pos) =
-       if pos |> @{print}then thm
+       if pos then thm
        else map (fn thm0 => try_OF ctxt thm0 thm) @{thms verit_negate_coefficient}
-         |> flat |> the_single |> @{print}
+         |> flat |> the_single
     val _ = trace (fn () => @{print} "")
 
     val normalized =
-      map (try_OF_insts ctxt verit_arith_multiplication) coeff_prems |> @{print}
+      map (try_OF_insts ctxt verit_arith_multiplication) coeff_prems
       |> flat
       |> map negate_if_needed
-|> @{print}
+
     fun import_assumption thm (Trues, ctxt) =
        let val (assms, ctxt) = Assumption.add_assumes ((map (Thm.cterm_of ctxt) o Thm.prems_of) thm) ctxt in
          (thm OF assms, (Trues + length assms, ctxt)) end
@@ -92,15 +92,17 @@ fun la_farkas_tac ({context = ctxt, prems, concl,  ...}: Subgoal.focus) (SOME (F
     val combined =
       List.foldl
          (fn (thm1, thm2) =>
-           (try_OFs ctxt verit_arith (thm1 |> @{print}) |> @{print})
-           |> (fn thms => try_OFs ctxt thms thm2) |> @{print}
-           |> the_single|> @{print})
+           (try_OFs ctxt verit_arith (thm1) )
+           |> (fn thms => try_OFs ctxt thms thm2) 
+           |> the_single)
          n
-         normalized|> @{print}
+         normalized
       |> singleton (Proof_Context.export ctxt_with_assms ctxt)
     val _ = trace (fn () => @{print} combined)
+
     fun arith_full_simps ctxt thms =
       ctxt
+(*|> Config.map Simplifier.simp_trace (K true)*)
        |> empty_simpset
       |> put_simpset HOL_basic_ss
        |> (fn ctxt => ctxt addsimps thms
@@ -111,6 +113,8 @@ fun la_farkas_tac ({context = ctxt, prems, concl,  ...}: Subgoal.focus) (SOME (F
       |> asm_full_simplify
     val final_False = combined
       |> arith_full_simps ctxt (Named_Theorems.get ctxt @{named_theorems ac_simps})
+    val _ = @{print}("final_False",final_False)
+
     val _ = trace (fn () => @{print} final_False)
     val final_theorem = try_OF ctxt thm final_False
   in
