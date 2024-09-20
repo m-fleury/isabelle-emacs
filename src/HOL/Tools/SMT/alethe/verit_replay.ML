@@ -94,6 +94,7 @@ fun add_used_asserts_in_step (Alethe_Node.Alethe_Replay_Node {prems,
     subproof = (_, _, _, subproof), ...}) =
   union (op =) (map_filter (try (snd o SMTLIB_Interface.role_and_index_of_assert_name)) prems @
      flat (map (fn x => add_used_asserts_in_step x []) subproof))
+  | add_used_asserts_in_step _ = (fn x => x)
 
 fun remove_rewrite_rules_from_rules n =
   (fn (step as Alethe_Node.Alethe_Replay_Node {id, ...}) =>

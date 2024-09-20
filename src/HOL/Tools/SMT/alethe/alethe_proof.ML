@@ -550,21 +550,21 @@ fun extract_assumptions_from_subproof subproof =
 
     (* Process subproof *)
     val new_subproof = 
-    let
-      val subproof_cx =
-        add_bound_variables_to_cx (map (fn (a,b) => (a,Term b)) (shadowing_vars @ rebound_lhs_vars)) cx
-      val _ = debug_lptrace high (fn () => \<^print> ("... add new variables to context",shadowing_vars @ rebound_lhs_vars))
-
-      val can_remove_subproof =
-        compress andalso (is_skolemization rule orelse alpha_conversion)
-      val _ = debug_lptrace high (fn () => \<^print> ("... does the subproof only rename variables and therefore can be removed?",can_remove_subproof))
-
-      val new_subproof = (if can_remove_subproof then [] else subproof)
-
-      val (new_subproof : alethe_replay_node list, _) =
-        fold_map postprocess new_subproof (subproof_cx, new_variable_names)
-      val _ = debug_lptrace low (fn () => \<^print> ("Finished postprocessing subproof. Returning to rule with id",id))
-    in new_subproof end
+      let
+        val subproof_cx =
+          add_bound_variables_to_cx (map (fn (a,b) => (a,Term b)) (shadowing_vars @ rebound_lhs_vars)) cx
+        val _ = debug_lptrace high (fn () => \<^print> ("... add new variables to context",shadowing_vars @ rebound_lhs_vars))
+      
+        val can_remove_subproof =
+          compress andalso (is_skolemization rule orelse alpha_conversion)
+        val _ = debug_lptrace high (fn () => \<^print> ("... does the subproof only rename variables and therefore can be removed?",can_remove_subproof))
+      
+        val new_subproof = (if can_remove_subproof then [] else subproof)
+      
+        val (new_subproof : alethe_replay_node list, _) =
+          fold_map postprocess new_subproof (subproof_cx, new_variable_names)
+        val _ = debug_lptrace low (fn () => \<^print> ("Finished postprocessing subproof. Returning to rule with id",id))
+      in new_subproof end
 
     (* Process context assignment *)
     val context_ass_cx = (*TODO: Why this, same as subproof context*)
@@ -573,7 +573,9 @@ fun extract_assumptions_from_subproof subproof =
         rm_types (SMTLIB.S [SMTLIB.Sym v,_]::xs) = SMTLIB.Sym v::rm_types xs |
         rm_types (SMTLIB.S [SMTLIB.Sym "=", SMTLIB.S [SMTLIB.Sym v,_],t]::xs) = SMTLIB.S [SMTLIB.Sym "=",SMTLIB.Sym v,t]::rm_types xs |
         rm_types t = raise throw_alethe_ex ("malformed context assignment" ^ @{make_string} t) 
-    val (termified_context_ass, _) = fold_map node_of (rm_types context_assignments) context_ass_cx |> apfst (map fst)
+    val (termified_context_ass, _) =
+     fold_map node_of (rm_types context_assignments) context_ass_cx 
+     |>> map fst
     val normalized_context_ass = map unsk_and_rewrite' (map subproof_rewriter' termified_context_ass)
     val _ = debug_lptrace middle (fn () => \<^print> ("... transformed context assignments of anchor ", normalized_context_ass))
 
@@ -653,9 +655,9 @@ fun extract_assumptions_from_subproof subproof =
         (*TODO*)
         fun get_foralls (SMTLIB.S [_,SMTLIB.S[_,SMTLIB.S [_,SMTLIB.S[_,SMTLIB.S xs,_]],_]]) step_args =
         let
-          fun get_vars [] _ = [] |
-            get_vars (SMTLIB.S[v,_]::ys) (z::zs) = SMTLIB.S[SMTLIB.Sym "=",v,z]:: get_vars ys zs |
-            get_vars _ _ = raise throw_alethe_ex ("malformed conclusion or argument of forall_inst step") 
+          fun get_vars [] _ = []
+            | get_vars (SMTLIB.S[v,_]::ys) (z::zs) = SMTLIB.S[SMTLIB.Sym "=",v,z]:: get_vars ys zs
+            | get_vars _ _ = raise throw_alethe_ex ("malformed conclusion or argument of forall_inst step") 
               (* ("x",
            [S [Sym "v0", Sym "Int_int_fun$"], S [Sym "v1", Sym "Int"],
             S [Sym "v2", Sym "Int_list$"]]

@@ -136,11 +136,11 @@ __ in variablen Namen wenn der Term im falschen Kontext ist
 *)
 fun replay_theorem_step rewrite_rules all_assms ll_defs assumed (inputs : thm list) (all_local_assumptions : thm list)
   (step as Alethe_Node.Alethe_Replay_Node {id, rule, prems, step_args, context_assignments, 
-     subproof = (fixes, assms, input, subproof), concl, args, ...}) state =
+     subproof = (fixes, assms, input, subproof), concl, args, ...})
+  (globally_known_facts, stats, ctxt, concl_tranformation, global_transformation) =
   let
     val _ = rtrace (fn () => @{print} ("Replaying theorem step: ", id))
     val _ = @{print} prems
-    val (globally_known_facts, stats, ctxt, concl_tranformation, global_transformation) = state
 
     val ctxt = Variable.variant_fixes [] ctxt
       |> (fn (_, ctxt) => fold Variable.declare_term [SMTLIB_Isar.unskolemize_names ctxt concl] ctxt)
