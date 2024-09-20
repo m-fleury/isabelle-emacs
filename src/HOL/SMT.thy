@@ -718,6 +718,7 @@ ML_file \<open>Tools/SMT/alethe/cvc5_rare.ML\<close>
 ML_file \<open>Tools/SMT/alethe/cvc5_replay_methods.ML\<close>
 ML_file \<open>Tools/SMT/alethe/verit_replay_methods.ML\<close>
 ML_file \<open>Tools/SMT/alethe/verit_strategies.ML\<close>
+ML_file \<open>Tools/SMT/alethe/alethe_replay.ML\<close>
 ML_file \<open>Tools/SMT/alethe/verit_replay.ML\<close>
 (*ML_file \<open>Tools/SMT/verit_replay.ML\<close>*)
 ML_file \<open>Tools/SMT/alethe/cvc5_replay.ML\<close>
