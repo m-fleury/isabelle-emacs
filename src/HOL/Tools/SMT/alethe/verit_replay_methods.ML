@@ -9,8 +9,6 @@ sig
   (*methods for verit proof rules*)
   val method_for: string -> Proof.context -> thm list -> term list -> term list -> term ->
      Alethe_Node.tactic_args option -> thm
-
-  val discharge: Proof.context -> thm list -> term -> thm
 end;
 
 
@@ -97,6 +95,7 @@ fun verit_rule_of "bind" = Bind
   | verit_rule_of "distinct_elim" = Distinct_Elim
   | verit_rule_of "tautology" = Tautological_Clause
   | verit_rule_of "qnt_cnf" = Qnt_CNF
+  | verit_rule_of "unary_minus_simplify" = Unary_Minus_Simplify
   | verit_rule_of r =
      if r = Alethe_Proof.normalized_input_rule then Normalized_Input
      else if r = Alethe_Proof.local_input_rule then Local_Input
@@ -145,7 +144,7 @@ fun choose And = ignore_args and_rule
   | choose Equiv_pos2 = ignore_args equiv_pos2
   | choose Equiv_Simplify = ignore_args rewrite_equiv_simplify
   | choose False = ignore_args false_rule
-  (*| choose Forall_Inst = ignore_decls forall_inst*)
+  | choose Forall_Inst = include_args forall_inst
   | choose Implies = ignore_args implies_rules
   | choose Implies_Neg1 = ignore_args implies_neg1
   | choose Implies_Neg2 = ignore_args implies_neg2
@@ -209,6 +208,7 @@ fun choose And = ignore_args and_rule
   | choose Bfun_Elim = ignore_args bfun_elim
   | choose Qnt_CNF = ignore_args qnt_cnf
   | choose Trans = ignore_args trans
+  | choose Unary_Minus_Simplify = ignore_args rewrite_minus_simplify
   | choose r = unsupported (string_of_alethe_rule r)
 
 
@@ -222,8 +222,5 @@ fun with_tracing rule method ctxt prems step_args context_assignment t args =
 fun method_for rule ctxt
 = with_tracing rule (choose (verit_rule_of rule)) ctxt
 
-fun discharge ctxt [thm] t =
-  SMT_Replay_Methods.prove ctxt t (fn _ =>
-    resolve_tac ctxt [thm] THEN_ALL_NEW (resolve_tac ctxt @{thms refl}))
 
 end;

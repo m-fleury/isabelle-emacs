@@ -42,7 +42,7 @@ sig
      Definition |
      (*Former cong rules*)
      Bool_Simplify | Or_Simplify | Not_Simplify | And_Simplify | Equiv_Simplify |
-     Implies_Simplify | Connective_Def | Minus_Simplify | Comp_Simplify |
+     Implies_Simplify | Connective_Def | Minus_Simplify | Unary_Minus_Simplify | Comp_Simplify |
      Eq_Simplify | ITE_Simplify | Sum_Simplify | Prod_Simplify | All_Simplify | RARE_Rewrite |
      Qnt_Simplify | Not_Not | Tautological_Clause | Duplicate_Literals | Distinct_Elim |
      (*Unsupported rule*)
@@ -225,7 +225,7 @@ datatype alethe_rule =
    Definition |
    (*Former cong rules*)
    Bool_Simplify | Or_Simplify | Not_Simplify | And_Simplify | Equiv_Simplify |
-   Implies_Simplify | Connective_Def | Minus_Simplify | Comp_Simplify |
+   Implies_Simplify | Connective_Def | Minus_Simplify | Unary_Minus_Simplify | Comp_Simplify |
    Eq_Simplify | ITE_Simplify | Sum_Simplify | Prod_Simplify | All_Simplify | RARE_Rewrite |
    Qnt_Simplify | Not_Not | Tautological_Clause | Duplicate_Literals | Distinct_Elim |
    (*Unsupported rule*)
@@ -501,13 +501,11 @@ val extract_bind_names =
    HOLogic.dest_eq
    #> apply2 (fn (Free (name, _)) => name)
 
-fun rm_quant _ [] = [] |
-    rm_quant ctxt (Const ("HOL.Trueprop", _) $ Free (_, _) :: xs) = rm_quant ctxt xs |
-    rm_quant ctxt (Const ("HOL.Trueprop", _) $ t :: xs) = t::rm_quant ctxt xs |
-    rm_quant ctxt _ = rm_quant ctxt [] (*TODO: Throw error*)
+fun ignore_new_bound_var [] = [] |
+    ignore_new_bound_var (Free (_, _) :: xs) = ignore_new_bound_var xs |
+    ignore_new_bound_var (t :: xs) = t::ignore_new_bound_var xs
 
 fun combine_quant ctxt ((n1, n2) :: bounds) (n1' :: formula) =
-(
     TRY' (if n1 = n1'
      then if n1 <> n2
        then
@@ -516,10 +514,14 @@ fun combine_quant ctxt ((n1, n2) :: bounds) (n1' :: formula) =
          THEN' combine_quant ctxt bounds formula
        else resolve_tac ctxt bind_thms_same_name THEN' combine_quant ctxt bounds formula
      else resolve_tac ctxt @{thms allI} THEN' combine_quant ctxt ((n1, n2) :: bounds) formula)
-)  | combine_quant _ _ _ = K all_tac
+  | combine_quant ctxt [] (_ :: formula) = 
+      resolve_tac ctxt bind_thms_same_name THEN' combine_quant ctxt [] formula
+  | combine_quant ctxt _ _ = K (print_tac ctxt "binfanl") THEN' K all_tac
 
 fun bind_quants ctxt args t =
-  combine_quant ctxt (map extract_bind_names (rm_quant ctxt args)) (extract_quantified_names t)
+  combine_quant ctxt 
+  (map extract_bind_names (ignore_new_bound_var (map HOLogic.dest_Trueprop args)))
+    (extract_quantified_names t)
 
 fun generalize_prems_q [] prems = prems
   | generalize_prems_q (_ :: quants) prems =

@@ -652,6 +652,12 @@ lemma verit_negate_coefficient:
   \<open>a = b \<Longrightarrow> -a = -b\<close>
   by auto
 
+lemma verit_invert_farkas_equation:
+  \<open>a \<le> (b :: 'a :: {ordered_ab_group_add}) \<Longrightarrow> -a \<ge> -b\<close>
+  \<open>a < b \<Longrightarrow> -a > -b\<close>
+  \<open>a = b \<Longrightarrow> b = a\<close>
+  by auto
+
 end
 
 lemma verit_ite_intro:
@@ -718,6 +724,7 @@ ML_file \<open>Tools/SMT/alethe/cvc5_rare.ML\<close>
 ML_file \<open>Tools/SMT/alethe/cvc5_replay_methods.ML\<close>
 ML_file \<open>Tools/SMT/alethe/verit_replay_methods.ML\<close>
 ML_file \<open>Tools/SMT/alethe/verit_strategies.ML\<close>
+ML_file \<open>Tools/SMT/alethe/alethe_replay.ML\<close>
 ML_file \<open>Tools/SMT/alethe/verit_replay.ML\<close>
 (*ML_file \<open>Tools/SMT/verit_replay.ML\<close>*)
 ML_file \<open>Tools/SMT/alethe/cvc5_replay.ML\<close>
@@ -776,7 +783,7 @@ options.
 declare [[cvc4_options = ""]]
 declare [[cvc5_options = "--proof-format-mode=alethe --proof-granularity=dsl-rewrite --proof-alethe-experimental
                           --full-saturate-quant --proof-alethe-define-skolems --proof-elim-subtypes"]]
-declare [[verit_options = ""]]
+declare [[verit_options = "--proof-with-sharing"]]
 declare [[z3_options = ""]]
 
 text \<open>
@@ -1090,6 +1097,15 @@ lemma
 
 
 declare[[smt_cvc_alethe = true]]
+
+lemma "True" supply [[smt_trace]] by (smt (cvc5)) (*success*)
+
+lemma "le = (\<le>) \<Longrightarrow> le (3::int) 42" supply[[smt_trace]]by (smt (verit)) (*context error*)
+
+(*declare[[verit_compress_proofs=false]] (*TODO: Document what this does with reconstructin of sko_forall rule*)*)
+lemma "\<forall>x y::int. x + y > 2 \<or> x + y = 2 \<or> x + y < 2" 
+  supply[[smt_trace,ML_print_depth=1000]] by (smt (verit))  (*context error*)
+
 
 
 end

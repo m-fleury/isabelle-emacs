@@ -97,7 +97,7 @@ fun cvc5_rule_of "bind" = Bind
   | cvc5_rule_of "symm" = Symm
   | cvc5_rule_of "not_symm" = Not_Symm
   | cvc5_rule_of "reordering" = Reordering
-  | cvc5_rule_of "unary_minus_simplify" = Minus_Simplify
+  | cvc5_rule_of "unary_minus_simplify" = Unary_Minus_Simplify
   | cvc5_rule_of "quantifier_simplify" = Tmp_Quantifier_Simplify (*TODO Remove*)
   | cvc5_rule_of r =
      if r = Alethe_Proof.normalized_input_rule then Normalized_Input
@@ -162,9 +162,6 @@ THEN' assume_tac ctxt))
 
 
 (* Combining all together *)
-
-fun unsupported rule ctxt thms _ _ _ = SMT_Replay_Methods.replay_error ctxt "Unsupported cvc5 rule"
-  rule thms []
 
 (*ctxt thms step_args context_assignment t args*)
 fun ignore_args       f ctxt prems _ _ goal _ = f ctxt prems goal
@@ -259,6 +256,7 @@ fun choose _ And = ignore_args and_rule
   | choose _ Not_Symm = ignore_args not_symm
   | choose _ Reordering = ignore_args reordering
   | choose _ Tmp_Quantifier_Simplify = ignore_args qnt_simplify
+  | choose _ Unary_Minus_Simplify = ignore_args rewrite_minus_simplify
   | choose ctxt (x as Other_Rule r) =
     (case get_alethe_tac r ctxt of
       NONE => ignore_args hole(*unsupported (string_of_alethe_rule x)*)

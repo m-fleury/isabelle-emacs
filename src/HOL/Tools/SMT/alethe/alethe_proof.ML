@@ -157,20 +157,22 @@ fun node_of_term p cx = (term_of p cx)
 datatype step_kind = ASSUME | ANCHOR | NO_STEP | NORMAL_STEP | SKOLEM
 
 fun parse_fun_def (SMTLIB.S [SMTLIB.Sym "define-fun", SMTLIB.Sym id,  _, _,
-  SMTLIB.S (SMTLIB.Sym "!" :: t :: [SMTLIB.Key ":named", SMTLIB.Sym name])]) cx =
-  let
-    val (l, cx) = (fst oo SMTLIB_Proof.extract_and_update_name_bindings) t cx
-    |> apsnd (SMTLIB_Proof.update_name_binding (name, SMTLIB.Sym id))
-  in
-    (mk_raw_definition_node (id ^ skolem_def) skolem_def id l, cx)
-  end |
-parse_fun_def (SMTLIB.S [SMTLIB.Sym "define-fun", SMTLIB.Sym id,  _, _, SMTLIB.S l]) cx =
-  let
-    val (l, cx) = (fst oo SMTLIB_Proof.extract_and_update_name_bindings) (SMTLIB.S l) cx
-  in
-    (mk_raw_definition_node (id ^ skolem_def) skolem_def id l, cx)
-  end |
-  parse_fun_def t _ = raise Fail ("unrecognized Alethe proof " ^ \<^make_string> t)
+      SMTLIB.S (SMTLIB.Sym "!" :: t :: [SMTLIB.Key "named", SMTLIB.Sym name])]) cx =
+      let
+        val (l, cx) = (fst oo SMTLIB_Proof.extract_and_update_name_bindings) t cx
+          (*verit does not replace choice terms by variable in other terms. We do this here by
+          updating the finding from the choice term to the skolem variable directly*)
+          |> apsnd (SMTLIB_Proof.update_name_binding (name, SMTLIB.Sym id))
+      in
+        (mk_raw_definition_node (id ^ skolem_def) skolem_def id l, cx)
+      end
+  | parse_fun_def (SMTLIB.S [SMTLIB.Sym "define-fun", SMTLIB.Sym id,  _, _, SMTLIB.S l]) cx =
+      let
+        val (l, cx) = (fst oo SMTLIB_Proof.extract_and_update_name_bindings) (SMTLIB.S l) cx
+      in
+        (mk_raw_definition_node (id ^ skolem_def) skolem_def id l, cx)
+      end
+  | parse_fun_def t _ = raise Fail ("unrecognized Alethe proof " ^ \<^make_string> t)
 
 fun parse_raw_proof_steps (curr_anchor_id : string option) (smtlib_lines : SMTLIB.tree list) (cx : name_bindings):
      (raw_alethe_node list * SMTLIB.tree list * name_bindings) =
@@ -355,32 +357,8 @@ fun filter_split _ [] = ([], [])
   | filter_split f (a :: xs) =
      (if f a then apfst (curry op :: a) else apsnd (curry op :: a)) (filter_split f xs)
 
-
-fun extract_types_of_context_assgnmts [SMTLIB.S [var, typ, t as SMTLIB.S [SMTLIB.Sym "choice", _, _]]] rule_name =
-    (SMTLIB.S [var, typ, t], SOME typ)
-    |> single (*TODO*)
- | extract_types_of_context_assgnmts [SMTLIB.S [var, t as SMTLIB.S [SMTLIB.Sym "choice", SMTLIB.S [SMTLIB.S [_, typ]], _]]] rule_name =
-    (SMTLIB.S [var, typ, t], SOME typ)
-    |> single (*TODO*)
- | extract_types_of_context_assgnmts xs rule_name =
-  let
-    fun extract_types_of_context_ass (mapping as SMTLIB.S [SMTLIB.Sym "=", SMTLIB.S [var, typ], t]) = (mapping, SOME typ)
-    | extract_types_of_context_ass (fixed as SMTLIB.S [var, typ]) = (fixed, SOME typ)
-    | extract_types_of_context_ass (SMTLIB.S [eq as SMTLIB.Sym "=", var as SMTLIB.Sym _, t as SMTLIB.S [SMTLIB.Sym "choice", SMTLIB.S [SMTLIB.S [_, typ]], _]]) =
-       (SMTLIB.S [eq, var, t], SOME typ) (*TODO*)
-    | extract_types_of_context_ass t = (t, NONE)
-  in
-    xs
-    |> map extract_types_of_context_ass (*TODO: Could do without helper function, lets see where this goes*)
-  end
-
 (*Probably merge these three, add types whenever possible *)
-
-fun extract_vars cx (SMTLIB.S [SMTLIB.Sym "=", (SMTLIB.S [SMTLIB.Sym x1, y2]), t]) = (x1, (Free (x1, type_of cx y2))) |
-  extract_vars cx (SMTLIB.S [SMTLIB.Sym x1, y2]) = (x1,  (Free (x1, type_of cx y2))) |
-  extract_vars _ _ = raise throw_alethe_ex "Not a valid context assignment"
-
-fun split_context_assignment cx [] (fixed : (string * term) list) substituted substitute = (fixed,substituted,substitute) |
+fun split_context_assignment _ [] (fixed : (string * term) list) substituted substitute = (fixed,substituted,substitute) |
     split_context_assignment cx (SMTLIB.S [SMTLIB.Sym x, t] :: xs) (fs : (string * term) list) ss ts = 
       split_context_assignment cx xs ((x, (Free (x, type_of cx t)))::fs) ss ts |
     split_context_assignment cx (SMTLIB.S [SMTLIB.Sym "=", SMTLIB.S [SMTLIB.Sym x, t], y] :: xs) fs ss ts = 
@@ -426,289 +404,293 @@ val desymbolize = Name.desymbolize (SOME false) o perhaps (try (unprefix "?"))
     This is now does not have an ambiguity and we can safely move the "xy \<leadsto> y" to the proof
     assumptions.
 *)
-fun postprocess_proof compress ctxt step cx =
-let
-
-fun id_of_last_step prems =
-  if null prems then []
-  else
-    case List.last prems of
-      Alethe_Replay_Node {id, ...} => [id] |
-      Alethe_Definition_Node {id, ...} => [id]
-fun extract_assumptions_from_subproof subproof =
-  let
-    fun extract_assumptions (Alethe_Replay_Node {rule, concl, ...}) assms =
-      if rule = local_input_rule then concl :: assms else assms |
-      extract_assumptions (Alethe_Definition_Node _) assms = assms 
-  in
-    fold extract_assumptions subproof []
-  end
-
-  fun process_context_assignments context_assignments cx = 
-  let
-    val _ = debug_lptrace middle (fn () => \<^print> ("... process context assignments", context_assignments))
-
-    val (fixed_vars,substituted_vars,substitute_terms) = split_context_ass cx context_assignments
-    val _ = debug_lptrace high (fn () => \<^print> ("... split up context assignments (fixed variables, substituted variables, substitute terms)", (fixed_vars,substituted_vars,substitute_terms)))
-
-    fun not_already_bound cx t = SMTLIB_Proof.lookup_binding cx (fst t) = None
-    val (shadowing_vars, rebound_lhs_vars) =
-      substituted_vars @ fixed_vars
-      |> filter_split (not_already_bound cx)
-    val _ = debug_lptrace high (fn () => \<^print> ("... (new variables, already bound variables)", (shadowing_vars, rebound_lhs_vars)))
-
-    fun assign_unused_name t i = 
-     let 
-       val new_name = (if i=0 then t else (t^"_isabelle"^Int.toString i))
-     in 
-       if SMTLIB_Proof.lookup_binding cx new_name = None then new_name else assign_unused_name t (i+1)
-     end
-    val new_variable_names = fold (fn t => curry (op ::) (t, assign_unused_name t 0)) (map fst rebound_lhs_vars) []
-    val _ = debug_lptrace high (fn () => \<^print> ("... mapping between new variables introduced in the anchor and their original names"))
-  in ((shadowing_vars, rebound_lhs_vars, substitute_terms), new_variable_names) end
-
-  (* Functions for rewriting terms and the context *)
-  fun synctactic_var_subst old_name new_name (u $ v) =
-     (synctactic_var_subst old_name new_name u $ synctactic_var_subst old_name new_name v)
-   | synctactic_var_subst old_name new_name (Abs (v, T, u)) =
-     Abs (if String.isPrefix old_name v then new_name else v, T,
-       synctactic_var_subst old_name new_name u)
-   | synctactic_var_subst old_name new_name (Free (v, T)) =
-      if String.isPrefix old_name v then Free (new_name, T) else Free (v, T)
-   | synctactic_var_subst _ _ t = t
-  fun syntactic_rew_in_lhs_subst old_name new_name (Const(\<^const_name>\<open>HOL.eq\<close>, T) $ t1 $ t2) =
-       Const(\<^const_name>\<open>HOL.eq\<close>, T) $ synctactic_var_subst old_name new_name t1 $ t2
-    | syntactic_rew_in_lhs_subst old_name new_name (Const(\<^const_name>\<open>Trueprop\<close>, T) $ t1) =
-       Const(\<^const_name>\<open>Trueprop\<close>, T) $ (syntactic_rew_in_lhs_subst old_name new_name t1)
-    | syntactic_rew_in_lhs_subst _ _ t = t
-  fun subproof_rewriter new_variable_names = fold (fn (t, t') => syntactic_rew_in_lhs_subst t t') new_variable_names
-  fun add_bound_variables_to_cx ts cx = fold update_binding ts cx
-  fun unsk_and_rewrite new_variable_names = SMTLIB_Isar.unskolemize_names ctxt o (subproof_rewriter new_variable_names)
-
-  (* Function to termify conclusion *)
-  fun transform_concl concl id (cx, new_variable_names) =
-  let
-    val ((termified_concl, extra_var), cx') = node_of concl cx
-    val _ = debug_lptrace high (fn () => \<^print> ("... transformed conclusion into Isabelle term", termified_concl))
-
-    val _ = if extra_var <> []
-      then raise ERROR ("found dangling variable (s) " ^ (@{make_string} extra_var) ^
-      " in concl " ^ (@{make_string} concl) ^ " of step" ^ id) else ()
-    val termified_concl = unsk_and_rewrite new_variable_names termified_concl
-    val _ = debug_lptrace middle (fn () => \<^print> ("... rewrite conclusion with new variable names introduced by prior anchors", termified_concl))
-
-  in (cx',termified_concl) end
-
-  fun transform_step_args rule step_args (cx, new_variable_names) =
-    if not (allows_step_args rule) then [] else
-    let
-      val (termified_step_args,_) = fold_map node_of_term step_args cx
-      val normalized_step_args = map (unsk_and_rewrite new_variable_names) (map (subproof_rewriter new_variable_names) termified_step_args)
-      val _ = debug_lptrace middle (fn () => \<^print> ("Termified and normalized steps args:", normalized_step_args))
-     in normalized_step_args end
-
-  fun postprocess (Raw_Definition_Node {id, rule, skolem_name, skolem_term}) (cx, new_variable_names) =
-  let
-    val _ = debug_lptrace low (fn () => \<^print> ("postprocessing started for definition: ", (id,rule)))
-
-    val cx =
-    let
-      fun extract_skolem_type (SMTLIB.S [SMTLIB.Sym "choice", SMTLIB.S [SMTLIB.S [_,typ]], _]) = typ |
-          extract_skolem_type t = raise throw_alethe_ex ("unrecognized skolem_definition " ^ @{make_string} t)
-      fun declared_csts (name,typ) = (name, Term (Free (name, type_of cx typ)))
-      val globally_bound_vars = declared_csts (skolem_name,extract_skolem_type skolem_term)
-      val _ = debug_lptrace middle (fn () => \<^print> ("... extracted globally bound vars from skolem definition", fst globally_bound_vars))
-    in update_binding globally_bound_vars cx end
-
-    val (termified_concl,cx') = node_of_term skolem_term cx
-    val normalized_concl = unsk_and_rewrite new_variable_names termified_concl
-    val _ = debug_lptrace middle (fn () => \<^print> ("... transformed conclusion", normalized_concl))
-
-    val step = Alethe_Definition_Node {id=id,rule=rule,skolem_name=skolem_name,skolem_term=normalized_concl}
-
-  in
-    (step, (cx', new_variable_names))
-  end
- |
-  postprocess (Raw_Alethe_Node {id, rule, step_args, context_assignments, prems, concl, subproof}) (cx, new_variable_names) =
-  if is_anchor_rule rule
-  then
-  let
-    val unsk_and_rewrite' = unsk_and_rewrite new_variable_names
-    val subproof_rewriter' = subproof_rewriter new_variable_names
-
-    val _ = debug_lptrace low (fn () => \<^print> ("postprocessing started for anchor: ", id))
-
-    (* Preprocess context arguments *) 
-    val ((shadowing_vars,rebound_lhs_vars,substitute_terms),new_variable_names) =
-      process_context_assignments context_assignments cx ||> (curry (op @)) new_variable_names
+local
+  fun id_of_last_step prems =
+    if null prems then []
+    else
+      (case List.last prems of
+        Alethe_Replay_Node {id, ...} => [id]
+      | Alethe_Definition_Node {id, ...} => [id])
   
-    (* Process conclusion *)
-    val (cx',termified_concl) = transform_concl concl id (cx, new_variable_names)
-    val _ = debug_lptrace middle (fn () => \<^print> ("... transformed conclusion of step closing the anchor ", termified_concl))
-    val alpha_conversion = rule = "bind" andalso is_alpha_renaming termified_concl
-
-    (* Process subproof *)
-    val new_subproof = 
+  fun extract_assumptions_from_subproof subproof =
     let
-      val subproof_cx =
-        add_bound_variables_to_cx (map (fn (a,b) => (a,Term b)) (shadowing_vars @ rebound_lhs_vars)) cx
-      val _ = debug_lptrace high (fn () => \<^print> ("... add new variables to context",shadowing_vars @ rebound_lhs_vars))
-
-      val can_remove_subproof =
-        compress andalso (is_skolemization rule orelse alpha_conversion)
-      val _ = debug_lptrace high (fn () => \<^print> ("... does the subproof only rename variables and therefore can be removed?",can_remove_subproof))
-
-      val new_subproof = (if can_remove_subproof then [] else subproof)
-
-      val (new_subproof : alethe_replay_node list, _) =
-        fold_map postprocess new_subproof (subproof_cx, new_variable_names)
-      val _ = debug_lptrace low (fn () => \<^print> ("Finished postprocessing subproof. Returning to rule with id",id))
-    in new_subproof end
-
-    (* Process context assignment *)
-    val context_ass_cx = (*TODO: Why this, same as subproof context*)
-        add_bound_variables_to_cx (map (fn (a,b) => (a,Term b)) (shadowing_vars @ rebound_lhs_vars)) cx
-    fun rm_types [] = [] |
-        rm_types (SMTLIB.S [SMTLIB.Sym v,_]::xs) = SMTLIB.Sym v::rm_types xs |
-        rm_types (SMTLIB.S [SMTLIB.Sym "=", SMTLIB.S [SMTLIB.Sym v,_],t]::xs) = SMTLIB.S [SMTLIB.Sym "=",SMTLIB.Sym v,t]::rm_types xs |
-        rm_types t = raise throw_alethe_ex ("malformed context assignment" ^ @{make_string} t) 
-    val (termified_context_ass, _) = fold_map node_of (rm_types context_assignments) context_ass_cx |> apfst (map fst)
-    val normalized_context_ass = map unsk_and_rewrite' (map subproof_rewriter' termified_context_ass)
-    val _ = debug_lptrace middle (fn () => \<^print> ("... transformed context assignments of anchor ", normalized_context_ass))
-
-    (* Add rule-specific arguments *)
-    val mk_sko_def_prems =
-      let
-        val skolems_of_subproof = (if compress then flat (map collect_skolem_defs subproof) else [])
-        val skolem_defs = (map (get_skolem_def_id o extract_sym_value "cannot parse skolem id" o fst) substitute_terms)
-      in SOME (Sko_Def_Prems (skolems_of_subproof,skolem_defs)) end
-    val tactic_args = if is_skolemization rule then mk_sko_def_prems else NONE
-
-    (* Fix rule *)
-    val normalized_rule =
-      if compress andalso alpha_conversion then refl_rule
-      else rule
-
-    (* Fix premises *)
-    val assms_from_subproof = (if rule = subproof_rule then extract_assumptions_from_subproof new_subproof else [])
-    val normalized_premises =                                                       
-      prems @
-      id_of_last_step new_subproof @
-      (map (get_skolem_def_id o (extract_sym_value "found malformed skolem id in context argument") o fst) substitute_terms)
-    val _ = debug_lptrace middle (fn () => \<^print> ("... added more premises ", normalized_premises))
-
-    (* Fix step args *)
-    val normalized_step_args = transform_step_args rule step_args (cx, new_variable_names)
-    val _ = debug_lptrace middle (fn () => \<^print> ("... transformed step args of step closing the anchor. Should be empty:", normalized_step_args))
-
-    val step =
-      mk_replay_node id normalized_rule normalized_step_args normalized_context_ass
-        normalized_premises termified_concl
-        ((map (fn (a,b) => (a, fastype_of b)) (shadowing_vars @ rebound_lhs_vars)), [], assms_from_subproof, new_subproof)
-        tactic_args
-  in
-    (step, (cx', new_variable_names))
-  end
-  else (*Non anchor steps*)
-  let
-    val _ = debug_lptrace low (fn () => \<^print> ("postprocessing started for rule: ", id))
-
-    (* Process conclusion *)
-    val (cx',termified_concl) = transform_concl concl id (cx, new_variable_names)
-    val _ = debug_lptrace middle (fn () => \<^print> ("... transform conclusion ", termified_concl))
-
-    (* Process step arguments *)
-    (*TODO: la_generic aendere reals, erwarte div und keine reele zahlen. 
-    (div 1 4) anstelle vom 0.25 als auch 1.0/4.0 
-    => Fuege in Isabelle-alethe hinzu (es ist keine restriktion, aber um zu checken dass das bei keiner anderen Regel passiert)*)
-    val normalized_step_args = if rule = la_generic_rule 
-    then [] else transform_step_args rule step_args (cx, new_variable_names)
-
-    (* add arguments *)
-    val tactic_args =
-    case rule of
-      "la_generic" =>
-      let
-        fun extract_coefficients [] = [] |
-        extract_coefficients (SMTLIB.Num num :: coeffs) =
-           (num,1) :: extract_coefficients coeffs
-          | extract_coefficients (SMTLIB.S [SMTLIB.Sym _, SMTLIB.Num num1, SMTLIB.Num num2] :: coeffs) =
-           (num1,num2) :: extract_coefficients coeffs
-          | extract_coefficients (SMTLIB.Dec (num1,num2) :: coeffs) =
-           let
-              fun mult10 x = if x = 0 then 1 else 10 * mult10 (x div 10)
-              val offset = mult10 num2
-              val res_num = offset * num1 + num2
-           in
-             (res_num,offset) :: extract_coefficients coeffs
-           end
-                     val _ = @{print}("step_args", step_args)
-
-           val _ = @{print}("extract_coefficients step_args",extract_coefficients step_args)
-  
-      in SOME (Farkas_Coefficients (extract_coefficients step_args)) end
-    | "forall_inst" =>
-      let
-        (*TODO*)
-        fun get_foralls (SMTLIB.S [_,SMTLIB.S[_,SMTLIB.S [_,SMTLIB.S[_,SMTLIB.S xs,_]],_]]) step_args =
-        let
-          fun get_vars [] _ = [] |
-            get_vars (SMTLIB.S[v,_]::ys) (z::zs) = SMTLIB.S[SMTLIB.Sym "=",v,z]:: get_vars ys zs |
-            get_vars _ _ = raise throw_alethe_ex ("malformed conclusion or argument of forall_inst step") 
-              (* ("x",
-           [S [Sym "v0", Sym "Int_int_fun$"], S [Sym "v1", Sym "Int"],
-            S [Sym "v2", Sym "Int_list$"]]
-          I cannot do this on the SMTLIB term after all... Or at least not this easily. Names might
-          be different... TODO*)
-        in get_vars xs step_args end |
-        get_foralls _ _ = raise throw_alethe_ex ("malformed conclusion or argument of forall_inst step")
-
-           
-        fun insts_of_forall_inst (SMTLIB.S [_, SMTLIB.Sym x, a]) = (x, a) |
-          insts_of_forall_inst _ = raise throw_alethe_ex ("forall inst")
-        val raw_insts = map insts_of_forall_inst (get_foralls concl step_args)
-
-        fun termify_term (x, t) cx = let val (t, cx) = term_of t cx in ((x, t), cx) end
-        val (termified_inst, _) = fold_map termify_term raw_insts cx
-        val insts = Symtab.empty
-          |> fold (fn (x, t) => fn insts => Symtab.update_new (desymbolize x, t) insts) termified_inst
-          |> Symtab.map (K (unsk_and_rewrite new_variable_names))
-         in SOME (Insts insts) end |
-      
-      _ => NONE
-
-      (* fix premises *)
-      val normalized_premises = prems @ (if is_assm_repetition id rule then [id] else [])
-
-      (* fix rule *)
-      fun normalized_input_rule_name id = if can SMTLIB_Interface.role_and_index_of_assert_name id then normalized_input_rule else local_input_rule
-      val normalized_rule =
-        if rule = input_rule
-        then normalized_input_rule_name id
-        else rule
-
-      val empty_subproof = ([], [], [], [])
-      val empty_context_assignment = []
-      val step =
-        mk_replay_node
-        id
-        normalized_rule
-        normalized_step_args
-        empty_context_assignment
-        normalized_premises
-        termified_concl
-        empty_subproof
-        tactic_args
-
+      fun extract_assumptions (Alethe_Replay_Node {rule, concl, ...}) assms =
+        if rule = local_input_rule then concl :: assms else assms |
+        extract_assumptions (Alethe_Definition_Node _) assms = assms 
     in
-       (step, (cx', new_variable_names))
+      fold extract_assumptions subproof []
     end
-
-  in
-    postprocess step (cx, [])
-    |> (fn (step, (cx, _)) => (step, cx))
-  end
+in
+fun postprocess_proof compress ctxt step cx =
+  let
+    fun process_context_assignments context_assignments cx = 
+      let
+        val _ = debug_lptrace middle (fn () => \<^print> ("... process context assignments", context_assignments))
+      
+        val (fixed_vars,substituted_vars,substitute_terms) = split_context_ass cx context_assignments
+        val _ = debug_lptrace high (fn () => \<^print> ("... split up context assignments (fixed variables, substituted variables, substitute terms)", (fixed_vars,substituted_vars,substitute_terms)))
+      
+        fun not_already_bound cx t = SMTLIB_Proof.lookup_binding cx (fst t) = None
+        val (shadowing_vars, rebound_lhs_vars) =
+          substituted_vars @ fixed_vars
+          |> filter_split (not_already_bound cx)
+        val _ = debug_lptrace high (fn () => \<^print> ("... (new variables, already bound variables)", (shadowing_vars, rebound_lhs_vars)))
+      
+        fun assign_unused_name t i = 
+         let 
+           val new_name = (if i=0 then t else (t^"_isabelle"^Int.toString i))
+         in 
+           if SMTLIB_Proof.lookup_binding cx new_name = None then new_name else assign_unused_name t (i+1)
+         end
+        val new_variable_names = fold (fn t => curry (op ::) (t, assign_unused_name t 0)) (map fst rebound_lhs_vars) []
+        val _ = debug_lptrace high (fn () => \<^print> ("... mapping between new variables introduced in the anchor and their original names"))
+      in ((shadowing_vars, rebound_lhs_vars, substitute_terms), new_variable_names) end
+  
+    (* Functions for rewriting terms and the context *)
+    fun synctactic_var_subst old_name new_name (u $ v) =
+       (synctactic_var_subst old_name new_name u $ synctactic_var_subst old_name new_name v)
+     | synctactic_var_subst old_name new_name (Abs (v, T, u)) =
+       Abs (if String.isPrefix old_name v then new_name else v, T,
+         synctactic_var_subst old_name new_name u)
+     | synctactic_var_subst old_name new_name (Free (v, T)) =
+        if String.isPrefix old_name v then Free (new_name, T) else Free (v, T)
+     | synctactic_var_subst _ _ t = t
+    fun syntactic_rew_in_lhs_subst old_name new_name (Const(\<^const_name>\<open>HOL.eq\<close>, T) $ t1 $ t2) =
+         Const(\<^const_name>\<open>HOL.eq\<close>, T) $ synctactic_var_subst old_name new_name t1 $ t2
+      | syntactic_rew_in_lhs_subst old_name new_name (Const(\<^const_name>\<open>Trueprop\<close>, T) $ t1) =
+         Const(\<^const_name>\<open>Trueprop\<close>, T) $ (syntactic_rew_in_lhs_subst old_name new_name t1)
+      | syntactic_rew_in_lhs_subst _ _ t = t
+    fun subproof_rewriter new_variable_names = fold (fn (t, t') => syntactic_rew_in_lhs_subst t t') new_variable_names
+    fun add_bound_variables_to_cx ts cx = fold update_binding ts cx
+    fun unsk_and_rewrite new_variable_names = SMTLIB_Isar.unskolemize_names ctxt o (subproof_rewriter new_variable_names)
+  
+    (* Function to termify conclusion *)
+    fun transform_concl concl id (cx, new_variable_names) =
+    let
+      val ((termified_concl, extra_var), cx') = node_of concl cx
+      val _ = debug_lptrace high (fn () => \<^print> ("... transformed conclusion into Isabelle term", termified_concl))
+  
+      val _ = if extra_var <> []
+        then raise ERROR ("found dangling variable (s) " ^ (@{make_string} extra_var) ^
+        " in concl " ^ (@{make_string} concl) ^ " of step" ^ id) else ()
+      val termified_concl = unsk_and_rewrite new_variable_names termified_concl
+      val _ = debug_lptrace middle (fn () => \<^print> ("... rewrite conclusion with new variable names introduced by prior anchors", termified_concl))
+  
+    in (cx',termified_concl) end
+  
+    fun transform_step_args rule step_args (cx, new_variable_names) =
+      if not (allows_step_args rule) then [] else
+      let
+        val (termified_step_args,_) = fold_map node_of_term step_args cx
+        val normalized_step_args = map (unsk_and_rewrite new_variable_names) (map (subproof_rewriter new_variable_names) termified_step_args)
+        val _ = debug_lptrace middle (fn () => \<^print> ("Termified and normalized steps args:", normalized_step_args))
+       in normalized_step_args end
+  
+    fun postprocess (Raw_Definition_Node {id, rule, skolem_name, skolem_term}) (cx, new_variable_names) =
+      let
+        val _ = debug_lptrace low (fn () => \<^print> ("postprocessing started for definition: ", (id,rule)))
+      
+        val cx =
+        let
+          fun extract_skolem_type (SMTLIB.S [SMTLIB.Sym "choice", SMTLIB.S [SMTLIB.S [_,typ]], _]) = typ |
+              extract_skolem_type t = raise throw_alethe_ex ("unrecognized skolem_definition " ^ @{make_string} t)
+          fun declared_csts (name,typ) = (name, Term (Free (name, type_of cx typ)))
+          val globally_bound_vars = declared_csts (skolem_name,extract_skolem_type skolem_term)
+          val _ = debug_lptrace middle (fn () => \<^print> ("... extracted globally bound vars from skolem definition", fst globally_bound_vars))
+        in update_binding globally_bound_vars cx end
+      
+        val (termified_concl,cx') = node_of_term skolem_term cx
+        val normalized_concl = unsk_and_rewrite new_variable_names termified_concl
+        val _ = debug_lptrace middle (fn () => \<^print> ("... transformed conclusion", normalized_concl))
+      
+        val step = Alethe_Definition_Node {id=id,rule=rule,skolem_name=skolem_name,skolem_term=normalized_concl}
+      
+      in
+        (step, (cx', new_variable_names))
+      end
+    | postprocess (Raw_Alethe_Node {id, rule, step_args, context_assignments, prems, concl, subproof}) (cx, new_variable_names) =
+      if is_anchor_rule rule
+      then
+      let
+        val unsk_and_rewrite' = unsk_and_rewrite new_variable_names
+        val subproof_rewriter' = subproof_rewriter new_variable_names
+    
+        val _ = debug_lptrace low (fn () => \<^print> ("postprocessing started for anchor: ", id))
+    
+        (* Preprocess context arguments *) 
+        val ((shadowing_vars, rebound_lhs_vars, substitute_terms),new_variable_names) =
+          process_context_assignments context_assignments cx ||> (curry (op @)) new_variable_names
+      
+        (* Process conclusion *)
+        val (cx',termified_concl) = transform_concl concl id (cx, new_variable_names)
+        val _ = debug_lptrace middle (fn () => \<^print> ("... transformed conclusion of step closing the anchor ", termified_concl))
+        val alpha_conversion = rule = "bind" andalso is_alpha_renaming termified_concl
+    
+        (* Process subproof *)
+        val new_subproof = 
+          let
+            val subproof_cx =
+              add_bound_variables_to_cx (map (fn (a,b) => (a,Term b)) (shadowing_vars @ rebound_lhs_vars)) cx
+            val _ = debug_lptrace high (fn () => \<^print> ("... add new variables to context",shadowing_vars @ rebound_lhs_vars))
+          
+            val can_remove_subproof =
+              compress andalso (is_skolemization rule orelse alpha_conversion)
+            val _ = debug_lptrace high (fn () => \<^print> ("... does the subproof only rename variables and therefore can be removed?",can_remove_subproof))
+          
+            val new_subproof = (if can_remove_subproof then [] else subproof)
+          
+            val (new_subproof : alethe_replay_node list, _) =
+              fold_map postprocess new_subproof (subproof_cx, new_variable_names)
+            val _ = debug_lptrace low (fn () => \<^print> ("Finished postprocessing subproof. Returning to rule with id",id))
+          in new_subproof end
+    
+        (* Process context assignment *)
+        val context_ass_cx = (*TODO: Why this, same as subproof context*)
+            add_bound_variables_to_cx (map (fn (a,b) => (a,Term b)) (shadowing_vars @ rebound_lhs_vars)) cx
+        fun rm_types [] = [] |
+            rm_types (SMTLIB.S [SMTLIB.Sym v,_]::xs) = SMTLIB.Sym v::rm_types xs |
+            rm_types (SMTLIB.S [SMTLIB.Sym "=", SMTLIB.S [SMTLIB.Sym v,_],t]::xs) = SMTLIB.S [SMTLIB.Sym "=",SMTLIB.Sym v,t]::rm_types xs |
+            rm_types t = raise throw_alethe_ex ("malformed context assignment" ^ @{make_string} t) 
+        val (termified_context_ass, _) =
+         fold_map node_of (rm_types context_assignments) context_ass_cx 
+         |>> map fst
+        val normalized_context_ass = map unsk_and_rewrite' (map subproof_rewriter' termified_context_ass)
+        val _ = debug_lptrace middle (fn () => \<^print> ("... transformed context assignments of anchor ", normalized_context_ass))
+    
+        (* Add rule-specific arguments *)
+        fun mk_sko_def_prems () =
+          let
+            val skolems_of_subproof = (if compress then flat (map collect_skolem_defs subproof) else [])
+            val skolem_defs = (map (get_skolem_def_id o extract_sym_value "cannot parse skolem id" o fst) substitute_terms)
+          in SOME (Sko_Def_Prems (skolems_of_subproof,skolem_defs)) end
+        val tactic_args = if is_skolemization rule then mk_sko_def_prems () else NONE
+    
+        (* Fix rule *)
+        val normalized_rule =
+          if compress andalso alpha_conversion then refl_rule
+          else rule
+    
+        (* Fix premises *)
+        val assms_from_subproof = (if rule = subproof_rule then extract_assumptions_from_subproof new_subproof else [])
+        val normalized_premises =                                                       
+          prems @
+          id_of_last_step new_subproof @
+          (map (get_skolem_def_id o (extract_sym_value "found malformed skolem id in context argument") o fst) (@{print}substitute_terms))
+        val _ = debug_lptrace middle (fn () => \<^print> ("... added more premises ", normalized_premises))
+    
+        (* Fix step args *)
+        val normalized_step_args = transform_step_args rule step_args (cx, new_variable_names)
+        val _ = debug_lptrace middle (fn () => \<^print> ("... transformed step args of step closing the anchor. Should be empty:", normalized_step_args))
+    
+        val step =
+          mk_replay_node id normalized_rule normalized_step_args normalized_context_ass
+            normalized_premises termified_concl
+            ((map (fn (a,b) => (a, fastype_of b)) (shadowing_vars @ rebound_lhs_vars)), [], assms_from_subproof, new_subproof)
+            tactic_args
+      in
+        (step, (cx', new_variable_names))
+      end
+    else (*Non anchor steps*)
+      let
+        val _ = debug_lptrace low (fn () => \<^print> ("postprocessing started for rule: ", id))
+      
+        (* Process conclusion *)
+        val (cx',termified_concl) = transform_concl concl id (cx, new_variable_names)
+        val _ = debug_lptrace middle (fn () => \<^print> ("... transform conclusion ", termified_concl))
+      
+        (* Process step arguments *)
+        (*TODO: la_generic aendere reals, erwarte div und keine reele zahlen. 
+        (div 1 4) anstelle vom 0.25 als auch 1.0/4.0 
+        => Fuege in Isabelle-alethe hinzu (es ist keine restriktion, aber um zu checken dass das bei keiner anderen Regel passiert)*)
+        val normalized_step_args = if rule = la_generic_rule 
+        then [] else transform_step_args rule step_args (cx, new_variable_names)
+      
+        (* add arguments *)
+        val tactic_args =
+        case rule of
+          "la_generic" =>
+          let
+            fun convert_dec_to_rat num1 num2 =
+              let
+                 fun mult10 x = if x = 0 then 1 else 10 * mult10 (x div 10)
+                 val offset = mult10 num2
+                 val res_num = offset * num1 + num2
+              in
+                (res_num,offset)
+              end
+            fun extract_coefficients (SMTLIB.Num num) =
+                (num,1)
+              | extract_coefficients (SMTLIB.S [SMTLIB.Sym "-", SMTLIB.Num num1]) =
+                (~num1,1)
+              | extract_coefficients (SMTLIB.S [SMTLIB.Sym _, SMTLIB.Num num1, SMTLIB.Num num2]) =
+                (num1,num2)
+              | extract_coefficients (SMTLIB.S [SMTLIB.Sym "-", SMTLIB.Dec (num1,num2)]) =
+                convert_dec_to_rat (~num1) num2
+              | extract_coefficients (SMTLIB.Dec (num1,num2)) =
+                convert_dec_to_rat num1 num2      
+          in SOME (Farkas_Coefficients (map extract_coefficients step_args)) end
+        | "forall_inst" =>
+          let
+            (*TODO*)
+            fun get_foralls (SMTLIB.S [_,SMTLIB.S[_,SMTLIB.S [_,SMTLIB.S[_,SMTLIB.S xs,_]],_]]) step_args =
+            let
+              fun get_vars [] _ = []
+                | get_vars (SMTLIB.S[v,_]::ys) (z::zs) = SMTLIB.S[SMTLIB.Sym "=",v,z]:: get_vars ys zs
+                | get_vars _ _ = raise throw_alethe_ex ("malformed conclusion or argument of forall_inst step") 
+                  (* ("x",
+               [S [Sym "v0", Sym "Int_int_fun$"], S [Sym "v1", Sym "Int"],
+                S [Sym "v2", Sym "Int_list$"]]
+              I cannot do this on the SMTLIB term after all... Or at least not this easily. Names might
+              be different... TODO*)
+            in get_vars xs step_args end |
+            get_foralls _ _ = raise throw_alethe_ex ("malformed conclusion or argument of forall_inst step")
+      
+               
+            fun insts_of_forall_inst (SMTLIB.S [_, SMTLIB.Sym x, a]) = (x, a) |
+              insts_of_forall_inst _ = raise throw_alethe_ex ("forall inst")
+            val raw_insts = map insts_of_forall_inst (get_foralls concl step_args)
+      
+            fun termify_term (x, t) cx = let val (t, cx) = term_of t cx in ((x, t), cx) end
+            val (termified_inst, _) = fold_map termify_term raw_insts cx
+            val insts = Symtab.empty
+              |> fold (fn (x, t) => fn insts => Symtab.update_new (desymbolize x, t) insts) termified_inst
+              |> Symtab.map (K (unsk_and_rewrite new_variable_names))
+             in SOME (Insts insts) end |
+          
+          _ => NONE
+      
+          (* fix premises *)
+          val normalized_premises = prems @ (if is_assm_repetition id rule then [id] else [])
+      
+          (* fix rule *)
+          fun normalized_input_rule_name id = if can SMTLIB_Interface.role_and_index_of_assert_name id then normalized_input_rule else local_input_rule
+          val normalized_rule =
+            if rule = input_rule
+            then normalized_input_rule_name id
+            else rule
+      
+          val empty_subproof = ([], [], [], [])
+          val empty_context_assignment = []
+          val step =
+            mk_replay_node
+            id
+            normalized_rule
+            normalized_step_args
+            empty_context_assignment
+            normalized_premises
+            termified_concl
+            empty_subproof
+            tactic_args
+      
+        in
+           (step, (cx', new_variable_names))
+        end
+      
+      in
+        postprocess step (cx, [])
+        |> (fn (step, (cx, _)) => (step, cx))
+      end
+end
 
 (* Compression *)
 fun combine_proof_steps ((Alethe_Replay_Node step1 : alethe_replay_node) :: (Alethe_Replay_Node step2) :: steps) =
@@ -752,7 +734,7 @@ val linearize_proof =
        mk_step id rule prems proof_ctxt (f concl)
     fun linearize (Alethe_Replay_Node {id = id, rule = rule, step_args = _, context_assignments = _, prems = prems,
         concl = concl,
-        subproof = (bounds', assms, inputs, subproof), args = args}) =
+        subproof = (_, assms, inputs, subproof), args = args}) =
       let
         fun mk_prop_of_term concl =
           concl |> fastype_of concl = \<^typ>\<open>bool\<close> ? curry (op $) \<^term>\<open>Trueprop\<close>
