@@ -656,22 +656,24 @@ skolem constant is used multiple times with a different name under the forall.
 For strictness, we use the multiple rewriting only when compressing is activated.
 *)
 local
-  fun rewrite_all_skolems thm_indirect ctxt ((v,SOME thm) :: thms) =
+  fun rewrite_all_skolems ctxt_eq thm_indirect ctxt ((v,SOME thm) :: thms) =
      let
        val rewrite_sk_thms =
          List.mapPartial (fn tm => SOME (tm OF [thm]) handle THM _ => NONE) thm_indirect
+|> @{print}
        val multiple_rew = if SMT_Config.compress_verit_proofs ctxt then REPEAT_CHANGED else fn x => x
      in
        multiple_rew (EqSubst.eqsubst_tac ctxt [0] rewrite_sk_thms
-         (*THEN' K (print_tac ctxt "In rewrite_all_skolems")*)
-         THEN' SOLVED' (K (HEADGOAL (partial_simplify_tac ctxt (@{thms eq_commute}))))
+         (* THEN' K (print_tac ctxt "In rewrite_all_skolems")*)
+         THEN' SOLVED' (K (HEADGOAL (partial_simplify_tac ctxt (ctxt_eq @ @{thms eq_commute}))))
          (*THEN' K (print_tac ctxt "In rewrite_all_skolems 2")*))
-       THEN' rewrite_all_skolems thm_indirect ctxt thms
+       THEN' rewrite_all_skolems ctxt_eq thm_indirect ctxt thms
          (*THEN' K (print_tac ctxt "In rewrite_all_skolems 3")*)
 
      end
-   | rewrite_all_skolems thm_indirect ctxt ((_,NONE) :: thms) = rewrite_all_skolems thm_indirect ctxt thms
-   | rewrite_all_skolems _ _ [] = K (all_tac)
+   | rewrite_all_skolems ctxt_eq thm_indirect ctxt ((_,NONE) :: thms) =
+       rewrite_all_skolems ctxt_eq thm_indirect ctxt thms
+   | rewrite_all_skolems _ _ _ [] = K (all_tac)
 
    fun extract_var_name (thm :: thms) =
        let val name = Thm.concl_of thm
@@ -739,7 +741,7 @@ lemma verit_sko_forall_indirect2:
   in
     SMT_Replay_Methods.prove ctxt t (fn _ =>
       K (print_tac ctxt "sko 1")
-      THEN' rewrite_all_skolems thms1 ctxt (ordered_definitions ())
+      THEN' rewrite_all_skolems ctxt_eq thms1 ctxt (ordered_definitions () |> @{print})
       THEN' K (print_tac ctxt "sko 2")
 
       THEN' (*(((resolve_tac ctxt @{thms refl}) THEN' K (print_tac ctxt "sko 0"))
