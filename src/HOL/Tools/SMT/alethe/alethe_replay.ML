@@ -14,12 +14,12 @@ end;
 structure Alethe_Replay: ALETHE_REPLAY =
 struct
 
-val trace = true
+val trace = false
 datatype debugging_verbosity = low | middle | high
 fun debug_to_int low = 0 |
     debug_to_int middle = 1 |
     debug_to_int high = 2
-val debug = true
+val debug = false
 val debugging_level = high (*0 low, 1 middle, 2 high verbosity*)
 
 fun replay_trace_msg cond (x : unit -> 'a) = if cond then ignore(x ()) else ()
@@ -67,7 +67,7 @@ fun replay_thm method_for rewrite_rules ll_defs ctxt assumed unchanged_prems pre
       end
     val rewrite_concl = (if Alethe_Proof.keep_app_symbols rule then
           filter (curry Term.could_unify (Thm.concl_of @{thm SMT.fun_app_def}) o Thm.concl_of) rewrite_rules
-        else rewrite_rules) |> @{print}
+        else rewrite_rules)
     val post = let val thy = Proof_Context.theory_of (empty_simpset ctxt) in
         Raw_Simplifier.rewrite_term thy rewrite_concl []
         #> Object_Logic.atomize_term ctxt
@@ -124,12 +124,6 @@ fun add_used_asserts_in_step (Alethe_Node.Alethe_Replay_Node {prems,
      flat (map (fn x => add_used_asserts_in_step x []) subproof)) |
   add_used_asserts_in_step (Alethe_Node.Alethe_Definition_Node _) = (fn x => x)
 
-fun remove_rewrite_rules_from_rules n =
-  (fn Alethe_Node.Alethe_Replay_Node {id, ...} =>
-    (case try (snd o SMTLIB_Interface.role_and_index_of_assert_name) id of
-      NONE => true
-    | SOME a => (a >= n)))
-
 (*
 ll_defs: lambda_lifting defs
 
@@ -141,7 +135,6 @@ fun replay_theorem_step method_for rewrite_rules all_assms ll_defs assumed (inpu
   (globally_known_facts, stats, ctxt, concl_tranformation, global_transformation) =
   let
     val _ = rtrace (fn () => @{print} ("Replaying theorem step: ", id))
-    val _ = @{print} prems
 
     val ctxt = Variable.variant_fixes [] ctxt
       |> (fn (_, ctxt) => fold Variable.declare_term [SMTLIB_Isar.unskolemize_names ctxt concl] ctxt)
@@ -165,8 +158,6 @@ fun replay_theorem_step method_for rewrite_rules all_assms ll_defs assumed (inpu
         #> SMTLIB_Isar.unskolemize_names ctxt
         #> HOLogic.mk_Trueprop
       end
-val _ = if null ll_defs orelse Alethe_Proof.keep_raw_lifting rule then ignore (@{print} "not keeping") else
- ignore (@{print} "keeping")
     val term_rewriter2 = (subst_only_free global_transformation o Term.subst_free (export_vars) o remove_lambdas)
     val term_rewriter = (SMTLIB_Isar.unskolemize_names ctxt o term_rewriter2)
 
@@ -192,8 +183,6 @@ val _ = if null ll_defs orelse Alethe_Proof.keep_raw_lifting rule then ignore (@
     val (input_as_thm, sub_ctxt2) = mk_thms sub_ctxt2 rewritten_input
     val (context_assignments_as_thm, sub_ctxt2) = mk_thms sub_ctxt2 rewritten_context_assignments 
     val updated_local_assumptions = all_local_assumptions @ assms_as_thm @ context_assignments_as_thm
-val _ = @{print} assms_as_thm
-val _ = @{print} updated_local_assumptions
 
     val _ = debug_crtrace (not (null rewritten_assms)) middle (fn () => @{print} ("Transformed assumptions, i.e. top-level assumes (before,after)",(assms,assms_as_thm)))
     val _ = debug_crtrace (not (null rewritten_input)) middle (fn () => @{print} ("Transformed input, i.e. assumes in subproofs (before,after)",(input,input_as_thm)))
@@ -213,7 +202,7 @@ val _ = @{print} updated_local_assumptions
     (* Processing Components with new Context *)
     val export_thm = singleton (Proof_Context.export sub_ctxt2 ctxt)
     val subst_transform = (Raw_Simplifier.rewrite_term (Proof_Context.theory_of (empty_simpset ctxt)) ((if (Alethe_Proof.keep_raw_lifting rule) andalso not (null rewrite_rules) then tl rewrite_rules else rewrite_rules)) []
-         o @{print} o SMTLIB_Isar.unlift_term ll_defs o @{print} o Term.subst_free concl_tranformation o subst_only_free global_transformation o @{print})
+         o SMTLIB_Isar.unlift_term ll_defs o Term.subst_free concl_tranformation o subst_only_free global_transformation)
     (*val _ = @{print}("concl_tranformation",global_transformation)*)
     val id_to_thm = (Symtab.lookup (if (null subproof) then globally_known_facts else locally_known_facts))
     val (prems_skolem_def,non_skolem_prems) = filter_split Alethe_Proof.is_skolem_def prems
@@ -221,7 +210,6 @@ val _ = @{print} updated_local_assumptions
       non_skolem_prems
       |> map_filter id_to_thm
       |> map (apsnd export_thm)
-|> @{print}
     val skolem_rule_prems_as_thms_with_context_assms = 
       (if Alethe_Proof.is_skolemization rule (*Choice terms only appear in sko_forall and exists*)
        then prems_skolem_def |> map_filter (Symtab.lookup globally_known_facts) (*Skolem definitionen sind immer im auesseren Kontext*)
