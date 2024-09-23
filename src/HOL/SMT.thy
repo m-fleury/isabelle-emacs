@@ -1091,13 +1091,5 @@ lemma
 
 declare[[smt_cvc_alethe = true]]
 
-lemma "True" supply [[smt_trace]] by (smt (cvc5)) (*success*)
-
-lemma "le = (\<le>) \<Longrightarrow> le (3::int) 42" supply[[smt_trace]]by (smt (cvc5)) (*context error*)
-
-(*declare[[verit_compress_proofs=false]] (*TODO: Document what this does with reconstructin of sko_forall rule*)*)
-lemma "\<forall>x y::int. x + y > 2 \<or> x + y = 2 \<or> x + y < 2" supply[[smt_trace]]by (smt (cvc5))  (*context error*)
-
-
 
 end
