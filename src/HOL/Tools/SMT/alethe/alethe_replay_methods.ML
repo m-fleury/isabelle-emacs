@@ -507,7 +507,6 @@ fun ignore_new_bound_var [] = [] |
     ignore_new_bound_var (t :: xs) = t::ignore_new_bound_var xs
 
 fun combine_quant ctxt ((n1, n2) :: bounds) (n1' :: formula) =
-(
     TRY' (if n1 = n1'
      then if n1 <> n2
        then
@@ -516,7 +515,6 @@ fun combine_quant ctxt ((n1, n2) :: bounds) (n1' :: formula) =
          THEN' combine_quant ctxt bounds formula
        else resolve_tac ctxt bind_thms_same_name THEN' combine_quant ctxt bounds formula
      else resolve_tac ctxt @{thms allI} THEN' combine_quant ctxt ((n1, n2) :: bounds) formula)
-end
   | combine_quant ctxt [] (_ :: formula) = 
       resolve_tac ctxt bind_thms_same_name THEN' combine_quant ctxt [] formula
   | combine_quant ctxt _ _ = K (print_tac ctxt "binfanl") THEN' K all_tac

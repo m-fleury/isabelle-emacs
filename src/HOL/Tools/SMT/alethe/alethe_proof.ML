@@ -157,20 +157,22 @@ fun node_of_term p cx = (term_of p cx)
 datatype step_kind = ASSUME | ANCHOR | NO_STEP | NORMAL_STEP | SKOLEM
 
 fun parse_fun_def (SMTLIB.S [SMTLIB.Sym "define-fun", SMTLIB.Sym id,  _, _,
-  SMTLIB.S (SMTLIB.Sym "!" :: t :: [SMTLIB.Key ":named", SMTLIB.Sym name])]) cx =
-  let
-    val (l, cx) = (fst oo SMTLIB_Proof.extract_and_update_name_bindings) t cx
-    |> apsnd (SMTLIB_Proof.update_name_binding (name, SMTLIB.Sym id))
-  in
-    (mk_raw_definition_node (id ^ skolem_def) skolem_def id l, cx)
-  end |
-parse_fun_def (SMTLIB.S [SMTLIB.Sym "define-fun", SMTLIB.Sym id,  _, _, SMTLIB.S l]) cx =
-  let
-    val (l, cx) = (fst oo SMTLIB_Proof.extract_and_update_name_bindings) (SMTLIB.S l) cx
-  in
-    (mk_raw_definition_node (id ^ skolem_def) skolem_def id l, cx)
-  end |
-  parse_fun_def t _ = raise Fail ("unrecognized Alethe proof " ^ \<^make_string> t)
+      SMTLIB.S (SMTLIB.Sym "!" :: t :: [SMTLIB.Key "named", SMTLIB.Sym name])]) cx =
+      let
+        val (l, cx) = (fst oo SMTLIB_Proof.extract_and_update_name_bindings) t cx
+          (*verit does not replace choice terms by variable in other terms. We do this here by
+          updating the finding from the choice term to the skolem variable directly*)
+          |> apsnd (SMTLIB_Proof.update_name_binding (name, SMTLIB.Sym id))
+      in
+        (mk_raw_definition_node (id ^ skolem_def) skolem_def id l, cx)
+      end
+  | parse_fun_def ( x as SMTLIB.S [SMTLIB.Sym "define-fun", SMTLIB.Sym id,  _, _, SMTLIB.S l]) cx =
+      let
+        val (l, cx) = (fst oo SMTLIB_Proof.extract_and_update_name_bindings) (SMTLIB.S l) cx
+      in
+        (mk_raw_definition_node (id ^ skolem_def) skolem_def id l, cx)
+      end
+  | parse_fun_def t _ = raise Fail ("unrecognized Alethe proof " ^ \<^make_string> t)
 
 fun parse_raw_proof_steps (curr_anchor_id : string option) (smtlib_lines : SMTLIB.tree list) (cx : name_bindings):
      (raw_alethe_node list * SMTLIB.tree list * name_bindings) =
@@ -362,7 +364,7 @@ fun extract_types_of_context_assgnmts [SMTLIB.S [var, typ, t as SMTLIB.S [SMTLIB
  | extract_types_of_context_assgnmts [SMTLIB.S [var, t as SMTLIB.S [SMTLIB.Sym "choice", SMTLIB.S [SMTLIB.S [_, typ]], _]]] rule_name =
     (SMTLIB.S [var, typ, t], SOME typ)
     |> single (*TODO*)
- | extract_types_of_context_assgnmts xs rule_name =
+ | extract_types_of_context_assgnmts xs _ =
   let
     fun extract_types_of_context_ass (mapping as SMTLIB.S [SMTLIB.Sym "=", SMTLIB.S [var, typ], t]) = (mapping, SOME typ)
     | extract_types_of_context_ass (fixed as SMTLIB.S [var, typ]) = (fixed, SOME typ)
@@ -529,8 +531,7 @@ fun extract_assumptions_from_subproof subproof =
   in
     (step, (cx', new_variable_names))
   end
- |
-  postprocess (Raw_Alethe_Node {id, rule, step_args, context_assignments, prems, concl, subproof}) (cx, new_variable_names) =
+ | postprocess (Raw_Alethe_Node {id, rule, step_args, context_assignments, prems, concl, subproof}) (cx, new_variable_names) =
   if is_anchor_rule rule
   then
   let
