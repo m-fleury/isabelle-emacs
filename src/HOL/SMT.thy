@@ -652,6 +652,12 @@ lemma verit_negate_coefficient:
   \<open>a = b \<Longrightarrow> -a = -b\<close>
   by auto
 
+lemma verit_invert_farkas_equation:
+  \<open>a \<le> (b :: 'a :: {ordered_ab_group_add}) \<Longrightarrow> -a \<ge> -b\<close>
+  \<open>a < b \<Longrightarrow> -a > -b\<close>
+  \<open>a = b \<Longrightarrow> b = a\<close>
+  by auto
+
 end
 
 lemma verit_ite_intro:

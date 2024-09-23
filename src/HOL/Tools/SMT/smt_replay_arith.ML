@@ -62,19 +62,27 @@ fun la_farkas_tac ({context = ctxt, prems, concl,  ...}: Subgoal.focus) (SOME (F
       |> (fn (Const _ $ r1 $r2) => r1)
       |> fastype_of
     fun convert_coefficients (a,b) =
-     (HOLogic.mk_number typ (if a < 0 then ~a else a), HOLogic.mk_number typ b, a > 0)
+      (HOLogic.mk_number typ (if a < 0 then ~a else a), HOLogic.mk_number typ b, a > 0)
     val coeff_prems = map convert_coefficients coeffs
        |> (fn xs => ListPair.zip (xs, prems))
-       |> map (fn ((num1, num2, pos), (prems, invert)) => ((num1, num2, pos <> invert), prems))
+       |> tap (fn x => trace (fn () => @{print} x))
+       |> map (fn ((num1, num2, pos), (prems, inverted)) => ((num1, num2, (pos, inverted)), prems))
 
     val _ = trace (fn () => @{print}  "******************************************************")
     val _ = trace (fn () => @{print}  "       Multiply by constants                          ")
     val _ = trace (fn () => @{print}  "******************************************************")
     val _ = trace (fn () => @{print} coeff_prems)
-    fun negate_if_needed (thm, pos) =
-       if pos then thm
-       else map (fn thm0 => try_OF ctxt thm0 thm) @{thms verit_negate_coefficient}
-         |> flat |> the_single
+    fun negate_if_needed (thm, (pos, no_inversion_needed)) =
+      let
+        fun manipulate_thm thms cond thm =
+          if cond then thm
+          else map (fn thm0 => try_OF ctxt thm0 thm) thms
+            |> flat |> the_single
+      in 
+        thm
+        |> manipulate_thm @{thms verit_negate_coefficient} pos
+        |> manipulate_thm @{thms verit_invert_farkas_equation} no_inversion_needed
+      end
     val _ = trace (fn () => @{print} "")
 
     val normalized =
