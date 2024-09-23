@@ -376,6 +376,7 @@ fun skolems_introduced_by_rule [] = [] |
 fun collect_skolem_defs (Raw_Alethe_Node {rule, subproof = subproof, context_assignments, ...}) =
   (if is_skolemization rule then map get_skolem_def_id (skolems_introduced_by_rule context_assignments) else []) @
   flat (map collect_skolem_defs subproof)
+ | collect_skolem_defs _ = []
 
 val desymbolize = Name.desymbolize (SOME false) o perhaps (try (unprefix "?"))
  fun could_unify (Bound i, Bound j) = i = j
@@ -562,8 +563,8 @@ fun postprocess_proof compress ctxt step cx =
           let
             val skolems_of_subproof = (if compress then flat (map collect_skolem_defs subproof) else [])
             val skolem_defs = (map (get_skolem_def_id o extract_sym_value "cannot parse skolem id" o fst) substitute_terms)
-          in SOME (Sko_Def_Prems (skolems_of_subproof,skolem_defs)) end
-        val tactic_args = if is_skolemization rule then mk_sko_def_prems () else NONE
+          in (SOME (Sko_Def_Prems (skolems_of_subproof, skolem_defs)), skolems_of_subproof) end
+        val (tactic_args, extra_defs) = (if is_skolemization rule then mk_sko_def_prems () else (NONE, []))
     
         (* Fix rule *)
         val normalized_rule =
@@ -575,6 +576,7 @@ fun postprocess_proof compress ctxt step cx =
         val normalized_premises =                                                       
           prems @
           id_of_last_step new_subproof @
+          extra_defs @
           (map (get_skolem_def_id o (extract_sym_value "found malformed skolem id in context argument") o fst) (@{print}substitute_terms))
         val _ = debug_lptrace middle (fn () => \<^print> ("... added more premises ", normalized_premises))
     
