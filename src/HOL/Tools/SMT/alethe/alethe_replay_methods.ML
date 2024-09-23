@@ -384,11 +384,10 @@ fun print_alethe_tac context =
 
 
 (** Tactics for Reconstruction **)
-(**)
 fun replay_error ctxt msg rule thms args t =
   SMT_Replay_Methods.replay_error ctxt msg (string_of_alethe_rule rule) thms args t
 
-(* utility function *)
+(* utility function *)                            
 
 fun eqsubst_all ctxt thms =
    K ((REPEAT o HEADGOAL) (EqSubst.eqsubst_asm_tac ctxt [0] thms))
@@ -401,14 +400,6 @@ fun simplify_tac ctxt thms =
   |> (fn ctxt => ctxt addsimps @{thms simp_thms} addsimps thms)
   |> Simplifier.asm_full_simp_tac
 
-(* sko_forall requires the assumptions to be able to prove the equivalence in case of double
-skolemization. See comment below. *)
-fun requires_subproof_assms _ t =
-  member (op =) ["refl", "sko_forall", "sko_ex", "cong"] t
-
-fun requires_local_input _ t =
-  member (op =) [Alethe_Proof.local_input_rule] t
-
 (*This is a weaker simplification form. It is weaker, but is also less likely to loop*)
 fun partial_simplify_tac ctxt thms =
   ctxt
@@ -416,6 +407,14 @@ fun partial_simplify_tac ctxt thms =
   |> put_simpset HOL_basic_ss
   |> (fn ctxt => ctxt addsimps @{thms simp_thms} addsimps thms)
   |> Simplifier.full_simp_tac
+
+(* sko_forall requires the assumptions to be able to prove the equivalence in case of double
+skolemization. See comment below. *)
+fun requires_subproof_assms _ t =
+  member (op =) ["refl", "sko_forall", "sko_ex", "cong"] t
+
+fun requires_local_input _ t =
+  member (op =) [Alethe_Proof.local_input_rule] t
 
 val try_provers = SMT_Replay_Methods.try_provers
 
@@ -531,16 +530,13 @@ fun generalize_prems_q [] prems = prems
 fun generalize_prems t = generalize_prems_q (fst (extract_quantified_names_ba t))
 
 fun bind ctxt [prems] context_ass t =
-(
-  SMT_Replay_Methods.prove ctxt t (fn _ =>
- 
-
-
-    bind_quants ctxt context_ass t
+ (SMT_Replay_Methods.prove ctxt t (fn _ =>
+   bind_quants ctxt context_ass t
  (*   THEN' REPEAT' (resolve_tac ctxt bind_thms THEN' TRY' (K (print_tac ctxt "bin")))*)
     
     THEN' TRY' (SOLVED' (resolve_tac ctxt [generalize_prems t prems]
       THEN_ALL_NEW TRY' (assume_tac ctxt ORELSE' resolve_tac ctxt @{thms refl})))))
+
  | bind ctxt thms _ t = replay_error ctxt "invalid bind application" Bind thms [] t
 
 
