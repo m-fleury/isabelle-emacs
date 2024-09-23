@@ -42,7 +42,7 @@ sig
      Definition |
      (*Former cong rules*)
      Bool_Simplify | Or_Simplify | Not_Simplify | And_Simplify | Equiv_Simplify |
-     Implies_Simplify | Connective_Def | Minus_Simplify | Comp_Simplify |
+     Implies_Simplify | Connective_Def | Minus_Simplify | Unary_Minus_Simplify | Comp_Simplify |
      Eq_Simplify | ITE_Simplify | Sum_Simplify | Prod_Simplify | All_Simplify | RARE_Rewrite |
      Qnt_Simplify | Not_Not | Tautological_Clause | Duplicate_Literals | Distinct_Elim |
      (*Unsupported rule*)
@@ -225,7 +225,7 @@ datatype alethe_rule =
    Definition |
    (*Former cong rules*)
    Bool_Simplify | Or_Simplify | Not_Simplify | And_Simplify | Equiv_Simplify |
-   Implies_Simplify | Connective_Def | Minus_Simplify | Comp_Simplify |
+   Implies_Simplify | Connective_Def | Minus_Simplify | Unary_Minus_Simplify | Comp_Simplify |
    Eq_Simplify | ITE_Simplify | Sum_Simplify | Prod_Simplify | All_Simplify | RARE_Rewrite |
    Qnt_Simplify | Not_Not | Tautological_Clause | Duplicate_Literals | Distinct_Elim |
    (*Unsupported rule*)
