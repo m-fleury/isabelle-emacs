@@ -494,8 +494,8 @@ lemma "\<forall>x y::int. x < y \<longrightarrow> (2 * x + 1) < (2 * y)" by (smt
 lemma "\<forall>x y::int. x + y > 2 \<or> x + y = 2 \<or> x + y < 2" supply[[smt_trace]]by (smt (cvc5))  (*context error*)
 lemma "\<forall>x::int. if x > 0 then x + 1 > 0 else 1 > x" by (smt (cvc5)) (*success*)
 lemma "(if (\<forall>x::int. x < 0 \<or> x > 0) then -1 else 3) > (0::int)" by (smt (cvc5)) (*la_generic real vs int error*)
-lemma "\<exists>x::int. \<forall>x y. 0 < x \<and> 0 < y \<longrightarrow> (0::int) < x + y" supply [[verit_compress_proofs=false,smt_trace]]by (smt (cvc5))  (*context error*)
-lemma "\<exists>u::int. \<forall>(x::int) y::real. 0 < x \<and> 0 < y \<longrightarrow> -1 < x" by (smt (cvc5))   (*context error*)
+lemma "\<exists>x::int. \<forall>x y. 0 < x \<and> 0 < y \<longrightarrow> (0::int) < x + y" supply [[verit_compress_proofs=false,smt_trace]]by (smt (cvc5))  (*bind error*)
+lemma "\<exists>u::int. \<forall>(x::int) y::real. 0 < x \<and> 0 < y \<longrightarrow> -1 < x" supply [[smt_trace]] by (smt (cvc5))   (*hole*)
 lemma "\<forall>(a::int) b::int. 0 < b \<or> b < 1" by (smt (cvc5))
 
 subsection \<open>Linear arithmetic for natural numbers\<close>
@@ -522,10 +522,11 @@ definition prime_nat :: "nat \<Rightarrow> bool" where
 lemma "prime_nat (4*m + 1) \<Longrightarrow> m \<ge> (1::nat)" by (smt (cvc5) prime_nat_def) (*la_generic real vs int error*)
 
 lemma "2 * (x::nat) \<noteq> 1" 
-  by (smt (cvc5))
+  by (smt (cvc5)) (*hole*)
 
 lemma \<open>2*(x :: int) \<noteq> 1\<close>
-  by (smt (cvc5))
+  supply [[smt_trace]]
+  by (smt (cvc5)) (*hole*)
 
 declare [[smt_nat_as_int = false]]
 
@@ -571,13 +572,13 @@ lemma "dec_10 (4 * dec_10 4) = 6"  by (smt (cvc5) dec_10.simps)(*la_generic real
 context complete_lattice
 begin
 
-(*
+
 lemma
   assumes "Sup {a | i::bool. True} \<le> Sup {b | i::bool. True}"
   and "Sup {b | i::bool. True} \<le> Sup {a | i::bool. True}"
   shows "Sup {a | i::bool. True} \<le> Sup {a | i::bool. True}"
-  using assms by (smt (cvc5) order_trans)
-*)
+  using assms supply [[smt_trace]] by (smt (cvc5) order_trans) (*timeout in a hole*)
+
 end
 
 lemma
@@ -644,8 +645,7 @@ begin
       one_chain_line_integral :: \<open>(real \<times> real \<Rightarrow> real \<times> real) \<Rightarrow> (real \<times> real) set \<Rightarrow> (int \<times> (real \<Rightarrow> real \<times> real)) set \<Rightarrow> real\<close> and
       k
     using prod.case_eq_if singleton_inject snd_conv
-      that
-    (*by (smt (cvc5))*) sorry (*and reconstruction error*)
+      that by (smt (cvc5))
 end
 
 
@@ -674,8 +674,7 @@ lemma
     (\<lambda>y. (- (d / 2), (2 * y - 1) * diamond_y (- (d / 2)))) =
     (\<lambda>x. ((x - 1 / 2) * d, diamond_y ((x - 1 / 2) * d))) \<Longrightarrow>
     False\<close>
-  using assms
-  sorry (* by (smt (cvc5)) *) (*la_generic error*)
+  using assms supply [[smt_trace,smt_nat_as_int]] by (smt (cvc5)) (*la_generic error \<rightarrow> seems like the one Hanna knows already*)
 
 lemma
   fixes d :: real
@@ -693,8 +692,7 @@ lemma
     (\<lambda>y. (- (d / 2), (2 * y - 1) * diamond_y (- (d / 2)))) =
     (\<lambda>x. ((x - 1 / 2) * d, diamond_y ((x - 1 / 2) * d))) \<Longrightarrow>
     False\<close>
-  using assms
-  sorry (*by (smt (cvc5))*) (*la_generic error*)
+  using assms by (smt (cvc5)) (*la_generic error \<rightarrow> seems like the one Hanna knows already*)
 
 (*qnt_rm_unused example*)
 lemma 
@@ -791,7 +789,7 @@ lemma
        g (arg_min_on (f \<circ> g) B) \<close>
    shows False
   using assms
-  sorry (*by (smt (cvc5))*) (*Forall inst error*)
+  by (smt (cvc5))
 end
 
 
@@ -829,7 +827,7 @@ lemma
                    v0 = v2 # v3 # v4 \<and> rec_join v0 = coeff_cube_to_path v2 +++ rec_join (v3 # v4) \<longrightarrow>
                    False) \<longrightarrow>
                False)\<close>
-  sorry (*by (smt (cvc5))*)(*type error*)
+  sorry (*by (smt (cvc5))*)(*type error \<rightarrow> reported*)
 
 end
 

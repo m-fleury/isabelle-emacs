@@ -1104,7 +1104,7 @@ lemma "le = (\<le>) \<Longrightarrow> le (3::int) 42" supply[[smt_trace]]by (smt
 
 (*declare[[verit_compress_proofs=false]] (*TODO: Document what this does with reconstructin of sko_forall rule*)*)
 lemma "\<forall>x y::int. x + y > 2 \<or> x + y = 2 \<or> x + y < 2" 
-  supply[[smt_trace,ML_print_depth=1000]]by (smt (verit))  (*context error*)
+  supply[[smt_trace,ML_print_depth=1000]] by (smt (verit))  (*context error*)
 
 
 
