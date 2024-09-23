@@ -13,13 +13,6 @@ end;
 structure SMT_Replay_Arith: SMT_REPLAY_ARITH =
 struct
 
-fun extract_number (Const ("SMT.z3div", _) $ (Const ("Groups.uminus_class.uminus", _) $ n1) $ n2) =
-      (n1, n2, false)
-  | extract_number (Const ("SMT.z3div", _) $ n1 $ n2) = (n1, n2, true)
-  | extract_number (Const ("Groups.uminus_class.uminus", _) $ n) =
-      (n, HOLogic.numeral_const (fastype_of n) $ HOLogic.one_const, false)
-  | extract_number n = (n, HOLogic.numeral_const (fastype_of n) $ HOLogic.one_const, true)
-
 fun try_OF _ thm1 thm2 =
     (thm1 OF [thm2])
     |> single
@@ -38,14 +31,13 @@ fun try_OFs ctxt thms thm = map (fn thm1 => try_OF ctxt thm1 thm) thms |> flat
 
 fun la_farkas_tac ({context = ctxt, prems, concl,  ...}: Subgoal.focus) (SOME (Farkas_Coefficients coeffs)) thm =
   let
-    val _ = @{print}("coeffs",coeffs)
 
     fun trace v = (SMT_Config.verit_arith_msg ctxt v; v)
     val _ = trace (fn () => @{print} (prems, concl))
+    val _ = trace (fn () => @{print} ("coeffs",coeffs))
     val arith_thms = Named_Theorems.get ctxt @{named_theorems smt_arith_simplify}
     val verit_arith = Named_Theorems.get ctxt @{named_theorems smt_arith_combine}
     val verit_arith_multiplication = Named_Theorems.get ctxt @{named_theorems smt_arith_multiplication}
-
 
 
     fun basic_simps ctxt thms =
@@ -58,7 +50,7 @@ fun la_farkas_tac ({context = ctxt, prems, concl,  ...}: Subgoal.focus) (SOME (F
     (*Determine if we need to return the equation: \<not>\<le> \<rightarrow> \<ge> but only \<le> exists for Isabelle*)
     fun normalize_prem thm =
       let val thm' = basic_simps ctxt @{thms linorder_class.not_less linorder_class.not_le} thm
-      in (thm', Thm.prop_of thm = Thm.prop_of thm') end
+      in (thm', Thm.prop_of thm <> Thm.prop_of thm') end
     val prems = map normalize_prem prems
 
     val typ = hd prems

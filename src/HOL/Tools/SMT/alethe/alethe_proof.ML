@@ -627,10 +627,7 @@ fun postprocess_proof compress ctxt step cx =
               | extract_coefficients (SMTLIB.S [SMTLIB.Sym "-", SMTLIB.Dec (num1,num2)]) =
                 convert_dec_to_rat (~num1) num2
               | extract_coefficients (SMTLIB.Dec (num1,num2)) =
-                convert_dec_to_rat num1 num2
-             val _ = @{print}("step_args", step_args)
-             val _ = @{print}("extract_coefficients step_args",map extract_coefficients step_args)
-      
+                convert_dec_to_rat num1 num2      
           in SOME (Farkas_Coefficients (map extract_coefficients step_args)) end
         | "forall_inst" =>
           let
