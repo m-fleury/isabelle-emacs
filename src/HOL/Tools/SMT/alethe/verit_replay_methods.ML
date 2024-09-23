@@ -95,6 +95,7 @@ fun verit_rule_of "bind" = Bind
   | verit_rule_of "distinct_elim" = Distinct_Elim
   | verit_rule_of "tautology" = Tautological_Clause
   | verit_rule_of "qnt_cnf" = Qnt_CNF
+  | verit_rule_of "unary_minus_simplify" = Unary_Minus_Simplify
   | verit_rule_of r =
      if r = Alethe_Proof.normalized_input_rule then Normalized_Input
      else if r = Alethe_Proof.local_input_rule then Local_Input
@@ -207,6 +208,7 @@ fun choose And = ignore_args and_rule
   | choose Bfun_Elim = ignore_args bfun_elim
   | choose Qnt_CNF = ignore_args qnt_cnf
   | choose Trans = ignore_args trans
+  | choose Unary_Minus_Simplify = ignore_args rewrite_minus_simplify
   | choose r = unsupported (string_of_alethe_rule r)
 
 
