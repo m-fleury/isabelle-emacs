@@ -82,37 +82,20 @@ structure Logics = Generic_Data
 (
   type T = (int * (string -> term list -> Proof.context -> SMT_Translate.smtlib_logic option)) list
   val empty = []
-  fun merge data = (@{print}("data",data);Ord_List.merge fst_int_ord data)
+  fun merge data = Ord_List.merge fst_int_ord data
 )
 
 fun add_logic pf = Logics.map (Ord_List.insert fst_int_ord pf)
 fun del_logic pf = Logics.map (Ord_List.remove fst_int_ord pf)
 
-(*
-fun logic_from_letter_groups [] = "" |
-    logic_from_letter_groups (x::xs) = ""*)
-
-fun logic_from_letter_groups _ = ""
-
 fun choose_logic ctxt prover ts =
   let
-    fun choose [] = SMT_Translate.SL{fixedSizeBitVectors=false,real=false,set=false}
+    fun choose [] = SMT_Translate.SL {fixedSizeBitVectors=false,real=true,set=false}
       | choose ((_, f) :: fs) = (case f prover ts ctxt of SOME s => s | NONE => choose fs)
   in
     choose (Logics.get (Context.Proof ctxt))
   end
 
-(*fun choose_logic ctxt prover ts =
-  let
-    fun choose [] = ["AUFLIA"]
-      | choose ((_, f) :: fs) = (case f prover ts ctxt of SOME s => s | NONE => choose fs)
-  in
-    (case choose (Logics.get (Context.Proof ctxt)) of
-      [] => "" (* for default Z3 logic, a subset of everything *)
-No idea how this would even happen...
-    | logic => "(set-logic " ^ logic_from_letter_groups logic ^ ")\n")
-  end
-*)
 
 (** serialization **)
 
