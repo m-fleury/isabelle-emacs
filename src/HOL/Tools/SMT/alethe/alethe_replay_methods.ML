@@ -659,7 +659,6 @@ local
      let
        val rewrite_sk_thms =
          List.mapPartial (fn tm => SOME (tm OF [thm]) handle THM _ => NONE) thm_indirect
-|> @{print}
        val multiple_rew = if SMT_Config.compress_verit_proofs ctxt then REPEAT_CHANGED else fn x => x
      in
        multiple_rew (EqSubst.eqsubst_tac ctxt [0] rewrite_sk_thms
@@ -688,7 +687,7 @@ fun skolem_tac extractor thm1 thms1 ctxt prems context_ass (decl:string list * s
   let
 
     val (context_ass_thm,_) = Assumption.add_assumes (map (Thm.cterm_of ctxt) context_ass) ctxt
-    val _ = @{print}("context_ass_thm",context_ass_thm)
+    (* val _ = @{print}("context_ass_thm",context_ass_thm) *)
 
   (*  val context_ass_thm_sym = map (fn x => @{thm sym} OF [x]) context_ass_thm
     val _ = @{print}("context_ass_thm_sym",context_ass_thm_sym))*)
@@ -740,9 +739,7 @@ lemma verit_sko_forall_indirect2:
     (*val _ = @{print}("ordered_definitions ()",ordered_definitions ())*)
   in
     SMT_Replay_Methods.prove ctxt t (fn _ =>
-      K (print_tac ctxt "sko 1")
-      THEN' rewrite_all_skolems ctxt_eq thms1 ctxt (ordered_definitions () |> @{print})
-      THEN' K (print_tac ctxt "sko 2")
+      rewrite_all_skolems ctxt_eq thms1 ctxt (ordered_definitions ())
 
       THEN' (*(((resolve_tac ctxt @{thms refl}) THEN' K (print_tac ctxt "sko 0"))
       ORELSE' *)
