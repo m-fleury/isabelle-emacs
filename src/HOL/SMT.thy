@@ -1108,6 +1108,8 @@ lemma "le = (\<le>) \<Longrightarrow> le (3::int) 42" supply[[smt_trace]]by (smt
 lemma "\<forall>x y::int. x + y > 2 \<or> x + y = 2 \<or> x + y < 2" 
   supply[[smt_trace,ML_print_depth=1000]] by (smt (verit))  (*context error*)
 
+lemma "\<exists>x::int. \<forall>x y. 0 < x \<and> 0 < y \<longrightarrow> (0::int) < x + y" 
+  supply [[smt_verbose=false,verit_compress_proofs=false,smt_trace=false,smt_statistics=true]]by (smt (cvc5))  (*bind error*)
 
 
 end
