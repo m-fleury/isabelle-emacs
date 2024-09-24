@@ -266,6 +266,7 @@ lemma "(3 :: int) + 1 = 4" by (smt (verit))
 lemma "x + (y + z) = y + (z + (x::int))" by (smt (verit))
 lemma "max (3::int) 8 > 5" by (smt (verit))
 lemma "\<bar>x :: real\<bar> + \<bar>y\<bar> \<ge> \<bar>x + y\<bar>" by (smt (verit))
+lemma "\<bar>x :: int\<bar> + \<bar>y\<bar> \<ge> \<bar>x + y\<bar>" by (smt (verit))
 lemma "P ((2::int) < 3) = P True" supply[[smt_trace]] by (smt (verit))
 lemma "x + 3 \<ge> 4 \<or> x < (1::int)" by (smt (verit))
 
@@ -325,7 +326,7 @@ subsection \<open>Linear arithmetic with quantifiers\<close>
 lemma "~ (\<exists>x::int. False)" by (smt (verit))
 lemma "~ (\<exists>x::real. False)" by (smt (verit))
 
-declare [[verit_options=" --proof-define-skolems --proof-prune --proof-merge 
+declare [[verit_options="--proof-with-sharing --proof-define-skolems --proof-prune --proof-merge 
 --disable-print-success --disable-banner"]]
 
 lemma "\<forall>x y::int. (x = 0 \<and> y = 1) \<longrightarrow> x \<noteq> y" by (smt (verit))
@@ -447,7 +448,7 @@ lemma
       and "\<And>A B. (\<And>x. (x::'a) \<in> A \<Longrightarrow> x \<in> B) \<Longrightarrow> A \<subseteq> B"
       and "\<And>A B. \<lbrakk>(A::'a set) \<subseteq> B; B \<subseteq> A\<rbrakk> \<Longrightarrow> A = B"
       and "\<And>A ys. (A \<subseteq> List.coset ys) = (\<forall>y\<in>set ys. (y::'a) \<notin> A)"
-  using that by (smt (verit, default))
+  using that [[smt_trace=false]] by (smt (verit, default))
 
 notepad
 begin
@@ -531,7 +532,7 @@ lemma
     (\<lambda>y. (- (d / 2), (2 * y - 1) * diamond_y (- (d / 2)))) =
     (\<lambda>x. ((x - 1 / 2) * d, diamond_y ((x - 1 / 2) * d))) \<Longrightarrow>
     False\<close>
-  using assms
+  using assms [[smt_trace=false]]
   by (smt (verit,ccfv_threshold))
 
 (*qnt_rm_unused example*)
@@ -677,7 +678,7 @@ lemma
                     fun_evaluate_match (st'::'astate) (env::'vsemv_env) v2 (pes::('pat \<times> 'exp0) list) v2
                   | Rabort (abort::abort) \<Rightarrow> (st', Rerr (Rabort abort))))
            \<le> clock (st::'astate))"
-  using assms by (smt (verit))
+  using assms [[smt_trace=false]] by (smt (verit))
 end
 
 
@@ -788,10 +789,10 @@ ba) (a, b))) =
 ba) (a, b)))))"  
   apply (rule duplicate_goal)
   subgoal
-    supply [[verit_compress_proofs=true]]
+    supply [[verit_compress_proofs=true]][[smt_trace=false]] 
     by (smt (verit))
   subgoal
-    supply [[verit_compress_proofs=false]]
+    supply [[verit_compress_proofs=false]][[smt_trace=false]] 
     by (smt (verit))
   done
 
@@ -812,7 +813,7 @@ lemma
     by (smt (verit,del_insts))
   subgoal
     using assms
-    supply [[verit_compress_proofs=false]]
+    supply [[verit_compress_proofs=false]][[smt_trace=false]]
     by (smt (verit,del_insts))
   done
 

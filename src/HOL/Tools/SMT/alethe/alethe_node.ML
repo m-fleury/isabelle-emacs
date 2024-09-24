@@ -1,60 +1,67 @@
-(*  Title:      HOL/Tools/SMT/lethe_node.ML
+(*  Title:      HOL/Tools/SMT/alethe_node.ML
     Author:     Mathias Fleury, ENS Rennes
     Author:     Sascha Boehme, TU Muenchen
     Author:     Hanna Lachnitt, Stanford University
 
-Lethe: abstract syntax tree utils.
+Alethe: abstract syntax tree utils.
 *)
 
-signature LETHE_NODE =
+signature ALETHE_NODE =
 sig
 
-  datatype lethe_step = Lethe_Step of {
+  datatype alethe_step = Alethe_Step of {
     id: string,
     rule: string,
     prems: string list,
     proof_ctxt: term list, (*TODO: Delete? Should be empty?*)
     concl: term}
 
-  val mk_step : string -> string -> string list -> term list -> term -> lethe_step
+  val mk_step : string -> string -> string list -> term list -> term -> alethe_step
 
   (* Pass information added during pre-processing to reconstruction *)
   datatype tactic_args =
-    Declarations of (string * term) list | (*only used for sko_definitions*)
+    Declarations of (string * term) list | (*only used for sko_definitions*) (*TODO: Delete*)
     Insts of term Symtab.table | (*only used for forall_inst*)
     Sko_Def_Prems of string list * string list | (*only used for sko_forall and sko_exists*)
     Solver_Name of string | (*used for refl and cong*)
-    Index of int (*used for and, not_or, and_pos and or_neg*)
+    Index of int | (*used for and, not_or, and_pos and or_neg*)
+    Farkas_Coefficients of (int * int) list
 
   val transform_tactic_args : (term -> term) -> tactic_args option -> tactic_args option
 
-  datatype lethe_replay_node = Lethe_Replay_Node of {
+  datatype alethe_replay_node = Alethe_Replay_Node of {
     id: string,
     rule: string,
     step_args: term list,
     context_assignments: term list,
     prems: string list,
     concl: term,
-    subproof: (string * typ) list * term list * term list * lethe_replay_node list,
-    args: tactic_args option}
+    subproof: (string * typ) list * term list * term list * alethe_replay_node list,
+    args: tactic_args option }
+  | Alethe_Definition_Node of {
+    id: string,
+    rule: string,
+    skolem_name : string,
+    skolem_term : term }
+
 
   val mk_replay_node: string -> string -> term list -> term list -> string list -> term ->
-   (string * typ) list * term list * term list * lethe_replay_node list -> tactic_args option
-   -> lethe_replay_node
+   (string * typ) list * term list * term list * alethe_replay_node list -> tactic_args option
+   -> alethe_replay_node
         
-  datatype raw_lethe_node = Raw_Lethe_Node of {
+  datatype raw_alethe_node = Raw_Alethe_Node of {
     id: string,
     rule: string,
     step_args: SMTLIB.tree list,
     context_assignments: SMTLIB.tree list,
     prems: string list,
     concl: SMTLIB.tree,
-    subproof: raw_lethe_node list}
+    subproof: raw_alethe_node list}
   | Raw_Definition_Node of {
     id: string,
     rule: string,
-    declarations: (string * SMTLIB.tree) list, (*TODO: Why list if it seems there is only ever one argument in this*)
-    concl: SMTLIB.tree
+    skolem_name : string,
+    skolem_term : SMTLIB.tree
   }
 
   val mk_raw_node : string ->
@@ -63,41 +70,41 @@ sig
           SMTLIB.tree list ->
             string list ->
                 SMTLIB.tree ->
-                  raw_lethe_node list -> raw_lethe_node
+                  raw_alethe_node list -> raw_alethe_node
 
-  val mk_raw_definition_node : string -> string -> (string * SMTLIB.tree) list -> SMTLIB.tree -> raw_lethe_node
+  val mk_raw_definition_node : string -> string -> string -> SMTLIB.tree -> raw_alethe_node
 
 end;
 
-structure Lethe_Node: LETHE_NODE =
+structure Alethe_Node: ALETHE_NODE =
 struct
 
 open SMTLIB_Proof
 
-datatype raw_lethe_node = Raw_Lethe_Node of {
+datatype raw_alethe_node = Raw_Alethe_Node of {
     id: string,
     rule: string,
     step_args: SMTLIB.tree list,
     context_assignments: SMTLIB.tree list,
     prems: string list,
     concl: SMTLIB.tree,
-    subproof: raw_lethe_node list}
+    subproof: raw_alethe_node list}
   | Raw_Definition_Node of {
     id: string,
     rule: string,
-    declarations: (string * SMTLIB.tree) list, (*Fuer skolem_def stehen statt in der conclusion die in der declarations drin, koennte man auch in concl machen*)
-    concl: SMTLIB.tree
+    skolem_name : string,
+    skolem_term : SMTLIB.tree
   }
 
 fun mk_raw_node id rule step_args context_ass prems concl subproof =
-  Raw_Lethe_Node {id = id, rule = rule, step_args = step_args,
+  Raw_Alethe_Node {id = id, rule = rule, step_args = step_args,
     context_assignments = context_ass, prems = prems,
     concl = concl, subproof = subproof}
 
-fun mk_raw_definition_node id rule declarations concl = Raw_Definition_Node {id=id, rule=rule, declarations=declarations, concl=concl}
+fun mk_raw_definition_node id rule skolem_name skolem_term = Raw_Definition_Node {id=id, rule=rule, skolem_name=skolem_name, skolem_term=skolem_term}
 
 
-  datatype lethe_step = Lethe_Step of {
+  datatype alethe_step = Alethe_Step of {
     id: string,
     rule: string,
     prems: string list,
@@ -105,7 +112,7 @@ fun mk_raw_definition_node id rule declarations concl = Raw_Definition_Node {id=
     concl: term}
 
 fun mk_node id rule prems proof_ctxt concl =
-  Lethe_Step {id = id, rule = rule, prems = prems, proof_ctxt = proof_ctxt, concl = concl}
+  Alethe_Step {id = id, rule = rule, prems = prems, proof_ctxt = proof_ctxt, concl = concl}
 
 (* Sometimes we want to communicate additional information that is gained during parsing or
 preprocessing to the reconstruction tactic. *)
@@ -114,29 +121,36 @@ datatype tactic_args =
   Insts of term Symtab.table | (*only used for forall_inst*)
   Sko_Def_Prems of string list * string list | (*only used for sko_forall and sko_exists*)
   Solver_Name of string |  (*used for refl and cong*)
-  Index of int (*used for and, not_or, and_pos and or_neg*)
+  Index of int | (*used for and, not_or, and_pos and or_neg*)
+  Farkas_Coefficients of (int * int) list
 
 fun transform_tactic_args _ NONE = NONE |
   transform_tactic_args f (SOME (Insts insts)) = SOME (Insts (Symtab.map (K f) insts)) |
   transform_tactic_args f (SOME (Declarations xs)) = SOME (Declarations xs) |
   transform_tactic_args f x = x
 
-datatype lethe_replay_node = Lethe_Replay_Node of {
+datatype alethe_replay_node =
+ Alethe_Replay_Node of {
   id: string,
   rule: string,
   step_args: term list,
   context_assignments: term list,
   prems: string list,
   concl: term,
-  subproof: (string * typ) list * term list * term list * lethe_replay_node list,
-  args: tactic_args option}
+  subproof: (string * typ) list * term list * term list * alethe_replay_node list,
+  args: tactic_args option } |
+ Alethe_Definition_Node of {
+  id: string,
+  rule: string,
+  skolem_name : string,
+  skolem_term : term }
 
 fun mk_replay_node id rule step_args context_ass prems concl subproof tactic_args =
-  Lethe_Replay_Node {id = id, rule = rule, step_args = step_args,
+  Alethe_Replay_Node {id = id, rule = rule, step_args = step_args,
     context_assignments = context_ass, prems = prems, concl = concl, subproof = subproof,
     args = tactic_args}
 
-datatype lethe_step = Lethe_Step of {
+datatype alethe_step = Alethe_Step of {
   id: string,
   rule: string,
   prems: string list,
@@ -144,7 +158,7 @@ datatype lethe_step = Lethe_Step of {
   concl: term}
 
 fun mk_step id rule prems proof_ctxt concl =
-  Lethe_Step {id = id, rule = rule, prems = prems, proof_ctxt = proof_ctxt, concl = concl}
+  Alethe_Step {id = id, rule = rule, prems = prems, proof_ctxt = proof_ctxt, concl = concl}
 
 
 end;

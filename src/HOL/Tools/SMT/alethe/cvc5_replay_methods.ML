@@ -9,7 +9,7 @@ signature CVC5_REPLAY_METHODS =
 sig
   (*methods for verit proof rules*)
   val method_for: string -> Proof.context -> thm list -> term list -> term list -> term ->
-     Lethe_Node.tactic_args option -> thm
+     Alethe_Node.tactic_args option -> thm
 
   val discharge: Proof.context -> thm list -> term -> thm
 end;
@@ -18,7 +18,7 @@ end;
 structure CVC5_Replay_Methods: CVC5_REPLAY_METHODS =
 struct
 
-open Lethe_Replay_Methods
+open Alethe_Replay_Methods
 
 fun cvc5_rule_of "bind" = Bind
   | cvc5_rule_of "cong" = Cong
@@ -92,26 +92,26 @@ fun cvc5_rule_of "bind" = Bind
   | cvc5_rule_of "qnt_simplify" = Qnt_Simplify
   | cvc5_rule_of "all_simplify" = All_Simplify
   | cvc5_rule_of "tautology" = Tautological_Clause
-  | cvc5_rule_of "rare_rewrite" = Hole
+  | cvc5_rule_of "rare_rewrite" = RARE_Rewrite
   | cvc5_rule_of "qnt_cnf" = Qnt_CNF
   | cvc5_rule_of "symm" = Symm
   | cvc5_rule_of "not_symm" = Not_Symm
   | cvc5_rule_of "reordering" = Reordering
-  | cvc5_rule_of "unary_minus_simplify" = Minus_Simplify
+  | cvc5_rule_of "unary_minus_simplify" = Unary_Minus_Simplify
   | cvc5_rule_of "quantifier_simplify" = Tmp_Quantifier_Simplify (*TODO Remove*)
   | cvc5_rule_of r =
-     if r = Lethe_Proof.normalized_input_rule then Normalized_Input
-     else if r = Lethe_Proof.local_input_rule then Local_Input
-     else if r = Lethe_Proof.skolem_def then Definition
-     else if r = Lethe_Proof.not_not_rule then Not_Not
-     else if r = Lethe_Proof.contract_rule orelse r = "duplicate_literals" then Duplicate_Literals
-     else if r = Lethe_Proof.ite_intro_rule then ITE_Intro
-     else if r = Lethe_Proof.eq_congruent_rule then Eq_Congruent
-     else if r = Lethe_Proof.eq_congruent_pred_rule then Eq_Congruent_Pred
-     else if r = Lethe_Proof.theory_resolution2_rule then Theory_Resolution2
-     else if r = Lethe_Proof.th_resolution_rule then Theory_Resolution
-     else if r = Lethe_Proof.equiv_pos2_rule then Equiv_pos2
-     else if r = Lethe_Proof.hole orelse r = "undefined" then Hole
+     if r = Alethe_Proof.normalized_input_rule then Normalized_Input
+     else if r = Alethe_Proof.local_input_rule then Local_Input
+     else if r = Alethe_Proof.skolem_def then Definition
+     else if r = Alethe_Proof.not_not_rule then Not_Not
+     else if r = Alethe_Proof.contract_rule orelse r = "duplicate_literals" then Duplicate_Literals
+     else if r = Alethe_Proof.ite_intro_rule then ITE_Intro
+     else if r = Alethe_Proof.eq_congruent_rule then Eq_Congruent
+     else if r = Alethe_Proof.eq_congruent_pred_rule then Eq_Congruent_Pred
+     else if r = Alethe_Proof.theory_resolution2_rule then Theory_Resolution2
+     else if r = Alethe_Proof.th_resolution_rule then Theory_Resolution
+     else if r = Alethe_Proof.equiv_pos2_rule then Equiv_pos2
+     else if r = Alethe_Proof.hole orelse r = "undefined" then Hole
      else Other_Rule r
 
 (*work-around should not be needed anymore*)
@@ -163,9 +163,6 @@ THEN' assume_tac ctxt))
 
 (* Combining all together *)
 
-fun unsupported rule ctxt thms _ _ _ _ = SMT_Replay_Methods.replay_error ctxt "Unsupported cvc5 rule"
-  rule thms []
-
 (*ctxt thms step_args context_assignment t args*)
 fun ignore_args       f ctxt prems _ _ goal _ = f ctxt prems goal
 fun include_step_args f ctxt prems step_args _ goal _ = f ctxt prems step_args goal
@@ -211,7 +208,7 @@ fun choose _ And = ignore_args and_rule
   | choose _ ITE_Pos2 = ignore_args ite_pos2
   | choose _ ITE_Simplify = ignore_args rewrite_ite_simplify
   | choose _ LA_Disequality = ignore_args la_disequality
-  | choose _ LA_Generic = include_step_args la_generic
+  | choose _ LA_Generic = include_args la_generic
   | choose _ LA_RW_Eq = ignore_args la_rw_eq
   | choose _ LA_Tautology = ignore_args SMT_Replay_Methods.arith_th_lemma_wo_shallow
   | choose _ LA_Totality = ignore_args SMT_Replay_Methods.arith_th_lemma_wo_shallow
@@ -259,13 +256,16 @@ fun choose _ And = ignore_args and_rule
   | choose _ Not_Symm = ignore_args not_symm
   | choose _ Reordering = ignore_args reordering
   | choose _ Tmp_Quantifier_Simplify = ignore_args qnt_simplify
- (* | choose ctxt (x as Other_Rule r) =
+  | choose _ Unary_Minus_Simplify = ignore_args rewrite_minus_simplify
+  | choose ctxt (x as Other_Rule r) =
     (case get_alethe_tac r ctxt of
-      NONE => unsupported (string_of_lethe_rule x)
-    | SOME a => include_step_args a)*)
+      NONE => ignore_args hole(*unsupported (string_of_alethe_rule x)*)
+    | SOME a => include_step_args a)
   | choose _ Hole = ignore_args hole
+  | choose _ RARE_Rewrite = ignore_args rare_rewrite
+
   | choose _ r = (@{print} ("unknown rule, using hole", r); ignore_args hole)
-(*unsupported (string_of_lethe_rule r)*)
+(*unsupported (string_of_alethe_rule r)*)
 
 fun with_tracing rule method ctxt prems step_args context_assignment t args =
   let val _ = SMT_Replay_Methods.trace_goal ctxt rule prems step_args t

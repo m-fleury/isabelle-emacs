@@ -6,19 +6,12 @@ Proof methods for replaying arithmetic steps with Farkas Lemma.
 
 signature SMT_REPLAY_ARITH =
 sig
-  val la_farkas_tac: Subgoal.focus -> term list -> thm -> thm Seq.seq;
-  val la_farkas: term list -> Proof.context -> int -> tactic;
+  val la_farkas_tac: Subgoal.focus -> tactic_args option -> thm -> thm Seq.seq;
+  val la_farkas: tactic_args option -> Proof.context -> int -> tactic;
 end;
 
 structure SMT_Replay_Arith: SMT_REPLAY_ARITH =
 struct
-
-fun extract_number (Const ("SMT.z3div", _) $ (Const ("Groups.uminus_class.uminus", _) $ n1) $ n2) =
-      (n1, n2, false)
-  | extract_number (Const ("SMT.z3div", _) $ n1 $ n2) = (n1, n2, true)
-  | extract_number (Const ("Groups.uminus_class.uminus", _) $ n) =
-      (n, HOLogic.numeral_const (fastype_of n) $ HOLogic.one_const, false)
-  | extract_number n = (n, HOLogic.numeral_const (fastype_of n) $ HOLogic.one_const, true)
 
 fun try_OF _ thm1 thm2 =
     (thm1 OF [thm2])
@@ -32,35 +25,70 @@ fun try_OF_inst ctxt thm1 ((r, q, pos), thm2) =
       (try_OF ctxt thm1 thm2)
   handle THM _ => []
 
-fun try_OF_insts ctxt thms thm = (@{print}("thms",thms);@{print}("thm",thm);map (fn thm1 => try_OF_inst ctxt thm1 thm) thms |> flat)
+fun try_OF_insts ctxt thms thm = (map (fn thm1 => try_OF_inst ctxt thm1 thm) thms |> flat)
 
 fun try_OFs ctxt thms thm = map (fn thm1 => try_OF ctxt thm1 thm) thms |> flat
 
-fun la_farkas_tac ({context = ctxt, prems, concl,  ...}: Subgoal.focus) args thm =
+fun la_farkas_tac ({context = ctxt, prems, concl,  ...}: Subgoal.focus) (SOME (Farkas_Coefficients coeffs)) thm =
   let
+
     fun trace v = (SMT_Config.verit_arith_msg ctxt v; v)
     val _ = trace (fn () => @{print} (prems, concl))
+    val _ = trace (fn () => @{print} ("coeffs",coeffs))
     val arith_thms = Named_Theorems.get ctxt @{named_theorems smt_arith_simplify}
     val verit_arith = Named_Theorems.get ctxt @{named_theorems smt_arith_combine}
     val verit_arith_multiplication = Named_Theorems.get ctxt @{named_theorems smt_arith_multiplication}
+
+
+    fun basic_simps ctxt thms =
+      ctxt
+      |> empty_simpset
+      |> put_simpset HOL_basic_ss
+      |> (fn ctxt => ctxt addsimps thms)
+      |> asm_full_simplify
+
+    (*Determine if we need to return the equation: \<not>\<le> \<rightarrow> \<ge> but only \<le> exists for Isabelle*)
+    fun normalize_prem thm =
+      let val thm' = basic_simps ctxt @{thms linorder_class.not_less linorder_class.not_le} thm
+      in (thm', Thm.prop_of thm <> Thm.prop_of thm') end
+    val prems = map normalize_prem prems
+
+    val typ = hd prems
+      |> fst
+      |> Thm.concl_of
+      |> Thm.cterm_of ctxt
+      |> Object_Logic.dest_judgment ctxt
+      |> Thm.term_of
+      |> (fn (Const _ $ r1 $r2) => r1)
+      |> fastype_of
+    fun convert_coefficients (a,b) =
+      (HOLogic.mk_number typ (if a < 0 then ~a else a), HOLogic.mk_number typ b, a > 0)
+    val coeff_prems = map convert_coefficients coeffs
+       |> (fn xs => ListPair.zip (xs, prems))
+       |> tap (fn x => trace (fn () => @{print} x))
+       |> map (fn ((num1, num2, pos), (prems, inverted)) => ((num1, num2, (pos, inverted)), prems))
+
     val _ = trace (fn () => @{print}  "******************************************************")
     val _ = trace (fn () => @{print}  "       Multiply by constants                          ")
     val _ = trace (fn () => @{print}  "******************************************************")
-    val coeff_prems =
-       map extract_number args
-       |> (fn xs => ListPair.zip (xs, prems))
     val _ = trace (fn () => @{print} coeff_prems)
-    fun negate_if_needed (thm, pos) =
-       if pos then thm
-       else map (fn thm0 => try_OF ctxt thm0 thm) @{thms verit_negate_coefficient}
-         |> flat |> the_single
-    val _ = trace (fn () => @{print} "")
+    fun negate_if_needed (thm, (pos, no_inversion_needed)) =
+      let
+        fun manipulate_thm thms cond thm =
+          if cond then thm
+          else map (fn thm0 => try_OF ctxt thm0 thm) thms
+            |> flat |> the_single
+      in 
+        thm
+        |> manipulate_thm @{thms verit_negate_coefficient} pos
+        |> manipulate_thm @{thms verit_invert_farkas_equation} no_inversion_needed
+      end
 
     val normalized =
-      map (try_OF_insts ctxt verit_arith_multiplication) coeff_prems |> @{print}
+      map (try_OF_insts ctxt verit_arith_multiplication) coeff_prems
       |> flat
       |> map negate_if_needed
-|> @{print}
+
     fun import_assumption thm (Trues, ctxt) =
        let val (assms, ctxt) = Assumption.add_assumes ((map (Thm.cterm_of ctxt) o Thm.prems_of) thm) ctxt in
          (thm OF assms, (Trues + length assms, ctxt)) end
@@ -74,17 +102,18 @@ fun la_farkas_tac ({context = ctxt, prems, concl,  ...}: Subgoal.focus) args thm
     val combined =
       List.foldl
          (fn (thm1, thm2) =>
-           try_OFs ctxt verit_arith thm1
-           |> (fn thms => try_OFs ctxt thms thm2)
+           (try_OFs ctxt verit_arith (thm1) )
+           |> (fn thms => try_OFs ctxt thms thm2) 
            |> the_single)
          n
          normalized
       |> singleton (Proof_Context.export ctxt_with_assms ctxt)
     val _ = trace (fn () => @{print} combined)
+
     fun arith_full_simps ctxt thms =
       ctxt
        |> empty_simpset
-      |> put_simpset HOL_basic_ss
+       |> put_simpset HOL_basic_ss
        |> (fn ctxt => ctxt addsimps thms
            addsimps arith_thms
            addsimprocs [@{simproc int_div_cancel_numeral_factors}, @{simproc int_combine_numerals},
@@ -93,6 +122,8 @@ fun la_farkas_tac ({context = ctxt, prems, concl,  ...}: Subgoal.focus) args thm
       |> asm_full_simplify
     val final_False = combined
       |> arith_full_simps ctxt (Named_Theorems.get ctxt @{named_theorems ac_simps})
+    val _ =  trace (fn () => ("final arith theorem after simplification", final_False))
+
     val _ = trace (fn () => @{print} final_False)
     val final_theorem = try_OF ctxt thm final_False
   in
@@ -100,6 +131,7 @@ fun la_farkas_tac ({context = ctxt, prems, concl,  ...}: Subgoal.focus) args thm
        [thm] => Seq.single (thm OF replicate Trues @{thm TrueI})
     | _ => Seq.empty)
   end
+  | la_farkas_tac _ _ _ = raise Fail "invalid application"
 
 fun TRY' tac = fn i => TRY (tac i)
 fun REPEAT' tac = fn i => REPEAT (tac i)
@@ -114,7 +146,7 @@ fun rewrite_only_thms ctxt thms =
 fun la_farkas args ctxt =
   REPEAT' (resolve_tac ctxt @{thms verit_farkas})
   THEN' TRY' (resolve_tac ctxt @{thms ccontr})
-  THEN' TRY' (rewrite_only_thms ctxt @{thms linorder_class.not_less linorder_class.not_le not_not})
+  THEN' TRY' (rewrite_only_thms ctxt @{thms not_not})
   THEN' (Subgoal.FOCUS (fn focus => la_farkas_tac focus args) ctxt)
 
 end

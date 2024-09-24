@@ -75,6 +75,12 @@ fun print_error_to_file ctxt i =
     ^ (Config.get ctxt SMT_Config.statistics_file))) ("-" ^ Int.toString i ^ "}]},\n")
   else ()
 
+fun print_error_to_file_with_msg ctxt i str =
+  if Config.get ctxt SMT_Config.rec_evaluation
+  then File.append (Path.explode ("$ISABELLE_HOME_USER/"
+    ^ (Config.get ctxt SMT_Config.statistics_file))) ("-" ^ Int.toString i ^
+    ", \"err_msg\": \"" ^ str ^ "\"}]},\n")
+  else ()
   
 fun print_reconstruction_error_to_file ctxt i str =
   if Config.get ctxt SMT_Config.rec_evaluation
@@ -126,9 +132,13 @@ let
           val (_,i) = (Timeout.apply (seconds 30.0) (fn () => check_smt prover problem_path proof_path opt_output_file local_thy) () ,i+1)
             handle
             (*Error Parsing problem*)
-            SMT_Parse_Problem.SMT_PROBLEM_PARSE(msg)
-            => (@{print}("Error parsing SMT-LIB problem: " ^ msg , problem_path);
-                  print_error_to_file ctxt 5; (local_thy,i)) |
+            (SMT_Parse_Problem.SMT_PROBLEM_PARSE(msg))
+            => (if String.isPrefix "command not supported: " msg then
+                  (@{print}("Unsupported SMT-LIB command in problem: " ^ msg , problem_path);
+                  print_error_to_file_with_msg ctxt 5 msg; (local_thy,i))
+                  else
+                (@{print}("Error parsing SMT-LIB problem: " ^ msg , problem_path);
+                  print_error_to_file_with_msg ctxt 5 msg; (local_thy,i))) |
             (*Error during Parsing into AST*)
             (SMTLIB.PARSE(l,err))
               => (@{print}("Error parsing SMTLIB into SMTLIB Tree: " ^ err ^ " in line " ^ Int.toString l , problem_path);
@@ -161,7 +171,9 @@ let
                   print_error_to_file ctxt 7; (local_thy,i)) |
             (SMT_Failure.SMT err)
                => (@{print}("Unkown SMT error " ^ SMT_Failure.string_of_failure err, problem_path);
-                  print_error_to_file ctxt 5; (local_thy,i))
+                  print_error_to_file ctxt 5; (local_thy,i)) |
+             (Timeout.TIMEOUT _) => (@{print}("Timeout");
+                  print_error_to_file ctxt 7; (local_thy,i)) |
         in check_all ts i end
       else raise ERROR("Could not find proof for problem:" ^ problem_path)
     end

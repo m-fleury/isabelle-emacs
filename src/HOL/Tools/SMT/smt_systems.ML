@@ -86,7 +86,7 @@ local
    [SMTLIB_Interface.smtlibC] @
    (if Config.get ctxt SMT_Config.higher_order then single CVC_Interface.hosmtlib_cvcC else []) @
    (if Config.get ctxt SMT_Config.native_bv then single SMTLIB_Interface.bvsmtlibC else []) @
-   (if Config.get ctxt SMT_Config.native_set andalso (SMT_Config.use_lethe_proof_from_cvc ctxt)
+   (if Config.get ctxt SMT_Config.native_set andalso (SMT_Config.use_alethe_proof_from_cvc ctxt)
     then single SMTLIB_Interface.setsmtlibC else [])
 in
 
@@ -196,7 +196,7 @@ val veriT: SMT_Solver.solver_config = {
      ((2, false, false, 256, mepoN), []),
      ((2, false, false, 32, meshN), [])],
   outcome = on_first_non_unsupported_line (outcome_of "unsat" "sat" "unknown" "Time limit exceeded"),
-  parse_proof = SOME (K Lethe_Proof_Parse.parse_proof),
+  parse_proof = SOME (K Alethe_Proof_Parse.parse_proof),
   replay = SOME Verit_Replay.replay }
 
 end

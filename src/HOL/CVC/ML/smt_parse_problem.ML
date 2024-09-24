@@ -1,6 +1,6 @@
-(*TODO: This file will eventually be integrated into other files (mainly lethe_smt_problem.ML)
+(*TODO: This file will eventually be integrated into other files (mainly alethe_smt_problem.ML)
  It only exists for easier development*)
-(*TODO: Spoke to Mathias should be combined with lethe_smt_problem (which will be
+(*TODO: Spoke to Mathias should be combined with alethe_smt_problem (which will be
 renamed smt_parse_problem.*)
 signature SMT_PARSE_PROBLEM =
 sig
@@ -16,7 +16,7 @@ exception SMT_PROBLEM_PARSE of string
 
 (*FIXME: I'd rather not do this this way. If we really need to put it in util class*)
 (*TODO: Discussed with Mathias and this can be done in parse_raw_proof_steps (and parse_raw_problem_steps) or after but at least in 
-lethe_proof. There I know what a type is and what not. Make separate function after so that we can deactivate it.*)
+alethe_proof. There I know what a type is and what not. Make separate function after so that we can deactivate it.*)
 fun normalize_name name = if String.explode name |> hd |> Char.isUpper  then "isabelle_internal_" ^ name  else name
 
 fun smtlib_types t = (t="Bool") orelse (t="Int") orelse (t="BitVec") orelse (t="String")
@@ -65,10 +65,10 @@ let
 
   val (assertion,name_bindings) =
    (fn ([step], _, cx) => (step,cx) | _ => raise ERROR "Problem could not be parsed")
-   (Lethe_SMT_Problem.parse_raw_problem_steps [smtlib_lines_without_qm] SMTLIB_Proof.empty_name_binding 0)
+   (Alethe_SMT_Problem.parse_raw_problem_steps [smtlib_lines_without_qm] SMTLIB_Proof.empty_name_binding 0)
 
 
-  val (Lethe_Node.Raw_Lethe_Node {concl, ...} : Lethe_Node.raw_lethe_node) = assertion
+  val (Alethe_Node.Raw_Alethe_Node {concl, ...} : Alethe_Node.raw_alethe_node) = assertion
 
   val cx = (SMTLIB_Proof.empty_context ctxt typs terms)
   val t2 = SMTLIB_Proof.term_of concl cx |> fst
@@ -172,7 +172,7 @@ val ignore_commands =
 
 val not_supported =
  ["declare-datatype","declare-datatypes","define-fun-rec","define-fun-recs",
-  "reset","reset_assertions","pop","push"]
+  "reset","reset_assertions","pop","push","define-fun"]
 
 fun ignore _ replay_data = replay_data
 fun is_not_supported keyword _ _ = raise SMT_PROBLEM_PARSE ("command not supported: " ^ keyword) 

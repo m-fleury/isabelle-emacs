@@ -4605,7 +4605,7 @@ In traverse in smt_translate wird der Name r0 ignoriert
 
 Alles was wir in r3 reintun wird nicht mehr traversed.
 *)
-declare[[smt_cvc_lethe = true]]
+declare[[smt_cvc_alethe = true]]
 declare[[smt_verbose = true,smt_trace]]
 declare[[smt_nat_as_int]]
 
@@ -4633,6 +4633,7 @@ lemma bvshl_test: "push_bit 4 (push_bit 0 (2::3 word)) = (0::3 word)"
 
 (*  shows  "bit x n =(( slice n (take_bit (Suc n) x)) = (1::1 word))"
 *)
+
 lemma "bit x n =(( slice n (take_bit (Suc n) x)) = (1::1 word))" sorry
 term "(if a then b else c)"
 
@@ -4697,7 +4698,7 @@ lemma "push_bit 3 (7::3 word) = 0"
   supply[[smt_nat_as_int=true]]
   apply (smt (cvc5))
   oops
-
+(*
 
 lemma "push_bit 3 (7::4 word) = 8"
   supply[[smt_nat_as_int=true]]
@@ -4751,4 +4752,5 @@ lemma assumes "a=64" shows "LENGTH(64) = (a::nat)"
   supply [[smt_nat_as_int, smt_trace,smt_cvc_lethe,smt_debug_verit]]
   oops
 
+*)
 end

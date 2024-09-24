@@ -28,6 +28,9 @@ fun term_vars :: "('a, 'b) term \<Rightarrow> 'b set" where
   "term_vars (Var x) = {x}" |
   "term_vars (Fun f ts) = \<Union>(set (map term_vars ts))"
 
+value "term_vars (Var a)" 
+value "term_vars (Fun f [Var a,Var b,Var b])" 
+
 text \<open>However, also for \emph{rules} (i.e., pairs of terms) and term
 rewrite systems (i.e., sets of rules), the set of variables makes
 sense. Thus we introduce an unspecified constant \<open>vars\<close>.\<close>

@@ -8,16 +8,14 @@ signature VERIT_REPLAY_METHODS =
 sig
   (*methods for verit proof rules*)
   val method_for: string -> Proof.context -> thm list -> term list -> term list -> term ->
-     Lethe_Node.tactic_args option -> thm
-
-  val discharge: Proof.context -> thm list -> term -> thm
+     Alethe_Node.tactic_args option -> thm
 end;
 
 
 structure Verit_Replay_Methods: VERIT_REPLAY_METHODS =
 struct
 
-open Lethe_Replay_Methods
+open Alethe_Replay_Methods
 
 fun verit_rule_of "bind" = Bind
   | verit_rule_of "cong" = Cong
@@ -97,19 +95,20 @@ fun verit_rule_of "bind" = Bind
   | verit_rule_of "distinct_elim" = Distinct_Elim
   | verit_rule_of "tautology" = Tautological_Clause
   | verit_rule_of "qnt_cnf" = Qnt_CNF
+  | verit_rule_of "unary_minus_simplify" = Unary_Minus_Simplify
   | verit_rule_of r =
-     if r = Lethe_Proof.normalized_input_rule then Normalized_Input
-     else if r = Lethe_Proof.local_input_rule then Local_Input
-     else if r = Lethe_Proof.skolem_def then Definition
-     else if r = Lethe_Proof.not_not_rule then Not_Not
-     else if r = Lethe_Proof.contract_rule then Duplicate_Literals
-     else if r = Lethe_Proof.ite_intro_rule then ITE_Intro
-     else if r = Lethe_Proof.eq_congruent_rule then Eq_Congruent
-     else if r = Lethe_Proof.eq_congruent_pred_rule then Eq_Congruent_Pred
-     else if r = Lethe_Proof.theory_resolution2_rule then Theory_Resolution2
-     else if r = Lethe_Proof.th_resolution_rule then Theory_Resolution
-     else if r = Lethe_Proof.equiv_pos2_rule then Equiv_pos2
-     else if r = Lethe_Proof.and_pos_rule then And_Pos
+     if r = Alethe_Proof.normalized_input_rule then Normalized_Input
+     else if r = Alethe_Proof.local_input_rule then Local_Input
+     else if r = Alethe_Proof.skolem_def then Definition
+     else if r = Alethe_Proof.not_not_rule then Not_Not
+     else if r = Alethe_Proof.contract_rule then Duplicate_Literals
+     else if r = Alethe_Proof.ite_intro_rule then ITE_Intro
+     else if r = Alethe_Proof.eq_congruent_rule then Eq_Congruent
+     else if r = Alethe_Proof.eq_congruent_pred_rule then Eq_Congruent_Pred
+     else if r = Alethe_Proof.theory_resolution2_rule then Theory_Resolution2
+     else if r = Alethe_Proof.th_resolution_rule then Theory_Resolution
+     else if r = Alethe_Proof.equiv_pos2_rule then Equiv_pos2
+     else if r = Alethe_Proof.and_pos_rule then And_Pos
      else (@{print} ("Unsupport rule", r); Unsupported)
 
 fun unsupported rule ctxt prems _ _ t _ = SMT_Replay_Methods.replay_error ctxt "Unsupported verit rule"
@@ -145,7 +144,7 @@ fun choose And = ignore_args and_rule
   | choose Equiv_pos2 = ignore_args equiv_pos2
   | choose Equiv_Simplify = ignore_args rewrite_equiv_simplify
   | choose False = ignore_args false_rule
-  (*| choose Forall_Inst = ignore_decls forall_inst*)
+  | choose Forall_Inst = include_args forall_inst
   | choose Implies = ignore_args implies_rules
   | choose Implies_Neg1 = ignore_args implies_neg1
   | choose Implies_Neg2 = ignore_args implies_neg2
@@ -160,7 +159,7 @@ fun choose And = ignore_args and_rule
   | choose ITE_Pos2 = ignore_args ite_pos2
   | choose ITE_Simplify = ignore_args rewrite_ite_simplify
   | choose LA_Disequality = ignore_args la_disequality
-  | choose LA_Generic = include_step_args la_generic
+  | choose LA_Generic = include_args la_generic
   | choose LA_RW_Eq = ignore_args la_rw_eq
   | choose LA_Tautology = ignore_args SMT_Replay_Methods.arith_th_lemma_wo_shallow
   | choose LA_Totality = ignore_args SMT_Replay_Methods.arith_th_lemma_wo_shallow
@@ -209,7 +208,8 @@ fun choose And = ignore_args and_rule
   | choose Bfun_Elim = ignore_args bfun_elim
   | choose Qnt_CNF = ignore_args qnt_cnf
   | choose Trans = ignore_args trans
-  | choose r = unsupported (string_of_lethe_rule r)
+  | choose Unary_Minus_Simplify = ignore_args rewrite_minus_simplify
+  | choose r = unsupported (string_of_alethe_rule r)
 
 
 type verit_method = Proof.context -> thm list -> term -> thm
@@ -222,8 +222,5 @@ fun with_tracing rule method ctxt prems step_args context_assignment t args =
 fun method_for rule ctxt
 = with_tracing rule (choose (verit_rule_of rule)) ctxt
 
-fun discharge ctxt [thm] t =
-  SMT_Replay_Methods.prove ctxt t (fn _ =>
-    resolve_tac ctxt [thm] THEN_ALL_NEW (resolve_tac ctxt @{thms refl}))
 
 end;

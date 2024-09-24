@@ -583,9 +583,16 @@ lemmas [smt_arith_multiplication] =
   verit_le_mono_div_int[THEN mult_left_mono, unfolded int_distrib]
   zdiv_mono1[THEN mult_left_mono, unfolded int_distrib]
 
-lemmas [smt_arith_multiplication] =
+(*making it specific to not clash with the real version where div is just division*)
+lemma [smt_arith_multiplication]:
+  "(x::nat) = y \<Longrightarrow> x div n * p = y div n * p"
+  "(x'::int) = y' \<Longrightarrow> x' div n' * p' = y' div n' * p'"
+  by simp_all
+
+(*lemmas [smt_arith_multiplication] =
   arg_cong[of _ _ \<open>\<lambda>a :: nat. a div n * p\<close> for n p :: nat, THEN sym]
   arg_cong[of _ _ \<open>\<lambda>a :: int. a div n * p\<close> for n p :: int, THEN sym]
+*)
 
 lemma [smt_arith_combine]:
   "a < b \<Longrightarrow> c < d \<Longrightarrow> a + c + 2 \<le> b + d"
@@ -614,10 +621,20 @@ lemma [smt_arith_combine]:
   by (auto intro: ordered_cancel_ab_semigroup_add_class.add_strict_right_mono
     ordered_ab_semigroup_add_class.add_right_mono)
 
+lemma [smt_arith_combine]:
+  "c = d \<Longrightarrow> e = f \<Longrightarrow> c + e = d + f"
+  by simp
+
 lemma verit_negate_coefficient:
   \<open>a \<le> (b :: 'a :: {ordered_ab_group_add}) \<Longrightarrow> -a \<ge> -b\<close>
   \<open>a < b \<Longrightarrow> -a > -b\<close>
   \<open>a = b \<Longrightarrow> -a = -b\<close>
+  by auto
+
+lemma verit_invert_farkas_equation:
+  \<open>a \<le> (b :: 'a :: {ordered_ab_group_add}) \<Longrightarrow> -a \<ge> -b\<close>
+  \<open>a < b \<Longrightarrow> -a > -b\<close>
+  \<open>a = b \<Longrightarrow> b = a\<close>
   by auto
 
 end
@@ -664,14 +681,14 @@ ML_file \<open>Tools/SMT/z3/z3_proof.ML\<close>
 ML_file \<open>Tools/SMT/z3/z3_isar.ML\<close>
 ML_file \<open>Tools/SMT/smt_solver.ML\<close>
 ML_file \<open>Tools/SMT/alethe/cvc_interface.ML\<close>
-ML_file \<open>Tools/SMT/alethe/lethe_node.ML\<close>
+ML_file \<open>Tools/SMT/alethe/alethe_node.ML\<close>
 
-ML_file \<open>Tools/SMT/alethe/lethe_proof.ML\<close>
-(*ML_file \<open>Tools/SMT/lethe_proof.ML\<close>*)
-ML_file \<open>Tools/SMT/alethe/lethe_smt_problem.ML\<close>
+ML_file \<open>Tools/SMT/alethe/alethe_proof.ML\<close>
+(*ML_file \<open>Tools/SMT/alethe_proof.ML\<close>*)
+ML_file \<open>Tools/SMT/alethe/alethe_smt_problem.ML\<close>
 
-ML_file \<open>Tools/SMT/alethe/lethe_isar.ML\<close>
-ML_file \<open>Tools/SMT/alethe/lethe_proof_parse.ML\<close>
+ML_file \<open>Tools/SMT/alethe/alethe_isar.ML\<close>
+ML_file \<open>Tools/SMT/alethe/alethe_proof_parse.ML\<close>
 ML_file \<open>Tools/SMT/alethe/cvc_proof_parse.ML\<close>
 ML_file \<open>Tools/SMT/conj_disj_perm.ML\<close>
 ML_file \<open>Tools/SMT/smt_replay_methods.ML\<close>
@@ -681,11 +698,12 @@ ML_file \<open>Tools/SMT/z3/z3_interface.ML\<close>
 ML_file \<open>Tools/SMT/z3/z3_replay_rules.ML\<close>
 ML_file \<open>Tools/SMT/z3/z3_replay_methods.ML\<close>
 ML_file \<open>Tools/SMT/z3/z3_replay.ML\<close>
-ML_file \<open>Tools/SMT/alethe/lethe_replay_methods.ML\<close>
+ML_file \<open>Tools/SMT/alethe/alethe_replay_methods.ML\<close>
 ML_file \<open>Tools/SMT/alethe/cvc5_rare.ML\<close>
 ML_file \<open>Tools/SMT/alethe/cvc5_replay_methods.ML\<close>
 ML_file \<open>Tools/SMT/alethe/verit_replay_methods.ML\<close>
 ML_file \<open>Tools/SMT/alethe/verit_strategies.ML\<close>
+ML_file \<open>Tools/SMT/alethe/alethe_replay.ML\<close>
 ML_file \<open>Tools/SMT/alethe/verit_replay.ML\<close>
 (*ML_file \<open>Tools/SMT/verit_replay.ML\<close>*)
 ML_file \<open>Tools/SMT/alethe/cvc5_replay.ML\<close>
@@ -742,9 +760,10 @@ options.
 \<close>
 
 declare [[cvc4_options = ""]]
-declare [[cvc5_options = ""]]
-declare [[cvc5_proof_options = "--proof-format-mode=alethe --proof-granularity=dsl-rewrite"]]
-declare [[verit_options = ""]]
+declare [[cvc5_options = "--full-saturate-quant --proof-alethe-define-skolems --proof-elim-subtypes"]]
+declare [[cvc5_proof_options = "--proof-format-mode=alethe --proof-granularity=dsl-rewrite --proof-alethe-experimental
+                          --full-saturate-quant --proof-alethe-define-skolems --proof-elim-subtypes"]]
+declare [[verit_options = "--proof-with-sharing"]]
 declare [[z3_options = ""]]
 
 text \<open>
@@ -947,12 +966,5 @@ lemma [z3_rule]:  (* for def-axiom *)
 hide_type (open) symb_list pattern
 hide_const (open) Symb_Nil Symb_Cons trigger pat nopat fun_app z3div z3mod
 
-
-axiomatization symm_f :: "'a \<Rightarrow> 'a \<Rightarrow> 'a" where
-  symm_f: "symm_f x y = symm_f y x"
-
-lemma "a = a \<and> symm_f a b = symm_f b a"
-  supply [[smt_trace, smt_cvc_lethe]]
-  by (smt (cvc5) symm_f)
 
 end
