@@ -577,7 +577,7 @@ fun postprocess_proof compress ctxt step cx =
           prems @
           id_of_last_step new_subproof @
           extra_defs @
-          (map (get_skolem_def_id o (extract_sym_value "found malformed skolem id in context argument") o fst) (@{print}substitute_terms))
+          (map (get_skolem_def_id o (extract_sym_value "found malformed skolem id in context argument") o fst) substitute_terms)
         val _ = debug_lptrace middle (fn () => \<^print> ("... added more premises ", normalized_premises))
     
         (* Fix step args *)
