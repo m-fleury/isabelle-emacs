@@ -7,7 +7,7 @@ Proof parsing and replay for cvc5.
 
 signature ALETHE_REPLAY =
 sig
-  val replay: (string -> Proof.context -> thm list -> term list -> term list -> term -> tactic_args option -> thm) -> 
+  val replay: string -> (string -> Proof.context -> thm list -> term list -> term list -> term -> tactic_args option -> thm) -> 
      Proof.context -> SMT_Translate.replay_data -> string list -> thm
 end;
 
@@ -108,11 +108,7 @@ val _ = @{print}("here",(not (null ll_defs) andalso not (Alethe_Proof.keep_raw_l
      (Fail msg)=>
        if Config.get ctxt SMT_Config.rec_evaluation
        then (raise SMT_Failure.SMT (SMT_Failure.Replay(rule,ERROR "failure")))
-       else Exn.reraise (Fail msg) |
-      err =>
-       if Config.get ctxt SMT_Config.rec_evaluation
-       then (raise SMT_Failure.SMT (SMT_Failure.Replay(rule,err)))
-       else Exn.reraise err
+       else Exn.reraise (Fail msg)
   end
  | replay_thm _ _ _ _ _ _ _ _ _ _ _ _ _ _  = raise (Fail "TODO")
 
@@ -334,11 +330,11 @@ fun replay_step method_for rewrite_rules all_assms ll_defs assumed inputs all_lo
      replay_definition_step rewrite_rules ll_defs assumed inputs all_local_assumptions step state
  
 
-fun replay method_for outer_ctxt
+fun replay solver method_for outer_ctxt
     ({ctxt = ctxt, typs, terms, rewrite_rules, assms, ll_defs, ...} : SMT_Translate.replay_data)
      raw_proof_steps =
   let
-    val _ = if not (SMT_Config.use_alethe_proof_from_cvc ctxt)
+    val _ = if solver = "cvc5_prover" andalso not (SMT_Config.use_alethe_proof_from_cvc ctxt)
        then (raise SMT_Failure.SMT (SMT_Failure.Other_Failure ("reconstruction with CVC is experimental.\n" ^
          "You must activate it with [[smt_cvc_alethe = true]] and use cvc5 (not included as component) .")))
        else ()

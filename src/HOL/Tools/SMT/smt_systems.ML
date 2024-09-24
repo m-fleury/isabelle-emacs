@@ -82,6 +82,14 @@ local
       NONE => []
     | SOME t => ["--tlimit", string_of_int (Time.toMilliseconds t)])
 
+  fun cvc5_prover_options ctxt =
+    ["--no-stats",
+     "--sat-random-seed=" ^ string_of_int (Config.get ctxt SMT_Config.random_seed),
+     "--lang=smt2"] @
+    (case SMT_Config.get_timeout ctxt of
+      NONE => []
+    | SOME t => ["--tlimit", string_of_int (Time.toMilliseconds t)])
+
   fun select_class ctxt =
    [SMTLIB_Interface.smtlibC] @
    (if Config.get ctxt SMT_Config.higher_order then single CVC_Interface.hosmtlib_cvcC else []) @
@@ -139,7 +147,7 @@ val cvc5_proof: SMT_Solver.solver_config = {
   class = select_class,
   avail = make_avail "CVC5",
   command = make_command "CVC5",
-  options = cvc5_options,
+  options = cvc5_prover_options,
   smt_options = [(":produce-proofs", "true")],
   good_slices =
     (* FUDGE *)
