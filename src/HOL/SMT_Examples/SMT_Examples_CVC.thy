@@ -98,8 +98,8 @@ for x::real
 
 
 declare[[ML_print_depth=100]]
-lemma "\<bar>x :: real\<bar> + \<bar>y\<bar> \<ge> \<bar>x + y\<bar>" supply[[smt_trace=true,smt_timeout=1000,smt_reconstruction_step_timeout=1000]] 
-  supply[[smt_debug_arith_verit]]
+lemma "\<bar>x :: real\<bar> + \<bar>y\<bar> \<ge> \<bar>x + y\<bar>" supply[[smt_trace=false,smt_timeout=1000,smt_reconstruction_step_timeout=1000]] 
+  supply[[smt_debug_arith_verit=false]]
   by (smt (cvc5))  (*la_generic real vs int error*)
 lemma "(if (\<forall>x::int. x < 0 \<or> x > 0) then -1 else 3) > (0::int)" by (smt (cvc5)) (*la_generic real vs int error*)
 
@@ -610,7 +610,7 @@ lemma
       and "\<And>A B. (\<And>x. (x::'a) \<in> A \<Longrightarrow> x \<in> B) \<Longrightarrow> A \<subseteq> B"
       and "\<And>A B. \<lbrakk>(A::'a set) \<subseteq> B; B \<subseteq> A\<rbrakk> \<Longrightarrow> A = B"
       and "\<And>A ys. (A \<subseteq> List.coset ys) = (\<forall>y\<in>set ys. (y::'a) \<notin> A)"
-  using that (*supply[[smt_trace]] by (smt (cvc5))*) sorry (*supply[[smt_trace]]by (smt (cvc5))*) (*forall inst error*)
+  using that supply[[smt_trace]] by (smt (cvc5)) sorry (*supply[[smt_trace]]by (smt (cvc5))*) (*forall inst error*)
 
 notepad
 begin
@@ -674,7 +674,7 @@ lemma
     (\<lambda>y. (- (d / 2), (2 * y - 1) * diamond_y (- (d / 2)))) =
     (\<lambda>x. ((x - 1 / 2) * d, diamond_y ((x - 1 / 2) * d))) \<Longrightarrow>
     False\<close>
-  using assms supply [[smt_trace,smt_nat_as_int]] by (smt (cvc5)) (*hole*)
+  using assms supply [[smt_trace=false]] by (smt (cvc5)) (*hole*)
 
 lemma
   fixes d :: real
@@ -692,7 +692,7 @@ lemma
     (\<lambda>y. (- (d / 2), (2 * y - 1) * diamond_y (- (d / 2)))) =
     (\<lambda>x. ((x - 1 / 2) * d, diamond_y ((x - 1 / 2) * d))) \<Longrightarrow>
     False\<close>
-  using assms by (smt (cvc5)) (*la_generic error \<rightarrow> seems like the one Hanna knows already*)
+  using assms by (smt (cvc5))
 
 (*qnt_rm_unused example*)
 lemma 
