@@ -410,7 +410,7 @@ lemma "(3::real) = 3" by (smt (cvc5)) (*success*)
 lemma "(3 :: int) + 1 = 4" by (smt (cvc5)) (*success*)
 lemma "x + (y + z) = y + (z + (x::int))" by (smt (cvc5)) (*success*)
 lemma "max (3::int) 8 > 5" by (smt (cvc5)) (*success*)
-lemma "\<bar>x :: real\<bar> + \<bar>y\<bar> \<ge> \<bar>x + y\<bar>" supply[[smt_trace=false]] by (smt (cvc5))  (*la_generic real vs int error*)
+lemma "\<bar>x :: real\<bar> + \<bar>y\<bar> \<ge> \<bar>x + y\<bar>" supply[[smt_trace=false,smt_verbose=false]] by (smt (cvc5))  (*la_generic real vs int error*)
 lemma "P ((2::int) < 3) = P True" supply[[smt_trace]] by (smt (cvc5)) (*success*)
 lemma "x + 3 \<ge> 4 \<or> x < (1::int)" by (smt (cvc5)) (*success*)
 
@@ -489,13 +489,22 @@ Einige Reconstructions koennten
 
 
 
+
 lemma "\<forall>x y::int. (x = 0 \<and> y = 1) \<longrightarrow> x \<noteq> y" by (smt (cvc5)) (*success*)
 lemma "\<forall>x y::int. x < y \<longrightarrow> (2 * x + 1) < (2 * y)" by (smt (cvc5)) (*success*)
 lemma "\<forall>x y::int. x + y > 2 \<or> x + y = 2 \<or> x + y < 2" supply[[smt_trace]]by (smt (cvc5))  (*context error*)
 lemma "\<forall>x::int. if x > 0 then x + 1 > 0 else 1 > x" by (smt (cvc5)) (*success*)
 lemma "(if (\<forall>x::int. x < 0 \<or> x > 0) then -1 else 3) > (0::int)" by (smt (cvc5)) (*la_generic real vs int error*)
 lemma "\<exists>x::int. \<forall>x y. 0 < x \<and> 0 < y \<longrightarrow> (0::int) < x + y" supply [[verit_compress_proofs=false,smt_trace]]by (smt (cvc5))  (*bind error*)
-lemma "\<exists>u::int. \<forall>(x::int) y::real. 0 < x \<and> 0 < y \<longrightarrow> -1 < x" supply [[smt_trace]] by (smt (cvc5))   (*hole*)
+
+experiment
+begin
+lemma [cvc5_holes]: \<open>\<not>(\<forall>v2::real. v2 \<le> 0)\<close>
+  by (auto intro: exI[of _ \<open>1 :: real\<close>])
+
+lemma "\<exists>u::int. \<forall>(x::int) y::real. 0 < x \<and> 0 < y \<longrightarrow> -1 < x" supply [[smt_trace]] by (smt (cvc5))   (*hole solved by the previous theorem*)
+end
+
 lemma "\<forall>(a::int) b::int. 0 < b \<or> b < 1" by (smt (cvc5))
 
 subsection \<open>Linear arithmetic for natural numbers\<close>
@@ -569,11 +578,13 @@ fun dec_10 :: "int \<Rightarrow> int" where
 
 lemma "dec_10 (4 * dec_10 4) = 6"  by (smt (cvc5) dec_10.simps)(*la_generic real vs int error*)
 
-context complete_lattice
+experiment
 begin
+lemma (in complete_lattice) [cvc5_holes]:
+  \<open>(\<forall>(v0) (v1) v2. v0 \<le> v1 \<and> v1 \<le> v2 \<longrightarrow> v0 \<le> v2) = (\<forall>v0 v1 v2. \<not> v0 \<le> v1 \<or> \<not> v1 \<le> v2 \<or> v0 \<le> v2) \<close>
+  by auto
 
-
-lemma
+lemma (in complete_lattice)
   assumes "Sup {a | i::bool. True} \<le> Sup {b | i::bool. True}"
   and "Sup {b | i::bool. True} \<le> Sup {a | i::bool. True}"
   shows "Sup {a | i::bool. True} \<le> Sup {a | i::bool. True}"
@@ -581,6 +592,12 @@ lemma
 
 end
 
+experiment
+begin
+lemma [cvc5_holes]:
+  \<open>(\<forall>(v0::'a set) v1. finite v0 \<and> finite v1 \<longrightarrow> card v0 + card v1 = card (v0 \<union> v1) + card (v0 \<inter> v1)) =
+         (\<forall>(v0::'a set) v1. infinite v0 \<or> infinite v1 \<or> card v0 + card v1 = card (v0 \<union> v1) + card (v0 \<inter> v1))\<close>
+  by (intro iff_allI) auto
 lemma
  "eq_set (List.coset xs) (set ys) = rhs"
     if "\<And>ys. subset' (List.coset xs) (set ys) = (let n = card (UNIV::'a set) in 0 < n \<and> card (set (xs @ ys)) = n)"
@@ -610,7 +627,8 @@ lemma
       and "\<And>A B. (\<And>x. (x::'a) \<in> A \<Longrightarrow> x \<in> B) \<Longrightarrow> A \<subseteq> B"
       and "\<And>A B. \<lbrakk>(A::'a set) \<subseteq> B; B \<subseteq> A\<rbrakk> \<Longrightarrow> A = B"
       and "\<And>A ys. (A \<subseteq> List.coset ys) = (\<forall>y\<in>set ys. (y::'a) \<notin> A)"
-  using that supply[[smt_trace]] by (smt (cvc5)) sorry (*supply[[smt_trace]]by (smt (cvc5))*) (*forall inst error*)
+  using that supply[[smt_trace]] by (smt (cvc5))
+end
 
 notepad
 begin

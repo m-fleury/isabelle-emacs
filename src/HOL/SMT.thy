@@ -685,6 +685,7 @@ qed
 named_theorems cvc5_normalized_input \<open>Theorems required to replay
 our more complicated translation\<close>
 
+named_theorems cvc5_holes \<open>Simplification theorems for holes\<close>
 
 subsection \<open>Setup\<close>
 
@@ -989,105 +990,12 @@ hide_type (open) symb_list pattern
 hide_const (open) Symb_Nil Symb_Cons trigger pat nopat fun_app z3div z3mod
 
 
-(*
-lemma 
-  assumes "((t1 \<and> t2 ) \<and> (t3 \<and> t5)) \<and> t4"
-  shows "(t3 \<and> t5)"
-  using assms
-  apply (smt (cvc5))
-  apply (tactic \<open>HEADGOAL (fn i => 
-       (print_tac @{context} "and0")
-       THEN REPEAT (eresolve_tac @{context} @{thms conjE} i
-       THEN (print_tac @{context} "and1")
+subsection \<open>Rules for cvc5 holes\<close>
 
-       THEN TRY (assume_tac @{context} 1))) \<close>)
-lemma "((t1 \<and> t2 ) \<and> t3 ) \<and> t4 \<Longrightarrow> (t1 \<and> t2 ) \<and> t3"
-  apply (tactic \<open>HEADGOAL (fn i => 
-       (print_tac @{context} "and0")
-       THEN REPEAT (eresolve_tac @{context} @{thms conjE} i
-       THEN (print_tac @{context} "and1")
-
-       THEN TRY (assume_tac @{context} 2))) \<close>)
-
-
-
-lemma "((t1 \<and> t2 ) \<and> t3 ) \<and> t4 \<Longrightarrow> (t1 \<and> t2 ) \<and> t3"
-
- apply (tactic \<open>HEADGOAL (
-      K (print_tac @{context} "and0")
-     THEN' (fn i => REPEAT (dresolve_tac @{context} @{thms conjE} i
-     THEN (print_tac @{context} "and1")
-     THEN assume_tac @{context} (i+1)
-     THEN (print_tac @{context} "and2")))
- (*(fn i => 
-       REPEAT (eresolve_tac ctxt @{thms conjE} i
-       THEN TRY (assume_tac ctxt 1)))*)
-     ) \<close>)
-
-*)
-
-  
-  (*apply (tactic \<open>HEADGOAL (
-      K (print_tac @{context} "and0")
-     THEN' (fn i => REPEAT (dresolve_tac @{context} @{thms conjE} i THEN (print_tac @{context} "and1") THEN assume_tac @{context} (i+1)))
- (*(fn i => 
-       REPEAT (eresolve_tac ctxt @{thms conjE} i
-       THEN TRY (assume_tac ctxt 1)))*)
-     ) \<close>)*)
-(*
-ML \<open>
-val x = dest_Type @{typ "'a \<Rightarrow> 'b"}
-val x = ("fun", ["'a", "'b"]): string * typ list
-\<close>
-
-lemma "(\<lambda>x. (g::'a \<Rightarrow> 'b) x) = f"
-  supply[[smt_trace]]
-  apply (smt (cvc5))
-lemma "(\<lambda>x. (g::'a set \<Rightarrow> 'b set) x) = f"
-  supply[[smt_trace]]
-  apply (smt (cvc5))
-
-
-lemma "(f::int \<Rightarrow> 'b)= f"
-  supply[[smt_trace]]
-  apply (smt (cvc5))
-
-
-lemma "(f::int \<Rightarrow> 'b \<Rightarrow> 'c)= f"
-  supply[[smt_trace]]
-  apply (smt (cvc5))
-
-
-
-lemma "(f::'a \<Rightarrow> 'b \<Rightarrow> 'c) (g::'a) = f g"
-  supply[[smt_trace]]
-  apply (smt (cvc5))
-lemma "(f::('a set\<Rightarrow> int) \<Rightarrow> 'b \<Rightarrow> ('c \<Rightarrow> 'd)) (g::'a set \<Rightarrow> int) w = f g w"
-  supply[[smt_trace]]
-  apply (smt (cvc5))
-*)
-
-(* 
-       (set-option :produce-proofs true)
-       (set-logic AUFLIA)
-       (declare-sort Int_int_fun$ 0)
-       (declare-fun f$ () Int_int_fun$)
-       (assert (! (not (= f$ f$)) :named a0))
-       (check-sat)
-       (get-proof)
-
-  (set-option :produce-proofs true)
-       (set-logic AUFLIA)
-       (declare-fun f$ () (-> Int Int))
-       (assert (! (not (= f$ f$)) :named a0))
-       (check-sat)
-       (get-proof)*)
-
-
-(*
-assms_net: erkennt assumptions die mehrfach im Beweis vorkommen
-*)
-
+lemma [cvc5_holes]:
+  fixes a :: int
+  shows \<open>\<not>a dvd c \<Longrightarrow> a * b \<noteq> c\<close>
+  by auto
 
 lemma
   fixes  x::int
@@ -1095,7 +1003,7 @@ lemma
   shows "x \<noteq> 12*z"
   supply [[smt_trace,smt_cvc_alethe]]
   using assms smt_arith_combine(1)
-  sorry
+  by (smt (cvc5))
 
 
 declare[[smt_cvc_alethe = true]]
