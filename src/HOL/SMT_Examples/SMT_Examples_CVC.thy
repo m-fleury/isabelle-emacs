@@ -514,12 +514,12 @@ lemma
    False \<or> P = (x - 1 = y) \<or> (\<not>P \<longrightarrow> False)"
   by (smt (cvc5))
 
-lemma "int (nat \<bar>x::int\<bar>) = \<bar>x\<bar>" by (smt (cvc5) int_nat_eq) (*la_generic real vs int error*)
+lemma "int (nat \<bar>x::int\<bar>) = \<bar>x\<bar>" by (smt (cvc5) int_nat_eq)
 
 definition prime_nat :: "nat \<Rightarrow> bool" where
   "prime_nat p = (1 < p \<and> (\<forall>m. m dvd p --> m = 1 \<or> m = p))"
 
-lemma "prime_nat (4*m + 1) \<Longrightarrow> m \<ge> (1::nat)" by (smt (cvc5) prime_nat_def) (*la_generic real vs int error*)
+lemma "prime_nat (4*m + 1) \<Longrightarrow> m \<ge> (1::nat)" by (smt (cvc5) prime_nat_def)
 
 lemma "2 * (x::nat) \<noteq> 1" 
   by (smt (cvc5)) (*hole*)
@@ -645,7 +645,7 @@ begin
       one_chain_line_integral :: \<open>(real \<times> real \<Rightarrow> real \<times> real) \<Rightarrow> (real \<times> real) set \<Rightarrow> (int \<times> (real \<Rightarrow> real \<times> real)) set \<Rightarrow> real\<close> and
       k
     using prod.case_eq_if singleton_inject snd_conv
-      that by (smt (cvc5))
+      that [[smt_trace=false]] by (smt (cvc5))
 end
 
 
@@ -674,7 +674,7 @@ lemma
     (\<lambda>y. (- (d / 2), (2 * y - 1) * diamond_y (- (d / 2)))) =
     (\<lambda>x. ((x - 1 / 2) * d, diamond_y ((x - 1 / 2) * d))) \<Longrightarrow>
     False\<close>
-  using assms supply [[smt_trace,smt_nat_as_int]] by (smt (cvc5)) (*la_generic error \<rightarrow> seems like the one Hanna knows already*)
+  using assms supply [[smt_trace,smt_nat_as_int]] by (smt (cvc5)) (*hole*)
 
 lemma
   fixes d :: real

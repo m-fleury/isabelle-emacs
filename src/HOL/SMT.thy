@@ -606,9 +606,11 @@ lemmas [smt_arith_multiplication] =
   verit_le_mono_div_int[THEN mult_left_mono, unfolded int_distrib]
   zdiv_mono1[THEN mult_left_mono, unfolded int_distrib]
 
+(*making it specific to not clash with the real version where div is just division*)
 lemma [smt_arith_multiplication]:
-  "x = y \<Longrightarrow> x div n * p = y div n * p"
-  by simp
+  "(x::nat) = y \<Longrightarrow> x div n * p = y div n * p"
+  "(x'::int) = y' \<Longrightarrow> x' div n' * p' = y' div n' * p'"
+  by simp_all
 
 (*lemmas [smt_arith_multiplication] =
   arg_cong[of _ _ \<open>\<lambda>a :: nat. a div n * p\<close> for n p :: nat, THEN sym]

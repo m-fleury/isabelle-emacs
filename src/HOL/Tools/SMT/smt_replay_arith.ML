@@ -83,7 +83,6 @@ fun la_farkas_tac ({context = ctxt, prems, concl,  ...}: Subgoal.focus) (SOME (F
         |> manipulate_thm @{thms verit_negate_coefficient} pos
         |> manipulate_thm @{thms verit_invert_farkas_equation} no_inversion_needed
       end
-    val _ = trace (fn () => @{print} "")
 
     val normalized =
       map (try_OF_insts ctxt verit_arith_multiplication) coeff_prems

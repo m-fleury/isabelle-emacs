@@ -1836,9 +1836,9 @@ lemmas [smt_arith_multiplication] =
   div_le_mono[THEN mult_left_mono, unfolded int_distrib, of _ _ \<open>nat (floor (_ :: real))\<close>  \<open>nat (floor (_ :: real))\<close>]
   verit_le_mono_div_int[THEN mult_left_mono, unfolded int_distrib, of _ _ \<open>floor (_ :: real)\<close>  \<open>floor (_ :: real)\<close>]
   zdiv_mono1[THEN mult_left_mono, unfolded int_distrib, of _ _ \<open>floor (_ :: real)\<close>  \<open>floor (_ :: real)\<close>]
-  arg_cong[of _ _ \<open>\<lambda>a :: real. a / real (n::nat) * real (p::nat)\<close> for n p :: nat, THEN sym]
-  arg_cong[of _ _ \<open>\<lambda>a :: real. a / real_of_int n * real_of_int p\<close> for n p :: int, THEN sym]
-  arg_cong[of _ _ \<open>\<lambda>a :: real. a / n * p\<close> for n p :: real, THEN sym]
+  arg_cong[of _ _ \<open>\<lambda>a :: real. a / real (n::nat) * real (p::nat)\<close> for n p :: nat]
+  arg_cong[of _ _ \<open>\<lambda>a :: real. a / real_of_int n * real_of_int p\<close> for n p :: int]
+  arg_cong[of _ _ \<open>\<lambda>a :: real. a / n * p\<close> for n p :: real]
 
 lemmas [smt_arith_simplify] =
    floor_one floor_numeral div_by_1 times_divide_eq_right
