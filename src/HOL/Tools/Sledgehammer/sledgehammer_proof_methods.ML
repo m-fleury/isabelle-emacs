@@ -11,7 +11,8 @@ sig
 
   datatype SMT_backend =
     SMT_Z3 |
-    SMT_Verit of string
+    SMT_Verit of string |
+    SMT_cvc
 
   datatype proof_method =
     Metis_Method of string option * string option |
@@ -53,7 +54,8 @@ open ATP_Proof_Reconstruct
 
 datatype SMT_backend =
   SMT_Z3 |
-  SMT_Verit of string
+  SMT_Verit of string |
+  SMT_cvc
 
 datatype proof_method =
   Metis_Method of string option * string option |
@@ -98,6 +100,7 @@ fun string_of_proof_method ss meth =
         "metis (" ^ commas (map_filter I [type_enc_opt, lam_trans_opt]) ^ ")"
       | Meson_Method => "meson"
       | SMT_Method SMT_Z3 => "smt (z3)"
+      | SMT_Method SMT_cvc => "smt (cvc5)"
       | SMT_Method (SMT_Verit strategy) =>
         "smt (" ^ commas ("verit" :: (if strategy = "default" then [] else [strategy])) ^ ")"
       | SATx_Method => "satx"
@@ -128,6 +131,7 @@ fun tac_of_proof_method ctxt (local_facts, global_facts) meth =
 
     fun tac_of_smt SMT_Z3 = SMT_Solver.smt_tac
       | tac_of_smt (SMT_Verit strategy) = Verit_Strategies.verit_tac_stgy strategy
+      | tac_of_smt SMT_cvc = CVC5_Replay.cvc_tac
   in
     (case meth of
       Metis_Method options => tac_of_metis options
