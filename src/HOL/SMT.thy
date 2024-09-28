@@ -662,6 +662,7 @@ qed
 named_theorems cvc5_normalized_input \<open>Theorems required to replay
 our more complicated translation\<close>
 
+named_theorems cvc5_holes \<open>Simplification theorems for holes\<close>
 
 subsection \<open>Setup\<close>
 
@@ -965,6 +966,36 @@ lemma [z3_rule]:  (* for def-axiom *)
 
 hide_type (open) symb_list pattern
 hide_const (open) Symb_Nil Symb_Cons trigger pat nopat fun_app z3div z3mod
+
+
+subsection \<open>Rules for cvc5 holes\<close>
+
+lemma [cvc5_holes]:
+  fixes a :: int
+  shows \<open>\<not>a dvd c \<Longrightarrow> a * b \<noteq> c\<close>
+  by auto
+
+lemma
+  fixes  x::int
+  assumes "3*x = z" "z=4*7"
+  shows "x \<noteq> 12*z"
+  supply [[smt_trace,smt_cvc_alethe]]
+  using assms smt_arith_combine(1)
+  by (smt (cvc5))
+
+
+declare[[smt_cvc_alethe = true]]
+
+lemma "True" supply [[smt_trace]] by (smt (cvc5)) (*success*)
+
+lemma "le = (\<le>) \<Longrightarrow> le (3::int) 42" supply[[smt_trace]]by (smt (verit)) (*context error*)
+
+(*declare[[verit_compress_proofs=false]] (*TODO: Document what this does with reconstructin of sko_forall rule*)*)
+lemma "\<forall>x y::int. x + y > 2 \<or> x + y = 2 \<or> x + y < 2" 
+  supply[[smt_trace,ML_print_depth=1000]] by (smt (verit))  (*context error*)
+
+lemma "\<exists>x::int. \<forall>x y. 0 < x \<and> 0 < y \<longrightarrow> (0::int) < x + y" 
+  supply [[smt_verbose=false,verit_compress_proofs=false,smt_trace=false,smt_statistics=true]]by (smt (cvc5))  (*bind error*)
 
 
 end

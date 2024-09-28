@@ -514,9 +514,7 @@ fun combine_quant ctxt ((n1, n2) :: bounds) (n1' :: formula) =
          THEN' combine_quant ctxt bounds formula
        else resolve_tac ctxt bind_thms_same_name THEN' combine_quant ctxt bounds formula
      else resolve_tac ctxt @{thms allI} THEN' combine_quant ctxt ((n1, n2) :: bounds) formula)
-  | combine_quant ctxt [] (_ :: formula) = 
-      resolve_tac ctxt bind_thms_same_name THEN' combine_quant ctxt [] formula
-  | combine_quant ctxt _ _ = K (print_tac ctxt "binfanl") THEN' K all_tac
+  | combine_quant ctxt _ _ = K all_tac
 
 fun bind_quants ctxt args t =
   combine_quant ctxt 
@@ -532,6 +530,7 @@ fun generalize_prems t = generalize_prems_q (fst (extract_quantified_names_ba t)
 fun bind ctxt [prems] context_ass t =
  (SMT_Replay_Methods.prove ctxt t (fn _ =>
    bind_quants ctxt context_ass t
+(* THEN' TRY' (K (print_tac ctxt "bin10")) *)
  (*   THEN' REPEAT' (resolve_tac ctxt bind_thms THEN' TRY' (K (print_tac ctxt "bin")))*)
     
     THEN' TRY' (SOLVED' (resolve_tac ctxt [generalize_prems t prems]
@@ -587,12 +586,12 @@ fun forall_inst ctxt _ t (SOME (Insts insts)) =
               (map (option_map (Thm.cterm_of ctxt)) insts)
               prem |> @{print}
         in
-           ( (K (print_tac ctxt "sd 0")) THEN' Method.insert_tac ctxt [inst_thm]
-           THEN' (K (print_tac ctxt "sd 0"))
+           ((*  (K (print_tac ctxt "sd 0")) THEN'  *)Method.insert_tac ctxt [inst_thm]
+           (* THEN' (K (print_tac ctxt "sd 0")) *)
            THEN' TRY' (fn i => assume_tac ctxt i)
-           THEN' (K (print_tac ctxt "sd 1"))
+           (* THEN' (K (print_tac ctxt "sd 1")) *)
            THEN' TRY' (partial_simplify_tac ctxt @{thms eq_commute ac_simps})
-           THEN' (K (print_tac ctxt "sd 2"))
+           (* THEN' (K (print_tac ctxt "sd 2")) *)
            THEN' TRY' (blast_tac ctxt)) i
         end
      | instantiate_and_solve _ ({context = ctxt, prems = thms, ...}: Subgoal.focus) =
@@ -660,7 +659,6 @@ local
      let
        val rewrite_sk_thms =
          List.mapPartial (fn tm => SOME (tm OF [thm]) handle THM _ => NONE) thm_indirect
-|> @{print}
        val multiple_rew = if SMT_Config.compress_verit_proofs ctxt then REPEAT_CHANGED else fn x => x
      in
        multiple_rew (EqSubst.eqsubst_tac ctxt [0] rewrite_sk_thms
@@ -689,7 +687,7 @@ fun skolem_tac extractor thm1 thms1 ctxt prems context_ass (decl:string list * s
   let
 
     val (context_ass_thm,_) = Assumption.add_assumes (map (Thm.cterm_of ctxt) context_ass) ctxt
-    val _ = @{print}("context_ass_thm",context_ass_thm)
+    (* val _ = @{print}("context_ass_thm",context_ass_thm) *)
 
   (*  val context_ass_thm_sym = map (fn x => @{thm sym} OF [x]) context_ass_thm
     val _ = @{print}("context_ass_thm_sym",context_ass_thm_sym))*)
@@ -713,7 +711,7 @@ lemma verit_sko_forall_indirect2:
     \<open>x = (SOME x. \<not>P x) \<Longrightarrow> (\<And>x :: 'a. (P x = P' x)) \<Longrightarrow>(\<forall>x. P' x) \<longleftrightarrow> P x\<close>
   using someI[of \<open>\<lambda>x. \<not>P x\<close>]
   by auto*)
-
+(*
     val _ = @{print}("thm1",thm1)
     val _ = @{print}("thms1",thms1)
     val _ = @{print}("prems",prems)
@@ -721,13 +719,14 @@ lemma verit_sko_forall_indirect2:
 
     val _ = @{print}("t",t)
     val _ = @{print}("decl",decl)
-
+*)
     val (ctxt_eq, rew, other) = extract_rewrite_rule_assumption ctxt prems
+(*
     val _ = @{print}("ctxt_eq",ctxt_eq)
 
     val _ = @{print}("rew",rew)
     val _ = @{print}("other",other)
-
+*)
     fun ordered_definitions () =
       let
         val var_order = extractor t
@@ -740,9 +739,7 @@ lemma verit_sko_forall_indirect2:
     (*val _ = @{print}("ordered_definitions ()",ordered_definitions ())*)
   in
     SMT_Replay_Methods.prove ctxt t (fn _ =>
-      K (print_tac ctxt "sko 1")
-      THEN' rewrite_all_skolems ctxt_eq thms1 ctxt (ordered_definitions () |> @{print})
-      THEN' K (print_tac ctxt "sko 2")
+      rewrite_all_skolems ctxt_eq thms1 ctxt (ordered_definitions ())
 
       THEN' (*(((resolve_tac ctxt @{thms refl}) THEN' K (print_tac ctxt "sko 0"))
       ORELSE' *)
@@ -1278,20 +1275,14 @@ val split_neq = @{lemma "\<not>a \<or> \<not>c \<Longrightarrow> a \<or> c ==> a
 local
   fun prove_reordering ctxt = 
       REPEAT' (resolve_tac ctxt [split_neq])
-        THEN' K (print_tac ctxt "reorder0")
-
       THEN' K (unfold_tac ctxt @{thms de_Morgan_disj})
-        THEN' K (print_tac ctxt "reorder0")
 
       THEN' TRY o CHANGED_PROP o REPEAT_ALL_NEW (ematch_tac ctxt @{thms conjE})
-        THEN' K (print_tac ctxt "reorder1")
 
       THEN' CHANGED_PROP o REPEAT_ALL_NEW (ematch_tac ctxt @{thms disjE})
-        THEN' K (print_tac ctxt "reorder2")
 
-      THEN' REPEAT'(ematch_tac ctxt @{thms notE}         THEN' K (print_tac ctxt "reorder4")
-THEN' TRY' (assume_tac ctxt))
-     
+      THEN' REPEAT'(ematch_tac ctxt @{thms notE}
+      THEN' TRY' (assume_tac ctxt))
 in
   val reordering2 = prove_reordering
 end
@@ -1299,22 +1290,22 @@ end
 fun subproof ctxt [prem] t =
 
      SMT_Replay_Methods.prove ctxt t (fn _ =>
-           (K (print_tac ctxt "debug00"))
-THEN'
+           (* (K (print_tac ctxt "debug00"))
+THEN' *)
       ((REPEAT' (resolve_tac ctxt [@{thm disj_not1} RSN (1, @{thm iffD2}) OF [@{thm impI}],
            @{thm disj_not1[of \<open>\<not>_\<close>, unfolded not_not]} RSN (1, @{thm iffD2}) OF [@{thm impI}]])
-          THEN' (K (print_tac ctxt "debug0a"))
+          (* THEN' (K (print_tac ctxt "debug0a")) *)
 
         THEN' resolve_tac ctxt [prem]
         THEN_ALL_NEW (
           (assume_tac ctxt
-          THEN' (K (print_tac ctxt "debug0"))
+          (* THEN' (K (print_tac ctxt "debug0")) *)
           THEN' TRY' (assume_tac ctxt))
         ORELSE'
           SOLVED' ((partial_simplify_tac ctxt @{thms eq_commute ac_simps}
-          THEN' (K (print_tac ctxt "debug1"))
+          (* THEN' (K (print_tac ctxt "debug1")) *)
           THEN' TRY' (assume_tac ctxt))))
-        THEN' (K (print_tac ctxt "debug2"))
+        (* THEN' (K (print_tac ctxt "debug2")) *)
         THEN' TRY' (assume_tac ctxt))
       ORELSE' TRY' (Method.insert_tac ctxt [prem]
         THEN' (K (print_tac ctxt "went into blast"))

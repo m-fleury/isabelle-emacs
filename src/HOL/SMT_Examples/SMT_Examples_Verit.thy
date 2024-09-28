@@ -259,7 +259,7 @@ lemma
 section \<open>Arithmetic\<close>
 
 subsection \<open>Linear arithmetic over integers and reals\<close>
-declare[[smt_trace]]
+declare[[smt_trace=false]]
 lemma "(3::int) = 3" by (smt (verit))
 lemma "(3::real) = 3" by (smt (verit))
 lemma "(3 :: int) + 1 = 4" by (smt (verit))

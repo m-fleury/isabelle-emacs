@@ -135,7 +135,7 @@ fun hole ctxt prems t = SMT_Replay_Methods.prove ctxt t (fn _ =>
     THEN'*) Method.insert_tac ctxt prems
     (*TODO: should only be used for lambda encoding*)
 (*THEN' K (print_tac ctxt "stuff")*)
-    THEN' Clasimp.force_tac ctxt
+    THEN' Clasimp.force_tac (ctxt addsimps Named_Theorems.get ctxt @{named_theorems cvc5_holes})
 (*THEN' K (print_tac ctxt "stuff")*)
 )
 
