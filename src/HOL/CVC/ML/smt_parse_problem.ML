@@ -79,7 +79,7 @@ let
 
 in
  ({ctxt = sub_ctxt2,typs = typs,terms = terms,ll_defs = ll_defs,rewrite_rules = rewrite_rules,
-assms = assm :: assms}, assms_nbr+1)
+assms = assms @ [assm]}, assms_nbr+1) (*TODO: I want a better fix for this*)
 end
 
 
