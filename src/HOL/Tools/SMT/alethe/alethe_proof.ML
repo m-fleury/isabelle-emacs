@@ -68,20 +68,10 @@ struct
 
 open SMTLIB_Proof
 open Alethe_Node
+open SMT_Config
 
 exception ALETHE_PROOF_PARSE of string
 fun throw_alethe_ex str = ALETHE_PROOF_PARSE ("Error parsing Alethe proof step: " ^ str)
-
-(*TODO: Will go into util and be set over the context*)
-datatype debugging_verbosity = low | middle | high
-fun debug_to_int low = 0 |
-    debug_to_int middle = 1 |
-    debug_to_int high = 2
-val debug = false
-val debugging_level = high (*0 low, 1 middle, 2 high verbosity*)
-
-fun lproof_trace_msg cond (x : unit -> 'a) = if cond then ignore(x ()) else ()
-fun debug_lptrace i v = (lproof_trace_msg (debug andalso debug_to_int i <= debug_to_int debugging_level) v; v)
 
 val step_prefix = ".c"
 
@@ -299,7 +289,7 @@ fun preprocess compress step =
      preprocess (Raw_Alethe_Node {id, rule, step_args, context_assignments, prems, concl, subproof, ...}) (cx : ('a list, 'b) context, remap_prems)  =
       let
         val ctxt = #ctxt cx
-        val _ = debug_lptrace high (fn () => \<^print> ("preprocessing started for rule: ", id))
+        val _ = alethe_debug_msg ctxt high (fn () => \<^print> ("preprocessing started for rule: ", id))
 
         (* TODO: If we check external proofs we need to change term names starting with an upper character
            since this is not allowed in Isabelle *)
@@ -335,7 +325,7 @@ fun preprocess compress step =
         val repaired_prems =
           if compress
           then
-           let val _ = debug_lptrace low (fn () => \<^print> ("If any premise of the current step has been skipped the premise is updated to that premise's premise"))
+           let val _ = alethe_debug_msg ctxt low (fn () => \<^print> ("If any premise of the current step has been skipped the premise is updated to that premise's premise"))
            in expand_assms remap_prems prems end
           else prems
 
@@ -343,7 +333,7 @@ fun preprocess compress step =
         if skip_step
         then
           let
-            val _ = debug_lptrace low (fn () => \<^print> ("Compress proof by skipping current 'or' step"))
+            val _ = alethe_debug_msg ctxt low (fn () => \<^print> ("Compress proof by skipping current 'or' step"))
             val skipped_step = ([], (cx, compress_or_rule remap_prems))
           in skipped_step end
         else
@@ -426,16 +416,16 @@ fun postprocess_proof compress ctxt step cx =
   let
     fun process_context_assignments context_assignments cx = 
       let
-        val _ = debug_lptrace middle (fn () => \<^print> ("... process context assignments", context_assignments))
+        val _ = alethe_debug_msg ctxt middle (fn () => \<^print> ("... process context assignments", context_assignments))
       
         val (fixed_vars,substituted_vars,substitute_terms) = split_context_ass cx context_assignments
-        val _ = debug_lptrace high (fn () => \<^print> ("... split up context assignments (fixed variables, substituted variables, substitute terms)", (fixed_vars,substituted_vars,substitute_terms)))
+        val _ = alethe_debug_msg ctxt high (fn () => \<^print> ("... split up context assignments (fixed variables, substituted variables, substitute terms)", (fixed_vars,substituted_vars,substitute_terms)))
       
         fun not_already_bound cx t = SMTLIB_Proof.lookup_binding cx (fst t) = None
         val (shadowing_vars, rebound_lhs_vars) =
           substituted_vars @ fixed_vars
           |> filter_split (not_already_bound cx)
-        val _ = debug_lptrace high (fn () => \<^print> ("... (new variables, already bound variables)", (shadowing_vars, rebound_lhs_vars)))
+        val _ = alethe_debug_msg ctxt high (fn () => \<^print> ("... (new variables, already bound variables)", (shadowing_vars, rebound_lhs_vars)))
       
         fun assign_unused_name t i = 
          let 
@@ -444,7 +434,7 @@ fun postprocess_proof compress ctxt step cx =
            if SMTLIB_Proof.lookup_binding cx new_name = None then new_name else assign_unused_name t (i+1)
          end
         val new_variable_names = fold (fn t => curry (op ::) (t, assign_unused_name t 0)) (map fst rebound_lhs_vars) []
-        val _ = debug_lptrace high (fn () => \<^print> ("... mapping between new variables introduced in the anchor and their original names"))
+        val _ = alethe_debug_msg ctxt high (fn () => \<^print> ("... mapping between new variables introduced in the anchor and their original names"))
       in ((shadowing_vars, rebound_lhs_vars, substitute_terms), new_variable_names) end
   
     (* Functions for rewriting terms and the context *)
@@ -469,13 +459,13 @@ fun postprocess_proof compress ctxt step cx =
     fun transform_concl concl id (cx, new_variable_names) =
     let
       val ((termified_concl, extra_var), cx') = node_of concl cx
-      val _ = debug_lptrace high (fn () => \<^print> ("... transformed conclusion into Isabelle term", termified_concl))
+      val _ = alethe_debug_msg ctxt high (fn () => \<^print> ("... transformed conclusion into Isabelle term", termified_concl))
   
       val _ = if extra_var <> []
         then raise ERROR ("found dangling variable (s) " ^ (@{make_string} extra_var) ^
         " in concl " ^ (@{make_string} concl) ^ " of step" ^ id) else ()
       val termified_concl = unsk_and_rewrite new_variable_names termified_concl
-      val _ = debug_lptrace middle (fn () => \<^print> ("... rewrite conclusion with new variable names introduced by prior anchors", termified_concl))
+      val _ = alethe_debug_msg ctxt middle (fn () => \<^print> ("... rewrite conclusion with new variable names introduced by prior anchors", termified_concl))
   
     in (cx',termified_concl) end
   
@@ -484,12 +474,12 @@ fun postprocess_proof compress ctxt step cx =
       let
         val (termified_step_args,_) = fold_map node_of_term step_args cx
         val normalized_step_args = map (unsk_and_rewrite new_variable_names) (map (subproof_rewriter new_variable_names) termified_step_args)
-        val _ = debug_lptrace middle (fn () => \<^print> ("Termified and normalized steps args:", normalized_step_args))
+        val _ = alethe_debug_msg ctxt middle (fn () => \<^print> ("Termified and normalized steps args:", normalized_step_args))
        in normalized_step_args end
   
     fun postprocess (Raw_Definition_Node {id, rule, skolem_name, skolem_term}) (cx, new_variable_names) =
       let
-        val _ = debug_lptrace low (fn () => \<^print> ("postprocessing started for definition: ", (id,rule)))
+        val _ = alethe_debug_msg ctxt low (fn () => \<^print> ("postprocessing started for definition: ", (id,rule)))
       
         val cx =
         let
@@ -497,12 +487,12 @@ fun postprocess_proof compress ctxt step cx =
               extract_skolem_type t = raise throw_alethe_ex ("unrecognized skolem_definition " ^ @{make_string} t)
           fun declared_csts (name,typ) = (name, Term (Free (name, type_of cx typ)))
           val globally_bound_vars = declared_csts (skolem_name,extract_skolem_type skolem_term)
-          val _ = debug_lptrace middle (fn () => \<^print> ("... extracted globally bound vars from skolem definition", fst globally_bound_vars))
+          val _ = alethe_debug_msg ctxt middle (fn () => \<^print> ("... extracted globally bound vars from skolem definition", fst globally_bound_vars))
         in update_binding globally_bound_vars cx end
       
         val (termified_concl,cx') = node_of_term skolem_term cx
         val normalized_concl = unsk_and_rewrite new_variable_names termified_concl
-        val _ = debug_lptrace middle (fn () => \<^print> ("... transformed conclusion", normalized_concl))
+        val _ = alethe_debug_msg ctxt middle (fn () => \<^print> ("... transformed conclusion", normalized_concl))
       
         val step = Alethe_Definition_Node {id=id,rule=rule,skolem_name=skolem_name,skolem_term=normalized_concl}
       
@@ -516,7 +506,7 @@ fun postprocess_proof compress ctxt step cx =
         val unsk_and_rewrite' = unsk_and_rewrite new_variable_names
         val subproof_rewriter' = subproof_rewriter new_variable_names
     
-        val _ = debug_lptrace low (fn () => \<^print> ("postprocessing started for anchor: ", id))
+        val _ = alethe_debug_msg ctxt low (fn () => \<^print> ("postprocessing started for anchor: ", id))
     
         (* Preprocess context arguments *) 
         val ((shadowing_vars, rebound_lhs_vars, substitute_terms),new_variable_names) =
@@ -524,7 +514,7 @@ fun postprocess_proof compress ctxt step cx =
       
         (* Process conclusion *)
         val (cx',termified_concl) = transform_concl concl id (cx, new_variable_names)
-        val _ = debug_lptrace middle (fn () => \<^print> ("... transformed conclusion of step closing the anchor ", termified_concl))
+        val _ = alethe_debug_msg ctxt middle (fn () => \<^print> ("... transformed conclusion of step closing the anchor ", termified_concl))
         val alpha_conversion = rule = "bind" andalso is_alpha_renaming termified_concl
     
         (* Process subproof *)
@@ -532,17 +522,17 @@ fun postprocess_proof compress ctxt step cx =
           let
             val subproof_cx =
               add_bound_variables_to_cx (map (fn (a,b) => (a,Term b)) (shadowing_vars @ rebound_lhs_vars)) cx
-            val _ = debug_lptrace high (fn () => \<^print> ("... add new variables to context",shadowing_vars @ rebound_lhs_vars))
+            val _ = alethe_debug_msg ctxt high (fn () => \<^print> ("... add new variables to context",shadowing_vars @ rebound_lhs_vars))
           
             val can_remove_subproof =
               compress andalso (is_skolemization rule orelse alpha_conversion)
-            val _ = debug_lptrace high (fn () => \<^print> ("... does the subproof only rename variables and therefore can be removed?",can_remove_subproof))
+            val _ = alethe_debug_msg ctxt high (fn () => \<^print> ("... does the subproof only rename variables and therefore can be removed?",can_remove_subproof))
           
             val new_subproof = (if can_remove_subproof then [] else subproof)
           
             val (new_subproof : alethe_replay_node list, _) =
               fold_map postprocess new_subproof (subproof_cx, new_variable_names)
-            val _ = debug_lptrace low (fn () => \<^print> ("Finished postprocessing subproof. Returning to rule with id",id))
+            val _ = alethe_debug_msg ctxt low (fn () => \<^print> ("Finished postprocessing subproof. Returning to rule with id",id))
           in new_subproof end
     
         (* Process context assignment *)
@@ -556,7 +546,7 @@ fun postprocess_proof compress ctxt step cx =
          fold_map node_of (rm_types context_assignments) context_ass_cx 
          |>> map fst
         val normalized_context_ass = map unsk_and_rewrite' (map subproof_rewriter' termified_context_ass)
-        val _ = debug_lptrace middle (fn () => \<^print> ("... transformed context assignments of anchor ", normalized_context_ass))
+        val _ = alethe_debug_msg ctxt middle (fn () => \<^print> ("... transformed context assignments of anchor ", normalized_context_ass))
     
         (* Add rule-specific arguments *)
         fun mk_sko_def_prems () =
@@ -578,11 +568,11 @@ fun postprocess_proof compress ctxt step cx =
           id_of_last_step new_subproof @
           extra_defs @
           (map (get_skolem_def_id o (extract_sym_value "found malformed skolem id in context argument") o fst) substitute_terms)
-        val _ = debug_lptrace middle (fn () => \<^print> ("... added more premises ", normalized_premises))
+        val _ = alethe_debug_msg ctxt middle (fn () => \<^print> ("... added more premises ", normalized_premises))
     
         (* Fix step args *)
         val normalized_step_args = transform_step_args rule step_args (cx, new_variable_names)
-        val _ = debug_lptrace middle (fn () => \<^print> ("... transformed step args of step closing the anchor. Should be empty:", normalized_step_args))
+        val _ = alethe_debug_msg ctxt middle (fn () => \<^print> ("... transformed step args of step closing the anchor. Should be empty:", normalized_step_args))
     
         val step =
           mk_replay_node id normalized_rule normalized_step_args normalized_context_ass
@@ -594,11 +584,11 @@ fun postprocess_proof compress ctxt step cx =
       end
     else (*Non anchor steps*)
       let
-        val _ = debug_lptrace low (fn () => \<^print> ("postprocessing started for rule: ", id))
+        val _ = alethe_debug_msg ctxt low (fn () => \<^print> ("postprocessing started for rule: ", id))
       
         (* Process conclusion *)
         val (cx',termified_concl) = transform_concl concl id (cx, new_variable_names)
-        val _ = debug_lptrace middle (fn () => \<^print> ("... transform conclusion ", termified_concl))
+        val _ = alethe_debug_msg ctxt middle (fn () => \<^print> ("... transform conclusion ", termified_concl))
       
         (* Process step arguments *)
         (*TODO: la_generic aendere reals, erwarte div und keine reele zahlen. 
