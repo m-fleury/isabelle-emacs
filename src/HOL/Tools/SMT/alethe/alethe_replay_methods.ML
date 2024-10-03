@@ -514,7 +514,7 @@ fun combine_quant ctxt ((n1, n2) :: bounds) (n1' :: formula) =
          THEN' combine_quant ctxt bounds formula
        else resolve_tac ctxt bind_thms_same_name THEN' combine_quant ctxt bounds formula
      else resolve_tac ctxt @{thms allI} THEN' combine_quant ctxt ((n1, n2) :: bounds) formula)
-  | combine_quant ctxt _ _ = K all_tac
+  | combine_quant _ _ _ = K all_tac
 
 fun bind_quants ctxt args t =
   combine_quant ctxt 
