@@ -57,6 +57,8 @@ sig
   val statistics_msg: Proof.context -> ('a -> string) -> 'a -> unit
   val verit_msg: Proof.context -> (unit -> 'a) -> unit
   val verit_arith_msg: Proof.context -> (unit -> 'a) -> unit
+  datatype debugging_verbosity = off | low | middle | high
+  val alethe_debug_msg: Proof.context -> string -> debugging_verbosity -> (unit -> 'a) -> unit (*TODO: integrate this with the other options, wanted to make it possible to select files*)
   val spy_verit: Proof.context -> bool
   val spy_Z3: Proof.context -> bool
   val use_alethe_proof_from_cvc: Proof.context -> bool
@@ -194,6 +196,8 @@ val read_only_certificates = Attrib.setup_config_bool \<^binding>\<open>smt_read
 val verbose = Attrib.setup_config_bool \<^binding>\<open>smt_verbose\<close> (K true)
 val trace = Attrib.setup_config_bool \<^binding>\<open>smt_trace\<close> (K false)
 val trace_verit = Attrib.setup_config_bool \<^binding>\<open>smt_debug_verit\<close> (K false)
+val trace_expert_debug_alethe_level = Attrib.setup_config_int \<^binding>\<open>smt_expert_debug_alethe_level\<close> (K 0)
+val trace_expert_debug_alethe_files = Attrib.setup_config_string \<^binding>\<open>smt_expert_debug_alethe_files\<close> (K "all")
 val spy_verit_attr = Attrib.setup_config_bool \<^binding>\<open>smt_spy_verit\<close> (K false)
 val spy_z3 = Attrib.setup_config_bool \<^binding>\<open>smt_spy_z3\<close> (K false)
 val trace_arith_verit = Attrib.setup_config_bool \<^binding>\<open>smt_debug_arith_verit\<close> (K false)
@@ -226,6 +230,23 @@ fun statistics_msg ctxt = cond_trace (Config.get ctxt statistics)
 
 fun verit_msg ctxt (x : unit -> 'a) = if (Config.get ctxt trace_verit) then ignore(x ()) else ()
 fun verit_arith_msg ctxt (x : unit -> 'a) = if (Config.get ctxt trace_arith_verit) then ignore(x ()) else ()
+
+datatype debugging_verbosity = off | low | middle | high
+datatype debugging_files = all | alethe_proof
+
+fun debug_to_int off = 0 |
+    debug_to_int low = 1 |
+    debug_to_int middle = 2 |
+    debug_to_int high = 3
+
+fun alethe_debug_msg ctxt file verbosity (x : unit -> 'a) =
+let
+  val part = Config.get ctxt trace_expert_debug_alethe_files
+  val min = Config.get ctxt trace_expert_debug_alethe_level
+in
+ if (min > 0 andalso debug_to_int verbosity >= min andalso (part = "all" orelse part = file)) then ignore(x ()) else ()
+end
+
 
 fun spy_verit ctxt  = Config.get ctxt spy_verit_attr
 fun spy_Z3 ctxt  = Config.get ctxt spy_z3
