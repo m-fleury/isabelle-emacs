@@ -173,7 +173,7 @@ let
                => (@{print}("Unkown SMT error " ^ SMT_Failure.string_of_failure err, problem_path);
                   print_error_to_file ctxt 5; (local_thy,i)) |
              (Timeout.TIMEOUT _) => (@{print}("Timeout");
-                  print_error_to_file ctxt 7; (local_thy,i)) |
+                  print_error_to_file ctxt 7; (local_thy,i))
         in check_all ts i end
       else raise ERROR("Could not find proof for problem:" ^ problem_path)
     end
