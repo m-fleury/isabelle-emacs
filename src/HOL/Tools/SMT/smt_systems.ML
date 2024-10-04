@@ -262,7 +262,7 @@ fun smt_method ((solver, stgy), thms) ctxt facts =
       else ()
     val ctxt =
       ctxt
-      |> (if stgy <> NONE then Context.proof_map (Verit_Strategies.select_veriT_stgy (the stgy)) else I)
+      |> (if stgy <> NONE then Context.proof_map (Verit_Strategies.select_smt_solver_stgy solver (the stgy)) else I)
       |> Context.Proof
       |> SMT_Config.select_solver solver
       |> Context.proof_of
