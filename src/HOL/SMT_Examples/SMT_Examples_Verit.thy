@@ -15,8 +15,8 @@ begin
 external_file \<open>SMT_Examples_Verit.certs\<close>
 
 declare [[smt_certificates = "SMT_Examples_Verit.certs"]]
-declare [[smt_read_only_certificates = true]]
-
+declare [[smt_read_only_certificates = false]]
+declare [[smt_verbose=false]]
 
 section \<open>Propositional and first-order logic\<close>
 
@@ -630,7 +630,7 @@ lemma
        g (arg_min_on (f \<circ> g) B) \<close>
    shows False
   using assms
-  by (smt (verit))
+  by (smt (verit))  (*subproof reconstruction is using blast here because we do not distinguish the \<or> properly*)
 end
 
 

@@ -565,11 +565,14 @@ fun postprocess_proof compress ctxt step cx =
     
         (* Fix premises *)
         val assms_from_subproof = (if rule = subproof_rule then extract_assumptions_from_subproof new_subproof else [])
-        val normalized_premises =                                                       
+        val extra_skolem_defs = (if rule = "onepoint" then []
+          else map (get_skolem_def_id o (extract_sym_value "found malformed skolem id in context argument") o fst) substitute_terms)
+       
+        val normalized_premises =                             
           prems @
           id_of_last_step new_subproof @
           extra_defs @
-          (map (get_skolem_def_id o (extract_sym_value "found malformed skolem id in context argument") o fst) substitute_terms)
+          extra_skolem_defs
         val _ = debug_msg ctxt middle (fn () => \<^print> ("... added more premises ", normalized_premises))
     
         (* Fix step args *)

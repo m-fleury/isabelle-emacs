@@ -25,99 +25,11 @@ section \<open>Propositional and first-order logic\<close>
 declare [[smt_cvc_alethe = true]]
 declare[[cvc5_proof_options="--dag-thres=0 --proof-format-mode=alethe  --proof-alethe-experimental --proof-prune-input --full-saturate-quant --proof-alethe-define-skolems --proof-elim-subtypes --no-stats --sat-random-seed=1 --lang=smt2"]]
 
-(*
-lemma
- "0 < 1 \<Longrightarrow>
-  0 < 1 \<Longrightarrow>
-  0 < 1 \<Longrightarrow>
-  0 < 1 \<Longrightarrow>
-  (0 + - 1 * 0 + - 1 * 0 + 0) / 1 * 1 +
-  ((t2 + t3 + - 1 * t1) / 1 * 1 +
-   (- (- 1 * 0 / 1 * 1) + (- (- 1 * 0 / 1 * 1) + (- (- 1 * 0 / 1 * 1) + (- (- 1 * 0 / 1 * 1) + (- (0 / 1 * 1) + - (0 / 1 * 1)))))))
-  < (x + y + t1 + - 1 * (y + t2) + - 1 * (x + t3) + (t2 + t3 + - 1 * t1)) / 1 * 1 +
-    (0 / 1 * 1 +
-     (- (- 1 * (x + t3) / 1 * 1) +
-      (- (- 1 * (x + t3) / 1 * 1) +
-       (- (- 1 * (y + t2) / 1 * 1) + (- (- 1 * (y + t2) / 1 * 1) + (- ((x + y + t1) / 1 * 1) + - ((x + y + t1) / 1 * 1)))))))"
- for t2::real
-  supply[[simp_trace=false]]
- apply (tactic \<open>HEADGOAL (let val ctxt = 
-      @{context}
-       |> empty_simpset
-      |> put_simpset HOL_basic_ss
-       |> (fn ctxt => ctxt addsimps (Named_Theorems.get ctxt @{named_theorems ac_simps})
-           addsimps @{thms smt_arith_simplify}
-           addsimprocs [@{simproc int_div_cancel_numeral_factors}, @{simproc int_combine_numerals},
-             @{simproc divide_cancel_numeral_factor}, @{simproc intle_cancel_numerals},
-             @{simproc field_combine_numerals}, @{simproc intless_cancel_numerals}])
-      in Simplifier.asm_full_simp_tac ctxt end)
-  
- \<close>)  
-  sorry
-
-
-
-
-lemma
- "0 + - 1 * 0 + - 1 * 0 + 0 \<le> x + y + t1 + - 1 * (y + t2) + - 1 * (x + t3) + (t2 + t3 + - 1 * t1)" for t1 ::real
-  supply[[simp_trace=false]]
- apply (tactic \<open>HEADGOAL (let val ctxt = 
-      @{context}
-       |> empty_simpset
-      |> put_simpset HOL_basic_ss
-       |> (fn ctxt => ctxt addsimps (Named_Theorems.get ctxt @{named_theorems ac_simps})
-           addsimps @{thms smt_arith_simplify}
-           addsimprocs [@{simproc int_div_cancel_numeral_factors}, @{simproc int_combine_numerals},
-             @{simproc divide_cancel_numeral_factor}, @{simproc intle_cancel_numerals},
-             @{simproc field_combine_numerals}, @{simproc intless_cancel_numerals}])
-      in Simplifier.asm_full_simp_tac ctxt end)
-  
- \<close>)  
-  apply (simp only: smt_arith_simplify)
-  sorry
-
-lemma
-"(x + y + t1 + - 1 * (y + t2) + - 1 * (x + t3) + (t2 + t3 + - 1 * t1) =0)"
-for t2::real
-  apply simp
-
-
-
-lemma
-"x + y + t1 \<noteq> 0 \<or>
-- 1 * (y + t2) \<noteq> - 1 * 0 \<or>
-- 1 * (x + t3) \<noteq> - 1 * 0 \<or>
-\<not> t2 + t3 + - 1 * t1 < 0 \<or> x + y + t1 + - 1 * (y + t2) + - 1 * (x + t3) + (t2 + t3 + - 1 * t1) < 0 + - 1 * 0 + - 1 * 0 + 0"
-for x::real
-  supply [[linarith_trace]]
-  apply linarith
-
-
-*)
-
-
-
-declare[[ML_print_depth=100]]
+declare[[ML_print_depth=100,smt_verbose=false]]
 lemma "\<bar>x :: real\<bar> + \<bar>y\<bar> \<ge> \<bar>x + y\<bar>" supply[[smt_trace=false,smt_timeout=1000,smt_reconstruction_step_timeout=1000]] 
   supply[[smt_debug_arith_verit=false]]
   by (smt (cvc5))  (*la_generic real vs int error*)
 lemma "(if (\<forall>x::int. x < 0 \<or> x > 0) then -1 else 3) > (0::int)" by (smt (cvc5)) (*la_generic real vs int error*)
-
-
-(*
-       proposition:
-         x + y + (if 0 \<le> x + y then x + y else - 1 * x + - 1 * y) \<noteq> 0 \<or>
-         - 1 * (y + (if 0 \<le> y then y else - 1 * y)) \<noteq> - 1 * 0 \<or>
-         - 1 * (x + (if 0 \<le> x then x else - 1 * x)) \<noteq> - 1 * 0 \<or>
-         \<not> (if 0 \<le> y then y else - 1 * y) + (if 0 \<le> x then x else - 1 * x) + - 1 * (if 0 \<le> x + y then x + y else - 1 * x + - 1 * y) < 0 \<or>
-         x + y + (if 0 \<le> x + y then x + y else - 1 * x + - 1 * y) + - 1 * (y + (if 0 \<le> y then y else - 1 * y)) +
-         - 1 * (x + (if 0 \<le> x then x else - 1 * x)) +
-         ((if 0 \<le> y then y else - 1 * y) + (if 0 \<le> x then x else - 1 * x) + - 1 * (if 0 \<le> x + y then x + y else - 1 * x + - 1 * y))
-         < 0 + - 1 * 0 + - 1 * 0 + 0 
-
-*)
-
-
 
 (*
 Orange Markiert/ BackgroundFarbe: Freie Variable die nicht im Kontext ist.
@@ -399,7 +311,7 @@ section \<open>Arithmetic\<close>
 subsection \<open>Linear arithmetic over integers and reals\<close>
 declare[[cvc5_proof_options="--dag-thres=0 --proof-format-mode=alethe --proof-alethe-experimental --proof-alethe-experimental --full-saturate-quant --proof-alethe-define-skolems --proof-elim-subtypes --no-stats --sat-random-seed=1 --lang=smt2"]]
 
-declare[[smt_debug_arith_verit]]
+declare[[smt_debug_arith_verit=false]]
 declare[[ML_print_depth=100]]
 
 
@@ -626,7 +538,7 @@ lemma
       and "\<And>A B. (\<And>x. (x::'a) \<in> A \<Longrightarrow> x \<in> B) \<Longrightarrow> A \<subseteq> B"
       and "\<And>A B. \<lbrakk>(A::'a set) \<subseteq> B; B \<subseteq> A\<rbrakk> \<Longrightarrow> A = B"
       and "\<And>A ys. (A \<subseteq> List.coset ys) = (\<forall>y\<in>set ys. (y::'a) \<notin> A)"
-  using that supply[[smt_trace]] by (smt (cvc5))
+  using that supply[[smt_trace=false]] by (smt (cvc5))
 end
 
 notepad
@@ -722,7 +634,7 @@ lemma
 
 lemma
   "max (x::int) y \<ge> y"
-  supply [[smt_trace]]
+  supply [[smt_trace=false]]
   by (smt (cvc5))+ 
 
 context

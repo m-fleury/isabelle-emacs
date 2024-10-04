@@ -584,7 +584,7 @@ fun forall_inst ctxt _ t (SOME (Insts insts)) =
           val inst_thm =
             fold instantiate_with
               (map (option_map (Thm.cterm_of ctxt)) insts)
-              prem |> @{print}
+              prem
         in
            ((*  (K (print_tac ctxt "sd 0")) THEN'  *)Method.insert_tac ctxt [inst_thm]
            (* THEN' (K (print_tac ctxt "sd 0")) *)
@@ -1292,26 +1292,26 @@ fun subproof ctxt [prem] t =
      SMT_Replay_Methods.prove ctxt t (fn _ =>
            (* (K (print_tac ctxt "debug00"))
 THEN' *)
-      ((REPEAT' (resolve_tac ctxt [@{thm disj_not1} RSN (1, @{thm iffD2}) OF [@{thm impI}],
+      (REPEAT' (resolve_tac ctxt [@{thm disj_not1} RSN (1, @{thm iffD2}) OF [@{thm impI}],
            @{thm disj_not1[of \<open>\<not>_\<close>, unfolded not_not]} RSN (1, @{thm iffD2}) OF [@{thm impI}]])
           (* THEN' (K (print_tac ctxt "debug0a")) *)
 
         THEN' resolve_tac ctxt [prem]
         THEN_ALL_NEW (
-          (assume_tac ctxt
-          (* THEN' (K (print_tac ctxt "debug0")) *)
+            (assume_tac ctxt
+            (* THEN' (K (print_tac ctxt "debug0")) *)
+            THEN' TRY' (assume_tac ctxt))
+          ORELSE'
+            SOLVED' ((partial_simplify_tac ctxt @{thms eq_commute ac_simps}
+            (* THEN' (K (print_tac ctxt "debug1")) *)
+            THEN' TRY' (assume_tac ctxt))))
+          (* THEN' (K (print_tac ctxt "debug2")) *)
           THEN' TRY' (assume_tac ctxt))
-        ORELSE'
-          SOLVED' ((partial_simplify_tac ctxt @{thms eq_commute ac_simps}
-          (* THEN' (K (print_tac ctxt "debug1")) *)
-          THEN' TRY' (assume_tac ctxt))))
-        (* THEN' (K (print_tac ctxt "debug2")) *)
-        THEN' TRY' (assume_tac ctxt))
       ORELSE' TRY' (Method.insert_tac ctxt [prem]
         THEN' (K (print_tac ctxt "went into blast"))
 
         THEN' TRY' (partial_simplify_tac ctxt @{thms eq_commute ac_simps})
-        THEN' TRY' (Blast.blast_tac ctxt))))
+        THEN' TRY' (Blast.blast_tac ctxt)))
   | subproof ctxt prems t =
       replay_error ctxt "invalid application, only one assumption expected" Subproof prems [] t
 
