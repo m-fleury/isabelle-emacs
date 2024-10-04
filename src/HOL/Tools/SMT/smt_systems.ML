@@ -86,6 +86,7 @@ local
     ["--no-stats",
      "--sat-random-seed=" ^ string_of_int (Config.get ctxt SMT_Config.random_seed),
      "--lang=smt2"] @
+    Verit_Strategies.cvc5_current_strategy (Context.Proof ctxt) @
     (case SMT_Config.get_timeout ctxt of
       NONE => []
     | SOME t => ["--tlimit", string_of_int (Time.toMilliseconds t)])
@@ -142,6 +143,7 @@ val cvc5: SMT_Solver.solver_config = {
 We need different options for alethe proof production by cvc5 and the smt_options
 cannot be changed, so different configuration.
 *)
+
 val cvc5_proof: SMT_Solver.solver_config = {
   name = "cvc5_proof",
   class = select_class,

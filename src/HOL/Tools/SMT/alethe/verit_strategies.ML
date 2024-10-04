@@ -58,7 +58,7 @@ smt tactic.
 
 It is not clear if we should keep that or not.
 *)
-val cvc5_stgy_default_name = "default"
+val cvc5_stgy_default_name = "best"
 val cvc5_stgy_default_insts = []
 val cvc5_stgy_trigger_last_name = "trigger_last"
 val cvc5_stgy_trigger_last = ["--full-saturate-quant", "--inst-when=full-last-call", "--inst-no-entail", "--term-db-mode=relevant", "--multi-trigger-linear"]
@@ -115,7 +115,7 @@ fun smt_solver_current_strategy solver ctxt =
     val {default_strategy,strategies} = (Data.get ctxt)
   in
     AList.lookup (op=) strategies (solver, default_strategy)
-   |> the
+    |> the
   end
 
 val smt_solver_strategy = Attrib.setup_config_string \<^binding>\<open>smt_verit_strategy\<close> (K verit_strategy_best_name);
