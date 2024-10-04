@@ -1248,7 +1248,7 @@ session "IOA-ex" in "HOLCF/IOA/ex" = IOA +
     TrivEx
     TrivEx2
 
-
+(*
 session "HOL-CVC" in CVC = HOL +
   options [quick_and_dirty] (*TODO: Delete*)
   sessions
@@ -1257,3 +1257,4 @@ session "HOL-CVC" in CVC = HOL +
   directories cvc5_dsl_rewrites
   theories
     SMT_CVC
+*)
