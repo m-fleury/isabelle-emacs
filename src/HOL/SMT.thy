@@ -975,15 +975,6 @@ lemma [cvc5_holes]:
   shows \<open>\<not>a dvd c \<Longrightarrow> a * b \<noteq> c\<close>
   by auto
 
-lemma
-  fixes  x::int
-  assumes "3*x = z" "z=4*7"
-  shows "x \<noteq> 12*z"
-  supply [[smt_trace,smt_cvc_alethe]]
-  using assms smt_arith_combine(1)
-  by (smt (cvc5))
-
-
 declare[[smt_cvc_alethe = true]]
 
 end

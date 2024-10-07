@@ -565,11 +565,14 @@ fun postprocess_proof compress ctxt step cx =
     
         (* Fix premises *)
         val assms_from_subproof = (if rule = subproof_rule then extract_assumptions_from_subproof new_subproof else [])
-        val normalized_premises =                                                       
+        val extra_skolem_defs = (if rule = "onepoint" then []
+          else map (get_skolem_def_id o (extract_sym_value "found malformed skolem id in context argument") o fst) substitute_terms)
+       
+        val normalized_premises =                             
           prems @
           id_of_last_step new_subproof @
           extra_defs @
-          (map (get_skolem_def_id o (extract_sym_value "found malformed skolem id in context argument") o fst) substitute_terms)
+          extra_skolem_defs
         val _ = debug_msg ctxt middle (fn () => \<^print> ("... added more premises ", normalized_premises))
     
         (* Fix step args *)
@@ -799,7 +802,8 @@ fun remove_skolem_definitions_proof steps =
     fun replace_equivalent_by_imp (judgement $ ((Const(\<^const_name>\<open>HOL.eq\<close>, typ) $ arg1) $ arg2)) =
        judgement $ ((Const(\<^const_name>\<open>HOL.implies\<close>, typ) $ arg1) $ arg2)
      | replace_equivalent_by_imp a = a (*This case is probably wrong*)
-    fun remove_skolem_definitions (Alethe_Replay_Node {id = id, rule = rule, step_args = step_args,
+    fun remove_skolem_definitions (Alethe_Definition_Node {id = id, ...}) (prems_to_remove, skolems) = ([], (id :: prems_to_remove, id :: skolems))
+    | remove_skolem_definitions (Alethe_Replay_Node {id = id, rule = rule, step_args = step_args,
         context_assignments = context_assignments,
          prems = prems,
          concl = concl,

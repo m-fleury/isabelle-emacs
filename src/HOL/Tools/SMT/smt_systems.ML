@@ -86,6 +86,7 @@ local
     ["--no-stats",
      "--sat-random-seed=" ^ string_of_int (Config.get ctxt SMT_Config.random_seed),
      "--lang=smt2"] @
+    Verit_Strategies.cvc5_current_strategy (Context.Proof ctxt) @
     (case SMT_Config.get_timeout ctxt of
       NONE => []
     | SOME t => ["--tlimit", string_of_int (Time.toMilliseconds t)])
@@ -115,7 +116,7 @@ val cvc4: SMT_Solver.solver_config = {
      ((2, false, false, 128, meshN), ["--no-e-matching", "--full-saturate-quant"]),
      ((2, false, false, 256, meshN), ["--finite-model-find", "--fmf-inst-engine"])],
   outcome = on_first_line (outcome_of "unsat" "sat" "unknown" "timeout"),
-  parse_proof = SOME (K CVC_Proof_Parse.parse_proof),
+  parse_proof = SOME (K CVC_Proof_Parse.parse_proof_unsatcore),
   replay = NONE }
 
 val cvc5: SMT_Solver.solver_config = {
@@ -133,15 +134,16 @@ val cvc5: SMT_Solver.solver_config = {
      ((2, false, false, 1024, meshN), ["--relevant-triggers", "--full-saturate-quant"]),
      ((2, false, false, 32, meshN), ["--term-db-mode=relevant", "--full-saturate-quant"]),
      ((2, false, false, 128, meshN), ["--no-e-matching", "--full-saturate-quant"]),
-     ((2, false, false, 256, meshN), ["--finite-model-find", "--fmf-inst-engine"])],
+     ((2, false, false, 256, meshN), ["--finite-model-find", "--decision=internal"])],
   outcome = on_first_line (outcome_of "unsat" "sat" "unknown" "timeout"),
-  parse_proof = SOME (K CVC_Proof_Parse.parse_proof),
+  parse_proof = SOME (K CVC_Proof_Parse.parse_proof_unsatcore),
   replay = NONE }
 
 (*
 We need different options for alethe proof production by cvc5 and the smt_options
 cannot be changed, so different configuration.
 *)
+
 val cvc5_proof: SMT_Solver.solver_config = {
   name = "cvc5_proof",
   class = select_class,
@@ -149,17 +151,9 @@ val cvc5_proof: SMT_Solver.solver_config = {
   command = make_command "CVC5",
   options = cvc5_prover_options,
   smt_options = [(":produce-proofs", "true")],
-  good_slices =
-    (* FUDGE *)
-    [((2, false, false, 512, meshN), ["--full-saturate-quant", "--inst-when=full-last-call", "--inst-no-entail", "--term-db-mode=relevant", "--multi-trigger-linear"]),
-     ((2, false, false, 64, meshN), ["--decision=internal", "--simplification=none", "--full-saturate-quant"]),
-     ((2, false, true, 256, mepoN), ["--trigger-sel=max", "--full-saturate-quant"]),
-     ((2, false, false, 1024, meshN), ["--relevant-triggers", "--full-saturate-quant"]),
-     ((2, false, false, 32, meshN), ["--term-db-mode=relevant", "--full-saturate-quant"]),
-     ((2, false, false, 128, meshN), ["--no-e-matching", "--full-saturate-quant"]),
-     ((2, false, false, 256, meshN), ["--finite-model-find", "--fmf-inst-engine"])],
+  good_slices = #good_slices cvc5,
   outcome = on_first_line (outcome_of "unsat" "sat" "unknown" "timeout"),
-  parse_proof = SOME (K CVC_Proof_Parse.parse_proof),
+  parse_proof = SOME (K CVC_Proof_Parse.parse_proof_alethe),
   replay = SOME CVC5_Replay.replay }
 
 end
@@ -270,7 +264,7 @@ fun smt_method ((solver, stgy), thms) ctxt facts =
       else ()
     val ctxt =
       ctxt
-      |> (if stgy <> NONE then Context.proof_map (Verit_Strategies.select_veriT_stgy (the stgy)) else I)
+      |> (if stgy <> NONE then Context.proof_map (Verit_Strategies.select_smt_solver_stgy solver (the stgy)) else I)
       |> Context.Proof
       |> SMT_Config.select_solver solver
       |> Context.proof_of

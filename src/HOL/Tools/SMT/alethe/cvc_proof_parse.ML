@@ -6,7 +6,7 @@ CVC4 and cvc5 proof (actually, unsat core) parsing.
 
 signature CVC_PROOF_PARSE =
 sig
-  val parse_proof: SMT_Translate.replay_data ->
+  val parse_proof_unsatcore: SMT_Translate.replay_data ->
     ((string * ATP_Problem_Generate.stature) * thm) list -> term list -> term -> string list ->
     SMT_Solver.parsed_proof
   val parse_proof_alethe: SMT_Translate.replay_data ->
@@ -119,9 +119,5 @@ fun parse_proof_alethe
        fact_helper_ts prem_ids conjecture_id fact_helper_ids' steps}
   end
 
-fun parse_proof (rep as {ctxt = ctxt, ...}) =
-  if SMT_Config.use_alethe_proof_from_cvc ctxt
-  then parse_proof_unsatcore rep
-  else parse_proof_unsatcore rep
 
 end;
