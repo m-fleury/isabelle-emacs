@@ -761,6 +761,184 @@ lemma
 end
 
 
+section \<open>Bugs\<close>
+
+context
+  fixes centered_divide :: \<open>int \<Rightarrow> int \<Rightarrow> int\<close>  (infixl \<open>cdiv\<close> 70) and
+    centered_modulo :: \<open>int \<Rightarrow> int \<Rightarrow> int\<close>  (infixl \<open>cmod\<close> 70)
+begin
+
+lemma [cvc5_holes]:
+  fixes k :: int
+  shows
+"((if 0 \<le> k then k else - 1 * k) div 2 + - 1 * ((if 0 \<le> k then k else - 1 * k) div 2 mod (if 0 \<le> k then k else - 1 * k)) +
+          - 1 * ((if 0 \<le> k then k else - 1 * k) * ((if 0 \<le> k then k else - 1 * k) div 2 div (if 0 \<le> k then k else - 1 * k))) =
+          0) =
+         ((if 0 \<le> k then k else - 1 * k) div 2 =
+          (if 0 \<le> k then k else - 1 * k) div 2 mod (if 0 \<le> k then k else - 1 * k) +
+          (if 0 \<le> k then k else - 1 * k) * ((if 0 \<le> k then k else - 1 * k) div 2 div (if 0 \<le> k then k else - 1 * k))) "
+  sorry
+lemma zero_cdiv_eq [simp]:
+  assumes
+       "\<forall>(b::int) (a::int) c::int. b * (a div b) + a mod b + c = a + c"
+       "\<forall>k::int. k cdiv (0::int) = (0::int)"
+       "\<forall>(k::int) l::int. k cdiv l * l + k cmod l = k"
+       "\<forall>(k::int) l::int.
+          k cmod l = (k + (if l < (0::int) then - l else l) div (2::int)) mod (if l < (0::int) then - l else l) - (if l < (0::int) then - l else l) div (2::int)"
+       "\<forall>(A::int) n::int. A = A div n * n + A mod n"
+       "\<forall>a::int. even a = (a mod (2::int) = (0::int))"
+       "\<forall>k::int. ((0::int) \<le> k div (2::int)) = ((0::int) \<le> k)"
+       "\<forall>(k::int) l::int. (0::int) \<le> k \<and> k < l \<longrightarrow> k mod l = k"
+       "\<forall>(c::int) b::int. (c = b * c) = (c = (0::int) \<or> b = (1::int))"
+       "\<forall>(a::int) b::int. a \<noteq> (0::int) \<longrightarrow> a * b div a = b"
+       "\<forall>a::int. odd a = (a mod (2::int) = (1::int))"
+       shows
+  \<open>0 cdiv k = 0\<close>
+  supply [[smt_trace=false,smt_verbose]]
+  by (smt (cvc5) assms)
+(* 
+In the original context fails with:
+
+SMT: Successfully checked step t162.t5.t7 
+exception TERM raised (line 380 of "term.ML"):
+  fastype_of: expected function type
+  rare_list
+
+0.sledgehammer goal.by        66424ms HOL-Library.Centered_Division 97:2774  some (SH 66424ms, ATP 975ms) [cvc5]: Try this: by (smt (cvc5) cancel_div_mod_rules(2) cdiv_0_eq cdiv_mult_cmod_eq centered_modulo_def div_mod_decomp_int even_iff_mod_2_eq_zero half_nonnegative_int_iff mod_pos_pos_trivial mult_cancel_right1 nonzero_mult_div_cancel_left odd_iff_mod_2_eq_one) (> 1.0 s, timed out)
+
+But oddly enough fails here later
+*)
+end
+
+
+datatype 'a extended = Fin 'a | Pinf ("\<infinity>") | Minf ("-\<infinity>")
+instantiation extended :: (plus)plus
+begin
+
+fun plus_extended where
+"Fin x + Fin y = Fin(x+y)" |
+"Fin x + Pinf  = Pinf" |
+"Pinf  + Fin x = Pinf" |
+"Pinf  + Pinf  = Pinf" |
+"Minf  + Fin y = Minf" |
+"Fin x + Minf  = Minf" |
+"Minf  + Minf  = Minf" |
+"Minf  + Pinf  = Pinf" |
+"Pinf  + Minf  = Pinf"
+
+
+instance ..
+
+end
+instantiation extended :: (zero)zero
+begin
+definition "0 = Fin(0::'a)"
+instance ..
+end
+
+lemma
+  assumes
+       "\<forall>a::'a::comm_monoid_add. (0::'a::comm_monoid_add) + a = a"
+       "\<forall>(x::'a::comm_monoid_add extended extended extended extended extended extended)
+          (xa::'a::comm_monoid_add extended extended extended extended extended extended)
+          y::'a::comm_monoid_add extended extended extended extended extended extended.
+          x + xa = y \<and>
+          (\<forall>(xb::'a::comm_monoid_add extended extended extended extended extended) ya::'a::comm_monoid_add extended extended extended extended extended.
+              x = Fin xb \<and> xa = Fin ya \<and> y = Fin (xb + ya) \<longrightarrow> False) \<and>
+          (\<forall>xb::'a::comm_monoid_add extended extended extended extended extended. x = Fin xb \<and> xa = \<infinity> \<and> y = \<infinity> \<longrightarrow> False) \<and>
+          (\<forall>xb::'a::comm_monoid_add extended extended extended extended extended. x = \<infinity> \<and> xa = Fin xb \<and> y = \<infinity> \<longrightarrow> False) \<and>
+          (x = \<infinity> \<and> xa = \<infinity> \<and> y = \<infinity> \<longrightarrow> False) \<and>
+          (\<forall>ya::'a::comm_monoid_add extended extended extended extended extended. x = -\<infinity> \<and> xa = Fin ya \<and> y = -\<infinity> \<longrightarrow> False) \<and>
+          (\<forall>xb::'a::comm_monoid_add extended extended extended extended extended. x = Fin xb \<and> xa = -\<infinity> \<and> y = -\<infinity> \<longrightarrow> False) \<and>
+          (x = -\<infinity> \<and> xa = -\<infinity> \<and> y = -\<infinity> \<longrightarrow> False) \<and> (x = -\<infinity> \<and> xa = \<infinity> \<and> y = \<infinity> \<longrightarrow> False) \<and> (x = \<infinity> \<and> xa = -\<infinity> \<and> y = \<infinity> \<longrightarrow> False) \<longrightarrow>
+          False"
+       "\<forall>(x::'a::comm_monoid_add extended extended extended extended extended) (xa::'a::comm_monoid_add extended extended extended extended extended)
+          y::'a::comm_monoid_add extended extended extended extended extended.
+          x + xa = y \<and>
+          (\<forall>(xb::'a::comm_monoid_add extended extended extended extended) ya::'a::comm_monoid_add extended extended extended extended.
+              x = Fin xb \<and> xa = Fin ya \<and> y = Fin (xb + ya) \<longrightarrow> False) \<and>
+          (\<forall>xb::'a::comm_monoid_add extended extended extended extended. x = Fin xb \<and> xa = \<infinity> \<and> y = \<infinity> \<longrightarrow> False) \<and>
+          (\<forall>xb::'a::comm_monoid_add extended extended extended extended. x = \<infinity> \<and> xa = Fin xb \<and> y = \<infinity> \<longrightarrow> False) \<and>
+          (x = \<infinity> \<and> xa = \<infinity> \<and> y = \<infinity> \<longrightarrow> False) \<and>
+          (\<forall>ya::'a::comm_monoid_add extended extended extended extended. x = -\<infinity> \<and> xa = Fin ya \<and> y = -\<infinity> \<longrightarrow> False) \<and>
+          (\<forall>xb::'a::comm_monoid_add extended extended extended extended. x = Fin xb \<and> xa = -\<infinity> \<and> y = -\<infinity> \<longrightarrow> False) \<and>
+          (x = -\<infinity> \<and> xa = -\<infinity> \<and> y = -\<infinity> \<longrightarrow> False) \<and> (x = -\<infinity> \<and> xa = \<infinity> \<and> y = \<infinity> \<longrightarrow> False) \<and> (x = \<infinity> \<and> xa = -\<infinity> \<and> y = \<infinity> \<longrightarrow> False) \<longrightarrow>
+          False"
+       "\<forall>(x::'a::comm_monoid_add extended extended extended extended) (xa::'a::comm_monoid_add extended extended extended extended)
+          y::'a::comm_monoid_add extended extended extended extended.
+          x + xa = y \<and>
+          (\<forall>(xb::'a::comm_monoid_add extended extended extended) ya::'a::comm_monoid_add extended extended extended.
+              x = Fin xb \<and> xa = Fin ya \<and> y = Fin (xb + ya) \<longrightarrow> False) \<and>
+          (\<forall>xb::'a::comm_monoid_add extended extended extended. x = Fin xb \<and> xa = \<infinity> \<and> y = \<infinity> \<longrightarrow> False) \<and>
+          (\<forall>xb::'a::comm_monoid_add extended extended extended. x = \<infinity> \<and> xa = Fin xb \<and> y = \<infinity> \<longrightarrow> False) \<and>
+          (x = \<infinity> \<and> xa = \<infinity> \<and> y = \<infinity> \<longrightarrow> False) \<and>
+          (\<forall>ya::'a::comm_monoid_add extended extended extended. x = -\<infinity> \<and> xa = Fin ya \<and> y = -\<infinity> \<longrightarrow> False) \<and>
+          (\<forall>xb::'a::comm_monoid_add extended extended extended. x = Fin xb \<and> xa = -\<infinity> \<and> y = -\<infinity> \<longrightarrow> False) \<and>
+          (x = -\<infinity> \<and> xa = -\<infinity> \<and> y = -\<infinity> \<longrightarrow> False) \<and> (x = -\<infinity> \<and> xa = \<infinity> \<and> y = \<infinity> \<longrightarrow> False) \<and> (x = \<infinity> \<and> xa = -\<infinity> \<and> y = \<infinity> \<longrightarrow> False) \<longrightarrow>
+          False"
+       "\<forall>(x::'a::comm_monoid_add extended extended extended) (xa::'a::comm_monoid_add extended extended extended) y::'a::comm_monoid_add extended extended extended.
+          x + xa = y \<and>
+          (\<forall>(xb::'a::comm_monoid_add extended extended) ya::'a::comm_monoid_add extended extended. x = Fin xb \<and> xa = Fin ya \<and> y = Fin (xb + ya) \<longrightarrow> False) \<and>
+          (\<forall>xb::'a::comm_monoid_add extended extended. x = Fin xb \<and> xa = \<infinity> \<and> y = \<infinity> \<longrightarrow> False) \<and>
+          (\<forall>xb::'a::comm_monoid_add extended extended. x = \<infinity> \<and> xa = Fin xb \<and> y = \<infinity> \<longrightarrow> False) \<and>
+          (x = \<infinity> \<and> xa = \<infinity> \<and> y = \<infinity> \<longrightarrow> False) \<and>
+          (\<forall>ya::'a::comm_monoid_add extended extended. x = -\<infinity> \<and> xa = Fin ya \<and> y = -\<infinity> \<longrightarrow> False) \<and>
+          (\<forall>xb::'a::comm_monoid_add extended extended. x = Fin xb \<and> xa = -\<infinity> \<and> y = -\<infinity> \<longrightarrow> False) \<and>
+          (x = -\<infinity> \<and> xa = -\<infinity> \<and> y = -\<infinity> \<longrightarrow> False) \<and> (x = -\<infinity> \<and> xa = \<infinity> \<and> y = \<infinity> \<longrightarrow> False) \<and> (x = \<infinity> \<and> xa = -\<infinity> \<and> y = \<infinity> \<longrightarrow> False) \<longrightarrow>
+          False"
+       "\<forall>(x::'a::comm_monoid_add extended extended) (xa::'a::comm_monoid_add extended extended) y::'a::comm_monoid_add extended extended.
+          x + xa = y \<and>
+          (\<forall>(xb::'a::comm_monoid_add extended) ya::'a::comm_monoid_add extended. x = Fin xb \<and> xa = Fin ya \<and> y = Fin (xb + ya) \<longrightarrow> False) \<and>
+          (\<forall>xb::'a::comm_monoid_add extended. x = Fin xb \<and> xa = \<infinity> \<and> y = \<infinity> \<longrightarrow> False) \<and>
+          (\<forall>xb::'a::comm_monoid_add extended. x = \<infinity> \<and> xa = Fin xb \<and> y = \<infinity> \<longrightarrow> False) \<and>
+          (x = \<infinity> \<and> xa = \<infinity> \<and> y = \<infinity> \<longrightarrow> False) \<and>
+          (\<forall>ya::'a::comm_monoid_add extended. x = -\<infinity> \<and> xa = Fin ya \<and> y = -\<infinity> \<longrightarrow> False) \<and>
+          (\<forall>xb::'a::comm_monoid_add extended. x = Fin xb \<and> xa = -\<infinity> \<and> y = -\<infinity> \<longrightarrow> False) \<and>
+          (x = -\<infinity> \<and> xa = -\<infinity> \<and> y = -\<infinity> \<longrightarrow> False) \<and> (x = -\<infinity> \<and> xa = \<infinity> \<and> y = \<infinity> \<longrightarrow> False) \<and> (x = \<infinity> \<and> xa = -\<infinity> \<and> y = \<infinity> \<longrightarrow> False) \<longrightarrow>
+          False"
+       "\<forall>(x::'a::comm_monoid_add extended) (xa::'a::comm_monoid_add extended) y::'a::comm_monoid_add extended.
+          x + xa = y \<and>
+          (\<forall>(xb::'a::comm_monoid_add) ya::'a::comm_monoid_add. x = Fin xb \<and> xa = Fin ya \<and> y = Fin (xb + ya) \<longrightarrow> False) \<and>
+          (\<forall>xb::'a::comm_monoid_add. x = Fin xb \<and> xa = \<infinity> \<and> y = \<infinity> \<longrightarrow> False) \<and>
+          (\<forall>xb::'a::comm_monoid_add. x = \<infinity> \<and> xa = Fin xb \<and> y = \<infinity> \<longrightarrow> False) \<and>
+          (x = \<infinity> \<and> xa = \<infinity> \<and> y = \<infinity> \<longrightarrow> False) \<and>
+          (\<forall>ya::'a::comm_monoid_add. x = -\<infinity> \<and> xa = Fin ya \<and> y = -\<infinity> \<longrightarrow> False) \<and>
+          (\<forall>xb::'a::comm_monoid_add. x = Fin xb \<and> xa = -\<infinity> \<and> y = -\<infinity> \<longrightarrow> False) \<and>
+          (x = -\<infinity> \<and> xa = -\<infinity> \<and> y = -\<infinity> \<longrightarrow> False) \<and> (x = -\<infinity> \<and> xa = \<infinity> \<and> y = \<infinity> \<longrightarrow> False) \<and> (x = \<infinity> \<and> xa = -\<infinity> \<and> y = \<infinity> \<longrightarrow> False) \<longrightarrow>
+          False"
+       "\<forall>(x::'a::comm_monoid_add extended extended extended extended extended) y::'a::comm_monoid_add extended extended extended extended extended.
+          Fin x + Fin y = Fin (x + y)"
+       "\<forall>(x::'a::comm_monoid_add extended extended extended extended) y::'a::comm_monoid_add extended extended extended extended. Fin x + Fin y = Fin (x + y)"
+       "\<forall>(x::'a::comm_monoid_add extended extended extended) y::'a::comm_monoid_add extended extended extended. Fin x + Fin y = Fin (x + y)"
+       "\<forall>(x::'a::comm_monoid_add extended extended) y::'a::comm_monoid_add extended extended. Fin x + Fin y = Fin (x + y)"
+       "\<forall>(x::'a::comm_monoid_add extended) y::'a::comm_monoid_add extended. Fin x + Fin y = Fin (x + y)"
+       "\<forall>(x::'a::comm_monoid_add) y::'a::comm_monoid_add. Fin x + Fin y = Fin (x + y)"
+       "\<forall>x::'a::comm_monoid_add extended extended extended extended. Fin x + \<infinity> = \<infinity>"
+       "\<forall>x::'a::comm_monoid_add extended extended extended. Fin x + \<infinity> = \<infinity>"
+       "\<forall>x::'a::comm_monoid_add extended extended. Fin x + \<infinity> = \<infinity>"
+       "\<forall>x::'a::comm_monoid_add extended. Fin x + \<infinity> = \<infinity>"
+       "\<forall>x::'a::comm_monoid_add. Fin x + \<infinity> = \<infinity>"
+       "\<forall>x::'a::comm_monoid_add extended extended extended extended. Fin x + -\<infinity> = -\<infinity>"
+       "\<forall>x::'a::comm_monoid_add extended extended extended. Fin x + -\<infinity> = -\<infinity>"
+       "\<forall>x::'a::comm_monoid_add extended extended. Fin x + -\<infinity> = -\<infinity>"
+       "\<forall>x::'a::comm_monoid_add extended. Fin x + -\<infinity> = -\<infinity>"
+       "\<forall>x::'a::comm_monoid_add. Fin x + -\<infinity> = -\<infinity>"
+       "(0::'a::comm_monoid_add extended extended extended extended extended) = Fin (0::'a::comm_monoid_add extended extended extended extended)"
+       "(0::'a::comm_monoid_add extended extended extended extended) = Fin (0::'a::comm_monoid_add extended extended extended)"
+       "(0::'a::comm_monoid_add extended extended extended) = Fin (0::'a::comm_monoid_add extended extended)"
+       "(0::'a::comm_monoid_add extended extended) = Fin (0::'a::comm_monoid_add extended)"
+       "(0::'a::comm_monoid_add extended) = Fin (0::'a::comm_monoid_add)"
+   shows
+       "Fin (0::'a::comm_monoid_add) + (x::'a::comm_monoid_add extended) = x "
+  supply [[smt_trace,show_types,show_sorts]]
+  using assms
+  by (smt (cvc5,fmf))
+(*
+.sledgehammer goal.unfolding 53980ms HOL-Library.Extended 121:2992  some (SH 53980ms, ATP 183ms) [cvc5]: Try this: by (smt (cvc5) add_0 plus_extended.elims plus_extended.simps(1) plus_extended.simps(2) plus_extended.simps(6) zero_extended_def) (> 1.0 s, timed out)
+
+Error:
+exception SMTLIB_PARSE ("bad SMT term", Sym "rare-list") raised (line 234 of "~~/src/HOL/Tools/SMT/smtlib_proof.ML")
+*)
 section \<open>Monomorphization examples\<close>
 
 definition Pred :: "'a \<Rightarrow> bool" where
