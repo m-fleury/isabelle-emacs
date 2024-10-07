@@ -19,13 +19,14 @@ let
     |> Context.Proof
     |> SMT_Config.select_solver solver
     |> Context.proof_of
-
-  val (_, {command, smt_options, replay, ...}) = SMT_Solver.name_and_info_of ctxt
+    |> Config.put SMT_Config.oracle false (*TODO: Check with Mathias, should this always be the case for cvc5_proof? Then, it should also be added elsewhere*)
+  val (name, {command, smt_options, replay, ...}) = SMT_Solver.name_and_info_of ctxt
 
   val replay_data = SMT_Parse_Problem.parse problem ctxt
   val {ctxt=context, ...} = replay_data
 
   val start0 = Timing.start ()
+
   val thm = replay context replay_data proof
   val parsing_time = Time.toNanoseconds (#elapsed (Timing.result start0))
 
