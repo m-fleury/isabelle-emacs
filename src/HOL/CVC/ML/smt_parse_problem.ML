@@ -259,13 +259,11 @@ fun parser_add_line line replay_data = current_command (raw_explode line) replay
 fun mk_empty_replay_data ctxt =
  ({ctxt = ctxt, typs = Symtab.empty, terms = Symtab.empty, ll_defs = [], rewrite_rules = [], assms = []}: SMT_Translate.replay_data)
 
-(*During parsing we populate a list, so we end up with the wrong order. This functions reverses it
-to fix the order.*)
 fun reverse_assms_order p =
   let 
     val {ctxt, typs, terms, ll_defs, rewrite_rules, assms} = p
   in {ctxt = ctxt, typs = typs, terms = terms, ll_defs = ll_defs, rewrite_rules = rewrite_rules,
-    assms = rev assms} end
+    assms = assms} end
 
 fun parse lines ctxt = 
   fst (fold parser_add_line (lex_lines ctxt lines) (mk_empty_replay_data ctxt, 0))
