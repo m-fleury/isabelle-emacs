@@ -79,7 +79,8 @@ val _ = Outer_Syntax.local_theory \<^command_keyword>\<open>check_smt\<close>
     fun pretty tag lines = map Pretty.str lines |> Pretty.big_list tag |> Pretty.string_of
     val _ = SMT_Config.verbose_msg ctxt (pretty "Checking Alethe proof...") []
     (*Replay proof*)
-    val _ = SMT_Check_External.check_smt prover problem_file_name proof_file_name NONE lthy
+    val _ = SMT_Check_External.check_smt (if prover = "cvc5" then "cvc5_proof" else prover)
+        problem_file_name proof_file_name NONE lthy
     val _ = SMT_Config.verbose_msg ctxt (pretty "Finished checking Alethe proof!") []
   in
    lthy
