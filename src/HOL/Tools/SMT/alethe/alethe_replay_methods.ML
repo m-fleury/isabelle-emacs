@@ -451,12 +451,6 @@ fun extract_forall_quantified_names_q (Const(\<^const_name>\<open>HOL.All\<close
    (name,  ty) :: (extract_forall_quantified_names_q t)
   | extract_forall_quantified_names_q _ = []
 
-fun extract_all_forall_quantified_names_q (Const(\<^const_name>\<open>HOL.All\<close>, _) $ Abs (name, _, t)) =
-      name :: (extract_all_forall_quantified_names_q t)
-  | extract_all_forall_quantified_names_q (t $ u) =
-      extract_all_forall_quantified_names_q t @ extract_all_forall_quantified_names_q u
-  | extract_all_forall_quantified_names_q _ = []
-
 val extract_quantified_names_ba =
   SMT_Replay_Methods.dest_prop
   #> extract_quantified_names_q
@@ -469,26 +463,6 @@ val extract_quantified_names =
   extract_quantified_names_ba
   #> (op @)
 
-val extract_all_forall_quantified_names =
-  SMT_Replay_Methods.dest_prop
-  #> HOLogic.dest_eq
-  #> fst
-  #> extract_all_forall_quantified_names_q
-
-
-fun extract_all_exists_quantified_names_q (Const(\<^const_name>\<open>HOL.Ex\<close>, _) $ Abs (name, _, t)) =
-      name :: (extract_all_exists_quantified_names_q t)
-  | extract_all_exists_quantified_names_q (t $ u) =
-      extract_all_exists_quantified_names_q t @ extract_all_exists_quantified_names_q u
-  | extract_all_exists_quantified_names_q _ = []
-
-val extract_all_exists_quantified_names =
-  SMT_Replay_Methods.dest_prop
-  #> HOLogic.dest_eq
-  #> fst
-  #> extract_all_exists_quantified_names_q
-
-
 fun extract_all_forall_exists_quantified_names_q (Const(\<^const_name>\<open>HOL.Ex\<close>, _) $ Abs (name, _, t)) =
       name :: (extract_all_forall_exists_quantified_names_q t)
   | extract_all_forall_exists_quantified_names_q (Const(\<^const_name>\<open>HOL.All\<close>, _) $ Abs (name, _, t)) =
@@ -499,7 +473,7 @@ fun extract_all_forall_exists_quantified_names_q (Const(\<^const_name>\<open>HOL
 
 val extract_bind_names =
    HOLogic.dest_eq
-   #> apply2 (fn (Free (name, _)) => name)
+   #> apply2 (fn (Free (name, _)) => name | _ => raise Fail "could not extract bound variable names in reconstruction of bind rule")
 
 fun ignore_new_bound_var [] = [] |
     ignore_new_bound_var (Free (_, _) :: xs) = ignore_new_bound_var xs |
@@ -514,7 +488,7 @@ fun combine_quant ctxt ((n1, n2) :: bounds) (n1' :: formula) =
          THEN' combine_quant ctxt bounds formula
        else resolve_tac ctxt bind_thms_same_name THEN' combine_quant ctxt bounds formula
      else resolve_tac ctxt @{thms allI} THEN' combine_quant ctxt ((n1, n2) :: bounds) formula)
-  | combine_quant ctxt _ _ = K all_tac
+  | combine_quant _ _ _ = K all_tac
 
 fun bind_quants ctxt args t =
   combine_quant ctxt 
@@ -530,12 +504,8 @@ fun generalize_prems t = generalize_prems_q (fst (extract_quantified_names_ba t)
 fun bind ctxt [prems] context_ass t =
  (SMT_Replay_Methods.prove ctxt t (fn _ =>
    bind_quants ctxt context_ass t
-(* THEN' TRY' (K (print_tac ctxt "bin10")) *)
- (*   THEN' REPEAT' (resolve_tac ctxt bind_thms THEN' TRY' (K (print_tac ctxt "bin")))*)
-    
-    THEN' TRY' (SOLVED' (resolve_tac ctxt [generalize_prems t prems]
-      THEN_ALL_NEW TRY' (assume_tac ctxt ORELSE' resolve_tac ctxt @{thms refl})))))
-
+   THEN' TRY' (SOLVED' (resolve_tac ctxt [generalize_prems t prems]
+   THEN_ALL_NEW TRY' (assume_tac ctxt ORELSE' resolve_tac ctxt @{thms refl})))))
  | bind ctxt thms _ t = replay_error ctxt "invalid bind application" Bind thms [] t
 
 
@@ -1456,13 +1426,13 @@ fun prod_simplify ctxt _ t =
     THEN' TRY' (K (Clasimp.auto_tac ctxt))) (*TODO: TEMP until cvc5 produces fine grained simplification steps *)
 end
 
-(*TODO: still needed?*)
-fun rare_rewrite ctxt _ t =
+fun rare_rewrite ctxt prems t =
   SMT_Replay_Methods.prove ctxt t (fn _ =>
-     Skip_Proof.cheat_tac ctxt
-    (* TRY' (K (Clasimp.auto_tac ctxt)
+    K (print_tac ctxt "in rare_rewrite")
+    THEN' Method.insert_tac ctxt prems
+    THEN' TRY' (K (Clasimp.auto_tac ctxt)
      THEN' TRY' (Code_Simp.dynamic_tac ctxt )
-)*))
+))
 
 
 (* Arithmetics *)
