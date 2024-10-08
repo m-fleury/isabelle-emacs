@@ -662,7 +662,8 @@ qed
 named_theorems cvc5_normalized_input \<open>Theorems required to replay
 our more complicated translation\<close>
 
-named_theorems cvc5_holes \<open>Simplification theorems for holes\<close>
+named_theorems cvc5_holes_simp \<open>Simplification theorems for holes\<close>
+named_theorems cvc5_holes_pre \<open>Theorems applied for holes\<close>
 
 subsection \<open>Setup\<close>
 
@@ -970,7 +971,7 @@ hide_const (open) Symb_Nil Symb_Cons trigger pat nopat fun_app z3div z3mod
 
 subsection \<open>Rules for cvc5 holes\<close>
 
-lemma [cvc5_holes]:
+lemma [cvc5_holes_simp]:
   fixes a :: int
   shows \<open>\<not>a dvd c \<Longrightarrow> a * b \<noteq> c\<close>
   by auto

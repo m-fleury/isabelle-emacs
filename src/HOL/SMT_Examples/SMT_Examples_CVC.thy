@@ -410,7 +410,7 @@ lemma "\<exists>x::int. \<forall>x y. 0 < x \<and> 0 < y \<longrightarrow> (0::i
 
 experiment
 begin
-lemma [cvc5_holes]: \<open>\<not>(\<forall>v2::real. v2 \<le> 0)\<close>
+lemma [cvc5_holes_simp]: \<open>\<not>(\<forall>v2::real. v2 \<le> 0)\<close>
   by (auto intro: exI[of _ \<open>1 :: real\<close>])
 
 lemma "\<exists>u::int. \<forall>(x::int) y::real. 0 < x \<and> 0 < y \<longrightarrow> -1 < x" supply [[smt_trace]] by (smt (cvc5))   (*hole solved by the previous theorem*)
@@ -491,7 +491,7 @@ lemma "dec_10 (4 * dec_10 4) = 6"  by (smt (cvc5) dec_10.simps)(*la_generic real
 
 experiment
 begin
-lemma (in complete_lattice) [cvc5_holes]:
+lemma (in complete_lattice) [cvc5_holes_pre]:
   \<open>(\<forall>(v0) (v1) v2. v0 \<le> v1 \<and> v1 \<le> v2 \<longrightarrow> v0 \<le> v2) = (\<forall>v0 v1 v2. \<not> v0 \<le> v1 \<or> \<not> v1 \<le> v2 \<or> v0 \<le> v2) \<close>
   by auto
 
@@ -505,7 +505,7 @@ end
 
 experiment
 begin
-lemma [cvc5_holes]:
+lemma [cvc5_holes_pre]:
   \<open>(\<forall>(v0::'a set) v1. finite v0 \<and> finite v1 \<longrightarrow> card v0 + card v1 = card (v0 \<union> v1) + card (v0 \<inter> v1)) =
          (\<forall>(v0::'a set) v1. infinite v0 \<or> infinite v1 \<or> card v0 + card v1 = card (v0 \<union> v1) + card (v0 \<inter> v1))\<close>
   by (intro iff_allI) auto
@@ -768,7 +768,7 @@ context
     centered_modulo :: \<open>int \<Rightarrow> int \<Rightarrow> int\<close>  (infixl \<open>cmod\<close> 70)
 begin
 
-lemma [cvc5_holes]:
+lemma [cvc5_holes_pre]:
   fixes k :: int
   shows
 "((if 0 \<le> k then k else - 1 * k) div 2 + - 1 * ((if 0 \<le> k then k else - 1 * k) div 2 mod (if 0 \<le> k then k else - 1 * k)) +
@@ -835,6 +835,50 @@ begin
 definition "0 = Fin(0::'a)"
 instance ..
 end
+
+lemma [cvc5_holes_pre]:
+"(\<forall>(v0::'a::comm_monoid_add extended) (v1::'a::comm_monoid_add extended) v2::'a::comm_monoid_add extended.
+             \<not> (v2 = v0 + v1 \<and>
+                 (\<forall>(v3::'a::comm_monoid_add) v4::'a::comm_monoid_add. v0 \<noteq> Fin v3 \<or> v1 \<noteq> Fin v4 \<or> v2 \<noteq> Fin (v3 + v4)) \<and>
+                 (\<infinity> \<noteq> v1 \<or> \<infinity> \<noteq> v2 \<or> (\<forall>v3::'a::comm_monoid_add. v0 \<noteq> Fin v3)) \<and>
+                 (\<infinity> \<noteq> v0 \<or> \<infinity> \<noteq> v2 \<or> (\<forall>v3::'a::comm_monoid_add. v1 \<noteq> Fin v3)) \<and>
+                 \<not> (\<infinity> = v0 \<and> \<infinity> = v1 \<and> \<infinity> = v2) \<and>
+                 (-\<infinity> \<noteq> v0 \<or> -\<infinity> \<noteq> v2 \<or> (\<forall>v3::'a::comm_monoid_add. v1 \<noteq> Fin v3)) \<and>
+                 (-\<infinity> \<noteq> v1 \<or> -\<infinity> \<noteq> v2 \<or> (\<forall>v3::'a::comm_monoid_add. v0 \<noteq> Fin v3)) \<and>
+                 \<not> (-\<infinity> = v0 \<and> -\<infinity> = v1 \<and> -\<infinity> = v2) \<and> \<not> (-\<infinity> = v0 \<and> \<infinity> = v1 \<and> \<infinity> = v2) \<and> \<not> (\<infinity> = v0 \<and> -\<infinity> = v1 \<and> \<infinity> = v2))) =
+         (\<forall>(v0::'a::comm_monoid_add extended) (v1::'a::comm_monoid_add extended) v2::'a::comm_monoid_add extended.
+             v2 \<noteq> v0 + v1 \<or>
+             \<not> (\<forall>(v3::'a::comm_monoid_add) v4::'a::comm_monoid_add. v0 \<noteq> Fin v3 \<or> v1 \<noteq> Fin v4 \<or> v2 \<noteq> Fin (v3 + v4)) \<or>
+             \<infinity> = v1 \<and> \<infinity> = v2 \<and> \<not> (\<forall>v3::'a::comm_monoid_add. v0 \<noteq> Fin v3) \<or>
+             \<infinity> = v0 \<and> \<infinity> = v2 \<and> \<not> (\<forall>v3::'a::comm_monoid_add. v1 \<noteq> Fin v3) \<or>
+             \<infinity> = v0 \<and> \<infinity> = v1 \<and> \<infinity> = v2 \<or>
+             -\<infinity> = v0 \<and> -\<infinity> = v2 \<and> \<not> (\<forall>v3::'a::comm_monoid_add. v1 \<noteq> Fin v3) \<or>
+             -\<infinity> = v1 \<and> -\<infinity> = v2 \<and> \<not> (\<forall>v3::'a::comm_monoid_add. v0 \<noteq> Fin v3) \<or>
+             -\<infinity> = v0 \<and> -\<infinity> = v1 \<and> -\<infinity> = v2 \<or> -\<infinity> = v0 \<and> \<infinity> = v1 \<and> \<infinity> = v2 \<or> \<infinity> = v0 \<and> -\<infinity> = v1 \<and> \<infinity> = v2)"
+    "(\<forall>(v0::'a::comm_monoid_add extended) (v1::'a::comm_monoid_add extended) v2::'a::comm_monoid_add extended.
+             v2 \<noteq> v0 + v1 \<or>
+             \<not> (\<forall>(v3::'a::comm_monoid_add) v4::'a::comm_monoid_add. v0 \<noteq> Fin v3 \<or> v1 \<noteq> Fin v4 \<or> v2 \<noteq> Fin (v3 + v4)) \<or>
+             \<infinity> = v1 \<and> \<infinity> = v2 \<and> \<not> (\<forall>v3::'a::comm_monoid_add. v0 \<noteq> Fin v3) \<or>
+             \<infinity> = v0 \<and> \<infinity> = v2 \<and> \<not> (\<forall>v3::'a::comm_monoid_add. v1 \<noteq> Fin v3) \<or>
+             \<infinity> = v0 \<and> \<infinity> = v1 \<and> \<infinity> = v2 \<or>
+             -\<infinity> = v0 \<and> -\<infinity> = v2 \<and> \<not> (\<forall>v3::'a::comm_monoid_add. v1 \<noteq> Fin v3) \<or>
+             -\<infinity> = v1 \<and> -\<infinity> = v2 \<and> \<not> (\<forall>v3::'a::comm_monoid_add. v0 \<noteq> Fin v3) \<or>
+             -\<infinity> = v0 \<and> -\<infinity> = v1 \<and> -\<infinity> = v2 \<or> -\<infinity> = v0 \<and> \<infinity> = v1 \<and> \<infinity> = v2 \<or> \<infinity> = v0 \<and> -\<infinity> = v1 \<and> \<infinity> = v2) =
+         (\<forall>(v0::'a::comm_monoid_add extended) v1::'a::comm_monoid_add extended.
+             v0 + v1 \<noteq> v0 + v1 \<or>
+             \<not> (\<forall>(v3::'a::comm_monoid_add) v4::'a::comm_monoid_add. v0 \<noteq> Fin v3 \<or> v1 \<noteq> Fin v4 \<or> v0 + v1 \<noteq> Fin (v3 + v4)) \<or>
+             \<infinity> = v1 \<and> \<infinity> = v0 + v1 \<and> \<not> (\<forall>v3::'a::comm_monoid_add. v0 \<noteq> Fin v3) \<or>
+             \<infinity> = v0 \<and> \<infinity> = v0 + v1 \<and> \<not> (\<forall>v3::'a::comm_monoid_add. v1 \<noteq> Fin v3) \<or>
+             \<infinity> = v0 \<and> \<infinity> = v1 \<and> \<infinity> = v0 + v1 \<or>
+             -\<infinity> = v0 \<and> -\<infinity> = v0 + v1 \<and> \<not> (\<forall>v3::'a::comm_monoid_add. v1 \<noteq> Fin v3) \<or>
+             -\<infinity> = v1 \<and> -\<infinity> = v0 + v1 \<and> \<not> (\<forall>v3::'a::comm_monoid_add. v0 \<noteq> Fin v3) \<or>
+             -\<infinity> = v0 \<and> -\<infinity> = v1 \<and> -\<infinity> = v0 + v1 \<or> -\<infinity> = v0 \<and> \<infinity> = v1 \<and> \<infinity> = v0 + v1 \<or> \<infinity> = v0 \<and> -\<infinity> = v1 \<and> \<infinity> = v0 + v1)"
+   apply (intro iff_allI)
+   apply argo
+  apply (rule iff_allI)
+  apply (rule iff_allI)
+   apply (smt (z3))
+  done
 
 lemma
   assumes
@@ -939,6 +983,10 @@ lemma
 Error:
 exception SMTLIB_PARSE ("bad SMT term", Sym "rare-list") raised (line 234 of "~~/src/HOL/Tools/SMT/smtlib_proof.ML")
 *)
+
+end
+
+
 section \<open>Monomorphization examples\<close>
 
 definition Pred :: "'a \<Rightarrow> bool" where
