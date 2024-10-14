@@ -244,7 +244,7 @@ let
   val part = Config.get ctxt trace_expert_debug_alethe_files
   val min = Config.get ctxt trace_expert_debug_alethe_level
 in
- if (min > 0 andalso debug_to_int verbosity >= min andalso (part = "all" orelse part = file)) then ignore(x ()) else ()
+ if (min > 0 andalso min >= debug_to_int verbosity andalso (part = "all" orelse part = file)) then ignore(x ()) else ()
 end
 
 
