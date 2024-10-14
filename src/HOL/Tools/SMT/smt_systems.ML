@@ -126,7 +126,12 @@ val cvc5: SMT_Solver.solver_config = {
   command = make_command "CVC5",
   options = cvc5_options,
   smt_options = [(":produce-unsat-cores", "true")],
-  good_slices =
+  good_slices = (*TODO: Mathias added these from Sledgehammer (when cvc5 is used with unsat cores without proof reconstruction
+Hanna should show this to other cvc5 guys and ask what options we should try. These might be based on SMT-COMP but could be
+outdated. We would need to test in the end
+
+Strategy die Sledgehammer nimmt, ruft jede fuer ein paar Sekunden auf.
+*)
     (* FUDGE *)
     [((2, false, false, 512, meshN), ["--full-saturate-quant", "--inst-when=full-last-call", "--inst-no-entail", "--term-db-mode=relevant", "--multi-trigger-linear"]),
      ((2, false, false, 64, meshN), ["--decision=internal", "--simplification=none", "--full-saturate-quant"]),

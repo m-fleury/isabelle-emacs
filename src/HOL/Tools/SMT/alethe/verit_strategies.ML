@@ -2,6 +2,8 @@
     Author:     Mathias Fleury, ENS Rennes, MPI, JKU, Freiburg University
 
 VeriT proofs: parsing and abstract syntax tree.
+
+TODO: Rename
 *)
 
 signature VERIT_STRATEGIES =
@@ -57,6 +59,8 @@ several proofs where cvc5 would find a proof for sledgehammer in one of the slic
 smt tactic.
 
 It is not clear if we should keep that or not.
+
+Die die SMT methode benutzt
 *)
 val cvc5_stgy_default_name = "best"
 val cvc5_stgy_default_insts = []
