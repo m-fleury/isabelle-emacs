@@ -541,7 +541,7 @@ fun postprocess_proof compress ctxt step cx =
         fun mk_sko_def_prems () =
           let
             val skolems_of_subproof = (if compress then flat (map collect_skolem_defs subproof) else [])
-            val skolem_defs = (map (get_skolem_def_id o extract_sym_value "cannot parse skolem id" o fst) substitute_terms)
+            val skolem_defs = (map (get_skolem_def_id o SMTLIB.extract_sym_value "cannot parse skolem id" o fst) substitute_terms)
           in (SOME (Sko_Def_Prems (skolems_of_subproof, skolem_defs)), skolems_of_subproof) end
         val (tactic_args, extra_defs) = (if is_skolemization rule then mk_sko_def_prems () else (NONE, []))
     
@@ -553,7 +553,7 @@ fun postprocess_proof compress ctxt step cx =
         (* Fix premises *)
         val assms_from_subproof = (if rule = subproof_rule then extract_assumptions_from_subproof new_subproof else [])
         val extra_skolem_defs = (if rule = "onepoint" then []
-          else map (get_skolem_def_id o (extract_sym_value "found malformed skolem id in context argument") o fst) substitute_terms)
+          else map (get_skolem_def_id o (SMTLIB.extract_sym_value "found malformed skolem id in context argument") o fst) substitute_terms)
        
         val normalized_premises =                             
           prems @
