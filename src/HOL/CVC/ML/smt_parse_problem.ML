@@ -60,9 +60,6 @@ fun smtlib_lines_without_qm cs =
     |> SMTLIB.parse
     (*|> normalize_tree*)
 
-
-
-
 fun parse_assert cs ({ctxt,typs,terms,ll_defs,rewrite_rules,assms}: SMT_Translate.replay_data)
  =
 let
@@ -85,22 +82,11 @@ let
   val assms_nbr = length assms
   val assm = ((assms_nbr,SMT_Util.Axiom),all_proof_prems'):((int * SMT_Util.role) * thm)
 
+  val _ = debug_msg ctxt middle (fn () => \<^print> ("Parsed assertion:",(implode cs,all_proof_prems')))
 in
- {ctxt = sub_ctxt2,typs = typs,terms = terms,ll_defs = ll_defs,rewrite_rules = rewrite_rules,
-assms = assms @ [assm]} (*TODO: I want a better fix for this*)
+ {ctxt = sub_ctxt2,typs = typs,terms = terms,ll_defs = ll_defs,rewrite_rules = rewrite_rules,assms = assms @ [assm]}
 end
 
-
-(*Why is this now called Proof.context and not ctxt? Variable seems to use ctxt
-
-Firm naming conventions:
-   thy, thy', thy1, thy2: theory
-   ctxt, ctxt', ctxt1, ctxt2: Proof.context
-   context: Context.generic
-
-I think this might be a mistake and I can rename it. Yes, replay data should be named ctxt
-
-*)
 fun parse_sort (cs: string list)                                              
  {ctxt,typs: typ Symtab.table,terms,ll_defs,rewrite_rules,assms}: SMT_Translate.replay_data =
 let
@@ -111,61 +97,44 @@ let
 
   val sort_symbol = cs |> smtlib_lines_without_qm |> extract_sort_symbol                                                        
   val T = TFree (sort_symbol, ["HOL.type"])
-  val context = Variable.declare_typ T ctxt
+  val ctxt = Variable.declare_typ T ctxt (*Note: It was not clear to us if this is necessary, currently when parsing a function typs is added to ctxt anyways. Left in to be safe when new commands are added.*)
   val typs = Symtab.update (sort_symbol, T) typs
-  val _ = debug_msg ctxt high (fn () => \<^print> ("Parsed sort symbol:",sort_symbol))
 
+  val _ = debug_msg ctxt middle (fn () => \<^print> ("Parsed sort symbol:",(implode cs,sort_symbol)))
 in
   {ctxt = ctxt,typs = typs,terms = terms,ll_defs = ll_defs,rewrite_rules = rewrite_rules,assms = assms}
 end
-
-
-fun dest_name (SMTLIB.Sym name) = name
-  | dest_name t = raise SMTLIB_Proof.SMTLIB_PARSE ("bad name", t)
-
-fun dest_seq (SMTLIB.S ts) = ts
-  | dest_seq t = raise SMTLIB_Proof.SMTLIB_PARSE ("bad Z3 proof format", t)
-
-val desymbolize = Name.desymbolize (SOME false) o perhaps (try (unprefix "?"))
 
 val fix_invalid_name =
   raw_explode
   #> map (fn "." => "__#__" | a => a) (*fudge replacement*)
   #> implode
 
-fun parse_declare (cs: string list) ({ctxt,typs,terms,ll_defs,rewrite_rules,assms}: SMT_Translate.replay_data)
-   =
-  let
-    (*val _ = @{print} ("declaration", cs)*)
-    val (n, tys, ty) = (*This also removes pattern usually but I deleted it here for now*)
-      [implode cs]
-      |> map single
-      |> map SMTLIB.parse
-      (*|> map normalize_tree*)
-      |> (fn [SMTLIB.S [SMTLIB.Sym "declare-fun", n, tys, ty]] => (n, tys, ty) |
-             [SMTLIB.S [SMTLIB.Sym "declare-const", n, ty]] => (n, SMTLIB.S [], ty))
+fun parse_declare (cs: string list) ({ctxt,typs,terms,ll_defs,rewrite_rules,assms}: SMT_Translate.replay_data) =
+let
+  val (n, tys, ty) = (*Note: Usually this also removes pattern but we deleted it here*)
+    [implode cs]
+    |> map single
+    |> map SMTLIB.parse
+    (*|> map normalize_tree*)
+    |> (fn [SMTLIB.S [SMTLIB.Sym "declare-fun", n, tys, ty]] => (n, tys, ty) |
+      [SMTLIB.S [SMTLIB.Sym "declare-const", n, ty]] => (n, SMTLIB.S [], ty) |
+      _ => raise SMT_PROBLEM_PARSE ("expected declare-fun or declare-const"))
 
-     val raw_name = dest_name n
-     val name = fix_invalid_name raw_name
-     (*val name = normalize_name name*)
+  val raw_name = SMTLIB.extract_sym_value "Name of declare-fun or declare-const is malformed." n
+  val name = fix_invalid_name raw_name
+  (*val name = normalize_name name*)
 
-     val ctxt' = SMTLIB_Proof.empty_context ctxt typs terms
-     val Ts = map (SMTLIB_Proof.type_of ctxt') (dest_seq tys)
-     val T = SMTLIB_Proof.type_of ctxt' ty
+  val ctxt' = SMTLIB_Proof.empty_context ctxt typs terms
+  val Ts = map (SMTLIB_Proof.type_of ctxt') (SMTLIB.extract_subtrees "Type of declare-fun or declare-const is malformed" tys)
+  val T = SMTLIB_Proof.type_of ctxt' ty
 
-    val ([n'], ctxt') =  Variable.variant_fixes [name] ctxt
+  val (n', ctxt) =  Variable.variant_fixes [name] ctxt
+    |>> (fn [x] => x | _ => raise SMT_PROBLEM_PARSE "Malformed assertion")
+  val t = Free (n', Ts ---> T)
+  val terms = Symtab.update (raw_name, t) terms
 
-    val t = Free (n', Ts ---> T)
-    val terms = Symtab.update (raw_name, t) terms
-    val _ = (fn _ => debug_msg ctxt high (fn () => \<^print> ("Parsed declaration. Name: ",name)))
-
-(*|>  @{print} *)
-(*
-     val Ts = map (SMTLIB_Proof.type_of context) (dest_seq tys)
-     val T = type_of cx ty
-*)
-   (*     in parse' ts (declare_fun name (Ts ---> T) cx) end*)
-   (* val _ = @{print} ("declaration", (n, tys, ty))*)
+  val _ = (fn _ => debug_msg ctxt middle (fn () => \<^print> ("Parsed declaration.",(implode cs,t))))
   in
     {ctxt = ctxt, typs = typs,terms = terms,ll_defs = ll_defs,rewrite_rules = rewrite_rules,assms = assms}
   end
@@ -189,7 +158,7 @@ let
     ["declare-datatype","declare-datatypes","define-fun","define-fun-rec","define-fun-recs",
      "define-sort", "get-model","pop","push","reset","reset_assertions"]
 
-  fun ignore _ replay_data = replay_data |> tap (fn _ => debug_msg ctxt high (fn () => \<^print> ("Ignore command")))
+  fun ignore cs replay_data = replay_data |> tap (fn _ => debug_msg ctxt high (fn () => \<^print> ("Ignore command",implode cs)))
   fun is_not_supported keyword _ _ = raise SMT_PROBLEM_PARSE ("command not supported: " ^ keyword) 
 
   val command_name_scanner = Scan.many1 (fn c => c <> " " andalso c <> ")")
@@ -202,8 +171,6 @@ let
     )
 
   val command = command_scanner cs |> fst |> implode
-  val _ = debug_msg ctxt high (fn () => \<^print> ("Current command",command))
-
 
   fun method_for "assert" = parse_assert |
     method_for "declare-const" = parse_declare |
