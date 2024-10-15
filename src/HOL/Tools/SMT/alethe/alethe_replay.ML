@@ -14,18 +14,11 @@ end;
 structure Alethe_Replay: ALETHE_REPLAY =
 struct
 
-val trace = false
-datatype debugging_verbosity = low | middle | high
-fun debug_to_int low = 0 |
-    debug_to_int middle = 1 |
-    debug_to_int high = 2
-val debug = false
-val debugging_level = high (*0 low, 1 middle, 2 high verbosity*)
+open SMT_Config
 
-fun replay_trace_msg cond (x : unit -> 'a) = if cond then ignore(x ()) else ()
-fun rtrace v = (replay_trace_msg trace v; v)
-fun debug_crtrace c i v = (replay_trace_msg (debug andalso debug_to_int i <= debug_to_int debugging_level andalso c) v; v)
-fun debug_rtrace i v = debug_crtrace true i v
+fun debug_msg ctxt = alethe_debug_msg ctxt "alethe_replay"
+fun debug_cond_msg ctxt cond verbosity msg = (if cond then debug_msg ctxt verbosity msg else ())
+
 val simplify_spaces = ATP_Util.strip_spaces false (K true)
 
 fun filter_split _ [] = ([], [])
@@ -130,7 +123,7 @@ fun replay_theorem_step method_for rewrite_rules all_assms ll_defs assumed (inpu
      subproof = (fixes, assms, input, subproof), concl, args, ...})
   (globally_known_facts, stats, ctxt, concl_tranformation, global_transformation) =
   let
-    val _ = rtrace (fn () => @{print} ("Replaying theorem step: ", id))
+    val _ = debug_msg ctxt low (fn () => \<^print> ("Replaying theorem step: ", id))
 
     val ctxt = Variable.variant_fixes [] ctxt
       |> (fn (_, ctxt) => fold Variable.declare_term [SMTLIB_Isar.unskolemize_names ctxt concl] ctxt)
@@ -138,10 +131,10 @@ fun replay_theorem_step method_for rewrite_rules all_assms ll_defs assumed (inpu
        ||> fold Variable.declare_term (map Free fixes)
     val export_vars = concl_tranformation @ (*TODO: Sollte keine __ auf der rechten Seite haben*)
        (ListPair.zip (map Free fixes, map Free (ListPair.zip (names, map snd fixes))))
-    val _ = debug_crtrace (fixes <> []) low (fn () => @{print} ("Neuen Variablen vom Subproof (e.g., im Subproof neue Variablen):",fixes))
-    val _ = debug_rtrace high (fn () => @{print} ("Add names from the step's conclusion to context"))
-    val _ = debug_crtrace (names <> []) high (fn () => @{print} ("Add variables from fixes to subcontext.",names))
-    val _ = debug_crtrace (export_vars <> []) middle (fn () => @{print} ("Mapping from variable names to the possibly new names that Isabelle chose",export_vars))
+    val _ = debug_cond_msg ctxt (fixes <> []) low (fn () => @{print} ("Neuen Variablen vom Subproof (e.g., im Subproof neue Variablen):",fixes))
+    val _ = debug_msg ctxt high (fn () => @{print} ("Add names from the step's conclusion to context"))
+    val _ = debug_cond_msg ctxt (names <> []) high (fn () => @{print} ("Add variables from fixes to subcontext.",names))
+    val _ = debug_cond_msg ctxt (export_vars <> []) middle (fn () => @{print} ("Mapping from variable names to the possibly new names that Isabelle chose",export_vars))
         (*Fixes machen dann whrs die neuen Vars*)
 
  
@@ -164,36 +157,36 @@ fun replay_theorem_step method_for rewrite_rules all_assms ll_defs assumed (inpu
     val remove_mappings = List.filter is_mapping
 
     (* Rewrite and Transform Components *)
-    val _ = debug_crtrace (not (null (assms @ input @ context_assignments @ step_args))) middle
+    val _ = debug_cond_msg ctxt (not (null (assms @ input @ context_assignments @ step_args))) middle
       (fn () => @{print} ("Rewrite components of the step (delete lets," ^
       " reflexivity and fixed variables in context assignments) and transform them to thms"))
     val rewritten_assms = map term_rewriter assms
     val rewritten_input = map term_rewriter input
     val rewritten_context_assignments = context_assignments |> remove_mappings |> map term_rewriter2
     val rewritten_step_args = map term_rewriter step_args
-    val _ = debug_crtrace (not (null step_args)) high (fn () => @{print} ("Rewritten step arguments",(step_args,rewritten_step_args)))
+    val _ = debug_cond_msg ctxt (not (null step_args)) high (fn () => @{print} ("Rewritten step arguments",(step_args,rewritten_step_args)))
 
     (* Build up Context sub_ctxt2 using (Context) Assumptions *)
-    val _ = debug_rtrace high (fn () => @{print} ("Build up new subcontext from context assertions and assumes"))
+    val _ = debug_msg ctxt high (fn () => @{print} ("Build up new subcontext from context assertions and assumes"))
     val (assms_as_thm, sub_ctxt2) = mk_thms sub_ctxt rewritten_assms
     val (input_as_thm, sub_ctxt2) = mk_thms sub_ctxt2 rewritten_input
     val (context_assignments_as_thm, sub_ctxt2) = mk_thms sub_ctxt2 rewritten_context_assignments 
     val updated_local_assumptions = all_local_assumptions @ assms_as_thm @ context_assignments_as_thm
 
-    val _ = debug_crtrace (not (null rewritten_assms)) middle (fn () => @{print} ("Transformed assumptions, i.e. top-level assumes (before,after)",(assms,assms_as_thm)))
-    val _ = debug_crtrace (not (null rewritten_input)) middle (fn () => @{print} ("Transformed input, i.e. assumes in subproofs (before,after)",(input,input_as_thm)))
-    val _ = debug_crtrace (not (null rewritten_context_assignments)) middle (fn () => @{print} ("Transformed context assignments (before,after)",(context_assignments,context_assignments_as_thm)))
-    val _ = debug_crtrace (not (null updated_local_assumptions)) low (fn () => @{print} ("All assumptions holding after the current step:", updated_local_assumptions))
+    val _ = debug_cond_msg ctxt (not (null rewritten_assms)) middle (fn () => @{print} ("Transformed assumptions, i.e. top-level assumes (before,after)",(assms,assms_as_thm)))
+    val _ = debug_cond_msg ctxt (not (null rewritten_input)) middle (fn () => @{print} ("Transformed input, i.e. assumes in subproofs (before,after)",(input,input_as_thm)))
+    val _ = debug_cond_msg ctxt (not (null rewritten_context_assignments)) middle (fn () => @{print} ("Transformed context assignments (before,after)",(context_assignments,context_assignments_as_thm)))
+    val _ = debug_cond_msg ctxt (not (null updated_local_assumptions)) low (fn () => @{print} ("All assumptions holding after the current step:", updated_local_assumptions))
  
     (* Processing Subproof *)
-    val _ = debug_crtrace (not (null subproof)) low (fn () => @{print} ("Interrupting the replay of the current step " ^ id ^ " to replay its subproof"))
+    val _ = debug_cond_msg ctxt (not (null subproof)) low (fn () => @{print} ("Interrupting the replay of the current step " ^ id ^ " to replay its subproof"))
     (*val _ = @{print}("input",input)*)
     val replay = replay_theorem_step method_for rewrite_rules all_assms ll_defs assumed (input_as_thm @ inputs) updated_local_assumptions
     val (locally_known_facts, stats, _, _, sub_global_rew) =                                       
        fold replay subproof (globally_known_facts, stats, sub_ctxt2, export_vars, global_transformation)
-    val _ = debug_crtrace (not (null subproof)) high (fn () => @{print} ("Filled table with mapping from names (id or for skolems var_def) to " ^
+    val _ = debug_cond_msg ctxt (not (null subproof)) high (fn () => @{print} ("Filled table with mapping from names (id or for skolems var_def) to " ^
       "theorems with all steps the current step can access."))
-    val _ = debug_crtrace (not (null subproof)) low (fn () => @{print} ("Finished processing the subproof, returning the original step",id))
+    val _ = debug_cond_msg ctxt (not (null subproof)) low (fn () => @{print} ("Finished processing the subproof, returning the original step",id))
 
     (* Processing Components with new Context *)
     val export_thm = singleton (Proof_Context.export sub_ctxt2 ctxt)
@@ -216,13 +209,13 @@ fun replay_theorem_step method_for rewrite_rules all_assms ll_defs assumed (inpu
         SOME (Alethe_Node.Insts tab) => SOME (Alethe_Node.Insts (Symtab.map (K subst_transform) tab)) |
         _ => args)
     val context_assignments = map subst_transform context_assignments
-    val  _ = debug_crtrace (length non_skolem_prems <> length prems_as_thms_with_context_assms) low (fn () => 
+    val  _ = debug_cond_msg ctxt (length non_skolem_prems <> length prems_as_thms_with_context_assms) low (fn () => 
       @{print} ("Warning, there were premises that are not accessible to the current step (i.e., that are not in the context). This should not happen. These were ignored."))
-    val _ = debug_crtrace (not (null prems)) middle (fn () =>
+    val _ = debug_cond_msg ctxt (not (null prems)) middle (fn () =>
       @{print} ("Export premises that are not skolem definitions, to the current context." ^
         "This will automatically add context assertions and assumes to the goal.",(prems,prems_as_thms_with_context_assms)))
-    val _ = debug_crtrace (not (null step_args)) middle (fn () => @{print} ("Processed step_args",step_args))
-    val _ = debug_crtrace (not (null context_assignments)) middle (fn () => @{print} ("Processed context_assignments", context_assignments))
+    val _ = debug_cond_msg ctxt (not (null step_args)) middle (fn () => @{print} ("Processed step_args",step_args))
+    val _ = debug_cond_msg ctxt (not (null context_assignments)) middle (fn () => @{print} ("Processed context_assignments", context_assignments))
 
     val missing_assumptions =
        if SMT_Config.alethe_no_provided_assms ctxt andalso
@@ -232,9 +225,9 @@ fun replay_theorem_step method_for rewrite_rules all_assms ll_defs assumed (inpu
        if Alethe_Replay_Methods.requires_subproof_assms prems rule then updated_local_assumptions else []
     val local_inputs =
        if Alethe_Replay_Methods.requires_local_input prems rule then input_as_thm @ inputs else []
-    val _ = debug_crtrace (not (null missing_assumptions)) low (fn () => @{print} ("Added missing assumptions TODO",missing_assumptions))
-    val _ = debug_crtrace (not (null all_local_assumptions)) low (fn () => @{print} ("Added mapping from context_assignment as premises to steps (refl,sko_forall,sko_ex,cong)",all_local_assumptions))
-    val _ = debug_crtrace (not (null local_inputs)) low (fn () => @{print} ("local_inputs: subproof rule assumptions",local_inputs))
+    val _ = debug_cond_msg ctxt (not (null missing_assumptions)) low (fn () => @{print} ("Added missing assumptions TODO",missing_assumptions))
+    val _ = debug_cond_msg ctxt (not (null all_local_assumptions)) low (fn () => @{print} ("Added mapping from context_assignment as premises to steps (refl,sko_forall,sko_ex,cong)",all_local_assumptions))
+    val _ = debug_cond_msg ctxt (not (null local_inputs)) low (fn () => @{print} ("local_inputs: subproof rule assumptions",local_inputs))
 
 
     (*val _ = @{print}("concl_tranformation",concl_tranformation)*)
@@ -245,7 +238,7 @@ fun replay_theorem_step method_for rewrite_rules all_assms ll_defs assumed (inpu
     val _ = @{print}("concl_tranformation",concl_tranformation)
 *)
     (*val _ = @{print}("(nthms @ skolem_prems_as_thms_with_context_assms)",(nthms @ skolem_prems_as_thms_with_context_assms))*)
-    val _ = rtrace (fn () => @{print} ("Calling reconstruction method"))
+    val _ = debug_msg ctxt low (fn () => @{print} ("Calling reconstruction method"))
     val replay = (Timing.timing (replay_thm method_for rewrite_rules ll_defs
        ctxt assumed [] (missing_assumptions @ all_local_assumptions @ local_inputs)
        (prems_as_thms_with_context_assms @ skolem_rule_prems_as_thms_with_context_assms) concl_tranformation
@@ -258,7 +251,7 @@ fun replay_theorem_step method_for rewrite_rules all_assms ll_defs assumed (inpu
 
     val stats' = Symtab.cons_list (rule, Time.toNanoseconds elapsed) stats
     val globally_known_facts = Symtab.update (id, ([], thm)) globally_known_facts
-    val _ = debug_rtrace low (fn () => @{print} ("Add resulting theorem to globabally known facts", (id,thm)))
+    val _ = debug_msg ctxt low (fn () => @{print} ("Add resulting theorem to globabally known facts", (id,thm)))
 
   in (globally_known_facts, stats', ctxt,
        concl_tranformation, sub_global_rew) end
@@ -338,7 +331,7 @@ fun replay solver method_for outer_ctxt
        then (raise SMT_Failure.SMT (SMT_Failure.Other_Failure ("reconstruction with CVC is experimental.\n" ^
          "You must activate it with [[smt_cvc_alethe = true]] and use cvc5 (not included as component) .")))
        else ()
-    val _ = rtrace (fn () => @{print} ("Replaying proof"))
+    val _ = debug_msg ctxt low (fn () => @{print} ("Replaying proof"))
 
     (* Rewriting Util *)
     val rewrite_rules =
@@ -353,7 +346,7 @@ fun replay solver method_for outer_ctxt
     val (parsed_proof_steps, ctxt_after_parsing) =
       Alethe_Proof.parse_replay typs terms raw_proof_steps ctxt
     val parsing_time = Time.toNanoseconds (#elapsed (Timing.result start0))
-    val _ = debug_rtrace low (fn () => @{print} ("Finished parsing proof steps"))
+    val _ = debug_msg ctxt low (fn () => @{print} ("Finished parsing proof steps"))
 
     (*Find used and non lambda lifting definition assumptions *)
     val used_assert_ids = fold add_used_asserts_in_step parsed_proof_steps []
@@ -364,7 +357,7 @@ fun replay solver method_for outer_ctxt
                (empty_simpset ctxt addsimps rewrite_rules)) rewrite_rules []
             in SOME (SMTLIB_Interface.assert_name_of_role_and_index SMT_Util.Axiom id, Alethe_Proof.input_rule, concl, []) end
           else NONE end) used_assert_ids
-    val _ = debug_rtrace high (fn () => @{print} ("real_assms ",real_assms))
+    val _ = debug_msg ctxt high (fn () => @{print} ("real_assms ",real_assms))
 
     (* Process Lambda Lifting Definitions *)
     fun normalize_tac ctxt = let val thy = Proof_Context.theory_of (empty_simpset ctxt) in
@@ -373,7 +366,7 @@ fun replay solver method_for outer_ctxt
       map_filter (fn id => let val i = index_of_id id in if i < 0
           then SOME (id, normalize_tac ctxt (nth ll_defs id))  else NONE end)
         used_assert_ids
-    val _ = debug_rtrace high (fn () => @{print} ("used_lldefs ",used_lldefs))
+    val _ = debug_msg ctxt high (fn () => @{print} ("used_lldefs ",used_lldefs))
 
     (* Add Assumptions to Context *)
     fun extract (Alethe_Node.Alethe_Replay_Node {id, rule, concl, ...}) = (id, rule, concl, [])
@@ -381,13 +374,13 @@ fun replay solver method_for outer_ctxt
     val ((_, _), (ctxt_with_asserts, assumed)) = (*assumed tabelle mit real assumptins*)
       add_assert outer_ctxt rewrite_rules (map (apfst fst) assms)
         (real_assms) ctxt_after_parsing (*TODO: Ask Mathias, why do we filter?*)
-    val _ = debug_rtrace high (fn () => @{print} ("Alle assumptions sind in assumed ",assumed)) (*TODO: Understand better*)
+    val _ = debug_msg ctxt high (fn () => @{print} ("Alle assumptions sind in assumed ",assumed)) (*TODO: Understand better*)
 
     val ctxt_with_asserts =
       ctxt_with_asserts
    (* |> put_simpset (empty_simpset ctxt_with_asserts [])*) (*FIXME: commented out for easier development but should be added again since it will make auto faster (but also know less simplification rules)*)
       |> Config.put SAT.solver (Config.get ctxt_after_parsing SMT_Config.sat_solver)
-    val _ = rtrace (fn () => @{print} ("num_ll_defs",num_ll_defs))
+    val _ = debug_msg ctxt low (fn () => @{print} ("num_ll_defs",num_ll_defs))
 
     (* Replay Assumption *)
     val (assumed, stats) = fold (fn ((id, thm)) => fn (assumed, stats) =>
@@ -398,7 +391,7 @@ fun replay solver method_for outer_ctxt
         (Symtab.update (name, ([], thm)) assumed, stats) (*Das Replay hat das Theorem veraendert? (vllt wegen monomorphisierung?)*)
       end) (*TODO: Look at a few examples to see what it does, not sure if needed*)
       used_lldefs (assumed, Symtab.cons_list ("parsing", parsing_time) Symtab.empty)
-    val _ = debug_rtrace high (fn () => @{print} ("Alle assumptions sind in assumed ",assumed)) (*TODO: Understand better*)
+    val _ = debug_msg ctxt high (fn () => @{print} ("Alle assumptions sind in assumed ",assumed)) (*TODO: Understand better*)
 
     (* Lineralize Step Ids *)
     val len = Alethe_Proof.number_of_steps parsed_proof_steps
@@ -406,7 +399,7 @@ fun replay solver method_for outer_ctxt
       | steps_with_depth i (p :: ps) =
         let val i' = i + Alethe_Proof.number_of_steps [p] in (i', p) :: steps_with_depth i' ps end
     val actual_steps = steps_with_depth 0 parsed_proof_steps
-    val _ = debug_rtrace middle (fn () => @{print} ("Add indices to steps"))
+    val _ = debug_msg ctxt middle (fn () => @{print} ("Add indices to steps"))
 
     (*Set-up Statistics*)
     val start = Timing.start ()
@@ -424,7 +417,7 @@ fun replay solver method_for outer_ctxt
     val (_, (_, Alethe_Node.Alethe_Replay_Node {id, ...})) = split_last actual_steps
     val thm_with_defs = Symtab.lookup proofs id |> the |> snd
       |> singleton (Proof_Context.export ctxt5 outer_ctxt)
-    val _ = debug_rtrace middle (fn () => @{print} ("Last step (id " ^ id ^ ")", thm_with_defs))
+    val _ = debug_msg ctxt middle (fn () => @{print} ("Last step (id " ^ id ^ ")", thm_with_defs))
 (*TODO: Schaue mit beispiel mit skolems an*)
 
     (*Statistics*)
