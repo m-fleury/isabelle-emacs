@@ -181,13 +181,13 @@ fun current_command ctxt cs replay_data =
 let
   
   val ignore_commands =
-    ["check-sat","check-sat_assuming","echo","get-assertions","get-assignment",
-    "get-info","get-model","get-option","get-proof","get-unsat-assumptions","get-unsat-core",
-    "get-value","set-option","set-logic","exit","set-info"]
+    ["echo","get-assertions","get-assignment","get-info","get-unsat-assumptions","get-unsat-core",
+     "get-value","set-info","set-option"] @
+    ["check-sat","check-sat_assuming","exit","get-proof","set-logic","get-option"]
 
   val not_supported =
-    ["declare-datatype","declare-datatypes","define-fun-rec","define-fun-recs",
-    "reset","reset_assertions","pop","push","define-fun"]
+    ["declare-datatype","declare-datatypes","define-fun","define-fun-rec","define-fun-recs",
+     "define-sort", "get-model","pop","push","reset","reset_assertions"]
 
   fun ignore _ replay_data = replay_data |> tap (fn _ => debug_msg ctxt high (fn () => \<^print> ("Ignore command")))
   fun is_not_supported keyword _ _ = raise SMT_PROBLEM_PARSE ("command not supported: " ^ keyword) 
