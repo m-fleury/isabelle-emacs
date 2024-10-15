@@ -15,6 +15,8 @@ sig
     Sym of string |
     Key of string |
     S of tree list
+  val extract_subtrees: string -> tree -> tree list
+  val extract_sym_value: string -> tree -> string
   val parse: string list -> tree
   val pretty_tree: tree -> Pretty.T
   val str_of: tree -> string
@@ -37,7 +39,6 @@ datatype tree =
   S of tree list
 
 datatype unfinished = None | String of string | Symbol of string
-
 
 (* utilities *)
 
@@ -224,5 +225,14 @@ fun pretty_tree (Num i) = Pretty.str (string_of_int i)
       Pretty.enclose "(" ")" (Pretty.separate "" (map pretty_tree trees))
 
 val str_of = Pretty.unformatted_string_of o pretty_tree
+
+
+(* extractors*)
+
+fun extract_subtrees _ (S xs) = xs |
+    extract_subtrees msg t = raise Fail(msg ^ "Expected S expression, got " ^ str_of t)
+
+fun extract_sym_value _ (Sym id) = id |
+    extract_sym_value msg t = raise Fail(msg ^ "Expected symbol, got " ^ str_of t)
 
 end;

@@ -130,12 +130,6 @@ fun number_of_steps [] = 0
       1 + number_of_steps subproof + number_of_steps pf
   | number_of_steps (_ :: pf) = 1 + number_of_steps pf
 
-fun extract_subtrees _ (SMTLIB.S xs) = xs |
-    extract_subtrees msg _ = raise throw_alethe_ex msg
-
-fun extract_sym_value _ (SMTLIB.Sym id) = id |
-    extract_sym_value msg _ = raise throw_alethe_ex msg
-
 fun node_of p cx =
   ([], cx)
   ||>> `(with_fresh_names (term_of p))
@@ -186,7 +180,7 @@ fun parse_raw_proof_steps (curr_anchor_id : string option) (smtlib_lines : SMTLI
 
     fun parse_prems (SMTLIB.Key "premises" :: SMTLIB.S prems :: l, cx) =
         let
-          val prems = map (extract_sym_value ("malformed premises "  ^ \<^make_string> prems)) prems
+          val prems = map (SMTLIB.extract_sym_value "Malformed premises.") prems
         in (SOME prems, (l, cx)) end
       | parse_prems (l, cx) = (NONE, (l, cx))
     fun parse_rule (SMTLIB.Key "rule" :: SMTLIB.Sym rule_name :: l, cx) = (rule_name, (l, cx))
@@ -195,7 +189,7 @@ fun parse_raw_proof_steps (curr_anchor_id : string option) (smtlib_lines : SMTLI
       | parse_anchor_step t = raise Fail ("unrecognized Alethe proof " ^ \<^make_string> t)
     fun parse_args (SMTLIB.Key "args" :: args :: l, cx) =
           let val ((args, cx), _) = SMTLIB_Proof.extract_and_update_name_bindings args cx
-              val args = extract_subtrees "malformed argument" args
+              val args = SMTLIB.extract_subtrees "malformed argument" args
           in (args, (l, cx)) end
       | parse_args (l, cx) = ([], (l, cx))
 
