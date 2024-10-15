@@ -293,15 +293,8 @@ fun preprocess compress step =
         val ctxt = #ctxt cx
         val _ = debug_msg ctxt high (fn () => \<^print> ("preprocessing started for rule: ", id))
 
-        (* TODO: If we check external proofs we need to change term names starting with an upper character
-           since this is not allowed in Isabelle *)
-        (* I am not too happy about this since it works on all expressions, I want to change this maybe able do in smtlib_proof? *)
-        fun normalize_name name = if String.explode name |> hd |> Char.isUpper then "isabelle_internal_" ^ name  else name
-        fun smtlib_types t = (t="Bool") orelse (t="Int") orelse (t="Real") orelse (t="String")
-        fun normalize_tree (SMTLIB.Sym s) = if smtlib_types s then SMTLIB.Sym s else SMTLIB.Sym (normalize_name s) |
-            normalize_tree (SMTLIB.S xs) = SMTLIB.S (map normalize_tree xs) |
-            normalize_tree x = x
-        fun normalize_tree_if ctxt cond xs = if Config.get ctxt cond then (map normalize_tree xs) else xs
+
+        fun normalize_tree_if ctxt cond xs = xs
         val step_args = normalize_tree_if ctxt SMT_Config.check_external step_args
         val context_assignments = normalize_tree_if ctxt SMT_Config.check_external context_assignments
         val concl = normalize_tree_if ctxt SMT_Config.check_external [concl] |> hd
