@@ -635,10 +635,12 @@ fun postprocess_proof compress ctxt step cx =
             val raw_insts = map insts_of_forall_inst (get_foralls concl step_args)
       
             fun termify_term (x, t) cx = let val (t, cx) = term_of t cx in ((x, t), cx) end
-            val (termified_inst, _) = fold_map termify_term raw_insts cx
+            val (termified_inst, _) = fold_map termify_term raw_insts cx |> @{print}
             val insts = Symtab.empty
               |> fold (fn (x, t) => fn insts => Symtab.update_new (desymbolize x, t) insts) termified_inst
-              |> Symtab.map (K (unsk_and_rewrite new_variable_names))
+              |> Symtab.map (K (unsk_and_rewrite new_variable_names))    
+              handle (Symtab.DUP _) => raise throw_alethe_ex ("forall inst, tried to add same name twice")
+
              in SOME (Insts insts) end |
           
           _ => NONE
