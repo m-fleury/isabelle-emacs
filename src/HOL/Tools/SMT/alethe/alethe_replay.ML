@@ -217,9 +217,14 @@ fun replay_theorem_step method_for rewrite_rules all_assms ll_defs assumed (inpu
     val _ = debug_cond_msg ctxt (not (null step_args)) middle (fn () => @{print} ("Processed step_args",step_args))
     val _ = debug_cond_msg ctxt (not (null context_assignments)) middle (fn () => @{print} ("Processed context_assignments", context_assignments))
 
+(*
+val _ = @{print}(" SMT_Config.alethe_no_provided_assms ctxt", SMT_Config.alethe_no_provided_assms ctxt)
+val _ = @{print}(" rule", rule)
+val _ = @{print}(" all_assms", all_assms)
+*)
     val missing_assumptions =
        if SMT_Config.alethe_no_provided_assms ctxt andalso
-         (rule = Alethe_Proof.local_input_rule orelse is_input_rule rule)
+         (rule = Alethe_Proof.local_input_rule orelse rule = Alethe_Proof.normalized_input_rule orelse is_input_rule rule)
        then all_assms else [] (*Bei externen Problemen wissen wir nicht welche assumptions benutzt wurden, also fuegen wir alle hinzu*)
     val all_local_assumptions =
        if Alethe_Replay_Methods.requires_subproof_assms prems rule then updated_local_assumptions else []
