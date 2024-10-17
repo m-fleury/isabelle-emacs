@@ -133,7 +133,6 @@ let
     |>> (fn [x] => x | _ => raise SMT_PROBLEM_PARSE "Malformed assertion")
   val t = Free (n', Ts ---> T)
   val terms = Symtab.update (raw_name, t) terms
-
   val _ = (fn _ => debug_msg ctxt middle (fn () => \<^print> ("Parsed declaration.",(implode cs,t))))
   in
     {ctxt = ctxt, typs = typs,terms = terms,ll_defs = ll_defs,rewrite_rules = rewrite_rules,assms = assms}
@@ -246,14 +245,7 @@ fun parser_add_line ctxt line replay_data = current_command ctxt (raw_explode li
 fun mk_empty_replay_data ctxt =
  ({ctxt = ctxt, typs = Symtab.empty, terms = Symtab.empty, ll_defs = [], rewrite_rules = [], assms = []}: SMT_Translate.replay_data)
 
-fun reverse_assms_order p =
-  let 
-    val {ctxt, typs, terms, ll_defs, rewrite_rules, assms} = p
-  in {ctxt = ctxt, typs = typs, terms = terms, ll_defs = ll_defs, rewrite_rules = rewrite_rules,
-    assms = assms} end
-
 fun parse lines ctxt = 
   (fold (parser_add_line ctxt) (lex_lines ctxt lines) (mk_empty_replay_data ctxt))
-  |> reverse_assms_order
 
 end
