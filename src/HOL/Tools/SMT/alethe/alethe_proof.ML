@@ -287,12 +287,6 @@ fun preprocess compress step =
         val ctxt = #ctxt cx
         val _ = debug_msg ctxt high (fn () => \<^print> ("preprocessing started for rule: ", id))
 
-
-        fun normalize_tree_if ctxt cond xs = xs
-        val step_args = normalize_tree_if ctxt SMT_Config.check_external step_args
-        val context_assignments = normalize_tree_if ctxt SMT_Config.check_external context_assignments
-        val concl = normalize_tree_if ctxt SMT_Config.check_external [concl] |> hd
-
         val sanitized_context_assignments =
           context_assignments
           |> ignore_unexpected ctxt "context annotation" rule allows_context_assignment
@@ -494,13 +488,20 @@ fun postprocess_proof compress ctxt step cx =
       let
         val unsk_and_rewrite' = unsk_and_rewrite new_variable_names
         val subproof_rewriter' = subproof_rewriter new_variable_names
-    
         val _ = debug_msg ctxt low (fn () => \<^print> ("postprocessing started for anchor: ", id))
-    
-        (* Preprocess context arguments *) 
+
+        (* Preprocess context arguments *)
+        (*TODO: Maybe it would be okay to only change the name of the term and not of the key, I have not tried yet*)
+        (*TODO: Make more elegant*)
+        fun normalize_external (raw_name,Free(a,b)) =
+          if Config.get ctxt SMT_Config.check_external andalso Char.isUpper (hd ( String.explode raw_name))
+          then ("isabelle_internal_" ^ raw_name,Free("isabelle_internal_" ^ a,b)) else (raw_name,Free(a,b))
+        fun normalize_external2 (raw_name,b) =
+          if Config.get ctxt SMT_Config.check_external andalso Char.isUpper (hd ( String.explode raw_name))
+          then (("isabelle_internal_" ^ raw_name),b) else ( raw_name,b)
         val ((shadowing_vars, rebound_lhs_vars, substitute_terms),new_variable_names) =
           process_context_assignments context_assignments cx ||> (curry (op @)) new_variable_names
-      
+          |> (fn ((i,j,k),n) => ((map normalize_external i,map normalize_external j,k), map normalize_external2 n))
         (* Process conclusion *)
         val (cx',termified_concl) = transform_concl concl id (cx, new_variable_names)
         val _ = debug_msg ctxt middle (fn () => \<^print> ("... transformed conclusion of step closing the anchor ", termified_concl))
@@ -629,13 +630,17 @@ fun postprocess_proof compress ctxt step cx =
             in get_vars xs step_args end |
             get_foralls _ _ = raise throw_alethe_ex ("malformed conclusion or argument of forall_inst step")
       
-               
+            (*TODO: clean-up*)
+            fun normalize_external2 (raw_name,b) =
+              if Config.get ctxt SMT_Config.check_external andalso Char.isUpper (hd ( String.explode raw_name))
+              then (("isabelle_internal_" ^ raw_name),b) else ( raw_name,b)
+
             fun insts_of_forall_inst (SMTLIB.S [_, SMTLIB.Sym x, a]) = (x, a) |
               insts_of_forall_inst _ = raise throw_alethe_ex ("forall inst")
-            val raw_insts = map insts_of_forall_inst (get_foralls concl step_args)
+            val raw_insts = map normalize_external2 (map insts_of_forall_inst (get_foralls concl step_args))
       
             fun termify_term (x, t) cx = let val (t, cx) = term_of t cx in ((x, t), cx) end
-            val (termified_inst, _) = fold_map termify_term raw_insts cx |> @{print}
+            val (termified_inst, _) = fold_map termify_term raw_insts cx
             val insts = Symtab.empty
               |> fold (fn (x, t) => fn insts => Symtab.update_new (desymbolize x, t) insts) termified_inst
               |> Symtab.map (K (unsk_and_rewrite new_variable_names))    

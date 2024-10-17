@@ -122,6 +122,7 @@ let
       _ => raise SMT_PROBLEM_PARSE ("expected declare-fun or declare-const"))
 
   val raw_name = SMTLIB.extract_sym_value "Name of declare-fun or declare-const is malformed." n
+  val raw_name = (if Char.isUpper (hd ( String.explode raw_name)) then "isabelle_internal_" ^ raw_name else raw_name)
   val name = fix_invalid_name raw_name
   (*val name = normalize_name name*)
 

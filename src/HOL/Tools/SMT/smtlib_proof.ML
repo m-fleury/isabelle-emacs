@@ -221,17 +221,31 @@ fun parse_type cx ty Ts =
           | NONE => raise SMTLIB_PARSE ("unknown SMT type", ty))
       | _ => raise SMTLIB_PARSE ("bad SMT type format", ty)))
 
+(*TODO: Maybe it would be okay to only change the name of the term and not of the key, I have not tried yet*)
+(*TODO: make better and clean-up*)
+fun normalize_external ctxt raw_name =
+  if Config.get ctxt SMT_Config.check_external andalso Char.isUpper (hd ( String.explode raw_name))
+  then ("isabelle_internal_" ^ raw_name) else raw_name
+fun normalize_external2 ctxt (raw_name,(a,b)) =
+  if Config.get ctxt SMT_Config.check_external andalso Char.isUpper (hd ( String.explode raw_name))
+  then ("isabelle_internal_" ^ raw_name,("isabelle_internal_" ^ a,b)) else (raw_name,(a,b))
+
 fun parse_term t ts cx =
   (case apply_parsers (get_term_parsers (ctxt_of cx)) (t, ts) of
     SOME u => (u, cx)
   | NONE =>
       (case t of
         SMTLIB.Sym name =>
-          (case lookup_fun cx name of
+        let
+          val ctxt = #ctxt cx
+          val name' = normalize_external ctxt name
+        in
+          (case lookup_fun cx name' of
             SOME u => (Term.list_comb (u, ts), cx)
           | NONE =>
-              if null ts then declare_free name Term.dummyT cx
+              if null ts then declare_free name' Term.dummyT cx
               else raise SMTLIB_PARSE ("bad SMT term", t))
+        end
       | _ => raise SMTLIB_PARSE ("bad SMT term format", t)))
 
 fun type_of cx ty =
@@ -266,18 +280,27 @@ fun term_of t cx =
       |> fold_map term_of args
       |-> parse_term f
   | SMTLIB.Sym name =>
-      (case lookup_binding cx name of
+    let
+      val ctxt = #ctxt cx
+      val name' = normalize_external ctxt name
+    in
+      (case lookup_binding cx name' of
         Tree u =>
           cx
           |> term_of u
-          |-> (fn u' => pair u' o update_binding (name, Term u'))
+          |-> (fn u' => pair u' o update_binding (name', Term u'))
       | Term u => (u, cx)
       | None => parse_term t [] cx
       | _ => raise SMTLIB_PARSE ("bad SMT term format", t))
+    end
+
   | _ => parse_term t [] cx)
 
 and quant q vars body cx =
-  let val vs = map (dest_var cx) vars
+  let
+    val vs = map (dest_var cx) vars
+    val ctxt = #ctxt cx
+    val vs = map (normalize_external2 ctxt) vs
   in
     cx
     |> with_bindings (map (apsnd (Term o Free)) vs) (term_of (dest_body body))
