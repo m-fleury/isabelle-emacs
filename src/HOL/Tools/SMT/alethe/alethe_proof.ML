@@ -612,8 +612,18 @@ fun postprocess_proof compress ctxt step cx =
               | extract_coefficients (SMTLIB.S [SMTLIB.Sym "-", SMTLIB.Dec (num1,num2)]) =
                 convert_dec_to_rat (~num1) num2
               | extract_coefficients (SMTLIB.Dec (num1,num2)) =
-                convert_dec_to_rat num1 num2      
-          in SOME (Farkas_Coefficients (map extract_coefficients step_args)) end
+                convert_dec_to_rat num1 num2
+              | extract_coefficients (SMTLIB.S [SMTLIB.Sym "/",SMTLIB.Dec (1,0),SMTLIB.Dec (1,0)]) = (*not necessary, included for speed-up*)
+                (1,1)
+              | extract_coefficients (SMTLIB.S [SMTLIB.Sym "/",SMTLIB.Dec (num1,0),SMTLIB.Dec (num2,0)]) =
+                let
+                  val toInt = Real.toInt IEEEReal.TO_NEAREST
+                in
+                 ((fn {frac=f,whole=w} => convert_dec_to_rat (toInt w) (toInt f))
+                 (Real.split (Real.fromInt num1 / Real.fromInt num2)))
+                end
+              | extract_coefficients x = (@{print}("x",x);raise throw_alethe_ex ("malformed argument of la_generic step") )
+          in SOME (Farkas_Coefficients (map extract_coefficients step_args |> @{print})) end
         | "forall_inst" =>
           let
             (*TODO*)
