@@ -23,13 +23,16 @@ declare [[smt_trace=false]]
 section \<open>Propositional and first-order logic\<close>
 
 declare [[smt_cvc_alethe = true]]
-declare[[cvc5_proof_options="--dag-thres=0 --proof-format-mode=alethe  --proof-alethe-experimental --proof-prune-input --full-saturate-quant --proof-alethe-define-skolems --proof-elim-subtypes --no-stats --sat-random-seed=1 --lang=smt2"]]
+declare[[cvc5_proof_options="--dag-thres=0 --proof-format-mode=alethe  --proof-prune-input --full-saturate-quant --proof-alethe-define-skolems --proof-elim-subtypes --no-stats --sat-random-seed=1 --lang=smt2"]]
 
 declare[[ML_print_depth=100,smt_verbose=false]]
 lemma "\<bar>x :: real\<bar> + \<bar>y\<bar> \<ge> \<bar>x + y\<bar>" supply[[smt_trace=false,smt_timeout=1000,smt_reconstruction_step_timeout=1000]] 
   supply[[smt_debug_arith_verit=false]]
   by (smt (cvc5))  (*la_generic real vs int error*)
 lemma "(if (\<forall>x::int. x < 0 \<or> x > 0) then -1 else 3) > (0::int)" by (smt (cvc5)) (*la_generic real vs int error*)
+
+declare[[smt_expert_debug_alethe_level=2]]
+declare[[smt_expert_debug_alethe_files="alethe_replay"]]
 
 (*
 Orange Markiert/ BackgroundFarbe: Freie Variable die nicht im Kontext ist.
@@ -309,7 +312,7 @@ lemma "(3::nat) + x = (x + 3)" (*Added later*)
 section \<open>Arithmetic\<close>
 
 subsection \<open>Linear arithmetic over integers and reals\<close>
-declare[[cvc5_proof_options="--dag-thres=0 --proof-format-mode=alethe --proof-alethe-experimental --proof-alethe-experimental --full-saturate-quant --proof-alethe-define-skolems --proof-elim-subtypes --no-stats --sat-random-seed=1 --lang=smt2"]]
+declare[[cvc5_proof_options="--dag-thres=0 --proof-format-mode=alethe --proof-alethe-experimental --full-saturate-quant --proof-alethe-define-skolems --proof-elim-subtypes --no-stats --sat-random-seed=1 --lang=smt2"]]
 
 declare[[smt_debug_arith_verit=false]]
 declare[[ML_print_depth=100]]
