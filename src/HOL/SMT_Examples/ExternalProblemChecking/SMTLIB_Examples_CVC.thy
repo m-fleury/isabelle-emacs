@@ -7,7 +7,7 @@ QF_UF, QF_LIA, and UF.
 
 Proofs obtained by cvc5 with:
 
---proof-format-mode=alethe --dump-proofs --produce-proofs --proof-alethe-experimental --proof-alethe-define-skolems --proof-elim-subtypes --full-saturate-quant --no-stats --sat-random-seed=1 --lang=smt2
+--proof-format-mode=alethe --dump-proofs --produce-proofs --proof-alethe-define-skolems --proof-elim-subtypes --full-saturate-quant --no-stats --sat-random-seed=1 --lang=smt2
 
 *)
 
