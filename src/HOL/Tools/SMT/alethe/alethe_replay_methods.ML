@@ -1458,7 +1458,7 @@ fun la_mult_extract (Const ("HOL.Trueprop", _) $ (Const ("HOL.implies", _)
 
 fun to_lemma "Orderings.ord_class.less" = @{thm alethe_la_mult_pos_less}
 
-
+(*Oct 18: I am not done here yet but it works already*)
 fun la_mult_pos ctxt _ t =
 let
   val (rel,(factor,l,r)) = la_mult_extract t
@@ -1468,13 +1468,28 @@ let
 *)
 in 
  (* SMT_Replay_Methods.prove ctxt t (fn _ => match_tac ctxt [infer_instantiate' ctxt [SOME (Thm.cterm_of ctxt factor),NONE,NONE] @{thm alethe_la_mult_pos_less} ]))*)
-  SMT_Replay_Methods.prove ctxt t (fn _ => match_tac ctxt @{thms alethe_la_mult_pos})
+  SMT_Replay_Methods.prove ctxt t (fn _ =>
+K (print_tac ctxt "la_mult")
+THEN' match_tac ctxt @{thms alethe_la_mult_pos}
+THEN' TRY' (assume_tac ctxt)
+THEN' K (print_tac ctxt "la_mult 1")
+THEN' Simplifier.full_simp_tac ctxt
+THEN' K (print_tac ctxt "la_mult 2")
+
+)
 
 end
 
 fun la_mult_neg ctxt _ t =
-SMT_Replay_Methods.prove ctxt t (fn _ => match_tac ctxt @{thms alethe_la_mult_neg})
+  SMT_Replay_Methods.prove ctxt t (fn _ =>
+K (print_tac ctxt "la_mult")
+THEN' match_tac ctxt @{thms alethe_la_mult_neg}
+THEN' TRY' (assume_tac ctxt)
+THEN' K (print_tac ctxt "la_mult 1")
+THEN' Simplifier.full_simp_tac ctxt
+THEN' K (print_tac ctxt "la_mult 2")
 
+)
 end
 
 

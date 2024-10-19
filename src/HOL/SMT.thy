@@ -428,21 +428,21 @@ lemma alethe_la_mult_pos_less:
 thm alethe_la_mult_pos_less[of "3::int" "x::int" "y::int"]
 
 lemma alethe_la_mult_pos:
-  \<open>(0 :: 'a :: linordered_idom) < m \<and> (a < b) \<longrightarrow> m*a < m*b\<close>
-  \<open>(0 :: 'a :: linordered_idom) < m \<and> (a \<le> b) \<longrightarrow> m*a \<le> m*b\<close>
-  \<open>(0 :: 'a :: linordered_idom) < m \<and> (a = b) \<longrightarrow> m*a = m*b\<close>
-  \<open>(0 :: 'a :: linordered_idom) < m \<and> \<not>(a = b) \<longrightarrow> \<not>(m*a = m*b)\<close>
-  \<open>(0 :: 'a :: linordered_idom) < m \<and> (a \<ge> b) \<longrightarrow> m*a \<ge> m*b\<close>
-  \<open>(0 :: 'a :: linordered_idom) < m \<and> (a > b) \<longrightarrow> m*a > m*b\<close>
+  \<open>c = (0 :: 'a :: linordered_idom) \<Longrightarrow> c < m \<and> (a < b) \<longrightarrow> m*a < m*b\<close>
+  \<open>c = (0 :: 'a :: linordered_idom) \<Longrightarrow> c < m \<and> (a \<le> b) \<longrightarrow> m*a \<le> m*b\<close>
+  \<open>c = (0 :: 'a :: linordered_idom) \<Longrightarrow> c < m \<and> (a = b) \<longrightarrow> m*a = m*b\<close>
+  \<open>c = (0 :: 'a :: linordered_idom) \<Longrightarrow> c < m \<and> \<not>(a = b) \<longrightarrow> \<not>(m*a = m*b)\<close>
+  \<open>c = (0 :: 'a :: linordered_idom) \<Longrightarrow> c < m \<and> (a \<ge> b) \<longrightarrow> m*a \<ge> m*b\<close>
+  \<open>c = (0 :: 'a :: linordered_idom) \<Longrightarrow> c < m \<and> (a > b) \<longrightarrow> m*a > m*b\<close>
   by simp_all
 
 lemma alethe_la_mult_neg:          
-  \<open>m < (0 :: 'a :: linordered_idom) \<and> (a < b) \<longrightarrow> m*a > m*b\<close>
-  \<open>m < (0 :: 'a :: linordered_idom) \<and> (a \<le> b) \<longrightarrow> m*a \<ge> m*b\<close>
-  \<open>m < (0 :: 'a :: linordered_idom) \<and> (a = b) \<longrightarrow> m*a = m*b\<close>
-  \<open>m < (0 :: 'a :: linordered_idom) \<and> \<not>(a = b) \<longrightarrow> \<not>(m*a = m*b)\<close>
-  \<open>m < (0 :: 'a :: linordered_idom) \<and> (a > b) \<longrightarrow> m*a < m*b\<close>
-  \<open>m < (0 :: 'a :: linordered_idom) \<and> (a \<ge> b) \<longrightarrow> m*a \<le> m*b\<close>
+  \<open>c = (0 :: 'a :: linordered_idom) \<Longrightarrow> m < c \<and> (a < b) \<longrightarrow> m*a > m*b\<close>
+  \<open>c = (0 :: 'a :: linordered_idom) \<Longrightarrow> m < c \<and> (a \<le> b) \<longrightarrow> m*a \<ge> m*b\<close>
+  \<open>c = (0 :: 'a :: linordered_idom) \<Longrightarrow> m < c \<and> (a = b) \<longrightarrow> m*a = m*b\<close>
+  \<open>c = (0 :: 'a :: linordered_idom) \<Longrightarrow> m < c \<and> \<not>(a = b) \<longrightarrow> \<not>(m*a = m*b)\<close>
+  \<open>c = (0 :: 'a :: linordered_idom) \<Longrightarrow> m < c \<and> (a > b) \<longrightarrow> m*a < m*b\<close>
+  \<open>c = (0 :: 'a :: linordered_idom) \<Longrightarrow> m < c \<and> (a \<ge> b) \<longrightarrow> m*a \<le> m*b\<close>
   by simp_all
 
 context
