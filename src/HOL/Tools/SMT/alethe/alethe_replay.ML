@@ -151,7 +151,11 @@ fun replay_theorem_step method_for rewrite_rules all_assms ll_defs assumed (inpu
     val term_rewriter = (SMTLIB_Isar.unskolemize_names ctxt o term_rewriter2)
 
     fun is_refl thm = Thm.concl_of thm |> (fn (_ $ t) => t | _ => raise TERM ("",[])) |> HOLogic.dest_eq |> (op =) handle TERM _=> false
-    fun mk_thms sctxt t = Assumption.add_assumes (map (Thm.cterm_of sctxt) t) sctxt |>> filter_out is_refl
+    fun mk_thms sctxt t = (Assumption.add_assumes (map (Thm.cterm_of sctxt) t) sctxt |>> filter_out is_refl)
+      handle (TYPE (msg,types,terms)) => if Config.get ctxt SMT_Config.rec_evaluation
+      then (raise SMT_Failure.SMT (SMT_Failure.Replay(rule,(ERROR (msg |> YXML.content_of)))))
+       else Exn.reraise (TYPE (msg,types,terms))
+
     fun is_mapping (\<^term>\<open>Trueprop\<close> $ (Const(\<^const_name>\<open>HOL.eq\<close>, _) $ _ $ _ )) = true |
         is_mapping _ = false
     val remove_mappings = List.filter is_mapping
