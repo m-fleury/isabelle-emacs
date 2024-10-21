@@ -69,7 +69,7 @@ sig
   val bind: alethe_tac_context_args
   val and_rule: alethe_tac
   val and_neg_rule: alethe_tac
-  val and_pos: alethe_tac
+  val and_pos: alethe_tac_args
   val rewrite_and_simplify: alethe_tac
   val rewrite_bool_simplify: alethe_tac
   val rewrite_comp_simplify: alethe_tac
@@ -421,7 +421,7 @@ val try_provers = SMT_Replay_Methods.try_provers
 fun TRY' tac = fn i => TRY (tac i)
 fun REPEAT' tac = fn i => REPEAT (tac i)
 fun REPEAT_CHANGED tac = fn i => REPEAT (CHANGED (tac i))
-
+fun REPEAT_DETERM_N' k tac = fn i => REPEAT_DETERM_N k (tac i)
 
 (* Bind *)
 
@@ -970,10 +970,20 @@ val or_neg_rule = prove_abstract SMT_Replay_Methods.abstract_bool (fn ctxt => fn
       (SOLVED' (match_tac ctxt @{thms disjI1} THEN_ALL_NEW assume_tac ctxt)
        ORELSE' (match_tac ctxt @{thms disjI2} THEN' TRY' (assume_tac ctxt)))))
 
-fun and_pos ctxt _ t =
+fun and_pos ctxt _ t (SOME (Index k)) =
+  SMT_Replay_Methods.prove ctxt t (fn _ =>
+  REPEAT_DETERM_N' (k-1) (resolve_tac ctxt @{thms alethe_and_pos})
+  THEN' (
+    resolve_tac ctxt @{thms excluded_middle}
+    ORELSE'
+    resolve_tac ctxt [@{lemma "(a \<Longrightarrow> A) \<Longrightarrow> \<not>(a \<and> b) \<or> A" by blast}]
+  )
+  THEN' TRY' (assume_tac ctxt)) |
+and_pos ctxt _ t _ = (*legacy*)
   SMT_Replay_Methods.prove ctxt t (fn _ =>
   REPEAT_CHANGED (resolve_tac ctxt @{thms verit_and_pos})
   THEN' TRY' (assume_tac ctxt))
+
 
 end
 
@@ -1003,7 +1013,11 @@ a specialisation of SMT_Replay_Methods.match_instantiate, but there never was a 
 and consistent gain.*)
 local
   fun prove_equiv_pos_neg2 thm ctxt _ t =
+let
+ val _ = @{print}("equiv_pos2 (thm,t)",(thm,t))
+in
     SMT_Replay_Methods.match_instantiate ctxt t thm
+end
 in
 
 val equiv_pos1_thm = @{lemma \<open>\<not>(a \<longleftrightarrow> b) \<or> a \<or> \<not>b\<close> by blast+}
@@ -1461,7 +1475,8 @@ fun to_lemma "Orderings.ord_class.less" = @{thm alethe_la_mult_pos_less}
 (*Oct 18: I am not done here yet but it works already*)
 fun la_mult_pos ctxt _ t =
 let
-  val (rel,(factor,l,r)) = la_mult_extract t
+val _ = @{print}("t",t)
+ (* val (rel,(factor,l,r)) = la_mult_extract t*)
 (*  val _ = @{print}("factor",(Thm.cterm_of ctxt factor))
   val _ = @{print}("lemma",infer_instantiate' ctxt [SOME (Thm.cterm_of ctxt factor),NONE,NONE] @{thm alethe_la_mult_pos_less} )
   val _ = @{print}("lemma",infer_instantiate' ctxt [SOME (Thm.cterm_of ctxt factor),SOME (Thm.cterm_of ctxt l),SOME (Thm.cterm_of ctxt r)] @{thm alethe_la_mult_pos_less} )

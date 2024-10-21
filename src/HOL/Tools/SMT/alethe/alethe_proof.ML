@@ -657,9 +657,16 @@ fun postprocess_proof compress ctxt step cx =
               handle (Symtab.DUP _) => raise throw_alethe_ex ("forall inst, tried to add same name twice")
 
              in SOME (Insts insts) end |
-          
-          _ => NONE
-      
+          r =>
+            if member (op =) index_rules r
+            then
+            let
+              val [SMTLIB.Num k] = step_args
+            in
+              SOME (Index k)
+            end
+            else NONE
+
           (* fix premises *)
           val normalized_premises = prems @ (if is_assm_repetition id rule then [id] else [])
       

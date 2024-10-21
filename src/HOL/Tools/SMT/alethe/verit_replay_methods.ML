@@ -122,7 +122,7 @@ fun include_context_ass_and_args f ctxt prems _ context_ass goal args = f ctxt p
 
 fun choose And = ignore_args and_rule
   | choose And_Neg = ignore_args and_neg_rule
-  | choose And_Pos = ignore_args and_pos
+  | choose And_Pos = include_args and_pos
   | choose And_Simplify = ignore_args rewrite_and_simplify
   | choose Bind = include_context_ass bind
   | choose Bool_Simplify = ignore_args rewrite_bool_simplify
