@@ -11,6 +11,13 @@ sig
   val method_for: string -> Proof.context -> thm list -> term list -> term list -> term ->
      Alethe_Node.tactic_args option -> thm
 
+  val cvc5_rule_of : string -> Alethe_Replay_Methods.alethe_rule
+  val choose : Context.generic ->
+      Alethe_Replay_Methods.alethe_rule ->
+        Proof.context ->
+          thm list ->
+            term list ->
+              term list -> term -> tactic_args option -> thm
   val discharge: Proof.context -> thm list -> term -> thm
 end;
 

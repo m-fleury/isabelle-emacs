@@ -213,4 +213,76 @@ val testNode = Alethe_Proof.parse_raw_proof_steps NONE [testTree] SMTLIB_Proof.e
 
 \<close>
 
+
+
+
+(* Test alethe_replay_methods.ML *)
+(* Important: The context can be different than if a step appears inside a proof! E.g., because
+of subproofs. Any failure should be double checked carefully. Nonetheless, these regressions are useful
+when changes are made to the reconstruction functions. *)
+
+ML\<open>
+fun get_tac n ctxt _ = 
+let
+  val rule = CVC5_Replay_Methods.cvc5_rule_of n
+  val rule_name = rule |> Alethe_Replay_Methods.string_of_alethe_rule
+  val _ = @{print}("Found tactic (if it is rare-rewrite there might be a typo in the input string)", rule_name)
+
+  (*FIXME: For some reason this function gets called twice... This definitely should not be necessary*)
+  val dummys = Const ("Pure.prop", @{typ "prop \<Rightarrow> prop"}) $ (Const ("Pure.term", @{typ "prop \<Rightarrow> prop"}) $ Const ("Pure.dummy_pattern", @{typ "prop"}))
+
+  val prems=[]
+  val step_args=[]
+  val context_args=[]
+  val args=NONE
+  fun rule_tac ctxt t = CVC5_Replay_Methods.choose (Context.the_generic_context ()) rule ctxt prems step_args context_args t args
+  fun term_to_thm t = rule_tac ctxt t
+
+in
+  (fn t => 
+  if (t |> Thm.concl_of) = dummys
+  then Seq.empty
+  else
+    let
+      val thm2 = t |> Thm.concl_of |> (fn Const (_, _) $ x => x | x => x) |> term_to_thm 
+    in
+      resolve0_tac [thm2] 1 t
+    end)
+end
+
+
+val _ =
+ Theory.setup
+ (Method.setup \<^binding>\<open>ctxt_tactic\<close>
+ (Scan.lift (Parse.string) >>
+   (fn n => fn ctxt => fn prems => CONTEXT_TACTIC (get_tac n ctxt prems)))
+ "testing tactics")
+\<close>
+
+(* and pos *)
+
+lemma and_pos_1: "\<not>(a \<and> b \<and> c) \<or> b"
+  by (ctxt_tactic "and_pos")
+
+lemma and_pos_2: "\<not>(a \<and> b \<and> c) \<or> c"
+  by (ctxt_tactic "and_pos")
+
+lemma and_pos_3: "\<not>(a \<and> (b \<and> c) \<and> d) \<or> (b \<and> c)"
+  by (ctxt_tactic "and_pos")
+
+lemma and_pos_4: "\<not>(a \<and> (b \<and> c) \<and> d) \<or> d"
+  by (ctxt_tactic "and_pos")
+
+lemma and_pos_5: "\<not>(a \<and> (b \<or> \<not>c \<and> d)) \<or> (b \<or> \<not>c \<and> d)"
+  by (ctxt_tactic "and_pos")
+
+
+
+(* equiv pos 1*)
+
+
+lemma "\<not>(a=b) \<or> a \<or> \<not>b"
+  by (ctxt_tactic "equiv_pos1")
+
+
 end
