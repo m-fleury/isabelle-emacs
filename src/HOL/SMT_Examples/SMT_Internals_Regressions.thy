@@ -219,14 +219,18 @@ val testNode = Alethe_Proof.parse_raw_proof_steps NONE [testTree] SMTLIB_Proof.e
 (* Test alethe_replay_methods.ML *)
 (* Important: The context can be different than if a step appears inside a proof! E.g., because
 of subproofs. Any failure should be double checked carefully. Nonetheless, these regressions are useful
-when changes are made to the reconstruction functions. *)
+when changes are made to the reconstruction functions. 
+Currently only supports indexes as args ^^ This is because the reconstruction of these rules had
+some errors.
+*)
 
 ML\<open>
-fun get_tac n ctxt _ = 
+fun get_tac n ctxt _ args = 
 let
   val rule = CVC5_Replay_Methods.cvc5_rule_of n
   val rule_name = rule |> Alethe_Replay_Methods.string_of_alethe_rule
   val _ = @{print}("Found tactic (if it is rare-rewrite there might be a typo in the input string)", rule_name)
+val _ = @{print}("args",(Option.isSome args,args))
 
   (*FIXME: For some reason this function gets called twice... This definitely should not be necessary*)
   val dummys = Const ("Pure.prop", @{typ "prop \<Rightarrow> prop"}) $ (Const ("Pure.term", @{typ "prop \<Rightarrow> prop"}) $ Const ("Pure.dummy_pattern", @{typ "prop"}))
@@ -234,7 +238,9 @@ let
   val prems=[]
   val step_args=[]
   val context_args=[]
-  val args=NONE
+  val args=(if rule_name = "and_pos" andalso Option.isSome args
+            then SOME (Index (Option.valOf args |> Int.fromString |> Option.valOf))
+            else NONE)
   fun rule_tac ctxt t = CVC5_Replay_Methods.choose (Context.the_generic_context ()) rule ctxt prems step_args context_args t args
   fun term_to_thm t = rule_tac ctxt t
 
@@ -250,31 +256,67 @@ in
     end)
 end
 
+val parse_tactic_args : tactic_args parser = (fn ts => let val _ = @{print}("ts",ts) in (Index 0,ts) end)
 
 val _ =
  Theory.setup
  (Method.setup \<^binding>\<open>ctxt_tactic\<close>
- (Scan.lift (Parse.string) >>
-   (fn n => fn ctxt => fn prems => CONTEXT_TACTIC (get_tac n ctxt prems)))
- "testing tactics")
+ (Scan.lift (Parse.string 
+             -- (Scan.optional (Scan.option Parse.string) NONE)) >>
+   (fn (rule_name,args) => fn ctxt => fn prems => CONTEXT_TACTIC (get_tac rule_name ctxt prems args)))
+ "testing tactics <name> ([<args>*])  ")
 \<close>
 
-(* and pos *)
+(* Rule 47: and_pos *)
 
-lemma and_pos_1: "\<not>(a \<and> b \<and> c) \<or> b"
+lemma and_pos_1a: "\<not>(a \<and> b \<and> c) \<or> b"
+  by (ctxt_tactic "and_pos" "2")
+
+lemma and_pos_1b: "\<not>(a \<and> b \<and> c) \<or> b"
   by (ctxt_tactic "and_pos")
 
-lemma and_pos_2: "\<not>(a \<and> b \<and> c) \<or> c"
+lemma and_pos_2a: "\<not>(a \<and> b \<and> c) \<or> c"
+  by (ctxt_tactic "and_pos" "3")
+
+lemma and_pos_2b: "\<not>(a \<and> b \<and> c) \<or> c"
   by (ctxt_tactic "and_pos")
 
-lemma and_pos_3: "\<not>(a \<and> (b \<and> c) \<and> d) \<or> (b \<and> c)"
+lemma and_pos_3a: "\<not>(a \<and> (b \<and> c) \<and> d) \<or> (b \<and> c)"
+  by (ctxt_tactic "and_pos" "2")
+
+lemma and_pos_3b: "\<not>(a \<and> (b \<and> c) \<and> d) \<or> (b \<and> c)"
   by (ctxt_tactic "and_pos")
 
 lemma and_pos_4: "\<not>(a \<and> (b \<and> c) \<and> d) \<or> d"
-  by (ctxt_tactic "and_pos")
+  by (ctxt_tactic "and_pos" "3")
 
 lemma and_pos_5: "\<not>(a \<and> (b \<or> \<not>c \<and> d)) \<or> (b \<or> \<not>c \<and> d)"
   by (ctxt_tactic "and_pos")
+
+lemma and_pos_6a: "\<not>(a \<and> (b \<and> c)) \<or> (b \<and> c)"
+  by (ctxt_tactic "and_pos" "2")
+
+(*
+lemma and_pos_6b: "\<not>(a \<and> (b \<and> c)) \<or> (b \<and> c)" (*This should have worked but didn't*)
+  by (ctxt_tactic "and_pos")
+*)
+
+(* Rule 48: and_neg *)
+
+lemma and_neg_1: "(a \<and> b \<and> c) \<or> \<not>a \<or> \<not>b \<or> \<not>c"
+  by (ctxt_tactic "and_neg")
+
+lemma and_neg_2: "(a \<and> (b \<and> c)) \<or> \<not>a \<or> \<not>(b \<and> c)"
+  by (ctxt_tactic "and_neg")
+
+lemma and_neg_3: "((a \<and> b) \<and> d) \<or> \<not>(a \<and> b) \<or> \<not>d"
+  by (ctxt_tactic "and_neg")
+
+lemma and_neg_4: "(a \<and> d) \<or> \<not>(a \<and> d)"
+  by (ctxt_tactic "and_neg")
+
+lemma and_neg_5: "((a = c) \<and> (b \<longrightarrow> \<not>c \<or> d)) \<or> \<not>(a = c) \<or> \<not>(b \<longrightarrow> \<not>c \<or> d)"
+  by (ctxt_tactic "and_neg")
 
 
 
