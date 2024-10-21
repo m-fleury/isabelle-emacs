@@ -230,7 +230,6 @@ let
   val rule = CVC5_Replay_Methods.cvc5_rule_of n
   val rule_name = rule |> Alethe_Replay_Methods.string_of_alethe_rule
   val _ = @{print}("Found tactic (if it is rare-rewrite there might be a typo in the input string)", rule_name)
-val _ = @{print}("args",(Option.isSome args,args))
 
   (*FIXME: For some reason this function gets called twice... This definitely should not be necessary*)
   val dummys = Const ("Pure.prop", @{typ "prop \<Rightarrow> prop"}) $ (Const ("Pure.term", @{typ "prop \<Rightarrow> prop"}) $ Const ("Pure.dummy_pattern", @{typ "prop"}))
@@ -238,8 +237,8 @@ val _ = @{print}("args",(Option.isSome args,args))
   val prems=[]
   val step_args=[]
   val context_args=[]
-  val args=(if rule_name = "and_pos" andalso Option.isSome args
-            then SOME (Index (Option.valOf args |> Int.fromString |> Option.valOf))
+  val args= (if rule_name = "and_pos" andalso Option.isSome args
+            then SOME (Index (Option.valOf args |> Syntax.read_term ctxt |> HOLogic.dest_number |> snd))
             else NONE)
   fun rule_tac ctxt t = CVC5_Replay_Methods.choose (Context.the_generic_context ()) rule ctxt prems step_args context_args t args
   fun term_to_thm t = rule_tac ctxt t
@@ -262,15 +261,16 @@ val _ =
  Theory.setup
  (Method.setup \<^binding>\<open>ctxt_tactic\<close>
  (Scan.lift (Parse.string 
-             -- (Scan.optional (Scan.option Parse.string) NONE)) >>
+             -- (Scan.optional (Scan.option Parse.term) NONE)) >>
    (fn (rule_name,args) => fn ctxt => fn prems => CONTEXT_TACTIC (get_tac rule_name ctxt prems args)))
  "testing tactics <name> ([<args>*])  ")
 \<close>
 
 (* Rule 47: and_pos *)
+(*b's are legacy versions where no index was given*)
 
 lemma and_pos_1a: "\<not>(a \<and> b \<and> c) \<or> b"
-  by (ctxt_tactic "and_pos" "2")
+  by (ctxt_tactic "and_pos" "2::int")
 
 lemma and_pos_1b: "\<not>(a \<and> b \<and> c) \<or> b"
   by (ctxt_tactic "and_pos")
