@@ -972,7 +972,7 @@ val or_neg_rule = prove_abstract SMT_Replay_Methods.abstract_bool (fn ctxt => fn
 
 fun and_pos ctxt _ t (SOME (Index k)) =
   SMT_Replay_Methods.prove ctxt t (fn _ =>
-  REPEAT_DETERM_N' (k-1) (resolve_tac ctxt @{thms alethe_and_pos})
+  REPEAT_DETERM_N' k (resolve_tac ctxt @{thms alethe_and_pos})
   THEN' (
     resolve_tac ctxt @{thms excluded_middle}
     ORELSE'
@@ -983,8 +983,6 @@ and_pos ctxt _ t _ = (*legacy*)
   SMT_Replay_Methods.prove ctxt t (fn _ =>
   REPEAT_CHANGED (resolve_tac ctxt @{thms verit_and_pos})
   THEN' TRY' (assume_tac ctxt))
-
-
 end
 
 
