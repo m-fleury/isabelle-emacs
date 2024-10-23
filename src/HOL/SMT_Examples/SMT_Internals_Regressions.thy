@@ -266,6 +266,439 @@ val _ =
  "testing tactics <name> ([<args>*])  ")
 \<close>
 
+
+(* Rule 33: weakening *)
+(*TODO: Add rule*)
+
+lemma weakening_1: 
+  assumes "a"
+  shows  "a \<or> b"
+  using assms
+  by (ctxt_tactic "weakening")
+
+lemma weakening_2:
+  assumes "a \<or> b \<or> c"
+  shows  "a \<or> b \<or> c \<or> d \<or> e"
+  using assms
+  by (ctxt_tactic "weakening")
+
+lemma weakening_3:
+  assumes "a \<or> b \<or> c"
+  shows  "a \<or> b \<or> c \<or> c \<or> a"
+  using assms
+  by (ctxt_tactic "weakening")
+
+lemma weakening_4:
+  assumes "(a \<or> b) \<or> b \<or> c"
+  shows  "(a \<or> b) \<or> c \<or> (c \<or> a) \<or> e"
+  using assms
+  by (ctxt_tactic "weakening")
+
+
+(* Rule 34: reordering *)
+
+lemma reordering_1: 
+  assumes "b \<or> a"
+  shows "a \<or> b"
+  using assms
+  by (ctxt_tactic "reordering")
+
+lemma reordering_2:
+  assumes "a \<or> b \<or> c"
+  shows "c \<or> b \<or> a"
+  using assms
+  by (ctxt_tactic "reordering")
+
+lemma reordering_3:
+  assumes "a \<or> b \<or> a"
+  shows "a \<or> a \<or> b"
+  using assms
+  by (ctxt_tactic "reordering")
+
+lemma reordering_4:
+  assumes "(a \<or> b) \<or> a \<or> b"
+  shows "a \<or> b \<or> (a \<or> b)"
+  using assms
+  by (ctxt_tactic "reordering")
+
+
+(* Rule 35: not_and *)
+
+lemma not_and_1: 
+  assumes "\<not>(a \<and> b \<and> c)"
+  shows "\<not>a \<or> \<not>b \<or> \<not>c"
+  using assms
+  by (ctxt_tactic "not_and")
+
+lemma not_and_2:
+  assumes "\<not>a"
+  shows "\<not>a"
+  using assms
+  by (ctxt_tactic "not_and")
+
+lemma not_and_3:
+  assumes "\<not>((a \<and> d) \<and> b \<and> c)"
+  shows "\<not>(a \<and> d) \<or> \<not>b \<or> \<not>c"
+  using assms
+  by (ctxt_tactic "not_and")
+
+lemma not_and_4:
+  assumes "\<not>(a \<and> b \<and> c \<and> (a \<and> d))"
+  shows "\<not>a \<or> \<not>b \<or> \<not>c \<or> \<not>(a \<and> d)"
+  using assms
+  by (ctxt_tactic "not_and")
+
+lemma not_and_5:
+  assumes "\<not>(a \<and> a \<and> a)"
+  shows "\<not>a \<or> \<not>a \<or> \<not>a"
+  using assms
+  by (ctxt_tactic "not_and")
+
+
+(* Rule 36: xor1 *)
+(*TODO: Add rule*)
+
+lemma xor1_1: 
+  assumes "\<not>(a = b)"
+  shows  "a \<or> b"
+  using assms
+  by (ctxt_tactic "xor1")
+
+lemma xor1_2:
+  assumes "\<not>((a \<or> b) = b)"
+  shows  "(a \<or> b) \<or> b"
+  using assms
+  by (ctxt_tactic "xor1")
+
+lemma xor1_3:
+  assumes "\<not>((\<not>(a = b)) = b)"
+  shows  "(\<not>(a = b)) \<or> b"
+  using assms
+  by (ctxt_tactic "xor1")
+
+lemma xor1_4:
+  assumes "\<not>((a = b) = (\<not>(b = c)))"
+  shows  "(a = b) \<or> (\<not>(b = c))"
+  using assms
+  by (ctxt_tactic "xor1")
+
+
+(* Rule 37: xor2 *)
+(*TODO: Add rule*)
+
+lemma xor2_1: 
+  assumes "\<not>(a = b)"
+  shows  "\<not>a \<or> \<not>b"
+  using assms
+  by (ctxt_tactic "xor2")
+
+lemma xor2_2:
+  assumes "\<not>((a \<or> b) = b)"
+  shows  "\<not>(a \<or> b) \<or> \<not>b"
+  using assms
+  by (ctxt_tactic "xor2")
+
+lemma xor2_3:
+  assumes "\<not>((a = b) = b)"
+  shows  "\<not>(a = b) \<or> \<not>b"
+  using assms
+  by (ctxt_tactic "xor2")
+
+lemma xor2_4:
+  assumes "\<not>((\<not>(a = b)) = (\<not>(b = c)))"
+  shows  "(\<not>(a \<longrightarrow> b)) \<or> (\<not>(b \<longrightarrow> c))"
+  using assms
+  by (ctxt_tactic "xor2")
+
+
+(* Rule 38: not_xor1 *)
+(*TODO: Add rule*)
+
+lemma not_xor1_1: 
+  assumes "\<not>(\<not>(a = b))"
+  shows  "a \<or> \<not>b"
+  using assms
+  by (ctxt_tactic "not_xor1")
+
+lemma not_xor1_2:
+  assumes "\<not>(\<not>((a \<or> b) = b))"
+  shows  "(a \<or> b) \<or> \<not>b"
+  using assms
+  by (ctxt_tactic "not_xor1")
+
+lemma not_xor1_3:
+  assumes "\<not>(\<not>((a = b) = b))"
+  shows  "(a = b) \<or> \<not>b"
+  using assms
+  by (ctxt_tactic "not_xor1")
+
+lemma not_xor1_4:
+  assumes "\<not>(\<not>((\<not>(a = b)) = (\<not>(b = c))))"
+  shows  "(\<not>(a \<longrightarrow> b)) \<or> (\<not>(\<not>(b \<longrightarrow> c)))"
+  using assms
+  by (ctxt_tactic "not_xor1")
+
+
+
+(* Rule 39: not_xor2 *)
+(*TODO: Add rule*)
+
+lemma not_xor2_1: 
+  assumes "\<not>(\<not>(a = b))"
+  shows  "\<not>a \<or> b"
+  using assms
+  by (ctxt_tactic "not_xor2")
+
+lemma not_xor2_2:
+  assumes "\<not>(\<not>((a \<or> b) = b))"
+  shows  "\<not>(a \<or> b) \<or> b"
+  using assms
+  by (ctxt_tactic "not_xor2")
+
+lemma not_xor2_3:
+  assumes "\<not>(\<not>((a = b) = b))"
+  shows  "\<not>(a = b) \<or> b"
+  using assms
+  by (ctxt_tactic "not_xor2")
+
+lemma not_xor2_4:
+  assumes "\<not>(\<not>((\<not>(a = b)) = (\<not>(b = c))))"
+  shows  "(\<not>(\<not>(a \<longrightarrow> b))) \<or> (\<not>(b \<longrightarrow> c))"
+  using assms
+  by (ctxt_tactic "not_xor2")
+
+
+(* Rule 40: implies *)
+
+lemma implies_1: 
+  assumes "(a \<longrightarrow> b)"
+  shows  "\<not>a \<or> b"
+  using assms
+  by (ctxt_tactic "implies")
+
+lemma implies_2:
+  assumes "((a\<or>b) \<longrightarrow> b)"
+  shows  "\<not>(a\<or>b) \<or> b"
+  using assms
+  by (ctxt_tactic "implies")
+
+lemma implies_3:
+  assumes "((a\<longrightarrow>b) \<longrightarrow> b)"
+  shows  "\<not>(a\<longrightarrow>b) \<or> b"
+  using assms
+  by (ctxt_tactic "implies")
+
+lemma implies_4:
+  assumes "((a\<longrightarrow>b) \<longrightarrow> (b \<longrightarrow> c))"
+  shows  "\<not>(a\<longrightarrow>b) \<or> (b \<longrightarrow> c)"
+  using assms
+  by (ctxt_tactic "implies")
+
+lemma implies_5:
+  assumes "((\<not>(a\<longrightarrow>b)) \<longrightarrow> (b \<longrightarrow> c))"
+  shows  "\<not>(\<not>(a\<longrightarrow>b)) \<or> (b \<longrightarrow> c)"
+  using assms
+  by (ctxt_tactic "implies")
+
+
+(* Rule 42: not_implies1 *)
+
+lemma not_implies2_1: 
+  assumes "\<not>(a \<longrightarrow> b)"
+  shows  "\<not>b"
+  using assms
+  by (ctxt_tactic "not_implies2")
+
+lemma not_implies2_2:
+  assumes "\<not>((a\<or>b) \<longrightarrow> b)"
+  shows  "\<not>b"
+  using assms
+  by (ctxt_tactic "not_implies2")
+
+lemma not_implies2_3:
+  assumes "\<not>(a \<longrightarrow> (a\<longrightarrow>b))"
+  shows  "\<not>(a\<longrightarrow>b)"
+  using assms
+  by (ctxt_tactic "not_implies2")
+
+lemma not_implies2_4:
+  assumes "\<not>((a \<longrightarrow> b) \<longrightarrow> (b \<longrightarrow> c))"
+  shows  "\<not>(b \<longrightarrow> c)"
+  using assms
+  by (ctxt_tactic "not_implies2")
+
+lemma not_implies2_5:
+  assumes "\<not>((a \<longrightarrow> b) \<longrightarrow> (\<not>(b \<longrightarrow> c)))"
+  shows  "\<not>(\<not>(b \<longrightarrow> c))"
+  using assms
+  by (ctxt_tactic "not_implies2")
+
+
+(* Rule 41: not_implies1 *)
+
+lemma not_implies1_1: 
+  assumes "\<not>(a \<longrightarrow> b)"
+  shows  "a"
+  using assms
+  by (ctxt_tactic "not_implies1")
+
+lemma not_implies1_2:
+  assumes "\<not>((a\<or>b) \<longrightarrow> b)"
+  shows  "(a\<or>b)"
+  using assms
+  by (ctxt_tactic "not_implies1")
+
+lemma not_implies1_3:
+  assumes "\<not>((a\<longrightarrow>b) \<longrightarrow> b)"
+  shows  "(a\<longrightarrow>b)"
+  using assms
+  by (ctxt_tactic "not_implies1")
+
+lemma not_implies1_4:
+  assumes "\<not>((a\<longrightarrow>b) \<longrightarrow> (b \<longrightarrow> c))"
+  shows  "(a\<longrightarrow>b)"
+  using assms
+  by (ctxt_tactic "not_implies1")
+
+lemma not_implies1_5:
+  assumes "\<not>((\<not>(a\<longrightarrow>b)) \<longrightarrow> (b \<longrightarrow> c))"
+  shows  "(\<not>(a\<longrightarrow>b))"
+  using assms
+  by (ctxt_tactic "not_implies1")
+
+
+(* Rule 43: equiv1 *)
+
+lemma equiv1_1: 
+  assumes "(a = b)"
+  shows  "\<not>a \<or> b"
+  using assms
+  by (ctxt_tactic "equiv1")
+
+lemma equiv1_2:
+  assumes "((a\<or>b) = b)"
+  shows  "\<not>(a\<or>b) \<or> b"
+  using assms
+  by (ctxt_tactic "equiv1")
+
+lemma equiv1_3:
+  assumes "((a=b) = b)"
+  shows  "\<not>(a=b) \<or> b"
+  using assms
+  by (ctxt_tactic "equiv1")
+
+lemma equiv1_4:
+  assumes "((a=b) = (b = c))"
+  shows  "\<not>(a=b) \<or> (b = c)"
+  using assms
+  by (ctxt_tactic "equiv1")
+
+lemma equiv1_5:
+  assumes "((\<not>(a=b)) = (b = c))"
+  shows  "\<not>(\<not>(a=b)) \<or> (b = c)"
+  using assms
+  by (ctxt_tactic "equiv1")
+
+
+(* Rule 44: equiv2 *)
+
+lemma equiv2_1: 
+  assumes "(a = b)"
+  shows  "a \<or> \<not>b"
+  using assms
+  by (ctxt_tactic "equiv2")
+
+lemma equiv2_2:
+  assumes "((a\<or>b) = b)"
+  shows  "(a\<or>b) \<or> \<not>b"
+  using assms
+  by (ctxt_tactic "equiv2")
+
+lemma equiv2_3:
+  assumes "((a=b) = b)"
+  shows  "(a=b) \<or> \<not>b"
+  using assms
+  by (ctxt_tactic "equiv2")
+
+lemma equiv2_4:
+  assumes "((a=b) = (b = c))"
+  shows  "(a=b) \<or> \<not>(b = c)"
+  using assms
+  by (ctxt_tactic "equiv2")
+
+lemma equiv2_5:
+  assumes "((a=b) = (\<not>(b = c)))"
+  shows  "(a=b) \<or> \<not>(\<not>(b = c))"
+  using assms
+  by (ctxt_tactic "equiv2")
+
+
+(* Rule 45: not_equiv1 *)
+
+lemma not_equiv1_1: 
+  assumes "\<not>(a = b)"
+  shows  "a \<or> b"
+  using assms
+  by (ctxt_tactic "not_equiv1")
+
+lemma not_equiv1_2:
+  assumes "\<not>((a\<or>b) = b)"
+  shows  "(a\<or>b) \<or> b"
+  using assms
+  by (ctxt_tactic "not_equiv1")
+
+lemma not_equiv1_3:
+  assumes "\<not>((a=b) = b)"
+  shows  "(a=b) \<or> b"
+  using assms
+  by (ctxt_tactic "not_equiv1")
+
+lemma not_equiv1_4:
+  assumes "\<not>((a=b) = (b = c))"
+  shows  "(a=b) \<or> (b = c)"
+  using assms
+  by (ctxt_tactic "not_equiv1")
+
+lemma not_equiv1_5:
+  assumes "\<not>((a=b) = (\<not>(b = c)))"
+  shows  "(a=b) \<or> \<not>(b = c)"
+  using assms
+  by (ctxt_tactic "not_equiv1")
+
+
+(* Rule 46: not_equiv2 *)
+
+lemma not_equiv2_1: 
+  assumes "\<not>(a = b)"
+  shows  "\<not>a \<or> \<not>b"
+  using assms
+  by (ctxt_tactic "not_equiv2")
+
+lemma not_equiv2_2:
+  assumes "\<not>((a\<or>b) = b)"
+  shows  "\<not>(a\<or>b) \<or> \<not>b"
+  using assms
+  by (ctxt_tactic "not_equiv2")
+
+lemma not_equiv2_3:
+  assumes "\<not>((a=b) = b)"
+  shows  "\<not>(a=b) \<or> \<not>b"
+  using assms
+  by (ctxt_tactic "not_equiv2")
+
+lemma not_equiv2_4:
+  assumes "\<not>((a=b) = (b = c))"
+  shows  "\<not>(a=b) \<or> \<not>(b = c)"
+  using assms
+  by (ctxt_tactic "not_equiv2")
+
+lemma not_equiv2_5:
+  assumes "\<not>((a=b) = (\<not>(b = c)))"
+  shows  "\<not>(a=b) \<or> \<not>(\<not>(b = c))"
+  using assms
+  by (ctxt_tactic "not_equiv2")
+
+
 (* Rule 47: and_pos *)
 (*b's are legacy versions where no index was given*)
 
