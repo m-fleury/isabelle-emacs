@@ -319,6 +319,80 @@ lemma and_neg_5: "((a = c) \<and> (b \<longrightarrow> \<not>c \<or> d)) \<or> \
   by (ctxt_tactic "and_neg")
 
 
+(* Rule 49: or_pos *)
+
+lemma or_pos_1: "\<not>(a \<or> b \<or> c) \<or> a \<or> b \<or> c"
+  by (ctxt_tactic "or_pos")
+
+lemma or_pos_2: "\<not>(a \<or> (b \<or> c)) \<or> a \<or> b \<or> c"
+  by (ctxt_tactic "or_pos")
+
+lemma or_pos_3: "\<not>((a \<or> b) \<or> c) \<or> (a \<or> b) \<or> c"
+  by (ctxt_tactic "or_pos")
+
+lemma or_pos_4: "\<not>(\<not>(e \<or> f) \<or> (a \<or> b \<and> c) \<or> d) \<or> \<not>(e \<or> f) \<or> (a \<or> b \<and> c) \<or> d"
+  by (ctxt_tactic "or_pos")
+
+lemma or_pos_5: "\<not>(a) \<or> a"
+  by (ctxt_tactic "or_pos")
+
+(* Rule 50: or_neg *)
+
+lemma or_neg_1: "(a \<or> b \<or> c) \<or> \<not>a"
+  by (ctxt_tactic "or_neg")
+
+lemma or_neg_2: "(a \<or> b \<or> c) \<or> \<not>b"
+  by (ctxt_tactic "or_neg")
+
+lemma or_neg_3: "(a \<or> b \<or> c) \<or> \<not>c"
+  by (ctxt_tactic "or_neg")
+
+lemma or_neg_4: "((a \<or> b) \<or> c) \<or> \<not>(a \<or> b)"
+  by (ctxt_tactic "or_neg")
+
+lemma or_neg_5: "(a \<or> (b \<or> c) \<or> d) \<or> \<not>(b \<or> c)"
+  by (ctxt_tactic "or_neg")
+
+lemma or_neg_6: "(a \<or> b \<or> (c \<or> d)) \<or> \<not>(c \<or> d)"
+  by (ctxt_tactic "or_neg")
+
+lemma or_neg_7: "((a \<and> b) \<or> b \<or> (\<not>c \<longrightarrow> d)) \<or> \<not>(\<not>c \<longrightarrow> d)"
+  by (ctxt_tactic "or_neg")
+
+lemma or_neg_8: "((a \<and> b) \<or> b \<or> \<not>(c \<longrightarrow> d)) \<or> \<not>(\<not>(c \<longrightarrow> d))"
+  by (ctxt_tactic "or_neg")
+
+lemma or_neg_9: "(\<not>a \<or> b \<or> c) \<or> \<not>(\<not>a)"
+  by (ctxt_tactic "or_neg")
+
+lemma or_neg_10: "(\<not>a \<or> b) \<or> \<not>(\<not>a)"
+  by (ctxt_tactic "or_neg")
+
+lemma or_neg_11: "(\<not>a \<or> b) \<or> \<not>b"
+  by (ctxt_tactic "or_neg")
+
+lemma or_neg_12: "(a) \<or> \<not>a"
+  by (ctxt_tactic "or_neg")
+
+(* Rule 51: xor_pos1 *)
+
+lemma xor_pos1_1: "\<not>(a \<noteq> b) \<or> a \<or> b"
+  by (ctxt_tactic "xor_pos1")
+
+lemma xor_pos1_2: "\<not>((a\<or>c) \<noteq> b) \<or> (a\<or>c) \<or> b"
+  by (ctxt_tactic "xor_pos1")
+
+(* Rule 52: xor_pos2 *)
+
+lemma xor_pos2_1: "\<not>(a \<noteq> b) \<or> \<not>a \<or> \<not>b"
+  by (ctxt_tactic "xor_pos2")
+
+lemma xor_pos2_2: "\<not>((a\<or>c) \<noteq> b) \<or> \<not>(a\<or>c) \<or> \<not>b"
+  by (ctxt_tactic "xor_pos2")
+
+lemma xor_pos2_3: "\<not>((a\<and>c) \<noteq> b) \<or> \<not>(a\<and>c) \<or> \<not>b"
+  by (ctxt_tactic "xor_pos2")
+
 
 (* equiv pos 1*)
 
