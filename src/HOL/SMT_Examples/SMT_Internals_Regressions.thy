@@ -267,6 +267,166 @@ val _ =
 \<close>
 
 
+
+(* Rule 23: trans *)
+
+lemma trans_1:
+  assumes "a = a"
+  shows  "a = a"
+  using assms
+  by (ctxt_tactic "trans")
+
+lemma trans_2:
+  assumes "a = a" "a = b"
+  shows  "a = b"
+  using assms
+  by (ctxt_tactic "trans")
+
+lemma trans_3:
+  assumes "(a = f a)" "(f a = b)"
+  shows  "a = b"
+  using assms
+  by (ctxt_tactic "trans")
+
+lemma trans_4:
+  assumes "(a = f a)" "(f a = b)" "(f a = a)"
+  shows  "a = a"
+  using assms
+  by (ctxt_tactic "trans")
+
+
+(* Rule 25: eq_reflexive *)
+
+lemma eq_reflexive_1: "a = a"
+  by (ctxt_tactic "eq_reflexive")
+
+lemma eq_reflexive_2: "3 = (3::int)"
+  by (ctxt_tactic "eq_reflexive")
+
+lemma eq_reflexive_3: "(a = b) = (a = b)"
+  by (ctxt_tactic "eq_reflexive")
+
+
+(* Rule 26: eq_transitive *)
+
+lemma eq_transitive_1: "\<not> (a = a) \<or> (a = a)"
+  by (ctxt_tactic "eq_transitive")
+
+lemma eq_transitive_2: "\<not> (a = a) \<or> \<not>(a = b) \<or> (a = b)"
+  by (ctxt_tactic "eq_transitive")
+
+lemma eq_transitive_3: "\<not> (a = f a) \<or> \<not>(f a = b) \<or> (a = b)"
+  by (ctxt_tactic "eq_transitive")
+
+lemma eq_transitive_4: "\<not> (a = f a) \<or> \<not>(f a = b) \<or> \<not>(f a = a) \<or> (a = a)"
+  by (ctxt_tactic "eq_transitive")
+
+
+(* Rule 27: eq_congruent *)
+
+lemma eq_congruent_1: "\<not> (a = a) \<or> (a = a)"
+  by (ctxt_tactic "eq_congruent")
+
+lemma eq_congruent_2: "\<not> (a = a) \<or> \<not>(a = b) \<or> (f a a = f a b)"
+  by (ctxt_tactic "eq_congruent")
+
+lemma eq_congruent_3: "\<not> (3 = 2 + (1::int)) \<or> \<not>(c = g b) \<or> ((3 + c) = ((2 + (1::int)) + g b))"
+  by (ctxt_tactic "eq_congruent")
+
+
+(* Rule 28: eq_congruent_pred *)
+
+lemma eq_congruent_pred_1: "\<not> (a = a) \<or> (a = a)"
+  by (ctxt_tactic "eq_congruent_pred")
+
+lemma eq_congruent_pred_2: "\<not> (a = a) \<or> \<not>(a = b) \<or> (P a a = P a b)"
+  by (ctxt_tactic "eq_congruent_pred")
+
+
+
+
+
+(* Rule 30: and *)
+
+lemma and_1:
+  assumes "a \<and> b \<and> c"
+  shows  "a"
+  using assms
+  by (ctxt_tactic "and" "0::int")
+
+lemma and_2:
+  assumes "a \<and> b \<and> c"
+  shows  "c"
+  using assms
+  by (ctxt_tactic "and" "1::int")
+
+lemma and_3:
+  assumes "(a \<and> d) \<and> b \<and> c"
+  shows  "(a \<and> d)"
+  using assms
+  by (ctxt_tactic "and" "0::int")
+
+lemma and_4:
+  assumes "a \<and> b \<and> (c \<and> d)"
+  shows  "c \<and> d"
+  using assms
+  by (ctxt_tactic "and" "2::int")
+
+
+(* Rule 31: not_or *)
+
+lemma not_or_1:
+  assumes "\<not>(a \<or> b \<or> c)"
+  shows  "\<not>a"
+  using assms
+  by (ctxt_tactic "not_or" "0::int")
+
+lemma not_or_2:
+  assumes "\<not>(a)"
+  shows  "\<not>a"
+  using assms
+  by (ctxt_tactic "not_or" "1::int")
+
+lemma not_or_3:
+  assumes "\<not>((a \<or> d) \<or> b \<or> c)"
+  shows  "\<not>(a \<or> d)"
+  using assms
+  by (ctxt_tactic "not_or" "0::int")
+
+lemma not_or_4:
+  assumes "\<not>(a \<or> b \<or> (c \<or> d))"
+  shows  "\<not>(c \<or> d)"
+  using assms
+  by (ctxt_tactic "not_or" "2::int")
+
+lemma not_or_5:
+  assumes "\<not>(a \<or> b \<or> \<not>(c \<or> d))"
+  shows  "\<not>(\<not>(c \<or> d))"
+  using assms
+  by (ctxt_tactic "not_or" "2::int")
+
+
+(* Rule 32: or *)
+
+lemma or_1:
+  assumes "(a \<or> b \<or> c)"
+  shows  "(a \<or> b \<or> c)"
+  using assms
+  by (ctxt_tactic "or")
+
+lemma or_2:
+  assumes "(a)"
+  shows  "a"
+  using assms
+  by (ctxt_tactic "or")
+
+lemma or_3:
+  assumes "((a \<or> d) \<or> b \<or> c)"
+  shows  "(a \<or> d) \<or> b \<or> c"
+  using assms
+  by (ctxt_tactic "or" "0::int")
+
+
 (* Rule 33: weakening *)
 (*TODO: Add rule*)
 
