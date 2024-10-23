@@ -7,53 +7,62 @@ Proof method for replaying veriT proofs.
 signature ALETHE_REPLAY_METHODS =
 sig
 
-
+  (*
+  TODO possibly add:
+   Add Weakening
+   xor1, xor2, not_xor1, not_xor2
+   xor_pos1, xor_pos2, xor_neg1, xor_neg2
+   div_simplify
+   let, bind_let
+   nary_elim
+   eq_symmetric
+  *)
   datatype alethe_rule =
-     False | True |
-
-     (*input: a repeated (normalized) assumption of  assumption of in a subproof*)
-     Normalized_Input | Local_Input |
-     (*Subproof:*)
-     Subproof |
-     (*Conjunction:*)
-     And | Not_And | And_Pos | And_Neg |
-     (*Disjunction""*)
-     Or | Or_Pos | Not_Or | Or_Neg |
-     (*Disjunction:*)
-     Implies | Implies_Neg1 | Implies_Neg2 | Implies_Pos | Not_Implies1 | Not_Implies2 |
-     (*Equivalence:*)
-     Equiv_neg1 | Equiv_pos1 | Equiv_pos2 | Equiv_neg2 | Not_Equiv1 | Not_Equiv2 | Equiv1 | Equiv2 |
-     (*If-then-else:*)
-     ITE_Pos1 | ITE_Pos2 | ITE_Neg1 | ITE_Neg2 | Not_ITE1 | Not_ITE2 | ITE_Intro | ITE1 | ITE2 |
-     (*Equality:*)
-     Eq_Congruent | Eq_Reflexive | Eq_Transitive | Eq_Congruent_Pred | Trans |  Refl |  Cong |
-     (*Arithmetics:*)
-     LA_Disequality | LA_Generic | LA_Tautology |  LIA_Generic | LA_Totality | LA_RW_Eq |
-     NLA_Generic | LA_Mult_Pos | LA_Mult_Neg |
-     (*Quantifiers:*)
-     Forall_Inst | Qnt_Rm_Unused | Qnt_Join | Onepoint | Bind | Sko_Forall | Sko_Ex |
-     (*Resolution:*)
-     Theory_Resolution | Resolution |
-     (*Temporary rules, that the verit developers want to remove:*)
-     AC_Simp |
-     Bfun_Elim |
-     Qnt_CNF |
-     (*Used to introduce skolem constants*)
-     Definition |
-     (*Former cong rules*)
-     Bool_Simplify | Or_Simplify | Not_Simplify | And_Simplify | Equiv_Simplify |
-     Implies_Simplify | Connective_Def | Minus_Simplify | Unary_Minus_Simplify | Comp_Simplify |
-     Eq_Simplify | ITE_Simplify | Sum_Simplify | Prod_Simplify | All_Simplify | RARE_Rewrite |
-     Qnt_Simplify | Not_Not | Tautological_Clause | Duplicate_Literals | Distinct_Elim |
-     (*Unsupported rule*)
-     Unsupported |
-     (*For compression*)
-     Theory_Resolution2 |
-     (*Extended rules*)
-     Symm | Not_Symm | Reordering | Tmp_Quantifier_Simplify |
-     (*CVC5 to support new rules declared later (like BV rules)*)
-     Other_Rule of string |
-     Hole
+   (*input: a repeated (normalized) assumption of  assumption of in a subproof*)
+   Normalized_Input | Local_Input |
+   (*Used to introduce skolem constants*)
+   Definition |
+   (*Subproof:*)
+   Subproof |
+   (*Quantifiers:*)
+   Forall_Inst | Qnt_Rm_Unused | Qnt_Join | Onepoint | Bind | Sko_Forall | Sko_Ex |
+   (*Boolean Constants*)
+   False | True |
+   (*Conjunction:*)
+   And | Not_And | And_Pos | And_Neg |
+   (*Disjunction""*)
+   Or | Or_Pos | Not_Or | Or_Neg |
+   (*Implication:*)
+   Implies | Implies_Neg1 | Implies_Neg2 | Implies_Pos | Not_Implies1 | Not_Implies2 |
+   (*Equivalence:*)
+   Equiv_neg1 | Equiv_pos1 | Equiv_pos2 | Equiv_neg2 | Not_Equiv1 | Not_Equiv2 | Equiv1 | Equiv2 |
+   (*If-then-else:*)
+   ITE_Pos1 | ITE_Pos2 | ITE_Neg1 | ITE_Neg2 | Not_ITE1 | Not_ITE2 | ITE_Intro | ITE1 | ITE2 |
+   (*Equality:*)
+   Eq_Congruent | Eq_Reflexive | Eq_Transitive | Eq_Congruent_Pred | Trans |  Refl |  Cong |
+   (*Arithmetic:*)
+   LA_Disequality | LA_Generic | LA_Tautology |  LIA_Generic | LA_Totality | LA_RW_Eq |
+   NLA_Generic |  LA_Mult_Pos | LA_Mult_Neg |
+   (*Resolution:*)
+   Theory_Resolution | Resolution |
+   (*Simplification Rules*)
+   Bool_Simplify | Or_Simplify | Not_Simplify | And_Simplify | Equiv_Simplify |
+   Implies_Simplify | Connective_Def | Minus_Simplify | Unary_Minus_Simplify | Comp_Simplify |
+   Eq_Simplify | ITE_Simplify | Sum_Simplify | Prod_Simplify | All_Simplify | RARE_Rewrite |
+   Qnt_Simplify | Not_Not | Tautological_Clause | Duplicate_Literals | Distinct_Elim |
+   (*Extended rules*)
+   Symm | Not_Symm | Reordering | Tmp_Quantifier_Simplify |
+   (*Other Rules*)
+   Other_Rule of string |
+   Hole |
+   (*Temporary rules, that the veriT developers want to remove:*)
+   AC_Simp |
+   Bfun_Elim |
+   Qnt_CNF |
+   (*For compression*)
+   Theory_Resolution2 |
+   (*Unsupported rule*)
+   Unsupported
 
   val requires_subproof_assms : string list -> string -> bool
   val requires_local_input: string list -> string -> bool
@@ -192,17 +201,21 @@ type alethe_tac = Proof.context -> thm list -> term -> thm
 
 
 datatype alethe_rule =
-   False | True |
-
    (*input: a repeated (normalized) assumption of  assumption of in a subproof*)
    Normalized_Input | Local_Input |
+   (*Used to introduce skolem constants*)
+   Definition |
    (*Subproof:*)
    Subproof |
+   (*Quantifiers:*)
+   Forall_Inst | Qnt_Rm_Unused | Qnt_Join | Onepoint | Bind | Sko_Forall | Sko_Ex |
+   (*Boolean Constants*)
+   False | True |
    (*Conjunction:*)
    And | Not_And | And_Pos | And_Neg |
    (*Disjunction""*)
    Or | Or_Pos | Not_Or | Or_Neg |
-   (*Disjunction:*)
+   (*Implication:*)
    Implies | Implies_Neg1 | Implies_Neg2 | Implies_Pos | Not_Implies1 | Not_Implies2 |
    (*Equivalence:*)
    Equiv_neg1 | Equiv_pos1 | Equiv_pos2 | Equiv_neg2 | Not_Equiv1 | Not_Equiv2 | Equiv1 | Equiv2 |
@@ -210,33 +223,31 @@ datatype alethe_rule =
    ITE_Pos1 | ITE_Pos2 | ITE_Neg1 | ITE_Neg2 | Not_ITE1 | Not_ITE2 | ITE_Intro | ITE1 | ITE2 |
    (*Equality:*)
    Eq_Congruent | Eq_Reflexive | Eq_Transitive | Eq_Congruent_Pred | Trans |  Refl |  Cong |
-   (*Arithmetics:*)
+   (*Arithmetic:*)
    LA_Disequality | LA_Generic | LA_Tautology |  LIA_Generic | LA_Totality | LA_RW_Eq |
    NLA_Generic |  LA_Mult_Pos | LA_Mult_Neg |
-   (*Quantifiers:*)
-   Forall_Inst | Qnt_Rm_Unused | Qnt_Join | Onepoint | Bind | Sko_Forall | Sko_Ex |
    (*Resolution:*)
    Theory_Resolution | Resolution |
-   (*Temporary rules, that the verit developpers want to remove:*)
-   AC_Simp |
-   Bfun_Elim |
-   Qnt_CNF |
-   (*Used to introduce skolem constants*)
-   Definition |
-   (*Former cong rules*)
+   (*Simplification Rules*)
    Bool_Simplify | Or_Simplify | Not_Simplify | And_Simplify | Equiv_Simplify |
    Implies_Simplify | Connective_Def | Minus_Simplify | Unary_Minus_Simplify | Comp_Simplify |
    Eq_Simplify | ITE_Simplify | Sum_Simplify | Prod_Simplify | All_Simplify | RARE_Rewrite |
    Qnt_Simplify | Not_Not | Tautological_Clause | Duplicate_Literals | Distinct_Elim |
-   (*Unsupported rule*)
-   Unsupported |
-   (*For compression*)
-   Theory_Resolution2 |
    (*Extended rules*)
    Symm | Not_Symm | Reordering | Tmp_Quantifier_Simplify |
-   (*CVC5*)
+   (*Other Rules*)
    Other_Rule of string |
-   Hole
+   Hole |
+   (*Temporary rules, that the veriT developers want to remove:*)
+   AC_Simp |
+   Bfun_Elim |
+   Qnt_CNF |
+   (*For compression*)
+   Theory_Resolution2 |
+   (*Unsupported rule*)
+   Unsupported
+
+
 
 fun string_of_alethe_rule Bind = "Bind"
   | string_of_alethe_rule Cong = "Cong"
