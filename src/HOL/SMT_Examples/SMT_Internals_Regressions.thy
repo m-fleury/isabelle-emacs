@@ -225,7 +225,7 @@ some errors.
 *)
 
 ML\<open>
-fun get_tac n ctxt _ args = 
+fun get_tac n ctxt prems args = 
 let
   val rule = CVC5_Replay_Methods.cvc5_rule_of n
   val rule_name = rule |> Alethe_Replay_Methods.string_of_alethe_rule
@@ -234,7 +234,7 @@ let
   (*FIXME: For some reason this function gets called twice... This definitely should not be necessary*)
   val dummys = Const ("Pure.prop", @{typ "prop \<Rightarrow> prop"}) $ (Const ("Pure.term", @{typ "prop \<Rightarrow> prop"}) $ Const ("Pure.dummy_pattern", @{typ "prop"}))
 
-  val prems=[]
+  val prems=prems
   val step_args=[]
   val context_args=[]
   val args= (if rule_name = "and_pos" andalso Option.isSome args
@@ -489,9 +489,45 @@ lemma equiv_neg2_3: "((a = d) = (b = c)) \<or> (a = d) \<or> (b = c)"
 lemma equiv_neg2_4: "((\<not>a) = b) \<or> \<not>a \<or> b"
   by (ctxt_tactic "equiv_neg2")
 
-(* Rule 62: ite1 TODO *)
-(* Rule 63: ite2 TODO *)
+(* Rule 62: ite1 *)
 
+lemma ite1_1: 
+  assumes "(If a b c)"
+  shows "a \<or> c"
+  using assms
+  by (ctxt_tactic "ite1")
+
+lemma ite1_2: 
+  assumes "(If (If e d f) b c)"
+  shows "(If e d f) \<or> c"
+  using assms
+  by (ctxt_tactic "ite1")
+
+lemma ite1_3: 
+  assumes "(If a b (If e d f))"
+  shows "a \<or> (If e d f)"
+  using assms
+  by (ctxt_tactic "ite1")
+
+(* Rule 63: ite2 *)
+
+lemma ite2_1: 
+  assumes "(If a b c)"
+  shows "\<not>a \<or> b"
+  using assms
+  by (ctxt_tactic "ite2")
+
+lemma ite2_2: 
+  assumes "(If (If e d f) b c)"
+  shows "\<not>(If e d f) \<or> b"
+  using assms
+  by (ctxt_tactic "ite2")
+
+lemma ite2_3: 
+  assumes "(If a b (If e d f))"
+  shows "\<not>a \<or> b"
+  using assms
+  by (ctxt_tactic "ite2")
 
 (* Rule 64: ite_pos1 *)
 
@@ -520,6 +556,85 @@ lemma ite_pos2_3: "\<not>(If a b (d \<or> c)) \<or> \<not>a \<or> b"
 
 lemma ite_pos2_4: "\<not>(If a (If a b c) (If d b c)) \<or> \<not>a \<or> (If a b c)"
   by (ctxt_tactic "ite_pos2")
+
+(* Rule 66: ite_neg1 *)
+
+lemma ite_neg1_1: "(If a b c) \<or> a \<or> \<not>c"
+  by (ctxt_tactic "ite_neg1")
+
+lemma ite_neg1_2: "(If a b (a \<or> c)) \<or> a \<or> \<not>(a \<or> c)"
+  by (ctxt_tactic "ite_neg1")
+
+lemma ite_neg1_3: "(If a b (d \<or> c)) \<or> a \<or> \<not>(d \<or> c)"
+  by (ctxt_tactic "ite_neg1")
+
+lemma ite_neg1_4: "(If a (If a b c) (If d b c)) \<or> a \<or> \<not>(If d b c)"
+  by (ctxt_tactic "ite_neg1")
+
+(* Rule 67: ite_neg2 *)
+
+lemma ite_neg2_1: "(If a b c) \<or> \<not>a \<or> \<not>b"
+  by (ctxt_tactic "ite_neg2")
+
+lemma ite_neg2_2: "(If a b (a \<or> c)) \<or> \<not>a \<or> \<not>b"
+  by (ctxt_tactic "ite_neg2")
+
+lemma ite_neg2_3: "(If a (d \<or> c)  b) \<or> \<not>a \<or> \<not>(d \<or> c)"
+  by (ctxt_tactic "ite_neg2")
+
+lemma ite_neg2_4: "(If a (If a b c) (If d b c)) \<or> \<not>a \<or> \<not>(If a b c)"
+  by (ctxt_tactic "ite_neg2")
+
+(* Rule 70: connective_def *)
+
+lemma connective_def_1: "\<not>(a = b) = ((\<not>a \<and> b) \<or> (a \<and> \<not>b))"
+  by (ctxt_tactic "connective_def")
+
+lemma connective_def_2: "\<not>((a = c) = b) = ((\<not>(a = c) \<and> b) \<or> ((a = c) \<and> \<not>b))"
+  by (ctxt_tactic "connective_def")
+
+lemma connective_def_3: "(a = b) = ((a \<longrightarrow> b) \<and> (b \<longrightarrow> a))"
+  by (ctxt_tactic "connective_def")
+
+lemma connective_def_4: "(If a b c) = ((a \<longrightarrow> b) \<and> (\<not>a \<longrightarrow> c))"
+  by (ctxt_tactic "connective_def")
+
+lemma connective_def_5: "(\<forall>x. y) = (\<not>(\<exists>x. \<not>y))"
+  by (ctxt_tactic "connective_def")
+
+lemma connective_def_6: "(\<forall>x. x \<and> a) = (\<not>(\<exists>x. \<not>(x \<and> a)))"
+  by (ctxt_tactic "connective_def")
+
+lemma connective_def_7: "(\<forall>x y. x \<and> y) = (\<not>(\<exists>x y. \<not>(x \<and> y)))"
+  by (ctxt_tactic "connective_def")
+
+(* Rule 71: and_simplify *)
+
+lemma and_simplify_1: "(True \<and> True) = True"
+  by (ctxt_tactic "and_simplify")
+
+lemma and_simplify_2: "(True \<and> a) = a"
+  by (ctxt_tactic "and_simplify")
+
+lemma and_simplify_3: "(True \<and> a \<and> False) = False"
+  by (ctxt_tactic "and_simplify")
+
+lemma and_simplify_4: "(True \<and> \<not>\<not>a \<and> b \<and> \<not>\<not>\<not>a) = False"
+  by (ctxt_tactic "and_simplify")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
