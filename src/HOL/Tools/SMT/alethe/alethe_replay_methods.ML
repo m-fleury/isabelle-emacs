@@ -184,24 +184,8 @@ type alethe_tac_args = Proof.context -> thm list -> term -> Alethe_Node.tactic_a
 type alethe_tac_context_args_and_arg = Proof.context -> thm list -> term list -> term -> Alethe_Node.tactic_args option -> thm
 type alethe_tac = Proof.context -> thm list -> term -> thm
 
-(*Some general comments on the proof format:
-  1. Double negations are not always removed. This means for example that the equivalence rules
-     cannot assume that the double negations have already been removed. Therefore, we match the
-     term, instantiate the theorem, then use simp (to remove double negations), and finally use
-     assumption.
-  2. The reconstruction for rule forall_inst is buggy and tends to be very fragile, because the rule
-     is doing much more that is supposed to do. Moreover types can make trivial goals (for the
-     boolean structure) impossible to prove.
-  3. Duplicate literals are sometimes removed, mostly by the SAT solver.
-
-  Rules unsupported on purpose:
-    * Distinct_Elim, XOR, let (we don't need them).
-    * deep_skolemize (because it is not clear if verit still generates using it).
-*)
-
-
 datatype alethe_rule =
-   (*input: a repeated (normalized) assumption of  assumption of in a subproof*)
+   (*normalized_input: a repeated (normalized) assumption of  assumption of in a subproof*)
    Normalized_Input | Local_Input |
    (*Used to introduce skolem constants*)
    Definition |
@@ -395,6 +379,11 @@ fun print_alethe_tac context =
 
 
 (** Tactics for Reconstruction **)
+(* General Notes:
+t is usually the goal as a term
+prems are usually the premises of the rule as a list of theorems
+*)
+
 fun replay_error ctxt msg rule thms args t =
   SMT_Replay_Methods.replay_error ctxt msg (string_of_alethe_rule rule) thms args t
 
@@ -849,11 +838,7 @@ fun is_same_assms_eq_ac (Abs (_, _,  u)) (Abs (_, _, u')) =
 
 fun normalized_input ctxt prems t = 
   let
-    (*val _ = @{print}("prems",prems)
-    val _ = @{print}("t",t)*)
-
-    (*Fuer externe Problem (bei denen wir nicht wissen welche assumption zu welcher assertion gehoert)
-    *)
+    (* External problems only: Retrieve correct assertion for this assume *)
     val all_assms = SMT_Config.alethe_no_provided_assms ctxt
     val termify = Thm.prop_of #> (fn x=> single (0, x)) #> SMT_Translate.eta_expand ctxt Termtab.empty #> hd #> snd
     fun matched_assm () =
@@ -863,12 +848,10 @@ fun normalized_input ctxt prems t =
     val prems = (if all_assms then matched_assm () else prems)
   in
     (SMT_Replay_Methods.prove ctxt t (fn _ =>
-      (*Skip_Proof.cheat_tac ctxt*)
       Method.insert_tac ctxt prems
-      (*THEN' (K (print_tac ctxt ("normalized input XX0")))*)
       THEN' TRY' (K (unfold_tac ctxt @{thms SMT.trigger_def}))
       THEN' TRY' (partial_simplify_tac ctxt @{thms eq_commute})
-      (*THEN' (K (print_tac ctxt ("normalized input XX10")))*)))
+    ))
 end
 
 val false_rule_thm = @{lemma \<open>\<not>False\<close> by blast}
