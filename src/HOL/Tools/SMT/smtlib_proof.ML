@@ -138,6 +138,7 @@ fun core_term_parser (SMTLIB.Sym "true", _) = SOME \<^Const>\<open>True\<close>
         val T = fastype_of t2
         val c = Const (\<^const_name>\<open>HOL.If\<close>, [\<^typ>\<open>HOL.bool\<close>, T, T] ---> T)
       in SOME (c $ t1 $ t2 $ t3) end
+  | core_term_parser (SMTLIB.Sym "distinct", [_]) = SOME \<^Const>\<open>True\<close> (*Not in SMT-LIB but supported in Alethe*)
   | core_term_parser (SMTLIB.Sym "distinct", ts) = (pairwise' (HOLogic.mk_eq #> HOLogic.mk_not) ts)
   | core_term_parser (SMTLIB.Num i, []) = SOME (HOLogic.mk_number \<^typ>\<open>Int.int\<close> i)
   | core_term_parser (SMTLIB.BVNum _, []) = NONE
@@ -227,8 +228,13 @@ fun normalize_external ctxt raw_name =
   if Config.get ctxt SMT_Config.check_external andalso Char.isUpper (hd ( String.explode raw_name))
   then ("isabelle_internal_" ^ raw_name) else raw_name
 fun normalize_external2 ctxt (raw_name,(a,b)) =
-  if Config.get ctxt SMT_Config.check_external andalso Char.isUpper (hd ( String.explode raw_name))
-  then ("isabelle_internal_" ^ raw_name,("isabelle_internal_" ^ a,b)) else (raw_name,(a,b))
+let
+val temp = String.implode (tl ( String.explode raw_name))
+in
+  if Config.get ctxt SMT_Config.check_external andalso (Char.isUpper (hd ( String.explode raw_name))
+orelse (String.isSuffix raw_name "?" andalso Char.isUpper (hd (tl ( String.explode raw_name)))))
+  then ("isabelle_internal_" ^ raw_name,("isabelle_internal_" ^ raw_name,b)) else (raw_name,(a,b))
+end
 
 fun parse_term t ts cx =
   (case apply_parsers (get_term_parsers (ctxt_of cx)) (t, ts) of
@@ -300,7 +306,7 @@ and quant q vars body cx =
   let
     val vs = map (dest_var cx) vars
     val ctxt = #ctxt cx
-    val vs = map (normalize_external2 ctxt) vs
+    val vs = map (normalize_external2 ctxt) vs |> @{print}
   in
     cx
     |> with_bindings (map (apsnd (Term o Free)) vs) (term_of (dest_body body))
