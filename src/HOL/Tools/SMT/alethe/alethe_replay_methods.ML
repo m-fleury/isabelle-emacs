@@ -40,6 +40,8 @@ sig
    ITE_Pos1 | ITE_Pos2 | ITE_Neg1 | ITE_Neg2 | Not_ITE1 | Not_ITE2 | ITE_Intro | ITE1 | ITE2 |
    (*Equality:*)
    Eq_Congruent | Eq_Reflexive | Eq_Transitive | Eq_Congruent_Pred | Trans |  Refl |  Cong |
+   (*xor:*)
+   Xor_Pos1 | Xor_Pos2 | Xor_Neg1 | Xor_Neg2 | Xor1 | Xor2 | Not_Xor1  | Not_Xor2 |
    (*Arithmetic:*)
    LA_Disequality | LA_Generic | LA_Tautology |  LIA_Generic | LA_Totality | LA_RW_Eq |
    NLA_Generic |  LA_Mult_Pos | LA_Mult_Neg |
@@ -102,6 +104,14 @@ sig
   val equiv_neg2: alethe_tac
   val equiv_pos1: alethe_tac
   val equiv_pos2: alethe_tac
+  val xor_pos1: alethe_tac
+  val xor_pos2: alethe_tac
+  val xor_neg1: alethe_tac
+  val xor_neg2: alethe_tac
+  val xor1: alethe_tac
+  val xor2: alethe_tac
+  val not_xor1: alethe_tac
+  val not_xor2: alethe_tac
   val false_rule: alethe_tac
   val forall_inst: alethe_tac_args
   val implies_rules: alethe_tac
@@ -207,6 +217,8 @@ datatype alethe_rule =
    ITE_Pos1 | ITE_Pos2 | ITE_Neg1 | ITE_Neg2 | Not_ITE1 | Not_ITE2 | ITE_Intro | ITE1 | ITE2 |
    (*Equality:*)
    Eq_Congruent | Eq_Reflexive | Eq_Transitive | Eq_Congruent_Pred | Trans |  Refl |  Cong |
+   (*xor:*)
+   Xor_Pos1 | Xor_Pos2 | Xor_Neg1 | Xor_Neg2 | Xor1 | Xor2 | Not_Xor1  | Not_Xor2 |
    (*Arithmetic:*)
    LA_Disequality | LA_Generic | LA_Tautology |  LIA_Generic | LA_Totality | LA_RW_Eq |
    NLA_Generic |  LA_Mult_Pos | LA_Mult_Neg |
@@ -263,6 +275,14 @@ fun string_of_alethe_rule Bind = "Bind"
   | string_of_alethe_rule AC_Simp = "ac_simp"
   | string_of_alethe_rule Not_Equiv1 = "not_equiv1"
   | string_of_alethe_rule Not_Equiv2 = "not_equiv2"
+  | string_of_alethe_rule Xor_Pos1 = "xor_pos1"
+  | string_of_alethe_rule Xor_Pos2 = "xor_pos2"
+  | string_of_alethe_rule Xor_Neg1 = "xor_neg1"
+  | string_of_alethe_rule Xor_Neg2 = "xor_neg2"
+  | string_of_alethe_rule Xor1 = "xor1"
+  | string_of_alethe_rule Xor2 = "xor2"
+  | string_of_alethe_rule Not_Xor1 = "not_xor1"
+  | string_of_alethe_rule Not_Xor2 = "not_xor2"
   | string_of_alethe_rule Not_Implies1 = "not_implies1"
   | string_of_alethe_rule Not_Implies2 = "not_implies2"
   | string_of_alethe_rule Implies_Neg1 = "implies_neg1"
@@ -1019,6 +1039,49 @@ val equiv_neg1 = prove_equiv_pos_neg2 equiv_neg1_thm
 
 val equiv_neg2_thm = @{lemma \<open>(a \<longleftrightarrow> b) \<or> a \<or> b\<close> by blast}
 val equiv_neg2 = prove_equiv_pos_neg2 equiv_neg2_thm
+
+end
+
+(* xor Transformation *)
+local
+ fun prove_xor xor_thm ctxt [thm] t = SMT_Replay_Methods.prove ctxt t (fn _ =>
+        Method.insert_tac ctxt [xor_thm OF [thm]]
+        THEN' TRY' (assume_tac ctxt))
+    | prove_xor _ ctxt thms t = replay_error ctxt "invalid application in some xor rule" Unsupported thms [] t
+in
+
+val xor1_thm = @{lemma \<open>\<not>(a = b) \<Longrightarrow> a \<or> b\<close> by blast}
+val xor1 = prove_xor xor1_thm
+
+val xor2_thm = @{lemma \<open>\<not>(a = b) \<Longrightarrow> \<not>a \<or> \<not>b\<close> by blast}
+val xor2 = prove_xor xor2_thm
+
+val not_xor1_thm = @{lemma \<open>\<not>(\<not>(a = b)) \<Longrightarrow> a \<or> \<not>b\<close> by blast}
+val not_xor1 = prove_xor not_xor1_thm
+
+val not_xor2_thm = @{lemma \<open>\<not>(\<not>(a = b)) \<Longrightarrow> \<not>a \<or> b\<close> by blast}
+val not_xor2 = prove_xor not_xor2_thm
+
+end
+
+
+(* xor Lemma *)
+local
+  fun prove_xor thm ctxt _ t =
+    SMT_Replay_Methods.match_instantiate ctxt t thm
+in
+
+val xor_pos1_thm = @{lemma \<open>\<not>(\<not>(a = b)) \<or> a \<or> b\<close> by blast}
+val xor_pos1 = prove_xor xor_pos1_thm
+
+val xor_pos2_thm = @{lemma \<open>\<not>(\<not>(a = b)) \<or> \<not>a \<or> \<not>b\<close> by blast}
+val xor_pos2 = prove_xor xor_pos2_thm
+
+val xor_neg1_thm = @{lemma \<open>\<not>(a = b) \<or> a \<or> \<not>b\<close> by blast}
+val xor_neg1 = prove_xor xor_neg1_thm
+
+val xor_neg2_thm = @{lemma \<open>\<not>(a = b) \<or> \<not>a \<or> b\<close> by blast}
+val xor_neg2 = prove_xor xor_neg2_thm
 
 end
 

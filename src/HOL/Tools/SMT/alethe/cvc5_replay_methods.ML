@@ -57,6 +57,14 @@ fun cvc5_rule_of "bind" = Bind
   | cvc5_rule_of "not_equiv2" = Not_Equiv2
   | cvc5_rule_of "not_implies1" = Not_Implies1
   | cvc5_rule_of "not_implies2" = Not_Implies2
+  | cvc5_rule_of "xor_pos1" = Xor_Pos1
+  | cvc5_rule_of "xor_pos2" = Xor_Pos2
+  | cvc5_rule_of "xor_neg1" = Xor_Neg1
+  | cvc5_rule_of "xor_neg2" = Xor_Neg2
+  | cvc5_rule_of "xor1" = Xor1
+  | cvc5_rule_of "xor2" = Xor2
+  | cvc5_rule_of "not_xor1" = Not_Xor1
+  | cvc5_rule_of "not_xor2" = Not_Xor2
   | cvc5_rule_of "implies_neg1" = Implies_Neg1
   | cvc5_rule_of "implies_neg2" = Implies_Neg2
   | cvc5_rule_of "implies" = Implies
@@ -104,6 +112,7 @@ fun cvc5_rule_of "bind" = Bind
   | cvc5_rule_of "symm" = Symm
   | cvc5_rule_of "not_symm" = Not_Symm
   | cvc5_rule_of "reordering" = Reordering
+  | cvc5_rule_of "distinct_elim" = Distinct_Elim
   | cvc5_rule_of "unary_minus_simplify" = Unary_Minus_Simplify
   | cvc5_rule_of "quantifier_simplify" = Tmp_Quantifier_Simplify (*TODO Remove*)
   | cvc5_rule_of r =
@@ -170,9 +179,9 @@ THEN' assume_tac ctxt))
     THEN' (resolve_tac ctxt @{thms refl})))
 
 
-(* Combining all together *)
+(* Mapping rules to tactics and hide away not needed arguments  *)
 
-(*ctxt thms step_args context_assignment t args*)
+(*arguments are: ctxt thms/prems step_args context_assignment t/goal args*)
 fun ignore_args       f ctxt prems _ _ goal _ = f ctxt prems goal
 fun include_step_args f ctxt prems step_args _ goal _ = f ctxt prems step_args goal
 fun include_context_ass f ctxt prems _ context_ass goal _ = f ctxt prems context_ass goal
@@ -188,6 +197,7 @@ fun choose _ And = ignore_args and_rule
   | choose _ Comp_Simplify = ignore_args rewrite_comp_simplify
   | choose _ Cong = include_args cong
   | choose _ Connective_Def = ignore_args rewrite_connective_def
+  | choose _ Distinct_Elim = ignore_args distinct_elim
   | choose _ Duplicate_Literals = ignore_args duplicate_literals
   | choose _ Eq_Congruent = ignore_args eq_congruent
   | choose _ Eq_Congruent_Pred = ignore_args eq_congruent_pred
@@ -231,6 +241,14 @@ fun choose _ And = ignore_args and_rule
   | choose _ Not_And = ignore_args not_and_rule
   | choose _ Not_Equiv1 = ignore_args not_equiv1
   | choose _ Not_Equiv2 = ignore_args not_equiv2
+  | choose _ Xor_Pos1 = ignore_args xor_pos1
+  | choose _ Xor_Pos2 = ignore_args xor_pos2
+  | choose _ Xor_Neg1 = ignore_args xor_neg1
+  | choose _ Xor_Neg2 = ignore_args xor_neg2
+  | choose _ Xor1 = ignore_args xor1
+  | choose _ Xor2 = ignore_args xor2
+  | choose _ Not_Xor1 = ignore_args not_xor1
+  | choose _ Not_Xor2 = ignore_args not_xor2
   | choose _ Not_Implies1 = ignore_args not_implies1
   | choose _ Not_Implies2 = ignore_args not_implies2
   | choose _ Not_ITE1 = ignore_args not_ite1
