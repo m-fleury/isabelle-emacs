@@ -252,10 +252,36 @@ lemma verit_and_pos2:
   by blast+
 
 lemma verit_or_pos:
-   \<open>A \<and> A' \<Longrightarrow> (c \<and> A) \<or> (\<not>c \<and> A')\<close>
-   \<open>A \<and> A' \<Longrightarrow> (\<not>c \<and> A) \<or> (c \<and> A')\<close>
+  \<open>A \<and> A' \<Longrightarrow> (c \<and> A) \<or> (\<not>c \<and> A')\<close>
+  \<open>A \<and> A' \<Longrightarrow> (\<not>c \<and> A) \<or> (c \<and> A')\<close>
   by blast+
 
+lemma alethe_distinct_elim_two_clauses:
+  "((x::bool) \<noteq> y \<and> x \<noteq> z \<and> y \<noteq> z) = False"
+  apply (cases "x")
+   apply (cases "y")
+  by simp_all
+
+lemma alethe_distinct_elim_0:
+  \<open>(x \<Longrightarrow> \<not>y \<Longrightarrow> \<not>z \<Longrightarrow> ((x \<noteq> a) \<and> A) = False)
+\<Longrightarrow> (\<not>x \<Longrightarrow> y \<Longrightarrow> z \<Longrightarrow> ((x \<noteq> a) \<and> A) = False)
+\<Longrightarrow> (((x \<noteq> y) \<and> (x \<noteq> z) \<and> (x \<noteq> a) \<and> A) = False)\<close>
+  apply (cases x)
+   apply (cases y)
+    apply simp_all
+  apply (cases z)
+  by simp_all
+
+lemma alethe_distinct_elim_1:
+  \<open>((x \<noteq> b) \<and> A) = False \<Longrightarrow> ((x \<noteq> a) \<and> (x \<noteq> b) \<and> A) = False\<close>
+  \<open> A = False \<Longrightarrow> ((x \<noteq> a) \<and> A) = False\<close>
+  \<open>(x = a) \<Longrightarrow> ((x \<noteq> a) \<and> A) = False\<close>
+  by blast+
+
+lemma alethe_distinct_elim_2:
+  \<open>\<not> y \<Longrightarrow> \<not> z \<Longrightarrow> y = z\<close>
+  \<open>y \<Longrightarrow> z \<Longrightarrow> y = z\<close>
+  by blast+
 
 lemma verit_la_generic:
   \<open>(a::int) \<le> x \<or> a = x \<or> a \<ge> x\<close>
