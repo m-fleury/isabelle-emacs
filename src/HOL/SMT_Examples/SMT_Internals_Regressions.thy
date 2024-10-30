@@ -171,7 +171,6 @@ val resTree =
   Raw_Alethe_Node {concl = Sym "false", context_assignments = [], id = "t99", prems = [], rule = "resolution", step_args = [], subproof = []}
 val _ = check_raw_node [testTree] [resTree] true
 
-
 (*Testing step arguments*)
 
 
@@ -214,8 +213,6 @@ val testNode = Alethe_Proof.parse_raw_proof_steps NONE [testTree] SMTLIB_Proof.e
 \<close>
 
 
-
-
 (* Test alethe_replay_methods.ML *)
 (* Important: The context can be different than if a step appears inside a proof! E.g., because
 of subproofs. Any failure should be double checked carefully. Nonetheless, these regressions are useful
@@ -227,7 +224,7 @@ some errors.
 ML\<open>
 fun get_tac n ctxt prems args = 
 let
-  val rule = CVC5_Replay_Methods.cvc5_rule_of n
+  val rule = CVC5_Replay_Methods.cvc5_rule_of n |> @{print}
   val rule_name = rule |> Alethe_Replay_Methods.string_of_alethe_rule
   val _ = @{print}("Found tactic (if it is rare-rewrite there might be a typo in the input string)", rule_name)
 
@@ -266,6 +263,80 @@ val _ =
  "testing tactics <name> ([<args>*])  ")
 \<close>
 
+(* Rule 1: assume *)
+
+lemma normalized_input_1:
+  assumes "a"
+  shows "a"
+  using assms
+  by (ctxt_tactic "__normalized_input")
+
+lemma normalized_input_2:
+  assumes "a \<and> (b \<or> c)"
+  shows "a \<and> (b \<or> c)"
+  using assms
+  by (ctxt_tactic "__normalized_input")
+
+lemma normalized_input_3:
+  assumes "a \<and> a"
+  shows "a \<and> a"
+  using assms
+  by (ctxt_tactic "__normalized_input")
+
+lemma normalized_input_4:
+  assumes "(\<forall>a. a = (3::int))"
+  shows "(\<forall>a. a = (3::int))"
+  using assms
+  by (ctxt_tactic "__normalized_input")
+
+lemma local_input_1:
+  assumes "(\<forall>a. a = (3::int))"
+  shows "(\<forall>a. a = (3::int))"
+  using assms
+  by (ctxt_tactic "__local_input")
+
+lemma local_input_2:
+  assumes "a \<and> (b \<or> c)"
+  shows "a \<and> (b \<or> c)"
+  using assms
+  by (ctxt_tactic "__local_input")
+
+lemma local_input_3:
+  assumes "a \<and> a"
+  shows "a \<and> a"
+  using assms
+  by (ctxt_tactic "__local_input")
+
+lemma local_input_4:
+  assumes "(\<forall>a. a = (3::int))"
+  shows "(\<forall>a. a = (3::int))"
+  using assms
+  by (ctxt_tactic "__local_input")
+
+(* Rule 2: hole *)
+
+(* No checking necessary*)
+
+(* Rule 3: true*)
+
+lemma true_1: "\<top>"
+  by (ctxt_tactic "true")
+
+(* Rule 4: false*)
+
+lemma false_2: "\<not>\<bottom>"
+  by (ctxt_tactic "false_rule")
+
+(* Rule 5: not_not*)
+
+lemma not_not_1: "\<not>\<not>\<not>a \<or> a"
+  by (ctxt_tactic "not_not")
+
+lemma not_not_2: "\<not>\<not>\<not>\<not>a \<or> \<not>a"
+  by (ctxt_tactic "not_not")
+
+lemma not_not_3: "\<not>\<not>\<not>(\<not>a \<or> b) \<or> (\<not>a \<or> b)"
+  by (ctxt_tactic "not_not")
 
 
 (* Rule 23: trans *)
@@ -1216,8 +1287,36 @@ lemma and_simplify_4: "(True \<and> \<not>\<not>a \<and> b \<and> \<not>\<not>\<
   by (ctxt_tactic "and_simplify")
 
 
+(* Rule 92: distinct_elim *)
 
+lemma distinct_elim_1: "(x \<noteq> y) = (x \<noteq> y)"
+  by (ctxt_tactic "distinct_elim")
 
+lemma distinct_elim_2: "(((x::bool) \<noteq> y) \<and> ((x::bool) \<noteq> z) \<and> ((y::bool) \<noteq> z)) = False"
+  by (ctxt_tactic "distinct_elim")
+
+lemma distinct_elim_3: "(((x::int) \<noteq> y) \<and> ((x::int) \<noteq> z) \<and> ((y::int) \<noteq> z)) = (((x::int) \<noteq> y) \<and> ((x::int) \<noteq> z) \<and> ((y::int) \<noteq> z))"
+  by (ctxt_tactic "distinct_elim")
+
+lemma distinct_elim_4: "(((x::bool) \<noteq> y) \<and> ((x::bool) \<noteq> z) \<and> ((x::bool) \<noteq> a) \<and> ((y::bool) \<noteq> z) \<and> ((y::bool) \<noteq> a) \<and> ((z::bool) \<noteq> a)) = False"
+  by (ctxt_tactic "distinct_elim")
+
+lemma distinct_elim_5:
+  "(((x::bool) \<noteq> y) \<and> ((x::bool) \<noteq> z) \<and> ((x::bool) \<noteq> a) \<and> ((x::bool) \<noteq> b)
+ \<and> ((y::bool) \<noteq> z) \<and> ((y::bool) \<noteq> a) \<and> ((y::bool) \<noteq> b)
+ \<and> ((z::bool) \<noteq> a) \<and> ((z::bool) \<noteq> b)
+ \<and> ((a::bool) \<noteq> b)
+ ) = False"
+  by (ctxt_tactic "distinct_elim")
+
+lemma distinct_elim_6:
+  "(((x::bool) \<noteq> y) \<and> ((x::bool) \<noteq> z) \<and> ((x::bool) \<noteq> a) \<and> ((x::bool) \<noteq> b) \<and> ((x::bool) \<noteq> c)
+ \<and> ((y::bool) \<noteq> z) \<and> ((y::bool) \<noteq> a) \<and> ((y::bool) \<noteq> b) \<and> ((y::bool) \<noteq> c)
+ \<and> ((z::bool) \<noteq> a) \<and> ((z::bool) \<noteq> b) \<and> ((z::bool) \<noteq> c)
+ \<and> ((a::bool) \<noteq> b) \<and> ((a::bool) \<noteq> c)
+ \<and> ((b::bool) \<noteq> c)
+ ) = False"
+  by (ctxt_tactic "distinct_elim")
 
 
 
