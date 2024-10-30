@@ -45,9 +45,9 @@ sig
 
   (*Some arbitrary additional identifers for rules for internal use*)
   val input_rule: string
-  val normalized_input_rule: string
+  val normalized_input_rule: string (*top-level assume*)
+  val local_input_rule : string (*assume in subproof*)
   val rewrite_rule : string
-  val local_input_rule : string
   val skolem_def : string
   val theory_resolution2_rule: string
 
@@ -661,9 +661,10 @@ fun postprocess_proof compress ctxt step cx =
             if member (op =) index_rules r
             then
             let
-              val [SMTLIB.Num k] = step_args
+              fun get_index [SMTLIB.Num k] = SOME (Index k) |
+              get_index _ = NONE
             in
-              SOME (Index k)
+              get_index step_args
             end
             else NONE
 
