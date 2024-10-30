@@ -815,11 +815,7 @@ fun theory_resolution2 ctxt prems t =
 
 end
 
-
-fun distinct_elim ctxt prems t = (*TODO*)
-    SMT_Replay_Methods.prove ctxt t (fn _ => resolve_tac ctxt @{thms refl})
-
-(*TODO: Roll back once Mathias supports this*)
+(*TODO: Check if this is still needed*)
 (*Modulo implicit reordering*)
 fun is_same_assms_eq_ac (Abs (_, _,  u)) (Abs (_, _, u')) = 
      is_same_assms_eq_ac u u' (*the name cannot be relevant due to implicit eta-contraction*)
@@ -845,7 +841,7 @@ fun normalized_input ctxt prems t =
       (case find_first (is_same_assms_eq_ac t o termify) prems of
         SOME thm => [thm]
       | NONE => [])
-    val prems = (if all_assms then matched_assm () else prems)
+    val prems = (if all_assms then matched_assm () else prems) |> @{print}
   in
     (SMT_Replay_Methods.prove ctxt t (fn _ =>
       Method.insert_tac ctxt prems
@@ -1042,6 +1038,31 @@ local
         THEN' TRY' (assume_tac ctxt))
     end
 in
+
+
+fun distinct_elim ctxt _ t =
+let
+  fun extract_clauses thm =
+    REPEAT_CHANGED (resolve_tac ctxt @{thms alethe_distinct_elim_1(1)})
+    THEN' (resolve_tac ctxt @{thms alethe_distinct_elim_1(2)})
+    THEN' (resolve_tac ctxt @{thms alethe_distinct_elim_1(3)})
+    THEN' (match_tac ctxt thm)
+    THEN' (REPEAT_DETERM_N' 2 (assume_tac ctxt))
+in
+  SMT_Replay_Methods.prove ctxt t (fn _ =>
+     TRY'(
+      (resolve_tac ctxt @{thms alethe_distinct_elim_two_clauses})
+      ORELSE'
+      (resolve_tac ctxt @{thms alethe_distinct_elim_0}
+      THEN' (extract_clauses @{thms alethe_distinct_elim_2(1)})
+      THEN' (extract_clauses @{thms alethe_distinct_elim_2(2)})
+     )
+    )
+    THEN' TRY' (resolve_tac ctxt @{thms refl})
+  )
+end
+
+
 
 val implies_neg1_thm = @{lemma \<open>(a \<longrightarrow> b) \<or> a\<close> by blast}
 val implies_neg1  = prove_implies_pos_neg implies_neg1_thm
