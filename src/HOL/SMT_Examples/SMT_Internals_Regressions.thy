@@ -226,7 +226,7 @@ fun get_tac n ctxt prems args =
 let
   val rule = CVC5_Replay_Methods.cvc5_rule_of n |> @{print}
   val rule_name = rule |> Alethe_Replay_Methods.string_of_alethe_rule
-  val _ = @{print}("Found tactic (if it is rare-rewrite there might be a typo in the input string)", rule_name)
+  val _ = @{print}("Found tactic", rule_name)
 
   (*FIXME: For some reason this function gets called twice... This definitely should not be necessary*)
   val dummys = Const ("Pure.prop", @{typ "prop \<Rightarrow> prop"}) $ (Const ("Pure.term", @{typ "prop \<Rightarrow> prop"}) $ Const ("Pure.dummy_pattern", @{typ "prop"}))
@@ -587,7 +587,6 @@ lemma not_and_5:
 
 
 (* Rule 36: xor1 *)
-(*TODO: Add rule*)
 
 lemma xor1_1: 
   assumes "\<not>(a = b)"
@@ -615,7 +614,6 @@ lemma xor1_4:
 
 
 (* Rule 37: xor2 *)
-(*TODO: Add rule*)
 
 lemma xor2_1: 
   assumes "\<not>(a = b)"
@@ -637,13 +635,12 @@ lemma xor2_3:
 
 lemma xor2_4:
   assumes "\<not>((\<not>(a = b)) = (\<not>(b = c)))"
-  shows  "(\<not>(a \<longrightarrow> b)) \<or> (\<not>(b \<longrightarrow> c))"
+  shows  "\<not>(\<not>(a = b)) \<or> \<not>(\<not>(b = c))"
   using assms
   by (ctxt_tactic "xor2")
 
 
 (* Rule 38: not_xor1 *)
-(*TODO: Add rule*)
 
 lemma not_xor1_1: 
   assumes "\<not>(\<not>(a = b))"
@@ -665,14 +662,12 @@ lemma not_xor1_3:
 
 lemma not_xor1_4:
   assumes "\<not>(\<not>((\<not>(a = b)) = (\<not>(b = c))))"
-  shows  "(\<not>(a \<longrightarrow> b)) \<or> (\<not>(\<not>(b \<longrightarrow> c)))"
+  shows  "(\<not>(a = b)) \<or> (\<not>(\<not>(b = c)))"
   using assms
   by (ctxt_tactic "not_xor1")
 
 
-
 (* Rule 39: not_xor2 *)
-(*TODO: Add rule*)
 
 lemma not_xor2_1: 
   assumes "\<not>(\<not>(a = b))"
@@ -694,7 +689,7 @@ lemma not_xor2_3:
 
 lemma not_xor2_4:
   assumes "\<not>(\<not>((\<not>(a = b)) = (\<not>(b = c))))"
-  shows  "(\<not>(\<not>(a \<longrightarrow> b))) \<or> (\<not>(b \<longrightarrow> c))"
+  shows  "(\<not>(\<not>(a = b))) \<or> (\<not>(b = c))"
   using assms
   by (ctxt_tactic "not_xor2")
 
@@ -1058,8 +1053,26 @@ lemma xor_pos2_3: "\<not>((a\<and>c) \<noteq> b) \<or> \<not>(a\<and>c) \<or> \<
   by (ctxt_tactic "xor_pos2")
 
 (* Rule 53: xor_neg1 *)
-(* Rule 54: xor_neg1 *)
-(* Currently only supported for bit-vectors TODO: Change this*)
+
+lemma xor_neg1_1: "(a \<noteq> b) \<or> a \<or> \<not>b"
+  by (ctxt_tactic "xor_neg1")
+
+lemma xor_neg1_2: "((a\<or>c) \<noteq> b) \<or> (a\<or>c) \<or> \<not>b"
+  by (ctxt_tactic "xor_neg1")
+
+lemma xor_neg1_3: "(b \<noteq> (a\<and>c)) \<or> b \<or> \<not>(a\<and>c)"
+  by (ctxt_tactic "xor_neg1")
+
+(* Rule 54: xor_neg2 *)
+
+lemma xor_neg2_1: "(a \<noteq> b) \<or> \<not>a \<or> b"
+  by (ctxt_tactic "xor_neg2")
+
+lemma xor_neg2_2: "((a\<or>c) \<noteq> b) \<or> \<not>(a\<or>c) \<or> b"
+  by (ctxt_tactic "xor_neg2")
+
+lemma xor_neg2_3: "(b \<noteq> (a\<and>c)) \<or> \<not>b \<or> (a\<and>c)"
+  by (ctxt_tactic "xor_neg2")
 
 (* Rule 55: implies_pos *)
 
@@ -1249,6 +1262,46 @@ lemma ite_neg2_3: "(If a (d \<or> c)  b) \<or> \<not>a \<or> \<not>(d \<or> c)"
 lemma ite_neg2_4: "(If a (If a b c) (If d b c)) \<or> \<not>a \<or> \<not>(If a b c)"
   by (ctxt_tactic "ite_neg2")
 
+(* Rule 68: not_ite1 *)
+
+lemma not_ite1_1: 
+  assumes "\<not>(If a b c)"
+  shows "a \<or> \<not>c"
+  using assms
+  by (ctxt_tactic "not_ite1")
+
+lemma not_ite1_2: 
+  assumes "\<not>(If (If e d f) b c)"
+  shows "(If e d f) \<or> \<not>c"
+  using assms
+  by (ctxt_tactic "not_ite1")
+
+lemma not_ite1_3: 
+  assumes "\<not>(If a b (If e d f))"
+  shows "a \<or> \<not>(If e d f)"
+  using assms
+  by (ctxt_tactic "not_ite1")
+
+(* Rule 69: not_ite2 *)
+
+lemma not_ite2_1: 
+  assumes "\<not>(If a b c)"
+  shows "\<not>a \<or> \<not>b"
+  using assms
+  by (ctxt_tactic "not_ite2")
+
+lemma not_ite2_2: 
+  assumes "\<not>(If (If e d f) b c)"
+  shows "\<not>(If e d f) \<or> \<not>b"
+  using assms
+  by (ctxt_tactic "not_ite2")
+
+lemma not_ite2_3: 
+  assumes "\<not>(If a b (If e d f))"
+  shows "\<not>a \<or> \<not>b"
+  using assms
+  by (ctxt_tactic "not_ite2")
+
 (* Rule 70: connective_def *)
 
 lemma connective_def_1: "\<not>(a = b) = ((\<not>a \<and> b) \<or> (a \<and> \<not>b))"
@@ -1286,6 +1339,68 @@ lemma and_simplify_3: "(True \<and> a \<and> False) = False"
 lemma and_simplify_4: "(True \<and> \<not>\<not>a \<and> b \<and> \<not>\<not>\<not>a) = False"
   by (ctxt_tactic "and_simplify")
 
+(* Rule 72: or_simplify *)
+
+lemma or_simplify_1: "(True \<or> True) = True"
+  by (ctxt_tactic "or_simplify")
+
+lemma or_simplify_2: "(True \<or> a) = True"
+  by (ctxt_tactic "or_simplify")
+
+lemma or_simplify_3: "(True \<or> a \<or> False) = True"
+  by (ctxt_tactic "or_simplify")
+
+lemma or_simplify_4: "(False \<or> \<not>\<not>a \<or> b \<or> \<not>\<not>\<not>a) = True"
+  by (ctxt_tactic "or_simplify")
+
+(* Rule 73: not_simplify *)
+
+lemma not_simplify_1: "\<not>False = True"
+  by (ctxt_tactic "not_simplify")
+
+lemma not_simplify_2: "\<not>True = False"
+  by (ctxt_tactic "not_simplify")
+
+lemma not_simplify_3: "\<not>\<not>a = a"
+  by (ctxt_tactic "not_simplify")
+
+lemma not_simplify_4: "\<not>\<not>\<not>a = (\<not>a)"
+  by (ctxt_tactic "not_simplify")
+
+lemma not_simplify_5: "\<not>\<not>\<not>True = False"
+  by (ctxt_tactic "not_simplify")
+
+lemma not_simplify_6: "\<not>\<not>\<not>False = True"
+  by (ctxt_tactic "not_simplify")
+
+(* Rule 74: implies_simplify *)
+
+lemma implies_simplify_1: "\<not>a \<longrightarrow> \<not>b = b \<longrightarrow> a"
+  by (ctxt_tactic "implies_simplify")
+
+lemma implies_simplify_2: "False \<longrightarrow> a = True"
+  by (ctxt_tactic "implies_simplify")
+
+lemma implies_simplify_3: "a \<longrightarrow> True = True"
+  by (ctxt_tactic "implies_simplify")
+
+lemma implies_simplify_4: "True \<longrightarrow> a = a"
+  by (ctxt_tactic "implies_simplify")
+
+lemma implies_simplify_5: "a \<longrightarrow> False = (\<not>a)"
+  by (ctxt_tactic "implies_simplify")
+
+lemma implies_simplify_6: "a \<longrightarrow> a = True"
+  by (ctxt_tactic "implies_simplify")
+
+lemma implies_simplify_7: "\<not>a \<longrightarrow> a = a"
+  by (ctxt_tactic "implies_simplify")
+
+lemma implies_simplify_8: "a \<longrightarrow> \<not>a = (\<not>a)"
+  by (ctxt_tactic "implies_simplify")
+
+lemma implies_simplify_9: "False \<longrightarrow> a \<longrightarrow> \<not>a = False"
+  by (ctxt_tactic "implies_simplify")
 
 (* Rule 92: distinct_elim *)
 
