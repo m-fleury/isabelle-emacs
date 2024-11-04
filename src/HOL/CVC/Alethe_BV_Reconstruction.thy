@@ -482,7 +482,7 @@ lemma
 
 
 
-
+(*
 
 lemma
 fixes xs :: "bool list" and ys :: "bool list" and i::nat and j::nat
@@ -493,7 +493,7 @@ fixes xs :: "bool list" and ys :: "bool list" and i::nat and j::nat
 "
   using assms
   apply (induction i arbitrary: xs ys)
-
+*)
 (*
 
 
@@ -541,7 +541,7 @@ r^1     (x0*y0)   r_1^1                                              is sh^1 + r
 
 
 
-
+(*
 
 
 lemma
@@ -553,7 +553,7 @@ lemma
   apply (case_tac "bit v 0")
     apply simp_all
           
-
+*)
 
 
 

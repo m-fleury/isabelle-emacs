@@ -4693,11 +4693,11 @@ das ist alles im solver.
 lemma "take_bit n x = x - push_bit n (drop_bit n x)"
   using bits_ident[of n x]
   by (metis add_diff_cancel_left')
-
+(*
 lemma "push_bit 3 (7::3 word) = 0"
   supply[[smt_nat_as_int=true]]
   apply (smt (cvc5))
-  oops
+  oops*)
 (*
 
 lemma "push_bit 3 (7::4 word) = 8"
