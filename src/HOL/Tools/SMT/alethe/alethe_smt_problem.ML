@@ -3,6 +3,8 @@
     Author:     Hanna Lachnitt, Stanford University
 
 Parsing smt problems into alethe nodes
+
+For practical reasons using raw_alethe_node but not solver dependent.
 *)
 
 open Alethe_Node
