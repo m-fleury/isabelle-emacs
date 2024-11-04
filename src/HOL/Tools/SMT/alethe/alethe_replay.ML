@@ -451,7 +451,7 @@ fun replay solver method_for outer_ctxt
       (fn () => SMT_Replay.print_stats (Symtab.dest stats)) "spy_cvc"
 
   in
-    CVC5_Replay_Methods.discharge ctxt [thm_with_defs] @{term False}
+    CVC5_Replay_Methods.discharge ctxt [thm_with_defs] @{term False} (*Hier koennte man das aendern sodass die offenen Schritte als neue goals zurueck gegeben werden. E.g, wenn rewrite nicht klappt*)
   end
 
 end
