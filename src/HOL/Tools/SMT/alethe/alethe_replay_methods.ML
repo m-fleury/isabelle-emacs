@@ -1110,18 +1110,20 @@ let
     THEN' (resolve_tac ctxt @{thms alethe_distinct_elim_1(2)})
     THEN' (resolve_tac ctxt @{thms alethe_distinct_elim_1(3)})
     THEN' (match_tac ctxt thm)
-    THEN' (REPEAT_DETERM_N' 2 (assume_tac ctxt))
+    THEN_ALL_NEW (assume_tac ctxt)
 in
   SMT_Replay_Methods.prove ctxt t (fn _ =>
-     TRY'(
+  SOLVED'
+     (TRY'(
       (resolve_tac ctxt @{thms alethe_distinct_elim_two_clauses})
       ORELSE'
       (resolve_tac ctxt @{thms alethe_distinct_elim_0}
-      THEN' (extract_clauses @{thms alethe_distinct_elim_2(1)})
-      THEN' (extract_clauses @{thms alethe_distinct_elim_2(2)})
-     )
+      THEN' (REPEAT_DETERM_N' 2 (extract_clauses @{thms alethe_distinct_elim_2}))
+      )
     )
     THEN' TRY' (resolve_tac ctxt @{thms refl})
+   )
+  ORELSE' (Classical.fast_tac ctxt)
   )
 end
 
