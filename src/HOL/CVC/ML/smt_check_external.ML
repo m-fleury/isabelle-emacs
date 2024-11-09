@@ -41,34 +41,6 @@ let
   val _ =  Proof_Context.export context ctxt [thm]
 in thm end
 
-fun check_smt prover problem_file_name proof_file_name opt_output_file lthy =
-let
-  (*Get problem and proof file*)
-  val ctxt = Local_Theory.target_of lthy
-    |> Config.put SMT_Config.check_external true
-    |> SMT_Config.alethe_set_no_provided_assms true
-
-  val _ =
-    if Option.isSome opt_output_file
-    then
-      let
-        val base_name = problem_file_name |> String.tokens (fn c => c = #"/") |> rev |> hd
-      in
-        File_Stream.open_append
-        (fn stream => File_Stream.outputs stream [base_name ^ ", "])
-        (Path.explode (Option.valOf opt_output_file))
-      end
-    else ()
-
-  val problem_file_path = Path.explode problem_file_name
-  val proof_file_path = Path.explode proof_file_name
-
-  val problem_lines = problem_file_path |> Bytes.read |> Bytes.split_lines;
-  val proof_lines = proof_file_path |> Bytes.read |> Bytes.split_lines;
-
-  val _ = replay_only prover ctxt problem_lines proof_lines opt_output_file
-in lthy end
-
 (*Temporary for evaluation, similarly to spying*)
 fun print_error_to_file ctxt i =
   if Config.get ctxt SMT_Config.rec_evaluation
@@ -90,15 +62,100 @@ fun print_reconstruction_error_to_file ctxt i str =
     ", \"failed_rule\": \"" ^ str ^ "\"}]},\n")
   else ()
 
-fun check_all_benchmarks prover files_dir opt_output_file local_thy =
+fun check_smt prover problem_file_name proof_file_name opt_output_file local_thy =
 let
+
+  (*Get problem and proof file*)
   val ctxt = Local_Theory.target_of local_thy
+    |> Config.put SMT_Config.check_external true
+    |> SMT_Config.alethe_set_no_provided_assms true
 
   (*Temporary for evaluation*)
   val _ =
     if Config.get ctxt SMT_Config.rec_evaluation
     then File.write (Path.explode ("$ISABELLE_HOME_USER/" ^ (Config.get ctxt SMT_Config.statistics_file))) ("")
     else ()
+
+  val _ =
+    if Option.isSome opt_output_file
+    then
+      let
+        val base_name = problem_file_name |> String.tokens (fn c => c = #"/") |> rev |> hd
+      in
+        File_Stream.open_append
+        (fn stream => File_Stream.outputs stream [base_name ^ ", "])
+        (Path.explode (Option.valOf opt_output_file))
+      end
+    else ()
+
+  val problem_file_path = Path.explode problem_file_name
+  val proof_file_path = Path.explode proof_file_name
+  val _ =
+    if Config.get ctxt SMT_Config.rec_evaluation
+    then File.append (Path.explode ("$ISABELLE_HOME_USER/" ^
+      (Config.get ctxt SMT_Config.statistics_file))) ("{\"benchmark_name\": \"" ^ problem_file_name
+      ^ "\", \"checking\": [{\"solver_config\": \"" ^ (Config.get ctxt SMT_Config.statistics_file)
+      ^ "\", \"checking_time\": ")
+    else ()
+
+  val problem_lines = problem_file_path |> Bytes.read |> Bytes.split_lines;
+  val proof_lines = proof_file_path |> Bytes.read |> Bytes.split_lines;
+  val _ = (fn _ => ()) (@{print}("here");())
+ val thm = @{thm TrueE}
+  val _ = (fn () => (replay_only prover ctxt problem_lines proof_lines opt_output_file)) ()
+    handle
+            (*Error Parsing problem*)
+            (SMT_Parse_Problem.SMT_PROBLEM_PARSE(msg))
+            => (if String.isPrefix "command not supported: " msg then
+                  (@{print}("Unsupported SMT-LIB command in problem: " ^ msg , problem_file_name);
+                  print_error_to_file_with_msg ctxt 5 msg; thm)
+                  else
+                (@{print}("Error parsing SMT-LIB problem: " ^ msg , problem_file_name);
+                  print_error_to_file_with_msg ctxt 5 msg; thm)) |
+            (*Error during Parsing into AST*)
+            (SMTLIB.PARSE(l,err))
+              => (@{print}("Error parsing SMTLIB into SMTLIB Tree: " ^ err ^ " in line " ^ Int.toString l , problem_file_name);
+                  print_error_to_file ctxt 5; thm) |
+            (*Errors during Parsing Into term*)
+            (SMTLIB_Proof.SMTLIB_PARSE ("unknown SMT type",t))
+              => (@{print}(("Either theory is not supported or parsing instructions for the type" ^
+                            " are not included in the parser", t), problem_file_name);
+                  print_error_to_file ctxt 2; thm) |
+            (SMTLIB_Proof.SMTLIB_PARSE ("bad SMT term",t))
+              => (@{print}(("Either theory is not supported or parsing instructions for the term" ^
+                            " are not included in the parser", t), problem_file_name);
+                 print_error_to_file ctxt 3; thm) |
+            (SMTLIB_Proof.SMTLIB_PARSE(err,t))
+              => (@{print}(("Unkown error parsing SMTLIB: " ^ err, t), problem_file_name);
+                  print_error_to_file ctxt 4; thm) |
+            (*Errors during Replay*)
+            (SMT_Failure.SMT (SMT_Failure.Replay(rule,ERROR msg)))
+              => (@{print}("Error replaying step" ^ rule ^ " is: " ^ msg);
+                  print_reconstruction_error_to_file ctxt 6 rule; thm) |
+            (SMT_Failure.SMT (SMT_Failure.Replay(rule,INTERRUPT)))
+               => (@{print}("Timeout");
+                  print_reconstruction_error_to_file ctxt 7 rule; thm) |
+            (SMT_Failure.SMT (SMT_Failure.Replay(rule,exn)))
+              => (@{print}("Error replaying step" ^ rule ^ " is: " ^ General.exnMessage exn);
+                  print_reconstruction_error_to_file ctxt 1 rule; thm) |
+            (*Timeout*)
+            (SMT_Failure.SMT SMT_Failure.Time_Out)
+               => (@{print}("Timeout");
+                  print_error_to_file ctxt 7; thm) |
+            (SMT_Failure.SMT err)
+               => (@{print}("Unkown SMT error " ^ SMT_Failure.string_of_failure err, problem_file_name);
+                  print_error_to_file ctxt 5; thm) |
+             (Timeout.TIMEOUT _) => (@{print}("Timeout");
+                  print_error_to_file ctxt 7; thm)
+in local_thy end
+          
+
+
+
+fun check_all_benchmarks prover files_dir opt_output_file local_thy =
+let
+  val ctxt = Local_Theory.target_of local_thy
+
 
   val dir_content = files_dir |> Path.explode |> File.read_dir
   val problems_path = filter (fn filename => String.isSuffix ".smt2" filename) dir_content
@@ -113,13 +170,7 @@ let
     check_all (problem_path::ts) i =
     let
       val _ = SMT_Config.trace_msg ctxt (pretty ("problem" ^problem_path)) []
-      val _ =
-        if Config.get ctxt SMT_Config.rec_evaluation
-        then File.append (Path.explode ("$ISABELLE_HOME_USER/" ^
-            (Config.get ctxt SMT_Config.statistics_file))) ("{\"benchmark_name\": \"" ^ problem_path
-              ^ "\", \"checking\": [{\"solver_config\": \"" ^ (Config.get ctxt SMT_Config.statistics_file)
-              ^ "\", \"checking_time\": ")
-        else ()
+
 
        val problem_path = files_dir ^ problem_path
 
@@ -130,51 +181,7 @@ let
       if Path.explode proof_path |> File.is_file
       then
         let
-          val (_,i) = (Timeout.apply (seconds 30.0) (fn () => check_smt prover problem_path proof_path opt_output_file local_thy) () ,i+1)
-            handle
-            (*Error Parsing problem*)
-            (SMT_Parse_Problem.SMT_PROBLEM_PARSE(msg))
-            => (if String.isPrefix "command not supported: " msg then
-                  (@{print}("Unsupported SMT-LIB command in problem: " ^ msg , problem_path);
-                  print_error_to_file_with_msg ctxt 5 msg; (local_thy,i))
-                  else
-                (@{print}("Error parsing SMT-LIB problem: " ^ msg , problem_path);
-                  print_error_to_file_with_msg ctxt 5 msg; (local_thy,i))) |
-            (*Error during Parsing into AST*)
-            (SMTLIB.PARSE(l,err))
-              => (@{print}("Error parsing SMTLIB into SMTLIB Tree: " ^ err ^ " in line " ^ Int.toString l , problem_path);
-                  print_error_to_file ctxt 5; (local_thy,i)) |
-            (*Errors during Parsing Into term*)
-            (SMTLIB_Proof.SMTLIB_PARSE ("unknown SMT type",t))
-              => (@{print}(("Either theory is not supported or parsing instructions for the type" ^
-                            " are not included in the parser", t), problem_path);
-                  print_error_to_file ctxt 2; (local_thy,i)) |
-            (SMTLIB_Proof.SMTLIB_PARSE ("bad SMT term",t))
-              => (@{print}(("Either theory is not supported or parsing instructions for the term" ^
-                            " are not included in the parser", t), problem_path);
-                 print_error_to_file ctxt 3; (local_thy,i)) |
-            (SMTLIB_Proof.SMTLIB_PARSE(err,t))
-              => (@{print}(("Unkown error parsing SMTLIB: " ^ err, t), problem_path);
-                  print_error_to_file ctxt 4; (local_thy,i)) |
-            (*Errors during Replay*)
-            (SMT_Failure.SMT (SMT_Failure.Replay(rule,ERROR msg)))
-              => (@{print}("Error replaying step" ^ rule ^ " is: " ^ msg);
-                  print_reconstruction_error_to_file ctxt 6 rule; (local_thy,i)) |
-            (SMT_Failure.SMT (SMT_Failure.Replay(rule,INTERRUPT)))
-               => (@{print}("Timeout");
-                  print_reconstruction_error_to_file ctxt 7 rule; (local_thy,i)) |
-            (SMT_Failure.SMT (SMT_Failure.Replay(rule,exn)))
-              => (@{print}("Error replaying step" ^ rule ^ " is: " ^ General.exnMessage exn);
-                  print_reconstruction_error_to_file ctxt 1 rule; (local_thy,i)) |
-            (*Timeout*)
-            (SMT_Failure.SMT SMT_Failure.Time_Out)
-               => (@{print}("Timeout");
-                  print_error_to_file ctxt 7; (local_thy,i)) |
-            (SMT_Failure.SMT err)
-               => (@{print}("Unkown SMT error " ^ SMT_Failure.string_of_failure err, problem_path);
-                  print_error_to_file ctxt 5; (local_thy,i)) |
-             (Timeout.TIMEOUT _) => (@{print}("Timeout");
-                  print_error_to_file ctxt 7; (local_thy,i))
+          val _ = check_smt prover problem_path proof_path opt_output_file local_thy
         in check_all ts i end
       else raise ERROR("Could not find proof for problem:" ^ problem_path)
     end
