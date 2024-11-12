@@ -62,7 +62,7 @@ fun print_reconstruction_error_to_file ctxt i str =
     ", \"failed_rule\": \"" ^ str ^ "\"}]},\n")
   else ()
 
-fun check_smt prover problem_file_name proof_file_name opt_output_file local_thy =
+fun check_smt2 prover problem_file_name proof_file_name opt_output_file local_thy =
 let
 
   (*Get problem and proof file*)
@@ -100,56 +100,57 @@ let
 
   val problem_lines = problem_file_path |> Bytes.read |> Bytes.split_lines;
   val proof_lines = proof_file_path |> Bytes.read |> Bytes.split_lines;
-  val _ = (fn _ => ()) (@{print}("here");())
  val thm = @{thm TrueE}
-  val _ = (fn () => (replay_only prover ctxt problem_lines proof_lines opt_output_file)) ()
+  val (_,i) = (fn () => (replay_only prover ctxt problem_lines proof_lines opt_output_file,0)) ()
     handle
             (*Error Parsing problem*)
             (SMT_Parse_Problem.SMT_PROBLEM_PARSE(msg))
             => (if String.isPrefix "command not supported: " msg then
                   (@{print}("Unsupported SMT-LIB command in problem: " ^ msg , problem_file_name);
-                  print_error_to_file_with_msg ctxt 5 msg; thm)
+                  print_error_to_file_with_msg ctxt 5 msg; (thm,1))
                   else
                 (@{print}("Error parsing SMT-LIB problem: " ^ msg , problem_file_name);
-                  print_error_to_file_with_msg ctxt 5 msg; thm)) |
+                  print_error_to_file_with_msg ctxt 5 msg; (thm,1))) |
             (*Error during Parsing into AST*)
             (SMTLIB.PARSE(l,err))
               => (@{print}("Error parsing SMTLIB into SMTLIB Tree: " ^ err ^ " in line " ^ Int.toString l , problem_file_name);
-                  print_error_to_file ctxt 5; thm) |
+                  print_error_to_file ctxt 5; (thm,1)) |
             (*Errors during Parsing Into term*)
             (SMTLIB_Proof.SMTLIB_PARSE ("unknown SMT type",t))
               => (@{print}(("Either theory is not supported or parsing instructions for the type" ^
                             " are not included in the parser", t), problem_file_name);
-                  print_error_to_file ctxt 2; thm) |
+                  print_error_to_file ctxt 2; (thm,1)) |
             (SMTLIB_Proof.SMTLIB_PARSE ("bad SMT term",t))
               => (@{print}(("Either theory is not supported or parsing instructions for the term" ^
                             " are not included in the parser", t), problem_file_name);
-                 print_error_to_file ctxt 3; thm) |
+                 print_error_to_file ctxt 3; (thm,1)) |
             (SMTLIB_Proof.SMTLIB_PARSE(err,t))
               => (@{print}(("Unkown error parsing SMTLIB: " ^ err, t), problem_file_name);
-                  print_error_to_file ctxt 4; thm) |
+                  print_error_to_file ctxt 4; (thm,1)) |
             (*Errors during Replay*)
             (SMT_Failure.SMT (SMT_Failure.Replay(rule,ERROR msg)))
               => (@{print}("Error replaying step" ^ rule ^ " is: " ^ msg);
-                  print_reconstruction_error_to_file ctxt 6 rule; thm) |
+                  print_reconstruction_error_to_file ctxt 6 rule; (thm,1)) |
             (SMT_Failure.SMT (SMT_Failure.Replay(rule,INTERRUPT)))
                => (@{print}("Timeout");
-                  print_reconstruction_error_to_file ctxt 7 rule; thm) |
+                  print_reconstruction_error_to_file ctxt 7 rule; (thm,1)) |
             (SMT_Failure.SMT (SMT_Failure.Replay(rule,exn)))
               => (@{print}("Error replaying step" ^ rule ^ " is: " ^ General.exnMessage exn);
-                  print_reconstruction_error_to_file ctxt 1 rule; thm) |
+                  print_reconstruction_error_to_file ctxt 1 rule; (thm,1)) |
             (*Timeout*)
             (SMT_Failure.SMT SMT_Failure.Time_Out)
                => (@{print}("Timeout");
-                  print_error_to_file ctxt 7; thm) |
+                  print_error_to_file ctxt 7; (thm,1)) |
             (SMT_Failure.SMT err)
                => (@{print}("Unkown SMT error " ^ SMT_Failure.string_of_failure err, problem_file_name);
-                  print_error_to_file ctxt 5; thm) |
+                  print_error_to_file ctxt 5; (thm,1)) |
              (Timeout.TIMEOUT _) => (@{print}("Timeout");
-                  print_error_to_file ctxt 7; thm)
-in local_thy end
-          
+                  print_error_to_file ctxt 7; (thm,1))
 
+in (i,local_thy) end
+          
+fun check_smt prover problem_file_name proof_file_name opt_output_file local_thy =
+snd (check_smt2 prover problem_file_name proof_file_name opt_output_file local_thy)
 
 
 fun check_all_benchmarks prover files_dir opt_output_file local_thy =
@@ -176,13 +177,13 @@ let
 
        val proof_path = Library.unsuffix ".smt2" problem_path |> Library.suffix ".alethe"
 
-
     in
       if Path.explode proof_path |> File.is_file
       then
         let
-          val _ = check_smt prover problem_path proof_path opt_output_file local_thy
-        in check_all ts i end
+          val (ret,_) = check_smt2 prover problem_path proof_path opt_output_file local_thy
+          val ret = (if ret = 0 then 1 else 0)
+        in check_all ts (i + ret) end
       else raise ERROR("Could not find proof for problem:" ^ problem_path)
     end
 
