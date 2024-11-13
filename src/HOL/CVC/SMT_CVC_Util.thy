@@ -1,4 +1,4 @@
-theory SMT_CVC_Util
+theory SMT_CVC_Util (*Currently not used.*)
   imports Smtlib_String
 begin
 

@@ -1,5 +1,5 @@
 theory Dsl_Nary_Ops
-  imports Smtlib_String SMT_CVC_Util
+  imports Smtlib_String (*SMT_CVC_Util*)
 begin
 
 datatype 'a cvc_ListVar = ListVar "'a list"
