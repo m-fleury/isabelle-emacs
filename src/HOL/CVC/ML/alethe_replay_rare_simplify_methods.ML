@@ -8,10 +8,13 @@ Proof method for replaying Alethe proofs for rare-simplify
 signature ALETHE_REPLAY_RARE_SIMPLIFY_METHODS =
 sig
   val rare_rewrite: Alethe_Replay_Methods.alethe_tac_step_args
+  exception RARE_REPLAY of string
 end;
 
 structure Alethe_Replay_RARE_Simplify_Methods: ALETHE_REPLAY_RARE_SIMPLIFY_METHODS =
 struct
+
+exception RARE_REPLAY of string
 
 val TRY' = Alethe_Replay_Methods.TRY'
 val simplify_tac = Alethe_Replay_Methods.simplify_tac
@@ -28,20 +31,24 @@ fun code_simp_tac ctxt thms = Code_Simp.dynamic_tac
 fun try_auto_solo ctxt t = 
   SMT_Replay_Methods.prove ctxt t (fn _ => TRY' (K (Clasimp.auto_tac ctxt)))
 
+
+(* Evaluation of constants *)
+(* Any additional lemmas should be added to cvc_evaluate *)
+fun try_evaluate ctxt t =
+  SMT_Replay_Methods.prove ctxt t (fn _ =>
+  TRY' (Code_Simp.dynamic_tac ctxt )
+  THEN' TRY' (simplify_tac ctxt ((Named_Theorems.get ctxt @{named_theorems cvc_evaluate})))
+ )
+
+(* Rare rewrite reconstruction *)
 fun dsl_tac_initialize rewrite_name args ctxt t th =
 let
+  val _ = (if is_none (CVC5_Rare.rare_lookup (Context.Proof ctxt) ("rewrite_" ^ rewrite_name)) 
+         then raise RARE_REPLAY ("undeclared RARE rule:" ^ rewrite_name ^ ". Use cvc5_rare \"full_name\".") else ())
 
- val _ = (if is_none (CVC5_Rare.rare_lookup (Context.Proof ctxt) ("rewrite_" ^ rewrite_name)) 
-         then raise Fail ("undeclared RARE rule:" ^ rewrite_name ^ ". Use cvc5_rare \"full_name\".") else ())
+ val rewrite_lemma = CVC5_Rare.rare_rule (Context.Proof ctxt) ("rewrite_" ^ rewrite_name) |> try hd |> the
+    handle Option.Option => raise RARE_REPLAY ("Found more then one lemma corresponding to rule" ^ rewrite_name)
 
-    (*val _ = 
-      if Config.get ctxt SMT_Config.rec_evaluation andalso args <> []
-      then File.append (Path.explode ("$ISABELLE_HOME_USER/" ^
-        (Config.get ctxt SMT_Config.statistics_file))) (rewrite_name ^ ", ")
-      else ()*)
-
-
- val (rewrite_lemma :: _) = CVC5_Rare.rare_rule (Context.Proof ctxt) ("rewrite_" ^ rewrite_name)
  val get_types = map snd (rev (Term.add_vars (Thm.full_prop_of rewrite_lemma) []))
 
 (*val _ = @{print}("rewrite_lemma",rewrite_lemma)
@@ -93,21 +100,11 @@ end
 fun try_simp ctxt t = 
   SMT_Replay_Methods.prove ctxt t (fn _ =>
      TRY' (K (HEADGOAL (simplify_tac ctxt ((Named_Theorems.get ctxt @{named_theorems cvc_evaluate})))))
-     (*THEN' K (print_tac ctxt "applied all cvc_evaluate theorems")*)
      THEN' TRY'(K (HEADGOAL (simplify_tac ctxt ((Named_Theorems.get ctxt @{named_theorems rare_simplify_temp})))))
      THEN' TRY'(K (HEADGOAL (simplify_tac ctxt @{thms arith_simps verit_minus_simplify})))  
      THEN' TRY'(K (HEADGOAL (simplify_tac ctxt ((Named_Theorems.get ctxt @{named_theorems arith_simp_cvc5})))))
      THEN' TRY' (K (Clasimp.auto_tac ctxt))
-(*THEN' K (print_tac ctxt "debug in try simp")*)
   )
-
-(* Evaluation of constants *)
-(* Any additional lemmas should be added to cvc_evaluate *)
-fun try_evaluate ctxt t =
-  SMT_Replay_Methods.prove ctxt t (fn _ =>
-  TRY' (Code_Simp.dynamic_tac ctxt )
-  THEN' TRY' (simplify_tac ctxt ((Named_Theorems.get ctxt @{named_theorems cvc_evaluate})))
- )
 
 local 
  fun pretty tag lines = map Pretty.str lines |> Pretty.big_list tag |> Pretty.string_of
