@@ -972,6 +972,7 @@ val or_pos_rule = prover or_pos_prove
 
 val and_neg_rule = prover and_neg_rule_prove
 
+(*TODO: Improve now that we have arguments*)
 val or_neg_rule = prove_abstract SMT_Replay_Methods.abstract_bool (fn ctxt => fn _ =>
   resolve_tac ctxt @{thms verit_or_neg}
   THEN' K (unfold_tac ctxt @{thms not_not})
