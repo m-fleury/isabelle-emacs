@@ -47,8 +47,6 @@ fun cvc_term_parser (SMTLIB.Sym "rare-list", []) = (@{print}("rare-list");
     SOME(Const( \<^const_name>\<open>ListVar\<close>, Type(\<^type_name>\<open>List.list\<close>,[new_type])  --> Type(\<^type_name>\<open>cvc_ListVar\<close>,[new_type]))
       $ (HOLogic.mk_list new_type new_ts))
     end)
-  | cvc_term_parser (SMTLIB.Sym "xor",[t1,t2]) = SOME(Const(\<^const_name>\<open>SMT_CVC_Util.xor\<close>, \<^typ>\<open>bool \<Rightarrow> bool \<Rightarrow> bool\<close>)
-       $ t1 $ t2)
   | cvc_term_parser _ = NONE
 
 val _ = Theory.setup (Context.theory_map (

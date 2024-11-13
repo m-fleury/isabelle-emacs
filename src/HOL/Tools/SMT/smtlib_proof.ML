@@ -140,6 +140,7 @@ fun core_term_parser (SMTLIB.Sym "true", _) = SOME \<^Const>\<open>True\<close>
       in SOME (c $ t1 $ t2 $ t3) end
   | core_term_parser (SMTLIB.Sym "distinct", [_]) = SOME \<^Const>\<open>True\<close> (*Not in SMT-LIB but supported in Alethe*)
   | core_term_parser (SMTLIB.Sym "distinct", ts) = (pairwise' (HOLogic.mk_eq #> HOLogic.mk_not) ts)
+  | core_term_parser (SMTLIB.Sym "xor", t :: ts) = SOME (mk_lassoc (curry (HOLogic.mk_eq #> HOLogic.mk_not)) t ts)
   | core_term_parser (SMTLIB.Num i, []) = SOME (HOLogic.mk_number \<^typ>\<open>Int.int\<close> i)
   | core_term_parser (SMTLIB.BVNum _, []) = NONE
   | core_term_parser (SMTLIB.Sym "-", [t]) = SOME (mk_unary \<^const_name>\<open>uminus_class.uminus\<close> t)
