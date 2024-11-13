@@ -17,11 +17,6 @@ lemmas [arith_simp_cvc5] = Groups.monoid_mult_class.mult_1_right Nat.mult_Suc_ri
 
 lemmas [cvc_evaluate] = arith_simp_cvc5
 
-(*Theories currently only supported by cvc5*)
-
-ML_file \<open>ML/SMT_set.ML\<close>
-ML_file \<open>ML/SMT_string.ML\<close>
-ML_file \<open>ML/SMT_array.ML\<close>
 
 
 
@@ -101,63 +96,6 @@ val _ = Outer_Syntax.local_theory \<^command_keyword>\<open>check_smt_dir\<close
 \<close>
 
 
-
-declare [[smt_trace=false,smt_timeout=5000000,smt_cvc_alethe = true]]
-
-ML \<open>
-Config.put SMT_Config.trace true\<close>
-declare[[smt_nat_as_int=true,smt_trace=true,smt_verbose=true,smt_debug_verit]]
-
-ML \<open>
-val x = \<^typ>\<open>bool set\<close>
-val _ = @{print}("x",dest_Type x)
-\<close>
-(*
-declare[[native_set=true]]
-lemma
-"(A::bool set) = {True,False} \<Longrightarrow> (A::bool set) = {False,True}"
-  apply (smt (cvc5))
-
-lemma
-"(A::int set) = {1,2} \<Longrightarrow> (A::int set) = {2,1}"
-  apply (smt (cvc5))
-
-
-lemma
-"(A::bool set) = {True,False} \<Longrightarrow> card (A::bool set) = 2"
-  apply (smt (cvc5))
-
-lemma
-"(A::int set) = {1,2} \<Longrightarrow> card (A::int set) = 2"
-  apply (smt (cvc5))
-  oops
-(* ; --proof-format-mode=alethe --proof-granularity=dsl-rewrite --no-stats --sat-random-seed=1 --lang=smt2 --tlimit 5000000000
-       (set-option :produce-proofs true)
-       (set-logic AUFLIAFS)
-       (declare-sort Nat$ 0)
-       (declare-fun a$ () (Set Int))
-       (declare-fun bot$ () (Set Int))
-       (declare-fun of_nat$ (Nat$) Int)
-       (assert (! (not (=> (= a$ (insert 1 (insert 2 bot$))) (= (of_nat$ (card a$)) 2))) :named a0))
-       (assert (! (<= 0 (of_nat$ (card a$))) :named a1))
-       (check-sat)
-       (get-proof)*)
-lemma
-"(1::int) = (1::int)"
-  apply (smt (cvc5))
-  oops
-
-declare[[native_set=false]]
-lemma
-"(A::int set) = {1,2} \<Longrightarrow> card (A::int set) = 2"
-  apply (smt (cvc5))
-  oops
-*)
-
-
-
-
-
 (**)
 cvc5_rare "Arith_Rewrites.rewrite_arith_plus_zero"
 cvc5_rare "Arith_Rewrites.rewrite_arith_mul_one"
@@ -181,10 +119,6 @@ cvc5_rare "Arith_Rewrites.rewrite_arith_mult_flatten"
 cvc5_rare "Arith_Rewrites.rewrite_arith_mult_dist"
 cvc5_rare "Arith_Rewrites.rewrite_arith_plus_cancel1"
 cvc5_rare "Arith_Rewrites.rewrite_arith_plus_cancel2"
-cvc5_rare "Array_Rewrites.rewrite_array_read_over_write"
-cvc5_rare "Array_Rewrites.rewrite_array_read_over_write2"
-cvc5_rare "Array_Rewrites.rewrite_array_store_overwrite"
-cvc5_rare "Array_Rewrites.rewrite_array_store_self"
 cvc5_rare "Boolean_Rewrites.rewrite_bool_double_not_elim"
 cvc5_rare "Boolean_Rewrites.rewrite_bool_eq_true"
 cvc5_rare "Boolean_Rewrites.rewrite_bool_eq_false"
@@ -228,69 +162,6 @@ cvc5_rare "Builtin_Rewrites.rewrite_ite_then_lookahead"
 cvc5_rare "Builtin_Rewrites.rewrite_ite_else_lookahead"
 cvc5_rare "Builtin_Rewrites.rewrite_ite_then_neg_lookahead"
 cvc5_rare "Builtin_Rewrites.rewrite_ite_else_neg_lookahead"
-cvc5_rare "Set_Rewrites.rewrite_sets_member_singleton"
-cvc5_rare "Set_Rewrites.rewrite_sets_subset_elim"
-cvc5_rare "Set_Rewrites.rewrite_sets_union_comm"
-cvc5_rare "Set_Rewrites.rewrite_sets_inter_comm"
-cvc5_rare "Set_Rewrites.rewrite_sets_inter_member"
-cvc5_rare "Set_Rewrites.rewrite_sets_minus_member"
-cvc5_rare "Set_Rewrites.rewrite_sets_union_member"
-(*cvc5_rare "String_Rewrites.rewrite_str_eq_ctn_false"
-cvc5_rare "String_Rewrites.rewrite_str_concat_flatten"
-cvc5_rare "String_Rewrites.rewrite_str_concat_flatten_eq"
-cvc5_rare "String_Rewrites.rewrite_str_concat_flatten_eq_rev"
-cvc5_rare "String_Rewrites.rewrite_str_substr_empty_str"
-cvc5_rare "String_Rewrites.rewrite_str_substr_empty_range"
-cvc5_rare "String_Rewrites.rewrite_str_substr_empty_start"
-cvc5_rare "String_Rewrites.rewrite_str_substr_empty_start_neg"
-cvc5_rare "String_Rewrites.rewrite_str_substr_eq_empty"
-cvc5_rare "String_Rewrites.rewrite_str_len_replace_inv"
-cvc5_rare "String_Rewrites.rewrite_str_len_update_inv"
-cvc5_rare "String_Rewrites.rewrite_str_len_substr_in_range"
-cvc5_rare "String_Rewrites.rewrite_str_len_substr_ub1"
-cvc5_rare "String_Rewrites.rewrite_str_len_substr_ub2"
-cvc5_rare "String_Rewrites.rewrite_re_in_empty"
-cvc5_rare "String_Rewrites.rewrite_re_in_sigma"
-cvc5_rare "String_Rewrites.rewrite_re_in_sigma_star"
-cvc5_rare "String_Rewrites.rewrite_re_in_cstring"
-cvc5_rare "String_Rewrites.rewrite_re_in_comp"
-cvc5_rare "String_Rewrites.rewrite_str_concat_clash"
-cvc5_rare "String_Rewrites.rewrite_str_concat_clash_rev"
-cvc5_rare "String_Rewrites.rewrite_str_concat_clash2"
-cvc5_rare "String_Rewrites.rewrite_str_concat_clash2_rev"
-cvc5_rare "String_Rewrites.rewrite_str_concat_unify"
-cvc5_rare "String_Rewrites.rewrite_str_concat_unify_rev"
-cvc5_rare "String_Rewrites.rewrite_str_concat_clash_char"
-cvc5_rare "String_Rewrites.rewrite_str_concat_clash_char_rev"
-cvc5_rare "String_Rewrites.rewrite_str_prefixof_elim"
-cvc5_rare "String_Rewrites.rewrite_str_suffixof_elim"
-cvc5_rare "String_Rewrites.rewrite_str_prefixof_one"
-cvc5_rare "String_Rewrites.rewrite_str_suffixof_one"
-cvc5_rare "String_Rewrites.rewrite_str_substr_combine1"
-cvc5_rare "String_Rewrites.rewrite_str_substr_combine2"
-cvc5_rare "String_Rewrites.rewrite_str_substr_concat1"
-cvc5_rare "String_Rewrites.rewrite_str_substr_full"
-cvc5_rare "String_Rewrites.rewrite_str_contains_refl"
-cvc5_rare "String_Rewrites.rewrite_str_contains_concat_find"
-cvc5_rare "String_Rewrites.rewrite_str_contains_split_char"
-cvc5_rare "String_Rewrites.rewrite_str_contains_leq_len_eq"
-cvc5_rare "String_Rewrites.rewrite_str_concat_emp"
-cvc5_rare "String_Rewrites.rewrite_str_at_elim"
-cvc5_rare "String_Rewrites.rewrite_re_all_elim"
-cvc5_rare "String_Rewrites.rewrite_re_opt_elim"
-cvc5_rare "String_Rewrites.rewrite_re_concat_emp"
-cvc5_rare "String_Rewrites.rewrite_re_concat_none"
-cvc5_rare "String_Rewrites.rewrite_re_concat_flatten"
-cvc5_rare "String_Rewrites.rewrite_re_concat_star_swap"
-cvc5_rare "String_Rewrites.rewrite_re_union_all"
-cvc5_rare "String_Rewrites.rewrite_re_union_flatten"
-cvc5_rare "String_Rewrites.rewrite_re_union_dup"
-cvc5_rare "String_Rewrites.rewrite_re_inter_all"
-cvc5_rare "String_Rewrites.rewrite_re_inter_none"
-cvc5_rare "String_Rewrites.rewrite_re_inter_flatten"
-cvc5_rare "String_Rewrites.rewrite_re_inter_dup"
-cvc5_rare "String_Rewrites.rewrite_str_len_concat_rec"
-cvc5_rare "String_Rewrites.rewrite_str_in_re_range_elim"*)
 cvc5_rare "UF_Rewrites.rewrite_eq_refl"
 cvc5_rare "UF_Rewrites.rewrite_eq_symm"
 cvc5_rare "UF_Rewrites.rewrite_distinct_binary_elim"

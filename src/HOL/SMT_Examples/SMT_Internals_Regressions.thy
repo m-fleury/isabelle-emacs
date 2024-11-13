@@ -1435,9 +1435,9 @@ lemma distinct_elim_6:
 
 
 
-
-
-
+lemma "(x::bool)=y"
+  apply (rule alethe_distinct_elim_2)
+  back (* soll man nicht benutzen, auf allen moeglichkeiten arbeiten *)
 
 
 
