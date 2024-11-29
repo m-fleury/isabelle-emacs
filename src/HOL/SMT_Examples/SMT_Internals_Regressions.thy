@@ -1402,6 +1402,300 @@ lemma implies_simplify_8: "a \<longrightarrow> \<not>a = (\<not>a)"
 lemma implies_simplify_9: "False \<longrightarrow> a \<longrightarrow> \<not>a = False"
   by (ctxt_tactic "implies_simplify")
 
+(* Rule 75: equiv_simplify *)
+
+lemma equiv_simplify_1: "(\<not>b = (\<not>b)) = True"
+  by (ctxt_tactic "equiv_simplify")
+
+lemma equiv_simplify_2: "(b = (\<not>b)) = False"
+  by (ctxt_tactic "equiv_simplify")
+
+lemma equiv_simplify_3: "(\<not>b = b) = False"
+  by (ctxt_tactic "equiv_simplify")
+
+lemma equiv_simplify_4: "(True = b) = b"
+  by (ctxt_tactic "equiv_simplify")
+
+lemma equiv_simplify_5: "(b = True) = b"
+  by (ctxt_tactic "equiv_simplify")
+
+lemma equiv_simplify_6: "(False = b) = (\<not>b)"
+  by (ctxt_tactic "equiv_simplify")
+
+lemma equiv_simplify_7: "(False = b) = (\<not>b)"
+  by (ctxt_tactic "equiv_simplify")
+
+lemma equiv_simplify_8: "(\<not>a = (\<not>b)) = (a = b)"
+  by (ctxt_tactic "equiv_simplify")
+
+
+(* Rule 76: bool_simplify *)
+
+lemma bool_simplify_1:
+  assumes "\<not>(a \<longrightarrow> b)"
+  shows "a \<and> \<not>b"
+  using assms
+  by (ctxt_tactic "bool_simplify")
+
+lemma bool_simplify_2: 
+  assumes "\<not>(a \<or> b)"
+  shows "\<not>a \<and> \<not>b"
+  using assms
+  by (ctxt_tactic "bool_simplify")
+
+lemma bool_simplify_3: 
+  assumes "\<not>(a \<and> b)"
+  shows "\<not>a \<or> \<not>b"
+  using assms
+  by (ctxt_tactic "bool_simplify")
+
+lemma bool_simplify_4:
+  assumes "(a \<longrightarrow> (b \<longrightarrow> c))"
+  shows "(a \<and> b) \<longrightarrow> c"
+  using assms
+  by (ctxt_tactic "bool_simplify")
+
+lemma bool_simplify_5: 
+  assumes "((a \<longrightarrow> b) \<longrightarrow> c)"
+  shows "(a \<or> b)"
+  using assms
+  by (ctxt_tactic "bool_simplify")
+
+lemma bool_simplify_6:
+  assumes "(a \<and> (a \<longrightarrow> b))"
+  shows "(a \<and> b)"
+  using assms
+  by (ctxt_tactic "bool_simplify")
+
+lemma bool_simplify_7:
+  assumes "((a \<longrightarrow> b) \<and> a)"
+  shows "(a \<and> b)"
+  using assms
+  by (ctxt_tactic "bool_simplify")
+
+(* Rule 77: ac_simp *)
+
+lemma ac_simp_1: "(b \<and> b) = b"
+  by (ctxt_tactic "ac_simp")
+
+lemma ac_simp_2: "(b \<and> a \<and> b) = b \<and> a"
+ (* by (ctxt_tactic "ac_simp")*)
+
+lemma ac_simp_3: "(b \<and> a \<and> b) = a \<and> b"
+  (* by (ctxt_tactic "ac_simp")*)
+
+
+lemma ac_simp_4: "(b \<and> ((a \<and> c) \<and> d)) = a \<and> b \<and> c \<and> d"
+  (* by (ctxt_tactic "ac_simp")*)
+
+
+(* Rule 78: ite_simplify *)
+
+lemma ite_simplify_1:
+  assumes "(If True a b)"
+  shows "a"
+  using assms
+  by (ctxt_tactic "ite_simplify")
+
+lemma ite_simplify_2:
+  assumes "(If False a b)"
+  shows "b"
+  using assms
+  by (ctxt_tactic "ite_simplify")
+
+lemma ite_simplify_3:
+  assumes "(If c b b)"
+  shows "b"
+  using assms
+  by (ctxt_tactic "ite_simplify")
+
+lemma ite_simplify_4:
+  assumes "(If (\<not>c) a b)"
+  shows "(If c b a)"
+  using assms
+  by (ctxt_tactic "ite_simplify")
+
+lemma ite_simplify_5:
+  assumes "(If c (If c a b) d)"
+  shows "(If c a d)"
+  using assms
+  by (ctxt_tactic "ite_simplify")
+
+lemma ite_simplify_6:
+  assumes "(If c a (If c b d))"
+  shows "(If c a d)"
+  using assms
+  by (ctxt_tactic "ite_simplify")
+
+lemma ite_simplify_7:
+  assumes "(If c True False)"
+  shows "c"
+  using assms
+  by (ctxt_tactic "ite_simplify")
+
+lemma ite_simplify_8:
+  assumes "(If c False True)"
+  shows "\<not>c"
+  using assms
+  by (ctxt_tactic "ite_simplify")
+
+lemma ite_simplify_9:
+  assumes "(If c True d)"
+  shows "(c \<or> d)"
+  using assms
+  by (ctxt_tactic "ite_simplify")
+
+lemma ite_simplify_10:
+  assumes "(If c a False)"
+  shows "c \<and> a"
+  using assms
+  by (ctxt_tactic "ite_simplify")
+
+lemma ite_simplify_11:
+  assumes "(If c False a)"
+  shows "\<not>c \<and> a"
+  using assms
+  by (ctxt_tactic "ite_simplify")
+
+lemma ite_simplify_12:
+  assumes "(If c a True)"
+  shows "\<not>c \<or> a"
+  using assms
+  by (ctxt_tactic "ite_simplify")
+
+
+(* Rule 79: qnt_simplify *)
+
+lemma qnt_simplify_1:
+  shows "(\<forall>x1. True) = True"
+  by (ctxt_tactic "qnt_simplify")
+
+lemma qnt_simplify_2:
+  shows "(\<forall>x1 x2. True) = True"
+  by (ctxt_tactic "qnt_simplify")
+
+lemma qnt_simplify_3:
+  shows "(\<forall>x1. False) = False"
+  by (ctxt_tactic "qnt_simplify")
+
+lemma qnt_simplify_4:
+  shows "(\<forall>x1 x2. False) = False"
+  by (ctxt_tactic "qnt_simplify")
+
+
+(* Rule 81: qnt_join *)
+
+lemma qnt_join_1:
+  shows "(\<forall>x1. a) = (\<forall>x1. a)"
+  by (ctxt_tactic "qnt_join")
+
+lemma qnt_join_2:
+  shows "(\<forall>x1 . (\<forall>x2. a \<and> x1)) = (\<forall>x1 x2. a \<and> x1)"
+  by (ctxt_tactic "qnt_join")
+
+lemma qnt_join_3:
+  shows "(\<forall>x1 x2. (\<forall>x3 x4. (a \<and> x3 \<or> x4 \<and> x1))) = (\<forall>x1 x2 x3 x4. (a \<and> x3 \<or> x4 \<and> x1))"
+  (*by (ctxt_tactic "qnt_join")*) sorry
+
+lemma qnt_join_4:
+  shows "(\<forall>x1 x2. (\<forall>x3 . (\<forall>x4. a))) = (\<forall>x1 x2 x3 x4. a)"
+  by (ctxt_tactic "qnt_join")
+
+lemma qnt_join_5:
+  shows "(\<exists>x1. a) = (\<exists>x1. a)"
+  by (ctxt_tactic "qnt_join")
+
+lemma qnt_join_6:
+  shows "(\<exists>x1 . (\<exists>x2. a \<and> x1)) = (\<exists>x1 x2. a \<and> x1)"
+  by (ctxt_tactic "qnt_join")
+
+lemma qnt_join_7:
+  shows "(\<exists>x1 x2. (\<exists>x3 x4. (a \<and> x3 \<or> x4 \<and> x1))) = (\<exists>x1 x2 x3 x4. (a \<and> x3 \<or> x4 \<and> x1))"
+  (*by (ctxt_tactic "qnt_join")*) sorry
+
+lemma qnt_join_8:
+  shows "(\<exists>x1 x2. (\<exists>x3 . (\<exists>x4. a))) = (\<forall>x1 x2 x3 x4. a)"
+  by (ctxt_tactic "qnt_join")
+
+
+(* Rule 82: qnt_rm_ununsed *)
+
+lemma qnt_rm_unused_1:
+  shows "(\<forall>x1. a) = a"
+  by (ctxt_tactic "qnt_rm_unused")
+
+lemma qnt_rm_unused_2:
+  shows "(\<forall>x1 x2. x2) = (\<forall>x2. x2)"
+  by (ctxt_tactic "qnt_rm_unused")
+
+lemma qnt_rm_unused_3:
+  shows "(\<forall>x1 x2 x3. x1 \<and> x3) = (\<forall>x1 x3. x1 \<and> x3)"
+  by (ctxt_tactic "qnt_rm_unused")
+
+lemma qnt_rm_unused_4:
+  shows "(\<exists>x1. a) = a"
+  by (ctxt_tactic "qnt_rm_unused")
+
+lemma qnt_rm_unused_5:
+  shows "(\<exists>x1 x2. x2) = (\<exists>x2. x2)"
+  by (ctxt_tactic "qnt_rm_unused")
+
+lemma qnt_rm_unused_6:
+  shows "(\<exists>x1 x2 x3. x1 \<and> x3) = (\<exists>x1 x3. x1 \<and> x3)"
+  by (ctxt_tactic "qnt_rm_unused")
+
+
+(* Rule 83: eq_simplify *)
+
+lemma eq_simplify_1:
+  assumes "(a = a)"
+  shows "True"
+  using assms
+  by (ctxt_tactic "eq_simplify")
+
+lemma eq_simplify_2:
+  assumes "((3::int) = 3)"
+  shows "True"
+  using assms
+  by (ctxt_tactic "eq_simplify")
+
+lemma eq_simplify_3:
+  assumes "((3::int) = 4)"
+  shows "False"
+  using assms
+  by (ctxt_tactic "eq_simplify")
+
+lemma eq_simplify_4:
+  assumes "\<not>((3::int) = 3)"
+  shows "False"
+  using assms
+  by (ctxt_tactic "eq_simplify")
+
+
+(* Rule 84: div_simplify *)
+
+lemma div_simplify_1:
+  assumes "((a::int) / a)"
+  shows "1"
+  using assms
+  by (ctxt_tactic "div_simplify")
+
+lemma div_simplify_2:
+  assumes "((3::int) = 3)"
+  shows "True"
+  using assms
+  by (ctxt_tactic "div_simplify")
+
+lemma div_simplify_3:
+  assumes "((3::int) = 4)"
+  shows "False"
+  using assms
+  by (ctxt_tactic "div_simplify")
+
+
+
+
+
 (* Rule 92: distinct_elim *)
 
 lemma distinct_elim_1: "(x \<noteq> y) = (x \<noteq> y)"
