@@ -1,5 +1,6 @@
 theory Boolean_Rewrites
   imports "HOL-CVC.Dsl_Nary_Ops" "Boolean_Rewrites_Lemmas"
+    "HOL-CVC.SMT_CVC_Util"
 begin
 
 (* Thank you for using IsaRARE. This is a theory automatically created from a RARE file!
