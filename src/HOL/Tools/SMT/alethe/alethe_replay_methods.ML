@@ -443,6 +443,12 @@ fun REPEAT' tac = fn i => REPEAT (tac i)
 fun REPEAT_CHANGED tac = fn i => REPEAT (CHANGED (tac i))
 fun REPEAT_DETERM_N' k tac = fn i => REPEAT_DETERM_N k (tac i)
 
+fun extract_single_premise rule ctxt thm t =
+  case thm of
+   [thm] => thm |
+   thms => replay_error ctxt "Expected only one premise" rule thms [] t
+
+
 (* Bind *)
 
 (*The bind rule is non-obvious due to the handling of quantifiers:
@@ -1022,11 +1028,7 @@ a specialisation of SMT_Replay_Methods.match_instantiate, but there never was a 
 and consistent gain.*)
 local
   fun prove_equiv_pos_neg2 thm ctxt _ t =
-let
- val _ = @{print}("equiv_pos2 (thm,t)",(thm,t))
-in
     SMT_Replay_Methods.match_instantiate ctxt t thm
-end
 in
 
 val equiv_pos1_thm = @{lemma \<open>\<not>(a \<longleftrightarrow> b) \<or> a \<or> \<not>b\<close> by blast+}
@@ -1175,50 +1177,55 @@ local
   fun prove_ite ite_thm thm ctxt =
   resolve_tac ctxt [ite_thm OF [thm]]
   THEN' TRY' (assume_tac ctxt)
+
+  fun prove_by_resolve ctxt thm t = SMT_Replay_Methods.prove ctxt t (fn _ => resolve_tac ctxt thm)
 in
 
 val ite_pos1_thm =
   @{lemma \<open>\<not>(if x then P else Q) \<or> x \<or> Q\<close> by auto}
 
-fun ite_pos1 ctxt _ t = SMT_Replay_Methods.prove ctxt t (fn _ =>
-  resolve_tac ctxt [ite_pos1_thm])
+fun ite_pos1 ctxt _ = prove_by_resolve ctxt [ite_pos1_thm]
 
 val ite_pos2_thms =
   @{lemma \<open>\<not>(if x then P else Q) \<or> \<not>x \<or> P\<close> \<open>\<not>(if \<not>x then P else Q) \<or> x \<or> P\<close> by auto}
 
-fun ite_pos2 ctxt _ t = SMT_Replay_Methods.prove ctxt t (fn _ => resolve_tac ctxt ite_pos2_thms)
+fun ite_pos2 ctxt _ = prove_by_resolve ctxt ite_pos2_thms
 
 val ite_neg1_thms =
   @{lemma \<open>(if x then P else Q) \<or> x \<or> \<not>Q\<close> \<open>(if x then P else \<not>Q) \<or> x \<or> Q\<close> by auto}
 
-fun ite_neg1 ctxt _ t = SMT_Replay_Methods.prove ctxt t (fn _ => resolve_tac ctxt ite_neg1_thms)
+fun ite_neg1 ctxt _ = prove_by_resolve ctxt ite_neg1_thms
 
 val ite_neg2_thms =
   @{lemma \<open>(if x then P else Q) \<or> \<not>x \<or> \<not>P\<close> \<open>(if \<not>x then P else Q) \<or> x \<or> \<not>P\<close>
           \<open>(if x then \<not>P else Q) \<or> \<not>x \<or> P\<close> \<open>(if \<not>x then \<not>P else Q) \<or> x \<or> P\<close>
       by auto}
 
-fun ite_neg2 ctxt _ t = SMT_Replay_Methods.prove ctxt t (fn _ => resolve_tac ctxt ite_neg2_thms)
+fun ite_neg2 ctxt _ t = prove_by_resolve ctxt ite_neg2_thms t
 
 val ite1_thm =
   @{lemma \<open>(if x then P else Q) \<Longrightarrow> x \<or> Q\<close> by (auto split: if_splits) }
 
-fun ite1 ctxt [thm] t = SMT_Replay_Methods.prove ctxt t (fn _ => prove_ite ite1_thm thm ctxt)
+fun ite1 ctxt thm t = SMT_Replay_Methods.prove ctxt t
+  (fn _ => prove_ite ite1_thm (extract_single_premise ITE1 ctxt thm t) ctxt)
 
 val ite2_thm =
   @{lemma \<open>(if x then P else Q) \<Longrightarrow> \<not>x \<or> P\<close> by (auto split: if_splits) }
 
-fun ite2 ctxt [thm] t = SMT_Replay_Methods.prove ctxt t (fn _ => prove_ite ite2_thm thm ctxt)
+fun ite2 ctxt thm t = SMT_Replay_Methods.prove ctxt t
+  (fn _ => prove_ite ite2_thm (extract_single_premise ITE2 ctxt thm t) ctxt)
 
 val not_ite1_thm =
   @{lemma \<open>\<not>(if x then P else Q) \<Longrightarrow> x \<or> \<not>Q\<close> by (auto split: if_splits) }
 
-fun not_ite1 ctxt [thm] t = SMT_Replay_Methods.prove ctxt t (fn _ => prove_ite not_ite1_thm thm ctxt)
+fun not_ite1 ctxt thm t = SMT_Replay_Methods.prove ctxt t
+  (fn _ => prove_ite not_ite1_thm (extract_single_premise Not_ITE1 ctxt thm t) ctxt)
 
 val not_ite2_thm =
   @{lemma \<open>\<not>(if x then P else Q) \<Longrightarrow> \<not>x \<or> \<not>P\<close> by (auto split: if_splits) }
 
-fun not_ite2 ctxt [thm] t = SMT_Replay_Methods.prove ctxt t (fn _ => prove_ite not_ite2_thm thm ctxt)
+fun not_ite2 ctxt thm t = SMT_Replay_Methods.prove ctxt t
+  (fn _ => prove_ite not_ite2_thm (extract_single_premise Not_ITE2 ctxt thm t) ctxt)
 
 (*ite_intro can introduce new terms that are in the proof exactly the sames as the old one, but are
 not internally, hence the possible reordering.*)
