@@ -53,7 +53,7 @@ sig
    Eq_Simplify | ITE_Simplify | Sum_Simplify | Prod_Simplify | All_Simplify | RARE_Rewrite |
    Qnt_Simplify | Not_Not | Tautological_Clause | Duplicate_Literals | Distinct_Elim |
    (*Extended rules*)
-   Symm | Not_Symm | Reordering | Tmp_Quantifier_Simplify |
+   Symm | Not_Symm | Reordering | Shuffle | Tmp_Quantifier_Simplify |
    (*Other Rules*)
    Other_Rule of string |
    Hole |
@@ -167,6 +167,7 @@ sig
   val symm: alethe_tac
   val not_symm: alethe_tac
   val reordering: alethe_tac
+  val shuffle: alethe_tac
 
 
   (*Extension to declare new alethe rules*)
@@ -230,7 +231,7 @@ datatype alethe_rule =
    Eq_Simplify | ITE_Simplify | Sum_Simplify | Prod_Simplify | All_Simplify | RARE_Rewrite |
    Qnt_Simplify | Not_Not | Tautological_Clause | Duplicate_Literals | Distinct_Elim |
    (*Extended rules*)
-   Symm | Not_Symm | Reordering | Tmp_Quantifier_Simplify |
+   Symm | Not_Symm | Reordering | Shuffle | Tmp_Quantifier_Simplify |
    (*Other Rules*)
    Other_Rule of string |
    Hole |
@@ -334,6 +335,7 @@ fun string_of_alethe_rule Bind = "Bind"
   | string_of_alethe_rule Symm = "symm"
   | string_of_alethe_rule Not_Symm = "not_symm"
   | string_of_alethe_rule Reordering = "reordering"
+  | string_of_alethe_rule Shuffle = "shuffle"
   | string_of_alethe_rule Not_Not = Alethe_Proof.not_not_rule
   | string_of_alethe_rule Tautological_Clause = "tautology"
   | string_of_alethe_rule Duplicate_Literals = Alethe_Proof.contract_rule
@@ -1611,20 +1613,31 @@ in
   val not_symm = prove_symm not_symm_thm
 end
 
-(* Reordering *)
-local
-  fun prove_reordering ctxt [thm] t = SMT_Replay_Methods.prove ctxt t (fn _ =>(
-      Method.insert_tac ctxt [thm]
-      THEN' match_tac ctxt @{thms ccontr}
-      THEN' K (unfold_tac ctxt @{thms de_Morgan_disj})
-      THEN' TRY o CHANGED_PROP o REPEAT_ALL_NEW (ematch_tac ctxt @{thms conjE})
-      THEN' CHANGED_PROP o REPEAT_ALL_NEW (ematch_tac ctxt @{thms disjE})
-      THEN' REPEAT'(ematch_tac ctxt @{thms notE} THEN' TRY' (assume_tac ctxt))
-      ))
-    | prove_reordering ctxt thms t =
-        replay_error ctxt "invalid application in some reordering rule" Unsupported thms [] t
-in
-  val reordering = prove_reordering
-end
+(* Shuffling Clauses and Arguments of Nary Commutative Operators *)
+
+fun reordering ctxt [thm] t = SMT_Replay_Methods.prove ctxt t (fn _ => (
+    Method.insert_tac ctxt [thm]
+    THEN' match_tac ctxt @{thms ccontr}
+    THEN' K (unfold_tac ctxt @{thms de_Morgan_disj})
+    THEN' TRY o CHANGED_PROP o REPEAT_ALL_NEW (ematch_tac ctxt @{thms conjE})
+    THEN' CHANGED_PROP o REPEAT_ALL_NEW (ematch_tac ctxt @{thms disjE})
+    THEN' REPEAT'(ematch_tac ctxt @{thms notE} THEN' TRY' (assume_tac ctxt))
+    ))
+  | reordering ctxt thms t =
+    replay_error ctxt "invalid application in some reordering rule" Unsupported thms [] t
+
+
+fun shuffle ctxt [thm] t = SMT_Replay_Methods.prove ctxt t (fn _ =>(
+    Method.insert_tac ctxt [thm]
+    THEN' match_tac ctxt @{thms ccontr}
+    THEN' K (unfold_tac ctxt @{thms de_Morgan_disj de_Morgan_conj})
+    THEN' TRY o CHANGED_PROP o REPEAT_ALL_NEW (ematch_tac ctxt @{thms conjE})
+    THEN' CHANGED_PROP o REPEAT_ALL_NEW (ematch_tac ctxt @{thms disjE})
+    THEN' REPEAT'(ematch_tac ctxt @{thms notE} THEN' TRY' (assume_tac ctxt))
+    ))
+  | shuffle ctxt thms t =
+    replay_error ctxt "invalid application in some reordering rule" Unsupported thms [] t
+
+
 
 end;
