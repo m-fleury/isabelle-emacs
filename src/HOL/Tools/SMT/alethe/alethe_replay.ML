@@ -360,7 +360,7 @@ fun replay solver method_for outer_ctxt
     (*Find used and non lambda lifting definition assumptions *)
     val used_assert_ids = fold add_used_asserts_in_step parsed_proof_steps []
     val real_assms =
-      map_filter (fn id => let val i = index_of_id id in if i >= 0 then
+      map_filter (fn id => let val i = index_of_id id in if i >= 0 andalso i < length assms then
             let val concl = Thm.prop_of (snd (nth assms i))
               |> Raw_Simplifier.rewrite_term (Proof_Context.theory_of
                (empty_simpset ctxt addsimps rewrite_rules)) rewrite_rules []
