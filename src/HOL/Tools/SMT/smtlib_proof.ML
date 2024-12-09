@@ -226,16 +226,25 @@ fun parse_type cx ty Ts =
 (*TODO: Maybe it would be okay to only change the name of the term and not of the key, I have not tried yet*)
 (*TODO: make better and clean-up*)
 fun normalize_external ctxt raw_name =
-  if Config.get ctxt SMT_Config.check_external andalso Char.isUpper (hd ( String.explode raw_name))
-  then ("isabelle_internal_" ^ raw_name) else raw_name
+  if Config.get ctxt SMT_Config.check_external
+  then
+    if raw_name = "?"
+    then raise SMTLIB_PARSE ("Benchmark uses unsupported variable name", SMTLIB.Sym raw_name)
+    else if Char.isUpper (hd ( String.explode raw_name))
+    then ("isabelle_internal_" ^ raw_name)
+    else raw_name
+  else raw_name
+
 fun normalize_external2 ctxt (raw_name,(a,b)) =
-let
-val temp = String.implode (tl ( String.explode raw_name))
-in
-  if Config.get ctxt SMT_Config.check_external andalso (Char.isUpper (hd ( String.explode raw_name))
-orelse (String.isSuffix raw_name "?" andalso Char.isUpper (hd (tl ( String.explode raw_name)))))
-  then ("isabelle_internal_" ^ raw_name,("isabelle_internal_" ^ raw_name,b)) else (raw_name,(a,b))
-end
+ if Config.get ctxt SMT_Config.check_external then
+   if (Char.isUpper (hd ( String.explode raw_name)))
+     then ("isabelle_internal_" ^ raw_name,("isabelle_internal_" ^ raw_name,b))
+   else if (raw_name = "?")
+     then raise SMTLIB_PARSE ("Benchmark uses unsupported variable name", SMTLIB.Sym raw_name)
+   else if (String.isSuffix raw_name "?" andalso Char.isUpper (hd (tl ( String.explode raw_name))))
+     then ("isabelle_internal_" ^ raw_name,("isabelle_internal_" ^ raw_name,b))
+   else (raw_name,(a,b))
+ else (raw_name,(a,b))
 
 fun parse_term t ts cx =
   (case apply_parsers (get_term_parsers (ctxt_of cx)) (t, ts) of
@@ -307,7 +316,7 @@ and quant q vars body cx =
   let
     val vs = map (dest_var cx) vars
     val ctxt = #ctxt cx
-    val vs = map (normalize_external2 ctxt) vs |> @{print}
+    val vs = map (normalize_external2 ctxt) vs
   in
     cx
     |> with_bindings (map (apsnd (Term o Free)) vs) (term_of (dest_body body))
