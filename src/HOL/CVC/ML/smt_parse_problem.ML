@@ -79,6 +79,7 @@ let
   val (all_proof_prems', sub_ctxt2) =
     Assumption.add_assumes (map (Thm.apply \<^cterm>\<open>Trueprop\<close> o Thm.cterm_of ctxt) [termified_concl]) ctxt
     |>> (fn [x] => x | _ => raise SMT_PROBLEM_PARSE "Malformed assertion")
+    handle TYPE (_,_,_) => raise SMT_PROBLEM_PARSE "Malformed assertion"
   val assms_nbr = length assms
   val assm = ((assms_nbr,SMT_Util.Axiom),all_proof_prems'):((int * SMT_Util.role) * thm)
 
@@ -148,7 +149,6 @@ fun !!! text scan =
 
 fun current_command ctxt cs replay_data =
 let
-  
   val ignore_commands =
     ["echo","get-assertions","get-assignment","get-info","get-unsat-assumptions","get-unsat-core",
      "get-value","set-info","set-option"] @
