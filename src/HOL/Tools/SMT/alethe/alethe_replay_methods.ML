@@ -869,7 +869,7 @@ fun normalized_input ctxt prems t =
       (case find_first (is_same_assms_eq_ac t o termify) prems of
         SOME thm => [thm]
       | NONE => [])
-    val prems = (if all_assms then matched_assm () else prems) |> @{print}
+    val prems = (if all_assms then matched_assm () else prems)
   in
     (SMT_Replay_Methods.prove ctxt t (fn _ =>
       Method.insert_tac ctxt prems
@@ -1530,8 +1530,7 @@ end
 
 fun rare_rewrite ctxt prems t =
   SMT_Replay_Methods.prove ctxt t (fn _ =>
-    K (print_tac ctxt "in rare_rewrite")
-    THEN' Method.insert_tac ctxt prems
+     Method.insert_tac ctxt prems
     THEN' TRY' (K (Clasimp.auto_tac ctxt)
      THEN' TRY' (Code_Simp.dynamic_tac ctxt )
 ))
