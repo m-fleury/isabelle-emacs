@@ -25,11 +25,11 @@ lemmas [cvc_evaluate] = arith_simp_cvc5
 ML_file \<open>ML/alethe_replay_rare_simplify_methods.ML\<close>
 
 ML \<open>
-fun cvc_term_parser (SMTLIB.Sym "rare-list", []) = (@{print}("rare-list");
+fun cvc_term_parser (SMTLIB.Sym "rare-list", []) = (
    (*If there are no elements in the list we cannot know the type at this point*)
     SOME(Const( \<^const_name>\<open>ListVar\<close> ,dummyT --> dummyT)
-       $ Const( \<^const_name>\<open>List.Nil\<close>, dummyT))|> @{print})
-  | cvc_term_parser (SMTLIB.Sym "rare-list", ts) =(@{print}("rare-list");
+       $ Const( \<^const_name>\<open>List.Nil\<close>, dummyT)))
+  | cvc_term_parser (SMTLIB.Sym "rare-list", ts) =(
     let
       (*Figure out if types are different, this should only be the case if they have different
         bitwidths*)
