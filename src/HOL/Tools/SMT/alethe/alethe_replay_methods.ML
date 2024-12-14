@@ -75,6 +75,7 @@ sig
   type alethe_tac_context_args = Proof.context -> thm list -> term list -> term -> thm
   type alethe_tac_args = Proof.context -> thm list -> term -> Alethe_Node.tactic_args option -> thm
   type alethe_tac_context_args_and_arg = Proof.context -> thm list -> term list -> term -> Alethe_Node.tactic_args option -> thm
+  type alethe_tac_step_args_and_arg = Proof.context -> thm list -> term list -> term -> Alethe_Node.tactic_args option -> thm
   type alethe_tac = Proof.context -> thm list -> term -> thm
 
   val bind: alethe_tac_context_args
@@ -167,7 +168,7 @@ sig
   val symm: alethe_tac
   val not_symm: alethe_tac
   val reordering: alethe_tac
-  val shuffle: alethe_tac
+  val shuffle: alethe_tac_step_args_and_arg
 
 
   (*Extension to declare new alethe rules*)
@@ -193,6 +194,7 @@ type alethe_tac_step_args = Proof.context -> thm list -> term list -> term -> th
 type alethe_tac_context_args = Proof.context -> thm list -> term list -> term -> thm
 type alethe_tac_args = Proof.context -> thm list -> term -> Alethe_Node.tactic_args option -> thm
 type alethe_tac_context_args_and_arg = Proof.context -> thm list -> term list -> term -> Alethe_Node.tactic_args option -> thm
+type alethe_tac_step_args_and_arg = Proof.context -> thm list -> term list -> term -> Alethe_Node.tactic_args option -> thm
 type alethe_tac = Proof.context -> thm list -> term -> thm
 
 datatype alethe_rule =
@@ -1627,9 +1629,46 @@ fun reordering ctxt [thm] t = SMT_Replay_Methods.prove ctxt t (fn _ => (
 
 
 (*Find the commutative operator first*)
-fun shuffle ctxt _ t = SMT_Replay_Methods.prove ctxt t (fn _ =>(
-    (REPEAT' (resolve_tac ctxt @{thms alethe_shuffle_and}) THEN' (assume_tac ctxt))
-    ORELSE'
+(*Bad performance!*)
+local
+
+fun shuffle_and ctxt positions t = 
+ SMT_Replay_Methods.prove ctxt t (fn _ =>(
+   REPEAT'
+   ((resolve_tac ctxt @{thms alethe_shuffle_and1})
+   ORELSE'
+   (
+   (*(K (print_tac ctxt "shuffle_and 0"))
+   THEN'*) (resolve_tac ctxt @{thms alethe_shuffle_and2})
+   (*THEN' (K (print_tac ctxt "shuffle_and 1"))*)
+   THEN' (K (unfold_tac ctxt @{thms de_Morgan_conj}))
+   (*THEN' (K (print_tac ctxt "shuffle_and 2"))*)
+   THEN'
+    (REPEAT'
+      (
+       ((eresolve_tac ctxt @{thms disjI1})
+       ORELSE' (resolve_tac ctxt @{thms disjI2}))))
+   (*THEN' (K (print_tac ctxt "shuffle_and 3"))*)
+   THEN' TRY' (assume_tac ctxt)
+   (*THEN' (K (print_tac ctxt "shuffle_and 4"))*)
+   ))
+   (*THEN' (K (print_tac ctxt "shuffle_and 5"))*)
+   THEN'
+    (REPEAT'
+      (
+       ((assume_tac ctxt)
+       ORELSE' (resolve_tac ctxt @{thms refl})
+       ORELSE' (resolve_tac ctxt @{thms alethe_shuffle_and4})
+       ORELSE' (resolve_tac ctxt @{thms alethe_shuffle_and3}))))
+      THEN' TRY' (Simplifier.full_simp_tac ctxt)
+   THEN' (K (print_tac ctxt "shuffle_and end"))
+
+))
+in 
+fun shuffle ctxt _ step_args t (SOME (CommOp @{term "HOL.conj"})) = 
+shuffle_and ctxt step_args t  |
+shuffle ctxt _ step_args t  (SOME (CommOp @{term "HOL.disj"})) = SMT_Replay_Methods.prove ctxt t (fn _ =>(
+
       (REPEAT'
         ( (
           ((resolve_tac ctxt @{thms alethe_shuffle_or1b} THEN' K (print_tac ctxt "shufle sadf") THEN' TRY' (assume_tac ctxt))
@@ -1653,6 +1692,8 @@ fun shuffle ctxt _ t = SMT_Replay_Methods.prove ctxt t (fn _ =>(
 
      )
 
-
+| shuffle ctxt thms _ t _ =
+    replay_error ctxt "Unsupported commutative operator in shuffle rule" Unsupported thms [] t
+end
 
 end;

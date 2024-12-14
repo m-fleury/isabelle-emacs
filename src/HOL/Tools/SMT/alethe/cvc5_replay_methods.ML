@@ -188,6 +188,8 @@ fun include_step_args f ctxt prems step_args _ goal _ = f ctxt prems step_args g
 fun include_context_ass f ctxt prems _ context_ass goal _ = f ctxt prems context_ass goal
 fun include_context_ass_and_args f ctxt prems _ context_ass goal args = f ctxt prems context_ass goal args
 fun include_args f ctxt prems _ _ goal args = f ctxt prems goal args
+fun include_step_and_tactic_args f ctxt prems step_args _ goal args = f ctxt prems step_args goal args
+
 
 fun choose _ And = ignore_args and_rule
   | choose _ And_Neg = ignore_args and_neg_rule
@@ -283,7 +285,7 @@ fun choose _ And = ignore_args and_rule
   | choose _ Symm = ignore_args symm
   | choose _ Not_Symm = ignore_args not_symm
   | choose _ Reordering = ignore_args reordering
-  | choose _ Shuffle = ignore_args shuffle
+  | choose _ Shuffle = include_step_and_tactic_args shuffle
   | choose _ Tmp_Quantifier_Simplify = ignore_args qnt_simplify
   | choose _ Unary_Minus_Simplify = ignore_args rewrite_minus_simplify
   | choose ctxt (x as Other_Rule r) =

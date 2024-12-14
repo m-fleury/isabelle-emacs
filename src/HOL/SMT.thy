@@ -283,9 +283,31 @@ lemma alethe_distinct_elim_2:
   \<open>y \<Longrightarrow> z \<Longrightarrow> y = z\<close>
   by blast+
 
-lemma alethe_shuffle_and:
-  \<open>a \<Longrightarrow> b \<Longrightarrow> A = B \<Longrightarrow> (a \<and> A) = (b \<and> B)\<close>
-  by blast+
+lemma alethe_shuffle_and1:
+  \<open> A = B \<Longrightarrow> (a \<and> A) = (a \<and> B)\<close>
+  by blast
+
+lemma alethe_shuffle_and2:
+  \<open>(\<not>a \<Longrightarrow> \<not>B) \<Longrightarrow> (a \<Longrightarrow> A = (b \<and> B)) \<Longrightarrow>  (a \<and> A) = (b \<and> B)\<close>
+  apply (cases a)
+  by simp_all
+
+
+lemma alethe_shuffle_and3:
+  \<open>b=A \<Longrightarrow>  (a \<Longrightarrow> b = (a \<and> A))\<close>
+  apply (cases a)
+  by simp_all
+
+lemma alethe_shuffle_and4:
+  \<open>A \<Longrightarrow>  (a = (a \<and> A))\<close>
+  apply (cases a)
+  by simp_all
+
+
+
+
+
+
 
 lemma alethe_shuffle_or1a: "(A = B) \<Longrightarrow> (a \<or> A) = (a \<or> B)" by auto
 lemma alethe_shuffle_or1b: "\<not>B \<Longrightarrow> a = (a \<or> B)" by auto

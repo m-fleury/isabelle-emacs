@@ -25,9 +25,11 @@ sig
     Sko_Def_Prems of string list * string list | (*only used for sko_forall and sko_exists*)
     Solver_Name of string | (*used for refl and cong*)
     Index of int | (*used for and, not_or, and_pos and or_neg*)
+    CommOp of term | (*only used for shuffle*)
     Farkas_Coefficients of (int * int) list
 
   val transform_tactic_args : (term -> term) -> tactic_args option -> tactic_args option
+  (*val tactic_args_parser : tactic_args parser*)
 
   datatype alethe_replay_node = Alethe_Replay_Node of {
     id: string,
@@ -122,13 +124,14 @@ datatype tactic_args =
   Sko_Def_Prems of string list * string list | (*only used for sko_forall and sko_exists*)
   Solver_Name of string |  (*used for refl and cong*)
   Index of int | (*used for and, not_or, and_pos and or_neg*)
+  CommOp of term | (*only used for shuffle*)
   Farkas_Coefficients of (int * int) list
 
 fun transform_tactic_args _ NONE = NONE |
   transform_tactic_args f (SOME (Insts insts)) = SOME (Insts (Symtab.map (K f) insts)) |
   transform_tactic_args f (SOME (Declarations xs)) = SOME (Declarations xs) |
   transform_tactic_args f x = x
-
+                                             
 datatype alethe_replay_node =
  Alethe_Replay_Node of {
   id: string,
