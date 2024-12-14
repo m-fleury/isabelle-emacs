@@ -283,6 +283,32 @@ lemma alethe_distinct_elim_2:
   \<open>y \<Longrightarrow> z \<Longrightarrow> y = z\<close>
   by blast+
 
+lemma alethe_shuffle_and:
+  \<open>a \<Longrightarrow> b \<Longrightarrow> A = B \<Longrightarrow> (a \<and> A) = (b \<and> B)\<close>
+  by blast+
+
+lemma alethe_shuffle_or1a: "(A = B) \<Longrightarrow> (a \<or> A) = (a \<or> B)" by auto
+lemma alethe_shuffle_or1b: "\<not>B \<Longrightarrow> a = (a \<or> B)" by auto
+
+
+lemma alethe_shuffle_or2: "(a \<longrightarrow> (b \<or> B)) \<Longrightarrow> (\<not>a \<Longrightarrow> A = (b \<or> B)) \<Longrightarrow> (a \<or> A) = (b \<or> B)"
+  by auto
+
+lemma alethe_shuffle_or4a:  "a \<longrightarrow> (a \<or> B)" by auto
+lemma alethe_shuffle_or4b:  "(a \<longrightarrow> B) \<Longrightarrow> (a \<longrightarrow> (b \<or> B))" by auto
+
+
+lemma alethe_shuffle_or2b: "(b \<Longrightarrow> A) \<Longrightarrow> (\<not>b \<Longrightarrow> A=B) \<Longrightarrow> A = (b \<or> B)"
+  by auto
+
+lemma alethe_shuffle_or3: "(a \<Longrightarrow> A) \<Longrightarrow> (\<not>a \<Longrightarrow>A) \<Longrightarrow> (a \<or> A)"
+  by auto
+
+lemma alethe_shuffle_or5: "(a \<Longrightarrow> A) \<Longrightarrow> (\<not>a \<Longrightarrow>\<not>A) \<Longrightarrow> (a = A)"
+  by auto
+
+
+
 lemma verit_la_generic:
   \<open>(a::int) \<le> x \<or> a = x \<or> a \<ge> x\<close>
   by linarith
