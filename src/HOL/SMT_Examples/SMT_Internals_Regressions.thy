@@ -552,6 +552,49 @@ lemma reordering_4:
   using assms
   by (ctxt_tactic "reordering")
 
+(* Rule 34: shuffle *)
+
+lemma shuffle_1: 
+  shows "(b \<or> a) = (a \<or> b)"
+  by (ctxt_tactic "shuffle")
+
+lemma shuffle_2:
+  shows "(a \<or> b) = (a \<or> b)"
+  by (ctxt_tactic "shuffle")
+
+lemma shuffle_3: 
+  shows "(a \<or> b \<or> c) = (c \<or> a \<or> b)"
+  by (ctxt_tactic "shuffle")
+
+lemma shuffle_4: 
+  shows "(a \<or> b \<or> c) = (a \<or> b \<or> c)"
+  by (ctxt_tactic "shuffle")
+
+lemma shuffle_5: 
+  shows "(a \<or> b \<or> c \<or> d) = (c \<or> d \<or> b \<or> a)"
+  by (ctxt_tactic "shuffle")
+
+lemma shuffle_6: 
+  shows "(a \<or> (b \<or> c) \<or> d) = ((b \<or> c) \<or> d \<or> a)"
+  by (ctxt_tactic "shuffle")
+
+lemma shuffle_7: 
+  shows "(a \<or> b \<or> (c \<or> d)) = (a \<or> (c \<or> d) \<or> b)"
+  by (ctxt_tactic "shuffle")
+
+
+
+
+(*shffle 
+
+shffleb 0
+ 1. \<not> a \<Longrightarrow> \<not> b \<Longrightarrow> c = (c \<or> a \<or> b) 
+shffleb 1b
+ 1. \<not> a \<Longrightarrow> \<not> b \<Longrightarrow> c \<Longrightarrow> c
+ 2. \<not> a \<Longrightarrow> \<not> b \<Longrightarrow> \<not> c \<Longrightarrow> c = (a \<or> b) 
+
+*)
+
 
 (* Rule 35: not_and *)
 
@@ -1675,7 +1718,7 @@ lemma eq_simplify_4:
 (* Rule 84: div_simplify *)
 
 lemma div_simplify_1:
-  assumes "((a::int) / a)"
+  assumes "((a::int) div a)"
   shows "1"
   using assms
   by (ctxt_tactic "div_simplify")

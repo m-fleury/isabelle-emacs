@@ -1623,19 +1623,35 @@ fun reordering ctxt [thm] t = SMT_Replay_Methods.prove ctxt t (fn _ => (
     THEN' REPEAT'(ematch_tac ctxt @{thms notE} THEN' TRY' (assume_tac ctxt))
     ))
   | reordering ctxt thms t =
-    replay_error ctxt "invalid application in some reordering rule" Unsupported thms [] t
+    replay_error ctxt "Missing or several premises in some reordering rule" Unsupported thms [] t
 
 
-fun shuffle ctxt [thm] t = SMT_Replay_Methods.prove ctxt t (fn _ =>(
-    Method.insert_tac ctxt [thm]
-    THEN' match_tac ctxt @{thms ccontr}
-    THEN' K (unfold_tac ctxt @{thms de_Morgan_disj de_Morgan_conj})
-    THEN' TRY o CHANGED_PROP o REPEAT_ALL_NEW (ematch_tac ctxt @{thms conjE})
-    THEN' CHANGED_PROP o REPEAT_ALL_NEW (ematch_tac ctxt @{thms disjE})
-    THEN' REPEAT'(ematch_tac ctxt @{thms notE} THEN' TRY' (assume_tac ctxt))
-    ))
-  | shuffle ctxt thms t =
-    replay_error ctxt "invalid application in some reordering rule" Unsupported thms [] t
+(*Find the commutative operator first*)
+fun shuffle ctxt _ t = SMT_Replay_Methods.prove ctxt t (fn _ =>(
+    (REPEAT' (resolve_tac ctxt @{thms alethe_shuffle_and}) THEN' (assume_tac ctxt))
+    ORELSE'
+      (REPEAT'
+        ( (
+          ((resolve_tac ctxt @{thms alethe_shuffle_or1b} THEN' K (print_tac ctxt "shufle sadf") THEN' TRY' (assume_tac ctxt))
+          ORELSE'
+            resolve_tac ctxt @{thms alethe_shuffle_or1a}
+          ORELSE'
+            (match_tac ctxt @{thms alethe_shuffle_or2}
+             THEN' (
+                  REPEAT' (
+                 (resolve_tac ctxt @{thms alethe_shuffle_or4a})
+                 ORELSE' ((resolve_tac ctxt @{thms alethe_shuffle_or4b}))
+                 ORELSE' (resolve_tac ctxt @{thms imp_refl})
+             ))
+           )
+          )
+        )
+        )
+       )
+      THEN' TRY' (Simplifier.full_simp_tac ctxt)
+)
+
+     )
 
 
 
