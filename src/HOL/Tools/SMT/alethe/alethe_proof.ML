@@ -597,7 +597,7 @@ fun postprocess_proof compress ctxt step cx =
           "shuffle" =>
             let
               fun getOp (SMTLIB.S [_, SMTLIB.S [SMTLIB.Sym "=", SMTLIB.S (SMTLIB.Sym commOp :: _), _]]) =
-                 (if (commOp = "or") then @{term "HOL.conj"} else @{term "HOL.disj"}) |
+                 (if (commOp = "or") then @{term "HOL.disj"} else @{term "HOL.conj"}) |
                   getOp x = (@{print}("x",x);raise throw_alethe_ex ("malformed shuffle rule"))
             in SOME (CommOp (getOp concl)) end |
           "la_generic" =>
