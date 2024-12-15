@@ -444,6 +444,7 @@ val try_provers = SMT_Replay_Methods.try_provers
 
 fun TRY' tac = fn i => TRY (tac i)
 fun REPEAT' tac = fn i => REPEAT (tac i)
+fun REPEAT1' tac = fn i => REPEAT1 (tac i)
 fun REPEAT_CHANGED tac = fn i => REPEAT (CHANGED (tac i))
 fun REPEAT_DETERM_N' k tac = fn i => REPEAT_DETERM_N k (tac i)
 
@@ -1664,35 +1665,52 @@ fun shuffle_and ctxt positions t =
    THEN' (K (print_tac ctxt "shuffle_and end"))
 
 ))
-in 
-fun shuffle ctxt _ step_args t (SOME (CommOp @{term "HOL.conj"})) = 
-shuffle_and ctxt step_args t  |
-shuffle ctxt _ step_args t  (SOME (CommOp @{term "HOL.disj"})) = SMT_Replay_Methods.prove ctxt t (fn _ =>(
 
-      (REPEAT'
-        ( (
-          ((resolve_tac ctxt @{thms alethe_shuffle_or1b} THEN' K (print_tac ctxt "shufle sadf") THEN' TRY' (assume_tac ctxt))
-          ORELSE'
-            resolve_tac ctxt @{thms alethe_shuffle_or1a}
-          ORELSE'
-            (match_tac ctxt @{thms alethe_shuffle_or2}
-             THEN' (
-                  REPEAT' (
-                 (resolve_tac ctxt @{thms alethe_shuffle_or4a})
-                 ORELSE' ((resolve_tac ctxt @{thms alethe_shuffle_or4b}))
-                 ORELSE' (resolve_tac ctxt @{thms imp_refl})
-             ))
-           )
-          )
-        )
-        )
-       )
-      THEN' TRY' (Simplifier.full_simp_tac ctxt)
+
+fun shuffle_or ctxt positions t = 
+ SMT_Replay_Methods.prove ctxt t (fn _ =>(
+REPEAT'(
+
+   REPEAT1'(
+    resolve_tac ctxt @{thms alethe_shuffle_or1a}
+    ORELSE'
+    resolve_tac ctxt @{thms alethe_shuffle_or2}
+   )
+
+   (*THEN' K (print_tac ctxt "AFter repeat")*)
+   THEN'
+    (REPEAT'
+      (
+       ((eresolve_tac ctxt @{thms disjI1})
+       ORELSE' (resolve_tac ctxt @{thms disjI2}))))
+   (*THEN' K (print_tac ctxt "AFter repeat3")*)
+   THEN' TRY' (assume_tac ctxt)
+   (*THEN' K (print_tac ctxt "AFter repeat4")*)
+
+)
+   (*THEN' K (print_tac ctxt "AFter repeat5")*)
+
+      THEN' REPEAT' (resolve_tac ctxt @{thms alethe_shuffle_or2b}
+ (*THEN' K (print_tac ctxt "AFter repeat5b")*)
+        THEN' ((assume_tac ctxt) ORELSE'(resolve_tac ctxt @{thms refl}) )
 )
 
-     )
+  (* THEN' K (print_tac ctxt "AFter repeat6")*)
+   THEN' TRY' (resolve_tac ctxt @{thms alethe_shuffle_or6})
+   (*THEN' K (print_tac ctxt "AFter repeat7")*)
+   THEN' (K (unfold_tac ctxt @{thms de_Morgan_conj de_Morgan_disj}))
+  (* THEN' K (print_tac ctxt "AFter repeat8")*)
 
-| shuffle ctxt thms _ t _ =
+
+))
+
+in 
+fun shuffle ctxt _ step_args t (SOME (CommOp @{term "HOL.conj"})) = 
+  shuffle_and ctxt step_args t  |
+shuffle ctxt _ step_args t  (SOME (CommOp @{term "HOL.disj"})) =
+  shuffle_or ctxt step_args t  |
+
+shuffle ctxt thms _ t _ =
     replay_error ctxt "Unsupported commutative operator in shuffle rule" Unsupported thms [] t
 end
 

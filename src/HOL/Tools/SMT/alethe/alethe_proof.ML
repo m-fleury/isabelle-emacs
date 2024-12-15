@@ -579,7 +579,7 @@ fun postprocess_proof compress ctxt step cx =
     else (*Non anchor steps*)
       let
         val _ = debug_msg ctxt low (fn () => \<^print> ("postprocessing started for rule: ", id))
-        val _ = @{print}("id",id)
+
         (* Process conclusion *)
         val (cx',termified_concl) = transform_concl concl id (cx, new_variable_names)
         val _ = debug_msg ctxt middle (fn () => \<^print> ("... transform conclusion ", termified_concl))
@@ -596,10 +596,10 @@ fun postprocess_proof compress ctxt step cx =
         case rule of
           "shuffle" =>
             let
-              fun getOp (SMTLIB.S [SMTLIB.Sym "=", SMTLIB.S (SMTLIB.Sym commOp :: _), _]) =
+              fun getOp (SMTLIB.S [_, SMTLIB.S [SMTLIB.Sym "=", SMTLIB.S (SMTLIB.Sym commOp :: _), _]]) =
                  (if (commOp = "or") then @{term "HOL.conj"} else @{term "HOL.disj"}) |
-                  getOp _ = raise throw_alethe_ex ("malformed shuffle rule")
-            in SOME (CommOp (getOp concl)) |> @{print} end |
+                  getOp x = (@{print}("x",x);raise throw_alethe_ex ("malformed shuffle rule"))
+            in SOME (CommOp (getOp concl)) end |
           "la_generic" =>
           let
             fun convert_dec_to_rat num1 num2 =
