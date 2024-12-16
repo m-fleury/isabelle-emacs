@@ -1635,6 +1635,8 @@ local
 
 fun shuffle_and ctxt positions t = 
  SMT_Replay_Methods.prove ctxt t (fn _ =>(
+   K (print_tac ctxt "Beginning shuffle_and")
+THEN'
    REPEAT'
    ((resolve_tac ctxt @{thms alethe_shuffle_and1})
    ORELSE'
@@ -1666,40 +1668,44 @@ fun shuffle_and ctxt positions t =
 
 ))
 
+fun resolve_or ctxt =
+  (
+       REPEAT'(
+         (match_tac ctxt @{thms alethe_shuffle_or_resolve(1)} 
+         (*THEN' K (print_tac ctxt "resolve_or could solve")*))
+         ORELSE'
+         (resolve_tac ctxt @{thms alethe_shuffle_or_resolve(2)}
+         (*THEN' K (print_tac ctxt "resolve_or drop first clause")*))
+       )
+       (*THEN' K (print_tac ctxt "resolve_or after repeat")*)
+       THEN' TRY' (assume_tac ctxt)
+       THEN' TRY' (match_tac ctxt @{thms imp_refl})
+
+       (*THEN' K (print_tac ctxt "resolve_or end")*)
+     )
+
 
 fun shuffle_or ctxt positions t = 
  SMT_Replay_Methods.prove ctxt t (fn _ =>(
-REPEAT'(
-
-   REPEAT1'(
-    resolve_tac ctxt @{thms alethe_shuffle_or1a}
-    ORELSE'
-    resolve_tac ctxt @{thms alethe_shuffle_or2}
+   (*K (print_tac ctxt "shuffle_or begin")
+   THEN'*) REPEAT'(
+     (*K (print_tac ctxt "shuffle_or before splitting")
+     THEN' *) resolve_tac ctxt @{thms alethe_shuffle_or_split(1)} (*split on ti*)
+     (*THEN' K (print_tac ctxt "shuffle_or after splitting")*)
+     THEN' resolve_or ctxt
+     (*THEN' K (print_tac ctxt "shuffle_or after resolving first splitting goal")*)
    )
+   (*THEN' K (print_tac ctxt "shuffle_or after finishing splitting all but last step")*)
+   THEN' resolve_tac ctxt @{thms alethe_shuffle_or_split(2)} (*split on tn*)
+   (*THEN' K (print_tac ctxt "shuffle_or after finishing splitting the last step")*)
+   THEN' resolve_or ctxt
+   (*THEN' K (print_tac ctxt "shuffle_or fully finished splitting")*)
+   THEN' K (unfold_tac ctxt @{thms de_Morgan_disj})
+   (*THEN' K (print_tac ctxt "resolve_or after repeat")*)
 
-   (*THEN' K (print_tac ctxt "AFter repeat")*)
-   THEN'
-    (REPEAT'
-      (
-       ((eresolve_tac ctxt @{thms disjI1})
-       ORELSE' (resolve_tac ctxt @{thms disjI2}))))
-   (*THEN' K (print_tac ctxt "AFter repeat3")*)
-   THEN' TRY' (assume_tac ctxt)
-   (*THEN' K (print_tac ctxt "AFter repeat4")*)
+   THEN' TRY' (Simplifier.full_simp_tac ctxt)
 
-)
-   (*THEN' K (print_tac ctxt "AFter repeat5")*)
-
-      THEN' REPEAT' (resolve_tac ctxt @{thms alethe_shuffle_or2b}
- (*THEN' K (print_tac ctxt "AFter repeat5b")*)
-        THEN' ((assume_tac ctxt) ORELSE'(resolve_tac ctxt @{thms refl}) )
-)
-
-  (* THEN' K (print_tac ctxt "AFter repeat6")*)
-   THEN' TRY' (resolve_tac ctxt @{thms alethe_shuffle_or6})
-   (*THEN' K (print_tac ctxt "AFter repeat7")*)
-   THEN' (K (unfold_tac ctxt @{thms de_Morgan_conj de_Morgan_disj}))
-  (* THEN' K (print_tac ctxt "AFter repeat8")*)
+  (*THEN' K (print_tac ctxt "End shuffle_or")*)
 
 
 ))

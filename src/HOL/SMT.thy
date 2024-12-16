@@ -306,6 +306,17 @@ lemma alethe_shuffle_and4:
 
 
 
+lemma alethe_shuffle_or_split:
+  "(a \<longrightarrow> (b \<or> B)) \<Longrightarrow> (\<not>a \<Longrightarrow> A = (b \<or> B)) \<Longrightarrow> (a \<or> A) = (b \<or> B)"
+  "(a \<longrightarrow> (b \<or> B)) \<Longrightarrow> (\<not>a \<Longrightarrow> \<not>(b \<or> B)) \<Longrightarrow> a = (b \<or> B)"
+  by auto
+
+lemma alethe_shuffle_or_resolve:
+  "a \<longrightarrow> (a \<or> A)"
+  "a \<longrightarrow> A \<Longrightarrow> a \<longrightarrow> (b \<or> A)"
+  by auto
+
+
 
 
 
@@ -313,8 +324,7 @@ lemma alethe_shuffle_or1a: "(A = B) \<Longrightarrow> (a \<or> A) = (a \<or> B)"
 lemma alethe_shuffle_or1b: "\<not>B \<Longrightarrow> a = (a \<or> B)" by auto
 
 
-lemma alethe_shuffle_or2: "(a \<Longrightarrow> (b \<or> B)) \<Longrightarrow> (\<not>a \<Longrightarrow> A = (b \<or> B)) \<Longrightarrow> (a \<or> A) = (b \<or> B)"
-  by auto
+
 
 lemma alethe_shuffle_or4a:  "a \<longrightarrow> (a \<or> B)" by auto
 lemma alethe_shuffle_or4b:  "(a \<longrightarrow> B) \<Longrightarrow> (a \<longrightarrow> (b \<or> B))" by auto
