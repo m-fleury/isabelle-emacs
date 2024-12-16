@@ -1633,43 +1633,9 @@ fun reordering ctxt [thm] t = SMT_Replay_Methods.prove ctxt t (fn _ => (
 (*Bad performance!*)
 local
 
-fun shuffle_and ctxt positions t = 
- SMT_Replay_Methods.prove ctxt t (fn _ =>(
-   K (print_tac ctxt "Beginning shuffle_and")
-THEN'
-   REPEAT'
-   ((resolve_tac ctxt @{thms alethe_shuffle_and1})
-   ORELSE'
-   (
-   (*(K (print_tac ctxt "shuffle_and 0"))
-   THEN'*) (resolve_tac ctxt @{thms alethe_shuffle_and2})
-   (*THEN' (K (print_tac ctxt "shuffle_and 1"))*)
-   THEN' (K (unfold_tac ctxt @{thms de_Morgan_conj}))
-   (*THEN' (K (print_tac ctxt "shuffle_and 2"))*)
-   THEN'
-    (REPEAT'
-      (
-       ((eresolve_tac ctxt @{thms disjI1})
-       ORELSE' (resolve_tac ctxt @{thms disjI2}))))
-   (*THEN' (K (print_tac ctxt "shuffle_and 3"))*)
-   THEN' TRY' (assume_tac ctxt)
-   (*THEN' (K (print_tac ctxt "shuffle_and 4"))*)
-   ))
-   (*THEN' (K (print_tac ctxt "shuffle_and 5"))*)
-   THEN'
-    (REPEAT'
-      (
-       ((assume_tac ctxt)
-       ORELSE' (resolve_tac ctxt @{thms refl})
-       ORELSE' (resolve_tac ctxt @{thms alethe_shuffle_and4})
-       ORELSE' (resolve_tac ctxt @{thms alethe_shuffle_and3}))))
-      THEN' TRY' (Simplifier.full_simp_tac ctxt)
-   THEN' (K (print_tac ctxt "shuffle_and end"))
-
-))
-
 fun resolve_or ctxt =
   (
+ (*K (print_tac ctxt "resolve_or begin") THEN'*)
        REPEAT'(
          (match_tac ctxt @{thms alethe_shuffle_or_resolve(1)} 
          (*THEN' K (print_tac ctxt "resolve_or could solve")*))
@@ -1683,6 +1649,43 @@ fun resolve_or ctxt =
 
        (*THEN' K (print_tac ctxt "resolve_or end")*)
      )
+
+fun shuffle_and ctxt positions t = 
+ SMT_Replay_Methods.prove ctxt t (fn _ =>(
+  (* K (print_tac ctxt "Beginning shuffle_and")
+  THEN' *) REPEAT'(
+    (*(K (print_tac ctxt "shuffle_and 0"))
+    THEN'*) (
+      (resolve_tac ctxt @{thms alethe_shuffle_and1})
+      ORELSE'
+      ((resolve_tac ctxt @{thms alethe_shuffle_and2(1)}) (*(a \<and> A) = (b \<and> B)*)
+        (*THEN' (K (print_tac ctxt "shuffle_and 1"))*)
+        THEN' (K (unfold_tac ctxt @{thms de_Morgan_conj}))
+        (*THEN' (K (print_tac ctxt "shuffle_and 2"))*)
+        THEN' resolve_or ctxt
+        (*THEN' (K (print_tac ctxt "shuffle_and 3"))*)
+
+        
+        (*THEN' (K (print_tac ctxt "shuffle_and 4"))*)
+        )
+    ))
+   (*THEN' (K (print_tac ctxt "shuffle_and 5"))*)
+   THEN' (resolve_tac ctxt @{thms alethe_shuffle_and2(2)})
+   (*THEN' (K (print_tac ctxt "shuffle_and 6"))*)
+   THEN' (K (unfold_tac ctxt @{thms de_Morgan_conj}))
+
+   (*THEN' (K (print_tac ctxt "shuffle_and 6b"))*)
+   THEN' resolve_or ctxt
+
+   (*THEN' (K (print_tac ctxt "shuffle_and 6b"))
+
+   THEN' (fn i =>  (resolve_or ctxt 1))*)
+   (*THEN' (K (print_tac ctxt "shuffle_and 7"))*)
+  
+
+)
+)
+
 
 
 fun shuffle_or ctxt positions t = 

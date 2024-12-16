@@ -288,9 +288,10 @@ lemma alethe_shuffle_and1:
   by blast
 
 lemma alethe_shuffle_and2:
-  \<open>(\<not>a \<Longrightarrow> \<not>B) \<Longrightarrow> (a \<Longrightarrow> A = (b \<and> B)) \<Longrightarrow>  (a \<and> A) = (b \<and> B)\<close>
+  \<open>(\<not>a \<longrightarrow> \<not>B) \<Longrightarrow> (a \<Longrightarrow> A = (b \<and> B)) \<Longrightarrow>  (a \<and> A) = (b \<and> B)\<close>
+  \<open>(\<not>a \<longrightarrow> \<not>(b \<and> B)) \<Longrightarrow> (a \<Longrightarrow> (b \<and> B)) \<Longrightarrow>  a = (b \<and> B)\<close>
   apply (cases a)
-  by simp_all
+  by auto
 
 
 lemma alethe_shuffle_and3:
