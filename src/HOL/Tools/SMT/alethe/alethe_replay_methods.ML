@@ -1652,10 +1652,10 @@ fun resolve_or ctxt =
 
 fun shuffle_and ctxt positions t = 
  SMT_Replay_Methods.prove ctxt t (fn _ =>(
-  (* K (print_tac ctxt "Beginning shuffle_and")
-  THEN' *) REPEAT'(
-    (*(K (print_tac ctxt "shuffle_and 0"))
-    THEN'*) (
+  K (print_tac ctxt "Beginning shuffle_and")
+  THEN'  REPEAT'(
+    (K (print_tac ctxt "shuffle_and 0"))
+    THEN' (
       (resolve_tac ctxt @{thms alethe_shuffle_and1})
       ORELSE'
       ((resolve_tac ctxt @{thms alethe_shuffle_and2(1)}) (*(a \<and> A) = (b \<and> B)*)
@@ -1669,7 +1669,7 @@ fun shuffle_and ctxt positions t =
         (*THEN' (K (print_tac ctxt "shuffle_and 4"))*)
         )
     ))
-   (*THEN' (K (print_tac ctxt "shuffle_and 5"))*)
+   THEN' (K (print_tac ctxt "shuffle_and 5"))
    THEN' (resolve_tac ctxt @{thms alethe_shuffle_and2(2)})
    (*THEN' (K (print_tac ctxt "shuffle_and 6"))*)
    THEN' (K (unfold_tac ctxt @{thms de_Morgan_conj}))
@@ -1680,7 +1680,7 @@ fun shuffle_and ctxt positions t =
    (*THEN' (K (print_tac ctxt "shuffle_and 6b"))
 
    THEN' (fn i =>  (resolve_or ctxt 1))*)
-   (*THEN' (K (print_tac ctxt "shuffle_and 7"))*)
+   THEN' (K (print_tac ctxt "shuffle_and 7"))
   
 
 )
@@ -1690,34 +1690,41 @@ fun shuffle_and ctxt positions t =
 
 fun shuffle_or ctxt positions t = 
  SMT_Replay_Methods.prove ctxt t (fn _ =>(
-   (*K (print_tac ctxt "shuffle_or begin")
-   THEN'*) REPEAT'(
+   K (print_tac ctxt "shuffle_or begin")
+   THEN' REPEAT'(
      (*K (print_tac ctxt "shuffle_or before splitting")
      THEN' *) resolve_tac ctxt @{thms alethe_shuffle_or_split(1)} (*split on ti*)
-     (*THEN' K (print_tac ctxt "shuffle_or after splitting")*)
+     THEN' K (print_tac ctxt "shuffle_or after splitting")
      THEN' resolve_or ctxt
-     (*THEN' K (print_tac ctxt "shuffle_or after resolving first splitting goal")*)
+     THEN' K (print_tac ctxt "shuffle_or after resolving first splitting goal")
    )
-   (*THEN' K (print_tac ctxt "shuffle_or after finishing splitting all but last step")*)
+   THEN' K (print_tac ctxt "shuffle_or after finishing splitting all but last step")
    THEN' resolve_tac ctxt @{thms alethe_shuffle_or_split(2)} (*split on tn*)
-   (*THEN' K (print_tac ctxt "shuffle_or after finishing splitting the last step")*)
+   THEN' K (print_tac ctxt "shuffle_or after finishing splitting the last step")
    THEN' resolve_or ctxt
-   (*THEN' K (print_tac ctxt "shuffle_or fully finished splitting")*)
+   THEN' K (print_tac ctxt "shuffle_or fully finished splitting")
    THEN' K (unfold_tac ctxt @{thms de_Morgan_disj})
-   (*THEN' K (print_tac ctxt "resolve_or after repeat")*)
+   THEN' K (print_tac ctxt "resolve_or after de_Morgan")
 
-   THEN' TRY' (Simplifier.full_simp_tac ctxt)
+   THEN' TRY' (Timeout.apply ((Time.fromSeconds 1)) (Simplifier.full_simp_tac ctxt))
 
-  (*THEN' K (print_tac ctxt "End shuffle_or")*)
+  THEN' K (print_tac ctxt "End shuffle_or")
 
 
 ))
+fun simplify_tac1 ctxt thms =
+  ctxt
+  |> empty_simpset
+  |> put_simpset HOL_basic_ss
+  |> (fn ctxt => ctxt addsimps thms addsimps [])
+  |> Simplifier.asm_full_simp_tac
+
 
 in 
 fun shuffle ctxt _ step_args t (SOME (CommOp @{term "HOL.conj"})) = 
-  shuffle_and ctxt step_args t  |
+  SMT_Replay_Methods.prove ctxt t (fn _ =>(simplify_tac1 ctxt @{thms Lattices.conj.commute Lattices.conj.left_commute conj_assoc})) |
 shuffle ctxt _ step_args t  (SOME (CommOp @{term "HOL.disj"})) =
-  shuffle_or ctxt step_args t  |
+  SMT_Replay_Methods.prove ctxt t (fn _ =>(simplify_tac1 ctxt @{thms Lattices.disj.commute Lattices.disj.left_commute disj_assoc})) |
 
 shuffle ctxt thms _ t _ =
     replay_error ctxt "Unsupported commutative operator in shuffle rule" Unsupported thms [] t
