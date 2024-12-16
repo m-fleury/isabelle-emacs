@@ -164,6 +164,7 @@ fun parse_fun_def (SMTLIB.S [SMTLIB.Sym "define-fun", SMTLIB.Sym id,  _, _,
 fun parse_raw_proof_steps (curr_anchor_id : string option) (smtlib_lines : SMTLIB.tree list) (cx : name_bindings):
      (raw_alethe_node list * SMTLIB.tree list * name_bindings) =
   let
+
     fun step_kind "anchor" = ANCHOR
       | step_kind "assume" = ASSUME
       | step_kind "step" = NORMAL_STEP
@@ -171,8 +172,7 @@ fun parse_raw_proof_steps (curr_anchor_id : string option) (smtlib_lines : SMTLI
       | step_kind kind = raise throw_alethe_ex ("step_kind unrec: " ^ @{make_string} kind)
 
     fun split_step [] = (NO_STEP, SMTLIB.S [], [])
-      | split_step ((step as SMTLIB.S (SMTLIB.Sym kind :: _)) :: remaining_steps) =
-          (step_kind kind, step, remaining_steps)
+      | split_step ((step as SMTLIB.S (SMTLIB.Sym kind :: _)) :: remaining_steps) = (step_kind kind, step, remaining_steps)
       | split_step steps = raise throw_alethe_ex ("malformed step: " ^ String.concat (map SMTLIB.str_of steps))
 
     fun parse_id (SMTLIB.S ((SMTLIB.Sym _) :: (SMTLIB.Sym id) :: l)) = (id, l)
@@ -882,6 +882,8 @@ local
 
   fun import_proof_and_post_process typs funs lines ctxt =
     let
+      val _ = debug_msg ctxt middle (fn () => \<^print> ("In import_proof_and_post_process"))
+
       val compress = SMT_Config.compress_verit_proofs ctxt
 
       val smtlib_lines_without_qm =
@@ -891,8 +893,11 @@ local
         |> map SMTLIB.parse
         |> map remove_all_qm
         |> map remove_pattern
+      val _ = debug_msg ctxt high (fn () => \<^print> ("Removed questionmarks and patterns from proof"))
+
       val (raw_steps, _, _) =
         parse_raw_proof_steps NONE smtlib_lines_without_qm SMTLIB_Proof.empty_name_binding
+      val _ = debug_msg ctxt middle (fn () => \<^print> ("Successfully parsed into raw proof step"))
 
       fun process step (cx, cx') =
         let fun postprocess step (cx, cx') =
