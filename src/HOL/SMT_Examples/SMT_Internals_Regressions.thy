@@ -222,11 +222,44 @@ some errors.
 *)
 
 ML\<open>
+datatype token = None | Unfinished of string list * int | Finished of string list * string list
+exception TOKEN of string
+
+fun parse_token s [] = s |
+  parse_token None ("("::cs) = parse_token (Unfinished(["("],1)) cs |
+  parse_token None (" "::cs) = parse_token None cs |
+  parse_token None (")"::cs) = Scan.fail cs |
+  parse_token None cs = Finished (Scan.catch Scan.many (fn c => c <> " " andalso c <> ")") cs) |
+  parse_token (Unfinished (s,i)) ("("::cs) = parse_token (Unfinished ("("::s,i+1)) cs |
+  parse_token (Unfinished (_,0)) (")"::_) = raise TOKEN("too many closing parenthesis") |
+  parse_token (Unfinished (s,1)) (")"::xs) = Finished(rev (")"::s),xs) |
+  parse_token (Unfinished (s,i)) (")"::cs) = parse_token (Unfinished (")"::s,i-1)) cs |
+  parse_token (Unfinished (s,i)) (c::cs) = parse_token (Unfinished (c::s,i)) cs |
+  parse_token _ _ = raise TOKEN("error parsing token")
+
+fun call_parse_token cs = parse_token (Unfinished ([],0)) cs |> (fn Finished(x,xs) => (x |> implode ,xs))
+
+val scanWhiteSpace = Scan.many (curry (op =) " ")
+
+fun tactic_args_parser ctxt cs =
+   ((Scan.this_string "Declarations" |-- $$" " |-- scanWhiteSpace |-- $$"[" |-- scanWhiteSpace
+     |-- Scan.repeat (call_parse_token --| scanWhiteSpace --| $$"," --| scanWhiteSpace)
+     -- call_parse_token
+     --| scanWhiteSpace --| $$"]"
+   ) cs 
+  |> fst
+  |> (fn (xs,x) => x::xs) 
+  |> map (Syntax.parse_term ctxt))
+
+
+
+
 fun get_tac n ctxt prems args = 
 let
   val rule = CVC5_Replay_Methods.cvc5_rule_of n |> @{print}
   val rule_name = rule |> Alethe_Replay_Methods.string_of_alethe_rule
   val _ = @{print}("Found tactic", rule_name)
+  val _ = @{print}("args", args  )
 
   (*FIXME: For some reason this function gets called twice... This definitely should not be necessary*)
   val dummys = Const ("Pure.prop", @{typ "prop \<Rightarrow> prop"}) $ (Const ("Pure.term", @{typ "prop \<Rightarrow> prop"}) $ Const ("Pure.dummy_pattern", @{typ "prop"}))
@@ -236,7 +269,9 @@ let
   val context_args=[]
   val args= (if rule_name = "and_pos" andalso Option.isSome args
             then SOME (Index (Option.valOf args |> Syntax.read_term ctxt |> HOLogic.dest_number |> snd))
-            else NONE)
+            else if rule_name = "shuffle" andalso Option.isSome args
+            then SOME (CommOp (Option.valOf args |> Syntax.read_term ctxt))
+            else NONE)|> @{print}
   fun rule_tac ctxt t = CVC5_Replay_Methods.choose (Context.the_generic_context ()) rule ctxt prems step_args context_args t args
   fun term_to_thm t = rule_tac ctxt t
 
@@ -253,15 +288,16 @@ in
 end
 
 val parse_tactic_args : tactic_args parser = (fn ts => let val _ = @{print}("ts",ts) in (Index 0,ts) end)
-
+fun test x = Parse.term (x|> @{print})
 val _ =
  Theory.setup
  (Method.setup \<^binding>\<open>ctxt_tactic\<close>
- (Scan.lift (Parse.string 
-             -- (Scan.optional (Scan.option Parse.term) NONE)) >>
+ (Scan.lift (Parse.string
+             -- ( (Scan.optional (Scan.option Parse.string) NONE))) >>
    (fn (rule_name,args) => fn ctxt => fn prems => CONTEXT_TACTIC (get_tac rule_name ctxt prems args)))
- "testing tactics <name> ([<args>*])  ")
+ "testing tactics <name> ([<step_args>*]) ([<args>*])")
 \<close>
+
 
 (* Rule 1: assume *)
 
@@ -339,7 +375,58 @@ lemma not_not_3: "\<not>\<not>\<not>(\<not>a \<or> b) \<or> (\<not>a \<or> b)"
   by (ctxt_tactic "not_not")
 
 
-(* Rule 23: trans *)
+(* Rule 13: la_disequality *)
+
+lemma la_disequality_1: "(a::int) = b \<or> \<not> (a::int) \<le> b \<or> \<not> b \<le> (a::int)"
+  by (ctxt_tactic "la_disequality")
+
+lemma la_disequality_2: "(1::int) = (5-4) \<or> \<not> (1::int) \<le> (5-4) \<or> \<not> (5-4) \<le> (1::int)"
+  by (ctxt_tactic "la_disequality")
+
+lemma la_disequality_3: "(2::int) = (7-2) \<or> \<not> (2::int) \<le> (7-2) \<or> \<not> (7-2) \<le> (2::int)"
+  by (ctxt_tactic "la_disequality")
+
+lemma la_disequality_4: "(2::int) = (7-6) \<or> \<not> (2::int) \<le> (7-6) \<or> \<not> (7-6) \<le> (2::int)"
+  by (ctxt_tactic "la_disequality")
+
+
+(* Rule 14: la_tautology *)
+
+lemma la_totality_1: "(a::int) \<le> b \<or> b \<le> a"
+  by (ctxt_tactic "la_totality")
+
+lemma la_totality_2: "((2::int) - 6) \<le> (3 + 4) \<or> (3 + 4)  \<le> ((2::int) - 6)"
+  by (ctxt_tactic "la_totality")
+
+(* Rule 15: la_tautology *)
+
+lemma la_tautology_form1_1: "\<not>((1::int) = 2)"
+  by (ctxt_tactic "la_tautology")
+
+lemma la_tautology_form1_2: "((2::int) < 5)"
+  by (ctxt_tactic "la_tautology")
+
+lemma la_tautology_form1_3: "((14::int) \<ge> 6)"
+  by (ctxt_tactic "la_tautology")
+
+lemma la_tautology_form1_4: "((14::int) \<ge> (6-3+1))"
+  by (ctxt_tactic "la_tautology")
+
+lemma la_tautology_form2_1: "((a::int) \<le> 11) \<or> \<not>(a \<le> 11)"
+  by (ctxt_tactic "la_tautology")
+
+lemma la_tautology_form2_2: "(a::int) \<le> 11 \<or> \<not>(a \<le> (66 - 55))"
+  by (ctxt_tactic "la_tautology")
+
+lemma la_tautology_form2_3: "\<not>(((5::int) + 4) \<le> 11) \<or> \<not>(((5::int) + 4) \<ge> 11)"
+  by (ctxt_tactic "la_tautology")
+
+lemma la_tautology_form2_4: "\<not>(((5::int) + 4) \<le> 11) \<or> \<not>(((5::int) + 4) \<ge> 25)"
+  by (ctxt_tactic "la_tautology")
+
+
+
+(* Rule 23: trans *)                              
 
 lemma trans_1:
   assumes "a = a"
@@ -554,46 +641,97 @@ lemma reordering_4:
 
 (* Rule 34: shuffle *)
 
-lemma shuffle_1: 
+lemma shuffle_or_1: 
   shows "(b \<or> a) = (a \<or> b)"
-  by (ctxt_tactic "shuffle")
+  by (ctxt_tactic "shuffle" "HOL.disj")
 
-lemma shuffle_2:
+lemma shuffle_or_2:
   shows "(a \<or> b) = (a \<or> b)"
-  by (ctxt_tactic "shuffle")
+  by (ctxt_tactic "shuffle" "HOL.disj")
 
-lemma shuffle_3: 
+lemma shuffle_or_3: 
   shows "(a \<or> b \<or> c) = (c \<or> a \<or> b)"
-  by (ctxt_tactic "shuffle")
+  by (ctxt_tactic "shuffle" "HOL.disj")
 
-lemma shuffle_4: 
+lemma shuffle_or_4: 
   shows "(a \<or> b \<or> c) = (a \<or> b \<or> c)"
-  by (ctxt_tactic "shuffle")
+  by (ctxt_tactic "shuffle" "HOL.disj")
 
-lemma shuffle_5: 
+lemma shuffle_or_5: 
   shows "(a \<or> b \<or> c \<or> d) = (c \<or> d \<or> b \<or> a)"
-  by (ctxt_tactic "shuffle")
+  by (ctxt_tactic "shuffle" "HOL.disj")
 
-lemma shuffle_6: 
+lemma shuffle_or_6: 
   shows "(a \<or> (b \<or> c) \<or> d) = ((b \<or> c) \<or> d \<or> a)"
-  by (ctxt_tactic "shuffle")
+  by (ctxt_tactic "shuffle" "HOL.disj")
 
-lemma shuffle_7: 
+lemma shuffle_or_7: 
   shows "(a \<or> b \<or> (c \<or> d)) = (a \<or> (c \<or> d) \<or> b)"
-  by (ctxt_tactic "shuffle")
+  by (ctxt_tactic "shuffle" "HOL.disj")
+
+lemma shuffle_or_8: 
+  shows "(a \<or> b \<or> (c \<and> (d \<or> e))) = (a \<or> (c \<and> (d \<or> e)) \<or> b)"
+  by (ctxt_tactic "shuffle" "HOL.disj")
+
+
+lemma shuffle_and_1: 
+  shows "(b \<and> a) = (a \<and> b)"
+  by (ctxt_tactic "shuffle" "HOL.conj")
+
+lemma shuffle_and_2: 
+  shows "(a \<and> a) = (a \<and> a)"
+  by (ctxt_tactic "shuffle" "HOL.conj")
+
+lemma shuffle_and_3: 
+  shows "(a \<and> b \<and> c) = (b \<and> a \<and> c)"
+  by (ctxt_tactic "shuffle" "HOL.conj")
+
+lemma shuffle_and_4: 
+  shows "((a \<longrightarrow> b ) \<and> c) = (c \<and> (a \<longrightarrow> b))"
+  by (ctxt_tactic "shuffle" "HOL.conj")
+
+lemma shuffle_and_5: 
+  shows "(d \<and> (a \<or> b ) \<and> c) = (c \<and> d \<and> (a \<or> b))"
+  by (ctxt_tactic "shuffle" "HOL.conj")
+
+
+ML \<open>
+
+val x
+ = Alethe_Replay_Methods.shuffle
+ (Context.the_local_context ()) [] [@{term "1::int"}]
+ @{term  " (op e4 e4 \<noteq> e4 \<and> op e3 e4 \<noteq> e3 \<and> op e4 e3 \<noteq> e3 \<and> op e2 e4 \<noteq> e2 \<and> op e4 e2 \<noteq> e2 \<and> op e0 e4 \<noteq> e0 \<and> op e1 e4 \<noteq> e1 \<and> op e4 e0 \<noteq> e0 \<and> op e4 e1 \<noteq> e1) =
+    (op e0 e4 \<noteq> e0 \<and> op e1 e4 \<noteq> e1 \<and> op e2 e4 \<noteq> e2 \<and> op e3 e4 \<noteq> e3 \<and> op e4 e4 \<noteq> e4 \<and> op e4 e0 \<noteq> e0 \<and> op e4 e1 \<noteq> e1 \<and> op e4 e2 \<noteq> e2 \<and> op e4 e3 \<noteq> e3) "}
+ (SOME (CommOp @{term "conj"}))
+\<close>
+
+ML \<open>
+
+val y
+ = Alethe_Replay_Methods.shuffle
+ (Context.the_local_context ()) [] [@{term "1::int"}]
+ @{term  " (A \<or> B \<or> (C \<or> D))  = ((C \<or> D) \<or> B \<or> A)"}
+ (*@{term  " (A \<or> B \<or> C)  = (C \<or> B \<or> A)"}*)
+
+ (SOME (CommOp @{term "disj"}))
+
+
+\<close>
 
 
 
 
-(*shffle 
+(* 
 
-shffleb 0
- 1. \<not> a \<Longrightarrow> \<not> b \<Longrightarrow> c = (c \<or> a \<or> b) 
-shffleb 1b
- 1. \<not> a \<Longrightarrow> \<not> b \<Longrightarrow> c \<Longrightarrow> c
- 2. \<not> a \<Longrightarrow> \<not> b \<Longrightarrow> \<not> c \<Longrightarrow> c = (a \<or> b) 
-
+hi0
+ 1. (a \<and> b \<and> c) = (b \<and> a \<and> c) 
+hi
+ 1. (a \<and> b \<and> c) = ((a \<and> c) \<and> b) 
+hi
+ 1. (a \<and> b \<and> c) = (b \<and> a \<and> c) 
+hi
 *)
+
 
 
 (* Rule 35: not_and *)
@@ -1521,7 +1659,7 @@ lemma bool_simplify_7:
 lemma ac_simp_1: "(b \<and> b) = b"
   by (ctxt_tactic "ac_simp")
 
-lemma ac_simp_2: "(b \<and> a \<and> b) = b \<and> a"
+lemma ac_simp_2: "(b \<and> a \<and> b) = a \<and> b"
  (* by (ctxt_tactic "ac_simp")*)
 
 lemma ac_simp_3: "(b \<and> a \<and> b) = a \<and> b"
