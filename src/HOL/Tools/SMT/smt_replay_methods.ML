@@ -45,6 +45,8 @@ sig
   val abstract_bool:  term -> abs_context -> term * abs_context
   (* also abstracts over equivalences and conjunction and implication*)
   val abstract_bool_shallow:  term -> abs_context -> term * abs_context
+  (* abstracts either over conjunctions or disjunctions on both sides of an equality*)
+  val abstract_shuffle : term -> term -> abs_context -> term * abs_context
   (* abstracts down to equivalence symbols *)
   val abstract_bool_shallow_equivalence: term -> abs_context -> term * abs_context
   val abstract_prop: term -> abs_context -> term * abs_context
@@ -80,7 +82,6 @@ sig
 
   val certify_prop: Proof.context -> term -> cterm
   val dest_prop: term -> term
-
 end;
 
 structure SMT_Replay_Methods: SMT_REPLAY_METHODS =
@@ -234,6 +235,10 @@ fun abstract_conj (t as \<^Const_>\<open>conj\<close> $ t1 $ t2) =
 fun abstract_disj (t as \<^Const_>\<open>disj\<close> $ t1 $ t2) =
       abstract_bin abstract_disj HOLogic.mk_disj t t1 t2
   | abstract_disj t = abstract_lit t
+
+fun abstract_shuffle @{term "HOL.conj"} (t as \<^Const_>\<open>HOL.eq \<^Type>\<open>bool\<close>\<close> $ LHS $ RHS) = abstract_bin abstract_conj HOLogic.mk_eq t LHS RHS |
+    abstract_shuffle @{term "HOL.disj"} (t as \<^Const_>\<open>HOL.eq \<^Type>\<open>bool\<close>\<close> $ LHS $ RHS) = abstract_bin abstract_disj HOLogic.mk_eq t LHS RHS |
+    abstract_shuffle _ t = abstract_lit t
 
 fun abstract_prop (t as (c as \<^Const>\<open>If \<^Type>\<open>bool\<close>\<close>) $ t1 $ t2 $ t3) =
       abstract_ter abstract_prop (fn (t1, t2, t3) => c $ t1 $ t2 $ t3) t t1 t2 t3
