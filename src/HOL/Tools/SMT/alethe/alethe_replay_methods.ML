@@ -694,21 +694,21 @@ fun skolem_tac extractor thm1 thms1 ctxt prems context_ass (decl:string list * s
     val _ = @{print}("context_ass_thm_sym",context_ass_thm_sym))*)
 
 (*
-lemma verit_sko_forall: \<open>(\<forall>x. P x) \<longleftrightarrow> P (SOME x. \<not>P x)\<close>
+lemma alethe_sko_forall: \<open>(\<forall>x. P x) \<longleftrightarrow> P (SOME x. \<not>P x)\<close>
   using someI[of \<open>\<lambda>x. \<not>P x\<close>]
   by auto
 
-lemma verit_sko_forall': \<open>P (SOME x. \<not>P x) = A \<Longrightarrow> (\<forall>x. P x) = A\<close>
-  by (subst verit_sko_forall)
+lemma alethe_sko_forall': \<open>P (SOME x. \<not>P x) = A \<Longrightarrow> (\<forall>x. P x) = A\<close>
+  by (subst alethe_sko_forall)
 
-lemma verit_sko_forall'': \<open>B = A \<Longrightarrow> (SOME x. P x) = A \<equiv> (SOME x. P x) = B\<close>
+lemma alethe_sko_forall'': \<open>B = A \<Longrightarrow> (SOME x. P x) = A \<equiv> (SOME x. P x) = B\<close>
   by auto
 
-lemma verit_sko_forall_indirect: \<open>x = (SOME x. \<not>P x) \<Longrightarrow> (\<forall>x. P x) \<longleftrightarrow> P x\<close>
+lemma alethe_sko_forall_indirect: \<open>x = (SOME x. \<not>P x) \<Longrightarrow> (\<forall>x. P x) \<longleftrightarrow> P x\<close>
   using someI[of \<open>\<lambda>x. \<not>P x\<close>]
   by auto
 
-lemma verit_sko_forall_indirect2:
+lemma alethe_sko_forall_indirect2:
     \<open>x = (SOME x. \<not>P x) \<Longrightarrow> (\<And>x :: 'a. (P x = P' x)) \<Longrightarrow>(\<forall>x. P' x) \<longleftrightarrow> P x\<close>
   using someI[of \<open>\<lambda>x. \<not>P x\<close>]
   by auto*)
@@ -784,12 +784,12 @@ Mathias does not remember a case where this happens.
 
 *)
 fun sko_forall ctxt prems context_ass t (SOME (Sko_Def_Prems decl)) =
-  skolem_tac extract_all_forall_exists_quantified_names_q @{thm verit_sko_forall_indirect}
-    @{thms verit_sko_forall_indirect2 verit_sko_ex_indirect2} ctxt prems context_ass decl t
+  skolem_tac extract_all_forall_exists_quantified_names_q @{thm alethe_sko_forall_indirect}
+    @{thms alethe_sko_forall_indirect2 alethe_sko_ex_indirect2} ctxt prems context_ass decl t
 
 fun sko_ex ctxt prems context_ass t (SOME (Sko_Def_Prems decl)) =
-  skolem_tac extract_all_forall_exists_quantified_names_q @{thm verit_sko_ex_indirect}
-    @{thms verit_sko_ex_indirect2 verit_sko_forall_indirect2} ctxt prems context_ass decl t
+  skolem_tac extract_all_forall_exists_quantified_names_q @{thm alethe_sko_ex_indirect}
+    @{thms alethe_sko_ex_indirect2 alethe_sko_forall_indirect2} ctxt prems context_ass decl t
 
 end
 
@@ -809,7 +809,7 @@ local
     THEN' REPEAT' (ematch_tac ctxt @{thms notE} THEN' TRY' (assume_tac ctxt))
 
   fun tautological_clause_prove ctxt _ =
-    match_tac ctxt @{thms verit_or_neg}
+    match_tac ctxt @{thms alethe_or_neg}
     THEN' K (unfold_tac ctxt @{thms not_not disj_assoc[symmetric]})
     THEN' TRY' (match_tac ctxt @{thms notE} THEN_ALL_NEW assume_tac ctxt)
 
@@ -827,7 +827,7 @@ fun prove_abstract abstracter tac ctxt thms t =
         fold_map (abstracter o SMT_Replay_Methods.dest_thm) thms ##>>
         abstracter (SMT_Replay_Methods.dest_prop t2))
   in
-    @{thm verit_Pure_trans} OF [t', thm]
+    @{thm alethe_Pure_trans} OF [t', thm]
   end
 
 val not_not = prove_abstract SMT_Replay_Methods.abstract_bool_shallow not_not_prove
@@ -997,7 +997,7 @@ in
   (resolve_tac ctxt [x])
   THEN' (resolve_tac ctxt prems)
   THEN' K (unfold_tac ctxt @{thms verit_not_or(2)})
-  THEN' (resolve_tac ctxt @{thms verit_or_neg})
+  THEN' (resolve_tac ctxt @{thms alethe_or_neg})
 
   THEN' K (unfold_tac ctxt @{thms not_not})
   THEN_ALL_NEW
@@ -1011,7 +1011,7 @@ end)
 val or_neg_rule = prove_abstract SMT_Replay_Methods.abstract_bool (fn ctxt => fn _ =>
    K (print_tac ctxt "or_neg 0") THEN'
 
-  resolve_tac ctxt @{thms verit_or_neg}
+  resolve_tac ctxt @{thms alethe_or_neg}
   THEN' K (print_tac ctxt "or neg 1")
 
   THEN' K (unfold_tac ctxt @{thms not_not})

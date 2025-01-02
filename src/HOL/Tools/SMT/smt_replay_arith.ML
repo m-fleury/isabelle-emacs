@@ -36,8 +36,8 @@ fun la_farkas_tac ({context = ctxt, prems, concl,  ...}: Subgoal.focus) (SOME (F
     val _ = trace (fn () => @{print} (prems, concl))
     val _ = trace (fn () => @{print} ("coeffs",coeffs))
     val arith_thms = Named_Theorems.get ctxt @{named_theorems smt_arith_simplify}
-    val verit_arith = Named_Theorems.get ctxt @{named_theorems smt_arith_combine}
-    val verit_arith_multiplication = Named_Theorems.get ctxt @{named_theorems smt_arith_multiplication}
+    val alethe_arith = Named_Theorems.get ctxt @{named_theorems smt_arith_combine}
+    val alethe_arith_multiplication = Named_Theorems.get ctxt @{named_theorems smt_arith_multiplication}
 
 
     fun basic_simps ctxt thms =
@@ -80,12 +80,12 @@ fun la_farkas_tac ({context = ctxt, prems, concl,  ...}: Subgoal.focus) (SOME (F
             |> flat |> the_single
       in 
         thm
-        |> manipulate_thm @{thms verit_negate_coefficient} pos
-        |> manipulate_thm @{thms verit_invert_farkas_equation} no_inversion_needed
+        |> manipulate_thm @{thms alethe_negate_coefficient} pos
+        |> manipulate_thm @{thms alethe_invert_farkas_equation} no_inversion_needed
       end
 
     val normalized =
-      map (try_OF_insts ctxt verit_arith_multiplication) coeff_prems
+      map (try_OF_insts ctxt alethe_arith_multiplication) coeff_prems
       |> flat
       |> map negate_if_needed
 
@@ -102,7 +102,7 @@ fun la_farkas_tac ({context = ctxt, prems, concl,  ...}: Subgoal.focus) (SOME (F
     val combined =
       List.foldl
          (fn (thm1, thm2) =>
-           (try_OFs ctxt verit_arith (thm1) )
+           (try_OFs ctxt alethe_arith (thm1) )
            |> (fn thms => try_OFs ctxt thms thm2) 
            |> the_single)
          n
@@ -144,7 +144,7 @@ fun rewrite_only_thms ctxt thms =
   |> Simplifier.full_simp_tac
 
 fun la_farkas args ctxt =
-  REPEAT' (resolve_tac ctxt @{thms verit_farkas})
+  REPEAT' (resolve_tac ctxt @{thms alethe_farkas})
   THEN' TRY' (resolve_tac ctxt @{thms ccontr})
   THEN' TRY' (rewrite_only_thms ctxt @{thms not_not})
   THEN' (Subgoal.FOCUS (fn focus => la_farkas_tac focus args) ctxt)

@@ -344,7 +344,7 @@ fun replay solver method_for outer_ctxt
 
     (* Rewriting Util *)
     val rewrite_rules =
-      filter_out (fn thm => Term.could_unify (Thm.prop_of @{thm verit_eq_true_simplify},
+      filter_out (fn thm => Term.could_unify (Thm.prop_of @{thm alethe_eq_true_simplify},
           Thm.prop_of thm))
         rewrite_rules
     val num_ll_defs = length ll_defs

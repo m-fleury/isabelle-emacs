@@ -169,65 +169,65 @@ lemma mod_as_z3mod:
   by (simp add: z3mod_def)
 
 
-subsection \<open>Extra theorems for veriT reconstruction\<close>
+subsection \<open>Extra theorems for Alethe reconstruction\<close>
 
-lemma verit_sko_forall: \<open>(\<forall>x. P x) \<longleftrightarrow> P (SOME x. \<not>P x)\<close>
+lemma alethe_sko_forall: \<open>(\<forall>x. P x) \<longleftrightarrow> P (SOME x. \<not>P x)\<close>
   using someI[of \<open>\<lambda>x. \<not>P x\<close>]
   by auto
 
-lemma verit_sko_forall': \<open>P (SOME x. \<not>P x) = A \<Longrightarrow> (\<forall>x. P x) = A\<close>
-  by (subst verit_sko_forall)
+lemma alethe_sko_forall': \<open>P (SOME x. \<not>P x) = A \<Longrightarrow> (\<forall>x. P x) = A\<close>
+  by (subst alethe_sko_forall)
 
-lemma verit_sko_forall'': \<open>B = A \<Longrightarrow> (SOME x. P x) = A \<equiv> (SOME x. P x) = B\<close>
+lemma alethe_sko_forall'': \<open>B = A \<Longrightarrow> (SOME x. P x) = A \<equiv> (SOME x. P x) = B\<close>
   by auto
 
-lemma verit_sko_forall_indirect: \<open>x = (SOME x. \<not>P x) \<Longrightarrow> (\<forall>x. P x) \<longleftrightarrow> P x\<close>
+lemma alethe_sko_forall_indirect: \<open>x = (SOME x. \<not>P x) \<Longrightarrow> (\<forall>x. P x) \<longleftrightarrow> P x\<close>
   using someI[of \<open>\<lambda>x. \<not>P x\<close>]
   by auto
 
-lemma verit_sko_forall_indirect2:
+lemma alethe_sko_forall_indirect2:
     \<open>x = (SOME x. \<not>P x) \<Longrightarrow> (\<And>x :: 'a. (P x = P' x)) \<Longrightarrow>(\<forall>x. P' x) \<longleftrightarrow> P x\<close>
   using someI[of \<open>\<lambda>x. \<not>P x\<close>]
   by auto
 
-thm verit_sko_forall_indirect[of v0]
+thm alethe_sko_forall_indirect[of v0]
 
-lemma verit_sko_ex: \<open>(\<exists>x. P x) \<longleftrightarrow> P (SOME x. P x)\<close>
+lemma alethe_sko_ex: \<open>(\<exists>x. P x) \<longleftrightarrow> P (SOME x. P x)\<close>
   using someI[of \<open>\<lambda>x. P x\<close>]
   by auto
 
-lemma verit_sko_ex': \<open>P (SOME x. P x) = A \<Longrightarrow> (\<exists>x. P x) = A\<close>
-  by (subst verit_sko_ex)
+lemma alethe_sko_ex': \<open>P (SOME x. P x) = A \<Longrightarrow> (\<exists>x. P x) = A\<close>
+  by (subst alethe_sko_ex)
 
-lemma verit_sko_ex_indirect: \<open>x = (SOME x. P x) \<Longrightarrow> (\<exists>x. P x) \<longleftrightarrow> P x\<close>
+lemma alethe_sko_ex_indirect: \<open>x = (SOME x. P x) \<Longrightarrow> (\<exists>x. P x) \<longleftrightarrow> P x\<close>
   using someI[of \<open>\<lambda>x. P x\<close>]
   by auto
 
-lemma verit_sko_ex_indirect2: \<open>x = (SOME x. P x) \<Longrightarrow> (\<And>x. P x = P' x) \<Longrightarrow> (\<exists>x. P' x) \<longleftrightarrow> P x\<close>
+lemma alethe_sko_ex_indirect2: \<open>x = (SOME x. P x) \<Longrightarrow> (\<And>x. P x = P' x) \<Longrightarrow> (\<exists>x. P' x) \<longleftrightarrow> P x\<close>
   using someI[of \<open>\<lambda>x. P x\<close>]
   by auto
 
-lemma verit_Pure_trans:
+lemma alethe_Pure_trans:
   \<open>P \<equiv> Q \<Longrightarrow> Q \<Longrightarrow> P\<close>
   by auto
 
-lemma verit_if_cong:
+lemma alethe_if_cong:
   assumes \<open>b \<equiv> c\<close>
     and \<open>c \<Longrightarrow> x \<equiv> u\<close>
     and \<open>\<not> c \<Longrightarrow> y \<equiv> v\<close>
   shows \<open>(if b then x else y) \<equiv> (if c then u else v)\<close>
   using assms if_cong[of b c x u] by auto
 
-lemma verit_if_weak_cong':
+lemma alethe_if_weak_cong':
   \<open>b \<equiv> c \<Longrightarrow> (if b then x else y) \<equiv> (if c then x else y)\<close>
   by auto
 
-lemma verit_or_neg:
+lemma alethe_or_neg:
    \<open>(A \<Longrightarrow> B) \<Longrightarrow> B \<or> \<not>A\<close>
    \<open>(\<not>A \<Longrightarrow> B) \<Longrightarrow> B \<or> A\<close>
   by auto
 
-lemma verit_not_or:
+lemma alethe_not_or:
   \<open>B \<Longrightarrow> (\<not>B \<or> A) \<Longrightarrow> A\<close>
   \<open>(B \<or> A) \<Longrightarrow> (\<not>\<not>B \<or> A)\<close>
   apply (cases A)
@@ -235,10 +235,10 @@ lemma verit_not_or:
 
 
 
-lemma verit_subst_bool: \<open>P \<Longrightarrow> f True \<Longrightarrow> f P\<close>
+lemma alethe_subst_bool: \<open>P \<Longrightarrow> f True \<Longrightarrow> f P\<close>
   by auto
 
-lemma verit_and_pos:
+lemma alethe_and_pos:
   \<open>(a \<Longrightarrow> \<not>(b \<and> c) \<or> A) \<Longrightarrow> \<not>(a \<and> b \<and> c) \<or> A\<close>
   \<open>(a \<Longrightarrow> b \<Longrightarrow> A) \<Longrightarrow> \<not>(a \<and> b) \<or> A\<close>
   by blast+
@@ -249,17 +249,17 @@ lemma alethe_and_pos:
   \<open>A \<Longrightarrow> \<not>a \<or> A\<close>
   by blast+
 
-lemma verit_farkas:
+lemma alethe_farkas:
   \<open>(a \<Longrightarrow> A) \<Longrightarrow> \<not>a \<or> A\<close>
   \<open>(\<not>a \<Longrightarrow> A) \<Longrightarrow> a \<or> A\<close>
   by blast+
 
-lemma verit_and_pos2:
+lemma alethe_and_pos2:
   \<open>(a \<Longrightarrow> \<not>(b \<and> c) \<or> A) \<Longrightarrow> \<not>(a \<and> b \<and> c) \<or> A\<close>
   \<open>(a \<Longrightarrow> b \<Longrightarrow> A) \<Longrightarrow> \<not>(a \<and> b) \<or> A\<close>
   by blast+
 
-lemma verit_or_pos:
+lemma alethe_or_pos:
   \<open>A \<and> A' \<Longrightarrow> (c \<and> A) \<or> (\<not>c \<and> A')\<close>
   \<open>A \<and> A' \<Longrightarrow> (\<not>c \<and> A) \<or> (c \<and> A')\<close>
   by blast+
@@ -355,27 +355,27 @@ lemma alethe_shuffle_or6: "\<not>A \<Longrightarrow> (\<not>a \<Longrightarrow> 
 
 
 
-lemma verit_la_generic:
+lemma alethe_la_generic:
   \<open>(a::int) \<le> x \<or> a = x \<or> a \<ge> x\<close>
   by linarith
 
-lemma verit_bfun_elim:
+lemma alethe_bfun_elim:
   \<open>(if b then P True else P False) = P b\<close>
   \<open>(\<forall>b. P' b) = (P' False \<and> P' True)\<close>
   \<open>(\<exists>b. P' b) = (P' False \<or> P' True)\<close>
   by (cases b) (auto simp: all_bool_eq ex_bool_eq)
 
-lemma verit_eq_true_simplify:
+lemma alethe_eq_true_simplify:
   \<open>(P = True) \<equiv> P\<close>
   by auto
 
-lemma verit_and_neg:
+lemma alethe_and_neg:
   \<open>(a \<Longrightarrow> \<not>b \<or> A) \<Longrightarrow> \<not>(a \<and> b) \<or> A\<close>
   \<open>(a \<Longrightarrow> A) \<Longrightarrow> \<not>a \<or> A\<close>
   \<open>(\<not>a \<Longrightarrow> A) \<Longrightarrow> a \<or> A\<close>
   by blast+
 
-lemma verit_forall_inst:
+lemma alethe_forall_inst:
   \<open>A \<longleftrightarrow> B \<Longrightarrow> \<not>A \<or> B\<close>
   \<open>\<not>A \<longleftrightarrow> B \<Longrightarrow> A \<or> B\<close>
   \<open>A \<longleftrightarrow> B \<Longrightarrow> \<not>B \<or> A\<close>
@@ -384,14 +384,14 @@ lemma verit_forall_inst:
   \<open>\<not>A \<longrightarrow> B \<Longrightarrow> A \<or> B\<close>
   by blast+
 
-lemma verit_eq_transitive:
+lemma alethe_eq_transitive:
   \<open>A = B \<Longrightarrow> B = C \<Longrightarrow> A = C\<close>
   \<open>A = B \<Longrightarrow> C = B \<Longrightarrow> A = C\<close>
   \<open>B = A \<Longrightarrow> B = C \<Longrightarrow> A = C\<close>
   \<open>B = A \<Longrightarrow> C = B \<Longrightarrow> A = C\<close>
   by auto
 
-lemma verit_bool_simplify:
+lemma alethe_bool_simplify:
   \<open>\<not>(P \<longrightarrow> Q) \<longleftrightarrow> P \<and> \<not>Q\<close>
   \<open>\<not>(P \<or> Q) \<longleftrightarrow> \<not>P \<and> \<not>Q\<close>
   \<open>\<not>(P \<and> Q) \<longleftrightarrow> \<not>P \<or> \<not>Q\<close>
@@ -416,7 +416,7 @@ lemma alethe_connective_def: \<comment> \<open>the definition of XOR is missing
   \<open>\<not>(\<exists>x. P x) \<longleftrightarrow> (\<forall>x. \<not>P x)\<close>
   by auto
 
-lemma verit_ite_simplify:
+lemma alethe_ite_simplify:
   \<open>(If True B C) = B\<close>
   \<open>(If False B C) = C\<close>
   \<open>(If A' B B) = B\<close>
@@ -450,14 +450,14 @@ lemma alethe_or_simplify_1:
   \<open>\<not>b \<or> b\<close>
   by auto
 
-lemmas verit_or_simplify = disj_ac
+lemmas alethe_or_simplify = disj_ac
 
-lemma verit_not_simplify:
+lemma alethe_not_simplify:
   \<open>\<not> \<not>b \<longleftrightarrow> b\<close> \<open>\<not>True \<longleftrightarrow> False\<close> \<open>\<not>False \<longleftrightarrow> True\<close>
   by auto
 
 
-lemma verit_implies_simplify:
+lemma alethe_implies_simplify:
   \<open>(\<not>a \<longrightarrow> \<not>b) \<longleftrightarrow> (b \<longrightarrow> a)\<close>
   \<open>(False \<longrightarrow> a) \<longleftrightarrow> True\<close>
   \<open>(a \<longrightarrow> True) \<longleftrightarrow> True\<close>
@@ -469,7 +469,7 @@ lemma verit_implies_simplify:
   \<open>((a \<longrightarrow> b) \<longrightarrow> b) \<longleftrightarrow> a \<or> b\<close> (*Why is this necessary*)
   by auto
 
-lemma verit_equiv_simplify:
+lemma alethe_equiv_simplify:
   \<open>((\<not>a) = (\<not>b)) \<longleftrightarrow> (a = b)\<close>
   \<open>(a = a) \<longleftrightarrow> True\<close>
   \<open>(a = (\<not>a)) \<longleftrightarrow> False\<close>
@@ -483,36 +483,36 @@ lemma verit_equiv_simplify:
   for a b :: bool
   by auto
 
-lemmas verit_eq_simplify =
+lemmas alethe_eq_simplify =
   semiring_char_0_class.eq_numeral_simps eq_refl zero_neq_one num.simps
   neg_equal_zero equal_neg_zero one_neq_zero neg_equal_iff_equal
 
-lemma verit_minus_simplify:
+lemma alethe_minus_simplify:
   \<open>(a :: 'a :: cancel_comm_monoid_add) - a = 0\<close>
   \<open>(a :: 'a :: cancel_comm_monoid_add) - 0 = a\<close>
   \<open>0 - (b :: 'b :: {group_add}) = -b\<close>
   \<open>- (- (b :: 'b :: group_add)) = b\<close>
   by auto
 
-lemma verit_sum_simplify:
+lemma alethe_sum_simplify:
   \<open>(a :: 'a :: cancel_comm_monoid_add) + 0 = a\<close>
   by auto
 
-lemmas verit_prod_simplify =
+lemmas alethe_prod_simplify =
 (* already included:
    mult_zero_class.mult_zero_right
    mult_zero_class.mult_zero_left *)
    mult_1
    mult_1_right
 
-lemma verit_comp_simplify1:
+lemma alethe_comp_simplify1:
   \<open>(a :: 'a ::order) < a \<longleftrightarrow> False\<close>
   \<open>a \<le> a\<close>
   \<open>\<not>(b' \<le> a') \<longleftrightarrow> (a' :: 'b :: linorder) < b'\<close>
   by auto
 
-lemmas verit_comp_simplify =
-  verit_comp_simplify1
+lemmas alethe_comp_simplify =
+  alethe_comp_simplify1
   le_numeral_simps
   le_num_simps
   less_numeral_simps
@@ -609,14 +609,14 @@ proof -
     by (use assms(2,3) in \<open>auto simp: ac_simps\<close>)
 qed
 
-lemma verit_le_mono_div:
+lemma alethe_le_mono_div:
   fixes A B :: nat
   assumes "A < B" "0 < n"
   shows "(A div n) + (if B mod n = 0 then 1 else 0) \<le> (B div n)"
   by (auto simp: ac_simps Suc_leI assms less_mult_imp_div_less div_le_mono less_imp_le_nat)
 
 lemmas [smt_arith_multiplication] =
-  verit_le_mono_div[THEN mult_le_mono1, unfolded add_mult_distrib]
+  alethe_le_mono_div[THEN mult_le_mono1, unfolded add_mult_distrib]
   div_le_mono[THEN mult_le_mono2, unfolded add_mult_distrib]
 
 lemma div_mod_decomp_int: "A = (A div n) * n + (A mod n)" for A :: int
@@ -636,7 +636,7 @@ proof -
     by (use assms(2,3) in \<open>auto simp: ac_simps\<close>)
 qed
 
-lemma verit_le_mono_div_int:
+lemma alethe_le_mono_div_int:
   \<open>A div n + (if B mod n = 0 then 1 else 0) \<le> B div n\<close>
     if \<open>A < B\<close> \<open>0 < n\<close>
     for A B n :: int
@@ -677,14 +677,14 @@ proof -
   qed
 qed
 
-lemma verit_less_mono_div_int2:
+lemma alethe_less_mono_div_int2:
   fixes A B :: int
   assumes "A \<le> B" "0 < -n"
   shows "(A div n) \<ge> (B div n)"
   using assms(1) assms(2) zdiv_mono1_neg by auto
 
 lemmas [smt_arith_multiplication] =
-  verit_le_mono_div_int[THEN mult_left_mono, unfolded int_distrib]
+  alethe_le_mono_div_int[THEN mult_left_mono, unfolded int_distrib]
   zdiv_mono1[THEN mult_left_mono, unfolded int_distrib]
 
 (*making it specific to not clash with the real version where div is just division*)
@@ -729,13 +729,13 @@ lemma [smt_arith_combine]:
   "c = d \<Longrightarrow> e = f \<Longrightarrow> c + e = d + f"
   by simp
 
-lemma verit_negate_coefficient:
+lemma alethe_negate_coefficient:
   \<open>a \<le> (b :: 'a :: {ordered_ab_group_add}) \<Longrightarrow> -a \<ge> -b\<close>
   \<open>a < b \<Longrightarrow> -a > -b\<close>
   \<open>a = b \<Longrightarrow> -a = -b\<close>
   by auto
 
-lemma verit_invert_farkas_equation:
+lemma alethe_invert_farkas_equation:
   \<open>a \<le> (b :: 'a :: {ordered_ab_group_add}) \<Longrightarrow> -a \<ge> -b\<close>
   \<open>a < b \<Longrightarrow> -a > -b\<close>
   \<open>a = b \<Longrightarrow> b = a\<close>
@@ -743,13 +743,13 @@ lemma verit_invert_farkas_equation:
 
 end
 
-lemma verit_ite_intro:
+lemma alethe_ite_intro:
   \<open>(if a then P (if a then a' else b') else Q) \<longleftrightarrow> (if a then P a' else Q)\<close>
   \<open>(if a then P' else Q' (if a then a' else b')) \<longleftrightarrow> (if a then P' else Q' b')\<close>
   \<open>A = f (if a then R else S) \<longleftrightarrow> (if a then A = f R else A = f S)\<close>
   by auto
 
-lemma verit_ite_if_cong:
+lemma alethe_ite_if_cong:
   fixes x y :: bool
   assumes "b=c"
     and "c \<equiv> True \<Longrightarrow> x = u"
