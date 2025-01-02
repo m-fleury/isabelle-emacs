@@ -398,6 +398,7 @@ lemma la_totality_1: "(a::int) \<le> b \<or> b \<le> a"
 lemma la_totality_2: "((2::int) - 6) \<le> (3 + 4) \<or> (3 + 4)  \<le> ((2::int) - 6)"
   by (ctxt_tactic "la_totality")
 
+
 (* Rule 15: la_tautology *)
 
 lemma la_tautology_form1_1: "\<not>((1::int) = 2)"
@@ -412,6 +413,9 @@ lemma la_tautology_form1_3: "((14::int) \<ge> 6)"
 lemma la_tautology_form1_4: "((14::int) \<ge> (6-3+1))"
   by (ctxt_tactic "la_tautology")
 
+lemma la_tautology_form1_5: "\<not>((-14::int) \<ge> -(6-3+1))"
+  by (ctxt_tactic "la_tautology")
+
 lemma la_tautology_form2_1: "((a::int) \<le> 11) \<or> \<not>(a \<le> 11)"
   by (ctxt_tactic "la_tautology")
 
@@ -424,6 +428,17 @@ lemma la_tautology_form2_3: "\<not>(((5::int) + 4) \<le> 11) \<or> \<not>(((5::i
 lemma la_tautology_form2_4: "\<not>(((5::int) + 4) \<le> 11) \<or> \<not>(((5::int) + 4) \<ge> 25)"
   by (ctxt_tactic "la_tautology")
 
+
+(* Rule 16: la_mult_pos*)
+
+lemma la_mult_pos_1: "(0::int) < 3 \<and> (A::int) < 0 \<longrightarrow> 3 * A < 3 * 0 "
+  by (ctxt_tactic "la_mult_pos")
+
+lemma la_mult_pos_2: "(0::int) < 3 \<and> (-3::int) < 0 \<longrightarrow> (3::int) * (-3) < 3 * 0"
+  by (ctxt_tactic "la_mult_pos")
+
+lemma la_mult_pos_3: "(0::int) < 5 \<and> \<not>((-3::int) = -77) \<longrightarrow> \<not>((5::int) * (-3) = 5 * -77)"
+  by (ctxt_tactic "la_mult_pos")
 
 
 (* Rule 23: trans *)                              
@@ -532,6 +547,10 @@ lemma and_4:
 
 
 (* Rule 31: not_or *)
+(*or_neg 0
+ 1. (a \<or> b \<or> c) \<or> \<not> a 
+or neg 1
+ 1. a \<Longrightarrow> a \<or> b \<or> c *)
 
 lemma not_or_1:
   assumes "\<not>(a \<or> b \<or> c)"
@@ -563,6 +582,12 @@ lemma not_or_5:
   using assms
   by (ctxt_tactic "not_or" "2::int")
 
+lemma not_or_6:
+  assumes " \<not> (\<not> (\<not> 1 \<le> isabelle_internal_TransferToDisk \<and> 1 \<le> isabelle_internal_TaskReady \<and> 1 \<le> isabelle_internal_LoadingMem \<or>
+             1 \<le> isabelle_internal_TaskReady \<or> 1 \<le> isabelle_internal_LoadingMem))"
+  shows "\<not> \<not> (\<not> 1 \<le> isabelle_internal_TransferToDisk \<and> 1 \<le> isabelle_internal_TaskReady \<and> 1 \<le> isabelle_internal_LoadingMem)"
+  using assms
+  by (ctxt_tactic "not_or" "0::int")
 
 (* Rule 32: or *)
 

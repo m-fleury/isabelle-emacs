@@ -1839,9 +1839,9 @@ lemma [smt_arith_multiplication]:
   using assms by (auto simp: field_simps)
 
 lemmas [smt_arith_multiplication] =
-  verit_le_mono_div[THEN mult_left_mono, unfolded int_distrib, of _ _ \<open>nat (floor (_ :: real))\<close>  \<open>nat (floor (_ :: real))\<close>]
+  alethe_le_mono_div[THEN mult_left_mono, unfolded int_distrib, of _ _ \<open>nat (floor (_ :: real))\<close>  \<open>nat (floor (_ :: real))\<close>]
   div_le_mono[THEN mult_left_mono, unfolded int_distrib, of _ _ \<open>nat (floor (_ :: real))\<close>  \<open>nat (floor (_ :: real))\<close>]
-  verit_le_mono_div_int[THEN mult_left_mono, unfolded int_distrib, of _ _ \<open>floor (_ :: real)\<close>  \<open>floor (_ :: real)\<close>]
+  alethe_le_mono_div_int[THEN mult_left_mono, unfolded int_distrib, of _ _ \<open>floor (_ :: real)\<close>  \<open>floor (_ :: real)\<close>]
   zdiv_mono1[THEN mult_left_mono, unfolded int_distrib, of _ _ \<open>floor (_ :: real)\<close>  \<open>floor (_ :: real)\<close>]
   arg_cong[of _ _ \<open>\<lambda>a :: real. a / real (n::nat) * real (p::nat)\<close> for n p :: nat]
   arg_cong[of _ _ \<open>\<lambda>a :: real. a / real_of_int n * real_of_int p\<close> for n p :: int]
