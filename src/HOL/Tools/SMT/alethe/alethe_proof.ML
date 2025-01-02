@@ -583,7 +583,7 @@ fun postprocess_proof compress ctxt step cx =
         (* Process conclusion *)
         val (cx',termified_concl) = transform_concl concl id (cx, new_variable_names)
         val _ = debug_msg ctxt middle (fn () => \<^print> ("... transform conclusion ", termified_concl))
-      
+
         (* Process step arguments *)
         (*TODO: la_generic aendere reals, erwarte div und keine reele zahlen. 
         (div 1 4) anstelle vom 0.25 als auch 1.0/4.0 

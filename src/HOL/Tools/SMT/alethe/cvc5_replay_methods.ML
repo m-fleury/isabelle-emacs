@@ -107,7 +107,6 @@ fun cvc5_rule_of "bind" = Bind
   | cvc5_rule_of "qnt_simplify" = Qnt_Simplify
   | cvc5_rule_of "all_simplify" = All_Simplify
   | cvc5_rule_of "tautology" = Tautological_Clause
-  | cvc5_rule_of "rare_rewrite" = RARE_Rewrite
   | cvc5_rule_of "qnt_cnf" = Qnt_CNF
   | cvc5_rule_of "symm" = Symm
   | cvc5_rule_of "not_symm" = Not_Symm

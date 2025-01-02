@@ -948,7 +948,7 @@ local
 
   fun or_pos_prove ctxt _ =
      K (unfold_tac ctxt @{thms de_Morgan_disj not_not})
-     THEN' match_tac ctxt @{thms verit_and_pos verit_farkas}
+     THEN' match_tac ctxt @{thms alethe_and_pos alethe_farkas}
      THEN' K (unfold_tac ctxt @{thms de_Morgan_conj de_Morgan_disj not_not})
      THEN' TRY' (assume_tac ctxt)
 
@@ -968,7 +968,7 @@ local
      THEN' TRY' (assume_tac ctxt)
 
   fun and_neg_rule_prove ctxt _ =
-     match_tac ctxt @{thms verit_and_neg}
+     match_tac ctxt @{thms alethe_and_neg}
      THEN' K (unfold_tac ctxt @{thms de_Morgan_conj not_not})
      THEN' TRY' (assume_tac ctxt)
 
@@ -991,12 +991,12 @@ let
 val y = Thm.cterm_of ctxt (HOLogic.dest_Trueprop (Thm.prop_of (hd prems)))
 val t2 = Thm.cterm_of ctxt (HOLogic.dest_Trueprop t)
 
-  val x = Drule.infer_instantiate' ctxt [SOME y, SOME t2] @{thm verit_not_or(1)}
+  val x = Drule.infer_instantiate' ctxt [SOME y, SOME t2] @{thm alethe_not_or(1)}
 
 in
   (resolve_tac ctxt [x])
   THEN' (resolve_tac ctxt prems)
-  THEN' K (unfold_tac ctxt @{thms verit_not_or(2)})
+  THEN' K (unfold_tac ctxt @{thms alethe_not_or(2)})
   THEN' (resolve_tac ctxt @{thms alethe_or_neg})
 
   THEN' K (unfold_tac ctxt @{thms not_not})
@@ -1022,8 +1022,8 @@ val or_neg_rule = prove_abstract SMT_Replay_Methods.abstract_bool (fn ctxt => fn
 
 fun and_pos ctxt _ t (SOME (Index k)) =
   SMT_Replay_Methods.prove ctxt t (fn _ =>
-  REPEAT_DETERM_N' k (resolve_tac ctxt @{thms alethe_and_pos})
-  THEN' (
+  REPEAT_DETERM_N' k (resolve_tac ctxt @{thms alethe_and_pos})  
+  THEN' TRY' (
     resolve_tac ctxt @{thms excluded_middle}
     ORELSE'
     resolve_tac ctxt [@{lemma "(a \<Longrightarrow> A) \<Longrightarrow> \<not>(a \<and> b) \<or> A" by blast}]
@@ -1031,7 +1031,7 @@ fun and_pos ctxt _ t (SOME (Index k)) =
   THEN' TRY' (assume_tac ctxt)) |
 and_pos ctxt _ t _ = (*legacy*)
   SMT_Replay_Methods.prove ctxt t (fn _ =>
-  REPEAT_CHANGED (resolve_tac ctxt @{thms verit_and_pos})
+  REPEAT_CHANGED (resolve_tac ctxt @{thms alethe_and_pos})
   THEN' TRY' (assume_tac ctxt))
 end
 
@@ -1193,7 +1193,7 @@ end
 (* BFun *)
 
 local
-  val bfun_theorems = @{thms verit_bfun_elim}
+  val bfun_theorems = @{thms alethe_bfun_elim}
 in
 
 fun bfun_elim ctxt prems t = SMT_Replay_Methods.prove ctxt t (fn _ =>
@@ -1269,7 +1269,7 @@ fun ite_intro ctxt _ t =
       |> empty_simpset
       |> put_simpset HOL_basic_ss
       |> (fn ctxt => ctxt addsimps thms @ @{thms if_True if_False refl simp_thms if_cancel})
-      |> Raw_Simplifier.add_eqcong @{thm verit_ite_if_cong}
+      |> Raw_Simplifier.add_eqcong @{thm alethe_ite_if_cong}
       |> Simplifier.full_simp_tac
   in
     SMT_Replay_Methods.prove ctxt t (fn _ => simplify_ite ctxt []
@@ -1315,7 +1315,7 @@ fun eq_transitive ctxt _ t = SMT_Replay_Methods.prove ctxt t (fn  _ =>
   REPEAT_CHANGED (resolve_tac ctxt [@{thm disj_not1} RSN (1, @{thm iffD2}) OF @{thms impI}])
   THEN' REPEAT' (resolve_tac ctxt @{thms impI})
   THEN' REPEAT' (eresolve_tac ctxt @{thms conjI})
-  THEN' REPEAT' (fn i => dresolve_tac ctxt @{thms verit_eq_transitive} i THEN assume_tac ctxt (i+1))
+  THEN' REPEAT' (fn i => dresolve_tac ctxt @{thms alethe_eq_transitive} i THEN assume_tac ctxt (i+1))
   THEN' resolve_tac ctxt @{thms refl})
 
 local
@@ -1446,7 +1446,7 @@ local
 in
 fun rewrite_bool_simplify ctxt _ t =
   SMT_Replay_Methods.prove ctxt t (fn _ =>
-   (chain_rewrite_thms ctxt @{thms verit_bool_simplify}))
+   (chain_rewrite_thms ctxt @{thms alethe_bool_simplify}))
 
 fun rewrite_and_simplify ctxt _ t =
   SMT_Replay_Methods.prove ctxt t (fn _ =>
@@ -1455,27 +1455,27 @@ fun rewrite_and_simplify ctxt _ t =
 
 fun rewrite_or_simplify ctxt _ t =
   SMT_Replay_Methods.prove ctxt t (fn _ =>
-   (chain_rewrite_two_step_with_ac_simps ctxt @{thms verit_or_simplify alethe_or_simplify_1}
-    @{thms verit_or_simplify})
-    THEN' TRY' (REPEAT' (match_tac ctxt @{thms verit_and_pos}) THEN' assume_tac ctxt))
+   (chain_rewrite_two_step_with_ac_simps ctxt @{thms alethe_or_simplify alethe_or_simplify_1}
+    @{thms alethe_or_simplify})
+    THEN' TRY' (REPEAT' (match_tac ctxt @{thms alethe_and_pos}) THEN' assume_tac ctxt))
 
 fun rewrite_not_simplify ctxt _ t =
   SMT_Replay_Methods.prove ctxt t (fn _ =>
-   (rewrite_only_thms ctxt @{thms verit_not_simplify}))
+   (rewrite_only_thms ctxt @{thms alethe_not_simplify}))
 
 fun rewrite_equiv_simplify ctxt _ t =
   SMT_Replay_Methods.prove ctxt t (fn _ =>
-   (rewrite_only_thms ctxt @{thms verit_equiv_simplify}))
+   (rewrite_only_thms ctxt @{thms alethe_equiv_simplify}))
 
 fun rewrite_eq_simplify ctxt _ t =
   SMT_Replay_Methods.prove ctxt t (fn _ =>
    (chain_rewrite_two_step_with_ac_simps ctxt
-      @{thms verit_eq_simplify}
+      @{thms alethe_eq_simplify}
       (Named_Theorems.get ctxt @{named_theorems ac_simps})))
 
 fun rewrite_implies_simplify ctxt _ t =
   SMT_Replay_Methods.prove ctxt t (fn _ =>
-    (rewrite_only_thms ctxt @{thms verit_implies_simplify}))
+    (rewrite_only_thms ctxt @{thms alethe_implies_simplify}))
 
 (* It is more efficient to first fold the implication symbols.
    That is however not enough when symbols appears within
@@ -1492,18 +1492,18 @@ fun rewrite_connective_def ctxt _ t =
 fun rewrite_minus_simplify ctxt _ t =
     SMT_Replay_Methods.prove ctxt t (fn _ =>
       chain_rewrite_two_step_with_ac_simps ctxt
-         @{thms arith_simps verit_minus_simplify}
+         @{thms arith_simps alethe_minus_simplify}
          (Named_Theorems.get ctxt @{named_theorems ac_simps} @
           @{thms numerals arith_simps arith_special
              numeral_class.numeral.numeral_One}))
 
 fun rewrite_comp_simplify ctxt _ t =
     SMT_Replay_Methods.prove ctxt t (fn _ =>
-        chain_rewrite_thms ctxt @{thms verit_comp_simplify})
+        chain_rewrite_thms ctxt @{thms alethe_comp_simplify})
 
 fun rewrite_ite_simplify ctxt _ t =
   SMT_Replay_Methods.prove ctxt t (fn _ =>
-   (rewrite_only_thms ctxt @{thms verit_ite_simplify}))
+   (rewrite_only_thms ctxt @{thms alethe_ite_simplify}))
 
 local
   fun simplify_arith ctxt thms = partial_simplify_tac ctxt
@@ -1519,12 +1519,12 @@ fun all_simplify ctxt _ t =
 
      THEN' TRY' (Lin_Arith.tac ctxt)
 
-     THEN' TRY' (simplify_arith ctxt @{thms verit_sum_simplify arith_special zmult_eq_1_iff})
+     THEN' TRY' (simplify_arith ctxt @{thms alethe_sum_simplify arith_special zmult_eq_1_iff})
  
-     THEN' TRY' (simplify_arith ctxt @{thms verit_prod_simplify})
+     THEN' TRY' (simplify_arith ctxt @{thms alethe_prod_simplify})
 
      THEN' TRY' (chain_rewrite_two_step_with_ac_simps ctxt
-         @{thms arith_simps verit_minus_simplify}
+         @{thms arith_simps alethe_minus_simplify}
          (Named_Theorems.get ctxt @{named_theorems ac_simps} @
           @{thms numerals arith_simps arith_special
              numeral_class.numeral.numeral_One}))
@@ -1545,18 +1545,19 @@ in
 
 fun sum_simplify ctxt _ t =
   SMT_Replay_Methods.prove ctxt t (fn _ =>
-    simplify_arith ctxt @{thms verit_sum_simplify arith_special}
+    simplify_arith ctxt @{thms alethe_sum_simplify arith_special}
     THEN' TRY' (K (Clasimp.auto_tac ctxt))) (*TODO: TEMP until cvc5 produces fine grained simplification steps *)
 
 fun prod_simplify ctxt _ t =
   SMT_Replay_Methods.prove ctxt t (fn _ =>
-    simplify_arith ctxt @{thms verit_prod_simplify}
+    simplify_arith ctxt @{thms alethe_prod_simplify}
     THEN' TRY' (K (Clasimp.auto_tac ctxt))) (*TODO: TEMP until cvc5 produces fine grained simplification steps *)
 end
 
 fun rare_rewrite ctxt prems t =
   SMT_Replay_Methods.prove ctxt t (fn _ =>
      Method.insert_tac ctxt prems
+    THEN' K (print_tac ctxt "use cvc5 extension for better success rate")
     THEN' TRY' (K (Clasimp.auto_tac ctxt)
      THEN' TRY' (Code_Simp.dynamic_tac ctxt )
 ))
