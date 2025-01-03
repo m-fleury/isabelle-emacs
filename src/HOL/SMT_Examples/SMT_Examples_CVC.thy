@@ -312,7 +312,6 @@ lemma "(3::nat) + x = (x + 3)" (*Added later*)
 section \<open>Arithmetic\<close>
 
 subsection \<open>Linear arithmetic over integers and reals\<close>
-declare[[cvc5_proof_options="--dag-thres=0 --proof-format-mode=alethe --proof-alethe-experimental --full-saturate-quant --proof-alethe-define-skolems --proof-elim-subtypes --no-stats --sat-random-seed=1 --lang=smt2"]]
 
 declare[[smt_debug_arith_verit=false]]
 declare[[ML_print_depth=100]]
@@ -324,7 +323,7 @@ lemma "(3::real) = 3" by (smt (cvc5)) (*success*)
 lemma "(3 :: int) + 1 = 4" by (smt (cvc5)) (*success*)
 lemma "x + (y + z) = y + (z + (x::int))" by (smt (cvc5)) (*success*)
 lemma "max (3::int) 8 > 5" by (smt (cvc5)) (*success*)
-lemma "\<bar>x :: real\<bar> + \<bar>y\<bar> \<ge> \<bar>x + y\<bar>" supply[[smt_trace=false,smt_verbose=false]] by (smt (cvc5))  (*la_generic real vs int error*)
+lemma "\<bar>x :: real\<bar> + \<bar>y\<bar> \<ge> \<bar>x + y\<bar>" supply[[smt_trace=true,smt_verbose=false]] by (smt (cvc5))  (*la_generic real vs int error*)
 lemma "P ((2::int) < 3) = P True" supply[[smt_trace]] by (smt (cvc5)) (*success*)
 lemma "x + 3 \<ge> 4 \<or> x < (1::int)" by (smt (cvc5)) (*success*)
 

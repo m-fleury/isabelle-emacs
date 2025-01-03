@@ -128,7 +128,7 @@ lemma int_sdiv_same_is_1 [simp]:
      apply (clarsimp simp: sgn_if)
   apply (simp_all add: not_less algebra_split_simps sgn_if split: if_splits)
   using int_div_less_self [of a b] apply linarith
-    apply (metis add.commute add.inverse_inverse group_cancel.rule0 int_div_less_self linorder_neqE_linordered_idom neg_0_le_iff_le not_less verit_comp_simplify1(1) zless_imp_add1_zle)
+    apply (metis add.commute add.inverse_inverse group_cancel.rule0 int_div_less_self linorder_neqE_linordered_idom neg_0_le_iff_le not_less alethe_comp_simplify1(1) zless_imp_add1_zle)
    apply (metis div_minus_right neg_imp_zdiv_neg_iff neg_le_0_iff_le not_less order.not_eq_order_implies_strict)
   apply (metis abs_le_zero_iff abs_of_nonneg neg_imp_zdiv_nonneg_iff order.not_eq_order_implies_strict)
   done

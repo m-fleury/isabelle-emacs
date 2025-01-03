@@ -215,7 +215,7 @@ lemma h2:
   unfolding bin_to_bl_aux_alt
      apply (auto simp: rbl_succ xor_simps)
      apply (simp_all add: ac_simps div_add1_eq)
-  apply (metis add.left_commute bin_rest_NOT mult_2 mult_2_right nonzero_mult_div_cancel_left not_int_def uminus_add_conv_diff verit_sum_simplify zero_neq_numeral)
+  apply (metis add.left_commute bin_rest_NOT mult_2 mult_2_right nonzero_mult_div_cancel_left not_int_def uminus_add_conv_diff alethe_sum_simplify zero_neq_numeral)
   apply (simp add: minus_diff_commute)
   apply (metis is_num_normalize(8) mult_2 mult_2_right nonzero_mult_div_cancel_left zero_neq_numeral)
   using bin_rest_NOT not_int_def by auto
