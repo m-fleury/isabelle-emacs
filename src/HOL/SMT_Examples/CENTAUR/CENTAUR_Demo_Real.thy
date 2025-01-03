@@ -39,6 +39,21 @@ lemma "\<bar>(x::real) + y\<bar> \<le> \<bar>x\<bar> + \<bar>y\<bar>"
 
 
 
+declare [[smt_timeout = 10]]
+
+
+
+
+
+lemma "
+  (n < m \<and> m < n') \<or> (n < m \<and> m = n') \<or> (n < n' \<and> n' < m) \<or>
+  (n = n' \<and> n' < m) \<or> (n = m \<and> m < n') \<or>
+  (n' < m \<and> m < n) \<or> (n' < m \<and> m = n) \<or>
+  (n' < n \<and> n < m) \<or> (n' = n \<and> n < m) \<or> (n' = m \<and> m < n) \<or>
+  (m < n \<and> n < n') \<or> (m < n \<and> n' = n) \<or> (m < n' \<and> n' < n) \<or>
+  (m = n \<and> n < n') \<or> (m = n' \<and> n' < n) \<or>
+  (n' = m \<and> m = (n::int))"
+  by (smt (cvc5))
 
 
 

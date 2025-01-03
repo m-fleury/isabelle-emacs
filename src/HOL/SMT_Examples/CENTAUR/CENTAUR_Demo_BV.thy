@@ -69,25 +69,25 @@ lemma "a > (6::3 word) \<Longrightarrow> a = 7"
 
 
 
+declare[[smt_trace=false,smt_verbose=false]]
 
 
 
 
 
-(* How big can we get? *)
+(* How big can we get? Pidgeonhole lemmas for bit-vectors: *)
+
 lemma "a > (8589934590::32 word) \<Longrightarrow> a = 8589934591"
-  supply[[smt_trace=false]]
   by (smt (cvc5))
 
 lemma "a > (36893488147419103230::64 word) \<Longrightarrow> a = 36893488147419103231"
-  supply[[smt_trace=false]]
   by (smt (cvc5))
 
-lemma "a > (680564733841876926926749214863536422910::128 word) \<Longrightarrow> a = 680564733841876926926749214863536422911"
-  supply[[smt_trace=false]]
+lemma "a > (680564733841876926926749214863536422910::128 word)
+   \<Longrightarrow> a = 680564733841876926926749214863536422911"
   by (smt (cvc5))
 
-
+(*Plenty big! Over 2188 steps are reconstructed in the last lemmas. *)
 
 
 
