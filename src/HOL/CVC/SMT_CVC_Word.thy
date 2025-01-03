@@ -114,22 +114,24 @@ fun  cvc_term_parser (SMTLIB.Sym "rare-list", []) = (@{print}("rare-list");
       $ (HOLogic.mk_list new_type new_ts))
     end)
   | cvc_term_parser (SMTLIB.Sym "emptyString", []) = SOME (Free ("''''", \<^typ>\<open>String.string\<close>))
-  | cvc_term_parser xs = (case SMT_String.string_term_parser xs of
+  | cvc_term_parser _ = NONE
+  (*| cvc_term_parser xs = (case SMT_String.string_term_parser xs of
     SOME x => SOME x |
     NONE =>
       case SMT_Set.set_term_parser xs of
         SOME y => SOME y |
-        NONE => SMT_Array.array_term_parser xs)
+        NONE => SMT_Array.array_term_parser xs)*)
 
  fun cvc_type_parser (SMTLIB.Sym "?", _) = SOME dummyT |
      cvc_type_parser (SMTLIB.Sym "?BitVec", []) = SOME (Type (\<^type_name>\<open>word\<close>, [dummyT])) |
+cvc_type_parser _ = NONE (*|
   cvc_type_parser xs =
   (case SMT_String.string_type_parser xs of
     SOME x => SOME x |
     NONE => 
       case SMT_Set.set_type_parser xs of
         SOME y => SOME y |
-        NONE => SMT_Array.array_type_parser xs)
+        NONE => SMT_Array.array_type_parser xs)*)
 \<close>
 
 ML \<open>
