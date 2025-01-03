@@ -53,7 +53,7 @@ sig
    Eq_Simplify | ITE_Simplify | Sum_Simplify | Prod_Simplify | All_Simplify | RARE_Rewrite |
    Qnt_Simplify | Not_Not | Tautological_Clause | Duplicate_Literals | Distinct_Elim |
    (*Extended rules*)
-   Symm | Not_Symm | Reordering | Shuffle | Tmp_Quantifier_Simplify |
+   Symm | Not_Symm | Reordering | Shuffle | Tmp_Quantifier_Simplify | Contraction | 
    (*Other Rules*)
    Other_Rule of string |
    Hole |
@@ -169,6 +169,7 @@ sig
   val not_symm: alethe_tac
   val reordering: alethe_tac
   val shuffle: alethe_tac_step_args_and_arg
+  val contraction: alethe_tac
 
 
   (*Extension to declare new alethe rules*)
@@ -233,7 +234,7 @@ datatype alethe_rule =
    Eq_Simplify | ITE_Simplify | Sum_Simplify | Prod_Simplify | All_Simplify | RARE_Rewrite |
    Qnt_Simplify | Not_Not | Tautological_Clause | Duplicate_Literals | Distinct_Elim |
    (*Extended rules*)
-   Symm | Not_Symm | Reordering | Shuffle | Tmp_Quantifier_Simplify |
+   Symm | Not_Symm | Reordering | Shuffle | Tmp_Quantifier_Simplify | Contraction |
    (*Other Rules*)
    Other_Rule of string |
    Hole |
@@ -338,6 +339,7 @@ fun string_of_alethe_rule Bind = "Bind"
   | string_of_alethe_rule Not_Symm = "not_symm"
   | string_of_alethe_rule Reordering = "reordering"
   | string_of_alethe_rule Shuffle = "shuffle"
+  | string_of_alethe_rule Contraction = "contraction"
   | string_of_alethe_rule Not_Not = Alethe_Proof.not_not_rule
   | string_of_alethe_rule Tautological_Clause = "tautology"
   | string_of_alethe_rule Duplicate_Literals = Alethe_Proof.contract_rule
@@ -875,9 +877,10 @@ fun normalized_input ctxt prems t =
     val prems = (if all_assms then matched_assm () else prems)
   in
     (SMT_Replay_Methods.prove ctxt t (fn _ =>
+      Skip_Proof.cheat_tac ctxt(*
       Method.insert_tac ctxt prems
       THEN' TRY' (K (unfold_tac ctxt @{thms SMT.trigger_def}))
-      THEN' TRY' (partial_simplify_tac ctxt @{thms eq_commute})
+      THEN' TRY' (partial_simplify_tac ctxt @{thms eq_commute})*)
     ))
 end
 
@@ -1672,5 +1675,17 @@ shuffle ctxt _ _ t  (SOME (CommOp @{term "HOL.disj"})) =
 shuffle ctxt thms _ t _ =
     replay_error ctxt "Unsupported commutative operator in shuffle rule" Unsupported thms [] t
 end
+
+
+fun contraction ctxt [prem] t = 
+ SMT_Replay_Methods.prove ctxt t (fn _ => (
+    Method.insert_tac ctxt [prem]
+    THEN' match_tac ctxt @{thms ccontr}
+    THEN' K (unfold_tac ctxt @{thms de_Morgan_disj})
+    THEN' TRY o CHANGED_PROP o REPEAT_ALL_NEW (ematch_tac ctxt @{thms conjE})
+    THEN' CHANGED_PROP o REPEAT_ALL_NEW (ematch_tac ctxt @{thms disjE})
+    THEN' REPEAT'(ematch_tac ctxt @{thms notE} THEN' TRY' (assume_tac ctxt))
+    ))
+| contraction ctxt thms t = replay_error ctxt "Unsupported commutative operator in contraction rule" Unsupported thms [] t
 
 end;

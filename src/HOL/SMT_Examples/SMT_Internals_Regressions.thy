@@ -205,6 +205,12 @@ val resTree = Raw_Alethe_Node
       {concl =  S [Sym "or", S [Sym "not", S [Sym "not", S [Sym "not", Sym "a"]]], Sym "a"], context_assignments = [], id = "t17", prems = [], rule = "not_not", step_args = [Num 0], subproof = []}
 val x = check_raw_node [testTree] [resTree] true
 
+(* Step argument is string *)
+val testTree = SMTLIB.parse ["(step t17 (cl) :rule rare_rewrite :args (\"evaluate\"))"]
+val resTree = Raw_Alethe_Node
+      {concl = Sym "false", context_assignments = [], id = "t17", prems = [], rule = "rare_rewrite", step_args = [Str "evaluate"], subproof = []}
+val _ = check_raw_node [testTree] [resTree] true
+
 
 
 val testNode = Alethe_Proof.parse_raw_proof_steps NONE [testTree] SMTLIB_Proof.empty_name_binding
@@ -373,6 +379,57 @@ lemma not_not_2: "\<not>\<not>\<not>\<not>a \<or> \<not>a"
 
 lemma not_not_3: "\<not>\<not>\<not>(\<not>a \<or> b) \<or> (\<not>a \<or> b)"
   by (ctxt_tactic "not_not")
+
+
+(* Rule 9: contraction *)
+
+lemma contraction_1:
+  assumes "a \<or> b"
+  shows "a \<or> b"
+  using assms
+  by (ctxt_tactic "contraction")
+
+lemma contraction_2:
+  assumes "a \<or> a"
+  shows "a"
+  using assms
+  by (ctxt_tactic "contraction")
+
+lemma contraction_3:
+  assumes "a \<or> b \<or> a \<or> c"
+  shows "a \<or> b \<or> c"
+  using assms
+  by (ctxt_tactic "contraction")
+
+lemma contraction_4:
+  assumes "a \<or> b \<or> a \<or> b"
+  shows "a \<or> b"
+  using assms
+  by (ctxt_tactic "contraction")
+
+lemma contraction_5:
+  assumes "a \<or> (b \<longrightarrow> c) \<or> (b \<longrightarrow> c) \<or> b"
+  shows "a \<or> (b \<longrightarrow> c) \<or> b"
+  using assms
+  by (ctxt_tactic "contraction")
+
+lemma contraction_6:
+  assumes "a \<or> (b \<or> c) \<or> (b \<or> c) \<or> b"
+  shows "a \<or> (b \<or> c) \<or> b"
+  using assms
+  by (ctxt_tactic "contraction")
+
+lemma contraction_7:
+  assumes "(b \<or> c) \<or> a \<or> (b \<or> c)"
+  shows "a \<or> (b \<or> c)"
+  using assms
+  by (ctxt_tactic "contraction")
+
+
+
+
+
+
 
 
 (* Rule 13: la_disequality *)
