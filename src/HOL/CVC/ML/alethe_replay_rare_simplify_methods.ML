@@ -35,8 +35,6 @@ fun try_auto_solo ctxt t =
 fun try_evaluate ctxt t =
   SMT_Replay_Methods.prove ctxt t (fn _ =>
   TRY' (Code_Simp.dynamic_tac ctxt )
-  THEN' K (print_tac ctxt "evaluate")
-
   THEN' TRY' (simplify_tac ctxt ((Named_Theorems.get ctxt @{named_theorems cvc_evaluate})))
   THEN' K (print_tac ctxt "evaluate")
  )
@@ -104,10 +102,16 @@ else
     (*Should only happen if we have the extra argument*)
     val inst_lemma_without_true
       = Basic_Tactic.rule_by_tactic ctxt (resolve_tac ctxt [@{thm TrueI}] 1) inst_lemma_without_list
+    fun REPEAT' tac = fn i => REPEAT (tac i)
+
   in
     (SMT_Replay_Methods.prove ctxt t (fn _ =>
     TRY' (EqSubst.eqsubst_tac ctxt [0] [inst_lemma_without_true])
-    THEN' (resolve_tac ctxt [@{thm refl}])
+    THEN' REPEAT' (
+      (resolve_tac ctxt [@{thm refl}])
+      THEN' (Code_Simp.dynamic_tac ctxt))
+     THEN' TRY' (simplify_tac ctxt ((Named_Theorems.get ctxt @{named_theorems cvc_evaluate})))
+    THEN' TRY' (resolve_tac ctxt [@{thm refl}])
    ))
 end
 ) 
