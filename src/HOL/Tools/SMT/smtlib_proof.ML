@@ -255,11 +255,12 @@ fun parse_term t ts cx =
         let
           val ctxt = #ctxt cx
           val name' = normalize_external ctxt name
+          val eq_type = @{typ \<open>_::equal\<close>};
         in
           (case lookup_fun cx name' of
             SOME u => (Term.list_comb (u, ts), cx)
           | NONE =>
-              if null ts then declare_free name' Term.dummyT cx
+              if null ts then declare_free name' eq_type cx
               else raise SMTLIB_PARSE ("bad SMT term", t))
         end
       | _ => raise SMTLIB_PARSE ("bad SMT term format", t)))
