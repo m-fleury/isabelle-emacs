@@ -96,7 +96,10 @@ val _ = @{print}("here",(not (null ll_defs) andalso not (Alethe_Proof.keep_raw_l
     handle (*temp for testing*)
      (ERROR msg) =>
        if Config.get ctxt SMT_Config.rec_evaluation
-       then (raise SMT_Failure.SMT (SMT_Failure.Replay(rule,(ERROR (msg |> YXML.content_of)))))
+       then
+         if rule = "rare_rewrite" andalso not (length step_args = 0)
+         then (raise SMT_Failure.SMT (SMT_Failure.Replay(rule ^ ", " ^ (HOLogic.dest_string (hd step_args)) ,(ERROR ((msg) |> YXML.content_of)))))
+         else (raise SMT_Failure.SMT (SMT_Failure.Replay(rule,(ERROR (msg |> YXML.content_of)))))
        else Exn.reraise (ERROR msg) |
      (Fail msg)=>
        if Config.get ctxt SMT_Config.rec_evaluation
