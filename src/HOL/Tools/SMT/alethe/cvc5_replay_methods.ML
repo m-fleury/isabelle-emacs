@@ -131,31 +131,16 @@ fun cvc5_rule_of "bind" = Bind
      else if r = Alethe_Proof.hole orelse r = "undefined" then Hole
      else Other_Rule r
 
-(*work-around should not be needed anymore*)
-fun normalized_input' ctxt prems t = SMT_Replay_Methods.prove ctxt t (fn _ =>
-  let
-     (*val _ = (SMT_Config.verit_msg ctxt) (fn () => \<^print> ("conclusion t t =",t))
-     val _ = (SMT_Config.verit_msg ctxt) (fn () => \<^print> ("normalized input prems =",prems))*)
-  in
-    (*resolve_tac ctxt prems
-     ORELSE' (Method.insert_tac ctxt prems THEN' Clasimp.force_tac (ctxt addsimps @{thms cvc5_normalized_input}))
-  *)
- (Skip_Proof.cheat_tac ctxt) 
- end)
-
 fun qnt_simplify ctxt _ t = SMT_Replay_Methods.prove ctxt t (fn _ =>
       K (Clasimp.auto_tac ctxt))
 
 
 fun hole ctxt prems t = SMT_Replay_Methods.prove ctxt t (fn _ =>
-  (*K (print_tac ctxt "stuff")
-    THEN'*) Method.insert_tac ctxt prems
-    (*TODO: should only be used for lambda encoding*)
-(*THEN' K (print_tac ctxt "stuff")*)
-    THEN' SOLVED' (resolve_tac ctxt (Named_Theorems.get ctxt @{named_theorems cvc5_holes_pre})
-      THEN_ALL_NEW assume_tac ctxt)
-    ORELSE' Clasimp.force_tac (ctxt addsimps Named_Theorems.get ctxt @{named_theorems cvc5_holes_simp})
-(*THEN' K (print_tac ctxt "stuff")*)
+   Method.insert_tac ctxt prems
+   THEN' SOLVED' (
+     resolve_tac ctxt (Named_Theorems.get ctxt @{named_theorems cvc5_holes_pre})
+     THEN_ALL_NEW assume_tac ctxt)
+   ORELSE' Clasimp.force_tac (ctxt addsimps Named_Theorems.get ctxt @{named_theorems cvc5_holes_simp})
 )
 
 (*
@@ -164,19 +149,11 @@ lemma \<open>(\<forall>x y. P x = Q y) \<Longrightarrow> (\<forall> y z. Q y = R
 *)
 fun trans ctxt prems t =
   SMT_Replay_Methods.prove ctxt t (fn _ =>
-      (*K (print_tac ctxt ("trans reconstruction debug 0"))
-
-    THEN'*)
-    ( match_tac ctxt @{thms refl}(* THEN' K (print_tac ctxt ("trans reconstruction debug 9"))*))
+    (match_tac ctxt @{thms refl})
   ORELSE'
-    (
-     (* K (print_tac ctxt ("trans reconstruction debug 0"))
-THEN'*) Method.insert_tac ctxt prems
-     (*THEN' K (print_tac ctxt ("trans reconstruction debug 1"))*)
-    THEN' (REPEAT_CHANGED (resolve_tac ctxt @{thms trans}      (*THEN' K (print_tac ctxt ("trans reconstruction debug 2"))*)
-THEN' assume_tac ctxt))
-     (*THEN' K (print_tac ctxt ("trans reconstruction debug 3")*)
-
+    (Method.insert_tac ctxt prems
+    THEN' (REPEAT_CHANGED (resolve_tac ctxt @{thms trans}
+    THEN' assume_tac ctxt))
     THEN' (resolve_tac ctxt @{thms refl})))
 
 
@@ -295,7 +272,6 @@ fun choose _ And = ignore_args and_rule
     | SOME a => include_step_args a)
   | choose _ Hole = ignore_args hole
   | choose _ RARE_Rewrite = ignore_args rare_rewrite
-
   | choose _ r = (@{print} ("unknown rule, using hole", r); ignore_args hole)
 (*unsupported (string_of_alethe_rule r)*)
 
