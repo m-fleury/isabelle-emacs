@@ -1483,7 +1483,11 @@ fun rewrite_implies_simplify ctxt _ t =
 (* It is more efficient to first fold the implication symbols.
    That is however not enough when symbols appears within
    expressions, hence we also unfold implications in the
-   other direction. *)
+   other direction. 
+TODO: This supports the fixed point variant. The current standard
+does not require this but some old version might have. Maybe
+keep this as a fallback but first try non-fixed point.
+*)
 fun rewrite_connective_def ctxt _ t =
     SMT_Replay_Methods.prove ctxt t (fn _ =>
       chain_rewrite_thms_two_step ctxt
@@ -1549,12 +1553,12 @@ in
 fun sum_simplify ctxt _ t =
   SMT_Replay_Methods.prove ctxt t (fn _ =>
     simplify_arith ctxt @{thms alethe_sum_simplify arith_special}
-    THEN' TRY' (K (Clasimp.auto_tac ctxt))) (*TODO: TEMP until cvc5 produces fine grained simplification steps *)
+    ) 
 
 fun prod_simplify ctxt _ t =
   SMT_Replay_Methods.prove ctxt t (fn _ =>
     simplify_arith ctxt @{thms alethe_prod_simplify}
-    THEN' TRY' (K (Clasimp.auto_tac ctxt))) (*TODO: TEMP until cvc5 produces fine grained simplification steps *)
+    )
 end
 
 fun rare_rewrite ctxt prems t =
