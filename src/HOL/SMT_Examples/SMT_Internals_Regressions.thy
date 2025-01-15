@@ -1754,21 +1754,17 @@ lemma bool_simplify_7:
   by (ctxt_tactic "bool_simplify")
 
 (* Rule 77: ac_simp *)
-(*TODO: currently, ac simp does not deal with duplicates
-TODO: Mathias will do this
-*)
 lemma ac_simp_1: "(b \<and> b) = b"
   by (ctxt_tactic "ac_simp")
 
-lemma ac_simp_2: "(b \<and> a \<and> b) = a \<and> b"
- (* by (ctxt_tactic "ac_simp")*)
+lemma ac_simp_2: "(b \<and> a \<and> b) = (a \<and> b)"
+  by (ctxt_tactic "ac_simp")
 
-lemma ac_simp_3: "(b \<and> a \<and> b) = a \<and> b"
-  (* by (ctxt_tactic "ac_simp")*)
+lemma ac_simp_3: "(b \<and> a \<and> b) = (a \<and> b)"
+  by (ctxt_tactic "ac_simp")
 
-
-lemma ac_simp_4: "(b \<and> ((a \<and> c) \<and> d)) = a \<and> b \<and> c \<and> d"
-  (* by (ctxt_tactic "ac_simp")*)
+lemma ac_simp_4: "(b \<and> ((a \<and> c) \<and> (d \<and> a))) = (a \<and> b \<and> c \<and> d)"
+  by (ctxt_tactic "ac_simp")
 
 
 (* Rule 78: ite_simplify *)
@@ -1852,8 +1848,8 @@ lemma qnt_join_2:
   by (ctxt_tactic "qnt_join")
 
 lemma qnt_join_3: (*TODO: Mathias*)
-  shows "(\<forall>x1 x2. (\<forall>x3 x4. (a \<and> x3 \<or> x4 \<and> x1))) = (\<forall>x1 x2 x3 x4. (a \<and> x3 \<or> x4 \<and> x1))"
-  (*by (ctxt_tactic "qnt_join")*) sorry
+  shows "(\<forall>x1 (x2::'a). (\<forall>x3 x4. (a \<and> x3 \<or> x4 \<and> x1))) = (\<forall>x1 (x2::'a) x3 x4. (a \<and> x3 \<or> x4 \<and> x1))"
+  by (ctxt_tactic "qnt_join")
 
 lemma qnt_join_4:
   shows "(\<forall>x1 x2. (\<forall>x3 . (\<forall>x4. a))) = (\<forall>x1 x2 x3 x4. a)"
@@ -1868,8 +1864,8 @@ lemma qnt_join_6:
   by (ctxt_tactic "qnt_join")
 
 lemma qnt_join_7: (*TODO: Mathias*)
-  shows "(\<exists>x1 x2. (\<exists>x3 x4. (a \<and> x3 \<or> x4 \<and> x1))) = (\<exists>x1 x2 x3 x4. (a \<and> x3 \<or> x4 \<and> x1))"
-  (*by (ctxt_tactic "qnt_join")*) sorry
+  shows "(\<exists>x1 (x2::'a). (\<exists>x3 x4. (a \<and> x3 \<or> x4 \<and> x1))) = (\<exists>x1 (x2::'a) x3 x4. (a \<and> x3 \<or> x4 \<and> x1))"
+  by (ctxt_tactic "qnt_join")
 
 lemma qnt_join_8:
   shows "(\<exists>x1 x2. (\<exists>x3 . (\<exists>x4. a))) = (\<forall>x1 x2 x3 x4. a)"
