@@ -604,12 +604,25 @@ fun postprocess_proof compress ctxt step cx =
           let
             fun convert_dec_to_rat num1 num2 =
               let
+                  val toInt = Real.toInt IEEEReal.TO_NEAREST
+
                  fun mult10 x = if x = 0 then 1 else 10 * mult10 (x div 10)
-                 val offset = mult10 num2
-                 val res_num = offset * num1 + num2
+                 val offset = mult10 num2 |> @{print}
+                 val res_num = ( (  (offset) * num1)) + num2 |> @{print}
               in
                 (res_num,offset)
               end
+          fun convert_dec_to_rat2 num1 (num2:real) =
+              let
+                  val toInt = Real.toInt IEEEReal.TO_NEAREST
+fun mult10_2 (x:real) = if (Real.sign x) = 0 then 1.0 else 10.0 * (mult10_2 (Real.realMod (x * 10.0)))
+val offset = mult10_2 num2 |> @{print}
+                 val res_num = (toInt  (  (offset) * num2)) + ((toInt offset) * num1) |> @{print}
+
+         in
+                (res_num,toInt offset)
+              end
+
             fun extract_coefficients (SMTLIB.Num num) =
                 (num,1)
               | extract_coefficients (SMTLIB.S [SMTLIB.Sym "-", SMTLIB.Num num1]) =
@@ -625,12 +638,22 @@ fun postprocess_proof compress ctxt step cx =
               | extract_coefficients (SMTLIB.S [SMTLIB.Sym "/",SMTLIB.Dec (num1,0),SMTLIB.Dec (num2,0)]) =
                 let
                   val toInt = Real.toInt IEEEReal.TO_NEAREST
+                  val _ = @{print}("here",Real.fromInt num1)
+                  val _ = @{print}("here",(Real.fromInt num1 / Real.fromInt num2))
+
                 in
-                 ((fn {frac=f,whole=w} => convert_dec_to_rat (toInt w) (toInt f))
+                 ((fn {frac=f,whole=w} => convert_dec_to_rat2 (toInt w) f)
+                 (Real.split (Real.fromInt num1 / Real.fromInt num2) |> @{print}))
+                end
+              | extract_coefficients (SMTLIB.S [SMTLIB.Sym "-", SMTLIB.S[SMTLIB.Sym "/",SMTLIB.Dec (num1,0),SMTLIB.Dec (num2,0)]]) =
+                let
+                  val toInt = Real.toInt IEEEReal.TO_NEAREST
+                in
+                 ((fn {frac=f,whole=w} => convert_dec_to_rat2 (~ (toInt w)) f)
                  (Real.split (Real.fromInt num1 / Real.fromInt num2)))
                 end
               | extract_coefficients x = (@{print}("x",x);raise throw_alethe_ex ("malformed argument of la_generic step") )
-          in SOME (Farkas_Coefficients (map extract_coefficients step_args |> @{print})) end
+          in SOME (Farkas_Coefficients ((map extract_coefficients (step_args|> @{print})) |> @{print})) end
         | "forall_inst" =>
           let
             (*TODO*)
