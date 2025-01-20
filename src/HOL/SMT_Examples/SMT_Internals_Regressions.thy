@@ -400,7 +400,7 @@ lemma resolution_3:
   using assms
   by (ctxt_tactic "unit_res")
 
-(* Rule 10: tautology *)
+(* Rule 8: tautology *)
 
 lemma tautology_1:
   assumes "a \<or> b \<or> \<not>a \<or> c"
@@ -458,6 +458,12 @@ lemma contraction_8:
   shows "(\<not> y3 \<or> \<not> y689) \<or> \<not> \<not> y689"
   using assms
   by (ctxt_tactic "contraction")
+
+(* Rule 11: la_generic *)
+
+lemma la_generic_1:
+"1 / 5 * y + 3 / 10 \<noteq> 1 / 5 * y + 3 / 10 \<or> 1 / 3 * y \<noteq> - 1 / 5 + 1 / 5 * y \<or> - 3 / 2 \<le> y"
+  by (ctxt_tactic "la_generic")
 
 
 
@@ -1906,48 +1912,34 @@ lemma qnt_rm_unused_6:
 (* Rule 83: eq_simplify *)
 
 lemma eq_simplify_1:
-  assumes "(a = a)"
-  shows "True"
-  using assms
+  shows "(a = a) = True"
   by (ctxt_tactic "eq_simplify")
 
 lemma eq_simplify_2:
-  assumes "((3::int) = 3)"
-  shows "True"
-  using assms
+  shows "((3::int) = 3) = True"
   by (ctxt_tactic "eq_simplify")
 
 lemma eq_simplify_3:
-  assumes "((3::int) = 4)"
-  shows "False"
-  using assms
+  shows "((3::int) = 4) = False"
   by (ctxt_tactic "eq_simplify")
 
 lemma eq_simplify_4:
-  assumes "\<not>((3::int) = 3)"
-  shows "False"
-  using assms
+  shows "\<not>((3::int) = 3) = False"
   by (ctxt_tactic "eq_simplify")
 
 
 (* Rule 84: div_simplify *)
 
 lemma div_simplify_1:
-  assumes "((a::int) div a)"
-  shows "1"
-  using assms
+  shows "((a::int) div a) = 1"
   by (ctxt_tactic "div_simplify")
 
 lemma div_simplify_2:
-  assumes "((3::int) = 3)"
-  shows "True"
-  using assms
+  shows "((3::int) = 3) = True"
   by (ctxt_tactic "div_simplify")
 
 lemma div_simplify_3:
-  assumes "((3::int) = 4)"
-  shows "False"
-  using assms
+  shows "((3::int) = 4) = False"
   by (ctxt_tactic "div_simplify")
 
 
