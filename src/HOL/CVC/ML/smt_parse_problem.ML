@@ -132,7 +132,7 @@ let
   val T = SMTLIB_Proof.type_of ctxt' ty
 
   val (n', ctxt) =  Variable.variant_fixes [name] ctxt
-    |>> (fn [x] => x | _ => raise SMT_PROBLEM_PARSE "Malformed assertion")
+    |>> (fn [x] => x | _ => raise SMT_PROBLEM_PARSE "Malformed declaration")
   val t = Free (n', Ts ---> T)
   val terms = Symtab.update (raw_name, t) terms
   val _ = (fn _ => debug_msg ctxt middle (fn () => \<^print> ("Parsed declaration.",(implode cs,t))))
