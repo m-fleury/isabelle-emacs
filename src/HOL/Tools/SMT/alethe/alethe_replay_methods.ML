@@ -1480,21 +1480,28 @@ fun rewrite_implies_simplify ctxt _ t =
   SMT_Replay_Methods.prove ctxt t (fn _ =>
     (rewrite_only_thms ctxt @{thms alethe_implies_simplify}))
 
-(* It is more efficient to first fold the implication symbols.
-   That is however not enough when symbols appears within
-   expressions, hence we also unfold implications in the
-   other direction. 
-TODO: This supports the fixed point variant. The current standard
-does not require this but some old version might have. Maybe
-keep this as a fallback but first try non-fixed point.
-*)
 fun rewrite_connective_def ctxt _ t =
     SMT_Replay_Methods.prove ctxt t (fn _ =>
-      chain_rewrite_thms_two_step ctxt
-        (imp_refl :: @{thms not_not alethe_connective_def[symmetric]})
-        (@{thms alethe_connective_def[symmetric]})
-        (imp_refl :: @{thms not_not alethe_connective_def})
-        (@{thms alethe_connective_def}))
+ (K (print_tac ctxt "before1")THEN'
+      match_tac ctxt @{thms alethe_connective_def}
+      THEN' K (print_tac ctxt "after step 1")
+)
+ORELSE'
+ (K (print_tac ctxt "before2")THEN'
+    K (unfold_tac ctxt @{thms not_ex not_not})
+      THEN' K (print_tac ctxt "after step 0")
+
+     THEN'  REPEAT' (match_tac ctxt @{thms alethe_connective_def_forall})
+      THEN' K (print_tac ctxt "after step 2")
+
+      THEN' K (unfold_tac ctxt @{thms not_not })
+      THEN' K (print_tac ctxt "after step 3")
+
+      THEN' TRY' (resolve_tac ctxt @{thms cnf.iff_refl refl})
+
+      THEN' K (print_tac ctxt "after step 4")
+)
+)
 
 fun rewrite_minus_simplify ctxt _ t =
     SMT_Replay_Methods.prove ctxt t (fn _ =>
