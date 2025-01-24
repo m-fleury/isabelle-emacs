@@ -1850,11 +1850,56 @@ lemmas [smt_arith_multiplication] =
 lemmas [smt_arith_simplify] =
    floor_one floor_numeral div_by_1 times_divide_eq_right
    nonzero_mult_div_cancel_left division_ring_divide_zero div_0
-  divide_minus_left zero_less_divide_iff
+  divide_minus_left zero_less_divide_iff 
 
+lemma [smt_arith_simplify]:
+  \<open>NO_MATCH 0 (b :: real) \<Longrightarrow> NO_MATCH 0 (a :: real) \<Longrightarrow> a < b \<longleftrightarrow> b - a > 0\<close>
+  \<open>NO_MATCH 0 b \<Longrightarrow> NO_MATCH 0 a \<Longrightarrow> a \<le> b \<longleftrightarrow> b - a \<ge> 0\<close>
+  \<open>NO_MATCH 0 b \<Longrightarrow> NO_MATCH 0 a \<Longrightarrow> a = b \<longleftrightarrow> b - a = 0\<close>
+  by auto
 
 subsection \<open>Setup for Argo\<close>
 
 ML_file \<open>Tools/Argo/argo_real.ML\<close>
+
+
+
+
+
+
+lemma H2: \<open> y / 10 * 2 + ((- 1 / 5 + 1 / 5 * y) / 10 * 15 + (1 / 5 * y + 3 / 10) / 1 * 1) < - 3 / 2 / 10 * 2 + (1 / 3 * y / 10 * 15 + (1 / 5 * y + 3 / 10) / 1 * 1) \<close> for y :: real
+  sorry
+
+
+(*end of missing theorems*)
+ML \<open>
+let
+    val arith_thms = Named_Theorems.get @{context} @{named_theorems smt_arith_simplify}
+    val alethe_arith = Named_Theorems.get @{context} @{named_theorems smt_arith_combine}
+    val alethe_arith_multiplication = Named_Theorems.get @{context} @{named_theorems smt_arith_multiplication}
+fun arith_full_simps ctxt thms =
+      ctxt
+       |> empty_simpset
+       |> put_simpset HOL_basic_ss
+       |> (fn ctxt => ctxt addsimps thms
+           addsimps arith_thms
+           addsimprocs [@{simproc int_div_cancel_numeral_factors}, @{simproc int_combine_numerals},
+             @{simproc divide_cancel_numeral_factor}, @{simproc intle_cancel_numerals},
+             @{simproc field_combine_numerals}, @{simproc intless_cancel_numerals},
+(*missing simprocs*)
+  @{simproc ring_le_cancel_numeral_factor}, @{simproc inteq_cancel_numerals},
+@{simproc HOL.NO_MATCH}, @{simproc semiring_assoc_fold}
+(*end of missing simprocs*)
+])
+      |> asm_full_simplify
+in
+arith_full_simps @{context}
+(Named_Theorems.get @{context} @{named_theorems ac_simps})
+@{thm H2} end\<close>
+
+
+lemma "1 / 5 * (y::real) + 3 / 10 \<noteq> 1 / 5 * y + 3 / 10 \<or> 1 / 3 * y \<noteq> - 1 / 5 + 1 / 5 * y \<or> - 3 / 2 \<le> y "
+  supply [[smt_debug_arith_verit]]
+  apply (tactic \<open>ALLGOALS (SMT_Replay_Arith.la_farkas (SOME (Farkas_Coefficients  [(1, 1), (15, 10), (2, 10)])) @{context})\<close>)
 
 end

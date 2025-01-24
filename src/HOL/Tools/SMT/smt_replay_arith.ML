@@ -33,12 +33,16 @@ fun la_farkas_tac ({context = ctxt, prems, concl,  ...}: Subgoal.focus) (SOME (F
   let
 
     fun trace v = (SMT_Config.verit_arith_msg ctxt v; v)
-    val _ = trace (fn () => @{print} (prems, concl))
+    val _ = trace (fn () => @{print} ("prems",prems))
+    val _ = trace (fn () => @{print} ("concl",concl))
     val _ = trace (fn () => @{print} ("coeffs",coeffs))
     val arith_thms = Named_Theorems.get ctxt @{named_theorems smt_arith_simplify}
     val alethe_arith = Named_Theorems.get ctxt @{named_theorems smt_arith_combine}
     val alethe_arith_multiplication = Named_Theorems.get ctxt @{named_theorems smt_arith_multiplication}
 
+    val _ = trace (fn () => @{print}  "******************************************************")
+    val _ = trace (fn () => @{print}  "          Normalize premises                          ")
+    val _ = trace (fn () => @{print}  "******************************************************")
 
     fun basic_simps ctxt thms =
       ctxt
@@ -46,12 +50,38 @@ fun la_farkas_tac ({context = ctxt, prems, concl,  ...}: Subgoal.focus) (SOME (F
       |> put_simpset HOL_basic_ss
       |> (fn ctxt => ctxt addsimps thms)
       |> asm_full_simplify
+    fun arith_full_simps ctxt thms =
+      ctxt
+       |> empty_simpset
+       |> put_simpset HOL_basic_ss
+       |> (fn ctxt => ctxt addsimps thms
+           addsimps arith_thms
+           addsimprocs [@{simproc int_div_cancel_numeral_factors}, @{simproc int_combine_numerals},
+             @{simproc divide_cancel_numeral_factor}, @{simproc intle_cancel_numerals},
+             @{simproc field_combine_numerals}, @{simproc intless_cancel_numerals},
+             @{simproc ring_le_cancel_numeral_factor}, @{simproc inteq_cancel_numerals},
+             @{simproc HOL.NO_MATCH}, @{simproc semiring_assoc_fold}])
+      |> asm_full_simplify
+
+
 
     (*Determine if we need to return the equation: \<not>\<le> \<rightarrow> \<ge> but only \<le> exists for Isabelle*)
+
+    fun as_prop (t as Const (\<^const_name>\<open>Trueprop\<close>, _) $ _) = t
+      | as_prop t = HOLogic.mk_Trueprop t
+    fun discharge _ [] thm = thm
+      | discharge i (rule :: rules) thm = discharge (i + Thm.nprems_of rule) rules (rule RSN (i, thm))
+
     fun normalize_prem thm =
-      let val thm' = basic_simps ctxt @{thms linorder_class.not_less linorder_class.not_le} thm
+      let
+        val thm' = basic_simps ctxt @{thms linorder_class.not_less linorder_class.not_le} thm|> @{print}
+        (*fun ttt ctxt = resolve_tac ctxt @{thms arith_prems_normalize}
+        fun f t = Goal.prove ctxt [] [] (as_prop (Thm.concl_of t))
+          (fn {context, prems} =>  (print_tac ctxt "here") THEN TRY (REPEAT (ALLGOALS (resolve_tac ctxt @{thms arith_prems_normalize}))) THEN  (print_tac ctxt "here1")) 
+        val thm'' = thm' |> f |> @{print}*)
       in (thm', Thm.prop_of thm <> Thm.prop_of thm') end
     val prems = map normalize_prem prems
+    val _ = trace (fn () => @{print} ("normalize_prem",prems))
 
     val typ = hd prems
       |> fst
@@ -67,6 +97,7 @@ fun la_farkas_tac ({context = ctxt, prems, concl,  ...}: Subgoal.focus) (SOME (F
        |> (fn xs => ListPair.zip (xs, prems))
        |> tap (fn x => trace (fn () => @{print} x))
        |> map (fn ((num1, num2, pos), (prems, inverted)) => ((num1, num2, (pos, inverted)), prems))
+    val _ = trace (fn () => @{print} ("coeff_prems",coeff_prems))
 
     val _ = trace (fn () => @{print}  "******************************************************")
     val _ = trace (fn () => @{print}  "       Multiply by constants                          ")
@@ -109,17 +140,7 @@ fun la_farkas_tac ({context = ctxt, prems, concl,  ...}: Subgoal.focus) (SOME (F
          normalized
       |> singleton (Proof_Context.export ctxt_with_assms ctxt)
     val _ = trace (fn () => @{print} combined)
-
-    fun arith_full_simps ctxt thms =
-      ctxt
-       |> empty_simpset
-       |> put_simpset HOL_basic_ss
-       |> (fn ctxt => ctxt addsimps thms
-           addsimps arith_thms
-           addsimprocs [@{simproc int_div_cancel_numeral_factors}, @{simproc int_combine_numerals},
-             @{simproc divide_cancel_numeral_factor}, @{simproc intle_cancel_numerals},
-             @{simproc field_combine_numerals}, @{simproc intless_cancel_numerals}])
-      |> asm_full_simplify
+  
     val final_False = combined
       |> arith_full_simps ctxt (Named_Theorems.get ctxt @{named_theorems ac_simps})
     val _ =  trace (fn () => ("final arith theorem after simplification", final_False))

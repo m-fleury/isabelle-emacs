@@ -615,6 +615,16 @@ lemma [smt_arith_simplify]:
   by auto
 
 
+lemma [smt_arith_simplify]:
+  \<open>NO_MATCH 0 (b:: int) \<Longrightarrow> NO_MATCH 0 (a:: int) \<Longrightarrow> a < b \<longleftrightarrow> b - a > 0\<close>
+  \<open>NO_MATCH 0 b \<Longrightarrow> NO_MATCH 0 a \<Longrightarrow> a \<le> b \<longleftrightarrow> b - a \<ge> 0\<close>
+  \<open>NO_MATCH 0 b \<Longrightarrow> NO_MATCH 0 a \<Longrightarrow> a = b \<longleftrightarrow> b - a = 0\<close>
+  by auto
+
+lemmas [smt_arith_simplify] = divide_eq_eq_numeral1
+  uminus_add_conv_diff divide_less_eq_numeral1 left_diff_distrib_numeral
+  diff_gt_0_iff_gt times_divide_eq_left divide_eq_eq_numeral1
+
 lemma div_mod_decomp: "A = (A div n) * n + (A mod n)" for A :: nat
   by auto
 
@@ -1120,7 +1130,6 @@ val r = Syntax.check_term @{context} (f$A$A)
 val a = A |> Syntax.check_term @{context} |> Thm.cterm_of @{context};
 val t = Thm.reflexive a
 \<close>
-
 
 
 end

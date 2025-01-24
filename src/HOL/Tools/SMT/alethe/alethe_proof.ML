@@ -614,6 +614,9 @@ fun postprocess_proof compress ctxt step cx =
               end
           fun convert_dec_to_rat2 num1 (num2:real) =
               let
+                  val _ = @{print}("num1",num1)
+                  val _ = @{print}("num2",num2)
+
                   val toInt = Real.toInt IEEEReal.TO_NEAREST
 fun mult10_2 (x:real) = if (Real.sign x) = 0 then 1.0 else 10.0 * (mult10_2 (Real.realMod (x * 10.0)))
 val offset = mult10_2 num2 |> @{print}
@@ -648,8 +651,11 @@ val offset = mult10_2 num2 |> @{print}
               | extract_coefficients (SMTLIB.S [SMTLIB.Sym "-", SMTLIB.S[SMTLIB.Sym "/",SMTLIB.Dec (num1,0),SMTLIB.Dec (num2,0)]]) =
                 let
                   val toInt = Real.toInt IEEEReal.TO_NEAREST
+                  val _ = @{print}("here",Real.fromInt num1)
+                  val _ = @{print}("here",(Real.fromInt num1 / Real.fromInt num2))
+
                 in
-                 ((fn {frac=f,whole=w} => convert_dec_to_rat2 (~ (toInt w)) f)
+                 ((fn {frac=f,whole=w} => ((fn (a,b) => (~a,b)) (convert_dec_to_rat2 (toInt w) f)))
                  (Real.split (Real.fromInt num1 / Real.fromInt num2)))
                 end
               | extract_coefficients x = (@{print}("x",x);raise throw_alethe_ex ("malformed argument of la_generic step") )
@@ -913,9 +919,9 @@ local
         lines
         |> filter_out (fn x => x = "")
         |> map single
-        |> map SMTLIB.parse
-        |> map remove_all_qm
-        |> map remove_pattern
+        |> map (fn x =>  SMTLIB.parse (x|> @{print})) 
+        |> map remove_all_qm 
+        |> map remove_pattern 
       val _ = debug_msg ctxt high (fn () => \<^print> ("Removed questionmarks and patterns from proof"))
 
       val (raw_steps, _, _) =
