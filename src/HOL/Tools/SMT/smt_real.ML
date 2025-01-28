@@ -37,6 +37,7 @@ fun real_term_parser (SMTLIB.Dec (i, 0), []) = SOME (HOLogic.mk_number \<^typ>\<
   | real_term_parser (SMTLIB.Sym "/", [t1, t2]) =
       SOME (\<^term>\<open>Rings.divide :: real => _\<close> $ t1 $ t2)
   | real_term_parser (SMTLIB.Sym "to_real", [t]) = SOME (\<^term>\<open>Int.of_int :: int => Real.real\<close> $ t)
+  | real_term_parser (SMTLIB.Sym "to_int", [t]) = SOME (\<^term>\<open>floor :: Real.real \<Rightarrow> int\<close> $ t)
   | real_term_parser _ = NONE
 
 fun abstract abs t =
