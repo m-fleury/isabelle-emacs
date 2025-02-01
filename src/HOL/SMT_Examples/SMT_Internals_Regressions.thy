@@ -466,6 +466,12 @@ lemma la_generic_1:
   by (ctxt_tactic "la_generic")
 
 
+(* Rule 12: lia_generic *)
+
+lemma lia_generic_1:
+  shows "\<not>(3*x = 9) \<or> (x \<ge> 3)"
+  by (ctxt_tactic "tautology")
+
 
 (* Rule 13: la_disequality *)
 
@@ -560,6 +566,27 @@ lemma trans_4:
   by (ctxt_tactic "trans")
 
 
+(* Rule 24: cong *)
+
+lemma cong_1: 
+  assumes "(a = a)"
+  shows "(a = a)"
+  using assms
+  by (ctxt_tactic "eq_congruent")
+
+lemma cong_2:
+  assumes "(a = a)" and "(a = b)"
+  shows "(f a a) = (f a b)"
+  using assms
+  by (ctxt_tactic "eq_congruent")
+
+lemma cong_3:
+  assumes "(3 = 2 + (1::int))" and "(c = g b)"
+  shows "((3 + c) = ((2 + (1::int)) + g b))"
+  using assms
+  by (ctxt_tactic "eq_congruent")
+
+
 (* Rule 25: eq_reflexive *)
 
 lemma eq_reflexive_1: "a = a"
@@ -607,6 +634,11 @@ lemma eq_congruent_pred_1: "\<not> (a = a) \<or> (a = a)"
 lemma eq_congruent_pred_2: "\<not> (a = a) \<or> \<not>(a = b) \<or> (P a a = P a b)"
   by (ctxt_tactic "eq_congruent_pred")
 
+
+(* Rule 29: qnt_cnf *)
+
+lemma qnt_cnf_1: "\<not> (\<forall>x1. ((x1 = 1) \<or> (x1 = 2))) \<or> (\<forall>x1. (x1 = 1))"
+  by (ctxt_tactic "eq_congruent_pred")
 
 
 
@@ -1939,6 +1971,119 @@ lemma div_simplify_3:
   by (ctxt_tactic "div_simplify")
 
 
+(* Rule 86: prod_simplify *)
+
+lemma prod_simplify_1:
+  shows "(3 * 4 * 5) = (60::int)"
+  by (ctxt_tactic "div_simplify")
+
+lemma prod_simplify_2:
+  shows "(3 * 4 * 0 * x) = (0::int)"
+  by (ctxt_tactic "div_simplify")
+
+lemma prod_simplify_3:
+  shows "(3 * y * 4 * 2 * x * 5) = (120::int) * y * x"
+  by (ctxt_tactic "div_simplify")
+
+lemma prod_simplify_4:
+  shows "(1 * y * 1 * x) = (y::int) * x"
+  by (ctxt_tactic "div_simplify")
+
+lemma prod_simplify_5:
+  shows "(13 + (1 * y * 0 * x)) = (13::int) + 0"
+  by (ctxt_tactic "div_simplify")
+
+lemma prod_simplify_6:
+  shows "(2 * (2 * y * 3 * x) * 1) = (12::int) * y * x"
+  by (ctxt_tactic "div_simplify")
+
+
+(* Rule 87: unary_minus_simplify *)
+
+lemma unary_minus_simplify_1:
+  shows "- (-(3 * 4 * 5)) = ((3::int) * 4 * 5)"
+  by (ctxt_tactic "unary_minus_simplify")
+
+lemma unary_minus_simplify_2:
+  shows "- (-3) = (3::int)"
+  by (ctxt_tactic "unary_minus_simplify")
+
+lemma unary_minus_simplify_3:
+  shows "- (- (-3)) = -(3::int)"
+  by (ctxt_tactic "unary_minus_simplify")
+
+
+(* Rule 88: minus_simplify *)
+
+lemma minus_simplify_1:
+  shows "x - x = (0::int)"
+  by (ctxt_tactic "minus_simplify")
+
+lemma minus_simplify_2:
+  shows "x - 0 = (x::int)"
+  by (ctxt_tactic "minus_simplify")
+
+lemma minus_simplify_3:
+  shows "x - 0 - x = (0::int)"
+  by (ctxt_tactic "minus_simplify")
+
+lemma minus_simplify_4:
+  shows "0 - x - 0 - (-2 - 3) = -(x::int) - -5"
+  by (ctxt_tactic "minus_simplify")
+
+
+(* Rule 89: sum_simplify *)
+
+lemma sum_simplify_1:
+  shows "1 + 3 + 22 = (26::int)"
+  by (ctxt_tactic "sum_simplify")
+
+lemma sum_simplify_2:
+  shows "1 + 3 + -4 = (0::int)"
+  by (ctxt_tactic "sum_simplify")
+
+lemma sum_simplify_3:
+  shows "1 + 3 + x + -4 + (y + 0) = (0::int) + x + y"
+  by (ctxt_tactic "sum_simplify")
+
+
+(* Rule 90: comp_simplify *)
+
+lemma comp_simplify_1:
+  shows "(2 < (3::int)) = True"
+  by (ctxt_tactic "comp_simplify")
+
+lemma comp_simplify_2:
+  shows "(2 < (1::int)) = False"
+  by (ctxt_tactic "comp_simplify")
+
+lemma comp_simplify_3:
+  shows "(2 \<le> (3::int)) = True"
+  by (ctxt_tactic "comp_simplify")
+
+lemma comp_simplify_4:
+  shows "(2 \<le> (1::int)) = False"
+  by (ctxt_tactic "comp_simplify")
+
+lemma comp_simplify_5:
+  shows "(2 < (2::int)) = False"
+  by (ctxt_tactic "comp_simplify")
+
+lemma comp_simplify_6:
+  shows "(2 \<le> (2::int)) = True"
+  by (ctxt_tactic "comp_simplify")
+
+lemma comp_simplify_7:
+  shows "(5 \<ge> (2::int)) = ((2::int) \<le> 5)"
+  by (ctxt_tactic "comp_simplify")
+
+lemma comp_simplify_8:
+  shows "(3 < (12::int)) = (\<not>((12::int) \<le> 3))"
+  by (ctxt_tactic "comp_simplify")
+
+lemma comp_simplify_9:
+  shows "(55 > (7::int)) = (\<not>((55::int) \<le> 7))"
+  by (ctxt_tactic "comp_simplify")
 
 
 
