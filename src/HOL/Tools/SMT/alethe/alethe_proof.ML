@@ -919,7 +919,7 @@ local
         lines
         |> filter_out (fn x => x = "")
         |> map single
-        |> map (fn x =>  SMTLIB.parse (x|> @{print})) 
+        |> map (fn x =>  SMTLIB.parse x)
         |> map remove_all_qm 
         |> map remove_pattern 
       val _ = debug_msg ctxt high (fn () => \<^print> ("Removed questionmarks and patterns from proof"))
