@@ -843,6 +843,20 @@ lemma shuffle_and_5:
   shows "(d \<and> (a \<or> b ) \<and> c) = (c \<and> d \<and> (a \<or> b))"
   by (ctxt_tactic "shuffle" "HOL.conj")
 
+lemma shuffle_and_6a:
+  shows "(\<not> a \<and> \<not> b \<and> c \<and> d) = (c \<and> d \<and> \<not> a \<and> \<not> b)"
+  by (ctxt_tactic "shuffle" "HOL.conj")
+
+declare[[smt_expert_debug_alethe_level=3]]
+declare[[smt_expert_debug_alethe_files="alethe_replay_methods"]]
+
+lemma shuffle_and_6b:
+  shows "(\<not> (c \<and> a) \<and> \<not> (d \<and> b) \<and> c \<and> a) =
+         (c \<and> a \<and> \<not> (c \<and> a) \<and> \<not> (d \<and> b))"
+  by (ctxt_tactic "shuffle" "HOL.conj")
+
+
+(* (\<not> t1 \<and> \<not> t2 \<and> t1) = (c \<and> a \<and> \<not> t1 \<and> \<not> t2) *)
 
 ML \<open>
 
@@ -2087,7 +2101,7 @@ lemma comp_simplify_9:
 
 
 
-(* Rule 92: distinct_elim *)
+(* Rule 93: distinct_elim *)
 
 lemma distinct_elim_1: "(x \<noteq> y) = (x \<noteq> y)"
   by (ctxt_tactic "distinct_elim")
@@ -2119,14 +2133,37 @@ lemma distinct_elim_6:
   by (ctxt_tactic "distinct_elim")
 
 
+(* Rule 94: la_rw_eq1 *)
 
-lemma "(x::bool)=y"
-  apply (rule alethe_distinct_elim_2)
-  back (* soll man nicht benutzen, auf allen moeglichkeiten arbeiten *)
+lemma la_rw_eq1_1:
+  "(t = (u::int)) = (t \<le> u \<and> u \<le> t)"
+  by (ctxt_tactic "la_rw_eq1")
+
+lemma la_rw_eq1_2:
+  "(5 = (5::int)) = (5 \<le> (5::int) \<and> 5 \<le> (5::int))"
+  by (ctxt_tactic "la_rw_eq1")
+
+lemma la_rw_eq1_3:
+  "((7-2) = (5::int)) = ((7-2) \<le> (5::int) \<and> (5::int) \<le> (7-2))"
+  by (ctxt_tactic "la_rw_eq1")
 
 
+(* Rule 95: nary_elim *)
+
+(* Parsing already binarizes and breaks up chains so these are basically equalities  *)
+
+(* left-assoc *)
 
 
+(* chainable operators are already transformed during parsing *)
+
+lemma nary_elim_1:
+  "(t1 = t2 \<and> t2 = t3 \<and> t3 = t4) = (t1 = t2 \<and> t2 = t3 \<and> t3 = t4)"
+  by (ctxt_tactic "nary_elim")
+
+lemma nary_elim_2:
+  "(t1 = t2) = (t1 = t2)"
+  by (ctxt_tactic "nary_elim")
 
 
 
