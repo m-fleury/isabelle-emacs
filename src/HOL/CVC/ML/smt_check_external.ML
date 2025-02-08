@@ -8,14 +8,19 @@ end
 structure SMT_Check_External : SMT_CHECK_EXTERNAL =
 struct
 
+open SMT_Config
+fun debug_msg ctxt = alethe_debug_msg ctxt "smt_check_external"
+
 fun pretty tag lines = map Pretty.str lines |> Pretty.big_list tag |> Pretty.string_of
 
 fun replay_only solver ctxt problem proof opt_output_file =
 let
+  val _ = debug_msg ctxt high (fn () => \<^print> ("In replay only function"))
+
   (*Set solver (for replay but not for invoking)*)
   val ctxt =
     ctxt
-    |> I
+    |> I (*TODO: why this?*)
     |> Context.Proof
     |> SMT_Config.select_solver solver
     |> Context.proof_of
@@ -24,6 +29,7 @@ let
 
   val replay_data = SMT_Parse_Problem.parse problem ctxt
   val {ctxt=context, ...} = replay_data
+  val _ = debug_msg ctxt high (fn () => \<^print> ("Parsed problem and obtained context"))
 
   val start0 = Timing.start ()
 
