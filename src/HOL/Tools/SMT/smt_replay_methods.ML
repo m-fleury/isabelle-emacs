@@ -232,13 +232,29 @@ fun abstract_conj (t as \<^Const_>\<open>conj\<close> $ t1 $ t2) =
       abstract_bin abstract_conj HOLogic.mk_conj t t1 t2
   | abstract_conj t = abstract_lit t
 
+fun abstract_conj_neg (t as \<^Const_>\<open>conj\<close> $ t1 $ t2) =
+      abstract_bin abstract_conj_neg HOLogic.mk_conj t t1 t2
+  | abstract_conj_neg (t as \<^Const_>\<open>Not\<close> $ t1) =
+     abstract_sub t (abstract_conj_neg t1 #>> HOLogic.mk_not)
+  | abstract_conj_neg t =
+      abstract_lit t
+
 fun abstract_disj (t as \<^Const_>\<open>disj\<close> $ t1 $ t2) =
       abstract_bin abstract_disj HOLogic.mk_disj t t1 t2
   | abstract_disj t = abstract_lit t
 
-fun abstract_shuffle @{term "HOL.conj"} (t as \<^Const_>\<open>HOL.eq \<^Type>\<open>bool\<close>\<close> $ LHS $ RHS) = abstract_bin abstract_conj HOLogic.mk_eq t LHS RHS |
-    abstract_shuffle @{term "HOL.disj"} (t as \<^Const_>\<open>HOL.eq \<^Type>\<open>bool\<close>\<close> $ LHS $ RHS) = abstract_bin abstract_disj HOLogic.mk_eq t LHS RHS |
-    abstract_shuffle _ t = abstract_lit t
+fun abstract_disj_neg (t as \<^Const_>\<open>disj\<close> $ t1 $ t2) =
+      abstract_bin abstract_disj_neg HOLogic.mk_disj t t1 t2
+  | abstract_disj_neg (t as \<^Const_>\<open>Not\<close> $ t1) =
+     abstract_sub t (abstract_disj_neg t1 #>> HOLogic.mk_not)
+  | abstract_disj_neg t =
+      abstract_lit t
+
+fun abstract_shuffle @{term "HOL.conj"} (t as \<^Const_>\<open>HOL.eq \<^Type>\<open>bool\<close>\<close> $ LHS $ RHS) = 
+abstract_bin abstract_conj_neg HOLogic.mk_eq t LHS RHS |
+    abstract_shuffle @{term "HOL.disj"} (t as \<^Const_>\<open>HOL.eq \<^Type>\<open>bool\<close>\<close> $ LHS $ RHS) =
+abstract_bin abstract_disj_neg HOLogic.mk_eq t LHS RHS |
+    abstract_shuffle _ t = abstract_lit t 
 
 fun abstract_prop (t as (c as \<^Const>\<open>If \<^Type>\<open>bool\<close>\<close>) $ t1 $ t2 $ t3) =
       abstract_ter abstract_prop (fn (t1, t2, t3) => c $ t1 $ t2 $ t3) t t1 t2 t3
