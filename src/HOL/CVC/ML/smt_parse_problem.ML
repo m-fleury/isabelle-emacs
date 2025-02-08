@@ -16,6 +16,7 @@ exception SMT_PROBLEM_PARSE of string
 
 open SMT_Config
 fun debug_msg ctxt = alethe_debug_msg ctxt "smt_parse_problem"
+fun debug_msg_lexer ctxt = alethe_debug_msg ctxt "smt_parse_problem_lexer"
 
 
 
@@ -63,6 +64,8 @@ fun smtlib_lines_without_qm cs =
 fun parse_assert cs ({ctxt,typs,terms,ll_defs,rewrite_rules,assms}: SMT_Translate.replay_data)
  =
 let
+  val _ = debug_msg ctxt high (fn () => \<^print> ("Found assert, start parsing..."))
+
   val smtlib_lines_without_qm = smtlib_lines_without_qm cs
 
   fun extract_concl (Alethe_Node.Raw_Alethe_Node {concl, ...} : Alethe_Node.raw_alethe_node) = concl |
@@ -91,6 +94,8 @@ end
 fun parse_sort (cs: string list)                                              
  {ctxt,typs: typ Symtab.table,terms,ll_defs,rewrite_rules,assms}: SMT_Translate.replay_data =
 let
+  val _ = debug_msg ctxt high (fn () => \<^print> ("Found sort, start parsing..."))
+
   fun extract_sort_symbol (SMTLIB.S [SMTLIB.Sym "declare-sort", SMTLIB.Sym typ, SMTLIB.Num 0]) = typ |
     extract_sort_symbol (SMTLIB.S [SMTLIB.Sym "declare-sort", SMTLIB.Sym _, SMTLIB.Num _]) =
       raise SMT_PROBLEM_PARSE "we currently only support sorts of arity 0." |
@@ -113,6 +118,8 @@ val fix_invalid_name =
 
 fun parse_declare (cs: string list) ({ctxt,typs,terms,ll_defs,rewrite_rules,assms}: SMT_Translate.replay_data) =
 let
+  val _ = debug_msg ctxt high (fn () => \<^print> ("Found declaration, start parsing..."))
+
   val (n, tys, ty) = (*Note: Usually this also removes pattern but we deleted it here*)
     [implode cs]
     |> map single
@@ -221,32 +228,41 @@ in
 end
 
 
-fun lexer [] (Unfinished (s,i)) _ l_start =
+fun lexer _ [] (Unfinished (s,i)) _ l_start =
     raise SMT_PROBLEM_PARSE ("expected eof but last command (starting at line nr "
       ^ Int.toString(l_start) ^ ") was not closed. Counted " ^ Int.toString(i)
       ^ " opened but not closed parenthesis far. Part already parsed in: \n"
       ^ (rev s |> String.concat)) |
-  lexer [] _ _ _ = [] | (*Finished lexing*)
-  lexer (line::lines) uf l l_start =
+  lexer _ [] _ _ _ = [] | (*Finished lexing*)
+  lexer ctxt (line::lines) uf l l_start =
     case lexer_add_line l line uf of
-      Finished (s,[]) => (l_start,String.concat s) :: lexer lines None (l+1) (l+1) |
-      Finished (_,s') => raise SMT_PROBLEM_PARSE ("text after final closing parenthesis found! "
-        ^ String.concat s') |
-      Unfinished (s,s') => lexer lines (Unfinished ([" "] @ s,s')) (l+1) l_start |
-      None => lexer lines uf (l+1) (l+1)
+      Finished (s,[]) => (l_start,String.concat s) :: lexer ctxt lines None (l+1) (l+1) |
+      Finished (s,s') => 
+        let
+          val _ = debug_msg_lexer ctxt middle (fn () => \<^print> ("Lexed error. Parsed so far" ^ String.concat s))
+        in raise SMT_PROBLEM_PARSE ("lexing failed. Text after final closing parenthesis found! "
+        ^ String.concat s' ) end|
+      Unfinished (s,s') => lexer ctxt lines (Unfinished ([" "] @ s,s')) (l+1) l_start |
+      None => lexer ctxt lines uf (l+1) (l+1)
 
 fun lex_lines ctxt cs = 
-  lexer cs None 1 1
+  lexer ctxt cs None 1 1
   |> map snd
   |> tap (fn _ => debug_msg ctxt middle (fn () => \<^print> ("Finished lexing problem")))
-  |> tap (fn res => debug_msg ctxt middle (fn () => \<^print> ("Lexed problem",res)))
+  |> tap (fn res => debug_msg_lexer ctxt middle (fn () => \<^print> ("Lexed problem",res)))
 
 fun parser_add_line ctxt line replay_data = current_command ctxt (raw_explode line) replay_data
 
 fun mk_empty_replay_data ctxt =
  ({ctxt = ctxt, typs = Symtab.empty, terms = Symtab.empty, ll_defs = [], rewrite_rules = [], assms = []}: SMT_Translate.replay_data)
 
-fun parse lines ctxt = 
-  (fold (parser_add_line ctxt) (lex_lines ctxt lines) (mk_empty_replay_data ctxt))
+fun parse lines ctxt =
+let
+  val _ = debug_msg ctxt high (fn () => \<^print> ("Parsing problem ..."))
+  val lexed_lines = lex_lines ctxt lines
+  val _ = debug_msg ctxt high (fn () => \<^print> ("Finished lexing problem"))
+in
+  (fold (parser_add_line ctxt) lexed_lines (mk_empty_replay_data ctxt))
+end
 
 end
