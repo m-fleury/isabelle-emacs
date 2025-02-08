@@ -191,6 +191,9 @@ end;
 structure Alethe_Replay_Methods: ALETHE_REPLAY_METHODS =
 struct
 
+open SMT_Config
+fun debug_msg ctxt = alethe_debug_msg ctxt "alethe_replay_methods"
+
 type alethe_tac_step_args = Proof.context -> thm list -> term list -> term -> thm
 type alethe_tac_context_args = Proof.context -> thm list -> term list -> term -> thm
 type alethe_tac_args = Proof.context -> thm list -> term -> Alethe_Node.tactic_args option -> thm
@@ -821,13 +824,22 @@ in
 
 fun prove_abstract abstracter tac ctxt thms t =
   let
+    val _ = debug_msg ctxt low (fn () => \<^print> ("Current goal is abstracted"))
+
     val thms = map (Conv.fconv_rule Thm.eta_long_conversion) thms
+    val _ = (if (length thms = 0) then () else debug_msg ctxt middle (fn () => \<^print> ("Premises after ",thms)))
+
     val t' = Thm.eta_long_conversion (Object_Logic.dest_judgment ctxt (Thm.cterm_of ctxt t))
+    val _ = debug_msg ctxt middle (fn () => \<^print> ("Current goal (term) as thm before abstraction",t'))
     val (_, t2) = Logic.dest_equals (Thm.prop_of t')
     val thm =
-      SMT_Replay_Methods.prove_abstract ctxt thms t2 tac (
+      (SMT_Replay_Methods.prove_abstract ctxt thms t2 tac (
         fold_map (abstracter o SMT_Replay_Methods.dest_thm) thms ##>>
-        abstracter (SMT_Replay_Methods.dest_prop t2))
+        abstracter (SMT_Replay_Methods.dest_prop t2)))
+      (*handle (ERROR _) => (@{print}("here");raise (Fail "")*)
+
+    val _ = debug_msg ctxt middle (fn () => \<^print> ("Current goal (term) as thm after abstraction",thm))
+
   in
     @{thm alethe_Pure_trans} OF [t', thm]
   end
@@ -938,6 +950,7 @@ fun tmp_AC_rule ctxt thms t =
     Method.insert_tac ctxt thms
     THEN' REPEAT_ALL_NEW (partial_simplify_tac ctxt @{thms eq_commute}
     THEN' TRY' (simplify_tac ctxt @{thms ac_simps conj_ac})
+    THEN' TRY' (assume_tac ctxt)
     THEN' TRY' (Classical.fast_tac ctxt)))
 
 
@@ -1675,10 +1688,11 @@ fun simplify_shuffle_tac ctxt thms =
   |> (fn ctxt => ctxt addsimps thms addsimps [])
   |> Simplifier.asm_full_simp_tac
 
+
 in 
 
 fun shuffle ctxt _ _ t (SOME (CommOp @{term "HOL.conj"})) = 
-  (prove_abstract (SMT_Replay_Methods.abstract_shuffle @{term "HOL.conj"}) (fn ctxt => fn _ =>
+ (prove_abstract (SMT_Replay_Methods.abstract_shuffle @{term "HOL.conj"}) (fn ctxt => fn _ =>
     simplify_shuffle_tac ctxt @{thms Lattices.conj.commute Lattices.conj.left_commute conj_assoc}) ctxt [] t) |
 shuffle ctxt _ _ t  (SOME (CommOp @{term "HOL.disj"})) =
   (prove_abstract (SMT_Replay_Methods.abstract_shuffle @{term "HOL.disj"}) (fn ctxt => fn _ =>
