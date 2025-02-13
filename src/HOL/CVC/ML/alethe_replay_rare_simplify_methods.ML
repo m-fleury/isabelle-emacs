@@ -137,11 +137,15 @@ in
     try_evaluate ctxt t)
   else
    (debug_msg ctxt low (fn () => @{print} "Found rare rewrite " ^ rewrite_name);
-    dsl_tac_initialize rewrite_name args ctxt t th)
+    dsl_tac_initialize rewrite_name args ctxt t th
+handle (RARE_REPLAY msg) => raise (SMT_Failure.SMT (SMT_Failure.Replay("rare-rewrite",ERROR msg)))
+)
  ) end
  | rare_rewrite ctxt _ args t =
    ((SMT_Config.verbose_msg ctxt (pretty ("No dsl rule found, try to simplify" ^
-     List.foldr op^ "" (map ML_Syntax.print_term args))) []; raise RARE_REPLAY("could not find lemma for rare rewrite") (*try_simp ctxt t*)))
+     List.foldr op^ "" (map ML_Syntax.print_term args))) []; raise 
+(SMT_Failure.SMT (SMT_Failure.Replay("rare-rewrite",ERROR "could not find lemma for rare rewrite ")))
+ (*try_simp ctxt t*)))
 end
 
 val rules = [

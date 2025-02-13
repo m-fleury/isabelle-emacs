@@ -8,6 +8,7 @@ cvc5_rare "Extra_Rewrites.rewrite_arith_to_real_distrib_uminus"
 cvc5_rare "Extra_Rewrites.rewrite_arith_to_real_distrib_add"
 cvc5_rare "Extra_Rewrites.rewrite_arith_to_real_distrib_minus"
 cvc5_rare "Extra_Rewrites.rewrite_arith_to_real_distrib_mult"
+cvc5_rare "Extra_Rewrites.rewrite_arith_distrib_add"
 
 
 
