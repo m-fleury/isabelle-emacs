@@ -4,5 +4,11 @@ begin
 
 
 cvc5_rare "Extra_Rewrites.rewrite_arith_to_int_to_real"
+cvc5_rare "Extra_Rewrites.rewrite_arith_to_real_distrib_uminus"
+cvc5_rare "Extra_Rewrites.rewrite_arith_to_real_distrib_add"
+cvc5_rare "Extra_Rewrites.rewrite_arith_to_real_distrib_minus"
+cvc5_rare "Extra_Rewrites.rewrite_arith_to_real_distrib_mult"
+
+
 
 end

@@ -35,6 +35,7 @@ fun try_auto_solo ctxt t =
 fun try_evaluate ctxt t =
   SMT_Replay_Methods.prove ctxt t (fn _ =>
   TRY' (Code_Simp.dynamic_tac ctxt )
+  THEN' TRY' (Lin_Arith.tac ctxt)
   THEN' TRY' (simplify_tac ctxt ((Named_Theorems.get ctxt @{named_theorems cvc_evaluate})))
   THEN' K (print_tac ctxt "evaluate")
  )
@@ -56,7 +57,7 @@ if is_none (CVC5_Rare.rare_lookup (Context.Proof ctxt) ("rewrite_" ^ rewrite_nam
 then
   let
     val _ = debug_msg ctxt high (fn () => @{print} ("undeclared RARE rule: " ^ rewrite_name ^ ". Use cvc5_rare \"full_name\"."))
-  in try_simp ctxt t end
+  in raise RARE_REPLAY("could not find lemma for rare rewrite"^ rewrite_name) (*try_simp ctxt t*) end
 else
   let
     val rewrite_lemma = CVC5_Rare.rare_rule (Context.Proof ctxt) ("rewrite_" ^ rewrite_name) |> try hd |> the
@@ -130,7 +131,7 @@ val rewrite_name =
 (*TODO catch exceptions*)
 in
  (
-  if rewrite_name = "evaluate"
+  if rewrite_name = "evaluate" orelse rewrite_name = "linarith"
   then
    (debug_msg ctxt low (fn () => @{print} "Found evaluate, try to simplify");
     try_evaluate ctxt t)
@@ -140,7 +141,7 @@ in
  ) end
  | rare_rewrite ctxt _ args t =
    ((SMT_Config.verbose_msg ctxt (pretty ("No dsl rule found, try to simplify" ^
-     List.foldr op^ "" (map ML_Syntax.print_term args))) []; try_simp ctxt t))
+     List.foldr op^ "" (map ML_Syntax.print_term args))) []; raise RARE_REPLAY("could not find lemma for rare rewrite") (*try_simp ctxt t*)))
 end
 
 val rules = [
