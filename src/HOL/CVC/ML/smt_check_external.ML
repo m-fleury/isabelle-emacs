@@ -61,11 +61,11 @@ fun print_error_to_file_with_msg ctxt i str =
     ", \"err_msg\": \"" ^ str ^ "\"}]},\n")
   else ()
   
-fun print_reconstruction_error_to_file ctxt i str =
+fun print_reconstruction_error_to_file ctxt i str msg =
   if Config.get ctxt SMT_Config.rec_evaluation
   then File.append (Path.explode ("$ISABELLE_HOME_USER/"
     ^ (Config.get ctxt SMT_Config.statistics_file))) ("-" ^ Int.toString i ^
-    ", \"failed_rule\": \"" ^ str ^ "\"}]},\n")
+    ", \"failed_rule\": \"" ^ str ^ ", \"message\": \"" ^ msg ^ "\"}]},\n")
   else ()
 
 fun check_smt2 prover problem_file_name proof_file_name opt_output_file local_thy =
@@ -136,13 +136,13 @@ let
             (*Errors during Replay*)
             (SMT_Failure.SMT (SMT_Failure.Replay(rule,ERROR msg)))
               => (@{print}("Error replaying step" ^ rule ^ " is: " ^ msg);
-                  print_reconstruction_error_to_file ctxt 6 rule; (thm,1)) |
+                  print_reconstruction_error_to_file ctxt 6 rule msg; (thm,1)) |
             (SMT_Failure.SMT (SMT_Failure.Replay(rule,INTERRUPT)))
                => (@{print}("Timeout");
-                  print_reconstruction_error_to_file ctxt 7 rule; (thm,1)) |
+                  print_reconstruction_error_to_file ctxt 7 rule "timeout"; (thm,1)) |
             (SMT_Failure.SMT (SMT_Failure.Replay(rule,exn)))
               => (@{print}("Error replaying step" ^ rule ^ " is: " ^ General.exnMessage exn);
-                  print_reconstruction_error_to_file ctxt 1 rule; (thm,1)) |
+                  print_reconstruction_error_to_file ctxt 1 rule (General.exnMessage exn); (thm,1)) |
             (*Timeout*)
             (SMT_Failure.SMT SMT_Failure.Time_Out)
                => (@{print}("Timeout");
