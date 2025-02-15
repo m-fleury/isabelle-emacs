@@ -2,6 +2,18 @@ theory Extra_Rewrites
   imports "HOL-CVC.Dsl_Nary_Ops" "HOL.Real" "HOL-CVC.Dsl_Nary_Ops"
 begin (*Since this needs real operators it is not included in RARE_interface*)
 
+(*TODO: has nothing to do with reals should be moved?*)
+named_theorems rewrite_ite_eq \<open>\<close>
+
+lemma [rewrite_ite_eq]:
+  fixes C::"bool" and t1::"'a::type" and t2::"'a::type"
+  shows "NO_MATCH cvc_a (undefined C t1 t2) \<Longrightarrow> 
+(if C then ((if C then t1 else t2) = t1)
+      else ((if C then t1 else t2) = t2)) = True"
+  by simp
+
+
+
 named_theorems rewrite_arith_to_int_to_real \<open>\<close>
 
 lemma [rewrite_arith_to_int_to_real]:

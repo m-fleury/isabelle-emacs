@@ -262,6 +262,31 @@ lemma [rewrite_bool_or_taut]:
     by (simp_all add: bool_or_taut_lemma)
   done
 
+named_theorems bool_or_de_morgan \<open>automatically_generated\<close>
+
+lemma [bool_or_de_morgan]:
+  fixes zs :: "bool cvc_ListVar" and y :: "bool" and x :: "bool"
+  shows "(\<not> (x \<or> cvc_list_right (\<or>) y zs)) =
+(\<not> x \<and> \<not> cvc_list_right (\<or>) y zs)"
+  apply simp ?
+  done
+
+named_theorems bool_implies_de_morgan \<open>automatically_generated\<close>
+
+lemma [bool_implies_de_morgan]:
+  fixes y :: "bool" and x :: "bool"
+  shows "(\<not> (x \<longrightarrow> y)) = (x \<and> \<not> y)"
+  apply simp ?
+  done
+
+named_theorems bool_and_de_morgan \<open>automatically_generated\<close>
+
+lemma [bool_and_de_morgan]:
+  fixes zs :: "bool cvc_ListVar" and y :: "bool" and x :: "bool"
+  shows "(\<not> (x \<and> cvc_list_right (\<and>) y zs)) =
+(\<not> x \<or> \<not> cvc_list_right (\<and>) y zs)"
+  apply simp ?
+  done
 
 named_theorems rewrite_bool_xor_refl \<open>automatically_generated\<close>
 
@@ -310,6 +335,22 @@ lemma [rewrite_bool_xor_elim]:
   shows "NO_MATCH cvc_a (undefined x y) \<Longrightarrow> (x [+] y) = (x [+] y)"
   by auto
 
+named_theorems bool_not_xor_elim \<open>automatically_generated\<close>
+
+lemma [bool_not_xor_elim]:
+  fixes y :: "bool" and x :: "bool"
+  shows "(\<not> x \<noteq> y) = (x = y)"
+  apply simp ?
+  done
+
+named_theorems bool_not_eq_elim \<open>automatically_generated\<close>
+
+lemma [bool_not_eq_elim]:
+  fixes y :: "bool" and x :: "bool"
+  shows "(x \<noteq> y) = ((\<not> x) = y)"
+  apply simp ?
+  apply auto ?
+  done
 
 named_theorems rewrite_ite_neg_branch \<open>automatically_generated\<close>
 
