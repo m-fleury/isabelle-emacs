@@ -8,6 +8,7 @@ Proof method for replaying Alethe proofs for rare-simplify
 signature ALETHE_REPLAY_RARE_SIMPLIFY_METHODS =
 sig
   val rare_rewrite: Alethe_Replay_Methods.alethe_tac_step_args
+  val rare_rec_mode: int Config.T
   exception RARE_REPLAY of string
 end;
 
@@ -15,6 +16,14 @@ structure Alethe_Replay_RARE_Simplify_Methods: ALETHE_REPLAY_RARE_SIMPLIFY_METHO
 struct
 
 exception RARE_REPLAY of string
+
+(*
+0: use lemma & simplify if not possible
+1: use only lemma
+2: use only simplify
+*)
+val rare_rec_mode = Attrib.setup_config_int \<^binding>\<open>rare_rec_mode\<close> (K 0)
+
 
 val TRY' = Alethe_Replay_Methods.TRY'
 val simplify_tac = Alethe_Replay_Methods.simplify_tac
@@ -52,12 +61,21 @@ fun try_simp ctxt t =
 
 (* Rare rewrite reconstruction *)
 fun dsl_tac_initialize rewrite_name args ctxt t _ =
+let
+ val rare_mode = (Config.get ctxt rare_rec_mode)
+in
 (
-if is_none (CVC5_Rare.rare_lookup (Context.Proof ctxt) ("rewrite_" ^ rewrite_name))
+if rare_mode = 3
+then try_simp ctxt t
+else if is_none (CVC5_Rare.rare_lookup (Context.Proof ctxt) ("rewrite_" ^ rewrite_name))
 then
-  let
-    val _ = debug_msg ctxt high (fn () => @{print} ("undeclared RARE rule: " ^ rewrite_name ^ ". Use cvc5_rare \"full_name\"."))
-  in raise RARE_REPLAY("could not find lemma for rare rewrite"^ rewrite_name) (*try_simp ctxt t*) end
+  if rare_mode = 2
+  then
+    let
+      val _ = debug_msg ctxt high (fn () => @{print} ("undeclared RARE rule: " ^ rewrite_name ^ ". Use cvc5_rare \"full_name\"."))
+    in raise RARE_REPLAY("could not find lemma for rare rewrite"^ rewrite_name) end
+  else
+    try_simp ctxt t
 else
   let
     val rewrite_lemma = CVC5_Rare.rare_rule (Context.Proof ctxt) ("rewrite_" ^ rewrite_name) |> try hd |> the
@@ -108,6 +126,7 @@ else
   in
     (SMT_Replay_Methods.prove ctxt t (fn _ =>
     TRY' (EqSubst.eqsubst_tac ctxt [0] [inst_lemma_without_true])
+    THEN' K (print_tac ctxt "debug")
     THEN' REPEAT' (
       (resolve_tac ctxt [@{thm refl}])
       THEN' (Code_Simp.dynamic_tac ctxt))
@@ -116,7 +135,7 @@ else
    ))
 end
 ) 
-
+end
 
 
 
