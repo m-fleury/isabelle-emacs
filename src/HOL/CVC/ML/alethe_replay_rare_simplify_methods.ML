@@ -65,11 +65,11 @@ let
  val rare_mode = (Config.get ctxt rare_rec_mode)
 in
 (
-if rare_mode = 3
+if rare_mode = 2
 then try_simp ctxt t
 else if is_none (CVC5_Rare.rare_lookup (Context.Proof ctxt) ("rewrite_" ^ rewrite_name))
 then
-  if rare_mode = 2
+  if rare_mode = 0
   then
     let
       val _ = debug_msg ctxt high (fn () => @{print} ("undeclared RARE rule: " ^ rewrite_name ^ ". Use cvc5_rare \"full_name\"."))
