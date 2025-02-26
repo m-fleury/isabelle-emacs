@@ -368,11 +368,20 @@ lemma [rewrite_bool_not_xor_elim]:
   apply simp ?
   done
 
-named_theorems rewrite_bool_not_eq_elim \<open>automatically_generated\<close>
+named_theorems rewrite_bool_not_eq_elim1 \<open>automatically_generated\<close>
 
-lemma [rewrite_bool_not_eq_elim]:
+lemma [rewrite_bool_not_eq_elim1]:
   fixes y :: "bool" and x :: "bool"
-  shows "(x \<noteq> y) = ((\<not> x) = y)"
+  shows "NO_MATCH cvc_a (undefined x y) \<Longrightarrow> (x \<noteq> y) = ((\<not> x) = y)"
+  apply simp ?
+  apply auto ?
+  done
+
+named_theorems rewrite_bool_not_eq_elim2 \<open>automatically_generated\<close>
+
+lemma [rewrite_bool_not_eq_elim2]:
+  fixes y :: "bool" and x :: "bool"
+  shows "NO_MATCH cvc_a (undefined x y) \<Longrightarrow> (x \<noteq> y) = (x = (\<not> y))"
   apply simp ?
   apply auto ?
   done
