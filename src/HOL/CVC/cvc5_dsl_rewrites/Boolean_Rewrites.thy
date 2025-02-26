@@ -360,17 +360,17 @@ lemma [rewrite_bool_xor_elim]:
   shows "NO_MATCH cvc_a (undefined x y) \<Longrightarrow> (x [+] y) = (x [+] y)"
   by auto
 
-named_theorems bool_not_xor_elim \<open>automatically_generated\<close>
+named_theorems rewrite_bool_not_xor_elim \<open>automatically_generated\<close>
 
-lemma [bool_not_xor_elim]:
+lemma [rewrite_bool_not_xor_elim]:
   fixes y :: "bool" and x :: "bool"
   shows "(\<not> x \<noteq> y) = (x = y)"
   apply simp ?
   done
 
-named_theorems bool_not_eq_elim \<open>automatically_generated\<close>
+named_theorems rewrite_bool_not_eq_elim \<open>automatically_generated\<close>
 
-lemma [bool_not_eq_elim]:
+lemma [rewrite_bool_not_eq_elim]:
   fixes y :: "bool" and x :: "bool"
   shows "(x \<noteq> y) = ((\<not> x) = y)"
   apply simp ?
