@@ -262,31 +262,60 @@ lemma [rewrite_bool_or_taut]:
     by (simp_all add: bool_or_taut_lemma)
   done
 
-named_theorems bool_or_de_morgan \<open>automatically_generated\<close>
+named_theorems rewrite_bool_or_de_morgan \<open>automatically_generated\<close>
 
-lemma [bool_or_de_morgan]:
+lemma [rewrite_bool_or_de_morgan]:
   fixes zs :: "bool cvc_ListVar" and y :: "bool" and x :: "bool"
   shows "(\<not> (x \<or> cvc_list_right (\<or>) y zs)) =
 (\<not> x \<and> \<not> cvc_list_right (\<or>) y zs)"
   apply simp ?
   done
 
-named_theorems bool_implies_de_morgan \<open>automatically_generated\<close>
+named_theorems rewrite_bool_implies_de_morgan \<open>automatically_generated\<close>
 
-lemma [bool_implies_de_morgan]:
+lemma [rewrite_bool_implies_de_morgan]:
   fixes y :: "bool" and x :: "bool"
-  shows "(\<not> (x \<longrightarrow> y)) = (x \<and> \<not> y)"
+  shows "NO_MATCH cvc_a (undefined x y) \<Longrightarrow> (\<not> (x \<longrightarrow> y)) = (x \<and> \<not> y)"
   apply simp ?
   done
 
-named_theorems bool_and_de_morgan \<open>automatically_generated\<close>
+named_theorems rewrite_bool_and_de_morgan \<open>automatically_generated\<close>
 
-lemma [bool_and_de_morgan]:
+lemma [rewrite_bool_and_de_morgan]:
   fixes zs :: "bool cvc_ListVar" and y :: "bool" and x :: "bool"
-  shows "(\<not> (x \<and> cvc_list_right (\<and>) y zs)) =
+  shows "NO_MATCH cvc_a (undefined x y zs) \<Longrightarrow>(\<not> (x \<and> cvc_list_right (\<and>) y zs)) =
 (\<not> x \<or> \<not> cvc_list_right (\<and>) y zs)"
   apply simp ?
   done
+
+named_theorems rewrite_bool_or_and_distrib \<open>automatically_generated\<close>
+
+lemma [rewrite_bool_or_and_distrib]:
+  fixes zs :: "bool cvc_ListVar" and y3 :: "bool cvc_ListVar" and y2 :: "bool" and y1 :: "bool"
+  shows "NO_MATCH cvc_a (undefined y1 y2 ys zs) \<Longrightarrow> cvc_list_right (\<or>) (y1 \<and> cvc_list_right (\<and>) y2 y3) zs =
+(cvc_list_right (\<or>) y1 zs \<and>
+ cvc_list_right (\<or>) (cvc_list_right (\<and>) y2 y3) zs)"
+    apply (cases zs)
+  apply (cases y3)
+  subgoal for zss y3s
+    apply (simp add: cvc_list_left_transfer cvc_list_right_transfer_op cvc_list_both_transfer_op)
+    apply (induction zss)
+    apply simp_all
+    apply (induction y3s)
+    apply simp_all
+    by (simp_all add: bool_or_taut_lemma)
+  done
+
+named_theorems rewrite_bool_implies_or_distrib \<open>automatically_generated\<close>
+
+lemma [rewrite_bool_implies_or_distrib]:
+  fixes zs :: "bool" and y3 :: "bool cvc_ListVar" and y2 :: "bool" and y1 :: "bool"
+  shows "NO_MATCH cvc_a (undefined y1 y2 ys z) \<Longrightarrow> (y1 \<or> cvc_list_right (\<or>) y2 y3 \<longrightarrow> zs) =
+((y1 \<longrightarrow> zs) \<and>
+ (cvc_list_right (\<or>) y2 y3 \<longrightarrow> zs))"
+  apply simp ?
+  done
+
 
 named_theorems rewrite_bool_xor_refl \<open>automatically_generated\<close>
 
