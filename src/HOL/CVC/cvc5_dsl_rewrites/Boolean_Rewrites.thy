@@ -299,20 +299,16 @@ lemma [rewrite_bool_or_and_distrib]:
   apply (cases y3)
   subgoal for zss y3s
     apply (simp add: cvc_list_left_transfer cvc_list_right_transfer_op cvc_list_both_transfer_op)
-    apply (induction zss)
-    apply simp_all
-    apply (induction y3s)
-    apply simp_all
-    by (simp_all add: bool_or_taut_lemma)
+    by (simp_all add: bool_or_and_distrib_lemma)
   done
 
 named_theorems rewrite_bool_implies_or_distrib \<open>automatically_generated\<close>
 
 lemma [rewrite_bool_implies_or_distrib]:
-  fixes zs :: "bool" and y3 :: "bool cvc_ListVar" and y2 :: "bool" and y1 :: "bool"
-  shows "NO_MATCH cvc_a (undefined y1 y2 ys z) \<Longrightarrow> (y1 \<or> cvc_list_right (\<or>) y2 y3 \<longrightarrow> zs) =
-((y1 \<longrightarrow> zs) \<and>
- (cvc_list_right (\<or>) y2 y3 \<longrightarrow> zs))"
+  fixes y1 :: "bool" and y2 :: "bool" and ys :: "bool cvc_ListVar" and z :: "bool"
+  shows "NO_MATCH cvc_a (undefined y1 y2 ys z) \<Longrightarrow> (y1 \<or> cvc_list_right (\<or>) y2 ys \<longrightarrow> z) =
+((y1 \<longrightarrow> z) \<and>
+ (cvc_list_right (\<or>) y2 ys \<longrightarrow> z))"
   apply simp ?
   done
 

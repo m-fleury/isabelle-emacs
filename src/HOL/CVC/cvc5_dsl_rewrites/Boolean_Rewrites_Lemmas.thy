@@ -43,5 +43,9 @@ lemma bool_or_flatten_lemma:
    apply (metis(full_types) foldr_or_neutral)
   by (metis(full_types) foldr_or_neutral)
  
+lemma bool_or_and_distrib_lemma:
+  shows " (y1 \<and> y2 \<and> foldr (\<and>) y3s True \<or> foldr (\<or>) zss False) =
+    ((y1 \<or> foldr (\<or>) zss False) \<and> (y2 \<and> foldr (\<and>) y3s True \<or> foldr (\<or>) zss False))"
+  using disj_conj_distribR by simp
 
 end
