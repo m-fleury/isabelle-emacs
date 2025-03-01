@@ -266,7 +266,7 @@ named_theorems rewrite_bool_or_de_morgan \<open>automatically_generated\<close>
 
 lemma [rewrite_bool_or_de_morgan]:
   fixes zs :: "bool cvc_ListVar" and y :: "bool" and x :: "bool"
-  shows "(\<not> (x \<or> cvc_list_right (\<or>) y zs)) =
+  shows "NO_MATCH cvc_a (undefined x y zs) \<Longrightarrow> (\<not> (x \<or> cvc_list_right (\<or>) y zs)) =
 (\<not> x \<and> \<not> cvc_list_right (\<or>) y zs)"
   apply simp ?
   done
@@ -296,8 +296,8 @@ lemma [rewrite_bool_or_and_distrib]:
 (cvc_list_right (\<or>) y1 zs \<and>
  cvc_list_right (\<or>) (cvc_list_right (\<and>) y2 ys) zs)"
     apply (cases zs)
-  apply (cases y3)
-  subgoal for zss y3s
+  apply (cases ys)
+  subgoal for zss yss
     apply (simp add: cvc_list_left_transfer cvc_list_right_transfer_op cvc_list_both_transfer_op)
     by (simp_all add: bool_or_and_distrib_lemma)
   done
