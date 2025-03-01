@@ -11,7 +11,10 @@ cvc5_rare "Extra_Rewrites.rewrite_arith_to_real_distrib_add"
 cvc5_rare "Extra_Rewrites.rewrite_arith_to_real_distrib_minus"
 cvc5_rare "Extra_Rewrites.rewrite_arith_to_real_distrib_mult"
 cvc5_rare "Extra_Rewrites.rewrite_arith_distrib_add"
+cvc5_rare "Extra_Rewrites.rewrite_arith_distrib_mult"
 
 
 
+lemmas cvc_evaluate = of_rat_add of_rat_minus of_rat_diff of_rat_mult of_rat_divide of_rat_eq_iff
+of_rat_divide nonzero_of_rat_divide of_rat_neg_numeral_eq
 end
