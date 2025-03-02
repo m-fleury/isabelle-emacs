@@ -43,10 +43,31 @@ fun try_auto_solo ctxt t =
 (* Any additional lemmas should be added to cvc_evaluate *)
 fun try_evaluate ctxt t =
   SMT_Replay_Methods.prove ctxt t (fn _ =>
-  TRY' (Code_Simp.dynamic_tac ctxt )
+ (*K (print_tac ctxt "evaluate 0")*)
+
+   TRY' (Code_Simp.dynamic_tac ctxt )
+  (*THEN' K (print_tac ctxt "evaluate 1")*)
+
   THEN' TRY' (Lin_Arith.tac ctxt)
+  (*THEN' K (print_tac ctxt "evaluate 2")*)
+
   THEN' TRY' (simplify_tac ctxt ((Named_Theorems.get ctxt @{named_theorems cvc_evaluate})))
-  THEN' K (print_tac ctxt "evaluate")
+  (*THEN' K (print_tac ctxt "evaluate")*)
+ )
+
+
+fun try_arith ctxt t =
+  SMT_Replay_Methods.prove ctxt t (fn _ =>
+ (*K (print_tac ctxt "arith 0") THEN'*)
+   TRY' (simplify_tac ctxt ((Named_Theorems.get ctxt @{named_theorems cvc_evaluate})))
+
+  (*THEN' K (print_tac ctxt "arith 1")*)
+
+  THEN' TRY' (Lin_Arith.tac ctxt)
+  (*THEN' K (print_tac ctxt "arith 2")*)
+  THEN' TRY' (Code_Simp.dynamic_tac ctxt )
+
+  (*THEN' K (print_tac ctxt "arith")*)
  )
 
 (*TODO: Have different method based on theory rewrite is in*)
@@ -126,7 +147,7 @@ else
   in
     (SMT_Replay_Methods.prove ctxt t (fn _ =>
     TRY' (EqSubst.eqsubst_tac ctxt [0] [inst_lemma_without_true])
-    THEN' K (print_tac ctxt "debug")
+    (*THEN' K (print_tac ctxt "debug")*)
     THEN' REPEAT' (
       (resolve_tac ctxt [@{thm refl}])
       THEN' (Code_Simp.dynamic_tac ctxt))
@@ -150,10 +171,14 @@ val rewrite_name =
 (*TODO catch exceptions*)
 in
  (
-  if rewrite_name = "evaluate" orelse rewrite_name = "linarith"
+  if rewrite_name = "evaluate"
   then
    (debug_msg ctxt low (fn () => @{print} "Found evaluate, try to simplify");
     try_evaluate ctxt t)
+  else if  member (op =) ["arith_poly_norm_uminus","arith_poly_norm_minus","arith_poly_norm_mult"] rewrite_name (*This should be a proof rule eventually*)
+  then
+   (debug_msg ctxt low (fn () => @{print} "Found arithmetric norm rule, try to normalize");
+    try_arith ctxt t)
   else
    (debug_msg ctxt low (fn () => @{print} "Found rare rewrite " ^ rewrite_name);
     dsl_tac_initialize rewrite_name args ctxt t th

@@ -1025,10 +1025,8 @@ end)
 
 (*TODO: Improve now that we have arguments*)
 val or_neg_rule = prove_abstract SMT_Replay_Methods.abstract_bool (fn ctxt => fn _ =>
-   K (print_tac ctxt "or_neg 0") THEN'
 
   resolve_tac ctxt @{thms alethe_or_neg}
-  THEN' K (print_tac ctxt "or neg 1")
 
   THEN' K (unfold_tac ctxt @{thms not_not})
   THEN_ALL_NEW
@@ -1500,19 +1498,19 @@ fun rewrite_connective_def ctxt _ t =
       THEN' K (print_tac ctxt "after step 1")
 )
 ORELSE'
- (K (print_tac ctxt "before2")THEN'
+ ((*K (print_tac ctxt "before2")THEN'*)
     K (unfold_tac ctxt @{thms not_ex not_not})
-      THEN' K (print_tac ctxt "after step 0")
+      (*THEN' K (print_tac ctxt "after step 0")*)
 
      THEN'  REPEAT' (match_tac ctxt @{thms alethe_connective_def_forall})
-      THEN' K (print_tac ctxt "after step 2")
+    (*  THEN' K (print_tac ctxt "after step 2")*)
 
       THEN' K (unfold_tac ctxt @{thms not_not })
-      THEN' K (print_tac ctxt "after step 3")
+     (*   THEN' K (print_tac ctxt "after step 3")*)
 
       THEN' TRY' (resolve_tac ctxt @{thms cnf.iff_refl refl})
 
-      THEN' K (print_tac ctxt "after step 4")
+     (*   THEN' K (print_tac ctxt "after step 4")*)
 )
 )
 
