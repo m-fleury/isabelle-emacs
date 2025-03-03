@@ -56,12 +56,21 @@ fun try_evaluate ctxt t =
  )
 
 
+fun arith_poly_norm_mult ctxt t = 
+  SMT_Replay_Methods.prove ctxt t (fn _ =>
+ K (print_tac ctxt "arith mult 0") THEN'
+
+   TRY' (simplify_tac ctxt @{thms ring_class.ring_distribs(1)})
+  THEN' K (print_tac ctxt "arith mult 1")
+
+)
+
 fun try_arith ctxt t =
   SMT_Replay_Methods.prove ctxt t (fn _ =>
- (*K (print_tac ctxt "arith 0") THEN'*)
+ K (print_tac ctxt "arith 0") THEN'
    TRY' (simplify_tac ctxt ((Named_Theorems.get ctxt @{named_theorems cvc_evaluate})))
 
-  (*THEN' K (print_tac ctxt "arith 1")*)
+  THEN' K (print_tac ctxt "arith 1")
 
   THEN' TRY' (Lin_Arith.tac ctxt)
   (*THEN' K (print_tac ctxt "arith 2")*)
@@ -150,7 +159,11 @@ else
     (*THEN' K (print_tac ctxt "debug")*)
     THEN' REPEAT' (
       (resolve_tac ctxt [@{thm refl}])
+   (* THEN' K (print_tac ctxt "debug1")*)
+
       THEN' (Code_Simp.dynamic_tac ctxt))
+  (*  THEN' K (print_tac ctxt "debug2")*)
+
      THEN' TRY' (simplify_tac ctxt ((Named_Theorems.get ctxt @{named_theorems cvc_evaluate})))
     THEN' TRY' (resolve_tac ctxt [@{thm refl}])
    ))
@@ -175,6 +188,9 @@ in
   then
    (debug_msg ctxt low (fn () => @{print} "Found evaluate, try to simplify");
     try_evaluate ctxt t)
+  else if rewrite_name = "arith_poly_norm_mult"
+  then
+   arith_poly_norm_mult ctxt t
   else if  member (op =) ["arith_poly_norm_uminus","arith_poly_norm_minus","arith_poly_norm_mult"] rewrite_name (*This should be a proof rule eventually*)
   then
    (debug_msg ctxt low (fn () => @{print} "Found arithmetric norm rule, try to normalize");

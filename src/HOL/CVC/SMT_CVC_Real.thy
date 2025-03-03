@@ -3,6 +3,11 @@ imports HOL.Real Extra_Rewrites SMT_CVC
 begin
 
 cvc5_rare "Extra_Rewrites.rewrite_ite_eq"
+cvc5_rare "Extra_Rewrites.rewrite_arith_poly_norm_rel_leq"
+cvc5_rare "Extra_Rewrites.rewrite_arith_poly_norm_rel_geq"
+cvc5_rare "Extra_Rewrites.rewrite_arith_poly_norm_rel_lt"
+cvc5_rare "Extra_Rewrites.rewrite_arith_poly_norm_rel_gt"
+
 
 
 cvc5_rare "Extra_Rewrites.rewrite_arith_to_int_to_real"

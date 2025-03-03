@@ -12,7 +12,39 @@ lemma [rewrite_ite_eq]:
       else ((if C then t1 else t2) = t2)) = True"
   by simp
 
+named_theorems rewrite_arith_poly_norm_rel_leq \<open>\<close>
 
+lemma [rewrite_arith_poly_norm_rel_leq]:
+  fixes x1::"real" and x2 and y1 and y2 and cx and cy
+  shows "NO_MATCH cvc_a (undefined cx cy x1 x2 y1 y2) \<Longrightarrow> ((cx > 0) = (cy > 0)) \<longrightarrow> cx \<noteq>0 \<longrightarrow> cy \<noteq>0 \<longrightarrow> 
+(((cx * (x1 - x2)) = (cy * (y1 - y2))) \<longrightarrow> ((x1 \<le> x2) = (y1 \<le> y2))) = True"
+  by (metis diff_gt_0_iff_gt less_eq_real_def linorder_not_le mult_less_0_iff zero_less_mult_iff)
+
+named_theorems rewrite_arith_poly_norm_rel_geq \<open>\<close>
+
+lemma [rewrite_arith_poly_norm_rel_geq]:
+  fixes x1::"real" and x2 and y1 and y2 and cx and cy
+  shows "NO_MATCH cvc_a (undefined cx cy x1 x2 y1 y2) \<Longrightarrow> ((cx > 0) = (cy > 0)) \<Longrightarrow>  cx \<noteq>0 \<Longrightarrow>  cy \<noteq>0 \<Longrightarrow> 
+(((cx * (x1 - x2)) = (cy * (y1 - y2))) \<longrightarrow> ((x1 \<ge> x2) = (y1 \<ge> y2))) = True"
+  by (metis eq_iff_diff_eq_0 linorder_linear mult_eq_0_iff order_antisym_conv rewrite_arith_poly_norm_rel_leq)
+
+
+named_theorems rewrite_arith_poly_norm_rel_gt \<open>\<close>
+
+lemma [rewrite_arith_poly_norm_rel_gt]:
+  fixes x1::"real" and x2 and y1 and y2 and cx and cy
+  shows "NO_MATCH cvc_a (undefined cx cy x1 x2 y1 y2) \<Longrightarrow> ((cx > 0) = (cy > 0)) \<longrightarrow> cx \<noteq>0 \<longrightarrow> cy \<noteq>0 \<longrightarrow> 
+(((cx * (x1 - x2)) = (cy * (y1 - y2))) \<longrightarrow> ((x1 > x2) = (y1 > y2))) = True"
+  by (metis diff_gt_0_iff_gt mult_less_0_iff not_less_iff_gr_or_eq zero_less_mult_iff)
+
+named_theorems rewrite_arith_poly_norm_rel_lt \<open>\<close>
+
+lemma [rewrite_arith_poly_norm_rel_lt]:
+  fixes x1::"real" and x2 and y1 and y2 and cx and cy
+  shows "NO_MATCH cvc_a (undefined cx cy x1 x2 y1 y2) \<Longrightarrow> ((cx > 0) = (cy > 0)) \<longrightarrow> cx \<noteq>0 \<longrightarrow> cy \<noteq>0 \<longrightarrow> 
+(((cx * (x1 - x2)) = (cy * (y1 - y2))) \<longrightarrow> ((x1 < x2) = (y1 < y2))) = True"
+  apply (rule impI)+
+  by (metis less_iff_diff_less_0 mult_less_0_iff not_less_iff_gr_or_eq zero_less_mult_iff)
 
 named_theorems rewrite_arith_to_int_to_real \<open>\<close>
 
