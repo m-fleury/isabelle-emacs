@@ -7,6 +7,7 @@ cvc5_rare "Extra_Rewrites.rewrite_arith_poly_norm_rel_leq"
 cvc5_rare "Extra_Rewrites.rewrite_arith_poly_norm_rel_geq"
 cvc5_rare "Extra_Rewrites.rewrite_arith_poly_norm_rel_lt"
 cvc5_rare "Extra_Rewrites.rewrite_arith_poly_norm_rel_gt"
+cvc5_rare "Extra_Rewrites.rewrite_arith_poly_norm_rel_equal"
 
 
 
@@ -18,8 +19,9 @@ cvc5_rare "Extra_Rewrites.rewrite_arith_to_real_distrib_mult"
 cvc5_rare "Extra_Rewrites.rewrite_arith_distrib_add"
 cvc5_rare "Extra_Rewrites.rewrite_arith_distrib_mult"
 
-
+lemma temp: "((0 < - a) = (0 < - (b::real))) = ((0 > (a::real)) = (0 > b))"
+  by simp
 
 lemmas cvc_evaluate = of_rat_add of_rat_minus of_rat_diff of_rat_mult of_rat_divide of_rat_eq_iff
-of_rat_divide nonzero_of_rat_divide of_rat_neg_numeral_eq
+of_rat_divide nonzero_of_rat_divide of_rat_neg_numeral_eq temp
 end

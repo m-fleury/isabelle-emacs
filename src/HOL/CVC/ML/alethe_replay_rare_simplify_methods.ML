@@ -164,9 +164,12 @@ else
    (* THEN' K (print_tac ctxt "debug1")*)
 
       THEN' (Code_Simp.dynamic_tac ctxt))
-  (*  THEN' K (print_tac ctxt "debug2")*)
+    (*THEN' K (print_tac ctxt "debug2")*)
 
      THEN' TRY' (simplify_tac ctxt ((Named_Theorems.get ctxt @{named_theorems cvc_evaluate})))
+   THEN' REPEAT' (simplify_tac ctxt ((Named_Theorems.get ctxt @{named_theorems cvc_evaluate}) @ (Named_Theorems.get ctxt @{named_theorems arith_simp_cvc5})))
+    (*THEN' K (print_tac ctxt "debug3")*)
+
     THEN' TRY' (resolve_tac ctxt [@{thm refl}])
    ))
 end
