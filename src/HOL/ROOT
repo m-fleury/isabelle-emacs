@@ -6,6 +6,7 @@ session HOL (main) = Pure +
   "
   options [quick_and_dirty,strict_facts]
   sessions Tools
+  directories "CVC" "CVC/cvc5_dsl_rewrites"
   theories
     Main (global)
     Complex_Main (global)
@@ -59,6 +60,7 @@ session "HOL-Library" (main timing) in Library = HOL +
   description "
     Classical Higher-order Logic -- batteries included.
   "
+  directories "CVC"
   theories [document = false]
     README
   theories
@@ -1248,6 +1250,7 @@ session "IOA-ex" in "HOLCF/IOA/ex" = IOA +
     TrivEx
     TrivEx2
 
+(*
 session "HOL-CVC" in CVC = HOL +
   options [quick_and_dirty] (*TODO: Delete*)
   sessions
@@ -1256,3 +1259,4 @@ session "HOL-CVC" in CVC = HOL +
   directories cvc5_dsl_rewrites
   theories
     SMT_CVC
+*)

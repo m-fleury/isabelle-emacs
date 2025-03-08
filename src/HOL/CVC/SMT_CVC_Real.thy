@@ -1,5 +1,5 @@
 theory SMT_CVC_Real
-imports HOL.Real Extra_Rewrites SMT_CVC
+  imports "cvc5_dsl_rewrites/Extra_Rewrites" "HOL.Real"
 begin
 
 cvc5_rare "Extra_Rewrites.rewrite_ite_eq"

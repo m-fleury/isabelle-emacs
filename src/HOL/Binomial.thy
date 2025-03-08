@@ -1258,6 +1258,7 @@ lemma subset_insert_lemma:
   "{T. T \<subseteq> (insert a S) \<and> P T} = {T. T \<subseteq> S \<and> P T} \<union> {insert a T |T. T \<subseteq> S \<and> P(insert a T)}" (is "?L=?R")
 proof
   show "?L \<subseteq> ?R"
+    supply [[smt_trace]]
     by (smt (verit) UnI1 UnI2 insert_Diff mem_Collect_eq subsetI subset_insert_iff)
 qed blast
 

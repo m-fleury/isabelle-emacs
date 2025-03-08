@@ -98,6 +98,7 @@ imports
   While_Combinator
   Word
   Z2
+  "CVC/Dsl_Nary_Ops_String"
 begin
 end
 (*>*)

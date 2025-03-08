@@ -1499,7 +1499,7 @@ fun rewrite_connective_def ctxt _ t =
 )
 ORELSE'
  ((*K (print_tac ctxt "before2")THEN'*)
-    K (unfold_tac ctxt @{thms not_ex not_not})
+    K (unfold_tac ctxt @{thms not_ex not_not not_all})
       (*THEN' K (print_tac ctxt "after step 0")*)
 
      THEN'  REPEAT' (match_tac ctxt @{thms alethe_connective_def_forall})
