@@ -276,7 +276,7 @@ named_theorems rewrite_arith_to_real_distrib_uminus_rev \<open>\<close>
 
 lemma [rewrite_arith_to_real_distrib_uminus_rev]:
   fixes t::int
-  shows "NO_MATCH cvc_a (undefined x y)
+  shows "NO_MATCH cvc_a (undefined y)
  \<Longrightarrow> ((of_int (-t) ::real) = -(of_int t))"
   by auto
 
