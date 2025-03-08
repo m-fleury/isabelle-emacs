@@ -971,7 +971,7 @@ local
   fun not_or_rule_prove ctxt prems =
      Method.insert_tac ctxt prems
      THEN' K (unfold_tac ctxt @{thms de_Morgan_disj not_not})
-     THEN' K (print_tac ctxt "not_or")
+     (*THEN' K (print_tac ctxt "not_or")*)
      THEN' TRY' (REPEAT' (match_tac ctxt @{thms conjI}     THEN' K (print_tac ctxt "not_or1")
 ))
      THEN_ALL_NEW ((REPEAT' (ematch_tac ctxt @{thms conjE})     THEN' K (print_tac ctxt "not_or2")
@@ -1493,9 +1493,9 @@ fun rewrite_implies_simplify ctxt _ t =
 
 fun rewrite_connective_def ctxt _ t =
     SMT_Replay_Methods.prove ctxt t (fn _ =>
- (K (print_tac ctxt "before1")THEN'
+ ((*K (print_tac ctxt "before1")THEN'*)
       match_tac ctxt @{thms alethe_connective_def}
-      THEN' K (print_tac ctxt "after step 1")
+  (*    THEN' K (print_tac ctxt "after step 1")*)
 )
 ORELSE'
  ((*K (print_tac ctxt "before2")THEN'*)
@@ -1623,12 +1623,12 @@ val _ = @{print}("t",t)
 in 
  (* SMT_Replay_Methods.prove ctxt t (fn _ => match_tac ctxt [infer_instantiate' ctxt [SOME (Thm.cterm_of ctxt factor),NONE,NONE] @{thm alethe_la_mult_pos_less} ]))*)
   SMT_Replay_Methods.prove ctxt t (fn _ =>
-K (print_tac ctxt "la_mult")
-THEN' match_tac ctxt @{thms alethe_la_mult_pos}
+(*K (print_tac ctxt "la_mult")
+THEN'*) match_tac ctxt @{thms alethe_la_mult_pos}
 THEN' TRY' (assume_tac ctxt)
-THEN' K (print_tac ctxt "la_mult 1")
+(*THEN' K (print_tac ctxt "la_mult 1")*)
 THEN' Simplifier.full_simp_tac ctxt
-THEN' K (print_tac ctxt "la_mult 2")
+(*THEN' K (print_tac ctxt "la_mult 2")*)
 
 )
 
@@ -1636,12 +1636,12 @@ end
 
 fun la_mult_neg ctxt _ t =
   SMT_Replay_Methods.prove ctxt t (fn _ =>
-K (print_tac ctxt "la_mult")       
-THEN' match_tac ctxt @{thms alethe_la_mult_neg}
+(*K (print_tac ctxt "la_mult")       
+THEN'*) match_tac ctxt @{thms alethe_la_mult_neg}
 THEN' TRY' (assume_tac ctxt)
-THEN' K (print_tac ctxt "la_mult 1")
+(*THEN' K (print_tac ctxt "la_mult 1")*)
 THEN' Simplifier.full_simp_tac ctxt
-THEN' K (print_tac ctxt "la_mult 2")
+(*THEN' K (print_tac ctxt "la_mult 2")*)
 
 )
 end
