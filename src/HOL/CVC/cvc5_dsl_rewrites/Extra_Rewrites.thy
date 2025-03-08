@@ -272,6 +272,15 @@ lemma [rewrite_arith_distrib_mult]:
     done
   done
 
+named_theorems rewrite_arith_to_real_distrib_uminus_rev \<open>\<close>
+
+lemma [rewrite_arith_to_real_distrib_uminus_rev]:
+  fixes t::int
+  shows "NO_MATCH cvc_a (undefined x y)
+ \<Longrightarrow> ((of_int (-t) ::real) = -(of_int t))"
+  by auto
+
+
 named_theorems rewrite_arith_geq_norm1_real \<open>\<close> (*TODO: Find examples*)
 
 lemma [rewrite_arith_geq_norm1_real]:

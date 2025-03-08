@@ -32,6 +32,8 @@ cvc5_rare "Extra_Rewrites.rewrite_arith_to_real_distrib_minus"
 cvc5_rare "Extra_Rewrites.rewrite_arith_to_real_distrib_mult"
 cvc5_rare "Extra_Rewrites.rewrite_arith_distrib_add"
 cvc5_rare "Extra_Rewrites.rewrite_arith_distrib_mult"
+cvc5_rare "Extra_Rewrites.rewrite_arith_to_real_distrib_uminus_rev"
+
 
 cvc5_rare "Extra_Rewrites.rewrite_arith_geq_norm1_real"
 cvc5_rare "Extra_Rewrites.rewrite_arith_geq_norm2"
