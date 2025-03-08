@@ -131,9 +131,9 @@ lemma [rewrite_arith_geq_tighten]:
   by auto
 
 
-named_theorems rewrite_arith_geq_norm \<open>automatically_generated\<close>
+named_theorems rewrite_arith_geq_norm1_int \<open>automatically_generated\<close>
 
-lemma [rewrite_arith_geq_norm]:
+lemma [rewrite_arith_geq_norm1_int]:
   fixes t::"int" and s::"int"
   shows "NO_MATCH cvc_a (undefined t s) \<Longrightarrow> (s \<le> t) = ((0::int) \<le> t - s)"
   by auto
@@ -170,6 +170,13 @@ lemma [rewrite_arith_refl_gt]:
   shows "NO_MATCH cvc_a (undefined t) \<Longrightarrow> (t < t) = False"
   by auto
 
+named_theorems rewrite_arith_eq_elim_int \<open>\<close>
+
+lemma [rewrite_arith_eq_elim_int]:
+  fixes t::int  and  s::int
+  shows "NO_MATCH cvc_a (undefined t s)
+ \<Longrightarrow> ((t = s) = (t \<ge> s \<and> t \<le> s))"
+  by auto
 
 named_theorems rewrite_arith_plus_flatten \<open>automatically_generated\<close>
 
@@ -269,5 +276,21 @@ lemma [rewrite_arith_plus_cancel2]:
     apply simp_all
     by (simp_all add: arith_plus_cancel2_lemma)
   done
+
+named_theorems rewrite_arith_int_gt \<open>manually added, will autogenerate later\<close>
+
+lemma [rewrite_arith_int_gt]:
+  fixes t::int and s::int
+  shows "NO_MATCH cvc_a (undefined t s) \<Longrightarrow> (t > s) = (t \<ge> (s + 1))"
+  by auto
+
+
+named_theorems rewrite_arith_int_lt \<open>manually added, will autogenerate later\<close>
+
+lemma [rewrite_arith_int_lt]:
+  fixes t::int and s::int
+  shows "NO_MATCH cvc_a (undefined t s) \<Longrightarrow> (t < s) = (s \<ge> (t + 1))"
+  by auto
+
 
 end

@@ -272,5 +272,61 @@ lemma [rewrite_arith_distrib_mult]:
     done
   done
 
+named_theorems rewrite_arith_geq_norm1_real \<open>\<close> (*TODO: Find examples*)
+
+lemma [rewrite_arith_geq_norm1_real]:
+  fixes t::"real"  and  s::"real" 
+  shows "NO_MATCH cvc_a (undefined t s)
+ \<Longrightarrow> ((t \<ge> s) = ((t - s) \<ge> 0/1))"
+  by simp
+
+named_theorems rewrite_arith_geq_norm2 \<open>\<close>
+
+lemma [rewrite_arith_geq_norm2]:
+  fixes t::"'a::linordered_idom"  and  s::"'a::linordered_idom" 
+  shows "NO_MATCH cvc_a (undefined t s)
+ \<Longrightarrow> ((t \<ge> s) = (-t \<le> -s))"
+  by simp
+
+named_theorems rewrite_arith_eq_elim_real \<open>\<close>
+
+lemma [rewrite_arith_eq_elim_real]:
+  fixes t::"'a::linordered_idom"  and  s::"'a::linordered_idom" 
+  shows "NO_MATCH cvc_a (undefined t s)
+ \<Longrightarrow> ((t = s) = (t \<ge> s \<and> t \<le> s))"
+  by auto
+
+named_theorems rewrite_arith_to_int_elim_to_real \<open>\<close>
+
+lemma [rewrite_arith_to_int_elim_to_real]:
+  fixes x::int
+  shows "NO_MATCH cvc_a (undefined x)
+ \<Longrightarrow> (floor (of_int x ::real) = floor x)"
+  by auto
+
+named_theorems rewrite_arith_div_elim_to_real1 \<open>\<close>
+
+lemma [rewrite_arith_div_elim_to_real1]:
+  fixes x::int and y::real
+  shows "NO_MATCH cvc_a (undefined x y)
+ \<Longrightarrow> (((of_int x ::real) / y) = (x / y))"
+  by auto
+
+named_theorems rewrite_arith_div_elim_to_real2 \<open>\<close>
+
+lemma [rewrite_arith_div_elim_to_real2]:
+  fixes x::real and y::int
+  shows "NO_MATCH cvc_a (undefined x y)
+ \<Longrightarrow> ((x / (of_int y ::real)) = (x / y))"
+  by auto
+
+named_theorems rewrite_arith_int_eq_conflict \<open>\<close>
+
+lemma [rewrite_arith_int_eq_conflict]:
+  fixes t::int and c::real
+  shows "NO_MATCH cvc_a (undefined x y)
+ \<Longrightarrow> \<not>((of_int (floor t)::real) = c) \<longrightarrow> (((of_int t ::real) = c) = False)"
+  by auto
+
 
 end
