@@ -74,7 +74,7 @@ fun la_farkas_tac ({context = ctxt, prems, concl,  ...}: Subgoal.focus) (SOME (F
 
     fun normalize_prem thm =
       let
-        val thm' = basic_simps ctxt @{thms linorder_class.not_less linorder_class.not_le} thm|> @{print}
+        val thm' = basic_simps ctxt @{thms linorder_class.not_less linorder_class.not_le} thm
         (*fun ttt ctxt = resolve_tac ctxt @{thms arith_prems_normalize}
         fun f t = Goal.prove ctxt [] [] (as_prop (Thm.concl_of t))
           (fn {context, prems} =>  (print_tac ctxt "here") THEN TRY (REPEAT (ALLGOALS (resolve_tac ctxt @{thms arith_prems_normalize}))) THEN  (print_tac ctxt "here1")) 
