@@ -5,7 +5,19 @@
 section \<open>Archimedean Fields, Floor and Ceiling Functions\<close>
 
 theory Archimedean_Field
-imports Main
+imports 
+    Predicate_Compile
+    Quickcheck_Narrowing
+    Mirabelle
+    Extraction
+    Nunchaku
+    BNF_Greatest_Fixpoint
+    Filter
+    Conditionally_Complete_Lattices
+    Binomial
+    GCD
+    Divides
+    "CVC/SMT_CVC"
 begin
 
 lemma cInf_abs_ge:
