@@ -1115,20 +1115,4 @@ lemma [cvc5_holes_simp]:
 
 declare[[smt_cvc_alethe = true]]
 
-
-
-
-
-ML \<open>
-val f = Const ("HOL.eq", dummyT);
-val A = @{term "A::'b"};
-val q = (f $ A $ A)
- |> Syntax.check_term @{context}
- |> Thm.cterm_of @{context};
-
-val r = Syntax.check_term @{context} (f$A$A)
-val a = A |> Syntax.check_term @{context} |> Thm.cterm_of @{context};
-val t = Thm.reflexive a
-\<close>
-
 end
