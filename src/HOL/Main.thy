@@ -25,6 +25,8 @@ theory Main
     "CVC/SMT_CVC_Real"
 begin
 
+no_notation floor  ("\<lfloor>_\<rfloor>")
+
 subsection \<open>Namespace cleanup\<close>
 
 hide_const (open)

@@ -8,4 +8,6 @@ imports
   "CVC/SMT_CVC_Real"
 begin
 
+notation floor  ("\<lfloor>_\<rfloor>")
+
 end

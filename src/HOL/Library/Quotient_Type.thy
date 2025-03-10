@@ -8,6 +8,8 @@ theory Quotient_Type
 imports Main
 begin
 
+no_notation floor  ("\<lfloor>_\<rfloor>")
+
 text \<open>We introduce the notion of quotient types over equivalence relations
   via type classes.\<close>
 

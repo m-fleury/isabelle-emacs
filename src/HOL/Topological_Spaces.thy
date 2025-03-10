@@ -8,6 +8,7 @@ section \<open>Topological Spaces\<close>
 theory Topological_Spaces
   imports Main
 begin
+notation floor  ("\<lfloor>_\<rfloor>")
 
 named_theorems continuous_intros "structural introduction rules for continuity"
 
