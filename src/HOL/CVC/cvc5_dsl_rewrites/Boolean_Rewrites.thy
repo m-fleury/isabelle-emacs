@@ -1,6 +1,6 @@
 theory Boolean_Rewrites
-  imports "HOL-CVC.Dsl_Nary_Ops" "Boolean_Rewrites_Lemmas"
-    "HOL-CVC.SMT_CVC_Util"
+  imports "Dsl_Nary_Ops" "Boolean_Rewrites_Lemmas"
+    "../SMT_CVC_Util"
 begin
 
 (* Thank you for using IsaRARE. This is a theory automatically created from a RARE file!
@@ -318,7 +318,7 @@ named_theorems rewrite_bool_xor_refl \<open>automatically_generated\<close>
 lemma [rewrite_bool_xor_refl]:
   fixes x::"bool"
   shows "NO_MATCH cvc_a (undefined x) \<Longrightarrow> (x [+] x) = False"
-  using xor_def by auto
+  using SMT_CVC_Util.xor_def by auto
 
 
 named_theorems rewrite_bool_xor_nrefl \<open>automatically_generated\<close>
@@ -326,7 +326,7 @@ named_theorems rewrite_bool_xor_nrefl \<open>automatically_generated\<close>
 lemma [rewrite_bool_xor_nrefl]:
   fixes x::"bool"
   shows "NO_MATCH cvc_a (undefined x) \<Longrightarrow> (x [+] (\<not> x)) = True"
-  using xor_def by auto
+  using SMT_CVC_Util.xor_def by auto
 
 
 named_theorems rewrite_bool_xor_false \<open>automatically_generated\<close>
@@ -350,7 +350,7 @@ named_theorems rewrite_bool_xor_comm \<open>automatically_generated\<close>
 lemma [rewrite_bool_xor_comm]:
   fixes x::"bool" and y::"bool"
   shows "NO_MATCH cvc_a (undefined x y) \<Longrightarrow> (x [+] y) = (y [+] x)"
-  using xor_def by auto
+  using SMT_CVC_Util.xor_def by auto
 
 
 named_theorems rewrite_bool_xor_elim \<open>automatically_generated\<close>

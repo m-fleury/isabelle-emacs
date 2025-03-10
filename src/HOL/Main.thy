@@ -18,6 +18,7 @@ theory Main
     Binomial
     GCD
     Divides
+    "CVC/SMT_CVC"
 begin
 
 subsection \<open>Namespace cleanup\<close>

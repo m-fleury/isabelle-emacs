@@ -1,5 +1,5 @@
 theory Arith_Rewrites
-  imports "HOL-CVC.Dsl_Nary_Ops" "Arith_Rewrites_Lemmas"
+  imports "Dsl_Nary_Ops" "Arith_Rewrites_Lemmas"
 begin
 
 (* Thank you for using IsaRARE. This is a theory automatically created from a RARE file!

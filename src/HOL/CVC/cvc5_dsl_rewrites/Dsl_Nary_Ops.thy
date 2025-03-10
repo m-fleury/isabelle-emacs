@@ -1,5 +1,5 @@
 theory Dsl_Nary_Ops
-  imports Smtlib_String (*SMT_CVC_Util*)
+  imports HOL.List (*Smtlib_String SMT_CVC_Util*)
 begin
 
 datatype 'a cvc_ListVar = ListVar "'a list"
@@ -28,15 +28,8 @@ lemma [cvc_ListOp_neutral]:
   and cvc_ListOp_neutral_plus_int: "cvc_isListOp (ListOp (+) (0::int))"
   and cvc_ListOp_neutral_mult: "cvc_isListOp (ListOp (*) (1::int))"
   and cvc_ListOp_neutral_append: "cvc_isListOp (ListOp (@) [])"
-  and cvc_ListOp_neutral_re_concat: "cvc_isListOp (ListOp (smtlib_re_concat) {''''})"
-  and cvc_ListOp_neutral_str_concat: "cvc_isListOp (ListOp (smtlib_str_concat) [])"
-  and cvc_ListOp_neutral_re_union: "cvc_isListOp (ListOp (smtlib_re_union) {})"
-  and cvc_ListOp_neutral_re_inter: "cvc_isListOp (ListOp (smtlib_re_inter) (UNIV))"
-  and cvc_ListOp_neutral_bv_xor: "cvc_isListOp (ListOp (semiring_bit_operations_class.xor) 0)"
-  and cvc_ListOp_neutral_bv_or: "cvc_isListOp (ListOp (semiring_bit_operations_class.or) 0)"
+  by (simp_all add: )
 
-  by (simp_all add: smtlib_re_concat_def smtlib_str_concat_def smtlib_re_union_def
-                    smtlib_re_inter_def)
 
 (*Since the SMT-LIB term parser in Isabelle parses all operators as right-associative we assume
 that this is the case. Further testing is needed to see if this is enough. *)
@@ -197,42 +190,6 @@ lemma [cvc_list_right_transfer_op]:
   "cvc_list_right (@) y (ListVar xs) = (@) y (foldr (@) xs [])"
   by (simp add: cvc_list_right_transfer_neutral1)
 
-lemma [cvc_list_right_transfer_op]:
-  "cvc_list_right (smtlib_re_concat) y (ListVar xs)
-   = (smtlib_re_concat) y (foldr (smtlib_re_concat) xs {''''})"
-  by (meson cvc_ListOp_neutral_re_concat cvc_list_right_transfer_neutral1)
-
-lemma [cvc_list_right_transfer_op]:
-  "cvc_list_right (smtlib_str_concat) y (ListVar xs)
-   = (smtlib_str_concat) y (foldr (smtlib_str_concat) xs [])"
-  by (simp add: cvc_list_right_transfer_neutral1 smtlib_str_concat_def)
-
-lemma [cvc_list_right_transfer_op]:
-  "cvc_list_right (smtlib_re_union) y (ListVar xs)
-   = (smtlib_re_union) y (foldr (smtlib_re_union) xs {})"
-  by (meson cvc_ListOp_neutral_re_union cvc_list_right_transfer_neutral1)
-
-lemma [cvc_list_right_transfer_op]:
-  "cvc_list_right (smtlib_re_inter) y (ListVar xs)
-   = (smtlib_re_inter) y (foldr (smtlib_re_inter) xs (UNIV))"
-  by (meson cvc_ListOp_neutral_re_inter cvc_list_right_transfer_neutral1)
-
-lemma [cvc_list_right_transfer_op]:
-  "cvc_list_right (semiring_bit_operations_class.xor) y (ListVar xs)
-   = (semiring_bit_operations_class.xor) y (foldr (semiring_bit_operations_class.xor) xs 0)"
-  by (simp add: cvc_list_right_transfer_neutral1)
-
-lemma [cvc_list_right_transfer_op]:
-  "cvc_list_right (semiring_bit_operations_class.or) y (ListVar xs)
-   = (semiring_bit_operations_class.or) y (foldr (semiring_bit_operations_class.or) xs 0)"
-  by (simp add: cvc_list_right_transfer_neutral1)
-
-lemma [cvc_list_right_transfer_op]:
-  "xs \<noteq> [] \<longrightarrow> cvc_list_right (semiring_bit_operations_class.and) y (ListVar xs)
-   = (semiring_bit_operations_class.and) y (foldr (semiring_bit_operations_class.and) (butlast xs)
-   (last xs))"
-  by (simp add: cvc_list_right_transfer_2)
-
 
 (*Both Transfer*)
 
@@ -275,30 +232,6 @@ lemma [cvc_list_both_transfer_op]:
 lemma [cvc_list_both_transfer_op]:
   "cvc_list_both (@) [] (ListVar ys) (ListVar xs) = foldr (@) ys (foldr (@) xs [])"
   by (simp add: cvc_list_both_transfer)
-
-lemma [cvc_list_both_transfer_op]:
-  "cvc_list_both (smtlib_re_concat) {''''} (ListVar ys) (ListVar xs) = foldr (smtlib_re_concat) ys (foldr (smtlib_re_concat) xs {''''})"
-  by (meson cvc_ListOp_neutral_re_concat cvc_list_both_transfer)
-
-lemma [cvc_list_both_transfer_op]:
-  "cvc_list_both (smtlib_str_concat) [] (ListVar ys) (ListVar xs) = foldr (smtlib_str_concat) ys (foldr (smtlib_str_concat) xs [])"
-  by (meson cvc_ListOp_neutral_str_concat cvc_list_both_transfer)
-
-lemma [cvc_list_both_transfer_op]:
-  "cvc_list_both (smtlib_re_union) {} (ListVar ys) (ListVar xs) = foldr (smtlib_re_union) ys (foldr (smtlib_re_union) xs {})"
-  by (meson cvc_ListOp_neutral_re_union cvc_list_both_transfer)
-
-lemma [cvc_list_both_transfer_op]:
-  "cvc_list_both (smtlib_re_inter) (UNIV) (ListVar ys) (ListVar xs) = foldr (smtlib_re_inter) ys (foldr (smtlib_re_inter) xs (UNIV))"
-  by (meson cvc_ListOp_neutral_re_inter cvc_list_both_transfer)
-
-lemma [cvc_list_both_transfer_op]:
-  "cvc_list_both (semiring_bit_operations_class.xor) 0 (ListVar ys) (ListVar xs) = foldr (semiring_bit_operations_class.xor) ys (foldr (semiring_bit_operations_class.xor) xs 0)"
-  by (meson cvc_ListOp_neutral_bv_xor cvc_list_both_transfer)
-
-lemma [cvc_list_both_transfer_op]:
-  "cvc_list_both (semiring_bit_operations_class.or) 0 (ListVar ys) (ListVar xs) = foldr (semiring_bit_operations_class.or) ys (foldr (semiring_bit_operations_class.or) xs 0)"
-  by (meson cvc_ListOp_neutral_bv_or cvc_list_both_transfer)
 
 lemma cvc_list_left_Nil: "cvc_list_left op (ListVar []) y = y"
   unfolding cvc_list_left_def

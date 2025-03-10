@@ -1,5 +1,5 @@
 theory Extra_Rewrites
-  imports "HOL-CVC.Dsl_Nary_Ops" "HOL.Real" "HOL-CVC.Dsl_Nary_Ops"
+  imports "HOL.Real"
 begin (*Since this needs real operators it is not included in RARE_interface*)
 
 (*TODO: has nothing to do with reals should be moved?*)

@@ -411,7 +411,7 @@ lemma alethe_connective_def:
   \<open>(A = B) \<noteq> ((\<not>A \<and> B) \<or> (A \<and> \<not>B))\<close> \<comment> \<open>xor case\<close>
   \<open>(A = B) = ((A \<longrightarrow> B) \<and> (B \<longrightarrow> A))\<close>
   \<open>(If A B C) = ((A \<longrightarrow> B) \<and> (\<not>A \<longrightarrow> C))\<close>
-   apply (case_tac [!] A)
+  apply (case_tac [!] A)
   by simp_all
 
 lemma alethe_connective_def_forall:
@@ -1130,6 +1130,5 @@ val r = Syntax.check_term @{context} (f$A$A)
 val a = A |> Syntax.check_term @{context} |> Thm.cterm_of @{context};
 val t = Thm.reflexive a
 \<close>
-
 
 end
