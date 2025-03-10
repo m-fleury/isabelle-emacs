@@ -31,7 +31,7 @@ lemma "\<bar>x :: real\<bar> + \<bar>y\<bar> \<ge> \<bar>x + y\<bar>" supply[[sm
   by (smt (cvc5))  (*la_generic real vs int error*)
 lemma "(if (\<forall>x::int. x < 0 \<or> x > 0) then -1 else 3) > (0::int)" by (smt (cvc5)) (*la_generic real vs int error*)
 
-declare[[smt_expert_debug_alethe_level=2]]
+declare[[smt_expert_debug_alethe_level=0]]
 declare[[smt_expert_debug_alethe_files="alethe_replay"]]
 
 (*
@@ -323,7 +323,7 @@ lemma "(3::real) = 3" by (smt (cvc5)) (*success*)
 lemma "(3 :: int) + 1 = 4" by (smt (cvc5)) (*success*)
 lemma "x + (y + z) = y + (z + (x::int))" by (smt (cvc5)) (*success*)
 lemma "max (3::int) 8 > 5" by (smt (cvc5)) (*success*)
-lemma "\<bar>x :: real\<bar> + \<bar>y\<bar> \<ge> \<bar>x + y\<bar>" supply[[smt_trace=true,smt_verbose=false]] by (smt (cvc5))  (*la_generic real vs int error*)
+lemma "\<bar>x :: real\<bar> + \<bar>y\<bar> \<ge> \<bar>x + y\<bar>" supply[[smt_trace=false,smt_verbose=false]] by (smt (cvc5))  (*la_generic real vs int error*)
 lemma "P ((2::int) < 3) = P True" supply[[smt_trace]] by (smt (cvc5)) (*success*)
 lemma "x + 3 \<ge> 4 \<or> x < (1::int)" by (smt (cvc5)) (*success*)
 
@@ -770,16 +770,87 @@ context
     centered_modulo :: \<open>int \<Rightarrow> int \<Rightarrow> int\<close>  (infixl \<open>cmod\<close> 70)
 begin
 
+
 lemma [cvc5_holes_pre]:
-  fixes k :: int
-  shows
-"((if 0 \<le> k then k else - 1 * k) div 2 + - 1 * ((if 0 \<le> k then k else - 1 * k) div 2 mod (if 0 \<le> k then k else - 1 * k)) +
-          - 1 * ((if 0 \<le> k then k else - 1 * k) * ((if 0 \<le> k then k else - 1 * k) div 2 div (if 0 \<le> k then k else - 1 * k))) =
-          0) =
-         ((if 0 \<le> k then k else - 1 * k) div 2 =
-          (if 0 \<le> k then k else - 1 * k) div 2 mod (if 0 \<le> k then k else - 1 * k) +
-          (if 0 \<le> k then k else - 1 * k) * ((if 0 \<le> k then k else - 1 * k) div 2 div (if 0 \<le> k then k else - 1 * k))) "
-  sorry
+\<open>(if 0 \<le> k then k else - 1 * k) div 2 * 2 + (if 0 \<le> k then k else - 1 * k) mod 2 + 2 * ((if 0 \<le> k then k else - 1 * k) div 2) +
+- 1 * ((if 0 \<le> k then k else - 1 * k) div 2 * 2) +
+(- 1 * (2 * ((if 0 \<le> k then k else - 1 * k) div 2)) + - 1 * ((if 0 \<le> k then k else - 1 * k) mod 2)) =
+0\<close>
+\<open>(if 0 \<le> k then k else - 1 * k) + - 1 * ((if 0 \<le> k then k else - 1 * k) div 2) + (- 1 * (if 0 \<le> k then k else - 1 * k) + k cdiv 0 * 0 + k cmod 0) +
+2 * ((if 0 \<le> k then k else - 1 * k) div 2) +
+(if 0 \<le> k then k else - 1 * k) mod 2 +
+- 1 * (k cdiv 0 * 0) +
+- 1 * (k cmod 0) +
+- 1 * ((if 0 \<le> k then k else - 1 * k) mod 2) +
+(if 0 \<le> k then k else - 1 * k) div 2 +
+- 1 * (2 * ((if 0 \<le> k then k else - 1 * k) div 2)) =
+0\<close>
+\<open>(if 0 \<le> k then k else - 1 * k) div 2 + - 1 * (2 * ((if 0 \<le> k then k else - 1 * k) div 2)) +
+((if 0 \<le> k then k else - 1 * k) + - 1 * ((if 0 \<le> k then k else - 1 * k) div 2)) +
+(2 * ((if 0 \<le> k then k else - 1 * k) div 2) + (if 0 \<le> k then k else - 1 * k) mod 2 + - 1 * (k cdiv 0 * 0) + - 1 * (k cmod 0)) +
+- 1 * ((if 0 \<le> k then k else - 1 * k) mod 2) +
+- 1 * ((if 0 \<le> k then k else - 1 * k) + - 1 * (k cdiv 0 * 0) + - 1 * (k cmod 0)) =
+(if 0 \<le> k then k else - 1 * k) div 2 + - 1 * (2 * ((if 0 \<le> k then k else - 1 * k) div 2)) + (if 0 \<le> k then k else - 1 * k) +
+- 1 * ((if 0 \<le> k then k else - 1 * k) div 2) +
+2 * ((if 0 \<le> k then k else - 1 * k) div 2) +
+(if 0 \<le> k then k else - 1 * k) mod 2 +
+- 1 * (k cdiv 0 * 0) +
+- 1 * (k cmod 0) +
+- 1 * ((if 0 \<le> k then k else - 1 * k) mod 2) +
+- 1 * ((if 0 \<le> k then k else - 1 * k) + - 1 * (k cdiv 0 * 0) + - 1 * (k cmod 0))\<close>
+\<open>(k + - 1 * (2 * ((if 0 \<le> k then k else - 1 * k) div 2)) + - 1 * ((if 0 \<le> k then k else - 1 * k) mod 2) = 0) =
+(k = 2 * ((if 0 \<le> k then k else - 1 * k) div 2) + (if 0 \<le> k then k else - 1 * k) mod 2)\<close>
+\<open>((if 0 \<le> k then k else - 1 * k) + - 1 * (2 * ((if 0 \<le> k then k else - 1 * k) div 2)) + - 1 * ((if 0 \<le> k then k else - 1 * k) mod 2) = 0) =
+((if 0 \<le> k then k else - 1 * k) = 2 * ((if 0 \<le> k then k else - 1 * k) div 2) + (if 0 \<le> k then k else - 1 * k) mod 2)\<close>
+\<open>- 1 * (2 * ((if 0 \<le> k then k else - 1 * k) div 2) + (if 0 \<le> k then k else - 1 * k) mod 2) =
+- 1 * (2 * ((if 0 \<le> k then k else - 1 * k) div 2)) + - 1 * ((if 0 \<le> k then k else - 1 * k) mod 2)\<close>
+\<open>2 * ((if 0 \<le> k then k else - 1 * k) div 2) + (if 0 \<le> k then k else - 1 * k) mod 2 + - 1 * (if 0 \<le> k then k else - 1 * k) + (if 0 \<le> k then k else - 1 * k) +
+- 1 * (2 * ((if 0 \<le> k then k else - 1 * k) div 2)) +
+- 1 * ((if 0 \<le> k then k else - 1 * k) mod 2) =
+0\<close>
+\<open>(if 0 \<le> k then k else - 1 * k) mod 2 + (- 1 * (if 0 \<le> k then k else - 1 * k) + - 1 * (k cdiv 0 * 0) + - 1 * (k cmod 0)) +
+(if 0 \<le> k then k else - 1 * k) div 2 * 2 +
+2 * ((if 0 \<le> k then k else - 1 * k) div 2) +
+- 1 * ((if 0 \<le> k then k else - 1 * k) div 2 * 2) +
+(if 0 \<le> k then k else - 1 * k) +
+- 1 * (2 * ((if 0 \<le> k then k else - 1 * k) div 2)) +
+- 1 * ((if 0 \<le> k then k else - 1 * k) mod 2) +
+(- 1 * k + k cdiv 0 * 0 + k cmod 0) +
+k =
+0\<close>
+\<open>- 1 * (2 * ((if 0 \<le> k then k else - 1 * k) div 2) + (if 0 \<le> k then k else - 1 * k) mod 2) +
+(2 * ((if 0 \<le> k then k else - 1 * k) div 2) + (if 0 \<le> k then k else - 1 * k) mod 2) =
+- 1 * (2 * ((if 0 \<le> k then k else - 1 * k) div 2) + (if 0 \<le> k then k else - 1 * k) mod 2) + 2 * ((if 0 \<le> k then k else - 1 * k) div 2) +
+(if 0 \<le> k then k else - 1 * k) mod 2\<close>
+\<open>((if 0 \<le> k then k else - 1 * k) div 2 + - 1 * ((if 0 \<le> k then k else - 1 * k) div 2 mod (if 0 \<le> k then k else - 1 * k)) +
+ - 1 * ((if 0 \<le> k then k else - 1 * k) * ((if 0 \<le> k then k else - 1 * k) div 2 div (if 0 \<le> k then k else - 1 * k))) =
+ 0) =
+((if 0 \<le> k then k else - 1 * k) div 2 =
+ (if 0 \<le> k then k else - 1 * k) div 2 mod (if 0 \<le> k then k else - 1 * k) +
+ (if 0 \<le> k then k else - 1 * k) * ((if 0 \<le> k then k else - 1 * k) div 2 div (if 0 \<le> k then k else - 1 * k)))\<close>
+\<open>- 1 * (2 * ((if 0 \<le> k then k else - 1 * k) div 2) + (if 0 \<le> k then k else - 1 * k) mod 2 + - 1 * (k cdiv 0 * 0) + - 1 * (k cmod 0)) =
+- 1 * (2 * ((if 0 \<le> k then k else - 1 * k) div 2)) + - 1 * ((if 0 \<le> k then k else - 1 * k) mod 2) + k cdiv 0 * 0 + k cmod 0\<close>
+\<open>(if 0 \<le> k then k else - 1 * k) div 2 * 2 + - 1 * k +
+(- 1 * (2 * ((if 0 \<le> k then k else - 1 * k) div 2)) + - 1 * ((if 0 \<le> k then k else - 1 * k) mod 2) + k cdiv 0 * 0 + k cmod 0) +
+(if 0 \<le> k then k else - 1 * k) mod 2 +
+2 * ((if 0 \<le> k then k else - 1 * k) div 2) +
+- 1 * ((if 0 \<le> k then k else - 1 * k) div 2 * 2) +
+k +
+- 1 * (k cdiv 0 * 0) +
+- 1 * (k cmod 0) =
+0\<close>
+\<open>(2 * ((if 0 \<le> k then k else - 1 * k) div 2) + (if 0 \<le> k then k else - 1 * k) mod 2 = k cdiv 0 * 0 + k cmod 0) =
+(2 * ((if 0 \<le> k then k else - 1 * k) div 2) = - 1 * ((if 0 \<le> k then k else - 1 * k) mod 2) + k cdiv 0 * 0 + k cmod 0)\<close>
+\<open>(2 * ((if 0 \<le> k then k else - 1 * k) div 2) + (if 0 \<le> k then k else - 1 * k) mod 2 + - 1 * (k cdiv 0 * 0) + - 1 * (k cmod 0) = 0) =
+(2 * ((if 0 \<le> k then k else - 1 * k) div 2) = - 1 * ((if 0 \<le> k then k else - 1 * k) mod 2) + k cdiv 0 * 0 + k cmod 0)\<close>
+for k :: int
+  by (auto simp: minus_mod_eq_mult_div) arith+
+
+lemma [cvc5_holes_pre]:
+  \<open>(\<forall>(v0::int) (v1::int). 0 \<le> v0 \<and> \<not> 0 \<le> v0 + - 1 * v1 \<longrightarrow> v0 = v0 mod v1) = (\<forall>(v0::int) (v1::int). \<not> 0 \<le> v0 \<or> 0 \<le> v0 + - 1 * v1 \<or> v0 = v0 mod v1) \<close>
+  apply auto
+  by (metis linorder_not_le mod_pos_pos_trivial)
+declare[[cvc5_options="--dag-thres=0 --proof-format-mode=alethe --proof-granularity=dsl-rewrite --proof-alethe-experimental --proof-prune-input --full-saturate-quant --proof-alethe-define-skolems --proof-elim-subtypes --no-stats --sat-random-seed=1 --lang=smt2"]]
 lemma zero_cdiv_eq [simp]:
   assumes
        "\<forall>(b::int) (a::int) c::int. b * (a div b) + a mod b + c = a + c"
@@ -796,7 +867,7 @@ lemma zero_cdiv_eq [simp]:
        "\<forall>a::int. odd a = (a mod (2::int) = (1::int))"
        shows
   \<open>0 cdiv k = 0\<close>
-  supply [[smt_trace=false,smt_verbose]]
+  supply [[smt_trace=false,smt_verbose=false]]
   by (smt (cvc5) assms)
 (* 
 In the original context fails with:
