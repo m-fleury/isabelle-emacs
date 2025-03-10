@@ -10,7 +10,7 @@
 section \<open>Development of the Reals using Cauchy Sequences\<close>
 
 theory Real
-imports Rat
+imports Rat "SMT_CVC"
 begin
 
 text \<open>

@@ -19,6 +19,10 @@ theory Main
     GCD
     Divides
     "CVC/SMT_CVC"
+    (*added because we need it for reconstructing integer cvc proofs*)
+    Real
+    "CVC/cvc5_dsl_rewrites/Extra_Rewrites"
+    "CVC/SMT_CVC_Real"
 begin
 
 subsection \<open>Namespace cleanup\<close>
