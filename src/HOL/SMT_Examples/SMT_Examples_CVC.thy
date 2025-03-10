@@ -9,7 +9,7 @@ the others come from the Isabelle distribution or the AFP.
 section \<open>Examples for the (smt (cvc5)) binding\<close>
 
 theory SMT_Examples_CVC
-  imports HOL.SMT HOL.Real
+  imports Complex_Main
 begin
 
 (*
@@ -588,6 +588,17 @@ lemma
   shows False
   using assms by (smt (cvc5))
 
+context
+begin
+lemma [cvc5_holes_pre]:
+ \<open>(\<forall>(v0::real) (v1::real) (v2::real).
+             (\<not> 0 / 1 \<le> v0 / v1 + - 1 / 1 * (v2 / v1)) =
+             ((\<not> 0 / 1 \<le> - 1 / 1 * v1 \<longrightarrow> \<not> 0 / 1 \<le> v0 + - 1 / 1 * v2) \<and> (\<not> 0 / 1 \<le> v1 \<longrightarrow> \<not> 0 / 1 \<le> - 1 / 1 * v0 + v2) \<and> v1 \<noteq> 0 / 1)) =
+         (\<forall>(v0::real) (v1::real) (v2::real).
+             (\<not> 0 / 1 \<le> v0 / v1 + - 1 / 1 * (v2 / v1)) =
+             ((0 / 1 \<le> - 1 / 1 * v1 \<or> \<not> 0 / 1 \<le> v0 + - 1 / 1 * v2) \<and> (0 / 1 \<le> v1 \<or> \<not> 0 / 1 \<le> - 1 / 1 * v0 + v2) \<and> v1 \<noteq> 0 / 1)) \<close>
+  by auto
+
 (*test for arith reconstruction*)
 lemma
   fixes d :: real
@@ -623,8 +634,8 @@ lemma
     (\<lambda>y. (- (d / 2), (2 * y - 1) * diamond_y (- (d / 2)))) =
     (\<lambda>x. ((x - 1 / 2) * d, diamond_y ((x - 1 / 2) * d))) \<Longrightarrow>
     False\<close>
-  using assms by (smt (cvc5))
-
+  using assms supply [[smt_trace]] by (smt (cvc5))
+end
 (*qnt_rm_unused example*)
 lemma 
   assumes \<open>\<forall>z y x. P z y\<close>
@@ -636,7 +647,7 @@ lemma
 
 lemma
   "max (x::int) y \<ge> y"
-  supply [[smt_trace=false]]
+  supply [[smt_trace=true]]
   by (smt (cvc5))+ 
 
 context
@@ -843,6 +854,61 @@ k +
 (2 * ((if 0 \<le> k then k else - 1 * k) div 2) = - 1 * ((if 0 \<le> k then k else - 1 * k) mod 2) + k cdiv 0 * 0 + k cmod 0)\<close>
 \<open>(2 * ((if 0 \<le> k then k else - 1 * k) div 2) + (if 0 \<le> k then k else - 1 * k) mod 2 + - 1 * (k cdiv 0 * 0) + - 1 * (k cmod 0) = 0) =
 (2 * ((if 0 \<le> k then k else - 1 * k) div 2) = - 1 * ((if 0 \<le> k then k else - 1 * k) mod 2) + k cdiv 0 * 0 + k cmod 0)\<close>
+\<open>(if 0 \<le> k then k else - 1 * k) + - 1 * ((if 0 \<le> k then k else - 1 * k) div 2) +
+         ((if 0 \<le> k then k else - 1 * k) div 2 + - 1 * (2 * ((if 0 \<le> k then k else - 1 * k) div 2))) +
+         - 1 * ((if 0 \<le> k then k else - 1 * k) mod 2) +
+         (2 * ((if 0 \<le> k then k else - 1 * k) div 2) + (if 0 \<le> k then k else - 1 * k) mod 2 + - 1 * (k cdiv 0 * 0) + - 1 * (k cmod 0)) +
+         - 1 * ((if 0 \<le> k then k else - 1 * k) + - 1 * (k cdiv 0 * 0) + - 1 * (k cmod 0)) =
+         (if 0 \<le> k then k else - 1 * k) + - 1 * ((if 0 \<le> k then k else - 1 * k) div 2) + (if 0 \<le> k then k else - 1 * k) div 2 +
+         - 1 * (2 * ((if 0 \<le> k then k else - 1 * k) div 2)) +
+         - 1 * ((if 0 \<le> k then k else - 1 * k) mod 2) +
+         2 * ((if 0 \<le> k then k else - 1 * k) div 2) +
+         (if 0 \<le> k then k else - 1 * k) mod 2 +
+         - 1 * (k cdiv 0 * 0) +
+         - 1 * (k cmod 0) +
+         - 1 * ((if 0 \<le> k then k else - 1 * k) + - 1 * (k cdiv 0 * 0) + - 1 * (k cmod 0)) \<close>
+\<open>- 1 * k + (if 0 \<le> k then k else - 1 * k) div 2 * 2 + (if 0 \<le> k then k else - 1 * k) mod 2 +
+         - 1 * (2 * ((if 0 \<le> k then k else - 1 * k) div 2) + (if 0 \<le> k then k else - 1 * k) mod 2 + - 1 * (k cdiv 0 * 0) + - 1 * (k cmod 0)) +
+         (2 * ((if 0 \<le> k then k else - 1 * k) div 2) + - 1 * ((if 0 \<le> k then k else - 1 * k) div 2 * 2)) +
+         (k + - 1 * (k cdiv 0 * 0) + - 1 * (k cmod 0)) =
+         - 1 * k + (if 0 \<le> k then k else - 1 * k) div 2 * 2 + (if 0 \<le> k then k else - 1 * k) mod 2 +
+         - 1 * (2 * ((if 0 \<le> k then k else - 1 * k) div 2) + (if 0 \<le> k then k else - 1 * k) mod 2 + - 1 * (k cdiv 0 * 0) + - 1 * (k cmod 0)) +
+         2 * ((if 0 \<le> k then k else - 1 * k) div 2) +
+         - 1 * ((if 0 \<le> k then k else - 1 * k) div 2 * 2) +
+         k +
+         - 1 * (k cdiv 0 * 0) +
+         - 1 * (k cmod 0) \<close>
+\<open>- 1 * ((if 0 \<le> k then k else - 1 * k) + - 1 * (k cdiv 0 * 0) + - 1 * (k cmod 0)) +
+         ((if 0 \<le> k then k else - 1 * k) + - 1 * ((if 0 \<le> k then k else - 1 * k) div 2)) +
+         - 1 * ((if 0 \<le> k then k else - 1 * k) mod 2) +
+         (2 * ((if 0 \<le> k then k else - 1 * k) div 2) + (if 0 \<le> k then k else - 1 * k) mod 2 + - 1 * (k cdiv 0 * 0) + - 1 * (k cmod 0)) +
+         ((if 0 \<le> k then k else - 1 * k) div 2 + - 1 * (2 * ((if 0 \<le> k then k else - 1 * k) div 2))) =
+         - 1 * ((if 0 \<le> k then k else - 1 * k) + - 1 * (k cdiv 0 * 0) + - 1 * (k cmod 0)) + (if 0 \<le> k then k else - 1 * k) +
+         - 1 * ((if 0 \<le> k then k else - 1 * k) div 2) +
+         - 1 * ((if 0 \<le> k then k else - 1 * k) mod 2) +
+         2 * ((if 0 \<le> k then k else - 1 * k) div 2) +
+         (if 0 \<le> k then k else - 1 * k) mod 2 +
+         - 1 * (k cdiv 0 * 0) +
+         - 1 * (k cmod 0) +
+         (if 0 \<le> k then k else - 1 * k) div 2 +
+         - 1 * (2 * ((if 0 \<le> k then k else - 1 * k) div 2)) \<close>
+\<open>(if 0 \<le> k then k else - 1 * k) div 2 * 2 +
+(- 1 * (2 * ((if 0 \<le> k then k else - 1 * k) div 2)) + - 1 * ((if 0 \<le> k then k else - 1 * k) mod 2) + k cdiv 0 * 0 + k cmod 0) +
+(if 0 \<le> k then k else - 1 * k) mod 2 +
+2 * ((if 0 \<le> k then k else - 1 * k) div 2) +
+- 1 * ((if 0 \<le> k then k else - 1 * k) div 2 * 2) +
+(- 1 * (k cdiv 0 * 0) + - 1 * (k cmod 0)) =
+0\<close>
+\<open>k cdiv 0 * 0 + k cmod 0 + - 1 * ((if 0 \<le> k then k else - 1 * k) div 2) + - 1 * ((if 0 \<le> k then k else - 1 * k) mod 2) +
+(2 * ((if 0 \<le> k then k else - 1 * k) div 2) + (if 0 \<le> k then k else - 1 * k) mod 2 + - 1 * (k cdiv 0 * 0) + - 1 * (k cmod 0)) +
+((if 0 \<le> k then k else - 1 * k) div 2 + - 1 * (2 * ((if 0 \<le> k then k else - 1 * k) div 2))) =
+k cdiv 0 * 0 + k cmod 0 + - 1 * ((if 0 \<le> k then k else - 1 * k) div 2) + - 1 * ((if 0 \<le> k then k else - 1 * k) mod 2) +
+2 * ((if 0 \<le> k then k else - 1 * k) div 2) +
+(if 0 \<le> k then k else - 1 * k) mod 2 +
+- 1 * (k cdiv 0 * 0) +
+- 1 * (k cmod 0) +
+(if 0 \<le> k then k else - 1 * k) div 2 +
+- 1 * (2 * ((if 0 \<le> k then k else - 1 * k) div 2))\<close>
 for k :: int
   by (auto simp: minus_mod_eq_mult_div) arith+
 
