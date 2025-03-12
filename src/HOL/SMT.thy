@@ -543,6 +543,7 @@ lemmas alethe_comp_simplify =
   zero_less_one
   zero_le_one
   less_neg_numeral_simps
+  rel_simps
 
 lemma alethe_la_disequality:
   \<open>(a :: 'a ::linorder) = b \<or> \<not>a \<le> b \<or> \<not>b \<le> a\<close>
