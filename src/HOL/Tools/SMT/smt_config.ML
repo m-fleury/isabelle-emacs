@@ -59,6 +59,7 @@ sig
   val verit_arith_msg: Proof.context -> (unit -> 'a) -> unit
   datatype debugging_verbosity = off | low | middle | high
   val alethe_debug_msg: Proof.context -> string -> debugging_verbosity -> (unit -> 'a) -> unit (*TODO: integrate this with the other options, wanted to make it possible to select files*)
+  val spy_cvc: Proof.context -> bool
   val spy_verit: Proof.context -> bool
   val spy_Z3: Proof.context -> bool
   val use_alethe_proof_from_cvc: Proof.context -> bool
@@ -198,8 +199,9 @@ val trace = Attrib.setup_config_bool \<^binding>\<open>smt_trace\<close> (K fals
 val trace_verit = Attrib.setup_config_bool \<^binding>\<open>smt_debug_verit\<close> (K false)
 val trace_expert_debug_alethe_level = Attrib.setup_config_int \<^binding>\<open>smt_expert_debug_alethe_level\<close> (K 0)
 val trace_expert_debug_alethe_files = Attrib.setup_config_string \<^binding>\<open>smt_expert_debug_alethe_files\<close> (K "all")
-val spy_verit_attr = Attrib.setup_config_bool \<^binding>\<open>smt_spy_verit\<close> (K false)
-val spy_z3 = Attrib.setup_config_bool \<^binding>\<open>smt_spy_z3\<close> (K false)
+val spy_cvc_attr = Attrib.setup_config_bool \<^binding>\<open>smt_spy_cvc\<close> (K true)
+val spy_verit_attr = Attrib.setup_config_bool \<^binding>\<open>smt_spy_verit\<close> (K true)
+val spy_z3 = Attrib.setup_config_bool \<^binding>\<open>smt_spy_z3\<close> (K true)
 val trace_arith_verit = Attrib.setup_config_bool \<^binding>\<open>smt_debug_arith_verit\<close> (K false)
 val trace_verit_compression = Attrib.setup_config_bool \<^binding>\<open>verit_compress_proofs\<close> (K true)
 val statistics = Attrib.setup_config_bool \<^binding>\<open>smt_statistics\<close> (K false)
@@ -248,6 +250,7 @@ in
 end
 
 
+fun spy_cvc ctxt  = Config.get ctxt spy_cvc_attr
 fun spy_verit ctxt  = Config.get ctxt spy_verit_attr
 fun spy_Z3 ctxt  = Config.get ctxt spy_z3
 fun compress_verit_proofs ctxt  = Config.get ctxt trace_verit_compression

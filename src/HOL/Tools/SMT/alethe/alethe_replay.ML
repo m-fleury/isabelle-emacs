@@ -451,8 +451,12 @@ fun replay solver method_for outer_ctxt
        )
       else ()
 
-    val _ = SMT_Replay.spying (SMT_Config.spy_verit ctxt) ctxt
-      (fn () => SMT_Replay.print_stats (Symtab.dest stats)) "spy_cvc"
+    val _ = if solver = "cvc5_prover" then
+              SMT_Replay.spying (SMT_Config.spy_cvc ctxt) ctxt
+                (fn () => SMT_Replay.print_stats (Symtab.dest stats)) "$ISABELLE_SMT_CVC_SPY"
+           else (*everything that is not cvc5 is veriT*)
+              SMT_Replay.spying (SMT_Config.spy_verit ctxt) ctxt
+                                (fn () => SMT_Replay.print_stats (Symtab.dest stats)) "$ISABELLE_SMT_VERIT_SPY"
 
   in
     CVC5_Replay_Methods.discharge ctxt [thm_with_defs] @{term False} (*Hier koennte man das aendern sodass die offenen Schritte als neue goals zurueck gegeben werden. E.g, wenn rewrite nicht klappt*)
