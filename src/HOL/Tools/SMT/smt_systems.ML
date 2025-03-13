@@ -85,7 +85,8 @@ local
   fun cvc5_prover_options ctxt =
     ["--no-stats",
      "--sat-random-seed=" ^ string_of_int (Config.get ctxt SMT_Config.random_seed),
-     "--lang=smt2", "--proof-prune", "--proof-prune-input"] @
+     "--lang=smt2", "--proof-prune", "--proof-prune-input","--proof-elim-subtypes",
+     "--proof-alethe-define-skolems"] @
     Verit_Strategies.cvc5_current_strategy (Context.Proof ctxt) @
     (case SMT_Config.get_timeout ctxt of
       NONE => []

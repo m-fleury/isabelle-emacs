@@ -902,7 +902,7 @@ options.
 declare [[cvc4_options = ""]]
 declare [[cvc5_options = "--full-saturate-quant --proof-alethe-define-skolems --proof-elim-subtypes"]]
 declare [[cvc5_proof_options = "--proof-format-mode=alethe --proof-granularity=dsl-rewrite
-                          --full-saturate-quant --proof-alethe-define-skolems --proof-elim-subtypes"]]
+                          --full-saturate-quant --proof-mode=full-proof-strict"]]
 declare [[verit_options = "--proof-with-sharing"]]
 declare [[z3_options = ""]]
 
