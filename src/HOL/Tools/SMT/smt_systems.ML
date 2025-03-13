@@ -82,11 +82,11 @@ local
       NONE => []
     | SOME t => ["--tlimit", string_of_int (Time.toMilliseconds t)])
 
-  fun cvc5_prover_options ctxt =
+  fun cvc5_proof_options ctxt =
     ["--no-stats",
      "--sat-random-seed=" ^ string_of_int (Config.get ctxt SMT_Config.random_seed),
      "--lang=smt2", "--proof-prune", "--proof-prune-input","--proof-elim-subtypes",
-     "--proof-alethe-define-skolems"] @
+     "--proof-alethe-define-skolems","--proof-format-mode=alethe"] @
     Verit_Strategies.cvc5_current_strategy (Context.Proof ctxt) @
     (case SMT_Config.get_timeout ctxt of
       NONE => []
@@ -155,7 +155,7 @@ val cvc5_proof: SMT_Solver.solver_config = {
   class = select_class,
   avail = make_avail "CVC5",
   command = make_command "CVC5",
-  options = cvc5_prover_options,
+  options = cvc5_proof_options,
   smt_options = [(":produce-proofs", "true")],
   good_slices = #good_slices cvc5,
   outcome = on_first_line (outcome_of "unsat" "sat" "unknown" "timeout"),
