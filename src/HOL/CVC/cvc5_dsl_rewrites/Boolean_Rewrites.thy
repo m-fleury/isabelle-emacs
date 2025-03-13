@@ -1,7 +1,7 @@
 theory Boolean_Rewrites
   imports "Dsl_Nary_Ops" "Boolean_Rewrites_Lemmas"
-    "../SMT_CVC_Util"
-begin
+   
+begin (*deleted: "../SMT_CVC_Util"*)
 
 (* Thank you for using IsaRARE. This is a theory automatically created from a RARE file!
 All that remains to do is to prove any lemma whose provided proof fails.
@@ -317,23 +317,22 @@ named_theorems rewrite_bool_xor_refl \<open>automatically_generated\<close>
 
 lemma [rewrite_bool_xor_refl]:
   fixes x::"bool"
-  shows "NO_MATCH cvc_a (undefined x) \<Longrightarrow> (x [+] x) = False"
-  using SMT_CVC_Util.xor_def by auto
-
+  shows "NO_MATCH cvc_a (undefined x) \<Longrightarrow> \<not>(x = x) = False"
+  by auto
 
 named_theorems rewrite_bool_xor_nrefl \<open>automatically_generated\<close>
 
 lemma [rewrite_bool_xor_nrefl]:
   fixes x::"bool"
-  shows "NO_MATCH cvc_a (undefined x) \<Longrightarrow> (x [+] (\<not> x)) = True"
-  using SMT_CVC_Util.xor_def by auto
+  shows "NO_MATCH cvc_a (undefined x) \<Longrightarrow> \<not>(x = (\<not> x)) = True"
+  by auto
 
 
 named_theorems rewrite_bool_xor_false \<open>automatically_generated\<close>
 
 lemma [rewrite_bool_xor_false]:
   fixes x::"bool"
-  shows "NO_MATCH cvc_a (undefined x) \<Longrightarrow> (x [+] False) = x"
+  shows "NO_MATCH cvc_a (undefined x) \<Longrightarrow> \<not>(x = False) = x"
   by auto
 
 
@@ -341,7 +340,7 @@ named_theorems rewrite_bool_xor_true \<open>automatically_generated\<close>
 
 lemma [rewrite_bool_xor_true]:
   fixes x::"bool"
-  shows "NO_MATCH cvc_a (undefined x) \<Longrightarrow> (x [+] True) = (\<not> x)"
+  shows "NO_MATCH cvc_a (undefined x) \<Longrightarrow> \<not>(x = True) = (\<not> x)"
   by auto
 
 
@@ -349,15 +348,15 @@ named_theorems rewrite_bool_xor_comm \<open>automatically_generated\<close>
 
 lemma [rewrite_bool_xor_comm]:
   fixes x::"bool" and y::"bool"
-  shows "NO_MATCH cvc_a (undefined x y) \<Longrightarrow> (x [+] y) = (y [+] x)"
-  using SMT_CVC_Util.xor_def by auto
+  shows "NO_MATCH cvc_a (undefined x y) \<Longrightarrow> \<not>(x = y) = (\<not>(y = x))"
+  by auto
 
 
 named_theorems rewrite_bool_xor_elim \<open>automatically_generated\<close>
 
 lemma [rewrite_bool_xor_elim]:
   fixes x::"bool" and y::"bool"
-  shows "NO_MATCH cvc_a (undefined x y) \<Longrightarrow> (x [+] y) = (x [+] y)"
+  shows "NO_MATCH cvc_a (undefined x y) \<Longrightarrow> \<not>(x = y) = (\<not>(x = y))"
   by auto
 
 named_theorems rewrite_bool_not_xor_elim \<open>automatically_generated\<close>
