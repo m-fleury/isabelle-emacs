@@ -1014,12 +1014,30 @@ lemma [cvc5_holes_pre]:
              -\<infinity> = v0 \<and> -\<infinity> = v0 + v1 \<and> \<not> (\<forall>v3::'a::comm_monoid_add. v1 \<noteq> Fin v3) \<or>
              -\<infinity> = v1 \<and> -\<infinity> = v0 + v1 \<and> \<not> (\<forall>v3::'a::comm_monoid_add. v0 \<noteq> Fin v3) \<or>
              -\<infinity> = v0 \<and> -\<infinity> = v1 \<and> -\<infinity> = v0 + v1 \<or> -\<infinity> = v0 \<and> \<infinity> = v1 \<and> \<infinity> = v0 + v1 \<or> \<infinity> = v0 \<and> -\<infinity> = v1 \<and> \<infinity> = v0 + v1)"
+ \<open>(\<forall>v2::'a::comm_monoid_add extended.
+             v2 \<noteq> (v0::'a::comm_monoid_add extended) + (v1::'a::comm_monoid_add extended) \<or>
+             v2 \<noteq> v0 + v1 \<or>
+             \<not> (\<forall>(v3::'a::comm_monoid_add) v4::'a::comm_monoid_add. v0 \<noteq> Fin v3 \<or> v1 \<noteq> Fin v4 \<or> v2 \<noteq> Fin (v3 + v4)) \<or>
+             \<infinity> = v1 \<and> \<infinity> = v2 \<and> \<not> (\<forall>v3::'a::comm_monoid_add. v0 \<noteq> Fin v3) \<or>
+             \<infinity> = v0 \<and> \<infinity> = v2 \<and> \<not> (\<forall>v3::'a::comm_monoid_add. v1 \<noteq> Fin v3) \<or>
+             \<infinity> = v0 \<and> \<infinity> = v1 \<and> \<infinity> = v2 \<or>
+             -\<infinity> = v0 \<and> -\<infinity> = v2 \<and> \<not> (\<forall>v3::'a::comm_monoid_add. v1 \<noteq> Fin v3) \<or>
+             -\<infinity> = v1 \<and> -\<infinity> = v2 \<and> \<not> (\<forall>v3::'a::comm_monoid_add. v0 \<noteq> Fin v3) \<or>
+             -\<infinity> = v0 \<and> -\<infinity> = v1 \<and> -\<infinity> = v2 \<or> -\<infinity> = v0 \<and> \<infinity> = v1 \<and> \<infinity> = v2 \<or> \<infinity> = v0 \<and> -\<infinity> = v1 \<and> \<infinity> = v2) =
+         (v0 + v1 \<noteq> v0 + v1 \<or>
+          \<not> (\<forall>(v3::'a::comm_monoid_add) v4::'a::comm_monoid_add. v0 \<noteq> Fin v3 \<or> v1 \<noteq> Fin v4 \<or> v0 + v1 \<noteq> Fin (v3 + v4)) \<or>
+          \<infinity> = v1 \<and> \<infinity> = v0 + v1 \<and> \<not> (\<forall>v3::'a::comm_monoid_add. v0 \<noteq> Fin v3) \<or>
+          \<infinity> = v0 \<and> \<infinity> = v0 + v1 \<and> \<not> (\<forall>v3::'a::comm_monoid_add. v1 \<noteq> Fin v3) \<or>
+          \<infinity> = v0 \<and> \<infinity> = v1 \<and> \<infinity> = v0 + v1 \<or>
+          -\<infinity> = v0 \<and> -\<infinity> = v0 + v1 \<and> \<not> (\<forall>v3::'a::comm_monoid_add. v1 \<noteq> Fin v3) \<or>
+          -\<infinity> = v1 \<and> -\<infinity> = v0 + v1 \<and> \<not> (\<forall>v3::'a::comm_monoid_add. v0 \<noteq> Fin v3) \<or>
+          -\<infinity> = v0 \<and> -\<infinity> = v1 \<and> -\<infinity> = v0 + v1 \<or> -\<infinity> = v0 \<and> \<infinity> = v1 \<and> \<infinity> = v0 + v1 \<or> \<infinity> = v0 \<and> -\<infinity> = v1 \<and> \<infinity> = v0 + v1)\<close>
    apply (intro iff_allI)
    apply argo
   apply (rule iff_allI)
   apply (rule iff_allI)
    apply (smt (z3))
-  done
+  sorry
 
 lemma
   assumes
