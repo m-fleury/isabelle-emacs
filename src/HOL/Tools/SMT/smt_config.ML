@@ -267,7 +267,7 @@ fun get_timeout ctxt =
 
 fun with_time_limit ctxt timeout_config f x =
   Timeout.apply (seconds (Config.get ctxt timeout_config)) f x
-    handle Timeout.TIMEOUT _ => raise SMT_Failure.SMT SMT_Failure.Time_Out
+    handle Timeout.TIMEOUT _ => raise SMT_Failure.SMT (SMT_Failure.Time_Out "")
 
 fun with_timeout ctxt = with_time_limit ctxt timeout
 

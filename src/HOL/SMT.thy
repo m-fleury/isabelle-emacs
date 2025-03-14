@@ -823,7 +823,7 @@ proof -
 qed
 
 lemma alethe_qnt_miniscope_and:
-  \<open>(\<forall>X. (F1 X \<and> A X)) \<longleftrightarrow> ((\<forall>X. F1 X) \<and> (\<forall>X. A X))\<close>
+  \<open>(\<forall>X. (F1 X \<and> A X)) = ((\<forall>X. F1 X) \<and> (\<forall>X. A X))\<close>
   by (simp add: all_conj_distrib )
 
 lemma alethe_qnt_miniscope_or:
@@ -833,8 +833,10 @@ lemma alethe_qnt_miniscope_or:
   by simp_all
 
 lemma alethe_qnt_miniscope_ITE:
-  shows "(\<forall>x Y. (if C then F1 x else A Y)) \<longleftrightarrow> (if C then (\<forall>x. F1 x) else (\<forall>Y. A Y))"
-  by simp
+  \<open>(\<forall>x Y. (if C then F1 x else A Y)) = (if C then (\<forall>x. F1 x) else (\<forall>Y. A Y))\<close>
+  \<open>(\<forall>x. (if C then F1 x else B)) = (if C then (\<forall>x. F1 x) else (\<forall>Y. B))\<close>
+  \<open>(\<forall>Y. (if C then F2 else A Y)) = (if C then F2 else (\<forall>Y. A Y))\<close>
+  by simp_all
 
 named_theorems cvc5_normalized_input \<open>Theorems required to replay
 our more complicated translation\<close>

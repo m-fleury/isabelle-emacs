@@ -212,7 +212,7 @@ local
         (case parse_proof0 of
           SOME pp => pp outer_ctxt replay_data xfacts prems concl lines
         | NONE => {outcome = NONE, fact_ids = NONE, atp_proof = K []})
-    | (Time_Out, _) => raise SMT_Failure.SMT (SMT_Failure.Time_Out)
+    | (Time_Out, _) => raise SMT_Failure.SMT (SMT_Failure.Time_Out "parsing")
     | (result, _) => raise SMT_Failure.SMT (SMT_Failure.Counterexample (result = Sat)))
 
   fun replay outcome replay0 oracle outer_ctxt
@@ -226,7 +226,7 @@ local
             SOME replay => replay outer_ctxt replay_data lines
           | NONE => error "No proof reconstruction for solver -- \
             \declare [[smt_oracle]] to allow oracle")
-    | (Time_Out, _) => raise SMT_Failure.SMT (SMT_Failure.Time_Out)
+    | (Time_Out, _) => raise SMT_Failure.SMT (SMT_Failure.Time_Out "replay")
     | (result, _) => raise SMT_Failure.SMT (SMT_Failure.Counterexample (result = Sat)))
 
   val cfalse = Thm.cterm_of \<^context> \<^prop>\<open>False\<close>
@@ -307,9 +307,9 @@ local
     handle
       SMT_Failure.SMT (fail as SMT_Failure.Counterexample _) =>
         (SMT_Config.verbose_msg ctxt (str_of ctxt) fail; NONE)
-    | SMT_Failure.SMT (fail as SMT_Failure.Time_Out) =>
+    | SMT_Failure.SMT (fail as (SMT_Failure.Time_Out s)) =>
         (SMT_Config.verbose_msg ctxt (K ("SMT: Solver " ^ quote (SMT_Config.solver_of ctxt) ^ ": " ^
-          SMT_Failure.string_of_failure fail ^ " (setting the " ^
+          SMT_Failure.string_of_failure fail ^ ": " ^ s ^ " (setting the " ^
           "configuration option " ^ quote (Config.name_of SMT_Config.timeout) ^ " might help)")) ();
          NONE)
     | SMT_Failure.SMT fail => error (str_of ctxt fail)

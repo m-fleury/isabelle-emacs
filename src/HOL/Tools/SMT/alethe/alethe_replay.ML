@@ -258,7 +258,7 @@ val _ = @{print}(" all_assms", all_assms)
 
     val ({elapsed, ...}, thm) =
       SMT_Config.with_time_limit ctxt SMT_Config.reconstruction_step_timeout replay step (*Welche Felder von Step benutzt replay_thm? Nur die conclusion?*)
-        handle Timeout.TIMEOUT _ => raise SMT_Failure.SMT SMT_Failure.Time_Out (*TODO: Maybe add flag so this is only output when checking an external proof, although I feel it would be useful even when not*)
+        handle Timeout.TIMEOUT _ => raise SMT_Failure.SMT (SMT_Failure.Time_Out rule) (*TODO: Maybe add flag so this is only output when checking an external proof, although I feel it would be useful even when not*)
     val _ = (SMT_Config.verbose_msg ctxt (K ("Successfully checked step " ^ id)) ())
 
     val stats' = Symtab.cons_list (rule, Time.toNanoseconds elapsed) stats
@@ -321,7 +321,7 @@ fun replay_assumed assms ll_defs rewrite_rules stats ctxt term =
     val ({elapsed, ...}, thm) =
       SMT_Config.with_time_limit ctxt SMT_Config.reconstruction_step_timeout replay
          (fn _ => Method.insert_tac ctxt assms THEN' Classical.fast_tac ctxt) (*Wissen den Grund nicht warum fast_tac verwendet wird, vielleicht nur zur Sicherheit*)
-        handle Timeout.TIMEOUT _ => raise SMT_Failure.SMT SMT_Failure.Time_Out
+        handle Timeout.TIMEOUT _ => raise SMT_Failure.SMT (SMT_Failure.Time_Out "assumption")
     val stats' = Symtab.cons_list (Alethe_Proof.input_rule, Time.toNanoseconds elapsed) stats
   in
     (thm, stats')
