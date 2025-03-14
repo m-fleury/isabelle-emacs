@@ -60,12 +60,13 @@ fun print_error_to_file_with_msg ctxt i str =
     ^ (Config.get ctxt SMT_Config.statistics_file))) ("-" ^ Int.toString i ^
     ", \"err_msg\": \"" ^ str ^ "\"}]},\n")
   else ()
-  
+
+fun rm_quotation s = implode (filter_out (fn c => c = "\"") (raw_explode s))
 fun print_reconstruction_error_to_file ctxt i str msg =
   if Config.get ctxt SMT_Config.rec_evaluation
   then File.append (Path.explode ("$ISABELLE_HOME_USER/"
     ^ (Config.get ctxt SMT_Config.statistics_file))) ("-" ^ Int.toString i ^
-    ", \"failed_rule\": \"" ^ str ^ ", \"message\": \"" ^ msg ^ "\"}]},\n")
+    ", \"failed_rule\": \"" ^ str ^ ", \"message\": \"" ^ (rm_quotation msg) ^ "\"}]},\n")
   else ()
 
 fun check_smt2 prover problem_file_name proof_file_name opt_output_file local_thy =
