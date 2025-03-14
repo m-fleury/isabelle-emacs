@@ -39,13 +39,15 @@ fun try_auto_solo ctxt t =
   SMT_Replay_Methods.prove ctxt t (fn _ => TRY' (K (Clasimp.auto_tac ctxt)))
 
 
+fun dest_prop (Const (\<^const_name>\<open>Trueprop\<close>, _) $ t) = t
+  | dest_prop t = t
 (* Evaluation of constants *)
 (* Any additional lemmas should be added to cvc_evaluate *)
-fun try_evaluate ctxt t =
-  SMT_Replay_Methods.prove ctxt t (fn _ =>
- (*K (print_tac ctxt "evaluate 0")*)
 
-   TRY' (Code_Simp.dynamic_tac ctxt )
+fun evaluate_tac ctxt _ =
+  (*K (print_tac ctxt "evaluate 0") THEN'*)
+
+  TRY' (Code_Simp.dynamic_tac ctxt )
   (*THEN' K (print_tac ctxt "evaluate 1")*)
 
   THEN' TRY' (Lin_Arith.tac ctxt)
@@ -55,17 +57,19 @@ fun try_evaluate ctxt t =
   (*THEN' K (print_tac ctxt "evaluate")*)
  )
 
+fun try_evaluate ctxt t =
+  SMT_Replay_Methods.prove_abstract' ctxt t evaluate_tac
+    (SMT_Replay_Methods.abstract_for_code_eval ctxt (dest_prop t))
 
 fun arith_poly_norm_mult ctxt t = 
   SMT_Replay_Methods.prove ctxt t (fn _ =>
- K (print_tac ctxt "arith mult 0") THEN'
+    (*K (print_tac ctxt "arith mult 0") THEN'*)
 
-   TRY' (simplify_tac ctxt ((Named_Theorems.get ctxt @{named_theorems cvc_evaluate}) @ (Named_Theorems.get ctxt @{named_theorems arith_simp_cvc5})))
-  THEN' K (print_tac ctxt "arith mult 1")
-  THEN' TRY' (Lin_Arith.tac ctxt)
-  THEN' K (print_tac ctxt "arith mult 2")
-
-)
+    TRY' (simplify_tac ctxt ((Named_Theorems.get ctxt @{named_theorems cvc_evaluate}) @ (Named_Theorems.get ctxt @{named_theorems arith_simp_cvc5})))
+    (*THEN' K (print_tac ctxt "arith mult 1")*)
+    THEN' TRY' (Lin_Arith.tac ctxt)
+    (*THEN' K (print_tac ctxt "arith mult 2")*)
+  )
 
 fun try_arith ctxt t =
   SMT_Replay_Methods.prove ctxt t (fn _ =>
@@ -158,24 +162,20 @@ else
   in
     (SMT_Replay_Methods.prove ctxt t (fn _ =>
     TRY' (EqSubst.eqsubst_tac ctxt [0] [inst_lemma_without_true])
-    (*THEN' K (print_tac ctxt "debug")*)
-    THEN' REPEAT' (
-      (resolve_tac ctxt [@{thm refl}])
-   (* THEN' K (print_tac ctxt "debug1")*)
-
-      THEN' (Code_Simp.dynamic_tac ctxt))
-    THEN' K (print_tac ctxt "debug2")
-
-     THEN' TRY' (simplify_tac ctxt ((Named_Theorems.get ctxt @{named_theorems cvc_evaluate})))
-    THEN' K (print_tac ctxt "debug3")
-
-   THEN' TRY' (fn i => REPEAT_DETERM 
-     ((simplify_tac ctxt ((Named_Theorems.get ctxt @{named_theorems cvc_evaluate})
-       @ (Named_Theorems.get ctxt @{named_theorems arith_simp_cvc5}) @ [@{thm refl}])) i))
-    THEN' K (print_tac ctxt "debug3")
-
-    THEN' TRY' (resolve_tac ctxt [@{thm refl}])
-   ))
+    THEN_ALL_NEW (
+      (*K (print_tac ctxt "debug0") THEN'*)
+      TRY' (resolve_tac ctxt [@{thm refl}])
+      (*THEN' K (print_tac ctxt "debug1")*)
+     
+      THEN' TRY' (Code_Simp.dynamic_tac ctxt))
+      (*THEN' K (print_tac ctxt "debug2")*)
+     
+      THEN' TRY' (simplify_tac ctxt ((Named_Theorems.get ctxt @{named_theorems cvc_evaluate})))
+      (*THEN' K (print_tac ctxt "debug3")*)
+      THEN'  (
+        TRY' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems cvc_evaluate}
+           @ Named_Theorems.get ctxt @{named_theorems arith_simp_cvc5}))))
+     )
 end
 ) 
 end
