@@ -1143,7 +1143,6 @@ Error:
 exception SMTLIB_PARSE ("bad SMT term", Sym "rare-list") raised (line 234 of "~~/src/HOL/Tools/SMT/smtlib_proof.ML")
 *)
 
-end
 
 
 section \<open>Monomorphization examples\<close>
