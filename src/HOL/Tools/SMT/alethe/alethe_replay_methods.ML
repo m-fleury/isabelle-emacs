@@ -54,6 +54,7 @@ sig
    Qnt_Simplify | Not_Not | Tautological_Clause | Duplicate_Literals | Distinct_Elim |
    (*Extended rules*)
    Symm | Not_Symm | Reordering | Shuffle | Tmp_Quantifier_Simplify | Contraction | 
+   Qnt_Miniscope_And | Qnt_Miniscope_Or | Qnt_Miniscope_ITE | (*Added for paper, not in Standard might change later*)
    (*Other Rules*)
    Other_Rule of string |
    Hole |
@@ -170,7 +171,9 @@ sig
   val reordering: alethe_tac
   val shuffle: alethe_tac_step_args_and_arg
   val contraction: alethe_tac
-
+  val qnt_miniscope_and: alethe_tac
+  val qnt_miniscope_or: alethe_tac
+  val qnt_miniscope_ITE: alethe_tac
 
   (*Extension to declare new alethe rules*)
   val declare_alethe_rule:  string -> alethe_tac_step_args -> Context.generic -> Context.generic
@@ -238,6 +241,7 @@ datatype alethe_rule =
    Qnt_Simplify | Not_Not | Tautological_Clause | Duplicate_Literals | Distinct_Elim |
    (*Extended rules*)
    Symm | Not_Symm | Reordering | Shuffle | Tmp_Quantifier_Simplify | Contraction |
+   Qnt_Miniscope_And | Qnt_Miniscope_Or | Qnt_Miniscope_ITE | (*Added for paper, not in Standard might change later*)
    (*Other Rules*)
    Other_Rule of string |
    Hole |
@@ -343,6 +347,9 @@ fun string_of_alethe_rule Bind = "Bind"
   | string_of_alethe_rule Reordering = "reordering"
   | string_of_alethe_rule Shuffle = "shuffle"
   | string_of_alethe_rule Contraction = "contraction"
+  | string_of_alethe_rule Qnt_Miniscope_And = "qnt_miniscope_and"
+  | string_of_alethe_rule Qnt_Miniscope_Or = "qnt_miniscope_or"
+  | string_of_alethe_rule Qnt_Miniscope_ITE = "qnt_miniscope_ITE"
   | string_of_alethe_rule Not_Not = Alethe_Proof.not_not_rule
   | string_of_alethe_rule Tautological_Clause = "tautology"
   | string_of_alethe_rule Duplicate_Literals = Alethe_Proof.contract_rule
@@ -1699,7 +1706,6 @@ shuffle ctxt thms _ t _ =
     replay_error ctxt "Unsupported commutative operator in shuffle rule" Unsupported thms [] t
 end
 
-
 fun contraction ctxt [prem] t = 
  SMT_Replay_Methods.prove ctxt t (fn _ => (
     Method.insert_tac ctxt [prem]
@@ -1710,5 +1716,38 @@ fun contraction ctxt [prem] t =
     THEN' REPEAT'(ematch_tac ctxt @{thms notE} THEN' TRY' (assume_tac ctxt))
     ))
 | contraction ctxt thms t = replay_error ctxt "Unsupported commutative operator in contraction rule" Unsupported thms [] t
+
+(*TODO: Ask Mathias how to do the matching, could give arguments*)
+
+fun qnt_miniscope_and ctxt _ t = 
+ SMT_Replay_Methods.prove ctxt t (fn _ => (
+     K (print_tac ctxt "sss") THEN'
+
+    TRY' (ematch_tac ctxt @{thms alethe_qnt_miniscope_and})
+    THEN' K (print_tac ctxt "sss")
+    THEN' CHANGED_PROP o REPEAT_ALL_NEW (ematch_tac ctxt @{thms disjE})
+    THEN' REPEAT'(ematch_tac ctxt @{thms notE} THEN' TRY' (assume_tac ctxt))
+    ))
+
+fun qnt_miniscope_or ctxt _ t = 
+ SMT_Replay_Methods.prove ctxt t (fn _ => (
+     K (print_tac ctxt "sss") THEN'
+     (match_tac ctxt @{thms alethe_qnt_miniscope_or})
+
+    THEN' K (print_tac ctxt "sss")
+    THEN' CHANGED_PROP o REPEAT_ALL_NEW (ematch_tac ctxt @{thms disjE})
+    THEN' REPEAT'(ematch_tac ctxt @{thms notE} THEN' TRY' (assume_tac ctxt))
+    ))
+
+fun qnt_miniscope_ITE ctxt _ t = 
+ SMT_Replay_Methods.prove ctxt t (fn _ => (
+     match_tac ctxt @{thms ccontr}
+    THEN' K (unfold_tac ctxt @{thms de_Morgan_disj})
+    THEN' TRY o CHANGED_PROP o REPEAT_ALL_NEW (ematch_tac ctxt @{thms conjE})
+    THEN' CHANGED_PROP o REPEAT_ALL_NEW (ematch_tac ctxt @{thms disjE})
+    THEN' REPEAT'(ematch_tac ctxt @{thms notE} THEN' TRY' (assume_tac ctxt))
+    ))
+
+
 
 end;

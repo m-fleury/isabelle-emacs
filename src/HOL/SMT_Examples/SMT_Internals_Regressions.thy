@@ -2167,6 +2167,9 @@ lemma nary_elim_2:
 
 
 
+lemma
+"(\<forall>y. (n \<noteq> r m n \<or> \<not> f m n y y \<or> n = y)) = ((n \<noteq> r m n) \<or> (\<forall>y. (\<not> f m n y y \<or> n = y)))"
 
+  by (ctxt_tactic "qnt_miniscope_or")
 
 end

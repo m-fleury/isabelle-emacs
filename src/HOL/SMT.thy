@@ -797,6 +797,19 @@ proof -
     by (subst H) auto
 qed
 
+lemma alethe_qnt_miniscope_and:
+  \<open>(\<forall>X. (F1 X \<and> A X)) \<longleftrightarrow> ((\<forall>X. F1 X) \<and> (\<forall>X. A X))\<close>
+  by (simp add: all_conj_distrib )
+
+lemma alethe_qnt_miniscope_or:
+  \<open>(\<forall>x Y. (F1 x \<or> A Y)) = ((\<forall>x. F1 x) \<or> (\<forall>Y. A Y))\<close>
+  \<open>(\<forall> Y. (F2 \<or> A Y)) = (F2 \<or> (\<forall>Y. A Y))\<close>
+  by simp_all
+
+lemma alethe_qnt_miniscope_ITE:
+  shows "(\<forall>x Y. (if C then F1 x else A Y)) \<longleftrightarrow> (if C then (\<forall>x. F1 x) else (\<forall>Y. A Y))"
+  by simp
+
 named_theorems cvc5_normalized_input \<open>Theorems required to replay
 our more complicated translation\<close>
 
