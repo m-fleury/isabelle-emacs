@@ -268,11 +268,11 @@ fun choose _ And = ignore_args and_rule
   | choose _ Shuffle = include_step_and_tactic_args shuffle
   | choose _ Contraction = ignore_args contraction
   | choose _ Qnt_Miniscope_And = ignore_args qnt_miniscope_and
-  | choose _ Qnt_Miniscope_Or = ignore_args qnt_miniscope_and
+  | choose _ Qnt_Miniscope_Or = ignore_args qnt_miniscope_or
   | choose _ Qnt_Miniscope_ITE = ignore_args qnt_miniscope_ITE
   | choose _ Tmp_Quantifier_Simplify = ignore_args qnt_simplify
   | choose _ Unary_Minus_Simplify = ignore_args rewrite_minus_simplify
-  | choose ctxt (x as Other_Rule r) =
+  | choose ctxt (Other_Rule r) =
     (case get_alethe_tac r ctxt of
       NONE => ignore_args hole(*unsupported (string_of_alethe_rule x)*)
     | SOME a => include_step_args a)
