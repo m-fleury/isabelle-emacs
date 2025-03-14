@@ -73,7 +73,7 @@ fun replay_step ctxt assumed (step as Z3_Proof.Z3_Step {id, rule, prems, fixes, 
     val ({elapsed, ...}, thm) =
       SMT_Config.with_time_limit ctxt SMT_Config.reconstruction_step_timeout replay step
         handle Timeout.TIMEOUT _ => raise SMT_Failure.SMT SMT_Failure.Time_Out
-    val stats' = Symtab.cons_list (Z3_Proof.string_of_rule rule, Time.toMilliseconds elapsed) stats
+    val stats' = Symtab.cons_list (Z3_Proof.string_of_rule rule, Time.toNanoseconds elapsed) stats
   in (Inttab.update (id, (fixes, thm)) proofs, stats') end
 
 (* |- (EX x. P x) = P c     |- ~ (ALL x. P x) = ~ P c *)
