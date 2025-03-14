@@ -804,6 +804,7 @@ lemma alethe_qnt_miniscope_and:
 lemma alethe_qnt_miniscope_or:
   \<open>(\<forall>x Y. (F1 x \<or> A Y)) = ((\<forall>x. F1 x) \<or> (\<forall>Y. A Y))\<close>
   \<open>(\<forall> Y. (F2 \<or> A Y)) = (F2 \<or> (\<forall>Y. A Y))\<close>
+  \<open>(\<forall>x. (F1 x \<or> B)) = ((\<forall>x. F1 x) \<or> B)\<close>
   by simp_all
 
 lemma alethe_qnt_miniscope_ITE:
