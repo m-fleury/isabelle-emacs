@@ -145,9 +145,9 @@ let
               => (@{print}("Error replaying step" ^ rule ^ " is: " ^ General.exnMessage exn);
                   print_reconstruction_error_to_file ctxt 1 rule (General.exnMessage exn); (thm,1)) |
             (*Timeout*)
-            (SMT_Failure.SMT SMT_Failure.Time_Out)
+            (SMT_Failure.SMT (SMT_Failure.Time_Out rule))
                => (@{print}("Timeout");
-                  print_error_to_file ctxt 7; (thm,1)) |
+                  print_reconstruction_error_to_file ctxt 7 rule "timeout_rule"; (thm,1)) |
             (SMT_Failure.SMT err)
                => (@{print}("Unkown SMT error " ^ SMT_Failure.string_of_failure err, problem_file_name);
                   print_error_to_file ctxt 5; (thm,1)) |

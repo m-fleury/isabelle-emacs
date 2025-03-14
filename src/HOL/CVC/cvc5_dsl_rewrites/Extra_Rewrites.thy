@@ -333,8 +333,8 @@ named_theorems rewrite_arith_int_eq_conflict \<open>\<close>
 
 lemma [rewrite_arith_int_eq_conflict]:
   fixes t::int and c::real
-  shows "NO_MATCH cvc_a (undefined x y)
- \<Longrightarrow> \<not>((of_int (floor t)::real) = c) \<longrightarrow> (((of_int t ::real) = c) = False)"
+  shows "NO_MATCH cvc_a (undefined t c)
+ \<Longrightarrow> \<not>((of_int (floor c)::real) = c) \<Longrightarrow> (((of_int t ::real) = c) = False)"
   by auto
 
 

@@ -164,7 +164,7 @@ else
     (SMT_Replay_Methods.prove ctxt t (fn _ =>
     TRY' (EqSubst.eqsubst_tac ctxt [0] [inst_lemma_without_true])
     THEN_ALL_NEW (
-      (*K (print_tac ctxt "debug0") THEN'*)
+      K (print_tac ctxt "debug0") THEN'
       TRY' (resolve_tac ctxt [@{thm refl}])
       (*THEN' K (print_tac ctxt "debug1")*)
      
