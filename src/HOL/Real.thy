@@ -1847,12 +1847,12 @@ lemmas [smt_arith_multiplication] =
   arg_cong[of _ _ \<open>\<lambda>a :: real. a / real_of_int n * real_of_int p\<close> for n p :: int]
   arg_cong[of _ _ \<open>\<lambda>a :: real. a / n * p\<close> for n p :: real]
 
-lemmas [smt_arith_simplify] =
+lemmas [smt_arith_simplify,arith_simp_cvc5,arith_mult_poly_norm_cvc5] =
    floor_one floor_numeral div_by_1 times_divide_eq_right
    nonzero_mult_div_cancel_left division_ring_divide_zero div_0
   divide_minus_left zero_less_divide_iff 
 
-lemma [smt_arith_simplify]:
+lemma [smt_arith_simplify,arith_simp_cvc5,arith_mult_poly_norm_cvc5]:
   \<open>NO_MATCH 0 (b :: real) \<Longrightarrow> NO_MATCH 0 (a :: real) \<Longrightarrow> a < b \<longleftrightarrow> b - a > 0\<close>
   \<open>NO_MATCH 0 b \<Longrightarrow> NO_MATCH 0 a \<Longrightarrow> a \<le> b \<longleftrightarrow> b - a \<ge> 0\<close>
   \<open>NO_MATCH 0 b \<Longrightarrow> NO_MATCH 0 a \<Longrightarrow> a = b \<longleftrightarrow> b - a = 0\<close>

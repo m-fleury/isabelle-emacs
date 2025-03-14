@@ -642,10 +642,11 @@ named_theorems rbl_xor_temp \<open>xor_def.\<close>
 (*TODO: duplicate*)
 named_theorems arith_simp_cvc5 \<open>xor_def.\<close>
 
-lemmas [arith_simp_cvc5] = Groups.monoid_mult_class.mult_1_right Nat.mult_Suc_right
-                     Nat.mult_0_right Nat.add_Suc_right Groups.monoid_add_class.add.right_neutral
-                     Num.numeral_2_eq_2 Nat.One_nat_def Num.numeral_2_eq_2 Nat.One_nat_def
-                     Nat.Suc_less_eq Nat.zero_less_Suc minus_nat.diff_0 Nat.diff_Suc_Suc Nat.le0
+lemmas [arith_simp_cvc5,arith_mult_poly_norm_cvc5] =
+    Groups.monoid_mult_class.mult_1_right Nat.mult_Suc_right
+    Nat.mult_0_right Nat.add_Suc_right Groups.monoid_add_class.add.right_neutral
+    Num.numeral_2_eq_2 Nat.One_nat_def Num.numeral_2_eq_2 Nat.One_nat_def
+    Nat.Suc_less_eq Nat.zero_less_Suc minus_nat.diff_0 Nat.diff_Suc_Suc Nat.le0
 
 ML_file\<open>ML/alethe_replay_bv_methods.ML\<close>
 ML\<open>

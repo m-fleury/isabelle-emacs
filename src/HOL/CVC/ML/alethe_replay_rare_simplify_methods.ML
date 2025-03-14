@@ -64,7 +64,8 @@ fun arith_poly_norm_mult ctxt t =
   SMT_Replay_Methods.prove ctxt t (fn _ =>
     (*K (print_tac ctxt "arith mult 0") THEN'*)
 
-    TRY' (simplify_tac ctxt ((Named_Theorems.get ctxt @{named_theorems cvc_evaluate}) @ (Named_Theorems.get ctxt @{named_theorems arith_simp_cvc5})))
+    TRY' (simplify_tac ctxt ((Named_Theorems.get ctxt @{named_theorems cvc_evaluate}) @ (Named_Theorems.get ctxt @{named_theorems arith_mult_poly_norm_cvc5})
+      @ (Named_Theorems.get ctxt @{named_theorems field_simps})))
     (*THEN' K (print_tac ctxt "arith mult 1")*)
     THEN' TRY' (Lin_Arith.tac ctxt)
     (*THEN' K (print_tac ctxt "arith mult 2")*)
@@ -73,7 +74,8 @@ fun arith_poly_norm_mult ctxt t =
 fun try_arith ctxt t =
   SMT_Replay_Methods.prove ctxt t (fn _ =>
    (*K (print_tac ctxt "arith 0") THEN'*)
-   TRY' (simplify_tac ctxt ((Named_Theorems.get ctxt @{named_theorems cvc_evaluate}) @ (Named_Theorems.get ctxt @{named_theorems arith_simp_cvc5})))
+   TRY' (simplify_tac ctxt ((Named_Theorems.get ctxt @{named_theorems cvc_evaluate}) @ (Named_Theorems.get ctxt @{named_theorems arith_mult_poly_norm_cvc5})
+     @ (Named_Theorems.get ctxt @{named_theorems field_simps})))
 
   (*THEN' K (print_tac ctxt "arith 1")*)
 

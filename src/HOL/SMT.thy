@@ -424,19 +424,8 @@ lemma alethe_connective_def_forall:
 
 lemma alethe_connective_def_forall2:
   assumes "(P = Q)"
-  shows "(\<forall>x. P) = (\<forall>x. Q )"
-  using assms
-  unfolding All_def apply simp
-  apply (simp add: iff_conv_conj_imp)
-  apply (rule conjI)
-  subgoal
-    apply (rule impI)
-    apply (intro ext[of "(\<lambda>x. Q)" "(\<lambda>x. True)"])
-
-  sorry
-  sorry
-
-
+  shows "(\<forall>x. P x) = (\<forall>x. Q x)"
+  unfolding assms ..
 
 
 lemma alethe_ite_simplify:
@@ -584,24 +573,57 @@ named_theorems smt_arith_combine \<open>Theorems to reconstruct arithmetic theor
 
 named_theorems smt_arith_simplify \<open>Theorems to combine theorems in the LA procedure\<close>
 
-lemmas [smt_arith_simplify] =
-    (*div_add dvd_numeral_simp divmod_steps less_num_simps le_num_simps if_True if_False divmod_cancel
-    dvd_mult dvd_mult2 less_irrefl*) prod.case numeral_plus_one divmod_step_def order.refl le_zero_eq
-    le_numeral_simps less_numeral_simps mult.right_neutral simp_thms divides_aux_eq
-    mult_nonneg_nonneg dvd_imp_mod_0 dvd_add zero_less_one mod_mult_self4 numeral_mod_numeral
-    divmod_trivial prod.sel mult.left_neutral div_pos_pos_trivial arith_simps div_add div_mult_self1
-    add_le_cancel_left add_le_same_cancel2 not_one_le_zero le_numeral_simps add_le_same_cancel1
-    zero_neq_one zero_le_one le_num_simps add_Suc mod_div_trivial nat.distinct mult_minus_right
-    add.inverse_inverse distrib_left_numeral mult_num_simps numeral_times_numeral add_num_simps
-    divmod_steps rel_simps if_True if_False numeral_div_numeral divmod_cancel prod.case
-    add_num_simps one_plus_numeral fst_conv arith_simps sub_num_simps dbl_inc_simps
-    dbl_simps mult_1 add_le_cancel_right left_diff_distrib_numeral add_uminus_conv_diff zero_neq_one
-    zero_le_one One_nat_def add_Suc mod_div_trivial nat.distinct of_int_1 numerals numeral_One
-    of_int_numeral add_uminus_conv_diff zle_diff1_eq add_less_same_cancel2 minus_add_distrib
-    add_uminus_conv_diff mult.left_neutral semiring_class.distrib_right
-    add_diff_cancel_left' add_diff_eq ring_distribs mult_minus_left minus_diff_eq
+(*Currently
+arith_simp_cvc5 == smt_arith_simplify
 
-lemma [smt_arith_simplify]:
+arith_mult_poly_norm_cvc5 is meant to be used with field_simps, so 
+we removed some theorems that were already in them.
+*)
+named_theorems arith_simp_cvc5 \<open>Might be temp and integrated into smt_arith_simplify\<close>
+named_theorems arith_mult_poly_norm_cvc5 \<open>Extra rules for reconstruction of poly-norm.\<close>
+
+lemmas [arith_mult_poly_norm_cvc5] = 
+         Groups.monoid_mult_class.mult_1_right Nat.mult_Suc_right
+         Nat.mult_0_right Nat.add_Suc_right Groups.monoid_add_class.add.right_neutral
+         Num.numeral_2_eq_2 Nat.One_nat_def Num.numeral_2_eq_2 Nat.One_nat_def
+         Nat.Suc_less_eq Nat.zero_less_Suc minus_nat.diff_0 Nat.diff_Suc_Suc Nat.le0
+         prod.case numeral_plus_one divmod_step_def order.refl le_zero_eq
+         le_numeral_simps less_numeral_simps mult.right_neutral divides_aux_eq
+         mult_nonneg_nonneg dvd_imp_mod_0 dvd_add zero_less_one mod_mult_self4 numeral_mod_numeral
+         divmod_trivial prod.sel mult.left_neutral div_pos_pos_trivial arith_simps div_add div_mult_self1
+         add_le_cancel_left add_le_same_cancel2 not_one_le_zero le_numeral_simps add_le_same_cancel1
+         zero_neq_one zero_le_one le_num_simps add_Suc mod_div_trivial nat.distinct mult_minus_right
+         add.inverse_inverse distrib_left_numeral mult_num_simps numeral_times_numeral add_num_simps
+         divmod_steps rel_simps if_True if_False numeral_div_numeral divmod_cancel prod.case
+         add_num_simps one_plus_numeral fst_conv arith_simps sub_num_simps dbl_inc_simps
+         dbl_simps mult_1 add_le_cancel_right left_diff_distrib_numeral add_uminus_conv_diff zero_neq_one
+         zero_le_one One_nat_def add_Suc mod_div_trivial nat.distinct of_int_1 numerals numeral_One
+         of_int_numeral add_uminus_conv_diff zle_diff1_eq add_less_same_cancel2 minus_add_distrib
+         add_uminus_conv_diff mult.left_neutral semiring_class.distrib_right
+         add_diff_cancel_left' ring_distribs mult_minus_left minus_diff_eq
+
+lemmas [arith_simp_cvc5] = 
+         Groups.monoid_mult_class.mult_1_right Nat.mult_Suc_right
+         Nat.mult_0_right Nat.add_Suc_right Groups.monoid_add_class.add.right_neutral
+         Num.numeral_2_eq_2 Nat.One_nat_def Num.numeral_2_eq_2 Nat.One_nat_def
+         Nat.Suc_less_eq Nat.zero_less_Suc minus_nat.diff_0 Nat.diff_Suc_Suc Nat.le0
+         prod.case numeral_plus_one divmod_step_def order.refl le_zero_eq
+         le_numeral_simps less_numeral_simps mult.right_neutral divides_aux_eq
+         mult_nonneg_nonneg dvd_imp_mod_0 dvd_add zero_less_one mod_mult_self4 numeral_mod_numeral
+         divmod_trivial prod.sel mult.left_neutral div_pos_pos_trivial arith_simps div_add div_mult_self1
+         add_le_cancel_left add_le_same_cancel2 not_one_le_zero le_numeral_simps add_le_same_cancel1
+         zero_neq_one zero_le_one le_num_simps add_Suc mod_div_trivial nat.distinct mult_minus_right
+         add.inverse_inverse distrib_left_numeral mult_num_simps numeral_times_numeral add_num_simps
+         divmod_steps rel_simps if_True if_False numeral_div_numeral divmod_cancel prod.case
+         add_num_simps one_plus_numeral fst_conv arith_simps sub_num_simps dbl_inc_simps
+         dbl_simps mult_1 add_le_cancel_right left_diff_distrib_numeral add_uminus_conv_diff zero_neq_one
+         zero_le_one One_nat_def add_Suc mod_div_trivial nat.distinct of_int_1 numerals numeral_One
+         of_int_numeral add_uminus_conv_diff zle_diff1_eq add_less_same_cancel2 minus_add_distrib
+         add_uminus_conv_diff mult.left_neutral semiring_class.distrib_right
+         add_diff_cancel_left' add_diff_eq ring_distribs mult_minus_left minus_diff_eq
+         mod_mult_self2_is_0
+
+lemma [arith_simp_cvc5,arith_mult_poly_norm_cvc5]:
   \<open>\<not> (a' :: 'a :: linorder) < b' \<longleftrightarrow> b' \<le> a'\<close>
   \<open>\<not> (a' :: 'a :: linorder) \<le> b' \<longleftrightarrow> b' < a'\<close>
   \<open>(c::int) mod Numeral1 = 0\<close>
@@ -616,15 +638,18 @@ lemma [smt_arith_simplify]:
   by auto
 
 
-lemma [smt_arith_simplify]:
+lemma [arith_simp_cvc5,arith_mult_poly_norm_cvc5]:
   \<open>NO_MATCH 0 (b:: int) \<Longrightarrow> NO_MATCH 0 (a:: int) \<Longrightarrow> a < b \<longleftrightarrow> b - a > 0\<close>
   \<open>NO_MATCH 0 b \<Longrightarrow> NO_MATCH 0 a \<Longrightarrow> a \<le> b \<longleftrightarrow> b - a \<ge> 0\<close>
   \<open>NO_MATCH 0 b \<Longrightarrow> NO_MATCH 0 a \<Longrightarrow> a = b \<longleftrightarrow> b - a = 0\<close>
   by auto
 
-lemmas [smt_arith_simplify] = divide_eq_eq_numeral1
+lemmas [arith_simp_cvc5,arith_mult_poly_norm_cvc5] = divide_eq_eq_numeral1
   uminus_add_conv_diff divide_less_eq_numeral1 left_diff_distrib_numeral
   diff_gt_0_iff_gt times_divide_eq_left divide_eq_eq_numeral1
+
+lemmas [smt_arith_simplify] =
+    arith_simp_cvc5
 
 lemma div_mod_decomp: "A = (A div n) * n + (A mod n)" for A :: nat
   by auto

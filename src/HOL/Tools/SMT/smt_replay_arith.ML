@@ -55,6 +55,7 @@ fun la_farkas_tac ({context = ctxt, prems, concl,  ...}: Subgoal.focus) (SOME (F
        |> empty_simpset
        |> put_simpset HOL_basic_ss
        |> (fn ctxt => ctxt addsimps thms
+           addsimps @{thms simp_thms}  
            addsimps arith_thms
            addsimprocs [@{simproc int_div_cancel_numeral_factors}, @{simproc int_combine_numerals},
              @{simproc divide_cancel_numeral_factor}, @{simproc intle_cancel_numerals},
