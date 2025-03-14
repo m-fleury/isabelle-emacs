@@ -1720,27 +1720,17 @@ fun contraction ctxt [prem] t =
 
 fun qnt_miniscope_and ctxt _ t = 
  SMT_Replay_Methods.prove ctxt t (fn _ => (
-     K (print_tac ctxt "sss") THEN'
-
-    TRY' (ematch_tac ctxt @{thms alethe_qnt_miniscope_and})
-    THEN' K (print_tac ctxt "sss")
-    THEN' CHANGED_PROP o REPEAT_ALL_NEW (ematch_tac ctxt @{thms disjE})
-    THEN' REPEAT'(ematch_tac ctxt @{thms notE} THEN' TRY' (assume_tac ctxt))
-    ))
+    eqsubst_all ctxt @{thms alethe_qnt_miniscope_and}
+    THEN' TRY' (resolve_tac ctxt @{thms refl})))
 
 fun qnt_miniscope_or ctxt _ t = 
  SMT_Replay_Methods.prove ctxt t (fn _ => (
-     K (print_tac ctxt "sss") THEN'
-     (match_tac ctxt @{thms alethe_qnt_miniscope_or})
-
-    THEN' K (print_tac ctxt "sss")
-    THEN' CHANGED_PROP o REPEAT_ALL_NEW (ematch_tac ctxt @{thms disjE})
-    THEN' REPEAT'(ematch_tac ctxt @{thms notE} THEN' TRY' (assume_tac ctxt))
-    ))
+    eqsubst_all ctxt @{thms alethe_qnt_miniscope_or}
+    THEN' TRY' (resolve_tac ctxt @{thms refl})))
 
 fun qnt_miniscope_ITE ctxt _ t = 
  SMT_Replay_Methods.prove ctxt t (fn _ => (
-     match_tac ctxt @{thms ccontr}
+    match_tac ctxt @{thms ccontr}
     THEN' K (unfold_tac ctxt @{thms de_Morgan_disj})
     THEN' TRY o CHANGED_PROP o REPEAT_ALL_NEW (ematch_tac ctxt @{thms conjE})
     THEN' CHANGED_PROP o REPEAT_ALL_NEW (ematch_tac ctxt @{thms disjE})
