@@ -1621,7 +1621,6 @@ fun to_lemma "Orderings.ord_class.less" = @{thm alethe_la_mult_pos_less}
 (*Oct 18: I am not done here yet but it works already*)
 fun la_mult_pos ctxt _ t =
 let
-val _ = @{print}("t",t)
  (* val (rel,(factor,l,r)) = la_mult_extract t*)
 (*  val _ = @{print}("factor",(Thm.cterm_of ctxt factor))
   val _ = @{print}("lemma",infer_instantiate' ctxt [SOME (Thm.cterm_of ctxt factor),NONE,NONE] @{thm alethe_la_mult_pos_less} )
