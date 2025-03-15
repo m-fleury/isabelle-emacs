@@ -42,6 +42,10 @@ cvc5_rare "Extra_Rewrites.rewrite_arith_to_int_elim_to_real"
 cvc5_rare "Extra_Rewrites.rewrite_arith_div_elim_to_real1"
 cvc5_rare "Extra_Rewrites.rewrite_arith_div_elim_to_real2"
 cvc5_rare "Extra_Rewrites.rewrite_arith_int_eq_conflict"
+cvc5_rare "Extra_Rewrites.rewrite_arith_geq_ite_lift"
+cvc5_rare "Extra_Rewrites.rewrite_arith_gt_ite_lift"
+cvc5_rare "Extra_Rewrites.rewrite_arith_leq_ite_lift"
+cvc5_rare "Extra_Rewrites.rewrite_arith_lt_ite_lift"
 
 lemma temp: "((0 < - a) = (0 < - (b::real))) = ((0 > (a::real)) = (0 > b))"
   by simp

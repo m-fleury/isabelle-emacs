@@ -337,5 +337,36 @@ lemma [rewrite_arith_int_eq_conflict]:
  \<Longrightarrow> \<not>((of_int (floor c)::real) = c) \<Longrightarrow> (((of_int t ::real) = c) = False)"
   by auto
 
+named_theorems rewrite_arith_geq_ite_lift \<open>\<close>
+
+lemma [rewrite_arith_geq_ite_lift]:
+  fixes c::real and t::"'a::linordered_idom" and r::"'a::linordered_idom" and s::"'a::linordered_idom"  
+  shows "NO_MATCH cvc_a (undefined C t s r)
+ \<Longrightarrow> (((if C then t else s) \<ge> r) = (if C then (t \<ge> r) else (s \<ge> r)))"
+  by auto
+
+named_theorems rewrite_arith_gt_ite_lift \<open>\<close>
+
+lemma [rewrite_arith_geq_ite_lift]:
+  fixes c::real and t::"'a::linordered_idom" and r::"'a::linordered_idom" and s::"'a::linordered_idom"  
+  shows "NO_MATCH cvc_a (undefined C t s r)
+ \<Longrightarrow> (((if C then t else s) > r) = (if C then (t > r) else (s > r)))"
+  by auto
+
+named_theorems rewrite_arith_leq_ite_lift \<open>\<close>
+
+lemma [rewrite_arith_leq_ite_lift]:
+  fixes c::real and t::"'a::linordered_idom" and r::"'a::linordered_idom" and s::"'a::linordered_idom"  
+  shows "NO_MATCH cvc_a (undefined C t s r)
+ \<Longrightarrow> (((if C then t else s) \<le> r) = (if C then (t \<le> r) else (s \<le> r)))"
+  by auto
+
+named_theorems rewrite_arith_lt_ite_lift \<open>\<close>
+
+lemma [rewrite_arith_leq_ite_lift]:
+  fixes c::real and t::"'a::linordered_idom" and r::"'a::linordered_idom" and s::"'a::linordered_idom"  
+  shows "NO_MATCH cvc_a (undefined C t s r)
+ \<Longrightarrow> (((if C then t else s) < r) = (if C then (t < r) else (s < r)))"
+  by auto
 
 end
