@@ -50,7 +50,7 @@ sig
    (*Simplification Rules*)
    Bool_Simplify | Or_Simplify | Not_Simplify | And_Simplify | Equiv_Simplify |
    Implies_Simplify | Connective_Def | Minus_Simplify | Unary_Minus_Simplify | Comp_Simplify |
-   Eq_Simplify | ITE_Simplify | Sum_Simplify | Prod_Simplify | All_Simplify | RARE_Rewrite |
+   Eq_Simplify | ITE_Simplify | Sum_Simplify | Prod_Simplify | Div_Simplify | All_Simplify | RARE_Rewrite |
    Qnt_Simplify | Not_Not | Tautological_Clause | Duplicate_Literals | Distinct_Elim |
    (*Extended rules*)
    Symm | Not_Symm | Reordering | Shuffle | Tmp_Quantifier_Simplify | Contraction | 
@@ -150,6 +150,7 @@ sig
   val or_pos_rule: alethe_tac
   val theory_resolution2: alethe_tac
   val prod_simplify: alethe_tac
+  val div_simplify: alethe_tac
   val qnt_join: alethe_tac
   val qnt_rm_unused: alethe_tac
   val onepoint: alethe_tac
@@ -237,8 +238,8 @@ datatype alethe_rule =
    (*Simplification Rules*)
    Bool_Simplify | Or_Simplify | Not_Simplify | And_Simplify | Equiv_Simplify |
    Implies_Simplify | Connective_Def | Minus_Simplify | Unary_Minus_Simplify | Comp_Simplify |
-   Eq_Simplify | ITE_Simplify | Sum_Simplify | Prod_Simplify | All_Simplify | RARE_Rewrite |
-   Qnt_Simplify | Not_Not | Tautological_Clause | Duplicate_Literals | Distinct_Elim |
+   Eq_Simplify | ITE_Simplify | Sum_Simplify | Prod_Simplify | Div_Simplify | All_Simplify | RARE_Rewrite |
+   Qnt_Simplify | Not_Not | Tautological_Clause | Duplicate_Literals | Distinct_Elim | 
    (*Extended rules*)
    Symm | Not_Symm | Reordering | Shuffle | Tmp_Quantifier_Simplify | Contraction |
    Qnt_Miniscope_And | Qnt_Miniscope_Or | Qnt_Miniscope_ITE | (*Added for paper, not in Standard might change later*)
@@ -338,6 +339,7 @@ fun string_of_alethe_rule Bind = "Bind"
   | string_of_alethe_rule Minus_Simplify = "minus_simplify"
   | string_of_alethe_rule Sum_Simplify = "sum_simplify"
   | string_of_alethe_rule Prod_Simplify = "prod_simplify"
+  | string_of_alethe_rule Div_Simplify = "div_simplify"
   | string_of_alethe_rule All_Simplify = "all_simplify"
   | string_of_alethe_rule RARE_Rewrite = "rare_rewrite"
   | string_of_alethe_rule Comp_Simplify = "comp_simplify"
@@ -1584,6 +1586,12 @@ fun prod_simplify ctxt _ t =
   SMT_Replay_Methods.prove ctxt t (fn _ =>
     simplify_arith ctxt @{thms alethe_prod_simplify}
     )
+
+fun div_simplify ctxt _ t =
+  SMT_Replay_Methods.prove ctxt t (fn _ =>
+    simplify_arith ctxt @{thms alethe_div_simplify}
+    )
+
 end
 
 fun rare_rewrite ctxt prems t =
@@ -1716,8 +1724,6 @@ fun contraction ctxt [prem] t =
     ))
 | contraction ctxt thms t = replay_error ctxt "Unsupported commutative operator in contraction rule" Unsupported thms [] t
 
-(*TODO: Ask Mathias how to do the matching, could give arguments*)
-
 fun qnt_miniscope_and ctxt _ t = 
  SMT_Replay_Methods.prove ctxt t (fn _ => (
     eqsubst_all ctxt @{thms alethe_qnt_miniscope_and}
@@ -1729,14 +1735,8 @@ fun qnt_miniscope_or ctxt _ t =
     THEN' TRY' (resolve_tac ctxt @{thms refl})))
 
 fun qnt_miniscope_ITE ctxt _ t = 
- SMT_Replay_Methods.prove ctxt t (fn _ => (
-    match_tac ctxt @{thms ccontr}
-    THEN' K (unfold_tac ctxt @{thms de_Morgan_disj})
-    THEN' TRY o CHANGED_PROP o REPEAT_ALL_NEW (ematch_tac ctxt @{thms conjE})
-    THEN' CHANGED_PROP o REPEAT_ALL_NEW (ematch_tac ctxt @{thms disjE})
-    THEN' REPEAT'(ematch_tac ctxt @{thms notE} THEN' TRY' (assume_tac ctxt))
-    ))
-
-
+  SMT_Replay_Methods.prove ctxt t (fn _ => (
+    eqsubst_all ctxt @{thms alethe_qnt_miniscope_ITE}
+    THEN' TRY' (resolve_tac ctxt @{thms refl})))
 
 end;

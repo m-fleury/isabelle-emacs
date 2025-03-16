@@ -517,6 +517,10 @@ lemmas alethe_prod_simplify =
    mult_1
    mult_1_right
 
+lemmas alethe_div_simplify =
+   divide_self
+   divide_numeral_1
+
 lemma alethe_comp_simplify1:
   \<open>(a :: 'a ::order) < a \<longleftrightarrow> False\<close>
   \<open>a \<le> a\<close>
