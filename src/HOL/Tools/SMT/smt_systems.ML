@@ -180,6 +180,7 @@ local
     "--proof-define-skolems",
     "--proof-prune",
     "--proof-merge",
+    "--print-cvc5-numbers",
     "--disable-print-success",
     "--disable-banner"] @
     Verit_Strategies.veriT_current_strategy (Context.Proof ctxt) @
