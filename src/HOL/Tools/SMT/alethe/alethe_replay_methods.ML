@@ -898,10 +898,9 @@ fun normalized_input ctxt prems t =
     val prems = (if all_assms then matched_assm () else prems)
   in
     (SMT_Replay_Methods.prove ctxt t (fn _ =>
-      Skip_Proof.cheat_tac ctxt(*
       Method.insert_tac ctxt prems
       THEN' TRY' (K (unfold_tac ctxt @{thms SMT.trigger_def}))
-      THEN' TRY' (partial_simplify_tac ctxt @{thms eq_commute})*)
+      THEN' TRY' (partial_simplify_tac ctxt @{thms eq_commute})
     ))
 end
 
