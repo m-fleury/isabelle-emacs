@@ -14,6 +14,19 @@ lemma [rewrite_bool_double_not_elim]:
   shows "NO_MATCH cvc_a (undefined t) \<Longrightarrow> (\<not> \<not> t) = t"
   by auto
 
+named_theorems rewrite_bool_not_true \<open>automatically_generated\<close>
+
+lemma [rewrite_bool_not_true]:
+  fixes t::"bool"
+  shows "NO_MATCH cvc_a (undefined t) \<Longrightarrow> (t = False) \<Longrightarrow>  (\<not>  t) = True"
+  by auto
+
+named_theorems rewrite_bool_not_false \<open>automatically_generated\<close>
+
+lemma [rewrite_bool_not_false]:
+  fixes t::"bool"
+  shows "NO_MATCH cvc_a (undefined t) \<Longrightarrow> (t = True) \<Longrightarrow>  (\<not>  t) = False"
+  by auto
 
 named_theorems rewrite_bool_eq_true \<open>automatically_generated\<close>
 
@@ -79,24 +92,19 @@ lemma [rewrite_bool_impl_elim]:
   by auto
 
 
+named_theorems rewrite_bool_dual_impl_eq \<open>automatically_generated\<close>
+
+lemma [rewrite_bool_dual_impl_eq]:
+  fixes t::"bool" and s::"bool"
+  shows "NO_MATCH cvc_a (undefined t s) \<Longrightarrow> ((t \<longrightarrow> s) \<and> (s \<longrightarrow> t)) = (t = s)"
+  by auto
+
+
 named_theorems rewrite_bool_or_true \<open>automatically_generated\<close>
 
 lemma [rewrite_bool_or_true]:
   fixes xs::"bool cvc_ListVar" and ys::"bool cvc_ListVar"
   shows "NO_MATCH cvc_a (undefined xs ys) \<Longrightarrow> cvc_list_left (\<or>) xs (cvc_list_right (\<or>) True ys) = True"
-  apply (cases ys)
-  apply (cases xs)
-  subgoal for yss xss 
-    by (simp add: cvc_list_left_transfer cvc_list_right_transfer_op cvc_list_both_transfer_op)
-  done
-
-
-named_theorems rewrite_bool_or_false \<open>automatically_generated\<close>
-
-lemma [rewrite_bool_or_false]:
-  fixes xs::"bool cvc_ListVar" and ys::"bool cvc_ListVar"
-  shows "NO_MATCH cvc_a (undefined xs ys) \<Longrightarrow> cvc_list_left (\<or>) xs (cvc_list_right (\<or>) False ys) =
-   cvc_list_both (\<or>) False xs ys"
   apply (cases ys)
   apply (cases xs)
   subgoal for yss xss 
@@ -123,41 +131,6 @@ lemma [rewrite_bool_or_flatten]:
     apply (induction xss)
     apply simp_all
     by (simp_all add: bool_or_flatten_lemma)
-  done
-
-
-named_theorems rewrite_bool_or_dup \<open>automatically_generated\<close>
-
-lemma [rewrite_bool_or_dup]:
-  fixes xs::"bool cvc_ListVar" and b::"bool" and ys::"bool cvc_ListVar" and zs::"bool cvc_ListVar"
-  shows "NO_MATCH cvc_a (undefined xs b ys zs) \<Longrightarrow> cvc_list_left (\<or>) xs
-    (b \<or> cvc_list_left (\<or>) ys (cvc_list_right (\<or>) b zs)) =
-   cvc_list_left (\<or>) xs (b \<or> cvc_list_both (\<or>) False ys zs)"
-  apply (cases zs)
-  apply (cases ys)
-  apply (cases xs)
-  subgoal for zss yss xss 
-    apply (simp add: cvc_list_left_transfer cvc_list_right_transfer_op cvc_list_both_transfer_op)
-    apply (induction zss)
-    apply simp_all
-    apply (induction yss)
-    apply simp_all
-    apply (induction xss)
-    apply simp_all
-    by (simp_all add: bool_or_dup_lemma)
-  done
-
-
-named_theorems rewrite_bool_and_true \<open>automatically_generated\<close>
-
-lemma [rewrite_bool_and_true]:
-  fixes xs::"bool cvc_ListVar" and ys::"bool cvc_ListVar"
-  shows "NO_MATCH cvc_a (undefined xs ys) \<Longrightarrow> cvc_list_left (\<and>) xs (cvc_list_right (\<and>) True ys) =
-   cvc_list_both (\<and>) True xs ys"
-  apply (cases ys)
-  apply (cases xs)
-  subgoal for yss xss 
-    by (simp add: cvc_list_left_transfer cvc_list_right_transfer_op cvc_list_both_transfer_op)
   done
 
 
@@ -195,28 +168,6 @@ lemma [rewrite_bool_and_flatten]:
   done
 
 
-named_theorems rewrite_bool_and_dup \<open>automatically_generated\<close>
-
-lemma [rewrite_bool_and_dup]:
-  fixes xs::"bool cvc_ListVar" and b::"bool" and ys::"bool cvc_ListVar" and zs::"bool cvc_ListVar"
-  shows "NO_MATCH cvc_a (undefined xs b ys zs) \<Longrightarrow> cvc_list_left (\<and>) xs
-    (b \<and> cvc_list_left (\<and>) ys (cvc_list_right (\<and>) b zs)) =
-   cvc_list_left (\<and>) xs (b \<and> cvc_list_both (\<and>) True ys zs)"
-  apply (cases zs)
-  apply (cases ys)
-  apply (cases xs)
-  subgoal for zss yss xss 
-    apply (simp add: cvc_list_left_transfer cvc_list_right_transfer_op cvc_list_both_transfer_op)
-    apply (induction zss)
-    apply simp_all
-    apply (induction yss)
-    apply simp_all
-    apply (induction xss)
-    apply simp_all
-    by (simp_all add: bool_and_dup_lemma)
-  done
-
-
 named_theorems rewrite_bool_and_conf \<open>automatically_generated\<close>
 
 lemma [rewrite_bool_and_conf]:
@@ -240,6 +191,29 @@ lemma [rewrite_bool_and_conf]:
   done
 
 
+named_theorems rewrite_bool_and_conf2 \<open>automatically_generated\<close>
+
+lemma [rewrite_bool_and_conf2]:
+  fixes xs::"bool cvc_ListVar" and w::"bool" and ys::"bool cvc_ListVar" and zs::"bool cvc_ListVar"
+  shows "NO_MATCH cvc_a (undefined xs w ys zs) \<Longrightarrow> cvc_list_left (\<and>) xs
+    ((\<not> w) \<and>
+     cvc_list_left (\<and>) ys (cvc_list_right (\<and>) w zs)) =
+   False"
+  apply (cases zs)
+  apply (cases ys)
+  apply (cases xs)
+  subgoal for zss yss xss 
+    apply (simp add: cvc_list_left_transfer cvc_list_right_transfer_op cvc_list_both_transfer_op)
+    apply (induction zss)
+    apply simp_all
+    apply (induction yss)
+    apply simp_all
+    apply (induction xss)
+    apply simp_all
+      apply (simp_all add: bool_and_conf2_lemma)
+    by force
+  done
+
 named_theorems rewrite_bool_or_taut \<open>automatically_generated\<close>
 
 lemma [rewrite_bool_or_taut]:
@@ -262,6 +236,20 @@ lemma [rewrite_bool_or_taut]:
     by (simp_all add: bool_or_taut_lemma)
   done
 
+named_theorems rewrite_bool_or_taut2 \<open>automatically_generated\<close>
+
+lemma [rewrite_bool_or_taut2]:
+  fixes xs::"bool cvc_ListVar" and w::"bool" and ys::"bool cvc_ListVar" and zs::"bool cvc_ListVar"
+  shows "NO_MATCH cvc_a (undefined xs w ys zs) \<Longrightarrow> cvc_list_left (\<or>) xs
+    ((\<not> w) \<or>
+     cvc_list_left (\<or>) ys (cvc_list_right (\<or>) w zs)) =
+   True"
+  apply (cases zs)
+  apply (cases ys)
+  apply (cases xs)
+  subgoal for zss yss xss 
+    by (simp add: cvc_list_left_transfer cvc_list_right_transfer_op cvc_list_both_transfer_op)
+  done
 named_theorems rewrite_bool_or_de_morgan \<open>automatically_generated\<close>
 
 lemma [rewrite_bool_or_de_morgan]:
@@ -288,6 +276,7 @@ lemma [rewrite_bool_and_de_morgan]:
   apply simp ?
   done
 
+
 named_theorems rewrite_bool_or_and_distrib \<open>automatically_generated\<close>
 
 lemma [rewrite_bool_or_and_distrib]:
@@ -301,6 +290,7 @@ lemma [rewrite_bool_or_and_distrib]:
     apply (simp add: cvc_list_left_transfer cvc_list_right_transfer_op cvc_list_both_transfer_op)
     by (simp_all add: bool_or_and_distrib_lemma)
   done
+
 
 named_theorems rewrite_bool_implies_or_distrib \<open>automatically_generated\<close>
 
@@ -367,6 +357,8 @@ lemma [rewrite_bool_not_xor_elim]:
   apply simp ?
   done
 
+
+
 named_theorems rewrite_bool_not_eq_elim1 \<open>automatically_generated\<close>
 
 lemma [rewrite_bool_not_eq_elim1]:
@@ -425,6 +417,7 @@ lemma [rewrite_ite_else_true]:
   by auto
 
 
+
 named_theorems rewrite_ite_then_lookahead_self \<open>automatically_generated\<close>
 
 lemma [rewrite_ite_then_lookahead_self]:
@@ -439,6 +432,120 @@ lemma [rewrite_ite_else_lookahead_self]:
   fixes c::"bool" and x::"bool"
   shows "NO_MATCH cvc_a (undefined c x) \<Longrightarrow> (if c then x else c) = (if c then x else False)"
   by auto
+
+
+
+named_theorems rewrite_ite_then_lookahead_not_self \<open>automatically_generated\<close>
+
+lemma [rewrite_ite_then_lookahead_not_self]:
+  fixes c::"bool" and x::"bool"
+  shows "NO_MATCH cvc_a (undefined c x) \<Longrightarrow> (if c then \<not>c else x) = (if c then False else x)"
+  by auto
+
+
+named_theorems rewrite_ite_else_lookahead_not_self \<open>automatically_generated\<close>
+
+lemma [rewrite_ite_else_lookahead_not_self]:
+  fixes c::"bool" and x::"bool"
+  shows "NO_MATCH cvc_a (undefined c x) \<Longrightarrow> (if c then x else \<not>c) = (if c then x else True)"
+  by auto
+
+named_theorems rewrite_ite_expand \<open>automatically_generated\<close>
+
+lemma [rewrite_ite_expand]:
+  fixes c::"bool" and x::"bool" and y::"bool"
+  shows "NO_MATCH cvc_a (undefined c x y) \<Longrightarrow> (if c then x else y) = ((\<not>c \<or> x) \<and> (c \<or> y))"
+  by auto
+
+named_theorems rewrite_bool_not_ite_elim \<open>automatically_generated\<close>
+
+lemma [rewrite_bool_not_ite_elim]:
+  fixes c::"bool" and x::"bool" and y::"bool"
+  shows "NO_MATCH cvc_a (undefined c x y) \<Longrightarrow> \<not>(if c then x else y) = (if c then \<not>x else \<not>y)"
+  by auto
+
+
+
+
+
+
+
+
+
+
+
+(*Legacy rules*)
+named_theorems rewrite_bool_or_false \<open>automatically_generated\<close>
+
+lemma [rewrite_bool_or_false]:
+  fixes xs::"bool cvc_ListVar" and ys::"bool cvc_ListVar"
+  shows "NO_MATCH cvc_a (undefined xs ys) \<Longrightarrow> cvc_list_left (\<or>) xs (cvc_list_right (\<or>) False ys) =
+   cvc_list_both (\<or>) False xs ys"
+  apply (cases ys)
+  apply (cases xs)
+  subgoal for yss xss 
+    by (simp add: cvc_list_left_transfer cvc_list_right_transfer_op cvc_list_both_transfer_op)
+  done
+
+named_theorems rewrite_bool_or_dup \<open>automatically_generated\<close>
+
+lemma [rewrite_bool_or_dup]:
+  fixes xs::"bool cvc_ListVar" and b::"bool" and ys::"bool cvc_ListVar" and zs::"bool cvc_ListVar"
+  shows "NO_MATCH cvc_a (undefined xs b ys zs) \<Longrightarrow> cvc_list_left (\<or>) xs
+    (b \<or> cvc_list_left (\<or>) ys (cvc_list_right (\<or>) b zs)) =
+   cvc_list_left (\<or>) xs (b \<or> cvc_list_both (\<or>) False ys zs)"
+  apply (cases zs)
+  apply (cases ys)
+  apply (cases xs)
+  subgoal for zss yss xss 
+    apply (simp add: cvc_list_left_transfer cvc_list_right_transfer_op cvc_list_both_transfer_op)
+    apply (induction zss)
+    apply simp_all
+    apply (induction yss)
+    apply simp_all
+    apply (induction xss)
+    apply simp_all
+    by (simp_all add: bool_or_dup_lemma)
+  done
+
+
+named_theorems rewrite_bool_and_true \<open>automatically_generated\<close>
+
+lemma [rewrite_bool_and_true]:
+  fixes xs::"bool cvc_ListVar" and ys::"bool cvc_ListVar"
+  shows "NO_MATCH cvc_a (undefined xs ys) \<Longrightarrow> cvc_list_left (\<and>) xs (cvc_list_right (\<and>) True ys) =
+   cvc_list_both (\<and>) True xs ys"
+  apply (cases ys)
+  apply (cases xs)
+  subgoal for yss xss 
+    by (simp add: cvc_list_left_transfer cvc_list_right_transfer_op cvc_list_both_transfer_op)
+  done
+
+
+
+
+named_theorems rewrite_bool_and_dup \<open>automatically_generated\<close>
+
+lemma [rewrite_bool_and_dup]:
+  fixes xs::"bool cvc_ListVar" and b::"bool" and ys::"bool cvc_ListVar" and zs::"bool cvc_ListVar"
+  shows "NO_MATCH cvc_a (undefined xs b ys zs) \<Longrightarrow> cvc_list_left (\<and>) xs
+    (b \<and> cvc_list_left (\<and>) ys (cvc_list_right (\<and>) b zs)) =
+   cvc_list_left (\<and>) xs (b \<and> cvc_list_both (\<and>) True ys zs)"
+  apply (cases zs)
+  apply (cases ys)
+  apply (cases xs)
+  subgoal for zss yss xss 
+    apply (simp add: cvc_list_left_transfer cvc_list_right_transfer_op cvc_list_both_transfer_op)
+    apply (induction zss)
+    apply simp_all
+    apply (induction yss)
+    apply simp_all
+    apply (induction xss)
+    apply simp_all
+    by (simp_all add: bool_and_dup_lemma)
+  done
+
+
 
 
 named_theorems rewrite_bool_commutative_and \<open>automatically_generated\<close>
@@ -463,5 +570,7 @@ lemma [rewrite_bool_commutative_xor]:
   fixes x::"bool" and y::"bool"
   shows "NO_MATCH cvc_a (undefined x y) \<Longrightarrow> (x \<noteq> y) = (y \<noteq> x)"
   by auto
+
+
 
 end

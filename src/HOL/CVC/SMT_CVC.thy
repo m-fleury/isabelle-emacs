@@ -137,30 +137,42 @@ cvc5_rare "Arith_Rewrites.rewrite_arith_mult_flatten"
 cvc5_rare "Arith_Rewrites.rewrite_arith_mult_dist"
 cvc5_rare "Arith_Rewrites.rewrite_arith_plus_cancel1"
 cvc5_rare "Arith_Rewrites.rewrite_arith_plus_cancel2"
+
 cvc5_rare "Boolean_Rewrites.rewrite_bool_double_not_elim"
+cvc5_rare "Boolean_Rewrites.rewrite_bool_not_true"
+cvc5_rare "Boolean_Rewrites.rewrite_bool_not_false"
+
 cvc5_rare "Boolean_Rewrites.rewrite_bool_eq_true"
 cvc5_rare "Boolean_Rewrites.rewrite_bool_eq_false"
 cvc5_rare "Boolean_Rewrites.rewrite_bool_eq_nrefl"
+
 cvc5_rare "Boolean_Rewrites.rewrite_bool_impl_false1"
 cvc5_rare "Boolean_Rewrites.rewrite_bool_impl_false2"
 cvc5_rare "Boolean_Rewrites.rewrite_bool_impl_true1"
 cvc5_rare "Boolean_Rewrites.rewrite_bool_impl_true2"
 cvc5_rare "Boolean_Rewrites.rewrite_bool_impl_elim"
+
+cvc5_rare "Boolean_Rewrites.rewrite_bool_dual_impl_eq"
+
 cvc5_rare "Boolean_Rewrites.rewrite_bool_or_true"
-cvc5_rare "Boolean_Rewrites.rewrite_bool_or_false"
 cvc5_rare "Boolean_Rewrites.rewrite_bool_or_flatten"
-cvc5_rare "Boolean_Rewrites.rewrite_bool_or_dup"
-cvc5_rare "Boolean_Rewrites.rewrite_bool_and_true"
+
 cvc5_rare "Boolean_Rewrites.rewrite_bool_and_false"
 cvc5_rare "Boolean_Rewrites.rewrite_bool_and_flatten"
-cvc5_rare "Boolean_Rewrites.rewrite_bool_and_dup"
+
 cvc5_rare "Boolean_Rewrites.rewrite_bool_and_conf"
+cvc5_rare "Boolean_Rewrites.rewrite_bool_and_conf2"
 cvc5_rare "Boolean_Rewrites.rewrite_bool_or_taut"
+cvc5_rare "Boolean_Rewrites.rewrite_bool_or_taut2"
+
 cvc5_rare "Boolean_Rewrites.rewrite_bool_or_de_morgan"
 cvc5_rare "Boolean_Rewrites.rewrite_bool_implies_de_morgan"
 cvc5_rare "Boolean_Rewrites.rewrite_bool_and_de_morgan"
+
 cvc5_rare "Boolean_Rewrites.rewrite_bool_or_and_distrib"
+
 cvc5_rare "Boolean_Rewrites.rewrite_bool_implies_or_distrib"
+
 cvc5_rare "Boolean_Rewrites.rewrite_bool_xor_refl"
 cvc5_rare "Boolean_Rewrites.rewrite_bool_xor_nrefl"
 cvc5_rare "Boolean_Rewrites.rewrite_bool_xor_false"
@@ -168,18 +180,37 @@ cvc5_rare "Boolean_Rewrites.rewrite_bool_xor_true"
 cvc5_rare "Boolean_Rewrites.rewrite_bool_xor_comm"
 cvc5_rare "Boolean_Rewrites.rewrite_bool_xor_elim"
 cvc5_rare "Boolean_Rewrites.rewrite_bool_not_xor_elim"
+
 cvc5_rare "Boolean_Rewrites.rewrite_bool_not_eq_elim1"
 cvc5_rare "Boolean_Rewrites.rewrite_bool_not_eq_elim2"
+
 cvc5_rare "Boolean_Rewrites.rewrite_ite_neg_branch"
+
 cvc5_rare "Boolean_Rewrites.rewrite_ite_then_true"
 cvc5_rare "Boolean_Rewrites.rewrite_ite_else_false"
 cvc5_rare "Boolean_Rewrites.rewrite_ite_then_false"
 cvc5_rare "Boolean_Rewrites.rewrite_ite_else_true"
+
 cvc5_rare "Boolean_Rewrites.rewrite_ite_then_lookahead_self"
 cvc5_rare "Boolean_Rewrites.rewrite_ite_else_lookahead_self"
+
+cvc5_rare "Boolean_Rewrites.rewrite_ite_then_lookahead_not_self"
+cvc5_rare "Boolean_Rewrites.rewrite_ite_else_lookahead_not_self"
+
+cvc5_rare "Boolean_Rewrites.rewrite_ite_expand"
+
+cvc5_rare "Boolean_Rewrites.rewrite_bool_not_ite_elim"
+
+(*legacy*)
 cvc5_rare "Boolean_Rewrites.rewrite_bool_commutative_and"
 cvc5_rare "Boolean_Rewrites.rewrite_bool_commutative_or"
 cvc5_rare "Boolean_Rewrites.rewrite_bool_commutative_xor"
+cvc5_rare "Boolean_Rewrites.rewrite_bool_not_ite_elim"
+cvc5_rare "Boolean_Rewrites.rewrite_bool_or_false"
+cvc5_rare "Boolean_Rewrites.rewrite_bool_or_dup"
+cvc5_rare "Boolean_Rewrites.rewrite_bool_and_true"
+cvc5_rare "Boolean_Rewrites.rewrite_bool_and_dup"
+
 cvc5_rare "Builtin_Rewrites.rewrite_ite_true_cond"
 cvc5_rare "Builtin_Rewrites.rewrite_ite_false_cond"
 cvc5_rare "Builtin_Rewrites.rewrite_ite_not_cond"
@@ -188,8 +219,10 @@ cvc5_rare "Builtin_Rewrites.rewrite_ite_then_lookahead"
 cvc5_rare "Builtin_Rewrites.rewrite_ite_else_lookahead"
 cvc5_rare "Builtin_Rewrites.rewrite_ite_then_neg_lookahead"
 cvc5_rare "Builtin_Rewrites.rewrite_ite_else_neg_lookahead"
+
 cvc5_rare "UF_Rewrites.rewrite_eq_refl"
 cvc5_rare "UF_Rewrites.rewrite_eq_symm"
+cvc5_rare "UF_Rewrites.rewrite_eq_ite_lift"
 cvc5_rare "UF_Rewrites.rewrite_distinct_binary_elim"
 
 end

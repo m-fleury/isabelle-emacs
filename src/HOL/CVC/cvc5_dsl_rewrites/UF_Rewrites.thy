@@ -22,6 +22,14 @@ lemma [rewrite_eq_symm]:
   by auto
 
 
+named_theorems rewrite_eq_ite_lift \<open>automatically_generated\<close>
+
+lemma [rewrite_eq_ite_lift]:
+  fixes C::bool and t::"'a::type" and s::"'a::type"  and r::"'a::type"
+  shows "NO_MATCH cvc_a (undefined C t s r) \<Longrightarrow> ((if C then t else s) = r) = (if C then (t = r) else (s = r))"
+  by auto
+
+
 named_theorems rewrite_distinct_binary_elim \<open>automatically_generated\<close>
 
 lemma [rewrite_distinct_binary_elim]:

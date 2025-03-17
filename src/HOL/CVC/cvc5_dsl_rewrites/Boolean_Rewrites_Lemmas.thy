@@ -16,6 +16,12 @@ lemma bool_and_conf_lemma:
   apply (metis (mono_tags, opaque_lifting) foldr_and_neutral)
   by (metis(full_types) foldr_and_neutral)
 
+lemma bool_and_conf2_lemma:
+ "\<not> foldr (\<and>) xss ((\<not> w) \<and> aa \<and> foldr (\<and>) yss w)"
+ "\<not> foldr (\<and>) xss ((\<not> w) \<and> foldr (\<and>) yss (w \<and> a \<and> foldr (\<and>) zss True))"
+  apply (metis (mono_tags, opaque_lifting) foldr_and_neutral)
+  by (metis(full_types) foldr_and_neutral)
+
 lemma bool_and_dup_lemma:
   "(b \<and> a \<and> foldr (\<and>) yss b) = (b \<and> a \<and> foldr (\<and>) yss True)"
   "(a \<and> foldr (\<and>) xss (b \<and> aa \<and> foldr (\<and>) yss b)) = (a \<and> foldr (\<and>) xss (b \<and> aa \<and> foldr (\<and>) yss True))"
