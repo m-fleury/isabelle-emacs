@@ -48,8 +48,8 @@ sig
 
   (*tools*)
   val get_timeout: Proof.context -> Time.time option
-  val with_time_limit: Proof.context -> real Config.T -> ('a -> 'b) -> 'a -> 'b
-  val with_timeout: Proof.context -> ('a -> 'b) -> 'a -> 'b
+  val with_time_limit: Proof.context -> string -> real Config.T -> ('a -> 'b) -> 'a -> 'b
+  val with_timeout: Proof.context -> string -> ('a -> 'b) -> 'a -> 'b
 
   (*diagnostics*)
   val trace_msg: Proof.context -> ('a -> string) -> 'a -> unit
@@ -265,11 +265,11 @@ fun get_timeout ctxt =
   let val t = seconds (Config.get ctxt timeout);
   in if Timeout.ignored t then NONE else SOME (Timeout.scale_time t) end;
 
-fun with_time_limit ctxt timeout_config f x =
+fun with_time_limit ctxt error_msg timeout_config f x =
   Timeout.apply (seconds (Config.get ctxt timeout_config)) f x
-    handle Timeout.TIMEOUT _ => raise SMT_Failure.SMT (SMT_Failure.Time_Out "")
+    handle Timeout.TIMEOUT _ => raise SMT_Failure.SMT (SMT_Failure.Time_Out error_msg)
 
-fun with_timeout ctxt = with_time_limit ctxt timeout
+fun with_timeout ctxt error_msg = with_time_limit ctxt error_msg timeout
 
 
 (* certificates *)
