@@ -461,7 +461,7 @@ named_theorems rewrite_bool_not_ite_elim \<open>automatically_generated\<close>
 
 lemma [rewrite_bool_not_ite_elim]:
   fixes c::"bool" and x::"bool" and y::"bool"
-  shows "NO_MATCH cvc_a (undefined c x y) \<Longrightarrow> \<not>(if c then x else y) = (if c then \<not>x else \<not>y)"
+  shows "NO_MATCH cvc_a (undefined c x y) \<Longrightarrow> (\<not>(if c then x else y)) = (if c then \<not>x else \<not>y)"
   by auto
 
 
