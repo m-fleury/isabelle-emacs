@@ -16,7 +16,7 @@ sig
 
   type solver_config =
     {name: string,
-     class: Proof.context -> SMT_Util.class,
+     class: Proof.context -> SMT_Util.class list,
      avail: unit -> bool,
      command: unit -> string list,
      options: Proof.context -> string list,
@@ -104,10 +104,11 @@ fun run_solver ctxt name cmd input =
     val _ = SMT_Config.trace_msg ctxt (pretty "Problem:" o split_lines) input
 
     val ({elapsed, ...}, result) =
-      Timing.timing (SMT_Config.with_timeout ctxt (run ctxt name cmd)) input
+      Timing.timing (SMT_Config.with_timeout ctxt "run_solver" (run ctxt name cmd)) input
     val res = Process_Result.out_lines result
     val err = Process_Result.err_lines result
     val return_code = Process_Result.rc result
+
     val _ = SMT_Config.trace_msg ctxt (pretty "Solver:") err
 
     val output = drop_suffix (equal "") res
@@ -123,7 +124,7 @@ fun trace_assms ctxt =
   SMT_Config.trace_msg ctxt (Pretty.string_of o
     Pretty.big_list "Assertions:" o map (Thm.pretty_thm ctxt o snd))
 
-fun trace_replay_data ({context = ctxt, typs, terms, ...} : SMT_Translate.replay_data) =
+fun trace_replay_data ({ctxt = ctxt, typs, terms, ...} : SMT_Translate.replay_data) =
   let
     fun pretty_eq n p = Pretty.block [Pretty.str n, Pretty.str " = ", p]
     fun p_typ (n, T) = pretty_eq n (Syntax.pretty_typ ctxt T)
@@ -142,7 +143,7 @@ fun invoke memoize_fun_call name command cmd_options smt_options ithms ctxt =
     val options = cmd_options @ SMT_Config.solver_options_of ctxt
     val comments = [implode_space options]
 
-    val (input, replay_data as {context = ctxt', ...}) =
+    val (input, replay_data as {ctxt = ctxt', ...}) =
       ithms
       |> tap (trace_assms ctxt)
       |> SMT_Translate.translate ctxt name smt_options comments
@@ -171,7 +172,7 @@ type parsed_proof =
 
 type solver_config =
   {name: string,
-   class: Proof.context -> SMT_Util.class,
+   class: Proof.context -> SMT_Util.class list,
    avail: unit -> bool,
    command: unit -> string list,
    options: Proof.context -> string list,
@@ -221,11 +222,11 @@ local
         (case parse_proof0 of
           SOME pp => pp outer_ctxt replay_data xfacts prems concl lines
         | NONE => {outcome = NONE, fact_ids = NONE, atp_proof = K []})
-    | (Time_Out, _) => raise SMT_Failure.SMT (SMT_Failure.Time_Out)
+    | (Time_Out, _) => raise SMT_Failure.SMT (SMT_Failure.Time_Out "parsing")
     | (result, _) => raise SMT_Failure.SMT (SMT_Failure.Counterexample (result = Sat)))
 
   fun replay outcome replay0 oracle outer_ctxt
-      (replay_data as {context = ctxt, ...} : SMT_Translate.replay_data) output =
+      (replay_data as {ctxt = ctxt, ...} : SMT_Translate.replay_data) output =
     (case outcome output of
       (Unsat, lines) =>
         if Config.get ctxt SMT_Config.oracle then
@@ -235,7 +236,7 @@ local
             SOME replay => replay outer_ctxt replay_data lines
           | NONE => error "No proof reconstruction for solver -- \
             \declare [[smt_oracle]] to allow oracle")
-    | (Time_Out, _) => raise SMT_Failure.SMT (SMT_Failure.Time_Out)
+    | (Time_Out, _) => raise SMT_Failure.SMT (SMT_Failure.Time_Out "replay")
     | (result, _) => raise SMT_Failure.SMT (SMT_Failure.Counterexample (result = Sat)))
 
   val cfalse = Thm.cterm_of \<^context> \<^prop>\<open>False\<close>
@@ -317,9 +318,9 @@ local
     handle
       SMT_Failure.SMT (fail as SMT_Failure.Counterexample _) =>
         (SMT_Config.verbose_msg ctxt (str_of ctxt) fail; NONE)
-    | SMT_Failure.SMT (fail as SMT_Failure.Time_Out) =>
+    | SMT_Failure.SMT (fail as (SMT_Failure.Time_Out s)) =>
         (SMT_Config.verbose_msg ctxt (K ("SMT: Solver " ^ quote (SMT_Config.solver_of ctxt) ^ ": " ^
-          SMT_Failure.string_of_failure fail ^ " (setting the " ^
+          SMT_Failure.string_of_failure fail ^ ": " ^ s ^ " (setting the " ^
           "configuration option " ^ quote (Config.name_of SMT_Config.timeout) ^ " might help)")) ();
          NONE)
     | SMT_Failure.SMT fail => error (str_of ctxt fail)

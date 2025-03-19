@@ -1,0 +1,81 @@
+theory SMT_CVC_Extension \<comment> \<open>More Setup for CVC that should be in HOL eventually\<close>
+  imports SMT_CVC "Set_Rewrites" "Array_Rewrites" (*String Rewrites*)
+begin
+
+
+(*Theories currently only supported by cvc5*)
+
+ML_file \<open>ML/SMT_set.ML\<close>
+ML_file \<open>ML/SMT_string.ML\<close>
+ML_file \<open>ML/SMT_array.ML\<close>
+
+
+cvc5_rare "Array_Rewrites.rewrite_array_read_over_write"
+cvc5_rare "Array_Rewrites.rewrite_array_read_over_write2"
+cvc5_rare "Array_Rewrites.rewrite_array_store_overwrite"
+cvc5_rare "Array_Rewrites.rewrite_array_store_self"
+cvc5_rare "Set_Rewrites.rewrite_sets_member_singleton"
+cvc5_rare "Set_Rewrites.rewrite_sets_subset_elim"
+cvc5_rare "Set_Rewrites.rewrite_sets_union_comm"
+cvc5_rare "Set_Rewrites.rewrite_sets_inter_comm"
+cvc5_rare "Set_Rewrites.rewrite_sets_inter_member"
+cvc5_rare "Set_Rewrites.rewrite_sets_minus_member"
+cvc5_rare "Set_Rewrites.rewrite_sets_union_member"
+(*cvc5_rare "String_Rewrites.rewrite_str_eq_ctn_false"
+cvc5_rare "String_Rewrites.rewrite_str_concat_flatten"
+cvc5_rare "String_Rewrites.rewrite_str_concat_flatten_eq"
+cvc5_rare "String_Rewrites.rewrite_str_concat_flatten_eq_rev"
+cvc5_rare "String_Rewrites.rewrite_str_substr_empty_str"
+cvc5_rare "String_Rewrites.rewrite_str_substr_empty_range"
+cvc5_rare "String_Rewrites.rewrite_str_substr_empty_start"
+cvc5_rare "String_Rewrites.rewrite_str_substr_empty_start_neg"
+cvc5_rare "String_Rewrites.rewrite_str_substr_eq_empty"
+cvc5_rare "String_Rewrites.rewrite_str_len_replace_inv"
+cvc5_rare "String_Rewrites.rewrite_str_len_update_inv"
+cvc5_rare "String_Rewrites.rewrite_str_len_substr_in_range"
+cvc5_rare "String_Rewrites.rewrite_str_len_substr_ub1"
+cvc5_rare "String_Rewrites.rewrite_str_len_substr_ub2"
+cvc5_rare "String_Rewrites.rewrite_re_in_empty"
+cvc5_rare "String_Rewrites.rewrite_re_in_sigma"
+cvc5_rare "String_Rewrites.rewrite_re_in_sigma_star"
+cvc5_rare "String_Rewrites.rewrite_re_in_cstring"
+cvc5_rare "String_Rewrites.rewrite_re_in_comp"
+cvc5_rare "String_Rewrites.rewrite_str_concat_clash"
+cvc5_rare "String_Rewrites.rewrite_str_concat_clash_rev"
+cvc5_rare "String_Rewrites.rewrite_str_concat_clash2"
+cvc5_rare "String_Rewrites.rewrite_str_concat_clash2_rev"
+cvc5_rare "String_Rewrites.rewrite_str_concat_unify"
+cvc5_rare "String_Rewrites.rewrite_str_concat_unify_rev"
+cvc5_rare "String_Rewrites.rewrite_str_concat_clash_char"
+cvc5_rare "String_Rewrites.rewrite_str_concat_clash_char_rev"
+cvc5_rare "String_Rewrites.rewrite_str_prefixof_elim"
+cvc5_rare "String_Rewrites.rewrite_str_suffixof_elim"
+cvc5_rare "String_Rewrites.rewrite_str_prefixof_one"
+cvc5_rare "String_Rewrites.rewrite_str_suffixof_one"
+cvc5_rare "String_Rewrites.rewrite_str_substr_combine1"
+cvc5_rare "String_Rewrites.rewrite_str_substr_combine2"
+cvc5_rare "String_Rewrites.rewrite_str_substr_concat1"
+cvc5_rare "String_Rewrites.rewrite_str_substr_full"
+cvc5_rare "String_Rewrites.rewrite_str_contains_refl"
+cvc5_rare "String_Rewrites.rewrite_str_contains_concat_find"
+cvc5_rare "String_Rewrites.rewrite_str_contains_split_char"
+cvc5_rare "String_Rewrites.rewrite_str_contains_leq_len_eq"
+cvc5_rare "String_Rewrites.rewrite_str_concat_emp"
+cvc5_rare "String_Rewrites.rewrite_str_at_elim"
+cvc5_rare "String_Rewrites.rewrite_re_all_elim"
+cvc5_rare "String_Rewrites.rewrite_re_opt_elim"
+cvc5_rare "String_Rewrites.rewrite_re_concat_emp"
+cvc5_rare "String_Rewrites.rewrite_re_concat_none"
+cvc5_rare "String_Rewrites.rewrite_re_concat_flatten"
+cvc5_rare "String_Rewrites.rewrite_re_concat_star_swap"
+cvc5_rare "String_Rewrites.rewrite_re_union_all"
+cvc5_rare "String_Rewrites.rewrite_re_union_flatten"
+cvc5_rare "String_Rewrites.rewrite_re_union_dup"
+cvc5_rare "String_Rewrites.rewrite_re_inter_all"
+cvc5_rare "String_Rewrites.rewrite_re_inter_none"
+cvc5_rare "String_Rewrites.rewrite_re_inter_flatten"
+cvc5_rare "String_Rewrites.rewrite_re_inter_dup"
+cvc5_rare "String_Rewrites.rewrite_str_len_concat_rec"
+cvc5_rare "String_Rewrites.rewrite_str_in_re_range_elim"*)
+end
+

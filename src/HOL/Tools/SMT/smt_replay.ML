@@ -154,7 +154,7 @@ local
     simpset_of (put_simpset HOL_ss \<^context>
       addsimps @{thms field_simps times_divide_eq_right times_divide_eq_left arith_special
         arith_simps rel_simps array_rules z3div_def z3mod_def NO_MATCH_def}
-      |> fold Simplifier.add_proc [\<^simproc>\<open>numeral_divmod\<close>, fast_int_arith_simproc,
+      addsimprocs [\<^simproc>\<open>numeral_divmod\<close>, fast_int_arith_simproc,
         antisym_le_simproc, antisym_less_simproc])
 
   structure Simpset = Generic_Data

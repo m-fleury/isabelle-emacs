@@ -87,4 +87,8 @@ by (metis Rats_of_rat rat_to_real_def real_is_rat_def)
 lemma inj_of_rat [intro, simp]: "inj (of_rat::rat\<Rightarrow>real)"
 by (metis injI of_rat_eq_iff)
 
+
+lemma "is_int ((3+4)::rat)"
+  apply simp
+lemma "rat_is_int (3)"
 end

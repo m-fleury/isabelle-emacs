@@ -9,10 +9,12 @@ signature SMTLIB_INTERFACE =
 sig
   val smtlibC: SMT_Util.class
   val hosmtlibC: SMT_Util.class
-  val bvsmlibC: SMT_Util.class
-  val realsmlibC: SMT_Util.class
-  val add_logic: int * (string -> term list -> string option) -> Context.generic -> Context.generic
-  val del_logic: int * (string -> term list -> string option) -> Context.generic -> Context.generic
+  val bvsmtlibC: SMT_Util.class
+  val setsmtlibC: SMT_Util.class
+  val realsmtlibC: SMT_Util.class
+  val add_logic: int * (string -> term list -> Proof.context -> SMT_Translate.smtlib_logic option) -> Context.generic
+    -> Context.generic
+  val del_logic: int * (string -> term list -> SMT_Translate.smtlib_logic option) -> Context.generic -> Context.generic
   val translate_config: SMT_Util.order -> Proof.context -> SMT_Translate.config
   val assert_name_of_role_and_index: SMT_Util.role -> int -> string
   val role_and_index_of_assert_name: string -> SMT_Util.role * int
@@ -24,9 +26,10 @@ struct
 val hoC = ["ho"]
 
 val smtlibC = ["smtlib"]   (* SMT-LIB 2 *)
-val hosmtlibC = smtlibC @ hoC   (* possibly SMT-LIB 3 *)
-val bvsmlibC = smtlibC @ ["BV"] (* if BV are supported *)
-val realsmlibC = ["Real"]
+val hosmtlibC = hoC   (* possibly SMT-LIB 3 *)
+val bvsmtlibC = ["BV"] (* if BV are supported *)
+val realsmtlibC = ["Real"]
+val setsmtlibC = ["Set"] (* if non SMT-LIB theory of sets is supported*)
 
 (* builtins *)
 
@@ -74,9 +77,10 @@ end
 
 fun fst_int_ord ((i1, _), (i2, _)) = int_ord (i1, i2)
 
+
 structure Logics = Generic_Data
 (
-  type T = (int * (string -> term list -> string option)) list
+  type T = (int * (string -> term list -> Proof.context -> SMT_Translate.smtlib_logic option)) list
   val empty = []
   fun merge data = Ord_List.merge fst_int_ord data
 )
@@ -86,12 +90,10 @@ fun del_logic pf = Logics.map (Ord_List.remove fst_int_ord pf)
 
 fun choose_logic ctxt prover ts =
   let
-    fun choose [] = "AUFLIA"
-      | choose ((_, f) :: fs) = (case f prover ts of SOME s => s | NONE => choose fs)
+    fun choose [] = SMT_Translate.SL {fixedSizeBitVectors=false,real=true,set=false}
+      | choose ((_, f) :: fs) = (case f prover ts ctxt of SOME s => s | NONE => choose fs)
   in
-    (case choose (Logics.get (Context.Proof ctxt)) of
-      "" => "" (* for default Z3 logic, a subset of everything *)
-    | logic => "(set-logic " ^ logic ^ ")\n")
+    choose (Logics.get (Context.Proof ctxt))
   end
 
 

@@ -16,6 +16,10 @@ sig
   type extra_norm = Proof.context -> thm list * thm list -> thm list * thm list
   val add_extra_norm: SMT_Util.class * extra_norm -> Context.generic -> Context.generic
   val normalize: Proof.context -> (SMT_Util.role * thm) list -> ((int * SMT_Util.role) * thm) list
+  val add_normalization : string ->
+        bool Config.T * (Proof.context -> conv) * (thm list -> thm list * thm list) ->
+          Context.generic -> Context.generic
+
 end;
 
 structure SMT_Normalize: SMT_NORMALIZE =
@@ -38,11 +42,11 @@ local
     in Thm.instantiate (TVars.empty, Vars.make1 (dest_Var (Thm.term_of cv), ct)) thm end
 in
 
-fun instantiate_elim thm =
+fun instantiate_elim thm = (
   (case Thm.concl_of thm of
     \<^Const_>\<open>Trueprop for \<open>Var (_, \<^Type>\<open>bool\<close>)\<close>\<close> => inst Thm.dest_arg cfalse thm
   | Var _ => inst I cpfalse thm
-  | _ => thm)
+  | _ => thm))
 
 end
 
@@ -50,11 +54,12 @@ end
 (** normalize definitions **)
 
 fun norm_def thm =
+(
   (case Thm.prop_of thm of
-    \<^Const_>\<open>Trueprop for \<^Const>\<open>HOL.eq _ for _ \<open>Abs _\<close>\<close>\<close> => norm_def (thm RS @{thm fun_cong})
+    \<^Const_>\<open>Trueprop for \<^Const>\<open>HOL.eq _ for _ \<open>Abs _\<close>\<close>\<close> => norm_def ((thm RS @{thm fun_cong} ))
   | \<^Const_>\<open>Pure.eq _ for _ \<open>Abs _\<close>\<close> => norm_def (HOLogic.mk_obj_eq thm)
   | _ => thm)
-
+)
 
 (** atomization **)
 
@@ -392,16 +397,20 @@ local
     "\<forall>n::nat. nat (int n) = n"
     "\<forall>i::int. int (nat i) = (if 0 <= i then i else 0)"
     by simp_all}
-  val var = Term.dest_Var (Thm.term_of (funpow 3 Thm.dest_arg (Thm.cprop_of int_thm)))
+  val var = Term.dest_Var (Thm.term_of (funpow 3 Thm.dest_arg (Thm.cprop_of int_thm))) 
 in
 
 fun nat_as_int_conv ctxt = SMT_Util.if_exists_conv is_nat_const (nat_to_int_conv ctxt)
 
 fun add_int_of_nat_constraints thms =
   let val (q, cts) = fold (add_apps add_int_of_nat [] o Thm.cprop_of) thms (false, [])
+      (*val _ = @{print}("thms",thms)
+      val _ = @{print}("q",q)
+      val _ = @{print}("cts",cts)*)
+
   in
     if q then (thms, nat_int_thms)
-    else (thms, map (fn ct => Thm.instantiate (TVars.empty, Vars.make1 (var, ct)) int_thm) cts)
+    else (thms, map (fn ct => (Thm.instantiate (TVars.empty, Vars.make1 (var, ct)) int_thm)) cts)
   end
 
 val setup_nat_as_int =
@@ -444,24 +453,59 @@ end
 
 (** combined unfoldings and rewritings **)
 
+type extra_normalize = string * (bool Config.T * (Proof.context -> conv) * (thm list -> thm list * thm list))
+
+structure Extra_Normalize = Generic_Data
+(
+  type T = extra_normalize list
+  val empty = [("smt_nat_as_int", (SMT_Config.nat_as_int, nat_as_int_conv, add_int_of_nat_constraints))]
+  val extend = I
+  fun merge data = AList.merge (op =) (fn _ => true) data
+)
+
+fun get_unfold_conv ctxt =
+  let
+    val data : extra_normalize list = Extra_Normalize.get (Context.Proof ctxt)
+    fun extract_unfold ((_, (config, unf, _)) : extra_normalize) =
+       if Config.get ctxt config then unf ctxt else Conv.all_conv
+  in
+    fold (fn a => fn b => extract_unfold a then_conv b) data Conv.all_conv
+  end
+
 fun burrow_ids f ithms =
   let
     val (is, thms) = split_list ithms
     val (thms', extra_thms) = f thms
   in (is ~~ thms') @ map (pair (~1, SMT_Util.Axiom)) extra_thms end
 
+fun get_unfold_monomorph ctxt =
+  let
+    val data : extra_normalize list = Extra_Normalize.get (Context.Proof ctxt)
+    fun extract_unfold ((_, (config, _, mono)) : extra_normalize) =
+       if Config.get ctxt config then burrow_ids mono else fn x => x
+  in
+    fold (fn a => fn b => extract_unfold a #> b) data (fn x => x)
+  end
+
 fun unfold_conv ctxt =
   rewrite_case_bool_conv ctxt then_conv
   unfold_abs_min_max_conv ctxt then_conv
-  (if Config.get ctxt SMT_Config.nat_as_int then nat_as_int_conv ctxt
-   else Conv.all_conv) then_conv
+  (get_unfold_conv ctxt) then_conv
   Thm.beta_conversion true
 
 fun unfold_polymorph ctxt = map (apsnd (Conv.fconv_rule (unfold_conv ctxt)))
 fun unfold_monomorph ctxt =
   map (apsnd (Conv.fconv_rule (normalize_numerals_conv ctxt)))
-  #> Config.get ctxt SMT_Config.nat_as_int ? burrow_ids add_int_of_nat_constraints
+  #> get_unfold_monomorph ctxt
 
+fun add_normalization name stgy context =
+  let
+    val data = Extra_Normalize.get context
+  in
+    Extra_Normalize.map
+      (K (AList.update (op =) (name, stgy) data))
+      context
+  end
 
 (* overall normalization *)
 
@@ -479,7 +523,7 @@ fun add_extra_norm (cs, norm) = Extra_Norms.map (SMT_Util.dict_update (cs, norm)
 fun apply_extra_norms ctxt ithms =
   let
     val cs = SMT_Config.solver_class_of ctxt
-    val es = SMT_Util.dict_lookup (Extra_Norms.get (Context.Proof ctxt)) cs
+    val es = map (SMT_Util.dict_lookup (Extra_Norms.get (Context.Proof ctxt))) cs |> flat
   in burrow_ids (fold (fn e => e ctxt) es o rpair []) ithms end
 
 local
