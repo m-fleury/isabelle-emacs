@@ -413,6 +413,8 @@ fun abstract_for_code_eval ctxt u =
           abstract_sub t (abs t1 ##>> abs t2 #>> HOLogic.mk_disj)
       | abs (t as \<^Const_>\<open>conj\<close> $ t1 $ t2) =
           abstract_sub t (abs t1 ##>> abs t2 #>> HOLogic.mk_conj)
+      | abs (t as (x as Const ("Archimedean_Field.floor_ceiling_class.floor", _)) $ t1) =
+          abstract_sub t (abs t1 #>> curry (op $) x)
       | abs (t as (c as Const (\<^const_name>\<open>uminus_class.uminus\<close>, _)) $ t1) =
           abstract_sub t (abs t1 #>> (fn u => c $ u))
       | abs (t as (c as Const (\<^const_name>\<open>of_int\<close>, _)) $ t1) =
