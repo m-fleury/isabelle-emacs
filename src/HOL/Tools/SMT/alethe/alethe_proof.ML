@@ -618,9 +618,9 @@ fun postprocess_proof compress ctxt step cx =
                   fun mult10_2 (x:real) = if (Real.sign x) = 0 then 1.0 else 10.0 * (mult10_2 (Real.realMod (x * 10.0)))
                   val offset = mult10_2 num2
                  val res_num = (toInt  (  (offset) * num2)) + ((toInt offset) * num1)
-
+                 val gcd = Integer.gcd res_num (toInt offset)
          in
-                (res_num,toInt offset)
+                (res_num div gcd, toInt offset div gcd)
               end
 
             fun extract_coefficients (SMTLIB.Num num) =
