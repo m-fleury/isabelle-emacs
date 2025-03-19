@@ -337,6 +337,14 @@ lemma [rewrite_arith_int_eq_conflict]:
  \<Longrightarrow> \<not>((of_int (floor c)::real) = c) \<Longrightarrow> (((of_int t ::real) = c) = False)"
   by auto
 
+named_theorems rewrite_arith_int_geq_tighten \<open>\<close>
+
+lemma [rewrite_arith_int_geq_tighten]:
+  fixes t::int and c::real and cc::int
+  shows "NO_MATCH cvc_a (undefined t c cc)
+ \<Longrightarrow> (\<not>((of_int (floor c)) = c) \<and> (cc = (floor c) + 1)) \<Longrightarrow> (((of_int t ::real) \<ge> c) = (t \<ge> cc))"
+  by linarith
+
 named_theorems rewrite_arith_geq_ite_lift \<open>\<close>
 
 lemma [rewrite_arith_geq_ite_lift]:
