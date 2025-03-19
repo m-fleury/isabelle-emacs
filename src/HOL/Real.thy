@@ -1858,6 +1858,9 @@ lemma [smt_arith_simplify,arith_simp_cvc5,arith_mult_poly_norm_cvc5]:
   \<open>NO_MATCH 0 b \<Longrightarrow> NO_MATCH 0 a \<Longrightarrow> a = b \<longleftrightarrow> b - a = 0\<close>
   by auto
 
+lemmas [cvc5_normalized_input] = div_by_1
+
+
 subsection \<open>Setup for Argo\<close>
 
 ML_file \<open>Tools/Argo/argo_real.ML\<close>
