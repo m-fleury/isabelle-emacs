@@ -751,10 +751,35 @@ lemma alethe_sko_forall_indirect2:
         (*val _ = @{print}("thm_names_with_var",thm_names_with_var)*)
 
       in map (fn v => (v, AList.lookup (op =) thm_names_with_var v)) var_order end
-    (*val _ = @{print}("ordered_definitions ()",ordered_definitions ())*)
+    (*veriT produces longer terms for skolem function like
+    SK1 = eps x. P x
+    SK2 = eps y. Q x (eps x. P x)
+
+    instead of the shorter:
+    SK1 = eps x. P x
+    SK2 = eps y. Q x SK1
+
+    When the option --proof-with-sharing is activated, we take care of this during parsing, but
+    if not (and especially if using check_smt), we need to fold SK1 into SK2. As we cannot know
+    whether the option was used, we always rewrite.
+    *)
+    fun fold_definition [] _ = []
+      | fold_definition ((v, NONE) :: xs) acc = (v, NONE) :: fold_definition xs acc
+      | fold_definition ((v, SOME thm) :: xs) acc = 
+        let 
+          val acc' = (thm COMP @{thm eq_commute[THEN iffD1]}) :: acc
+          val simp_ctxt =
+           ctxt
+           |> empty_simpset
+           |> put_simpset HOL_basic_ss
+           |> (fn ctxt => ctxt addsimps acc)
+        in ((v, SOME (Simplifier.full_simplify simp_ctxt thm)) :: fold_definition xs acc') end
+    val defs = fold_definition (ordered_definitions ()) []
+    val _ = @{print}("ordered_definitions ()",ordered_definitions ())
+    val _ = @{print}("ordered_definitions ()",defs)
   in
     SMT_Replay_Methods.prove ctxt t (fn _ =>
-      rewrite_all_skolems ctxt_eq thms1 ctxt (ordered_definitions ())
+      rewrite_all_skolems ctxt_eq thms1 ctxt defs
 
       THEN' (*(((resolve_tac ctxt @{thms refl}) THEN' K (print_tac ctxt "sko 0"))
       ORELSE' *)
