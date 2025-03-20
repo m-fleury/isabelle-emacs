@@ -892,14 +892,20 @@ fun normalized_input ctxt prems t =
   let
     (* External problems only: Retrieve correct assertion for this assume *)
     val all_assms = SMT_Config.alethe_no_provided_assms ctxt
-    val termify = Thm.prop_of #> (fn x=> single (0, x)) #> SMT_Translate.eta_expand ctxt Termtab.empty #> hd #> snd
+    val termify = Thm.prop_of #> (fn x => single (0, x)) #> SMT_Translate.eta_expand ctxt Termtab.empty #> hd #> snd
+    val normalized =
+       let val thy = Proof_Context.theory_of (empty_simpset ctxt) in
+        Raw_Simplifier.rewrite_term thy (Named_Theorems.get ctxt \<^named_theorems>\<open>cvc5_normalized_input\<close>) []
+        #> Object_Logic.atomize_term ctxt
+        #> HOLogic.mk_Trueprop
+      end
     fun matched_assm () =
-      (case find_first (is_same_assms_eq_ac t o termify) prems of
+      (case find_first (is_same_assms_eq_ac (normalized t) o normalized o termify) prems of
         SOME thm => [thm]
       | NONE => [])
     val m_assm = matched_assm ()
     val _ = if length m_assm = 0 then SMT_Config.trace_msg ctxt (pretty ("warning: could not find assumption, had to add all premises")) [] else ()
-    val prems = (if all_assms andalso not (length m_assm = 0) then m_assm else prems)
+    val prems = (if all_assms andalso not (length m_assm = 0) then @{print}m_assm else prems)
   in
     (SMT_Replay_Methods.prove ctxt t (fn _ =>
       Method.insert_tac ctxt prems
