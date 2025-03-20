@@ -886,6 +886,8 @@ fun is_same_assms_eq_ac (Abs (_, _,  u)) (Abs (_, _, u')) =
     (is_same_assms_eq_ac u u' andalso is_same_assms_eq_ac v v')
   | is_same_assms_eq_ac u v  = (false)
 
+fun pretty tag lines = map Pretty.str lines |> Pretty.big_list tag |> Pretty.string_of
+
 fun normalized_input ctxt prems t = 
   let
     (* External problems only: Retrieve correct assertion for this assume *)
@@ -896,6 +898,7 @@ fun normalized_input ctxt prems t =
         SOME thm => [thm]
       | NONE => [])
     val m_assm = matched_assm ()
+    val _ = if length m_assm = 0 then SMT_Config.trace_msg ctxt (pretty ("warning: could not find assumption, had to add all premises")) [] else ()
     val prems = (if all_assms andalso not (length m_assm = 0) then m_assm else prems)
   in
     (SMT_Replay_Methods.prove ctxt t (fn _ =>
