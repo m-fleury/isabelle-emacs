@@ -1858,7 +1858,11 @@ lemma [smt_arith_simplify,arith_simp_cvc5,arith_mult_poly_norm_cvc5]:
   \<open>NO_MATCH 0 b \<Longrightarrow> NO_MATCH 0 a \<Longrightarrow> a = b \<longleftrightarrow> b - a = 0\<close>
   by auto
 
-lemmas [cvc5_normalized_input] = div_by_1
+lemma [cvc5_normalized_input]:
+  \<open>a div 0 \<equiv> 0\<close>
+  \<open>a div 1 \<equiv> a\<close>
+  \<open>0 div a \<equiv> 0\<close> for a :: \<open>'a :: divide_trivial\<close>
+  by auto
 
 
 subsection \<open>Setup for Argo\<close>
