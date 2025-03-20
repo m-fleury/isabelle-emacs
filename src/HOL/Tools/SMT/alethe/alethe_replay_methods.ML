@@ -895,7 +895,8 @@ fun normalized_input ctxt prems t =
       (case find_first (is_same_assms_eq_ac t o termify) prems of
         SOME thm => [thm]
       | NONE => [])
-    val prems = (if all_assms then matched_assm () else prems)
+    val m_assm = matched_assm ()
+    val prems = (if all_assms andalso not (length m_assm = 0) then m_assm else prems)
   in
     (SMT_Replay_Methods.prove ctxt t (fn _ =>
       Method.insert_tac ctxt prems
