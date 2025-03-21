@@ -260,7 +260,11 @@ val _ = @{print}(" all_assms", all_assms)
       SMT_Config.with_time_limit ctxt rule SMT_Config.reconstruction_step_timeout replay step (*Welche Felder von Step benutzt replay_thm? Nur die conclusion?*)
     val _ = (SMT_Config.verbose_msg ctxt (K ("Successfully checked step " ^ id)) ())
 
-    val stats' = Symtab.cons_list (rule, Time.toNanoseconds elapsed) stats
+    val name =
+      (case rule of
+        "rare_rewrite" => "rare_rewrite" ^ "_" ^ HOLogic.dest_string (hd step_args)
+      | _ => rule)
+    val stats' = Symtab.cons_list (name, Time.toNanoseconds elapsed) stats
     val globally_known_facts = Symtab.update (id, ([], thm)) globally_known_facts
     val _ = debug_msg ctxt low (fn () => @{print} ("Add resulting theorem to globabally known facts", (id,thm)))
 
