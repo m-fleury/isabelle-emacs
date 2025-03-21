@@ -48,6 +48,8 @@ cvc5_rare "Extra_Rewrites.rewrite_arith_gt_ite_lift"
 cvc5_rare "Extra_Rewrites.rewrite_arith_leq_ite_lift"
 cvc5_rare "Extra_Rewrites.rewrite_arith_lt_ite_lift"
 
+cvc5_rare "Extra_Rewrites.rewrite_arith_to_int_to_real2"
+
 lemma temp: "((0 < - a) = (0 < - (b::real))) = ((0 > (a::real)) = (0 > b))"
   by simp
 
