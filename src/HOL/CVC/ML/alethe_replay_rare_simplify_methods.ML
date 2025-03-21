@@ -60,6 +60,20 @@ fun try_evaluate ctxt t =
   SMT_Replay_Methods.prove_abstract' ctxt t evaluate_tac
     (SMT_Replay_Methods.abstract_for_code_eval ctxt (dest_prop t))
 
+
+
+fun arith_poly_norm ctxt t = 
+  let
+    fun simplify_tac ctxt thms =
+      ctxt
+      |> (fn ctxt => ctxt addsimps thms)
+      |> Simplifier.full_simp_tac
+  in
+    SMT_Replay_Methods.prove ctxt t (fn _ =>
+      TRY' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems field_simps} @ 
+        Named_Theorems.get ctxt @{named_theorems alethe_poly_norm})))
+  end
+
 fun arith_poly_norm_mult ctxt t = 
   SMT_Replay_Methods.prove ctxt t (fn _ =>
     (*K (print_tac ctxt "arith mult 0") THEN'*)
@@ -182,9 +196,11 @@ end
 
 
 local 
- fun pretty tag lines = map Pretty.str lines |> Pretty.big_list tag |> Pretty.string_of
+  fun pretty tag lines = map Pretty.str lines |> Pretty.big_list tag |> Pretty.string_of
 in 
 
+  fun arith_poly_norm_reconstruct ctxt _ _ t =
+    arith_poly_norm ctxt t
   fun rare_rewrite ctxt (th : thm list) (x:: args) t =
     let
       val rewrite_name = String.map (fn #"-"  => #"_" | x => x) (HOLogic.dest_string x)
@@ -193,6 +209,7 @@ in
         "evaluate" =>
           (debug_msg ctxt low (fn () => @{print} "Found evaluate, try to simplify");
           try_evaluate ctxt t)
+      | "arith_poly_norm" => arith_poly_norm ctxt t
       | "arith_poly_norm_mult" => arith_poly_norm_mult ctxt t
       | "arith_poly_norm_uminus" => 
           (debug_msg ctxt low (fn () => @{print} "Found arithmetric norm rule, try to normalize");
@@ -210,10 +227,16 @@ in
          List.foldr op^ "" (map ML_Syntax.print_term args))) [];
        raise (SMT_Failure.SMT (SMT_Failure.Replay("rare-rewrite",ERROR "could not find lemma for rare rewrite ")))
     (*try_simp ctxt t*))
+
+  fun true_tac ctxt _ _ t = 
+    SMT_Replay_Methods.prove ctxt t (fn _ =>
+      resolve_tac ctxt @{thms TrueI})
 end
 
 val rules = [
-   ("rare_rewrite", rare_rewrite)]
+   ("rare_rewrite", rare_rewrite),
+   ("true", true_tac),
+   ("arith_poly_norm", arith_poly_norm_reconstruct)]
 
 val _ = Theory.setup (Context.theory_map (
    fold (uncurry Alethe_Replay_Methods.declare_alethe_rule) rules))
