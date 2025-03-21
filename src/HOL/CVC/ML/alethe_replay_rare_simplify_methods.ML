@@ -89,7 +89,7 @@ fun arith_poly_norm ctxt t =
         THEN' TRY' (Code_Simp.dynamic_tac ctxt))
   in
   SMT_Replay_Methods.prove_abstract' ctxt t tac
-    (SMT_Replay_Methods.abstract_for_code_eval ctxt (dest_prop t))
+    (SMT_Replay_Methods.abstract_for_poly_norm ctxt (dest_prop t))
   end
 
 fun arith_poly_norm_mult ctxt t = 
