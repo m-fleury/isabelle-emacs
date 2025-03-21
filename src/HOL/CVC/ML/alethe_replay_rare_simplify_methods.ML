@@ -119,8 +119,8 @@ fun dsl_tac_initialize rewrite_name args ctxt t _ =
     
         val get_types = map snd (rev (Term.add_vars (Thm.full_prop_of rewrite_lemma) []))
     
-        fun is_list_arg (Const ("Dsl_Nary_Ops.cvc_ListVar.ListVar", _) $ Const ("List.list.Nil", _)) = true |
-          is_list_arg _ = false
+        fun is_list_arg (Const (\<^const_name>\<open>Dsl_Nary_Ops.cvc_ListVar.ListVar\<close>, _) $ Const (\<^const_name>\<open>List.Nil\<close>, _)) = true
+          | is_list_arg _ = false
     
         fun instantiate_with_arg a t =
           if is_list_arg a
@@ -128,8 +128,8 @@ fun dsl_tac_initialize rewrite_name args ctxt t _ =
             let
               val _ = debug_msg ctxt high (fn () => @{print} ("Detected List Argument", a));
               val t' = dest_Type t |> snd |> hd
-              val new_a = Const ( \<^const_name>\<open>ListVar\<close>, Type(\<^type_name>\<open>List.list\<close>,[t']) --> Type(\<^type_name>\<open>cvc_ListVar\<close>,[t']))
-                      $ Const ("List.list.Nil", Type(\<^type_name>\<open>List.list\<close>,[t']))
+              val new_a = Const (\<^const_name>\<open>ListVar\<close>, Type(\<^type_name>\<open>List.list\<close>,[t']) --> Type(\<^type_name>\<open>cvc_ListVar\<close>, [t']))
+                      $ Const (\<^const_name>\<open>List.Nil\<close>, Type(\<^type_name>\<open>List.list\<close>,[t']))
             in
               single ((SOME o Thm.cterm_of ctxt) new_a)
             end
@@ -146,7 +146,7 @@ fun dsl_tac_initialize rewrite_name args ctxt t _ =
             Drule.infer_instantiate' ctxt (instantiate_with_arg a t) (rewrite_lemma_inst args' typs') 
     
         val inst_lemma = 
-          rewrite_lemma_inst ( (rev args@[Const ("Groups.zero_class.zero",@{typ int})])) (rev get_types)
+          rewrite_lemma_inst (rev args @ [Const ("Groups.zero_class.zero",@{typ int})]) (rev get_types)
         val _ = debug_msg ctxt middle (fn () => @{print} ("Instantiated lemma",inst_lemma));
     
         val cvc_list_defs = @{thms cvc_list_right_Nil cvc_list_left_Nil cvc_list_both_Singleton
@@ -163,18 +163,18 @@ fun dsl_tac_initialize rewrite_name args ctxt t _ =
         (SMT_Replay_Methods.prove ctxt t (fn _ =>
         TRY' (EqSubst.eqsubst_tac ctxt [0] [inst_lemma_without_true])
         THEN_ALL_NEW (
-          K (print_tac ctxt "debug0") THEN'
+          (*K (print_tac ctxt "debug0") THEN'*)
           TRY' (resolve_tac ctxt [@{thm refl}])
           (*THEN' K (print_tac ctxt "debug1")*)
          
           THEN' TRY' (Code_Simp.dynamic_tac ctxt))
           (*THEN' K (print_tac ctxt "debug2")*)
          
-          THEN' TRY' (simplify_tac ctxt ((Named_Theorems.get ctxt @{named_theorems cvc_evaluate})))
+          THEN' TRY' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems cvc_evaluate}))
           (*THEN' K (print_tac ctxt "debug3")*)
           THEN'  (
             TRY' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems cvc_evaluate}
-               @ Named_Theorems.get ctxt @{named_theorems arith_simp_cvc5}))))
+               @ Named_Theorems.get ctxt @{named_theorems arith_mult_poly_norm_cvc5}))))
          )
     end
 end
@@ -185,35 +185,31 @@ local
  fun pretty tag lines = map Pretty.str lines |> Pretty.big_list tag |> Pretty.string_of
 in 
 
- fun rare_rewrite ctxt (th : thm list) (x:: args) t =
-let
-val rewrite_name =
-(implode (map (fn "-" => "_" | x => x) (raw_explode  (HOLogic.dest_string x ))) )
-(*TODO catch exceptions*)
-in
- (
-  if rewrite_name = "evaluate"
-  then
-   (debug_msg ctxt low (fn () => @{print} "Found evaluate, try to simplify");
-    try_evaluate ctxt t)
-  else if rewrite_name = "arith_poly_norm_mult"
-  then
-   arith_poly_norm_mult ctxt t
-  else if  member (op =) ["arith_poly_norm_uminus","arith_poly_norm_minus","arith_poly_norm_mult"] rewrite_name (*This should be a proof rule eventually*)
-  then
-   (debug_msg ctxt low (fn () => @{print} "Found arithmetric norm rule, try to normalize");
-    try_arith ctxt t)
-  else
-   (debug_msg ctxt low (fn () => @{print} "Found rare rewrite " ^ rewrite_name);
-    dsl_tac_initialize rewrite_name args ctxt t th
-handle (RARE_REPLAY msg) => raise (SMT_Failure.SMT (SMT_Failure.Replay("rare-rewrite",ERROR msg)))
-)
- ) end
- | rare_rewrite ctxt _ args t =
-   ((SMT_Config.verbose_msg ctxt (pretty ("No dsl rule found, try to simplify" ^
-     List.foldr op^ "" (map ML_Syntax.print_term args))) []; raise 
-(SMT_Failure.SMT (SMT_Failure.Replay("rare-rewrite",ERROR "could not find lemma for rare rewrite ")))
- (*try_simp ctxt t*)))
+  fun rare_rewrite ctxt (th : thm list) (x:: args) t =
+    let
+      val rewrite_name = String.map (fn #"-"  => #"_" | x => x) (HOLogic.dest_string x)
+    in
+      ((case rewrite_name of
+        "evaluate" =>
+          (debug_msg ctxt low (fn () => @{print} "Found evaluate, try to simplify");
+          try_evaluate ctxt t)
+      | "arith_poly_norm_mult" => arith_poly_norm_mult ctxt t
+      | "arith_poly_norm_uminus" => 
+          (debug_msg ctxt low (fn () => @{print} "Found arithmetric norm rule, try to normalize");
+            try_arith ctxt t)
+      | "arith_poly_norm_minus" => 
+          (debug_msg ctxt low (fn () => @{print} "Found arithmetric norm rule, try to normalize");
+            try_arith ctxt t)
+      | _ =>
+         (debug_msg ctxt low (fn () => @{print} "Found rare rewrite " ^ rewrite_name);
+          dsl_tac_initialize rewrite_name args ctxt t th))
+      handle (RARE_REPLAY msg) => raise (SMT_Failure.SMT (SMT_Failure.Replay("rare-rewrite",ERROR msg))))
+    end
+  | rare_rewrite ctxt _ args _ =
+      (SMT_Config.verbose_msg ctxt (pretty ("No dsl rule found, try to simplify" ^
+         List.foldr op^ "" (map ML_Syntax.print_term args))) [];
+       raise (SMT_Failure.SMT (SMT_Failure.Replay("rare-rewrite",ERROR "could not find lemma for rare rewrite ")))
+    (*try_simp ctxt t*))
 end
 
 val rules = [
