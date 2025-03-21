@@ -9,6 +9,7 @@ signature ALETHE_REPLAY_RARE_SIMPLIFY_METHODS =
 sig
   val rare_rewrite: Alethe_Replay_Methods.alethe_tac_step_args
   val rare_rec_mode: int Config.T
+  val arith_poly_norm : Proof.context -> term -> thm
   exception RARE_REPLAY of string
 end;
 
@@ -66,12 +67,27 @@ fun arith_poly_norm ctxt t =
   let
     fun simplify_tac ctxt thms =
       ctxt
+      |> empty_simpset
+      |> put_simpset HOL_basic_ss
+      |> (fn ctxt => ctxt addsimps @{thms simp_thms} addsimps thms)
+      |> (fn ctxt => ctxt
+           addsimprocs [@{simproc int_div_cancel_numeral_factors}, @{simproc int_combine_numerals},
+             @{simproc divide_cancel_numeral_factor}, @{simproc intle_cancel_numerals},
+             @{simproc field_combine_numerals}, @{simproc intless_cancel_numerals},
+             @{simproc ring_le_cancel_numeral_factor}, @{simproc inteq_cancel_numerals},
+             @{simproc HOL.NO_MATCH}, @{simproc Numeral_Simprocs.semiring_assoc_fold}])
+      |> Simplifier.full_simp_tac
+    fun simplify_tac_with_background_simp ctxt thms =
+      ctxt
       |> (fn ctxt => ctxt addsimps thms)
       |> Simplifier.full_simp_tac
   in
     SMT_Replay_Methods.prove ctxt t (fn _ =>
-      TRY' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems field_simps} @ 
-        Named_Theorems.get ctxt @{named_theorems alethe_poly_norm})))
+      SOLVED' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems alethe_poly_norm}))
+        (*if the previous does not solve, use full simplification power with the current content*)
+      ORELSE' 
+        simplify_tac_with_background_simp ctxt (Named_Theorems.get ctxt @{named_theorems field_simps})
+        THEN' TRY' (Code_Simp.dynamic_tac ctxt))
   end
 
 fun arith_poly_norm_mult ctxt t = 
@@ -207,6 +223,7 @@ in
 
   fun arith_poly_norm_reconstruct ctxt _ _ t =
     arith_poly_norm ctxt t
+
   fun rare_rewrite ctxt (th : thm list) (x:: args) t =
     let
       val rewrite_name = String.map (fn #"-"  => #"_" | x => x) (HOLogic.dest_string x)
