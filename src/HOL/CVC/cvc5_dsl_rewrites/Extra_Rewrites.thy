@@ -377,4 +377,7 @@ lemma [rewrite_arith_leq_ite_lift]:
  \<Longrightarrow> (((if C then t else s) < r) = (if C then (t < r) else (s < r)))"
   by auto
 
+(*Performance addition*)
+named_theorems rewrite_arith_to_int_to_real2 \<open>\<close>
+lemmas [rewrite_arith_to_int_to_real2] = floor_of_int
 end

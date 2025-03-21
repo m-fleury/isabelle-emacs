@@ -232,9 +232,9 @@ fun bunches_of_proof_methods ctxt smt_proofs needs_full_types desperate_lam_tran
     val smt_methodss =
       if smt_proofs then
         (*remove the order for fairness in the experiments.*)
-        [map (SMT_Method o SMT_cvc) (Verit_Strategies.all_cvc5_stgies (Context.Proof ctxt)),
-         map (SMT_Method o SMT_Verit) (Verit_Strategies.all_veriT_stgies (Context.Proof ctxt)),
-         [SMT_Method SMT_Z3]]
+        [map (SMT_Method o SMT_cvc) (Verit_Strategies.all_cvc5_stgies (Context.Proof ctxt))
+         (*map (SMT_Method o SMT_Verit) (Verit_Strategies.all_veriT_stgies (Context.Proof ctxt)),
+         [SMT_Method SMT_Z3]*)]
         |> flat
         |> single
       else

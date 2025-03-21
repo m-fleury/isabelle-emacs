@@ -127,66 +127,72 @@ fun dsl_tac_initialize rewrite_name args ctxt t _ =
         else
           try_simp ctxt t
     else
-      let
-        val rewrite_lemma = CVC5_Rare.rare_rule (Context.Proof ctxt) ("rewrite_" ^ rewrite_name) |> try hd |> the
-          handle Option.Option => raise RARE_REPLAY ("Found more then one lemma corresponding to RARE rule " ^ rewrite_name)
-    
-        val get_types = map snd (rev (Term.add_vars (Thm.full_prop_of rewrite_lemma) []))
-    
-        fun is_list_arg (Const (\<^const_name>\<open>Dsl_Nary_Ops.cvc_ListVar.ListVar\<close>, _) $ Const (\<^const_name>\<open>List.Nil\<close>, _)) = true
-          | is_list_arg _ = false
-    
-        fun instantiate_with_arg a t =
-          if is_list_arg a
-          then
-            let
-              val _ = debug_msg ctxt high (fn () => @{print} ("Detected List Argument", a));
-              val t' = dest_Type t |> snd |> hd
-              val new_a = Const (\<^const_name>\<open>ListVar\<close>, Type(\<^type_name>\<open>List.list\<close>,[t']) --> Type(\<^type_name>\<open>cvc_ListVar\<close>, [t']))
-                      $ Const (\<^const_name>\<open>List.Nil\<close>, Type(\<^type_name>\<open>List.list\<close>,[t']))
-            in
-              single ((SOME o Thm.cterm_of ctxt) new_a)
-            end
-          else
-            single ((SOME o Thm.cterm_of ctxt) a)
-    
-    
-        fun rewrite_lemma_inst [] []  = rewrite_lemma
-         | rewrite_lemma_inst [] (_::_)  =
-            raise RARE_REPLAY("Too few arguments for RARE rewrite " ^ rewrite_name)
-         | rewrite_lemma_inst _ []  =
-            raise RARE_REPLAY("Too many arguments for RARE rewrite " ^ rewrite_name)
-         | rewrite_lemma_inst (a :: args') (t :: typs') = 
-            Drule.infer_instantiate' ctxt (instantiate_with_arg a t) (rewrite_lemma_inst args' typs') 
-    
-        val inst_lemma = 
-          rewrite_lemma_inst (rev args @ [Const ("Groups.zero_class.zero",@{typ int})]) (rev get_types)
-        val _ = debug_msg ctxt middle (fn () => @{print} ("Instantiated lemma",inst_lemma));
-    
-        val cvc_list_defs = @{thms cvc_list_right_Nil cvc_list_left_Nil cvc_list_both_Singleton
-          cvc_list_right_Cons cvc_list_left_Cons cvc_list_both_Cons
-          cvc_list_both_Cons_0 cvc_list_both_Cons_1 NO_MATCH_def}
-        val inst_lemma_without_list = (Local_Defs.unfold ctxt) cvc_list_defs inst_lemma
-    
-        (*Should only happen if we have the extra argument*)
-        val inst_lemma_without_true
-          = Basic_Tactic.rule_by_tactic ctxt (resolve_tac ctxt [@{thm TrueI}] 1) inst_lemma_without_list
-        fun REPEAT' tac = fn i => REPEAT (tac i)
-    
-      in
-        (SMT_Replay_Methods.prove ctxt t (fn _ =>
-        TRY' (EqSubst.eqsubst_tac ctxt [0] [inst_lemma_without_true])
-        THEN_ALL_NEW (
-          (*K (print_tac ctxt "debug0") THEN'*)
-          SOLVED' (resolve_tac ctxt [@{thm refl}])
-          ORELSE' (*K (print_tac ctxt "debug1") THEN' *)
-             TRY' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems cvc_evaluate}))
-            (*THEN' K (print_tac ctxt "debug3")*)
-            THEN' TRY' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems cvc_evaluate}
-              @ Named_Theorems.get ctxt @{named_theorems arith_mult_poly_norm_cvc5}))
-            THEN' TRY' (Code_Simp.dynamic_tac ctxt) (*slowest method, so at the end*)))
-         )
-    end
+      (case rewrite_name of (*cheating: hardcoding some common rules, saving around 3ms each time*)
+        "bool_double_not_elim" => SMT_Replay_Methods.prove ctxt t (fn _ =>
+          match_tac ctxt [@{thm not_not}])
+      | "arith_to_int_to_real" => SMT_Replay_Methods.prove ctxt t (fn _ =>
+          match_tac ctxt (CVC5_Rare.rare_rule (Context.Proof ctxt) ("rewrite_" ^ "rewrite_arith_to_int_to_real2")))
+      | _ =>
+        let
+          val rewrite_lemma = CVC5_Rare.rare_rule (Context.Proof ctxt) ("rewrite_" ^ rewrite_name) |> try hd |> the
+            handle Option.Option => raise RARE_REPLAY ("Found more then one lemma corresponding to RARE rule " ^ rewrite_name)
+      
+          val get_types = map snd (rev (Term.add_vars (Thm.full_prop_of rewrite_lemma) []))
+      
+          fun is_list_arg (Const (\<^const_name>\<open>Dsl_Nary_Ops.cvc_ListVar.ListVar\<close>, _) $ Const (\<^const_name>\<open>List.Nil\<close>, _)) = true
+            | is_list_arg _ = false
+      
+          fun instantiate_with_arg a t =
+            if is_list_arg a
+            then
+              let
+                val _ = debug_msg ctxt high (fn () => @{print} ("Detected List Argument", a));
+                val t' = dest_Type t |> snd |> hd
+                val new_a = Const (\<^const_name>\<open>ListVar\<close>, Type(\<^type_name>\<open>List.list\<close>,[t']) --> Type(\<^type_name>\<open>cvc_ListVar\<close>, [t']))
+                        $ Const (\<^const_name>\<open>List.Nil\<close>, Type(\<^type_name>\<open>List.list\<close>,[t']))
+              in
+                single ((SOME o Thm.cterm_of ctxt) new_a)
+              end
+            else
+              single ((SOME o Thm.cterm_of ctxt) a)
+      
+      
+          fun rewrite_lemma_inst [] []  = rewrite_lemma
+           | rewrite_lemma_inst [] (_::_)  =
+              raise RARE_REPLAY("Too few arguments for RARE rewrite " ^ rewrite_name)
+           | rewrite_lemma_inst _ []  =
+              raise RARE_REPLAY("Too many arguments for RARE rewrite " ^ rewrite_name)
+           | rewrite_lemma_inst (a :: args') (t :: typs') = 
+              Drule.infer_instantiate' ctxt (instantiate_with_arg a t) (rewrite_lemma_inst args' typs') 
+      
+          val inst_lemma = 
+            rewrite_lemma_inst (rev args @ [Const ("Groups.zero_class.zero",@{typ int})]) (rev get_types)
+          val _ = debug_msg ctxt middle (fn () => @{print} ("Instantiated lemma",inst_lemma));
+      
+          val cvc_list_defs = @{thms cvc_list_right_Nil cvc_list_left_Nil cvc_list_both_Singleton
+            cvc_list_right_Cons cvc_list_left_Cons cvc_list_both_Cons
+            cvc_list_both_Cons_0 cvc_list_both_Cons_1 NO_MATCH_def}
+          val inst_lemma_without_list = (Local_Defs.unfold ctxt) cvc_list_defs inst_lemma
+      
+          (*Should only happen if we have the extra argument*)
+          val inst_lemma_without_true
+            = Basic_Tactic.rule_by_tactic ctxt (resolve_tac ctxt [@{thm TrueI}] 1) inst_lemma_without_list
+          fun REPEAT' tac = fn i => REPEAT (tac i)
+      
+        in
+          (SMT_Replay_Methods.prove ctxt t (fn _ =>
+          TRY' (EqSubst.eqsubst_tac ctxt [0] [inst_lemma_without_true])
+          THEN_ALL_NEW (
+            (*K (print_tac ctxt "debug0") THEN'*)
+            SOLVED' (resolve_tac ctxt [@{thm refl}])
+            ORELSE' (*K (print_tac ctxt "debug1") THEN' *)
+               TRY' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems cvc_evaluate}))
+              (*THEN' K (print_tac ctxt "debug3")*)
+              THEN' TRY' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems cvc_evaluate}
+                @ Named_Theorems.get ctxt @{named_theorems arith_mult_poly_norm_cvc5}))
+              THEN' TRY' (Code_Simp.dynamic_tac ctxt) (*slowest method, so at the end*)))
+           )
+      end)
 end
 
 
