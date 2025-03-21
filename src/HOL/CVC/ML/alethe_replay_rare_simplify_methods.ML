@@ -81,13 +81,15 @@ fun arith_poly_norm ctxt t =
       ctxt
       |> (fn ctxt => ctxt addsimps thms)
       |> Simplifier.full_simp_tac
-  in
-    SMT_Replay_Methods.prove ctxt t (fn _ =>
+    val tac = (fn _ => fn _ =>
       SOLVED' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems alethe_poly_norm}))
         (*if the previous does not solve, use full simplification power with the current content*)
-      ORELSE' 
+      ORELSE'
         simplify_tac_with_background_simp ctxt (Named_Theorems.get ctxt @{named_theorems field_simps})
         THEN' TRY' (Code_Simp.dynamic_tac ctxt))
+  in
+  SMT_Replay_Methods.prove_abstract' ctxt t tac
+    (SMT_Replay_Methods.abstract_for_code_eval ctxt (dest_prop t))
   end
 
 fun arith_poly_norm_mult ctxt t = 
