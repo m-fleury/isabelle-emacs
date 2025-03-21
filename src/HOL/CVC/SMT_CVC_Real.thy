@@ -53,4 +53,11 @@ lemma temp: "((0 < - a) = (0 < - (b::real))) = ((0 > (a::real)) = (0 > b))"
 
 lemmas cvc_evaluate = of_rat_add of_rat_minus of_rat_diff of_rat_mult of_rat_divide of_rat_eq_iff
 of_rat_divide nonzero_of_rat_divide of_rat_neg_numeral_eq temp
+
+
+lemma [alethe_poly_norm]:
+  \<open>real_of_int (v1 mod v0) + real_of_int v0 * real_of_int (v1 div v0) = real_of_int v1\<close>
+  \<open>real_of_int (k mod (numeral a)) + numeral a * real_of_int (k div numeral a) = real_of_int (k)\<close>
+   apply (metis add.commute div_mod_decomp_int mult.commute of_int_add of_int_mult)
+  by (metis mod_mult_div_eq of_int_add of_int_mult of_int_numeral)
 end
