@@ -178,17 +178,13 @@ fun dsl_tac_initialize rewrite_name args ctxt t _ =
         TRY' (EqSubst.eqsubst_tac ctxt [0] [inst_lemma_without_true])
         THEN_ALL_NEW (
           (*K (print_tac ctxt "debug0") THEN'*)
-          TRY' (resolve_tac ctxt [@{thm refl}])
-          (*THEN' K (print_tac ctxt "debug1")*)
-         
-          THEN' TRY' (Code_Simp.dynamic_tac ctxt))
-          (*THEN' K (print_tac ctxt "debug2")*)
-         
-          THEN' TRY' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems cvc_evaluate}))
-          (*THEN' K (print_tac ctxt "debug3")*)
-          THEN'  (
-            TRY' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems cvc_evaluate}
-               @ Named_Theorems.get ctxt @{named_theorems arith_mult_poly_norm_cvc5}))))
+          SOLVED' (resolve_tac ctxt [@{thm refl}])
+          ORELSE' (*K (print_tac ctxt "debug1") THEN' *)
+             TRY' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems cvc_evaluate}))
+            (*THEN' K (print_tac ctxt "debug3")*)
+            THEN' TRY' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems cvc_evaluate}
+              @ Named_Theorems.get ctxt @{named_theorems arith_mult_poly_norm_cvc5}))
+            THEN' TRY' (Code_Simp.dynamic_tac ctxt) (*slowest method, so at the end*)))
          )
     end
 end
