@@ -133,9 +133,9 @@ fun dsl_tac_initialize rewrite_name args ctxt t _ =
       | "arith_to_int_to_real" => SMT_Replay_Methods.prove ctxt t (fn _ =>
           match_tac ctxt (CVC5_Rare.rare_rule (Context.Proof ctxt) ("rewrite_arith_to_int_to_real2")))
       | "eq_refl" => SMT_Replay_Methods.prove ctxt t (fn _ =>
-          match_tac ctxt @{thms alethe_equiv_simplify})
+          match_tac ctxt [@{lemma \<open>(a=a) = True\<close> by blast}])
       | "eq_symm" => SMT_Replay_Methods.prove ctxt t (fn _ =>
-          match_tac ctxt @{thm eq_commute})
+          match_tac ctxt @{thms eq_commute})
       | _ =>
         let
           val rewrite_lemma = CVC5_Rare.rare_rule (Context.Proof ctxt) ("rewrite_" ^ rewrite_name) |> try hd |> the
