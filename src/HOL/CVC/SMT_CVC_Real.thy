@@ -111,4 +111,8 @@ Alethe_Replay_RARE_Simplify_Methods.arith_poly_norm @{context}
 ML \<open>
 Alethe_Replay_RARE_Simplify_Methods.arith_poly_norm @{context}
 @{term \<open>d / 2 + 0 + 0 - (d::real) / 2 = 0\<close> }\<close>
+ML \<open>
+Alethe_Replay_RARE_Simplify_Methods.arith_poly_norm @{context}
+@{term \<open>1 / 1 * (2 / 1 * (1 / 1 / (2 / 1)) * (t1 / (1 / 1 / (2 / 1))) - 2 / 1 * (1 / 1 / (2 / 1) * ((t1::real) / (1 / 1 / (2 / 1))))) =
+    2 / 1 * (1 / 1 / (2 / 1)) * (t1 / (1 / 1 / (2 / 1))) + - 2 / 1 * (1 / 1 / (2 / 1) * (t1 / (1 / 1 / (2 / 1)))) \<close>}\<close>
 end
