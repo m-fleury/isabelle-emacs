@@ -1146,7 +1146,7 @@ exception SMTLIB_PARSE ("bad SMT term", Sym "rare-list") raised (line 234 of "~~
 
 
 context
-  fixes powr :: "real \<Rightarrow> real \<Rightarrow> real"  (infixr "powr" 80) and
+  fixes
    round_up :: "int \<Rightarrow> real \<Rightarrow> real"and
    round_down :: "int \<Rightarrow> real \<Rightarrow> real"
   assumes powr_gt_zero: \<open>\<And>a b :: real. 0 < x powr a \<longleftrightarrow> x \<noteq> 0\<close>
@@ -1158,9 +1158,6 @@ context
    and round_up_diff_round_down: \<open>\<And>prec x. round_up prec x - round_down prec x \<le> 2 powr - real_of_int prec\<close>
 
 begin
-
-thm round_down_uminus_eq
- round_up round_up_diff_round_down
 
 lemma
   assumes "x < 1 / 2" \<open>p > 0\<close>
