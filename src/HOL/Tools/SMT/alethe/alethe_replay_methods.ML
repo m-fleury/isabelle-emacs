@@ -1255,10 +1255,8 @@ in
 
 fun bfun_elim ctxt prems t = SMT_Replay_Methods.prove ctxt t (fn _ =>
   Method.insert_tac ctxt prems
-  THEN' K (print_tac ctxt "here")
   THEN' TRY' (eqsubst_all ctxt bfun_theorems)
-  THEN' K (print_tac ctxt "here2")
-
+  THEN' TRY' (assume_tac ctxt)
   THEN' TRY' (simplify_tac ctxt @{thms eq_commute all_conj_distrib ex_disj_distrib}))
 
 end
