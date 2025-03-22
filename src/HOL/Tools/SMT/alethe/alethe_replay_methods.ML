@@ -1511,11 +1511,17 @@ fun rewrite_and_simplify ctxt _ t =
    (chain_rewrite_two_step_with_ac_simps ctxt @{thms alethe_and_simplify alethe_and_simplify1}
      @{thms alethe_and_simplify}))
 
+(*
+Currently the tatic does not support steps like
+  (P False \<or> P True \<or> \<not> P False) = True
+hence the fast at the end.
+*)
 fun rewrite_or_simplify ctxt _ t =
   SMT_Replay_Methods.prove ctxt t (fn _ =>
    (chain_rewrite_two_step_with_ac_simps ctxt @{thms alethe_or_simplify alethe_or_simplify_1}
     @{thms alethe_or_simplify})
-    THEN' TRY' (REPEAT' (match_tac ctxt @{thms alethe_and_pos}) THEN' assume_tac ctxt))
+    THEN' TRY' (REPEAT' (match_tac ctxt @{thms alethe_and_pos}) THEN' (assume_tac ctxt))
+    THEN' TRY' (Classical.fast_tac ctxt))
 
 fun rewrite_not_simplify ctxt _ t =
   SMT_Replay_Methods.prove ctxt t (fn _ =>
