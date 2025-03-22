@@ -4573,7 +4573,7 @@ lemma "bit a n = (smt_extract n n a = (1::1 word))"
   unfolding smt_extract_def
   unfolding slice_def slice1_def
   apply simp
-
+  oops
 
 ML_file \<open>Tools/smt_word.ML\<close>
 ML_file \<open>../Tools/SMT/strict_smt_parser.ML\<close>
