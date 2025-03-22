@@ -1864,6 +1864,8 @@ lemma [cvc5_normalized_input]:
   \<open>0 div a \<equiv> 0\<close> for a :: \<open>'a :: divide_trivial\<close>
   by auto
 
+lemmas [smt_arith_simplify] = diff_divide_distrib
+
 
 subsection \<open>Setup for Argo\<close>
 
