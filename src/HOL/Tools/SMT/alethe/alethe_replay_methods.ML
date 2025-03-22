@@ -1345,7 +1345,7 @@ local
     simplify_tac ctxt @{thms de_Morgan_conj de_Morgan_disj imp_conv_disj
       iff_conv_conj_imp if_bool_eq_disj ex_simps all_simps ex_disj_distrib
       alethe_connective_def(3) all_conj_distrib}
-    THEN' TRY' (Blast.blast_tac ctxt)
+    THEN' TRY' (Classical.fast_tac ctxt)
 in
 fun qnt_rm_unused ctxt _ t = SMT_Replay_Methods.prove ctxt t (fn _ =>
   K (unfold_tac ctxt rm_unused))

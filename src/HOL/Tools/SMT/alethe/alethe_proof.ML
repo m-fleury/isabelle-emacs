@@ -596,8 +596,8 @@ fun postprocess_proof compress ctxt step cx =
                 fun getOp (SMTLIB.S [_, SMTLIB.S [SMTLIB.Sym "=", SMTLIB.S (SMTLIB.Sym commOp :: _), _]]) =
                    (if (commOp = "or") then @{term "HOL.disj"} else @{term "HOL.conj"}) |
                     getOp x = (@{print}("x",x);raise throw_alethe_ex ("malformed shuffle rule"))
-              in SOME (CommOp (getOp concl)) end |
-            "la_generic" =>
+              in SOME (CommOp (getOp concl)) end
+          | "la_generic" =>
             let
               fun convert_dec_to_rat num1 num2 =
                 let
@@ -606,16 +606,6 @@ fun postprocess_proof compress ctxt step cx =
                   val res_num = ( (  (offset) * num1)) + num2 |> @{print}
                 in
                   (res_num,offset)
-                end
-              fun convert_dec_to_rat2 num1 (num2:real) =
-                let
-                  val toInt = Real.toInt IEEEReal.TO_NEAREST
-                  fun mult10_2 (x:real) = if (Real.sign x) = 0 then 1.0 else 10.0 * (mult10_2 (Real.realMod (x * 10.0)))
-                  val offset = mult10_2 num2
-                  val res_num = (toInt  (  (offset) * num2)) + ((toInt offset) * num1)
-                  val gcd = Integer.gcd res_num (toInt offset)
-                in
-                  (res_num div gcd, toInt offset div gcd)
                 end
           
               fun extract_coefficients (SMTLIB.Num num) =
@@ -631,17 +621,9 @@ fun postprocess_proof compress ctxt step cx =
                 | extract_coefficients (SMTLIB.S [SMTLIB.Sym "/",SMTLIB.Dec (1,0),SMTLIB.Dec (1,0)]) = (*not necessary, included for speed-up*)
                   (1,1)
                 | extract_coefficients (SMTLIB.S [SMTLIB.Sym "/",SMTLIB.Dec (num1,0),SMTLIB.Dec (num2,0)]) =
-                  let val toInt = Real.toInt IEEEReal.TO_NEAREST in
-                   ((fn {frac=f,whole=w} => convert_dec_to_rat2 (toInt w) f)
-                   (Real.split (Real.fromInt num1 / Real.fromInt num2)))
-                  end
+                  (num1, num2)
                 | extract_coefficients (SMTLIB.S [SMTLIB.Sym "-", SMTLIB.S[SMTLIB.Sym "/",SMTLIB.Dec (num1,0),SMTLIB.Dec (num2,0)]]) =
-                  let
-                    val toInt = Real.toInt IEEEReal.TO_NEAREST
-                  in
-                   ((fn {frac=f,whole=w} => ((fn (a,b) => (~a,b)) (convert_dec_to_rat2 (toInt w) f)))
-                   (Real.split (Real.fromInt num1 / Real.fromInt num2)))
-                  end
+                  (~num1, num2)
                 | extract_coefficients x = (@{print}("x",x);raise throw_alethe_ex ("malformed argument of la_generic step") )
             in SOME (Farkas_Coefficients (map extract_coefficients step_args)) end
           | "forall_inst" =>
@@ -676,16 +658,16 @@ fun postprocess_proof compress ctxt step cx =
                 |> Symtab.map (K (unsk_and_rewrite new_variable_names))    
                 handle (Symtab.DUP _) => raise throw_alethe_ex ("forall inst, tried to add same name twice")
           
-               in SOME (Insts insts) end |
-            r =>
-              if member (op =) index_rules r
-              then let
-                fun get_index [SMTLIB.Num k] = SOME (Index k)
-                  | get_index _ = NONE
-              in
-                get_index step_args
-              end
-              else NONE)
+            in SOME (Insts insts) end
+          | r =>
+            if member (op =) index_rules r
+            then let
+              fun get_index [SMTLIB.Num k] = SOME (Index k)
+                | get_index _ = NONE
+            in
+              get_index step_args
+            end
+            else NONE)
           
          (* fix premises *)
          val normalized_premises = prems @ (if is_assm_repetition id rule then [id] else [])
