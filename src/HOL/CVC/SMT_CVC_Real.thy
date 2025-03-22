@@ -3,6 +3,9 @@ theory SMT_CVC_Real
 begin
 
 cvc5_rare "Extra_Rewrites.rewrite_ite_eq"
+cvc5_rare "Extra_Rewrites.rewrite_quant_var_elim_eq"
+
+
 cvc5_rare "Extra_Rewrites.rewrite_arith_poly_norm_rel_leq"
 cvc5_rare "Extra_Rewrites.rewrite_arith_poly_norm_rel_leq_left_to_real"
 cvc5_rare "Extra_Rewrites.rewrite_arith_poly_norm_rel_leq_right_to_real"
