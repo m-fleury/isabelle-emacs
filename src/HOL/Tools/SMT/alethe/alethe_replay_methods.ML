@@ -1340,12 +1340,16 @@ end
 
 local
   val rm_unused = @{lemma \<open>(\<forall>x. P) = P\<close> \<open>(\<exists>x. P) = P\<close> by blast+}
+  val qnt_cnf_basic = @{lemma \<open>(\<And>x. P x \<equiv> Q x) \<Longrightarrow> \<not>(\<forall>x. P x) \<or> (\<forall>x. Q x)\<close> by blast+}
 
   fun qnt_cnf_tac ctxt =
-    simplify_tac ctxt @{thms de_Morgan_conj de_Morgan_disj imp_conv_disj
-      iff_conv_conj_imp if_bool_eq_disj ex_simps all_simps ex_disj_distrib
-      alethe_connective_def(3) all_conj_distrib}
-    THEN' TRY' (Classical.fast_tac ctxt)
+    SOLVED' (resolve_tac ctxt [qnt_cnf_basic]
+      THEN' simplify_tac ctxt @{thms de_Morgan_conj de_Morgan_disj imp_conv_disj
+        iff_conv_conj_imp if_bool_eq_disj ex_simps all_simps ex_disj_distrib
+        alethe_connective_def(3) conj_disj_distribL conj_disj_distribR
+        all_conj_distrib not_all not_ex nnf_simps}
+      THEN' TRY' (Blast.blast_tac ctxt))
+    ORELSE' Blast.blast_tac ctxt
 in
 fun qnt_rm_unused ctxt _ t = SMT_Replay_Methods.prove ctxt t (fn _ =>
   K (unfold_tac ctxt rm_unused))
