@@ -54,7 +54,7 @@ sig
    Qnt_Simplify | Not_Not | Tautological_Clause | Duplicate_Literals | Distinct_Elim |
    (*Extended rules*)
    Symm | Not_Symm | Reordering | Shuffle | Tmp_Quantifier_Simplify | Contraction | 
-   Qnt_Miniscope_And | Qnt_Miniscope_Or | Qnt_Miniscope_ITE | (*Added for paper, not in Standard might change later*)
+   Qnt_Miniscope_And | Qnt_Miniscope_Or | Qnt_Miniscope_ITE | Qnt_Var_Reordering | (*Added for paper, not in Standard might change later*)
    (*Other Rules*)
    Other_Rule of string |
    Hole |
@@ -175,6 +175,7 @@ sig
   val qnt_miniscope_and: alethe_tac
   val qnt_miniscope_or: alethe_tac
   val qnt_miniscope_ITE: alethe_tac
+  val qnt_var_reordering: alethe_tac
 
   (*Extension to declare new alethe rules*)
   val declare_alethe_rule:  string -> alethe_tac_step_args -> Context.generic -> Context.generic
@@ -242,7 +243,7 @@ datatype alethe_rule =
    Qnt_Simplify | Not_Not | Tautological_Clause | Duplicate_Literals | Distinct_Elim | 
    (*Extended rules*)
    Symm | Not_Symm | Reordering | Shuffle | Tmp_Quantifier_Simplify | Contraction |
-   Qnt_Miniscope_And | Qnt_Miniscope_Or | Qnt_Miniscope_ITE | (*Added for paper, not in Standard might change later*)
+   Qnt_Miniscope_And | Qnt_Miniscope_Or | Qnt_Miniscope_ITE | Qnt_Var_Reordering | (*Added for paper, not in Standard might change later*)
    (*Other Rules*)
    Other_Rule of string |
    Hole |
@@ -352,6 +353,7 @@ fun string_of_alethe_rule Bind = "Bind"
   | string_of_alethe_rule Qnt_Miniscope_And = "qnt_miniscope_and"
   | string_of_alethe_rule Qnt_Miniscope_Or = "qnt_miniscope_or"
   | string_of_alethe_rule Qnt_Miniscope_ITE = "qnt_miniscope_ITE"
+  | string_of_alethe_rule Qnt_Var_Reordering = "qnt_var_reordering"
   | string_of_alethe_rule Not_Not = Alethe_Proof.not_not_rule
   | string_of_alethe_rule Tautological_Clause = "tautology"
   | string_of_alethe_rule Duplicate_Literals = Alethe_Proof.contract_rule
@@ -700,9 +702,13 @@ local
 
 fun skolem_tac extractor thm1 thms1 ctxt prems context_ass (decl:string list * string list) t =
   let
+     val _ = @{print}("thm1",thm1) 
+     val _ = @{print}("thms1",thms1) 
+     val _ = @{print}("prems",prems) 
 
+                               
     val (context_ass_thm,_) = Assumption.add_assumes (map (Thm.cterm_of ctxt) context_ass) ctxt
-    (* val _ = @{print}("context_ass_thm",context_ass_thm) *)
+     val _ = @{print}("context_ass_thm",context_ass_thm) 
 
   (*  val context_ass_thm_sym = map (fn x => @{thm sym} OF [x]) context_ass_thm
     val _ = @{print}("context_ass_thm_sym",context_ass_thm_sym))*)
@@ -781,15 +787,15 @@ lemma alethe_sko_forall_indirect2:
     SMT_Replay_Methods.prove ctxt t (fn _ =>
       rewrite_all_skolems ctxt_eq thms1 ctxt defs
 
-      THEN' (*(((resolve_tac ctxt @{thms refl}) THEN' K (print_tac ctxt "sko 0"))
-      ORELSE' *)
+      THEN' (((resolve_tac ctxt @{thms refl}) THEN' K (print_tac ctxt "sko 0")))
+      ORELSE' 
       ( (*K (print_tac ctxt "sko 2")
       THEN'*) TRY' (eqsubst_all ctxt (map (fn thm => thm RS sym) other))
-      (*THEN' K (print_tac ctxt "sko 3")*)
+      THEN' K (print_tac ctxt "sko 3")
       THEN_ALL_NEW TRY' (resolve_tac ctxt @{thms refl})
-      (*THEN' K (print_tac ctxt "sko 4")*)
+      THEN' K (print_tac ctxt "sko 4")
       THEN' K (unfold_tac ctxt ctxt_eq)
-      (*THEN' K (print_tac ctxt "sko 5")*)
+      THEN' K (print_tac ctxt "sko 5")
       THEN' TRY' (partial_simplify_tac ctxt (@{thms eq_commute}))))
   end
 in
@@ -1772,5 +1778,9 @@ fun qnt_miniscope_ITE ctxt _ t =
   SMT_Replay_Methods.prove ctxt t (fn _ => (
     eqsubst_all ctxt @{thms alethe_qnt_miniscope_ITE}
     THEN' TRY' (resolve_tac ctxt @{thms refl})))
+
+fun qnt_var_reordering ctxt _ t = 
+  SMT_Replay_Methods.prove ctxt t (fn _ => (
+    blast_tac ctxt))
 
 end;

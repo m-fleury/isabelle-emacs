@@ -842,6 +842,12 @@ lemma alethe_qnt_miniscope_ITE:
   \<open>(\<forall>Y. (if C then F2 else A Y)) = (if C then F2 else (\<forall>Y. A Y))\<close>
   by simp_all
 
+lemma alethe_qnt_var_reordering:
+  \<open>A = B \<Longrightarrow> (\<forall>x. A x) = (\<forall>x. B x)\<close>
+  \<open>A x = (\<forall>y. C x y) \<Longrightarrow> (\<forall>x. A x) = (\<forall>y x. C x y)\<close>
+  \<open>A x = (\<forall>y z. D x y z) \<Longrightarrow> (\<forall>x. A x) = (\<forall>y x z. D x y z)\<close>
+  apply simp_all
+
 named_theorems cvc5_normalized_input \<open>Theorems required to replay
 our more complicated translation\<close>
 

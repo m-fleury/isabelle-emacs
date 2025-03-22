@@ -25,6 +25,15 @@ theory Main
     "CVC/SMT_CVC_Real"
 begin
 
+
+lemma
+  fixes x :: int
+  assumes "3 * x + 7 * a < 4" and "3 < 2 * x"
+  shows "a < 0"
+  supply[[smt_trace]]
+  using assms by (smt (cvc5_proof)) (*success*)
+
+
 no_notation floor  ("\<lfloor>_\<rfloor>")
 
 subsection \<open>Namespace cleanup\<close>

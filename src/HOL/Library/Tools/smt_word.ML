@@ -617,6 +617,15 @@ fun concat op_name smt_name (typ as (Type(_,[T1,Type(_,[T2,T])]))) terms =
   _ => NONE) |
  concat _ _ _ _ = NONE
 
+
+val bit_ops_table = [
+  (\<^const_name>\<open>bit\<close>, @{thm min_def_raw})]
+
+val setup_bit_ops_table = fold (SMT_Builtin.add_builtin_fun_ext'' o fst) bit_ops_table
+
+val _ = Theory.setup (Context.theory_map (setup_bit_ops_table))
+
+
 val setup_builtins =
   SMT_Builtin.add_builtin_typ SMTLIB_Interface.bvsmtlibC (wordT, word_typ, word_num) #>
 (*Isabelle typ, typ uebersetzung, term uebersetzung*)
@@ -662,9 +671,9 @@ val setup_builtins =
   fold (add_word_fun take_bit) [
     (\<^term>\<open>take_bit :: _ \<Rightarrow> 'a::len word \<Rightarrow> _\<close>, "TODO")
    ] #>
-  fold (add_word_fun bit) [
+ (* fold (add_word_fun bit) [
     (\<^term>\<open>bit :: 'a::len word \<Rightarrow> _ \<Rightarrow> _\<close>, "bit")
-   ] #>
+   ] #>*)
   add_word_fun extract
     (\<^term>\<open>smt_extract :: _ \<Rightarrow> _ \<Rightarrow> 'a::len word \<Rightarrow> _\<close>, "extract") 
 

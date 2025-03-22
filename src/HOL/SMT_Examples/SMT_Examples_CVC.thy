@@ -340,6 +340,7 @@ lemma
   fixes x :: int
   assumes "3 * x + 7 * a < 4" and "3 < 2 * x"
   shows "a < 0"
+  supply[[smt_trace]]
   using assms by (smt (cvc5_proof)) (*success*)
 
 lemma "(0 \<le> y + -1 * x \<or> \<not> 0 \<le> x \<or> 0 \<le> (x::int)) = (\<not> False)" by (smt (cvc5_proof)) (*success*)
