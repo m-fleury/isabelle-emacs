@@ -702,13 +702,9 @@ local
 
 fun skolem_tac extractor thm1 thms1 ctxt prems context_ass (decl:string list * string list) t =
   let
-     val _ = @{print}("thm1",thm1) 
-     val _ = @{print}("thms1",thms1) 
-     val _ = @{print}("prems",prems) 
-
+   
                                
     val (context_ass_thm,_) = Assumption.add_assumes (map (Thm.cterm_of ctxt) context_ass) ctxt
-     val _ = @{print}("context_ass_thm",context_ass_thm) 
 
   (*  val context_ass_thm_sym = map (fn x => @{thm sym} OF [x]) context_ass_thm
     val _ = @{print}("context_ass_thm_sym",context_ass_thm_sym))*)
@@ -787,15 +783,13 @@ lemma alethe_sko_forall_indirect2:
     SMT_Replay_Methods.prove ctxt t (fn _ =>
       rewrite_all_skolems ctxt_eq thms1 ctxt defs
 
-      THEN' (((resolve_tac ctxt @{thms refl}) THEN' K (print_tac ctxt "sko 0")))
+      THEN' ((*((resolve_tac ctxt @{thms refl}) THEN' K (print_tac ctxt "sko 0")))
       ORELSE' 
-      ( (*K (print_tac ctxt "sko 2")
+      (
+*) (*K (print_tac ctxt "sko 2")
       THEN'*) TRY' (eqsubst_all ctxt (map (fn thm => thm RS sym) other))
-      THEN' K (print_tac ctxt "sko 3")
       THEN_ALL_NEW TRY' (resolve_tac ctxt @{thms refl})
-      THEN' K (print_tac ctxt "sko 4")
       THEN' K (unfold_tac ctxt ctxt_eq)
-      THEN' K (print_tac ctxt "sko 5")
       THEN' TRY' (partial_simplify_tac ctxt (@{thms eq_commute}))))
   end
 in
@@ -1261,7 +1255,10 @@ in
 
 fun bfun_elim ctxt prems t = SMT_Replay_Methods.prove ctxt t (fn _ =>
   Method.insert_tac ctxt prems
+  THEN' K (print_tac ctxt "here")
   THEN' TRY' (eqsubst_all ctxt bfun_theorems)
+  THEN' K (print_tac ctxt "here2")
+
   THEN' TRY' (simplify_tac ctxt @{thms eq_commute all_conj_distrib ex_disj_distrib}))
 
 end
