@@ -121,6 +121,7 @@ fun cvc5_rule_of "bind" = Bind
   | cvc5_rule_of "distinct_elim" = Distinct_Elim
   | cvc5_rule_of "unary_minus_simplify" = Unary_Minus_Simplify
   | cvc5_rule_of "quantifier_simplify" = Tmp_Quantifier_Simplify (*TODO Remove*)
+  | cvc5_rule_of "trust" = Trust
   | cvc5_rule_of r =
      if r = Alethe_Proof.normalized_input_rule then Normalized_Input
      else if r = Alethe_Proof.local_input_rule then Local_Input
@@ -276,6 +277,7 @@ fun choose _ And = ignore_args and_rule
   | choose _ Qnt_Var_Reordering = ignore_args qnt_var_reordering
   | choose _ Tmp_Quantifier_Simplify = ignore_args qnt_simplify
   | choose _ Unary_Minus_Simplify = ignore_args rewrite_minus_simplify
+  | choose _ Trust = ignore_args trust
   | choose ctxt (Other_Rule r) =
     (case get_alethe_tac r ctxt of
       NONE => ignore_args hole(*unsupported (string_of_alethe_rule x)*)

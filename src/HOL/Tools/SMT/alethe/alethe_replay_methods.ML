@@ -57,7 +57,7 @@ sig
    Qnt_Miniscope_And | Qnt_Miniscope_Or | Qnt_Miniscope_ITE | Qnt_Var_Reordering | (*Added for paper, not in Standard might change later*)
    (*Other Rules*)
    Other_Rule of string |
-   Hole |
+   Hole | Trust |
    (*Temporary rules, that the veriT developers want to remove:*)
    AC_Simp |
    Bfun_Elim |
@@ -176,6 +176,7 @@ sig
   val qnt_miniscope_or: alethe_tac
   val qnt_miniscope_ITE: alethe_tac
   val qnt_var_reordering: alethe_tac
+  val trust: alethe_tac
 
   (*Extension to declare new alethe rules*)
   val declare_alethe_rule:  string -> alethe_tac_step_args -> Context.generic -> Context.generic
@@ -246,7 +247,7 @@ datatype alethe_rule =
    Qnt_Miniscope_And | Qnt_Miniscope_Or | Qnt_Miniscope_ITE | Qnt_Var_Reordering | (*Added for paper, not in Standard might change later*)
    (*Other Rules*)
    Other_Rule of string |
-   Hole |
+   Hole | Trust |
    (*Temporary rules, that the veriT developers want to remove:*)
    AC_Simp |
    Bfun_Elim |
@@ -359,6 +360,7 @@ fun string_of_alethe_rule Bind = "Bind"
   | string_of_alethe_rule Duplicate_Literals = Alethe_Proof.contract_rule
   | string_of_alethe_rule Distinct_Elim = "distinct_elim"
   | string_of_alethe_rule Qnt_CNF = "qnt_cnf"
+  | string_of_alethe_rule Trust = "trust"
   | string_of_alethe_rule (Other_Rule r) = r
   | string_of_alethe_rule r = "Unknown rule: " ^ \<^make_string> r
 
@@ -1788,4 +1790,8 @@ fun qnt_var_reordering ctxt _ t =
   SMT_Replay_Methods.prove ctxt t (fn _ => (
     blast_tac ctxt))
 
+
+fun trust ctxt _ t = 
+  SMT_Replay_Methods.prove ctxt t (fn _ => (
+    Skip_Proof.cheat_tac ctxt))
 end;
