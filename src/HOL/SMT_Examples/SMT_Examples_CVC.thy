@@ -1,12 +1,13 @@
 (*  Title:      HOL/SMT_Examples/SMT_Examples_CVC.thy
     Author:     Sascha Boehme, TU Muenchen
-    Author:     Mathias Fleury, JKU
+    Author:     Mathias Fleury, JKU, UFR
+    Author:     Hanna Lachnitt, Stanford University
 
-Half of the examples come from the corresponding file for z3,
+Half of the examples come from the corresponding file for z3 or veriT,
 the others come from the Isabelle distribution or the AFP.
 *)
 
-section \<open>Examples for the (smt (cvc5)) binding\<close>
+section \<open>Examples for the cvc5-SMT binding\<close>
 
 theory SMT_Examples_CVC
   imports Complex_Main
