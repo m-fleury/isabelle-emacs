@@ -779,8 +779,6 @@ lemma alethe_sko_forall_indirect2:
            |> (fn ctxt => ctxt addsimps acc)
         in ((v, SOME (Simplifier.full_simplify simp_ctxt thm)) :: fold_definition xs acc') end
     val defs = fold_definition (ordered_definitions ()) []
-    val _ = @{print}("ordered_definitions ()",ordered_definitions ())
-    val _ = @{print}("ordered_definitions ()",defs)
   in
     SMT_Replay_Methods.prove ctxt t (fn _ =>
       rewrite_all_skolems ctxt_eq thms1 ctxt defs

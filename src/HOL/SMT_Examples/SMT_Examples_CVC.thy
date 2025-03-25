@@ -24,24 +24,17 @@ declare [[smt_trace=false]]
 section \<open>Propositional and first-order logic\<close>
 
 declare [[smt_cvc_alethe = true]]
-lemma "\<forall>x y::int. x + y > 2 \<or> x + y = 2 \<or> x + y < 2" supply[[smt_trace]]by (smt (cvc5_proof))  (*context error*)
+lemma "\<forall>x y::int. x + y > 2 \<or> x + y = 2 \<or> x + y < 2" supply[[smt_trace]]by (smt (cvc5_proof))
 
 declare[[ML_print_depth=100,smt_verbose=false]]
 lemma "\<bar>x :: real\<bar> + \<bar>y\<bar> \<ge> \<bar>x + y\<bar>" supply[[smt_trace=false,smt_timeout=1000,smt_reconstruction_step_timeout=1000]] 
   supply[[smt_debug_arith_verit=false]]
-  by (smt (cvc5_proof))  (*la_generic real vs int error*)
-lemma "(if (\<forall>x::int. x < 0 \<or> x > 0) then -1 else 3) > (0::int)" by (smt (cvc5_proof)) (*la_generic real vs int error*)
+  by (smt (cvc5_proof))
+lemma "(if (\<forall>x::int. x < 0 \<or> x > 0) then -1 else 3) > (0::int)" by (smt (cvc5_proof))
 
 declare[[smt_expert_debug_alethe_level=0]]
 declare[[smt_expert_debug_alethe_files="alethe_replay"]]
 
-
-(*
-Orange Markiert/ BackgroundFarbe: Freie Variable die nicht im Kontext ist.
-Orange Farbe: Skolem? 
-Blaue Farbe: Freie Variable die im Kontext ist
-Gruen: Bound Variable
-*)
 lemma "True" supply [[smt_trace]] by (smt (cvc5_proof)) (*success*)
 lemma "p \<or> \<not>p" by (smt (cvc5_proof)) (*success*)
 lemma "(p \<and> True) = p" by (smt (cvc5_proof)) (*success*)
@@ -325,7 +318,7 @@ lemma "(3::real) = 3" by (smt (cvc5_proof)) (*success*)
 lemma "(3 :: int) + 1 = 4" by (smt (cvc5_proof)) (*success*)
 lemma "x + (y + z) = y + (z + (x::int))" by (smt (cvc5_proof)) (*success*)
 lemma "max (3::int) 8 > 5" by (smt (cvc5_proof)) (*success*)
-lemma "\<bar>x :: real\<bar> + \<bar>y\<bar> \<ge> \<bar>x + y\<bar>" supply[[smt_trace=false,smt_verbose=false]] by (smt (cvc5_proof))  (*la_generic real vs int error*)
+lemma "\<bar>x :: real\<bar> + \<bar>y\<bar> \<ge> \<bar>x + y\<bar>" supply[[smt_trace=false,smt_verbose=false]] by (smt (cvc5_proof))
 lemma "P ((2::int) < 3) = P True" supply[[smt_trace]] by (smt (cvc5_proof)) (*success*)
 lemma "x + 3 \<ge> 4 \<or> x < (1::int)" by (smt (cvc5_proof)) (*success*)
 
@@ -373,6 +366,7 @@ processor.
 \<close>
 
 (*
+(*cvc5 does not find a proof unlike z3 or veriT*)
 lemma "\<lbrakk> x3 = \<bar>x2\<bar> - x1; x4 = \<bar>x3\<bar> - x2; x5 = \<bar>x4\<bar> - x3;
          x6 = \<bar>x5\<bar> - x4; x7 = \<bar>x6\<bar> - x5; x8 = \<bar>x7\<bar> - x6;
          x9 = \<bar>x8\<bar> - x7; x10 = \<bar>x9\<bar> - x8; x11 = \<bar>x10\<bar> - x9 \<rbrakk>
@@ -390,27 +384,11 @@ lemma "~ (\<exists>x::int. False)" by (smt (cvc5_proof)) (*success*)
 lemma "~ (\<exists>x::real. False)" by (smt (cvc5_proof)) (*success*)
 
 
-
-(*
-Bei veriT kann die conclusion reordered sein wenn ein neuer Term produziert wird. Waehrend der Isabelle
-code darauf ausgelegt ist dass das nicht passiert, ist der Standard eigentlich genereller. Ueberall 
-ist diese Assumption mit eingebaut.
-
-[ ] 4: Only allow implicit reordering of equalities in assume commands (both top-level and in subproofs)
-
-Einige Reconstructions koennten
-
-
-*)
-
-
-
-
 lemma "\<forall>x y::int. (x = 0 \<and> y = 1) \<longrightarrow> x \<noteq> y" by (smt (cvc5_proof)) (*success*)
 lemma "\<forall>x y::int. x < y \<longrightarrow> (2 * x + 1) < (2 * y)" by (smt (cvc5_proof)) (*success*)
 lemma "\<forall>x y::int. x + y > 2 \<or> x + y = 2 \<or> x + y < 2" supply[[smt_trace]]by (smt (cvc5_proof))  (*context error*)
 lemma "\<forall>x::int. if x > 0 then x + 1 > 0 else 1 > x" by (smt (cvc5_proof)) (*success*)
-lemma "(if (\<forall>x::int. x < 0 \<or> x > 0) then -1 else 3) > (0::int)" by (smt (cvc5_proof)) (*la_generic real vs int error*)
+lemma "(if (\<forall>x::int. x < 0 \<or> x > 0) then -1 else 3) > (0::int)" by (smt (cvc5_proof))
 lemma "\<exists>x::int. \<forall>x y. 0 < x \<and> 0 < y \<longrightarrow> (0::int) < x + y" supply [[verit_compress_proofs=false,smt_trace]]by (smt (cvc5_proof))  (*bind error*)
 
 experiment
@@ -510,10 +488,7 @@ end
 
 experiment
 begin
-lemma [cvc5_holes_pre]:
-  \<open>(\<forall>(v0::'a set) v1. finite v0 \<and> finite v1 \<longrightarrow> card v0 + card v1 = card (v0 \<union> v1) + card (v0 \<inter> v1)) =
-         (\<forall>(v0::'a set) v1. infinite v0 \<or> infinite v1 \<or> card v0 + card v1 = card (v0 \<union> v1) + card (v0 \<inter> v1))\<close>
-  by (intro iff_allI) auto
+
 lemma
  "eq_set (List.coset xs) (set ys) = rhs"
     if "\<And>ys. subset' (List.coset xs) (set ys) = (let n = card (UNIV::'a set) in 0 < n \<and> card (set (xs @ ys)) = n)"
@@ -593,14 +568,6 @@ lemma
 
 context
 begin
-lemma [cvc5_holes_pre]:
- \<open>(\<forall>(v0::real) (v1::real) (v2::real).
-             (\<not> 0 / 1 \<le> v0 / v1 + - 1 / 1 * (v2 / v1)) =
-             ((\<not> 0 / 1 \<le> - 1 / 1 * v1 \<longrightarrow> \<not> 0 / 1 \<le> v0 + - 1 / 1 * v2) \<and> (\<not> 0 / 1 \<le> v1 \<longrightarrow> \<not> 0 / 1 \<le> - 1 / 1 * v0 + v2) \<and> v1 \<noteq> 0 / 1)) =
-         (\<forall>(v0::real) (v1::real) (v2::real).
-             (\<not> 0 / 1 \<le> v0 / v1 + - 1 / 1 * (v2 / v1)) =
-             ((0 / 1 \<le> - 1 / 1 * v1 \<or> \<not> 0 / 1 \<le> v0 + - 1 / 1 * v2) \<and> (0 / 1 \<le> v1 \<or> \<not> 0 / 1 \<le> - 1 / 1 * v0 + v2) \<and> v1 \<noteq> 0 / 1)) \<close>
-  by auto
 
 (*test for arith reconstruction*)
 lemma
@@ -619,7 +586,7 @@ lemma
     (\<lambda>y. (- (d / 2), (2 * y - 1) * diamond_y (- (d / 2)))) =
     (\<lambda>x. ((x - 1 / 2) * d, diamond_y ((x - 1 / 2) * d))) \<Longrightarrow>
     False\<close>
-  using assms supply [[smt_trace=false]] by (smt (cvc5_proof)) (*hole*)
+  using assms supply [[smt_trace=false]] by (smt (cvc5_proof))
 
 lemma
   fixes d :: real
@@ -637,7 +604,7 @@ lemma
     (\<lambda>y. (- (d / 2), (2 * y - 1) * diamond_y (- (d / 2)))) =
     (\<lambda>x. ((x - 1 / 2) * d, diamond_y ((x - 1 / 2) * d))) \<Longrightarrow>
     False\<close>
-  using assms supply [[smt_trace]]
+  using assms supply [[smt_trace=false]]
   by (smt (cvc5_proof))
 end
 (*qnt_rm_unused example*)
@@ -785,141 +752,6 @@ context
     centered_modulo :: \<open>int \<Rightarrow> int \<Rightarrow> int\<close>  (infixl \<open>cmod\<close> 70)
 begin
 
-
-lemma [cvc5_holes_pre]:
-\<open>(if 0 \<le> k then k else - 1 * k) div 2 * 2 + (if 0 \<le> k then k else - 1 * k) mod 2 + 2 * ((if 0 \<le> k then k else - 1 * k) div 2) +
-- 1 * ((if 0 \<le> k then k else - 1 * k) div 2 * 2) +
-(- 1 * (2 * ((if 0 \<le> k then k else - 1 * k) div 2)) + - 1 * ((if 0 \<le> k then k else - 1 * k) mod 2)) =
-0\<close>
-\<open>(if 0 \<le> k then k else - 1 * k) + - 1 * ((if 0 \<le> k then k else - 1 * k) div 2) + (- 1 * (if 0 \<le> k then k else - 1 * k) + k cdiv 0 * 0 + k cmod 0) +
-2 * ((if 0 \<le> k then k else - 1 * k) div 2) +
-(if 0 \<le> k then k else - 1 * k) mod 2 +
-- 1 * (k cdiv 0 * 0) +
-- 1 * (k cmod 0) +
-- 1 * ((if 0 \<le> k then k else - 1 * k) mod 2) +
-(if 0 \<le> k then k else - 1 * k) div 2 +
-- 1 * (2 * ((if 0 \<le> k then k else - 1 * k) div 2)) =
-0\<close>
-\<open>(if 0 \<le> k then k else - 1 * k) div 2 + - 1 * (2 * ((if 0 \<le> k then k else - 1 * k) div 2)) +
-((if 0 \<le> k then k else - 1 * k) + - 1 * ((if 0 \<le> k then k else - 1 * k) div 2)) +
-(2 * ((if 0 \<le> k then k else - 1 * k) div 2) + (if 0 \<le> k then k else - 1 * k) mod 2 + - 1 * (k cdiv 0 * 0) + - 1 * (k cmod 0)) +
-- 1 * ((if 0 \<le> k then k else - 1 * k) mod 2) +
-- 1 * ((if 0 \<le> k then k else - 1 * k) + - 1 * (k cdiv 0 * 0) + - 1 * (k cmod 0)) =
-(if 0 \<le> k then k else - 1 * k) div 2 + - 1 * (2 * ((if 0 \<le> k then k else - 1 * k) div 2)) + (if 0 \<le> k then k else - 1 * k) +
-- 1 * ((if 0 \<le> k then k else - 1 * k) div 2) +
-2 * ((if 0 \<le> k then k else - 1 * k) div 2) +
-(if 0 \<le> k then k else - 1 * k) mod 2 +
-- 1 * (k cdiv 0 * 0) +
-- 1 * (k cmod 0) +
-- 1 * ((if 0 \<le> k then k else - 1 * k) mod 2) +
-- 1 * ((if 0 \<le> k then k else - 1 * k) + - 1 * (k cdiv 0 * 0) + - 1 * (k cmod 0))\<close>
-\<open>(k + - 1 * (2 * ((if 0 \<le> k then k else - 1 * k) div 2)) + - 1 * ((if 0 \<le> k then k else - 1 * k) mod 2) = 0) =
-(k = 2 * ((if 0 \<le> k then k else - 1 * k) div 2) + (if 0 \<le> k then k else - 1 * k) mod 2)\<close>
-\<open>((if 0 \<le> k then k else - 1 * k) + - 1 * (2 * ((if 0 \<le> k then k else - 1 * k) div 2)) + - 1 * ((if 0 \<le> k then k else - 1 * k) mod 2) = 0) =
-((if 0 \<le> k then k else - 1 * k) = 2 * ((if 0 \<le> k then k else - 1 * k) div 2) + (if 0 \<le> k then k else - 1 * k) mod 2)\<close>
-\<open>- 1 * (2 * ((if 0 \<le> k then k else - 1 * k) div 2) + (if 0 \<le> k then k else - 1 * k) mod 2) =
-- 1 * (2 * ((if 0 \<le> k then k else - 1 * k) div 2)) + - 1 * ((if 0 \<le> k then k else - 1 * k) mod 2)\<close>
-\<open>2 * ((if 0 \<le> k then k else - 1 * k) div 2) + (if 0 \<le> k then k else - 1 * k) mod 2 + - 1 * (if 0 \<le> k then k else - 1 * k) + (if 0 \<le> k then k else - 1 * k) +
-- 1 * (2 * ((if 0 \<le> k then k else - 1 * k) div 2)) +
-- 1 * ((if 0 \<le> k then k else - 1 * k) mod 2) =
-0\<close>
-\<open>(if 0 \<le> k then k else - 1 * k) mod 2 + (- 1 * (if 0 \<le> k then k else - 1 * k) + - 1 * (k cdiv 0 * 0) + - 1 * (k cmod 0)) +
-(if 0 \<le> k then k else - 1 * k) div 2 * 2 +
-2 * ((if 0 \<le> k then k else - 1 * k) div 2) +
-- 1 * ((if 0 \<le> k then k else - 1 * k) div 2 * 2) +
-(if 0 \<le> k then k else - 1 * k) +
-- 1 * (2 * ((if 0 \<le> k then k else - 1 * k) div 2)) +
-- 1 * ((if 0 \<le> k then k else - 1 * k) mod 2) +
-(- 1 * k + k cdiv 0 * 0 + k cmod 0) +
-k =
-0\<close>
-\<open>- 1 * (2 * ((if 0 \<le> k then k else - 1 * k) div 2) + (if 0 \<le> k then k else - 1 * k) mod 2) +
-(2 * ((if 0 \<le> k then k else - 1 * k) div 2) + (if 0 \<le> k then k else - 1 * k) mod 2) =
-- 1 * (2 * ((if 0 \<le> k then k else - 1 * k) div 2) + (if 0 \<le> k then k else - 1 * k) mod 2) + 2 * ((if 0 \<le> k then k else - 1 * k) div 2) +
-(if 0 \<le> k then k else - 1 * k) mod 2\<close>
-\<open>((if 0 \<le> k then k else - 1 * k) div 2 + - 1 * ((if 0 \<le> k then k else - 1 * k) div 2 mod (if 0 \<le> k then k else - 1 * k)) +
- - 1 * ((if 0 \<le> k then k else - 1 * k) * ((if 0 \<le> k then k else - 1 * k) div 2 div (if 0 \<le> k then k else - 1 * k))) =
- 0) =
-((if 0 \<le> k then k else - 1 * k) div 2 =
- (if 0 \<le> k then k else - 1 * k) div 2 mod (if 0 \<le> k then k else - 1 * k) +
- (if 0 \<le> k then k else - 1 * k) * ((if 0 \<le> k then k else - 1 * k) div 2 div (if 0 \<le> k then k else - 1 * k)))\<close>
-\<open>- 1 * (2 * ((if 0 \<le> k then k else - 1 * k) div 2) + (if 0 \<le> k then k else - 1 * k) mod 2 + - 1 * (k cdiv 0 * 0) + - 1 * (k cmod 0)) =
-- 1 * (2 * ((if 0 \<le> k then k else - 1 * k) div 2)) + - 1 * ((if 0 \<le> k then k else - 1 * k) mod 2) + k cdiv 0 * 0 + k cmod 0\<close>
-\<open>(if 0 \<le> k then k else - 1 * k) div 2 * 2 + - 1 * k +
-(- 1 * (2 * ((if 0 \<le> k then k else - 1 * k) div 2)) + - 1 * ((if 0 \<le> k then k else - 1 * k) mod 2) + k cdiv 0 * 0 + k cmod 0) +
-(if 0 \<le> k then k else - 1 * k) mod 2 +
-2 * ((if 0 \<le> k then k else - 1 * k) div 2) +
-- 1 * ((if 0 \<le> k then k else - 1 * k) div 2 * 2) +
-k +
-- 1 * (k cdiv 0 * 0) +
-- 1 * (k cmod 0) =
-0\<close>
-\<open>(2 * ((if 0 \<le> k then k else - 1 * k) div 2) + (if 0 \<le> k then k else - 1 * k) mod 2 = k cdiv 0 * 0 + k cmod 0) =
-(2 * ((if 0 \<le> k then k else - 1 * k) div 2) = - 1 * ((if 0 \<le> k then k else - 1 * k) mod 2) + k cdiv 0 * 0 + k cmod 0)\<close>
-\<open>(2 * ((if 0 \<le> k then k else - 1 * k) div 2) + (if 0 \<le> k then k else - 1 * k) mod 2 + - 1 * (k cdiv 0 * 0) + - 1 * (k cmod 0) = 0) =
-(2 * ((if 0 \<le> k then k else - 1 * k) div 2) = - 1 * ((if 0 \<le> k then k else - 1 * k) mod 2) + k cdiv 0 * 0 + k cmod 0)\<close>
-\<open>(if 0 \<le> k then k else - 1 * k) + - 1 * ((if 0 \<le> k then k else - 1 * k) div 2) +
-         ((if 0 \<le> k then k else - 1 * k) div 2 + - 1 * (2 * ((if 0 \<le> k then k else - 1 * k) div 2))) +
-         - 1 * ((if 0 \<le> k then k else - 1 * k) mod 2) +
-         (2 * ((if 0 \<le> k then k else - 1 * k) div 2) + (if 0 \<le> k then k else - 1 * k) mod 2 + - 1 * (k cdiv 0 * 0) + - 1 * (k cmod 0)) +
-         - 1 * ((if 0 \<le> k then k else - 1 * k) + - 1 * (k cdiv 0 * 0) + - 1 * (k cmod 0)) =
-         (if 0 \<le> k then k else - 1 * k) + - 1 * ((if 0 \<le> k then k else - 1 * k) div 2) + (if 0 \<le> k then k else - 1 * k) div 2 +
-         - 1 * (2 * ((if 0 \<le> k then k else - 1 * k) div 2)) +
-         - 1 * ((if 0 \<le> k then k else - 1 * k) mod 2) +
-         2 * ((if 0 \<le> k then k else - 1 * k) div 2) +
-         (if 0 \<le> k then k else - 1 * k) mod 2 +
-         - 1 * (k cdiv 0 * 0) +
-         - 1 * (k cmod 0) +
-         - 1 * ((if 0 \<le> k then k else - 1 * k) + - 1 * (k cdiv 0 * 0) + - 1 * (k cmod 0)) \<close>
-\<open>- 1 * k + (if 0 \<le> k then k else - 1 * k) div 2 * 2 + (if 0 \<le> k then k else - 1 * k) mod 2 +
-         - 1 * (2 * ((if 0 \<le> k then k else - 1 * k) div 2) + (if 0 \<le> k then k else - 1 * k) mod 2 + - 1 * (k cdiv 0 * 0) + - 1 * (k cmod 0)) +
-         (2 * ((if 0 \<le> k then k else - 1 * k) div 2) + - 1 * ((if 0 \<le> k then k else - 1 * k) div 2 * 2)) +
-         (k + - 1 * (k cdiv 0 * 0) + - 1 * (k cmod 0)) =
-         - 1 * k + (if 0 \<le> k then k else - 1 * k) div 2 * 2 + (if 0 \<le> k then k else - 1 * k) mod 2 +
-         - 1 * (2 * ((if 0 \<le> k then k else - 1 * k) div 2) + (if 0 \<le> k then k else - 1 * k) mod 2 + - 1 * (k cdiv 0 * 0) + - 1 * (k cmod 0)) +
-         2 * ((if 0 \<le> k then k else - 1 * k) div 2) +
-         - 1 * ((if 0 \<le> k then k else - 1 * k) div 2 * 2) +
-         k +
-         - 1 * (k cdiv 0 * 0) +
-         - 1 * (k cmod 0) \<close>
-\<open>- 1 * ((if 0 \<le> k then k else - 1 * k) + - 1 * (k cdiv 0 * 0) + - 1 * (k cmod 0)) +
-         ((if 0 \<le> k then k else - 1 * k) + - 1 * ((if 0 \<le> k then k else - 1 * k) div 2)) +
-         - 1 * ((if 0 \<le> k then k else - 1 * k) mod 2) +
-         (2 * ((if 0 \<le> k then k else - 1 * k) div 2) + (if 0 \<le> k then k else - 1 * k) mod 2 + - 1 * (k cdiv 0 * 0) + - 1 * (k cmod 0)) +
-         ((if 0 \<le> k then k else - 1 * k) div 2 + - 1 * (2 * ((if 0 \<le> k then k else - 1 * k) div 2))) =
-         - 1 * ((if 0 \<le> k then k else - 1 * k) + - 1 * (k cdiv 0 * 0) + - 1 * (k cmod 0)) + (if 0 \<le> k then k else - 1 * k) +
-         - 1 * ((if 0 \<le> k then k else - 1 * k) div 2) +
-         - 1 * ((if 0 \<le> k then k else - 1 * k) mod 2) +
-         2 * ((if 0 \<le> k then k else - 1 * k) div 2) +
-         (if 0 \<le> k then k else - 1 * k) mod 2 +
-         - 1 * (k cdiv 0 * 0) +
-         - 1 * (k cmod 0) +
-         (if 0 \<le> k then k else - 1 * k) div 2 +
-         - 1 * (2 * ((if 0 \<le> k then k else - 1 * k) div 2)) \<close>
-\<open>(if 0 \<le> k then k else - 1 * k) div 2 * 2 +
-(- 1 * (2 * ((if 0 \<le> k then k else - 1 * k) div 2)) + - 1 * ((if 0 \<le> k then k else - 1 * k) mod 2) + k cdiv 0 * 0 + k cmod 0) +
-(if 0 \<le> k then k else - 1 * k) mod 2 +
-2 * ((if 0 \<le> k then k else - 1 * k) div 2) +
-- 1 * ((if 0 \<le> k then k else - 1 * k) div 2 * 2) +
-(- 1 * (k cdiv 0 * 0) + - 1 * (k cmod 0)) =
-0\<close>
-\<open>k cdiv 0 * 0 + k cmod 0 + - 1 * ((if 0 \<le> k then k else - 1 * k) div 2) + - 1 * ((if 0 \<le> k then k else - 1 * k) mod 2) +
-(2 * ((if 0 \<le> k then k else - 1 * k) div 2) + (if 0 \<le> k then k else - 1 * k) mod 2 + - 1 * (k cdiv 0 * 0) + - 1 * (k cmod 0)) +
-((if 0 \<le> k then k else - 1 * k) div 2 + - 1 * (2 * ((if 0 \<le> k then k else - 1 * k) div 2))) =
-k cdiv 0 * 0 + k cmod 0 + - 1 * ((if 0 \<le> k then k else - 1 * k) div 2) + - 1 * ((if 0 \<le> k then k else - 1 * k) mod 2) +
-2 * ((if 0 \<le> k then k else - 1 * k) div 2) +
-(if 0 \<le> k then k else - 1 * k) mod 2 +
-- 1 * (k cdiv 0 * 0) +
-- 1 * (k cmod 0) +
-(if 0 \<le> k then k else - 1 * k) div 2 +
-- 1 * (2 * ((if 0 \<le> k then k else - 1 * k) div 2))\<close>
-for k :: int
-  by (auto simp: minus_mod_eq_mult_div) arith+
-
-lemma [cvc5_holes_pre]:
-  \<open>(\<forall>(v0::int) (v1::int). 0 \<le> v0 \<and> \<not> 0 \<le> v0 + - 1 * v1 \<longrightarrow> v0 = v0 mod v1) = (\<forall>(v0::int) (v1::int). \<not> 0 \<le> v0 \<or> 0 \<le> v0 + - 1 * v1 \<or> v0 = v0 mod v1) \<close>
-  apply auto
-  by (metis linorder_not_le mod_pos_pos_trivial)
 declare[[cvc5_options="--dag-thres=0 --proof-format-mode=alethe --proof-granularity=dsl-rewrite --proof-alethe-experimental --proof-prune-input --full-saturate-quant --proof-alethe-define-skolems --proof-elim-subtypes --no-stats --sat-random-seed=1 --lang=smt2"]]
 lemma zero_cdiv_eq [simp]:
   assumes
@@ -937,20 +769,9 @@ lemma zero_cdiv_eq [simp]:
        "\<forall>a::int. odd a = (a mod (2::int) = (1::int))"
        shows
   \<open>0 cdiv k = 0\<close>
-  supply [[smt_trace=false,smt_verbose=false]]
+  supply [[smt_trace=false,smt_verbose=false,smt_statistics]]
   by (smt (cvc5) assms)
-(* 
-In the original context fails with:
 
-SMT: Successfully checked step t162.t5.t7 
-exception TERM raised (line 380 of "term.ML"):
-  fastype_of: expected function type
-  rare_list
-
-0.sledgehammer goal.by        66424ms HOL-Library.Centered_Division 97:2774  some (SH 66424ms, ATP 975ms) [cvc5]: Try this: by (smt (cvc5) cancel_div_mod_rules(2) cdiv_0_eq cdiv_mult_cmod_eq centered_modulo_def div_mod_decomp_int even_iff_mod_2_eq_zero half_nonnegative_int_iff mod_pos_pos_trivial mult_cancel_right1 nonzero_mult_div_cancel_left odd_iff_mod_2_eq_one) (> 1.0 s, timed out)
-
-But oddly enough fails here later
-*)
 end
 
 
@@ -978,68 +799,6 @@ begin
 definition "0 = Fin(0::'a)"
 instance ..
 end
-
-lemma [cvc5_holes_pre]:
-"(\<forall>(v0::'a::comm_monoid_add extended) (v1::'a::comm_monoid_add extended) v2::'a::comm_monoid_add extended.
-             \<not> (v2 = v0 + v1 \<and>
-                 (\<forall>(v3::'a::comm_monoid_add) v4::'a::comm_monoid_add. v0 \<noteq> Fin v3 \<or> v1 \<noteq> Fin v4 \<or> v2 \<noteq> Fin (v3 + v4)) \<and>
-                 (\<infinity> \<noteq> v1 \<or> \<infinity> \<noteq> v2 \<or> (\<forall>v3::'a::comm_monoid_add. v0 \<noteq> Fin v3)) \<and>
-                 (\<infinity> \<noteq> v0 \<or> \<infinity> \<noteq> v2 \<or> (\<forall>v3::'a::comm_monoid_add. v1 \<noteq> Fin v3)) \<and>
-                 \<not> (\<infinity> = v0 \<and> \<infinity> = v1 \<and> \<infinity> = v2) \<and>
-                 (-\<infinity> \<noteq> v0 \<or> -\<infinity> \<noteq> v2 \<or> (\<forall>v3::'a::comm_monoid_add. v1 \<noteq> Fin v3)) \<and>
-                 (-\<infinity> \<noteq> v1 \<or> -\<infinity> \<noteq> v2 \<or> (\<forall>v3::'a::comm_monoid_add. v0 \<noteq> Fin v3)) \<and>
-                 \<not> (-\<infinity> = v0 \<and> -\<infinity> = v1 \<and> -\<infinity> = v2) \<and> \<not> (-\<infinity> = v0 \<and> \<infinity> = v1 \<and> \<infinity> = v2) \<and> \<not> (\<infinity> = v0 \<and> -\<infinity> = v1 \<and> \<infinity> = v2))) =
-         (\<forall>(v0::'a::comm_monoid_add extended) (v1::'a::comm_monoid_add extended) v2::'a::comm_monoid_add extended.
-             v2 \<noteq> v0 + v1 \<or>
-             \<not> (\<forall>(v3::'a::comm_monoid_add) v4::'a::comm_monoid_add. v0 \<noteq> Fin v3 \<or> v1 \<noteq> Fin v4 \<or> v2 \<noteq> Fin (v3 + v4)) \<or>
-             \<infinity> = v1 \<and> \<infinity> = v2 \<and> \<not> (\<forall>v3::'a::comm_monoid_add. v0 \<noteq> Fin v3) \<or>
-             \<infinity> = v0 \<and> \<infinity> = v2 \<and> \<not> (\<forall>v3::'a::comm_monoid_add. v1 \<noteq> Fin v3) \<or>
-             \<infinity> = v0 \<and> \<infinity> = v1 \<and> \<infinity> = v2 \<or>
-             -\<infinity> = v0 \<and> -\<infinity> = v2 \<and> \<not> (\<forall>v3::'a::comm_monoid_add. v1 \<noteq> Fin v3) \<or>
-             -\<infinity> = v1 \<and> -\<infinity> = v2 \<and> \<not> (\<forall>v3::'a::comm_monoid_add. v0 \<noteq> Fin v3) \<or>
-             -\<infinity> = v0 \<and> -\<infinity> = v1 \<and> -\<infinity> = v2 \<or> -\<infinity> = v0 \<and> \<infinity> = v1 \<and> \<infinity> = v2 \<or> \<infinity> = v0 \<and> -\<infinity> = v1 \<and> \<infinity> = v2)"
-    "(\<forall>(v0::'a::comm_monoid_add extended) (v1::'a::comm_monoid_add extended) v2::'a::comm_monoid_add extended.
-             v2 \<noteq> v0 + v1 \<or>
-             \<not> (\<forall>(v3::'a::comm_monoid_add) v4::'a::comm_monoid_add. v0 \<noteq> Fin v3 \<or> v1 \<noteq> Fin v4 \<or> v2 \<noteq> Fin (v3 + v4)) \<or>
-             \<infinity> = v1 \<and> \<infinity> = v2 \<and> \<not> (\<forall>v3::'a::comm_monoid_add. v0 \<noteq> Fin v3) \<or>
-             \<infinity> = v0 \<and> \<infinity> = v2 \<and> \<not> (\<forall>v3::'a::comm_monoid_add. v1 \<noteq> Fin v3) \<or>
-             \<infinity> = v0 \<and> \<infinity> = v1 \<and> \<infinity> = v2 \<or>
-             -\<infinity> = v0 \<and> -\<infinity> = v2 \<and> \<not> (\<forall>v3::'a::comm_monoid_add. v1 \<noteq> Fin v3) \<or>
-             -\<infinity> = v1 \<and> -\<infinity> = v2 \<and> \<not> (\<forall>v3::'a::comm_monoid_add. v0 \<noteq> Fin v3) \<or>
-             -\<infinity> = v0 \<and> -\<infinity> = v1 \<and> -\<infinity> = v2 \<or> -\<infinity> = v0 \<and> \<infinity> = v1 \<and> \<infinity> = v2 \<or> \<infinity> = v0 \<and> -\<infinity> = v1 \<and> \<infinity> = v2) =
-         (\<forall>(v0::'a::comm_monoid_add extended) v1::'a::comm_monoid_add extended.
-             v0 + v1 \<noteq> v0 + v1 \<or>
-             \<not> (\<forall>(v3::'a::comm_monoid_add) v4::'a::comm_monoid_add. v0 \<noteq> Fin v3 \<or> v1 \<noteq> Fin v4 \<or> v0 + v1 \<noteq> Fin (v3 + v4)) \<or>
-             \<infinity> = v1 \<and> \<infinity> = v0 + v1 \<and> \<not> (\<forall>v3::'a::comm_monoid_add. v0 \<noteq> Fin v3) \<or>
-             \<infinity> = v0 \<and> \<infinity> = v0 + v1 \<and> \<not> (\<forall>v3::'a::comm_monoid_add. v1 \<noteq> Fin v3) \<or>
-             \<infinity> = v0 \<and> \<infinity> = v1 \<and> \<infinity> = v0 + v1 \<or>
-             -\<infinity> = v0 \<and> -\<infinity> = v0 + v1 \<and> \<not> (\<forall>v3::'a::comm_monoid_add. v1 \<noteq> Fin v3) \<or>
-             -\<infinity> = v1 \<and> -\<infinity> = v0 + v1 \<and> \<not> (\<forall>v3::'a::comm_monoid_add. v0 \<noteq> Fin v3) \<or>
-             -\<infinity> = v0 \<and> -\<infinity> = v1 \<and> -\<infinity> = v0 + v1 \<or> -\<infinity> = v0 \<and> \<infinity> = v1 \<and> \<infinity> = v0 + v1 \<or> \<infinity> = v0 \<and> -\<infinity> = v1 \<and> \<infinity> = v0 + v1)"
- \<open>(\<forall>v2::'a::comm_monoid_add extended.
-             v2 \<noteq> (v0::'a::comm_monoid_add extended) + (v1::'a::comm_monoid_add extended) \<or>
-             v2 \<noteq> v0 + v1 \<or>
-             \<not> (\<forall>(v3::'a::comm_monoid_add) v4::'a::comm_monoid_add. v0 \<noteq> Fin v3 \<or> v1 \<noteq> Fin v4 \<or> v2 \<noteq> Fin (v3 + v4)) \<or>
-             \<infinity> = v1 \<and> \<infinity> = v2 \<and> \<not> (\<forall>v3::'a::comm_monoid_add. v0 \<noteq> Fin v3) \<or>
-             \<infinity> = v0 \<and> \<infinity> = v2 \<and> \<not> (\<forall>v3::'a::comm_monoid_add. v1 \<noteq> Fin v3) \<or>
-             \<infinity> = v0 \<and> \<infinity> = v1 \<and> \<infinity> = v2 \<or>
-             -\<infinity> = v0 \<and> -\<infinity> = v2 \<and> \<not> (\<forall>v3::'a::comm_monoid_add. v1 \<noteq> Fin v3) \<or>
-             -\<infinity> = v1 \<and> -\<infinity> = v2 \<and> \<not> (\<forall>v3::'a::comm_monoid_add. v0 \<noteq> Fin v3) \<or>
-             -\<infinity> = v0 \<and> -\<infinity> = v1 \<and> -\<infinity> = v2 \<or> -\<infinity> = v0 \<and> \<infinity> = v1 \<and> \<infinity> = v2 \<or> \<infinity> = v0 \<and> -\<infinity> = v1 \<and> \<infinity> = v2) =
-         (v0 + v1 \<noteq> v0 + v1 \<or>
-          \<not> (\<forall>(v3::'a::comm_monoid_add) v4::'a::comm_monoid_add. v0 \<noteq> Fin v3 \<or> v1 \<noteq> Fin v4 \<or> v0 + v1 \<noteq> Fin (v3 + v4)) \<or>
-          \<infinity> = v1 \<and> \<infinity> = v0 + v1 \<and> \<not> (\<forall>v3::'a::comm_monoid_add. v0 \<noteq> Fin v3) \<or>
-          \<infinity> = v0 \<and> \<infinity> = v0 + v1 \<and> \<not> (\<forall>v3::'a::comm_monoid_add. v1 \<noteq> Fin v3) \<or>
-          \<infinity> = v0 \<and> \<infinity> = v1 \<and> \<infinity> = v0 + v1 \<or>
-          -\<infinity> = v0 \<and> -\<infinity> = v0 + v1 \<and> \<not> (\<forall>v3::'a::comm_monoid_add. v1 \<noteq> Fin v3) \<or>
-          -\<infinity> = v1 \<and> -\<infinity> = v0 + v1 \<and> \<not> (\<forall>v3::'a::comm_monoid_add. v0 \<noteq> Fin v3) \<or>
-          -\<infinity> = v0 \<and> -\<infinity> = v1 \<and> -\<infinity> = v0 + v1 \<or> -\<infinity> = v0 \<and> \<infinity> = v1 \<and> \<infinity> = v0 + v1 \<or> \<infinity> = v0 \<and> -\<infinity> = v1 \<and> \<infinity> = v0 + v1)\<close>
-   apply (intro iff_allI)
-   apply argo
-  apply (rule iff_allI)
-  apply (rule iff_allI)
-   apply (smt (z3))
-  sorry
 
 lemma
   assumes
@@ -1135,15 +894,11 @@ lemma
        "(0::'a::comm_monoid_add extended) = Fin (0::'a::comm_monoid_add)"
    shows
        "Fin (0::'a::comm_monoid_add) + (x::'a::comm_monoid_add extended) = x "
-  supply [[smt_trace,show_types,show_sorts]]
+  supply [[smt_trace=false,smt_statistics]]
   using assms
-  by (smt (cvc5,fmf))
-(*
-.sledgehammer goal.unfolding 53980ms HOL-Library.Extended 121:2992  some (SH 53980ms, ATP 183ms) [cvc5]: Try this: by (smt (cvc5) add_0 plus_extended.elims plus_extended.simps(1) plus_extended.simps(2) plus_extended.simps(6) zero_extended_def) (> 1.0 s, timed out)
+(*  by (smt (cvc5,fmf)) (*onepoint issue*)*)
+  sorry
 
-Error:
-exception SMTLIB_PARSE ("bad SMT term", Sym "rare-list") raised (line 234 of "~~/src/HOL/Tools/SMT/smtlib_proof.ML")
-*)
 
 
 context
