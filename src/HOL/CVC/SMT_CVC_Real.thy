@@ -71,9 +71,12 @@ lemmas [alethe_poly_norm] =
   if_True if_False distrib_right_numeral left_diff_distrib_numeral times_divide_eq_left
   of_int_neg_numeral ring_1_class.of_int_diff ring_1_class.of_int_numeral ring_1_class.of_int_mult
   mult_numeral_left_semiring_numeral mult_num_simps of_int_minus mult_minus_right times_divide_eq_right
-  of_int_of_nat_eq diff_divide_distrib add.right_neutral
-   mult_zero_left mult_zero_right div_0 div_by_1
-
+  of_int_of_nat_eq diff_divide_distrib add.right_neutral diff_cancel mult_minus_right
+  mult_zero_left mult_zero_right div_0 div_by_1 add_uminus_conv_diff numeral_times_numeral
+  mult_numeral_left_semiring_numeral mult_num_simps mult_numeral_left uminus_add_conv_diff
+   div_by_1 divide_numeral_1 divide_divide_eq_right neg_equal_iff_equal numeral_One divide_divide_eq_left
+  divide_self_if if_True if_False one_neq_zero more_arith_simps
+  division_ring_class.times_divide_eq_right
 
 ML \<open>
 Alethe_Replay_RARE_Simplify_Methods.arith_poly_norm @{context}
@@ -115,4 +118,31 @@ ML \<open>
 Alethe_Replay_RARE_Simplify_Methods.arith_poly_norm @{context}
 @{term \<open>1 / 1 * (2 / 1 * (1 / 1 / (2 / 1)) * (t1 / (1 / 1 / (2 / 1))) - 2 / 1 * (1 / 1 / (2 / 1) * ((t1::real) / (1 / 1 / (2 / 1))))) =
     2 / 1 * (1 / 1 / (2 / 1)) * (t1 / (1 / 1 / (2 / 1))) + - 2 / 1 * (1 / 1 / (2 / 1) * (t1 / (1 / 1 / (2 / 1)))) \<close>}\<close>
+
+context
+  fixes powr :: \<open>real \<Rightarrow> real \<Rightarrow> real\<close> (infix "powr" 80)
+begin
+
+declare [[simp_trace=false]]
+ML \<open>
+Alethe_Replay_RARE_Simplify_Methods.arith_poly_norm @{context}
+@{term \<open>(2::real) / 1 *
+         (2 / 1 * (1 / 1 / (2 / 1)) * ((2 / 1) powr real_of_int p / (1 / 1 / (2 / 1))) +
+          2 / 1 * (- 1 / 1 * (1 / 1 / (2 / 1)) * ((2 / 1) powr real_of_int p / (1 / 1 / (2 / 1)))) -
+          0 / 1) =
+         4 / 1 * (- 1 / 1 * (1 / 1 / (2 / 1)) * ((2 / 1) powr real_of_int p / (1 / 1 / (2 / 1)))) +
+         2 / 1 * (2 / 1 * (1 / 1 / (2 / 1)) * ((2 / 1) powr real_of_int p / (1 / 1 / (2 / 1))))\<close>}\<close>
+end
+ML \<open>
+Alethe_Replay_RARE_Simplify_Methods.arith_poly_norm @{context}
+@{term \<open>- v1 = - (Numeral1 * (v1::real) / Numeral1) \<close>}\<close>
+
+ML \<open>
+Alethe_Replay_RARE_Simplify_Methods.arith_poly_norm @{context}
+@{term \<open>1 / 1 * (t1 - - 1 / 1 * t2) = t1 + (t2::real)   \<close>}\<close>
+
+declare [[simp_trace=false,simp_trace_depth_limit=3]]
+ML \<open>
+Alethe_Replay_RARE_Simplify_Methods.arith_poly_norm @{context}
+@{term \<open>1 / 1 * ((t1::real) - 1 / 1 / t2) = t1 + - 1 / 1 * (1 / 1 / t2) \<close>}\<close>
 end

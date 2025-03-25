@@ -70,6 +70,7 @@ fun arith_poly_norm ctxt t =
       |> empty_simpset
       |> put_simpset HOL_basic_ss
       |> (fn ctxt => ctxt addsimps @{thms simp_thms} addsimps thms)
+      |> (Simplifier.add_cong @{thm if_weak_cong})
       |> (fn ctxt => ctxt
            addsimprocs [@{simproc int_div_cancel_numeral_factors}, @{simproc int_combine_numerals},
              @{simproc divide_cancel_numeral_factor}, @{simproc intle_cancel_numerals},
