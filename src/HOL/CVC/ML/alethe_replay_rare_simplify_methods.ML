@@ -73,10 +73,13 @@ fun arith_poly_norm ctxt t =
       |> (Simplifier.add_cong @{thm if_weak_cong})
       |> (fn ctxt => ctxt
            addsimprocs [@{simproc int_div_cancel_numeral_factors}, @{simproc int_combine_numerals},
-             @{simproc divide_cancel_numeral_factor}, @{simproc intle_cancel_numerals},
-             @{simproc field_combine_numerals}, @{simproc intless_cancel_numerals},
-             @{simproc ring_le_cancel_numeral_factor}, @{simproc inteq_cancel_numerals},
-             @{simproc HOL.NO_MATCH}, @{simproc Numeral_Simprocs.semiring_assoc_fold}])
+             @{simproc divide_cancel_numeral_factor}, @{simproc divide_cancel_factor},
+             @{simproc intle_cancel_numerals}, @{simproc intless_cancel_numerals}, @{simproc inteq_cancel_numerals},
+             @{simproc field_combine_numerals},
+             @{simproc ring_le_cancel_numeral_factor},
+             @{simproc HOL.NO_MATCH}, @{simproc Numeral_Simprocs.semiring_assoc_fold},
+             @{simproc Numeral_Simprocs.field_divide_cancel_numeral_factor},
+             @{simproc Numeral_Simprocs.field_eq_cancel_numeral_factor}])
       |> Simplifier.full_simp_tac
     fun simplify_tac_with_background_simp ctxt thms =
       ctxt

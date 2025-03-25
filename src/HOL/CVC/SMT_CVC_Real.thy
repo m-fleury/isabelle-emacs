@@ -76,7 +76,7 @@ lemmas [alethe_poly_norm] =
   mult_numeral_left_semiring_numeral mult_num_simps mult_numeral_left uminus_add_conv_diff
    div_by_1 divide_numeral_1 divide_divide_eq_right neg_equal_iff_equal numeral_One divide_divide_eq_left
   divide_self_if if_True if_False one_neq_zero more_arith_simps
-  division_ring_class.times_divide_eq_right
+  division_ring_class.times_divide_eq_right divide_cancel_left
 
 ML \<open>
 Alethe_Replay_RARE_Simplify_Methods.arith_poly_norm @{context}
