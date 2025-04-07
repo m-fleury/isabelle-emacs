@@ -737,4 +737,46 @@ object LSP {
           "label" -> label,
           "content" -> content))
   }
+
+  /* Progress indication */
+  object Progress_Node
+  {
+    def apply(name : String, node_status: isabelle.Document_Status.Node_Status): JSON.Object.T =
+    {
+
+      node_status match {
+        case isabelle.Document_Status.Node_Status(is_suppressed, unprocessed, running, warned,
+          failed, finished, canceled, terminated, initialized, finalized, consolidated) =>
+          JSON.Object(
+            "name" -> name,
+            "unprocessed" -> unprocessed,
+            "running" -> running,
+            "warned" -> warned,
+            "failed" -> failed,
+            "finished" -> finished,
+            "initialized" -> initialized,
+            "consolidated" -> consolidated,
+            "canceled" -> canceled,
+            "terminated" -> terminated
+          )
+      }
+    }
+  }
+
+  object Progress_Nodes
+  {
+    def apply(nodes_status: List[JSON.Object.T]): JSON.T =
+    {
+      Notification("PIDE/progress", JSON.Object("nodes-status" -> nodes_status))
+    }
+  }
+
+  object Progress_Node_Request
+  {
+    def unapply(json: JSON.T): Option[Unit] =
+      for {
+        method <- JSON.string(json, "method")
+        if method == "PIDE/progress_request"
+      } yield ()
+  }
 }

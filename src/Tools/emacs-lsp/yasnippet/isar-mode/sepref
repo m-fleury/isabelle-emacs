@@ -1,0 +1,8 @@
+# -*- mode: snippet -*-
+# name: sepref_debug
+# key: sepref
+# --
+apply sepref_dbg_keep
+apply sepref_dbg_trans_keep
+apply sepref_dbg_trans_step_keep
+apply sepref_dbg_side_unfold

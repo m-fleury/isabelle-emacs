@@ -1,0 +1,6 @@
+# -*- mode: snippet -*-
+# name: abbreviation
+# key: abbreviation
+# --
+abbreviation $1 :: \<open>${2:_}\<close> where
+\<open>$1 \<equiv> $0\<close>

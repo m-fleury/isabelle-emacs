@@ -417,6 +417,32 @@ class Language_Server(
     channel.write(LSP.DocumentHighlights.reply(id, result))
   }
 
+  /* progress reports */
+  def session_progress() : isabelle.JSON.T = {
+    val snapshot = session.snapshot()
+    val nodes = snapshot.version.nodes
+
+    var nodes_status1 : Map[isabelle.Document.Node.Name, isabelle.Document_Status.Node_Status] = Map.empty
+    for (name <- nodes.domain.iterator) {
+      if (resources.session_base.loaded_theory(name) ||
+        nodes(name).is_empty) ()
+      else {
+        val st = isabelle.Document_Status.Node_Status.make(snapshot.state, snapshot.version, name)
+        nodes_status1 = nodes_status1 + (name -> st)
+      }
+    }
+
+    val nodes_status2 =
+      nodes_status1 -- nodes_status1.keysIterator.filter(nodes.is_suppressed(_))
+
+    val sorted_nodes = nodes.topological_order.filter(nodes_status1.isDefinedAt(_))
+      .map{x => LSP.Progress_Node(x.path.implode, nodes_status1(x))}
+    log("## progress = " + sorted_nodes)
+
+
+    LSP.Progress_Nodes(sorted_nodes)
+  }
+
 
   /* code actions */
 
@@ -534,6 +560,7 @@ class Language_Server(
           case LSP.Symbols_Convert_Request(id, text, boolean) =>
             symbols_convert_request(id, text, boolean)
           case LSP.Preview_Request(file, column) => preview_request(file, column)
+          case LSP.Progress_Node_Request(()) => channel.write(session_progress())
           case _ => if (!LSP.ResponseMessage.is_empty(json)) log("### IGNORED")
         }
       }
