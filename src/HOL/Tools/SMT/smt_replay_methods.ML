@@ -57,6 +57,7 @@ sig
         term -> int * term Termtab.table -> term * (int * term Termtab.table)
   val abstract_arith: Proof.context -> term -> abs_context -> term * abs_context
   val abstract_for_code_eval: Proof.context -> term -> abs_context -> term * abs_context
+  val abstract_for_poly_norm: Proof.context -> term -> abs_context -> term * abs_context
   (* also abstracts over if-then-else *)
   val abstract_arith_shallow: Proof.context -> term -> abs_context -> term * abs_context
 
@@ -413,6 +414,53 @@ fun abstract_for_code_eval ctxt u =
           abstract_sub t (abs t1 ##>> abs t2 #>> HOLogic.mk_disj)
       | abs (t as \<^Const_>\<open>conj\<close> $ t1 $ t2) =
           abstract_sub t (abs t1 ##>> abs t2 #>> HOLogic.mk_conj)
+      | abs (t as (x as Const ("Archimedean_Field.floor_ceiling_class.floor", _)) $ t1) =
+          abstract_sub t (abs t1 #>> curry (op $) x)
+      | abs (t as (c as Const (\<^const_name>\<open>uminus_class.uminus\<close>, _)) $ t1) =
+          abstract_sub t (abs t1 #>> (fn u => c $ u))
+      | abs (t as (c as Const (\<^const_name>\<open>of_int\<close>, _)) $ t1) =
+          abstract_sub t (abs t1 #>> (fn u => c $ u))
+      | abs (t as (c as Const (\<^const_name>\<open>plus_class.plus\<close>, _)) $ t1 $ t2) =
+          abstract_sub t (abs t1 ##>> abs t2 #>> (fn (u1, u2) => c $ u1 $ u2))
+      | abs (t as (c as Const (\<^const_name>\<open>minus_class.minus\<close>, _)) $ t1 $ t2) =
+          abstract_sub t (abs t1 ##>> abs t2 #>> (fn (u1, u2) => c $ u1 $ u2))
+      | abs (t as (c as Const (\<^const_name>\<open>times_class.times\<close>, _)) $ t1 $ t2) =
+          abstract_sub t (abs t1 ##>> abs t2 #>> (fn (u1, u2) => c $ u1 $ u2))
+      | abs (t as (c as Const (\<^const_name>\<open>z3div\<close>, _)) $ t1 $ t2) =
+          abstract_sub t (abs t1 ##>> abs t2 #>> (fn (u1, u2) => c $ u1 $ u2))
+      | abs (t as (c as Const (\<^const_name>\<open>z3mod\<close>, _)) $ t1 $ t2) =
+          abstract_sub t (abs t1 ##>> abs t2 #>> (fn (u1, u2) => c $ u1 $ u2))
+      | abs (t as (c as Const (\<^const_name>\<open>divide_class.divide\<close>, _)) $ t1 $ t2) =
+          abstract_sub t (abs t1 ##>> abs t2 #>> (fn (u1, u2) => c $ u1 $ u2))
+      | abs (t as (c as Const (\<^const_name>\<open>HOL.eq\<close>, _)) $ t1 $ t2) =
+          abstract_sub t (abs t1 ##>> abs t2 #>> (fn (u1, u2) => c $ u1 $ u2))
+      | abs (t as (c as Const (\<^const_name>\<open>ord_class.less\<close>, _)) $ t1 $ t2) =
+          abstract_sub t (abs t1 ##>> abs t2 #>> (fn (u1, u2) => c $ u1 $ u2))
+      | abs (t as (c as Const (\<^const_name>\<open>ord_class.less_eq\<close>, _)) $ t1 $ t2) =
+          abstract_sub t (abs t1 ##>> abs t2 #>> (fn (u1, u2) => c $ u1 $ u2))
+      | abs t = abstract_sub t (fn cx =>
+          if can HOLogic.dest_number t then (t, cx)
+          else
+            (case apply_abstracters abs (get_arith_abstracters ctxt) t cx of
+              (SOME u, cx') => (u, cx')
+            | (NONE, _) => abstract_term t cx))
+  in abs u end
+
+fun abstract_for_poly_norm ctxt u =
+  let
+    fun abs (t as (Const (\<^const_name>\<open>HOL.The\<close>, _) $ Abs (_, _, _))) =
+          abstract_sub t (abstract_term t)
+      | abs (t as Const _ $ Abs (_, _, _)) =
+          abstract_term t
+      | abs (t as (Const (\<^const_name>\<open>If\<close>, _)) $ _ $ _ $ _) =
+          abstract_sub t (abstract_term t)
+      | abs (t as \<^Const_>\<open>Not\<close> $ t1) = abstract_sub t (abs t1 #>> HOLogic.mk_not)
+      | abs (t as \<^Const_>\<open>disj\<close> $ t1 $ t2) =
+          abstract_sub t (abs t1 ##>> abs t2 #>> HOLogic.mk_disj)
+      | abs (t as \<^Const_>\<open>conj\<close> $ t1 $ t2) =
+          abstract_sub t (abs t1 ##>> abs t2 #>> HOLogic.mk_conj)
+      | abs (t as (x as Const ("Archimedean_Field.floor_ceiling_class.floor", _)) $ t1) =
+          abstract_sub t (abs t1 #>> curry (op $) x)
       | abs (t as (c as Const (\<^const_name>\<open>uminus_class.uminus\<close>, _)) $ t1) =
           abstract_sub t (abs t1 #>> (fn u => c $ u))
       | abs (t as (c as Const (\<^const_name>\<open>of_int\<close>, _)) $ t1) =

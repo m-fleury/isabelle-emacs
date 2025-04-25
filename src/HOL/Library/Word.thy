@@ -4427,6 +4427,17 @@ end
 
 subsection \<open>Tool support\<close>
 
+(*TODO: Hanna*)
+definition smt_bit_word :: \<open>'a::len word \<Rightarrow> nat \<Rightarrow> 1 word\<close>
+  where "smt_bit_word a n = (if (bit a n) then (1::1 word) else (0::1 word))"
+
+term "bit (x :: 4 word) y"
+lemma "bit a n = (smt_extract n n a = (1::1 word))"
+  unfolding smt_extract_def
+  unfolding slice_def slice1_def
+  apply simp
+  oops
+
 ML_file \<open>Tools/smt_word.ML\<close>
 
 end

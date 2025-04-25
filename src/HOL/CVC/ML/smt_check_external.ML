@@ -154,7 +154,9 @@ let
              (Timeout.TIMEOUT _) => (@{print}("Timeout");
                   print_error_to_file ctxt 7; (thm,1)) |
              (TYPE x) => (@{print}("Type Error",x);
-                  print_error_to_file_with_msg ctxt 1 "type error"; (thm,1))
+                  print_error_to_file_with_msg ctxt 1 "type error"; (thm,1)) |
+             (ERROR x) => (@{print}("Error",x);
+                  print_error_to_file_with_msg ctxt 1 "error"; (thm,1))
 
 
 in (i,local_thy) end

@@ -147,14 +147,14 @@ fun play_one_line_proofs minimize timeout used_facts state goal i methss =
 fun select_one_line_proof used_facts preferred_meth preplay_results =
   (case preplay_results of
     (* Select best method if preplay succeeded *)
-    (best_meth, (best_outcome as Played _, best_used_facts)) :: _ =>
-    (best_used_facts, (best_meth, best_outcome))
+    (best_meth, (best_outcome as Played _, best_used_facts)) :: others =>
+    (best_used_facts, (best_meth, best_outcome), map (fn (x, (y, _)) => (x, y)) others)
     (* Otherwise select preferred method *)
   | _ =>
     (used_facts, (preferred_meth,
        (case AList.lookup (op =) preplay_results preferred_meth of
          SOME (outcome, _) => outcome
-       | NONE => Play_Timed_Out Time.zeroTime))))
+       | NONE => Play_Timed_Out Time.zeroTime)), []))
 
 fun launch_prover (params as {verbose, spy, slices, timeout, ...}) mode learn
     (problem as {state, subgoal, factss, ...} : prover_problem)
@@ -266,9 +266,36 @@ fun preplay_prover_result ({verbose, instantiate, minimize, preplay_timeout, ...
         in
           (SH_Some (result, preplay_results), pretty_used_facts, preplay_results)
         end
+
     fun chosen_preplay_outcome () =
       select_one_line_proof pretty_used_facts (fst preferred_methss) preplay_results
-    fun output_message () = message chosen_preplay_outcome
+    fun output_message () = message (fn () => let val (a, b, c) = chosen_preplay_outcome ()
+      fun extract_number (Played t) = ("=", Time.toNanoseconds t)
+        | extract_number (Play_Timed_Out t) = (">", Time.toNanoseconds t)
+        | extract_number _ = (">", ~1)
+      val normalize =
+        (map (apfst (string_of_proof_method []))) o
+        (map (apsnd (extract_number)))
+      fun timestamp_format time =
+        Date.fmt "%Y-%m-%d %H:%M:%S." (Date.fromTimeLocal time) ^
+        (StringCvt.padLeft #"0" 3 (string_of_int (Time.toMilliseconds time - 1000 * Time.toSeconds time)))
+
+      fun spying false _ _ _ = ()
+        | spying true ctxt f filename =
+          let
+            val message = f ()
+            val thy = Context.theory_long_name ((Context.theory_of o Context.Proof) ctxt)
+            val spying_version = "1"
+          in
+            File.append (Path.explode ("$ISABELLE_HOME_USER/" ^ filename))
+              (spying_version ^ "; " ^ thy ^ "; " ^ (timestamp_format (Time.now ())) ^ ";\n" ^ message ^ "\n")
+          end
+
+
+      fun stringify_element (a, (b, c)) = a ^ b ^ Int.toString c ^ "\n"
+      fun stringify c = List.foldr (op ^) "" c
+      val _ = spying true (Proof.context_of state) (fn () => (stringify o map stringify_element o normalize) c) "spy_sledghemmer_timings"
+    in (a,b) end)
   in
     (output, output_message)
   end
