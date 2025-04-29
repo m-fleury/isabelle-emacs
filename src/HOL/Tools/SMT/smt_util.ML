@@ -12,7 +12,7 @@ sig
   val map_prod: ('a -> 'b) -> ('c -> 'd) -> 'a * 'c -> ('b * 'd)
 
   datatype order = First_Order | Higher_Order
-  datatype role = Conjecture | Hypothesis | Axiom
+  datatype role = Conjecture | Hypothesis | Axiom | Definition
 
   (*class dictionaries*)
   type class = string list
@@ -90,7 +90,7 @@ datatype order = First_Order | Higher_Order
 
 (* role *)
 
- datatype role = Conjecture | Hypothesis | Axiom
+ datatype role = Conjecture | Hypothesis | Axiom | Definition
 
 
 (* class dictionaries *)
