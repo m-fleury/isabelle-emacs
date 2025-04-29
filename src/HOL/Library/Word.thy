@@ -4576,7 +4576,6 @@ lemma "bit a n = (smt_extract n n a = (1::1 word))"
   oops
 
 ML_file \<open>Tools/smt_word.ML\<close>
-ML_file \<open>../Tools/SMT/strict_smt_parser.ML\<close>
 
 
 (*
