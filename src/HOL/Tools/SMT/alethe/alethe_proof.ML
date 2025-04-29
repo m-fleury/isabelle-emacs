@@ -602,8 +602,8 @@ fun postprocess_proof compress ctxt step cx =
               fun convert_dec_to_rat num1 num2 =
                 let
                   fun mult10 x = if x = 0 then 1 else 10 * mult10 (x div 10)
-                  val offset = mult10 num2 |> @{print}
-                  val res_num = ( (  (offset) * num1)) + num2 |> @{print}
+                  val offset = mult10 num2
+                  val res_num = ( (  (offset) * num1)) + num2
                 in
                   (res_num,offset)
                 end
