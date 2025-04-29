@@ -9,6 +9,7 @@ named_theorems rare_simplify_temp \<open>Theorems to reconstruct bitvector theor
                                   functions, e.g. take.\<close>
 
 named_theorems cvc_evaluate \<open>Theorems to reconstruct evaluate steps in cvc5 proofs\<close>
+named_theorems cvc_evaluate_bv \<open>Theorems to reconstruct bit-vector evaluate steps in cvc5 proofs\<close>
 
 named_theorems arith_simp_cvc5 \<open>Might be temp and integrated into smt_arith_simplify \<close>
 

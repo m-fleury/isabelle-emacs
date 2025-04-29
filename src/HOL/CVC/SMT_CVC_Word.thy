@@ -6,13 +6,14 @@ declare[[show_types,show_sorts]]
 (*Evaluation Steps*)
 
 (*This evaluation should be high in success instead of fast on average*)
-named_theorems cvc_evaluate_bv \<open>Theorems to reconstruct bit-vector evaluate steps in cvc5 proofs\<close>
-lemmas [cvc_evaluate_bv] = bv_reconstruction_length
 
 lemmas bit_operations = drop_bit_eq_div take_bit_eq_mod push_bit_eq_mult
                         numeral_mod_numeral divmod_cancel
 
-lemma evaluate_concat:
+lemmas [cvc_evaluate_bv] = bv_reconstruction_length bit_operations
+
+
+lemma evaluate_concat[cvc_evaluate_bv]:
 "(word_cat (x::'a::len word) (y::'b::len word)::'c::len word)
    = ucast x * (2::'c word) ^ LENGTH('b) + ucast y"
   unfolding word_cat_eq[of x y] push_bit_eq_mult
