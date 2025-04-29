@@ -699,8 +699,8 @@ fun mk_scast i u =
 fun
   (*From the FixedSizeBitVectors theory*)
    bv_term_parser (SMTLIB.Sym "concat", t1 :: t2 :: ts) = (@{print}("here todo make nary");SOME (@{term "word_cat"} $ t1 $ t2))
-  | bv_term_parser (SMTLIB.S [SMTLIB.Sym "_",SMTLIB.Sym "extract", SMTLIB.Num i, SMTLIB.Num j],[t])
-       = SOME (mk_extract i j t)
+  (*| bv_term_parser (SMTLIB.S [SMTLIB.Sym "_",SMTLIB.Sym "extract", SMTLIB.Num i, SMTLIB.Num j],[t])
+       = SOME (mk_extract i j t)*)
 
   (*SMT-LIB3 Syntax. First, we wanted to automatically map SMT-LIB2 syntax to this in preprocessing
     but decided against it in case that there are changes other than syntax*)
