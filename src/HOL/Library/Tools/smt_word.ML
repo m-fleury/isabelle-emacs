@@ -188,26 +188,25 @@ fun take_bit m n T ts =
       | _ => NONE)   (* FIXME: also support non-numerical shifts *)
     end
 
- fun mk_extract c i j ts = Term.list_comb (Const c, HOLogic.mk_number @{typ nat} i :: mk_nat j :: ts)
+ fun mk_extract c i j ts = Term.list_comb (Const c, HOLogic.mk_number @{typ nat} i :: HOLogic.mk_number @{typ nat} j :: ts)
                                                       
  fun extract m n (U as (Type(_,[_,Type(_,[_,Type(_,[Tx,T])])]))) [i,j,x] =
-(@{print}("i",i);
+(
   (case (try (snd o HOLogic.dest_number o remove_cast) i, (*Interesting HOLogic.dest_nat instead of this does not work*)
          try (snd o HOLogic.dest_number o remove_cast) j,
          try dest_wordT Tx,
          try dest_wordT T) of
    (SOME i', SOME j', SOME Tx', SOME T') =>
     let
-val _ = @{print}("did go in here!")
       val k = i' - j' + 1
       val U' = @{typ "nat"} --> @{typ "nat"} --> Tx --> T
     in
      if j' <= i' andalso k = T' andalso i' < Tx'
-     then SOME (index2 n i' j', 1, [x], mk_extract (m, U') i' j')
+     then (SOME (index2 n i' j', 1, [x], mk_extract (m, U') (i'|> @{print}) j'))
      else NONE
     end |
    _ => NONE)) |
- extract _ _ _ _ = (@{print}("did go ther"); NONE)
+ extract _ _ _ _ = NONE
 
 
 
@@ -731,8 +730,8 @@ fun mk_scast i u =
 
 fun mk_extract i j u =
  let
-  val I = HOLogic.mk_number \<^typ>\<open>nat\<close> i
-  val J = HOLogic.mk_number \<^typ>\<open>nat\<close> j
+  val I = Const (\<^const_name>\<open>nat\<close>, @{typ int} --> @{typ nat}) $ HOLogic.mk_number \<^typ>\<open>int\<close> i
+  val J = Const (\<^const_name>\<open>nat\<close>, @{typ int} --> @{typ nat}) $ HOLogic.mk_number \<^typ>\<open>int\<close> j
 
   val T = fastype_of u
   val TU = i - j + 1 |> Word_Lib.mk_wordT
@@ -744,11 +743,13 @@ fun mk_extract_from_terms i j u =
  let
   val I = HOLogic.dest_number i |> snd
   val J = HOLogic.dest_number j |> snd
-
+  val i' = Const (\<^const_name>\<open>nat\<close>, @{typ int} --> @{typ nat}) $ i |> @{print}
+  val j' = HOLogic.dest_number j |> snd
+  val _ = @{print}("here")
   val T = fastype_of u
   val TU = I - J + 1 |> Word_Lib.mk_wordT
  in
-   Const (\<^const_name>\<open>smt_extract\<close>, @{typ nat} --> @{typ nat} --> T --> TU) $ i $ j $ u
+   Const (\<^const_name>\<open>smt_extract\<close>, @{typ nat} --> @{typ nat} --> T --> TU) $ i' $ j $ u
  end
 
 fun

@@ -1,5 +1,5 @@
 theory BV_Rewrites_Lemmas
-  imports Dsl_Nary_Ops "HOL-Library.Word" Word_Lib.More_Word "HOL-Library.Log_Nat" "HOL.Real" "HOL-Library.Sublist" "HOL-CVC.SMT_Word"
+  imports Dsl_Nary_Ops "HOL-Library.Word" Word_Lib.More_Word "HOL-Library.Log_Nat" "HOL.Real" "HOL-Library.Sublist" SMT_Word
 HOL.SMT "Word_Lib.Signed_Division_Word" "Word_Lib.Reversed_Bit_Lists"
 begin
 (*
