@@ -11,9 +11,6 @@ sig
 
   val lift_nats': string option ->  ('a * term) list ->
     Proof.context ->  thm list * Proof.context
-
-  val global_normalize: Proof.context -> ((int * SMT_Util.role) * thm) list -> ((int * SMT_Util.role) * thm) list * Proof.context
-
 end
 
 structure Int_Lifting: INT_LIFTING =
@@ -68,23 +65,6 @@ fun lift_nats' basename ts ctxt =
   init ctxt
   |> fold_map (fn (x, t) => apfst (pair x) o lift_lambdas  basename t) ts
   |-> (fn ts' => finish )
-
-fun global_normalize ctxt ithms =
-let
-    val (ctxt_nats,  il_defs_thm) =
-     lift_nats' NONE (map (fn (a,b) => (a,Thm.prop_of b)) ithms) ctxt
-      |-> (fn il_defs_thm => fn ctxt' =>
-      let
-        val il_defs_thm = map Thm.symmetric il_defs_thm
-        val ctxt_nats = fold (fn t => fn cn => Thm.declare_hyps t cn) (List.concat (map Thm.chyps_of il_defs_thm)) ctxt'
-      in
-        (ctxt_nats, il_defs_thm)
-      end)
-
-    val norm_thms_unfolded = map (fn a => a ||> (Local_Defs.unfold0 ctxt_nats il_defs_thm)) ithms
-in
-   (norm_thms_unfolded, ctxt_nats)
-end
 
 
 end
