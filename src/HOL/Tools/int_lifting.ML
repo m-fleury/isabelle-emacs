@@ -35,11 +35,6 @@ let
 
    val f = d |> hd |> fst
    val new = d |> hd |> snd |> snd
-   val _ = @{print}("a'",Local_Defs.export ctxt'' ctxt' new )
-   val eq_thm = Drule.infer_instantiate' ctxt'' [SOME (Thm.cterm_of ctxt' (Free (n',@{typ "nat"}))),SOME (Thm.cterm_of ctxt' (Free (n,@{typ "int"})))] @{thm test_nat2}
-   val _ = @{print}("eq_thm",eq_thm )
-   val eq_thm2 = Drule.infer_instantiate' ctxt'' [SOME (Thm.cterm_of ctxt' (Free (n',@{typ "nat"})))] @{thm test_nat}
-   val _ = @{print}("eq_thm2",eq_thm2 )
 
 
    val ctxt'' = fold Thm.declare_hyps (Thm.chyps_of new) ctxt''
