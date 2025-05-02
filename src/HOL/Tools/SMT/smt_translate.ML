@@ -586,9 +586,6 @@ fun translate ctxt prover smt_options comments (ithms : ((int * SMT_Util.role) *
     val serialize = map #serialize (get_config ctxt) |> hd
     val first_order = is_some (List.find (curry (op =) SMT_Util.First_Order) order)
 
-    (*Filter out definitions*)
-    val (defs,ithms) = List.partition (fn ((_,SMT_Util.Definition),_) => true | _ => false) ithms
-
     fun no_dtyps (tr_context, ctxt) ts =
       ((Termtab.empty, [], tr_context, ctxt), ts)
 
@@ -629,7 +626,7 @@ fun translate ctxt prover smt_options comments (ithms : ((int * SMT_Util.role) *
     (ts4, tr_context)
     |-> intermediate (logic prover o map snd) dtyps (builtin SMT_Builtin.dest_builtin) ctxt2
     |>> uncurry (serialize smt_options comments)
-    ||> replay_data_of ctxt2 ll_defs rewrite_rules (ithms @ defs)
+    ||> replay_data_of ctxt2 ll_defs rewrite_rules ithms
   end
 
 end;
