@@ -10,13 +10,13 @@ sig
   type context2 = thm Termtab.table * Proof.context
 
   val lift_nats': string option ->  ('a * term) list ->
-    Proof.context ->  (('a * term) list * thm list) * Proof.context
+    Proof.context ->  thm list * Proof.context
 end
 
 structure Int_Lifting: INT_LIFTING =
 struct
 
-fun replace_lambda basename Us Ts t (cx as (defs, ctxt)) =
+fun replace_lambda basename Us Ts n' t (cx as (defs, ctxt)) =
 let
 
     fun app f = Term.list_comb (f, map Bound [])
@@ -31,9 +31,18 @@ let
 
    val (d,ctxt'') = Local_Defs.define [((Binding.name (n^"new"),Mixfix.mixfix (n^"new")),(Binding.empty_atts,@{term "int (x::nat)"}))] ctxt'
    val _ = @{print}("d",d)
+   val _ = @{print}("d'",Thm.assume (Thm.cterm_of ctxt' @{term "u \<equiv> int (x::nat)"}) )
 
    val f = d |> hd |> fst
    val new = d |> hd |> snd |> snd
+   val _ = @{print}("a'",Local_Defs.export ctxt'' ctxt' new )
+   val eq_thm = Drule.infer_instantiate' ctxt'' [SOME (Thm.cterm_of ctxt' (Free (n',@{typ "nat"}))),SOME (Thm.cterm_of ctxt' (Free (n,@{typ "int"})))] @{thm test_nat2}
+   val _ = @{print}("eq_thm",eq_thm )
+   val eq_thm2 = Drule.infer_instantiate' ctxt'' [SOME (Thm.cterm_of ctxt' (Free (n',@{typ "nat"})))] @{thm test_nat}
+   val _ = @{print}("eq_thm2",eq_thm2 )
+
+
+   val ctxt'' = fold Thm.declare_hyps (Thm.chyps_of new) ctxt''
 
    in (app f, (Termtab.update (t, (f,new)) defs, ctxt'')) end)
   end
@@ -49,7 +58,7 @@ fun lift_lambdas basename =
     val basename' = the_default Name.uu basename
 
     fun traverse Ts (t as (Const ("Nat.semiring_1_class.of_nat", _)) $ (Free (n,@{typ "nat"}))) =
-         pair t #-> replace_lambda basename' [@{typ "nat"}] [@{typ "int"}]
+         pair t #-> replace_lambda basename' [@{typ "nat"}] [@{typ "int"}] n
       | traverse Ts (t $ u) = traverse Ts t ##>> traverse Ts u #>> (op $)
       | traverse _ t = pair t
   in traverse [] end
@@ -60,7 +69,7 @@ fun finish (defs, ctxt) = (Termtab.fold (cons o snd o snd) defs [], ctxt)
 fun lift_nats' basename ts ctxt =
   init ctxt
   |> fold_map (fn (x, t) => apfst (pair x) o lift_lambdas  basename t) ts
-  |-> (fn ts' => finish #>> pair ts')
+  |-> (fn ts' => finish )
 
 
 end
