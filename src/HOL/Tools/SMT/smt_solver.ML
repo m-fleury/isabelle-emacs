@@ -265,21 +265,10 @@ fun apply_solver_and_replay ctxt thms0 =
     val thms = map (pair SMT_Util.Axiom o check_topsort ctxt) thms0
     val (name, {command, smt_options, replay, ...}) = name_and_info_of ctxt
     val norm_thms = SMT_Normalize.normalize ctxt thms
-
-    (*Get natural number to integer lifting defs*)
-    val (ctxt_nats,  il_defs_thm) =
-     Int_Lifting.lift_nats' NONE (map (fn (a,b) => (a,Thm.prop_of b)) norm_thms) ctxt
-      |-> (fn il_defs_thm => fn ctxt' =>
-      let
-        val il_defs_thm = map Thm.symmetric il_defs_thm
-        val ctxt_nats = fold (fn t => fn cn => Thm.declare_hyps t cn) (List.concat (map Thm.chyps_of il_defs_thm)) ctxt'
-      in
-        (ctxt_nats, il_defs_thm)
-      end)
-
-    val norm_thms_unfolded = map (fn a => a ||> (Local_Defs.unfold0 ctxt_nats il_defs_thm)) norm_thms
+    val (norm_thms,ctxt_nats) = Int_Lifting.global_normalize ctxt norm_thms
+    
     val (output, replay_data) =
-      invoke name command [] smt_options norm_thms_unfolded ctxt_nats
+      invoke name command [] smt_options norm_thms ctxt_nats
   in
     replay ctxt_nats replay_data output
       |> singleton (Proof_Context.export ctxt_nats ctxt)
