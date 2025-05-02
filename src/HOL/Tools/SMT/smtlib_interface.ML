@@ -143,12 +143,10 @@ fun named_sterm s t = SMTLIB.S [SMTLIB.Sym "!", t, SMTLIB.Key "named", SMTLIB.Sy
 val conjecture_prefix = "conjecture" (* FUDGE *)
 val hypothesis_prefix = "hypothesis" (* FUDGE *)
 val axiom_prefix = "a" (* matching Alethe's convention *)
-val definition_prefix = "d"
 
 fun assert_prefix_of_role SMT_Util.Conjecture = conjecture_prefix
   | assert_prefix_of_role SMT_Util.Hypothesis = hypothesis_prefix
   | assert_prefix_of_role SMT_Util.Axiom = axiom_prefix
-  | assert_prefix_of_role SMT_Util.Definition = definition_prefix
 
 fun assert_name_of_role_and_index role i = assert_prefix_of_role role ^ string_of_int i
 
