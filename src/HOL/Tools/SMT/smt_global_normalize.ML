@@ -1,11 +1,11 @@
-(*  Title:      HOL/Tools/int_lifting.ML
+(*  Title:      HOL/Tools/SMT/smt_global_normalize.ML
     Author:     Hanna Lachnitt, Stanford University
     Author:     Mathias Fleury, University Freiburg
 
    
 *)
 
-signature INT_LIFTING =
+signature SMT_GLOBAL_NORMALIZE =
 sig
   type context2 = thm Termtab.table * Proof.context
 
@@ -16,7 +16,7 @@ sig
 
 end
 
-structure Int_Lifting: INT_LIFTING =
+structure SMT_Global_Normalize: SMT_GLOBAL_NORMALIZE =
 struct
 
 fun replace_lambda basename Us Ts n' t (cx as (defs, ctxt)) =

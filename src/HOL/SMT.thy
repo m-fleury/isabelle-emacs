@@ -855,7 +855,7 @@ ML_file \<open>Tools/SMT/smt_failure.ML\<close>
 ML_file \<open>Tools/SMT/smt_config.ML\<close>
 ML_file \<open>Tools/SMT/smt_builtin.ML\<close>
 ML_file \<open>Tools/SMT/smt_datatypes.ML\<close>
-ML_file \<open>Tools/int_lifting.ML\<close>
+ML_file \<open>Tools/SMT/smt_global_normalize.ML\<close>
 ML_file \<open>Tools/SMT/smt_normalize.ML\<close>
 ML_file \<open>Tools/SMT/smt_translate.ML\<close>
 ML_file \<open>Tools/SMT/smt_parser_util.ML\<close>

@@ -265,7 +265,7 @@ fun apply_solver_and_replay ctxt thms0 =
     val thms = map (pair SMT_Util.Axiom o check_topsort ctxt) thms0
     val (name, {command, smt_options, replay, ...}) = name_and_info_of ctxt
     val norm_thms = SMT_Normalize.normalize ctxt thms
-    val (norm_thms,ctxt_nats) = Int_Lifting.global_normalize ctxt norm_thms
+    val (norm_thms,ctxt_nats) = SMT_Global_Normalize.global_normalize ctxt norm_thms
     
     val (output, replay_data) =
       invoke name command [] smt_options norm_thms ctxt_nats
