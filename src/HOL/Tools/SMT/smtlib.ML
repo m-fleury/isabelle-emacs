@@ -107,8 +107,6 @@ fun scan_num l = !!! l "Could not read numeral" (is_neg :--read_num' l >> snd)
 (* binary numbers *)
 
 fun read_bin l = !!! l "Could not parse binary number" (read_radix_int' 2 >> BVNum)
-fun read_bin_dec l = !!! l "Could not parse bv constant, expected form (_ bv8 32)" (
-  (read_int' l --| $$ " " -- read_int' l --| $$ ")") >> BVNum)
 
 (* hex numbers *)
 
@@ -150,10 +148,6 @@ fun read_symbol cs = read_quoted ["|"] ([], "") cs
 (* core parser *)
 
 fun read _ [] rest tss = (rest, tss)
-    (*indexed operators, closing parenthesis has to be consumed in parser*)
-    (*TODO: For now just used for constants of the form (_ bv8 32), might use it for all indexed
-      operators but should solve last parenthesis differently*)
-  | read l ("(" :: "_" :: " " :: "b" :: "v" :: cs) None tss = read l ("b"::"v"::cs) None tss
   | read l ("(" :: cs) None tss = read l cs None ([] :: tss)
   | read l (")" :: cs) None (ts1 :: ts2 :: tss) =
       read l cs None ((S (rev ts1) :: ts2) :: tss)
@@ -161,8 +155,6 @@ fun read _ [] rest tss = (rest, tss)
       token read_hex l cs ts tss
   | read l ("#" :: "b" :: cs) None (ts :: tss) =
       token read_bin l cs ts tss
- | read l ("b" :: "v" :: cs) None (ts :: tss) =
-      token read_bin_dec l (cs |> @{print}) ts tss
   | read l (":" :: cs) None (ts :: tss) =
       token (read_sym Key) l cs ts tss
   | read l ("\"" :: cs) None (ts :: tss) =
