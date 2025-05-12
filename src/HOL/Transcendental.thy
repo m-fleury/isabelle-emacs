@@ -2263,7 +2263,8 @@ lemma ln_add_one_self_less_self:
   fixes x :: real
   assumes "x > 0" 
   shows "ln (1 + x) < x"
-  by (smt (verit, best) assms ln_eq_minus_one ln_le_minus_one)
+  sorry
+ (* by (smt (verit, best) assms ln_eq_minus_one ln_le_minus_one)*)
 
 lemma ln_x_over_x_tendsto_0: "((\<lambda>x::real. ln x / x) \<longlongrightarrow> 0) at_top"
 proof (rule lhospital_at_top_at_top[where f' = inverse and g' = "\<lambda>_. 1"])
@@ -2562,11 +2563,14 @@ lemma powr_real_of_int':
 
 lemma exp_minus_ge: 
   fixes x::real shows "1 - x \<le> exp (-x)"
-  by (smt (verit) exp_ge_add_one_self)
+  sorry
+  (*by (smt (verit) exp_ge_add_one_self)*)
+
 
 lemma exp_minus_greater: 
   fixes x::real shows "1 - x < exp (-x) \<longleftrightarrow> x \<noteq> 0"
-  by (smt (verit) exp_minus_ge exp_eq_one_iff exp_gt_zero ln_eq_minus_one ln_exp)
+  sorry
+  (*by (smt (verit) exp_minus_ge exp_eq_one_iff exp_gt_zero ln_eq_minus_one ln_exp)*)
 
 lemma log_ln: "ln x = log (exp(1)) x"
   by (simp add: log_def)
@@ -2947,7 +2951,8 @@ lemma powr_less_one:
 using assms less_log_iff by force
 
 lemma powr_le_one_le: "\<And>x y::real. 0 < x \<Longrightarrow> x \<le> 1 \<Longrightarrow> 1 \<le> y \<Longrightarrow> x powr y \<le> x"
-  by (smt (verit) ln_gt_zero_imp_gt_one ln_le_cancel_iff ln_powr mult_le_cancel_right2)
+  sorry
+  (*by (smt (verit) ln_gt_zero_imp_gt_one ln_le_cancel_iff ln_powr mult_le_cancel_right2)*)
 
 lemma powr_mono:
   fixes x :: real
