@@ -1,6 +1,6 @@
 theory SMT_CVC_Word \<comment> \<open>More Setup for CVC that should be in HOL-Word eventually\<close>
-  imports SMT_Word "SMT_CVC" "BV_Rewrites" SMT_Native_Output
-begin
+  imports SMT_Word "SMT_CVC" "BV_Rewrites" "BV_Rewrites_Simplification" SMT_Native_Output
+begin                  
 declare[[show_types,show_sorts]]
 
 (*Evaluation Steps*)
@@ -10,7 +10,7 @@ declare[[show_types,show_sorts]]
 lemmas bit_operations = drop_bit_eq_div take_bit_eq_mod push_bit_eq_mult
                         numeral_mod_numeral divmod_cancel
 
-lemmas [cvc_evaluate_bv] = bv_reconstruction_length bit_operations
+lemmas [cvc_evaluate_bv] = bv_reconstruction_length bit_operations word_size
 
 
 lemma evaluate_concat[cvc_evaluate_bv]:
@@ -71,7 +71,7 @@ lemma cvc_ListOp_neutral_bv_and [cvc_ListOp_neutral]:
  "cvc_isListOp (ListOp (semiring_bit_operations_class.and) (-1::'a::len word))"
   by auto
 
-
+lemmas [bv_aci_simp] = Bit_Operations.semiring_bit_operations_class.xor.commute
 
 ML \<open>
 
@@ -123,8 +123,10 @@ fun  cvc_term_parser (SMTLIB.Sym "rare-list", []) = (@{print}("rare-list");
         SOME y => SOME y |
         NONE => SMT_Array.array_term_parser xs)*)
 
- fun cvc_type_parser (SMTLIB.Sym "?", _) = SOME dummyT |
-     cvc_type_parser (SMTLIB.Sym "?BitVec", []) = SOME (Type (\<^type_name>\<open>word\<close>, [dummyT])) |
+
+ 
+ fun cvc_type_parser (SMTLIB.Sym "?", _) = SOME dummyT | (*RARE specific*)
+     cvc_type_parser (SMTLIB.Sym "?BitVec", []) = SOME (Type (\<^type_name>\<open>word\<close>, [dummyT])) | (*RARE specific*)
 cvc_type_parser _ = NONE (*|
   cvc_type_parser xs =
   (case SMT_String.string_type_parser xs of
@@ -168,19 +170,22 @@ cvc5_rare "BV_Rewrites.rewrite_bv_sign_extend_eliminate"
 cvc5_rare "BV_Rewrites.rewrite_bv_sdivo_eliminate"
 cvc5_rare "BV_Rewrites.rewrite_bv_srem_eliminate_fewer_bitwise_ops"
 cvc5_rare "BV_Rewrites.rewrite_bv_usubo_eliminate"
-cvc5_rare "BV_Rewrites.rewrite_bv_ite_equal_children"
-cvc5_rare "BV_Rewrites.rewrite_bv_ite_const_children_1"
-cvc5_rare "BV_Rewrites.rewrite_bv_ite_const_children_2"
-cvc5_rare "BV_Rewrites.rewrite_bv_ite_equal_cond_1"
-cvc5_rare "BV_Rewrites.rewrite_bv_ite_equal_cond_2"
-cvc5_rare "BV_Rewrites.rewrite_bv_ite_equal_cond_3"
-cvc5_rare "BV_Rewrites.rewrite_bv_ite_merge_then_if"
-cvc5_rare "BV_Rewrites.rewrite_bv_ite_merge_else_if"
-cvc5_rare "BV_Rewrites.rewrite_bv_ite_merge_then_else"
-cvc5_rare "BV_Rewrites.rewrite_bv_ite_merge_else_else"
-cvc5_rare "BV_Rewrites.rewrite_bv_shl_by_const_0"
-cvc5_rare "BV_Rewrites.rewrite_bv_shl_by_const_1"
-cvc5_rare "BV_Rewrites.rewrite_bv_shl_by_const_2"
-cvc5_rare "BV_Rewrites.rewrite_bv_lshr_by_const_0"
+
+cvc5_rare "BV_Rewrites_Simplification.rewrite_bv_ite_equal_children"
+cvc5_rare "BV_Rewrites_Simplification.rewrite_bv_ite_const_children_1"
+cvc5_rare "BV_Rewrites_Simplification.rewrite_bv_ite_const_children_2"
+cvc5_rare "BV_Rewrites_Simplification.rewrite_bv_ite_equal_cond_1"
+cvc5_rare "BV_Rewrites_Simplification.rewrite_bv_ite_equal_cond_2"
+cvc5_rare "BV_Rewrites_Simplification.rewrite_bv_ite_equal_cond_3"
+cvc5_rare "BV_Rewrites_Simplification.rewrite_bv_ite_merge_then_if"
+cvc5_rare "BV_Rewrites_Simplification.rewrite_bv_ite_merge_else_if"
+cvc5_rare "BV_Rewrites_Simplification.rewrite_bv_ite_merge_then_else"
+cvc5_rare "BV_Rewrites_Simplification.rewrite_bv_ite_merge_else_else"
+cvc5_rare "BV_Rewrites_Simplification.rewrite_bv_shl_by_const_0"
+cvc5_rare "BV_Rewrites_Simplification.rewrite_bv_shl_by_const_1"
+cvc5_rare "BV_Rewrites_Simplification.rewrite_bv_shl_by_const_2"
+cvc5_rare "BV_Rewrites_Simplification.rewrite_bv_lshr_by_const_0"
+
+cvc5_rare "BV_Rewrites_Simplification.rewrite_bv_ule_zero"
 
 end
