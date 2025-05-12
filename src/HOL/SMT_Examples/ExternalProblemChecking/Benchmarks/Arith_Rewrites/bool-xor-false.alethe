@@ -1,0 +1,4 @@
+unsat
+(assume nst156.0 (not (= (xor (not (= v4 (ite (= v2 v3) v4 v2))) false) (not (= v4 (ite (= v2 v3) v4 v2))))))
+(step st156 (cl (= (xor (not (= v4 (ite (= v2 v3) v4 v2))) false) (not (= v4 (ite (= v2 v3) v4 v2))))) :rule rare_rewrite :args ("bool-xor-false" (not (= v4 (ite (= v2 v3) v4 v2)))))
+(step t.end (cl) :rule resolution :premises (nst156.0 st156))

@@ -1,0 +1,5 @@
+unsat
+(assume nst8.0 (not (= (not (or x (not x) (forall ((_x (Array Int Bool))) (not (select _x 0))))) false)))
+(assume t7 (= (or x (not x) (forall ((_x (Array Int Bool))) (not (select _x 0)))) true))
+(step st8 (cl (= (not (or x (not x) (forall ((_x (Array Int Bool))) (not (select _x 0))))) false)) :rule rare_rewrite :premises (t7) :args ("bool-not-false" (or x (not x) (forall ((_x (Array Int Bool))) (not (select _x 0))))))
+(step t.end (cl) :rule resolution :premises (nst8.0 st8))

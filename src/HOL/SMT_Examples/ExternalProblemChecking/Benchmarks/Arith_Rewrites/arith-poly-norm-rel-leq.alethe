@@ -1,0 +1,9 @@
+unsat
+(assume nt231.0 (not (not (>= (+ -1 (str.len x)) (str.len x)))))
+(assume nt231.1 (not false))
+(anchor :step t231)
+(assume t231.a0 (>= (+ -1 (str.len x)) (str.len x)))
+(step st231.t32 (cl (= (=> (= (* 1 (- (+ (* -1 0) (* -1 (+ -1 (str.len x)))) (+ (* -1 0) (* -1 (str.len x))))) (* 1 (- 1 0))) (= (<= (+ (* -1 0) (* -1 (+ -1 (str.len x)))) (+ (* -1 0) (* -1 (str.len x)))) (<= 1 0))) true)) :rule rare_rewrite :args ("arith-poly-norm-rel-leq" 1 1 (+ (* -1 0) (* -1 (+ -1 (str.len x)))) (+ (* -1 0) (* -1 (str.len x))) 1 0))
+(step t231.t40 (cl) :rule trust)
+(step t231 (cl (not (>= (+ -1 (str.len x)) (str.len x))) false) :rule subproof :discharge (t231.a0))
+(step t.end (cl) :rule resolution :premises (nt231.0 nt231.1 t231))

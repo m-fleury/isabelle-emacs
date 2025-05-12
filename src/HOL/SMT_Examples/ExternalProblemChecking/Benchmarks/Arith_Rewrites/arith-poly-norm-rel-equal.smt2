@@ -1,0 +1,5 @@
+(set-logic QF_SLIA)
+(declare-fun s () String)
+(assert (not (= (=> (= (* (- 4) (- (str.len (str.substr s 4 (+ (- 4) (str.len s)))) (+ (- 4) (str.len s)))) (* 4 (- (str.len s) (+ 4 (str.len (str.substr s 4 (+ (- 4) (str.len s)))))))) (= (= (str.len (str.substr s 4 (+ (- 4) (str.len s)))) (+ (- 4) (str.len s))) (= (str.len s) (+ 4 (str.len (str.substr s 4 (+ (- 4) (str.len s)))))))) true)))
+(check-sat)
+(exit)

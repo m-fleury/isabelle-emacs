@@ -1,0 +1,6 @@
+(set-logic ALL)
+(declare-fun v7 () Bool)
+(assert (not (not (forall ((q49 Bool) (q55 Bool)) (= (= q49 q55) (= v7 (= (not v7) (not (forall ((BOUND_VARIABLE_8548 Bool)) (= BOUND_VARIABLE_8548 (= (not v7) BOUND_VARIABLE_8548)))))))))))
+(assert (not (= (= true false) (= v7 (= (not v7) (not (forall ((BOUND_VARIABLE_8548 Bool)) (= BOUND_VARIABLE_8548 (= (not v7) BOUND_VARIABLE_8548)))))))))
+(check-sat)
+(exit)

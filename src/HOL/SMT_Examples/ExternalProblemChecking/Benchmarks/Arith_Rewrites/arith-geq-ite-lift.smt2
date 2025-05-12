@@ -1,0 +1,6 @@
+(set-logic QF_LRA)
+(declare-fun x () Real)
+(declare-fun b () Bool)
+(assert (not (= (>= (ite b 0.0 1.0) 0.0) (ite b (>= 0.0 0.0) (>= 1.0 0.0)))))
+(check-sat)
+(exit)

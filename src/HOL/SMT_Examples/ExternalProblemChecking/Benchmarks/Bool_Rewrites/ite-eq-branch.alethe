@@ -1,0 +1,11 @@
+unsat
+(assume nt100.0 (not (not (not (= (ite (= v5 (ite (= v5 v6) v5 v6)) v5 v6) (ite (= v5 v6) v5 v6))))))
+(assume nt100.1 (not (not (= v6 (ite (= v5 (ite (= v5 v6) v5 v6)) v5 v6)))))
+(assume nt100.2 (not (not (= v6 (ite (= v5 v6) v5 v6)))))
+(anchor :step t100)
+(assume t100.a0 (not (= (ite (= v5 (ite (= v5 v6) v5 v6)) v5 v6) (ite (= v5 v6) v5 v6))))
+(assume t100.a1 (= v6 (ite (= v5 (ite (= v5 v6) v5 v6)) v5 v6)))
+(step st100.t156 (cl (= (ite (= v2 v4) v1 v1) v1)) :rule rare_rewrite :args ("ite-eq-branch" (= v2 v4) v1))
+(step t100.t661 (cl (not (= v6 (ite (= v5 v6) v5 v6)))) :rule trust)
+(step t100 (cl (not (not (= (ite (= v5 (ite (= v5 v6) v5 v6)) v5 v6) (ite (= v5 v6) v5 v6)))) (not (= v6 (ite (= v5 (ite (= v5 v6) v5 v6)) v5 v6))) (not (= v6 (ite (= v5 v6) v5 v6)))) :rule subproof :discharge (t100.a0 t100.a1))
+(step t.end (cl) :rule resolution :premises (nt100.0 nt100.1 nt100.2 t100))

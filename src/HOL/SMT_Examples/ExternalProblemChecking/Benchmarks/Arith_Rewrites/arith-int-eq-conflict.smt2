@@ -1,0 +1,7 @@
+(set-logic ALL)
+(declare-fun x1 () Int)
+(declare-fun x0 () Int)
+(assert (not (= (= (to_real (+ (* 16 x1) (* 3 x0))) (/ 1.0 2.0)) false)))
+(assert (= (= (to_real (to_int (/ 1.0 2.0))) (/ 1.0 2.0)) false))
+(check-sat)
+(exit)

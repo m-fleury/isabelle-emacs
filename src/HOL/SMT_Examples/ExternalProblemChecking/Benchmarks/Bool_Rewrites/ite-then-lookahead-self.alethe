@@ -1,0 +1,13 @@
+unsat
+(assume nt1.0 (not (not (>= (* -1/1 x_0) 0.0))))
+(assume nt1.1 (not (not (>= (* -1/1 x_1) 0.0))))
+(assume nt1.2 (not (not (>= (+ x_0 x_1) 1.0))))
+(assume nt1.3 (not false))
+(anchor :step t1)
+(assume t1.a0 (>= (* -1/1 x_0) 0.0))
+(assume t1.a1 (>= (* -1/1 x_1) 0.0))
+(assume t1.a2 (>= (+ x_0 x_1) 1.0))
+(step st1.t1 (cl (= (ite b_f b_f (>= (+ x_0 x_1) 1.0)) (ite b_f true (>= (+ x_0 x_1) 1.0)))) :rule rare_rewrite :args ("ite-then-lookahead-self" b_f (>= (+ x_0 x_1) 1.0)))
+(step t1.t29 (cl) :rule trust)
+(step t1 (cl (not (>= (* -1/1 x_0) 0.0)) (not (>= (* -1/1 x_1) 0.0)) (not (>= (+ x_0 x_1) 1.0)) false) :rule subproof :discharge (t1.a0 t1.a1 t1.a2))
+(step t.end (cl) :rule resolution :premises (nt1.0 nt1.1 nt1.2 nt1.3 t1))

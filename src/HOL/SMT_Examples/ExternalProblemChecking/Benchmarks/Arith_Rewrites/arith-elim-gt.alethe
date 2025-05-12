@@ -1,0 +1,4 @@
+unsat
+(assume nst4872.0 (not (= (> (str.len (str.replace (str.replace "A" x y) "B" y)) 0) (not (<= (str.len (str.replace (str.replace "A" x y) "B" y)) 0)))))
+(step st4872 (cl (= (> (str.len (str.replace (str.replace "A" x y) "B" y)) 0) (not (<= (str.len (str.replace (str.replace "A" x y) "B" y)) 0)))) :rule rare_rewrite :args ("arith-elim-gt" (str.len (str.replace (str.replace "A" x y) "B" y)) 0))
+(step t.end (cl) :rule resolution :premises (nst4872.0 st4872))

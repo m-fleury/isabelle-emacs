@@ -1,0 +1,5 @@
+(set-logic UFNIA)
+(assert (not (not (not (forall ((k Int)) (not (forall ((a Int) (b Int)) (= k (ite (= (mod a 2) 0) 1 0)))))))))
+(assert (not (not (not (forall ((a Int) (b Int)) (= (choice ((k Int)) (not (not (forall ((a Int) (b Int)) (= k (ite (= (mod a 2) 0) 1 0)))))) (ite (= (mod a 2) 0) 1 0)))))))
+(check-sat)
+(exit)

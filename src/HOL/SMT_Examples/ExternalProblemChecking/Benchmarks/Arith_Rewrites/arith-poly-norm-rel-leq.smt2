@@ -1,0 +1,6 @@
+(set-logic ALL)
+(declare-fun x () String)
+(assert (not (not (>= (+ (- 1) (str.len x)) (str.len x)))))
+(assert (not false))
+(check-sat)
+(exit)

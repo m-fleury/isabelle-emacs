@@ -1,0 +1,4 @@
+unsat
+(assume nst17.0 (not (= (=> (forall ((?y6 (_ BitVec 32))) (not (= (_ bv0 32) (bvadd (bvmul ?y6 (_ bv4294967231 32)) (bvneg (bvmul ?y6 (_ bv4294967231 32))))))) false) (not (forall ((?y6 (_ BitVec 32))) (not (= (_ bv0 32) (bvadd (bvmul ?y6 (_ bv4294967231 32)) (bvneg (bvmul ?y6 (_ bv4294967231 32)))))))))))
+(step st17 (cl (= (=> (forall ((?y6 (_ BitVec 32))) (not (= (_ bv0 32) (bvadd (bvmul ?y6 (_ bv4294967231 32)) (bvneg (bvmul ?y6 (_ bv4294967231 32))))))) false) (not (forall ((?y6 (_ BitVec 32))) (not (= (_ bv0 32) (bvadd (bvmul ?y6 (_ bv4294967231 32)) (bvneg (bvmul ?y6 (_ bv4294967231 32)))))))))) :rule rare_rewrite :args ("bool-impl-false1" (forall ((?y6 (_ BitVec 32))) (not (= (_ bv0 32) (bvadd (bvmul ?y6 (_ bv4294967231 32)) (bvneg (bvmul ?y6 (_ bv4294967231 32)))))))))
+(step t.end (cl) :rule resolution :premises (nst17.0 st17))

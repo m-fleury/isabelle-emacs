@@ -1,0 +1,11 @@
+unsat
+(assume nt16.0 (not (not (= v2 v3))))
+(assume nt16.1 (not (not (not (= v3 (ite (= v2 v3) v2 v3))))))
+(assume nt16.2 (not (not (= v2 (ite (= v2 v3) v2 v3)))))
+(anchor :step t16)
+(assume t16.a0 (= v2 v3))
+(assume t16.a1 (not (= v3 (ite (= v2 v3) v2 v3))))
+(step st16.t57 (cl (= (xor (= v3 (ite (= v2 v3) v2 v3)) true) (not (= v3 (ite (= v2 v3) v2 v3))))) :rule rare_rewrite :args ("bool-xor-true" (= v3 (ite (= v2 v3) v2 v3))))
+(step t16.t72 (cl (not (= v2 (ite (= v2 v3) v2 v3)))) :rule trust)
+(step t16 (cl (not (= v2 v3)) (not (not (= v3 (ite (= v2 v3) v2 v3)))) (not (= v2 (ite (= v2 v3) v2 v3)))) :rule subproof :discharge (t16.a0 t16.a1))
+(step t.end (cl) :rule resolution :premises (nt16.0 nt16.1 nt16.2 t16))

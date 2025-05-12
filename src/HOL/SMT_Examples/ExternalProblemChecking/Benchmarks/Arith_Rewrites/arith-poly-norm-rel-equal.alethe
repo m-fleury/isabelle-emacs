@@ -1,0 +1,4 @@
+unsat
+(assume nst91.0 (not (= (=> (= (* -4 (- (str.len (str.substr s 4 (+ -4 (str.len s)))) (+ -4 (str.len s)))) (* 4 (- (str.len s) (+ 4 (str.len (str.substr s 4 (+ -4 (str.len s)))))))) (= (= (str.len (str.substr s 4 (+ -4 (str.len s)))) (+ -4 (str.len s))) (= (str.len s) (+ 4 (str.len (str.substr s 4 (+ -4 (str.len s)))))))) true)))
+(step st91 (cl (= (=> (= (* -4 (- (str.len (str.substr s 4 (+ -4 (str.len s)))) (+ -4 (str.len s)))) (* 4 (- (str.len s) (+ 4 (str.len (str.substr s 4 (+ -4 (str.len s)))))))) (= (= (str.len (str.substr s 4 (+ -4 (str.len s)))) (+ -4 (str.len s))) (= (str.len s) (+ 4 (str.len (str.substr s 4 (+ -4 (str.len s)))))))) true)) :rule rare_rewrite :args ("arith-poly-norm-rel-equal" -4 4 (str.len (str.substr s 4 (+ -4 (str.len s)))) (+ -4 (str.len s)) (str.len s) (+ 4 (str.len (str.substr s 4 (+ -4 (str.len s)))))))
+(step t.end (cl) :rule resolution :premises (nst91.0 st91))

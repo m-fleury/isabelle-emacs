@@ -1,0 +1,4 @@
+unsat
+(assume nst12.0 (not (= (bvugt y (_ bv0 4)) (bvult (_ bv0 4) y))))
+(step st12 (cl (= (bvugt y (_ bv0 4)) (bvult (_ bv0 4) y))) :rule rare_rewrite :args ("bv-ugt-eliminate" y (_ bv0 4)))
+(step t.end (cl) :rule resolution :premises (nst12.0 st12))

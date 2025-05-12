@@ -1,0 +1,10 @@
+unsat
+(assume nt6.0 (not (= (exists ((a Int) (s Int)) (forall ((o Bool)) (not (ite x9 (forall ((k Int)) true) (= o (= 0 (ite x9 x x1))))))) (exists ((a Int) (s Int)) false))))
+(anchor :step t6 :args ((a Int) (s Int) (:= (a Int) a) (:= (s Int) s)))
+(anchor :step t6.t1 :args ((o Bool) (:= (o Bool) o)))
+(step st6.t1.t2 (cl (= (not (= o (= (ite x9 x x1) 0))) (= (not o) (= (ite x9 x x1) 0)))) :rule rare_rewrite :args ("bool-not-eq-elim1" o (= (ite x9 x x1) 0)))
+(step t6.t1.t4 (cl (= (not (or x9 (= o (= (ite x9 x x1) 0)))) (and (not x9) (= (not o) (= (ite x9 x x1) 0))))) :rule trust)
+(step t6.t1 (cl (= (forall ((o Bool)) (not (or x9 (= o (= (ite x9 x x1) 0))))) (forall ((o Bool)) (and (not x9) (= (not o) (= (ite x9 x x1) 0)))))) :rule bind)
+(step t6.t18 (cl (= (forall ((o Bool)) (not (ite x9 (forall ((k Int)) true) (= o (= 0 (ite x9 x x1)))))) false)) :rule trust)
+(step t6 (cl (= (exists ((a Int) (s Int)) (forall ((o Bool)) (not (ite x9 (forall ((k Int)) true) (= o (= 0 (ite x9 x x1))))))) (exists ((a Int) (s Int)) false))) :rule bind)
+(step t.end (cl) :rule resolution :premises (nt6.0 t6))

@@ -1,0 +1,6 @@
+(set-logic ALL)
+(declare-fun x () Bool)
+(assert (not (= (bvand (_ bv1 1) (bvnot ((_ extract 0 0) (ite x (_ bv1 1) (_ bv0 1)))) ((_ extract 0 0) (ite x (_ bv1 1) (_ bv0 1)))) (@bv 0 1))))
+(assert (= 1 (@bvsize ((_ extract 0 0) (ite x (_ bv1 1) (_ bv0 1))))))
+(check-sat)
+(exit)

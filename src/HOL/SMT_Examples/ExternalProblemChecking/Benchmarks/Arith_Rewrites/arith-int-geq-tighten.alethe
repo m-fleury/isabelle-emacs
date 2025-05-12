@@ -1,0 +1,6 @@
+unsat
+(assume nst494.0 (not (= (>= (to_real (str.len x)) 1/2) (>= (str.len x) 1))))
+(assume t491 (= (= (to_real (to_int 1/2)) 1/2) false))
+(assume t493 (= 1 (+ (to_int 1/2) 1)))
+(step st494 (cl (= (>= (to_real (str.len x)) 1/2) (>= (str.len x) 1))) :rule rare_rewrite :premises (t491 t493) :args ("arith-int-geq-tighten" (str.len x) 1/2 1))
+(step t.end (cl) :rule resolution :premises (nst494.0 st494))

@@ -1,0 +1,4 @@
+unsat
+(assume nst43.0 (not (= (= (ite (= "-" (str.substr b 0 1)) true true) true) (ite (= "-" (str.substr b 0 1)) (= true true) (= true true)))))
+(step st43 (cl (= (= (ite (= "-" (str.substr b 0 1)) true true) true) (ite (= "-" (str.substr b 0 1)) (= true true) (= true true)))) :rule rare_rewrite :args ("eq-ite-lift" (= "-" (str.substr b 0 1)) true true true))
+(step t.end (cl) :rule resolution :premises (nst43.0 st43))

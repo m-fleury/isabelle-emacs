@@ -1,0 +1,5 @@
+unsat
+(assume nst2.0 (not (= (= x (bvnot x)) false)))
+(assume t1 (= (> (@bvsize x) 0) true))
+(step st2 (cl (= (= x (bvnot x)) false)) :rule rare_rewrite :premises (t1) :args ("bv-not-neq" x))
+(step t.end (cl) :rule resolution :premises (nst2.0 st2))

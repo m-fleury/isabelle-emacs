@@ -1,0 +1,7 @@
+(set-logic QF_SLIA)
+(declare-fun x () String)
+(declare-fun y () String)
+(declare-fun z () Int)
+(assert (not (= (<= (str.len (str.substr x (+ (str.len (str.replace "A" y x)) (str.len (str.substr x 0 (str.indexof x (str.replace "A" y x) 0)))) (+ (str.len x) (* (- 1) (str.len (str.replace "A" y x))) (* (- 1) (str.len (str.substr x 0 (str.indexof x (str.replace "A" y x) 0))))))) 0) (not (>= (str.len (str.substr x (+ (str.len (str.replace "A" y x)) (str.len (str.substr x 0 (str.indexof x (str.replace "A" y x) 0)))) (+ (str.len x) (* (- 1) (str.len (str.replace "A" y x))) (* (- 1) (str.len (str.substr x 0 (str.indexof x (str.replace "A" y x) 0))))))) (+ 0 1))))))
+(check-sat)
+(exit)

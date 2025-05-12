@@ -1,0 +1,4 @@
+unsat
+(assume nst56.0 (not (= (<= (ite (< (str.len n) 1) (str.len n) 1) 1) true)))
+(step st56 (cl (= (<= (ite (< (str.len n) 1) (str.len n) 1) 1) true)) :rule rare_rewrite :args ("arith-min-lt2" (str.len n) 1))
+(step t.end (cl) :rule resolution :premises (nst56.0 st56))

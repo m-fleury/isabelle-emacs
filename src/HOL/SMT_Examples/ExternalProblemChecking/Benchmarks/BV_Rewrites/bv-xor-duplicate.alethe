@@ -1,0 +1,5 @@
+unsat
+(assume nst3.0 (not (= (bvxor x x) (@bv 0 10))))
+(assume t2 (= 10 (@bvsize x)))
+(step st3 (cl (= (bvxor x x) (@bv 0 10))) :rule rare_rewrite :premises (t2) :args ("bv-xor-duplicate" x 10))
+(step t.end (cl) :rule resolution :premises (nst3.0 st3))

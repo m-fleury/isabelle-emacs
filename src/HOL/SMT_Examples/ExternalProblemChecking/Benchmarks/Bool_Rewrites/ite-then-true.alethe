@@ -1,0 +1,4 @@
+unsat
+(assume nst27.0 (not (= (ite (= e (f a)) true (not (= e (f b)))) (or (= e (f a)) (not (= e (f b)))))))
+(step st27 (cl (= (ite (= e (f a)) true (not (= e (f b)))) (or (= e (f a)) (not (= e (f b)))))) :rule rare_rewrite :args ("ite-then-true" (= e (f a)) (not (= e (f b)))))
+(step t.end (cl) :rule resolution :premises (nst27.0 st27))

@@ -1,0 +1,6 @@
+(set-logic ALL)
+(declare-sort $$unsorted 0)
+(declare-fun tptp.big_f ($$unsorted $$unsorted) Bool)
+(assert (not (= (not (not (forall ((Z $$unsorted)) (not (forall ((X $$unsorted)) (= (= Z X) (tptp.big_f X (choice ((Y $$unsorted)) (not (= (not (forall ((Z $$unsorted)) (not (forall ((X $$unsorted)) (= (tptp.big_f X Y) (= Z X)))))) (= Y (choice ((W $$unsorted)) (not (not (forall ((X $$unsorted) (Y $$unsorted)) (= (tptp.big_f X Y) (and (= (choice ((Z $$unsorted)) (not (forall ((W $$unsorted)) (not (forall ((X $$unsorted) (Y $$unsorted)) (= (tptp.big_f X Y) (and (= Z X) (= W Y)))))))) X) (= W Y)))))))))))))))))) (forall ((Z $$unsorted)) (not (forall ((X $$unsorted)) (= (= Z X) (tptp.big_f X (choice ((Y $$unsorted)) (not (= (not (forall ((Z $$unsorted)) (not (forall ((X $$unsorted)) (= (tptp.big_f X Y) (= Z X)))))) (= Y (choice ((W $$unsorted)) (not (not (forall ((X $$unsorted) (Y $$unsorted)) (= (tptp.big_f X Y) (and (= (choice ((Z $$unsorted)) (not (forall ((W $$unsorted)) (not (forall ((X $$unsorted) (Y $$unsorted)) (= (tptp.big_f X Y) (and (= Z X) (= W Y)))))))) X) (= W Y)))))))))))))))))))
+(check-sat)
+(exit)

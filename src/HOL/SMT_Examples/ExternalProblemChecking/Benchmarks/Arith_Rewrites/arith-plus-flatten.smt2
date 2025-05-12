@@ -1,0 +1,7 @@
+(set-logic ALL)
+(declare-fun x () String)
+(declare-fun y () String)
+(declare-fun z () Int)
+(assert (not (= (+ (str.len (str.substr (str.replace x "B" "BB") 0 (str.indexof (str.replace x "B" "BB") "B" 0))) (+ (str.len "B") (str.len (str.substr (str.replace x "B" "BB") (+ 1 (str.len (str.substr (str.replace x "B" "BB") 0 (str.indexof (str.replace x "B" "BB") "B" 0)))) (+ (- 1) (str.len (str.replace x "B" "BB")) (* (- 1) (str.len (str.substr (str.replace x "B" "BB") 0 (str.indexof (str.replace x "B" "BB") "B" 0))))))))) (+ (str.len (str.substr (str.replace x "B" "BB") 0 (str.indexof (str.replace x "B" "BB") "B" 0))) (str.len "B") (str.len (str.substr (str.replace x "B" "BB") (+ 1 (str.len (str.substr (str.replace x "B" "BB") 0 (str.indexof (str.replace x "B" "BB") "B" 0)))) (+ (- 1) (str.len (str.replace x "B" "BB")) (* (- 1) (str.len (str.substr (str.replace x "B" "BB") 0 (str.indexof (str.replace x "B" "BB") "B" 0)))))))))))
+(check-sat)
+(exit)
