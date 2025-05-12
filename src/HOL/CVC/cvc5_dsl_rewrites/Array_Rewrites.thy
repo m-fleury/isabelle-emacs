@@ -1,5 +1,5 @@
 theory Array_Rewrites
-  imports "HOL-CVC.Dsl_Nary_Ops" 
+  imports Dsl_Nary_Ops
 begin
 
 (* Thank you for using IsaRARE. This is a theory automatically created from a RARE file!
