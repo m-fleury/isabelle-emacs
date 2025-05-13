@@ -1,0 +1,4 @@
+unsat
+(assume nst422.0 (not (= (= ((_ @bitOf 2) a) true) ((_ @bitOf 2) a))))
+(step st422 (cl (= (= ((_ @bitOf 2) a) true) ((_ @bitOf 2) a))) :rule rare_rewrite :args ("bool-eq-true" ((_ @bitOf 2) a)))
+(step t.end (cl) :rule resolution :premises (nst422.0 st422))
