@@ -4,8 +4,8 @@
 
 
    43 rules in total
-   30 rules with test
-   13 without test
+   37 rules with test
+   6 without test
 *)
 
 theory Bool_Rewrites

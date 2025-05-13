@@ -4,8 +4,8 @@
 
 
    41 rules in total
-   14 rules with test
-   27 without test
+   18 rules with test
+   23 without test
 *)
 
 theory Arith_Rewrites
