@@ -1,4 +1,0 @@
-unsat
-(assume nst45.0 (not (= (=> (= (* -1/1 (- (to_real (+ (* 32 x1) (* 6 x0))) (to_real 1))) (* -1/1 (to_real (- (+ (* 32 x1) (* 6 x0)) 1)))) (= (<= (to_real (+ (* 32 x1) (* 6 x0))) (to_real 1)) (<= (+ (* 32 x1) (* 6 x0)) 1))) true)))
-(step st45 (cl (= (=> (= (* -1/1 (- (to_real (+ (* 32 x1) (* 6 x0))) (to_real 1))) (* -1/1 (to_real (- (+ (* 32 x1) (* 6 x0)) 1)))) (= (<= (to_real (+ (* 32 x1) (* 6 x0))) (to_real 1)) (<= (+ (* 32 x1) (* 6 x0)) 1))) true)) :rule rare_rewrite :args ("arith-poly-norm-rel-leq-right-to-real" -1/1 -1/1 (to_real (+ (* 32 x1) (* 6 x0))) (to_real 1) (+ (* 32 x1) (* 6 x0)) 1))
-(step t.end (cl) :rule resolution :premises (nst45.0 st45))

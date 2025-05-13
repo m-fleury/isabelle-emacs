@@ -1,7 +1,0 @@
-(set-logic ALL)
-(declare-fun b () Bool)
-(declare-fun c () Bool)
-(declare-fun d () Bool)
-(assert (not (= (not (= d (or b c))) (= d (not (or b c))))))
-(check-sat)
-(exit)

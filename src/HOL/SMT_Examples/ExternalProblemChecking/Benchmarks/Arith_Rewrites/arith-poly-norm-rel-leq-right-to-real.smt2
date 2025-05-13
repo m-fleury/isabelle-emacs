@@ -1,6 +1,0 @@
-(set-logic ALL)
-(declare-fun x1 () Int)
-(declare-fun x0 () Int)
-(assert (not (= (=> (= (* (- 1.0) (- (to_real (+ (* 32 x1) (* 6 x0))) (to_real 1))) (* (- 1.0) (to_real (- (+ (* 32 x1) (* 6 x0)) 1)))) (= (<= (to_real (+ (* 32 x1) (* 6 x0))) (to_real 1)) (<= (+ (* 32 x1) (* 6 x0)) 1))) true)))
-(check-sat)
-(exit)
