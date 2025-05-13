@@ -1,0 +1,4 @@
+unsat
+(assume nst23.0 (not (= (ite (= v3 v2) v1 (ite (= v3 v2) v3 (ite (distinct v4 v4) (ite (distinct v4 v4) v2 v2) (ite (distinct v4 v4) v2 v2)))) (ite (= v3 v2) v1 (ite (distinct v4 v4) (ite (distinct v4 v4) v2 v2) (ite (distinct v4 v4) v2 v2))))))
+(step st23 (cl (= (ite (= v3 v2) v1 (ite (= v3 v2) v3 (ite (distinct v4 v4) (ite (distinct v4 v4) v2 v2) (ite (distinct v4 v4) v2 v2)))) (ite (= v3 v2) v1 (ite (distinct v4 v4) (ite (distinct v4 v4) v2 v2) (ite (distinct v4 v4) v2 v2))))) :rule rare_rewrite :args ("ite-else-lookahead" (= v3 v2) v1 v3 (ite (distinct v4 v4) (ite (distinct v4 v4) v2 v2) (ite (distinct v4 v4) v2 v2))))
+(step t.end (cl) :rule resolution :premises (nst23.0 st23))
