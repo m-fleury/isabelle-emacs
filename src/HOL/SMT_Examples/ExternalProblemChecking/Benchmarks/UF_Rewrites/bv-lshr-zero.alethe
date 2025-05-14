@@ -1,0 +1,4 @@
+unsat
+(assume nst14.0 (not (= (bvlshr (@bv 0 32) s) (@bv 0 32))))
+(step st14 (cl (= (bvlshr (@bv 0 32) s) (@bv 0 32))) :rule rare_rewrite :args ("bv-lshr-zero" s 32))
+(step t.end (cl) :rule resolution :premises (nst14.0 st14))

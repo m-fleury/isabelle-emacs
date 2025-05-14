@@ -4,8 +4,8 @@
 
 
     13 rules in total
-    5 rules with test
-    8 without test
+    6 rules with test
+    7 without test
 *)
 
 theory UF_Rewrites
