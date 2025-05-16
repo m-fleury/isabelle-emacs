@@ -1,0 +1,7 @@
+uf-bv2nat-int2bv
+uf-bv2nat-int2bv-extend
+uf-bv2nat-int2bv-extract
+uf-int2bv-bv2nat
+uf-bv2nat-geq-elim
+uf-int2bv-bvule-equiv
+uf-sbv-to-int-elim

@@ -377,7 +377,7 @@ fun replay solver method_for outer_ctxt
     fun normalize_tac ctxt = let val thy = Proof_Context.theory_of (empty_simpset ctxt) in
       Raw_Simplifier.rewrite_term thy rewrite_rules [] end
     val used_lldefs =
-      map_filter (fn id => let val i = index_of_id id in if i < 0
+      map_filter (fn id => let val i = index_of_id id in if i < 0 andalso not (ll_defs = [])
           then SOME (id, normalize_tac ctxt (nth ll_defs id))  else NONE end)
         used_assert_ids
     val _ = debug_msg ctxt high (fn () => @{print} ("used_lldefs ",used_lldefs))

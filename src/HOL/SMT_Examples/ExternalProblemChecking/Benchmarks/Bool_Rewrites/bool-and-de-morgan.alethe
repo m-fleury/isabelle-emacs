@@ -1,0 +1,12 @@
+unsat
+(assume nt1.0 (not (not (forall ((x U) (y U) (z U)) (or (not (G x y)) (not (G y z)) (G x z))))))
+(assume nt1.1 (not (or (not (G (S (S a)) (S a))) (not (G (S a) a)) (G (S (S a)) a))))
+(anchor :step t1)
+(assume t1.a0 (forall ((x U) (y U) (z U)) (or (not (G x y)) (not (G y z)) (G x z))))
+(anchor :step t1.t3 :args ((x U) (y U) (z U) (:= (x U) x) (:= (y U) y) (:= (z U) z)))
+(step st1.t3.t1 (cl (= (not (and (G x y) (G y z))) (or (not (G x y)) (not (G y z))))) :rule rare_rewrite :args ("bool-and-de-morgan" (G x y) (G y z) rare-list))
+(step t1.t3.t6 (cl (= (=> (and (G x y) (G y z)) (G x z)) (or (not (G x y)) (not (G y z)) (G x z)))) :rule trust)
+(step t1.t3 (cl (= (forall ((x U) (y U) (z U)) (=> (and (G x y) (G y z)) (G x z))) (forall ((x U) (y U) (z U)) (or (not (G x y)) (not (G y z)) (G x z))))) :rule bind)
+(step t1.t6 (cl (or (not (G (S (S a)) (S a))) (not (G (S a) a)) (G (S (S a)) a))) :rule trust)
+(step t1 (cl (not (forall ((x U) (y U) (z U)) (or (not (G x y)) (not (G y z)) (G x z)))) (or (not (G (S (S a)) (S a))) (not (G (S a) a)) (G (S (S a)) a))) :rule subproof :discharge (t1.a0))
+(step t.end (cl) :rule resolution :premises (nt1.0 nt1.1 t1))

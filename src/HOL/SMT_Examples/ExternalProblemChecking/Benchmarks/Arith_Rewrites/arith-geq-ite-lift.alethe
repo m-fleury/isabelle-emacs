@@ -1,0 +1,4 @@
+unsat
+(assume nst23.0 (not (= (>= (ite b 0.0 1.0) 0.0) (ite b (>= 0.0 0.0) (>= 1.0 0.0)))))
+(step st23 (cl (= (>= (ite b 0.0 1.0) 0.0) (ite b (>= 0.0 0.0) (>= 1.0 0.0)))) :rule rare_rewrite :args ("arith-geq-ite-lift" b 0.0 1.0 0.0))
+(step t.end (cl) :rule resolution :premises (nst23.0 st23))

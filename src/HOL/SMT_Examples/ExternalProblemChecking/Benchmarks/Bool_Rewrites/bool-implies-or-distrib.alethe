@@ -1,0 +1,4 @@
+unsat
+(assume nst316.0 (not (= (=> (or (and (= x8 y8) (= y8 x9)) (and (= x8 z8) (= z8 x9))) (= x8 x9)) (and (=> (and (= x8 y8) (= y8 x9)) (= x8 x9)) (=> (and (= x8 z8) (= z8 x9)) (= x8 x9))))))
+(step st316 (cl (= (=> (or (and (= x8 y8) (= y8 x9)) (and (= x8 z8) (= z8 x9))) (= x8 x9)) (and (=> (and (= x8 y8) (= y8 x9)) (= x8 x9)) (=> (and (= x8 z8) (= z8 x9)) (= x8 x9))))) :rule rare_rewrite :args ("bool-implies-or-distrib" (and (= x8 y8) (= y8 x9)) (and (= x8 z8) (= z8 x9)) rare-list (= x8 x9)))
+(step t.end (cl) :rule resolution :premises (nst316.0 st316))

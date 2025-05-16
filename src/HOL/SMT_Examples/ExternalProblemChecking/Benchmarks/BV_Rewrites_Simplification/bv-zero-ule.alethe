@@ -1,0 +1,7 @@
+unsat
+(assume nt27.0 (not (= (forall ((x (_ BitVec 8))) (=> (and (bvule (_ bv0 8) x) (bvule x (_ bv2 8))) (= (select a3 x) (select a4 x)))) (forall ((x (_ BitVec 8))) (=> (not (bvult (_ bv2 8) x)) (= (select a3 x) (select a4 x)))))))
+(anchor :step t27 :args ((x (_ BitVec 8)) (:= (x (_ BitVec 8)) x)))
+(step st27.t8 (cl (= (bvule (@bv 0 8) x) true)) :rule rare_rewrite :args ("bv-zero-ule" x 8))
+(step t27.t15 (cl (= (=> (and (bvule (_ bv0 8) x) (bvule x (_ bv2 8))) (= (select a3 x) (select a4 x))) (=> (not (bvult (_ bv2 8) x)) (= (select a3 x) (select a4 x))))) :rule trust)
+(step t27 (cl (= (forall ((x (_ BitVec 8))) (=> (and (bvule (_ bv0 8) x) (bvule x (_ bv2 8))) (= (select a3 x) (select a4 x)))) (forall ((x (_ BitVec 8))) (=> (not (bvult (_ bv2 8) x)) (= (select a3 x) (select a4 x)))))) :rule bind)
+(step t.end (cl) :rule resolution :premises (nt27.0 t27))

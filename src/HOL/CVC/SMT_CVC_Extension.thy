@@ -1,5 +1,5 @@
 theory SMT_CVC_Extension \<comment> \<open>More Setup for CVC that should be in HOL eventually\<close>
-  imports SMT_CVC "Set_Rewrites" "Array_Rewrites" (*String Rewrites*)
+  imports SMT_CVC "Set_Rewrites" "Array_Rewrites" String_Rewrites String "HOL-Library.Smtlib_String"
 begin
 
 

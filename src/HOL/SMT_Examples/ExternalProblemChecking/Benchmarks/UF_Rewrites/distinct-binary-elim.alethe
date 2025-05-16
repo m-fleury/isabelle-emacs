@@ -1,0 +1,4 @@
+unsat
+(assume nst22.0 (not (= (distinct (@bv 0 4) y) (not (= (@bv 0 4) y)))))
+(step st22 (cl (= (distinct (@bv 0 4) y) (not (= (@bv 0 4) y)))) :rule rare_rewrite :args ("distinct-binary-elim" (@bv 0 4) y))
+(step t.end (cl) :rule resolution :premises (nst22.0 st22))

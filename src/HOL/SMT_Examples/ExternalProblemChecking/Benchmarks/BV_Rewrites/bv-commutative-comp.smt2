@@ -1,0 +1,5 @@
+(set-logic ALL)
+(declare-fun b () (_ BitVec 1))
+(assert (not (= (bvcomp (@bv 1 1) b) (bvcomp b (@bv 1 1)))))
+(check-sat)
+(exit)

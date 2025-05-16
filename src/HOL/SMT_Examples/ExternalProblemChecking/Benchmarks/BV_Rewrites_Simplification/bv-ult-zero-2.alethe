@@ -1,0 +1,4 @@
+unsat
+(assume nst25.0 (not (= (bvult x1 (@bv 0 10)) false)))
+(step st25 (cl (= (bvult x1 (@bv 0 10)) false)) :rule rare_rewrite :args ("bv-ult-zero-2" x1 10))
+(step t.end (cl) :rule resolution :premises (nst25.0 st25))

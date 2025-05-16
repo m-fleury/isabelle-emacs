@@ -17,8 +17,16 @@ theory SMTLIB_Examples_CVC
   imports "HOL-CVC.SMT_CVC"
 begin
 
-declare[[smt_trace=false,smt_verbose=false]]
+(*
+Bool_Rewrites:    			38/43
+Builtin_Rewrites:			7/8
+Arith_Rewrites:			        26/48
+UF_Rewrites:				6/13
+BV_Rewrites_Simplification:             18/70
 
-check_smt_dir ("cvc5_proof") "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/QF_UF/"
+
+*)
+
+
 
 end

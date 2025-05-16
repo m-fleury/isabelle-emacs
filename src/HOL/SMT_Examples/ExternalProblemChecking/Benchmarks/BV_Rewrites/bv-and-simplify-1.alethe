@@ -1,0 +1,5 @@
+unsat
+(assume nst4.0 (not (= (bvand (_ bv1 1) (bvnot ((_ extract 0 0) (ite x (_ bv1 1) (_ bv0 1)))) ((_ extract 0 0) (ite x (_ bv1 1) (_ bv0 1)))) (@bv 0 1))))
+(assume t3 (= 1 (@bvsize ((_ extract 0 0) (ite x (_ bv1 1) (_ bv0 1))))))
+(step st4 (cl (= (bvand (_ bv1 1) (bvnot ((_ extract 0 0) (ite x (_ bv1 1) (_ bv0 1)))) ((_ extract 0 0) (ite x (_ bv1 1) (_ bv0 1)))) (@bv 0 1))) :rule rare_rewrite :premises (t3) :args ("bv-and-simplify-1" (rare-list (_ bv1 1)) rare-list rare-list ((_ extract 0 0) (ite x (_ bv1 1) (_ bv0 1))) 1))
+(step t.end (cl) :rule resolution :premises (nst4.0 st4))

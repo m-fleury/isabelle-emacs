@@ -1,0 +1,4 @@
+unsat
+(assume nst1.0 (not (= (bvuge x y) (bvule y x))))
+(step st1 (cl (= (bvuge x y) (bvule y x))) :rule rare_rewrite :args ("bv-uge-eliminate" x y))
+(step t.end (cl) :rule resolution :premises (nst1.0 st1))

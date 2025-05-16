@@ -1,0 +1,6 @@
+unsat
+(assume nst13.0 (not (= (bvshl x (@bv 256 10)) (@bv 0 10))))
+(assume t10 (= (>= 256 (@bvsize x)) true))
+(assume t12 (= 10 (@bvsize x)))
+(step st13 (cl (= (bvshl x (@bv 256 10)) (@bv 0 10))) :rule rare_rewrite :premises (t10 t12) :args ("bv-shl-by-const-2" x 256 10 10))
+(step t.end (cl) :rule resolution :premises (nst13.0 st13))

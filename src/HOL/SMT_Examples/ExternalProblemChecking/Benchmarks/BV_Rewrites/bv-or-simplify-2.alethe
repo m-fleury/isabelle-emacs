@@ -1,0 +1,5 @@
+unsat
+(assume nst3.0 (not (= (bvor x y z (bvnot y) w) (bvnot (@bv 0 4)))))
+(assume t2 (= 4 (@bvsize y)))
+(step st3 (cl (= (bvor x y z (bvnot y) w) (bvnot (@bv 0 4)))) :rule rare_rewrite :premises (t2) :args ("bv-or-simplify-2" (rare-list x) (rare-list z) (rare-list w) y 4))
+(step t.end (cl) :rule resolution :premises (nst3.0 st3))

@@ -401,6 +401,17 @@ fun abstract_arith_shallow ctxt u =
             | (NONE, _) => abstract_term t cx))
   in abs u end
 
+local 
+
+fun abstract_arith_and_term ctxt abs t = 
+          abstract_sub t (fn cx =>
+          if can HOLogic.dest_number t then (t, cx)
+          else
+            (case apply_abstracters abs (get_arith_abstracters ctxt) t cx of
+              (SOME u, cx') => (u, cx')
+            | (NONE, _) => abstract_term t cx))
+
+in 
 fun abstract_for_code_eval ctxt u =
   let
     fun abs (t as (Const (\<^const_name>\<open>HOL.The\<close>, _) $ Abs (_, _, _))) =
@@ -438,13 +449,21 @@ fun abstract_for_code_eval ctxt u =
           abstract_sub t (abs t1 ##>> abs t2 #>> (fn (u1, u2) => c $ u1 $ u2))
       | abs (t as (c as Const (\<^const_name>\<open>ord_class.less_eq\<close>, _)) $ t1 $ t2) =
           abstract_sub t (abs t1 ##>> abs t2 #>> (fn (u1, u2) => c $ u1 $ u2))
-      | abs t = abstract_sub t (fn cx =>
-          if can HOLogic.dest_number t then (t, cx)
-          else
-            (case apply_abstracters abs (get_arith_abstracters ctxt) t cx of
-              (SOME u, cx') => (u, cx')
-            | (NONE, _) => abstract_term t cx))
+      | abs (t as (c as Const (_,Term.Type(_,T))) $ t1) =
+        (case List.find (fn (Term.Type (x, _)) => x = "Word.word" | _ => false) T of
+          NONE => abstract_arith_and_term ctxt abs t |
+          SOME _ => abstract_sub t (abs t1 #>> (fn u => c $ u)))
+      | abs (t as (c as Const (_,Term.Type(_,T))) $ t1 $ t2) =
+        (case List.find (fn (Term.Type (x, _)) => x = "Word.word" | _ => false) T of
+          NONE => abstract_arith_and_term ctxt abs t |
+          SOME _ => abstract_sub t (abs t1 ##>> abs t2 #>> (fn (u1, u2) => c $ u1 $ u2)))
+      | abs (t as (c as Const (_,Term.Type(_,T))) $ t1 $ t2 $ t3) =
+        (case List.find (fn (Term.Type (x, _)) => x = "Word.word" | _ => false) T of
+          NONE => abstract_arith_and_term ctxt abs t |
+          SOME _ => abstract_ter abs (fn (t1, t2, t3) => c $ t1 $ t2 $ t3) t t1 t2 t3)
+      | abs t = abstract_arith_and_term ctxt abs t
   in abs u end
+end
 
 fun abstract_for_poly_norm ctxt u =
   let

@@ -1,0 +1,4 @@
+unsat
+(assume nst36.0 (not (= (<= (ite (= "-" (str.substr b 0 1)) 1 0) 1) (ite (= "-" (str.substr b 0 1)) (<= 1 1) (<= 0 1)))))
+(step st36 (cl (= (<= (ite (= "-" (str.substr b 0 1)) 1 0) 1) (ite (= "-" (str.substr b 0 1)) (<= 1 1) (<= 0 1)))) :rule rare_rewrite :args ("arith-leq-ite-lift" (= "-" (str.substr b 0 1)) 1 0 1))
+(step t.end (cl) :rule resolution :premises (nst36.0 st36))

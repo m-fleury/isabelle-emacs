@@ -1,0 +1,4 @@
+unsat
+(assume nst6.0 (not (= (not (= d (or b c))) (= d (not (or b c))))))
+(step st6 (cl (= (not (= d (or b c))) (= d (not (or b c))))) :rule rare_rewrite :args ("bool-not-eq-elim2" d (or b c)))
+(step t.end (cl) :rule resolution :premises (nst6.0 st6))

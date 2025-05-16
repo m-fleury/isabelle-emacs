@@ -1,0 +1,4 @@
+unsat
+(assume nst3.0 (not (= (= h d) (= d h))))
+(step st3 (cl (= (= h d) (= d h))) :rule rare_rewrite :args ("eq-symm" h d))
+(step t.end (cl) :rule resolution :premises (nst3.0 st3))

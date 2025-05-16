@@ -1,0 +1,4 @@
+unsat
+(assume nst6.0 (not (= (>= (+ 3.0 b) (+ 2.0 b)) (>= (- (+ 3.0 b) (+ 2.0 b)) 0.0))))
+(step st6 (cl (= (>= (+ 3.0 b) (+ 2.0 b)) (>= (- (+ 3.0 b) (+ 2.0 b)) 0.0))) :rule rare_rewrite :args ("arith-geq-norm1-real" (+ 3.0 b) (+ 2.0 b)))
+(step t.end (cl) :rule resolution :premises (nst6.0 st6))

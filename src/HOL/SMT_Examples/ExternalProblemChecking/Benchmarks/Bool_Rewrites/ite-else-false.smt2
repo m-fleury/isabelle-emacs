@@ -1,0 +1,7 @@
+(set-logic ALL)
+(declare-fun p () Bool)
+(declare-fun q () Bool)
+(declare-fun r () Bool)
+(assert (not (= (ite (ite (ite (ite p q false) false true) true (ite (ite p (ite q false true) true) false true)) (ite (ite (ite r q false) (ite p q r) true) (ite (ite (ite p r false) (ite false true (ite p r false)) true) (ite (ite p (ite q r false) false) (ite p r false) (ite (ite q (ite p r false) false) false true)) false) false) false) (and (ite (ite (ite p q false) false true) true (ite (ite p (ite q false true) true) false true)) (ite (ite (ite r q false) (ite p q r) true) (ite (ite (ite p r false) (ite false true (ite p r false)) true) (ite (ite p (ite q r false) false) (ite p r false) (ite (ite q (ite p r false) false) false true)) false) false)))))
+(check-sat)
+(exit)

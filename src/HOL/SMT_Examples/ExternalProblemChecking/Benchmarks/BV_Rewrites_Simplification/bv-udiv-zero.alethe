@@ -1,0 +1,4 @@
+unsat
+(assume nst10.0 (not (= (bvudiv x (@bv 0 8)) (bvnot (@bv 0 8)))))
+(step st10 (cl (= (bvudiv x (@bv 0 8)) (bvnot (@bv 0 8)))) :rule rare_rewrite :args ("bv-udiv-zero" x 8))
+(step t.end (cl) :rule resolution :premises (nst10.0 st10))

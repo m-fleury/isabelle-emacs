@@ -1,0 +1,4 @@
+unsat
+(assume nst10.0 (not (= (bvule (bvadd T4_2115565 (@bv 0 32)) (@bv 0 32)) (= (bvadd T4_2115565 (@bv 0 32)) (@bv 0 32)))))
+(step st10 (cl (= (bvule (bvadd T4_2115565 (@bv 0 32)) (@bv 0 32)) (= (bvadd T4_2115565 (@bv 0 32)) (@bv 0 32)))) :rule rare_rewrite :args ("bv-ule-zero" (bvadd T4_2115565 (@bv 0 32)) 32))
+(step t.end (cl) :rule resolution :premises (nst10.0 st10))

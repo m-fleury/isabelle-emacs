@@ -1,0 +1,4 @@
+unsat
+(assume nst2.0 (not (= (bvult (bvcomp _x15 _x15) (bvcomp _x15 _x15)) (< (bv2nat (bvcomp _x15 _x15)) (bv2nat (bvcomp _x15 _x15))))))
+(step st2 (cl (= (bvult (bvcomp _x15 _x15) (bvcomp _x15 _x15)) (< (bv2nat (bvcomp _x15 _x15)) (bv2nat (bvcomp _x15 _x15))))) :rule rare_rewrite :args ("uf-int2bv-bvult-equiv" (bvcomp _x15 _x15) (bvcomp _x15 _x15)))
+(step t.end (cl) :rule resolution :premises (nst2.0 st2))

@@ -577,6 +577,7 @@ fun get_config ctxt : config list =
 
 fun translate ctxt prover smt_options comments (ithms : ((int * SMT_Util.role) * thm) list) =
   let
+
     val order = map #order (get_config ctxt)
     val logics = map #logic (get_config ctxt)
     fun logic prover ts = print_smtlib_logic (Library.foldr1 (uncurry merge_smtlib_logic) (map (fn f => f prover ts) logics)) prover
@@ -584,7 +585,6 @@ fun translate ctxt prover smt_options comments (ithms : ((int * SMT_Util.role) *
     (*There is a single serialize function anyway*)
     val serialize = map #serialize (get_config ctxt) |> hd
     val first_order = is_some (List.find (curry (op =) SMT_Util.First_Order) order)
-
 
     fun no_dtyps (tr_context, ctxt) ts =
       ((Termtab.empty, [], tr_context, ctxt), ts)
