@@ -385,6 +385,18 @@ functions adds up.  So any optimisation would help."
 	     ("const" ;; no special font
 	      (setq contents (append (dom-children content) contents)))
 
+	     ("sendback" ;; TODO handle properly
+              (insert "|" (format "%s" (1+ (length lsp-isar-output-proof-cases-content))) "|: ")
+	      (let ((start-point (point)))
+		(save-excursion
+		  (beginning-of-line)
+		  (let ((str (buffer-substring (point) start-point)))
+		    (if (and str (cl-search "Try" str))
+			(setq lsp-isar-output-last-seen-prover str)
+		      (setq lsp-isar-output-last-seen-prover
+			    (concat lsp-isar-output-last-seen-prover "Isar")))))
+		(push (dom-node 'lsp-isar-output-save-sendback `((start-point .  ,start-point) nil)) contents)
+		(setq contents (append (dom-children content) contents))))
 	     (_
 	      ;;(message "fall-through span")
 	      (setq contents (append (dom-children content) contents)))
@@ -395,18 +407,7 @@ functions adds up.  So any optimisation would help."
 	   (push (car (last (dom-children content))) contents))
 
 
-	  ('sendback ;; TODO handle properly
-           (insert "|" (format "%s" (1+ (length lsp-isar-output-proof-cases-content))) "|: ")
-	   (let ((start-point (point)))
-	     (save-excursion
-	       (beginning-of-line)
-	       (let ((str (buffer-substring (point) start-point)))
-		 (if (and str (cl-search "Try" str))
-		     (setq lsp-isar-output-last-seen-prover str)
-		   (setq lsp-isar-output-last-seen-prover
-			 (concat lsp-isar-output-last-seen-prover "Isar")))))
-	     (push (dom-node 'lsp-isar-output-save-sendback `((start-point .  ,start-point) nil)) contents)
-	     (setq contents (append (dom-children content) contents))))
+
 
 	  ('bullet
 	   (insert "•")
