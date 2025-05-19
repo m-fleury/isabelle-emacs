@@ -37,6 +37,8 @@ lemmas [arith_simp_cvc5] =
 
 
 
+named_theorems word_cat_helper_def \<open>test\<close>
+
 (*Term rewrites*)
 
 ML_file \<open>ML/alethe_replay_rare_simplify_methods.ML\<close>
@@ -53,16 +55,20 @@ fun cvc_term_parser (SMTLIB.Sym "rare-list", []) = (
       fun remove_duplicates [] = []
         | remove_duplicates (x::xs) = x::remove_duplicates(List.filter (fn y => y <> x) xs)
 
-      val types_eq = map fastype_of ts |> remove_duplicates |> length 
-      val new_ts =ts
-         (*if types_eq > 0
+      val types_eq = map fastype_of ts |> remove_duplicates |> @{print}|> length 
+      val new_ts =
+         (if types_eq > 0
          then ts
-         else (map (fn t => Const( \<^const_name>\<open>unsigned\<close>, \<^typ>\<open>'a::len word \<Rightarrow> Nat.nat \<close>) $ t) ts)*)
+         else (map (fn t => Const("to_bl", fastype_of t -->  \<^typ>\<open>bool list \<close>) $ t) ts))|> @{print}
       val new_type = if types_eq > 0 then fastype_of (hd ts) else \<^typ>\<open>Nat.nat\<close>
 
     in
-    SOME(Const( \<^const_name>\<open>ListVar\<close>, Type(\<^type_name>\<open>List.list\<close>,[new_type])  --> Type(\<^type_name>\<open>cvc_ListVar\<close>,[new_type]))
+    if types_eq > 0
+    then
+      SOME(Const( \<^const_name>\<open>ListVar\<close>, Type(\<^type_name>\<open>List.list\<close>,[new_type])  --> Type(\<^type_name>\<open>cvc_ListVar\<close>,[new_type]))
       $ (HOLogic.mk_list new_type new_ts))
+    else
+      SOME (HOLogic.mk_list new_type new_ts)
     end)
   | cvc_term_parser _ = NONE
 

@@ -42,27 +42,39 @@ fun cvc_bin_op_fold :: "('a \<Rightarrow> 'b \<Rightarrow> 'b) \<Rightarrow> 'a 
  cvc_bin_op_fold_Nil: "cvc_bin_op_fold op [] y = y" |
  cvc_bin_op_fold_Cons: "cvc_bin_op_fold op (x#xs) y = (op x (cvc_bin_op_fold op xs y))"
 
+(*
+definitions instead of functions are used to make sure unfolding can be done precisely.
+*)
+
+(*For cvc_list_left and cvc_list_right we always know that we'll have at least one element*)
 fun cvc_bin_op :: "('a \<Rightarrow> 'b \<Rightarrow> 'b) \<Rightarrow> 'a cvc_ListVar \<Rightarrow> 'b \<Rightarrow> 'b" where
  "cvc_bin_op op (ListVar xs) y = cvc_bin_op_fold op xs y"
+definition cvc_list_left where "cvc_list_left op lv y = cvc_bin_op op lv y"
+
 fun cvc_bin_op2 :: "('a \<Rightarrow> 'a \<Rightarrow> 'a) \<Rightarrow> 'a \<Rightarrow> 'a cvc_ListVar \<Rightarrow> 'a" where
  "cvc_bin_op2 op y (ListVar xs) = (if xs = [] then y else op y (cvc_nary_op_fold op xs))"
+definition cvc_list_right where "cvc_list_right op y lv = cvc_bin_op2 op y lv"
+
+(*
+If both arguments are lists that is not always the case. If there is a neutral element
+we can use that. In the cvc5 proof certificate itself that case should not appear.
+However, if we'd put that restriction into the Isabelle lemma it would be necessary to prove
+it each time a rewrite step of that rule is reconstructed.
+
+If there is no constant neutral element the restriction should be added and cvc_list_both' should be used.
+Examples are bvxor and bvconcat.
+*)
 fun cvc_bin_op3 where
   "cvc_bin_op3 op (ListVar []) (ListVar []) neutral = neutral" | 
   "cvc_bin_op3 op (ListVar xs) (ListVar []) neutral = cvc_nary_op_fold op xs" | 
   "cvc_bin_op3 op (ListVar xs) (ListVar ys) neutral = cvc_bin_op_fold op xs (cvc_nary_op_fold op ys)"
-
-definition cvc_list_left where "cvc_list_left op lv y = cvc_bin_op op lv y"
-definition cvc_list_right where "cvc_list_right op y lv = cvc_bin_op2 op y lv"
 definition cvc_list_both where "cvc_list_both op neutral lv1 lv2 = cvc_bin_op3 op lv1 lv2 neutral"
 
-fun cvc_nary_op_fold' :: "('b \<Rightarrow> 'a \<Rightarrow> 'a) \<Rightarrow> ('b \<Rightarrow> 'b \<Rightarrow> 'a) \<Rightarrow> 'b list \<Rightarrow> 'a" where
-  "cvc_nary_op_fold' op1 op2 [x,y] = op2 x y" |
-  "cvc_nary_op_fold' op1 op2 (x#xs) = (op1 x (cvc_nary_op_fold' op1 op2 xs))"
+fun cvc_bin_op3' where
+  "cvc_bin_op3' op (ListVar xs) (ListVar []) = cvc_nary_op_fold op xs" | 
+  "cvc_bin_op3' op (ListVar xs) (ListVar ys) = cvc_bin_op_fold op xs (cvc_nary_op_fold op ys)"
+definition cvc_list_both' where "cvc_list_both' op lv1 lv2 = cvc_bin_op3' op lv1 lv2"
 
-fun cvc_bin_op2' :: "('b \<Rightarrow> 'a \<Rightarrow> 'a) \<Rightarrow> ('b \<Rightarrow> 'b \<Rightarrow> 'a) \<Rightarrow> ('a \<Rightarrow> 'a \<Rightarrow> 'a) \<Rightarrow> 'a \<Rightarrow> 'b cvc_ListVar \<Rightarrow> 'a" where
- "cvc_bin_op2' op1 op2 op3 y (ListVar xs) = (if xs = [] then y else op3 y (cvc_nary_op_fold' op1 op2 xs))"
-
-definition cvc_list_right' where "cvc_list_right' op1 op2 op3 y lv = cvc_bin_op2' op1 op2 op3 y lv"
 
 lemma cvc_nary_op_fold_transfer_h1:
   assumes "1 \<le> n" "cvc_isListOp (ListOp op neutral)"
@@ -200,6 +212,25 @@ lemma cvc_list_both_transfer:
   unfolding cvc_list_both_def
   apply(cases \<open>(op,(ListVar ys),(ListVar xs),neutral)\<close> rule: cvc_bin_op3.cases)
   by (simp_all add: cvc_bin_op_fold_transfer cvc_nary_op_fold_transfer)
+
+
+lemma cvc_list_both_transfer': 
+  assumes "xs \<noteq> []" "ys \<noteq> []"
+  shows "cvc_list_both' op (ListVar ys) (ListVar xs) = foldr op ys (foldr op (butlast xs) (last xs))"
+  using assms
+  unfolding cvc_list_both'_def
+  apply (induction ys)
+   apply simp_all
+  subgoal for y yss
+  apply (induction xs)
+     apply simp_all
+  subgoal for x xss
+  apply (rule conjI impI)+
+     apply (simp add: cvc_bin_op_fold_transfer)
+    apply (simp add: cvc_list_right_def cvc_list_right_transfer_2 cvc_bin_op_fold_transfer cvc_nary_op_fold_transfer)
+    by (smt (cvc5, fmf) Dsl_Nary_Ops.cvc_bin_op_fold_Cons Dsl_Nary_Ops.cvc_nary_op_fold_Cons cvc_bin_op2.simps cvc_bin_op_fold_transfer cvc_list_right_def cvc_list_right_transfer_2 neq_Nil_conv)
+  done
+  done
 
 (*TODO: Hopefully these can be safely deleted after testing is complete*)
 

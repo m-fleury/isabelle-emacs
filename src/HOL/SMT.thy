@@ -842,6 +842,14 @@ lemma alethe_qnt_miniscope_ITE:
   \<open>(\<forall>Y. (if C then F2 else A Y)) = (if C then F2 else (\<forall>Y. A Y))\<close>
   by simp_all
 
+lemma alethe_nat_embedding:
+  fixes f::"'a \<Rightarrow> nat" and nf::"'a \<Rightarrow> int" and x::"'a"
+  assumes "nf \<equiv> int \<circ> f"
+  shows "int (f x) = nf x"
+  using assms by fastforce
+
+
+
 named_theorems cvc5_normalized_input \<open>Theorems required to replay
 our more complicated translation\<close>
 

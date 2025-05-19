@@ -535,14 +535,14 @@ Das vierte ist ein Term
 
   fun power m n T ts =
     let
-      val _ = @{print}("m",m)
+     (* val _ = @{print}("m",m)
       val _ = @{print}("n",n)
       val _ = @{print}("T",T)
-      val _ = @{print}("ts",ts)
+      val _ = @{print}("ts",ts)*)
 
       val (U1, U2) = Term.dest_funT T
-      val _ = @{print}("U1",U1)
-      val _ = @{print}("U2",U2)
+      (*val _ = @{print}("U1",U1)
+      val _ = @{print}("U2",U2)*)
 
     in
       (case (try dest_wordT U1, try dest_wordT U2) of
@@ -742,9 +742,25 @@ fun mk_extract_from_terms i j u =
    Const (\<^const_name>\<open>smt_extract\<close>, @{typ nat} --> @{typ nat} --> T --> TU) $ i $ j $ u
  end
 
+fun mk_bv_from_int_base int base = 
+ let
+  (* val _ = @{print}("int",int)
+  val _ = @{print}("base",base)*)
+
+        val ty = Word_Lib.mk_wordT (snd (HOLogic.dest_number base))
+        fun cut_bv [] = 3
+        val int = int
+        val num = snd (HOLogic.dest_number int)
+         handle TERM ("dest_number", [t ]) => (@{print}("t",t); raise Alethe_Proof.ALETHE_PROOF_PARSE "Could not parse bit-vector value")
+      in
+        (HOLogic.mk_number ty num)
+      end
+
+
+
 fun
   (*From the FixedSizeBitVectors theory*)
-  bv_term_parser (SMTLIB.BVNum (i, base), []) = SOME (HOLogic.mk_number (mk_wordT(base)) i)
+  bv_term_parser (SMTLIB.BVNum (i, base), []) = SOME (HOLogic.mk_number (mk_wordT(base)) (i) )
   | bv_term_parser (SMTLIB.Sym "bvnot", [t1]) =
       SOME (mk_unary \<^const_name>\<open>ring_bit_operations_class.not\<close> t1)
   | bv_term_parser (SMTLIB.Sym "bvneg", [t]) =

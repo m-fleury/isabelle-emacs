@@ -1250,12 +1250,6 @@ lemma [rewrite_bv_lshr_zero]:
   shows "drop_bit (unat a) (Word.Word (0::int)) = Word.Word (0::int)"
   by auto
 
-named_theorems rewrite_bv_ashr_zero \<open>automatically_generated\<close>
-
-lemma [rewrite_bv_ashr_zero]:
-  fixes n::"int" and a::"'a ::len word"
-  shows "signed_drop_bit (unat a) (Word.Word (0::int)) = Word.Word (0::int)"
-  by auto
 
 named_theorems rewrite_bv_ugt_urem \<open>automatically_generated\<close>
 

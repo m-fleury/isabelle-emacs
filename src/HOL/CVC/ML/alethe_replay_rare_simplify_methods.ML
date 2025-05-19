@@ -48,14 +48,20 @@ fun evaluate_tac ctxt _ =
   (*K (print_tac ctxt "evaluate 0") THEN'*)
 
   TRY' (Code_Simp.dynamic_tac ctxt )
-  (*THEN' K (print_tac ctxt "evaluate 1")*)
+  THEN' K (print_tac ctxt "evaluate 1")
 
   THEN' TRY' (Lin_Arith.tac ctxt)
-  (*THEN' K (print_tac ctxt "evaluate 2")*)
+  THEN' K (print_tac ctxt "evaluate 2")
 
-  THEN' TRY' (simplify_tac ctxt ((Named_Theorems.get ctxt @{named_theorems cvc_evaluate})))
-  (*THEN' K (print_tac ctxt "evaluate")*)
+  THEN' TRY' (simplify_tac ctxt (
+    (Named_Theorems.get ctxt @{named_theorems cvc_evaluate}) 
+  @ (Named_Theorems.get ctxt @{named_theorems cvc_evaluate_bv})
+  )) (*TODO: Discuss there are several possibilities to guard the bvs*)
+  THEN' K (print_tac ctxt "evaluate")
+THEN' TRY' (Skip_Proof.cheat_tac ctxt)
 
+(*Abstrahieren wegen foralls in if then else. The code generator cannot
+deal with this *)
 fun try_evaluate ctxt t =
   SMT_Replay_Methods.prove_abstract' ctxt t evaluate_tac
     (SMT_Replay_Methods.abstract_for_code_eval ctxt (dest_prop t))

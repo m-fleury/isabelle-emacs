@@ -91,7 +91,7 @@ fun pairwise _ [] = []
            = (map (fn u => f (t1,u)) tss) @ pairwise f tss
 
 (*cvc5 specific terms that are not present in veriT's output*)
-fun  cvc_term_parser (SMTLIB.Sym "rare-list", []) = (@{print}("rare-list");
+fun  (*cvc_term_parser (SMTLIB.Sym "rare-list", []) = (@{print}("rare-list");
    (*If there are no elements in the list we cannot know the type at this point*)
     SOME(Const( \<^const_name>\<open>ListVar\<close> ,dummyT --> dummyT)
        $ Const( \<^const_name>\<open>List.Nil\<close>, dummyT)))
@@ -113,7 +113,7 @@ fun  cvc_term_parser (SMTLIB.Sym "rare-list", []) = (@{print}("rare-list");
     SOME(Const( \<^const_name>\<open>ListVar\<close>, Type(\<^type_name>\<open>List.list\<close>,[new_type])  --> Type(\<^type_name>\<open>cvc_ListVar\<close>,[new_type]))
       $ (HOLogic.mk_list new_type new_ts))
     end)
-  | cvc_term_parser (SMTLIB.Sym "emptyString", []) = SOME (Free ("''''", \<^typ>\<open>String.string\<close>))
+  |*) cvc_term_parser (SMTLIB.Sym "emptyString", []) = SOME (Free ("''''", \<^typ>\<open>String.string\<close>))
   | cvc_term_parser _ = NONE
   (*| cvc_term_parser xs = (case SMT_String.string_term_parser xs of
     SOME x => SOME x |
@@ -167,19 +167,24 @@ cvc5_rare "BV_Rewrites.rewrite_bv_sign_extend_eliminate"
 cvc5_rare "BV_Rewrites.rewrite_bv_sdivo_eliminate"
 cvc5_rare "BV_Rewrites.rewrite_bv_srem_eliminate_fewer_bitwise_ops"
 cvc5_rare "BV_Rewrites.rewrite_bv_usubo_eliminate"
-cvc5_rare "BV_Rewrites.rewrite_bv_ite_equal_children"
-cvc5_rare "BV_Rewrites.rewrite_bv_ite_const_children_1"
-cvc5_rare "BV_Rewrites.rewrite_bv_ite_const_children_2"
-cvc5_rare "BV_Rewrites.rewrite_bv_ite_equal_cond_1"
-cvc5_rare "BV_Rewrites.rewrite_bv_ite_equal_cond_2"
-cvc5_rare "BV_Rewrites.rewrite_bv_ite_equal_cond_3"
-cvc5_rare "BV_Rewrites.rewrite_bv_ite_merge_then_if"
-cvc5_rare "BV_Rewrites.rewrite_bv_ite_merge_else_if"
-cvc5_rare "BV_Rewrites.rewrite_bv_ite_merge_then_else"
-cvc5_rare "BV_Rewrites.rewrite_bv_ite_merge_else_else"
-cvc5_rare "BV_Rewrites.rewrite_bv_shl_by_const_0"
-cvc5_rare "BV_Rewrites.rewrite_bv_shl_by_const_1"
-cvc5_rare "BV_Rewrites.rewrite_bv_shl_by_const_2"
-cvc5_rare "BV_Rewrites.rewrite_bv_lshr_by_const_0"
+
+cvc5_rare "BV_Rewrites_Simplification.rewrite_bv_ite_const_children_1"
+cvc5_rare "BV_Rewrites_Simplification.rewrite_bv_ite_const_children_2"
+cvc5_rare "BV_Rewrites_Simplification.rewrite_bv_ite_equal_cond_1"
+cvc5_rare "BV_Rewrites_Simplification.rewrite_bv_ite_equal_cond_2"
+cvc5_rare "BV_Rewrites_Simplification.rewrite_bv_ite_equal_cond_3"
+cvc5_rare "BV_Rewrites_Simplification.rewrite_bv_ite_merge_then_if"
+cvc5_rare "BV_Rewrites_Simplification.rewrite_bv_ite_merge_else_if"
+cvc5_rare "BV_Rewrites_Simplification.rewrite_bv_ite_merge_then_else"
+cvc5_rare "BV_Rewrites_Simplification.rewrite_bv_ite_merge_else_else"
+cvc5_rare "BV_Rewrites_Simplification.rewrite_bv_shl_by_const_0"
+cvc5_rare "BV_Rewrites_Simplification.rewrite_bv_shl_by_const_1"
+cvc5_rare "BV_Rewrites_Simplification.rewrite_bv_shl_by_const_2"
+cvc5_rare "BV_Rewrites_Simplification.rewrite_bv_lshr_by_const_0"
+
+cvc5_rare "BV_Rewrites_Simplification.rewrite_bv_ule_zero"
+cvc5_rare "BV_Rewrites_Simplification.rewrite_bv_ashr_zero"
+cvc5_rare "BV_Rewrites_Simplification.rewrite_bv_xor_concat_pullup"
+
 
 end

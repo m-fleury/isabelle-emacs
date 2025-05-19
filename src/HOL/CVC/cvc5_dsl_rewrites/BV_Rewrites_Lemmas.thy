@@ -1,8 +1,8 @@
 theory BV_Rewrites_Lemmas
-  imports Dsl_Nary_Ops "HOL-Library.Word" Word_Lib.More_Word "HOL-Library.Log_Nat" "HOL.Real" "HOL-Library.Sublist" "HOL-CVC.SMT_Word"
-HOL.SMT "Word_Lib.Signed_Division_Word" "Word_Lib.Reversed_Bit_Lists"
+  imports Dsl_Nary_Ops "HOL-Library.Word" Word_Lib.More_Word "HOL-Library.Log_Nat" "HOL.Real" "HOL-Library.Sublist" 
+HOL.SMT "Word_Lib.Signed_Division_Word" "Word_Lib.Reversed_Bit_Lists" SMT_Word
 begin
-(*
+
 lemma word_cat_smt_extract: "i \<le> j \<and> j + 1 \<le> k \<and> i \<ge> 0 \<and> k < size x 
  \<and> LENGTH('a) = size x
  \<and> LENGTH('b::len) = k + (1::nat) - Suc j
@@ -379,5 +379,5 @@ lemma rewrite_bv_slt_eliminate_lemma:
   apply (rule conjI impI)+
    apply (metis add.commute add_lessD1 n_less_equal_power_2 nat_int of_nat_take_bit plus_1_eq_Suc take_bit_nat_eq_self)
   by (metis add.commute add_lessD1 n_less_equal_power_2 nat_int of_nat_take_bit plus_1_eq_Suc take_bit_nat_eq_self)
-*)
+
 end
