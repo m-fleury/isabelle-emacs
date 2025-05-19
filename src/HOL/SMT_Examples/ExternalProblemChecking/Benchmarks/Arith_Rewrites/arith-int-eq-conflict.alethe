@@ -1,0 +1,5 @@
+unsat
+(assume nst65.0 (not (= (= (to_real (+ (* 16 x1) (* 3 x0))) 1/2) false)))
+(assume t64 (= (= (to_real (to_int 1/2)) 1/2) false))
+(step st65 (cl (= (= (to_real (+ (* 16 x1) (* 3 x0))) 1/2) false)) :rule rare_rewrite :premises (t64) :args ("arith-int-eq-conflict" (+ (* 16 x1) (* 3 x0)) 1/2))
+(step t.end (cl) :rule resolution :premises (nst65.0 st65))

@@ -283,8 +283,11 @@ fun apply_solver_and_replay ctxt thms0 =
     (*val (norm_thms,ctxt_nats) = SMT_Global_Normalize.global_normalize ctxt norm_thms*)
     val ctxt_nats = ctxt
     val (output, replay_data) =
-      invoke NONE name command [] smt_options (SMT_Normalize.normalize ctxt thms) ctxt
-  in replay ctxt replay_data output end
+      invoke NONE name command [] smt_options norm_thms ctxt_nats
+  in
+    replay ctxt_nats replay_data output
+    |> singleton (Proof_Context.export ctxt_nats ctxt)
+  end
 
 
 (* filter (for Sledgehammer) *)

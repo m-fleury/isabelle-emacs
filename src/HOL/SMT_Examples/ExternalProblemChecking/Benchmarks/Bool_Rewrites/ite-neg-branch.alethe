@@ -1,0 +1,5 @@
+unsat
+(assume nst3.0 (not (= (ite c d (not d)) (= c d))))
+(assume t2 (= (not (not d)) d))
+(step st3 (cl (= (ite c d (not d)) (= c d))) :rule rare_rewrite :premises (t2) :args ("ite-neg-branch" c d (not d)))
+(step t.end (cl) :rule resolution :premises (nst3.0 st3))

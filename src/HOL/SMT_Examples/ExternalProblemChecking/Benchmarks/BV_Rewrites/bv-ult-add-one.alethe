@@ -1,0 +1,6 @@
+unsat
+(assume nst5.0 (not (= (bvult x (bvadd y (_ bv1 5))) (and (not (= y (bvnot (@bv 0 5)))) (not (bvult y x))))))
+(assume t2 (= (_ bv1 5) (@bv 1 5)))
+(assume t4 (= 5 (@bvsize x)))
+(step st5 (cl (= (bvult x (bvadd y (_ bv1 5))) (and (not (= y (bvnot (@bv 0 5)))) (not (bvult y x))))) :rule rare_rewrite :premises (t2 t4) :args ("bv-ult-add-one" x (rare-list y) rare-list (_ bv1 5) 5))
+(step t.end (cl) :rule resolution :premises (nst5.0 st5))

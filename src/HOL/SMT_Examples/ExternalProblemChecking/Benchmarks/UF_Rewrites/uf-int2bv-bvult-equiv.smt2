@@ -1,0 +1,5 @@
+(set-logic QF_BV)
+(declare-fun _x15 () (_ BitVec 86))
+(assert (not (= (bvult (bvcomp _x15 _x15) (bvcomp _x15 _x15)) (< (bv2nat (bvcomp _x15 _x15)) (bv2nat (bvcomp _x15 _x15))))))
+(check-sat)
+(exit)

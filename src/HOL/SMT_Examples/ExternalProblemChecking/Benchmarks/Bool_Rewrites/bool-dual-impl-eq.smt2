@@ -1,0 +1,8 @@
+(set-logic QF_SLIA)
+(declare-fun x1 () String)
+(declare-fun x2 () String)
+(declare-fun z () String)
+(declare-fun t () String)
+(assert (not (= (and (=> (= (str.++ (str.++ x1 "abc" x2) z) (str.++ (str.++ x2 "bab" x1) t)) (and (= (str.++ x1 "abc" x2) (str.++ x2 "bab" x1)) (= z t))) (=> (and (= (str.++ x1 "abc" x2) (str.++ x2 "bab" x1)) (= z t)) (= (str.++ (str.++ x1 "abc" x2) z) (str.++ (str.++ x2 "bab" x1) t)))) (= (= (str.++ (str.++ x1 "abc" x2) z) (str.++ (str.++ x2 "bab" x1) t)) (and (= (str.++ x1 "abc" x2) (str.++ x2 "bab" x1)) (= z t))))))
+(check-sat)
+(exit)

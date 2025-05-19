@@ -1,0 +1,5 @@
+unsat
+(assume nst3.0 (not (= (bvurem x x) (@bv 0 5))))
+(assume t2 (= 5 (@bvsize x)))
+(step st3 (cl (= (bvurem x x) (@bv 0 5))) :rule rare_rewrite :premises (t2) :args ("bv-urem-self" x 5))
+(step t.end (cl) :rule resolution :premises (nst3.0 st3))

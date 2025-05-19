@@ -1,0 +1,4 @@
+unsat
+(assume nst248.0 (not (= (ite (= v3 v4) false (not (= v3 v4))) (ite (= v3 v4) false true))))
+(step st248 (cl (= (ite (= v3 v4) false (not (= v3 v4))) (ite (= v3 v4) false true))) :rule rare_rewrite :args ("ite-else-lookahead-not-self" (= v3 v4) false))
+(step t.end (cl) :rule resolution :premises (nst248.0 st248))

@@ -1,0 +1,4 @@
+unsat
+(assume nst470.0 (not (= (>= (+ 2 i) (+ 3 i)) (>= (- (+ 2 i) (+ 3 i)) 0))))
+(step st470 (cl (= (>= (+ 2 i) (+ 3 i)) (>= (- (+ 2 i) (+ 3 i)) 0))) :rule rare_rewrite :args ("arith-geq-norm1-int" (+ 2 i) (+ 3 i)))
+(step t.end (cl) :rule resolution :premises (nst470.0 st470))

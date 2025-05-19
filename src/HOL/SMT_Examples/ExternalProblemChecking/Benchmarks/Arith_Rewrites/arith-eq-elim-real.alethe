@@ -1,0 +1,4 @@
+unsat
+(assume nst1226.0 (not (= (= x_2 x_26) (and (>= x_2 x_26) (<= x_2 x_26)))))
+(step st1226 (cl (= (= x_2 x_26) (and (>= x_2 x_26) (<= x_2 x_26)))) :rule rare_rewrite :args ("arith-eq-elim-real" x_2 x_26))
+(step t.end (cl) :rule resolution :premises (nst1226.0 st1226))

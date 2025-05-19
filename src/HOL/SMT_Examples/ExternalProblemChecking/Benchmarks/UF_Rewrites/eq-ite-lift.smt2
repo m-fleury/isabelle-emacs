@@ -1,0 +1,5 @@
+(set-logic QF_SLIA)
+(declare-fun b () String)
+(assert (not (= (= (ite (= "-" (str.substr b 0 1)) true true) true) (ite (= "-" (str.substr b 0 1)) (= true true) (= true true)))))
+(check-sat)
+(exit)

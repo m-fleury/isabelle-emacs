@@ -29,7 +29,7 @@ sig
   val bv_bitblast_step_bvequal: Alethe_Replay_Methods.alethe_tac_step_args
   val bv_bitblast_step_bvult: Alethe_Replay_Methods.alethe_tac_step_args
   val bv_bitblast_step_bvule: Alethe_Replay_Methods.alethe_tac_step_args
-
+  val bv_aci_simp: Alethe_Replay_Methods.alethe_tac_step_args
 end;
 
 
@@ -545,6 +545,62 @@ val xor_rules = map (fn (x,y) => (x,ignore_args y)) [
 val _ = Theory.setup (Context.theory_map (
    fold (uncurry Alethe_Replay_Methods.declare_alethe_rule) xor_rules))
 
+local
+  fun dest_prop (Const (\<^const_name>\<open>Trueprop\<close>, _) $ t) = t
+  | dest_prop t = t
+
+  fun prove_bv_poly_norm2 ctxt t =
+  let
+    val word_thms = @{thms Word.word_eq_numeral_iff_iszero Word.iszero_word_no Type_Length.len_bit0 Type_Length.len_num1
+take_bit_num_simps }
+    fun simplify_tac ctxt thms =
+      ctxt
+      |> empty_simpset
+      |> put_simpset HOL_basic_ss
+      |> (fn ctxt => ctxt addsimps (@{thms simp_thms}@word_thms) addsimps thms)
+      |> (Simplifier.add_cong @{thm if_weak_cong})
+      |> (fn ctxt => ctxt
+           addsimprocs [@{simproc int_div_cancel_numeral_factors}, @{simproc int_combine_numerals},
+             @{simproc divide_cancel_numeral_factor}, @{simproc divide_cancel_factor},
+             @{simproc intle_cancel_numerals}, @{simproc intless_cancel_numerals}, @{simproc inteq_cancel_numerals},
+             @{simproc field_combine_numerals},
+             @{simproc ring_le_cancel_numeral_factor},
+             @{simproc HOL.NO_MATCH}, @{simproc Numeral_Simprocs.semiring_assoc_fold},
+             @{simproc Numeral_Simprocs.field_divide_cancel_numeral_factor},
+             @{simproc Numeral_Simprocs.field_eq_cancel_numeral_factor}
+             ])
+      |> Simplifier.full_simp_tac
+    fun simplify_tac_with_background_simp ctxt thms =
+      ctxt
+      |> (fn ctxt => ctxt addsimps thms)
+      |> Simplifier.full_simp_tac
+    val tac = (fn _ => fn _ =>
+      SOLVED' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems alethe_poly_norm})
+        THEN' K (print_tac ctxt "hi"))
+        (*if the previous does not solve, use full simplification power with the current content*)
+      ORELSE'
+        simplify_tac_with_background_simp ctxt (Named_Theorems.get ctxt @{named_theorems field_simps})
+        THEN' TRY' (Code_Simp.dynamic_tac ctxt))
+  in
+  SMT_Replay_Methods.prove_abstract' ctxt t tac
+    (SMT_Replay_Methods.abstract_for_poly_norm ctxt (dest_prop t))
+  end
+
+  fun prove_bv_poly_norm ctxt _ _ t =
+    prove_bv_poly_norm2 ctxt t
+
+in
+  val bv_poly_norm = prove_bv_poly_norm
+end
+
+fun bv_aci_simp ctxt _  _ t = 
+SMT_Replay_Methods.prove ctxt t (fn _ =>(
+     REPEAT_CHANGED (
+            (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems bv_aci_simp}))
+)))
+
+
+
 val bv_rules = [
   ("bv_bitblast_step_var", bv_bitblast_step_var) ,
   ("bv_bitblast_step_const", bv_bitblast_step_const),
@@ -560,7 +616,9 @@ val bv_rules = [
   ("bv_bitblast_step_concat", bv_bitblast_step_concat),
   ("bv_bitblast_step_bvequal", bv_bitblast_step_bvequal),
   ("bv_bitblast_step_bvult", bv_bitblast_step_bvult),
-  ("bv_bitblast_step_bvule", bv_bitblast_step_bvule)]
+  ("bv_bitblast_step_bvule", bv_bitblast_step_bvule),
+  ("bv_poly_norm", bv_poly_norm),
+  ("bv_aci_simp",bv_aci_simp)]
 
 
 val _ = Theory.setup (Context.theory_map (

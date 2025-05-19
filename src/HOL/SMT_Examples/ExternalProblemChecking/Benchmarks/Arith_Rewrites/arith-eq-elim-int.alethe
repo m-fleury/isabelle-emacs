@@ -1,0 +1,11 @@
+unsat
+(assume nt14.0 (not (not (= (store (store (store a (+ 1 i) (+ 1 (select a i))) (+ 2 i) (+ 2 (select a i))) (+ 3 i) (+ 3 (select a i))) (store (store (store a i (+ -3 (select a (+ 3 i)))) (+ 1 i) (+ -2 (select a (+ 3 i)))) (+ 2 i) (+ -1 (select a (+ 3 i))))))))
+(assume nt14.1 (not (not (not (= (select a i) (+ -3 (select a (+ 3 i))))))))
+(assume nt14.2 (not false))
+(anchor :step t14)
+(assume t14.a0 (= (store (store (store a (+ 1 i) (+ 1 (select a i))) (+ 2 i) (+ 2 (select a i))) (+ 3 i) (+ 3 (select a i))) (store (store (store a i (+ -3 (select a (+ 3 i)))) (+ 1 i) (+ -2 (select a (+ 3 i)))) (+ 2 i) (+ -1 (select a (+ 3 i))))))
+(assume t14.a1 (not (= (select a i) (+ -3 (select a (+ 3 i))))))
+(step st14.t1 (cl (= (= i (+ 3 i)) (and (>= i (+ 3 i)) (<= i (+ 3 i))))) :rule rare_rewrite :args ("arith-eq-elim-int" i (+ 3 i)))
+(step t14.t1002 (cl false) :rule trust)
+(step t14 (cl (not (= (store (store (store a (+ 1 i) (+ 1 (select a i))) (+ 2 i) (+ 2 (select a i))) (+ 3 i) (+ 3 (select a i))) (store (store (store a i (+ -3 (select a (+ 3 i)))) (+ 1 i) (+ -2 (select a (+ 3 i)))) (+ 2 i) (+ -1 (select a (+ 3 i)))))) (not (not (= (select a i) (+ -3 (select a (+ 3 i)))))) false) :rule subproof :discharge (t14.a0 t14.a1))
+(step t.end (cl) :rule resolution :premises (nt14.0 nt14.1 nt14.2 t14))

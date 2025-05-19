@@ -1,0 +1,5 @@
+unsat
+(assume nst3.0 (not (= (bvugt (bvurem y x) x) (and (= x (@bv 0 4)) (bvugt y (@bv 0 4))))))
+(assume t2 (= 4 (@bvsize y)))
+(step st3 (cl (= (bvugt (bvurem y x) x) (and (= x (@bv 0 4)) (bvugt y (@bv 0 4))))) :rule rare_rewrite :premises (t2) :args ("bv-ugt-urem" y x 4))
+(step t.end (cl) :rule resolution :premises (nst3.0 st3))

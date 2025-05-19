@@ -135,6 +135,7 @@ fun lift_nats' basename ithms ctxt =
     init ctxt
     |> fold_map (fn (x, t) => apfst (pair x) o lift_lambdas basename t) (map (fn (a,b) => (a,Thm.prop_of b)) ithms)
     |-> (fn ts' => finish )
+    |>> map Thm.symmetric 
   else ([], ctxt) 
 
 fun global_normalize ctxt ithms =

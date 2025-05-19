@@ -54,10 +54,10 @@ sig
    Qnt_Simplify | Not_Not | Tautological_Clause | Duplicate_Literals | Distinct_Elim |
    (*Extended rules*)
    Symm | Not_Symm | Reordering | Shuffle | Tmp_Quantifier_Simplify | Contraction | 
-   Qnt_Miniscope_And | Qnt_Miniscope_Or | Qnt_Miniscope_ITE | (*Added for paper, not in Standard might change later*)
+   Qnt_Miniscope_And | Qnt_Miniscope_Or | Qnt_Miniscope_ITE | Qnt_Var_Reordering | (*Added for paper, not in Standard might change later*)
    (*Other Rules*)
    Other_Rule of string |
-   Hole |
+   Hole | Trust |
    (*Temporary rules, that the veriT developers want to remove:*)
    AC_Simp |
    Bfun_Elim |
@@ -175,6 +175,8 @@ sig
   val qnt_miniscope_and: alethe_tac
   val qnt_miniscope_or: alethe_tac
   val qnt_miniscope_ITE: alethe_tac
+  val qnt_var_reordering: alethe_tac
+  val trust: alethe_tac
 
   (*Extension to declare new alethe rules*)
   val declare_alethe_rule:  string -> alethe_tac_step_args -> Context.generic -> Context.generic
@@ -242,10 +244,10 @@ datatype alethe_rule =
    Qnt_Simplify | Not_Not | Tautological_Clause | Duplicate_Literals | Distinct_Elim | 
    (*Extended rules*)
    Symm | Not_Symm | Reordering | Shuffle | Tmp_Quantifier_Simplify | Contraction |
-   Qnt_Miniscope_And | Qnt_Miniscope_Or | Qnt_Miniscope_ITE | (*Added for paper, not in Standard might change later*)
+   Qnt_Miniscope_And | Qnt_Miniscope_Or | Qnt_Miniscope_ITE | Qnt_Var_Reordering | (*Added for paper, not in Standard might change later*)
    (*Other Rules*)
    Other_Rule of string |
-   Hole |
+   Hole | Trust |
    (*Temporary rules, that the veriT developers want to remove:*)
    AC_Simp |
    Bfun_Elim |
@@ -352,11 +354,13 @@ fun string_of_alethe_rule Bind = "Bind"
   | string_of_alethe_rule Qnt_Miniscope_And = "qnt_miniscope_and"
   | string_of_alethe_rule Qnt_Miniscope_Or = "qnt_miniscope_or"
   | string_of_alethe_rule Qnt_Miniscope_ITE = "qnt_miniscope_ITE"
+  | string_of_alethe_rule Qnt_Var_Reordering = "qnt_var_reordering"
   | string_of_alethe_rule Not_Not = Alethe_Proof.not_not_rule
   | string_of_alethe_rule Tautological_Clause = "tautology"
   | string_of_alethe_rule Duplicate_Literals = Alethe_Proof.contract_rule
   | string_of_alethe_rule Distinct_Elim = "distinct_elim"
   | string_of_alethe_rule Qnt_CNF = "qnt_cnf"
+  | string_of_alethe_rule Trust = "trust"
   | string_of_alethe_rule (Other_Rule r) = r
   | string_of_alethe_rule r = "Unknown rule: " ^ \<^make_string> r
 
@@ -700,9 +704,9 @@ local
 
 fun skolem_tac extractor thm1 thms1 ctxt prems context_ass (decl:string list * string list) t =
   let
-
+   
+                               
     val (context_ass_thm,_) = Assumption.add_assumes (map (Thm.cterm_of ctxt) context_ass) ctxt
-    (* val _ = @{print}("context_ass_thm",context_ass_thm) *)
 
   (*  val context_ass_thm_sym = map (fn x => @{thm sym} OF [x]) context_ass_thm
     val _ = @{print}("context_ass_thm_sym",context_ass_thm_sym))*)
@@ -751,20 +755,41 @@ lemma alethe_sko_forall_indirect2:
         (*val _ = @{print}("thm_names_with_var",thm_names_with_var)*)
 
       in map (fn v => (v, AList.lookup (op =) thm_names_with_var v)) var_order end
-    (*val _ = @{print}("ordered_definitions ()",ordered_definitions ())*)
+    (*veriT produces longer terms for skolem function like
+    SK1 = eps x. P x
+    SK2 = eps y. Q x (eps x. P x)
+
+    instead of the shorter:
+    SK1 = eps x. P x
+    SK2 = eps y. Q x SK1
+
+    When the option --proof-with-sharing is activated, we take care of this during parsing, but
+    if not (and especially if using check_smt), we need to fold SK1 into SK2. As we cannot know
+    whether the option was used, we always rewrite.
+    *)
+    fun fold_definition [] _ = []
+      | fold_definition ((v, NONE) :: xs) acc = (v, NONE) :: fold_definition xs acc
+      | fold_definition ((v, SOME thm) :: xs) acc = 
+        let 
+          val acc' = (thm COMP @{thm eq_commute[THEN iffD1]}) :: acc
+          val simp_ctxt =
+           ctxt
+           |> empty_simpset
+           |> put_simpset HOL_basic_ss
+           |> (fn ctxt => ctxt addsimps acc)
+        in ((v, SOME (Simplifier.full_simplify simp_ctxt thm)) :: fold_definition xs acc') end
+    val defs = fold_definition (ordered_definitions ()) []
   in
     SMT_Replay_Methods.prove ctxt t (fn _ =>
-      rewrite_all_skolems ctxt_eq thms1 ctxt (ordered_definitions ())
+      rewrite_all_skolems ctxt_eq thms1 ctxt defs
 
-      THEN' (*(((resolve_tac ctxt @{thms refl}) THEN' K (print_tac ctxt "sko 0"))
-      ORELSE' *)
-      ( (*K (print_tac ctxt "sko 2")
+      THEN' ((*((resolve_tac ctxt @{thms refl}) THEN' K (print_tac ctxt "sko 0")))
+      ORELSE' 
+      (
+*) (*K (print_tac ctxt "sko 2")
       THEN'*) TRY' (eqsubst_all ctxt (map (fn thm => thm RS sym) other))
-      (*THEN' K (print_tac ctxt "sko 3")*)
       THEN_ALL_NEW TRY' (resolve_tac ctxt @{thms refl})
-      (*THEN' K (print_tac ctxt "sko 4")*)
       THEN' K (unfold_tac ctxt ctxt_eq)
-      (*THEN' K (print_tac ctxt "sko 5")*)
       THEN' TRY' (partial_simplify_tac ctxt (@{thms eq_commute}))))
   end
 in
@@ -886,21 +911,31 @@ fun is_same_assms_eq_ac (Abs (_, _,  u)) (Abs (_, _, u')) =
     (is_same_assms_eq_ac u u' andalso is_same_assms_eq_ac v v')
   | is_same_assms_eq_ac u v  = (false)
 
+fun pretty tag lines = map Pretty.str lines |> Pretty.big_list tag |> Pretty.string_of
+
 fun normalized_input ctxt prems t = 
   let
     (* External problems only: Retrieve correct assertion for this assume *)
     val all_assms = SMT_Config.alethe_no_provided_assms ctxt
-    val termify = Thm.prop_of #> (fn x=> single (0, x)) #> SMT_Translate.eta_expand ctxt Termtab.empty #> hd #> snd
+    val termify = Thm.prop_of #> (fn x => single (0, x)) #> SMT_Translate.eta_expand ctxt Termtab.empty #> hd #> snd
+    val normalized =
+       let val thy = Proof_Context.theory_of (empty_simpset ctxt) in
+        Raw_Simplifier.rewrite_term thy (Named_Theorems.get ctxt \<^named_theorems>\<open>cvc5_normalized_input\<close>) []
+        #> Object_Logic.atomize_term ctxt
+        #> HOLogic.mk_Trueprop
+      end
     fun matched_assm () =
-      (case find_first (is_same_assms_eq_ac t o termify) prems of
+      (case find_first (is_same_assms_eq_ac (normalized t) o normalized o termify) prems of
         SOME thm => [thm]
       | NONE => [])
-    val prems = (if all_assms then matched_assm () else prems)
+    val m_assm = matched_assm ()
+    val _ = if length m_assm = 0 then SMT_Config.trace_msg ctxt (pretty ("warning: could not find assumption, had to add all premises")) [] else ()
+    val prems = (if all_assms andalso not (length m_assm = 0) then @{print}m_assm else prems)
   in
     (SMT_Replay_Methods.prove ctxt t (fn _ =>
       Method.insert_tac ctxt prems
       THEN' TRY' (K (unfold_tac ctxt @{thms SMT.trigger_def}))
-      THEN' TRY' (partial_simplify_tac ctxt @{thms eq_commute})
+      THEN' TRY' (partial_simplify_tac ctxt (@{thms eq_commute} @ Named_Theorems.get ctxt \<^named_theorems>\<open>cvc5_normalized_input\<close>))
     ))
 end
 
@@ -1221,7 +1256,8 @@ in
 fun bfun_elim ctxt prems t = SMT_Replay_Methods.prove ctxt t (fn _ =>
   Method.insert_tac ctxt prems
   THEN' TRY' (eqsubst_all ctxt bfun_theorems)
-  THEN' TRY' (simplify_tac ctxt @{thms eq_commute all_conj_distrib ex_disj_distrib}))
+  THEN' TRY' (assume_tac ctxt)
+  THEN' TRY' (simplify_tac ctxt @{thms ac_simps eq_commute all_conj_distrib ex_disj_distrib}))
 
 end
 
@@ -1304,12 +1340,16 @@ end
 
 local
   val rm_unused = @{lemma \<open>(\<forall>x. P) = P\<close> \<open>(\<exists>x. P) = P\<close> by blast+}
+  val qnt_cnf_basic = @{lemma \<open>(\<And>x. P x \<equiv> Q x) \<Longrightarrow> \<not>(\<forall>x. P x) \<or> (\<forall>x. Q x)\<close> by blast+}
 
   fun qnt_cnf_tac ctxt =
-    simplify_tac ctxt @{thms de_Morgan_conj de_Morgan_disj imp_conv_disj
-      iff_conv_conj_imp if_bool_eq_disj ex_simps all_simps ex_disj_distrib
-      alethe_connective_def(3) all_conj_distrib}
-    THEN' TRY' (Blast.blast_tac ctxt)
+    SOLVED' (resolve_tac ctxt [qnt_cnf_basic]
+      THEN' simplify_tac ctxt @{thms de_Morgan_conj de_Morgan_disj imp_conv_disj
+        iff_conv_conj_imp if_bool_eq_disj ex_simps all_simps ex_disj_distrib
+        alethe_connective_def(3) conj_disj_distribL conj_disj_distribR
+        all_conj_distrib not_all not_ex nnf_simps}
+      THEN' TRY' (Blast.blast_tac ctxt))
+    ORELSE' Blast.blast_tac ctxt
 in
 fun qnt_rm_unused ctxt _ t = SMT_Replay_Methods.prove ctxt t (fn _ =>
   K (unfold_tac ctxt rm_unused))
@@ -1475,11 +1515,17 @@ fun rewrite_and_simplify ctxt _ t =
    (chain_rewrite_two_step_with_ac_simps ctxt @{thms alethe_and_simplify alethe_and_simplify1}
      @{thms alethe_and_simplify}))
 
+(*
+Currently the tatic does not support steps like
+  (P False \<or> P True \<or> \<not> P False) = True
+hence the fast at the end.
+*)
 fun rewrite_or_simplify ctxt _ t =
   SMT_Replay_Methods.prove ctxt t (fn _ =>
    (chain_rewrite_two_step_with_ac_simps ctxt @{thms alethe_or_simplify alethe_or_simplify_1}
     @{thms alethe_or_simplify})
-    THEN' TRY' (REPEAT' (match_tac ctxt @{thms alethe_and_pos}) THEN' assume_tac ctxt))
+    THEN' TRY' (REPEAT' (match_tac ctxt @{thms alethe_and_pos}) THEN' (assume_tac ctxt))
+    THEN' TRY' (Classical.fast_tac ctxt))
 
 fun rewrite_not_simplify ctxt _ t =
   SMT_Replay_Methods.prove ctxt t (fn _ =>
@@ -1738,4 +1784,12 @@ fun qnt_miniscope_ITE ctxt _ t =
     eqsubst_all ctxt @{thms alethe_qnt_miniscope_ITE}
     THEN' TRY' (resolve_tac ctxt @{thms refl})))
 
+fun qnt_var_reordering ctxt _ t = 
+  SMT_Replay_Methods.prove ctxt t (fn _ => (
+    blast_tac ctxt))
+
+
+fun trust ctxt _ t = 
+  SMT_Replay_Methods.prove ctxt t (fn _ => (
+    Skip_Proof.cheat_tac ctxt))
 end;

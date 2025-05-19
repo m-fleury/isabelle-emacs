@@ -1,0 +1,7 @@
+(set-logic QF_LIA)
+(declare-fun x () Int)
+(declare-fun y () Int)
+(assert (not (= (= (= x 5) (= x 7)) (and (not (= x 5)) (not (= x 7))))))
+(assert (= (= 5 7) false))
+(check-sat)
+(exit)

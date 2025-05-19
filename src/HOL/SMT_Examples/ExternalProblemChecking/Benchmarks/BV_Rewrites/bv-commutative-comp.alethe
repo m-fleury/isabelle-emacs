@@ -1,0 +1,4 @@
+unsat
+(assume nst11.0 (not (= (bvcomp (@bv 1 1) b) (bvcomp b (@bv 1 1)))))
+(step st11 (cl (= (bvcomp (@bv 1 1) b) (bvcomp b (@bv 1 1)))) :rule rare_rewrite :args ("bv-commutative-comp" (@bv 1 1) b))
+(step t.end (cl) :rule resolution :premises (nst11.0 st11))

@@ -1,0 +1,4 @@
+unsat
+(assume nst64.0 (not (= (not (>= v1 0)) (>= 0 (+ v1 1)))))
+(step st64 (cl (= (not (>= v1 0)) (>= 0 (+ v1 1)))) :rule rare_rewrite :args ("arith-geq-tighten" v1 0))
+(step t.end (cl) :rule resolution :premises (nst64.0 st64))

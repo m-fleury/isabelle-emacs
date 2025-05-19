@@ -1,0 +1,5 @@
+(set-logic LRA)
+(declare-fun b () Real)
+(assert (not (= (>= (+ 3.0 b) (+ 2.0 b)) (>= (- (+ 3.0 b) (+ 2.0 b)) 0.0))))
+(check-sat)
+(exit)

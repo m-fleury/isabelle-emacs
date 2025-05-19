@@ -1,0 +1,5 @@
+unsat
+(assume nst3.0 (not (= (= (= x 5) (= x 7)) (and (not (= x 5)) (not (= x 7))))))
+(assume t2 (= (= 5 7) false))
+(step st3 (cl (= (= (= x 5) (= x 7)) (and (not (= x 5)) (not (= x 7))))) :rule rare_rewrite :premises (t2) :args ("eq-cond-deq" x 5 7))
+(step t.end (cl) :rule resolution :premises (nst3.0 st3))

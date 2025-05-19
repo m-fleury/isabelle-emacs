@@ -1,0 +1,5 @@
+(set-logic ALL)
+(declare-fun x () Bool)
+(assert (not (= (or x (not x) (forall ((_x (Array Int Bool))) (not (select _x 0)))) true)))
+(check-sat)
+(exit)

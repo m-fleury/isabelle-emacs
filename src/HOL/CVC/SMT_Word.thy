@@ -1,6 +1,6 @@
 theory SMT_Word
   imports "HOL-Library.Word" Word_Lib.More_Word "HOL-Library.Log_Nat" SMT_CVC
-   "Word_Lib.Reversed_Bit_Lists" Dsl_Nary_Ops "Alethe_BV_Reconstruction"
+   "Word_Lib.Reversed_Bit_Lists" Dsl_Nary_Ops "Alethe_BV_Reconstruction" 
 begin
 (*Erstmal diese Theory Afp abhaengig sein
 Soll zweiten bv_term_parser enthalten, der alle cvc5 bv definitionen enthaelt
@@ -648,6 +648,8 @@ lemmas [arith_simp_cvc5,arith_mult_poly_norm_cvc5] =
     Num.numeral_2_eq_2 Nat.One_nat_def Num.numeral_2_eq_2 Nat.One_nat_def
     Nat.Suc_less_eq Nat.zero_less_Suc minus_nat.diff_0 Nat.diff_Suc_Suc Nat.le0
 
+named_theorems bv_aci_simp
+
 ML_file\<open>ML/alethe_replay_bv_methods.ML\<close>
 ML\<open>
 
@@ -698,14 +700,13 @@ fun mk_scast i u =
 
 fun
   (*From the FixedSizeBitVectors theory*)
-   bv_term_parser (SMTLIB.Sym "concat", t1 :: t2 :: ts) = (@{print}("here todo make nary");SOME (@{term "word_cat"} $ t1 $ t2))
-  | bv_term_parser (SMTLIB.S [SMTLIB.Sym "_",SMTLIB.Sym "extract", SMTLIB.Num i, SMTLIB.Num j],[t])
-       = SOME (mk_extract i j t)
+  (*| bv_term_parser (SMTLIB.S [SMTLIB.Sym "_",SMTLIB.Sym "extract", SMTLIB.Num i, SMTLIB.Num j],[t])
+       = SOME (mk_extract i j t)*)
 
   (*SMT-LIB3 Syntax. First, we wanted to automatically map SMT-LIB2 syntax to this in preprocessing
     but decided against it in case that there are changes other than syntax*)
   (*TODO: Move into its own parser*)
-  | bv_term_parser (SMTLIB.Sym "extract",[ i, j ,t])
+   bv_term_parser (SMTLIB.Sym "extract",[ i, j ,t])
        = SOME (mk_extract_from_terms i j t)
 
   | bv_term_parser (SMTLIB.Sym "@bbT", xs) =
@@ -734,8 +735,13 @@ fun
      (*There is one special case that is caught here, that is if the base is the size of another bitvector *)
     (* val _ = @{print}("int",int)
      val _ = @{print}("base",base)*)
+     val ty = Word_Lib.mk_wordT (snd (HOLogic.dest_number base))
+        val num = snd (HOLogic.dest_number int)
+     (* in
+        SOME (HOLogic.mk_number ty num)
+      end*)
  in
-         SOME (Const  (\<^const_name>\<open>Word.Word\<close>,\<^typ>\<open>Int.int\<close>--> dummyT) $ int) (*TODO: Use ty*)
+        SOME (SMT_Word.mk_bv_from_int_base int base) (* SOME (Const  (\<^const_name>\<open>Word.Word\<close>,\<^typ>\<open>Int.int\<close>--> dummyT) $ int)*) (*TODO: Use ty*)
       end
 | bv_term_parser (SMTLIB.S [SMTLIB.Sym "_",SMTLIB.Sym "int2bv", SMTLIB.Num t], xs) = (*TODO*)
 (* ("bad SMT term format",
@@ -860,11 +866,7 @@ end
     in
       SOME (Const (\<^const_name>\<open>word_rotr\<close>,\<^typ>\<open>Nat.nat\<close>--> T2 --> T2) $ (Const ( \<^const_name>\<open>nat\<close>, \<^typ>\<open>Int.int\<close> --> \<^typ>\<open>Nat.nat\<close>) $ t1) $ t2)
     end
-  | bv_term_parser (SMTLIB.S [SMTLIB.Sym "_",SMTLIB.Sym "zero_extend", SMTLIB.Num i],[t])= (*This should push t1 0's before t2, solution above uses ucast, should I do too?*)
-  let
-     val I = HOLogic.mk_number \<^typ>\<open>nat\<close> i
-    val TU = dummyT (*TODO: If known add concrete bitwidth*)
-  in SOME (Const (\<^const_name>\<open>Word.cast\<close>, dummyT  --> TU) $ I) end
+ 
   | bv_term_parser (SMTLIB.Sym "sign_extend", [t1, t2]) =
   let
     val _ = @{print}("sign_extend t1",t1)

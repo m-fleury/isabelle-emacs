@@ -1,0 +1,4 @@
+unsat
+(assume nst4.0 (not (= (bvnot (bvnot s)) s)))
+(step st4 (cl (= (bvnot (bvnot s)) s)) :rule rare_rewrite :args ("bv-not-idemp" s))
+(step t.end (cl) :rule resolution :premises (nst4.0 st4))

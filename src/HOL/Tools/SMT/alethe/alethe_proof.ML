@@ -282,50 +282,50 @@ fun preprocess compress step =
 
     val replace_assignment_sym = (fn SMTLIB.S [SMTLIB.Key "=", x, y] => SMTLIB.S [SMTLIB.Sym "=", x, y] | x => x)
 
-    fun preprocess (x as Raw_Definition_Node _) (cx : ('a list, 'b) context, remap_prems) = ([x], (cx, remap_prems)) |
-     preprocess (Raw_Alethe_Node {id, rule, step_args, context_assignments, prems, concl, subproof, ...}) (cx : ('a list, 'b) context, remap_prems)  =
-      let
-        val ctxt = #ctxt cx
-        val _ = debug_msg ctxt high (fn () => \<^print> ("preprocessing started for rule: ", id))
-
-        val sanitized_context_assignments =
-          context_assignments
-          |> ignore_unexpected ctxt "context annotation" rule allows_context_assignment
-          |> map replace_assignment_sym
-
-        val sanitized_step_args =
-          step_args
-          |> ignore_unexpected ctxt "args" rule allows_step_args
-          |> (if rule = forall_inst_rule
-              then map replace_assignment_sym
-              else (fn x => x))
-
-        (* Recursive Call to Preprocess Subproof*)
-        val (subproof, (cx, _)) = fold_map preprocess subproof (cx, remap_prems) |> apfst flat
-
-        (* Compression of `or` Steps *)
-        val skip_step = rule = or_rule andalso compress
-        fun compress_or_rule remap_prems = (id, hd prems) :: remap_prems
-        val repaired_prems =
-          if compress
+    fun preprocess (x as Raw_Definition_Node _) (cx : ('a list, 'b) context, remap_prems) = ([x], (cx, remap_prems))
+      | preprocess (Raw_Alethe_Node {id, rule, step_args, context_assignments, prems, concl, subproof, ...})
+          (cx : ('a list, 'b) context, remap_prems)  =
+        let
+          val ctxt = #ctxt cx
+          val _ = debug_msg ctxt high (fn () => \<^print> ("preprocessing started for rule: ", id))
+        
+          val sanitized_context_assignments =
+            context_assignments
+            |> ignore_unexpected ctxt "context annotation" rule allows_context_assignment
+            |> map replace_assignment_sym
+        
+          val sanitized_step_args =
+            step_args
+            |> ignore_unexpected ctxt "args" rule allows_step_args
+            |> (if rule = forall_inst_rule
+                then map replace_assignment_sym
+                else (fn x => x))
+        
+          (* Recursive Call to Preprocess Subproof*)
+          val (subproof, (cx, _)) = fold_map preprocess subproof (cx, remap_prems) |> apfst flat
+        
+          (* Compression of `or` Steps *)
+          val skip_step = rule = or_rule andalso compress
+          fun compress_or_rule remap_prems = (id, hd prems) :: remap_prems
+          val repaired_prems =
+            if compress then
+             let val _ = debug_msg ctxt low (fn () => \<^print> ("If any premise of the current step has been skipped the premise is updated to that premise's premise"))
+             in expand_assms remap_prems prems end
+            else prems
+        
+        in
+          if skip_step
           then
-           let val _ = debug_msg ctxt low (fn () => \<^print> ("If any premise of the current step has been skipped the premise is updated to that premise's premise"))
-           in expand_assms remap_prems prems end
-          else prems
-
-      in
-        if skip_step
-        then
-          let
-            val _ = debug_msg ctxt low (fn () => \<^print> ("Compress proof by skipping current 'or' step"))
-            val skipped_step = ([], (cx, compress_or_rule remap_prems))
-          in skipped_step end
-        else
-          let
-            val preprocessed_node = [mk_raw_node id rule sanitized_step_args sanitized_context_assignments repaired_prems concl subproof]
-         in (preprocessed_node,(cx, remap_prems)) end
-      end
-  in preprocess step end
+            let
+              val _ = debug_msg ctxt low (fn () => \<^print> ("Compress proof by skipping current 'or' step"))
+              val skipped_step = ([], (cx, compress_or_rule remap_prems))
+            in skipped_step end
+          else
+            let
+              val preprocessed_node = [mk_raw_node id rule sanitized_step_args sanitized_context_assignments repaired_prems concl subproof]
+           in (preprocessed_node,(cx, remap_prems)) end
+        end
+      in preprocess step end
 
 fun filter_split _ [] = ([], [])
   | filter_split f (a :: xs) =
@@ -353,19 +353,19 @@ fun collect_skolem_defs (Raw_Alethe_Node {rule, subproof = subproof, context_ass
  | collect_skolem_defs _ = []
 
 val desymbolize = Name.desymbolize (SOME false) o perhaps (try (unprefix "?"))
- fun could_unify (Bound i, Bound j) = i = j
-        | could_unify (Var v, Var v') = v = v'
-        | could_unify (Free v, Free v') = v = v'
-        | could_unify (Const (v, ty), Const (v', ty')) = v = v' andalso ty = ty'
-        | could_unify (Abs (_, ty, bdy), Abs (_, ty', bdy')) = ty = ty' andalso could_unify (bdy, bdy')
-        | could_unify (u $ v, u' $ v') = could_unify (u, u') andalso could_unify (v, v')
-        | could_unify _ = false
-      fun is_alpha_renaming t =
-          t
-          |> HOLogic.dest_Trueprop
-          |> HOLogic.dest_eq
-          |> could_unify
-        handle TERM _ => false
+fun could_unify (Bound i, Bound j) = i = j
+  | could_unify (Var v, Var v') = v = v'
+  | could_unify (Free v, Free v') = v = v'
+  | could_unify (Const (v, ty), Const (v', ty')) = v = v' andalso ty = ty'
+  | could_unify (Abs (_, ty, bdy), Abs (_, ty', bdy')) = ty = ty' andalso could_unify (bdy, bdy')
+  | could_unify (u $ v, u' $ v') = could_unify (u, u') andalso could_unify (v, v')
+  | could_unify _ = false
+fun is_alpha_renaming t =
+    t
+    |> HOLogic.dest_Trueprop
+    |> HOLogic.dest_eq
+    |> could_unify
+  handle TERM _ => false
 
 
 
@@ -423,17 +423,17 @@ fun postprocess_proof compress ctxt step cx =
   
     (* Functions for rewriting terms and the context *)
     fun synctactic_var_subst old_name new_name (u $ v) =
-       (synctactic_var_subst old_name new_name u $ synctactic_var_subst old_name new_name v)
-     | synctactic_var_subst old_name new_name (Abs (v, T, u)) =
-       Abs (if String.isPrefix old_name v then new_name else v, T,
-         synctactic_var_subst old_name new_name u)
-     | synctactic_var_subst old_name new_name (Free (v, T)) =
+        (synctactic_var_subst old_name new_name u $ synctactic_var_subst old_name new_name v)
+      | synctactic_var_subst old_name new_name (Abs (v, T, u)) =
+        Abs (if String.isPrefix old_name v then new_name else v, T,
+          synctactic_var_subst old_name new_name u)
+      | synctactic_var_subst old_name new_name (Free (v, T)) =
         if String.isPrefix old_name v then Free (new_name, T) else Free (v, T)
-     | synctactic_var_subst _ _ t = t
+      | synctactic_var_subst _ _ t = t
     fun syntactic_rew_in_lhs_subst old_name new_name (Const(\<^const_name>\<open>HOL.eq\<close>, T) $ t1 $ t2) =
-         Const(\<^const_name>\<open>HOL.eq\<close>, T) $ synctactic_var_subst old_name new_name t1 $ t2
+          Const(\<^const_name>\<open>HOL.eq\<close>, T) $ synctactic_var_subst old_name new_name t1 $ t2
       | syntactic_rew_in_lhs_subst old_name new_name (Const(\<^const_name>\<open>Trueprop\<close>, T) $ t1) =
-         Const(\<^const_name>\<open>Trueprop\<close>, T) $ (syntactic_rew_in_lhs_subst old_name new_name t1)
+          Const(\<^const_name>\<open>Trueprop\<close>, T) $ (syntactic_rew_in_lhs_subst old_name new_name t1)
       | syntactic_rew_in_lhs_subst _ _ t = t
     fun subproof_rewriter new_variable_names = fold (fn (t, t') => syntactic_rew_in_lhs_subst t t') new_variable_names
     fun add_bound_variables_to_cx ts cx = fold update_binding ts cx
@@ -454,12 +454,12 @@ fun postprocess_proof compress ctxt step cx =
     in (cx',termified_concl) end
   
     fun transform_step_args rule step_args (cx, new_variable_names) =
-      if not (allows_step_args rule) then [] else
-      let
+      if not (allows_step_args rule) then []
+      else let
         val (termified_step_args,_) = fold_map node_of_term step_args cx
         val normalized_step_args = map (unsk_and_rewrite new_variable_names) (map (subproof_rewriter new_variable_names) termified_step_args)
         val _ = debug_msg ctxt middle (fn () => \<^print> ("Termified and normalized steps args:", normalized_step_args))
-       in normalized_step_args end
+      in normalized_step_args end
   
     fun postprocess (Raw_Definition_Node {id, rule, skolem_name, skolem_term}) (cx, new_variable_names) =
       let
@@ -467,10 +467,10 @@ fun postprocess_proof compress ctxt step cx =
       
         val cx =
         let
-          fun extract_skolem_type (SMTLIB.S [SMTLIB.Sym "choice", SMTLIB.S [SMTLIB.S [_,typ]], _]) = typ |
-              extract_skolem_type t = raise throw_alethe_ex ("unrecognized skolem_definition " ^ @{make_string} t)
+          fun extract_skolem_type (SMTLIB.S [SMTLIB.Sym "choice", SMTLIB.S [SMTLIB.S [_,typ]], _]) = typ
+            | extract_skolem_type t = raise throw_alethe_ex ("unrecognized skolem_definition " ^ @{make_string} t)
           fun declared_csts (name,typ) = (name, Term (Free (name, type_of cx typ)))
-          val globally_bound_vars = declared_csts (skolem_name,extract_skolem_type skolem_term)
+          val globally_bound_vars = declared_csts (skolem_name, extract_skolem_type skolem_term)
           val _ = debug_msg ctxt middle (fn () => \<^print> ("... extracted globally bound vars from skolem definition", fst globally_bound_vars))
         in update_binding globally_bound_vars cx end
       
@@ -494,7 +494,7 @@ fun postprocess_proof compress ctxt step cx =
         (* Preprocess context arguments *)
         (*TODO: Maybe it would be okay to only change the name of the term and not of the key, I have not tried yet*)
         (*TODO: Make more elegant*)
-        fun normalize_external (raw_name,Free(a,b)) =
+        fun normalize_external (raw_name, Free(a,b)) =
           if Config.get ctxt SMT_Config.check_external andalso Char.isUpper (hd ( String.explode raw_name))
           then ("isabelle_internal_" ^ raw_name,Free("isabelle_internal_" ^ a,b)) else (raw_name,Free(a,b))
         fun normalize_external2 (raw_name,b) =
@@ -585,142 +585,116 @@ fun postprocess_proof compress ctxt step cx =
         val _ = debug_msg ctxt middle (fn () => \<^print> ("... transform conclusion ", termified_concl))
 
         (* Process step arguments *)
-        (*TODO: la_generic aendere reals, erwarte div und keine reele zahlen. 
-        (div 1 4) anstelle vom 0.25 als auch 1.0/4.0 
-        => Fuege in Isabelle-alethe hinzu (es ist keine restriktion, aber um zu checken dass das bei keiner anderen Regel passiert)*)
         val normalized_step_args = if rule = la_generic_rule 
-        then [] else transform_step_args rule step_args (cx, new_variable_names)
+          then [] else transform_step_args rule step_args (cx, new_variable_names)
       
         (* add arguments *)
         val tactic_args =
-        case rule of
-          "shuffle" =>
-            let
-              fun getOp (SMTLIB.S [_, SMTLIB.S [SMTLIB.Sym "=", SMTLIB.S (SMTLIB.Sym commOp :: _), _]]) =
-                 (if (commOp = "or") then @{term "HOL.disj"} else @{term "HOL.conj"}) |
-                  getOp x = (@{print}("x",x);raise throw_alethe_ex ("malformed shuffle rule"))
-            in SOME (CommOp (getOp concl)) end |
-          "la_generic" =>
-          let
-            fun convert_dec_to_rat num1 num2 =
+          (case rule of
+            "shuffle" =>
               let
-                  val toInt = Real.toInt IEEEReal.TO_NEAREST
-
-                 fun mult10 x = if x = 0 then 1 else 10 * mult10 (x div 10)
-                 val offset = mult10 num2 |> @{print}
-                 val res_num = ( (  (offset) * num1)) + num2 |> @{print}
-              in
-                (res_num,offset)
-              end
-          fun convert_dec_to_rat2 num1 (num2:real) =
-              let
-                  val toInt = Real.toInt IEEEReal.TO_NEAREST
-                  fun mult10_2 (x:real) = if (Real.sign x) = 0 then 1.0 else 10.0 * (mult10_2 (Real.realMod (x * 10.0)))
-                  val offset = mult10_2 num2
-                 val res_num = (toInt  (  (offset) * num2)) + ((toInt offset) * num1)
-
-         in
-                (res_num,toInt offset)
-              end
-
-            fun extract_coefficients (SMTLIB.Num num) =
-                (num,1)
-              | extract_coefficients (SMTLIB.S [SMTLIB.Sym "-", SMTLIB.Num num1]) =
-                (~num1,1)
-              | extract_coefficients (SMTLIB.S [SMTLIB.Sym _, SMTLIB.Num num1, SMTLIB.Num num2]) =
-                (num1,num2)
-              | extract_coefficients (SMTLIB.S [SMTLIB.Sym "-", SMTLIB.Dec (num1,num2)]) =
-                convert_dec_to_rat (~num1) num2
-              | extract_coefficients (SMTLIB.Dec (num1,num2)) =
-                convert_dec_to_rat num1 num2
-              | extract_coefficients (SMTLIB.S [SMTLIB.Sym "/",SMTLIB.Dec (1,0),SMTLIB.Dec (1,0)]) = (*not necessary, included for speed-up*)
-                (1,1)
-              | extract_coefficients (SMTLIB.S [SMTLIB.Sym "/",SMTLIB.Dec (num1,0),SMTLIB.Dec (num2,0)]) =
-                let
-                  val toInt = Real.toInt IEEEReal.TO_NEAREST
-                in
-                 ((fn {frac=f,whole=w} => convert_dec_to_rat2 (toInt w) f)
-                 (Real.split (Real.fromInt num1 / Real.fromInt num2)))
-                end
-              | extract_coefficients (SMTLIB.S [SMTLIB.Sym "-", SMTLIB.S[SMTLIB.Sym "/",SMTLIB.Dec (num1,0),SMTLIB.Dec (num2,0)]]) =
-                let
-                  val toInt = Real.toInt IEEEReal.TO_NEAREST
-                in
-                 ((fn {frac=f,whole=w} => ((fn (a,b) => (~a,b)) (convert_dec_to_rat2 (toInt w) f)))
-                 (Real.split (Real.fromInt num1 / Real.fromInt num2)))
-                end
-              | extract_coefficients x = (@{print}("x",x);raise throw_alethe_ex ("malformed argument of la_generic step") )
-          in SOME (Farkas_Coefficients (map extract_coefficients step_args)) end
-        | "forall_inst" =>
-          let
-            (*TODO*)
-            fun get_foralls (SMTLIB.S [_,SMTLIB.S[_,SMTLIB.S [_,SMTLIB.S[_,SMTLIB.S xs,_]],_]]) step_args =
+                fun getOp (SMTLIB.S [_, SMTLIB.S [SMTLIB.Sym "=", SMTLIB.S (SMTLIB.Sym commOp :: _), _]]) =
+                   (if (commOp = "or") then @{term "HOL.disj"} else @{term "HOL.conj"}) |
+                    getOp x = (@{print}("x",x);raise throw_alethe_ex ("malformed shuffle rule"))
+              in SOME (CommOp (getOp concl)) end
+          | "la_generic" =>
             let
-              fun get_vars [] _ = []
-                | get_vars (SMTLIB.S[v,_]::ys) (z::zs) = SMTLIB.S[SMTLIB.Sym "=",v,z]:: get_vars ys zs
-                | get_vars _ _ = raise throw_alethe_ex ("malformed conclusion or argument of forall_inst step") 
-                  (* ("x",
-               [S [Sym "v0", Sym "Int_int_fun$"], S [Sym "v1", Sym "Int"],
-                S [Sym "v2", Sym "Int_list$"]]
-              I cannot do this on the SMTLIB term after all... Or at least not this easily. Names might
-              be different... TODO*)
-            in get_vars xs step_args end |
-            get_foralls _ _ = raise throw_alethe_ex ("malformed conclusion or argument of forall_inst step")
-      
-            (*TODO: clean-up*)
-            fun normalize_external2 (raw_name,b) =
-              if Config.get ctxt SMT_Config.check_external andalso Char.isUpper (hd ( String.explode raw_name))
-              then (("isabelle_internal_" ^ raw_name),b) else ( raw_name,b)
-
-            fun insts_of_forall_inst (SMTLIB.S [_, SMTLIB.Sym x, a]) = (x, a) |
-              insts_of_forall_inst _ = raise throw_alethe_ex ("forall inst")
-            val raw_insts = map normalize_external2 (map insts_of_forall_inst (get_foralls concl step_args))
-      
-            fun termify_term (x, t) cx = let val (t, cx) = term_of t cx in ((x, t), cx) end
-            val (termified_inst, _) = fold_map termify_term raw_insts cx
-            val insts = Symtab.empty
-              |> fold (fn (x, t) => fn insts => Symtab.update_new (desymbolize x, t) insts) termified_inst
-              |> Symtab.map (K (unsk_and_rewrite new_variable_names))    
-              handle (Symtab.DUP _) => raise throw_alethe_ex ("forall inst, tried to add same name twice")
-
-             in SOME (Insts insts) end |
-          r =>
+              fun convert_dec_to_rat num1 num2 =
+                let
+                  fun mult10 x = if x = 0 then 1 else 10 * mult10 (x div 10)
+                  val offset = mult10 num2
+                  val res_num = ( (  (offset) * num1)) + num2
+                in
+                  (res_num,offset)
+                end
+          
+              fun extract_coefficients (SMTLIB.Num num) =
+                  (num,1)
+                | extract_coefficients (SMTLIB.S [SMTLIB.Sym "-", SMTLIB.Num num1]) =
+                  (~num1,1)
+                | extract_coefficients (SMTLIB.S [SMTLIB.Sym _, SMTLIB.Num num1, SMTLIB.Num num2]) =
+                  (num1,num2)
+                | extract_coefficients (SMTLIB.S [SMTLIB.Sym "-", SMTLIB.Dec (num1,num2)]) =
+                  convert_dec_to_rat (~num1) num2
+                | extract_coefficients (SMTLIB.Dec (num1,num2)) =
+                  convert_dec_to_rat num1 num2
+                | extract_coefficients (SMTLIB.S [SMTLIB.Sym "/",SMTLIB.Dec (1,0),SMTLIB.Dec (1,0)]) = (*not necessary, included for speed-up*)
+                  (1,1)
+                | extract_coefficients (SMTLIB.S [SMTLIB.Sym "/",SMTLIB.Dec (num1,0),SMTLIB.Dec (num2,0)]) =
+                  (num1, num2)
+                | extract_coefficients (SMTLIB.S [SMTLIB.Sym "-", SMTLIB.S[SMTLIB.Sym "/",SMTLIB.Dec (num1,0),SMTLIB.Dec (num2,0)]]) =
+                  (~num1, num2)
+                | extract_coefficients x = (@{print}("x",x);raise throw_alethe_ex ("malformed argument of la_generic step") )
+            in SOME (Farkas_Coefficients (map extract_coefficients step_args)) end
+          | "forall_inst" =>
+            let
+              (*TODO*)
+              fun get_foralls (SMTLIB.S [_,SMTLIB.S[_,SMTLIB.S [_,SMTLIB.S[_,SMTLIB.S xs,_]],_]]) step_args =
+                  let
+                    fun get_vars [] _ = []
+                      | get_vars (SMTLIB.S[v,_]::ys) (z::zs) = SMTLIB.S[SMTLIB.Sym "=",v,z]:: get_vars ys zs
+                      | get_vars _ _ = raise throw_alethe_ex ("malformed conclusion or argument of forall_inst step") 
+                        (* ("x",
+                     [S [Sym "v0", Sym "Int_int_fun$"], S [Sym "v1", Sym "Int"],
+                      S [Sym "v2", Sym "Int_list$"]]
+                    I cannot do this on the SMTLIB term after all... Or at least not this easily. Names might
+                    be different... TODO*)
+                  in get_vars xs step_args end 
+                | get_foralls _ _ = raise throw_alethe_ex ("malformed conclusion or argument of forall_inst step")
+          
+              (*TODO: clean-up*)
+              fun normalize_external2 (raw_name,b) =
+                if Config.get ctxt SMT_Config.check_external andalso Char.isUpper (hd ( String.explode raw_name))
+                then (("isabelle_internal_" ^ raw_name),b) else ( raw_name,b)
+          
+              fun insts_of_forall_inst (SMTLIB.S [_, SMTLIB.Sym x, a]) = (x, a) |
+                insts_of_forall_inst _ = raise throw_alethe_ex ("forall inst")
+              val raw_insts = map normalize_external2 (map insts_of_forall_inst (get_foralls concl step_args))
+          
+              fun termify_term (x, t) cx = let val (t, cx) = term_of t cx in ((x, t), cx) end
+              val (termified_inst, _) = fold_map termify_term raw_insts cx
+              val insts = Symtab.empty
+                |> fold (fn (x, t) => fn insts => Symtab.update_new (desymbolize x, t) insts) termified_inst
+                |> Symtab.map (K (unsk_and_rewrite new_variable_names))    
+                handle (Symtab.DUP _) => raise throw_alethe_ex ("forall inst, tried to add same name twice")
+          
+            in SOME (Insts insts) end
+          | r =>
             if member (op =) index_rules r
-            then
-            let
-              fun get_index [SMTLIB.Num k] = SOME (Index k) |
-              get_index _ = NONE
+            then let
+              fun get_index [SMTLIB.Num k] = SOME (Index k)
+                | get_index _ = NONE
             in
               get_index step_args
             end
-            else NONE
-
-          (* fix premises *)
-          val normalized_premises = prems @ (if is_assm_repetition id rule then [id] else [])
-      
-          (* fix rule *)
-          fun normalized_input_rule_name id = if can SMTLIB_Interface.role_and_index_of_assert_name id then normalized_input_rule else local_input_rule
-          val normalized_rule =
-            if rule = input_rule
-            then normalized_input_rule_name id
-            else rule
-      
-          val empty_subproof = ([], [], [], [])
-          val empty_context_assignment = []
-          val step =
-            mk_replay_node
-            id
-            normalized_rule
-            normalized_step_args
-            empty_context_assignment
-            normalized_premises
-            termified_concl
-            empty_subproof
-            tactic_args
-      
-        in
+            else NONE)
+          
+         (* fix premises *)
+         val normalized_premises = prems @ (if is_assm_repetition id rule then [id] else [])
+         
+         (* fix rule *)
+         fun normalized_input_rule_name id = if can SMTLIB_Interface.role_and_index_of_assert_name id then normalized_input_rule else local_input_rule
+         val normalized_rule =
+           if rule = input_rule
+           then normalized_input_rule_name id
+           else rule
+         
+         val empty_subproof = ([], [], [], [])
+         val empty_context_assignment = []
+         val step =
+           mk_replay_node
+             id
+             normalized_rule
+             normalized_step_args
+             empty_context_assignment
+             normalized_premises
+             termified_concl
+             empty_subproof
+             tactic_args
+          
+         in
            (step, (cx', new_variable_names))
-        end
+         end
       
       in
         postprocess step (cx, [])

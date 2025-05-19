@@ -9,6 +9,7 @@ named_theorems rare_simplify_temp \<open>Theorems to reconstruct bitvector theor
                                   functions, e.g. take.\<close>
 
 named_theorems cvc_evaluate \<open>Theorems to reconstruct evaluate steps in cvc5 proofs\<close>
+named_theorems cvc_evaluate_bv \<open>Theorems to reconstruct bit-vector evaluate steps in cvc5 proofs\<close>
 
 named_theorems arith_simp_cvc5 \<open>Might be temp and integrated into smt_arith_simplify \<close>
 
@@ -35,7 +36,9 @@ lemmas [arith_simp_cvc5] =
 (*lemmas [cvc_evaluate] = arith_simp_cvc5*)
 
 
+named_theorems alethe_poly_norm \<open>Extra theorems for poly norm.\<close>
 
+lemmas [alethe_poly_norm] = mult_1_right mult_1_left
 
 named_theorems word_cat_helper_def \<open>test\<close>
 

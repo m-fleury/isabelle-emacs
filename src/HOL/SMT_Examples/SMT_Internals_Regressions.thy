@@ -99,9 +99,13 @@ val _ = expect_parsing_error "notclosedopen\""
 
 (*BVNum*)
 
+val _ = check_tree "#b0" (SMTLIB.BVNum (0,1)) true
 val _ = check_tree "#b00100000101" (SMTLIB.BVNum (261,11)) true
-
-
+(*
+Decided to solve this differently after all:
+val _ = check_tree "(_ bv8 32)" (SMTLIB.BVNum (8,32)) true
+val _ = check_tree "(_ bv16 4)" (SMTLIB.BVNum (16,4)) true
+*)
 
 (*S*)
 val _ = check_tree "()" (SMTLIB.S []) true
@@ -211,6 +215,15 @@ val resTree = Raw_Alethe_Node
       {concl = Sym "false", context_assignments = [], id = "t17", prems = [], rule = "rare_rewrite", step_args = [Str "evaluate"], subproof = []}
 val _ = check_raw_node [testTree] [resTree] true
 
+(* Weird characters in symbol names*)
+val testTree = SMTLIB.parse ["(step t17 (cl (exists ((main_~i~6 Int)) (and (<= c_main_~j~6 (+ (* 2 main_~i~6) 2)) (<= main_~i~6 4) (<= main_~i~6 c_main_~k~6)))) :rule rare_rewrite :args (\"evaluate\"))"]
+val resTree = Raw_Alethe_Node
+      {concl = S [Sym "or",
+       S [Sym "exists", S [S [Sym "main_~i~6", Sym "Int"]],
+          S [Sym "and", S [Sym "<=", Sym "c_main_~j~6", S [Sym "+", S [Sym "*", Num 2, Sym "main_~i~6"], Num 2]], S [Sym "<=", Sym "main_~i~6", Num 4],
+             S [Sym "<=", Sym "main_~i~6", Sym "c_main_~k~6"]]]]
+  , context_assignments = [], id = "t17", prems = [], rule = "rare_rewrite", step_args = [Str "evaluate"], subproof = []}
+val _ = check_raw_node [testTree] [resTree] true
 
 
 val testNode = Alethe_Proof.parse_raw_proof_steps NONE [testTree] SMTLIB_Proof.empty_name_binding
@@ -2168,7 +2181,7 @@ lemma nary_elim_2:
 
 
 lemma
-"(\<forall>y. (n \<noteq> r m n \<or> \<not> f m n y y \<or> n = y)) = ((n \<noteq> r m n) \<or> (\<forall>y. (\<not> f m n y y \<or> n = y)))"
+"(\<forall>y. (n \<noteq> r m n \<or> a \<or>\<not> f m n y y \<or> n = y)) = ((n \<noteq> r m n) \<or> a \<or>(\<forall>y. (\<not> f m n y y \<or> n = y)))"
 
   by (ctxt_tactic "qnt_miniscope_or")
 

@@ -1,0 +1,5 @@
+(set-logic QF_BV)
+(declare-fun x () (_ BitVec 10))
+(assert (not (= (bvshl (@bv 0 10) x) (@bv 0 10))))
+(check-sat)
+(exit)

@@ -1,0 +1,13 @@
+unsat
+(assume nt1480.0 (not (not (= "" (str.substr (str.substr actionName 1 (+ -1 (str.len actionName))) 0 (str.len example_key))))))
+(assume nt1480.1 (not (not (not (= example_key "")))))
+(assume nt1480.2 (not (not (= example_key (str.substr (str.substr actionName 1 (+ -1 (str.len actionName))) 0 (str.len example_key))))))
+(assume nt1480.3 (not false))
+(anchor :step t1480)
+(assume t1480.a0 (= "" (str.substr (str.substr actionName 1 (+ -1 (str.len actionName))) 0 (str.len example_key))))
+(assume t1480.a1 (not (= example_key "")))
+(assume t1480.a2 (= example_key (str.substr (str.substr actionName 1 (+ -1 (str.len actionName))) 0 (str.len example_key))))
+(step st1480.t21 (cl (= (= p1.denies false) (not p1.denies))) :rule rare_rewrite :args ("bool-eq-false" p1.denies))
+(step t1480.t52 (cl false) :rule trust)
+(step t1480 (cl (not (= "" (str.substr (str.substr actionName 1 (+ -1 (str.len actionName))) 0 (str.len example_key)))) (not (not (= example_key ""))) (not (= example_key (str.substr (str.substr actionName 1 (+ -1 (str.len actionName))) 0 (str.len example_key)))) false) :rule subproof :discharge (t1480.a0 t1480.a1 t1480.a2))
+(step t.end (cl) :rule resolution :premises (nt1480.0 nt1480.1 nt1480.2 nt1480.3 t1480))

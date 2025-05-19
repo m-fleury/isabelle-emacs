@@ -1,18 +1,19 @@
 theory SMT_CVC_Word \<comment> \<open>More Setup for CVC that should be in HOL-Word eventually\<close>
-  imports SMT_Word "SMT_CVC" "BV_Rewrites" SMT_Native_Output
-begin
+  imports SMT_Word "SMT_CVC" "BV_Rewrites" "BV_Rewrites_Simplification" SMT_Native_Output
+begin                  
 declare[[show_types,show_sorts]]
 
 (*Evaluation Steps*)
 
 (*This evaluation should be high in success instead of fast on average*)
-named_theorems cvc_evaluate_bv \<open>Theorems to reconstruct bit-vector evaluate steps in cvc5 proofs\<close>
-lemmas [cvc_evaluate_bv] = bv_reconstruction_length
 
 lemmas bit_operations = drop_bit_eq_div take_bit_eq_mod push_bit_eq_mult
                         numeral_mod_numeral divmod_cancel
 
-lemma evaluate_concat:
+lemmas [cvc_evaluate_bv] = bv_reconstruction_length bit_operations word_size
+
+
+lemma evaluate_concat[cvc_evaluate_bv]:
 "(word_cat (x::'a::len word) (y::'b::len word)::'c::len word)
    = ucast x * (2::'c word) ^ LENGTH('b) + ucast y"
   unfolding word_cat_eq[of x y] push_bit_eq_mult
@@ -70,7 +71,7 @@ lemma cvc_ListOp_neutral_bv_and [cvc_ListOp_neutral]:
  "cvc_isListOp (ListOp (semiring_bit_operations_class.and) (-1::'a::len word))"
   by auto
 
-
+lemmas [bv_aci_simp] = Bit_Operations.semiring_bit_operations_class.xor.commute
 
 ML \<open>
 
@@ -122,8 +123,10 @@ fun  (*cvc_term_parser (SMTLIB.Sym "rare-list", []) = (@{print}("rare-list");
         SOME y => SOME y |
         NONE => SMT_Array.array_term_parser xs)*)
 
- fun cvc_type_parser (SMTLIB.Sym "?", _) = SOME dummyT |
-     cvc_type_parser (SMTLIB.Sym "?BitVec", []) = SOME (Type (\<^type_name>\<open>word\<close>, [dummyT])) |
+
+ 
+ fun cvc_type_parser (SMTLIB.Sym "?", _) = SOME dummyT | (*RARE specific*)
+     cvc_type_parser (SMTLIB.Sym "?BitVec", []) = SOME (Type (\<^type_name>\<open>word\<close>, [dummyT])) | (*RARE specific*)
 cvc_type_parser _ = NONE (*|
   cvc_type_parser xs =
   (case SMT_String.string_type_parser xs of
