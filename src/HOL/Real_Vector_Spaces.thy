@@ -7,7 +7,9 @@ section \<open>Vector Spaces and Algebras over the Reals\<close>
 
 theory Real_Vector_Spaces              
 imports Real Topological_Spaces Vector_Spaces
-begin                                   
+begin
+(*cvc real in main fix due to the usual "what is the order of merging no_notation and notation?"*)
+notation floor (\<open>(\<open>open_block notation=\<open>mixfix floor\<close>\<close>\<lfloor>_\<rfloor>)\<close>)
 
 subsection \<open>Real vector spaces\<close>
 

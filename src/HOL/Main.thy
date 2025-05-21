@@ -32,8 +32,7 @@ lemma
   supply[[smt_trace]]
   using assms by (smt (cvc5_proof)) (*success*)
 
-
-no_notation floor  ("\<lfloor>_\<rfloor>")
+no_notation floor (\<open>(\<open>open_block notation=\<open>mixfix floor\<close>\<close>\<lfloor>_\<rfloor>)\<close>)
 
 subsection \<open>Namespace cleanup\<close>
 

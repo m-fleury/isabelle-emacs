@@ -373,7 +373,7 @@ lemma R_trans [trans]: "R a b \<Longrightarrow> R b c \<Longrightarrow> R a c"
 lemma R_mult_left_mono: "R a b \<Longrightarrow> c \<ge> 0 \<Longrightarrow> R (c*a) (c*b)"
   using R by (auto simp: mult_left_mono)
 
-lemma R_mult_right_mono: "R a b \<Longrightarrow> c \<ge> 0 \<Longrightarrow> R (a*c) (b*c)"
+lemma R_mult_right_mono: "R a b \<Longrightarrow> c \<ge> 0 \<Longrightarrow> R (a * c) (b * c)"
   using R by (auto simp: mult_right_mono)
 
 lemma big_trans:

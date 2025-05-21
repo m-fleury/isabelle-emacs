@@ -9,6 +9,6 @@ imports
   "CVC/SMT_CVC_Real"
 begin
 
-notation floor  ("\<lfloor>_\<rfloor>")
+notation floor (\<open>(\<open>open_block notation=\<open>mixfix floor\<close>\<close>\<lfloor>_\<rfloor>)\<close>)
 
 end
