@@ -217,20 +217,19 @@ lemma cvc_list_both_transfer:
 lemma cvc_list_both_transfer': 
   assumes "xs \<noteq> []" "ys \<noteq> []"
   shows "cvc_list_both' op (ListVar ys) (ListVar xs) = foldr op ys (foldr op (butlast xs) (last xs))"
+  apply (cases xs)
+  apply (case_tac[!] ys)
+  apply simp_all
   using assms
   unfolding cvc_list_both'_def
-  apply (induction ys)
-   apply simp_all
-  subgoal for y yss
-  apply (induction xs)
      apply simp_all
-  subgoal for x xss
-  apply (rule conjI impI)+
-     apply (simp add: cvc_bin_op_fold_transfer)
-    apply (simp add: cvc_list_right_def cvc_list_right_transfer_2 cvc_bin_op_fold_transfer cvc_nary_op_fold_transfer)
-    by (smt (cvc5, fmf) Dsl_Nary_Ops.cvc_bin_op_fold_Cons Dsl_Nary_Ops.cvc_nary_op_fold_Cons cvc_bin_op2.simps cvc_bin_op_fold_transfer cvc_list_right_def cvc_list_right_transfer_2 neq_Nil_conv)
+  subgoal for x xss y yss
+  apply (induction yss)
+     apply simp_all
+     apply (metis append_butlast_last_id assms(1) cvc_bin_op2.simps cvc_list_right_def cvc_list_right_transfer cvc_nary_op_fold.elims list.inject)
+    by (metis Dsl_Nary_Ops.cvc_nary_op_fold_Cons cvc_bin_op2.simps cvc_bin_op_fold_transfer cvc_list_right_def cvc_list_right_transfer list.exhaust snoc_eq_iff_butlast)
   done
-  done
+
 
 (*TODO: Hopefully these can be safely deleted after testing is complete*)
 
