@@ -280,7 +280,7 @@ fun apply_solver_and_replay ctxt thms0 =
 
     val norm_thms = SMT_Normalize.normalize ctxt thms
     val _ = @{print}("norm_thms",norm_thms)
-    (*val (norm_thms,ctxt_nats) = SMT_Global_Normalize.global_normalize ctxt norm_thms*)
+    val (norm_thms,ctxt_nats) = SMT_Global_Normalize.global_normalize ctxt norm_thms
     val ctxt_nats = ctxt
     val (output, replay_data) =
       invoke NONE name command [] smt_options norm_thms ctxt_nats
