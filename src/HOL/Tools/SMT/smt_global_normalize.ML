@@ -167,8 +167,25 @@ end
       intify_type (T as (TFree (str,S))) = (@{print}("TODO str",str);T) |
       intify_type (T as (TVar (idN,S))) =  (@{print}("TODO str2",str);T)
 
-  fun mkGeTerm t =  Const ("Orderings.ord_class.greater_eq", @{typ "int \<Rightarrow> int \<Rightarrow> bool"})  $ t $ @{term "0::int"} |> @{print}
+  fun mkGeTerm t =  Const ("Orderings.ord_class.greater_eq", @{typ "int \<Rightarrow> int \<Rightarrow> bool"})  $ t $ @{term "0::int"}
   fun apply_subst subst t = t (*TODO*)
+
+  fun obtain_new_variable ctxt x_cond =
+  let
+     val ex = Goal.prove ctxt [] [] (\<^make_judgment> x_cond)
+       (fn {context = ctxt', ...} => HEADGOAL (Skip_Proof.cheat_tac ctxt'))
+     val (([(_, x)], [B]), ctxt1) = ctxt
+       |> Obtain.result (fn _ => eresolve_tac ctxt @{thms exE} 1) [ex];
+     val (B_alpha,B_beta) =
+          ([@{thm conjunct1}|> (HEADGOAL(resolve_tac ctxt1 [B]))|> Seq.hd] ,
+                [@{thm conjunct2} |> (HEADGOAL(resolve_tac ctxt1 [B]))|> Seq.hd] )
+     (*
+     val _ = @{print}("ex",ex)
+     val _ = @{print}("B",B)
+     val _ = @{print}("x",x)
+     val _ = @{print}("(B_alpha,B_beta)",(B_alpha,B_beta))
+     *)
+   in (ctxt1,x,B_alpha,B_beta) end
 
   fun mk_new_variable ctxt subst x t =
   let
@@ -180,100 +197,68 @@ end
                    $ (Const("HOL.eq",@{typ "nat => nat \<Rightarrow> bool"})
                    $ t $ (@{term "nat"} $ new_t))
                    $ mkGeTerm new_t)              
-    val _ = @{print}("x_cond",x_cond)
+    (*val _ = @{print}("x_cond",x_cond)*)
 
-    val ex = Goal.prove ctxt [] [] (\<^make_judgment> x_cond)
-      (fn {context = ctxt', ...} => HEADGOAL (Skip_Proof.cheat_tac ctxt'))
-    val _ = @{print}("ex",ex)
-
-
-     val (([(_, x)], [B]), ctxt1) = ctxt
-       |> Obtain.result (fn _ => eresolve_tac ctxt @{thms exE} 1) [ex];
-     val _ = @{print}("B",B)
-     val _ = @{print}("x",x)
-
-     val (B_alpha,B_beta) =
-          ([@{thm conjunct1}|> (HEADGOAL(resolve_tac ctxt1 [B]))|> Seq.hd] ,
-                [@{thm conjunct2} |> (HEADGOAL(resolve_tac ctxt1 [B]))|> Seq.hd] )
-     val _ = @{print}("(B_alpha,B_beta)",(B_alpha,B_beta))
-     val subst = Termtab.update (t,x |> Thm.term_of) subst
+    val (ctxt1,x,B_alpha,B_beta) = obtain_new_variable ctxt x_cond
+    val subst = Termtab.update (t,x |> Thm.term_of) subst
 
    in (ctxt1,subst,B_alpha,B_beta,new_t) end
 
-fun mk_lambda (subst:term Termtab.table)  t ts n T' new_args f ctxt2 = 
-let
-       (*Make new term*)
-                val Tt = fastype_of t
-                val Tts = map fastype_of ts
+  fun mk_lambda (subst:term Termtab.table)  t ts n T' new_args f ctxt2 = 
+  let
+    (*Make new term*)
+    val Tt = fastype_of t
+    val Tts = map fastype_of ts
 
-                val retNat = (Tt = @{typ nat})
-                val arg_Nat = (List.find (fn t =>  t = @{typ nat}) Tts)
-                val newf = Free(n,T')
-                val newt = (newf,new_args) |> list_comb
+    val retNat = (Tt = @{typ nat})
+    val arg_Nat = (List.find (fn t =>  t = @{typ nat}) Tts)
+    val newf = Free(n,T')
+    val newt = (newf,new_args) |> list_comb
 
-            (*First, search is operator f has already been encountered.
-              In that case get f'.
+    (*First, search is operator f has already been encountered.
+    In that case get f'.
 
-              Otherwise, first make f':
-                1. f does not return nat but has an argument of type nat:
-                   Prove: \<exists>f'.  f = \<lambda>x1...xn. f' x1 ... (int xi) ... xn
-                2. f does return nat but has not argument of type nat
-                   Prove: \<exists>f'.  f = \<lambda>x1...xn. nat (f' x1 ... xn) \<and> \<forall>x1. f' x \<ge> 0
-                3. If both is the case
-                   Prove: \<exists>f'.  f = \<lambda>x1...xn. nat (f' x1 ... (int xi) ... xn) \<and> \<forall>x1. f' x \<ge> 0
+    Otherwise, first make f':
+    1. f does not return nat but has an argument of type nat:
+      Prove: \<exists>f'.  f = \<lambda>x1...xn. f' x1 ... (int xi) ... xn
+    2. f does return nat but has not argument of type nat
+      Prove: \<exists>f'.  f = \<lambda>x1...xn. nat (f' x1 ... xn) \<and> \<forall>x1. f' x \<ge> 0
+    3. If both is the case
+      Prove: \<exists>f'.  f = \<lambda>x1...xn. nat (f' x1 ... (int xi) ... xn) \<and> \<forall>x1. f' x \<ge> 0
 
-              Then, add condition for current term using the proven statements when making f'
+    Then, add condition for current term using the proven statements when making f' *)
 
-              *)
-            fun mk_lambda [] k US = let
-                val res = list_comb (newf, rev US )
-                in if retNat then @{term "nat::int => nat"} $ res else res end|
-              mk_lambda (T::Ts) k US =
-              let
-                 val xi = "a" ^ Int.toString(k)
-              in
-                (if T = @{typ "nat"}
-                then absfree (xi,T) (mk_lambda Ts (k+1) ((@{term "int::nat => int"} $ Free(xi,T)::US)))
-                else absfree (xi,T) (mk_lambda Ts k ((Free(xi,T)::US))))
-              end
-              fun mk_greater_term [] k US = HOLogic.mk_eq(list_comb (newf, rev US ),@{term "0::int"}) |
-              mk_greater_term (T::Ts) k US =
-              let
-                 val xi = "a" ^ Int.toString(k)
-              in
-                HOLogic.mk_all  (xi,T,(mk_greater_term Ts k ((Free(xi,T)::US))))
-              end
+    fun mk_lambda [] k US =
+    let
+      val res = list_comb (newf, rev US )
+    in if retNat then @{term "nat::int => nat"} $ res else res end |
+    mk_lambda (T::Ts) k US =
+    let
+      val xi = "a" ^ Int.toString(k)
+    in
+      (if T = @{typ "nat"}
+      then absfree (xi,T) (mk_lambda Ts (k+1) ((@{term "int::nat => int"} $ Free(xi,T)::US)))
+      else absfree (xi,T) (mk_lambda Ts k ((Free(xi,T)::US))))
+    end
 
-            val lambda_term =  mk_lambda (map fastype_of ts) 0 []
-            val eq_term = HOLogic.mk_eq(f,lambda_term)
-            val conj_term = if retNat then HOLogic.mk_conj(eq_term,mk_greater_term (map fastype_of new_args) 0 []) else eq_term
-            val ex_term = HOLogic.mk_exists (n,T',conj_term)
-             val _ = @{print}("f",f)
+    fun mk_greater_term [] k US = HOLogic.mk_eq(list_comb (newf, rev US ),@{term "0::int"}) |
+      mk_greater_term (T::Ts) k US =
+      let
+        val xi = "a" ^ Int.toString(k)
+      in
+        HOLogic.mk_all  (xi,T,(mk_greater_term Ts k ((Free(xi,T)::US))))
+      end
 
-             val _ = @{print}("ex_term",ex_term)
-
-         
-            val ex = Goal.prove ctxt2 [] [] (\<^make_judgment> ex_term)
-              (fn {context = ctxt', ...} => HEADGOAL (Skip_Proof.cheat_tac ctxt'))
-         val _ = @{print}("ex",ex)
-
-         val (([(_, x)], [B]), ctxt1) = ctxt2
-            |> Obtain.result (fn _ => eresolve_tac ctxt2 @{thms exE} 1) [ex];
-         val B' = Variable.gen_all ctxt2 B;
-
-         val _ = @{print}("B",B)
-         val _ = @{print}("x",x)
-         val _ = @{print}("B'",B')
-
-           val (B_alpha,B_beta) =
-           if retNat
-           then ([@{thm conjunct1}|> (HEADGOAL(resolve_tac ctxt1 [B]))|> Seq.hd] ,
-                [@{thm conjunct2} |> (HEADGOAL(resolve_tac ctxt1 [B]))|> Seq.hd] )
-            else ([B],[])
-         val _ = @{print}("(B_alpha,B_beta)",(B_alpha,B_beta))
-in 
-(ctxt1,subst, B_alpha,B_beta,newt)
-end
+    val lambda_term =  mk_lambda (map fastype_of ts) 0 []
+    val eq_term = HOLogic.mk_eq(f,lambda_term)
+    val conj_term = if retNat then HOLogic.mk_conj(eq_term,mk_greater_term (map fastype_of new_args) 0 []) else eq_term
+    val ex_term = HOLogic.mk_exists (n,T',conj_term)
+   
+    val (ctxt1,x,B_alpha,B_beta) = obtain_new_variable ctxt2 ex_term
+    val subst = Termtab.update (t,x |> Thm.term_of) subst
+  in 
+    (ctxt1,subst,B_alpha,B_beta,newt)
+  end
 
 
 
@@ -295,7 +280,7 @@ fun
         val _ = @{print}("current term is free variable t",t)
         val (ctxt1,subst,B_alpha,B_beta,new_t) = mk_new_variable ctxt subst x t
       in (ctxt1,subst,alpha @ B_alpha,beta @ B_beta,new_t) end
-    | (SOME b) => (ctxt,subst,[],[],b) 
+    | (SOME b) => (ctxt,subst,alpha,beta,b) 
    )
   | transform ctxt (subst:term Termtab.table) alpha beta (t as Var (_,_)) = (ctxt,subst,alpha,beta,t) 
   | transform ctxt (subst:term Termtab.table) alpha beta t = 
@@ -303,27 +288,27 @@ fun
        val (f,ts) = strip_comb t
        val T = fastype_of f
        val n = (if is_Const f then fst (dest_Const f) else "lift_" ^ fst (dest_Free f))
-       val _ = @{print}("current term t=(f,ts)",(f,ts))
     in
-       (*numeral constants*)
-       (*int constants just added as an optimization*)
-       if n = "Num.numeral_class.numeral" 
-       then 
-          (ctxt,subst,alpha,beta,if T = @{typ "nat"} then list_comb (Const (n, @{typ "num \<Rightarrow> int"}), ts) else t)
-       else
-       let
-         (*Transform arguments*)
-         fun transform_args ctxt2 cum_subst cum_alpha cum_beta new_t [] = (ctxt2,cum_subst,cum_alpha,cum_beta,new_t) | 
-           transform_args ctxt2 cum_subst cum_alpha cum_beta new_t (u::us) =
-           let  
-              val (ctxt3,sigma_o,alpha_o,beta_o,u_o) = transform ctxt2 cum_subst [] [] (apply_subst cum_subst u)
-           in
-               transform_args ctxt3 sigma_o (cum_alpha @ alpha_o) (cum_beta @ beta_o) (u_o :: new_t) us
-           end
-         val (ctxt2,subst,args_alpha,args_beta,new_args) = transform_args ctxt subst [] [] [] (rev ts)
-         val alpha = args_alpha @ alpha
-         val beta = args_beta @ beta
-         
+      (*numeral constants*)
+      (*int constants just added as an optimization*)
+      if n = "Num.numeral_class.numeral" 
+      then 
+        (ctxt,subst,alpha,beta,if T = @{typ "nat"} then list_comb (Const (n, @{typ "num \<Rightarrow> int"}), ts) else t)
+      else
+      let
+        (*Transform arguments*)
+        fun transform_args ctxt2 cum_subst cum_alpha cum_beta new_t [] = (ctxt2,cum_subst,cum_alpha,cum_beta,new_t) | 
+          transform_args ctxt2 cum_subst cum_alpha cum_beta new_t (u::us) =
+          let  
+            val (ctxt3,sigma_o,alpha_o,beta_o,u_o) = transform ctxt2 cum_subst cum_alpha cum_beta (apply_subst cum_subst u)
+          in
+            transform_args ctxt3 sigma_o alpha_o beta_o (u_o :: new_t) us
+          end
+        val (ctxt2,subst,args_alpha,args_beta,new_args) = transform_args ctxt subst alpha beta [] (rev ts)
+
+         val alpha = args_alpha 
+         val beta = args_beta
+
          (*Calculate new type*)
          val T' = intify_type T
          val _ = @{print}("(old type,new type): (T,T')",(T,T'))
@@ -334,17 +319,15 @@ fun
         then (ctxt,subst,alpha,beta,list_comb (f,new_args))
         (*Native operator. Should not be translated. TODO: Add nat functions*)
         else if (List.exists (fn x => n = x) ["Nat.semiring_1_class.of_nat","HOL.eq"])
-        then (ctxt2,subst,alpha @ args_alpha,beta @ args_beta,list_comb (f,new_args))
+        then (ctxt2,subst,alpha,beta,list_comb (f,new_args))
         else
           (*Check if operator has already been translated*)
           (case Termtab.get_first (fn (a,b) => if a = f then SOME b else NONE) subst of
              NONE => 
               let
                  val (ctxt1,subst,B_alpha,B_beta,newt) = mk_lambda subst t ts n T' new_args f ctxt
-
-        
               in (ctxt1,subst,alpha @ B_alpha,beta @ B_beta,newt) end
-            | (SOME b) => (ctxt,subst,[],[],list_comb(b,new_args))
+            | (SOME b) => (ctxt,subst,alpha,beta,list_comb(b,new_args))
 )
 end 
 
