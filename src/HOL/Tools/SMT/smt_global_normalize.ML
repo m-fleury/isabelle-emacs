@@ -41,6 +41,8 @@ fun split ctxt B = (split_by_thm ctxt @{thm conjunct1} B, split_by_thm ctxt @{th
 
 fun obtain_new_variable ctxt x_cond lambda_term =
 let
+   val _ = debug_msg ctxt low (fn () => \<^print> ("x_cond ",x_cond))
+
   val exI_inst = 
  Drule.infer_instantiate' ctxt [NONE,SOME(Thm.cterm_of ctxt lambda_term)] @{thm exI}
    val _ = debug_msg ctxt low (fn () => \<^print> ("exI_inst ",exI_inst))
@@ -52,7 +54,7 @@ let
       ORELSE 
         (HEADGOAL (resolve_tac ctxt' [exI_inst])
         THEN (unfold_tac ctxt' [@{thm nat_int}])
-        THEN (unfold_tac ctxt' [@{thm simp_thms(6)},@{thm simp_thms(35)}])
+        THEN (unfold_tac ctxt' [@{thm of_nat_0_le_iff},@{thm simp_thms(6)},@{thm simp_thms(22)},@{thm simp_thms(35)}])
         )
       )
       THEN (print_tac ctxt "should be solved by now"))
@@ -86,9 +88,9 @@ let
            
   val (ctxt1,x,B) = obtain_new_variable ctxt x_cond new_t
   val subst = Termtab.update (t,(x |> Thm.term_of,B)) subst
-  val (B_alpha,B_beta) = split ctxt B
+  val (B_alpha,B_beta) = split ctxt1 B
 
-in (ctxt1,subst,B_alpha,B_beta,new_t) end
+in (ctxt1,subst,B_alpha,B_beta,x|> Thm.term_of) end
 
 
 (*
@@ -126,7 +128,7 @@ let
   let
     val VS = map (fn xi => (if fastype_of xi = @{typ "nat"} then nat_cast $ intify_var xi else xi)) US
     val f_t = list_comb (f, VS)
-  in (if retNat then nat_cast $ f_t else f_t) end
+  in (if retNat then int_cast $ f_t else f_t) end
 
 
   (* x1 ... xn to f' x1' ... xn' or to (nat (f' x1' ... xn')) if f returns a nat,
@@ -135,7 +137,7 @@ let
   let
     val VS = map (fn xi => (if fastype_of xi = @{typ "nat"} then int_cast $ xi else xi)) US
     val f' = list_comb (x, VS)
-  in (if retNat then nat_cast $ f' else f') end
+  in (f',(if retNat then nat_cast $ f' else f')) end
 
   (* x1 ... xn to one of the following
        f x1 ... xn = (nat (f' x1' ... xn')) \<and> (f' x1' ... xn') \<ge> 0
@@ -143,9 +145,9 @@ let
      where xi' = nat xi if xi is a nat otherwise xi *)
   fun mk_ground x US = 
   let
-    val f' = mk_nat_f' x US
+    val (f',f'_nat) = mk_nat_f' x US
     (* x1 ... xn to f x1 ... xn = f' x1' ... xn' or f x1 ... xn = nat (f' x1' ... xn')*)
-    val eq_term = HOLogic.mk_eq (mk_f US,f')
+    val eq_term = HOLogic.mk_eq (mk_f US,f'_nat)
   in (if retNat then HOLogic.mk_conj (eq_term,mkGeTerm f') else eq_term) end
 
  
@@ -192,7 +194,7 @@ let
       THEN HEADGOAL (assume_tac context)  THEN  print_tac context "hiya2" )
    val _ = debug_msg ctxt high (fn () => \<^print> ("Showed goal from obtain thm:  ",goal_thm))
  
-   val subst = Termtab.update (t,(x |> Thm.term_of,B)) subst
+   val subst = Termtab.update (f,(x |> Thm.term_of,goal_thm)) subst
 in 
   (ctxt1,subst,newt,goal_thm)
 end
@@ -200,6 +202,9 @@ end
 (*two substs? One to search if concrete term appears again and one for the def itself?*)
 fun inst_function_thm ctxt ts ret_nat goal_thm = 
 let
+   val _ = debug_msg ctxt low (fn () => \<^print> ("goal_thm ",goal_thm))
+   val _ = debug_msg ctxt low (fn () => \<^print> ("ts ",ts))
+
   val B' = Drule.infer_instantiate' ctxt (map (SOME o Thm.cterm_of ctxt) ts) goal_thm
   val _ = debug_msg ctxt middle (fn () => \<^print> ("Instantiated already existing theorem for current term ",B'))
   (*Only need to split if return type is nat*)
@@ -237,7 +242,7 @@ fun
        val T = fastype_of f
        val n = (if is_Const f then fst (dest_Const f) else fst (dest_Free f))
        val n' =  "lift_" ^ n
-  val _ = debug_msg ctxt middle (fn () => \<^print> ("encountered function ",t))
+       val _ = debug_msg ctxt middle (fn () => \<^print> ("encountered function ",t))
 
     in
       (*translate numeral constants directly, skip traversal of arguments*)
@@ -257,6 +262,7 @@ fun
           end
         val (ctxt2,subst,alpha,beta,new_args) = transform_args ctxt subst alpha beta [] (rev ts)
 
+
          (*Calculate new type*)
          val T' = intify_type T
       in
@@ -269,21 +275,24 @@ fun
         else
           let
             val Tt = fastype_of t
-                  val Tts = (map fastype_of ts)
+            val retNat = (Tt = @{typ nat})
+            fun notNum x = x |> strip_comb |> fst |> (fn t => t <> @{term "Num.numeral_class.numeral"})
+            fun add_cast [] [] = []|
+            add_cast (x::xs) (T::Ts) = (if T = @{typ nat} andalso fastype_of x = @{typ "int"} andalso notNum x then nat_cast $ x else x) :: add_cast xs Ts
+            val new_args2 = add_cast new_args (map fastype_of ts)
 
-                  val retNat = (Tt = @{typ nat})
           in
           (*Check if operator has already been translated*)
           (case Termtab.lookup subst f of
              NONE => 
               let
-                 val (ctxt1,subst,f',goal) = mk_new_fun subst t ts n' T' new_args f ctxt
-                 val (B_alpha,B_beta) = inst_function_thm ctxt2 ts retNat goal
+                 val (ctxt1,subst,f',goal) = mk_new_fun subst t ts n' T' new_args f ctxt2
+                 val (B_alpha,B_beta) = inst_function_thm ctxt1 new_args2 retNat goal
                  val newt = list_comb (f',new_args)
               in (ctxt1,subst,alpha @ B_alpha,beta @ B_beta,newt) end
             | (SOME (b,c)) =>
               let
-                 val (B_alpha,B_beta) = inst_function_thm ctxt2 ts retNat c
+                 val (B_alpha,B_beta) = inst_function_thm ctxt2 new_args2 retNat c
                  val newt = list_comb (b,new_args)
               in (ctxt2,subst,alpha @ B_alpha,beta @ B_beta,newt) end
           ) end
@@ -306,11 +315,10 @@ let
   val beta' = map (fn b => HEADGOAL (resolve_tac ctxt' [b]) @{thm "nat_0_le"}) beta  |> map ( Seq.hd) |> @{print}
   val beta'' = map (fn b => ((1,SMT_Util.Axiom),b)) beta'
 
-  val _ = debug_msg ctxt middle (fn () => \<^print> ("obtained conversions ",beta''))
-  val ithms2 = map (fn (a,b) => (a,Local_Defs.unfold0 ctxt' (alpha) b)) ithms
-  val ithms3 = map (fn (a,b) => (a,Local_Defs.unfold0 ctxt' (beta'@ [@{thm alethe_nat_embedding2}]) b)) ithms2
+  val _ = debug_msg ctxt middle (fn () => \<^print> ("obtained conversions ",alpha,beta''))
+  val ithms2 = map (fn (a,b) => (a,Local_Defs.unfold0 ctxt' (alpha @ beta'@ [@{thm alethe_nat_embedding2}]) b)) ithms
   val _ = debug_msg ctxt middle (fn () => \<^print> ("ithms before conversion ",ithms))
-  val _ = debug_msg ctxt middle (fn () => \<^print> ("ithms after conversion ",ithms3))
+  val _ = debug_msg ctxt middle (fn () => \<^print> ("ithms after conversion ",ithms2))
 
 in
  (ithms2,ctxt)

@@ -843,11 +843,12 @@ lemma alethe_qnt_miniscope_ITE:
   by simp_all
 
 lemma alethe_nat_embedding:
-  fixes f::"'a \<Rightarrow> nat" and nf::"'a \<Rightarrow> int" and x::"'a"
-  assumes "nf \<equiv> int \<circ> f"
-  shows "int (f x) = nf x"
-  using assms by fastforce
+ "\<exists>x. (y::nat) = nat (x::int) \<and> x \<ge> 0"
+  using int_eq_iff by blast
 
+lemma alethe_nat_embedding2:
+ "int (nat (Num.numeral_class.numeral n)) = numeral n"
+  by simp
 
 
 named_theorems cvc5_normalized_input \<open>Theorems required to replay
