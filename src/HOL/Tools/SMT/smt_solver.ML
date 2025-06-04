@@ -156,6 +156,7 @@ fun invoke memoize_fun_call name command cmd_options smt_options ithms ctxt =
       (case memoize_fun_call of
         NONE => run_cmd input
       | SOME memoize => split_lines (memoize (cat_lines o run_cmd) input))
+|> @{print}
   in (output_lines, replay_data) end
 
 end
@@ -280,9 +281,8 @@ fun apply_solver_and_replay ctxt thms0 =
 
     val norm_thms = SMT_Normalize.normalize ctxt thms
     val _ = @{print}("norm_thms",norm_thms)
-    val (norm_thms,ctxt_nats) = SMT_Global_Normalize.global_normalize ctxt norm_thms
+    val (norm_thms,gamma,ctxt_nats) = SMT_Global_Normalize.global_normalize (ctxt) norm_thms
     (*TODO: Add names from global normalization to terms symtab that is part of replaydata *)
-    val ctxt_nats = ctxt
     val (output, replay_data) =
       invoke NONE name command [] smt_options norm_thms ctxt_nats
   in
