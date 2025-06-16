@@ -416,8 +416,12 @@ You can also set the following variable:
 This requires recompiling the LSP projects (delete in your
 =.emacs.d/elpa=, /all/ directories starting with =lsp= and restart
 Emacs)
-
-
+** Font Configuration
+If you have face issue (characters being longer that the space and overlapping with the next character), you can set it with
+```
+:custom-face
+(unicode-tokens-symbol-font-face ((t (:family "Iosevka"))))
+```
 ** Emacs Version
 *** Emacs 29
 The upcoming Emacs-29 should have the "noverlay" branch significantly
