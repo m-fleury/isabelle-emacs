@@ -40,6 +40,8 @@ sig
   val dest_builtin_ext: Proof.context -> string * typ -> term list -> term list option
   val is_builtin_fun: Proof.context -> string * typ -> term list -> bool
   val is_builtin_fun_ext: Proof.context -> string * typ -> term list -> bool
+  (*purely for debugging, never use to search in table etc.*)
+  val print_builtins: Proof.context -> Pretty.T
 end;
 
 structure SMT_Builtin: SMT_BUILTIN =
@@ -120,6 +122,37 @@ fun filter_builtins keep_T =
   Context.proof_map (Builtins.map (fn (ttab, btab) =>
     (filter_ttab keep_T ttab, Symtab.map (K (filter_ttab keep_T)) btab)))
 
+type temp = (Proof.context -> typ -> bool,
+     (typ -> (string * typ list) option) *
+     (typ -> int -> string option)
+     )
+     kind
+
+fun print_builtins ctxt =
+let
+
+  fun print_kind (Ext _) = "Extern" |
+      print_kind (Int _) = "Intern"
+  fun string_of_class [] = "basic"
+    | string_of_class cs = "basic." ^ space_implode "." cs
+
+  fun print_typ_kind (T,k) = (Pretty.block (Pretty.separate " " [Syntax.pretty_typ ctxt T, Pretty.str (print_kind k)]))
+  fun print_dict xs = fold cons (map print_typ_kind xs) []
+  fun print_role (role,ys) = Pretty.block ([Pretty.fbrk,Pretty.str ("role: " ^ string_of_class role),Pretty.fbrk]
+                            @ (Pretty.fbreaks (print_dict ys)) @ [Pretty.fbrk])
+  fun print_ttab (ttab:(typ * temp) list SMT_Util.dict) = fold cons (map print_role ttab) []
+  val print_types = (Pretty.str "builtin typ table" :: Pretty.fbrk :: print_ttab (fst (Builtins.get (Context.Proof ctxt))))
+
+  val termtab_keys = (Symtab.keys (snd (Builtins.get (Context.Proof ctxt))))
+  val termtab_values = map (Symtab.lookup (snd (Builtins.get (Context.Proof ctxt)))) termtab_keys |> map (fn (SOME x) => hd x) |> map fst 
+     |> map string_of_class
+
+  val print_terms = (
+   (Pretty.str "builtin term table" :: Pretty.fbrk :: Pretty.fbreaks (map2 (fn a => fn b => (Pretty.block o Pretty.commas) [a,b])
+     (map Pretty.str termtab_keys) (map Pretty.str termtab_values))))
+in
+  Pretty.block (print_types @ [Pretty.str "\n------------------\n"] @ print_terms)
+end
 
 (* built-in types *)
 
