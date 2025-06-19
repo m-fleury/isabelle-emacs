@@ -13,6 +13,7 @@ lemmas bit_operations = drop_bit_eq_div take_bit_eq_mod push_bit_eq_mult
 lemmas [cvc_evaluate_bv] = bv_reconstruction_length bit_operations word_size
 
 
+
 lemma evaluate_concat[cvc_evaluate_bv]:
 "(word_cat (x::'a::len word) (y::'b::len word)::'c::len word)
    = ucast x * (2::'c word) ^ LENGTH('b) + ucast y"
@@ -67,11 +68,18 @@ lemmas [cvc_evaluate_bv]
 lemmas [cvc_evaluate] = cvc_evaluate_bv
 
 
-lemma cvc_ListOp_neutral_bv_and [cvc_ListOp_neutral]:
- "cvc_isListOp (ListOp (semiring_bit_operations_class.and) (-1::'a::len word))"
-  by auto
 
-lemmas [bv_aci_simp] = Bit_Operations.semiring_bit_operations_class.xor.commute
+lemmas [bv_aci_simp] =
+Bit_Operations.semiring_bit_operations_class.zero_and_eq
+Bit_Operations.semiring_bit_operations_class.and_zero_eq
+Bit_Operations.semiring_bit_operations_class.and.commute
+Bit_Operations.semiring_bit_operations_class.or.comm_neutral
+Bit_Operations.semiring_bit_operations_class.or.left_neutral
+Bit_Operations.semiring_bit_operations_class.or.commute
+Bit_Operations.semiring_bit_operations_class.xor.comm_neutral
+Bit_Operations.semiring_bit_operations_class.xor.left_neutral
+Bit_Operations.semiring_bit_operations_class.xor.commute
+
 
 ML \<open>
 
@@ -184,6 +192,7 @@ cvc5_rare "BV_Rewrites_Simplification.rewrite_bv_shl_by_const_0"
 cvc5_rare "BV_Rewrites_Simplification.rewrite_bv_shl_by_const_1"
 cvc5_rare "BV_Rewrites_Simplification.rewrite_bv_shl_by_const_2"
 cvc5_rare "BV_Rewrites_Simplification.rewrite_bv_lshr_by_const_0"
+cvc5_rare "BV_Rewrites_Simplification.rewrite_bv_xor_ones"
 
 cvc5_rare "BV_Rewrites_Simplification.rewrite_bv_ule_zero"
 cvc5_rare "BV_Rewrites_Simplification.rewrite_bv_ashr_zero"
