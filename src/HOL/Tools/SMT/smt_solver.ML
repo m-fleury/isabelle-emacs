@@ -278,12 +278,14 @@ fun apply_solver_and_replay ctxt thms0 =
 
     (*val (norm_thms,ctxt) = SMT_Global_Normalize.pre_global_normalize ctxt thms0
     val _ = @{print}("thms0",thms0)*)
-    val thms = SMT_Global_Normalize.pre_global_normalize ctxt thms
+    (*val thms = SMT_Global_Normalize.pre_global_normalize ctxt thms*)
 
 
     val norm_thms = SMT_Normalize.normalize ctxt thms
     val _ = @{print}("norm_thms",norm_thms)
-    val (norm_thms,beta,ctxt_nats) = SMT_Global_Normalize.global_normalize (ctxt) norm_thms
+    (*val (norm_thms,beta,ctxt_nats) = SMT_Global_Normalize.global_normalize (ctxt) norm_thms*)
+    val ctxt_nats = ctxt
+    val beta = []
     (*TODO: Add names from global normalization to terms symtab that is part of replaydata *)
     val (output, replay_data) =
       invoke NONE name command [] smt_options (norm_thms @ beta) ctxt_nats
