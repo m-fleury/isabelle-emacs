@@ -882,6 +882,8 @@ local
 
       val smtlib_lines_without_qm =
         lines
+        |> @{print}
+        |> (fn ("("::xs) => List.take (xs,(length xs -1)) | xs => xs)   (*Made optional for now because not all tools support it: raise throw_alethe_ex ("proof does not start with opening parenthesis"))*)
         |> filter_out (fn x => x = "")
         |> map single
         |> map (fn x =>  SMTLIB.parse x)
