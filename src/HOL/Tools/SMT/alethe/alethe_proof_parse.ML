@@ -2,7 +2,7 @@
     Author:     Mathias Fleury, TU Muenchen
     Author:     Jasmin Blanchette, TU Muenchen
 
-VeriT proof parsing.
+Alethe proof parsing.
 *)
 
 signature ALETHE_PROOF_PARSE =
