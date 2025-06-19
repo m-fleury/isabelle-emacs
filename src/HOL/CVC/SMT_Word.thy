@@ -601,6 +601,106 @@ proof-
     using t0 by presburger
 qed
 
+lemma and_word_cat_smt_extract_base:
+"(and (x::'a::len word) c) = (and (smt_extract (LENGTH('a) - 1) 0 (x::'a::len word)) (smt_extract (LENGTH('a) - 1) 0 (c::'a::len word)))"
+  using smt_extract_identity[of x] smt_extract_identity[of c]
+  by simp
+
+lemma xor_word_cat_smt_extract_base:
+"(xor (smt_extract (LENGTH('a) - 1) 0 (x::'a::len word)) (smt_extract (LENGTH('a) - 1) 0 (c::'a::len word))) = A \<Longrightarrow> (xor (x::'a::len word) c) = A"
+  using smt_extract_identity[of x] smt_extract_identity[of c]
+  by simp
+
+lemma or_word_cat_smt_extract_base:
+"(or (x::'a::len word) c) = (or (smt_extract (LENGTH('a) - 1) 0 (x::'a::len word)) (smt_extract (LENGTH('a) - 1) 0 (c::'a::len word)))"
+  using smt_extract_identity[of x] smt_extract_identity[of c]
+  by simp
+
+lemma and_word_cat_smt_extract_step: 
+"i \<le> j \<Longrightarrow> j + 1 \<le> k \<Longrightarrow> i \<ge> 0 \<Longrightarrow> k < size x 
+ \<Longrightarrow> LENGTH('b::len) = k + (1::nat) - Suc j
+ \<Longrightarrow> LENGTH('d::len) = k + (1::nat) - i
+ \<Longrightarrow> LENGTH('c::len) = j + (1::nat) - i
+\<Longrightarrow>
+ (and ((smt_extract k i (x::'a::len word))::'d::len word) ((smt_extract k i (c::'a::len word))::'d::len word))
+ =
+ word_cat
+  (and ((smt_extract k (j+1) x)::'b::len word) ((smt_extract k (j+1) c)::'b::len word))
+  (and ((smt_extract j i x)::'c::len word) ((smt_extract j i c)::'c::len word))
+"
+  apply (simp add: bang_eq)
+  apply (rule allI)+
+  subgoal for n
+    apply (simp add: bit_word_cat_iff bit_and_iff)
+    apply (cases "n < Suc j - i")
+    apply (simp_all add: bit_smt_extract bit_word_cat_iff)
+     apply (cases "n < Suc k - i")
+      apply simp_all
+    apply linarith
+     apply (cases "n < Suc k - i")
+     apply simp_all
+    apply (cases "n + i - Suc 0 < k")
+    apply simp_all
+    apply (cases "n + i < Suc k ")
+     apply simp_all
+    apply (cases "n + i - Suc j < k - j")
+     apply simp_all
+    by (metis Suc_pred diff_Suc_1' diff_Suc_Suc diff_add_0 len_gt_0 zero_less_iff_neq_zero)
+  done
+
+
+lemma bitwise_slicing_smt_extract_identity:
+"nat a = LENGTH('a) -1 \<Longrightarrow> smt_extract (nat a) (nat 0) (x::'a::len word) = x"
+  by (simp add: smt_extract_def slice_id) 
+
+
+(* lift_shiftla v0__ 1 XOR (27::8 word) =
+    word_cat (smt_extract (nat (7::int)) (nat (5::int)) (27::8 word) XOR smt_extract (nat (7::int)) (nat (5::int)) (lift_shiftla v0__ 1))
+     (word_cat (smt_extract (nat (4::int)) (nat (3::int)) (27::8 word) XOR smt_extract (nat (4::int)) (nat (3::int)) (lift_shiftla v0__ 1))
+       (word_cat (smt_extract (nat (2::int)) (nat (2::int)) (27::8 word) XOR smt_extract (nat (2::int)) (nat (2::int)) (lift_shiftla v0__ 1))
+         (smt_extract (nat 1) (nat 0) (27::8 word) XOR smt_extract (nat 1) (nat 0) (lift_shiftla v0__ 1))))*)
+
+lemma xor_word_cat_smt_extract_step: 
+"(nat i) \<le> (nat j) \<Longrightarrow> (nat j) + 1 \<le> (nat k) \<Longrightarrow> (nat i) \<ge> 0 \<Longrightarrow> (nat k) < size x 
+ \<Longrightarrow> LENGTH('b::len) = (nat k) + (1::nat) - (nat j')
+ \<Longrightarrow> LENGTH('d::len) = (nat k) + (1::nat) - (nat i)
+ \<Longrightarrow> LENGTH('c::len) = (nat j) + (1::nat) - (nat i)
+ \<Longrightarrow> j' = j + 1 \<Longrightarrow> k \<ge>0 \<Longrightarrow> j\<ge>0 \<Longrightarrow> i \<ge>0 
+\<Longrightarrow>
+
+ word_cat
+  (xor ((smt_extract (nat k) (nat j') x)::'b::len word) ((smt_extract (nat k) (nat j') c)::'b::len word))
+  (xor ((smt_extract (nat j) (nat i) x)::'c::len word) ((smt_extract (nat j) (nat i) c)::'c::len word))
+=(xor ((smt_extract (nat k) (nat i) (x::'a::len word))::'d::len word) ((smt_extract (nat k) (nat i) (c::'a::len word))::'d::len word))
+"
+  apply (simp add: bang_eq)
+  apply (rule allI)+
+  subgoal for n
+    apply (simp add: bit_word_cat_iff bit_xor_iff)
+    apply (cases "n < Suc (nat j) - (nat i)")
+    apply (simp_all add: bit_smt_extract bit_word_cat_iff)
+     apply (cases "n < Suc (nat k) - (nat i)")
+      apply simp_all
+     apply (cases "n + nat i < Suc (nat j)")
+    apply simp_all
+     apply (cases "n + nat i < Suc (nat k) ")
+      apply simp_all
+    using less_diff_conv apply blast
+    apply (cases "n < Suc (nat k) - nat i")
+    apply simp_all
+    apply (cases "n + nat i - Suc (nat j) + nat (j + 1) < Suc (nat k)")
+     apply simp_all
+    apply (cases "n + nat i - Suc (nat j) < Suc (nat k) - nat (j + 1)")
+      apply simp_all
+    apply (metis Suc_nat_eq_nat_zadd1 add.commute less_diff_conv linordered_semidom_class.add_diff_inverse)
+     apply (cases "n + nat i < Suc (nat k)")
+      apply simp_all
+    using le_diff_conv linorder_not_less apply blast
+    by (metis Suc_nat_eq_nat_zadd1 add.commute bot_nat_0.not_eq_extremum le_add_diff_inverse less_Suc_eq_le linorder_not_less nat_le_linear
+      zero_less_diff)
+    done
+
+
 (*named_theorems evaluate_bv_cvc5 \<open>Lemmas to resolve evaluate rewrite steps \<close>
 named_theorems word_var_rbl_list \<open>Theorems to reconstruct bitblasting of a variable.\<close>
 
@@ -803,7 +903,7 @@ end
         
      in
       SOME (Const (\<^const_name>\<open>of_nat\<close>, \<^typ>\<open>Nat.nat\<close> --> \<^typ>\<open>Int.int\<close> ) $ (Const (\<^const_name>\<open>power\<close>, \<^typ>\<open>Nat.nat\<close> --> \<^typ>\<open>Nat.nat\<close> --> \<^typ>\<open>Nat.nat\<close>)
-         $ t1' $ t2'))
+         $ t2' $ t1'))
      end
   | bv_term_parser (SMTLIB.Sym "bvugt", [t1,t2]) =
       SOME (HOLogic.mk_binrel \<^const_name>\<open>Orderings.less\<close> (t2, t1))
@@ -1121,6 +1221,22 @@ qed
 *)
 
 
+lemma [cvc_ListOp_neutral]:
+ "cvc_isListOp (ListOp (semiring_bit_operations_class.and) (-1::'a::len word))"
+ "cvc_isListOp (ListOp (semiring_bit_operations_class.xor) (0::'a::len word))"
+  by auto
+
+lemma [cvc_list_right_transfer_op]:
+"cvc_list_right xor (y::'a::len word) (ListVar (xs::'a::len word list)) = xor y (foldr xor xs 0)"
+  using cvc_list_right_transfer_neutral1[of xor 0 y _] cvc_ListOp_neutral
+  by simp
+
+
+lemma [cvc_list_both_transfer_op]:
+"cvc_list_both xor (Word.Word 0)  (ListVar (xs::'a::len word list)) (ListVar (ys::'a::len word list))
+ = foldr xor xs (foldr xor ys (Word.Word 0) )"
+  using cvc_list_both_transfer[of xor 0 xs ys] cvc_ListOp_neutral
+  by simp
 
 
 
