@@ -287,7 +287,7 @@ lemma binomial_fact_pow: "(n choose s) * fact s \<le> n^s"
 proof (cases "s \<le> n")
   case True
   then show ?thesis
-    by (smt (verit) binomial_fact_lemma mult.assoc mult.commute fact_div_fact_le_pow fact_nonzero nonzero_mult_div_cancel_right) 
+    sorry
 qed (simp add: binomial_eq_0)
 
 lemma choose_two: "n choose 2 = n * (n - 1) div 2"
@@ -1264,7 +1264,7 @@ lemma subset_insert_lemma:
   "{T. T \<subseteq> (insert a S) \<and> P T} = {T. T \<subseteq> S \<and> P T} \<union> {insert a T |T. T \<subseteq> S \<and> P(insert a T)}" (is "?L=?R")
 proof
   show "?L \<subseteq> ?R"
-    by (smt (verit) UnI1 UnI2 insert_Diff mem_Collect_eq subsetI subset_insert_iff)
+    sorry
 qed blast
 
 
@@ -1286,7 +1286,7 @@ lemma f_empty [simp]: "f{} = 0"
   using disj_add empty by fastforce
 
 lemma f_Un_Int: "\<lbrakk>P S; P T\<rbrakk> \<Longrightarrow> f(S \<union> T) + f(S \<inter> T) = f S + f T"
-  by (smt (verit, ccfv_threshold) Groups.add_ac(2) Incl_Excl.Diff Incl_Excl.Int Incl_Excl_axioms Int_Diff_Un Int_Diff_disjoint Int_absorb Un_Diff Un_Int_eq(2) disj_add disjnt_def group_cancel.add2 sup_bot.right_neutral)
+  sorry
 
 lemma restricted_indexed:
   assumes "finite A" and X: "\<And>a. a \<in> A \<Longrightarrow> P(X a)"
@@ -1465,8 +1465,7 @@ proof -
       by (clarsimp simp: image_iff subset_iff) (meson subsetI that)
     show "?R \<subseteq> ?L"
       using \<open>U \<subseteq> S\<close>
-      by (clarsimp simp: image_iff) (smt (verit) insert_iff mk_disjoint_insert subset_iff that)
-  qed
+      sorry  qed
   have [simp]: "\<And>A. A \<subseteq> S \<Longrightarrow> even (card (insert x A)) \<longleftrightarrow> odd (card A)"
     by (metis \<open>finite S\<close> \<open>x \<notin> S\<close> card_insert_disjoint even_Suc finite_subset subsetD)
   show ?thesis

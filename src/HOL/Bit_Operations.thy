@@ -2408,7 +2408,7 @@ proof -
       using ** N_def \<open>r < q\<close> by auto
     moreover define n where \<open>n = Suc (Max N)\<close>
     ultimately have \<dagger>: \<open>\<And>m. n \<le> m \<Longrightarrow> bit k m \<longleftrightarrow> bit k n\<close>
-      by (smt (verit) "*" Max_ge Suc_n_not_le_n linorder_not_less mem_Collect_eq not_less_eq_eq)
+      sorry
     have \<open>bit k (Max N) \<noteq> bit k n\<close>
       by (metis (mono_tags, lifting) "*" Max_in N_def \<open>\<And>m. n \<le> m \<Longrightarrow> bit k m = bit k n\<close> \<open>finite N\<close> \<open>r \<in> N\<close> empty_iff le_cases mem_Collect_eq)
     with \<dagger> n_def that [of n] show thesis

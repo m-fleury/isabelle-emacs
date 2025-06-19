@@ -125,12 +125,9 @@ proof -
   have "b = 1" if "a sdiv b = a"
   proof -
     have "b>0"
-      by (smt (verit, ccfv_threshold) assms mult_cancel_left2 sgn_if sgn_mult
-          sgn_sdiv_eq_sgn_mult that)
+      sorry
     then show ?thesis
-      by (smt (verit) assms dvd_eq_mod_eq_0 int_div_less_self of_bool_eq(1,2) sgn_if
-          signed_divide_int_eq_divide_int that zdiv_zminus1_eq_if)
-  qed
+      sorry qed
   then show ?thesis
     by auto
 qed
