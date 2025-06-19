@@ -850,6 +850,31 @@ lemma alethe_nat_embedding2:
  "int (nat (Num.numeral_class.numeral n)) = numeral n"
   by simp
 
+lemma alethe_nat_embedding_all:
+ "(\<forall>(x::nat). P x) =  (\<forall>(x::int). x \<ge> 0 \<longrightarrow> P (nat x))"
+  using all_nat by simp_all
+
+lemma alethe_nat_embedding_ex:
+ "(\<exists>(x::nat). P x) =  (\<exists>(x::int). x \<ge> 0 \<and> P (nat x))" 
+  using ex_nat by simp
+
+
+lemma alethe_nat_embedding_all2:
+ "(\<forall>(x::int) \<ge> 0. int (nat x) = x)"
+  using all_nat by simp
+
+lemma alethe_nat_embedding_all3:
+ "P (int (nat x)) \<Longrightarrow> x \<ge> 0 \<Longrightarrow> P x"
+  using all_nat by simp
+
+lemma H1:
+ "int (nat 0) = 0" 
+ "int (nat 1) = 1" 
+  by simp_all
+
+lemma H_nat_embedding: \<open>x \<ge> 0 \<Longrightarrow> int (nat x) = x\<close>
+  by simp
+
 
 named_theorems cvc5_normalized_input \<open>Theorems required to replay
 our more complicated translation\<close>
@@ -872,27 +897,31 @@ ML_file \<open>Tools/SMT/smtlib.ML\<close>
 ML_file \<open>Tools/SMT/smtlib_interface.ML\<close>
 ML_file \<open>Tools/SMT/smtlib_proof.ML\<close>
 ML_file \<open>Tools/SMT/smtlib_isar.ML\<close>
+ML_file \<open>Tools/SMT/smt_solver.ML\<close>
+
+(*z3 parsing*)
 ML_file \<open>Tools/SMT/z3/z3_proof.ML\<close>
 ML_file \<open>Tools/SMT/z3/z3_isar.ML\<close>
-ML_file \<open>Tools/SMT/smt_solver.ML\<close>
-ML_file \<open>Tools/SMT/alethe/cvc_interface.ML\<close>
+(*veriT and cvc5 parsing*)
 ML_file \<open>Tools/SMT/alethe/alethe_node.ML\<close>
-
 ML_file \<open>Tools/SMT/alethe/alethe_proof.ML\<close>
-(*ML_file \<open>Tools/SMT/alethe_proof.ML\<close>*)
 ML_file \<open>Tools/SMT/alethe/alethe_smt_problem.ML\<close>
-
 ML_file \<open>Tools/SMT/alethe/alethe_isar.ML\<close>
 ML_file \<open>Tools/SMT/alethe/alethe_proof_parse.ML\<close>
+ML_file \<open>Tools/SMT/alethe/cvc_interface.ML\<close>
 ML_file \<open>Tools/SMT/alethe/cvc_proof_parse.ML\<close>
+
 ML_file \<open>Tools/SMT/conj_disj_perm.ML\<close>
 ML_file \<open>Tools/SMT/smt_replay_methods.ML\<close>
 ML_file \<open>Tools/SMT/smt_replay.ML\<close>
 ML_file \<open>Tools/SMT/smt_replay_arith.ML\<close>
+
+(*z3 replay*)
 ML_file \<open>Tools/SMT/z3/z3_interface.ML\<close>
 ML_file \<open>Tools/SMT/z3/z3_replay_rules.ML\<close>
 ML_file \<open>Tools/SMT/z3/z3_replay_methods.ML\<close>
 ML_file \<open>Tools/SMT/z3/z3_replay.ML\<close>
+(*veriT and cvc5 replay*)
 ML_file \<open>Tools/SMT/alethe/alethe_replay_methods.ML\<close>
 ML_file \<open>Tools/SMT/alethe/cvc5_rare.ML\<close>
 ML_file \<open>Tools/SMT/alethe/cvc5_replay_methods.ML\<close>
@@ -900,12 +929,15 @@ ML_file \<open>Tools/SMT/alethe/verit_replay_methods.ML\<close>
 ML_file \<open>Tools/SMT/alethe/verit_strategies.ML\<close>
 ML_file \<open>Tools/SMT/alethe/alethe_replay.ML\<close>
 ML_file \<open>Tools/SMT/alethe/verit_replay.ML\<close>
-(*ML_file \<open>Tools/SMT/verit_replay.ML\<close>*)
 ML_file \<open>Tools/SMT/alethe/cvc5_replay.ML\<close>
-(*ML_file \<open>Tools/SMT/cvc5_replay.ML\<close>*)
+
+
 ML_file \<open>Tools/SMT/smt_systems.ML\<close>
 
-
+ML \<open>
+val _ = @{print}
+( (SMT_Builtin.print_builtins @{context}))
+\<close>
 subsection \<open>Configuration\<close>
 
 text \<open>
