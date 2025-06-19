@@ -449,7 +449,7 @@ proof-
     using assms
   apply (simp only: word_uint_eq_iff)
   apply (simp add: uint_word_rotl_eq)
-  apply (simp add: concat_bit_eq uint_take_bit_eq)
+  apply (simp add: concat_bit_eq unsigned_take_bit_eq)
   apply (subst uint_word_cat[of "(smt_extract
       (nat (int (size x) - ((1::int) + SMT.z3mod amount (int (size x)))))
       0 x::'b::len word)" "(smt_extract (nat (int (size x) - (1::int)))
@@ -485,7 +485,7 @@ lemma [rewrite_bv_rotate_left_eliminate_2]:
   unfolding SMT.z3mod_def
   apply (simp only: word_uint_eq_iff)
   apply (simp add: uint_word_rotl_eq)
-  apply (simp add: uint_take_bit_eq)
+  apply (simp add: unsigned_take_bit_eq)
   unfolding concat_bit_def
   by (simp add: bintr_uint nat_mod_as_int size_word.rep_eq)
 
@@ -538,7 +538,7 @@ lemma [rewrite_bv_rotate_right_eliminate_2]:
   unfolding SMT.z3mod_def
   apply (simp only: word_uint_eq_iff)
   apply (simp add: uint_word_rotr_eq)
-  apply (simp add: uint_take_bit_eq)
+  apply (simp add: unsigned_take_bit_eq)
   unfolding concat_bit_def
   by (simp add: bintr_uint nat_mod_as_int size_word.rep_eq)
 
@@ -770,13 +770,6 @@ lemma [rewrite_bv_xor_duplicate]:
   shows "semiring_bit_operations_class.xor x x = Word.Word (0::int)"
   by auto
 
-named_theorems rewrite_bv_xor_ones \<open>automatically_generated\<close>
-
-lemma [rewrite_bv_xor_ones]:
-  fixes x::"'a ::len word" and y::"'a ::len word"
-  shows "y = not (Word.Word 0) \<longrightarrow>
-   semiring_bit_operations_class.xor x y = not x"
-  by auto
 
 named_theorems rewrite_bv_xor_zero \<open>automatically_generated\<close>
 
