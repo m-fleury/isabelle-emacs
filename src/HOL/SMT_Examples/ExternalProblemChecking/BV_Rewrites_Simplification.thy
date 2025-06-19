@@ -3,9 +3,18 @@
     Author:     Mathias Fleury, University of Freiburg
 
 
-    rules in total
-    rules with test
+    rules in total     70
+    rules with test    14
     without test
+
+TODO: once Carcara works with bitvectors... 
+bv-ult-self
+bv-lt-self
+bv-ule-self
+bv-not-ult
+bv-udiv-one
+
+
 *)
 
 theory BV_Rewrites_Simplification                                 
@@ -186,18 +195,18 @@ check_smt ("cvc5_proof")
 
 (*bv-ult-self*)
 check_smt ("cvc5_proof")
-  "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/BV_Rewrites_Simplification/bv-ult-self.smt2"
-  "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/BV_Rewrites_Simplification/bv-ult-self.alethe"
+  "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/BV_Rewrites_Simplification/bv-ult-self-TODO.smt2"
+  "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/BV_Rewrites_Simplification/bv-ult-self-TODO.alethe"
 
 (*bv-lt-self*)
 check_smt ("cvc5_proof")
-  "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/BV_Rewrites_Simplification/bv-lt-self.smt2"
-  "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/BV_Rewrites_Simplification/bv-lt-self.alethe"
+  "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/BV_Rewrites_Simplification/bv-lt-self-TODO.smt2"
+  "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/BV_Rewrites_Simplification/bv-lt-self-TODO.alethe"
 
 (*bv-ule-self*)
 check_smt ("cvc5_proof")
-  "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/BV_Rewrites_Simplification/bv-ule-self.smt2"
-  "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/BV_Rewrites_Simplification/bv-ule-self.alethe"
+  "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/BV_Rewrites_Simplification/bv-ule-self-TODO.smt2"
+  "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/BV_Rewrites_Simplification/bv-ule-self-TODO.alethe"
 
 (*bv-ule-zero*)
 check_smt ("cvc5_proof")
@@ -221,8 +230,8 @@ check_smt ("cvc5_proof")
 
 (*bv-not-ult*)
 check_smt ("cvc5_proof")
-  "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/BV_Rewrites_Simplification/bv-not-ult.smt2"
-  "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/BV_Rewrites_Simplification/bv-not-ult.alethe"
+  "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/BV_Rewrites_Simplification/bv-not-ult-TODO.smt2"
+  "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/BV_Rewrites_Simplification/bv-not-ult-TODO.alethe"
 
 (*bv-mult-pow2-1*)
 check_smt ("cvc5_proof")
@@ -256,8 +265,8 @@ check_smt ("cvc5_proof")
 
 (*bv-udiv-one*)
 check_smt ("cvc5_proof")
-  "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/BV_Rewrites_Simplification/bv-udiv-one.smt2"
-  "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/BV_Rewrites_Simplification/bv-udiv-one.alethe"
+  "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/BV_Rewrites_Simplification/bv-udiv-one-TODO.smt2"
+  "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/BV_Rewrites_Simplification/bv-udiv-one-TODO.alethe"
 
 (*bv-urem-pow2-not-one*)
 check_smt ("cvc5_proof")
