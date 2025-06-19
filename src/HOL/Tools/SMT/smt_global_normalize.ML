@@ -256,6 +256,7 @@ let
       THEN HEADGOAL (assume_tac context)  THEN  print_tac context "hiya2" )
    val _ = debug_msg ctxt1 high (fn () => \<^print> ("Showed goal from obtain thm:  ",goal_thm))
  
+
    val subst = Termtab.update (f,(x |> Thm.term_of,goal_thm)) subst
 in 
   (ctxt1,subst,x |> Thm.term_of,goal_thm,B)
@@ -358,10 +359,10 @@ fun
      val _ = debug_msg ctxt middle (fn () => \<^print> ("new term 1",newt))
 
                  (*Make condition for concrete term and add to gamma*)
-                 val cond = mkLeTerm newt
+                 val cond = (if retNat then [mkLeTerm newt] else [])
      val _ = debug_msg ctxt middle (fn () => \<^print> ("o_defs",odefs))
 
-              in (ctxt4,subst,odefs @ [B] ,gamma @ [cond],newt) end
+              in (ctxt4,subst,odefs @ [B] ,gamma @ cond,newt) end
             | (SOME (b,c)) =>
               let
                  fun delete_casts (@{term nat} $ x) = x |
@@ -373,31 +374,56 @@ fun
                  val new_args = map delete_casts (new_args |> @{print}) |> @{print}
                  val newt = list_comb (b,new_args)
      val _ = debug_msg ctxt middle (fn () => \<^print> ("new term 2",newt))
+                 val cond = (if retNat then [mkLeTerm newt] else [])
 
-                 val cond = mkLeTerm newt
-              in (ctxt2,subst,odefs,gamma @ [cond],newt) end
+              in (ctxt2,subst,odefs,gamma @ cond,newt) end
           ) end
 end 
 end
 | transform ctxt subst odefs gamma t = (ctxt,subst,odefs,gamma,t) 
 
 
-fun preproc bounds _ (t as Const("HOL.All",T)) = Const("HOL.All",intify_type T) |
-  preproc bounds _ (t as Const("HOL.Exists",T)) = Const("HOL.Exists",intify_type T) | 
-  preproc bounds _ (t as (@{term "int"} $ Bound i)) = (if List.exists (fn x => x = i) bounds then Bound i else t) |
-  preproc bounds _ (t as Bound i) = (if List.exists (fn x => x = i) bounds then @{term "nat"} $ t else t) |
+fun preproc bounds i (t as Const("HOL.All",T)) = (Const("HOL.All",intify_type T)) |
+  preproc bounds i (t as Const("HOL.Exists",T)) = ( Const("HOL.Exists",intify_type T)) | 
+  preproc bounds i (t as (@{term "int"} $ Bound k))
+     = (@{print}("found ",k);(if List.exists (fn x => (i-x-1) = k) bounds then Bound k else t)) |
+  preproc bounds i (t as Bound k)
+     = (@{print}("found ",(k,i,bounds));(if List.exists (fn x => (i-x-1) = k) bounds then @{term "nat"} $ t else t)) |
   preproc bounds i (t as Abs(var_name,T,t1)) =
   let
+    val _ = @{print}("t ",t)
+
+    val _ = @{print}("Found ",var_name)
+    val _ = @{print}(" i",i)
+
     val is_nat = (T = @{typ "nat"})
-    val T' = (if is_nat then @{typ "int"} else T)
     val bounds' = (if is_nat then bounds @ [i] else bounds)
-    val t1' = (if is_nat then  HOLogic.mk_imp ((mkLeTerm (Bound i)), preproc bounds' (i+1) t1) else preproc bounds (i+1) t1)
+    val (res)  = preproc bounds' (i+1) t1
+    val T' = (if is_nat then @{typ "int"} else T)
+    val t1' = (if is_nat then  HOLogic.mk_imp ((mkLeTerm (Bound 0)),res ) else res)
   in
-     Abs(var_name,T',t1') 
+     (Abs(var_name,T',t1'))
   end |
   preproc bounds i (t as t1 $ t2) = preproc bounds i t1 $ preproc bounds i t2 |
   preproc bounds i t = t
 
+fun simplify_tac ctxt thms =
+  ctxt
+  |> empty_simpset
+  |> put_simpset HOL_basic_ss
+  |> (fn ctxt => ctxt addsimps @{thms  simp_thms } addsimps thms)
+  |> Simplifier.add_cong @{thm all_cong} 
+  |> Simplifier.add_cong (hd thms)
+  |> Clasimp.auto_tac
+
+fun auto_tac ctxt cong_thm thms =
+  ctxt
+  |> empty_simpset
+  |> put_simpset HOL_basic_ss
+  |> (fn ctxt => ctxt addsimps @{thms  simp_thms } addsimps thms)
+  |> Simplifier.add_cong @{thm all_cong} 
+  |> Simplifier.add_cong cong_thm
+  |> Clasimp.auto_tac
 
 
 fun global_normalize ctxt ithms =
@@ -405,18 +431,23 @@ let
   val _ = debug_msg ctxt middle (fn () => \<^print> ("ithms before conversion ",ithms))
 
   val ithms33 = map (fn (a,b) => (a,preproc [] 0 (Thm.prop_of b))) ithms
+  val _ = debug_msg ctxt middle (fn () => \<^print> ("term to show ",ithms33))
 
   val ithms2 = map (fn (a,it) => (a, Goal.prove ctxt [] [] it (fn {context: Proof.context, ...}  => 
-      HEADGOAL (Method.insert_tac ctxt (map snd ithms) )
+      print_tac context "being preprocessing" 
+      THEN HEADGOAL (Method.insert_tac ctxt (map snd ithms) )
       THEN (unfold_tac context @{thms alethe_nat_embedding_all2 int_eq_iff})
-      THEN  (Clasimp.auto_tac ctxt) THEN  print_tac context "preprocessing" ))) ithms33
+      THEN  (Clasimp.auto_tac ctxt) THEN  print_tac context "end preprocessing" ))) ithms33
 
   val _ = debug_msg ctxt middle (fn () => \<^print> ("ithms after quantifier preprocessing ",ithms2))
 
   fun iterate_thms [x] (ctxt',subst,odefs,gamma,terms) = 
       let
         val (ctxt',subst,odefs,gamma,new_t) = (transform ctxt' subst odefs gamma (Thm.prop_of (snd x)))
-      in (ctxt',subst,odefs,gamma,terms @ [(fst x,new_t)]) end |
+        fun mk_conj [x] = x |
+          mk_conj (x::xs) = HOLogic.mk_conj (x,(mk_conj xs))
+       val new_t' = (if gamma = [] then new_t else  HOLogic.mk_imp (mk_conj gamma, new_t))
+      in (ctxt',subst,odefs,gamma,terms @ [(fst x,new_t')]) end |
       iterate_thms (x::xs) (ctxt',subst,odefs,gamma,terms) =
       let
         val (ctxt',subst,odefs,gamma,new_t) = (transform ctxt' subst odefs gamma (Thm.prop_of (snd x)))
@@ -428,30 +459,29 @@ let
  (*val (B_alpha,B_beta) = split ctxt' (hd odefs) |> @{print}*)
 
 
-fun simplify_tac ctxt thms =
-  ctxt
-  |> empty_simpset
-  |> put_simpset HOL_basic_ss
-  |> (fn ctxt => ctxt addsimps @{thms simp_thms} addsimps thms)
-  |> Simplifier.add_cong @{thm all_cong}
-  |> Simplifier.asm_full_simp_tac
+
 
   val ithms3 = map_index (fn (i,(a,it)) => (a, Goal.prove ctxt' [] [] it (fn {context: Proof.context, ...}  => 
- ( print_tac context "processing" )THEN
-      HEADGOAL (Method.insert_tac context [(snd (nth ithms2 i))] )
+ ( print_tac context "processing" )
+ THEN HEADGOAL (Method.insert_tac context [(snd (nth ithms2 i))] )
+ THEN print_tac context "processing1a"
+
+ THEN  (unfold_tac context (odefs))
+ THEN print_tac context "processing1b"
+ THEN 
+  TRY(    HEADGOAL (Method.insert_tac context odefs )
  THEN print_tac context "processing2"
- THEN  (unfold_tac context odefs)
- THEN print_tac context "processing3a"
- THEN     HEADGOAL (Method.insert_tac context odefs )
+ (*THEN  (unfold_tac context (@{thms atomize_imp}))
+ THEN print_tac context "processing3a"*)
  THEN print_tac context "processing3b"
 
- THEN HEADGOAL (simplify_tac context odefs)
+ THEN  (simplify_tac context (@{thms all_conj_distrib imp_conv_disj H1 de_Morgan_conj not_all H_nat_embedding alethe_nat_embedding2}))
  THEN print_tac context "processing4"
+ THEN TRY (auto_tac context (@{thm H_nat_embedding}) @{thms H_nat_embedding triv_forall_equality nat_le_0 int_nat_eq})
+ THEN print_tac context "processing5"
+ THEN TRY (HEADGOAL (Skip_Proof.cheat_tac context))
 
- THEN     HEADGOAL (Method.insert_tac context odefs )
-
-
-        THEN  print_tac context "processing end" ))) new_ithms_as_terms
+        THEN  print_tac context "processing end" )))) new_ithms_as_terms
 
 
 
