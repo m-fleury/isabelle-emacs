@@ -178,10 +178,19 @@ fun dsl_tac_initialize rewrite_name args ctxt t _ =
             if is_list_arg a
             then
               let
-                val _ = debug_msg ctxt high (fn () => @{print} ("Detected List Argument", a));
-                val t' = dest_Type t |> snd |> hd
-                val new_a = Const (\<^const_name>\<open>ListVar\<close>, Type(\<^type_name>\<open>List.list\<close>,[t']) --> Type(\<^type_name>\<open>cvc_ListVar\<close>, [t']))
-                        $ Const (\<^const_name>\<open>List.Nil\<close>, Type(\<^type_name>\<open>List.list\<close>,[t']))
+              val new_a =
+              let
+                val t5 = dest_Type t |> @{print} |> snd |> @{print}
+              in 
+                case try hd t5 of
+                  NONE => Const (\<^const_name>\<open>ListVar\<close>, Type(\<^type_name>\<open>List.list\<close>,[dummyT]) --> Type(\<^type_name>\<open>cvc_ListVar\<close>, [dummyT]))
+                             $ Const (\<^const_name>\<open>List.Nil\<close>, Type(\<^type_name>\<open>List.list\<close>,[dummyT]))|
+                  SOME (t') =>  Const (\<^const_name>\<open>ListVar\<close>, Type(\<^type_name>\<open>List.list\<close>,[t']) --> Type(\<^type_name>\<open>cvc_ListVar\<close>, [t']))
+                             $ Const (\<^const_name>\<open>List.Nil\<close>, Type(\<^type_name>\<open>List.list\<close>,[t']))
+              end
+              val _ = debug_msg ctxt high (fn () => @{print} ("Detected List Argument", new_a));
+
+                    
               in
                 single ((SOME o Thm.cterm_of ctxt) new_a)
               end
@@ -213,7 +222,8 @@ fun dsl_tac_initialize rewrite_name args ctxt t _ =
       
         in
           (SMT_Replay_Methods.prove ctxt t (fn _ =>
-          TRY' (EqSubst.eqsubst_tac ctxt [0] [inst_lemma_without_true])
+          TRY' ((EqSubst.eqsubst_tac ctxt [0] [inst_lemma_without_true])
+            ORELSE' (@{print}("t",t);@{print}("inst_lemma_without_true",inst_lemma_without_true);K (print_tac ctxt "lemma could not be used")))
           THEN_ALL_NEW (
             (*K (print_tac ctxt "debug0") THEN'*)
             SOLVED' (resolve_tac ctxt [@{thm refl}])
@@ -222,6 +232,8 @@ fun dsl_tac_initialize rewrite_name args ctxt t _ =
               (*THEN' K (print_tac ctxt "debug3")*)
               THEN' TRY' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems cvc_evaluate}
                 @ Named_Theorems.get ctxt @{named_theorems arith_mult_poly_norm_cvc5}))
+              THEN' K (print_tac ctxt "debug3")
+
               THEN' TRY' (Code_Simp.dynamic_tac ctxt) (*slowest method, so at the end*)))
            )
       end)
