@@ -28,7 +28,7 @@ lemma [cvc_ListOp_neutral]:
   and cvc_ListOp_neutral_plus_int: "cvc_isListOp (ListOp (+) (0::int))"
   and cvc_ListOp_neutral_mult: "cvc_isListOp (ListOp (*) (1::int))"
   and cvc_ListOp_neutral_append: "cvc_isListOp (ListOp (@) [])"
-  by (simp_all add: )
+  by (simp_all )
 
 
 (*Since the SMT-LIB term parser in Isabelle parses all operators as right-associative we assume
