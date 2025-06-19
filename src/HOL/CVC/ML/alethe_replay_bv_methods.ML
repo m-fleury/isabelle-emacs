@@ -30,6 +30,7 @@ sig
   val bv_bitblast_step_bvult: Alethe_Replay_Methods.alethe_tac_step_args
   val bv_bitblast_step_bvule: Alethe_Replay_Methods.alethe_tac_step_args
   val bv_aci_simp: Alethe_Replay_Methods.alethe_tac_step_args
+  val bv_bitwise_slicing: Alethe_Replay_Methods.alethe_tac_step_args
 end;
 
 
@@ -599,6 +600,40 @@ SMT_Replay_Methods.prove ctxt t (fn _ =>(
             (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems bv_aci_simp}))
 )))
 
+(*
+bvand x c = concat(
+             (bvand (smt_extract i0 j0 x) (smt_extract i0 j0 c))
+             (concat
+               (bvand (smt_extract i1 j1) (smt_extract i1 j1 c))
+               ...
+             )
+            )
+I start from the innermost concat and merge its two bvand children together. I'd rather do it more
+fine-grained but alas no time
+*)
+fun REPEAT' tac = fn i => REPEAT (tac i)
+fun REPEAT_DETERM_N' times tac = fn i => REPEAT_DETERM_N times (tac i)
+fun bv_bitwise_slicing ctxt _  _ t = 
+SMT_Replay_Methods.prove ctxt t (fn _ =>(
+     K(print_tac ctxt "here") THEN'
+      REPEAT'
+      ((EqSubst.eqsubst_tac ctxt [0] @{thms xor_word_cat_smt_extract_step})
+     THEN' K(print_tac ctxt "after applying lemma") 
+     THEN' (REPEAT_DETERM_N' 11 ( (simplify_tac ctxt  @{thms arith_simps nat_mono nat_0 nat_1})
+        THEN' (Code_Simp.dynamic_tac ctxt)
+        THEN' K(print_tac ctxt "resolving assumptions") )))
+    THEN' K(print_tac ctxt "before final step") 
+    THEN' (EqSubst.eqsubst_tac ctxt [0] @{thms bitwise_slicing_smt_extract_identity})
+    THEN' (Code_Simp.dynamic_tac ctxt)
+    THEN' K(print_tac ctxt "afterfinal step") 
+    THEN' (EqSubst.eqsubst_tac ctxt [0] @{thms bitwise_slicing_smt_extract_identity})
+    THEN' (Code_Simp.dynamic_tac ctxt)
+    THEN' K(print_tac ctxt "afterfinal step")
+    THEN' (match_tac ctxt @{thms semiring_bit_operations_class.xor.commute})
+    THEN' K(print_tac ctxt "afterfinal step")
+
+))
+(* smt_extract (nat (7::int)) (nat 0) (27::8 word) XOR smt_extract (nat (7::int)) (nat 0) (lift_shiftla v0__ 1)*)
 
 
 val bv_rules = [
@@ -618,7 +653,8 @@ val bv_rules = [
   ("bv_bitblast_step_bvult", bv_bitblast_step_bvult),
   ("bv_bitblast_step_bvule", bv_bitblast_step_bvule),
   ("bv_poly_norm", bv_poly_norm),
-  ("bv_aci_simp",bv_aci_simp)]
+  ("bv_aci_simp",bv_aci_simp),
+  ("bv_bitwise_slicing",bv_bitwise_slicing)]
 
 
 val _ = Theory.setup (Context.theory_map (
