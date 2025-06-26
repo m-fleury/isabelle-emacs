@@ -385,9 +385,9 @@ lemma [rewrite_arith_leq_ite_lift]:
  \<Longrightarrow> (((if C then t else s) < r) = (if C then (t < r) else (s < r)))"
   by auto
 
-named_theorems or_not_refl \<open>\<close>
+named_theorems rewrite_or_not_refl \<open>\<close>
 
-lemma [or_not_refl]:
+lemma [rewrite_or_not_refl]:
   fixes t::'a and F'::bool
   shows "NO_MATCH cvc_a (undefined t F') \<Longrightarrow>  
    (t \<noteq> t) \<or> F' = F'"
