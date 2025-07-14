@@ -3,6 +3,8 @@
     Author:     Mathias Fleury, University Freiburg
 
    
+   NOTE: This would probably be better with conversions but I don't know well enough how they work.
+   TODO: Make recursions pretty so that the functions can be folded.
 *)
 
 signature SMT_GLOBAL_NORMALIZE =
@@ -42,6 +44,16 @@ fun split_by_thm ctxt thm B =
     | (SOME x) => [x]
 fun split ctxt B = (split_by_thm ctxt @{thm conjunct1} B, split_by_thm ctxt @{thm conjunct2} B)
 
+
+(*
+Currently, this first shows
+ \<exists>lift_foo. \<forall>lb0. foo lb0 = nat (lift_foo (int lb0)) \<and> 0 \<le> lift_foo (int lb0) 
+and then shows
+  \<And>lift_foo. \<forall>lb0. foo lb0 = nat (lift_foo (int lb0)) \<and> 0 \<le> lift_foo (int lb0)
+
+TODO: This should be done in one step instead
+
+*)
 fun obtain_new_variable ctxt new_var_cond lambda_term =
 let
   val _ = debug_msg ctxt low (fn () => \<^print> ("Condition for new variable ",new_var_cond))
@@ -54,18 +66,15 @@ let
       (HEADGOAL (resolve_tac ctxt' [@{thm alethe_nat_embedding}])
       ORELSE 
         (HEADGOAL (resolve_tac ctxt' [exI_inst])
-        THEN (print_tac ctxt' "sdf")
         THEN (unfold_tac ctxt' [@{thm nat_int}])
         THEN (unfold_tac ctxt' [@{thm of_nat_0_le_iff},@{thm simp_thms(6)},@{thm simp_thms(22)},@{thm simp_thms(35)}])
         )
       )
-      THEN (* HEADGOAL (Skip_Proof.cheat_tac ctxt') THEN *) (print_tac ctxt' "should be solved by now"))
-   val _ = @{print}("ex",ex |> Thm.prop_of)
+      THEN (print_tac ctxt' "should be solved by now"))
    val _ = debug_msg ctxt low (fn () => \<^print> ("ex",ex))
-   val _ = @{print}("test",new_var_cond |> HOLogic.mk_Trueprop|> Thm.cterm_of ctxt |> Thm.assume )
 
-   fun tactic_to_obtain ctxt = (print_tac ctxt "hi0") THEN  HEADGOAL (eresolve_tac ctxt @{thms exE})
- THEN (print_tac ctxt "hi") (*THEN HEADGOAL (Skip_Proof.cheat_tac ctxt)*)
+   fun tactic_to_obtain ctxt = (print_tac ctxt "extract new variable") THEN  HEADGOAL (eresolve_tac ctxt @{thms exE})
+ THEN (print_tac ctxt "should be solved by now") (*THEN HEADGOAL (Skip_Proof.cheat_tac ctxt)*)
    val (res, ctxt1) =
        Obtain.result (tactic_to_obtain) [ex] ctxt
 
@@ -95,10 +104,28 @@ let
   val (ctxt1,c_x,B) = obtain_new_variable ctxt x_cond new_t
   val x = Thm.term_of c_x  
   val subst = Termtab.update (t,(x,B)) subst
+  val new_t_ge_0_2 = mkLeTerm x
 
-in (ctxt1,subst,new_t_ge_0,x,B) end
+in (ctxt1,subst,new_t_ge_0_2,x,B) end
 
 
+fun inst_function_thm ctxt ts ret_nat goal_thm = 
+let
+   val _ = debug_msg ctxt low (fn () => \<^print> ("goal_thm ",goal_thm))
+   val _ = debug_msg ctxt low (fn () => \<^print> ("ts ",ts))
+  val ts' = (map (try (Thm.cterm_of ctxt)) ts)
+  val B' = Drule.infer_instantiate' ctxt ts' goal_thm
+  val _ = debug_msg ctxt middle (fn () => \<^print> ("Instantiated already existing theorem for current term ",B'))
+  (*Only need to split if return type is nat*)
+  val (B_alpha,B_beta) = if ret_nat then split ctxt B' else ([B'],[])
+in
+  B'
+end
+
+  
+fun args_with_casts [] [] = [] |
+  args_with_casts (t::ts) (a::new_args) = (if fastype_of t = @{typ nat} andalso fastype_of a = @{typ int} then @{term "nat"} $ a else a) :: args_with_casts ts new_args
+     
 (*
   For each function (f::T) that either returns a natural number or has an argument of type nat
   we want to add (f'::intify T) and one of the following theorems:
@@ -249,46 +276,60 @@ let
      where ?xi' = nat ?xi if ?xi is a nat otherwise ?xi *)
   val goal = mk_forall (HOLogic.mk_Trueprop o (mk_f_def_ground retNat f (Thm.term_of x))) mk_prop_all Tts 0 [] 
   val goal_thm = Goal.prove ctxt1 [] [] goal (fn {context: Proof.context, ...}  => 
-      print_tac context "hiya" 
+      print_tac context "Obtain new function variable" 
       THEN (unfold_tac context [@{thm atomize_all}])
-      THEN  print_tac context "hiya2a"
-      THEN HEADGOAL (   Method.insert_tac context [B])  THEN  print_tac context "hiya2b"
-      THEN HEADGOAL (assume_tac context)  THEN  print_tac context "hiya2" )
+      THEN HEADGOAL (Method.insert_tac context [B])
+      THEN HEADGOAL (assume_tac context)  THEN  print_tac context "Should be solved" )
    val _ = debug_msg ctxt1 high (fn () => \<^print> ("Showed goal from obtain thm:  ",goal_thm))
  
+      val args_with_casts = args_with_casts ts new_args
+              val _ = debug_msg ctxt middle (fn () => \<^print> ("args_with_casts",args_with_casts))
+
+   val B_alpha = inst_function_thm ctxt args_with_casts retNat goal_thm 
+    val _ = debug_msg ctxt middle (fn () => \<^print> ("(B_alpha, B_beta)",B_alpha))
 
    val subst = Termtab.update (f,(x |> Thm.term_of,goal_thm)) subst
 in 
-  (ctxt1,subst,x |> Thm.term_of,goal_thm,B)
+  (ctxt1,subst,x |> Thm.term_of,B,B_alpha)
 end
 end
 
 
+
+fun mk_conj [x] = x |
+    mk_conj (x::xs) = HOLogic.mk_conj (x,(mk_conj xs))
+fun delete_casts (@{term nat} $ x) = x |
+    delete_casts x = x
+fun notNum x = x |> strip_comb |> fst |> (fn t => t <> @{term "Num.numeral_class.numeral"})
+fun add_cast [] [] = []|
+    add_cast (x::xs) (T::Ts) = (if T = @{typ nat} andalso fastype_of x = @{typ "int"} andalso notNum x then nat_cast $ x else x) :: add_cast xs Ts
+     
 (*
 subst: mapping von term f zu f' und f' s definition
 odefs: collect obtain theoreme (koennten auch aus subst ausgelesen werden)
 gamma: collect local assumptions
 *)
 fun
-  transform ctxt (subst:(term*thm) Termtab.table) odefs gamma (t as Free (x,@{typ nat})) =
+  transform ctxt (subst:(term*thm) Termtab.table) odefs odefs2 gamma (t as Free (x,@{typ nat})) =
     (case Termtab.lookup subst t of
       NONE =>
       let
         val _ = debug_msg ctxt high (fn () => \<^print> ("current term is free variable t that has not been encountered yet ",t))
         val (ctxt1,subst,cond,new_t,B) = mk_new_variable ctxt subst x t
-      in (ctxt1,subst,odefs @ [B], gamma @ [cond],new_t) end
-    | (SOME (b,_)) => (ctxt,subst,odefs,gamma,b) 
+      in (ctxt1,subst,odefs @ [B], odefs2, gamma @ [cond],new_t) end
+    | (SOME (b,_)) => (ctxt,subst,odefs,odefs2,gamma,b) 
    )
-| transform ctxt subst odefs (gamma:term list) (t as Abs (a,b,c)) = 
+| transform ctxt subst odefs odefs2 (gamma:term list) (t as Abs (a,b,c)) = 
   let
-    val (ctxt',subst',odefs',gamma',c') = transform ctxt subst odefs gamma c
-    fun mk_conj [x] = x |
-        mk_conj (x::xs) = HOLogic.mk_conj (x,(mk_conj xs))
-    val c'' = (if gamma = [] then c' else  HOLogic.mk_imp (mk_conj gamma, c'))
-  in (ctxt',subst',odefs',[],Abs(a,b,c'')) end
-| transform ctxt subst odefs gamma (t as _ $ _) = 
+    val (ctxt',subst',odefs',odefs2',gamma',c') = transform ctxt subst odefs odefs2 gamma c
+    val _ = @{print}("gamma'",gamma')
+    val _ = @{print}("gamma",gamma)
+
+    val c'' = (if gamma' = [] then c' else  HOLogic.mk_imp (mk_conj gamma', c'))
+  in (ctxt',subst',odefs',odefs2',[],Abs(a,b,c'')) end
+| transform ctxt subst odefs odefs2 gamma (t as _ $ _) = 
     let 
-     val _ = debug_msg ctxt middle (fn () => \<^print> ("odefs ",odefs))
+              val _ = debug_msg ctxt middle (fn () => \<^print> ("current term",t))
 
        val (f,ts) = strip_comb t
        val T = fastype_of f
@@ -302,103 +343,97 @@ fun
       (*int constants just added as an optimization*)
       if n = "Num.numeral_class.numeral" 
       then 
-        (ctxt,subst,odefs,gamma,if T = @{typ "nat"} then list_comb (Const (n, @{typ "num \<Rightarrow> int"}), ts) else t)
+        (ctxt,subst,odefs,odefs2,gamma,if T = @{typ "nat"} then list_comb (Const (n, @{typ "num \<Rightarrow> int"}), ts) else t)
       else
       let
         (*transform arguments*)
-        fun transform_args ctxt2 cum_subst cum_odefs cum_gamma new_t [] = (ctxt2,cum_subst,cum_odefs,cum_gamma,new_t) | 
-          transform_args ctxt2 cum_subst cum_odefs cum_gamma new_t (u::us) =
+        fun transform_args ctxt2 cum_subst cum_odefs cum_odefs2 cum_gamma new_t [] = (ctxt2,cum_subst,cum_odefs,cum_odefs2,cum_gamma,new_t) | 
+          transform_args ctxt2 cum_subst cum_odefs cum_odefs2 cum_gamma new_t (u::us) =
           let  
-            val (ctxt3,sigma_o,odefs_o,gamma_o,u_o) = transform ctxt2 cum_subst cum_odefs cum_gamma u
+            val (ctxt3,sigma_o,odefs_o,odefs2_o,gamma_o,u_o) = transform ctxt2 cum_subst cum_odefs cum_odefs2 cum_gamma u
           in
-            transform_args ctxt3 sigma_o odefs_o gamma_o (u_o :: new_t) us
+            transform_args ctxt3 sigma_o odefs_o odefs2_o gamma_o (u_o :: new_t) us
           end
-        val (ctxt2,subst,odefs,gamma,new_args) = transform_args ctxt subst odefs gamma [] (rev ts)
-     val _ = debug_msg ctxt middle (fn () => \<^print> ("transformed arguments of f ",f))
-     fun delete_casts (@{term nat} $ x) = x |
-                     delete_casts x = x
-
+        val (ctxt2,subst,odefs,odefs2,gamma,new_args) = transform_args ctxt subst odefs odefs2 gamma [] (rev ts)
+        (*val _ = debug_msg ctxt middle (fn () => \<^print> ("transformed arguments of f ",f))*)
+    
         (*Calculate new type*)
         val T' = intify_type T
       in
         (*Neither return type nor argument type is natural number*)
         if T = T'
-        then (ctxt2,subst,odefs,gamma,list_comb (f,new_args))
-        else if n = "Nat.semiring_1_class.of_nat" (*TODO: Check if argument was transformed.*)
-        then (ctxt2,subst,odefs,gamma,hd new_args)
-        (*Native operator. Should not be translated. TODO: Add nat functions*)
+        then (@{print}("return 1 ", list_comb (f,new_args));(ctxt2,subst,odefs,odefs2,gamma,list_comb (f,new_args)))
+        (*Conversion operator skip*)
+        else if (List.exists (fn x => n = x)
+           ["Int.nat", "Nat.semiring_1_class.of_nat"])
+        then (@{print}("return 2 ", hd new_args);(ctxt2,subst,odefs,odefs2,gamma,hd new_args))
+        (*Native operator. Should not be translated.*)
         else if (List.exists (fn x => n = x)
            ["Bit_Operations.semiring_bit_operations_class.push_bit",
             "Bit_Operations.semiring_bit_operations_class.xor",
             "Word.smt_extract",
-             "Int.nat", "HOL.implies", "HOL.If", "Nat.semiring_1_class.of_nat","HOL.eq"])
-        then (ctxt2,subst,odefs,gamma,list_comb (f,new_args))
+            "HOL.implies", "HOL.If", "HOL.eq"])
+        then (@{print}("return 2 ", list_comb (f,new_args));(ctxt2,subst,odefs,odefs2,gamma,list_comb (f,new_args)))
         (*New operator needs to be added*)
         else
           let
             val Tt = fastype_of t
             val retNat = (Tt = @{typ nat})
-            fun notNum x = x |> strip_comb |> fst |> (fn t => t <> @{term "Num.numeral_class.numeral"})
-            fun add_cast [] [] = []|
-            add_cast (x::xs) (T::Ts) = (if T = @{typ nat} andalso fastype_of x = @{typ "int"} andalso notNum x then nat_cast $ x else x) :: add_cast xs Ts
-            val new_args2 = add_cast new_args Tts
-       (*val _ = debug_msg ctxt middle (fn () => \<^print> ("made it to here for", f))*)
-
           in
           (*Check if operator has already been translated*)
           (case Termtab.lookup subst f of
-             NONE => 
+            NONE => 
+            let
+      val _ = debug_msg ctxt middle (fn () => \<^print> ("new_args",new_args))
+              val _ = debug_msg ctxt middle (fn () => \<^print> ("ts",ts))
+        
+              val (ctxt4,subst,f',B,B_beta) = mk_new_fun subst t ts n' T' Tts new_args f ctxt2
+              val new_args' = map delete_casts new_args
+        
+              val _ = debug_msg ctxt middle (fn () => \<^print> ("function symbol has not been translated, add new symbol "))
+              val _ = debug_msg ctxt middle (fn () => \<^print> ("(new function symbol,transformed arguments)",(f',new_args')))
+              val newt = list_comb (f',new_args')
+
+              (*Make \<ge> 0 condition for concrete term and add to gamma*)
+              val cond = (if retNat then [mkLeTerm newt] else [])
+              val _ = debug_msg ctxt middle (fn () => \<^print> ("collect local condition",cond))
+             
+              in (@{print}("return 3 ", newt);
+                  (ctxt4,subst,odefs @ [B],B_beta::odefs2  ,gamma @ cond,newt)) end
+           | (SOME (b,c)) =>
               let
-                 val (ctxt4,subst,f',goal,B) = mk_new_fun subst t ts n' T' Tts new_args f ctxt2
-                     val _ = debug_msg ctxt middle (fn () => \<^print> ("new_args ",(f',new_args)))
+                val args_with_casts = args_with_casts ts new_args
+                val _ = debug_msg ctxt middle (fn () => \<^print> ("args_with_casts",args_with_casts))
 
-                 val new_args = map delete_casts (new_args )
-     val _ = debug_msg ctxt middle (fn () => \<^print> ("new_args transformed ",new_args))
+                val new_args' = map delete_casts new_args
+                val _ = debug_msg ctxt middle (fn () => \<^print> ("function symbol has already been translated! "))
+                val _ = debug_msg ctxt middle (fn () => \<^print> ("(new function symbol,transformed arguments)",(b,new_args')))
+                val newt = list_comb (b,new_args')
 
-                 val newt = list_comb (f',new_args)
-     val _ = debug_msg ctxt middle (fn () => \<^print> ("new term 1",newt))
+                (*Make \<ge> 0 condition for concrete term and add to gamma*)
+                val cond = (if retNat then [mkLeTerm newt] else [])
+                val _ = debug_msg ctxt middle (fn () => \<^print> ("collect local condition",cond))
+                val (B_alpha) = inst_function_thm ctxt args_with_casts retNat c
+                val _ = debug_msg ctxt middle (fn () => \<^print> ("(B_alpha, B_beta)",(B_alpha)))
 
-                 (*Make condition for concrete term and add to gamma*)
-                 val cond = (if retNat then [mkLeTerm newt] else [])
-     val _ = debug_msg ctxt middle (fn () => \<^print> ("o_defs",odefs))
-
-              in (ctxt4,subst,odefs @ [B] ,gamma @ cond,newt) end
-            | (SOME (b,c)) =>
-              let
-                 fun delete_casts (@{term nat} $ x) = x |
-                     delete_casts x = x
-     val _ = debug_msg ctxt middle (fn () => \<^print> ("new_args ",new_args))
-
-     val _ = debug_msg ctxt middle (fn () => \<^print> ("new_args transformed ",map delete_casts new_args))
-
-                 val new_args = map delete_casts (new_args |> @{print}) |> @{print}
-                 val newt = list_comb (b,new_args)
-     val _ = debug_msg ctxt middle (fn () => \<^print> ("new term 2",newt))
-                 val cond = (if retNat then [mkLeTerm newt] else [])
-
-              in (ctxt2,subst,odefs,gamma @ cond,newt) end
+              in (@{print}("return 4 ",newt);(ctxt2,subst,odefs,B_alpha::odefs2,gamma @ cond,newt)) end
           ) end
 end 
 end
-| transform ctxt subst odefs gamma t = (ctxt,subst,odefs,gamma,t) 
+| transform ctxt subst odefs odefs2 gamma t = (ctxt,subst,odefs,odefs2,gamma,t) 
 
-
+(*Use preexisting function to do this*)
 fun preproc bounds i (t as Const("HOL.All",T)) = (Const("HOL.All",intify_type T)) |
-  preproc bounds i (t as Const("HOL.Exists",T)) = ( Const("HOL.Exists",intify_type T)) | 
+  preproc bounds i (t as Const("HOL.Ex",T)) = (Const("HOL.Ex",intify_type T)) | 
   preproc bounds i (t as (@{term "int"} $ Bound k))
      = (@{print}("found ",k);(if List.exists (fn x => (i-x-1) = k) bounds then Bound k else t)) |
   preproc bounds i (t as Bound k)
      = (@{print}("found ",(k,i,bounds));(if List.exists (fn x => (i-x-1) = k) bounds then @{term "nat"} $ t else t)) |
   preproc bounds i (t as Abs(var_name,T,t1)) =
   let
-    val _ = @{print}("t ",t)
-
-    val _ = @{print}("Found ",var_name)
-    val _ = @{print}(" i",i)
-
     val is_nat = (T = @{typ "nat"})
     val bounds' = (if is_nat then bounds @ [i] else bounds)
-    val (res)  = preproc bounds' (i+1) t1
+    val res  = preproc bounds' (i+1) t1 |> @{print}
     val T' = (if is_nat then @{typ "int"} else T)
     val t1' = (if is_nat then  HOLogic.mk_imp ((mkLeTerm (Bound 0)),res ) else res)
   in
@@ -406,6 +441,9 @@ fun preproc bounds i (t as Const("HOL.All",T)) = (Const("HOL.All",intify_type T)
   end |
   preproc bounds i (t as t1 $ t2) = preproc bounds i t1 $ preproc bounds i t2 |
   preproc bounds i t = t
+
+val test = preproc [] 0 @{term "\<forall>n. 0 <= int n"}
+val _ = @{print}("test",test)
 
 fun simplify_tac ctxt thms =
   ctxt
@@ -426,47 +464,82 @@ fun auto_tac ctxt cong_thm thms =
   |> Clasimp.auto_tac
 
 
+fun without_trueprop (Const ("HOL.Trueprop", _) $ t) = t | 
+    without_trueprop t = t
+
 fun global_normalize ctxt ithms =
 let
   val _ = debug_msg ctxt middle (fn () => \<^print> ("ithms before conversion ",ithms))
 
-  val ithms33 = map (fn (a,b) => (a,preproc [] 0 (Thm.prop_of b))) ithms
-  val _ = debug_msg ctxt middle (fn () => \<^print> ("term to show ",ithms33))
+  val goal_preproc = map (fn (a,b) => (a,preproc [] 0 (Thm.prop_of b))) ithms
+  val _ = debug_msg ctxt middle (fn () => \<^print> ("term to show ",goal_preproc))
 
-  val ithms2 = map (fn (a,it) => (a, Goal.prove ctxt [] [] it (fn {context: Proof.context, ...}  => 
-      print_tac context "being preprocessing" 
+  val ithms_preproc = map (fn (a,it) => (a, Goal.prove ctxt [] [] it (fn {context: Proof.context, ...}  => 
+      print_tac context "starting preprocessing" 
       THEN HEADGOAL (Method.insert_tac ctxt (map snd ithms) )
       THEN (unfold_tac context @{thms alethe_nat_embedding_all2 int_eq_iff})
-      THEN  (Clasimp.auto_tac ctxt) THEN  print_tac context "end preprocessing" ))) ithms33
+      THEN  (Clasimp.auto_tac ctxt) THEN  print_tac context "end preprocessing" ))) goal_preproc
 
-  val _ = debug_msg ctxt middle (fn () => \<^print> ("ithms after quantifier preprocessing ",ithms2))
+  val _ = debug_msg ctxt middle (fn () => \<^print> ("ithms after quantifier preprocessing ",ithms_preproc))
 
-  fun iterate_thms [x] (ctxt',subst,odefs,gamma,terms) = 
+  fun iterate_thms [] _ = raise (SMT_GLOBAL_NORMALIZE "no facts found") | 
+    iterate_thms [x] (ctxt',subst,odefs,odefs2,gamma,terms) = 
       let
-        val (ctxt',subst,odefs,gamma,new_t) = (transform ctxt' subst odefs gamma (Thm.prop_of (snd x)))
-        fun mk_conj [x] = x |
-          mk_conj (x::xs) = HOLogic.mk_conj (x,(mk_conj xs))
-       val new_t' = (if gamma = [] then new_t else  HOLogic.mk_imp (mk_conj gamma, new_t))
-      in (ctxt',subst,odefs,gamma,terms @ [(fst x,new_t')]) end |
-      iterate_thms (x::xs) (ctxt',subst,odefs,gamma,terms) =
-      let
-        val (ctxt',subst,odefs,gamma,new_t) = (transform ctxt' subst odefs gamma (Thm.prop_of (snd x)))
-      in iterate_thms xs (ctxt',subst,odefs,gamma,terms @ [(fst x,new_t)]) end
+        val _ = @{print}("old t",(Thm.prop_of (snd x)))
 
-  val (ctxt',_,odefs,gamma,new_ithms_as_terms) =  iterate_thms ithms2 (ctxt,Termtab.empty,[],[],[])
+        val (ctxt',subst,odefs,odefs2',gamma,new_t) = (transform ctxt' subst odefs [] [] (Thm.prop_of (snd x)))
+        val _ = @{print}("new_t",new_t)
+        
+        val new_t' = (if gamma = [] then new_t else HOLogic.mk_Trueprop( HOLogic.mk_conj (mk_conj gamma, without_trueprop new_t)))
+        val _ = @{print}("new_t'",new_t')
+ 
+     in (ctxt',subst,odefs,odefs2 @ [odefs2'],gamma,terms @ [(fst x,new_t')]) end |
+    iterate_thms (x::xs) (ctxt',subst,odefs,odefs2,gamma,terms) =
+      let
+        val _ = @{print}("old t",(Thm.prop_of (snd x)))
+
+        val (ctxt',subst,odefs,odefs2',gamma,new_t) = (transform ctxt' subst odefs [] [] (Thm.prop_of (snd x)))
+        val _ = @{print}("new_t",new_t)
+        
+        val new_t' = (if gamma = [] then new_t else HOLogic.mk_Trueprop( HOLogic.mk_conj (mk_conj gamma, without_trueprop new_t)))
+        val _ = @{print}("new_t'",new_t')
+       in iterate_thms xs (ctxt',subst,odefs,odefs2 @ [odefs2'],gamma,terms @ [(fst x,new_t')]) end
+
+  val (ctxt',_,odefs,odefs2,gamma,new_ithms_as_terms) =  iterate_thms ithms_preproc (ctxt,Termtab.empty,[],[],[],[])
   val _ = debug_msg ctxt middle (fn () => \<^print> ("New terms ",new_ithms_as_terms |> @{print}|> map (Thm.cterm_of ctxt' o snd)))
   val _ = debug_msg ctxt middle (fn () => \<^print> ("o_defs ",odefs))
+  val _ = debug_msg ctxt middle (fn () => \<^print> ("o_defs2 ",odefs2))
+
  (*val (B_alpha,B_beta) = split ctxt' (hd odefs) |> @{print}*)
 
-
+val _ = @{print}("ithms_preproc",ithms_preproc)
+val _ = @{print}("gamma",gamma)
 
 
   val ithms3 = map_index (fn (i,(a,it)) => (a, Goal.prove ctxt' [] [] it (fn {context: Proof.context, ...}  => 
  ( print_tac context "processing" )
- THEN HEADGOAL (Method.insert_tac context [(snd (nth ithms2 i))] )
+ THEN TRY (HEADGOAL (Method.insert_tac context [(snd (nth ithms_preproc i))]))
+ THEN TRY (HEADGOAL (Method.insert_tac context (nth odefs2 i)))
+ THEN print_tac context "processing 0"
+ (*THEN TRY (HEADGOAL (dresolve_tac context [(Drule.infer_instantiate' context [NONE,SOME (@{cterm "0::nat"})] @{thm spec})|> @{print}]))*)
+ THEN  (unfold_tac context (nth odefs2 i))
+ THEN print_tac context "processing 1"
+ THEN TRY ( (unfold_tac context @{thms all_conj_distrib}))
+ THEN print_tac context "processing 2"
+ THEN TRY (HEADGOAL (eresolve_tac context @{thms conjE}))
+ THEN print_tac context "processing 3"
+ THEN TRY (HEADGOAL (resolve_tac context @{thms conjI}))
+ THEN print_tac context "processing0d"
+ THEN TRY (HEADGOAL (Method.insert_tac context odefs))
+ THEN TRY (HEADGOAL (Skip_Proof.cheat_tac context)) (*(Metis_Tactic.metis_tac [] ATP_Problem_Generate.combsN context @{thms of_nat_0}))*)
+ THEN print_tac context "processing0e"
+ THEN TRY (HEADGOAL (assume_tac context))
+ THEN print_tac context "processing0f"
+
+ THEN TRY (HEADGOAL (Method.insert_tac context [(snd (nth ithms_preproc i))] ))
  THEN print_tac context "processing1a"
 
- THEN  (unfold_tac context (odefs))
+ THEN  TRY (unfold_tac context (odefs))
  THEN print_tac context "processing1b"
  THEN 
   TRY(    HEADGOAL (Method.insert_tac context odefs )
@@ -475,11 +548,11 @@ let
  THEN print_tac context "processing3a"*)
  THEN print_tac context "processing3b"
 
- THEN  (simplify_tac context (@{thms all_conj_distrib imp_conv_disj H1 de_Morgan_conj not_all H_nat_embedding alethe_nat_embedding2}))
+ THEN TRY (simplify_tac context (@{thms all_conj_distrib imp_conv_disj H1 de_Morgan_conj not_all H_nat_embedding alethe_nat_embedding2}))
  THEN print_tac context "processing4"
  THEN TRY (auto_tac context (@{thm H_nat_embedding}) @{thms H_nat_embedding triv_forall_equality nat_le_0 int_nat_eq})
  THEN print_tac context "processing5"
- THEN TRY (HEADGOAL (Skip_Proof.cheat_tac context))
+ (*THEN TRY (HEADGOAL (Skip_Proof.cheat_tac context))*)
 
         THEN  print_tac context "processing end" )))) new_ithms_as_terms
 
