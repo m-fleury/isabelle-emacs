@@ -59,6 +59,7 @@ sig
   val verit_arith_msg: Proof.context -> (unit -> 'a) -> unit
   datatype debugging_verbosity = off | low | middle | high
   val alethe_debug_msg: Proof.context -> string -> debugging_verbosity -> (unit -> 'a) -> unit (*TODO: integrate this with the other options, wanted to make it possible to select files*)
+  val alethe_debug_msg_tac: Proof.context -> string -> debugging_verbosity -> string -> tactic
   val spy_cvc: Proof.context -> bool
   val spy_verit: Proof.context -> bool
   val spy_z3: Proof.context -> bool
@@ -238,6 +239,15 @@ let
   val min = Config.get ctxt trace_expert_debug_alethe_level
 in
  if (min > 0 andalso min >= debug_to_int verbosity andalso (part = "all" orelse part = file)) then ignore(x ()) else ()
+end
+
+fun alethe_debug_msg_tac ctxt file verbosity (msg: string) =
+let
+  val part = Config.get ctxt trace_expert_debug_alethe_files
+  val min = Config.get ctxt trace_expert_debug_alethe_level
+in
+ if (min > 0 andalso min >= debug_to_int verbosity andalso (part = "all" orelse part = file))
+ then (print_tac ctxt msg) else no_tac
 end
 
 
