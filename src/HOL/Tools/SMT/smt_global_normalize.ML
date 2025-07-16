@@ -21,6 +21,7 @@ exception SMT_GLOBAL_NORMALIZE of string
 
 open SMT_Config
 fun debug_msg ctxt = alethe_debug_msg ctxt "smt_global_normalize"
+fun debug_msg_tac ctxt = alethe_debug_msg_tac ctxt "smt_global_normalize"
 
 fun find_in_table f = (fn (a,(b,_)) => if a = f then SOME b else NONE)
 
@@ -44,6 +45,29 @@ fun split_by_thm ctxt thm B =
     | (SOME x) => [x]
 fun split ctxt B = (split_by_thm ctxt @{thm conjunct1} B, split_by_thm ctxt @{thm conjunct2} B)
 
+(*Deal with quantifiers*)
+fun preproc_abs bounds i (Abs(var_name,@{typ "nat"},t1)) _ f = 
+  let
+    val res = preproc (bounds @ [i]) (i+1) t1
+    val t1' = f (mkLeTerm (Bound 0),res)
+  in (Abs(var_name,@{typ "int"},t1')) end |
+preproc_abs bounds i (Abs(var_name,_,t1)) T _ = 
+  let
+    val res = preproc bounds (i+1) t1
+  in (Abs(var_name,T,res)) end |
+preproc_abs _ _ t _ _ = t
+and
+  preproc bounds i (Const("HOL.All",T) $ t) =
+     (Const("HOL.All",intify_type T)) $ preproc_abs bounds i t T HOLogic.mk_imp |
+  preproc bounds i (Const("HOL.Ex",T) $ t) =
+      (Const("HOL.Ex",intify_type T)) $ preproc_abs bounds i t T HOLogic.mk_conj |
+  (*preproc bounds i (t as (@{term "int"} $ Bound k))
+     = (if List.exists (fn x => (i-x-1) = k) bounds then Bound k else t) |*)
+  preproc bounds i (t as Bound k)
+     = (if List.exists (fn x => (i-x-1) = k) bounds then @{term "nat"} $ t else t) |
+  preproc bounds i (Abs(var_name,T,t1)) = (Abs(var_name,T,preproc bounds i t1)) |
+  preproc bounds i (t1 $ t2) = preproc bounds i t1 $ preproc bounds i t2 |
+  preproc _ _ t = t
 
 (*
 Currently, this first shows
@@ -429,31 +453,6 @@ end
 | transform ctxt subst odefs odefs2 gamma t = (ctxt,subst,odefs,odefs2,gamma,t) 
 
 
-fun preproc_abs bounds i (Abs(var_name,@{typ "nat"},t1)) _ f = 
-  let
-    val res = preproc (bounds @ [i]) (i+1) t1
-    val t1' = f (mkLeTerm (Bound 0),res)
-  in (Abs(var_name,@{typ "int"},t1')) end |
-preproc_abs bounds i (Abs(var_name,_,t1)) T _ = 
-  let
-    val res = preproc bounds (i+1) t1
-  in (Abs(var_name,T,res)) end |
-preproc_abs _ _ t _ _ = t
-and
-  preproc bounds i (Const("HOL.All",T) $ t) =
-     (Const("HOL.All",intify_type T)) $ preproc_abs bounds i t T HOLogic.mk_imp |
-  preproc bounds i (Const("HOL.Ex",T) $ t) =
-      (Const("HOL.All",intify_type T)) $ preproc_abs bounds i t T HOLogic.mk_conj |
-  (*preproc bounds i (t as (@{term "int"} $ Bound k))
-     = (if List.exists (fn x => (i-x-1) = k) bounds then Bound k else t) |*)
-  preproc bounds i (t as Bound k)
-     = (if List.exists (fn x => (i-x-1) = k) bounds then @{term "nat"} $ t else t) |
-  preproc bounds i (Abs(var_name,T,t1)) = (Abs(var_name,T,preproc bounds i t1)) |
-  preproc bounds i (t1 $ t2) = preproc bounds i t1 $ preproc bounds i t2 |
-  preproc _ _ t = t
-
-val test = preproc [] 0 @{term "\<forall>n. 0 <= int n"}
-val _ = @{print}("test",test)
 
 fun simplify_tac ctxt thms =
   ctxt
@@ -480,16 +479,18 @@ fun without_trueprop (Const ("HOL.Trueprop", _) $ t) = t |
 fun global_normalize ctxt ithms =
 let
   val _ = debug_msg ctxt middle (fn () => \<^print> ("ithms before conversion ",ithms))
+  val ithms_without_role = map snd ithms
 
   val goal_preproc = map (fn (a,b) => (a,preproc [] 0 (Thm.prop_of b))) ithms
-  val _ = debug_msg ctxt middle (fn () => \<^print> ("term to show ",goal_preproc))
+  val _ = debug_msg ctxt high (fn () => \<^print> ("preprocessed term to show ",goal_preproc))
 
-  val ithms_preproc = map (fn (a,it) => (a, Goal.prove ctxt [] [] it (fn {context: Proof.context, ...}  => 
-      print_tac context "starting preprocessing" 
-      THEN HEADGOAL (Method.insert_tac ctxt (map snd ithms) )
-      THEN (unfold_tac context @{thms alethe_nat_embedding_all2 int_eq_iff})
-      THEN  (Clasimp.auto_tac ctxt) THEN  print_tac context "end preprocessing" ))) goal_preproc
+  val ithms_preproc = map_index (fn (i,(a,it)) => (a, Goal.prove ctxt [] [] it (fn {context: Proof.context, ...}  => 
+      debug_msg_tac context high "starting preprocessing" 
+      THEN HEADGOAL (Method.insert_tac ctxt [nth ithms_without_role i])
+      THEN debug_msg_tac context high "starting preprocessing" 
 
+      THEN (unfold_tac context @{thms alethe_nat_embedding_all2 alethe_nat_embedding_ex2 int_eq_iff})
+      THEN  (Clasimp.auto_tac ctxt) THEN debug_msg_tac context high "end preprocessing"))) goal_preproc
   val _ = debug_msg ctxt middle (fn () => \<^print> ("ithms after quantifier preprocessing ",ithms_preproc))
 
   fun iterate_thms [] _ = raise (SMT_GLOBAL_NORMALIZE "no facts found") | 
