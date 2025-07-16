@@ -329,7 +329,7 @@ fun
   in (ctxt',subst',odefs',odefs2',[],Abs(a,b,c'')) end
 | transform ctxt subst odefs odefs2 gamma (t as _ $ _) = 
     let 
-              val _ = debug_msg ctxt middle (fn () => \<^print> ("current term",t))
+       val _ = debug_msg ctxt middle (fn () => \<^print> ("current term",t))
 
        val (f,ts) = strip_comb t
        val T = fastype_of f
@@ -337,6 +337,11 @@ fun
          handle (TERM x) => (@{print}("x",x);raise (SMT_GLOBAL_NORMALIZE "Term name cannot be obtained"))
        val n' =  "lift_" ^ (Long_Name.base_name n)
        val (Tts,_) = Ts |> Term.strip_type
+       val _ = debug_msg ctxt middle (fn () => \<^print> ("builtin fun",SMT_Builtin.is_builtin_fun ctxt (n,Ts) ts))
+       val _ = debug_msg ctxt middle (fn () => \<^print> ("builtin fun ext",SMT_Builtin.is_builtin_fun_ext ctxt (n,Ts) ts))
+
+
+
        (*val _ = debug_msg ctxt middle (fn () => \<^print> ("encountered function ",t))*)
     in
       (*translate numeral constants directly, skip traversal of arguments*)
@@ -368,7 +373,8 @@ fun
            ["Int.nat", "Nat.semiring_1_class.of_nat"])
         then (@{print}("return 2 ", hd new_args);(ctxt2,subst,odefs,odefs2,gamma,hd new_args))
         (*Native operator. Should not be translated.*)
-        else if (List.exists (fn x => n = x)
+        else if SMT_Builtin.is_builtin_fun ctxt (n,Ts) ts
+          orelse SMT_Builtin.is_builtin_fun_ext ctxt (n,Ts) ts orelse (List.exists (fn x => n = x)
            ["Bit_Operations.semiring_bit_operations_class.push_bit",
             "Bit_Operations.semiring_bit_operations_class.xor",
             "Word.smt_extract",
@@ -422,25 +428,29 @@ end
 end
 | transform ctxt subst odefs odefs2 gamma t = (ctxt,subst,odefs,odefs2,gamma,t) 
 
-(*Use preexisting function to do this*)
-fun preproc bounds i (t as Const("HOL.All",T)) = (Const("HOL.All",intify_type T)) |
-  preproc bounds i (t as Const("HOL.Ex",T)) = (Const("HOL.Ex",intify_type T)) | 
-  preproc bounds i (t as (@{term "int"} $ Bound k))
-     = (@{print}("found ",k);(if List.exists (fn x => (i-x-1) = k) bounds then Bound k else t)) |
-  preproc bounds i (t as Bound k)
-     = (@{print}("found ",(k,i,bounds));(if List.exists (fn x => (i-x-1) = k) bounds then @{term "nat"} $ t else t)) |
-  preproc bounds i (t as Abs(var_name,T,t1)) =
+
+fun preproc_abs bounds i (Abs(var_name,@{typ "nat"},t1)) _ f = 
   let
-    val is_nat = (T = @{typ "nat"})
-    val bounds' = (if is_nat then bounds @ [i] else bounds)
-    val res  = preproc bounds' (i+1) t1 |> @{print}
-    val T' = (if is_nat then @{typ "int"} else T)
-    val t1' = (if is_nat then  HOLogic.mk_imp ((mkLeTerm (Bound 0)),res ) else res)
-  in
-     (Abs(var_name,T',t1'))
-  end |
-  preproc bounds i (t as t1 $ t2) = preproc bounds i t1 $ preproc bounds i t2 |
-  preproc bounds i t = t
+    val res = preproc (bounds @ [i]) (i+1) t1
+    val t1' = f (mkLeTerm (Bound 0),res)
+  in (Abs(var_name,@{typ "int"},t1')) end |
+preproc_abs bounds i (Abs(var_name,_,t1)) T _ = 
+  let
+    val res = preproc bounds (i+1) t1
+  in (Abs(var_name,T,res)) end |
+preproc_abs _ _ t _ _ = t
+and
+  preproc bounds i (Const("HOL.All",T) $ t) =
+     (Const("HOL.All",intify_type T)) $ preproc_abs bounds i t T HOLogic.mk_imp |
+  preproc bounds i (Const("HOL.Ex",T) $ t) =
+      (Const("HOL.All",intify_type T)) $ preproc_abs bounds i t T HOLogic.mk_conj |
+  (*preproc bounds i (t as (@{term "int"} $ Bound k))
+     = (if List.exists (fn x => (i-x-1) = k) bounds then Bound k else t) |*)
+  preproc bounds i (t as Bound k)
+     = (if List.exists (fn x => (i-x-1) = k) bounds then @{term "nat"} $ t else t) |
+  preproc bounds i (Abs(var_name,T,t1)) = (Abs(var_name,T,preproc bounds i t1)) |
+  preproc bounds i (t1 $ t2) = preproc bounds i t1 $ preproc bounds i t2 |
+  preproc _ _ t = t
 
 val test = preproc [] 0 @{term "\<forall>n. 0 <= int n"}
 val _ = @{print}("test",test)
