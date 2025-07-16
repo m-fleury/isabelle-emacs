@@ -46,16 +46,17 @@ fun split_by_thm ctxt thm B =
 fun split ctxt B = (split_by_thm ctxt @{thm conjunct1} B, split_by_thm ctxt @{thm conjunct2} B)
 
 (*Deal with quantifiers*)
-fun preproc_abs bounds i (Abs(var_name,@{typ "nat"},t1)) _ f = 
-  let
-    val res = preproc (bounds @ [i]) (i+1) t1
-    val t1' = f (mkLeTerm (Bound 0),res)
-  in (Abs(var_name,@{typ "int"},t1')) end |
-preproc_abs bounds i (Abs(var_name,_,t1)) T _ = 
-  let
-    val res = preproc bounds (i+1) t1
-  in (Abs(var_name,T,res)) end |
-preproc_abs _ _ t _ _ = t
+fun
+  preproc_abs bounds i (Abs(var_name,@{typ "nat"},t1)) _ f = 
+    let
+      val res = preproc (bounds @ [i]) (i+1) t1
+      val t1' = f (mkLeTerm (Bound 0),res)
+    in (Abs(var_name,@{typ "int"},t1')) end |
+  preproc_abs bounds i (Abs(var_name,_,t1)) T _ = 
+    let
+      val res = preproc bounds (i+1) t1
+    in (Abs(var_name,T,res)) end |
+  preproc_abs _ _ t _ _ = t
 and
   preproc bounds i (Const("HOL.All",T) $ t) =
      (Const("HOL.All",intify_type T)) $ preproc_abs bounds i t T HOLogic.mk_imp |
@@ -146,10 +147,12 @@ in
   B'
 end
 
-  
-fun args_with_casts [] [] = [] |
-  args_with_casts (t::ts) (a::new_args) = (if fastype_of t = @{typ nat} andalso fastype_of a = @{typ int} then @{term "nat"} $ a else a) :: args_with_casts ts new_args
-     
+fun arg_with_casts (t,a) = (if fastype_of t = @{typ nat} andalso fastype_of a = @{typ int} then @{term "nat"} $ a else a)
+  handle TERM ("fastype_of: Bound",_) => t
+
+fun args_with_casts ts args = map arg_with_casts (ListPair.zipEq (ts,args))
+  handle ListPair.UnequalLengths => raise SMT_GLOBAL_NORMALIZE("corrupted function arguments")
+
 (*
   For each function (f::T) that either returns a natural number or has an argument of type nat
   we want to add (f'::intify T) and one of the following theorems:
@@ -329,7 +332,7 @@ fun add_cast [] [] = []|
     add_cast (x::xs) (T::Ts) = (if T = @{typ nat} andalso fastype_of x = @{typ "int"} andalso notNum x then nat_cast $ x else x) :: add_cast xs Ts
      
 (*
-subst: mapping von term f zu f' und f' s definition
+subst: mapping from function f to f' and f' s definition
 odefs: collect obtain theoreme (koennten auch aus subst ausgelesen werden)
 gamma: collect local assumptions
 *)
@@ -458,7 +461,7 @@ fun simplify_tac ctxt thms =
   ctxt
   |> empty_simpset
   |> put_simpset HOL_basic_ss
-  |> (fn ctxt => ctxt addsimps @{thms  simp_thms } addsimps thms)
+  |> (fn ctxt => ctxt addsimps @{thms simp_thms} addsimps thms)
   |> Simplifier.add_cong @{thm all_cong} 
   |> Simplifier.add_cong (hd thms)
   |> Clasimp.auto_tac
@@ -467,7 +470,7 @@ fun auto_tac ctxt cong_thm thms =
   ctxt
   |> empty_simpset
   |> put_simpset HOL_basic_ss
-  |> (fn ctxt => ctxt addsimps @{thms  simp_thms } addsimps thms)
+  |> (fn ctxt => ctxt addsimps @{thms simp_thms} addsimps thms)
   |> Simplifier.add_cong @{thm all_cong} 
   |> Simplifier.add_cong cong_thm
   |> Clasimp.auto_tac
@@ -488,35 +491,19 @@ let
       debug_msg_tac context high "starting preprocessing" 
       THEN HEADGOAL (Method.insert_tac ctxt [nth ithms_without_role i])
       THEN debug_msg_tac context high "starting preprocessing" 
-
-      THEN (unfold_tac context @{thms alethe_nat_embedding_all2 alethe_nat_embedding_ex2 int_eq_iff})
+      THEN (unfold_tac context @{thms int_nat_embedding_preproc_all int_nat_embedding_preproc_ex})
       THEN  (Clasimp.auto_tac ctxt) THEN debug_msg_tac context high "end preprocessing"))) goal_preproc
   val _ = debug_msg ctxt middle (fn () => \<^print> ("ithms after quantifier preprocessing ",ithms_preproc))
 
   fun iterate_thms [] _ = raise (SMT_GLOBAL_NORMALIZE "no facts found") | 
-    iterate_thms [x] (ctxt',subst,odefs,odefs2,gamma,terms) = 
+    iterate_thms (x::xs) (ctxt',subst,odefs,odefs2,terms) =
       let
-        val _ = @{print}("old t",(Thm.prop_of (snd x)))
-
-        val (ctxt',subst,odefs,odefs2',gamma,new_t) = (transform ctxt' subst odefs [] [] (Thm.prop_of (snd x)))
-        val _ = @{print}("new_t",new_t)
-        
+        val (ctxt',subst,odefs,odefs2',gamma,new_t) = transform ctxt' subst odefs [] [] (Thm.prop_of (snd x))       
         val new_t' = (if gamma = [] then new_t else HOLogic.mk_Trueprop( HOLogic.mk_conj (mk_conj gamma, without_trueprop new_t)))
-        val _ = @{print}("new_t'",new_t')
- 
-     in (ctxt',subst,odefs,odefs2 @ [odefs2'],gamma,terms @ [(fst x,new_t')]) end |
-    iterate_thms (x::xs) (ctxt',subst,odefs,odefs2,gamma,terms) =
-      let
-        val _ = @{print}("old t",(Thm.prop_of (snd x)))
+       in if length xs = 0 then  (ctxt',subst,odefs,odefs2 @ [odefs2'],gamma,terms @ [(fst x,new_t')])
+       else iterate_thms xs (ctxt',subst,odefs,odefs2 @ [odefs2'],terms @ [(fst x,new_t')]) end
 
-        val (ctxt',subst,odefs,odefs2',gamma,new_t) = (transform ctxt' subst odefs [] [] (Thm.prop_of (snd x)))
-        val _ = @{print}("new_t",new_t)
-        
-        val new_t' = (if gamma = [] then new_t else HOLogic.mk_Trueprop( HOLogic.mk_conj (mk_conj gamma, without_trueprop new_t)))
-        val _ = @{print}("new_t'",new_t')
-       in iterate_thms xs (ctxt',subst,odefs,odefs2 @ [odefs2'],gamma,terms @ [(fst x,new_t')]) end
-
-  val (ctxt',_,odefs,odefs2,gamma,new_ithms_as_terms) =  iterate_thms ithms_preproc (ctxt,Termtab.empty,[],[],[],[])
+  val (ctxt',_,odefs,odefs2,gamma,new_ithms_as_terms) =  iterate_thms ithms_preproc (ctxt,Termtab.empty,[],[],[])
   val _ = debug_msg ctxt middle (fn () => \<^print> ("New terms ",new_ithms_as_terms |> @{print}|> map (Thm.cterm_of ctxt' o snd)))
   val _ = debug_msg ctxt middle (fn () => \<^print> ("o_defs ",odefs))
   val _ = debug_msg ctxt middle (fn () => \<^print> ("o_defs2 ",odefs2))

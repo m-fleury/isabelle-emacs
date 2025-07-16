@@ -99,6 +99,17 @@ lemmas abs_if_raw = abs_if[abs_def]
 lemmas min_def_raw = min_def[abs_def]
 lemmas max_def_raw = max_def[abs_def]
 
+definition pow_2 where "pow_2 y = power (2::int) (nat y)"
+definition uint_pow_2 where "uint_pow_2 x y = int (power (nat x) (nat y))"
+
+definition pwo where "pwo a b = int (nat (int a) ^ nat (int b))"
+
+lemma pow_2_raw'': "power \<equiv> (\<lambda>a b. nat (if int a = 2 then pow_2 (int b) else pwo a b))"
+  unfolding pow_2_def pwo_def
+  apply (rule eq_reflection)
+  apply standard+
+  using nat_eq_iff2 by force
+
 lemma nat_zero_as_int:
   "0 = nat 0"
   by simp
@@ -845,7 +856,7 @@ lemma alethe_qnt_miniscope_ITE:
 lemma alethe_nat_embedding:
  "\<exists>x. (y::nat) = nat (x::int) \<and> x \<ge> 0"
   using int_eq_iff by blast
-
+declare[[show_types]]
 lemma alethe_nat_embedding2:
  "int (nat (Num.numeral_class.numeral n)) = numeral n"
   by simp
@@ -859,9 +870,24 @@ lemma alethe_nat_embedding_ex:
   using ex_nat by simp
 
 
+lemma int_nat_embedding_preproc_all:
+ "(\<forall>(x::nat) . P x) \<equiv> (\<forall>(x::int) \<ge> 0. P (nat x)) "
+  using all_nat by simp
+
+lemma int_nat_embedding_preproc_ex:
+ "(\<exists>(x::nat). P x) \<equiv> (\<exists>(x::int). x \<ge> 0 \<and> P (nat x))"
+  using ex_nat by auto
+
+
+
+
 lemma alethe_nat_embedding_all2:
  "(\<forall>(x::int) \<ge> 0. int (nat x) = x)"
   using all_nat by simp
+
+lemma alethe_nat_embedding_ex2:
+ "(\<exists>(x::int). x \<ge> 0 \<and> int (nat x) = x)"
+  using ex_nat by auto
 
 lemma alethe_nat_embedding_all3:
  "P (int (nat x)) \<Longrightarrow> x \<ge> 0 \<Longrightarrow> P x"
@@ -1202,5 +1228,9 @@ lemma [cvc5_holes_simp]:
   by auto
 
 declare[[smt_cvc_alethe = true]]
+
+lemma "power (2::nat) 3 = 8"
+  supply[[smt_trace,smt_nat_as_int]]
+  apply (smt (cvc5))
 
 end
