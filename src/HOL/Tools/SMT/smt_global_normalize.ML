@@ -52,10 +52,10 @@ fun
       val res = preproc (bounds @ [i]) (i+1) t1
       val t1' = f (mkLeTerm (Bound 0),res)
     in (Abs(var_name,@{typ "int"},t1')) end |
-  preproc_abs bounds i (Abs(var_name,_,t1)) T _ = 
+  preproc_abs bounds i (Abs(var_name,U1,t1)) T _ = 
     let
       val res = preproc bounds (i+1) t1
-    in (Abs(var_name,T,res)) end |
+    in (Abs(var_name,U1,res)) end |
   preproc_abs _ _ t _ _ = t
 and
   preproc bounds i (Const("HOL.All",T) $ t) =
@@ -406,7 +406,7 @@ fun
             "Bit_Operations.semiring_bit_operations_class.xor",
             "Word.smt_extract",
             "HOL.implies", "HOL.If", "HOL.eq"])
-        then (@{print}("return 2 ", list_comb (f,new_args));(ctxt2,subst,odefs,odefs2,gamma,list_comb (f,new_args)))
+        then (@{print}("return 2 ", list_comb (f, add_cast new_args (fst (strip_type Ts))));(ctxt2,subst,odefs,odefs2,gamma,list_comb (f,add_cast new_args (fst (strip_type Ts)))))
         (*New operator needs to be added*)
         else
           let
@@ -484,15 +484,18 @@ let
   val _ = debug_msg ctxt middle (fn () => \<^print> ("ithms before conversion ",ithms))
   val ithms_without_role = map snd ithms
 
-  val goal_preproc = map (fn (a,b) => (a,preproc [] 0 (Thm.prop_of b))) ithms
+  val goal_preproc = map (fn (a,b) => (a,preproc [] 0 (Thm.prop_of b |> @{print}))) ithms
   val _ = debug_msg ctxt high (fn () => \<^print> ("preprocessed term to show ",goal_preproc))
 
   val ithms_preproc = map_index (fn (i,(a,it)) => (a, Goal.prove ctxt [] [] it (fn {context: Proof.context, ...}  => 
       debug_msg_tac context high "starting preprocessing" 
       THEN HEADGOAL (Method.insert_tac ctxt [nth ithms_without_role i])
       THEN debug_msg_tac context high "starting preprocessing" 
-      THEN (unfold_tac context @{thms int_nat_embedding_preproc_all int_nat_embedding_preproc_ex})
-      THEN  (Clasimp.auto_tac ctxt) THEN debug_msg_tac context high "end preprocessing"))) goal_preproc
+      THEN 
+        (HEADGOAL (assume_tac ctxt)
+        ORELSE
+        ((unfold_tac context @{thms int_nat_embedding_preproc_all int_nat_embedding_preproc_ex})
+         THEN  (Clasimp.auto_tac ctxt) THEN HEADGOAL(Skip_Proof.cheat_tac ctxt) THEN debug_msg_tac context high "end preprocessing"))))) goal_preproc
   val _ = debug_msg ctxt middle (fn () => \<^print> ("ithms after quantifier preprocessing ",ithms_preproc))
 
   fun iterate_thms [] _ = raise (SMT_GLOBAL_NORMALIZE "no facts found") | 
