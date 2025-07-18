@@ -75,7 +75,18 @@ fun cvc_term_parser (SMTLIB.Sym "rare-list", []) = (
     end)
   | cvc_term_parser _ = NONE
 
+ fun power _ _ [t1] =
+    let
+      val mk = Term.list_comb o pair @{term "pow_2"}
+    in SOME ("int.pow2", 1, [t1], mk) end
+ | power _ _ _ = NONE
+
+val setup_builtins =
+  SMT_Builtin.add_builtin_fun SMTLIB_Interface.smtlibC
+    (Term.dest_Const (Const (\<^const_name>\<open>SMT.pow_2\<close>, @{typ "int \<Rightarrow> int"})), power)
+
 val _ = Theory.setup (Context.theory_map (
+  setup_builtins #>
   SMTLIB_Proof.add_term_parser cvc_term_parser)
 )
 \<close>
