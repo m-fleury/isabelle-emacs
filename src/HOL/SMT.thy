@@ -162,6 +162,8 @@ lemma int_if:
   shows "int (if P then a else b) = (if P then int a else int b)"
   by simp
 
+named_theorems pow_2_word \<open>power on word should be translated natively\<close>
+
 
 subsection \<open>Integer division and modulo for Z3\<close>
 
@@ -1235,6 +1237,11 @@ lemma [cvc5_holes_simp]:
 declare[[smt_cvc_alethe = true]]
 
 lemma "power (2::nat) 3 = 8"
+  supply[[smt_trace,smt_nat_as_int]]
+  apply (smt (cvc5))
+
+
+lemma "power (4::nat) 3 = 8"
   supply[[smt_trace,smt_nat_as_int]]
   apply (smt (cvc5))
 
