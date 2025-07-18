@@ -100,12 +100,9 @@ lemmas min_def_raw = min_def[abs_def]
 lemmas max_def_raw = max_def[abs_def]
 
 definition pow_2 where "pow_2 y = power (2::int) (nat y)"
-definition uint_pow_2 where "uint_pow_2 x y = int (power (nat x) (nat y))"
 
-definition pwo where "pwo a b = int (nat (int a) ^ nat (int b))"
-
-lemma pow_2_raw'': "power \<equiv> (\<lambda>a b. nat (if int a = 2 then pow_2 (int b) else pwo a b))"
-  unfolding pow_2_def pwo_def
+lemma pow_2_raw'': "power (2::nat) \<equiv>  ( \<lambda>b. nat (pow_2 (int b)))"
+  unfolding pow_2_def
   apply (rule eq_reflection)
   apply standard+
   using nat_eq_iff2 by force
@@ -139,7 +136,10 @@ lemma nat_int_comparison:
     and "(a \<le> b) = (int a \<le> int b)"
   by simp_all
 
-lemma int_ops:
+named_theorems int_ops \<open>Used when embedding natural numbers into integers\<close>
+named_theorems nat_embedding_ops \<open>Used when embedding natural numbers into integers\<close>
+
+lemma [int_ops]:
   fixes a b :: nat
   shows "int 0 = 0"
     and "int 1 = 1"
@@ -151,6 +151,11 @@ lemma int_ops:
     and "int (a div b) = int a div int b"
     and "int (a mod b) = int a mod int b"
   by (auto intro: zdiv_int zmod_int)
+
+lemma [int_ops]:
+ "int (nat (pow_2 x)) = pow_2 x"
+  unfolding pow_2_def
+  by simp
 
 lemma int_if:
   fixes a b :: nat

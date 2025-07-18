@@ -312,7 +312,7 @@ val abs_min_max_table = [
 
 local
   fun abs_min_max ctxt (Const (n, Type (\<^type_name>\<open>fun\<close>, [T, _]))) =
-        (case AList.lookup (op =) abs_min_max_table n of
+     (case AList.lookup (op =) abs_min_max_table n of
           NONE => NONE
         | SOME thm => if SMT_Builtin.is_builtin_typ_ext ctxt T then SOME thm else NONE)
     | abs_min_max _ _ = NONE
@@ -330,6 +330,43 @@ val setup_abs_min_max = fold (SMT_Builtin.add_builtin_fun_ext'' o fst) abs_min_m
 
 end
 
+(** unfold power **)
+
+fun snd_arg_2 ct = true
+
+(*term,(lemma,extra condition on term)*)
+val cvc5_extension_table = [
+  (\<^const_name>\<open>power\<close>, (@{thm pow_2_raw''}, snd_arg_2))]
+
+local
+  fun extension ctxt (Const (n,_)) ct =
+      (case (AList.lookup (op =) cvc5_extension_table n) of
+        SOME (thm,extra) => if extra ct then SOME thm else NONE
+        | NONE => NONE)
+    | extension _ _ _ = NONE
+
+  fun unfold_extension_conv ctxt ct =
+    let
+      val t = (Thm.term_of ct)
+    in
+    (case extension ctxt (Term.head_of t) t of
+      SOME thm =>  (fn x => (@{print}("x",x);Conv.top_rewrs_conv [thm] ctxt x))
+    | NONE => Conv.all_conv) ct
+    end
+in
+
+fun unfold_cvc5_extension_conv ctxt =
+ (Conv.top_conv unfold_extension_conv ctxt)
+
+
+fun setup_cvc5_extension _ = fold (SMT_Builtin.add_builtin_fun_ext'' o fst) cvc5_extension_table
+
+
+fun unfold_cvc5_extension ctxt = map (apsnd (Conv.fconv_rule (unfold_cvc5_extension_conv ctxt)))
+
+end
+
+
 
 (** embedding of standard natural number operations into integer operations **)
 
@@ -346,7 +383,7 @@ local
 
   val nat_int_thm = Thm.symmetric (mk_meta_eq @{thm nat_int})
   val nat_int_comp_thms = map mk_meta_eq @{thms nat_int_comparison}
-  val int_ops_thms = map mk_meta_eq @{thms int_ops}
+  fun int_ops_thms ctxt = map mk_meta_eq (Named_Theorems.get ctxt \<^named_theorems>\<open>int_ops\<close>)
   val int_if_thm = mk_meta_eq @{thm int_if}
 
   fun if_conv cv1 cv2 = Conv.combination_conv (Conv.combination_conv (Conv.arg_conv cv1) cv2) cv2
@@ -357,21 +394,38 @@ local
         Conv.rewr_conv int_if_thm then_conv
         if_conv (cv ctxt) (int_ops_conv cv ctxt)
     | \<^Const>\<open>of_nat \<^Type>\<open>int\<close> for _\<close> =>
-        (Conv.rewrs_conv int_ops_thms then_conv
+        (Conv.rewrs_conv (int_ops_thms ctxt) then_conv
           Conv.top_sweep_conv (int_ops_conv cv) ctxt) else_conv
         Conv.arg_conv (Conv.sub_conv cv ctxt)
     | _ => Conv.no_conv) ct
 
   val unfold_nat_let_conv = Conv.rewr_conv @{lemma "Let (n::nat) f \<equiv> f n" by (rule Let_def)}
   val drop_nat_int_conv = Conv.rewr_conv (Thm.symmetric nat_int_thm)
+  val int_nat_thm = (mk_meta_eq @{thm SMT.H1(1)})
+  val trace = true
 
   fun nat_to_int_conv ctxt ct = (
+      (fn x => (@{print}("begin 0",x);Conv.all_conv x)) then_conv
+
     Conv.top_conv (K (Conv.try_conv unfold_nat_let_conv)) ctxt then_conv
+      (fn x => (@{print}("unfolded lets",x);Conv.all_conv x)) then_conv
+
+    Conv.top_conv (K (Conv.try_conv ( Conv.rewr_conv @{thm alethe_nat_embedding_all}))) ctxt then_conv
+      (fn x => (@{print}("begin 2",x);Conv.all_conv x)) then_conv
+
     Conv.top_sweep_conv nat_conv ctxt then_conv
+      (fn x => (@{print}("begin 3",x);Conv.all_conv x)) then_conv
+
     Conv.top_conv (K (Conv.try_conv drop_nat_int_conv)) ctxt) ct
 
   and nat_conv ctxt ct = (
-      Conv.rewrs_conv (nat_int_thm :: nat_int_comp_thms) then_conv
+      (fn x => (@{print}("x",x);Conv.all_conv x)) then_conv
+    Conv.every_conv
+   [(fn x => (@{print}("start",x);Conv.all_conv x)),
+      (Conv.rewrs_conv (nat_int_thm :: nat_int_comp_thms)),
+     (fn x => (@{print}("after first rewrite",x);Conv.all_conv x)),
+      Conv.try_conv(Conv.rewrs_conv ( @{thm SMT.int_ops(3)[symmetric]} :: @{thm of_nat_numeral}:: [int_nat_thm])),
+     (fn x => (@{print}("after second rewrite",x);Conv.all_conv x))] then_conv
       Conv.top_sweep_conv (int_ops_conv nat_to_int_conv) ctxt) ct
 
   fun add_int_of_nat vs ct cu (q, cts) =
@@ -387,16 +441,16 @@ local
         let val (cu1, cu2) = Thm.dest_comb ct
         in f vs cu1 cu2 #> add_apps f vs cu1 #> add_apps f vs cu2 end
     | Abs _ =>
-        let val (cv, cu) = Thm.dest_abs_global ct
+        let val (cv, cu) = Thm.dest_abs_global ct |> @{print}
         in add_apps f (Thm.term_of cv :: vs) cu end
     | _ => I)
 
   val int_thm = @{lemma "(0::int) <= int (n::nat)" by simp}
-  val nat_int_thms = @{lemma
+  val nat_int_thms = [@{lemma
     "\<forall>n::nat. (0::int) <= int n"
-    "\<forall>n::nat. nat (int n) = n"
-    "\<forall>i::int. int (nat i) = (if 0 <= i then i else 0)"
-    by simp_all}
+      by simp_all}]
+(*"\<forall>n::nat. nat (int n) = n"
+    "\<forall>i::int. int (nat i) = (if 0 <= i then i else 0)"*)
   val var = Term.dest_Var (Thm.term_of (funpow 3 Thm.dest_arg (Thm.cprop_of int_thm))) 
 in
 
@@ -404,9 +458,9 @@ fun nat_as_int_conv ctxt = SMT_Util.if_exists_conv is_nat_const (nat_to_int_conv
 
 fun add_int_of_nat_constraints thms =
   let val (q, cts) = fold (add_apps add_int_of_nat [] o Thm.cprop_of) thms (false, [])
-      (*val _ = @{print}("thms",thms)
+      val _ = @{print}("thms",thms)
       val _ = @{print}("q",q)
-      val _ = @{print}("cts",cts)*)
+      val _ = @{print}("cts",cts |> map Thm.term_of)
 
   in
     if q then (thms, nat_int_thms)
@@ -488,6 +542,7 @@ fun get_unfold_monomorph ctxt =
   end
 
 fun unfold_conv ctxt =
+  unfold_cvc5_extension_conv ctxt then_conv
   rewrite_case_bool_conv ctxt then_conv
   unfold_abs_min_max_conv ctxt then_conv
   (get_unfold_conv ctxt) then_conv
@@ -557,13 +612,23 @@ fun monomorph ctxt xthms =
 
 end
 
+
 fun normalize ctxt wthms =
   wthms
   |> map_index (fn (n, (role, thm)) => ((n, role), thm))
+  |> unfold_cvc5_extension ctxt
+  |> @{print}
   |> gen_normalize ctxt
+  |> @{print}
+
   |> unfold_polymorph ctxt
+  |> @{print}
+
   |> monomorph ctxt
+  |> @{print}
+
   |> unfold_monomorph ctxt
+  |> @{print}
   |> apply_extra_norms ctxt
 
 val _ = Theory.setup (Context.theory_map (
@@ -572,6 +637,7 @@ val _ = Theory.setup (Context.theory_map (
   setup_trigger #>
   setup_case_bool #>
   setup_abs_min_max #>
-  setup_nat_as_int))
+  setup_nat_as_int
+  ))
 
 end;
