@@ -481,10 +481,11 @@ fun without_trueprop (Const ("HOL.Trueprop", _) $ t) = t |
 
 fun global_normalize ctxt ithms =
 let
+
   val _ = debug_msg ctxt middle (fn () => \<^print> ("ithms before conversion ",ithms))
   val ithms_without_role = map snd ithms
 
-  val goal_preproc = map (fn (a,b) => (a,preproc [] 0 (Thm.prop_of b |> @{print}))) ithms
+  val goal_preproc = map (fn (a,b) => (a,preproc [] 0 (Thm.prop_of b))) ithms
   val _ = debug_msg ctxt high (fn () => \<^print> ("preprocessed term to show ",goal_preproc))
 
   val ithms_preproc = map_index (fn (i,(a,it)) => (a, Goal.prove ctxt [] [] it (fn {context: Proof.context, ...}  => 
@@ -500,7 +501,7 @@ let
     THEN debug_msg_tac context high "end preprocessing"
     ))) goal_preproc
   val _ = debug_msg ctxt middle (fn () => \<^print> ("ithms after quantifier preprocessing ",ithms_preproc))
-
+val _ = @{print}("here")
   fun iterate_thms [] _ = raise (SMT_GLOBAL_NORMALIZE "no facts found") | 
     iterate_thms (x::xs) (ctxt',subst,odefs,odefs2,terms) =
       let

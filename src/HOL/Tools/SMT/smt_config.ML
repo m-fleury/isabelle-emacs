@@ -247,7 +247,7 @@ let
   val min = Config.get ctxt trace_expert_debug_alethe_level
 in
  if (min > 0 andalso min >= debug_to_int verbosity andalso (part = "all" orelse part = file))
- then (print_tac ctxt msg) else no_tac
+ then (print_tac ctxt msg) else TRY no_tac
 end
 
 
