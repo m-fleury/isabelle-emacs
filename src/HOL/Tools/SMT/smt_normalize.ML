@@ -439,27 +439,19 @@ local
   val trace = true
 
   fun nat_to_int_conv ctxt ct = (
-      (fn x => (@{print}("begin 0",x);Conv.all_conv x)) then_conv
 
     Conv.top_conv (K (Conv.try_conv unfold_nat_let_conv)) ctxt then_conv
-      (fn x => (@{print}("unfolded lets",x);Conv.all_conv x)) then_conv
 
     Conv.top_conv (K (Conv.try_conv ( Conv.rewr_conv @{thm alethe_nat_embedding_all}))) ctxt then_conv
-      (fn x => (@{print}("begin 2",x);Conv.all_conv x)) then_conv
 
     Conv.top_sweep_conv nat_conv ctxt then_conv
-      (fn x => (@{print}("begin 3",x);Conv.all_conv x)) then_conv
 
     Conv.top_conv (K (Conv.try_conv drop_nat_int_conv)) ctxt) ct
 
   and nat_conv ctxt ct = (
-      (fn x => (@{print}("x",x);Conv.all_conv x)) then_conv
     Conv.every_conv
-   [(fn x => (@{print}("start",x);Conv.all_conv x)),
-      (Conv.rewrs_conv (nat_int_thm :: nat_int_comp_thms)),
-     (fn x => (@{print}("after first rewrite",x);Conv.all_conv x)),
-      Conv.try_conv(Conv.rewrs_conv ( @{thm SMT.int_ops(3)[symmetric]} :: @{thm of_nat_numeral}:: [int_nat_thm])),
-     (fn x => (@{print}("after second rewrite",x);Conv.all_conv x))] then_conv
+   [(Conv.rewrs_conv (nat_int_thm :: nat_int_comp_thms)),
+      Conv.try_conv(Conv.rewrs_conv ( @{thm SMT.int_ops(3)[symmetric]} :: @{thm of_nat_numeral}:: [int_nat_thm]))] then_conv
       Conv.top_sweep_conv (int_ops_conv nat_to_int_conv) ctxt) ct
 
   fun add_int_of_nat vs ct cu (q, cts) =
@@ -651,7 +643,7 @@ end
 fun normalize ctxt wthms =
   wthms
   |> map_index (fn (n, (role, thm)) => ((n, role), thm))
-  |> unfold_cvc5_extension ctxt
+  |> (if SMT_Config.solver_of ctxt = "cvc5_proof" then unfold_cvc5_extension ctxt else (fn x => x))
   |> @{print}
   |> unfold_nat_native_ops ctxt
   |> @{print}
