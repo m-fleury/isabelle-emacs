@@ -329,7 +329,11 @@ fun delete_casts (@{term nat} $ x) = x |
     delete_casts x = x
 fun notNum x = x |> strip_comb |> fst |> (fn t => t <> @{term "Num.numeral_class.numeral"})
 fun add_cast [] [] = []|
-    add_cast (x::xs) (T::Ts) = (if T = @{typ nat} andalso fastype_of x = @{typ "int"} andalso notNum x then nat_cast $ x else x) :: add_cast xs Ts
+    add_cast (x::xs) (T::Ts) = 
+      (if T = @{typ int} andalso fastype_of x = @{typ "nat"} andalso notNum x 
+       then int_cast $ x 
+       else x)
+      :: add_cast xs Ts
      
 (*
 subst: mapping from function f to f' and f' s definition
@@ -375,7 +379,7 @@ fun
       (*int constants just added as an optimization*)
       if n = "Num.numeral_class.numeral" 
       then 
-        (ctxt,subst,odefs,odefs2,gamma,if T = @{typ "nat"} then list_comb (Const (n, @{typ "num \<Rightarrow> int"}), ts) else t)
+        (@{print}("numeral");(ctxt,subst,odefs,odefs2,gamma,if T = @{typ "nat"} then list_comb (Const (n, @{typ "num \<Rightarrow> int"}), ts) else t))
       else
       let
         (*transform arguments*)
@@ -387,16 +391,13 @@ fun
             transform_args ctxt3 sigma_o odefs_o odefs2_o gamma_o (u_o :: new_t) us
           end
         val (ctxt2,subst,odefs,odefs2,gamma,new_args) = transform_args ctxt subst odefs odefs2 gamma [] (rev ts)
-        (*val _ = debug_msg ctxt middle (fn () => \<^print> ("transformed arguments of f ",f))*)
+        val _ = debug_msg ctxt middle (fn () => \<^print> ("transformed arguments of f ",f))
     
         (*Calculate new type*)
         val T' = intify_type T
       in
-        (*Neither return type nor argument type is natural number*)
-        if T = T'
-        then (@{print}("return 1 ", list_comb (f,new_args));(ctxt2,subst,odefs,odefs2,gamma,list_comb (f,new_args)))
         (*Conversion operator skip*)
-        else if (List.exists (fn x => n = x)
+        if (List.exists (fn x => n = x)
            ["Int.nat", "Nat.semiring_1_class.of_nat"])
         then (@{print}("return 2 ", hd new_args);(ctxt2,subst,odefs,odefs2,gamma,hd new_args))
         (*Native operator. Should not be translated.*)
@@ -406,7 +407,19 @@ fun
             "Bit_Operations.semiring_bit_operations_class.xor",
             "Word.smt_extract",
             "HOL.implies", "HOL.If", "HOL.eq"])
-        then (@{print}("return 2 ", list_comb (f, add_cast new_args (fst (strip_type Ts))));(ctxt2,subst,odefs,odefs2,gamma,list_comb (f,add_cast new_args (fst (strip_type Ts)))))
+        then 
+          let
+            val _ = @{print}("strip_type Ts",strip_type Ts)
+            val _ = @{print}("Ts",new_args)
+            val _ = @{print}("T",T)
+            val (U,U2) = (strip_type Ts)
+            val res2 = list_comb (f, add_cast new_args U)
+            val res = (if (U2 = @{typ "nat"}) then nat_cast $ res2 else res2)
+            val _ = @{print}("return 2 ", res)
+          in (ctxt2,subst,odefs,odefs2,gamma,res) end
+        (*Neither return type nor argument type is natural number*)
+        else if T = T'
+        then (@{print}("return 1 ", list_comb (f,new_args));(ctxt2,subst,odefs,odefs2,gamma,list_comb (f,new_args)))
         (*New operator needs to be added*)
         else
           let
