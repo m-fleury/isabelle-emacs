@@ -199,4 +199,100 @@ cvc5_rare "BV_Rewrites_Simplification.rewrite_bv_ashr_zero"
 cvc5_rare "BV_Rewrites_Simplification.rewrite_bv_xor_concat_pullup"
 
 
+declare[[smt_expert_debug_alethe_files="smt_global_normalize"]]
+declare[[smt_expert_debug_alethe_level=3]]
+
+(*
+Problem, power is translated differently depending on type of 
+first argument
+
+if nat/int & first arg is 2 \<Rightarrow> natively to ints.pow2
+if nat/int otherwise \<Rightarrow> uninterpreted function
+
+if word & first arg is 2 \<Rightarrow> natively to shift
+
+Otherwise, uninterpreted function
+
+\<Rightarrow> This would require checking during normalization :(
+We are already checking for a name but this makes everything more complicated
+
+*)
+
+
+
+
+
+
+
+
+
+
+
+
+
+ML \<open>
+val x = @{term "1::3 word"} 
+val y = @{typ "8 itself"} 
+val x = @{term "Word.Word 3"}
+val z = @{typ  "int \<Rightarrow> 3 word"} |> Term.dest_funT |> snd |> dest_wordT
+val y = @{typ "8 itself"} |> Term.dest_Type |> snd |> hd |> dest_binT
+
+\<close>
+
+ML \<open>
+(*al x =
+   Const ("Word.Word", "int \<Rightarrow> 3 word") $
+     (Const ("Num.numeral_class.numeral", "num \<Rightarrow> int") $
+       (Const ("Num.num.Bit0", "num \<Rightarrow> num") $
+         (Const ("Num.num.Bit0", "num \<Rightarrow> num") $
+           (Const ("Num.num.Bit0", "num \<Rightarrow> num") $ Const ("Num.num.One", "num"))))):
+   term
+val y =
+   Const ("Num.numeral_class.numeral", "num \<Rightarrow> 3 word") $
+     (Const ("Num.num.Bit0", "num \<Rightarrow> num") $
+       (Const ("Num.num.Bit0", "num \<Rightarrow> num") $
+         (Const ("Num.num.Bit0", "num \<Rightarrow> num") $ Const ("Num.num.One", "num")))):
+   term*)
+val x = @{term "Word.Word 8:: 3 word"}
+val y = @{term "(8::3 word)"}
+
+\<close>
+
+value "(2::8 word) ^ 3"
+lemma "(2::8 word) ^ 3 = 8"
+  supply[[smt_trace]]
+  apply (smt (cvc5))
+
+(*
+TODO: Ask during proofs meeting about this
+
+  (assert (! (not (= #b000 (_ bv0 3))) :named a0))
+  (assume a0 (! (not (! (= #b000 #b000) :named @p_1)) :named @p_2))
+
+Is there a problem in cvc5, alethe or is this okay and should
+be solved in Isabelle?
+
+Goal is translated into
+  Word.Word (8::int) \<noteq> (8::3 word)
+
+I should rather translate both into the same...
+Should this be done during normalization? Then, the translation
+of power needs to be adapted but that is okay. But also makes it
+harder for other programmers.
+Could be done during translation
+*)
+lemma "Word.Word 8 = (8::3 word)"
+  supply[[smt_trace]]
+  apply (smt (cvc5))
+
+lemma "(2::3 word) ^ 3 = 8"
+  supply[[smt_trace]]
+  apply (smt (cvc5))
+
+
+
+
+
+
+
 end

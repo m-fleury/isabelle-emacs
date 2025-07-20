@@ -86,7 +86,7 @@ local
 
   fun mk_shift c [t,u] =
 (case try HOLogic.dest_number u of
-NONE => (@{print}("u",u);Const c $ mk_nat ( (HOLogic.dest_numeral u)) $ t) |
+NONE => (@{print}("u",u);Const c $ u $ t) |
 SOME _ =>  (@{print}("u",u);Const c $ mk_nat (snd (HOLogic.dest_number u)) $ t))
     | mk_shift c ts = raise TERM ("bad arguments", Const c :: ts)
   fun mk_shift_numeral c [u, t] = (@{print}("u",u);@{print}("t",t);Const c $ mk_nat (HOLogic.dest_numeral u) $ t)
@@ -114,6 +114,7 @@ SOME _ =>  (@{print}("u",u);Const c $ mk_nat (snd (HOLogic.dest_number u)) $ t))
 
           in
           SOME (n, 2, [hd (tl ts), HOLogic.mk_number U i], mk_shift (m, T)) end
+      |  (true, NONE) => SOME (n, 2, [hd (tl ts), hd ts], mk_shift (m, T))
       | _ => NONE)   (* FIXME: also support non-numerical shifts *)
     end
 
@@ -531,25 +532,63 @@ Das vierte ist ein Term
           else NONE
       | _ => NONE)
     end
-  fun mk_extend c ts = Term.list_comb (Const c, ts)
+  fun mk_extend (m,T) ts = Term.list_comb (Const (m,T),ts)
 
+  fun remove_cast (@{term "nat"} $ t) = t|
+      remove_cast t = t
+
+(*
+Wird zweimal uebersetzt wie alles...
+*)
   fun power m n T ts =
     let
-     (* val _ = @{print}("m",m)
+      val _ = @{print}("m",m)
       val _ = @{print}("n",n)
       val _ = @{print}("T",T)
-      val _ = @{print}("ts",ts)*)
+      val _ = @{print}("ts",ts)
 
       val (U1, U2) = Term.dest_funT T
-      (*val _ = @{print}("U1",U1)
-      val _ = @{print}("U2",U2)*)
+      val _ = @{print}("U1",U1)
+      val _ = @{print}("U2",U2)
+      val bitwidth = U1  |> Term.dest_Type |> snd |> hd |> dest_binT
+      val _ = @{print}("bitwidth",bitwidth)
+      val wordT = mk_wordT bitwidth
+      val one = Const("Groups.one_class.one",wordT)
+      (*val shift_amount = Const ("Word.Word", @{typ "int"} --> wordT) $ (nth ts 1)*)
+      val t1 = nth ts 1
+      val (t2 $ t3) = t1
+      val _ = @{print}("t1",t1)
+      val shift_amount = Const ("Num.numeral_class.numeral", @{typ "num"} --> wordT) $ t3
+      val _ = @{print}("shift_amount",shift_amount)
+
+
+     (* val _ = @{print}("HOLogic.dest_number (remove_cast (nth ts 1))",HOLogic.dest_number (remove_cast (nth ts 1)))
+*)
+    in
+  
+         (@{print}("worked");SOME ("bvshl", 2, [one,shift_amount], (fn _ =>  mk_extend (m,T) ts) ))
+    end
+
+  fun word_constructor m n T [t1] =
+    let
+      val (U1, U2) = Term.dest_funT T
+      val bitwidth = U2 |> dest_wordT
+
+      (*Possibility 1: Transform int to bit-string*)
+      (*
+      val (_,i) = HOLogic.dest_number t1
+      val i2 = Integer.radicify 2 bitwidth i 
+      val i3 = i2|> map Int.toString |> String.concatWith ""
+      (SOME ("#b" ^ i3, 0, [], (fn _ =>  mk_extend (m,T) [t1]) ))*)
+
+      (*Possibility 2: Translate into (value::bitwidth word)*)
+      val (t2 $ t3) = t1
+      val _ = @{print}("t1",t1)
+      val t4 = Const ("Num.numeral_class.numeral", @{typ "num"} --> U2) $ t3
 
     in
-      (case (try dest_wordT U1, try dest_wordT U2) of
-        (SOME i, SOME j) =>
-          if j-i >= 0 then SOME (index1 n (j-i), 1, ts, mk_extend (m, T))
-          else NONE
-      | _ => NONE)
+  
+         (SOME ("", 1, [t4], (fn t => hd t)))
     end
 
   fun mk_rotate c i ts = Term.list_comb (Const c, mk_nat i :: ts)
@@ -675,8 +714,12 @@ val setup_builtins =
     (\<^term>\<open>bit :: 'a::len word \<Rightarrow> _ \<Rightarrow> _\<close>, "bit")
    ] #>*)
   add_word_fun extract
-    (\<^term>\<open>smt_extract :: _ \<Rightarrow> _ \<Rightarrow> 'a::len word \<Rightarrow> _\<close>, "extract") 
+    (\<^term>\<open>smt_extract :: _ \<Rightarrow> _ \<Rightarrow> 'a::len word \<Rightarrow> _\<close>, "extract") #>
 
+  (*Const ("Word.Word", "int \<Rightarrow> 3 word") $
+          (Const ("Num.numeral_class.numeral", "num \<Rightarrow> int") $*)
+  add_word_fun word_constructor
+    (\<^term>\<open>Word.Word :: int \<Rightarrow> 'a::len word\<close>, "") 
 
  (*#>
   fold (add_word_fun bit_word) [
@@ -686,8 +729,11 @@ val setup_builtins =
 
  #>
   fold (add_word_fun power) [
-    (\<^term>\<open>power :: 'a::len word \<Rightarrow> _ \<Rightarrow> _\<close>, "^")
+    (\<^term>\<open>pow_2_word :: _ \<Rightarrow> _ \<Rightarrow> _\<close>, "^")
+   
+
    ]
+
 (*(bit$ w$ n$)*)
 
 
