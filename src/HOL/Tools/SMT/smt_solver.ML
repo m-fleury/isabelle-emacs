@@ -56,6 +56,9 @@ end;
 structure SMT_Solver: SMT_SOLVER =
 struct
 
+open SMT_Config
+fun debug_msg ctxt = alethe_debug_msg ctxt "smt_solver"
+
 (* interface to external solvers *)
 
 local
@@ -274,13 +277,15 @@ fun apply_solver_and_replay ctxt thms0 =
   let
     val thms = map (pair SMT_Util.Axiom o check_topsort ctxt) thms0
     val (name, {command, smt_options, replay, ...}) = name_and_info_of ctxt
-    val _ = @{print}("thms0",thms0)
+    val _ = debug_msg ctxt low (fn () => \<^print> ("set of theorems before normalization:",thms0))
 
     val norm_thms = SMT_Normalize.normalize ctxt thms
-    val _ = @{print}("norm_thms",norm_thms)
+    val _ = debug_msg ctxt low (fn () => \<^print> ("set of theorems after normalization:",norm_thms))
+
     (*We might end up not needing beta seperately*)
     val (norm_thms,beta,ctxt_nats) =
       if Config.get ctxt (SMT_Config.nat_as_int) then SMT_Global_Normalize.global_normalize ctxt norm_thms else (norm_thms,[],ctxt)
+    val _ = debug_msg ctxt low (fn () => \<^print> ("set of theorems after nat embedding normalization:",norm_thms))
 
     (*TODO: Add names from global normalization to terms symtab that is part of replaydata *)
     val (output, replay_data) =
