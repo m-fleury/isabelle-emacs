@@ -371,7 +371,8 @@ end
 (*NOTE: Might be integrated into one of the other passes eventually. However, needs to be run before
 the run that pushes the ints in*)
 fun nat_native_ops_table ctxt = [
-  (\<^const_name>\<open>power\<close>, (Named_Theorems.get ctxt \<^named_theorems>\<open>pow_2_word\<close>, K true))] (*lemma already ensures the condition*)
+  (\<^const_name>\<open>power\<close>, (Named_Theorems.get ctxt \<^named_theorems>\<open>pow_2_word\<close>, K true)),(*lemma already ensures the condition*)
+  ("Bit_Operations.semiring_bit_operations_class.push_bit", (Named_Theorems.get ctxt \<^named_theorems>\<open>push_bit_lift\<close>, K true))] 
 
 local
   fun extension ctxt (Const (n,_)) ct =
@@ -644,20 +645,11 @@ fun normalize ctxt wthms =
   wthms
   |> map_index (fn (n, (role, thm)) => ((n, role), thm))
   |> (if SMT_Config.solver_of ctxt = "cvc5_proof" then unfold_cvc5_extension ctxt else (fn x => x))
-  |> @{print}
   |> unfold_nat_native_ops ctxt
-  |> @{print}
   |> gen_normalize ctxt
-  |> @{print}
-
   |> unfold_polymorph ctxt
-  |> @{print}
-
   |> monomorph ctxt
-  |> @{print}
-
   |> unfold_monomorph ctxt
-  |> @{print}
   |> apply_extra_norms ctxt
 
 val _ = Theory.setup (Context.theory_map (
