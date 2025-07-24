@@ -216,6 +216,7 @@ fun pretty_tree (Num i) = Pretty.str (string_of_int i)
       |> Pretty.str
   | pretty_tree (Sym s) =
       if String.isPrefix "(" s (* for bit vector functions *) orelse
+         String.isPrefix "#b" s (* for bit vector constants *) orelse
          forall is_sym (raw_explode s) then
         Pretty.str s
       else
