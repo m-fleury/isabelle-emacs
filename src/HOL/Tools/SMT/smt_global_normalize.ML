@@ -70,6 +70,29 @@ and
   preproc bounds i (t1 $ t2) = preproc bounds i t1 $ preproc bounds i t2 |
   preproc _ _ t = t
 
+
+(*Mostly copied from Obtain.result except for call to Variable.focus_cterm (we want to name the new
+variable ourselves *)
+fun result2 tac n facts ctxt =
+  let
+    val ((thesis_var, thesis), thesis_ctxt) = Obtain.obtain_thesis ctxt;
+    val st = Goal.init (Thm.cterm_of ctxt thesis);
+    val rule =
+      (case SINGLE (Method.insert_tac thesis_ctxt facts 1 THEN tac thesis_ctxt) st of
+        NONE => raise THM ("Obtain.result: tactic failed", 0, facts)
+      | SOME th =>
+          Obtain.check_result thesis_ctxt thesis (Raw_Simplifier.norm_hhf thesis_ctxt (Goal.conclude th)));
+
+    val closed_rule = Thm.forall_intr (Thm.cterm_of ctxt (Free thesis_var)) rule;
+    val ((_, [rule']), ctxt') = Variable.import false [closed_rule] ctxt;
+    val obtain_rule =
+      Thm.forall_elim (Thm.cterm_of ctxt (Logic.varify_global (Free thesis_var))) rule';
+    val ((params, stmt), fix_ctxt) = Variable.focus_cterm (SOME [(Binding.name n)]) (Thm.cprem_of obtain_rule 1) ctxt';
+    val (prems, ctxt'') =
+      Assumption.add_assms (Obtain.obtain_export fix_ctxt obtain_rule (map #2 params))
+        (Drule.strip_imp_prems stmt) fix_ctxt;
+  in ((params, prems), ctxt'') end;
+
 (*
 Currently, this first shows
  \<exists>lift_foo. \<forall>lb0. foo lb0 = nat (lift_foo (int lb0)) \<and> 0 \<le> lift_foo (int lb0) 
@@ -79,7 +102,8 @@ and then shows
 TODO: This should be done in one step instead
 
 *)
-fun obtain_new_variable ctxt new_var_cond lambda_term =
+
+fun obtain_new_variable ctxt new_var_name new_var_cond lambda_term =
 let
   val _ = debug_msg ctxt low (fn () => \<^print> ("Condition for new variable ",new_var_cond))
 
@@ -101,7 +125,8 @@ let
    fun tactic_to_obtain ctxt = (debug_msg_tac ctxt high "extract new variable") THEN  HEADGOAL (eresolve_tac ctxt @{thms exE})
  THEN (debug_msg_tac ctxt high "should be solved by now") (*THEN HEADGOAL (Skip_Proof.cheat_tac ctxt)*)
    val (res, ctxt1) =
-       Obtain.result (tactic_to_obtain) [ex] ctxt |> @{print}
+       result2 (tactic_to_obtain) new_var_name [ex] ctxt |> @{print}
+
 
    val (x, B) = res |> apfst (snd o the_single) |> apsnd the_single
      handle List.Empty => raise (SMT_GLOBAL_NORMALIZE "Could not obtain all lifted variables") 
@@ -126,7 +151,7 @@ let
              $ new_t_ge_0)
   val _ = debug_msg ctxt low (fn () => \<^print> ("Condition for new variable ",x_cond))
 
-  val (ctxt1,c_x,B) = obtain_new_variable ctxt x_cond new_t
+  val (ctxt1,c_x,B) = obtain_new_variable ctxt x' x_cond new_t
   val x = Thm.term_of c_x  
   val subst = Termtab.update (t,(x,B)) subst
   val new_t_ge_0_2 = mkLeTerm x
@@ -295,7 +320,8 @@ let
     \<exists>f'. \<forall>x1...xn. f x1' ... xn' = (f' x1' ... xn')
   *)
   val f_cond = HOLogic.mk_exists (n,T',forall_term)
-  val (ctxt1,x,B) = obtain_new_variable ctxt f_cond lambda_term
+
+  val (ctxt1,x,B) = obtain_new_variable ctxt n f_cond lambda_term
   
   (* Now show:
        f ?x1' ... ?xn' = (nat (f' ?x1' ... ?xn')) \<and> (f' ?x1' ... ?xn') \<ge> 0
