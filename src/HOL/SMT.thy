@@ -162,8 +162,10 @@ lemma int_if:
   shows "int (if P then a else b) = (if P then int a else int b)"
   by simp
 
-named_theorems pow_2_word \<open>power on word should be translated natively\<close>
-
+named_theorems pow_2_word \<open>power on words should be translated natively\<close>
+named_theorems push_bit_lift \<open>push_bit on words should be translated natively\<close>
+named_theorems drop_bit_lift \<open>drop_bit on words should be translated natively\<close>
+named_theorems take_bit_lift \<open>take_bit on words should be translated natively\<close>
 
 subsection \<open>Integer division and modulo for Z3\<close>
 
@@ -909,8 +911,9 @@ lemma H_nat_embedding: \<open>x \<ge> 0 \<Longrightarrow> int (nat x) = x\<close
   by simp
 
 
+named_theorems nat_normalized_input \<open>Theorems required to replay nat operators embedded into lifted int versions\<close>
 named_theorems cvc5_normalized_input \<open>Theorems required to replay
-our more complicated translation\<close>
+our more complicated translations\<close>
 
 named_theorems cvc5_holes_simp \<open>Simplification theorems for holes\<close>
 named_theorems cvc5_holes_pre \<open>Theorems applied for holes\<close>
