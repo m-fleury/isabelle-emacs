@@ -62,8 +62,8 @@ and
      (Const("HOL.All",intify_type T)) $ preproc_abs bounds i t T HOLogic.mk_imp |
   preproc bounds i (Const("HOL.Ex",T) $ t) =
       (Const("HOL.Ex",intify_type T)) $ preproc_abs bounds i t T HOLogic.mk_conj |
-  (*preproc bounds i (t as (@{term "int"} $ Bound k))
-     = (if List.exists (fn x => (i-x-1) = k) bounds then Bound k else t) |*)
+  preproc bounds i (t as (@{term "int"} $ Bound k))
+     = (if List.exists (fn x => (i-x-1) = k) bounds then Bound k else t) |
   preproc bounds i (t as Bound k)
      = (if List.exists (fn x => (i-x-1) = k) bounds then @{term "nat"} $ t else t) |
   preproc bounds i (Abs(var_name,T,t1)) = (Abs(var_name,T,preproc bounds i t1)) |
@@ -172,8 +172,8 @@ in
   B'
 end
 
-fun arg_with_casts (t,a) = (if fastype_of t = @{typ nat} andalso fastype_of a = @{typ int} then @{term "nat"} $ a else a)
-  handle TERM ("fastype_of: Bound",_) => t
+fun arg_with_casts (t,a) = (if is_Bound t orelse is_Bound a then a else
+  (if fastype_of t = @{typ nat} andalso fastype_of a = @{typ int} then @{term "nat"} $ a else a))
 
 fun args_with_casts ts args = map arg_with_casts (ListPair.zipEq (ts,args))
   handle ListPair.UnequalLengths => raise SMT_GLOBAL_NORMALIZE("corrupted function arguments")
@@ -225,7 +225,7 @@ local
   (* f', [x1, ..., xn] \<mapsto> f' x1' ... xn'*)
   fun mk_f'_xs' f' xs =
   let
-    val xs' = map (fn xi => (if fastype_of xi = @{typ "nat"} then int_cast $ xi else xi)) xs
+    val xs' = map (fn xi => (if is_Bound xi then xi else (if fastype_of xi = @{typ "nat"} then int_cast $ xi else xi))) xs
   in list_comb (f', xs') end
 
   (* f' x1' ... xn' \<mapsto> g x1' ... xn' *)
@@ -254,7 +254,8 @@ local
                                             yi = xi, otherwise *)
   fun mk_nat_f f xs =
   let
-    val xs' = map (fn xi => (if fastype_of xi = @{typ "nat"} then nat_cast $ intify_var xi else xi)) xs
+
+    val xs' = map (fn xi => (if is_Bound xi then xi else (if fastype_of xi = @{typ "nat"} then nat_cast $ intify_var xi else xi))) xs
     val f_t = mk_f_xs f xs'
   in f_t end
 
@@ -362,7 +363,7 @@ fun add_cast [] [] [] = []|
       val _ = @{print}("T",T)*)
 
     in
-      (if Term.is_Bound y then x
+      (if Term.is_Bound y orelse Term.is_Bound x then x
        else
        if T = @{typ int} andalso fastype_of x = @{typ "nat"} andalso notNum x 
        then int_cast $ x 
@@ -446,9 +447,11 @@ fun
             (*val _ = @{print}("strip_type Ts",strip_type Ts)
             val _ = @{print}("Ts",new_args)
             val _ = @{print}("T",T)*)
+        val _ = debug_msg ctxt middle (fn () => \<^print> ("Here",f))
+
             val (U,U2) = (strip_type Ts)
             val res2 = list_comb (f, add_cast new_args ts U)
-            val res = (if (U2 = @{typ "nat"}) then nat_cast $ res2 else res2)
+            val res = (if (U2 = @{typ "nat"}) then int_cast $ res2 else res2)
           in (ctxt2,subst,odefs,odefs2,gamma,res) end
         (*Neither return type nor argument type is natural number*)
         else if T = T'
@@ -456,8 +459,12 @@ fun
         (*New operator needs to be added*)
         else
           let
+        val _ = debug_msg ctxt middle (fn () => \<^print> ("Here",f))
+
             val Tt = fastype_of t
             val retNat = (Tt = @{typ nat})
+        val _ = debug_msg ctxt middle (fn () => \<^print> ("Here",f))
+
           in
           (*Check if operator has already been translated*)
           (case Termtab.lookup subst f of
@@ -525,6 +532,7 @@ fun auto_tac ctxt cong_thm thms =
 fun without_trueprop (Const ("HOL.Trueprop", _) $ t) = t | 
     without_trueprop t = t
 
+
 fun global_normalize ctxt ithms =
 let
 
@@ -567,6 +575,8 @@ let
   val ithms3 = map_index (fn (i,(a,it)) => (a, Goal.prove ctxt' [] [] it (fn {context: Proof.context, ...}  => 
   debug_msg_tac context high "processing"
   THEN TRY (HEADGOAL (Method.insert_tac context [(snd (nth ithms_preproc i))]))
+  THEN (debug_msg_tac context high "processing 0")
+
   THEN TRY (HEADGOAL (Method.insert_tac context (nth odefs2 i)))
   THEN (debug_msg_tac context high "processing 0")
   (*THEN TRY (HEADGOAL (dresolve_tac context [(Drule.infer_instantiate' context [NONE,SOME (@{cterm "0::nat"})] @{thm spec})|> @{print}]))*)
@@ -602,7 +612,7 @@ let
 
          THEN (debug_msg_tac context high "processing end")
  )))) new_ithms_as_terms
-
+handle (ERROR _) => raise (SMT_GLOBAL_NORMALIZE "Could not proof lifted form") 
 
 
 in
