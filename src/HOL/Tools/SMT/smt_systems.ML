@@ -8,6 +8,8 @@ signature SMT_SYSTEMS =
 sig
   val cvc_extensions: bool Config.T
   val z3_extensions: bool Config.T
+  val smt_method: (string option * string option) * thm list ->
+      Proof.context -> thm list -> tactic
 end;
 
 structure SMT_Systems: SMT_SYSTEMS =
@@ -26,9 +28,19 @@ fun check_tool var () =
       if File.is_file (Path.variable var |> Path.expand |> Path.platform_exe)
       then SOME [s] else NONE);
 
-fun make_avail name () = getenv (name ^ "_SOLVER") <> ""
+(*_PROOF_SOLVER is a temporary addition for external testers to avoid them having to overwrite their path*)
+fun make_avail name () =
+   getenv (name ^ "_PROOF_SOLVER") <> "" orelse getenv (name ^ "_SOLVER") <> ""
 
-fun make_command name () = [getenv (name ^ "_SOLVER")]
+fun make_command name () =
+let
+  val alternative_path = getenv (name ^ "_PROOF_SOLVER")
+in
+  if alternative_path <> ""
+  then
+    [alternative_path]
+  else [getenv (name ^ "_SOLVER")]
+end
 
 fun outcome_of unsat sat unknown timeout solver_name line =
   if String.isPrefix unsat line then SMT_Solver.Unsat
