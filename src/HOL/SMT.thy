@@ -162,10 +162,17 @@ lemma int_if:
   shows "int (if P then a else b) = (if P then int a else int b)"
   by simp
 
+(*Int lifting*)
 named_theorems pow_2_word \<open>power on words should be translated natively\<close>
 named_theorems push_bit_lift \<open>push_bit on words should be translated natively\<close>
 named_theorems drop_bit_lift \<open>drop_bit on words should be translated natively\<close>
 named_theorems take_bit_lift \<open>take_bit on words should be translated natively\<close>
+named_theorems length_lift \<open>LENGTH should be translated natively\<close>
+
+(*Simplification*)
+named_theorems smt_word_len_evaluate \<open>LENGTH should be evaluated if possible\<close>
+named_theorems Word_of_int \<open>Word.Word should be translated to of_int\<close>
+
 
 subsection \<open>Integer division and modulo for Z3\<close>
 
