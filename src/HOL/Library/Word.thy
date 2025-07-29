@@ -4527,6 +4527,10 @@ lemma [smt_word_len_evaluate]:
 lemmas [smt_word_len_evaluate] = eq_reflection[OF len_bit0] eq_reflection[OF len_bit1]
   eq_reflection[OF len_num0] eq_reflection[OF len_num1]
 
+lemma [Word_of_int]:
+  "Word.Word x \<equiv> of_int x"
+  by simp
+
 
 (*
 Lifting from operators that should be natively translated into SMT-LIB that take in natural numbers
