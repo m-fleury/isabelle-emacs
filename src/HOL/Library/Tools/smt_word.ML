@@ -17,6 +17,22 @@ struct
 open Word_Lib
 
 
+(*This will be deleted eventually*)
+val trace = true
+fun debug_msg (x : unit -> 'a) =
+ if trace then ignore(x ()) else ()
+
+fun print_binary_info name m n T t1 t2 =
+  let
+      val _ = debug_msg (fn () => \<^print> ("------------------------"))
+      val _ = debug_msg (fn () => \<^print> ("Translate " ^ name))
+      val _ = debug_msg (fn () => \<^print> ("(m,n,T)",(m,n,T)))
+      val _ = debug_msg (fn () => \<^print> ("[t1,t2]",[t1,t2]))
+in () end
+
+
+
+
 (* SMT-LIB logic *)
 
 (* "QF_AUFBV" is too restrictive for Isabelle's problems, which contain aritmetic and quantifiers.
@@ -36,18 +52,14 @@ fun smtlib_logic "z3" ts _ =
 
 local
   val smtlibC = SMTLIB_Interface.bvsmtlibC
-     val _ = @{print}("in bv builtin")
-
   val wordT = \<^typ>\<open>'a::len word\<close>
-  val wordT_concrete = \<^typ>\<open>num \<Rightarrow> 'a::len word\<close>
-
   fun index1 s i = "(_ " ^ s ^ " " ^ string_of_int i ^ ")"
   fun index2 s i j = "(_ " ^ s ^ " " ^ string_of_int i ^ " " ^ string_of_int j ^ ")"
+  val mk_nat = HOLogic.mk_number \<^typ>\<open>nat\<close>
 
-  fun word_typ (Type (\<^type_name>\<open>word\<close>, [T]))
-    = Option.map (rpair [] o index1 "BitVec") (try dest_binT T) |
-  word_typ (Type (_, [T])) = Option.map (rpair [] o index1 "BitVec") (try dest_binT T) |
-  word_typ T = NONE
+  fun word_typ (Type (\<^type_name>\<open>word\<close>, [T]))= Option.map (rpair [] o index1 "BitVec") (try dest_binT T) |
+    word_typ (Type (_, [T])) = Option.map (rpair [] o index1 "BitVec") (try dest_binT T) |
+    word_typ _ = NONE
 
   fun remove_cast (Const ("Int.nat", _) $ x) = x |
       remove_cast x = x
@@ -55,68 +67,84 @@ local
   (*CVC4 does not support "_bvk T" when k does not fit in the BV of size T, so remove the bits that
    will be ignored according to the SMT-LIB*)
   fun word_num (Type (\<^type_name>\<open>word\<close>, [T])) k =
-        let
-          val size = try dest_binT T
-          fun max_int size = Integer.pow size 2
-        in
-          (case size of
-            NONE => NONE
-          | SOME size => SOME (index1 ("bv" ^ string_of_int (Int.rem(k, max_int size))) size))
-        end
-    | word_num _ _ = NONE
+  let
+    val size = try dest_binT T
+    fun max_int size = Integer.pow size 2
+  in
+    (case size of
+      NONE => NONE
+    | SOME size => SOME (index1 ("bv" ^ string_of_int (Int.rem(k, max_int size))) size))
+  end
+  | word_num _ _ = NONE
 
   fun if_fixed pred m n T ts =
     let val (Us, U) = Term.strip_type T
-        (*val _ = @{print}("m",m)
-        val _ = @{print}("n",n)*)
-
     in
       if pred (U, Us) then SOME (n, length Us, ts, Term.list_comb o pair (Const (m, T))) else NONE
     end
-
-  fun if_fixed_all m = if_fixed (forall (can dest_wordT) o (op ::)) m
-  fun if_fixed_args m = if_fixed (forall (can dest_wordT) o snd) m
 
   fun add_word_fun f (t, n) =
     let val m = dest_Const_name t
     in SMT_Builtin.add_builtin_fun smtlibC (Term.dest_Const t, K (f m n)) end
 
+  (* 1-1 translation*)
 
-  val mk_nat = HOLogic.mk_number \<^typ>\<open>nat\<close>
+  fun if_fixed_all m = if_fixed (forall (can dest_wordT) o (op ::)) m
+  fun if_fixed_args m = if_fixed (forall (can dest_wordT) o snd) m
+
+
+  (*shifts*)
 
   fun mk_shift c [t,u] =
-(case try HOLogic.dest_number u of
-NONE => (@{print}("u",u);Const c $ u $ t) |
-SOME _ =>  (@{print}("u",u);Const c $ mk_nat (snd (HOLogic.dest_number u)) $ t))
-    | mk_shift c ts = raise TERM ("bad arguments", Const c :: ts)
-  fun mk_shift_numeral c [u, t] = (@{print}("u",u);@{print}("t",t);Const c $ mk_nat (HOLogic.dest_numeral u) $ t)
+    (case try HOLogic.dest_number u of
+      NONE => Const c $ u $ t |
+      SOME _ => Const c $ mk_nat (snd (HOLogic.dest_number u)) $ t)
+  | mk_shift c ts = raise TERM ("bad arguments", Const c :: ts)
+
+  fun mk_shift_numeral c [u, t] = Const c $ mk_nat (HOLogic.dest_numeral u) $ t
     | mk_shift_numeral c ts = raise TERM ("bad arguments", Const c :: ts)
 
-  fun shift m n T ts =
+  fun shift m n T [t1,t2] =
     let
-      val _ = @{print}("------------------------")
+      val _ = print_binary_info "shift" m n T t1 t2
+      val U = Term.domain_type (Term.range_type T)
+      val T1' = @{typ "nat"} --> U |> @{print}
+      val T' = U --> U --> U
+      val cast = Const("Word.word_of_int",T1')
+    in
+      (case (can dest_wordT U, try (snd o HOLogic.dest_number) t1) of
+        (true, SOME i) => (*first arg is constant nat*)
+          SOME (n, 2, [t2, HOLogic.mk_number U i], mk_shift (m, T)) 
+(*Add unsigned and then check whether unsigned has already been added*)
+      | (true, NONE) => (SOME (n, 2, [t2,cast $ t1], mk_shift (m, T')))
+          
+      | _ => NONE
+      )
+    end
+     | shift _ _ _ _ = NONE
 
-      val _ = @{print}("m",m)
-      val _ = @{print}("n",n)
-      val _ = @{print}("T",T)
-      val _ = @{print}("ts",ts)
-      val ts = ts |> map (fn (Const ("Int.nat", _) $ x) => x | x => x) 
+
+  fun shift_lift m n T [t1,t2] =
+    let
+      val _ = print_binary_info "shift lift" m n T t1 t2
 
       val U = Term.domain_type (Term.range_type T)
-      val _ = @{print}("U",U)
-
+      val T1 = fastype_of t1
+        handle (TERM _) => @{typ "int"}
+      val T1' = @{typ "int"} --> U |> @{print}
+      val T' = U --> U --> U
+      val cast = Const("Word.of_int",T1')
     in
-      (case (can dest_wordT U, try (snd o HOLogic.dest_number o hd) ts) of
-        (true, SOME i) =>
-          let 
-            val _ = @{print}("i",i)
-            val _ = @{print}("[hd (tl ts), HOLogic.mk_number U i]",[hd (tl ts), HOLogic.mk_number U i])
-
-          in
-          SOME (n, 2, [hd (tl ts), HOLogic.mk_number U i], mk_shift (m, T)) end
-      |  (true, NONE) => SOME (n, 2, [hd (tl ts), hd ts], mk_shift (m, T))
-      | _ => NONE)   (* FIXME: also support non-numerical shifts *)
+      (case (can dest_wordT U, try (snd o HOLogic.dest_number) t1,T1) of
+        (true, SOME i,_) => (*first arg is constant int*)
+          SOME (n, 2, [t2, HOLogic.mk_number U i], mk_shift (m, T))
+      | (true, NONE,@{typ "int"}) => (SOME (n, 2, [t2,cast $ t1], fn [t1,t2] => Const (m,T)  $ t1 $ t2))
+      | (true, NONE,_) => (SOME (n, 2, [t2,t1], mk_shift (m, T)))
+      | _ => NONE
+      )
     end
+     | shift_lift _ _ _ _ = NONE
+
 
   fun mk_shift' c [t, u] = Const c $ t $ mk_nat (snd (HOLogic.dest_number u))
     | mk_shift' c ts = raise TERM ("bad arguments", Const c :: ts)
@@ -537,6 +565,8 @@ Das vierte ist ein Term
   fun remove_cast (@{term "nat"} $ t) = t|
       remove_cast t = t
 
+  fun is_numeral x = try HOLogic.dest_numeral x
+
 (*
 Wird zweimal uebersetzt wie alles...
 *)
@@ -558,7 +588,10 @@ Wird zweimal uebersetzt wie alles...
       val t1 = nth ts 1
       val (t2 $ t3) = t1
       val _ = @{print}("t1",t1)
-      val shift_amount = Const ("Num.numeral_class.numeral", @{typ "num"} --> wordT) $ t3
+      val shift_amount =
+        (case is_numeral t3 of
+          NONE => @{term "unsigned"} $ t3 |
+          SOME _ => Const ("Num.numeral_class.numeral", @{typ "num"} --> wordT) $ t3)
       val _ = @{print}("shift_amount",shift_amount)
 
 
@@ -572,24 +605,55 @@ Wird zweimal uebersetzt wie alles...
   fun word_constructor m n T [t1] =
     let
       val (U1, U2) = Term.dest_funT T
-      val bitwidth = U2 |> dest_wordT
 
       (*Possibility 1: Transform int to bit-string*)
       (*
+      val bitwidth = U2 |> dest_wordT
+
       val (_,i) = HOLogic.dest_number t1
       val i2 = Integer.radicify 2 bitwidth i 
       val i3 = i2|> map Int.toString |> String.concatWith ""
       (SOME ("#b" ^ i3, 0, [], (fn _ =>  mk_extend (m,T) [t1]) ))*)
 
       (*Possibility 2: Translate into (value::bitwidth word)*)
-      val (t2 $ t3) = t1
+      (*val (t2 $ t3) = t1
       val _ = @{print}("t1",t1)
       val t4 = Const ("Num.numeral_class.numeral", @{typ "num"} --> U2) $ t3
+       (SOME ("", 1, [t4], (fn t => hd t)))*)
+
+
+      (*Possibility 3: Translate into nat2bv*)
 
     in
   
-         (SOME ("", 1, [t4], (fn t => hd t)))
-    end
+         (SOME (n, 1, [t1], (fn t =>mk_extend (m,T) [t1])))
+    end |
+  word_constructor _ _ _ _ = NONE
+
+  (*Should this even be translated? Or translated with a lemma during normalization?*)
+  fun len_of_lift m n T [t1] =
+  let
+(*("m", "Word.len_of_lift") (line 597 of "/home/lachnitt/Sources/isabelle-git/isabelle-emacs/src/HOL/Library/Tools/smt_word.ML") 
+("n", "") (line 598 of "/home/lachnitt/Sources/isabelle-git/isabelle-emacs/src/HOL/Library/Tools/smt_word.ML") 
+("t1", Const ("Pure.type", "64 itself")) (li*)
+    
+    (*TODO catch non Const ("Pure.type", "64 itself") case*)
+    val (_,b) = dest_Const t1
+    val (_,[c]) = dest_Type b
+    val d = dest_binT c |> HOLogic.mk_number @{typ int}
+    val _ = @{print}("d",d) 
+(*("t1",
+ Const ("Pure.type",
+        "64 itself")) (line 602 of "/home/lachnitt/Sources/isabelle-git/isabelle-emacs/src/HOL/Library/Tools/smt_word.ML") 
+("d",
+ ("Numeral_Type.bit0",
+  ["32"])) *)
+  in
+  
+         (SOME ("", 1, [d], fn _ => d))
+    end |
+ len_of_lift _ _ _ _  = NONE
+
 
   fun mk_rotate c i ts = Term.list_comb (Const c, mk_nat i :: ts)
 
@@ -618,6 +682,15 @@ Wird zweimal uebersetzt wie alles...
     let val (m, _) = Term.dest_Const (head_of t)
     in SMT_Builtin.add_builtin_fun smtlibC (Term.dest_Const (head_of t), fn _ => (fn x => fn y =>len_of t m n x y))
  end
+
+  fun nat2bv m n T ts =
+  let
+    val U = (Term.range_type (T)) |> dest_wordT |> @{print}
+
+  in
+   SOME (index1 "int_to_bv" U, 1, ts,fn x => Const(m,T) $ hd x)
+  end
+
 
   fun of_nat t m n T ts =
     let 
@@ -685,6 +758,10 @@ val setup_builtins =
     (\<^term>\<open>push_bit :: nat \<Rightarrow> 'a::len word \<Rightarrow> _ \<close>, "bvshl"),
     (\<^term>\<open>drop_bit :: nat \<Rightarrow> 'a::len word \<Rightarrow> _\<close>, "bvlshr"),
     (\<^term>\<open>signed_drop_bit :: nat \<Rightarrow> 'a::len word \<Rightarrow> _\<close>, "bvashr") ] #>
+  fold (add_word_fun shift_lift) [
+    (\<^term>\<open>push_bit_lift :: int \<Rightarrow> 'a::len word \<Rightarrow> _ \<close>, "bvshl"),
+    (\<^term>\<open>drop_bit_lift :: int \<Rightarrow> 'a::len word \<Rightarrow> _\<close>, "bvlshr")
+    (*(\<^term>\<open>signed_drop_bit_lift :: nat \<Rightarrow> 'a::len word \<Rightarrow> _\<close>, "bvashr")*) ] #>
   add_word_fun slice
     (\<^term>\<open>slice :: _ \<Rightarrow> 'a::len word \<Rightarrow> _\<close>, "extract") #>
   add_len_of
@@ -703,10 +780,13 @@ val setup_builtins =
     (\<^term>\<open>word_sless\<close>, "bvslt"),
     (\<^term>\<open>word_sle\<close>, "bvsle") ] #>
   fold (SMT_Builtin.add_builtin_fun' SMTLIB_Interface.bvsmtlibC) [
-    (\<^term>\<open>unsigned :: 'a::len word \<Rightarrow> Int.int\<close>, "bv2nat"),
-    (\<^term>\<open>of_int ::  Int.int => 'a::len word\<close>, "nat2bv")
-
+    (\<^term>\<open>unsigned :: 'a::len word \<Rightarrow> Int.int\<close>, "ubv_to_int"),
+    (\<^term>\<open>unsigned :: 'a::len word \<Rightarrow> Nat.nat\<close>, "ubv_to_int")
    ] #>
+  fold (add_word_fun nat2bv) [
+    (\<^term>\<open>of_int :: Int.int => 'a::len word\<close>, "int_to_bv"),
+    (\<^term>\<open>word_of_int :: Int.int => 'a::len word\<close>, "nat2bv")
+  ] #>
   fold (add_word_fun take_bit) [
     (\<^term>\<open>take_bit :: _ \<Rightarrow> 'a::len word \<Rightarrow> _\<close>, "TODO")
    ] #>
@@ -719,15 +799,18 @@ val setup_builtins =
   (*Const ("Word.Word", "int \<Rightarrow> 3 word") $
           (Const ("Num.numeral_class.numeral", "num \<Rightarrow> int") $*)
   add_word_fun word_constructor
-    (\<^term>\<open>Word.Word :: int \<Rightarrow> 'a::len word\<close>, "") 
+    (\<^term>\<open>Word.Word :: int \<Rightarrow> 'a::len word\<close>, "nat2bv") #>
 
- (*#>
+   add_word_fun len_of_lift
+    (\<^term>\<open>len_of_lift :: 'a::len0 itself \<Rightarrow> int\<close>, "") #>
+
+(*#>
   fold (add_word_fun bit_word) [
     (\<^term>\<open>smt_bit_word :: 'a::len word \<Rightarrow> _ \<Rightarrow> _\<close>, "extract")
    ]*)
 
 
- #>
+ 
   fold (add_word_fun power) [
     (\<^term>\<open>pow_2_word :: _ \<Rightarrow> _ \<Rightarrow> _\<close>, "^")
    
