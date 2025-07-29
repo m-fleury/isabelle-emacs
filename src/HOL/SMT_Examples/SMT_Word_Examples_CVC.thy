@@ -5,13 +5,47 @@
 section \<open>Word examples for for SMT binding\<close>
 
 theory SMT_Word_Examples_CVC
-imports "HOL-Library.Word" "HOL-CVC.SMT_CVC_Word"
+imports "HOL-Library.Word" "HOL.SMT_CVC_Word"
 begin
 
-lemma "LENGTH(64) = 64"
-  using nat_int
-  supply [[smt_nat_as_int,smt_trace]]
-  by (smt(cvc5))
+declare [[smt_nat_as_int,smt_trace]]
+
+
+(*Conversions*)
+
+lemma "Word.Word 0 = (0::5 word)" by (smt (cvc5))
+lemma "Word.Word 8 = (8::5 word)" by (smt (cvc5))
+lemma "Word.Word 72 = (8::5 word)" by (smt (cvc5))
+lemma "of_int 0 = (0::5 word)" by (smt (cvc5))
+lemma "of_int 8 = (8::5 word)" by (smt (cvc5))
+lemma "of_int 72 = (8::5 word)" by (smt (cvc5))
+lemma "word_of_int 0 = (0::5 word)" by (smt (cvc5))
+lemma "word_of_int 8 = (8::5 word)" by (smt (cvc5))
+lemma "word_of_int 72 = (8::5 word)" by (smt (cvc5))
+
+(*LENGTH*)
+
+lemma "LENGTH(0) = 0" by (smt(cvc5))
+lemma "LENGTH(1) = 1" by (smt(cvc5))
+lemma "LENGTH(64) = 64" by (smt(cvc5))
+lemma "LENGTH(5) = 5" by (smt(cvc5))
+lemma "LENGTH('a::len0) = LENGTH('a)" by (smt(cvc5))
+
+
+(*power*)
+
+lemma "(2::4 word) ^ 3 = 8"
+  by (smt (cvc5))
+
+
+(*Bit operators*)
+
+lemma "push_bit 3 (2::5 word) = (16::5 word)"
+  by (smt (cvc5))
+
+lemma "push_bit (x + 1) (2::5 word) = (16::5 word)"
+  by (smt (cvc5))
+
 
 (*
 declare [[smt_oracle = true]]
@@ -24,7 +58,6 @@ Currently, there is no proof reconstruction for words.
 All lemmas are proved using the oracle mechanism.
 \<close>
 
-(*TODO: work around based on the first example below*)
 lemmas [rare_simplify_temp] =
  add_num_simps Word.iszero_word_no len_bit0  add.right_neutral
 word_eq_numeral_iff_iszero One_nat_def mult_Suc_right mult_0_right mult_num_simps
