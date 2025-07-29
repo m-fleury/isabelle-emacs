@@ -331,73 +331,70 @@ val setup_abs_min_max = fold (SMT_Builtin.add_builtin_fun_ext'' o fst) abs_min_m
 end
 
 (** unfold cvc5 extensions **)
+(** simplify goals **)
+(** Lift nat operators that should be natively translated to int operators**)
 
 (*term,(lemma,extra condition on term)*)
-(*NOTE: if after finishing filling this table no operator needs a condition the check can be deleted*)
+(*NOTE: if after finishing filling these tables no operator needs a condition the check can be deleted*)
+(*NOTE: will integrate into other passes or at least make one pass*)
+
 val cvc5_extension_table = [
-  (\<^const_name>\<open>power\<close>, (@{thm pow_2_raw''}, K true))] (*lemma already ensures the condition*)
+  (\<^const_name>\<open>power\<close>, (@{thms pow_2_raw''}, K true))] (*lemma already ensures the condition*)
+
+fun simplify_norm_table ctxt = [
+  ("Type_Length.len0_class.len_of", (Named_Theorems.get ctxt \<^named_theorems>\<open>smt_word_len_evaluate\<close>, K true)),
+  ("Word.Word", (Named_Theorems.get ctxt \<^named_theorems>\<open>Word_of_int\<close>, K true))
+]
+
+(*NOTE: Might be integrated into one of the other passes eventually. However, needs to be run before
+the run that pushes the ints in*)
+fun nat_native_ops_table ctxt = [
+  (\<^const_name>\<open>power\<close>, (Named_Theorems.get ctxt \<^named_theorems>\<open>pow_2_word\<close>, K true)),(*lemma already ensures the condition*)
+  ("Bit_Operations.semiring_bit_operations_class.push_bit", (Named_Theorems.get ctxt \<^named_theorems>\<open>push_bit_lift\<close>, K true)),
+  ("Type_Length.len0_class.len_of", (Named_Theorems.get ctxt \<^named_theorems>\<open>length_lift\<close>, K true))
+] 
 
 local
-  fun extension (Const (n,_)) ct =
-      (case (AList.lookup (op =) cvc5_extension_table n) of
+  fun extension tab (Const (n,_)) ct =
+      (case (AList.lookup (op =) tab n) of
         SOME (thm,extra) => if extra ct then SOME thm else NONE
         | NONE => NONE)
-    | extension _ _ = NONE
+    | extension _ _ _ = NONE
 
-  fun unfold_extension_conv ctxt ct =
+  fun unfold_extension_conv tab ctxt ct =
     let
       val t = (Thm.term_of ct)
     in
-    (case extension (Term.head_of t) t of
-      SOME thm =>  (fn x => (Conv.top_rewrs_conv [thm] ctxt x))
+    (case extension tab (Term.head_of t) t of
+      SOME thms => (fn x => (Conv.top_rewrs_conv thms ctxt x))
     | NONE => Conv.all_conv) ct
     end
 in
 
 fun unfold_cvc5_extension_conv ctxt =
- (Conv.top_conv unfold_extension_conv ctxt)
+ (Conv.top_conv (unfold_extension_conv cvc5_extension_table) ctxt)
 
-fun unfold_cvc5_extension ctxt = map (apsnd (Conv.fconv_rule (unfold_cvc5_extension_conv ctxt)))
+fun unfold_cvc5_extension ctxt = 
+ (if SMT_Config.solver_of ctxt = "cvc5_proof" then map (apsnd (Conv.fconv_rule (unfold_cvc5_extension_conv ctxt))) else (fn x => x))
+
+fun simplify_norm_extension_conv ctxt =
+ (Conv.top_conv (unfold_extension_conv (simplify_norm_table ctxt)) ctxt)
+
+fun simplify_norm_extension ctxt = 
+ map (apsnd (Conv.fconv_rule (simplify_norm_extension_conv ctxt)))
+
+fun nat_native_extension_conv ctxt =
+ (Conv.top_conv (unfold_extension_conv (nat_native_ops_table ctxt)) ctxt)
+
+fun nat_native_extension ctxt = 
+ map (apsnd (Conv.fconv_rule (nat_native_extension_conv ctxt)))
+
+
+
+
 
 (* Not really sure if we should add this to the table.. after all this should only be done for cvc5
 fun setup_cvc5_extension _ = fold (SMT_Builtin.add_builtin_fun_ext'' o fst) cvc5_extension_table
-*)
-
-end
-
-(** unfold native operators that use natural numbers  **)
-
-(*term,(lemma,extra condition on term)*)
-(*NOTE: Might be integrated into one of the other passes eventually. However, needs to be run before
-the run that pushes the ints in*)
-fun nat_native_ops_table ctxt = [
-  (\<^const_name>\<open>power\<close>, (Named_Theorems.get ctxt \<^named_theorems>\<open>pow_2_word\<close>, K true)),(*lemma already ensures the condition*)
-  ("Bit_Operations.semiring_bit_operations_class.push_bit", (Named_Theorems.get ctxt \<^named_theorems>\<open>push_bit_lift\<close>, K true))] 
-
-local
-  fun extension ctxt (Const (n,_)) ct =
-      (case (AList.lookup (op =) (nat_native_ops_table ctxt) n) of
-        SOME (thm,extra) => if extra ct then SOME thm else NONE
-        | NONE => NONE)
-    | extension _ _ _ = NONE
-
-  fun unfold_extension_conv ctxt ct =
-    let
-      val t = (Thm.term_of ct)
-    in
-    (case extension ctxt (Term.head_of t) t of
-      SOME thms =>  (fn x => (Conv.top_rewrs_conv thms ctxt x))
-    | NONE => Conv.all_conv) ct
-    end
-in
-
-fun unfold_nat_native_ops_conv ctxt =
- (Conv.top_conv unfold_extension_conv ctxt)
-
-fun unfold_nat_native_ops ctxt = map (apsnd (Conv.fconv_rule (unfold_nat_native_ops_conv ctxt)))
-
-(* Not really sure if we should add this to the table.. after all its not always done for power
-fun setup_nat_native_ops _ = fold (SMT_Builtin.add_builtin_fun_ext'' o fst) nat_native_ops_table
 *)
 
 end
@@ -485,13 +482,9 @@ fun nat_as_int_conv ctxt = SMT_Util.if_exists_conv is_nat_const (nat_to_int_conv
 
 fun add_int_of_nat_constraints thms =
   let val (q, cts) = fold (add_apps add_int_of_nat [] o Thm.cprop_of) thms (false, [])
-      val _ = @{print}("thms",thms)
-      val _ = @{print}("q",q)
-      val _ = @{print}("cts",cts |> map Thm.term_of)
-
   in
-    if q then (thms, nat_int_thms)
-    else (thms, map (fn ct => (Thm.instantiate (TVars.empty, Vars.make1 (var, ct)) int_thm)) cts)
+    (*if q then*) (thms, []) (*I think this is not needed anymore but will not delete completely until I am certain of it*)
+    (*else (thms, map (fn ct => (Thm.instantiate (TVars.empty, Vars.make1 (var, ct)) int_thm)) cts)*)
   end
 
 val setup_nat_as_int =
@@ -570,7 +563,8 @@ fun get_unfold_monomorph ctxt =
 
 fun unfold_conv ctxt =
   unfold_cvc5_extension_conv ctxt then_conv
-  unfold_nat_native_ops_conv ctxt then_conv
+  simplify_norm_extension_conv ctxt then_conv
+  nat_native_extension_conv ctxt then_conv
   rewrite_case_bool_conv ctxt then_conv
   unfold_abs_min_max_conv ctxt then_conv
   (get_unfold_conv ctxt) then_conv
@@ -644,8 +638,9 @@ end
 fun normalize ctxt wthms =
   wthms
   |> map_index (fn (n, (role, thm)) => ((n, role), thm))
-  |> (if SMT_Config.solver_of ctxt = "cvc5_proof" then unfold_cvc5_extension ctxt else (fn x => x))
-  |> unfold_nat_native_ops ctxt
+  |> unfold_cvc5_extension ctxt
+  |> simplify_norm_extension ctxt
+  |> nat_native_extension ctxt
   |> gen_normalize ctxt
   |> unfold_polymorph ctxt
   |> monomorph ctxt
