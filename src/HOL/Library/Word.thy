@@ -4501,17 +4501,101 @@ end
 
 subsection \<open>Tool support\<close>
 
-(*TODO: Hanna*)
+(*Additional definitions*)
+
 definition smt_bit_word :: \<open>'a::len word \<Rightarrow> nat \<Rightarrow> 1 word\<close>
   where "smt_bit_word a n = (if (bit a n) then (1::1 word) else (0::1 word))"
 
-term "bit (x :: 4 word) y"
-lemma "bit a n = (smt_extract n n a = (1::1 word))"
-  unfolding smt_extract_def
-  unfolding slice_def slice1_def
-  apply simp
-  oops
+definition pow_2_word where "pow_2_word (TYPE('a)) y \<equiv> power (2::'a::len word) (nat y)"
+
+(*Normalization*)
+
+lemma [pow_2_word]:
+  "power (2::'a::len word) w \<equiv> push_bit w (1::'a word)"
+  unfolding pow_2_word_def by simp
+
+(*Speed up for commonly used bit-widths*)
+lemma [smt_word_len_evaluate]:
+  "len_of (a::8 itself) \<equiv> 8"
+  "len_of (b::16 itself) \<equiv> 16"
+  "len_of (c::32 itself) \<equiv> 32"
+  "len_of (d::64 itself) \<equiv> 64"
+  "len_of (e::128 itself) \<equiv> 128"
+  by simp_all
+
+(*Evaluates LENGTH of a constant... Not sure if we want that*)
+lemmas [smt_word_len_evaluate] = eq_reflection[OF len_bit0] eq_reflection[OF len_bit1]
+  eq_reflection[OF len_num0] eq_reflection[OF len_num1]
+
+
+(*
+Lifting from operators that should be natively translated into SMT-LIB that take in natural numbers
+or return them to operators that work only on integers.
+*)
+named_theorems set_bit_lift \<open>\<close>
+named_theorems unset_bit_lift \<open>\<close>
+
+
+definition smt_mask_lift :: \<open>int \<Rightarrow> 'a::len word\<close> where
+  "smt_mask_lift x = mask (nat x)"
+
+definition set_bit_lift :: \<open>int \<Rightarrow> 'a::len word \<Rightarrow> 'a::len word\<close> where
+  "set_bit_lift x = set_bit (nat x)"
+lemma [set_bit_lift]:
+  "set_bit x \<equiv> set_bit_lift (int x)"
+  unfolding set_bit_lift_def by simp
+
+definition unset_bit_lift :: \<open>int \<Rightarrow> 'a::len word \<Rightarrow> 'a::len word\<close> where
+  "unset_bit_lift x = unset_bit (nat x)"
+lemma [unset_bit_lift]:
+  "unset_bit x \<equiv> unset_bit_lift (int x)"
+  unfolding unset_bit_lift_def by simp
+
+definition flip_bit_lift :: \<open>int \<Rightarrow> 'a::len word \<Rightarrow> 'a::len word\<close> where
+  "flip_bit_lift x = flip_bit (nat x)"
+
+definition push_bit_lift :: \<open>int \<Rightarrow> 'a::len word \<Rightarrow> 'a::len word\<close> where
+  "push_bit_lift x = push_bit (nat x)"
+lemma [push_bit_lift]:
+  "push_bit x \<equiv> push_bit_lift (int x)"
+  unfolding push_bit_lift_def by simp
+
+
+lemma push_bit_lift2[nat_normalized_input]:
+  "push_bit (nat x) \<equiv> push_bit_lift x"
+  unfolding push_bit_lift_def by simp
+
+definition drop_bit_lift :: \<open>int \<Rightarrow> 'a::len word \<Rightarrow> 'a::len word\<close> where
+  "drop_bit_lift x = drop_bit (nat x)"
+lemma [drop_bit_lift]:
+  "drop_bit x \<equiv> drop_bit_lift (int x)"
+  unfolding drop_bit_lift_def by simp
+
+definition take_bit_lift :: \<open>int \<Rightarrow> 'a::len word \<Rightarrow> 'a::len word\<close> where
+  "take_bit_lift x = take_bit (nat x)"
+lemma [take_bit_lift]:
+  "take_bit x \<equiv> take_bit_lift (int x)"
+  unfolding take_bit_lift_def by simp
+lemma [nat_normalized_input]:
+  "take_bit (nat x) \<equiv> take_bit_lift x"
+  unfolding take_bit_lift_def by simp
+
+
+definition len_of_lift :: "'a::len0 itself \<Rightarrow> int" where
+"len_of_lift(TYPE('a::len0)) = int(len_of(TYPE('a)))"
+lemma [length_lift]: "(LENGTH('a)) \<equiv> nat(len_of_lift(TYPE('a::len0)))"
+  unfolding len_of_lift_def by simp
+lemma [nat_normalized_input]:
+  "(len_of(TYPE('a))) \<equiv> len_of_lift(TYPE('a::len0))"
+  unfolding len_of_lift_def by simp
+
+
+
 
 ML_file \<open>Tools/smt_word.ML\<close>
+declare [[smt_nat_as_int]]
 
+lemma "(2::8 word) ^ 3 = 8"
+  supply[[smt_trace]]
+  apply (smt (cvc5))
 end
