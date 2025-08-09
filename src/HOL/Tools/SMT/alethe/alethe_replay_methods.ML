@@ -934,8 +934,9 @@ fun normalized_input ctxt prems t =
   in
     (SMT_Replay_Methods.prove ctxt t (fn _ =>
       Method.insert_tac ctxt prems
-      THEN' TRY' (K (unfold_tac ctxt @{thms SMT.trigger_def}))
-      THEN' TRY' (partial_simplify_tac ctxt (@{thms eq_commute} @ Named_Theorems.get ctxt \<^named_theorems>\<open>cvc5_normalized_input\<close>))
+      THEN' TRY' (K (unfold_tac ctxt (@{thms SMT.trigger_def} @  Named_Theorems.get ctxt \<^named_theorems>\<open>nat_normalized_input\<close>)))
+      THEN' K (print_tac ctxt "norm input")
+ THEN' TRY' (partial_simplify_tac ctxt (@{thms eq_commute} @ Named_Theorems.get ctxt \<^named_theorems>\<open>cvc5_normalized_input\<close>))
     ))
 end
 
