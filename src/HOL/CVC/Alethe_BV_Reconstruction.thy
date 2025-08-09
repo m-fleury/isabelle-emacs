@@ -60,7 +60,7 @@ lemma [bv_reconstruction_list_funs]:
 "map2 f (x#xs) (y#ys) = (f x y) # map2 f xs ys"
   by auto
 
-lemmas [bv_reconstruction_length] = len_num0 len_num1 len_bit0 len_bit1
+(*lemmas [bv_reconstruction_length] = len_num0 len_num1 len_bit0 len_bit1*)
 
 
 (* ---------------------------------------------------------------------------------------------- *)

@@ -65,7 +65,6 @@ lemmas [cvc_evaluate_bv]
   = evaluate_casts bit_operations 
     bv_mult
     evaluate_concat evaluate_power 
-lemmas [cvc_evaluate] = cvc_evaluate_bv
 
 
 
