@@ -16,7 +16,7 @@ local
     [@{term \<open>unsigned :: 'a :: len word \<Rightarrow> nat\<close>}, @{const of_nat (nat)} ] @
     [@{term \<open>unat :: 'a :: len word \<Rightarrow> nat\<close>}]
 
-  fun is_nat_const x = if member (Term.aconv_untyped) nat_consts x then (@{print} x; true) else false
+  fun is_nat_const x = if member (Term.aconv_untyped) nat_consts x then true else false
   val bv_thms = @{lemma "int (unat v) = uint v"
  by simp_all} |> single
   val nat_int_thm = map (Thm.symmetric o mk_meta_eq) (bv_thms @ @{thms nat_int})
