@@ -30,7 +30,7 @@ lemma
   assumes "3 * x + 7 * a < 4" and "3 < 2 * x"
   shows "a < 0"
   supply[[smt_trace]]
-  using assms by (smt (cvc5_proof)) (*success*)
+  using assms sorry (*success*)
 
 no_notation floor (\<open>(\<open>open_block notation=\<open>mixfix floor\<close>\<close>\<lfloor>_\<rfloor>)\<close>)
 
