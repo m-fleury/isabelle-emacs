@@ -168,10 +168,12 @@ named_theorems push_bit_lift \<open>push_bit on words should be translated nativ
 named_theorems drop_bit_lift \<open>drop_bit on words should be translated natively\<close>
 named_theorems take_bit_lift \<open>take_bit on words should be translated natively\<close>
 named_theorems length_lift \<open>LENGTH should be translated natively\<close>
+named_theorems smt_extract_lift \<open>smt_extract on words should be translated natively\<close>
 
 (*Simplification*)
 named_theorems smt_word_len_evaluate \<open>LENGTH should be evaluated if possible\<close>
-named_theorems Word_of_int \<open>Word.Word should be translated to of_int\<close>
+named_theorems Word_of_int \<open>Word.Word should be transformed to of_int before translation\<close>
+named_theorems slice_lift \<open>slice should be transformed to smt_extract before translation\<close>
 
 
 subsection \<open>Integer division and modulo for Z3\<close>
@@ -603,6 +605,8 @@ named_theorems smt_arith_multiplication \<open>Theorems to reconstruct arithmeti
 named_theorems smt_arith_combine \<open>Theorems to reconstruct arithmetic theorems.\<close>
 
 named_theorems smt_arith_simplify \<open>Theorems to combine theorems in the LA procedure\<close>
+
+named_theorems smt_rewrite_lemma_simplify \<open>Theorems to simplify instantiate lemma during rewrite reconstruction\<close>
 
 (*Currently
 arith_simp_cvc5 == smt_arith_simplify
@@ -1246,13 +1250,5 @@ lemma [cvc5_holes_simp]:
 
 declare[[smt_cvc_alethe = true]]
 
-lemma "power (2::nat) 3 = 8"
-  supply[[smt_trace,smt_nat_as_int]]
-  apply (smt (cvc5))
-
-
-lemma "power (4::nat) 3 = 8"
-  supply[[smt_trace,smt_nat_as_int]]
-  apply (smt (cvc5))
 
 end
