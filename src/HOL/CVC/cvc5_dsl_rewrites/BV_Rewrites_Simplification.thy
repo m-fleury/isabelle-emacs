@@ -444,6 +444,8 @@ fun is_singleton_ListVar:: "'a cvc_ListVar \<Rightarrow> bool" where
 fun is_empty_ListVar:: "'a cvc_ListVar \<Rightarrow> bool" where
  "is_empty_ListVar (ListVar xs) = (length xs = 0)"
 
+fun word_cat_helper::"('a::len word) cvc_ListVar \<Rightarrow> 'a::len word" where
+"word_cat_helper (ListVar [x]) = x"
 
 fun word_cat_helper_left::"('a::len word) cvc_ListVar \<Rightarrow> 'b::len word \<Rightarrow> 'c::len word" where
 "word_cat_helper_left (ListVar [x]) y = (word_cat x y)"
@@ -451,6 +453,7 @@ fun word_cat_helper_left::"('a::len word) cvc_ListVar \<Rightarrow> 'b::len word
 fun word_cat_helper_empty_left::"('a::len word) cvc_ListVar \<Rightarrow> 'b::len word \<Rightarrow> 'b::len word" where
 "word_cat_helper_empty_left (ListVar []) y = y"
 
+lemmas [cvc_evaluate_bv] = word_cat_helper_def (*is_singleton_ListVar.simps is_empty_ListVar.simps*)
 
 lemmas word_cat_helper_def = word_cat_helper_left.simps word_cat_helper_empty_left.simps
 
@@ -636,7 +639,7 @@ lemma fold_a:"foldr xor (xs' @ ys') x = foldr xor (ys' @ xs') x "
 lemma fold_b: "foldr xor (xs' @ word_cat z y # butlast ws') (last ws') = foldr xor (word_cat z y # xs' @ butlast ws') (last ws') "
   by (metis append_Cons fold_a helper3)
 
-lemma rewrite_bv_xor_concat_pullup_empty:
+lemma rewrite_bv_xor_concat_pullup_empty :
   fixes xs::"('a::len word) cvc_ListVar"
     and ws::"('a::len word) cvc_ListVar"
     and y::"'b::len word"
@@ -677,7 +680,8 @@ apply (cases xs)
       done
     done
 
-lemma [rewrite_bv_xor_concat_pullup]:
+
+lemma rewrite_bv_xor_concat_pullup1:
   fixes xs::"('a::len word) cvc_ListVar"
     and ws::"('a::len word) cvc_ListVar"
     and y::"'b::len word"
@@ -727,7 +731,7 @@ shows "NO_MATCH cvc_a (undefined xs ws y z ys nxm1 ny nym1)
     (bvxor (extract nym1 0 (bvxor xs ws)) y)
   ))*)
 
-lemma [rewrite_bv_xor_concat_pullup]:
+lemma rewrite_bv_xor_concat_pullup2 :
   fixes xs::"('a::len word) cvc_ListVar"
     and ws::"('a::len word) cvc_ListVar"
     and y::"'b::len word"
@@ -820,6 +824,7 @@ qed
   done
 
 
+  
 (*    foldr neq (map bit_n xs')
      (bit (xor (smt_extract n (0::nat) y) (foldr xor (map (smt_extract n (0::nat)) (butlast ws')) (smt_extract n (0::nat) (last ws')))) n)
 
@@ -828,8 +833,72 @@ qed
      (foldr (\<lambda>(x::bool) y::bool. x = (\<not> y)) (map ((\<lambda>x::'b word. bit x n) \<circ> smt_extract (LENGTH('b) - Suc (0::nat)) (0::nat)) (butlast ws'))
        (bit (xor (smt_extract (LENGTH('b) - Suc (0::nat)) (0::nat) (last ws')) y) n))*)
 
+(*
+
+(define-cond-rule bv-xor-concat-pullup
+  ((xs ?BitVec :list) (ws ?BitVec :list) (y ?BitVec)
+   (z ?BitVec) (ys ?BitVec :list)
+   )
+  (bvxor xs (concat ys (concat z y)) ws)
+  (concat
+    (bvxor (extract (- (@bvsize (bvxor xs ws)) 1) (@bvsize y) (bvxor xs ws)) (concat ys z))
+    (bvxor (extract (- (@bvsize y) 1) 0 (bvxor xs ws)) y)
+  ))
+
+         ''bv-xor-concat-pullup''
+         xs ListVar [27::8 word]        8 word
+         ws ListVar []                  8 word
+         y 0                                                  1 word
+         z smt_extract (nat (6::int)) (nat 0) (v0__::8 word)  7 word
+         ys ListVar []
+         7::int
+         1
+         0
+       proposition:
+         (27::8 word) XOR word_cat (smt_extract (nat (6::int)) (nat 0) (v0__::8 word)) 0 =
+         word_cat (smt_extract (nat (7::int)) (nat 1) (27::8 word) XOR smt_extract (nat (6::int)) (nat 0) v0__)
+          (smt_extract (nat 0) (nat 0) (27::8 word) XOR 0)
+
+  (bvxor xs (concat ys (concat z y)) ws) =
+   xs' XOR (word_cat z y) 
+   has length xs' = length z + length y
 
 
+         word_cat 
+
+(bvxor (extract (- (@bvsize (bvxor xs ws)) 1) (@bvsize y) (bvxor xs ws)) (concat ys z))
+(smt_extract (- (@bvsize xs') 1) (@bvsize y) xs' XOR z
+  has length z
+
+
+    (bvxor (extract (- (@bvsize y) 1) 0 xs') 0)
+          (smt_extract (nat (- (@bvsize y) 1)) (nat 0) (27::8 word) XOR 0)
+    has length y
+
+ *)
+lemma rewrite_bv_xor_concat_pullup3[rewrite_bv_xor_concat_pullup]:
+  fixes xs::"('a::len word) cvc_ListVar"
+    and ws::"('a::len word) cvc_ListVar"
+    and y::"'b::len word"
+    and z::"'c::len word"
+    and ys::"('e::len word) cvc_ListVar"
+    and nxm1::int and ny::int and nym1::int
+shows "NO_MATCH cvc_a (undefined xs ws y z ys nxm1 ny nym1)
+\<Longrightarrow> is_singleton_ListVar xs \<Longrightarrow> ws = (ListVar []) \<Longrightarrow> is_empty_ListVar ys
+\<Longrightarrow>LENGTH('a) = LENGTH('c) + LENGTH('b) \<Longrightarrow> 
+   (cvc_list_left xor xs (word_cat z y ::'a ::len word) ::'a::len word)
+= 
+  (word_cat
+    ( xor
+      (smt_extract ( LENGTH('a) - 1) (LENGTH('a)) (word_cat_helper xs ::'a::len word)::'c::len word)
+      (z::'c::len word)
+    ::'c::len word)
+    (xor (smt_extract (LENGTH('a) - 1) (nat 0) (word_cat_helper xs ::'a word)::'b::len word) y ::'b word)
+  ::'a word)
+   "
+  apply (cases ys)
+  apply simp_all
+  sorry
 
 
 
