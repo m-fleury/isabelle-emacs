@@ -334,40 +334,43 @@ end
 (** simplify goals **)
 (** Lift nat operators that should be natively translated to int operators**)
 
-(*term,(lemma,extra condition on term)*)
-(*NOTE: if after finishing filling these tables no operator needs a condition the check can be deleted*)
+(*term,(lemma,should simplifier be called)*)
 (*NOTE: will integrate into other passes or at least make one pass*)
 
 val cvc5_extension_table = [
-  (\<^const_name>\<open>power\<close>, (@{thms pow_2_raw''}, K true))] (*lemma already ensures the condition*)
+  (\<^const_name>\<open>power\<close>, (@{thms pow_2_raw''}, false))]
 
 fun simplify_norm_table ctxt = [
-  ("Type_Length.len0_class.len_of", (Named_Theorems.get ctxt \<^named_theorems>\<open>smt_word_len_evaluate\<close>, K true)),
-  ("Word.Word", (Named_Theorems.get ctxt \<^named_theorems>\<open>Word_of_int\<close>, K true))
+  ("Type_Length.len0_class.len_of", (Named_Theorems.get ctxt \<^named_theorems>\<open>smt_word_len_evaluate\<close>, true)),
+  ("Word.Word", (Named_Theorems.get ctxt \<^named_theorems>\<open>Word_of_int\<close>, false)),
+  ("Word.slice", (Named_Theorems.get ctxt \<^named_theorems>\<open>slice_lift\<close>, false))
 ]
 
 (*NOTE: Might be integrated into one of the other passes eventually. However, needs to be run before
 the run that pushes the ints in*)
 fun nat_native_ops_table ctxt = [
-  (\<^const_name>\<open>power\<close>, (Named_Theorems.get ctxt \<^named_theorems>\<open>pow_2_word\<close>, K true)),(*lemma already ensures the condition*)
-  ("Bit_Operations.semiring_bit_operations_class.push_bit", (Named_Theorems.get ctxt \<^named_theorems>\<open>push_bit_lift\<close>, K true)),
-  ("Type_Length.len0_class.len_of", (Named_Theorems.get ctxt \<^named_theorems>\<open>length_lift\<close>, K true))
+  (\<^const_name>\<open>power\<close>, (Named_Theorems.get ctxt \<^named_theorems>\<open>pow_2_word\<close>, false)),(*lemma already ensures the condition*)
+  ("Bit_Operations.semiring_bit_operations_class.push_bit", (Named_Theorems.get ctxt \<^named_theorems>\<open>push_bit_lift\<close>,false)),
+  ("Type_Length.len0_class.len_of", (Named_Theorems.get ctxt \<^named_theorems>\<open>length_lift\<close>, false)),
+  ("Word.smt_extract", (Named_Theorems.get ctxt \<^named_theorems>\<open>smt_extract_lift\<close>, false))
+
 ] 
 
 local
-  fun extension tab (Const (n,_)) ct =
-      (case (AList.lookup (op =) tab n) of
-        SOME (thm,extra) => if extra ct then SOME thm else NONE
-        | NONE => NONE)
-    | extension _ _ _ = NONE
 
   fun unfold_extension_conv tab ctxt ct =
     let
-      val t = (Thm.term_of ct)
+      val t = Thm.term_of ct
+      val t1 = Term.head_of t
     in
-    (case extension tab (Term.head_of t) t of
-      SOME thms => (fn x => (Conv.top_rewrs_conv thms ctxt x))
-    | NONE => Conv.all_conv) ct
+      (case t1 of
+        Const(n,T) =>
+          (case AList.lookup (op =) tab n of (*TODO: use thms in Simplifier*)
+            SOME (thms,cond) => (fn x => if cond then (Simplifier.rewrite ctxt) ct else (Conv.top_rewrs_conv thms ctxt x))
+            | NONE => Conv.all_conv)
+       | _ => Conv.all_conv) ct
+
+
     end
 in
 
@@ -465,7 +468,7 @@ local
         let val (cu1, cu2) = Thm.dest_comb ct
         in f vs cu1 cu2 #> add_apps f vs cu1 #> add_apps f vs cu2 end
     | Abs _ =>
-        let val (cv, cu) = Thm.dest_abs_global ct |> @{print}
+        let val (cv, cu) = Thm.dest_abs_global ct
         in add_apps f (Thm.term_of cv :: vs) cu end
     | _ => I)
 
