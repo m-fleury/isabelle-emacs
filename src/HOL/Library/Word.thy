@@ -4531,6 +4531,12 @@ lemma [Word_of_int]:
   "Word.Word x \<equiv> of_int x"
   by simp
 
+lemma [slice_lift]:
+  fixes x::"'a::len word"
+  shows "slice n x \<equiv> smt_extract (LENGTH('a)) n x"
+  unfolding smt_extract_def
+  apply(subst take_bit_word_eq_self)
+  by simp_all
 
 (*
 Lifting from operators that should be natively translated into SMT-LIB that take in natural numbers
@@ -4593,6 +4599,15 @@ lemma [nat_normalized_input]:
   "(len_of(TYPE('a))) \<equiv> len_of_lift(TYPE('a::len0))"
   unfolding len_of_lift_def by simp
 
+
+definition smt_extract_lift :: "int \<Rightarrow> int \<Rightarrow> 'a::len word \<Rightarrow> 'b::len word" where
+"smt_extract_lift j i w  = smt_extract (nat j) (nat i) w"
+lemma [smt_extract_lift]:
+ "smt_extract j i w \<equiv> smt_extract_lift (int j) (int i) w"
+  unfolding smt_extract_lift_def by simp
+lemma [nat_normalized_input]:
+  "smt_extract (nat j) (nat i) w \<equiv> smt_extract_lift j i w"
+  unfolding smt_extract_lift_def by simp
 
 
 
