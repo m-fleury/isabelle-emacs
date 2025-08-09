@@ -1,5 +1,7 @@
 (*  Title:      HOL/SMT_Examples/SMT_Word_Examples.thy
     Author:     Sascha Boehme, TU Muenchen
+    Author:     Hanna Lachnitt, Stanford University
+
 *)
 
 section \<open>Word examples for for SMT binding\<close>
@@ -11,61 +13,6 @@ begin
 declare [[smt_nat_as_int,smt_trace]]
 
 
-(*Conversions*)
-
-lemma "Word.Word 0 = (0::5 word)" by (smt (cvc5))
-lemma "Word.Word 8 = (8::5 word)" by (smt (cvc5))
-lemma "Word.Word 72 = (8::5 word)" by (smt (cvc5))
-lemma "of_int 0 = (0::5 word)" by (smt (cvc5))
-lemma "of_int 8 = (8::5 word)" by (smt (cvc5))
-lemma "of_int 72 = (8::5 word)" by (smt (cvc5))
-lemma "word_of_int 0 = (0::5 word)" by (smt (cvc5))
-lemma "word_of_int 8 = (8::5 word)" by (smt (cvc5))
-lemma "word_of_int 72 = (8::5 word)" by (smt (cvc5))
-
-(*LENGTH*)
-
-lemma "LENGTH(0) = 0" by (smt(cvc5))
-lemma "LENGTH(1) = 1" by (smt(cvc5))
-lemma "LENGTH(64) = 64" by (smt(cvc5))
-lemma "LENGTH(5) = 5" by (smt(cvc5))
-lemma "LENGTH('a::len0) = LENGTH('a)" by (smt(cvc5))
-
-
-(*power*)
-
-lemma "(2::4 word) ^ 3 = 8"
-  by (smt (cvc5))
-
-
-(*Bit operators*)
-
-lemma "push_bit 3 (2::5 word) = (16::5 word)"
-  by (smt (cvc5))
-
-lemma "push_bit (x + 1) (2::5 word) = (16::5 word)"
-  by (smt (cvc5))
-
-
-(*
-declare [[smt_oracle = true]]
-declare [[z3_extensions = true]]
-declare [[smt_certificates = "SMT_Word_Examples.certs"]]
-declare [[smt_read_only_certificates = true]]
-*)
-text \<open>
-Currently, there is no proof reconstruction for words.
-All lemmas are proved using the oracle mechanism.
-\<close>
-
-lemmas [rare_simplify_temp] =
- add_num_simps Word.iszero_word_no len_bit0  add.right_neutral
-word_eq_numeral_iff_iszero One_nat_def mult_Suc_right mult_0_right mult_num_simps
-take_bit_num_simps arith_simps pred_numeral_simps option.case ring_1_class.iszero_0
-len_num1 numeral_times_numeral take_bit_numeral_numeral
-
-
-declare[[smt_trace]]
 section \<open>Bitvector numbers\<close>
 
 lemma "(27 :: 4 word) = -5" by (smt (cvc5))
@@ -79,6 +26,84 @@ lemma "-40 + 1 = (-39::7 word)" by (smt (cvc5))
 lemma "a + 2 * b + c - b = (b + c) + (a :: 32 word)" supply [[smt_trace]] by (smt (cvc5))
 lemma "x = (5 :: 4 word) \<Longrightarrow> 4 * x = 4" by (smt (cvc5))
 
+lemma "(27::4 word) = 11"
+  supply[[simp_trace]]
+  apply simp
+
+section \<open>Conversions\<close>
+
+lemma "Word.Word 0 = (0::5 word)" by (smt (cvc5))
+lemma "Word.Word 8 = (8::5 word)" by (smt (cvc5))
+lemma "Word.Word 72 = (8::5 word)" by (smt (cvc5))
+lemma "of_int 0 = (0::5 word)" by (smt (cvc5))
+lemma "of_int 8 = (8::5 word)" by (smt (cvc5))
+lemma "of_int 72 = (8::5 word)" by (smt (cvc5))
+lemma "of_int (-8) = (24::5 word)" by (smt (cvc5))
+lemma "of_int (-8) = (-8::5 word)" by (smt (cvc5))
+lemma "word_of_int 0 = (0::5 word)" by (smt (cvc5))
+lemma "word_of_int 8 = (8::5 word)" by (smt (cvc5))
+lemma "word_of_int 72 = (8::5 word)" by (smt (cvc5))
+
+
+
+
+section \<open>LENGTH\<close>
+
+text \<open>
+LENGTH(constant) is now calculated during normalization using the simplifier
+LENGTH(type variable) is lifted to len_of_lift during normalization
+(len_of_lift TYPE('a::len0))
+ \<close>
+
+lemma "LENGTH(0) = 0" by (smt(cvc5))
+lemma "LENGTH(1) = 1" by (smt(cvc5))
+lemma "LENGTH(64) = 64" by (smt(cvc5))
+lemma "LENGTH(5) = 5" by (smt(cvc5))
+lemma "LENGTH('a::len0) = LENGTH('a)" by (smt(cvc5))
+
+declare[[show_hyps]]
+
+ML\<open>
+val cterm_x = @{cterm "LENGTH(64)"}
+
+val conv_x = Simplifier.rewrite @{context}
+val y = conv_x cterm_x
+val typ3 = @{typ "('a::len0)"} |> Term.dest_TFree
+
+\<close>
+
+section \<open>power\<close>
+
+lemma "(2::4 word) ^ 3 = 8"
+  by (smt (cvc5))
+
+lemma bnd_0: "3000 < (2^12::32 word)"
+  apply (smt (cvc5))
+  done
+
+lemma bnd_0_variable: "3000 < (2^x::32 word)"
+  apply (smt (cvc5))
+  done
+
+section \<open>slice and extract\<close>
+
+lemma "slice 1 (0b10110 :: 3 word) = (0b11 :: 2 word)" by (smt (cvc5))
+
+lemma "smt_extract 1 1 (4 :: 3 word) = (0 :: 1 word)" 
+  by (smt (cvc5))
+
+
+
+(*Bit operators*)
+
+lemma "push_bit 3 (2::5 word) = (16::5 word)"
+  by (smt (cvc5))
+
+lemma "x = 2 \<Longrightarrow> push_bit (x + 1) (2::5 word) = (16::5 word)"
+  by (smt (cvc5))
+
+ML\<open> 
+val x = @{term "slice"}\<close>
 
 section \<open>Bit-level logic\<close>
 
