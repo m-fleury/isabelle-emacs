@@ -38,7 +38,7 @@ lemma variable_and_constant:
   shows "True"
   using assms
   by (smt (cvc5))
-
+  
 (*
 (declare-fun lift_x$ () Int)
 (declare-fun lift_y$ () Int)
@@ -243,7 +243,8 @@ lemma nat_var2:
   shows "nat (x::int) = 4 \<Longrightarrow> nat (x::int) \<noteq> 5" 
   by (smt (cvc5))
 
-
+lemma "a \<Longrightarrow> b"
+  apply (simp only: atomize_imp)
 (*
 (declare-fun lift_x$ () Int)
 (assert (! (and (<= 0 lift_x$) (not (=> (= lift_x$ 4) (not (= lift_x$ 5))))) :named a0))
@@ -441,5 +442,15 @@ lemma "(if (\<forall>x::int. x < 0 \<or> x > 0) then -1 else 3) > (0::int)"
 
 lemma "(2::nat) ^ 3 = 8"
   apply (smt (cvc5))
+
+definition bound :: nat where
+  "bound = 4"
+
+lemma "bound = 3 + 1"
+  using bound_def
+  apply (smt (cvc5))
+
+
+
 
 end
