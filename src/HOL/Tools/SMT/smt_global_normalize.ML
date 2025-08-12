@@ -570,13 +570,12 @@ fun transform2 ctxt (subst:(term*thm) Termtab.table) ct =
 let
   val t = Thm.term_of ct
 in
- (case t of
-
-(Free (x,@{typ nat})) =>
+ (case t of (Free (x,@{typ nat})) =>
    (case Termtab.lookup subst t of
       NONE =>
       let
-        val _ = debug_msg ctxt high (fn () => \<^print> ("current term is free variable t that has not been encountered yet ",t))
+        val _ = debug_msg ctxt high (fn () => \<^print> ("current term is free variable t of type nat" 
+          ^ " that has not been encountered yet ",t))
         val (ctxt1,subst,cond,new_t,B) = mk_new_variable ctxt subst x t
         (*val _ = @{print}("B",B)*)
         val (B1,B2) = split ctxt B
@@ -584,8 +583,8 @@ in
         val B1_2 = map (fn b =>  b RS @{thm eq_reflection}) B1
         (*val _ = @{print}("B1_2",B1_2)*)
 
-      in ((fn r => (ctxt1,B2,(Conv.top_rewrs_conv B1_2 ctxt1) r))) end
-      | (SOME (b,_)) => (fn r => (ctxt,[], Conv.all_conv r)) (*TODO*)
+      in ((fn r => (subst,ctxt1,B2,(Conv.top_rewrs_conv B1_2 ctxt1) r))) end
+      | (SOME (b,_)) => (fn r => (subst,ctxt,[], Conv.all_conv r)) (*TODO*)
      ) |
 (_ $ _) =>
   let
@@ -602,12 +601,12 @@ in
 
   in
       if n = "Num.numeral_class.numeral" orelse n = "Nat.semiring_1_class.of_nat"
-      then (fn r => (ctxt,[], Conv.all_conv r))
+      then (fn r => (subst,ctxt,[], Conv.all_conv r))
       else if SMT_Builtin.is_builtin_fun ctxt (n,Ts) ts
           orelse SMT_Builtin.is_builtin_fun_ext ctxt (n,Ts) ts
-      then (fn r => (ctxt,[], Conv.all_conv r))
+      then (fn r => (subst,ctxt,[], Conv.all_conv r))
       else if T = T'
-      then (fn r => (ctxt,[], Conv.all_conv r))
+      then (fn r => (subst,ctxt,[], Conv.all_conv r))
       else
       let
         val _ = debug_msg ctxt high (fn () => \<^print> ("current term is function f that has not been encountered yet ",t))
@@ -620,24 +619,27 @@ in
             val _ = @{print}("B2",B2)*)
 
 
-      in (fn r => (ctxt4,[],(Conv.top_rewrs_conv [B] ctxt) r)) end
+      in (fn r => (subst,ctxt4,[],(Conv.top_rewrs_conv [B] ctxt) r)) end
    end
-| t => (fn r => (ctxt,[],Conv.all_conv r))
+| t => (fn r => (subst,ctxt,[],Conv.all_conv r))
 ) ct |> @{print}
 end
+
+type subst_tab = (term * thm) Termtab.table 
+type ret_conv = subst_tab * Proof.context * thm list * thm
+type conv_with_tab_and_context = subst_tab -> Proof.context -> cterm -> ret_conv
+ 
 
 fun atomize_eq_imp ctxt =
 Conv.fconv_rule 
   ((Conv.top_rewrs_conv [@{thm atomize_eq}] ctxt) then_conv (Conv.top_rewrs_conv [@{thm atomize_imp}] ctxt))
 
-(* Was (Proof.context -> conv) -> Proof.context -> conv*)
-(* (Proof.context -> cterm -> thm list * thm) -> Proof.context -> cterm -> thm *)
-fun abs_conv2 (ccv : (Proof.context -> cterm -> Proof.context * thm list * thm)) ctxt ct =
+fun abs_conv2 (ccv : conv_with_tab_and_context) (tab : subst_tab) ctxt ct =
   (case Thm.term_of ct of
     Abs (a, _, _) =>
       let
         val ((v, ct'), ctxt') = Variable.dest_abs_cterm ct ctxt;
-        val (ctxt'',cond,eq) = ccv ctxt' ct';
+        val (tab',ctxt'',cond,eq) = ccv tab ctxt' ct';
         val _ = @{print}("cond in abs",cond)
         val eq'' =
           let
@@ -653,94 +655,105 @@ fun abs_conv2 (ccv : (Proof.context -> cterm -> Proof.context * thm list * thm))
         val test = @{thm H_nat_embedding} OF cond
         val _ = @{print}("testint",test)
 
-      in (ctxt'',[],if Thm.is_reflexive eq then Conv.all_conv ct else Thm.abstract_rule a v eq'') end
+      in (tab',ctxt'',[],if Thm.is_reflexive eq then Conv.all_conv ct else Thm.abstract_rule a v eq'') end
   | _ => raise CTERM ("abs_conv", [ct]));
 
 (* (cterm -> 'a list * thm) -> (cterm -> 'a list * thm) -> cterm ->  Proof.context -> 'a list * thm *)
-fun combination_conv2 (ccv1':(Proof.context -> cterm -> Proof.context * thm list * thm)) ccv2' ctxt ct =
+fun combination_conv2  (ccv1':conv_with_tab_and_context) (ccv2':conv_with_tab_and_context) tab ctxt ct =
   let
     val (ct1, ct2) = Thm.dest_comb ct
-    val (ctxt1,cond1,cv1) = (ccv1' ctxt ct1)
-    val (ctxt2,cond2,cv2) = (ccv2' ctxt1 ct2)
-  in (ctxt2,cond1 @ cond2,Thm.combination cv1 cv2) end;
+    val (tab1,ctxt1,cond1,cv1) = (ccv1' tab ctxt ct1)
+    val (tab2,ctxt2,cond2,cv2) = (ccv2' tab1 ctxt1 ct2)
+  in (tab2,ctxt2,cond1 @ cond2,Thm.combination cv1 cv2) end;
 
 (* (cterm -> 'a list * thm) -> Proof.context -> cterm -> 'a list * thm*)
-fun comb_conv2 ccv' ctxt = combination_conv2 ccv' ccv' ctxt;
+fun comb_conv2 ccv' tab ctxt = combination_conv2 ccv' ccv' tab ctxt;
 
 
-fun else_conv2 ccv1' ccv2' ctxt ct =
-  (ccv1' ctxt ct
-    handle THM _ => ccv2' ctxt ct
-      | CTERM _ => ccv2' ctxt ct
-      | TERM _ => ccv2' ctxt ct
-      | TYPE _ => ccv2' ctxt ct);
-fun all_conv2 ctxt ct = (ctxt,[],Thm.reflexive ct);
+fun else_conv2 ccv1' ccv2' tab ctxt ct =
+  (ccv1' tab ctxt ct
+    handle THM _ => ccv2' tab ctxt ct
+      | CTERM _ => ccv2' tab ctxt ct
+      | TERM _ => ccv2' tab ctxt ct
+      | TYPE _ => ccv2' tab ctxt ct);
+
+fun all_conv2 tab ctxt ct = (tab,ctxt,[],Thm.reflexive ct);
 
 (*fun sub_conv conv ctxt =
   comb_conv (conv ctxt) else_conv
   abs_conv (conv o snd) ctxt else_conv
   all_conv;*)
-fun sub_conv2 (ccv':(Proof.context -> cterm -> Proof.context * thm list * thm)) ctxt ct =
+fun sub_conv2 (ccv':conv_with_tab_and_context) tab ctxt ct =
 let
   val ccv2 = comb_conv2 ccv'
-  val elseccv = (fn ctxt => fn ct => (else_conv2 (fn ctxt => (abs_conv2 ccv' ctxt)) all_conv2 ctxt ct))
+  val elseccv = (fn tab => fn ctxt => fn ct => (else_conv2 (fn tab => fn ctxt => (abs_conv2 ccv' tab ctxt)) all_conv2 tab ctxt ct))
 
 in
-  else_conv2 ccv2 elseccv ctxt ct
+  else_conv2 ccv2 elseccv tab ctxt ct
 end
 
-fun then_conv2 ccv1' ccv2' ctxt ct =
+fun then_conv2 (ccv1':conv_with_tab_and_context) ccv2' tab ctxt ct =
   let
-    val (ctxt1,cond1,eq1) = ccv1' ctxt ct;
-    val (ctxt2,cond2,eq2) = ccv2' ctxt1 (Thm.rhs_of eq1);
+    val (tab1,ctxt1,cond1,eq1) = ccv1' tab ctxt ct;
+    val (tab2,ctxt2,cond2,eq2) = ccv2' tab1 ctxt1 (Thm.rhs_of eq1);
   in
-    if Thm.is_reflexive eq1 then (ctxt2,cond2,eq2)
-    else if Thm.is_reflexive eq2 then (ctxt2,cond1,eq1)
-    else (ctxt2,cond1 @ cond2,Thm.transitive eq1 eq2)
+    if Thm.is_reflexive eq1 then (tab2,ctxt2,cond2,eq2)
+    else if Thm.is_reflexive eq2 then (tab2,ctxt2,cond1,eq1)
+    else (tab2,ctxt2,cond1 @ cond2,Thm.transitive eq1 eq2)
   end;
 (*fun bottom_conv conv ctxt ct =
   (sub_conv (bottom_conv conv) ctxt then_conv conv ctxt) ct;
 *)
 (*cf. BOTTOM_CONV in HOL*)
-fun bottom_conv2 tab (ccv': Proof.context -> cterm -> Proof.context * thm list * thm) ctxt ct =
+fun bottom_conv2 (ccv':conv_with_tab_and_context) tab ctxt ct =
 let
-  val bottom_conv2_res = bottom_conv2 tab ccv'
-  val sub_conv2_res = sub_conv2 bottom_conv2_res 
+  val bottom_conv2_res = bottom_conv2 ccv'
+  val (sub_conv2_res : conv_with_tab_and_context) = sub_conv2 bottom_conv2_res
 in
-  then_conv2 sub_conv2_res ccv' ctxt ct
+  then_conv2 sub_conv2_res ccv' tab ctxt ct
 end
 
 fun unfold_test ctxt ct =
  let
-   val (ctxt1,cond,thms) = (bottom_conv2 (Termtab.empty) (fn ctxt2 => transform2 ctxt2 (Termtab.empty)) ctxt) ct
+
+   val (tab,ctxt1,cond,thms) = (bottom_conv2  (fn tab2=> fn ctxt2 => transform2 ctxt2 tab2) (Termtab.empty) ctxt) ct
    val _ = @{print}("thms",thms)
-(*  A \<equiv> B  A
+   val _ = @{print}("cond",cond)
+
+(* 
+
+   A \<equiv> B  A
   ---------
-      B*)
-   (*val thms2 = Thm.equal_elim thms (Goal.init ct) |> @{print}
-   val _ = @{print}("thms2",thms2) *)
+      B
+
+*)
+  
+
 
    val thms'' =
-     let
-  
-       val thms' = fold Thm.implies_intr (map (Thm.cprop_of) cond) thms
-       (*val _ = @{print}("thms'",thms')*)
-       val thms'' = atomize_eq_imp ctxt1 thms'
-       (*val _ = @{print}("thms''",thms'')*)
-       val cond2 = map (Conv.fconv_rule (Conv.top_rewrs_conv [@{thm atomize_eq[symmetric]}] ctxt))
+   let
+     val thms2 = Thm.equal_elim thms (Thm.assume ct)
+     val _ = @{print}("thms2",thms2) 
+     val thms3 = fold Thm.implies_intr (map (Thm.cprop_of) cond) thms2
+       |> (Conv.fconv_rule  (Conv.top_rewrs_conv [@{thm atomize_imp}] ctxt))
+     val _ = @{print}("thms3",thms3)
+     val cond2 = map (Conv.fconv_rule (Conv.top_rewrs_conv [@{thm atomize_eq[symmetric]}] ctxt))
                     (map (fn c => @{thm H_nat_embedding} OF [c]) cond)
-       (*val _ = @{print}("cond2",cond2)*)
-       val test2 = (unfold_tac ctxt1 cond2) thms |> Seq.list_of
-       (*val _ = @{print}("tst2",test2)*)
-     in (if length cond = 0 then thms else thms'') end
+     val _ = @{print}("cond2",cond2)
+     val thms4 = thms3
+       |> (Conv.fconv_rule (Conv.top_rewrs_conv cond2 ctxt))
+     val _ = @{print}("thms4",thms4)
+   in (if length cond = 0 then thms else thms4) end
 
 
  in (ctxt1,thms'') end
 
-
-
-val test = unfold_test @{context} @{cterm "Trueprop(f (x::nat) = (4::int)) "}
+(*
+val ctxt_setoption = (Config.put show_hyps true @{context})
+val test = unfold_test ctxt_setoption (Thm.cterm_of ctxt_setoption @{term "Trueprop(f (x::nat) = (4::int)) "})
 val _ = @{print}("test",test)
+*)
+
 (*
 val test = unfold_test @{context} @{cterm "\<forall>y. (f (x::nat) (5::int) :: int) = y"}
 val _ = @{print}("test",test)
@@ -935,7 +948,7 @@ let
     ))) goal_preproc
   val _ = debug_msg ctxt middle (fn () => \<^print> ("ithms after quantifier preprocessing ",ithms_preproc))
 
-
+(*
   fun iterate_thms [] _ = raise (SMT_GLOBAL_NORMALIZE "no facts found") | 
     iterate_thms (x::xs) (ctxt',subst,odefs,odefs2,terms) =
       let
@@ -997,9 +1010,9 @@ let
          THEN (debug_msg_tac context high "processing end")
  )))) new_ithms_as_terms
 handle (ERROR _) => raise (SMT_GLOBAL_NORMALIZE "Could not proof lifted form") 
+*)
 
-
-(*fun 
+fun unfold_test_it _ [] = [] |
 unfold_test_it ctxt ((a,x)::xs) =
  let 
   val (ctxt1,x') = unfold_test ctxt x
@@ -1007,7 +1020,7 @@ unfold_test_it ctxt ((a,x)::xs) =
 
 val xs = unfold_test_it ctxt (map (fn (i,(it)) => (i,(Thm.cprop_of it))) ithms_preproc)
 val ithms3 = map snd xs
-val (ctxt',_) = hd(rev xs)*)
+val (ctxt',_) = hd(rev xs)
 in
  (ithms3,[],ctxt')
 end
