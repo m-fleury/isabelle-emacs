@@ -9,102 +9,155 @@ begin
  convoluted problems then valid ones. *)
 
 declare[[smt_expert_debug_alethe_files="smt_global_normalize"]]
-declare[[smt_expert_debug_alethe_level=3]]
+declare[[smt_expert_debug_alethe_level=0]]
 declare[[smt_nat_as_int=true,smt_trace]]
 declare[[show_hyps]]
 
-(*
- (declare-fun lift_x$ () Int)
-(assert (! (and (<= 0 lift_x$) (not (= lift_x$ lift_x$))) :named a0))
-*)
+
 lemma variable_only:
   shows "(x::nat) = (x::nat)" 
-  by (smt (cvc5))
-
-(*
-(assert (! (not (= 42 42)) :named a0))
-*)
-lemma constant_only:
-  shows "(42::nat) = (42::nat)" 
-  by (smt (cvc5))
-
-(*
+  apply (test_smt_translate 
+\<open>
+(set-logic AUFLIRA)
 (declare-fun lift_x$ () Int)
-(assert (! (and (<= 0 lift_x$) (= lift_x$ 3)) :named a0))
-(assert (! (not true) :named a1))
+(assert (! (not (= lift_x$ lift_x$)) :named a0))
+\<close>)
+  by (smt (cvc5))
+
+lemma constant_only:
+  shows "(42::nat) = (42::nat)"
+  apply (test_smt_translate 
+\<open>
+(set-logic AUFLIRA)
+(assert (! (not (= 42 42)) :named a0))
+\<close>)
+  by (smt (cvc5))
+
+(* TODO:
+if then else introduced during normalization, could delete there
+but would need to figure out if then the arguments are not
+traversed anymore at all
+(assert (! (not (= (ite (< 3 4) 0 (- 3 4)) 0)) :named a0))
 *)
+lemma neg_constant:
+  shows "3-(4::nat) = 0"
+  by (smt (cvc5))
+
 lemma variable_and_constant:
   assumes "(x::nat) = 3"
   shows "True"
   using assms
-  by (smt (cvc5))
-  
-(*
+  apply (test_smt_translate 
+\<open>
+(set-logic AUFLIRA)
 (declare-fun lift_x$ () Int)
-(declare-fun lift_y$ () Int)
-(assert (! (and (and (<= 0 lift_y$) (<= 0 lift_x$)) (= lift_x$ lift_y$)) :named a0))
+(assert (! (= lift_x$ 3) :named a0))
 (assert (! (not true) :named a1))
-*)
+\<close>)
+  by (smt (cvc5))
+
+
 lemma two_variables:
   assumes "(x::nat) = (y::nat)" 
   shows "True"
   using assms
-  by (smt (cvc5))
-
-(*
-(assert (! (not (= (+ 4 5) 9)) :named a0))
-*)
-lemma constant_and_native_fun:
-  shows "(4::nat) + 5 = 9" 
-  apply (smt (cvc5) )
-  oops
-
-(*
+  apply (test_smt_translate 
+\<open>
+(set-logic AUFLIRA)
 (declare-fun lift_x$ () Int)
 (declare-fun lift_y$ () Int)
-(declare-fun lift_z$ () Int)
-(assert (! (and (and (<= 0 lift_z$) (and (<= 0 lift_y$) (<= 0 lift_x$))) (= (+ lift_x$ lift_y$) lift_z$)) :named a0))
+(assert (! (= lift_x$ lift_y$) :named a0))
 (assert (! (not true) :named a1))
-*)
+\<close>)
+  by (smt (cvc5))
+
+lemma constant_and_native_fun:
+  shows "(4::nat) + 5 = 9" 
+  apply (test_smt_translate 
+\<open>
+(set-logic AUFLIRA)
+(assert (! (not (= (+ 4 5) 9)) :named a0))
+\<close>)
+  by (smt (cvc5))
+
 lemma variables_and_native_fun:
   assumes "(x::nat) + y = z" 
   shows "True"
   using assms
-  by (smt (cvc5))
-
-(*
+  apply (test_smt_translate 
+\<open>
+(set-logic AUFLIRA)
 (declare-fun lift_x$ () Int)
 (declare-fun lift_y$ () Int)
-(assert (! (and (and (<= 0 lift_y$) (<= 0 lift_x$)) (not (=> (and (= lift_x$ 3) (= lift_y$ 3)) (= lift_x$ lift_y$)))) :named a0))
-      
-*)
-lemma two_variables_mult_occ:
-  shows "(x::nat) = 3 \<Longrightarrow> (y::nat) = 3 \<Longrightarrow> (x::nat) = (y::nat) " 
+(declare-fun lift_z$ () Int)
+(assert (! (= (+ lift_x$ lift_y$) lift_z$) :named a0))
+(assert (! (not true) :named a1))
+\<close>)
   by (smt (cvc5))
 
-(*
-(declare-fun f$ (Int) Int)
-(assert (! (= (f$ 3) 5) :named a0))
-(assert (! (not true) :named a1))
-*)
+
+lemma two_variables_mult_occ:
+  shows "(x::nat) = 3 \<Longrightarrow> (y::nat) = 3 \<Longrightarrow> (x::nat) = (y::nat)"
+  apply (test_smt_translate 
+\<open>
+(set-logic AUFLIRA)
+(declare-fun lift_x$ () Int)
+(declare-fun lift_y$ () Int)
+(assert (! (not (=> (and (= lift_x$ 3) (= lift_y$ 3)) (= lift_x$ lift_y$))) :named a0))
+\<close>)
+  by (smt (cvc5))
+
 lemma fun_constant1:
   fixes f::"int \<Rightarrow> int"
   assumes "f 3 = 5"
   shows "True"
   using assms
+  apply (test_smt_translate 
+\<open>
+(set-logic AUFLIRA)
+(declare-fun f$ (Int) Int)
+(assert (! (= (f$ 3) 5) :named a0))
+(assert (! (not true) :named a1))
+\<close>)
   by (smt (cvc5))
 
-(*
-(declare-fun lift_f$ (Int) Int)
-(assert (! (not (= (lift_f$ 3) 5)) :named a0))
-(assert (! (not true) :named a1))
-*)
+
+declare[[smt_trace]]
+
 lemma fun_constant2:
   fixes f::"nat \<Rightarrow> int"
   assumes "f 3 = 5"
   shows "True"
   using assms
+
+  apply (test_smt_translate 
+\<open>
+(set-logic AUFLIRA)
+(declare-fun f$ (Int) Int)
+(assert (! (= (f$ 3) 5) :named a0))
+(assert (! (not true) :named a1))
+\<close>)
   by (smt (cvc5))
+
+(*
+  "(f::nat \<Rightarrow> int) (nat (3::int)) = (5::int)"
+
+
+
+  introduce free variable (f_lift::int \<Rightarrow> int)
+
+  transform this to a thm by Thm.assume (adds the same thing as a meta assumption):
+    "\<And>v0. (f::nat \<Rightarrow> int) (v0::nat) = (lift_f__::int \<Rightarrow> int) (int v0) \<and> int v0 \<ge> 0"
+
+  Create two lemmas from this:
+    "\<And>v0. (f::nat \<Rightarrow> int) (v0::nat) = (lift_f__::int \<Rightarrow> int) (int v0)"
+    "\<And>v0. int v0 \<ge> 0"
+
+  Use those for conversion:
+
+
+*)
+
 
 (*
 (declare-fun lift_f$ (Int) Int)
@@ -117,6 +170,38 @@ lemma fun_constant3:
   shows "True"
   using assms
   by (smt (cvc5))
+
+
+(*
+  original: "int((f::int \<Rightarrow> nat) (3::int)) = (5::int)"
+
+  introduce free variable (f_lift::int \<Rightarrow> int)
+
+  transform this to a thm by Thm.assume (adds the same thing as a meta assumption):
+    "\<And>v0. (f::int \<Rightarrow> nat) (v0::int) = (lift_f__::int \<Rightarrow> int) v0 \<and> lift_f__ v0 \<ge> 0"
+
+  Create two lemmas from this: NOTE: We can create these directly
+    1 "\<And>v0. (lift_f__::int \<Rightarrow> int) v0 = (f::int \<Rightarrow> nat) (v0::int)"
+    2 "\<And>v0. lift_f__ v0 \<ge> 0"
+
+  Make new lemma:
+  Int.nat_0_le: 0 \<le> (?z::int) \<Longrightarrow> int (nat ?z) = ?z
+  Instantiate: 0 \<le> lift_f__ 3 \<Longrightarrow> int (nat (lift_f__ 3)) = (lift_f__ 3)
+  3 Use above with 2: int (nat (lift_f__ 3)) = (lift_f__ 3)
+
+
+  Create new :
+  Use 1: "int(nat (lift_f__ (3::int))) = (5::int)"
+  Have a new conversion using 3:  "lift_f__ (3::int) = (5::int)" hyps 0 \<le> lift_f__ 3 
+  Use Thm.implies to pull meta hyp up to get "lift_f__ 3 \<ge> 0 \<longrightarrow> lift_f__ 3 = 5"
+  
+
+
+  end result:
+     lift_f__ 3 \<ge> 0 \<longrightarrow> lift_f__ 3 = 5
+*)
+
+
 
 (*
 (declare-fun lift_f$ (Int) Int)
