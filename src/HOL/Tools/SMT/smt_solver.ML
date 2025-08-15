@@ -40,6 +40,7 @@ sig
   (*tactic*)
   val smt_tac: Proof.context -> thm list -> int -> tactic
   val smt_tac': Proof.context -> thm list -> int -> tactic
+  val test_smtlib_translation_tac': Proof.context -> string -> thm list -> int -> tactic
 
   (*solver information*)
   type solver_info = {
@@ -151,7 +152,6 @@ fun invoke memoize_fun_call name command cmd_options smt_options ithms ctxt =
       |> tap (trace_assms ctxt)
       |> SMT_Translate.translate ctxt name smt_options comments
       ||> tap trace_replay_data
-
     val cmd = Bash.script (Bash.strings (command () @ options))
     val run_cmd = run_solver ctxt' name cmd
 
@@ -161,6 +161,24 @@ fun invoke memoize_fun_call name command cmd_options smt_options ithms ctxt =
       | SOME memoize => split_lines (memoize (cat_lines o run_cmd) input))
 
   in (output_lines, replay_data) end
+
+fun check_translation name smt_options ithms comparision_str ctxt =
+  let
+
+    val (input, _) =
+      ithms
+      |> tap (trace_assms ctxt)
+      |> SMT_Translate.translate ctxt name smt_options []
+      ||> tap trace_replay_data
+    val comparision_str =
+      "(set-option :produce-proofs true)"
+      ^ comparision_str
+      ^ "(check-sat)\n(get-proof)\n"
+    val eq = (comparision_str = input)
+    val _ = (if not eq then (tracing ((K ("Expected translated problem to be\n\n"
+      ^ comparision_str ^ "\nbut got\n\n" ^ input)) ())) else ())
+
+  in eq end
 
 end
 
@@ -296,6 +314,25 @@ fun apply_solver_and_replay ctxt thms0 =
     |> singleton (Proof_Context.export ctxt_nats ctxt)
   end
 
+fun test_translation_only ctxt comp_str thms0 =
+  let
+    val thms = map (pair SMT_Util.Axiom ) thms0
+    val (name, {smt_options, ...}) = name_and_info_of ctxt
+    val _ = debug_msg ctxt low (fn () => \<^print> ("set of theorems before normalization:",thms0))
+
+    val norm_thms = SMT_Normalize.normalize ctxt thms
+    val _ = debug_msg ctxt low (fn () => \<^print> ("set of theorems after normalization:",norm_thms))
+
+    (*We might end up not needing beta seperately*)
+    val (norm_thms,_,ctxt_nats) =
+      if Config.get ctxt (SMT_Config.nat_as_int) then SMT_Global_Normalize.global_normalize ctxt norm_thms else (norm_thms,[],ctxt)
+      handle (SMT_Global_Normalize.SMT_GLOBAL_NORMALIZE _) => (norm_thms,[],ctxt)
+    val _ = debug_msg ctxt low (fn () => \<^print> ("set of theorems after nat embedding normalization:",norm_thms))
+
+  in
+    check_translation name smt_options norm_thms comp_str ctxt_nats
+  end
+
 
 (* filter (for Sledgehammer) *)
 
@@ -356,6 +393,17 @@ in
 
 val smt_tac = tac safe_solve
 val smt_tac' = tac (SOME oo apply_solver_and_replay)
+
+
+fun test_equal_output comp_str thms2 ctxt2 =
+ (if (test_translation_only ctxt2 comp_str thms2) then all_tac else no_tac)
+
+fun test_smtlib_translation_tac' ctxt comp_str rules =
+  CONVERSION (SMT_Normalize.atomize_conv ctxt)
+  THEN' resolve_tac ctxt @{thms ccontr}
+  THEN'
+   (Subgoal.FOCUS_PREMS (fn {context = ctxt', prems, ...} =>
+    test_equal_output comp_str (rules @ prems) ctxt') ctxt)
 
 end
 

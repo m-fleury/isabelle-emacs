@@ -154,8 +154,10 @@ let
   val x = Thm.term_of c_x  
   val subst = Termtab.update (t,(x,B)) subst
   val new_t_ge_0_2 = mkLeTerm x
+  val cond =  Drule.infer_instantiate' ctxt [SOME c_x] @{thm nat_0_le}
+  val _ = debug_msg ctxt low (fn () => \<^print> ("cond ",cond))
 
-in (ctxt1,subst,new_t_ge_0_2,x,B) end
+in (ctxt1,subst,cond,x,B) end
 
 
 fun inst_function_thm ctxt ts ret_nat goal_thm = 
@@ -444,19 +446,34 @@ let
       THEN HEADGOAL (assume_tac context)  THEN  print_tac context "Should be solved" )
    val _ = debug_msg ctxt1 high (fn () => \<^print> ("Showed goal from obtain thm:",goal_thm))
  
-      val args_with_casts = args_with_casts ts new_args
-              val _ = debug_msg ctxt middle (fn () => \<^print> ("args_with_casts",args_with_casts))
+   val args_with_casts = args_with_casts ts new_args
+   val _ = debug_msg ctxt middle (fn () => \<^print> ("args_with_casts",args_with_casts))
+ 
+   val subst = Termtab.update (f,(x |> Thm.term_of,goal_thm)) subst
+   val _ = debug_msg ctxt middle (fn () => \<^print> ("Added f to table",f))
+
 
    val B_alpha = inst_function_thm ctxt args_with_casts retNat goal_thm 
     val _ = debug_msg ctxt middle (fn () => \<^print> ("(B_alpha)",B_alpha))
-val y = (Thm.cterm_of ctxt (Term.list_comb (Thm.term_of x,args_with_casts)))
+    val _ = debug_msg ctxt middle (fn () => \<^print> ("x",x))
+    val _ = debug_msg ctxt middle (fn () => \<^print> ("new_args",new_args))
+
+    val _ = debug_msg ctxt middle (fn () => \<^print> ("args_with_casts",args_with_casts))
+    val _ = debug_msg ctxt middle (fn () => \<^print> ("ts",ts))
+
+fun arg_with_casts2 a = (if is_Bound a then a else
+  (if fastype_of a = @{typ nat} then @{term "int"} $ a else a))
+  val args_with_casts2' = map arg_with_casts2 new_args
+
+    val _ = debug_msg ctxt middle (fn () => \<^print> ("args_with_casts2",args_with_casts2'))
+
+val y = (Thm.cterm_of ctxt (Term.list_comb (Thm.term_of x, args_with_casts2')))
     val _ = debug_msg ctxt middle (fn () => \<^print> ("y",y))
 
-   val B_alpha' = Drule.infer_instantiate' ctxt [SOME y] @{thm nat_0_le}
+   val B_alpha' = if retNat then Drule.infer_instantiate' ctxt [SOME y] @{thm nat_0_le} else B_alpha
 
     val _ = debug_msg ctxt middle (fn () => \<^print> ("(B_alpha')",B_alpha'))
-
-   val subst = Termtab.update (f,(x |> Thm.term_of,goal_thm)) subst
+   
 in 
   (ctxt1,subst,x  |> Thm.term_of,B_alpha',B_alpha)
 end
@@ -511,8 +528,11 @@ in
           ^ " that has not been encountered yet: ",t))
         val (ctxt1,subst1,cond,new_t,B) = mk_new_variable ctxt subst x t
         val (B2,B1_2) = mk_cond ctxt B
+        val _ = debug_msg ctxt middle (fn () => \<^print> ("B2",B2))
 
-      in ((fn r => (subst1,ctxt1,B2,(Conv.top_rewrs_conv B1_2 ctxt1) r))) end
+        val D = Thm.implies_elim cond (hd B2)
+        val _ = debug_msg ctxt middle (fn () => \<^print> ("D",D))
+      in ((fn r => (subst1,ctxt1,[D],(Conv.top_rewrs_conv B1_2 ctxt1) r))) end
       | (SOME (t',B)) => 
       let
         val _ = debug_msg ctxt high (fn () => \<^print> ("current term is free variable t of type nat" 
@@ -554,7 +574,7 @@ transform2_function subst ctxt f n n' Ts ts Tts T T' t = (*Function only here to
     val _ = debug_msg ctxt high (fn () => \<^print> ("the type of the current term has no nats in it, so we skip it",f))
   in custom_no_conv ctxt subst end     
   else
-    (case Termtab.lookup subst t of
+    (case Termtab.lookup subst f of
       NONE =>
       let
         val _ = debug_msg ctxt middle (fn () => \<^print> ("current term is a function f that has not been encountered yet ",t))
@@ -690,28 +710,27 @@ fun unfold_test ctxt cthm =
    val _ = @{print}("thms",thms)
    val _ = @{print}("cond",cond)
   
-
+   val cond2 = map  (Conv.fconv_rule (Conv.top_rewrs_conv [@{thm atomize_eq[symmetric]}] ctxt)) cond               
+   val _ = @{print}("cond2",cond2)
 
    val thms'' =
    let
-     val thms2 = 
-Thm.equal_elim thms cthm
+     val thms2 = (Conv.fconv_rule  (Conv.top_rewrs_conv cond2 ctxt) thms)
+
      val _ = @{print}("thms2",thms2) 
      (*val thms3 = fold Thm.implies_intr (map (Thm.cprop_of) cond) thms2
        |> (Conv.fconv_rule  (Conv.top_rewrs_conv [@{thm atomize_imp}] ctxt))
      val _ = @{print}("thms3",thms3)*)
-     val cond2 = map  (Conv.fconv_rule (Conv.top_rewrs_conv [@{thm atomize_eq[symmetric]}] ctxt)) cond
-                    
-     val _ = @{print}("cond2",cond2)
-     val thms4 = thms2
-       |> (Conv.fconv_rule (Conv.top_rewrs_conv cond2 ctxt))
+
+     val thms4 = Thm.equal_elim thms2 cthm
+
      val _ = @{print}("thms4",thms4)
      (*val thms5 = ( thms4) RS @{lemma "x \<ge> 0 \<Longrightarrow> P (int (nat x)) = P x"
   by simp}
      val _ = @{print}("thms5",thms5)*)
 
-   in (if length cond = 0 then thms2 else thms4
-) end
+   in  thms4
+ end
 
 
  in (ctxt1,thms'') end

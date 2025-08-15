@@ -319,7 +319,31 @@ val _ =
   Theory.setup
     (Method.setup \<^binding>\<open>smt\<close>
       (Scan.lift parse_smt_options -- Attrib.thms >> (METHOD oo smt_method))
-      "Call to the SMT solver veriT or z3")
+      "Call to the SMT solvers cvc5, veriT or z3")
+
+(*TODO: Why is this called twice?*)
+fun test_smt_translate_method (comp_str, thms) ctxt facts =
+  let
+    val _ = @{print}("facts",facts)
+    val _ = @{print}("thms",thms)
+
+    val solver ="cvc5_proof"
+    val ctxt =
+      ctxt
+      |> Context.Proof
+      |> SMT_Config.select_solver solver
+      |> Context.proof_of
+
+  in
+     HEADGOAL (SMT_Solver.test_smtlib_translation_tac' ctxt comp_str (thms @ facts))
+  end
+
+val _ =
+  Theory.setup
+    (Method.setup \<^binding>\<open>test_smt_translate\<close>
+      (Scan.lift Parse.cartouche -- Attrib.thms >> (METHOD oo test_smt_translate_method))
+      "Test generated SMT-LIB problem against argument")
+
 
 (* overall setup *)
 
