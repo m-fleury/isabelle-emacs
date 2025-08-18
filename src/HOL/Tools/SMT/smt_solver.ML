@@ -386,7 +386,11 @@ local
 
   fun tac prove ctxt rules =
     CONVERSION (SMT_Normalize.atomize_conv ctxt)
+    THEN' K (print_tac ctxt "smt_tac 0")
+
     THEN' resolve_tac ctxt @{thms ccontr}
+    THEN' K (print_tac ctxt "smt_tac 0")
+
     THEN' SUBPROOF (fn {context = ctxt', prems, ...} =>
       resolve ctxt' (prove ctxt' (rules @ prems))) ctxt
 in
@@ -397,14 +401,27 @@ val smt_tac' = tac (SOME oo apply_solver_and_replay)
 
 fun test_equal_output comp_str thms2 ctxt2 =
  (if (test_translation_only ctxt2 comp_str thms2) then all_tac else no_tac)
+local
 
+  fun resolve ctxt (SOME thm) = resolve_tac ctxt [thm] 1
+    | resolve _ NONE = no_tac
+in
 fun test_smtlib_translation_tac' ctxt comp_str rules =
   CONVERSION (SMT_Normalize.atomize_conv ctxt)
+  THEN' K (print_tac ctxt "start testing")
   THEN' resolve_tac ctxt @{thms ccontr}
   THEN'
    (Subgoal.FOCUS_PREMS (fn {context = ctxt', prems, ...} =>
     test_equal_output comp_str (rules @ prems) ctxt') ctxt)
+  THEN' (eresolve_tac ctxt [@{lemma "P ==> (\<not>P \<Longrightarrow> False)" by simp}])
+  THEN' (fn i => TRY (resolve_tac ctxt [@{lemma "A = B ==> \<not>(A \<noteq> B)" by simp},@{lemma "A ==> \<not>\<not>A" by simp}] i))
+  THEN' K (print_tac ctxt "end testing (should be the same as start testing") (*x = x*)
 
+
+
+open Drule
+
+end
 end
 
 end;
