@@ -153,11 +153,11 @@ let
   val (ctxt1,c_x,B) = obtain_new_variable ctxt x' x_cond new_t
   val x = Thm.term_of c_x  
   val subst = Termtab.update (t,(x,B)) subst
-  val new_t_ge_0_2 = mkLeTerm x
+  val new_t_ge_0_2 = HOLogic.mk_Trueprop (mkLeTerm x)
   val cond =  Drule.infer_instantiate' ctxt [SOME c_x] @{thm nat_0_le}
   val _ = debug_msg ctxt low (fn () => \<^print> ("cond ",cond))
 
-in (ctxt1,subst,cond,x,B) end
+in (ctxt1,subst,Thm.cterm_of ctxt1 new_t_ge_0_2,cond,x,B) end
 
 
 fun inst_function_thm ctxt ts ret_nat goal_thm = 
@@ -516,7 +516,7 @@ let
   val _ = debug_msg ctxt high (fn () => \<^print> ("B1_2",B1_2))
 in (B2,B1_2) end
 
-fun custom_no_conv ctxt subst = (fn r => (subst,ctxt,[], Conv.all_conv r))
+fun custom_no_conv ctxt subst = (fn r => (subst,ctxt,[], [],Conv.all_conv r))
 
 
 type subst_tab = (term * thm) Termtab.table 
@@ -572,6 +572,8 @@ fun then_conv2 cv1  cv2 ct =
     else if Thm.is_reflexive eq2 then eq1
     else Thm.transitive eq1 eq2
   end;
+
+
 fun transform2 ctxt (subst:(term*thm) Termtab.table) ct =
 let
   val t = Thm.term_of ct
@@ -582,19 +584,19 @@ in
       let
         val _ = debug_msg ctxt high (fn () => \<^print> ("current term is free variable t of type nat" 
           ^ " that has not been encountered yet: ",t))
-        val (ctxt1,subst1,cond,new_t,B) = mk_new_variable ctxt subst x t
+        val (ctxt1,subst1,c_x,cond,new_t,B) = mk_new_variable ctxt subst x t
         val (B2,B1_2) = mk_cond ctxt B
         val _ = debug_msg ctxt middle (fn () => \<^print> ("B2",B2))
 
         val D = Thm.implies_elim cond (hd B2)
         val _ = debug_msg ctxt middle (fn () => \<^print> ("D",D))
-      in ((fn r => (subst1,ctxt1,[D],(Conv.top_rewrs_conv B1_2 ctxt1) r))) end
+      in ((fn r => (subst1,ctxt1,[c_x],[D],(Conv.top_rewrs_conv B1_2 ctxt1) r))) end
       | (SOME (t',B)) => 
       let
         val _ = debug_msg ctxt high (fn () => \<^print> ("current term is free variable t of type nat" 
           ^ " that has already been encountered: ",t'))
         val (_,B1_2) = mk_cond ctxt B
-      in ((fn r => (subst,ctxt,[],(Conv.top_rewrs_conv B1_2 ctxt) r))) end
+      in ((fn r => (subst,ctxt,[],[],(Conv.top_rewrs_conv B1_2 ctxt) r))) end
      ) |
 (* ((@{term "nat"} $ (t1 as Const ("Num.numeral_class.numeral", _) $ _))) => 
    let
@@ -619,7 +621,7 @@ in
    in
      transform2_function subst ctxt f n n' Ts  ts Tts T T' t
    end |
- _ => (fn r => (subst,ctxt,[],Conv.all_conv r))
+ _ => (fn r => (subst,ctxt,[],[],Conv.all_conv r))
 ) ct
 end
 
@@ -669,7 +671,7 @@ map (Conv.fconv_rule
         val _ = debug_msg ctxt middle (fn () => \<^print> ("D",D))
  val C' =   (fn b =>  b RS @{thm eq_reflection}) C
 
-      in (fn r => (subst,ctxt4,D,
+      in (fn r => (subst,ctxt4,[],D,
 (then_conv2
 
   (fn x1 => (Conv.top_rewrs_conv B1 ctxt4) (x1 |> @{print})
@@ -690,7 +692,7 @@ map (Conv.fconv_rule
 
         val B =  (fn b =>  b RS @{thm eq_reflection}) B
         val _ = debug_msg ctxt high (fn () => \<^print> ("B",B))
-      in (fn r => (subst,ctxt,[],(Conv.top_rewrs_conv [B] ctxt) r)) end
+      in (fn r => (subst,ctxt,[],[],(Conv.top_rewrs_conv [B] ctxt) r)) end
      )
 
 
@@ -756,21 +758,21 @@ bottom_list gets a term list cts and fills up tab, cond, ctxt and a theorem list
 It first gets a theorem using bottom for the first argument of cts. Then, it traverses the
 rest of the arguments 
 *)
-fun bottom_list ccv' tab cond ctxt [] ths = (tab,ctxt,cond,ths) | 
-  bottom_list ccv' tab cond ctxt (ct::cts) ths =
+fun bottom_list ccv' tab ocond cond ctxt [] ths = (tab,ctxt,ocond,cond,ths) | 
+  bottom_list ccv' tab ocond cond ctxt (ct::cts) ths =
   let
-    val _ = @{print}("In bottom list",ths)
+    val _ = @{print}("In bottom list",ocond)
 
-    val (tab2,ctxt2,cond2,tthm) = bottom ccv' tab cond ctxt ct
-  in  bottom_list ccv' tab2 (cond @ cond2) ctxt2 cts (tthm::ths)  end
+    val (tab2,ctxt2,ocond2,cond2,tthm) = bottom ccv' tab ocond cond ctxt ct
+  in  bottom_list ccv' tab2 (ocond @ ocond2) (cond @ cond2) ctxt2 cts (tthm::ths)  end
 
 and 
-bottom ccv' tab cond ctxt ct = 
+bottom ccv' tab ocond cond ctxt ct = 
 let
     val _ = @{print}("ct start",ct)
 
   (*Transform children*)
-  val (tab1,ctxt1,cond1,thm) =
+  val (tab1,ctxt1,ocond,cond1,thm) =
   let
     val (ct1,cts) = Drule.strip_comb ct   
     val _ = @{print}("stripped",(ct1,cts) )
@@ -781,25 +783,27 @@ let
 
 
     val ct1_thm = ct1 |> Conv.all_conv
-    val (tab1,ctxt1,cond1,ths1) = bottom_list ccv' tab cond ctxt cts []
+    val (tab1,ctxt1,ocond1,cond1,ths1) = bottom_list ccv' tab [] cond ctxt cts []
     val _ = @{print}("ct middle",ct)
 
     val _ = @{print}("ct1_thm",ct1_thm)
     val _ = @{print}("ths1",ths1)
+    val _ = @{print}("ocond1",ocond1)
 
     fun mk_thm y [] = y|
       mk_thm y (x::xs) = mk_thm (Thm.combination y x) xs
     val thm = if length cts <> 0 then (mk_thm ct1_thm (rev ths1))  else ct1_thm
   val _ = @{print}("thm",Thm.rhs_of thm)
 
-   val (tab2,ctxt2,cond2,ths2) = ccv' tab1 ctxt1 ((Thm.rhs_of thm))
+   val (tab2,ctxt2,ocond2,cond2,ths2) = ccv' tab1 ctxt1 ((Thm.rhs_of thm))
   val _ = @{print}("thm",thm)
+    val _ = @{print}("ocond2",ocond2)
 
   val _ = @{print}("ths2",ths2)
   val ths3 = Thm.transitive thm ths2
   val _ = @{print}("ths3",ths3)
 
-    in (tab2,ctxt2,cond1 @ cond2,ths3) end
+    in (tab2,ctxt2,ocond @ ocond1 @ ocond2,cond1 @ cond2,ths3) end
   end
   val _ = @{print}("thm",thm)
   val _ = @{print}("ct finish",ct)
@@ -807,7 +811,7 @@ let
 
 
 
-in (tab1,ctxt1,cond1,thm) end 
+in (tab1,ctxt1,ocond,cond1,thm) end 
 
 
 
@@ -850,12 +854,12 @@ fun unfold_test ctxt cthm =
  let
    val _ = debug_msg ctxt low (fn () => \<^print> ("current original thm",(Thm.cprop_of cthm)))
 
-   val (_,ctxt1,cond,thm) =
-    (bottom (fn tab2 => fn ctxt2 => transform2 ctxt2 tab2) (Termtab.empty) [] ctxt) (Thm.cprop_of cthm)
+   val (_,ctxt1,ocond,cond,thm) =
+    (bottom (fn tab2 => fn ctxt2 => transform2 ctxt2 tab2) (Termtab.empty) [] [] ctxt) (Thm.cprop_of cthm)
 
    val _ = debug_msg ctxt low (fn () => \<^print> ("current transformed thm",thm))
    val _ = debug_msg ctxt low (fn () => \<^print> ("obtained conditions",cond))
-  
+     val _ = debug_msg ctxt low (fn () => \<^print> ("obtained other conditions",ocond))
    val cond2 = map (Conv.fconv_rule (Conv.top_rewrs_conv [@{thm atomize_eq[symmetric]}] ctxt)) cond               
    val _ = debug_msg ctxt high (fn () => \<^print> (" conditions",cond2))
 
@@ -864,18 +868,23 @@ fun unfold_test ctxt cthm =
      val thms2 = (Conv.fconv_rule  (Conv.top_rewrs_conv cond2 ctxt) thm)
 
      val _ = @{print}("thms2",thms2) 
-     (*val thms3 = fold Thm.implies_intr (map (Thm.cprop_of) cond) thms2
-       |> (Conv.fconv_rule  (Conv.top_rewrs_conv [@{thm atomize_imp}] ctxt))
-     val _ = @{print}("thms3",thms3)*)
 
      val thms4 = Thm.equal_elim thms2 cthm
 
      val _ = @{print}("thms4",thms4)
+
+     val thms3 = fold Thm.implies_intr ( ocond) thms4 |> Conv.fconv_rule 
+  ( (Conv.top_rewrs_conv [@{thm atomize_imp}] ctxt))
+
+     val _ = @{print}("thms3",thms3)
+
+
+
      (*val thms5 = ( thms4) RS @{lemma "x \<ge> 0 \<Longrightarrow> P (int (nat x)) = P x"
   by simp}
      val _ = @{print}("thms5",thms5)*)
 
-   in  thms4
+   in  thms3
  end
 
 
