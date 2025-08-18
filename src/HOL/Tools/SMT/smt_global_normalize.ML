@@ -154,6 +154,8 @@ let
   val x = Thm.term_of c_x  
   val subst = Termtab.update (t,(x,B)) subst
   val new_t_ge_0_2 = HOLogic.mk_Trueprop (mkLeTerm x)
+  (*val new_t_ge_0_2 = (mkLeTerm x)*)
+
   val cond =  Drule.infer_instantiate' ctxt [SOME c_x] @{thm nat_0_le}
   val _ = debug_msg ctxt low (fn () => \<^print> ("cond ",cond))
 
@@ -763,7 +765,7 @@ fun bottom_list ccv' tab ocond cond ctxt [] ths = (tab,ctxt,ocond,cond,ths) |
   let
     val _ = @{print}("In bottom list",ocond)
 
-    val (tab2,ctxt2,ocond2,cond2,tthm) = bottom ccv' tab ocond cond ctxt ct
+    val (tab2,ctxt2,ocond2,cond2,tthm) = bottom ccv' tab [] cond ctxt ct
   in  bottom_list ccv' tab2 (ocond @ ocond2) (cond @ cond2) ctxt2 cts (tthm::ths)  end
 
 and 
@@ -870,21 +872,53 @@ fun unfold_test ctxt cthm =
      val _ = @{print}("thms2",thms2) 
 
      val thms4 = Thm.equal_elim thms2 cthm
+     val _ = @{print}("thms2",thms2) 
 
+fun without_trueprop (Const ("HOL.Trueprop", _) $ t) = t | 
+    without_trueprop t = t
      val _ = @{print}("thms4",thms4)
-
-     val thms3 = fold Thm.implies_intr ( ocond) thms4 |> Conv.fconv_rule 
+     val thms3 = Drule.infer_instantiate' ctxt [SOME (Thm.cterm_of ctxt1 (without_trueprop(Thm.term_of (hd ocond)))),SOME (Thm.cterm_of ctxt1 (without_trueprop(Thm.prop_of thms4)))] @{thm HOL.conjI}
+     (*val thms3 = Thm.implies_elim ( new) o |> @{print}|> Conv.fconv_rule 
   ( (Conv.top_rewrs_conv [@{thm atomize_imp}] ctxt))
-
+  *)
      val _ = @{print}("thms3",thms3)
 
+     val thms3' = Thm.implies_elim thms3 (Thm.assume (hd ocond))
+     val _ = @{print}("thms3'",thms3')
+
+     val thms3'' = Thm.implies_elim thms3' thms4
+     val _ = @{print}("thms3''",thms3'')
+
+     (*"
+("thms4",
+ "\<not> 0 \<le> (lift_x__::int)"
+   ["\<not> 0 \<le> (x::nat)",
+     "(x::nat) = nat (lift_x__::int) \<and>
+      0 \<le> lift_x__"]) (line 876 of "/home/lachnitt/Sources/isabelle-git/isabelle-emacs/src/HOL/Tools/SMT/smt_global_normalize.ML") 
+"(?P::bool) \<and> \<not> 0 \<le> (lift_x__::int) \<Longrightarrow>
+ ?P" (line 877 of "/home/lachnitt/Sources/isabelle-git/isabelle-emacs/src/HOL/Tools/SMT/smt_global_normalize.ML") 
 
 
-     (*val thms5 = ( thms4) RS @{lemma "x \<ge> 0 \<Longrightarrow> P (int (nat x)) = P x"
-  by simp}
-     val _ = @{print}("thms5",thms5)*)
 
-   in  thms3
+("obtained conditions",
+ ["int (nat (lift_x__::int)) = lift_x__"
+    ["(x::nat) = nat (lift_x__::int) \<and>
+      0 \<le> lift_x__"]]) (line 861 of "/home/lachnitt/Sources/isabelle-git/isabelle-emacs/src/HOL/Tools/SMT/smt_global_normalize.ML") 
+("obtained other conditions",
+ ["0 \<le> (lift_x__::int)"]) 
+("thms2",
+ "\<not> 0 \<le> int (x::nat) \<equiv> \<not> 0 \<le> (lift_x__::int)"
+   ["(x::nat) = nat (lift_x__::int) \<and>
+     0 \<le> lift_x__"]) (line 870 of "/home/lachnitt/Sources/isabelle-git/isabelle-emacs/src/HOL/Tools/SMT/smt_global_normalize.ML") 
+
+("thms3",
+ "0 \<le> (lift_x__::int) \<longrightarrow> \<not> 0 \<le> lift_x__"
+   ["\<not> 0 \<le> (x::nat)",
+     "(x::nat) = nat (lift_x__::int) \<and>
+      0 \<le> lift_x__"]) (line 881 of "
+*)
+
+   in  thms3''
  end
 
 
