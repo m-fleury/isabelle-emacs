@@ -592,7 +592,7 @@ in
 
         val D = Thm.implies_elim cond (hd B2)
         val _ = debug_msg ctxt middle (fn () => \<^print> ("D",D))
-      in ((fn r => (subst1,ctxt1,[c_x],[D],(Conv.top_rewrs_conv B1_2 ctxt1) r))) end
+      in ((fn r => (subst1,ctxt1,B2,[D],(Conv.top_rewrs_conv B1_2 ctxt1) r))) end
       | (SOME (t',B)) => 
       let
         val _ = debug_msg ctxt high (fn () => \<^print> ("current term is free variable t of type nat" 
@@ -877,13 +877,13 @@ fun unfold_test ctxt cthm =
 fun without_trueprop (Const ("HOL.Trueprop", _) $ t) = t | 
     without_trueprop t = t
      val _ = @{print}("thms4",thms4)
-     val thms3 = Drule.infer_instantiate' ctxt [SOME (Thm.cterm_of ctxt1 (without_trueprop(Thm.term_of (hd ocond)))),SOME (Thm.cterm_of ctxt1 (without_trueprop(Thm.prop_of thms4)))] @{thm HOL.conjI}
+     val thms3 = Drule.infer_instantiate' ctxt [SOME (Thm.cterm_of ctxt1 (without_trueprop(Thm.prop_of (hd ocond)))),SOME (Thm.cterm_of ctxt1 (without_trueprop(Thm.prop_of thms4)))] @{thm HOL.conjI}
      (*val thms3 = Thm.implies_elim ( new) o |> @{print}|> Conv.fconv_rule 
   ( (Conv.top_rewrs_conv [@{thm atomize_imp}] ctxt))
   *)
      val _ = @{print}("thms3",thms3)
 
-     val thms3' = Thm.implies_elim thms3 (Thm.assume (hd ocond))
+     val thms3' = Thm.implies_elim thms3  (hd ocond)
      val _ = @{print}("thms3'",thms3')
 
      val thms3'' = Thm.implies_elim thms3' thms4
