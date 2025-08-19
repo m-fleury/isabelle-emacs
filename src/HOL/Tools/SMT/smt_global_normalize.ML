@@ -297,115 +297,6 @@ local
   
 
 in
-fun mk_new_fun (subst:(term * thm) Termtab.table) t ts n T' Tts new_args f ctxt = 
-let
-  val Tt = fastype_of t
-
-  val retNat = (Tt = @{typ nat})
-  val newf = Free(n,T')
-  val newt = (newf,new_args) |> list_comb
-  val _ = debug_msg ctxt middle (fn () => \<^print> ("encountered function ",f, " for the first time. Replace by ",newf))
-
-  (*
-    \<forall>x1 ... xn. f x1 ... xn = nat(f' x1' ... xn') \<and> f' x1' ... xn' \<ge> 0  or
-    \<forall>x1 ... xn. f x1 ... xn = f' x1' ... xn'
-  *)
-  val forall_term = mk_forall (mk_f_def_ground retNat f newf) mk_hol_all Tts 0 [] 
-  (*val _ = debug_msg ctxt middle (fn () => \<^print> ("forall_term ",forall_term))*)
-
-  (*
-    \<lambda>x1 ... xn. f y1 ... yn
-  *)
-  val lambda_term = mk_forall (mk_nat_f_nat retNat f) mk_lambda Tts 0 [] 
-  (*val _ = debug_msg ctxt middle (fn () => \<^print> ("lambda_term ",lambda_term))*)
-
-  (*
-    \<exists>f'. \<forall>x1...xn. f x1' ... xn' = (nat (f' x1' ... xn')) \<and> (f' x1' ... xn') \<ge> 0
-    \<exists>f'. \<forall>x1...xn. f x1' ... xn' = (f' x1' ... xn')
-  *)
-  val f_cond = HOLogic.mk_exists (n,T',forall_term)
-
-  val (ctxt1,x,B) = obtain_new_variable ctxt n f_cond lambda_term
-  
-  (* Now show:
-       f ?x1' ... ?xn' = (nat (f' ?x1' ... ?xn')) \<and> (f' ?x1' ... ?xn') \<ge> 0
-       f ?x1' ... ?xn' = (f' ?x1' ... ?xn')
-     where ?xi' = nat ?xi if ?xi is a nat otherwise ?xi *)
-  val goal = mk_forall (HOLogic.mk_Trueprop o (mk_f_def_ground retNat f (Thm.term_of x))) mk_prop_all Tts 0 [] 
-  val goal_thm = Goal.prove ctxt1 [] [] goal (fn {context: Proof.context, ...}  => 
-      (debug_msg_tac context high "Obtain new function variable")
-      THEN (unfold_tac context [@{thm atomize_all}])
-      THEN HEADGOAL (Method.insert_tac context [B])
-      THEN HEADGOAL (assume_tac context)
-      THEN (debug_msg_tac context high "Should be solved"))
-   val _ = debug_msg ctxt1 high (fn () => \<^print> ("Showed goal from obtain thm:",goal_thm))
- 
-      val args_with_casts = args_with_casts ts new_args
-              val _ = debug_msg ctxt middle (fn () => \<^print> ("args_with_casts",args_with_casts))
-
-   val B_alpha = inst_function_thm ctxt args_with_casts retNat goal_thm 
-    val _ = debug_msg ctxt middle (fn () => \<^print> ("(B_alpha, B_beta)",B_alpha))
-
-   val subst = Termtab.update (f,(x |> Thm.term_of,goal_thm)) subst
-in 
-  (ctxt1,subst,x |> Thm.term_of,B,B_alpha)
-end
-
-
-fun mk_new_fun2 (subst:(term * thm) Termtab.table) t ts n T' new_args Tts f ctxt = 
-let
-  val Tt = fastype_of t
-
-  val retNat = (Tt = @{typ nat})
-  val newf = Free(n,T')
-  val _ = debug_msg ctxt middle (fn () => \<^print> ("encountered function ",f, " for the first time. Replace by ",newf))
-
-  (*
-    \<forall>x1 ... xn. f x1 ... xn = nat(f' x1' ... xn') \<and> f' x1' ... xn' \<ge> 0  or
-    \<forall>x1 ... xn. f x1 ... xn = f' x1' ... xn'
-  *)
-  val forall_term = mk_forall (mk_f_def_ground retNat f newf) mk_hol_all Tts 0 [] 
-  (*val _ = debug_msg ctxt middle (fn () => \<^print> ("forall_term ",forall_term))*)
-
-  (*
-    \<lambda>x1 ... xn. f y1 ... yn
-  *)
-  val lambda_term = mk_forall (mk_nat_f_nat retNat f) mk_lambda Tts 0 [] 
-  (*val _ = debug_msg ctxt middle (fn () => \<^print> ("lambda_term ",lambda_term))*)
-
-  (*
-    \<exists>f'. \<forall>x1...xn. f x1' ... xn' = (nat (f' x1' ... xn')) \<and> (f' x1' ... xn') \<ge> 0
-    \<exists>f'. \<forall>x1...xn. f x1' ... xn' = (f' x1' ... xn')
-  *)
-  val f_cond = HOLogic.mk_exists (n,T',forall_term)
-
-  val (ctxt1,x,B) = obtain_new_variable ctxt n f_cond lambda_term
-  
-  (* Now show:
-       f ?x1' ... ?xn' = (nat (f' ?x1' ... ?xn')) \<and> (f' ?x1' ... ?xn') \<ge> 0
-       f ?x1' ... ?xn' = (f' ?x1' ... ?xn')
-     where ?xi' = nat ?xi if ?xi is a nat otherwise ?xi *)
-  val goal = (mk_forall (HOLogic.mk_Trueprop o (mk_f_def_ground retNat f (Thm.term_of x))) mk_prop_all Tts 0 [])
-  val goal_thm = Goal.prove ctxt1 [] [] goal (fn {context: Proof.context, ...}  => 
-      print_tac context "Obtain new function variable" 
-      THEN (unfold_tac context [@{thm atomize_all}])
-      THEN HEADGOAL (Method.insert_tac context [B])
-      THEN HEADGOAL (assume_tac context)  THEN  print_tac context "Should be solved" )
-   val _ = debug_msg ctxt1 high (fn () => \<^print> ("Showed goal from obtain thm:",goal_thm))
- 
-      val args_with_casts = args_with_casts ts new_args
-              val _ = debug_msg ctxt middle (fn () => \<^print> ("args_with_casts",args_with_casts))
-
-   val B_alpha = inst_function_thm ctxt args_with_casts retNat goal_thm 
-    val _ = debug_msg ctxt middle (fn () => \<^print> ("(B_alpha)",B_alpha))
-    val B_alpha' = B_alpha (*unfold *)
-    val _ = debug_msg ctxt middle (fn () => \<^print> ("(B_alpha')",B_alpha'))
-
-   val subst = Termtab.update (f,(x |> Thm.term_of,goal_thm)) subst
-in 
-  (ctxt1,subst,x  |> Thm.term_of,B,B_alpha)
-end
-
 
 fun mk_new_fun3 (subst:(term * thm) Termtab.table) t ts n T' new_args Tts f ctxt = 
 let
@@ -676,7 +567,7 @@ map (Conv.fconv_rule
       in (fn r => (subst,ctxt4,[],D,
 (then_conv2
 
-  (fn x1 => (Conv.top_rewrs_conv B1 ctxt4) (x1 |> @{print})
+  (fn x1 => (Conv.top_rewrs_conv C' ctxt4) (x1 |> @{print})
 |> @{print})
   (*Simplify numerals, needs drule*)
   (Conv.try_conv (fn x2 =>  let
@@ -867,58 +758,20 @@ fun unfold_test ctxt cthm =
 
    val thms'' =
    let
-     val thms2 = (Conv.fconv_rule  (Conv.top_rewrs_conv cond2 ctxt) thm)
-
-     val _ = @{print}("thms2",thms2) 
-
-     val thms4 = Thm.equal_elim thms2 cthm
-     val _ = @{print}("thms2",thms2) 
-
-fun without_trueprop (Const ("HOL.Trueprop", _) $ t) = t | 
-    without_trueprop t = t
+     val thm2 = (Conv.fconv_rule  (Conv.top_rewrs_conv cond2 ctxt) thm)
+     val thms4 = Thm.equal_elim thm2 cthm
+     val _ = @{print}("thms2",thm2) 
      val _ = @{print}("thms4",thms4)
-     val thms3 = Drule.infer_instantiate' ctxt [SOME (Thm.cterm_of ctxt1 (without_trueprop(Thm.prop_of (hd ocond)))),SOME (Thm.cterm_of ctxt1 (without_trueprop(Thm.prop_of thms4)))] @{thm HOL.conjI}
-     (*val thms3 = Thm.implies_elim ( new) o |> @{print}|> Conv.fconv_rule 
-  ( (Conv.top_rewrs_conv [@{thm atomize_imp}] ctxt))
-  *)
+
+    in if length ocond = 0 then  thms4 else
+      let
+        fun mk_and [x] = x |
+           mk_and (x::xs) = OF (@{thm HOL.conjI} OF [x],[mk_and xs])
+   val ocond = mk_and ocond (*TODO: Make and here*)
+
+     val thms3 = ( @{thm HOL.conjI} OF [ocond,thms4])
      val _ = @{print}("thms3",thms3)
-
-     val thms3' = Thm.implies_elim thms3  (hd ocond)
-     val _ = @{print}("thms3'",thms3')
-
-     val thms3'' = Thm.implies_elim thms3' thms4
-     val _ = @{print}("thms3''",thms3'')
-
-     (*"
-("thms4",
- "\<not> 0 \<le> (lift_x__::int)"
-   ["\<not> 0 \<le> (x::nat)",
-     "(x::nat) = nat (lift_x__::int) \<and>
-      0 \<le> lift_x__"]) (line 876 of "/home/lachnitt/Sources/isabelle-git/isabelle-emacs/src/HOL/Tools/SMT/smt_global_normalize.ML") 
-"(?P::bool) \<and> \<not> 0 \<le> (lift_x__::int) \<Longrightarrow>
- ?P" (line 877 of "/home/lachnitt/Sources/isabelle-git/isabelle-emacs/src/HOL/Tools/SMT/smt_global_normalize.ML") 
-
-
-
-("obtained conditions",
- ["int (nat (lift_x__::int)) = lift_x__"
-    ["(x::nat) = nat (lift_x__::int) \<and>
-      0 \<le> lift_x__"]]) (line 861 of "/home/lachnitt/Sources/isabelle-git/isabelle-emacs/src/HOL/Tools/SMT/smt_global_normalize.ML") 
-("obtained other conditions",
- ["0 \<le> (lift_x__::int)"]) 
-("thms2",
- "\<not> 0 \<le> int (x::nat) \<equiv> \<not> 0 \<le> (lift_x__::int)"
-   ["(x::nat) = nat (lift_x__::int) \<and>
-     0 \<le> lift_x__"]) (line 870 of "/home/lachnitt/Sources/isabelle-git/isabelle-emacs/src/HOL/Tools/SMT/smt_global_normalize.ML") 
-
-("thms3",
- "0 \<le> (lift_x__::int) \<longrightarrow> \<not> 0 \<le> lift_x__"
-   ["\<not> 0 \<le> (x::nat)",
-     "(x::nat) = nat (lift_x__::int) \<and>
-      0 \<le> lift_x__"]) (line 881 of "
-*)
-
-   in  thms3''
+in thms3 end
  end
 
 
