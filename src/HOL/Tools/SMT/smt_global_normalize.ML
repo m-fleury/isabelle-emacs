@@ -818,7 +818,7 @@ fun unfold_test ctxt cthm =
 
    val (_,ctxt1,ocond,cond,thm) =
     (bottom (fn tab2 => fn ctxt2 => transform2 ctxt2 tab2) (Termtab.empty) [] [] ctxt) (Thm.cprop_of cthm)
-
+   val ocond = distinct (fn (a,b) => Thm.prop_of a = Thm.prop_of b) ocond
    val _ = debug_msg ctxt low (fn () => \<^print> ("current transformed thm",thm))
    val _ = debug_msg ctxt low (fn () => \<^print> ("obtained conditions",cond))
      val _ = debug_msg ctxt low (fn () => \<^print> ("obtained other conditions",ocond))
