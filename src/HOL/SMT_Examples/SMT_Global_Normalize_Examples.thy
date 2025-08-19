@@ -173,48 +173,54 @@ lemma fun_constant3:
 \<open>
 (set-logic AUFLIRA)
 (declare-fun lift_f$ (Int) Int)
-(assert (! (= (lift_f$ 3) 5) :named a0))
+(assert (! (and (<= 0 (lift_f$ 3)) (= (lift_f$ 3) 5)) :named a0))
 (assert (! (not true) :named a1))
 \<close>)
   by (smt (cvc5))
 
-(*
-(declare-fun lift_f$ (Int) Int)
-(declare-fun lift_x$ () Int)
-(assert (! (and (<= 0 lift_x$) (= (lift_f$ lift_x$) 5)) :named a0))
-(assert (! (not true) :named a1))
-*)
 lemma fun_variable1:
   fixes f::"nat \<Rightarrow> int"
   assumes "f x = 5"
   shows "True"
   using assms
+ apply (test_smt_translate 
+\<open>
+(set-logic AUFLIRA)
+(declare-fun lift_f$ (Int) Int)
+(declare-fun lift_x$ () Int)
+(assert (! (and (<= 0 lift_x$) (= (lift_f$ lift_x$) 5)) :named a0))
+(assert (! (not true) :named a1))
+\<close>)
   by (smt (cvc5))
 
-(*
-(declare-fun x$ () Int)
-(declare-fun lift_f$ (Int) Int)
-(assert (! (and (<= 0 (lift_f$ x$)) (= (lift_f$ x$) 5)) :named a0))
-(assert (! (not true) :named a1))
-*)
 lemma fun_variable2:
   fixes f::"int \<Rightarrow> nat"
   assumes "f x = 5"
   shows "True"
   using assms
-  by (smt (cvc5))
-
-(*
+ apply (test_smt_translate 
+\<open>
+(set-logic AUFLIRA)
 (declare-fun x$ () Int)
 (declare-fun lift_f$ (Int) Int)
-(assert (! (= (lift_f$ 6) x$) :named a0))
+(assert (! (and (<= 0 (lift_f$ x$)) (= (lift_f$ x$) 5)) :named a0))
 (assert (! (not true) :named a1))
-*)
+\<close>)
+  by (smt (cvc5))
+
 lemma fun_variable3:
   fixes f::"nat \<Rightarrow> int"
   assumes "f 6 = x"
   shows "True"
   using assms
+ apply (test_smt_translate 
+\<open>
+(set-logic AUFLIRA)
+(declare-fun x$ () Int)
+(declare-fun lift_f$ (Int) Int)
+(assert (! (= (lift_f$ 6) x$) :named a0))
+(assert (! (not true) :named a1))
+\<close>)
   by (smt (cvc5))
 
 (*
@@ -228,6 +234,14 @@ lemma fun_variable4:
   assumes "f 6 = x"
   shows "True"
   using assms
+ apply (test_smt_translate 
+\<open>
+(set-logic AUFLIRA)
+(declare-fun lift_f$ (Int) Int)
+(declare-fun lift_x$ () Int)
+(assert (! (and (and (<= 0 (lift_f$ 6)) (<= 0 lift_x$)) (= (lift_f$ 6) lift_x$)) :named a0))
+(assert (! (not true) :named a1))
+\<close>)
   by (smt (cvc5))
 
 (*

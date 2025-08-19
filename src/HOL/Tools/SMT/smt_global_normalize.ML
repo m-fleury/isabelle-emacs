@@ -549,7 +549,7 @@ transform2_function subst ctxt f n n' Ts ts Tts T T' t = (*Function only here to
         val _ = debug_msg ctxt middle (fn () => \<^print> ("B",B))
         val Tt = fastype_of t
         val retNat = (Tt = @{typ nat}) |> @{print}
-        val (B1,B2) = if retNat then split ctxt B  else ([],[B]) |> @{print}
+        val (B1,B2) = if retNat then split ctxt B  else ([B],[]) |> @{print}
         val B2 = 
 map (Conv.fconv_rule 
   ((Conv.top_rewrs_conv [@{thm atomize_eq[symmetric]}] ctxt))) B2
@@ -564,10 +564,10 @@ map (Conv.fconv_rule
         val _ = debug_msg ctxt middle (fn () => \<^print> ("D",D))
  val C' =   (fn b =>  b RS @{thm eq_reflection}) C
 
-      in (fn r => (subst,ctxt4,[],D,
+      in (fn r => (subst,ctxt4,B2,D,
 (then_conv2
 
-  (fn x1 => (Conv.top_rewrs_conv C' ctxt4) (x1 |> @{print})
+  (fn x1 => (Conv.top_rewrs_conv B1 ctxt4) (x1 |> @{print})
 |> @{print})
   (*Simplify numerals, needs drule*)
   (Conv.try_conv (fn x2 =>  let
