@@ -328,8 +328,9 @@ let
     \<exists>f'. \<forall>x1...xn. f x1' ... xn' = (f' x1' ... xn')
   *)
   val f_cond = HOLogic.mk_exists (n,T',forall_term)
+  val n' = "lift_" ^ n
 
-  val (ctxt1,x,B) = obtain_new_variable ctxt n f_cond lambda_term
+  val (ctxt1,x,B) = obtain_new_variable ctxt n' f_cond lambda_term
   
   (* Now show:
        f ?x1' ... ?xn' = (nat (f' ?x1' ... ?xn')) \<and> (f' ?x1' ... ?xn') \<ge> 0
@@ -345,7 +346,7 @@ let
  
    
    val subst = Termtab.update (f,(x,goal_thm)) subst
-   val _ = debug_msg ctxt middle (fn () => \<^print> ("Added f to table",f))
+   val _ = debug_msg ctxt1 middle (fn () => \<^print> ("Added f to table",f))
 
 in 
   (ctxt1,subst,x,goal_thm)
@@ -368,39 +369,38 @@ in
   B'
 end
 
-fun mk_new_fun2 (subst:(cterm * thm) Termtab.table) t ts n T' new_args Tts f ctxt x goal_thm retNat = 
+fun mk_new_fun2 ts Tts f ctxt x goal_thm = 
 let
 
-   val args_with_casts = args_with_casts ts new_args
-   val _ = debug_msg ctxt middle (fn () => \<^print> ("args_with_casts",args_with_casts))
- 
 
-   val B_alpha = inst_function_thm ctxt args_with_casts goal_thm
+   val B_alpha = inst_function_thm ctxt ts goal_thm
    val (B1,B2) = mk_cond ctxt B_alpha
    val B2 = B2 |> atomize_eq_thm ctxt (*TODO: This should already be stored atomized*)
     val _ = debug_msg ctxt middle (fn () => \<^print> ("(B_alpha)",B_alpha))
     val _ = debug_msg ctxt middle (fn () => \<^print> ("(B1,B2)",(B1,B2)))
 
     val _ = debug_msg ctxt middle (fn () => \<^print> ("x",x))
-    val _ = debug_msg ctxt middle (fn () => \<^print> ("new_args",new_args))
+    val _ = debug_msg ctxt middle (fn () => \<^print> ("new_args",ts))
 
     val _ = debug_msg ctxt middle (fn () => \<^print> ("args_with_casts",args_with_casts))
     val _ = debug_msg ctxt middle (fn () => \<^print> ("ts",ts))
 
 fun arg_with_casts2 a = (if is_Bound a then a else
   (if fastype_of a = @{typ nat} then @{term "int"} $ a else a))
-  val args_with_casts2' = map arg_with_casts2 new_args
+  val args_with_casts2' = map arg_with_casts2 ts
 
     val _ = debug_msg ctxt middle (fn () => \<^print> ("args_with_casts2",args_with_casts2'))
 
 val y = (Thm.cterm_of ctxt (Term.list_comb (Thm.term_of x, args_with_casts2')))
     val _ = debug_msg ctxt middle (fn () => \<^print> ("y",y))
 
-   val B_alpha' = if retNat then [Drule.infer_instantiate' ctxt [SOME y] @{thm nat_0_le}] else []
+   val B_alpha' = if length B1 = 0 then [] else
+ [Drule.infer_instantiate' ctxt [SOME y] @{thm nat_0_le}]
 
     val _ = debug_msg ctxt middle (fn () => \<^print> ("(B_alpha')",B_alpha'))
 
-   val B_alpha'' = if retNat then [atomize_eq_thm ctxt (Thm.implies_elim (hd B_alpha') (hd B1))] else []
+   val B_alpha'' = if length B1 = 0 then []
+  else [atomize_eq_thm ctxt (Thm.implies_elim (hd B_alpha') (hd B1))]
 
     val _ = debug_msg ctxt middle (fn () => \<^print> ("(B_alpha'')",B_alpha''))
 
@@ -415,15 +415,6 @@ in   (B1,B2,B_alpha'') end
    (int (nat (3::int)))") (line 579 of "/home/lachnitt/Sources/isabelle-git/isabelle-emacs/src/HOL/Tools/SMT/smt_global_normalize.ML") 
 ("B_alpha",
  "(f::nat \<Rightarrow> int) (nat (3::int)) = (fa__::int \<Rightarrow> int) (int (nat (3::int)))*)
-
-fun mk_new_fun3 (subst:(cterm * thm) Termtab.table) t ts n T' new_args Tts f ctxt = 
-let
-  val (ctxt1,subst,x,goal_thm) = mk_new_fun subst t ts n T' new_args Tts f ctxt
-  val (B_alpha',B_alpha,_) = mk_new_fun2 subst t ts n T' new_args Tts f ctxt x goal_thm true
-
-
-in    (ctxt1,subst,x ,B_alpha',B_alpha) end
-
 
 
 
@@ -590,18 +581,16 @@ transform2_function subst ctxt f n n' Ts ts Tts T T' t = (*Function only here to
       in (ctxt1,subst,x,goal_thm) end |
       SOME (ct',B) => (ctxt, subst,ct', B)
     )
-    val _ = debug_msg ctxt middle (fn () => \<^print> ("goal_thm",goal_thm))
+    val _ = debug_msg ctxt1 middle (fn () => \<^print> ("goal_thm",goal_thm))
 
-    val (ge_cond,lift_def,nat_int_lemma) = mk_new_fun2 subst t ts n T' ts Tts f ctxt x goal_thm true
-    val _ = debug_msg ctxt middle (fn () => \<^print> ("lift_def",lift_def))
-    val _ = debug_msg ctxt middle (fn () => \<^print> ("ge_cond",ge_cond))
+    val (ge_cond,lift_def,nat_int_lemma) = mk_new_fun2 ts Tts f ctxt1 x goal_thm
+    val _ = debug_msg ctxt1 middle (fn () => \<^print> ("lift_def",lift_def))
+    val _ = debug_msg ctxt1 middle (fn () => \<^print> ("ge_cond",ge_cond))
 
-    val Tt = fastype_of t
-    val retNat = (Tt = @{typ nat}) |> @{print}
-        val _ = debug_msg ctxt middle (fn () => \<^print> ("x",x))
+        val _ = debug_msg ctxt1 middle (fn () => \<^print> ("x",x))
 
 
-        val _ = debug_msg ctxt middle (fn () => \<^print> ("nat_int_lemma",nat_int_lemma))
+        val _ = debug_msg ctxt1 middle (fn () => \<^print> ("nat_int_lemma",nat_int_lemma))
 
       in (fn r => (subst,ctxt1,ge_cond,nat_int_lemma,
 (then_conv2
