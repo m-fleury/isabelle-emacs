@@ -4,9 +4,9 @@ theory SMT_Global_Normalize_Examples
   imports "HOL.SMT" 
 begin
 
-(*None of them should contain any nats after encoding unless explicitly stated.*)
-(*Some are not valid statements and are included because they result in far less
- convoluted problems then valid ones. *)
+(*None of the goals should contain any nats after encoding unless explicitly stated.*)
+(*Note: I have not finished filling in the expected outcomes and some might not be the 
+correct ones yet*)
 
 declare[[smt_expert_debug_alethe_files="smt_global_normalize"]]
 declare[[smt_expert_debug_alethe_level=3]]
@@ -223,12 +223,6 @@ lemma fun_variable3:
 \<close>)
   by (smt (cvc5))
 
-(*
-(declare-fun lift_f$ (Int) Int)
-(declare-fun lift_x$ () Int)
-(assert (! (and (and (<= 0 lift_x$) (<= 0 (lift_f$ 6))) (= (lift_f$ 6) lift_x$)) :named a0))
-(assert (! (not true) :named a1))
-*)
 lemma fun_variable4:
   fixes f::"int \<Rightarrow> nat"
   assumes "f 6 = x"
@@ -244,85 +238,75 @@ lemma fun_variable4:
 \<close>)
   by (smt (cvc5))
 
-(*
-(declare-fun x$ () Int)
-(declare-fun lift_f$ (Int) Int)
-(assert (! (and (and (<= 0 (lift_f$ x$)) (<= 0 (lift_f$ 6))) (= (lift_f$ 6) (lift_f$ x$))) :named a0))
-(assert (! (not true) :named a1))
-*)
 lemma fun_variable_constant_twice:
   fixes f::"int \<Rightarrow> nat"
   assumes "f 6 = f x"
   shows "True"
   using assms
-  by (smt (cvc5))
-
-(*
+ apply (test_smt_translate 
+\<open>
+(set-logic AUFLIRA)
 (declare-fun lift_f$ (Int) Int)
 (declare-fun lift_x$ () Int)
-(declare-fun lift_y$ () Int)
-(assert (! (and (and (<= 0 lift_x$) (<= 0 lift_y$)) (not (=> (and (= (lift_f$ lift_y$) 5) (= (lift_f$ lift_x$) 5)) (= (lift_f$ lift_y$) (lift_f$ lift_x$))))) :named a0))
-*)
+(assert (! (and (and (and (<= 0 (lift_f$ 6)) (<= 0 lift_x$)) (lift_f lift_x$)) (= (lift_f$ 6) (lift_f lift_x$))) :named a0))
+(assert (! (not true) :named a1))
+\<close>)
+  by (smt (cvc5))
+
+lemma native_inside_uninterpreted:
+  fixes f::"int \<Rightarrow> nat"
+  assumes "f (6 + 1) = f x"
+  shows "True"
+  using assms
+ apply (test_smt_translate 
+\<open>
+(set-logic AUFLIRA)
+(declare-fun lift_f$ (Int) Int)
+(declare-fun lift_x$ () Int)
+(assert (! (and (and (and (<= 0 (lift_f$ 6)) (<= 0 lift_x$)) (lift_f lift_x$)) (= (lift_f$ 6) (lift_f lift_x$))) :named a0))
+(assert (! (not true) :named a1))
+\<close>)
+  by (smt (cvc5))
+
 lemma fun_trans:
   fixes f::"nat\<Rightarrow>int"
   shows "f y = 5 \<Longrightarrow> f x = 5 \<Longrightarrow> f y = f x" 
   by (smt (cvc5))
 
-
-(*
-(declare-fun lift_f$ (Int) Int)
-(declare-fun lift_x$ () Int)
-(assert (! (and (<= 0 lift_x$) (not (=> (and (= (lift_f$ 3) 5) (= (lift_f$ lift_x$) 5)) (= (lift_f$ 3) (lift_f$ lift_x$))))) :named a0))
-*)
 lemma fun_trans2:
   fixes f::"nat\<Rightarrow>int"
   shows "f 3 = 5 \<Longrightarrow> f x = 5 \<Longrightarrow> f 3 = f x" 
   by (smt (cvc5))
 
-(*
-(assert (! (not (forall ((?v0 Int)) (=> (<= 0 ?v0) (= ?v0 ?v0)))) :named a0))
-*)
 lemma quant:
   shows "\<forall>x. (x::nat) = x" 
   by (smt (cvc5))
 
-(*
-(assert (! (not (exists ((?v0 Int)) (and (<= 0 ?v0) (= ?v0 ?v0)))) :named a0))
-*)
 lemma quant2:
   shows "\<exists>x. (x::nat) = x" 
   by (smt (cvc5))
 
-(*
-(assert (! (not (not (= 0 1))) :named a0))
-*)
+
+lemma quant3:
+  fixes f::"nat\<Rightarrow>int"
+  shows "(\<forall> x. f a = f x) \<and> (\<forall> x. f a = f x)" 
+  by (smt (cvc5))
+
+
 lemma nat_const:
   shows "nat (0::int) \<noteq> 1" 
   by (smt (cvc5))
 
 
-(*
-(assert (! (not (not (= 4 5))) :named a0))
-*)
 lemma int_const:
   shows "int (4::nat) \<noteq> 5" 
   by (smt (cvc5))
 
 
-(*
-(declare-fun x$ () Int)
-(assert (! (not (=> (= x$ 4) (not (= x$ 5)))) :named a0))
-*)
 lemma nat_var2:
   shows "nat (x::int) = 4 \<Longrightarrow> nat (x::int) \<noteq> 5" 
   by (smt (cvc5))
 
-lemma "a \<Longrightarrow> b"
-  apply (simp only: atomize_imp)
-(*
-(declare-fun lift_x$ () Int)
-(assert (! (and (<= 0 lift_x$) (not (=> (= lift_x$ 4) (not (= lift_x$ 5))))) :named a0))
-*)
 lemma int_var2:
   shows "int (x::nat) = 4 \<Longrightarrow> int (x::nat) \<noteq> 5" 
   by (smt (cvc5))
@@ -333,11 +317,6 @@ lemma int_var2:
 definition foo where
 "foo (x::nat) = x + 1"
 
-(*
-(declare-fun lift_foo$ (Int) Int)
-(assert (! (forall ((?v0 Int)) (=> (<= 0 (lift_foo$ ?v0)) (=> (<= 0 ?v0) (= (lift_foo$ ?v0) (+ ?v0 1))))) :named a0))
-(assert (! (and (<= 0 (lift_foo$ 0)) (not (= (lift_foo$ 0) 1))) :named a1))
-*)
 lemma def_quant:
   shows "foo 0 = 1" 
   using foo_def
@@ -346,11 +325,6 @@ lemma def_quant:
 definition foo2 where
 "foo2 (x::nat) = (1::int)"
 
-(*
-(declare-fun lift_foo2$ (Int) Int)
-(assert (! (forall ((?v0 Int)) (=> (<= 0 ?v0) (= (lift_foo2$ ?v0) 1))) :named a0))
-(assert (! (not (= (lift_foo2$ 0) 1)) :named a1))
-*)
 lemma def_quant2:
   shows "foo2 0 = 1" 
   using foo2_def
@@ -359,35 +333,12 @@ lemma def_quant2:
 definition boo where
 "boo (x::nat) (y::int) \<equiv> (x = 2) \<and> (y = 3)"
 
-(*
-(declare-fun lift_boo$ (Int Int) Bool)
-(assert (! (forall ((?v0 Int)) (=> (<= 0 ?v0) (forall ((?v1 Int)) (= (lift_boo$ ?v0 ?v1) (and (= ?v0 2) (= ?v1 3)))))) :named a0))
-(assert (! (not (lift_boo$ 2 3)) :named a1))
-*)
 lemma def_quant3:
   shows "boo (2::nat) 3"
   using boo_def
   by (smt (cvc5))
 
-(*
 
-Before global normalization:
- "\<forall>(x::nat) y::int. boo x y = (int x = (2::int) \<and> y = (3::int))"
-After preproc:
-\<forall>x\<ge>0. \<forall>y::int. boo (nat x) y = (x = (2::int) \<and> y = (3::int)) 
-Term to show after:
- "\<forall>x\<ge>0. \<forall>y::int. lift_boo x y = (x = (2::int) \<and> y = (3::int))"
-
-Algo should have proven:
-boo (nat x) y = lift_boo x y
-
-
-
-\<forall>x\<ge>0. \<forall>y::int. boo (nat x) y = (int (nat x) = (2::int) \<and> y = (3::int)) \<Longrightarrow>
-(\<And>(lb0::nat) lb1::int. boo lb0 lb1 = lift_boo (int lb0) lb1)
-  \<Longrightarrow> \<forall>x\<ge>0. \<forall>y::int. lift_boo x y = (x = (2::int) \<and> y = (3::int))
-
-*)
 
 (*Conversions*)
 
@@ -494,35 +445,24 @@ lemma "(x::int) = 3 + 4 \<Longrightarrow> x = 7"
 definition g1 where
 "g1 (x::nat) (y::int) = y + 1"
 
-(*
-(declare-fun x_000$ (Int Int) Int)
-(assert (! (not (exists ((?v0 Int)) (and (<= 0 ?v0) (= (x_000$ ?v0 2) 3)))) :named a0))
-*)
 lemma "\<exists>(x :: nat).((g :: nat \<Rightarrow> int \<Rightarrow> int) x (2 :: int)) = 3"
-  apply (smt (cvc5))
+  by (smt (cvc5))
 
-(*
-(declare-fun x_000$ (Int Int) Int)
-(assert (! (not (forall ((?v0 Int)) (=> (<= 0 ?v0) (= (x_000$ ?v0 2) 3)))) :named a0))
-*)
 lemma "\<forall>(x :: nat).((g :: nat \<Rightarrow> int \<Rightarrow> int) x (2 :: int)) = 3"
-  apply (smt (cvc5))
-
-  thm int_nat_embedding_preproc_all int_nat_embedding_preproc_ex
+  by (smt (cvc5))
 
 lemma "(if (\<forall>x::int. x < 0 \<or> x > 0) then -1 else 3) > (0::int)"
   supply [[smt_trace]] by (smt (cvc5))
 
-
 lemma "(2::nat) ^ 3 = 8"
-  apply (smt (cvc5))
+  by (smt (cvc5))
 
 definition bound :: nat where
   "bound = 4"
 
 lemma "bound = 3 + 1"
   using bound_def
-  apply (smt (cvc5))
+  by (smt (cvc5))
 
 
 (*
@@ -544,7 +484,25 @@ lemma "bound = 3 + 1"
 
 *)
 
+(*
 
+Before global normalization:
+ "\<forall>(x::nat) y::int. boo x y = (int x = (2::int) \<and> y = (3::int))"
+After preproc:
+\<forall>x\<ge>0. \<forall>y::int. boo (nat x) y = (x = (2::int) \<and> y = (3::int)) 
+Term to show after:
+ "\<forall>x\<ge>0. \<forall>y::int. lift_boo x y = (x = (2::int) \<and> y = (3::int))"
+
+Algo should have proven:
+boo (nat x) y = lift_boo x y
+
+
+
+\<forall>x\<ge>0. \<forall>y::int. boo (nat x) y = (int (nat x) = (2::int) \<and> y = (3::int)) \<Longrightarrow>
+(\<And>(lb0::nat) lb1::int. boo lb0 lb1 = lift_boo (int lb0) lb1)
+  \<Longrightarrow> \<forall>x\<ge>0. \<forall>y::int. lift_boo x y = (x = (2::int) \<and> y = (3::int))
+
+*)
 (*
 (declare-fun lift_f$ (Int) Int)
 (assert (! (and (<= 0 (lift_f$ 3)) (= (lift_f$ 3) 5)) :named a0))

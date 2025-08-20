@@ -46,16 +46,16 @@ fun mkLeTerm t = (@{term "Orderings.ord_class.less_eq::int \<Rightarrow> int \<R
 fun mkGeTerm t = (@{term "Orderings.ord_class.greater_eq::int \<Rightarrow> int \<Rightarrow> bool"} $ t $ @{term "0::int"} )
 
 
-fun split B = ([@{thm conjunct1} OF [B]], @{thm conjunct2} OF [B])
+fun split B = ([@{thm conjunct2} OF [B]], @{thm conjunct1} OF [B])
   handle (THM _) => ([],B)
 
 fun mk_cond ctxt B = 
 let
-  val (B1,B2) = split B
-  val B1 = map (fn b => b RS @{thm eq_reflection}) B1
-  val _ = debug_msg ctxt high (fn () => \<^print> ("B",B))
-  val _ = debug_msg ctxt high (fn () => \<^print> ("(B1,B2)",(B1,B2)))
-in (B1,B2) end
+  val (ge_cond,lift_def) = split B
+  val lift_def = (fn b => b RS @{thm eq_reflection}) lift_def
+  val _ = debug_msg ctxt middle (fn () => \<^print> ("lift_def",lift_def))
+  val _ = debug_msg ctxt middle (fn () => \<^print> ("ge_cond",ge_cond))
+in (ge_cond,lift_def) end
 
 fun atomize_eq_thm ctxt = (Conv.top_rewrs_conv [@{thm atomize_eq[symmetric]}] ctxt) |> Conv.fconv_rule
           
@@ -375,8 +375,12 @@ let
    val _ = debug_msg ctxt middle (fn () => \<^print> ("args_with_casts",args_with_casts))
  
 
-   val B_alpha = inst_function_thm ctxt args_with_casts goal_thm 
+   val B_alpha = inst_function_thm ctxt args_with_casts goal_thm
+   val (B1,B2) = mk_cond ctxt B_alpha
+   val B2 = B2 |> atomize_eq_thm ctxt (*TODO: This should already be stored atomized*)
     val _ = debug_msg ctxt middle (fn () => \<^print> ("(B_alpha)",B_alpha))
+    val _ = debug_msg ctxt middle (fn () => \<^print> ("(B1,B2)",(B1,B2)))
+
     val _ = debug_msg ctxt middle (fn () => \<^print> ("x",x))
     val _ = debug_msg ctxt middle (fn () => \<^print> ("new_args",new_args))
 
@@ -392,17 +396,30 @@ fun arg_with_casts2 a = (if is_Bound a then a else
 val y = (Thm.cterm_of ctxt (Term.list_comb (Thm.term_of x, args_with_casts2')))
     val _ = debug_msg ctxt middle (fn () => \<^print> ("y",y))
 
-   val B_alpha' = if retNat then Drule.infer_instantiate' ctxt [SOME y] @{thm nat_0_le} else B_alpha
+   val B_alpha' = if retNat then [Drule.infer_instantiate' ctxt [SOME y] @{thm nat_0_le}] else []
 
     val _ = debug_msg ctxt middle (fn () => \<^print> ("(B_alpha')",B_alpha'))
 
-in   (B_alpha',B_alpha) end
+   val B_alpha'' = if retNat then [atomize_eq_thm ctxt (Thm.implies_elim (hd B_alpha') (hd B1))] else []
 
+    val _ = debug_msg ctxt middle (fn () => \<^print> ("(B_alpha'')",B_alpha''))
+
+
+
+
+in   (B1,B2,B_alpha'') end
+(*("B_alpha'",
+ "0 \<le> (fa__::int \<Rightarrow> int) (int (nat (3::int))) \<Longrightarrow>
+  int (nat (fa__ (int (nat (3::int))))) =
+  fa__
+   (int (nat (3::int)))") (line 579 of "/home/lachnitt/Sources/isabelle-git/isabelle-emacs/src/HOL/Tools/SMT/smt_global_normalize.ML") 
+("B_alpha",
+ "(f::nat \<Rightarrow> int) (nat (3::int)) = (fa__::int \<Rightarrow> int) (int (nat (3::int)))*)
 
 fun mk_new_fun3 (subst:(cterm * thm) Termtab.table) t ts n T' new_args Tts f ctxt = 
 let
   val (ctxt1,subst,x,goal_thm) = mk_new_fun subst t ts n T' new_args Tts f ctxt
-  val (B_alpha',B_alpha) = mk_new_fun2 subst t ts n T' new_args Tts f ctxt x goal_thm true
+  val (B_alpha',B_alpha,_) = mk_new_fun2 subst t ts n T' new_args Tts f ctxt x goal_thm true
 
 
 in    (ctxt1,subst,x ,B_alpha',B_alpha) end
@@ -515,12 +532,12 @@ in
 
     in (subst,ctxt,cond,B) end
      ) 
-   val (lift_def,ge_cond) = mk_cond ctxt B
+   val ([ge_cond],lift_def) = mk_cond ctxt B
        val nat_int_lemma = Thm.implies_elim cond ge_cond
        val _ = debug_msg ctxt middle (fn () => \<^print> ("lift_def",lift_def))
        val _ = debug_msg ctxt middle (fn () => \<^print> ("ge_cond",ge_cond))
        val _ = debug_msg ctxt middle (fn () => \<^print> ("nat_int_lemma",nat_int_lemma))
-   in ((fn r => (subst1,ctxt1,[ge_cond],[nat_int_lemma],(Conv.top_rewrs_conv lift_def ctxt) r))) end
+   in ((fn r => (subst1,ctxt1,[ge_cond],[nat_int_lemma],(Conv.top_rewrs_conv [lift_def] ctxt) r))) end
 |
  _ =>
    let
@@ -563,43 +580,43 @@ transform2_function subst ctxt f n n' Ts ts Tts T T' t = (*Function only here to
     val _ = debug_msg ctxt high (fn () => \<^print> ("the type of the current term has no nats in it, so we skip it",f))
   in custom_no_conv ctxt subst end     
   else
+  let
+    val (ctxt1,subst,x,goal_thm) = 
     (case Termtab.lookup subst f of
       NONE =>
       let
         val _ = debug_msg ctxt middle (fn () => \<^print> ("current term is a function f that has not been encountered yet ",t))
-        val (ctxt4,subst,f',C,B) = mk_new_fun3 subst t ts n' T' ts Tts f ctxt
-        val _ = debug_msg ctxt middle (fn () => \<^print> ("B",B))
-        val Tt = fastype_of t
-        val retNat = (Tt = @{typ nat}) |> @{print}
-        val (B1,B2) = if retNat then split B  else ([],B) |> @{print}
-        val B2 = 
- (Conv.fconv_rule 
-  ((Conv.top_rewrs_conv [@{thm atomize_eq[symmetric]}] ctxt))) B2
-             val B1 = 
-map (Conv.fconv_rule 
-  ((Conv.top_rewrs_conv [@{thm atomize_eq[symmetric]}] ctxt))) B1
-          
-        val _ = debug_msg ctxt middle (fn () => \<^print> ("(B1,B2)",(B1,B2)))
-        val _ = debug_msg ctxt middle (fn () => \<^print> ("C",C))
-        val D = if retNat then [Thm.implies_elim C ( B2)] else 
-                []
-        val _ = debug_msg ctxt middle (fn () => \<^print> ("D",D))
- val C' =   (fn b =>  b RS @{thm eq_reflection}) C
+        val (ctxt1,subst,x,goal_thm) = mk_new_fun subst t ts n T' ts Tts f ctxt
+      in (ctxt1,subst,x,goal_thm) end |
+      SOME (ct',B) => (ctxt, subst,ct', B)
+    )
+    val _ = debug_msg ctxt middle (fn () => \<^print> ("goal_thm",goal_thm))
 
-      in (fn r => (subst,ctxt4,[B2],D,
+    val (ge_cond,lift_def,nat_int_lemma) = mk_new_fun2 subst t ts n T' ts Tts f ctxt x goal_thm true
+    val _ = debug_msg ctxt middle (fn () => \<^print> ("lift_def",lift_def))
+    val _ = debug_msg ctxt middle (fn () => \<^print> ("ge_cond",ge_cond))
+
+    val Tt = fastype_of t
+    val retNat = (Tt = @{typ nat}) |> @{print}
+        val _ = debug_msg ctxt middle (fn () => \<^print> ("x",x))
+
+
+        val _ = debug_msg ctxt middle (fn () => \<^print> ("nat_int_lemma",nat_int_lemma))
+
+      in (fn r => (subst,ctxt1,ge_cond,nat_int_lemma,
 (then_conv2
 
-  (fn x1 => (Conv.top_rewrs_conv B1 ctxt4) (x1 |> @{print})
+  (fn x1 => (Conv.top_rewrs_conv [lift_def] ctxt1) (x1 |> @{print})
 |> @{print})
   (*Simplify numerals, needs drule*)
   (Conv.try_conv (fn x2 =>  let
-     val x = (fun_conv2' (Conv.top_sweep_rewrs_conv [@{thm alethe_nat_embedding2}] ctxt4 ) ) x2 |> @{print}
+     val x = (fun_conv2' (Conv.top_sweep_rewrs_conv [@{thm alethe_nat_embedding2}] ctxt1 ) ) x2 |> @{print}
    in x end |> @{print}))
 )
 
 
  (r |> @{print}) |> @{print}))  end
-      | (SOME (ct',B)) => 
+    (*  | (SOME (ct',B)) => 
       let
       val t' = Thm.term_of ct'
         val _ = debug_msg ctxt high (fn () => \<^print> ("current term is a function f" 
@@ -653,9 +670,9 @@ val C = Thm.assume (Thm.cterm_of ctxt t)
 )
 
 
- (r |> @{print}) |> @{print}))
- end
-     )
+ (r |> @{print}) |> @{print}))*)
+
+     
 
 
 
@@ -837,6 +854,7 @@ fun unfold_test ctxt cthm =
         fun mk_and [x] = x |
            mk_and (x::xs) = OF (@{thm HOL.conjI} OF [x],[mk_and xs])
    val ocond = mk_and ocond (*TODO: Make and here*)
+     val _ = @{print}("ocond",ocond)
 
      val thms3 = ( @{thm HOL.conjI} OF [ocond,thms4])
      val _ = @{print}("thms3",thms3)
