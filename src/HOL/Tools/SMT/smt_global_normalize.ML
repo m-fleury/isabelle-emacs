@@ -502,7 +502,8 @@ let
   val t = Thm.term_of ct
 in
  (case t of
- (Free (x,@{typ nat})) =>
+ (Abs (a, _, _)) => ((fn r => (subst,ctxt,[],[],(Conv.all_conv) r))) 
+| (Free (x,@{typ nat})) =>
   let
    val (subst1,ctxt1,cond,B) = 
    (case Termtab.lookup subst t of
@@ -720,6 +721,25 @@ fun else_conv2 ccv1' ccv2' tab ctxt ct =
       | TYPE _ => ccv2' tab ctxt ct);
 
 
+fun add_conds ctxt int_nat_conds ge_conds thm cthm =
+   let
+     val thm_unfolded_nat_int = (Conv.fconv_rule  (Conv.repeat_changed_conv (Conv.top_sweep_rewrs_conv int_nat_conds ctxt)) thm)
+     val _ = @{print}("thm_unfolded_nat_int",thm_unfolded_nat_int) 
+     val thm_unfolded_nat_int' = Thm.equal_elim thm_unfolded_nat_int cthm
+     val _ = @{print}("thm_unfolded_nat_int'",thm_unfolded_nat_int')
+
+    in
+      if length ge_conds = 0 then thm_unfolded_nat_int' else
+      let
+        fun mk_and [x] = x |
+           mk_and (x::xs) = (@{thm HOL.conjI} OF [x]) OF ([mk_and xs])
+        val ge_conds = mk_and ge_conds
+        val _ = @{print}("ge_cond",ge_conds)
+
+        val thm_with_cond = @{thm HOL.conjI} OF [ge_conds,thm_unfolded_nat_int']
+        val _ = @{print}("thm_with_cond",thm_with_cond)
+      in thm_with_cond end
+    end
 (*
 
 bottom_list gets a term list cts and fills up tab, cond, ctxt and a theorem list.
@@ -737,15 +757,159 @@ fun bottom_list ccv' tab ocond cond ctxt [] ths = (tab,ctxt,ocond,cond,ths) |
 and 
 bottom ccv' tab ocond cond ctxt ct = 
 let
+
+    val (ct1,cts) = Drule.strip_comb ct   
+    val _ = @{print}("stripped",(ct1,cts) )
+       val _ = @{print}("stripped",Thm.term_of ct )
+
+val (tab1,ctxt1,ocond,cond1,thm) = 
+  (case Thm.term_of ct of 
+   Const ("HOL.All", @{typ "(nat \<Rightarrow> bool) \<Rightarrow> bool"}) $ (t1 as Abs (a, _, _)) => 
+let
+
+    val (tab1,ctxt1,ge_conds,int_nat_conds,[thm]) = bottom_list ccv' tab [] [] ctxt cts []
+    val _ = @{print}("now lalal",thm)
+    val _ = @{print}("eq",(tab1,ctxt1,ge_conds,int_nat_conds,thm))
+
+    val ((v, ct'), ctxt') = Variable.dest_abs_cterm (hd cts) ctxt;
+    val thm2 = if Thm.is_reflexive thm then Conv.all_conv ct else Thm.abstract_rule "ss" v thm
+    val _ = @{print}("now lalal2",thm2)
+
+
+    val thmm = Thm.rhs_of thm 
+    val aaaa = Drule.strip_comb thmm
+    val _ = @{print}("aaaa",aaaa)
+
+
+    val tttt =  Drule.infer_instantiate' ctxt [SOME (thmm)] @{thm int_nat_embedding_preproc_all}
+    val _ = @{print}("now tttt",tttt)
+    
+    val thm3 = Thm.transitive thm2 tttt
+    val _ = @{print}("now thm3",thm3)
+
+    val delete_double_casts = 
+    (case t1 of 
+     Abs(a,_,_) =>
+     let
+    val (ct2,cts2) = Drule.strip_comb (Thm.rhs_of thm3)   
+    val _ = @{print}("now cts2",cts2)
+
+      val ((v, ct'), ctxt') = Variable.dest_abs_cterm (hd cts2) ctxt;
+       val _ = @{print}("transformed again",((v, ct'), ctxt'))
+
+
+       val (ct3,ct4) = Thm.dest_comb ct'
+    val _ = @{print}("(ct3,ct4)",(ct3,ct4))
+       val (ct31,ct32) = Thm.dest_comb ct3
+    val _ = @{print}("(ct31,ct32)",(ct31,ct32))
+
+
+
+       val iiii = Drule.infer_instantiate' ctxt [SOME v] @{thm nat_0_le} |> atomize_eq_thm ctxt
+    val _ = @{print}("iiii",iiii)
+
+      val jjj = Thm.assume (Thm.apply @{cterm "Trueprop"}ct32)
+    val _ = @{print}("jjj",jjj)   
+   val prop= Thm.prop_of iiii;
+    val _ = @{print}("prop",prop)  
+  val prop2= Thm.prop_of jjj;
+    val _ = @{print}("prop2",prop2)  
+
+   val qqq = Thm.implies_elim iiii jjj
+    val _ = @{print}("qqq",qqq) 
+
+fun expand_head_conv cv ct =
+  (case Thm.term_of ct of
+    _ $ _ =>
+      Conv.fun_conv (expand_head_conv cv) then_conv
+      Conv.try_conv (Thm.beta_conversion false)
+  | _ => cv) ct
+
+
+      val sadsf = (Conv.top_sweep_rewrs_conv [qqq] ctxt) ct4
+    val _ = @{print}("sadsf",sadsf)
+     (* val sadsf2 = Thm.combination (Conv.all_conv ct3) sadsf
+  val _ = @{print}("sadsf2",sadsf2)*)
+val wwww = Thm.implies_intr (Thm.apply @{cterm "Trueprop"} ct32) sadsf
+    val _ = @{print}("sadsf3",wwww)
+val r2 = @{lemma "
+  (a \<Longrightarrow> (A \<equiv> B)) \<Longrightarrow> ((a \<longrightarrow> A) \<equiv> (a \<longrightarrow> B))"
+  by simp}
+    val r2' = Drule.infer_instantiate' ctxt [SOME ct32,SOME (Thm.lhs_of sadsf),SOME (Thm.rhs_of sadsf)] r2
+    val _ = @{print}("r2'",r2')
+    val r3' = Thm.implies_elim r2' wwww
+    val _ = @{print}("r3'",r3')
+
+     in r3' end    )
+
+    val _ = @{print}("a",delete_double_casts)
+    val (v'_name,_) = v |> Thm.term_of |> dest_Free
+    val thm2 = if Thm.is_reflexive delete_double_casts then Conv.all_conv ct else Thm.abstract_rule a (Thm.cterm_of ctxt (Free(v'_name,@{typ "int"}))) delete_double_casts
+    val _ = @{print}("thm2",thm2)
+
+    val thm2' = Thm.combination (Conv.all_conv @{cterm "All::(int=>bool) \<Rightarrow> bool"}) thm2
+    val _ = @{print}("thm2",thm2')
+(*("now thm3",
+ "\<forall>x::nat. int x = int x \<equiv>
+  \<forall>x\<ge>0. int (nat x) =
+         int (nat x)")*)
+    val thm4 = Thm.transitive thm3 thm2'
+    val _ = @{print}("thm4",thm4)
+
+in (tab,ctxt,[],[],thm4) end
+
+ (*   |  Abs (a, _, _) => 
+let 
+    val _ = @{print}("now lalal")
+
+
+
+    val ((v, ct'), ctxt') = Variable.dest_abs_cterm ct ctxt;
+    val _ = @{print}("transformed again",((v, ct'), ctxt'))
+
+
+
+(* ((":000::int", "0 \<le> (:000::int) \<longrightarrow> (f::nat \<Rightarrow> int) (a::nat) = f (nat :000)"),
+  <context>)*)
+    val (tab1,ctxt1,ge_conds,int_nat_conds,[thm]) = bottom_list ccv' tab [] [] ctxt' [ct'] []
+   val ge_conds = distinct (fn (a,b) => Thm.prop_of a = Thm.prop_of b) ge_conds
+   val int_nat_conds = map (Conv.fconv_rule (Conv.top_rewrs_conv [@{thm atomize_eq[symmetric]}] ctxt)) int_nat_conds  
+   val ge_conds = map (Conv.fconv_rule  (Conv.repeat_changed_conv (Conv.top_sweep_rewrs_conv int_nat_conds ctxt))) ge_conds
+   
+    val _ = @{print}("eq",(tab1,ctxt1,ge_conds,int_nat_conds,thm))
+    val _ = @{print}("Conv.all_conv  ct'",Conv.all_conv  ct')
+    val thm_unfolded_nat_int = (Conv.fconv_rule  (Conv.repeat_changed_conv (Conv.top_sweep_rewrs_conv int_nat_conds ctxt)) thm)
+     val _ = @{print}("thm_unfolded_nat_int",thm_unfolded_nat_int) 
+     
+     val thm2 = 
+      if length ge_conds = 0 then thm_unfolded_nat_int else
+      let
+ 
+        fun mk_and [x] = x |
+           mk_and (x::xs) = (@{thm HOL.conjI} OF [x]) OF ([mk_and xs])
+        val ge_conds = mk_and ge_conds
+        val _ = @{print}("ge_cond",ge_conds)
+       val temp2 = Drule.infer_instantiate' ctxt [NONE,SOME (Thm.lhs_of thm_unfolded_nat_int),SOME (Thm.rhs_of thm_unfolded_nat_int)] @{thm temp}
+        val _ = @{print}("temp2",temp2)
+        val temp3 = temp2   OF [ge_conds]
+        val _ = @{print}("temp3",temp3)
+        val temp4 = Thm.implies_elim temp3 thm_unfolded_nat_int
+        val _ = @{print}("temp4",temp4)
+
+      in temp4 end
+
+    val thm2 = if Thm.is_reflexive thm2 then Conv.all_conv ct else Thm.abstract_rule a v thm2
+    val _ = @{print}("thm2",thm2)
+
+in (tab,ctxt,[],[],thm2)end *)|
+      _ => 
+let
     val _ = @{print}("ct start",ct)
 
   (*Transform children*)
   val (tab1,ctxt1,ocond,cond1,thm) =
-  let
-    val (ct1,cts) = Drule.strip_comb ct   
-    val _ = @{print}("stripped",(ct1,cts) )
-  in 
-    if length cts = 0 then ccv' tab ctxt ct1 
+
+    if length cts = 0 then ccv' tab ctxt ct1
     else
     let
 
@@ -772,119 +936,33 @@ let
   val _ = @{print}("ths3",ths3)
 
     in (tab2,ctxt2,ocond @ ocond1 @ ocond2,cond1 @ cond2,ths3) end
-  end
   val _ = @{print}("thm",thm)
   val _ = @{print}("ct finish",ct)
 
-
-
+in (tab1,ctxt1,ocond,cond1,thm) end )
 
 in (tab1,ctxt1,ocond,cond1,thm) end 
 
 
-
-
-(*: conv_with_tab_and_context ->
-      subst_tab ->
-        context ->
-          cterm -> subst_tab * context * thm list * thm*)
-
 fun all_conv2 tab ctxt ct = (tab,ctxt,[],Thm.reflexive ct);
 
-(*fun sub_conv conv ctxt =
-  comb_conv (conv ctxt) else_conv
-  abs_conv (conv o snd) ctxt else_conv
-  all_conv;*)
-(*fun sub_conv2 (ccv':conv_with_tab_and_context) tab ctxt ct =
-let
-  val ccv2 = comb_conv2 ccv'
-  val elseccv = (fn tab => fn ctxt => fn ct => (else_conv2 (fn tab => fn ctxt => (abs_conv2 ccv' tab ctxt)) all_conv2 tab ctxt ct))
 
-in
-  else_conv2 ccv2 elseccv tab ctxt ct
-end
-*)
-
-(*fun bottom_conv conv ctxt ct =
-  (sub_conv (bottom_conv conv) ctxt then_conv conv ctxt) ct;
-*)
-(*cf. BOTTOM_CONV in HOL*)
-(*fun bottom_conv2 (ccv':conv_with_tab_and_context) tab ctxt ct =
-let
-  val bottom_conv2_res = bottom_conv2 ccv'
-  val (sub_conv2_res : conv_with_tab_and_context) = sub_conv2 bottom_conv2_res
-in
-  then_conv2 sub_conv2_res ccv' tab ctxt ct
-end
-*)
 
 fun unfold_test ctxt cthm =
  let
    val _ = debug_msg ctxt low (fn () => \<^print> ("current original thm",(Thm.cprop_of cthm)))
-
-   val (_,ctxt1,ocond,cond,thm) =
+   val (_,ctxt1,ge_conds,int_nat_conds,thm) =
     (bottom (fn tab2 => fn ctxt2 => transform2 ctxt2 tab2) (Termtab.empty) [] [] ctxt) (Thm.cprop_of cthm)
-   val ocond = distinct (fn (a,b) => Thm.prop_of a = Thm.prop_of b) ocond
+   val ge_conds = distinct (fn (a,b) => Thm.prop_of a = Thm.prop_of b) ge_conds
+   val int_nat_conds = map (Conv.fconv_rule (Conv.top_rewrs_conv [@{thm atomize_eq[symmetric]}] ctxt)) int_nat_conds  
+   val ge_conds = map (Conv.fconv_rule  (Conv.repeat_changed_conv (Conv.top_sweep_rewrs_conv int_nat_conds ctxt))) ge_conds
+             
    val _ = debug_msg ctxt low (fn () => \<^print> ("current transformed thm",thm))
-   val _ = debug_msg ctxt low (fn () => \<^print> ("obtained conditions",cond))
-     val _ = debug_msg ctxt low (fn () => \<^print> ("obtained other conditions",ocond))
-   val cond2 = map (Conv.fconv_rule (Conv.top_rewrs_conv [@{thm atomize_eq[symmetric]}] ctxt)) cond               
-   val _ = debug_msg ctxt high (fn () => \<^print> (" conditions",cond2))
+   val _ = debug_msg ctxt low (fn () => \<^print> ("int of nat conditions",int_nat_conds))
+   val _ = debug_msg ctxt low (fn () => \<^print> ("obtained greater equal conditions",ge_conds))
+   val thms'' =  add_conds ctxt1 int_nat_conds ge_conds thm cthm 
+in (ctxt1,thms'') end
 
-   val thms'' =
-   let
-     val thm2 = (Conv.fconv_rule  (Conv.top_rewrs_conv cond2 ctxt) thm)
-     val thms4 = Thm.equal_elim thm2 cthm
-     val _ = @{print}("thms2",thm2) 
-     val _ = @{print}("thms4",thms4)
-
-    in if length ocond = 0 then  thms4 else
-      let
-        fun mk_and [x] = x |
-           mk_and (x::xs) = OF (@{thm HOL.conjI} OF [x],[mk_and xs])
-   val ocond = mk_and ocond (*TODO: Make and here*)
-     val _ = @{print}("ocond",ocond)
-
-     val thms3 = ( @{thm HOL.conjI} OF [ocond,thms4])
-     val _ = @{print}("thms3",thms3)
-in thms3 end
- end
-
-
- in (ctxt1,thms'') end
-
-  fun unfold_extension_conv ctxt ct thms =
-    let
-      val t = Thm.term_of ct
-      val t1 = Term.head_of t
-    in
-      (case t1 of
-        Const(n,T) =>
-           (fn x => (Conv.top_rewrs_conv thms ctxt x))
-       | _ => Conv.all_conv) ct
-    end
-
-
-
-
-
-fun simplify_tac ctxt thms =
-  ctxt
-  |> empty_simpset
-  |> put_simpset HOL_basic_ss
-  |> (fn ctxt => ctxt addsimps @{thms simp_thms} addsimps thms)
-  |> Simplifier.add_cong @{thm all_cong} 
-  |> Simplifier.add_cong (hd thms)
-  |> Clasimp.auto_tac
-
-fun auto_tac ctxt cong_thm thms =
-  ctxt
-  |> empty_simpset
-  |> put_simpset HOL_basic_ss
-  |> (fn ctxt => ctxt addsimps @{thms simp_thms} addsimps thms)
-  |> Simplifier.add_cong @{thm all_cong} 
-  |> Simplifier.add_cong cong_thm
-  |> Clasimp.auto_tac
 
 
 fun without_trueprop (Const ("HOL.Trueprop", _) $ t) = t | 
@@ -897,7 +975,8 @@ let
   val _ = debug_msg ctxt middle (fn () => \<^print> ("ithms before conversion ",ithms))
   val ithms_without_role = map snd ithms
 
-  val goal_preproc = map (fn (a,b) => (a,preproc [] 0 (Thm.prop_of b))) ithms
+ (* val goal_preproc = map (fn (a,b) => (a,preproc [] 0 (Thm.prop_of b))) ithms*)
+ val goal_preproc = map (fn (a,b) => (a,(Thm.prop_of b))) ithms
   val _ = debug_msg ctxt high (fn () => \<^print> ("preprocessed term to show ",goal_preproc))
 
   val ithms_preproc = map_index (fn (i,(a,it)) => (a, Goal.prove ctxt [] [] it (fn {context: Proof.context, ...}  => 
