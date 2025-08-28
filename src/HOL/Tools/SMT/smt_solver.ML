@@ -442,26 +442,78 @@ fun test_smtlib_translation_tac' ctxt comp_str rules =
   THEN' (fn i => TRY (resolve_tac ctxt [@{lemma "A = B ==> \<not>(A \<noteq> B)" by simp},@{lemma "A ==> \<not>\<not>A" by simp}] i))
   THEN' K (print_tac ctxt "end testing (should be the same as start testing") (*x = x*)
 
-fun replay_counterexample ctxt replay_data output =
+fun replay_counterexample ctxt {assms=assms,ctxt=ctxt2,terms=terms,typs=typs,...} output =
 let
 (* ["sat", "(", "(define-fun f$ ((_arg_1 Int)) Int 1)", "(define-fun g$ ((_arg_1 Int)) Int (- 1))", "(define-fun x$ () Int 0)",
-  ")"])*)
-val output' = (tl) output
-val trees = SMTLIB.parse output' |> (fn SMTLIB.S xs => xs) |> @{print}
-val x = map (fn SMTLIB.S[_,name,arg_list,T,ret_value] => (name,arg_list)) trees |> @{print}
+  ")"])
+ (SMTLIB.S [SMTLIB.Sym "forall", SMTLIB.S [SMTLIB.S [SMTLIB.Sym "X", SMTLIB.Sym "Int"]],
+  SMTLIB.S [SMTLIB.Sym "=", SMTLIB.Sym "X", SMTLIB.Num 12]]) true*)
+  val output' = (tl) output
+  val trees = SMTLIB.parse output' |> (fn SMTLIB.S xs => xs)
+  fun normalize_names (SMTLIB.S [SMTLIB.Sym name, SMTLIB.Sym typ])
+    = (SMTLIB.S [SMTLIB.Sym (unprefix "_" name), SMTLIB.Sym typ])
 
-in @{thm conjI} end
+  fun normalize_names2 (SMTLIB.S [SMTLIB.Sym name, SMTLIB.Sym typ])
+    = SMTLIB.Sym (unprefix "_" name)
+
+  val x = map (fn SMTLIB.S[_,name,SMTLIB.S arg_list,T,ret_value] => (
+if length arg_list = 0
+    then (SMTLIB.S[SMTLIB.Sym "=", name, ret_value])
+    else (SMTLIB.S[SMTLIB.Sym "forall",SMTLIB.S  (map normalize_names arg_list),
+    SMTLIB.S[SMTLIB.Sym"=", SMTLIB.S[name,SMTLIB.S (map normalize_names2 arg_list)], ret_value]]))
+   | _ => raise SMT_Failure.SMT(SMT_Failure.Other_Failure "Define fun in Model is malformed!")) trees |> @{print}
+    
+
+  (*
+TODO: We are going to need this
+ val smtlib_lines_without_qm =
+        lines
+        |> (fn ("("::xs) => if List.nth (xs,(length xs -1)) = ")" then  List.take (xs,(length xs -1)) else ("("::xs) | xs => xs)   (*Made optional for now because not all tools support it: raise throw_alethe_ex ("proof does not start with opening parenthesis"))*)
+        |> filter_out (fn x => x = "")
+        |> map single
+        |> map (fn x =>  SMTLIB.parse x)
+        |> map remove_all_qm 
+        |> map remove_pattern 
+      val _ = debug_msg ctxt high (fn () => \<^print> ("Removed questionmarks and patterns from proof"))
+*)
+
+  (*TODO: Use replay data from problem*)
+  val cx = SMTLIB_Proof.empty_name_binding
+  fun node_of p cx =
+  ([], cx)
+  ||>> `(SMTLIB_Proof.with_fresh_names (SMTLIB_Proof.term_of p))
+  |>> snd
+  fun node_of_term p cx = (SMTLIB_Proof.term_of p cx)
+
+  val empty_cx = (SMTLIB_Proof.empty_context ctxt typs terms)
+  fun iter [] = [] |
+  iter (def::defs) =
+   node_of def empty_cx :: iter defs
+
+  val res = iter x |> map (fst o fst) |> @{print}
+  fun pretty tag lines = Pretty.string_of (Pretty.big_list tag (map Pretty.str lines))
+
+val hackish_string_of_term =
+  (* FIXME: map_aterms (fn Free (s, T) => Free (if Name.is_internal s then "_" else s, T) | t => t)
+  #> *) Syntax.pretty_term ctxt
+  #> Pretty.pure_string_of
+
+
+  val _ =  SMT_Config.trace_msg ctxt (pretty "Counterexample")
+   (map hackish_string_of_term res)
+in all_tac end
 
 fun apply_solver_and_counterexample ctxt thms0 =
   let
     val thms = map (pair SMT_Util.Axiom o check_topsort ctxt) thms0
     val (name, {command, smt_options, replay, ...}) = name_and_info_of ctxt
+
     val _ = debug_msg ctxt low (fn () => \<^print> ("set of theorems before normalization:",thms0))
 
     val norm_thms = SMT_Normalize.normalize ctxt thms
     val _ = debug_msg ctxt low (fn () => \<^print> ("set of theorems after normalization:",norm_thms))
 
-    
+    val smt_options = [(":produce-models", "true")]
     (*TODO: Add names from global normalization to terms symtab that is part of replaydata *)
     val (output, replay_data) =
       invoke_counterexample NONE name command [] smt_options (norm_thms ) ctxt
@@ -476,25 +528,28 @@ local
   fun str_of ctxt fail =
     "Solver " ^ SMT_Config.solver_of ctxt ^ ": " ^ SMT_Failure.string_of_failure fail
 
-  fun safe_solve ctxt facts = SOME (apply_solver_and_counterexample ctxt facts)
+  fun safe_solve ctxt facts = (apply_solver_and_counterexample ctxt facts)
     handle
       SMT_Failure.SMT (fail as SMT_Failure.Counterexample _) =>
-        (SMT_Config.verbose_msg ctxt (str_of ctxt) fail; NONE)
+        (SMT_Config.verbose_msg ctxt (str_of ctxt) fail; no_tac)
     | SMT_Failure.SMT (fail as (SMT_Failure.Time_Out s)) =>
         (SMT_Config.verbose_msg ctxt (K ("SMT: Solver " ^ quote (SMT_Config.solver_of ctxt) ^ ": " ^
           SMT_Failure.string_of_failure fail ^ ": " ^ s ^ " (setting the " ^
           "configuration option " ^ quote (Config.name_of SMT_Config.timeout) ^ " might help)")) ();
-         NONE)
+         no_tac)
     | SMT_Failure.SMT fail => error (str_of ctxt fail)
-
-  fun resolve ctxt (SOME thm) = resolve_tac ctxt [thm] 1
-    | resolve _ NONE = no_tac
 
   fun tac prove ctxt rules =
     CONVERSION (SMT_Normalize.atomize_conv ctxt)
     THEN' resolve_tac ctxt @{thms ccontr}
-    THEN' SUBPROOF (fn {context = ctxt', prems, ...} =>
-      resolve ctxt' (prove ctxt' (rules @ prems))) ctxt
+    THEN'
+   (Subgoal.FOCUS_PREMS (fn {context = ctxt', prems, ...} =>
+     (prove ctxt' (rules @ prems))) ctxt)
+  THEN' (eresolve_tac ctxt [@{lemma "P ==> (\<not>P \<Longrightarrow> False)" by simp}])
+  THEN' (fn i => TRY (resolve_tac ctxt [@{lemma "A = B ==> \<not>(A \<noteq> B)" by simp},@{lemma "A ==> \<not>\<not>A" by simp}] i))
+  THEN' K (print_tac ctxt "end testing (should be the same as start testing") (*x = x*)
+
+
 in
 
 val smt_counterexample_tac = tac safe_solve
