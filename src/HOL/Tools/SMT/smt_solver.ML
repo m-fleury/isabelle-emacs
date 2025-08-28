@@ -462,7 +462,7 @@ if length arg_list = 0
     else (SMTLIB.S[SMTLIB.Sym "forall",SMTLIB.S  (map normalize_names arg_list),
     SMTLIB.S[SMTLIB.Sym"=", SMTLIB.S[name,SMTLIB.S (map normalize_names2 arg_list)], ret_value]]))
    | _ => raise SMT_Failure.SMT(SMT_Failure.Other_Failure "Define fun in Model is malformed!")) trees |> @{print}
-    
+    |> @{print}
 
   (*
 TODO: We are going to need this
