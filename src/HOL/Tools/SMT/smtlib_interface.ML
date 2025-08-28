@@ -166,6 +166,7 @@ fun sdtyp (fp, dtyps) =
 fun serialize smt_options comments {logic, sorts, dtyps, funcs} ts =
   let
     val unsat_core = member (op =) smt_options (":produce-unsat-cores", "true")
+    val models = member (op =) smt_options (":produce-models", "true")
   in
     Buffer.empty
     |> fold (Buffer.add o enclose "; " "\n") comments
@@ -179,7 +180,8 @@ fun serialize smt_options comments {logic, sorts, dtyps, funcs} ts =
         (SMTLIB.str_of (named_sterm (assert_name_of_role_and_index role i) (tree_of_sterm 0 t)))))
         (map_index I ts)
     |> Buffer.add "(check-sat)\n"
-    |> Buffer.add (if unsat_core then "(get-unsat-core)\n" else "(get-proof)\n")
+    |> Buffer.add (if unsat_core then "(get-unsat-core)\n" else 
+       if models then "(get-model)\n" else "(get-proof)\n")
     |> Buffer.content
   end
 

@@ -167,7 +167,7 @@ fun invoke_counterexample memoize_fun_call name command cmd_options smt_options 
   let
     val _ = @{print}("name",name)
 
-    val options = cmd_options @ SMT_Config.solver_options_of ctxt @ ["--produce-models"]
+    val options = cmd_options @ ["--produce-models"]
     val comments = [implode_space options]
 
     val (input, replay_data as {ctxt = ctxt', ...}) =
@@ -448,7 +448,7 @@ let
   ")"])*)
 val output' = (tl) output
 val trees = SMTLIB.parse output' |> (fn SMTLIB.S xs => xs) |> @{print}
-val x = map (fn SMTLIB.S[_,name,arg_list,T,ret_value] => (x,y)) trees |> @{print}
+val x = map (fn SMTLIB.S[_,name,arg_list,T,ret_value] => (name,arg_list)) trees |> @{print}
 
 in @{thm conjI} end
 
