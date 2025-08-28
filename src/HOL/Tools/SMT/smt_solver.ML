@@ -41,6 +41,7 @@ sig
   val smt_tac: Proof.context -> thm list -> int -> tactic
   val smt_tac': Proof.context -> thm list -> int -> tactic
   val test_smtlib_translation_tac': Proof.context -> string -> thm list -> int -> tactic
+  val smt_counterexample_tac: Proof.context -> thm list -> int -> tactic
 
   (*solver information*)
   type solver_info = {
@@ -161,6 +162,30 @@ fun invoke memoize_fun_call name command cmd_options smt_options ithms ctxt =
       | SOME memoize => split_lines (memoize (cat_lines o run_cmd) input))
 
   in (output_lines, replay_data) end
+
+fun invoke_counterexample memoize_fun_call name command cmd_options smt_options ithms ctxt =
+  let
+    val _ = @{print}("name",name)
+
+    val options = cmd_options @ SMT_Config.solver_options_of ctxt @ ["--produce-models"]
+    val comments = [implode_space options]
+
+    val (input, replay_data as {ctxt = ctxt', ...}) =
+      ithms
+      |> tap (trace_assms ctxt)
+      |> SMT_Translate.translate ctxt name smt_options comments
+      ||> tap trace_replay_data
+    val cmd = Bash.script (Bash.strings (command () @ options))
+    val _ = @{print}("name",name)
+    val run_cmd = run_solver ctxt' name cmd
+
+    val output_lines =
+      (case memoize_fun_call of
+        NONE => run_cmd input
+      | SOME memoize => split_lines (memoize (cat_lines o run_cmd) input))
+
+  in (output_lines, replay_data) end
+
 
 fun check_translation name smt_options ithms comparision_str ctxt =
   let
@@ -417,6 +442,64 @@ fun test_smtlib_translation_tac' ctxt comp_str rules =
   THEN' (fn i => TRY (resolve_tac ctxt [@{lemma "A = B ==> \<not>(A \<noteq> B)" by simp},@{lemma "A ==> \<not>\<not>A" by simp}] i))
   THEN' K (print_tac ctxt "end testing (should be the same as start testing") (*x = x*)
 
+fun replay_counterexample ctxt replay_data output =
+let
+(* ["sat", "(", "(define-fun f$ ((_arg_1 Int)) Int 1)", "(define-fun g$ ((_arg_1 Int)) Int (- 1))", "(define-fun x$ () Int 0)",
+  ")"])*)
+val output' = (tl) output
+val trees = SMTLIB.parse output' |> (fn SMTLIB.S xs => xs) |> @{print}
+val x = map (fn SMTLIB.S[_,name,arg_list,T,ret_value] => (x,y)) trees |> @{print}
+
+in @{thm conjI} end
+
+fun apply_solver_and_counterexample ctxt thms0 =
+  let
+    val thms = map (pair SMT_Util.Axiom o check_topsort ctxt) thms0
+    val (name, {command, smt_options, replay, ...}) = name_and_info_of ctxt
+    val _ = debug_msg ctxt low (fn () => \<^print> ("set of theorems before normalization:",thms0))
+
+    val norm_thms = SMT_Normalize.normalize ctxt thms
+    val _ = debug_msg ctxt low (fn () => \<^print> ("set of theorems after normalization:",norm_thms))
+
+    
+    (*TODO: Add names from global normalization to terms symtab that is part of replaydata *)
+    val (output, replay_data) =
+      invoke_counterexample NONE name command [] smt_options (norm_thms ) ctxt
+      val _ = @{print}("output",output)
+  in
+    replay_counterexample ctxt replay_data output
+  end
+
+local
+    val _ = @{print}("name")
+
+  fun str_of ctxt fail =
+    "Solver " ^ SMT_Config.solver_of ctxt ^ ": " ^ SMT_Failure.string_of_failure fail
+
+  fun safe_solve ctxt facts = SOME (apply_solver_and_counterexample ctxt facts)
+    handle
+      SMT_Failure.SMT (fail as SMT_Failure.Counterexample _) =>
+        (SMT_Config.verbose_msg ctxt (str_of ctxt) fail; NONE)
+    | SMT_Failure.SMT (fail as (SMT_Failure.Time_Out s)) =>
+        (SMT_Config.verbose_msg ctxt (K ("SMT: Solver " ^ quote (SMT_Config.solver_of ctxt) ^ ": " ^
+          SMT_Failure.string_of_failure fail ^ ": " ^ s ^ " (setting the " ^
+          "configuration option " ^ quote (Config.name_of SMT_Config.timeout) ^ " might help)")) ();
+         NONE)
+    | SMT_Failure.SMT fail => error (str_of ctxt fail)
+
+  fun resolve ctxt (SOME thm) = resolve_tac ctxt [thm] 1
+    | resolve _ NONE = no_tac
+
+  fun tac prove ctxt rules =
+    CONVERSION (SMT_Normalize.atomize_conv ctxt)
+    THEN' resolve_tac ctxt @{thms ccontr}
+    THEN' SUBPROOF (fn {context = ctxt', prems, ...} =>
+      resolve ctxt' (prove ctxt' (rules @ prems))) ctxt
+in
+
+val smt_counterexample_tac = tac safe_solve
+
+end
 
 
 open Drule

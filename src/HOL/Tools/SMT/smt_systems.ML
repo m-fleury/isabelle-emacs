@@ -345,6 +345,31 @@ val _ =
       "Test generated SMT-LIB problem against argument")
 
 
+fun smt_counterexample_method ((solver, stgy), thms) ctxt facts =
+  let
+    val _ = @{print}("facts",facts)
+    val _ = @{print}("thms",thms)
+
+    val solver ="cvc5_proof"
+    val ctxt =
+      ctxt
+      |> Context.Proof
+      |> SMT_Config.select_solver solver
+      |> Context.proof_of
+
+  in
+     HEADGOAL (SMT_Solver.smt_counterexample_tac ctxt (thms @ facts))
+  end
+
+val _ =
+  Theory.setup
+    (Method.setup \<^binding>\<open>smt_counterexample\<close>
+      (Scan.lift parse_smt_options -- Attrib.thms >> (METHOD oo smt_counterexample_method))
+      "Call to the SMT solvers cvc5, veriT or z3")
+
+
+
+
 (* overall setup *)
 
 val _ = Theory.setup (
