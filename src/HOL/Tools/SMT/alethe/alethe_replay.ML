@@ -447,8 +447,7 @@ fun replay solver method_for outer_ctxt
     (*TEMP*)
     val _ = 
       if Config.get ctxt SMT_Config.rec_evaluation
-      then File.append (Path.explode ("$ISABELLE_HOME_USER/" ^
-        (Config.get ctxt SMT_Config.statistics_file))) (string_of_int total ^ "}]},\n"
+      then File.append (Path.explode (Config.get ctxt SMT_Config.statistics_file)) (string_of_int total ^ "}]},\n"
        (*^ ",\"detail\": {" ^ print_stats (Symtab.dest stats) ^"}}]},\n"*)
        )
       else ()

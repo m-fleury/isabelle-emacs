@@ -50,22 +50,19 @@ in thm end
 (*Temporary for evaluation, similarly to spying*)
 fun print_error_to_file ctxt i =
   if Config.get ctxt SMT_Config.rec_evaluation
-  then File.append (Path.explode ("$ISABELLE_HOME_USER/"
-    ^ (Config.get ctxt SMT_Config.statistics_file))) ("-" ^ Int.toString i ^ "}]},\n")
+  then File.append (Path.explode (Config.get ctxt SMT_Config.statistics_file)) ("-" ^ Int.toString i ^ "}]},\n")
   else ()
 
 fun print_error_to_file_with_msg ctxt i str =
   if Config.get ctxt SMT_Config.rec_evaluation
-  then File.append (Path.explode ("$ISABELLE_HOME_USER/"
-    ^ (Config.get ctxt SMT_Config.statistics_file))) ("-" ^ Int.toString i ^
+  then File.append (Path.explode (Config.get ctxt SMT_Config.statistics_file)) ("-" ^ Int.toString i ^
     ", \"err_msg\": \"" ^ str ^ "\"}]},\n")
   else ()
 
 fun rm_quotation s = implode (filter_out (fn c => c = "\"") (raw_explode s))
 fun print_reconstruction_error_to_file ctxt i str msg =
   if Config.get ctxt SMT_Config.rec_evaluation
-  then File.append (Path.explode ("$ISABELLE_HOME_USER/"
-    ^ (Config.get ctxt SMT_Config.statistics_file))) ("-" ^ Int.toString i ^
+  then File.append (Path.explode (Config.get ctxt SMT_Config.statistics_file)) ("-" ^ Int.toString i ^
     ", \"failed_rule\": \"" ^ str ^ "\", \"message\": \"" ^ (rm_quotation msg) ^ "\"}]},\n")
   else ()
 
@@ -80,7 +77,7 @@ let
   (*Temporary for evaluation*)
   val _ =
     if Config.get ctxt SMT_Config.rec_evaluation
-    then File.write (Path.explode ("$ISABELLE_HOME_USER/" ^ (Config.get ctxt SMT_Config.statistics_file))) ("")
+    then File.write (Path.explode (Config.get ctxt SMT_Config.statistics_file)) ("")
     else ()
 
   val _ =
@@ -99,8 +96,7 @@ let
   val proof_file_path = Path.explode proof_file_name
   val _ =
     if Config.get ctxt SMT_Config.rec_evaluation
-    then File.append (Path.explode ("$ISABELLE_HOME_USER/" ^
-      (Config.get ctxt SMT_Config.statistics_file))) ("{\"benchmark_name\": \"" ^ problem_file_name
+    then File.append (Path.explode (Config.get ctxt SMT_Config.statistics_file)) ("{\"benchmark_name\": \"" ^ problem_file_name
       ^ "\", \"checking\": [{\"solver_config\": \"" ^ (Config.get ctxt SMT_Config.statistics_file)
       ^ "\", \"checking_time\": ")
     else ()
