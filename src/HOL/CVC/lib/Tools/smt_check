@@ -10,7 +10,7 @@ function usage() {
   echo
   echo "Usage: isabelle $PRG [-d <directory>] [-l imports] [-t base_theory] [-s smt_solver] -i <smt2_problem> -p <alethe_proof>"
   echo
-  echo "  Runs Sledgehammer on TPTP problems."
+  echo "  Runs the cvc5 proof reconstruction on SMT problems and Alethe proofs."
   echo "  Each problem is allocated at most TIMEOUT seconds."
   echo
   exit 1
@@ -51,7 +51,7 @@ parse_options() {
 
 directory_include=""
 session=HOL
-import_session=HOL-CVC.SMT_CVC
+import_session=Main
 solver=cvc5
 parse_options "$@"
 
