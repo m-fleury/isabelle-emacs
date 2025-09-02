@@ -10,7 +10,7 @@ function usage() {
   echo
   echo "Usage: isabelle $PRG [-d <directory>] [-l imports] [-t base_theory] [-s smt_solver] -i <smt2_problem> -p <alethe_proof>"
   echo
-  echo "  Runs the cvc5 proof reconstruction on SMT problems and Alethe proofs."
+  echo "  Runs the proof reconstruction  on a given SMT problem and Alethe proof."
   echo "  Each problem is allocated at most TIMEOUT seconds."
   echo
   exit 1
