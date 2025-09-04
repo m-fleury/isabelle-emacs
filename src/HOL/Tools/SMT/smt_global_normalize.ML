@@ -8,7 +8,7 @@
 
 signature SMT_GLOBAL_NORMALIZE =
 sig
-  val global_normalize: Proof.context -> ((int * SMT_Util.role) * thm) list -> ((int * SMT_Util.role) * thm) list * ((int * SMT_Util.role) * thm) list * Proof.context
+  val global_normalize: Proof.context -> ((int * SMT_Util.role) * thm) list -> Proof.context * ((int * SMT_Util.role) * thm) list * (term * cterm) list
   exception SMT_GLOBAL_NORMALIZE of string
 end
 
@@ -819,9 +819,13 @@ in
         fun mk_and [x] = x |
            mk_and (x::xs) = (@{thm HOL.conjI} OF [x]) OF ([mk_and xs])
         val ge_conds = mk_and ge_conds
+        val quant2 = 
+          if is_all then @{lemma "A \<Longrightarrow> ( B \<equiv>  C) \<Longrightarrow> ( B \<equiv> (A \<and> C))" by simp}
+          else @{lemma "A \<Longrightarrow> ( B \<equiv>  C) \<Longrightarrow> ( B \<equiv> (A \<longrightarrow> C))" by simp}
         val temp2 = Drule.infer_instantiate' ctxt
           [NONE,SOME (Thm.lhs_of thm_unfolded_nat_int),SOME (Thm.rhs_of thm_unfolded_nat_int)]
-          @{lemma "A \<Longrightarrow> ( B \<equiv>  C) \<Longrightarrow> ( B \<equiv> (A \<and> C))" by simp}
+          quant2
+
         val temp3 = temp2 OF [ge_conds]
         val temp4 = Thm.implies_elim temp3 thm_unfolded_nat_int
       in temp4 end
@@ -842,8 +846,8 @@ in
      val (bv_ge_cond_thms,ctxt2) = Assumption.add_assumes [Thm.apply @{cterm Trueprop} bound_var_ge_cond] ctxt |> @{print}
 
 
-     val thm_unfolded_nat_int = Conv.top_rewrs_conv [nat_0_le] ctxt2 (Thm.rhs_of thm_unfolded_nat_int) (*TODO: This doesn't work*)
-
+     val thm_unfolded_nat_int' = Conv.top_rewrs_conv [nat_0_le] ctxt2 (Thm.rhs_of thm_unfolded_nat_int) (*TODO: This doesn't work*)
+     val thm_unfolded_nat_int = Thm.transitive thm_unfolded_nat_int thm_unfolded_nat_int'
      val _ = debug_msg ctxt high (fn () => \<^print> ("tthm",thm_unfolded_nat_int))
 
      val thm_unfolded_nat_int = Thm.implies_intr (Thm.apply @{cterm Trueprop} ge_cond_bound_var) thm_unfolded_nat_int
@@ -901,68 +905,40 @@ _ =>
 
 fun all_conv2 tab ctxt ct = (tab,ctxt,[],Thm.reflexive ct);
 
+type test2 = ((int * SMT_Util.role) * thm) list
+type test = Proof.context * thm list * (Termtab.key * cterm) list
 
-
-fun unfold_test ctxt cthm =
+fun unfold_test cthm ((ctxt,thms,mapping) :test)  =
  let
    val _ = debug_msg ctxt low (fn () => \<^print> ("current original thm",(Thm.cprop_of cthm)))
-   val (_,ctxt1,ge_conds,int_nat_conds,thm) =
+   val (tab,ctxt1,ge_conds,int_nat_conds,thm) =
     (bottom (fn tab2 => fn ctxt2 => transform2 ctxt2 tab2) (Termtab.empty) [] [] ctxt) (Thm.cprop_of cthm)
    (*FIXME: This should be done on the fly*)
    val thm = Conv.fconv_rule (Conv.top_rewrs_conv int_nat_conds ctxt) thm
 
    val ge_conds = distinct (fn (a,b) => Thm.prop_of a = Thm.prop_of b) ge_conds
    val ge_conds = map (Conv.fconv_rule (Conv.repeat_changed_conv (Conv.top_sweep_rewrs_conv int_nat_conds ctxt))) ge_conds
-             
    val _ = debug_msg ctxt low (fn () => \<^print> ("current transformed thm",thm))
    val _ = debug_msg ctxt low (fn () => \<^print> ("int of nat conditions",int_nat_conds))
    val _ = debug_msg ctxt low (fn () => \<^print> ("obtained greater equal conditions",ge_conds))
-   val thms'' =  add_conds ctxt1 int_nat_conds ge_conds thm cthm 
+
+   val thms'' = add_conds ctxt1 int_nat_conds ge_conds thm cthm 
    val thms''' = Conv.fconv_rule (Conv.rewr_conv thms'') cthm
-in (ctxt1,thms''') end
 
-
-
-fun without_trueprop (Const ("HOL.Trueprop", _) $ t) = t | 
-    without_trueprop t = t
-
+   (*This is used for counterexample generation only*)
+   val keys = Termtab.keys tab
+   val curr_mapping = ListPair.zip (keys, keys |> map (fst o the o Termtab.lookup tab))
+in ((ctxt1,thms'''::thms,curr_mapping @ mapping):test) end
 
 fun global_normalize ctxt ithms =
 let
-
   val _ = debug_msg ctxt middle (fn () => \<^print> ("ithms before conversion ",ithms))
-  val ithms_without_role = map snd ithms
+  val (i,thms) = split_list ithms
 
- (* val goal_preproc = map (fn (a,b) => (a,preproc [] 0 (Thm.prop_of b))) ithms*)
- val goal_preproc = map (fn (a,b) => (a,(Thm.prop_of b))) ithms
-  val _ = debug_msg ctxt high (fn () => \<^print> ("preprocessed term to show ",goal_preproc))
-
-  val ithms_preproc = map_index (fn (i,(a,it)) => (a, Goal.prove ctxt [] [] it (fn {context: Proof.context, ...}  => 
-    debug_msg_tac context high "starting preprocessing" 
-    THEN HEADGOAL (Method.insert_tac ctxt [nth ithms_without_role i])
-    THEN debug_msg_tac context high "starting preprocessing" 
-    THEN (
-        HEADGOAL (assume_tac ctxt)
-      ORELSE
-        (unfold_tac context @{thms int_nat_embedding_preproc_all int_nat_embedding_preproc_ex}
-        THEN TRY (Clasimp.auto_tac ctxt))
-    )
-    THEN debug_msg_tac context high "end preprocessing"
-    ))) goal_preproc
-  val _ = debug_msg ctxt middle (fn () => \<^print> ("ithms after quantifier preprocessing ",ithms_preproc))
-
-
-fun unfold_test_it (ctxt,[]) = (ctxt,[]) |
-unfold_test_it (ctxt,((a,x)::xs)) =
- let 
-  val (ctxt1,x') = unfold_test ctxt x
-  val (ctxt2,xs')= unfold_test_it (ctxt1,xs)
- in (ctxt2,(a,x')::xs') end
-
-val (ctxt',ithms3) = unfold_test_it (ctxt,ithms_preproc)
-
+  val (ctxt',thms',mapping) = fold unfold_test thms (ctxt,[],[])
+  val ithms' = ListPair.zip (i,thms')
 in
- (ithms3,[],ctxt')
+ (ctxt',ithms',mapping)
 end
 
 

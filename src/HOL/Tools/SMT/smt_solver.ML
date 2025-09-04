@@ -325,10 +325,11 @@ fun apply_solver_and_replay ctxt thms0 =
     val norm_thms = SMT_Normalize.normalize ctxt thms
     val _ = debug_msg ctxt low (fn () => \<^print> ("set of theorems after normalization:",norm_thms))
 
-    (*We might end up not needing beta seperately*)
-    val (norm_thms,beta,ctxt_nats) =
-      if Config.get ctxt (SMT_Config.nat_as_int) then SMT_Global_Normalize.global_normalize ctxt norm_thms else (norm_thms,[],ctxt)
-      handle (SMT_Global_Normalize.SMT_GLOBAL_NORMALIZE _) => (norm_thms,[],ctxt)            
+    val (ctxt_nats,norm_thms,_) =
+      if Config.get ctxt (SMT_Config.nat_as_int)
+      then SMT_Global_Normalize.global_normalize ctxt norm_thms
+      else (ctxt,norm_thms,[])
+      handle (SMT_Global_Normalize.SMT_GLOBAL_NORMALIZE _) => (ctxt,norm_thms,[])            
     val _ = debug_msg ctxt low (fn () => \<^print> ("set of theorems after nat embedding normalization:",norm_thms))
 
     (*TODO: Add names from global normalization to terms symtab that is part of replaydata *)
@@ -349,9 +350,9 @@ fun test_translation_only ctxt comp_str thms0 =
     val _ = debug_msg ctxt low (fn () => \<^print> ("set of theorems after normalization:",norm_thms))
 
     (*We might end up not needing beta seperately*)
-    val (norm_thms,_,ctxt_nats) =
-      if Config.get ctxt (SMT_Config.nat_as_int) then SMT_Global_Normalize.global_normalize ctxt norm_thms else (norm_thms,[],ctxt)
-      handle (SMT_Global_Normalize.SMT_GLOBAL_NORMALIZE _) => (norm_thms,[],ctxt)
+    val (ctxt_nats,norm_thms,_) =
+      if Config.get ctxt (SMT_Config.nat_as_int) then SMT_Global_Normalize.global_normalize ctxt norm_thms else (ctxt,norm_thms,[])
+      handle (SMT_Global_Normalize.SMT_GLOBAL_NORMALIZE _) => (ctxt,norm_thms,[])
     val _ = debug_msg ctxt low (fn () => \<^print> ("set of theorems after nat embedding normalization:",norm_thms))
 
   in
@@ -432,17 +433,20 @@ local
     | resolve _ NONE = no_tac
 in
 fun test_smtlib_translation_tac' ctxt comp_str rules =
+
   CONVERSION (SMT_Normalize.atomize_conv ctxt)
   THEN' K (print_tac ctxt "start testing")
   THEN' resolve_tac ctxt @{thms ccontr}
   THEN'
    (Subgoal.FOCUS_PREMS (fn {context = ctxt', prems, ...} =>
+   (print_tac ctxt "start f") THEN
+
     test_equal_output comp_str (rules @ prems) ctxt') ctxt)
   THEN' (eresolve_tac ctxt [@{lemma "P ==> (\<not>P \<Longrightarrow> False)" by simp}])
   THEN' (fn i => TRY (resolve_tac ctxt [@{lemma "A = B ==> \<not>(A \<noteq> B)" by simp},@{lemma "A ==> \<not>\<not>A" by simp}] i))
   THEN' K (print_tac ctxt "end testing (should be the same as start testing") (*x = x*)
 
-fun replay_counterexample ctxt {assms=assms,ctxt=ctxt2,terms=terms,typs=typs,...} output =
+fun replay_counterexample ctxt {assms=assms,ctxt=ctxt2,terms=terms,typs=typs,...} output beta =
 let
 (* ["sat", "(", "(define-fun f$ ((_arg_1 Int)) Int 1)", "(define-fun g$ ((_arg_1 Int)) Int (- 1))", "(define-fun x$ () Int 0)",
   ")"])
@@ -450,9 +454,16 @@ let
   SMTLIB.S [SMTLIB.Sym "=", SMTLIB.Sym "X", SMTLIB.Num 12]]) true*)
   val output' = (tl) output
   val trees = SMTLIB.parse output' |> (fn SMTLIB.S xs => xs)
-  fun normalize_names (SMTLIB.S [SMTLIB.Sym name, SMTLIB.Sym typ])
-    = (SMTLIB.S [SMTLIB.Sym (unprefix "_" name), SMTLIB.Sym typ])
+  fun normalize_names (SMTLIB.S xs)
+    = (SMTLIB.S (map normalize_names xs)) |
+   normalize_names (SMTLIB.Sym name)  = SMTLIB.Sym (if String.isPrefix "_" name then unprefix "_" name else name) |
+   normalize_names x  = x
 
+  val beta = map (swap) beta |> map (apfst Thm.term_of)
+  val thm_beta = @{thm nat_le_0}
+  val _ = @{print}("beta",beta)
+  fun replace_names (SMTLIB.S xs) = (SMTLIB.S (map replace_names xs)) |
+    replace_names (SMTLIB.Sym name) = (SMTLIB.Sym name) 
   fun normalize_names2 (SMTLIB.S [SMTLIB.Sym name, SMTLIB.Sym typ])
     = SMTLIB.Sym (unprefix "_" name)
 
@@ -460,22 +471,9 @@ let
 if length arg_list = 0
     then (SMTLIB.S[SMTLIB.Sym "=", name, ret_value])
     else (SMTLIB.S[SMTLIB.Sym "forall",SMTLIB.S  (map normalize_names arg_list),
-    SMTLIB.S[SMTLIB.Sym"=", SMTLIB.S[name,SMTLIB.S (map normalize_names2 arg_list)], ret_value]]))
+    SMTLIB.S[SMTLIB.Sym"=", SMTLIB.S ([name] @ (map normalize_names2 arg_list)), normalize_names ret_value]]))
    | _ => raise SMT_Failure.SMT(SMT_Failure.Other_Failure "Define fun in Model is malformed!")) trees |> @{print}
     |> @{print}
-
-  (*
-TODO: We are going to need this
- val smtlib_lines_without_qm =
-        lines
-        |> (fn ("("::xs) => if List.nth (xs,(length xs -1)) = ")" then  List.take (xs,(length xs -1)) else ("("::xs) | xs => xs)   (*Made optional for now because not all tools support it: raise throw_alethe_ex ("proof does not start with opening parenthesis"))*)
-        |> filter_out (fn x => x = "")
-        |> map single
-        |> map (fn x =>  SMTLIB.parse x)
-        |> map remove_all_qm 
-        |> map remove_pattern 
-      val _ = debug_msg ctxt high (fn () => \<^print> ("Removed questionmarks and patterns from proof"))
-*)
 
   (*TODO: Use replay data from problem*)
   val cx = SMTLIB_Proof.empty_name_binding
@@ -489,6 +487,16 @@ TODO: We are going to need this
   fun iter [] = [] |
   iter (def::defs) =
    node_of def empty_cx :: iter defs
+open HOLogic
+  fun search_in_beta [] a = a |
+  search_in_beta ((a,b)::xs) a2 = (if a = a2 then b else  search_in_beta xs a2)
+  val tl = map (fn SMTLIB.S[_,name,SMTLIB.S arg_list,T,ret_value] => (
+ (search_in_beta beta (node_of_term name empty_cx |> fst), Thm.cterm_of ctxt (@{term "nat"} $ (node_of_term ret_value empty_cx |> fst))))) trees
+  val _ = @{print}("tl",tl)
+  val tl = map (fn (a,b) => (a,(Thm.rhs_of o Simplifier.rewrite ctxt) b)) tl
+  val _ = @{print}("tl",tl)
+
+
 
   val res = iter x |> map (fst o fst) |> @{print}
   fun pretty tag lines = Pretty.string_of (Pretty.big_list tag (map Pretty.str lines))
@@ -497,10 +505,12 @@ val hackish_string_of_term =
   (* FIXME: map_aterms (fn Free (s, T) => Free (if Name.is_internal s then "_" else s, T) | t => t)
   #> *) Syntax.pretty_term ctxt
   #> Pretty.pure_string_of
-
+open Term
+ fun trans (t0 $ (t1 $ (Abs(x,y,z)))) = z |
+  trans t = t
 
   val _ =  SMT_Config.trace_msg ctxt (pretty "Counterexample")
-   (map hackish_string_of_term res)
+   (map hackish_string_of_term (map trans res))
 in all_tac end
 
 fun apply_solver_and_counterexample ctxt thms0 =
@@ -513,13 +523,19 @@ fun apply_solver_and_counterexample ctxt thms0 =
     val norm_thms = SMT_Normalize.normalize ctxt thms
     val _ = debug_msg ctxt low (fn () => \<^print> ("set of theorems after normalization:",norm_thms))
 
+  (*We might end up not needing beta seperately*)
+    val (ctxt_nats,norm_thms,beta) =
+      if Config.get ctxt (SMT_Config.nat_as_int) then SMT_Global_Normalize.global_normalize ctxt norm_thms else (ctxt,norm_thms,[])
+      handle (SMT_Global_Normalize.SMT_GLOBAL_NORMALIZE _) => (ctxt,norm_thms,[])            
+    val _ = debug_msg ctxt low (fn () => \<^print> ("set of theorems after nat embedding normalization:",norm_thms))
+    val _ = @{print}("beta",beta)
     val smt_options = [(":produce-models", "true")]
     (*TODO: Add names from global normalization to terms symtab that is part of replaydata *)
     val (output, replay_data) =
       invoke_counterexample NONE name command [] smt_options (norm_thms ) ctxt
       val _ = @{print}("output",output)
   in
-    replay_counterexample ctxt replay_data output
+    replay_counterexample ctxt replay_data output beta
   end
 
 local
@@ -541,6 +557,7 @@ local
 
   fun tac prove ctxt rules =
     CONVERSION (SMT_Normalize.atomize_conv ctxt)
+    THEN' K (print_tac ctxt "here")
     THEN' resolve_tac ctxt @{thms ccontr}
     THEN'
    (Subgoal.FOCUS_PREMS (fn {context = ctxt', prems, ...} =>
