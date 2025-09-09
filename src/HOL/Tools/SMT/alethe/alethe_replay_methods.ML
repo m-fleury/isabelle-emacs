@@ -520,9 +520,11 @@ fun extract_all_forall_exists_quantified_names_q (Const(\<^const_name>\<open>HOL
       extract_all_forall_exists_quantified_names_q t @ extract_all_forall_exists_quantified_names_q u
   | extract_all_forall_exists_quantified_names_q _ = []
 
+val to_upper = raw_explode #> map Symbol.to_ascii_upper #> implode;
+
 val extract_bind_names =
    HOLogic.dest_eq
-   #> apply2 (fn (Free (name, _)) => name | _ => raise Fail "could not extract bound variable names in reconstruction of bind rule")
+   #> apply2 (fn (Free (name, _)) => name |> to_upper | _ => raise Fail "could not extract bound variable names in reconstruction of bind rule")
 
 fun ignore_new_bound_var [] = [] |
     ignore_new_bound_var (Free (_, _) :: xs) = ignore_new_bound_var xs |
@@ -539,10 +541,11 @@ fun combine_quant ctxt ((n1, n2) :: bounds) (n1' :: formula) =
      else resolve_tac ctxt @{thms allI} THEN' combine_quant ctxt ((n1, n2) :: bounds) formula)
   | combine_quant _ _ _ = K all_tac
 
+
 fun bind_quants ctxt args t =
   combine_quant ctxt 
   (map extract_bind_names (ignore_new_bound_var (map HOLogic.dest_Trueprop args)))
-    (extract_quantified_names t)
+    (extract_quantified_names t |> map to_upper)
 
 fun generalize_prems_q [] prems = prems
   | generalize_prems_q (_ :: quants) prems =
