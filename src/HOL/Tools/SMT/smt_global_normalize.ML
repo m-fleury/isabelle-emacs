@@ -704,17 +704,13 @@ in
   (case Thm.term_of ct of 
    Const (quant_name, T) $ (Abs (bv_name, T2, _)) => 
    let
-    val _ = debug_msg ctxt high (fn () => \<^print> ("T",T))
-
     val is_all = (quant_name = "HOL.All")
     val is_ex = (quant_name = "HOL.Ex")
     val _ = if is_all orelse is_ex then () else raise (SMT_GLOBAL_NORMALIZE "Unsupported Quantifier")
-    val bound_is_nat = (T2 = @{typ nat})
-
-    val quant =
-     if not bound_is_nat then ct1
-     else if is_all then @{cterm "HOL.All::(int => bool) \<Rightarrow> bool"}
+    val quant = 
+     if is_all then @{cterm "HOL.All::(int => bool) \<Rightarrow> bool"}
      else @{cterm "HOL.Ex::(int => bool) \<Rightarrow> bool"}
+    val bound_is_nat = (T2 = @{typ nat})
     val ct_thm = Conv.all_conv ct |> @{print}
 
 
@@ -883,6 +879,19 @@ in
 
 
  in (tab1,ctxt1,[],[],thm23') end |
+(Abs (bv_name, T, t2)) => 
+  let
+    val _ = @{print}("bv_name", bv_name)
+    val _ = @{print}("t2", t2)
+    val ((bound_var, body), ctxt) = Variable.dest_abs_cterm ct1 ctxt;
+    val _ = @{print}("body", body)
+
+    val (tab1,ctxt1,ge_conds,int_nat_conds,[thm]) = bottom_list ccv' tab [] [] ctxt [body] []
+    val _ = @{print}("thm", thm)
+    val thm23 = Thm.abstract_rule bv_name bound_var thm
+    val _ = @{print}("thm23", thm23)
+
+ in (tab1,ctxt1,[],[],thm23) end |
 _ => 
   if length cts = 0
   then ccv' tab ctxt ct1
@@ -927,6 +936,7 @@ fun unfold_test cthm ((ctxt,thms,mapping) :test)  =
    val _ = debug_msg ctxt low (fn () => \<^print> ("obtained greater equal conditions",ge_conds))
 
    val thms'' = add_conds ctxt1 int_nat_conds ge_conds thm cthm 
+   val _ = debug_msg ctxt low (fn () => \<^print> ("added greater equal conditions",thms''))
    val thms''' = Conv.fconv_rule (Conv.rewr_conv thms'') cthm
 
    (*This is used for counterexample generation only*)

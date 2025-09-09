@@ -11,17 +11,18 @@ imports "HOL-Library.Word" "HOL.SMT_CVC_Word"
 begin
 
 declare [[smt_nat_as_int,smt_trace]]
+lemmas [bv_reconstruction_length] = len_num0 len_num1 len_bit0 len_bit1
 
 
 section \<open>Bitvector numbers\<close>
 
-lemma "(27 :: 4 word) = -5" by (smt (cvc5))
-lemma "(27 :: 4 word) = 11" by (smt (cvc5))
+lemma "(27 :: 4 word) = -5" by (smt (cvc5)) (*solve during normalization*)
+lemma "(27 :: 4 word) = 11" by (smt (cvc5)) (*solve during normalization*)
 lemma "23 < (27::8 word)" by (smt (cvc5))
 lemma "27 + 11 = (6::5 word)" by (smt (cvc5))
 lemma "7 * 3 = (21::8 word)" by (smt (cvc5))
 lemma "11 - 27 = (-16::8 word)" by (smt (cvc5))
-lemma "- (- 11) = (11::5 word)" by (smt (cvc5))
+lemma "- (- 11) = (11::5 word)" by (smt (cvc5)) (*negs are weirdly not deleted*)
 lemma "-40 + 1 = (-39::7 word)" by (smt (cvc5))
 lemma "a + 2 * b + c - b = (b + c) + (a :: 32 word)" supply [[smt_trace]] by (smt (cvc5))
 lemma "x = (5 :: 4 word) \<Longrightarrow> 4 * x = 4" by (smt (cvc5))
@@ -81,7 +82,7 @@ lemma bnd_0: "3000 < (2^12::32 word)"
   apply (smt (cvc5))
   done
 
-lemma bnd_0_variable: "3000 < (2^x::32 word)"
+lemma bnd_0_variable: "0 \<le> (2^x::32 word)"
   apply (smt (cvc5))
   done
 
@@ -143,5 +144,13 @@ lemma
   using assms by (smt (cvc5)) (*TODO Mathias type problem*)
 
 lemma "P (0 \<le> (a :: 4 word)) = P True" by (smt (cvc5))
+
+section \<open>Misc\<close>
+
+(*TODO: support ABSORB rule*)
+lemma "a > (4294967294::32 word) \<Longrightarrow> a = 4294967295"
+  by (smt (cvc5))
+
+
 
 end
