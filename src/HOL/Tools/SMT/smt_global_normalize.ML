@@ -704,17 +704,21 @@ in
   (case Thm.term_of ct of 
    Const (quant_name, T) $ (Abs (bv_name, T2, _)) => 
    let
+    val _ = debug_msg ctxt high (fn () => \<^print> ("T",T))
+
     val is_all = (quant_name = "HOL.All")
     val is_ex = (quant_name = "HOL.Ex")
     val _ = if is_all orelse is_ex then () else raise (SMT_GLOBAL_NORMALIZE "Unsupported Quantifier")
-    val quant = 
-     if is_all then @{cterm "HOL.All::(int => bool) \<Rightarrow> bool"}
-     else @{cterm "HOL.Ex::(int => bool) \<Rightarrow> bool"}
     val bound_is_nat = (T2 = @{typ nat})
-    val ct_thm = Conv.all_conv ct
+
+    val quant =
+     if not bound_is_nat then ct1
+     else if is_all then @{cterm "HOL.All::(int => bool) \<Rightarrow> bool"}
+     else @{cterm "HOL.Ex::(int => bool) \<Rightarrow> bool"}
+    val ct_thm = Conv.all_conv ct |> @{print}
 
 
-    val ((bound_var, body), _) = Variable.dest_abs_cterm (hd cts) ctxt;
+    val ((bound_var, body), ctxt) = Variable.dest_abs_cterm (hd cts) ctxt;
     val _ = debug_msg ctxt high (fn () => \<^print> ("body",body))
     val _ = debug_msg ctxt high (fn () => \<^print> ("bound_var",bound_var))
 
@@ -737,7 +741,7 @@ in
      In nat case: "(x::int)\<ge>0 \<longrightarrow> P (int (nat x))"
      Otherwise: "P x"
     *)
-    val ((transformed_bound_var_ct, qnt_transform_body), _) = Variable.dest_abs_cterm qnt_transform_lambda ctxt;
+    val ((transformed_bound_var_ct, qnt_transform_body), ctxt) = Variable.dest_abs_cterm qnt_transform_lambda ctxt;
     val _ = debug_msg ctxt high (fn () => \<^print> ("(transformed_bound_var, qnt_transform_body)",(transformed_bound_var_ct, qnt_transform_body)))
 
     (*
@@ -936,7 +940,7 @@ let
   val (i,thms) = split_list ithms
 
   val (ctxt',thms',mapping) = fold unfold_test thms (ctxt,[],[])
-  val ithms' = ListPair.zip (i,thms')
+  val ithms' = ListPair.zip (i,rev thms')
 in
  (ctxt',ithms',mapping)
 end
