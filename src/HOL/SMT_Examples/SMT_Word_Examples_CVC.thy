@@ -13,10 +13,64 @@ begin
 declare [[smt_nat_as_int,smt_trace]]
 lemmas [bv_reconstruction_length] = len_num0 len_num1 len_bit0 len_bit1
 
+lemma [word_numeral_lift]:
+"(numeral (x::num)::'a::len word) \<equiv> word_of_int (take_bit LENGTH('a::len) (numeral x))"
+  using num_abs_bintr[of x] by simp
+
+                          
+(*("(ct1,cts)", ("numeral", ["num.Bit1 (num.Bit1 (num.Bit0 (num.Bit1 num.One)))"]))*)
+ML\<open>
+val z0' =
+   Const ("Num.numeral_class.numeral", @{typ "num \<Rightarrow> 3 word"}) 
+  $ (Const ("Num.num.Bit1", @{typ"num \<Rightarrow> num"}) 
+  $ (Const ("Num.num.Bit0", @{typ "num \<Rightarrow> num"})
+  $ (Const ("Num.num.Bit0",@{typ "num \<Rightarrow> num"})
+  $ Const ("Num.num.One", @{typ "num"}))))
+   |> Thm.cterm_of @{context}
+(*"(9 :: 3 word)"*)
+\<close>
+ML\<open>
+val z0' =
+   Const ("Num.numeral_class.numeral", @{typ "num \<Rightarrow> 3 word"}) 
+  $ (Const ("Num.num.Bit0", @{typ"num \<Rightarrow> num"}) 
+  $ (Const ("Num.num.Bit0", @{typ "num \<Rightarrow> num"})
+  $ (Const ("Num.num.Bit0",@{typ "num \<Rightarrow> num"})
+  $ Const ("Num.num.One", @{typ "num"}))))
+   |> Thm.cterm_of @{context}
+(*"(8 :: 3 word)"*)
+\<close>
+
+value "8::3 word"
+ML\<open>
+
+val y1 = @{term "(7 :: 3 word)"} (*111*)
+val y2 = @{term "(6 :: 3 word)"} (*011*)
+val y3 = @{term "(2 :: 3 word)"} (*01*)
+val y4 = @{term "(3 :: 3 word)"} (*11*)
+val y5 = @{term "(4 :: 3 word)"} (*001*)
+
+val z0 = @{term "(0 :: 3 word)"} (*0 ---> *)
+
+val z1 = @{term "(8 :: 3 word)"} (*0001 ---> *)
+val z2 = @{term "(9 :: 3 word)"} (*1001 ---> 1*)
+val z3 = @{term "(10 :: 3 word)"} (*0101 ---> 01*)
+val z4 = @{term "(11 :: 3 word)"} (*1101 ---> 11*)
+val z5 = @{term "(12 :: 3 word)"} (*0011 ---> 001*)
+
+\<close>
+ML\<open>
+val x = @{thm word_numeral_lift} |> Thm.prop_of
+val y = @{term "(31 :: 4 word)"}
+val z =  Const ("Num.numeral_class.numeral", @{typ "num \<Rightarrow> 4 word"}) $
+     (Const ("Num.num.Bit1", @{typ "num \<Rightarrow> num"}) $
+       (Const ("Num.num.Bit1", @{typ "num \<Rightarrow> num"}) $
+         (Const ("Num.num.Bit1", @{typ "num \<Rightarrow> num"}) $ Const ("Num.num.One", @{typ "num"})))) |> Thm.cterm_of @{context}
+\<close>
+
 
 section \<open>Bitvector numbers\<close>
 
-lemma "(27 :: 4 word) = -5" by (smt (cvc5)) (*solve during normalization*)
+lemma "(27 :: 4 word) = -5" by (smt (cvc5)) (*I solved this during normalization but this means every word constant has to be translated.*)
 lemma "(27 :: 4 word) = 11" by (smt (cvc5)) (*solve during normalization*)
 lemma "23 < (27::8 word)" by (smt (cvc5))
 lemma "27 + 11 = (6::5 word)" by (smt (cvc5))

@@ -25,6 +25,14 @@ end;
 structure SMT_Normalize: SMT_NORMALIZE =
 struct
 
+
+open SMT_Config
+fun debug_msg ctxt = alethe_debug_msg ctxt "smt_normalize"
+fun print_conv prefix ctxt msg x =
+let
+  val _ = debug_msg ctxt high (fn () => \<^print> (prefix ^ " " ^ msg,x))
+in Conv.all_conv x end
+
 fun drop_fact_warning ctxt =
   SMT_Config.verbose_msg ctxt (prefix "Warning: dropping assumption: " o
     Thm.string_of_thm ctxt)
@@ -334,26 +342,29 @@ end
 (** simplify goals **)
 (** Lift nat operators that should be natively translated to int operators**)
 
-(*term,(lemma,should simplifier be called)*)
+(*term,(lemmas applied as conversion,should simplifier be called, if so with which lemmas)*)
 (*NOTE: will integrate into other passes or at least make one pass*)
 
-val cvc5_extension_table = [
-  (\<^const_name>\<open>power\<close>, (@{thms pow_2_raw''}, false))]
+val no_simplifier = map (fn (a,b) => (a,(b,NONE)))
+
+val cvc5_extension_table = no_simplifier [
+  (\<^const_name>\<open>power\<close>, @{thms pow_2_raw''})
+]
 
 fun simplify_norm_table ctxt = [
-  ("Type_Length.len0_class.len_of", (Named_Theorems.get ctxt \<^named_theorems>\<open>smt_word_len_evaluate\<close>, true)),
-  ("Word.Word", (Named_Theorems.get ctxt \<^named_theorems>\<open>Word_of_int\<close>, false)),
-  ("Word.slice", (Named_Theorems.get ctxt \<^named_theorems>\<open>slice_lift\<close>, false))
+  ("Type_Length.len0_class.len_of", (Named_Theorems.get ctxt \<^named_theorems>\<open>smt_word_len_evaluate\<close>, SOME [])),
+  ("Word.Word", (Named_Theorems.get ctxt \<^named_theorems>\<open>Word_of_int\<close>, NONE)),
+  ("Word.slice", (Named_Theorems.get ctxt \<^named_theorems>\<open>slice_lift\<close>, NONE)) ,
+  ("Num.numeral_class.numeral",(Named_Theorems.get ctxt \<^named_theorems>\<open>word_numeral_lift\<close>, SOME []))
 ]
 
 (*NOTE: Might be integrated into one of the other passes eventually. However, needs to be run before
 the run that pushes the ints in*)
-fun nat_native_ops_table ctxt = [
-  (\<^const_name>\<open>power\<close>, (Named_Theorems.get ctxt \<^named_theorems>\<open>pow_2_word\<close>, false)),(*lemma already ensures the condition*)
-  ("Bit_Operations.semiring_bit_operations_class.push_bit", (Named_Theorems.get ctxt \<^named_theorems>\<open>push_bit_lift\<close>,false)),
-  ("Type_Length.len0_class.len_of", (Named_Theorems.get ctxt \<^named_theorems>\<open>length_lift\<close>, false)),
-  ("Word.smt_extract", (Named_Theorems.get ctxt \<^named_theorems>\<open>smt_extract_lift\<close>, false))
-
+fun nat_native_ops_table ctxt = no_simplifier [
+  (\<^const_name>\<open>power\<close>, Named_Theorems.get ctxt \<^named_theorems>\<open>pow_2_word\<close>),
+  ("Bit_Operations.semiring_bit_operations_class.push_bit", Named_Theorems.get ctxt \<^named_theorems>\<open>push_bit_lift\<close>),
+  ("Type_Length.len0_class.len_of", Named_Theorems.get ctxt \<^named_theorems>\<open>length_lift\<close>),
+  ("Word.smt_extract", Named_Theorems.get ctxt \<^named_theorems>\<open>smt_extract_lift\<close>)
 ] 
 
 local
@@ -362,11 +373,19 @@ local
     let
       val t = Thm.term_of ct
       val t1 = Term.head_of t
+ 
+      fun rewr_conv thms = Conv.top_rewrs_conv thms ctxt
+      fun proper_num_ss thms ctxt = put_simpset HOL_ss ctxt addsimps thms
+     (* fun simp_rewr thms = Simplifier.rewrite (proper_num_ss thms ctxt)*)
+      fun simp_rewr thms' = Simplifier.rewrite ctxt
+
     in
       (case t1 of
         Const(n,T) =>
           (case AList.lookup (op =) tab n of (*TODO: use thms in Simplifier*)
-            SOME (thms,cond) => (fn x => if cond then (Simplifier.rewrite ctxt) ct else (Conv.top_rewrs_conv thms ctxt x))
+            SOME (thms,NONE) => rewr_conv thms
+            | SOME ([],SOME thms') => simp_rewr thms'
+            | SOME (thms,SOME thms') => rewr_conv thms then_conv simp_rewr thms'
             | NONE => Conv.all_conv)
        | _ => Conv.all_conv) ct
 
@@ -374,6 +393,7 @@ local
     end
 in
 
+(*Going to be merged eventually*)
 fun unfold_cvc5_extension_conv ctxt =
  (Conv.top_conv (unfold_extension_conv cvc5_extension_table) ctxt)
 
@@ -439,21 +459,25 @@ local
   val int_nat_thm = (mk_meta_eq @{thm SMT.H1(1)})
   val trace = true
 
-  fun nat_to_int_conv ctxt ct = (
+  val print_nat_to_int_conv = print_conv "nat_to_int_conv"
+  val print_nat_conv = print_conv "nat_conv"
 
+  fun nat_to_int_conv ctxt =
     Conv.top_conv (K (Conv.try_conv unfold_nat_let_conv)) ctxt then_conv
-
-    Conv.top_conv (K (Conv.try_conv ( Conv.rewr_conv @{thm alethe_nat_embedding_all}))) ctxt then_conv
-
+    print_nat_to_int_conv ctxt "unfold_nat_let_conv" then_conv
     Conv.top_sweep_conv nat_conv ctxt then_conv
-
-    Conv.top_conv (K (Conv.try_conv drop_nat_int_conv)) ctxt) ct
-
+    print_nat_to_int_conv ctxt "recursive call to nat_conv" then_conv
+    Conv.top_conv (K (Conv.try_conv drop_nat_int_conv)) ctxt then_conv
+    print_nat_to_int_conv ctxt "drop_nat_int_conv"
   and nat_conv ctxt ct = (
     Conv.every_conv
-   [(Conv.rewrs_conv (nat_int_thm :: nat_int_comp_thms)),
-      Conv.try_conv(Conv.rewrs_conv ( @{thm SMT.int_ops(3)[symmetric]} :: @{thm of_nat_numeral}:: [int_nat_thm]))] then_conv
-      Conv.top_sweep_conv (int_ops_conv nat_to_int_conv) ctxt) ct
+   [(Conv.rewrs_conv (nat_int_thm :: nat_int_comp_thms))
+     then_conv print_nat_conv ctxt "rewrite nat_int_thm and nat_int_comp_thms",
+      Conv.try_conv(Conv.rewrs_conv ( @{thm SMT.int_ops(3)[symmetric]} :: @{thm of_nat_numeral}:: [int_nat_thm]))]
+     then_conv print_nat_conv ctxt "rewrite SMT.int_ops(3)[symmetric], of_nat_numeral and int_nat_thm"
+     then_conv Conv.top_sweep_conv (int_ops_conv nat_to_int_conv) ctxt
+     then_conv print_nat_conv ctxt "recursive call to nat_to_int_conv") ct
+|> @{print}
 
   fun add_int_of_nat vs ct cu (q, cts) =
     (case Thm.term_of ct of
@@ -543,10 +567,13 @@ structure Extra_Normalize = Generic_Data
 fun get_unfold_conv ctxt =
   let
     val data : extra_normalize list = Extra_Normalize.get (Context.Proof ctxt)
+
     fun extract_unfold ((_, (config, unf, _)) : extra_normalize) =
        if Config.get ctxt config then unf ctxt else Conv.all_conv
+    val print_get_unfold_conv = print_conv "get_unfold_tac"
   in
-    fold (fn a => fn b => extract_unfold a then_conv b) data Conv.all_conv
+    fold (fn a => fn b => extract_unfold a then_conv
+      print_get_unfold_conv ctxt "extract_unfold" then_conv b) data Conv.all_conv
   end
 
 fun burrow_ids f ithms =
@@ -564,14 +591,24 @@ fun get_unfold_monomorph ctxt =
     fold (fn a => fn b => extract_unfold a #> b) data (fn x => x)
   end
 
+val print_conv_unfold = print_conv "unfold"
+
 fun unfold_conv ctxt =
+  print_conv_unfold ctxt "start" then_conv
   unfold_cvc5_extension_conv ctxt then_conv
+  print_conv_unfold ctxt "unfold_cvc5_extension_conv" then_conv
   simplify_norm_extension_conv ctxt then_conv
+  print_conv_unfold ctxt "simplify_norm_extension_conv" then_conv
   nat_native_extension_conv ctxt then_conv
+  print_conv_unfold ctxt "nat_native_extension_conv" then_conv
   rewrite_case_bool_conv ctxt then_conv
+  print_conv_unfold ctxt "rewrite_case_bool_conv" then_conv
   unfold_abs_min_max_conv ctxt then_conv
+  print_conv_unfold ctxt "unfold_abs_min_max_conv" then_conv
   (get_unfold_conv ctxt) then_conv
-  Thm.beta_conversion true
+  print_conv_unfold ctxt "get_unfold_conv ctxt" then_conv
+  Thm.beta_conversion true then_conv
+  print_conv_unfold ctxt "Thm.beta_conversion"
 
 fun unfold_polymorph ctxt = map (apsnd (Conv.fconv_rule (unfold_conv ctxt)))
 fun unfold_monomorph ctxt =
@@ -637,18 +674,31 @@ fun monomorph ctxt xthms =
 
 end
 
+fun debug ctxt msg x =
+let
+  val _ = debug_msg ctxt high (fn () => \<^print> ("normalize " ^ msg,x))
+in x end
 
 fun normalize ctxt wthms =
   wthms
   |> map_index (fn (n, (role, thm)) => ((n, role), thm))
+  |> debug ctxt "before"
   |> unfold_cvc5_extension ctxt
+  |> debug ctxt "unfold_cvc5_extension"
   |> simplify_norm_extension ctxt
+  |> debug ctxt "simplify_norm_extension"
   |> nat_native_extension ctxt
+  |> debug ctxt "nat_native_extension"
   |> gen_normalize ctxt
+  |> debug ctxt "gen_normalize"
   |> unfold_polymorph ctxt
+  |> debug ctxt "unfold_polymorph"
   |> monomorph ctxt
+  |> debug ctxt "monomorph"
   |> unfold_monomorph ctxt
+  |> debug ctxt "unfold_monomorph"
   |> apply_extra_norms ctxt
+  |> debug ctxt "apply_extra_norms"
 
 val _ = Theory.setup (Context.theory_map (
   setup_atomize #>
