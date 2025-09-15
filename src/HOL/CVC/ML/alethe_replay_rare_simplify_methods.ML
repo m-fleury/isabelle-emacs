@@ -30,6 +30,9 @@ val TRY' = Alethe_Replay_Methods.TRY'
 val simplify_tac = Alethe_Replay_Methods.simplify_tac
 
 fun debug_msg ctxt = SMT_Config.alethe_debug_msg ctxt "alethe_replay_rare"
+fun debug_msg_tac ctxt = SMT_Config.alethe_debug_msg_tac ctxt "alethe_replay_rare"
+fun debug_msg_tac' ctxt verbosity str = K (SMT_Config.alethe_debug_msg_tac ctxt "alethe_replay_rare" verbosity str)
+
 val low = SMT_Config.low
 val middle = SMT_Config.middle
 val high = SMT_Config.high
@@ -46,20 +49,16 @@ fun dest_prop (Const (\<^const_name>\<open>Trueprop\<close>, _) $ t) = t
 (* Any additional lemmas should be added to cvc_evaluate *)
 
 fun evaluate_tac ctxt _ =
-  (*K (print_tac ctxt "evaluate 0") THEN'*)
-
-  TRY' (Code_Simp.dynamic_tac ctxt )
-  THEN' K (print_tac ctxt "evaluate 1")
-
+  debug_msg_tac' ctxt high "evaluate start" THEN'
+  TRY' (Code_Simp.dynamic_tac ctxt)
+  THEN' debug_msg_tac' ctxt high "evaluate after Code_Simp.dynamic_tac"
   THEN' TRY' (Lin_Arith.tac ctxt)
-  THEN' K (print_tac ctxt "evaluate 2")
-
+  THEN' debug_msg_tac' ctxt high "evaluate after Linarith"
   THEN' TRY' (simplify_tac ctxt (
     (Named_Theorems.get ctxt @{named_theorems cvc_evaluate}) 
   @ (Named_Theorems.get ctxt @{named_theorems cvc_evaluate_bv})
   )) (*TODO: Discuss there are several possibilities to guard the bvs*)
-  THEN' K (print_tac ctxt "evaluate")
-THEN' TRY' (Skip_Proof.cheat_tac ctxt)
+  THEN' debug_msg_tac' ctxt high "evaluate after unfolding cvc_evaluate lemmas"
 
 (*Abstrahieren wegen foralls in if then else. The code generator cannot
 deal with this *)
@@ -234,8 +233,11 @@ in
           fun try_lemma_i i = 
           try (fn t => (SMT_Replay_Methods.prove ctxt t (fn _ =>
           TRY' ((EqSubst.eqsubst_tac ctxt [0] [nth inst_lemmas_without_true 0])
+            THEN' debug_msg_tac' ctxt high "trying lemma after resolving with the instantiated lemma"
             ORELSE' ((*@{print}("t",t);@{print}("inst_lemma_without_true",inst_lemmas_without_true);*)K (print_tac ctxt "lemmas could not be used")))
           THEN_ALL_NEW (
+            debug_msg_tac' ctxt high "evaluate after Linarith" THEN'
+
             (*K (print_tac ctxt "debug0") THEN'*)
             SOLVED' (resolve_tac ctxt [@{thm refl}])
             ORELSE' (*K (print_tac ctxt "debug1") THEN' *)
