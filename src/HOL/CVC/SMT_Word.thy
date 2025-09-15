@@ -387,7 +387,7 @@ lemma uint_smt_srem:
   by (simp add: uint_word_arith_bintrs(4) wsst_TYs(3))
 
 definition is_pow2 :: "int \<Rightarrow> bool" where
-  \<open>is_pow2 i \<equiv> (i = 0) \<and> (and i (i-1) = 0)\<close>
+  \<open>is_pow2 i \<equiv> (i > 0) \<and> (and i (i-1) = 0)\<close>
 
 definition smt_udiv :: "'a::len word \<Rightarrow> 'a::len word \<Rightarrow> 'a::len word" where
 "smt_udiv s t =
