@@ -1460,13 +1460,45 @@ lemma [rewrite_bv_ule_zero]:
 (*
 (define-cond-rule bv-mult-pow2-1
   ((xs ?BitVec :list) (ys ?BitVec :list) (z ?BitVec) (size Int) (n Int) (exponent Int) (u Int))
-  (def (e (int.log2 n)))
-  (and (int.ispow2 n) (= exponent e) (= u (- (- size e) 1)))
+  (and (int.ispow2 n) (= exponent (int.log2 n)) (= u (- (- size (int.log2 n)) 1)))
   (bvmul xs z (@bv n size) ys)
   (concat
     (extract u 0 (bvmul xs z ys))
     (@bv 0 exponent)))
+
+
+     assumptions:
+       is_pow2 (4::int) = True
+       (2::int) = int (floorlog (nat (4::int)) (2::nat))
+       1 = (4::int) - int (floorlog (nat (4::int)) (2::nat)) - 1
+     prop: 
+       (x::4 word) * (4::4 word) = word_cat (smt_extract (nat 1) (nat 0) x) 0 
+
+   ''bv-mult-pow2-1''
+         xs    ListVar []
+         ys    ListVar []
+         z     x::4 word
+         size  4::int
+         n     4::int
+         exponent 2::int
+         u     1
 *)
+named_theorems rewrite_bv_mult_pow2_1 \<open>manually generated\<close>
+
+
+lemma [rewrite_bv_mult_pow2_1]:
+  fixes xs ys :: "'b::len word cvc_ListVar"
+    and z :: "'b::len word"
+    and exponent size u :: int
+    and n ::int
+  assumes "is_pow2 n" 
+  and "(exponent = (floorlog (nat n) 2))"
+  and "(u = ((size - (floorlog (nat n) 2)) - 1))"
+  and "LENGTH('a) = nat exponent" and "LENGTH('b) = nat size" and "LENGTH('c) = nat u + 1"
+  and "n_w = (Word.Word n::'b::len word)"
+  shows "(cvc_list_left (*) xs (z * n_w))
+   = (word_cat (smt_extract (nat u) (nat (0::int)) (cvc_list_left (*) xs (cvc_list_right (*) z ys))::'c::len word) (0::'a::len word))"
+  sorry
 
 
 (*

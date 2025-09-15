@@ -67,6 +67,10 @@ lemmas [cvc_evaluate_bv]
     evaluate_concat evaluate_power 
 
 
+lemma [word_numeral_lift]:
+"(numeral (x::num)::'a::len word) \<equiv> word_of_int (take_bit LENGTH('a::len) (numeral x))"
+  using num_abs_bintr[of x] by simp
+
 
 lemmas [bv_aci_simp] =
 Bit_Operations.semiring_bit_operations_class.zero_and_eq
@@ -192,7 +196,7 @@ cvc5_rare "BV_Rewrites_Simplification.rewrite_bv_shl_by_const_1"
 cvc5_rare "BV_Rewrites_Simplification.rewrite_bv_shl_by_const_2"
 cvc5_rare "BV_Rewrites_Simplification.rewrite_bv_lshr_by_const_0"
 cvc5_rare "BV_Rewrites_Simplification.rewrite_bv_xor_ones"
-
+cvc5_rare "BV_Rewrites_Simplification.rewrite_bv_mult_pow2_1"
 cvc5_rare "BV_Rewrites_Simplification.rewrite_bv_ule_zero"
 cvc5_rare "BV_Rewrites_Simplification.rewrite_bv_ashr_zero"
 cvc5_rare "BV_Rewrites_Simplification.rewrite_bv_xor_concat_pullup"
