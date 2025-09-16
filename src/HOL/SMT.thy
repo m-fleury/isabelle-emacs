@@ -174,6 +174,8 @@ named_theorems smt_extract_lift \<open>smt_extract on words should be translated
 named_theorems smt_word_len_evaluate \<open>LENGTH should be evaluated if possible\<close>
 named_theorems Word_of_int \<open>Word.Word should be transformed to of_int before translation\<close>
 named_theorems slice_lift \<open>slice should be transformed to smt_extract before translation\<close>
+named_theorems word_numeral_lift \<open>word constant c of bit-width n should be normalized to 0 \<le> c' < 2^n before translation\<close>
+
 
 
 subsection \<open>Integer division and modulo for Z3\<close>
@@ -878,7 +880,7 @@ lemma alethe_nat_embedding:
   using int_eq_iff by blast
 declare[[show_types]]
 lemma alethe_nat_embedding2:
- "int (nat (Num.numeral_class.numeral n)) = numeral n"
+ "int (nat (Num.numeral_class.numeral n)) \<equiv> numeral n"
   by simp
 
 lemma alethe_nat_embedding_all:
@@ -891,7 +893,7 @@ lemma alethe_nat_embedding_ex:
 
 
 lemma int_nat_embedding_preproc_all:
- "(\<forall>(x::nat) . P x) \<equiv> (\<forall>(x::int) \<ge> 0. P (nat x)) "
+ "(\<forall>(x::nat) . P x) \<equiv> (\<forall>(x::int). x \<ge> 0 \<longrightarrow> P (nat x)) "
   using all_nat by simp
 
 lemma int_nat_embedding_preproc_ex:
@@ -899,7 +901,13 @@ lemma int_nat_embedding_preproc_ex:
   using ex_nat by auto
 
 
-
+lemma alethe_nat_embedding_all_new:
+"(\<forall>x . (\<exists>x'. (((x::nat) = nat (x'::int) \<and> 0 \<le> x' ) \<and> P x = P' x')))
+\<Longrightarrow> (\<forall>x::nat. P x) = (\<forall>x'::int. x' \<ge> 0 \<longrightarrow> P'  x')"
+  apply simp
+  apply standard+
+  subgoal using eq_nat_nat_iff by blast
+  by blast
 
 lemma alethe_nat_embedding_all2:
  "(\<forall>(x::int) \<ge> 0. int (nat x) = x)"
@@ -921,6 +929,10 @@ lemma H1:
 lemma H_nat_embedding: \<open>x \<ge> 0 \<Longrightarrow> int (nat x) = x\<close>
   by simp
 
+lemma temp:
+"A \<Longrightarrow> ( B \<equiv>  C) \<Longrightarrow> ( B \<equiv> (A \<and> C))"
+  by simp
+
 
 named_theorems nat_normalized_input \<open>Theorems required to replay nat operators embedded into lifted int versions\<close>
 named_theorems cvc5_normalized_input \<open>Theorems required to replay
@@ -930,7 +942,7 @@ named_theorems cvc5_holes_simp \<open>Simplification theorems for holes\<close>
 named_theorems cvc5_holes_pre \<open>Theorems applied for holes\<close>
 
 subsection \<open>Setup\<close>
-
+declare[[show_hyps]]
 ML_file \<open>Tools/SMT/smt_util.ML\<close>
 ML_file \<open>Tools/SMT/smt_failure.ML\<close>
 ML_file \<open>Tools/SMT/smt_config.ML\<close>
@@ -1249,6 +1261,9 @@ lemma [cvc5_holes_simp]:
   by auto
 
 declare[[smt_cvc_alethe = true]]
+
+declare[[smt_expert_debug_alethe_level=3]]
+declare[[smt_expert_debug_alethe_files="smt_global_normalize"]]
 
 
 end
