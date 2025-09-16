@@ -106,8 +106,6 @@ fun arith_poly_norm ctxt t =
     (SMT_Replay_Methods.abstract_for_poly_norm ctxt (dest_prop t))
   end
 
-
-
 (*TODO: Have different method based on theory rewrite is in*)
 fun try_simp ctxt t = 
   SMT_Replay_Methods.prove ctxt t (fn _ =>
@@ -131,11 +129,11 @@ fun dsl_tac_initialize rewrite_name args ctxt t _ =
         then
           let
             val _ = debug_msg ctxt high (fn () => @{print} ("undeclared RARE rule: " ^ rewrite_name ^ ". Use cvc5_rare \"full_name\"."))
-          in raise RARE_REPLAY("could not find lemma for rare rewrite"^ rewrite_name) end
+          in raise RARE_REPLAY("could not find lemma for rare rewrite" ^ rewrite_name) end
         else
           try_simp ctxt t
-    else
-      (case rewrite_name of (*cheating: hardcoding some common rules, saving around 3ms each time*)
+    else (*lemma found and we are supposed to use it*)
+      (case rewrite_name of (*cheating: hardcoding some common rules, saving around 3ms each time TODO: Should be measured again*)
         "bool_double_not_elim" => SMT_Replay_Methods.prove ctxt t (fn _ =>
           match_tac ctxt [@{thm not_not}])
       | "arith_to_int_to_real" => SMT_Replay_Methods.prove ctxt t (fn _ =>
@@ -147,55 +145,46 @@ fun dsl_tac_initialize rewrite_name args ctxt t _ =
       | _ =>
         let
           val rewrite_lemmas = CVC5_Rare.rare_rule (Context.Proof ctxt) ("rewrite_" ^ rewrite_name)
-            (*handle Option.Option => raise RARE_REPLAY ("Found more then one lemma corresponding to RARE rule " ^ rewrite_name)*)
-                val _ = debug_msg ctxt middle (fn () => @{print} ("rewrite_lemmas lemma",rewrite_lemmas));
+          val _ = debug_msg ctxt middle (fn () => @{print} ("Lemmas corresponding to the current rewrite rule",rewrite_lemmas));
 
           fun get_types lemma = map snd (rev (Term.add_vars (Thm.full_prop_of lemma) []))
       
-          fun is_list_arg (Const (\<^const_name>\<open>Dsl_Nary_Ops.cvc_ListVar.ListVar\<close>, _) $ Const (\<^const_name>\<open>List.Nil\<close>, _)) = true
-            | is_list_arg _ = false
+          fun normalize_list_arg (Const (\<^const_name>\<open>Dsl_Nary_Ops.cvc_ListVar.ListVar\<close>, _) $ Const (\<^const_name>\<open>List.Nil\<close>, _)) t =
+          let
+            val ts' = dest_Type t |> snd
+          in
+            (case try hd ts' of
+                NONE => @{term "ListVar (List.Nil::dummy List.list) :: dummy cvc_ListVar"} |
+                SOME (t') => 
+                  Const (\<^const_name>\<open>ListVar\<close>, Type(\<^type_name>\<open>List.list\<close>,[t']) --> Type(\<^type_name>\<open>cvc_ListVar\<close>, [t']))
+                  $ Const (\<^const_name>\<open>List.Nil\<close>, Type(\<^type_name>\<open>List.list\<close>,[t']))
+            )
+          end |
+          normalize_list_arg a _ = a
       
-          fun instantiate_with_arg a t =
-let
-            val _ = debug_msg ctxt high (fn () => @{print} ("(a,t)", (a,t)));
-in
-            if is_list_arg a
-            then
-              let
-              val new_a =
-              let
-                val t5 = dest_Type t |> snd
-              in 
-                case try hd t5 of
-                  NONE => Const (\<^const_name>\<open>ListVar\<close>, Type(\<^type_name>\<open>List.list\<close>,[dummyT]) --> Type(\<^type_name>\<open>cvc_ListVar\<close>, [dummyT]))
-                             $ Const (\<^const_name>\<open>List.Nil\<close>, Type(\<^type_name>\<open>List.list\<close>,[dummyT]))|
-                  SOME (t') =>  Const (\<^const_name>\<open>ListVar\<close>, Type(\<^type_name>\<open>List.list\<close>,[t']) --> Type(\<^type_name>\<open>cvc_ListVar\<close>, [t']))
-                             $ Const (\<^const_name>\<open>List.Nil\<close>, Type(\<^type_name>\<open>List.list\<close>,[t']))
-              end
-              val _ = debug_msg ctxt high (fn () => @{print} ("Detected List Argument", new_a));
+          fun rewrite_lemma_inst lemma [] [] = lemma
+           | rewrite_lemma_inst _ [] (_::_) =
+              raise RARE_REPLAY("Too few arguments for RARE rewrite " ^ rewrite_name)
+           | rewrite_lemma_inst _ _ [] =
+              raise RARE_REPLAY("Too many arguments for RARE rewrite " ^ rewrite_name)
+           | rewrite_lemma_inst lemma (a :: args') (t :: typs') =
+             let
+               val rec_lemma = rewrite_lemma_inst lemma args' typs' (*TODO: Is it faster to instantiate with all types at once? This is good for testing though*)
+               val a_normalized = normalize_list_arg a t |> Thm.cterm_of ctxt |> SOME |> single
+             in
+               Drule.infer_instantiate' ctxt a_normalized rec_lemma
+             end
 
-                    
-              in
-                single ((SOME o Thm.cterm_of ctxt) new_a)
-              end
-            else
-              single ((SOME o Thm.cterm_of ctxt) a)
-      end
-      
-          fun rewrite_lemma_inst lemma [] []  = lemma
-           | rewrite_lemma_inst lemma [] (_::_)  =
-              (*raise RARE_REPLAY("Too few arguments for RARE rewrite " ^ rewrite_name)*)
-              lemma
-           | rewrite_lemma_inst lemma _ []  =
-              (*raise RARE_REPLAY("Too many arguments for RARE rewrite " ^ rewrite_name)*) lemma
-           | rewrite_lemma_inst lemma (a :: args') (t :: typs') = 
-              Drule.infer_instantiate' ctxt (instantiate_with_arg a t) (rewrite_lemma_inst lemma args' typs' |> @{print}) 
+          fun instantitate_lemma lemma =
+          let
+            val args_types_from_lemma = rev (get_types lemma) (*TODO: get rid of revs if possible*)
+            val args_types_from_step = rev args @ [Const ("Groups.zero_class.zero",@{typ int})] (*The extra term is for the dummy argument we need to add the expected order to the arguments*)
+            val _ = debug_msg ctxt high (fn () => @{print} ("Argument types extracted from lemma",args_types_from_lemma));
+            val _ = debug_msg ctxt high (fn () => @{print} ("Argument types extracted from proof step",args_types_from_step));
+          in rewrite_lemma_inst lemma args_types_from_step args_types_from_lemma
+          end
 
-          val inst_lemmas = 
-            map_filter
-              (fn lemma => try( rewrite_lemma_inst lemma (rev args @ [Const ("Groups.zero_class.zero",@{typ int})] |> @{print}))
-            (rev (get_types lemma) |> @{print}) |> @{print}) rewrite_lemmas
-            
+          val inst_lemmas = map_filter (try instantitate_lemma) rewrite_lemmas
           val _ = debug_msg ctxt middle (fn () => @{print} ("Instantiated lemmas",inst_lemmas));
 
           val cvc_list_defs = @{thms cvc_list_right_Nil cvc_list_left_Nil cvc_list_both_Singleton
@@ -203,33 +192,38 @@ in
             cvc_list_both_Cons_0 cvc_list_both_Cons_1 NO_MATCH_def}
           val inst_lemmas_without_list = 
             map (Local_Defs.unfold ctxt (cvc_list_defs @ (Named_Theorems.get ctxt @{named_theorems smt_rewrite_lemma_simplify}))) inst_lemmas
-      
-          (*Should only happen if we have the extra argument*)
+          val _ = debug_msg ctxt middle (fn () => @{print} ("Instantiated lemmas without custom list operators",inst_lemmas_without_list));
+
+          (*This is done to get rid of the bogus term used to enforce the expected ordering on the arguments*)
           val inst_lemmas_without_true
             = map (Basic_Tactic.rule_by_tactic ctxt (resolve_tac ctxt [@{thm TrueI}] 1)) inst_lemmas_without_list
-          val _ = debug_msg ctxt middle (fn () => @{print} ("inst_lemmas_without_true",length inst_lemmas_without_true));
+
           val _ = debug_msg ctxt middle (fn () => @{print} ("nr of viable instantiated lemmas",length inst_lemmas_without_true));
 
           fun REPEAT' tac = fn i => REPEAT (tac i)
-      
+          val cvc_evaluate_thms = Named_Theorems.get ctxt @{named_theorems cvc_evaluate}
+          val arith_mult_poly_norm_cvc5_thm = Named_Theorems.get ctxt @{named_theorems arith_mult_poly_norm_cvc5}
+          fun debug_msg_tac'' ctxt verbosity str = debug_msg_tac' ctxt verbosity ("rare_rewrite: " ^ str)
+
           fun try_lemma_i i = 
           try (fn t => (SMT_Replay_Methods.prove ctxt t (fn _ =>
-          TRY' ((EqSubst.eqsubst_tac ctxt [0] [nth inst_lemmas_without_true 0])
-            THEN' debug_msg_tac' ctxt high "trying lemma after resolving with the instantiated lemma"
-            ORELSE' ((*@{print}("t",t);@{print}("inst_lemma_without_true",inst_lemmas_without_true);*)K (print_tac ctxt "lemmas could not be used")))
+          TRY' (
+              EqSubst.eqsubst_tac ctxt [0] [nth inst_lemmas_without_true 0] (*TODO: Try all lemmas in set*)
+            ORELSE'
+              (if rare_mode = 1 then raise RARE_REPLAY("Lemmas could not be used to discharge rewrite rule.") else K (print_tac ctxt "lemmas could not be used"))
+            THEN' debug_msg_tac'' ctxt high "after resolving with the instantiated lemmas"
+          )
           THEN_ALL_NEW (
-            debug_msg_tac' ctxt high "evaluate after Linarith" THEN'
-
-            (*K (print_tac ctxt "debug0") THEN'*)
+            debug_msg_tac'' ctxt high "trying to discharge assumption of RARE lemma" THEN'
             SOLVED' (resolve_tac ctxt [@{thm refl}])
-            ORELSE' (*K (print_tac ctxt "debug1") THEN' *)
-               TRY' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems cvc_evaluate}))
-              (*THEN' K (print_tac ctxt "debug3")*)
-              THEN' TRY' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems cvc_evaluate}
-                @ Named_Theorems.get ctxt @{named_theorems arith_mult_poly_norm_cvc5}))
-              (*THEN' K (print_tac ctxt "debug3")*)
-
-              THEN' TRY' (Code_Simp.dynamic_tac ctxt) (*slowest method, so at the end*)))
+            ORELSE'
+               TRY' (simplify_tac ctxt cvc_evaluate_thms THEN' debug_msg_tac'' ctxt high "simplifed goal with cvc_evaluate")
+               THEN' TRY'
+                 (simplify_tac ctxt (cvc_evaluate_thms @ arith_mult_poly_norm_cvc5_thm)
+                 THEN' debug_msg_tac'' ctxt high "simplifed goal with cvc_evaluate and arith_mult_poly_norm_cvc5")
+               THEN' TRY' (Code_Simp.dynamic_tac ctxt THEN' debug_msg_tac'' ctxt high "applied code evaluator") (*slowest method, so at the end*))
+           THEN' (debug_msg_tac'' ctxt high "should be solved now")
+           )
            )) t
 
 
