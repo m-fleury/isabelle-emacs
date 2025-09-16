@@ -27,7 +27,6 @@ in
 end
 
 
-
 (*Regression Tests*)
 
 val _ = expect_parsing_error "" 
@@ -114,9 +113,14 @@ val _ = check_tree "(op)" (SMTLIB.S [SMTLIB.Sym "op"]) true
 val _ = check_tree "(op arg1 arg2)" (SMTLIB.S [SMTLIB.Sym "op",SMTLIB.Sym "arg1",SMTLIB.Sym "arg2"]) true
 val _ = expect_parsing_error "(01"
 
+(*forall*)
+val _ = check_tree "(forall ((X Int)) (= X 12))"
+ (SMTLIB.S [SMTLIB.Sym "forall", SMTLIB.S [SMTLIB.S [SMTLIB.Sym "X", SMTLIB.Sym "Int"]],
+  SMTLIB.S [SMTLIB.Sym "=", SMTLIB.Sym "X", SMTLIB.Num 12]]) true
+val x = SMTLIB.parse ["(forall ((X Int)) (= (f X) 12))"]
 \<close>
 
-
+declare[[show_hyps]]
 (* Test alethe_proof.ML *)
 (* Purely syntactical testing! *)
 
