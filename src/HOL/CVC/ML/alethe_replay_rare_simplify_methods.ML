@@ -106,31 +106,7 @@ fun arith_poly_norm ctxt t =
     (SMT_Replay_Methods.abstract_for_poly_norm ctxt (dest_prop t))
   end
 
-fun arith_poly_norm_mult ctxt t = 
-  SMT_Replay_Methods.prove ctxt t (fn _ =>
-    K (print_tac ctxt "arith mult 0") THEN'
 
-    TRY' (simplify_tac ctxt ((Named_Theorems.get ctxt @{named_theorems cvc_evaluate}) @ (Named_Theorems.get ctxt @{named_theorems arith_mult_poly_norm_cvc5})
-      @ (Named_Theorems.get ctxt @{named_theorems field_simps})))
-    (*THEN' K (print_tac ctxt "arith mult 1")*)
-    THEN' TRY' (Lin_Arith.tac ctxt)
-    (*THEN' K (print_tac ctxt "arith mult 2")*)
-  )
-
-fun try_arith ctxt t =
-  SMT_Replay_Methods.prove ctxt t (fn _ =>
-   (*K (print_tac ctxt "arith 0") THEN'*)
-   TRY' (simplify_tac ctxt ((Named_Theorems.get ctxt @{named_theorems cvc_evaluate}) @ (Named_Theorems.get ctxt @{named_theorems arith_mult_poly_norm_cvc5})
-     @ (Named_Theorems.get ctxt @{named_theorems field_simps})))
-
-  (*THEN' K (print_tac ctxt "arith 1")*)
-
-  THEN' TRY' (Lin_Arith.tac ctxt)
-  (*THEN' K (print_tac ctxt "arith 2")*)
-  THEN' TRY' (Code_Simp.dynamic_tac ctxt )
-
-  (*THEN' K (print_tac ctxt "arith")*)
- )
 
 (*TODO: Have different method based on theory rewrite is in*)
 fun try_simp ctxt t = 
@@ -283,13 +259,6 @@ in
           (debug_msg ctxt low (fn () => @{print} "Found evaluate, try to simplify");
           try_evaluate ctxt t)
       | "arith_poly_norm" => arith_poly_norm ctxt t
-      | "arith_poly_norm_mult" => arith_poly_norm_mult ctxt t
-      | "arith_poly_norm_uminus" => 
-          (debug_msg ctxt low (fn () => @{print} "Found arithmetric norm rule, try to normalize");
-            try_arith ctxt t)
-      | "arith_poly_norm_minus" => 
-          (debug_msg ctxt low (fn () => @{print} "Found arithmetric norm rule, try to normalize");
-            try_arith ctxt t)
       | _ =>
          (debug_msg ctxt low (fn () => @{print} "Found rare rewrite " ^ rewrite_name);
           dsl_tac_initialize rewrite_name args ctxt t th))
