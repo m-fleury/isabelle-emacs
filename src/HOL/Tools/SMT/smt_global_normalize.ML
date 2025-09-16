@@ -152,7 +152,7 @@ in (ctxt1,x,B) end
 fun mk_new_variable ctxt subst x t =
 let
   (*TODO: Check if name is already used first! Not sure if it matters because Isabelle renames, try out*)
-  val x' = "lift_" ^ x
+  val x' =  "lift_" ^ (Long_Name.base_name x)
   val new_t = (Free (x',@{typ int}))
   val new_t_ge_0 = mkLeTerm new_t
   val x_cond = HOLogic.mk_exists (x',@{typ int},
@@ -322,7 +322,7 @@ let
     \<exists>f'. \<forall>x1...xn. f x1' ... xn' = (f' x1' ... xn')
   *)
   val f_cond = HOLogic.mk_exists (n,T',forall_term)
-  val n' = "lift_" ^ n
+  val n' =  "lift_" ^ (Long_Name.base_name n)
 
   val (ctxt1,x,B) = obtain_new_variable ctxt n' f_cond lambda_term
   
@@ -687,11 +687,7 @@ rest of the arguments
 fun bottom_list ccv' tab ocond cond ctxt [] ths = (tab,ctxt,ocond,cond,ths) | 
   bottom_list ccv' tab ocond cond ctxt (ct::cts) ths =
   let
-    val _ = @{print}("In bottom list",cond)
-
     val (tab2,ctxt2,ocond2,cond2,tthm) = bottom ccv' tab [] cond ctxt ct
-    val _ = @{print}("In bottom list2",cond2)
-
   in  bottom_list ccv' tab2 (ocond @ ocond2) cond2 ctxt2 cts (tthm::ths)  end
 
 and 
@@ -704,12 +700,11 @@ in
   (case Thm.term_of ct of 
    Const (quant_name, T) $ (Abs (bv_name, T2, _)) => 
    let
+   val _ = @{print}("T",T)
     val is_all = (quant_name = "HOL.All")
     val is_ex = (quant_name = "HOL.Ex")
     val _ = if is_all orelse is_ex then () else raise (SMT_GLOBAL_NORMALIZE "Unsupported Quantifier")
-    val quant = 
-     if is_all then @{cterm "HOL.All::(int => bool) \<Rightarrow> bool"}
-     else @{cterm "HOL.Ex::(int => bool) \<Rightarrow> bool"}
+    val quant = Thm.cterm_of ctxt (Const(quant_name,intify_type T))
     val bound_is_nat = (T2 = @{typ nat})
     val ct_thm = Conv.all_conv ct |> @{print}
 
@@ -890,7 +885,7 @@ in
     val _ = @{print}("thm", thm)
     val thm23 = Thm.abstract_rule bv_name bound_var thm
     val _ = @{print}("thm23", thm23)
-
+    (*TODO: Add/pass conditions *)
  in (tab1,ctxt1,[],[],thm23) end |
 _ => 
   if length cts = 0
@@ -927,16 +922,21 @@ fun unfold_test cthm ((ctxt,thms,mapping) :test)  =
    val (tab,ctxt1,ge_conds,int_nat_conds,thm) =
     (bottom (fn tab2 => fn ctxt2 => transform2 ctxt2 tab2) (Termtab.empty) [] [] ctxt) (Thm.cprop_of cthm)
    (*FIXME: This should be done on the fly*)
-   val thm = Conv.fconv_rule (Conv.top_rewrs_conv int_nat_conds ctxt) thm
+   val _ = debug_msg ctxt low (fn () => \<^print> ("current transformed thm",thm))
+
+   val thm_rhs =  (Conv.top_rewrs_conv int_nat_conds ctxt) (Thm.rhs_of thm)
+   val thm = Thm.transitive thm thm_rhs
 
    val ge_conds = distinct (fn (a,b) => Thm.prop_of a = Thm.prop_of b) ge_conds
    val ge_conds = map (Conv.fconv_rule (Conv.repeat_changed_conv (Conv.top_sweep_rewrs_conv int_nat_conds ctxt))) ge_conds
-   val _ = debug_msg ctxt low (fn () => \<^print> ("current transformed thm",thm))
+   val _ = debug_msg ctxt low (fn () => \<^print> ("current transformed thm with unfolded int_nat_conds",thm))
    val _ = debug_msg ctxt low (fn () => \<^print> ("int of nat conditions",int_nat_conds))
    val _ = debug_msg ctxt low (fn () => \<^print> ("obtained greater equal conditions",ge_conds))
 
    val thms'' = add_conds ctxt1 int_nat_conds ge_conds thm cthm 
    val _ = debug_msg ctxt low (fn () => \<^print> ("added greater equal conditions",thms''))
+   val _ = debug_msg ctxt low (fn () => \<^print> ("cthm",cthm))
+
    val thms''' = Conv.fconv_rule (Conv.rewr_conv thms'') cthm
 
    (*This is used for counterexample generation only*)
