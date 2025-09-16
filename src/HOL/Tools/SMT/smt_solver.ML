@@ -446,72 +446,103 @@ fun test_smtlib_translation_tac' ctxt comp_str rules =
   THEN' (fn i => TRY (resolve_tac ctxt [@{lemma "A = B ==> \<not>(A \<noteq> B)" by simp},@{lemma "A ==> \<not>\<not>A" by simp}] i))
   THEN' K (print_tac ctxt "end testing (should be the same as start testing") (*x = x*)
 
-fun replay_counterexample ctxt {assms=assms,ctxt=ctxt2,terms=terms,typs=typs,...} output beta =
-let
-(* ["sat", "(", "(define-fun f$ ((_arg_1 Int)) Int 1)", "(define-fun g$ ((_arg_1 Int)) Int (- 1))", "(define-fun x$ () Int 0)",
-  ")"])
- (SMTLIB.S [SMTLIB.Sym "forall", SMTLIB.S [SMTLIB.S [SMTLIB.Sym "X", SMTLIB.Sym "Int"]],
-  SMTLIB.S [SMTLIB.Sym "=", SMTLIB.Sym "X", SMTLIB.Num 12]]) true*)
-  val output' = (tl) output
-  val trees = SMTLIB.parse output' |> (fn SMTLIB.S xs => xs)
-  fun normalize_names (SMTLIB.S xs)
-    = (SMTLIB.S (map normalize_names xs)) |
-   normalize_names (SMTLIB.Sym name)  = SMTLIB.Sym (if String.isPrefix "_" name then unprefix "_" name else name) |
-   normalize_names x  = x
+local
 
-  val beta = map (swap) beta |> map (apfst Thm.term_of)
-  val thm_beta = @{thm nat_le_0}
-  val _ = @{print}("beta",beta)
-  fun replace_names (SMTLIB.S xs) = (SMTLIB.S (map replace_names xs)) |
-    replace_names (SMTLIB.Sym name) = (SMTLIB.Sym name) 
-  fun normalize_names2 (SMTLIB.S [SMTLIB.Sym name, SMTLIB.Sym typ])
-    = SMTLIB.Sym (unprefix "_" name)
+  fun normalize_names (SMTLIB.S xs) = (SMTLIB.S (map normalize_names xs)) |
+    normalize_names (SMTLIB.Sym name) = SMTLIB.Sym (if String.isPrefix "_" name then unprefix "_" name else name) |
+    normalize_names x = x
 
-  val x = map (fn SMTLIB.S[_,name,SMTLIB.S arg_list,T,ret_value] => (
-if length arg_list = 0
-    then (SMTLIB.S[SMTLIB.Sym "=", name, ret_value])
-    else (SMTLIB.S[SMTLIB.Sym "forall",SMTLIB.S  (map normalize_names arg_list),
-    SMTLIB.S[SMTLIB.Sym"=", SMTLIB.S ([name] @ (map normalize_names2 arg_list)), normalize_names ret_value]]))
-   | _ => raise SMT_Failure.SMT(SMT_Failure.Other_Failure "Define fun in Model is malformed!")) trees |> @{print}
-    |> @{print}
-
-  (*TODO: Use replay data from problem*)
-  val cx = SMTLIB_Proof.empty_name_binding
+  fun normalize_arg (SMTLIB.S [SMTLIB.Sym name, SMTLIB.Sym typ]) = SMTLIB.Sym (unprefix "_" name)
+  fun without_trueprop (_ $ x) = x
   fun node_of p cx =
   ([], cx)
   ||>> `(SMTLIB_Proof.with_fresh_names (SMTLIB_Proof.term_of p))
   |>> snd
+  |>> fst
+  |>> without_trueprop
   fun node_of_term p cx = (SMTLIB_Proof.term_of p cx)
 
-  val empty_cx = (SMTLIB_Proof.empty_context ctxt typs terms)
-  fun iter [] = [] |
-  iter (def::defs) =
-   node_of def empty_cx :: iter defs
-open HOLogic
-  fun search_in_beta [] a = a |
-  search_in_beta ((a,b)::xs) a2 = (if a = a2 then b else  search_in_beta xs a2)
-  val tl = map (fn SMTLIB.S[_,name,SMTLIB.S arg_list,T,ret_value] => (
- (search_in_beta beta (node_of_term name empty_cx |> fst), Thm.cterm_of ctxt (@{term "nat"} $ (node_of_term ret_value empty_cx |> fst))))) trees
+  fun iter cx defs = fold_map (fn a => fn b => (node_of a b)) defs cx
+
+
+in 
+fun replay_counterexample ctxt {assms=assms,ctxt=ctxt2,terms=terms,typs=typs,...} output nat_to_int_defs =
+if hd output <> "sat"
+then raise SMT_Failure.SMT (SMT_Failure.Other_Failure "solver did not find the problem to be sat")
+else let
+  val cx = SMTLIB_Proof.empty_context ctxt typs terms
+
+  val model = tl output (*drop sat line*)
+  val model_as_tree = SMTLIB.parse model
+    |> (fn SMTLIB.S xs => xs | _ => raise SMT_Failure.SMT (SMT_Failure.Other_Failure "translation of model into AST failed"))
+
+  (*
+    Currently, this is not used
+    Turn define-funs into equations (still on the AST)
+    E.g., (define-fun lift_x$ () Int 0) is turned into lift_x$ = 0
+  *)
+  val model_as_eqs = map
+    (fn SMTLIB.S[SMTLIB.Sym "define-fun",name,SMTLIB.S arg_list,T,ret_value] => (
+      if length arg_list = 0
+      then (SMTLIB.S[SMTLIB.Sym "=", name, ret_value])
+      else (SMTLIB.S[SMTLIB.Sym "forall",SMTLIB.S  (map normalize_names arg_list),
+        SMTLIB.S[SMTLIB.Sym"=", SMTLIB.S ([name] @ (map normalize_arg arg_list)), normalize_names ret_value]]))
+      | _ => raise SMT_Failure.SMT(SMT_Failure.Other_Failure "Define-fun in Model is malformed!"))
+    model_as_tree
+  val res = iter cx model_as_eqs |> @{print}
+
+  val nat_to_int_defs = map swap nat_to_int_defs |> map (apfst Thm.term_of) (*TODO: Already do this before passing the information here*)
+
+  fun find_int_def a = find_first (fn x => fst x = a) nat_to_int_defs |> the |> snd
+
+  (*extract name and value *)
+  val name_value_mapping = map
+    (fn SMTLIB.S[SMTLIB.Sym "define-fun",name,SMTLIB.S arg_list,T,ret_value] => (name,ret_value)
+      | _ => raise SMT_Failure.SMT(SMT_Failure.Other_Failure "Define-fun in Model is malformed!")
+    ) model_as_tree |> @{print}
+
+  (*and transform to Isabelle terms*)
+  (*TODO: Make this nicer*)
+  val (name_mapping_terms,value_mapping_terms) = name_value_mapping |> split_list |> @{print}
+  val (name_mapping_terms,cx) = iter cx name_mapping_terms |> @{print}
+  val (value_mapping_terms,cx) = iter cx value_mapping_terms |> @{print}
+  val name_value_mapping = ListPair.zip (name_mapping_terms,value_mapping_terms) |> @{print}
+
+  val tl =
+   map (fn (nat_name,value) => (find_int_def nat_name, Thm.cterm_of ctxt (@{term "nat"} $ value))
+      | _ => raise SMT_Failure.SMT(SMT_Failure.Other_Failure "Define-fun in Model is malformed!")
+) name_value_mapping
+
+
   val _ = @{print}("tl",tl)
   val tl = map (fn (a,b) => (a,(Thm.rhs_of o Simplifier.rewrite ctxt) b)) tl
   val _ = @{print}("tl",tl)
+  val tl2 = map (fn (a,b) => HOLogic.mk_eq (a,(Thm.term_of b))) tl
+  val _ = @{print}("tl2",tl2)
 
 
-
-  val res = iter x |> map (fst o fst) |> @{print}
   fun pretty tag lines = Pretty.string_of (Pretty.big_list tag (map Pretty.str lines))
 
 val hackish_string_of_term =
   (* FIXME: map_aterms (fn Free (s, T) => Free (if Name.is_internal s then "_" else s, T) | t => t)
   #> *) Syntax.pretty_term ctxt
   #> Pretty.pure_string_of
-open Term
+
  fun trans (t0 $ (t1 $ (Abs(x,y,z)))) = z |
   trans t = t
 
   val _ =  SMT_Config.trace_msg ctxt (pretty "Counterexample")
-   (map hackish_string_of_term (map trans res))
+   (*(map hackish_string_of_term (map trans res))*)
+   (map hackish_string_of_term (map trans tl2))
+
+  val str = "lemma todo_prove:\n assumes \""
+  ^ (hd (map hackish_string_of_term (map trans tl2)))
+    ^ "\"\n shows" 
+  val _ = writeln (Active.sendback_markup_command str)
+
 in all_tac end
+end
+
 
 fun apply_solver_and_counterexample ctxt thms0 =
   let
