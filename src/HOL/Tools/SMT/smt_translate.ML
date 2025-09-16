@@ -54,6 +54,8 @@ end;
 structure SMT_Translate: SMT_TRANSLATE =
 struct
 
+open SMT_Config
+fun debug_msg ctxt = alethe_debug_msg ctxt "smt_translate"
 
 (* intermediate term structure *)
 
@@ -577,6 +579,7 @@ fun get_config ctxt : config list =
 
 fun translate ctxt prover smt_options comments (ithms : ((int * SMT_Util.role) * thm) list) =
   let
+    val _ = debug_msg ctxt low (fn () => \<^print> ("start translating problem ",ithms))
 
     val order = map #order (get_config ctxt)
     val logics = map #logic (get_config ctxt)
@@ -590,10 +593,12 @@ fun translate ctxt prover smt_options comments (ithms : ((int * SMT_Util.role) *
       ((Termtab.empty, [], tr_context, ctxt), ts)
 
     val ts1 = map (SMT_Util.map_prod snd (Envir.beta_eta_contract o SMT_Util.prop_of)) ithms
+    val _ = debug_msg ctxt high (fn () => \<^print> ("ts1 ",ts1))
 
     val ((funcs, dtyps, tr_context, ctxt1), ts2) =
       ((empty_tr_context, ctxt), ts1)
       |-> (if null fp_kinds then no_dtyps else collect_co_datatypes fp_kinds)
+    val _ = debug_msg ctxt high (fn () => \<^print> ("ts2 ",ts2))
 
     fun is_binder (Const (\<^const_name>\<open>Let\<close>, _) $ _) = true
       | is_binder t = Lambda_Lifting.is_quantifier t
@@ -620,12 +625,22 @@ fun translate ctxt prover smt_options comments (ithms : ((int * SMT_Util.role) *
         in
           (ctxt', (ts'', ll_defs))
         end)
+    val _ = debug_msg ctxt high (fn () => \<^print> ("ts3 ",ts3))
+    val _ = debug_msg ctxt high (fn () => \<^print> ("lambda lifting defs (ll_defs) ",ll_defs))
+
     val ((rewrite_rules, builtin), ts4) = folify ctxt2 ts3
       |>> first_order ? apfst (cons fun_app_eq)
+    val _ = debug_msg ctxt high (fn () => \<^print> ("ts4 ",ts4))
+    val _ = debug_msg ctxt high (fn () => \<^print> ("rewrite_rules ",rewrite_rules))
+
   in
     (ts4, tr_context)
     |-> intermediate (logic prover o map snd) dtyps (builtin SMT_Builtin.dest_builtin) ctxt2
+|> @{print}
     |>> uncurry (serialize smt_options comments)
+|> @{print}
+
+    |> (fn x => let val _ = debug_msg ctxt high (fn () => \<^print> ("problem string is:",(fst x))) in x end)
     ||> replay_data_of ctxt2 ll_defs rewrite_rules ithms
   end
 
