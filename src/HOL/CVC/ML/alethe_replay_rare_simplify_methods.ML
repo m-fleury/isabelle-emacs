@@ -9,7 +9,6 @@ signature ALETHE_REPLAY_RARE_SIMPLIFY_METHODS =
 sig
   val rare_rewrite: Alethe_Replay_Methods.alethe_tac_step_args
   val rare_rec_mode: int Config.T
-  val arith_poly_norm : Proof.context -> term -> thm
   exception RARE_REPLAY of string
 end;
 
@@ -19,24 +18,23 @@ struct
 exception RARE_REPLAY of string
 
 (*
-0: use lemma & simplify if not possible
+0: use lemma & simplify if not possible (default)
 1: use only lemma
 2: use only simplify
 *)
 val rare_rec_mode = Attrib.setup_config_int \<^binding>\<open>rare_rec_mode\<close> (K 0)
 
 
+(*imports*)
 val TRY' = Alethe_Replay_Methods.TRY'
 val simplify_tac = Alethe_Replay_Methods.simplify_tac
-
-fun debug_msg ctxt = SMT_Config.alethe_debug_msg ctxt "alethe_replay_rare"
-fun debug_msg_tac ctxt = SMT_Config.alethe_debug_msg_tac ctxt "alethe_replay_rare"
-fun debug_msg_tac' ctxt verbosity str = K (SMT_Config.alethe_debug_msg_tac ctxt "alethe_replay_rare" verbosity str)
-
 val low = SMT_Config.low
 val middle = SMT_Config.middle
 val high = SMT_Config.high
 
+
+fun debug_msg ctxt = SMT_Config.alethe_debug_msg ctxt "alethe_replay_rare"
+fun debug_msg_tac' ctxt verbosity str = K (SMT_Config.alethe_debug_msg_tac ctxt "alethe_replay_rare" verbosity str)
 
 (*Tactics for experiments*)
 fun try_auto_solo ctxt t = 
@@ -45,8 +43,10 @@ fun try_auto_solo ctxt t =
 
 fun dest_prop (Const (\<^const_name>\<open>Trueprop\<close>, _) $ t) = t
   | dest_prop t = t
+
+
 (* Evaluation of constants *)
-(* Any additional lemmas should be added to cvc_evaluate *)
+(* Any additional lemmas should be added to cvc_evaluate or cvc_evaluate_bv*)
 
 fun evaluate_tac ctxt _ =
   debug_msg_tac' ctxt high "evaluate start" THEN'
@@ -57,17 +57,18 @@ fun evaluate_tac ctxt _ =
   THEN' TRY' (simplify_tac ctxt (
     (Named_Theorems.get ctxt @{named_theorems cvc_evaluate}) 
   @ (Named_Theorems.get ctxt @{named_theorems cvc_evaluate_bv})
-  )) (*TODO: Discuss there are several possibilities to guard the bvs*)
+  ))
   THEN' debug_msg_tac' ctxt high "evaluate after unfolding cvc_evaluate lemmas"
 
-(*Abstrahieren wegen foralls in if then else. The code generator cannot
-deal with this *)
+(*We have to abstract the terms because foralls in if then elses. The code generator cannot
+deal with those. This unfortunately includes adding all operators.*)
 fun try_evaluate ctxt t =
   SMT_Replay_Methods.prove_abstract' ctxt t evaluate_tac
     (SMT_Replay_Methods.abstract_for_code_eval ctxt (dest_prop t))
 
 
-
+(*The arith_poly_norm rule is a special rule for now. It is not a RARE rewrite but it is not the Alethe
+standard yet. It might become a proof rule eventually*)
 fun arith_poly_norm ctxt t = 
   let
     fun simplify_tac ctxt thms =
@@ -91,11 +92,15 @@ fun arith_poly_norm ctxt t =
       |> (fn ctxt => ctxt addsimps thms)
       |> Simplifier.full_simp_tac
     val tac = (fn _ => fn _ =>
-      SOLVED' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems alethe_poly_norm}))
+        SOLVED' (
+        simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems alethe_poly_norm})
+        THEN' debug_msg_tac' ctxt high "tried to solve arith_poly_norm with custom simplify tac")
         (*if the previous does not solve, use full simplification power with the current content*)
       ORELSE'
-        simplify_tac_with_background_simp ctxt (Named_Theorems.get ctxt @{named_theorems field_simps})
-        THEN' TRY' (Code_Simp.dynamic_tac ctxt))
+        (simplify_tac_with_background_simp ctxt (Named_Theorems.get ctxt @{named_theorems field_simps})
+        THEN' debug_msg_tac' ctxt high "tried full simplifier power on current arith_poly_norm step")
+      THEN' TRY' (Code_Simp.dynamic_tac ctxt)
+      THEN' debug_msg_tac' ctxt high "tried code evaluation on arith_poly_norm step since nothing else worked")
   in
   SMT_Replay_Methods.prove_abstract' ctxt t tac
     (SMT_Replay_Methods.abstract_for_poly_norm ctxt (dest_prop t))
@@ -103,7 +108,7 @@ fun arith_poly_norm ctxt t =
 
 fun arith_poly_norm_mult ctxt t = 
   SMT_Replay_Methods.prove ctxt t (fn _ =>
-    (*K (print_tac ctxt "arith mult 0") THEN'*)
+    K (print_tac ctxt "arith mult 0") THEN'
 
     TRY' (simplify_tac ctxt ((Named_Theorems.get ctxt @{named_theorems cvc_evaluate}) @ (Named_Theorems.get ctxt @{named_theorems arith_mult_poly_norm_cvc5})
       @ (Named_Theorems.get ctxt @{named_theorems field_simps})))
@@ -176,7 +181,7 @@ fun dsl_tac_initialize rewrite_name args ctxt t _ =
       
           fun instantiate_with_arg a t =
 let
-           (*   val _ = debug_msg ctxt high (fn () => @{print} ("(a,t)", (a,t)));*)
+            val _ = debug_msg ctxt high (fn () => @{print} ("(a,t)", (a,t)));
 in
             if is_list_arg a
             then
@@ -202,17 +207,18 @@ in
       end
       
           fun rewrite_lemma_inst lemma [] []  = lemma
-           | rewrite_lemma_inst _ [] (_::_)  =
-              raise RARE_REPLAY("Too few arguments for RARE rewrite " ^ rewrite_name)
-           | rewrite_lemma_inst _ _ []  =
-              raise RARE_REPLAY("Too many arguments for RARE rewrite " ^ rewrite_name)
+           | rewrite_lemma_inst lemma [] (_::_)  =
+              (*raise RARE_REPLAY("Too few arguments for RARE rewrite " ^ rewrite_name)*)
+              lemma
+           | rewrite_lemma_inst lemma _ []  =
+              (*raise RARE_REPLAY("Too many arguments for RARE rewrite " ^ rewrite_name)*) lemma
            | rewrite_lemma_inst lemma (a :: args') (t :: typs') = 
-              Drule.infer_instantiate' ctxt (instantiate_with_arg a t) (rewrite_lemma_inst lemma args' typs') 
-      
+              Drule.infer_instantiate' ctxt (instantiate_with_arg a t) (rewrite_lemma_inst lemma args' typs' |> @{print}) 
+
           val inst_lemmas = 
             map_filter
-              (fn lemma => try( rewrite_lemma_inst lemma (rev args @ [Const ("Groups.zero_class.zero",@{typ int})]))
-            (rev (get_types lemma))) rewrite_lemmas
+              (fn lemma => try( rewrite_lemma_inst lemma (rev args @ [Const ("Groups.zero_class.zero",@{typ int})] |> @{print}))
+            (rev (get_types lemma) |> @{print}) |> @{print}) rewrite_lemmas
             
           val _ = debug_msg ctxt middle (fn () => @{print} ("Instantiated lemmas",inst_lemmas));
 
