@@ -13,10 +13,6 @@ begin
 declare [[smt_nat_as_int,smt_trace]]
 lemmas [bv_reconstruction_length] = len_num0 len_num1 len_bit0 len_bit1
 
-lemma [word_numeral_lift]:
-"(numeral (x::num)::'a::len word) \<equiv> word_of_int (take_bit LENGTH('a::len) (numeral x))"
-  using num_abs_bintr[of x] by simp
-
                           
 (*("(ct1,cts)", ("numeral", ["num.Bit1 (num.Bit1 (num.Bit0 (num.Bit1 num.One)))"]))*)
 ML\<open>
@@ -68,18 +64,30 @@ val z =  Const ("Num.numeral_class.numeral", @{typ "num \<Rightarrow> 4 word"}) 
 \<close>
 
 
+declare[[smt_expert_debug_alethe_files="alethe_replay_rare"]]
+declare[[smt_expert_debug_alethe_level=3]]
 section \<open>Bitvector numbers\<close>
 
 lemma "(27 :: 4 word) = -5" by (smt (cvc5)) (*I solved this during normalization but this means every word constant has to be translated.*)
-lemma "(27 :: 4 word) = 11" by (smt (cvc5)) (*solve during normalization*)
+lemma "(27 :: 4 word) = 11" by (smt (cvc5))
 lemma "23 < (27::8 word)" by (smt (cvc5))
 lemma "27 + 11 = (6::5 word)" by (smt (cvc5))
 lemma "7 * 3 = (21::8 word)" by (smt (cvc5))
 lemma "11 - 27 = (-16::8 word)" by (smt (cvc5))
-lemma "- (- 11) = (11::5 word)" by (smt (cvc5)) (*negs are weirdly not deleted*)
+
+lemma  " (log 2 4) = 2"
+  by (metis alethe_eq_simplify(10) log_eq_one log_mult mult_2 numeral_Bit0_eq_double
+      one_eq_numeral_iff zero_less_numeral)
+
+lemma  " int (floorlog (nat (4::int)) (2::nat) ) = x"
+  apply (code_simp)
+
+
+lemma "- (- 11) = (11::5 word)" by (smt (cvc5)) (*negs are weirdly deleted while printing but why and where?*)
 lemma "-40 + 1 = (-39::7 word)" by (smt (cvc5))
 lemma "a + 2 * b + c - b = (b + c) + (a :: 32 word)" supply [[smt_trace]] by (smt (cvc5))
 lemma "x = (5 :: 4 word) \<Longrightarrow> 4 * x = 4" by (smt (cvc5))
+value "is_pow2 (4::int)"
 
 lemma "(27::4 word) = 11"
   supply[[simp_trace]]
