@@ -396,11 +396,12 @@ lemma [rewrite_or_not_refl_empty]:
 
 
 named_theorems rewrite_or_not_refl \<open>added in postprocessing\<close>
-(*     // (define-rule or-not-refl ((t ?) (x Bool) (xs Bool :list) (or (not (= t t)) x xs) (or x xs))*)
+(* (define-rule or-not-refl ((t ?) (x Bool) (xs Bool :list) (or (not (= t t)) x xs) (or x xs)) *)
+
 lemma [rewrite_or_not_refl]:
   fixes t::'a and xs::"bool cvc_ListVar"
   shows "NO_MATCH cvc_a (undefined t xs) \<Longrightarrow>  
-   (cvc_list_right (\<or>) (\<not>(t = t)) xs) = (cvc_list_right (\<or>) (\<not>(t = t)) xs)"
+   ((\<not>(t = t)) \<or>(cvc_list_right (\<or>) x xs)) = (cvc_list_right (\<or>) x xs)"
   by simp
 
 
