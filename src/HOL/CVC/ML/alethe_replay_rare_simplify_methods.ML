@@ -107,14 +107,13 @@ fun arith_poly_norm ctxt t =
   end
 
 (*TODO: Have different method based on theory rewrite is in*)
-fun try_simp ctxt t = 
-  SMT_Replay_Methods.prove ctxt t (fn _ =>
+fun try_simp_tac ctxt =
      TRY' (K (HEADGOAL (simplify_tac ctxt ((Named_Theorems.get ctxt @{named_theorems cvc_evaluate})))))
      THEN' TRY'(K (HEADGOAL (simplify_tac ctxt ((Named_Theorems.get ctxt @{named_theorems rare_simplify_temp})))))
      THEN' TRY'(K (HEADGOAL (simplify_tac ctxt @{thms arith_simps alethe_minus_simplify})))  
      THEN' TRY'(K (HEADGOAL (simplify_tac ctxt ((Named_Theorems.get ctxt @{named_theorems arith_simp_cvc5})))))
      THEN' TRY' (K (Clasimp.auto_tac ctxt))
-  )
+fun try_simp ctxt t = SMT_Replay_Methods.prove ctxt t (fn ctxt => try_simp_tac ctxt)
 
 (* Rare rewrite reconstruction *)
 fun dsl_tac_initialize rewrite_name args ctxt t _ =
@@ -192,46 +191,47 @@ fun dsl_tac_initialize rewrite_name args ctxt t _ =
             cvc_list_both_Cons_0 cvc_list_both_Cons_1 NO_MATCH_def}
           val inst_lemmas_without_list = 
             map (Local_Defs.unfold ctxt (cvc_list_defs @ (Named_Theorems.get ctxt @{named_theorems smt_rewrite_lemma_simplify}))) inst_lemmas
-          val _ = debug_msg ctxt middle (fn () => @{print} ("Instantiated lemmas without custom list operators",inst_lemmas_without_list));
 
           (*This is done to get rid of the bogus term used to enforce the expected ordering on the arguments*)
           val inst_lemmas_without_true
             = map (Basic_Tactic.rule_by_tactic ctxt (resolve_tac ctxt [@{thm TrueI}] 1)) inst_lemmas_without_list
+          val _ = debug_msg ctxt middle (fn () => @{print} ("Instantiated lemmas without custom list operators",inst_lemmas_without_true));
 
           val _ = debug_msg ctxt middle (fn () => @{print} ("nr of viable instantiated lemmas",length inst_lemmas_without_true));
 
           fun REPEAT' tac = fn i => REPEAT (tac i)
+          fun CHANGED' tac = fn i => CHANGED (tac i)
+
           val cvc_evaluate_thms = Named_Theorems.get ctxt @{named_theorems cvc_evaluate}
           val arith_mult_poly_norm_cvc5_thm = Named_Theorems.get ctxt @{named_theorems arith_mult_poly_norm_cvc5}
           fun debug_msg_tac'' ctxt verbosity str = debug_msg_tac' ctxt verbosity ("rare_rewrite: " ^ str)
 
           fun try_lemma_i i = 
-          try (fn t => (SMT_Replay_Methods.prove ctxt t (fn _ =>
-          TRY' (
-              EqSubst.eqsubst_tac ctxt [0] [nth inst_lemmas_without_true 0] (*TODO: Try all lemmas in set*)
-            ORELSE'
-              (if rare_mode = 1 then raise RARE_REPLAY("Lemmas could not be used to discharge rewrite rule.") else K (print_tac ctxt "lemmas could not be used"))
-            THEN' debug_msg_tac'' ctxt high "after resolving with the instantiated lemmas"
-          )
-          THEN_ALL_NEW (
-            debug_msg_tac'' ctxt high "trying to discharge assumption of RARE lemma" THEN'
-            SOLVED' (resolve_tac ctxt [@{thm refl}])
-            ORELSE'
-               TRY' (simplify_tac ctxt cvc_evaluate_thms THEN' debug_msg_tac'' ctxt high "simplifed goal with cvc_evaluate")
-               THEN' TRY'
-                 (simplify_tac ctxt (cvc_evaluate_thms @ arith_mult_poly_norm_cvc5_thm)
-                 THEN' debug_msg_tac'' ctxt high "simplifed goal with cvc_evaluate and arith_mult_poly_norm_cvc5")
-               THEN' TRY' (Code_Simp.dynamic_tac ctxt THEN' debug_msg_tac'' ctxt high "applied code evaluator") (*slowest method, so at the end*))
-           THEN' (debug_msg_tac'' ctxt high "should be solved now")
+           (fn t => (SMT_Replay_Methods.prove ctxt t (fn ctxt =>
+            debug_msg_tac'' ctxt high "start"
+            THEN' (
+                (EqSubst.eqsubst_tac ctxt [0] [nth inst_lemmas_without_true 0] (*TODO: Use lemma i*)
+                  THEN' debug_msg_tac'' ctxt high "applied lemma"
+                  THEN' TRY' (resolve_tac ctxt [@{thm refl}]))
+              ORELSE'
+                (if rare_mode = 1
+                 then (let fun x _ = @{print}("lemma,goal",(nth inst_lemmas_without_true 0,Thm.cterm_of ctxt t)) in 
+                   (fn y => x y; debug_msg_tac'' ctxt high "could not apply lemma" THEN' K no_tac (*raise RARE_REPLAY("Lemmas could not be used to discharge rewrite rule.")*)) end)
+                 else (K (print_tac ctxt "lemmas could not be used, continue to simplify") THEN' try_simp_tac ctxt))
+            )
+            THEN_ALL_NEW (
+              debug_msg_tac'' ctxt high "trying to discharge assumption of RARE lemma"
+              THEN' TRY' (simplify_tac ctxt cvc_evaluate_thms THEN' debug_msg_tac'' ctxt high "simplifed goal with cvc_evaluate")
+              THEN' TRY'
+                (simplify_tac ctxt (cvc_evaluate_thms @ arith_mult_poly_norm_cvc5_thm)
+                THEN' debug_msg_tac'' ctxt high "simplifed goal with cvc_evaluate and arith_mult_poly_norm_cvc5")
+              THEN' TRY' (Code_Simp.dynamic_tac ctxt THEN' debug_msg_tac'' ctxt high "applied code evaluator") (*slowest method, so at the end*)
+            )
+           THEN' debug_msg_tac'' ctxt high "should be solved now"
            )
            )) t
-
-
         in
-          (case try_lemma_i 0
-          of (SOME x) => x |
-          NONE => (case try_lemma_i 1 of (SOME x) => x | _ => (case try_lemma_i 2 of (SOME x) => x | _ => raise RARE_REPLAY("non of the lemmas worked" ^ rewrite_name)))
-           )
+          try_lemma_i 0
       end)
 end
 
@@ -265,7 +265,7 @@ in
     (*try_simp ctxt t*))
 
   fun true_tac ctxt _ _ t = 
-    SMT_Replay_Methods.prove ctxt t (fn _ =>
+    SMT_Replay_Methods.prove ctxt t (fn ctxt =>
       resolve_tac ctxt @{thms TrueI})
 end
 
