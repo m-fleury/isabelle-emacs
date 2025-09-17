@@ -385,12 +385,22 @@ lemma [rewrite_arith_leq_ite_lift]:
  \<Longrightarrow> (((if C then t else s) < r) = (if C then (t < r) else (s < r)))"
   by auto
 
-named_theorems rewrite_or_not_refl \<open>\<close>
 
+named_theorems rewrite_or_not_refl_empty \<open>added in postprocessing\<close>
+(* (define-rule or-not-refl-empty ((t ?) (x Bool)) (or (not (= t t)) x) x) *)
+
+lemma [rewrite_or_not_refl_empty]:
+  fixes t::'a and x::bool
+  shows "NO_MATCH cvc_a (undefined t x) \<Longrightarrow> (\<not>(t = t) \<or> x) = x"
+  by simp
+
+
+named_theorems rewrite_or_not_refl \<open>added in postprocessing\<close>
+(*     // (define-rule or-not-refl ((t ?) (x Bool) (xs Bool :list) (or (not (= t t)) x xs) (or x xs))*)
 lemma [rewrite_or_not_refl]:
-  fixes t::'a and F'::bool
-  shows "NO_MATCH cvc_a (undefined t F') \<Longrightarrow>  
-   (t \<noteq> t) \<or> F' = F'"
+  fixes t::'a and xs::"bool cvc_ListVar"
+  shows "NO_MATCH cvc_a (undefined t xs) \<Longrightarrow>  
+   (cvc_list_right (\<or>) (\<not>(t = t)) xs) = (cvc_list_right (\<or>) (\<not>(t = t)) xs)"
   by simp
 
 

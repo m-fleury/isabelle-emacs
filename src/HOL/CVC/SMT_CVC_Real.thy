@@ -53,6 +53,7 @@ cvc5_rare "Extra_Rewrites.rewrite_arith_lt_ite_lift"
 
 cvc5_rare "Extra_Rewrites.rewrite_arith_to_int_to_real2"
 
+cvc5_rare "Extra_Rewrites.rewrite_or_not_refl_empty"
 cvc5_rare "Extra_Rewrites.rewrite_or_not_refl"
 
 lemma temp: "((0 < - a) = (0 < - (b::real))) = ((0 > (a::real)) = (0 > b))"
