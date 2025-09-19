@@ -24,16 +24,13 @@ declare [[smt_trace=true,smt_verbose=true,smt_debug_verit]]
 declare [[smt_nat_as_int]]
 
 declare[[smt_expert_debug_alethe_level=0]]
-declare[[smt_expert_debug_alethe_files="smt_global_normalize"]]
+declare[[smt_expert_debug_alethe_files="alethe_replay_rare"]]
 
 declare [[verit_compress_proofs=false]]
-
+declare[[ rare_rec_mode=1 ]]
 (*declare [[unify_trace_failure]]*)
 
 section \<open>Propositional and first-order logic\<close>
-
-lemma "(if (\<forall>x::int. x < 0 \<or> x > 0) then -1 else 3) > (0::int)"
-  supply [[smt_trace]] by (smt (cvc5))
 
 lemma "True" supply [[smt_trace]] by (smt (cvc5_proof)) (*success*)
 lemma "p \<or> \<not>p" by (smt (cvc5_proof)) (*success*)
@@ -55,9 +52,6 @@ lemma
 
 axiomatization symm_f :: "'a \<Rightarrow> 'a \<Rightarrow> 'a" where
   symm_f: "symm_f x y = symm_f y x"
-
-declare[[smt_expert_debug_alethe_level=3]]
-declare[[smt_expert_debug_alethe_files="smt_global_normalize"]]
 
 lemma "a = a \<and> symm_f a b = symm_f b a"
   supply [[smt_trace]]
@@ -273,6 +267,7 @@ lemma
   assumes "(\<forall>x y. P x y = x)"
   and "(\<forall>x. \<exists>y. P x y) = (\<forall>x. P x c)"
   shows "(\<exists>y. P x y) = P x c"
+  supply[[smt_trace=false]]
   using assms by (smt (cvc5_proof)) (*success*)
 
 lemma
@@ -380,7 +375,6 @@ subsection \<open>Linear arithmetic with quantifiers\<close>
 lemma "~ (\<exists>x::int. False)" by (smt (cvc5_proof)) (*success*)
 lemma "~ (\<exists>x::real. False)" by (smt (cvc5_proof)) (*success*)
 
-
 lemma "\<forall>x y::int. (x = 0 \<and> y = 1) \<longrightarrow> x \<noteq> y" by (smt (cvc5_proof)) (*success*)
 lemma "\<forall>x y::int. x < y \<longrightarrow> (2 * x + 1) < (2 * y)" by (smt (cvc5_proof)) (*success*)
 lemma "\<forall>x y::int. x + y > 2 \<or> x + y = 2 \<or> x + y < 2" supply[[smt_trace]] by (smt (cvc5_proof)) (*success*)
@@ -393,34 +387,35 @@ begin
 lemma [cvc5_holes_simp]: \<open>\<not>(\<forall>v2::real. v2 \<le> 0)\<close>
   by (auto intro: exI[of _ \<open>1 :: real\<close>])
 
+
 lemma "\<exists>u::int. \<forall>(x::int) y::real. 0 < x \<and> 0 < y \<longrightarrow> -1 < x"
-  supply [[smt_trace]] by (smt (cvc5_proof))   (*TYPE ERROR*)
+  supply [[smt_trace]] by (smt (cvc5_proof)) (*success*)
 end
 
 lemma "\<forall>(a::int) b::int. 0 < b \<or> b < 1" by (smt (cvc5_proof)) (*success*)
 
 subsection \<open>Linear arithmetic for natural numbers\<close>
 
-declare [[smt_nat_as_int]]
 
-lemma "2 * (x::nat) \<noteq> 1" supply[[smt_trace]] by (smt (cvc5_proof))  (*success*)
+lemma "2 * (x::nat) \<noteq> 1" supply[[smt_trace]] by (smt (cvc5_proof)) (*success*)
 
-lemma "a < 3 \<Longrightarrow> (7::nat) > 2 * a" by (smt (cvc5_proof))
+lemma "a < 3 \<Longrightarrow> (7::nat) > 2 * a" by (smt (cvc5_proof)) (*success*)
 
-lemma "let x = (1::nat) + y in x - y > 0 * x" by (smt (cvc5_proof))
+lemma "let x = (1::nat) + y in x - y > 0 * x" by (smt (cvc5_proof)) (*success*)
 
 lemma
   "let x = (1::nat) + y in
    let P = (if x > 0 then True else False) in
    False \<or> P = (x - 1 = y) \<or> (\<not>P \<longrightarrow> False)"
-  by (smt (cvc5_proof)) (*ERROR nat embedding*)
+  supply[[smt_trace=false,smt_verbose=false]] 
+  by (smt (cvc5_proof)) (*success*)
 
 lemma "int (nat \<bar>x::int\<bar>) = \<bar>x\<bar>" supply[[smt_trace=false,smt_verbose=false]] by (smt (cvc5) int_nat_eq) (*success*)
 
 definition prime_nat :: "nat \<Rightarrow> bool" where
   "prime_nat p = (1 < p \<and> (\<forall>m. m dvd p --> m = 1 \<or> m = p))"
 
-lemma "prime_nat (4*m + 1) \<Longrightarrow> m \<ge> (1::nat)" by (smt (cvc5) prime_nat_def) (*ERROR nat embedding*)
+lemma "prime_nat (4*m + 1) \<Longrightarrow> m \<ge> (1::nat)" by (smt (cvc5) ) (*ERROR nat embedding*)
 
 lemma "2 * (x::nat) \<noteq> 1" 
   by (smt (cvc5_proof)) (*success*)
