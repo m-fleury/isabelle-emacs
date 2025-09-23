@@ -530,8 +530,8 @@ in
  _ =>
    let
      val (f,ts) = strip_comb t
-     val _ = @{print}("f",f)
-     val _ = @{print}("ts",ts)
+     (*val _ = @{print}("f",f)
+     val _ = @{print}("ts",ts)*)
      val T = fastype_of f
      val (n,Ts) = (if is_Const f then (dest_Const f) else (dest_Free f))
        handle (TERM x) => (@{print}("x",x);raise (SMT_GLOBAL_NORMALIZE "Term name cannot be obtained"))
