@@ -4,8 +4,12 @@
 
 
    43 rules in total
-   38 rules with test
-   5 without test
+   39 rules with test
+   4 without test
+    bool-not-true
+    bool-and-conf2
+    bool-xor-nrefl
+    ite-then-lookahead-not-self
 *)
 
 theory Bool_Rewrites
