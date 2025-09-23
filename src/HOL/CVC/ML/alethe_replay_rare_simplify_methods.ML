@@ -231,7 +231,7 @@ fun dsl_tac_initialize rewrite_name args ctxt t _ =
            )
            )) t
         in
-          try_lemma_i 0
+          if length inst_lemmas_without_true > 0 then try_lemma_i 0 else (if rare_mode = 1 then try_simp ctxt t else raise ERROR("TODO") )
       end)
 end
 
