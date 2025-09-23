@@ -91,26 +91,26 @@ Reversed_Bit_Lists.to_bl_0 List.replicate.replicate_Suc List.replicate.replicate
 
 fun bvadd_carry :: "bool list \<Rightarrow> bool list \<Rightarrow> bool" where
 [word_plus_rbl_bvadd_fun]: "bvadd_carry [] [] = False" |
-[word_plus_rbl_bvadd_fun]: "bvadd_carry (x#xs) (y#ys) = ((x \<and> y) \<or> ((x [+] y) \<and> bvadd_carry xs ys))"
+[word_plus_rbl_bvadd_fun]: "bvadd_carry (x#xs) (y#ys) = ((x \<and> y) \<or> ((x \<noteq> y) \<and> bvadd_carry xs ys))"
 
 fun bvadd :: "bool list \<Rightarrow> bool list \<Rightarrow> bool list \<Rightarrow> bool list \<Rightarrow> bool list" where
 [word_plus_rbl_bvadd_fun]: "bvadd [] [] _ _ = []" |
-[word_plus_rbl_bvadd_fun]: "bvadd (x#xs) (y#ys) xs' ys' = (((x [+] y) [+] bvadd_carry xs' ys')) # bvadd xs ys (x#xs') (y#ys')"
+[word_plus_rbl_bvadd_fun]: "bvadd (x#xs) (y#ys) xs' ys' = (((x \<noteq> y) \<noteq> bvadd_carry xs' ys')) # bvadd xs ys (x#xs') (y#ys')"
 
 fun bvadd3 :: "bool list \<Rightarrow> bool list \<Rightarrow> bool \<Rightarrow> bool list" where
 "bvadd3 [] [] _ = []" |
-"bvadd3 (x#xs) (y#ys) carry = (((x [+] y) [+] carry)) # bvadd3 xs ys ((x \<and> y) \<or> ((x [+] y) \<and> carry))"
+"bvadd3 (x#xs) (y#ys) carry = (((x \<noteq> y) \<noteq> carry)) # bvadd3 xs ys ((x \<and> y) \<or> ((x \<noteq> y) \<and> carry))"
 
 fun bvadd_carry4 :: "bool list \<Rightarrow> bool list \<Rightarrow> nat \<Rightarrow>  bool" where
  "bvadd_carry4 xs ys 0 = False" |
- "bvadd_carry4 xs ys (Suc i) = ((xs ! i \<and> ys ! i) \<or> ((xs ! i [+] ys ! i) \<and> bvadd_carry4 xs ys i))"
+ "bvadd_carry4 xs ys (Suc i) = ((xs ! i \<and> ys ! i) \<or> ((xs ! i \<noteq> ys ! i) \<and> bvadd_carry4 xs ys i))"
 
 lemma
 "bvadd_carry4 xs ys (Suc i) = (if \<not>xs!i then (ys ! i \<and> bvadd_carry4 xs ys i) else ys ! i \<or> (\<not>ys ! i \<and> bvadd_carry4 xs ys i))"
   by simp
 
 fun bvadd4 :: "bool list \<Rightarrow> bool list \<Rightarrow> nat \<Rightarrow> bool" where
- "bvadd4 xs ys i = (xs ! i [+] ys ! i) [+] bvadd_carry4 xs ys i"
+ "bvadd4 xs ys i = ((xs ! i \<noteq> ys ! i) \<noteq> bvadd_carry4 xs ys i)"
 
 
 lemma temp_bvadd_carry4:
@@ -125,7 +125,7 @@ lemma temp_bvadd_carry4:
 
 
 lemma bvadd3_0:
-  shows "bvadd3 (x0#xs) (y0#ys) False ! 0 = x0 [+] y0"
+  shows "bvadd3 (x0#xs) (y0#ys) False ! 0 = (x0 \<noteq> y0)"
   by simp
 
 lemma bvadd_bvadd3: "length xs = length ys \<Longrightarrow> bvadd xs ys [] [] = bvadd3 xs ys False"
@@ -183,15 +183,15 @@ lemma word_add_bvadd[word_plus_rbl_bvadd]:
 
 fun bvneg_carry :: "bool list \<Rightarrow> bool" where
 [word_minus_rbl_bvneg_fun]: "bvneg_carry [] = True" |
-[word_minus_rbl_bvneg_fun]: "bvneg_carry (x#xs) = ((\<not>x \<and> False) \<or> ((\<not>x [+] False) \<and> bvneg_carry xs))"
+[word_minus_rbl_bvneg_fun]: "bvneg_carry (x#xs) = ((\<not>x \<and> False) \<or> ((\<not>x \<noteq> False) \<and> bvneg_carry xs))"
 
 fun bvneg :: "bool list \<Rightarrow> bool list \<Rightarrow> bool list" where
 [word_minus_rbl_bvneg_fun]: "bvneg [] _ = []" |
-[word_minus_rbl_bvneg_fun]: "bvneg (x#xs) xs' = ((\<not>x [+] False) [+] bvneg_carry xs') # bvneg xs (x#xs')"
+[word_minus_rbl_bvneg_fun]: "bvneg (x#xs) xs' = ((\<not>x \<noteq> False) \<noteq> bvneg_carry xs') # bvneg xs (x#xs')"
 
 fun bvneg3 :: "bool list \<Rightarrow> bool \<Rightarrow> bool list" where
 "bvneg3 [] _ = []" |
-"bvneg3 (x#xs) carry = (((\<not>x [+] False) [+] carry)) # bvneg3 xs ((\<not>x \<and> False) \<or> ((\<not>x [+] False) \<and> carry))"
+"bvneg3 (x#xs) carry = (((\<not>x \<noteq> False) \<noteq> carry)) # bvneg3 xs ((\<not>x \<and> False) \<or> ((\<not>x \<noteq> False) \<and> carry))"
 
 
 lemma bvneg_bvneg3: "bvneg xs [] = bvneg3 xs True"
@@ -250,12 +250,12 @@ carry_mult :: "bool list \<Rightarrow> bool list \<Rightarrow> nat \<Rightarrow>
 "res_mult xs ys i 0 = sh xs ys i 0" |
 "res_mult xs ys 0 (Suc j) = sh xs ys 0 0" |
 "res_mult xs ys (Suc i) (Suc j)
-   = (res_mult xs ys (Suc i) j) [+] (sh xs ys (Suc i) (Suc j)) [+] carry_mult xs ys (Suc i) (Suc j)" |
+   = (((res_mult xs ys (Suc i) j) \<noteq> (sh xs ys (Suc i) (Suc j))) \<noteq> carry_mult xs ys (Suc i) (Suc j))" |
 "carry_mult xs ys i 0 = False" |
 "carry_mult xs ys 0 j = False" |
 "carry_mult xs ys (Suc i) (Suc j) = 
 (if j < i then (res_mult xs ys i j \<and> sh xs ys i (Suc j)
- \<or> ((res_mult xs ys i j [+] sh xs ys i (Suc j)) \<and> carry_mult xs ys i (Suc j))) else False)"
+ \<or> ((res_mult xs ys i j \<noteq> sh xs ys i (Suc j)) \<and> carry_mult xs ys i (Suc j))) else False)"
 
 fun res_j where "res_j xs ys j = (map (\<lambda>i. res_mult xs ys i j) [0..<length xs])"
 fun sh_j where "sh_j xs ys j = (map (\<lambda>i. sh xs ys i j) [0..<length xs])"
@@ -344,29 +344,29 @@ lemma main1:
     have [simp]: "xs \<noteq> []" using a3 by simp
 
     have "carry_mult xs ys (Suc i') (Suc j') =
- (if j' < i' then res_mult xs ys i' j' \<and> sh xs ys i' (Suc j') \<or> res_mult xs ys i' j' [+] sh xs ys i' (Suc j') \<and> carry_mult xs ys i' (Suc j') else False)"
+ (if j' < i' then res_mult xs ys i' j' \<and> sh xs ys i' (Suc j') \<or> res_mult xs ys i' j' \<noteq> sh xs ys i' (Suc j') \<and> carry_mult xs ys i' (Suc j') else False)"
       using carry_mult.simps(3)[of xs ys i' j'] by simp
     moreover have "carry_mult xs ys i' (Suc j') = bvadd_carry4 (res_j xs ys j') (sh_j xs ys (Suc j')) (Suc i'')"
       using a0 a1 a2 a3 a4 a5 a6 a7 IH[of j' i''] by auto
     ultimately have "carry_mult xs ys (Suc i') (Suc j') =
  (if j' < i'
- then res_mult xs ys i' j' \<and> sh xs ys i' (Suc j') \<or> res_mult xs ys i' j' [+] sh xs ys i' (Suc j') \<and> bvadd_carry4 (res_j xs ys j') (sh_j xs ys (Suc j')) (Suc i'')
+ then res_mult xs ys i' j' \<and> sh xs ys i' (Suc j') \<or> res_mult xs ys i' j' \<noteq> sh xs ys i' (Suc j') \<and> bvadd_carry4 (res_j xs ys j') (sh_j xs ys (Suc j')) (Suc i'')
  else False)"
       by simp
     moreover have "res_mult xs ys i' j' = res_j xs ys j' ! i'" using a0 a1 a2 a3 a4 a5 a6 a7 by simp
     ultimately have "carry_mult xs ys (Suc i') (Suc j') =
  (if j' < i'
- then res_j xs ys j' ! i' \<and> sh xs ys i' (Suc j') \<or> res_j xs ys j' ! i' [+] sh xs ys i' (Suc j') \<and> bvadd_carry4 (res_j xs ys j') (sh_j xs ys (Suc j')) (Suc i'')
+ then res_j xs ys j' ! i' \<and> sh xs ys i' (Suc j') \<or> res_j xs ys j' ! i' \<noteq> sh xs ys i' (Suc j') \<and> bvadd_carry4 (res_j xs ys j') (sh_j xs ys (Suc j')) (Suc i'')
  else False)"
       by simp
     moreover have "sh xs ys i' (Suc j') = sh_j xs ys (Suc j') ! i'" using a0 a1 a2 a3 a4 a5 a6 a7 by simp
     ultimately have "carry_mult xs ys (Suc i') (Suc j') =
  (if j' < i'
- then res_j xs ys j' ! i' \<and> sh_j xs ys (Suc j') ! i' \<or> res_j xs ys j' ! i' [+] sh_j xs ys (Suc j') ! i' \<and> bvadd_carry4 (res_j xs ys j') (sh_j xs ys (Suc j')) (Suc i'')
+ then res_j xs ys j' ! i' \<and> sh_j xs ys (Suc j') ! i' \<or> res_j xs ys j' ! i' \<noteq> sh_j xs ys (Suc j') ! i' \<and> bvadd_carry4 (res_j xs ys j') (sh_j xs ys (Suc j')) (Suc i'')
  else False)"
       by simp
     moreover  have "(res_j xs ys j' ! i' \<and> sh_j xs ys (Suc j') ! i' \<or>
-     res_j xs ys j' ! i' [+] sh_j xs ys (Suc j') ! i' \<and> bvadd_carry4 (res_j xs ys j') (sh_j xs ys (Suc j')) i') =
+     res_j xs ys j' ! i' \<noteq> sh_j xs ys (Suc j') ! i' \<and> bvadd_carry4 (res_j xs ys j') (sh_j xs ys (Suc j')) i') =
     bvadd_carry4 (res_j xs ys j') (sh_j xs ys (Suc j')) (Suc i')"
       using bvadd_carry4.simps(2)[of "(res_j xs ys j')" "(sh_j xs ys (Suc j'))" i',symmetric] a6 by simp
     ultimately have "carry_mult xs ys (Suc i') (Suc j') =
@@ -389,17 +389,17 @@ lemma main1:
 
 
 
-    have "res_mult xs ys (Suc i') (Suc j') = res_mult xs ys (Suc i') j' [+] sh xs ys (Suc i') (Suc j') [+] carry_mult xs ys (Suc i') (Suc j')"
+    have "res_mult xs ys (Suc i') (Suc j') = res_mult xs ys (Suc i') j' \<noteq> sh xs ys (Suc i') (Suc j') \<noteq> carry_mult xs ys (Suc i') (Suc j')"
       using res_mult.simps(3)[of xs ys i' j'] by simp
     then have "res_mult xs ys (Suc i') (Suc j') 
-      = res_mult xs ys (Suc i') j' [+] sh xs ys (Suc i') (Suc j') [+] bvadd_carry4 (res_j xs ys j') (sh_j xs ys (Suc j')) (Suc i')"
+      = res_mult xs ys (Suc i') j' \<noteq> sh xs ys (Suc i') (Suc j') \<noteq> bvadd_carry4 (res_j xs ys j') (sh_j xs ys (Suc j')) (Suc i')"
       using res1 by simp
     moreover have "res_j xs ys j' ! Suc i' = res_mult xs ys (Suc i') j'"
       by simp
     moreover have "sh_j xs ys (Suc j') ! Suc i' =  sh xs ys (Suc i') (Suc j')"
       by simp
     moreover have "bvadd4 (res_j xs ys j') (sh_j xs ys (Suc j')) (Suc i') 
-      = res_j xs ys j' ! Suc i' [+] sh_j xs ys (Suc j') ! Suc i' [+] bvadd_carry4 (res_j xs ys j') (sh_j xs ys (Suc j')) (Suc i')"
+      = res_j xs ys j' ! Suc i' \<noteq> sh_j xs ys (Suc j') ! Suc i' \<noteq> bvadd_carry4 (res_j xs ys j') (sh_j xs ys (Suc j')) (Suc i')"
       using bvadd4.simps[of "(res_j xs ys j')" "(sh_j xs ys (Suc j'))" "Suc i'"] by simp
     ultimately have res2:  "res_mult xs ys (Suc i') (Suc j') = bvadd4 (res_j xs ys j') (sh_j xs ys (Suc j')) (Suc i')"
       by simp
@@ -593,7 +593,7 @@ lemma
         have u0: "i' < length ys"
           using a2 a3 a0 by simp
 
-    have "carry_mult xs ys (Suc i') (Suc (Suc j')) = (if Suc j' < i' then res_mult xs ys i' (Suc j') \<and> sh xs ys i' (Suc (Suc j')) \<or> res_mult xs ys i' (Suc j') [+] sh xs ys i' (Suc (Suc j')) \<and> carry_mult xs ys i' (Suc (Suc j'))
+    have "carry_mult xs ys (Suc i') (Suc (Suc j')) = (if Suc j' < i' then res_mult xs ys i' (Suc j') \<and> sh xs ys i' (Suc (Suc j')) \<or> res_mult xs ys i' (Suc j') \<noteq> sh xs ys i' (Suc (Suc j')) \<and> carry_mult xs ys i' (Suc (Suc j'))
    else False)"
           using carry_mult.simps(3)[of xs ys i' "Suc j'"] by simp
     
@@ -608,14 +608,14 @@ lemma
 
     have "res_mult xs ys (Suc i') (Suc j') = bvadd3 (map (\<lambda>i::nat. res_mult xs ys i j') [0::nat..<length ys]) (map (\<lambda>i::nat. sh xs ys i (Suc j')) [0::nat..<length ys]) False ! i"
           using IH[of i "i'"] a0 a1 a2 a3 a4 by auto
-    moreover have "res_mult xs ys (Suc i') (Suc (Suc j')) = res_mult xs ys (Suc i') (Suc j') [+] sh xs ys (Suc i') (Suc (Suc j')) [+] carry_mult xs ys (Suc i') (Suc (Suc j'))"
+    moreover have "res_mult xs ys (Suc i') (Suc (Suc j')) = res_mult xs ys (Suc i') (Suc j') \<noteq> sh xs ys (Suc i') (Suc (Suc j')) \<noteq> carry_mult xs ys (Suc i') (Suc (Suc j'))"
        by simp
     ultimately have "res_mult xs ys (Suc i')  (Suc (Suc j'))
- = (bvadd3 (map (\<lambda>i::nat. res_mult xs ys i j') [0::nat..<length ys]) (map (\<lambda>i::nat. sh xs ys i (Suc j')) [0::nat..<length ys]) False ! i) [+] sh xs ys (Suc i') (Suc (Suc j')) [+] carry_mult xs ys (Suc i') (Suc (Suc j'))"
+ = (bvadd3 (map (\<lambda>i::nat. res_mult xs ys i j') [0::nat..<length ys]) (map (\<lambda>i::nat. sh xs ys i (Suc j')) [0::nat..<length ys]) False ! i) \<noteq> sh xs ys (Suc i') (Suc (Suc j')) \<noteq> carry_mult xs ys (Suc i') (Suc (Suc j'))"
       by auto
     then have t0: "res_mult xs ys (Suc i')  (Suc (Suc j'))
  = (bvadd3 (map (\<lambda>i::nat. res_mult xs ys i j') [0..<length ys]) (map (\<lambda>i::nat. sh xs ys i (Suc j')) [0..<length ys]) False ! i)
- [+] sh xs ys (Suc i') (Suc (Suc j')) [+] carry_mult xs ys (Suc i') (Suc (Suc j'))"
+ \<noteq> sh xs ys (Suc i') (Suc (Suc j')) \<noteq> carry_mult xs ys (Suc i') (Suc (Suc j'))"
       by simp
 
     show "res_mult xs ys i (Suc (Suc j')) =
@@ -630,7 +630,7 @@ lemma
 
 
 
-        have "res_mult xs ys i (Suc (Suc j')) = (res_mult xs ys (Suc i') (Suc j') [+] sh xs ys (Suc i') (Suc (Suc j')) [+] carry_mult xs ys (Suc i') (Suc (Suc j')))"
+        have "res_mult xs ys i (Suc (Suc j')) = (res_mult xs ys (Suc i') (Suc j') \<noteq> sh xs ys (Suc i') (Suc (Suc j')) \<noteq> carry_mult xs ys (Suc i') (Suc (Suc j')))"
           using res_mult.simps(3)[of xs ys i' "Suc j'"] a0 by simp
 
     show "res_mult xs ys i (Suc (Suc j')) =
@@ -680,10 +680,10 @@ lemma
   then have t2: "(sh_j xs ys (Suc j)) = sh xs ys 0 (Suc j) # (map (\<lambda>i. sh xs ys i (Suc j)) ([1..<length xs]))"
     by simp
 
-  have "bvadd3 (res_j xs ys j) (sh_j xs ys (Suc j)) False ! 0 = res_mult xs ys (0::nat) j [+] sh xs ys (0::nat) (Suc j)"
+  have "bvadd3 (res_j xs ys j) (sh_j xs ys (Suc j)) False ! 0 = res_mult xs ys (0::nat) j \<noteq> sh xs ys (0::nat) (Suc j)"
     unfolding t1 t2
     by simp
-  then have "bvadd3 (res_j xs ys j) (sh_j xs ys (Suc j)) False ! 0 = res_mult xs ys (0::nat) j [+] False"
+  then have "bvadd3 (res_j xs ys j) (sh_j xs ys (Suc j)) False ! 0 = res_mult xs ys (0::nat) j \<noteq> False"
     unfolding sh_def by simp
   then have t3: "bvadd3 (res_j xs ys j) (sh_j xs ys (Suc j)) False ! 0 = res_mult xs ys (0::nat) j"
     by simp
@@ -712,7 +712,7 @@ next
       using a0 a1 by simp
     ultimately have "res_j xs ys (Suc j) ! Suc i = (res_mult xs ys (Suc i) (Suc j))"
       using a0 by auto
-    then have "res_j xs ys (Suc j) ! Suc i = (res_mult xs ys (Suc i) j [+] sh xs ys (Suc i) (Suc j) [+] carry_mult xs ys (Suc i) (Suc j))"
+    then have "res_j xs ys (Suc j) ! Suc i = (res_mult xs ys (Suc i) j \<noteq> sh xs ys (Suc i) (Suc j) \<noteq> carry_mult xs ys (Suc i) (Suc j))"
       using res_mult.simps(3)[of xs ys i j] by simp
 
 
@@ -1158,10 +1158,10 @@ qed
 (* -------------------------------------- Bitblast bvxor ---------------------------------------- *)
 (* ---------------------------------------------------------------------------------------------- *)
 
-(*lemma word_xor_rbl_bvxor2 [word_xor_rbl_bvxor]:
+lemma word_xor_rbl_bvxor2 [word_xor_rbl_bvxor]:
 "length xs = LENGTH('a)  \<Longrightarrow> length xs = length ys 
  \<Longrightarrow> (xor (of_bl xs::'a::len word) ((of_bl ys)::'a::len word))
-   = of_bl (map2 (SMT.xor) xs ys)"
+   = of_bl (map2 (\<lambda> x. \<lambda> y. x \<noteq> y) xs ys)"
 proof-
   assume a0: "length xs = LENGTH('a)" "length xs = length ys"
   have "rev (to_bl (xor (of_bl xs::'a::len word) ((of_bl ys)::'a::len word)))
@@ -1186,10 +1186,10 @@ proof-
       = (of_bl (map2 (\<noteq>) xs ys))"
     by presburger
   then show "(xor (of_bl xs::'a::len word) ((of_bl ys)::'a::len word))
-      = (of_bl (map2 (SMT.xor) xs ys))"
-    using word_bl.Abs_inverse xor_def
+      = (of_bl (map2 (\<lambda> x. \<lambda> y. x \<noteq> y) xs ys))"
+    using word_bl.Abs_inverse
     by simp
-qed*)
+qed
 
 
 (* ---------------------------------------------------------------------------------------------- *)
