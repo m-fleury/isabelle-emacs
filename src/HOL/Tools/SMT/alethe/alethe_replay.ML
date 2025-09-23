@@ -257,7 +257,7 @@ val _ = @{print}(" all_assms", all_assms)
        global_transformation step_args context_assignments args))
 
     val ({elapsed, ...}, thm) =
-      SMT_Config.with_time_limit ctxt rule SMT_Config.reconstruction_step_timeout replay step (*Welche Felder von Step benutzt replay_thm? Nur die conclusion?*)
+      SMT_Config.with_time_limit ctxt (rule ^ "," ^ id) SMT_Config.reconstruction_step_timeout replay step (*Welche Felder von Step benutzt replay_thm? Nur die conclusion?*)
     val _ = (SMT_Config.verbose_msg ctxt (K ("Successfully checked step " ^ id)) ())
 
     val name =
