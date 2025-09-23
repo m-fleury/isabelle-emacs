@@ -1491,15 +1491,20 @@ lemma [rewrite_bv_mult_pow2_1]:
     and z :: "'b::len word"
     and exponent size u :: int
     and n ::int
-  assumes "is_pow2 n" 
-  and "(exponent = (floorlog (nat n) 2))"
-  and "(u = ((size - (floorlog (nat n) 2)) - 1))"
-  and "LENGTH('a) = nat exponent" and "LENGTH('b) = nat size" and "LENGTH('c) = nat u + 1"
-  and "n_w = (Word.Word n::'b::len word)"
-  shows "(cvc_list_left (*) xs (z * n_w))
+  shows "NO_MATCH (cvc_a) (undefined n_w xs ys z size n exponent u) 
+    \<Longrightarrow> is_pow2 n
+    \<Longrightarrow> (exponent = (floorlog (nat n) 2))
+    \<Longrightarrow> (u = ((size - (floorlog (nat n) 2)) - 1))
+    \<Longrightarrow> LENGTH('a) = nat exponent
+    \<Longrightarrow> LENGTH('b) = nat size
+    \<Longrightarrow> LENGTH('c) = nat u + 1
+    \<Longrightarrow> n_w = (Word.Word n::'b::len word)
+    \<Longrightarrow>
+(cvc_list_left (*) xs (z *  (Word.Word n::'b::len word)))
    = (word_cat (smt_extract (nat u) (nat (0::int)) (cvc_list_left (*) xs (cvc_list_right (*) z ys))::'c::len word) (0::'a::len word))"
   sorry
 
+thm rewrite_bv_mult_pow2_1[of _ "ListVar []" "ListVar []" "x::4 word" "4::int" "4::int" "2::int" 1]
 
 (*
 (define-cond-rule bv-mult-pow2-2
