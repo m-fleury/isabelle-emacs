@@ -103,55 +103,59 @@ let
 
   val problem_lines = problem_file_path |> Bytes.read |> Bytes.split_lines;
   val proof_lines = proof_file_path |> Bytes.read |> Bytes.split_lines;
- val thm = @{thm TrueE}
+  val thm = @{thm TrueE}
+  val _ = @{print}("!PROBLEMFILENAME: " , problem_file_name)
+  val prefix = "!RESULT: "
+
+
   val (_,i) = (fn () => (replay_only prover ctxt problem_lines proof_lines opt_output_file,0)) ()
     handle
             (*Error Parsing problem*)
             (SMT_Parse_Problem.SMT_PROBLEM_PARSE(msg))
             => (if String.isPrefix "command not supported: " msg then
-                  (@{print}("Unsupported SMT-LIB command in problem: " ^ msg , problem_file_name);
+                  (@{print}(prefix ^ "Unsupported SMT-LIB command in problem: " ^ msg , problem_file_name);
                   print_error_to_file_with_msg ctxt 5 msg; (thm,1))
                   else
-                (@{print}("Error parsing SMT-LIB problem: " ^ msg , problem_file_name);
+                (@{print}(prefix ^ "Error parsing SMT-LIB problem: " ^ msg , problem_file_name);
                   print_error_to_file_with_msg ctxt 5 msg; (thm,1))) |
             (*Error during Parsing into AST*)
             (SMTLIB.PARSE(l,err))
-              => (@{print}("Error parsing SMTLIB into SMTLIB Tree: " ^ err ^ " in line " ^ Int.toString l , problem_file_name);
+              => (@{print}(prefix ^ "Error parsing SMTLIB into SMTLIB Tree: " ^ err ^ " in line " ^ Int.toString l , problem_file_name);
                   print_error_to_file ctxt 5; (thm,1)) |
             (*Errors during Parsing Into term*)
             (SMTLIB_Proof.SMTLIB_PARSE ("unknown SMT type",t))
-              => (@{print}(("Either theory is not supported or parsing instructions for the type" ^
+              => (@{print}((prefix ^ "Either theory is not supported or parsing instructions for the type" ^
                             " are not included in the parser", t), problem_file_name);
                   print_error_to_file ctxt 2; (thm,1)) |
             (SMTLIB_Proof.SMTLIB_PARSE ("bad SMT term",t))
-              => (@{print}(("Either theory is not supported or parsing instructions for the term" ^
+              => (@{print}((prefix ^ "Either theory is not supported or parsing instructions for the term" ^
                             " are not included in the parser", t), problem_file_name);
                  print_error_to_file ctxt 3; (thm,1)) |
             (SMTLIB_Proof.SMTLIB_PARSE(err,t))
-              => (@{print}(("Unkown error parsing SMTLIB: " ^ err, t), problem_file_name);
+              => (@{print}((prefix ^ "Unkown error parsing SMTLIB: " ^ err, t), problem_file_name);
                   print_error_to_file ctxt 4; (thm,1)) |
             (*Errors during Replay*)
             (SMT_Failure.SMT (SMT_Failure.Replay(rule,ERROR msg)))
-              => (@{print}("Error replaying step" ^ rule ^ " is: " ^ msg);
+              => (@{print}(prefix ^ "Error replaying step" ^ rule ^ " is: " ^ msg);
                   print_reconstruction_error_to_file ctxt 6 rule msg; (thm,1)) |
             (SMT_Failure.SMT (SMT_Failure.Replay(rule,INTERRUPT)))
-               => (@{print}("Timeout");
+               => (@{print}(prefix ^ "Timeout");
                   print_reconstruction_error_to_file ctxt 7 rule "timeout"; (thm,1)) |
             (SMT_Failure.SMT (SMT_Failure.Replay(rule,exn)))
-              => (@{print}("Error replaying step" ^ rule ^ " is: " ^ General.exnMessage exn);
+              => (@{print}(prefix ^ "Error replaying step" ^ rule ^ " is: " ^ General.exnMessage exn);
                   print_reconstruction_error_to_file ctxt 1 rule (General.exnMessage exn); (thm,1)) |
             (*Timeout*)
             (SMT_Failure.SMT (SMT_Failure.Time_Out rule))
-               => (@{print}("Timeout while reconstructing rule: ",rule);
+               => (@{print}(prefix ^ "Timeout while reconstructing rule: ",rule);
                   print_reconstruction_error_to_file ctxt 7 rule "timeout_rule"; (thm,1)) |
             (SMT_Failure.SMT err)
-               => (@{print}("Unkown SMT error " ^ SMT_Failure.string_of_failure err, problem_file_name);
+               => (@{print}(prefix ^ "Unkown SMT error " ^ SMT_Failure.string_of_failure err, problem_file_name);
                   print_error_to_file ctxt 5; (thm,1)) |
              (Timeout.TIMEOUT _) => (@{print}("Timeout");
                   print_error_to_file ctxt 7; (thm,1)) |
-             (TYPE x) => (@{print}("Type Error",x);
+             (TYPE x) => (@{print}(prefix ^ "Type Error",x);
                   print_error_to_file_with_msg ctxt 1 "type error"; (thm,1)) |
-             (ERROR x) => (@{print}("Error",x);
+             (ERROR x) => (@{print}(prefix ^ "Error",x);
                   print_error_to_file_with_msg ctxt 1 "error"; (thm,1))
 
 
