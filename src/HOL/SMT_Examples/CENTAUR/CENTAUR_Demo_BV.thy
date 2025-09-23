@@ -1,9 +1,8 @@
 theory CENTAUR_Demo_BV
-  imports HOL.SMT "HOL-CVC.SMT_CVC_Word"
+  imports HOL.SMT HOL.SMT_CVC_Word
 begin
 declare [[smt_cvc_alethe]]
 declare [[smt_trace]]
-declare[[cvc5_options="--dag-thres=0 --proof-format-mode=alethe --proof-granularity=dsl-rewrite --proof-alethe-experimental --proof-prune-input --full-saturate-quant --proof-alethe-define-skolems --proof-elim-subtypes --no-stats --sat-random-seed=1 --lang=smt2"]]
 
 
 
@@ -11,33 +10,14 @@ declare[[cvc5_options="--dag-thres=0 --proof-format-mode=alethe --proof-granular
 
 
 
+declare[[smt_expert_debug_alethe_level=0]]
+declare[[smt_expert_debug_alethe_files="alethe_replay_rare"]]
 
 
 
-
-(* Bit-vector translation *)
-
-lemma
-  shows "bit (8::16 word) 3" (* 0000000000001000 \<longrightarrow> 1  *)
-  by (smt (cvc5))
-  
-lemma
-  shows "\<not> bit (8::16 word) 10" (* 0000000000001000 \<longrightarrow> 0  *)
-  by (smt (cvc5))
+lemmas [bv_reconstruction_length] = len_num0 len_num1 len_bit0 len_bit1
 
 
-
-
-(*
-
-(a \<and> b \<and> c)
------------
-     b
-
-(step t0 (a \<and> b \<and> c) ..)
-(step t1 (b) rule: and premises: t0 args:1)
-
-*)
 
 
 
@@ -69,25 +49,26 @@ lemma "a > (6::3 word) \<Longrightarrow> a = 7"
 
 
 
-declare[[smt_trace=false,smt_verbose=false]]
 
 
 
 
+
+                                        
 
 (* How big can we get? Pidgeonhole lemmas for bit-vectors: *)
+declare[[smt_trace=false,smt_verbose=false]]
 
-lemma "a > (8589934590::32 word) \<Longrightarrow> a = 8589934591"
+lemma "a > (4294967294::32 word) \<Longrightarrow> a = 4294967295"
   by (smt (cvc5))
 
-lemma "a > (36893488147419103230::64 word) \<Longrightarrow> a = 36893488147419103231"
+lemma "a > (18446744073709551614::64 word) \<Longrightarrow> a = 18446744073709551615"
   by (smt (cvc5))
 
-lemma "a > (680564733841876926926749214863536422910::128 word)
-   \<Longrightarrow> a = 680564733841876926926749214863536422911"
+lemma "a > (340282366920938463463374607431768211454::128 word)
+   \<Longrightarrow> a = 340282366920938463463374607431768211455"
   by (smt (cvc5))
 
-(*Plenty big! Over 2188 steps are reconstructed in the last lemmas. *)
 
 
 
