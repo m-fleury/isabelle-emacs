@@ -114,7 +114,7 @@ let
     | (TYPE x) => (print_error ("Type Error " ^ (fn (a,_,_) => a) x); print_error_code 1; (thm,1))
     | (ERROR x) => (print_error ("Error " ^ x); print_error_code 1 ; (thm,1))
 
-    val _ = (if i = 0 then (print_error ("Success"); print_error_code 0) else ())
+    val _ = (if i = 0 then (SMT_Config.statistics_msg ctxt (fn current => "RESULT_CODE: " ^ current) "0"; print_error_code 0) else ())
 
 
 fun rm_quotation s = implode (filter_out (fn c => c = "\"") (raw_explode s))
