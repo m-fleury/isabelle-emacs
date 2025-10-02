@@ -8,10 +8,20 @@ begin
 (*Note: I have not finished filling in the expected outcomes and some might not be the 
 correct ones yet*)
 
-declare[[smt_expert_debug_alethe_files="smt_global_normalize"]]
+
+declare[[smt_expert_debug_alethe_files="smt_translate"]]
 declare[[smt_expert_debug_alethe_level=3]]
 declare[[smt_nat_as_int=true,smt_trace]]
 declare[[show_hyps]]
+
+definition prime_nat :: "nat \<Rightarrow> bool" where
+  "prime_nat p = (1 < p \<and> (\<forall>m. m dvd p --> m = 1 \<or> m = p))"
+
+lemma "prime_nat (4*m + 1) \<Longrightarrow> m \<ge> (1::nat)" by (smt (cvc5) ) (*ERROR nat embedding*)
+thm SMT.int_ops(3)[symmetric]
+thm of_nat_numeral
+thm SMT.H1(1)
+thm alethe_nat_embedding_all
 
 
 lemma variable_only:
@@ -34,12 +44,6 @@ lemma constant_only:
 \<close>)
   by (smt (cvc5))
 
-(* TODO:
-if then else introduced during normalization, could delete there
-but would need to figure out if then the arguments are not
-traversed anymore at all
-(assert (! (not (= (ite (< 3 4) 0 (- 3 4)) 0)) :named a0))
-*)
 lemma neg_constant:
   shows "3-(4::nat) = 0"
   by (smt (cvc5))
@@ -224,6 +228,22 @@ lemma fun_variable3:
   by (smt (cvc5))
 
 lemma fun_variable4:
+  fixes f::"nat \<Rightarrow> nat"
+  assumes "f x = y"
+  shows "True"
+  using assms
+ apply (test_smt_translate 
+\<open>
+(set-logic AUFLIRA)
+(declare-fun lift_f$ (Int) Int)
+(declare-fun lift_x$ () Int)
+(declare-fun lift_y$ () Int)
+(assert (! (and (and (<= 0 lift_x$) (and (<= 0 (lift_f$ lift_x$)) (<= 0 lift_y$))) (= (lift_f$ lift_x$) lift_y$)) :named a0))
+(assert (! (not true) :named a1))
+\<close>)
+  by (smt (cvc5))
+
+lemma fun_variable5:
   fixes f::"int \<Rightarrow> nat"
   assumes "f 6 = x"
   shows "True"
@@ -246,12 +266,13 @@ lemma fun_variable_constant_twice:
  apply (test_smt_translate 
 \<open>
 (set-logic AUFLIRA)
+(declare-fun x$ () Int)
 (declare-fun lift_f$ (Int) Int)
-(declare-fun lift_x$ () Int)
-(assert (! (and (and (and (<= 0 (lift_f$ 6)) (<= 0 lift_x$)) (lift_f lift_x$)) (= (lift_f$ 6) (lift_f lift_x$))) :named a0))
+(assert (! (and (and (<= 0 (lift_f$ 6)) (<= 0 (lift_f$ x$))) (= (lift_f$ 6) (lift_f$ x$))) :named a0))
 (assert (! (not true) :named a1))
 \<close>)
   by (smt (cvc5))
+
 
 lemma native_inside_uninterpreted:
   fixes f::"int \<Rightarrow> nat"
@@ -261,54 +282,170 @@ lemma native_inside_uninterpreted:
  apply (test_smt_translate 
 \<open>
 (set-logic AUFLIRA)
+(declare-fun x$ () Int)
 (declare-fun lift_f$ (Int) Int)
-(declare-fun lift_x$ () Int)
-(assert (! (and (and (and (<= 0 (lift_f$ 6)) (<= 0 lift_x$)) (lift_f lift_x$)) (= (lift_f$ 6) (lift_f lift_x$))) :named a0))
+(assert (! (and (and (<= 0 (lift_f$ (+ 6 1))) (<= 0 (lift_f$ x$))) (= (lift_f$ (+ 6 1)) (lift_f$ x$))) :named a0))
 (assert (! (not true) :named a1))
 \<close>)
   by (smt (cvc5))
 
 lemma fun_trans:
   fixes f::"nat\<Rightarrow>int"
-  shows "f y = 5 \<Longrightarrow> f x = 5 \<Longrightarrow> f y = f x" 
+  shows "f y = 5 \<Longrightarrow> f x = 5 \<Longrightarrow> f y = f x"
+ apply (test_smt_translate 
+\<open>
+(set-logic AUFLIRA)
+(declare-fun lift_f$ (Int) Int)
+(declare-fun lift_x$ () Int)
+(declare-fun lift_y$ () Int)
+(assert (! (and (and (<= 0 lift_y$) (<= 0 lift_x$)) (not (=> (and (= (lift_f$ lift_y$) 5) (= (lift_f$ lift_x$) 5)) (= (lift_f$ lift_y$) (lift_f$ lift_x$))))) :named a0))
+\<close>)
   by (smt (cvc5))
 
 lemma fun_trans2:
   fixes f::"nat\<Rightarrow>int"
   shows "f 3 = 5 \<Longrightarrow> f x = 5 \<Longrightarrow> f 3 = f x" 
+ apply (test_smt_translate 
+\<open>
+(set-logic AUFLIRA)
+(declare-fun lift_f$ (Int) Int)
+(declare-fun lift_x$ () Int)
+(assert (! (and (<= 0 lift_x$) (not (=> (and (= (lift_f$ 3) 5) (= (lift_f$ lift_x$) 5)) (= (lift_f$ 3) (lift_f$ lift_x$))))) :named a0))
+\<close>)
   by (smt (cvc5))
 
-lemma quant:
-  shows "\<forall>x. (x::nat) = x" 
+
+lemma fun_trans3:
+  fixes f::"nat\<Rightarrow>nat"
+  shows "f y = 5 \<Longrightarrow> f x = 5 \<Longrightarrow> f y = f x"
+ apply (test_smt_translate 
+\<open>
+(set-logic AUFLIRA)
+(declare-fun lift_f$ (Int) Int)
+(declare-fun lift_x$ () Int)
+(declare-fun lift_y$ () Int)
+(assert (! (and (and (<= 0 lift_y$) (and (<= 0 (lift_f$ lift_y$)) (and (<= 0 lift_x$) (<= 0 (lift_f$ lift_x$))))) (not (=> (and (= (lift_f$ lift_y$) 5) (= (lift_f$ lift_x$) 5)) (= (lift_f$ lift_y$) (lift_f$ lift_x$))))) :named a0))
+\<close>)
   by (smt (cvc5))
+
+lemma quant0:
+  shows "\<forall>x. (x::int) = x" 
+ apply (test_smt_translate 
+\<open>
+(set-logic AUFLIRA)
+(assert (! (not (forall ((?v0 Int)) (= ?v0 ?v0))) :named a0))
+\<close>)
+  by (smt (cvc5))
+
+lemma quant1:
+  shows "\<forall>x. (x::nat) = x" 
+ apply (test_smt_translate 
+\<open>
+(set-logic AUFLIRA)
+(assert (! (not (forall ((?v0 Int)) (=> (<= 0 ?v0) (= ?v0 ?v0)))) :named a0))
+\<close>)
+  by (smt (cvc5))
+
 
 lemma quant2:
-  shows "\<exists>x. (x::nat) = x" 
+  shows "\<exists>x. (x::nat) = x"
+ apply (test_smt_translate 
+\<open>
+(set-logic AUFLIRA)
+(assert (! (not (exists ((?v0 Int)) (and (<= 0 ?v0) (= ?v0 ?v0)))) :named a0))
+\<close>)
   by (smt (cvc5))
-
 
 lemma quant3:
-  fixes f::"nat\<Rightarrow>int"
-  shows "(\<forall> x. f a = f x) \<and> (\<forall> x. f a = f x)" 
+  fixes f::"nat\<Rightarrow>int" and a::"nat"
+  assumes "(\<forall> x. f a = f x) \<and> (\<forall> x. f a = f x)"
+  shows "True"
+  using assms
+ apply (test_smt_translate 
+\<open>
+(set-logic AUFLIRA)
+(declare-fun lift_a$ () Int)
+(declare-fun lift_f$ (Int) Int)
+(assert (! (and (forall ((?v0 Int)) (=> (<= 0 ?v0) (and (<= 0 lift_a$) (= (lift_f$ lift_a$) (lift_f$ ?v0))))) (forall ((?v0 Int)) (=> (<= 0 ?v0) (and (<= 0 lift_a$) (= (lift_f$ lift_a$) (lift_f$ ?v0)))))) :named a0))
+(assert (! (not true) :named a1))
+\<close>)
   by (smt (cvc5))
 
 
+lemma quant4:
+ fixes y::"nat"
+ shows "(\<exists> x::int. (x = 3 \<and> y = y))"
+ apply (test_smt_translate 
+\<open>
+(set-logic AUFLIRA)
+(declare-fun lift_y$ () Int)
+(assert (! (not (exists ((?v0 Int)) (=> (<= 0 lift_y$) (and (= ?v0 3) (= lift_y$ lift_y$))))) :named a0))
+\<close>)
+  by (smt (cvc5))
+
+
+lemma quant4b:
+ fixes f::"int \<Rightarrow> nat"
+ shows "(\<exists> x::int. (x = 3 \<and> f x = f x))"
+ apply (test_smt_translate 
+\<open>
+(set-logic AUFLIRA)
+(declare-fun lift_f$ (Int) Int)
+(assert (! (not (exists ((?v0 Int)) (=> (<= 0 (lift_f$ ?v0)) (and (= ?v0 3) (= (lift_f$ ?v0) (lift_f$ ?v0)))))) :named a0))
+\<close>)
+  by (smt (cvc5))
+
+lemma quant5:
+ fixes y::"nat"
+  shows "(\<exists> x::nat. (x = 3 \<and> y = y))" 
+ apply (test_smt_translate 
+\<open>
+(set-logic AUFLIRA)
+(declare-fun lift_y$ () Int)
+(assert (! (not (exists ((?v0 Int)) (and (<= 0 ?v0) (=> (<= 0 lift_y$) (and (= ?v0 3) (= lift_y$ lift_y$)))))) :named a0))
+\<close>)
+  by (smt (cvc5))
+
+
+
+lemma quant6:
+ fixes y::"nat"
+  shows "(\<exists> x. x = y)" 
+ apply (test_smt_translate 
+\<open>
+(set-logic AUFLIRA)
+(declare-fun lift_y$ () Int)
+(assert (! (not (exists ((?v0 Int)) (and (<= 0 ?v0) (=> (<= 0 lift_y$) (= ?v0 lift_y$))))) :named a0))
+\<close>)
+  oops
+
 lemma nat_const:
-  shows "nat (0::int) \<noteq> 1" 
+  shows "nat (0::int) \<noteq> 1"
+ apply (test_smt_translate 
+\<open>
+(set-logic AUFLIRA)
+(assert (! (not (not (= 0 1))) :named a0))
+\<close>)
   by (smt (cvc5))
 
 
 lemma int_const:
   shows "int (4::nat) \<noteq> 5" 
+ apply (test_smt_translate 
+\<open>
+(set-logic AUFLIRA)
+(assert (! (not (not (= 4 5))) :named a0))
+\<close>)
   by (smt (cvc5))
 
 
 lemma nat_var2:
-  shows "nat (x::int) = 4 \<Longrightarrow> nat (x::int) \<noteq> 5" 
-  by (smt (cvc5))
-
-lemma int_var2:
-  shows "int (x::nat) = 4 \<Longrightarrow> int (x::nat) \<noteq> 5" 
+  shows "nat (x::int) = 4 \<Longrightarrow> nat (x::int) \<noteq> 5"
+ apply (test_smt_translate 
+\<open>
+(set-logic AUFLIRA)
+(assert (! (not (not (= 4 5))) :named a0))
+\<close>)
   by (smt (cvc5))
 
 
@@ -339,6 +476,34 @@ lemma def_quant3:
   by (smt (cvc5))
 
 
+lemma let1:
+  "let (x::nat) = y + 3  in
+  x = 1 + 2 + y"
+  supply[[smt_nat_as_int,smt_trace]]
+  by (smt (cvc5_proof))
+
+
+lemma let2:
+  "let (x::int) = y + 3  in
+  x = 1 + 2 + y"
+  supply[[smt_nat_as_int,smt_trace]]
+  by (smt (cvc5_proof))
+
+lemma
+"   let P = (if ((1::nat) + y) > 0 then True else False) in
+   False \<or> P = (((1::nat) + y) - 1 = y) \<or> (\<not>P \<longrightarrow> False)"
+  supply[[smt_nat_as_int]]
+  by (smt (cvc5_proof)) (*ERROR nat embedding*)
+
+lemma
+  "let x = (1::nat) + y in
+   let P = (if x > 0 then True else False) in
+   False \<or> P = (x - 1 = y) \<or> (\<not>P \<longrightarrow> False)"
+  supply[[smt_nat_as_int]]
+  by (smt (cvc5_proof)) (*ERROR nat embedding*)
+
+
+
 
 (*Conversions*)
 
@@ -348,78 +513,108 @@ lemma
 
 
 
-(* 
+
+declare[[smt_expert_debug_alethe_files="smt_global_normalize"]]
+declare[[smt_expert_debug_alethe_level=3]]
+
+(*There is nothing to be done here*)
+lemma
+  fixes x::int
+  assumes "nat x = 4"
+  shows "True"
+  using assms
+ apply (test_smt_translate 
+\<open>
+(set-logic AUFLIRA)
+(declare-sort Nat$ 0)
 (declare-fun x$ () Int)
-(assert (! (not (= x$ 4)) :named a0))
-(assert (! (<= 0 x$) :named a1))
- *)
+(declare-fun nat$ (Int) Nat$)
+(declare-fun of_nat$ (Nat$) Int)
+(assert (! (= (of_nat$ (nat$ x$)) 4) :named a0))
+(assert (! (not true) :named a1))
+\<close>)
+  sorry
 
+(*Here x is a nat though and can be lifted*)
 lemma
-  shows "nat x = 4"
-  apply (smt (cvc5) )
-  done
+  fixes x::nat
+  assumes "int x = 4"
+  shows "True"
+  using assms
+ apply (test_smt_translate 
+\<open>
+(set-logic AUFLIRA)
+(declare-fun lift_x$ () Int)
+(assert (! (and (<= 0 lift_x$) (= lift_x$ 4)) :named a0))
+(assert (! (not true) :named a1))
+\<close>)
+  by (smt (cvc5))
 
-(* 
- (declare-fun x_000$ () Int)
-(assert (! (and (<= 0 x_000$) (not (= x_000$ 4))) :named a0))
-(assert (! (<= 0 x_000$) :named a1))
-*)
-lemma
-  shows "int x = 4"
-  apply (smt (cvc5) )
-  done
-
-(* 
- (assert (! (not (= 4 4)) :named a0))
-(assert (! (<= 0 4) :named a1))
-*)
 lemma
   shows "int 4 = 4"
-  apply (smt (cvc5) )
-  done
+ apply (test_smt_translate 
+\<open>
+(set-logic AUFLIRA)
+(assert (! (not (= 4 4)) :named a0))
+\<close>)
+  by (smt (cvc5))
 
-
-(* 
-      (assert (! (not (= 4 4)) :named a0))
-(assert (! (<= 0 4) :named a1))
-*)
 lemma
   shows "nat 4 = 4"
-  apply (smt (cvc5) )
-  done
+ apply (test_smt_translate 
+\<open>
+(set-logic AUFLIRA)
+(assert (! (not (= 4 4)) :named a0))
+\<close>)
+  by (smt (cvc5))
 
-(*
-
-  (declare-fun x_000$ () Int)
-(declare-fun x_001$ () Int)
-(assert (! (and (and (<= 0 x_000$) (<= 0 x_001$)) (not (= x_001$ x_000$))) :named a0))
-(assert (! (<= 0 x_000$) :named a1))
-(assert (! (<= 0 x_001$) :named a2))
-
-*)
 lemma
   shows "int x = int y"
-  apply (smt (cvc5) )
-  done
+ apply (test_smt_translate 
+\<open>
+(set-logic AUFLIRA)
+(declare-fun lift_x$ () Int)
+(declare-fun lift_y$ () Int)
+(assert (! (and (and (<= 0 lift_x$) (<= 0 lift_y$)) (not (= lift_x$ lift_y$))) :named a0))
+\<close>)
+  sorry
 
 
 lemma
   shows "(x::nat) <= x - 1 \<Longrightarrow> x = 0"
-  apply (smt (cvc5) )
-  done
+ apply (test_smt_translate 
+\<open>
+(set-logic AUFLIRA)
+(declare-fun lift_x$ () Int)
+(assert (! (and (<= 0 lift_x$) (not (=> (<= lift_x$ (ite (< lift_x$ 1) 0 (- lift_x$ 1))) (= lift_x$ 0)))) :named a0))
+\<close>)
+  by (smt (cvc5))
+
 
 lemma
   shows "(x::nat) - y + y < x \<Longrightarrow> x < y"
-  apply (smt (cvc5) )
-  done
+ apply (test_smt_translate 
+\<open>
+(set-logic AUFLIRA)
+(declare-fun lift_x$ () Int)
+(declare-fun lift_y$ () Int)
+(assert (! (and (and (<= 0 lift_x$) (<= 0 lift_y$)) (not (=> (< (+ (ite (< lift_x$ lift_y$) 0 (- lift_x$ lift_y$)) lift_y$) lift_x$) (< lift_x$ lift_y$)))) :named a0))
+\<close>)
+  by (smt (cvc5))
 
 lemma
   shows "0 \<le> (x::int) \<Longrightarrow> y = nat x \<Longrightarrow> of_nat y = x"
+ apply (test_smt_translate 
+\<open>
+\<close>)
     apply (smt (cvc5) int_nat_eq)
   done
 
 lemma
   shows "0 > (x::int) \<Longrightarrow> y = nat x \<Longrightarrow> of_nat y = 0"
+ apply (test_smt_translate 
+\<open>
+\<close>)
     apply (smt (cvc5) int_nat_eq)
   done
 
@@ -538,6 +733,34 @@ boo (nat x) y = lift_boo x y
   end result:
      lift_f__ 3 \<ge> 0 \<longrightarrow> lift_f__ 3 = 5
 *)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
