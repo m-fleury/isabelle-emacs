@@ -52,9 +52,10 @@ sig
    Implies_Simplify | Connective_Def | Minus_Simplify | Unary_Minus_Simplify | Comp_Simplify |
    Eq_Simplify | ITE_Simplify | Sum_Simplify | Prod_Simplify | Div_Simplify | All_Simplify | RARE_Rewrite |
    Qnt_Simplify | Not_Not | Tautological_Clause | Duplicate_Literals | Distinct_Elim |
+   Qnt_Miniscope_Distribute | Qnt_Miniscope_Split | Qnt_Miniscope_ITE |
    (*Extended rules*)
    Symm | Not_Symm | Reordering | Shuffle | Tmp_Quantifier_Simplify | Contraction | 
-   Qnt_Miniscope_And | Qnt_Miniscope_Or | Qnt_Miniscope_ITE | Qnt_Var_Reordering | (*Added for paper, not in Standard might change later*)
+   Qnt_Var_Reordering | (*Added for paper, not in Standard might change later*)
    (*Other Rules*)
    Other_Rule of string |
    Hole | Trust |
@@ -172,8 +173,8 @@ sig
   val reordering: alethe_tac
   val shuffle: alethe_tac_step_args_and_arg
   val contraction: alethe_tac
-  val qnt_miniscope_and: alethe_tac
-  val qnt_miniscope_or: alethe_tac
+  val qnt_miniscope_distribute: alethe_tac
+  val qnt_miniscope_split: alethe_tac
   val qnt_miniscope_ITE: alethe_tac
   val qnt_var_reordering: alethe_tac
   val trust: alethe_tac
@@ -244,7 +245,7 @@ datatype alethe_rule =
    Qnt_Simplify | Not_Not | Tautological_Clause | Duplicate_Literals | Distinct_Elim | 
    (*Extended rules*)
    Symm | Not_Symm | Reordering | Shuffle | Tmp_Quantifier_Simplify | Contraction |
-   Qnt_Miniscope_And | Qnt_Miniscope_Or | Qnt_Miniscope_ITE | Qnt_Var_Reordering | (*Added for paper, not in Standard might change later*)
+   Qnt_Miniscope_Distribute | Qnt_Miniscope_Split | Qnt_Miniscope_ITE | Qnt_Var_Reordering | (*Added for paper, not in Standard might change later*)
    (*Other Rules*)
    Other_Rule of string |
    Hole | Trust |
@@ -351,8 +352,8 @@ fun string_of_alethe_rule Bind = "Bind"
   | string_of_alethe_rule Reordering = "reordering"
   | string_of_alethe_rule Shuffle = "shuffle"
   | string_of_alethe_rule Contraction = "contraction"
-  | string_of_alethe_rule Qnt_Miniscope_And = "qnt_miniscope_and"
-  | string_of_alethe_rule Qnt_Miniscope_Or = "qnt_miniscope_or"
+  | string_of_alethe_rule Qnt_Miniscope_Distribute = "qnt_miniscope_distribute"
+  | string_of_alethe_rule Qnt_Miniscope_Split = "qnt_miniscope_split"
   | string_of_alethe_rule Qnt_Miniscope_ITE = "qnt_miniscope_ITE"
   | string_of_alethe_rule Qnt_Var_Reordering = "qnt_var_reordering"
   | string_of_alethe_rule Not_Not = Alethe_Proof.not_not_rule
@@ -1772,14 +1773,14 @@ fun contraction ctxt [prem] t =
     ))
 | contraction ctxt thms t = replay_error ctxt "Unsupported commutative operator in contraction rule" Unsupported thms [] t
 
-fun qnt_miniscope_and ctxt _ t = 
+fun qnt_miniscope_distribute ctxt _ t = 
  SMT_Replay_Methods.prove ctxt t (fn _ => (
-    eqsubst_all ctxt @{thms alethe_qnt_miniscope_and}
+    eqsubst_all ctxt @{thms alethe_qnt_miniscope_distribute} (*TODO: Support other case*)
     THEN' TRY' (resolve_tac ctxt @{thms refl})))
 
-fun qnt_miniscope_or ctxt _ t = 
+fun qnt_miniscope_split ctxt _ t = 
  SMT_Replay_Methods.prove ctxt t (fn _ => (
-    eqsubst_all ctxt @{thms alethe_qnt_miniscope_or}
+    eqsubst_all ctxt @{thms alethe_qnt_miniscope_split1} (*TODO: Support other case*)
     THEN' TRY' (resolve_tac ctxt @{thms refl})))
 
 fun qnt_miniscope_ITE ctxt _ t = 
