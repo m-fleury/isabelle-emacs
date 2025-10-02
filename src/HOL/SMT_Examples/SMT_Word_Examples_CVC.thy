@@ -29,9 +29,11 @@ ML\<open>
 val z0' =
    Const ("Num.numeral_class.numeral", @{typ "num \<Rightarrow> 3 word"}) 
   $ (Const ("Num.num.Bit0", @{typ"num \<Rightarrow> num"}) 
+
+  $ (Const ("Num.num.Bit0", @{typ"num \<Rightarrow> num"}) 
   $ (Const ("Num.num.Bit0", @{typ "num \<Rightarrow> num"})
   $ (Const ("Num.num.Bit0",@{typ "num \<Rightarrow> num"})
-  $ Const ("Num.num.One", @{typ "num"}))))
+  $ Const ("Num.num.One", @{typ "num"})))))
    |> Thm.cterm_of @{context}
 (*"(8 :: 3 word)"*)
 \<close>
@@ -64,16 +66,40 @@ val z =  Const ("Num.numeral_class.numeral", @{typ "num \<Rightarrow> 4 word"}) 
 \<close>
 
 
-declare[[smt_expert_debug_alethe_files="alethe_replay_rare"]]
-declare[[smt_expert_debug_alethe_level=3]]
+
+
+
 section \<open>Bitvector numbers\<close>
 
+(*TODO: Meeting with Clark: Before using simplifier check word length, figure out how much effort that would be*)
 lemma "(27 :: 4 word) = -5" by (smt (cvc5)) (*I solved this during normalization but this means every word constant has to be translated.*)
 lemma "(27 :: 4 word) = 11" by (smt (cvc5))
 lemma "23 < (27::8 word)" by (smt (cvc5))
 lemma "27 + 11 = (6::5 word)" by (smt (cvc5))
 lemma "7 * 3 = (21::8 word)" by (smt (cvc5))
 lemma "11 - 27 = (-16::8 word)" by (smt (cvc5))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 lemma  " (log 2 4) = 2"
   by (metis alethe_eq_simplify(10) log_eq_one log_mult mult_2 numeral_Bit0_eq_double
