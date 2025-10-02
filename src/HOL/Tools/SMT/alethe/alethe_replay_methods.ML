@@ -1778,12 +1778,12 @@ fun qnt_miniscope_distribute ctxt _ t =
     eqsubst_all ctxt @{thms alethe_qnt_miniscope_distribute} (*TODO: Support other case*)
     THEN' TRY' (resolve_tac ctxt @{thms refl})))
 
-fun qnt_miniscope_split ctxt _ t = 
+fun qnt_miniscope_split ctxt _ t =
  SMT_Replay_Methods.prove ctxt t (fn _ => (
     eqsubst_all ctxt @{thms alethe_qnt_miniscope_split1} (*TODO: Support other case*)
     THEN' TRY' (resolve_tac ctxt @{thms refl})))
 
-fun qnt_miniscope_ITE ctxt _ t = 
+fun qnt_miniscope_ITE ctxt _ t =
   SMT_Replay_Methods.prove ctxt t (fn _ => (
     eqsubst_all ctxt @{thms alethe_qnt_miniscope_ITE}
     THEN' TRY' (resolve_tac ctxt @{thms refl})))
