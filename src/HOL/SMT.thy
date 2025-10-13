@@ -859,10 +859,18 @@ proof -
     by (subst H) auto
 qed
 
-lemma alethe_qnt_miniscope_distribute:
+lemma alethe_qnt_miniscope_distribute1:
   \<open>(\<forall>X. (F1 X \<and> A X)) = ((\<forall>X. F1 X) \<and> (\<forall>X. A X))\<close>
+  \<open>(\<forall>X. (t \<and> a)) = ((\<forall>X. t) \<and> (\<forall>X. a))\<close>
+
   \<open>(\<exists>X. (F1 X \<or> A X)) = ((\<exists>X. F1 X) \<or> (\<exists>X. A X))\<close>
-  by (simp_all only: all_conj_distrib ex_disj_distrib)
+  apply (simp_all only: all_conj_distrib ex_disj_distrib)
+  by simp_all
+
+lemma alethe_qnt_miniscope_distribute2:
+  \<open>(\<forall>X. (A X \<and> t)) = ((\<forall>X. (A X)) \<and> (\<forall>X. t))\<close>
+  by simp
+
 
 lemma alethe_qnt_miniscope_split1:
   \<open>(\<forall>x Y. (F1 x \<or> A Y)) = ((\<forall>x. F1 x) \<or> (\<forall>Y. A Y))\<close>
