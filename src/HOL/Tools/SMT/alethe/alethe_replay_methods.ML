@@ -1782,16 +1782,24 @@ fun qnt_miniscope_distribute ctxt _ t =
     debug_rule_tac' ctxt high Qnt_Miniscope_Distribute "start" THEN'
     REPEAT_CHANGED
     (
-      K (unfold_tac ctxt @{thms alethe_qnt_miniscope_distribute1 alethe_qnt_miniscope_distribute2})
+      K (unfold_tac ctxt @{thms alethe_qnt_miniscope_distribute})
       THEN' TRY' (debug_rule_tac' ctxt high Qnt_Miniscope_Distribute "applied lemma")
     )
     THEN' debug_rule_tac' ctxt high Qnt_Miniscope_Distribute "after repeating application of lemma"
     THEN' TRY' (resolve_tac ctxt @{thms refl})))
 
-fun qnt_miniscope_split ctxt _ t =
+fun qnt_miniscope_split ctxt _ t = 
  SMT_Replay_Methods.prove ctxt t (fn _ => (
-    eqsubst_all ctxt @{thms alethe_qnt_miniscope_split1} (*TODO: Support other case*)
-    THEN' TRY' (resolve_tac ctxt @{thms refl})))
+    debug_rule_tac' ctxt high Qnt_Miniscope_Split "start" THEN'
+    REPEAT_CHANGED
+    (
+      K (unfold_tac ctxt @{thms alethe_qnt_miniscope_split})
+      THEN' TRY' (debug_rule_tac' ctxt high Qnt_Miniscope_Split "applied lemma")
+    )
+    THEN' debug_rule_tac' ctxt high Qnt_Miniscope_Split "after repeating application of lemma"
+    THEN' TRY' (resolve_tac ctxt @{thms refl})
+    THEN' TRY' (blast_tac ctxt) (*variable reordering*)
+))
 
 fun qnt_miniscope_ITE ctxt _ t =
   SMT_Replay_Methods.prove ctxt t (fn _ => (

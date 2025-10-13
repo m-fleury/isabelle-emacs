@@ -2218,17 +2218,82 @@ lemma miniscope_distribute_ex3:
   by (ctxt_tactic "qnt_miniscope_distribute")
 
 lemma miniscope_distribute_ex4:
-  "(\<exists>x1 ::'a. \<exists>x2 ::'a. (a \<or> b)) = ((\<exists>x1::'a. \<exists>x2::'a. a) \<or> (\<exists>x1::'a. \<exists>x2::'a. b))"
+  "(\<exists>x1::'a. \<exists>x2 ::'a. (a \<or> b)) = ((\<exists>x1::'a. \<exists>x2::'a. a) \<or> (\<exists>x1::'a. \<exists>x2::'a. b))"
   by (ctxt_tactic "qnt_miniscope_distribute")
 
 lemma miniscope_distribute_ex5:
   "(\<exists>x1::'a. ((x1 = a) \<or> b)) = ((\<exists>x1::'a. x1 = a) \<or> (\<exists>x1::'a. b))"
   by (ctxt_tactic "qnt_miniscope_distribute")
 
-(* Rule 105: miniscope_split*)
+(* Rule 105: miniscope_split *)
 (*Note: there isn't a solver that produces the exists case currently*)
 
+lemma miniscope_split_all1:
+  "(\<forall>x1::'a. a) = (\<forall>x1::'a. a)"
+  by (ctxt_tactic "qnt_miniscope_split")
 
+lemma miniscope_split_all2:
+  "(\<forall>x1::'a. (a \<or> b)) = ((\<forall>x1::'a. a) \<or> b)"
+  by (ctxt_tactic "qnt_miniscope_split")
+
+lemma miniscope_split_all3:
+  "(\<forall>x1::'a. \<forall>x2::'a. (a \<or> (b \<or> c))) = ((\<forall>x1::'a. a) \<or> b \<or> (\<forall>x2::'a. c))"
+  by (ctxt_tactic "qnt_miniscope_split")
+
+lemma miniscope_split_all4:
+  "(\<forall>x1::'a. \<forall>x2::'a. (a \<or> b)) = ((\<forall>x1::'a. \<forall>x2::'a. a) \<or> b)"
+  by (ctxt_tactic "qnt_miniscope_split")
+
+lemma miniscope_split_all5:
+  "(\<forall>x1::'a. \<forall>x2::'a. (a \<or> b)) = (a \<or> (\<forall>x1::'a. \<forall>x2::'a. b))"
+  by (ctxt_tactic "qnt_miniscope_split")
+
+lemma miniscope_split_all6:
+  "(\<forall>x1::'a. ((x1 = a) \<or> b)) = ((\<forall>x1::'a. x1 = a) \<or> b)"
+  by (ctxt_tactic "qnt_miniscope_split")
+
+lemma miniscope_split_all7:
+  "(\<forall>x1 ::'a. \<forall>x2 ::'a. (a \<or> b)) = ((\<forall>x2::'a. a) \<or> (\<forall>x1::'a. b))"
+  by (ctxt_tactic "qnt_miniscope_split")
+
+lemma miniscope_split_ex1:
+  "(\<exists>x1::'a. a) = (\<exists>x1::'a. a)"
+  by (ctxt_tactic "qnt_miniscope_split")
+
+lemma miniscope_split_ex2:
+  "(\<exists>x1::'a. (a \<and> b)) = ((\<exists>x1::'a. a) \<and> b)"
+  by (ctxt_tactic "qnt_miniscope_split")
+
+lemma miniscope_split_ex3:
+  "(\<exists>x1 x2::'a. (a \<and> (b \<and> c))) = ((\<exists>x1::'a. a) \<and> b \<and> (\<exists>x2::'a. c))"
+  by (ctxt_tactic "qnt_miniscope_split")
+
+lemma miniscope_split_ex4:
+  "(\<exists>x1 ::'a. \<exists>x2 ::'a. (a \<and> b)) = ((\<exists>x1::'a. \<exists>x2::'a. a) \<and> b)"
+  by (ctxt_tactic "qnt_miniscope_split")
+
+lemma miniscope_split_ex5:
+  "(\<exists>x1 ::'a. \<exists>x2 ::'a. (a \<and> b)) = (a \<and> (\<exists>x1::'a. \<exists>x2::'a. b))"
+  by (ctxt_tactic "qnt_miniscope_split")
+
+lemma miniscope_split_ex6:
+  "(\<exists>x1::'a. ((x1 = a) \<and> b)) = ((\<exists>x1::'a. x1 = a) \<and> b)"
+  by (ctxt_tactic "qnt_miniscope_split")
+
+lemma miniscope_split_ex7:
+  "(\<exists>x1 ::'a. \<exists>x2 ::'a. (a \<and> b)) = ((\<exists>x2::'a. a) \<and> (\<exists>x1::'a. b))"
+  by (ctxt_tactic "qnt_miniscope_split")
+
+(* Rule 106: miniscope_ite *)
+
+lemma miniscope_split_ite1:
+  "(\<forall>x1 ::'a. \<forall>x2 ::'a. (If a b c)) = (If a (\<forall>x1 ::'a. \<forall>x2 ::'a. b) (\<forall>x1 ::'a. \<forall>x2 ::'a. c))"
+  by (ctxt_tactic "qnt_miniscope_ite")
+
+
+lemma miniscope_split_ite2:
+  "(\<forall>x1 ::'a. \<forall>x2 ::'a. (If a (P1 x1) (P2 x2))) = (If a (\<forall>x1 ::'a. \<forall>x2 ::'a. P1 x1) (\<forall>x1 ::'a. \<forall>x2 ::'a. P2 x2))"
+  by (ctxt_tactic "qnt_miniscope_ite")
 
 
 
