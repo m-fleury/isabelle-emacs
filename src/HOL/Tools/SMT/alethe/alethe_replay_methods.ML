@@ -200,6 +200,7 @@ struct
 
 open SMT_Config
 fun debug_msg ctxt = alethe_debug_msg ctxt "alethe_replay_methods"
+fun debug_msg_tac' ctxt verbosity str = K (SMT_Config.alethe_debug_msg_tac ctxt "alethe_replay_methods" verbosity str)
 
 type alethe_tac_step_args = Proof.context -> thm list -> term list -> term -> thm
 type alethe_tac_context_args = Proof.context -> thm list -> term list -> term -> thm
@@ -364,6 +365,8 @@ fun string_of_alethe_rule Bind = "Bind"
   | string_of_alethe_rule Trust = "trust"
   | string_of_alethe_rule (Other_Rule r) = r
   | string_of_alethe_rule r = "Unknown rule: " ^ \<^make_string> r
+
+fun debug_rule_tac' ctxt verbosity rule str = debug_msg_tac' ctxt verbosity ("Reconstruct " ^ (string_of_alethe_rule rule) ^ ": " ^ str)
 
 (** Context Extension for Rules **)
 (*We currently do not distinguish between the extension required for each solver. Maybe later
@@ -1643,13 +1646,13 @@ fun div_simplify ctxt _ t =
 
 end
 
-fun rare_rewrite ctxt prems t =
+fun rare_rewrite ctxt prems t = (@{print}("t",t);
   SMT_Replay_Methods.prove ctxt t (fn _ =>
      Method.insert_tac ctxt prems
     THEN' K (print_tac ctxt "use cvc5 extension for better success rate")
     THEN' TRY' (K (Clasimp.auto_tac ctxt)
      THEN' TRY' (Code_Simp.dynamic_tac ctxt )
-))
+)))
 
 
 (* Arithmetics *)
@@ -1773,9 +1776,16 @@ fun contraction ctxt [prem] t =
     ))
 | contraction ctxt thms t = replay_error ctxt "Unsupported commutative operator in contraction rule" Unsupported thms [] t
 
+
 fun qnt_miniscope_distribute ctxt _ t = 
  SMT_Replay_Methods.prove ctxt t (fn _ => (
-    eqsubst_all ctxt @{thms alethe_qnt_miniscope_distribute} (*TODO: Support other case*)
+    debug_rule_tac' ctxt high Qnt_Miniscope_Distribute "start" THEN'
+    REPEAT_CHANGED
+    (
+      K (unfold_tac ctxt @{thms alethe_qnt_miniscope_distribute1 alethe_qnt_miniscope_distribute2})
+      THEN' TRY' (debug_rule_tac' ctxt high Qnt_Miniscope_Distribute "applied lemma")
+    )
+    THEN' debug_rule_tac' ctxt high Qnt_Miniscope_Distribute "after repeating application of lemma"
     THEN' TRY' (resolve_tac ctxt @{thms refl})))
 
 fun qnt_miniscope_split ctxt _ t =

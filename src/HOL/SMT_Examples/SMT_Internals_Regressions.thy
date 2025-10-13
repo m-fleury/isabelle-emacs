@@ -2182,6 +2182,55 @@ lemma nary_elim_2:
   "(t1 = t2) = (t1 = t2)"
   by (ctxt_tactic "nary_elim")
 
+(* Rule 104: miniscope_distribute *)
+(*Note: there isn't a solver that produces the exists case currently*)
+
+lemma miniscope_distribute_all1:
+  "(\<forall>x1::'a. a) = (\<forall>x1::'a. a)"
+  by (ctxt_tactic "qnt_miniscope_distribute")
+
+lemma miniscope_distribute_all2:
+  "(\<forall>x1::'a. (a \<and> b)) = ((\<forall>x1::'a. a) \<and> (\<forall>x1::'a. b))"
+  by (ctxt_tactic "qnt_miniscope_distribute")
+
+lemma miniscope_distribute_all3:
+  "(\<forall>x1::'a. (a \<and> (b \<and> c))) = ((\<forall>x1::'a. a) \<and> (\<forall>x1::'a. b) \<and> (\<forall>x1::'a. c))"
+  by (ctxt_tactic "qnt_miniscope_distribute")
+
+lemma miniscope_distribute_all4:
+  "(\<forall>x1 ::'a. \<forall> x2 ::'a. (a \<and> b)) = ((\<forall>x1::'a. \<forall>x2::'a. a) \<and> (\<forall>x1::'a. \<forall>x2::'a. b))"
+  by (ctxt_tactic "qnt_miniscope_distribute")
+
+lemma miniscope_distribute_all5:
+  "(\<forall>x1::'a. ((x1 = a) \<and> b)) = ((\<forall>x1::'a. x1 = a) \<and> (\<forall>x1::'a. b))"
+  by (ctxt_tactic "qnt_miniscope_distribute")
+
+lemma miniscope_distribute_ex1:
+  "(\<exists>x1::'a. a) = (\<exists>x1::'a. a)"
+  by (ctxt_tactic "qnt_miniscope_distribute")
+
+lemma miniscope_distribute_ex2:
+  "(\<exists>x1::'a. (a \<or> b)) = ((\<exists>x1::'a. a) \<or> (\<exists>x1::'a. b))"
+  by (ctxt_tactic "qnt_miniscope_distribute")
+
+lemma miniscope_distribute_ex3:
+  "(\<exists>x1::'a. (a \<or> (b \<or> c))) = ((\<exists>x1::'a. a) \<or> (\<exists>x1::'a. b) \<or> (\<exists>x1::'a. c))"
+  by (ctxt_tactic "qnt_miniscope_distribute")
+
+lemma miniscope_distribute_ex4:
+  "(\<exists>x1 ::'a. \<exists>x2 ::'a. (a \<or> b)) = ((\<exists>x1::'a. \<exists>x2::'a. a) \<or> (\<exists>x1::'a. \<exists>x2::'a. b))"
+  by (ctxt_tactic "qnt_miniscope_distribute")
+
+lemma miniscope_distribute_ex5:
+  "(\<exists>x1::'a. ((x1 = a) \<or> b)) = ((\<exists>x1::'a. x1 = a) \<or> (\<exists>x1::'a. b))"
+  by (ctxt_tactic "qnt_miniscope_distribute")
+
+(* Rule 105: miniscope_split*)
+(*Note: there isn't a solver that produces the exists case currently*)
+
+
+
+
 
 
 lemma
