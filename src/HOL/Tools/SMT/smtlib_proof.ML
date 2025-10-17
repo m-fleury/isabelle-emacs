@@ -191,7 +191,7 @@ fun apply_parsers parsers x =
           (case parser x of
             SOME y => SOME y
           | NONE => apply parsers)
-  in apply parsers end
+  in apply (rev parsers) end (* This reversal is done to enable overwriting one parser with another. This will lead to the core_term_parser always be called last though even though it seems the most important one... maybe eventually give precedence as an argument?*)
 
 
 (* type and term parsing *)
