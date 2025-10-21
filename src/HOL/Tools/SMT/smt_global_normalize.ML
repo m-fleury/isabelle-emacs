@@ -4,6 +4,72 @@
 
    
    TODO: Make recursions pretty so that the functions can be folded.
+
+We assume that the int has been pushed in as far as possible
+
+E.g.,
+  "(x::nat) = (x::nat)" 
+gets transformed into:
+  "int (x::nat) \<noteq> int x"
+
+E.g.,
+  "(f::nat \<Rightarrow> int) (3::nat) = (5::int)"
+gets transformed into:
+  "(f::nat \<Rightarrow> int) (nat (3::int)) = (5::int)"
+
+E.g.,
+  "(foo::nat \<Rightarrow> nat) 0 = 1" 
+gets transfomed into:
+  int (foo (nat 0)) \<noteq> 1
+
+Recurse term bottom up, maintaining a list of conditions cond.
+The current term should always have the form nat t, where t only contains
+integers and no natural numbers after transformation.
+
+1. For a numerical constants c, if c's type is nat return (nat (c::int)).
+   This should have already happened though (as explained above)...
+   Otherwise, don't change.
+
+2. For variables x, if x's type is nat, obtain new variable lift_x = int x.
+   Return (nat lift_x). Add lift_x \<ge> 0 to cond. 
+   Otherwise, don't change.
+
+3a. If current term has form (nat t) return it unchanged.
+
+3b. For any occurence of int, if the child is a (nat t):
+    int (nat t) simplify to t
+
+4. For any other function f:
+   - If argument t_i has type nat, we know that it has to be of form (nat t_i').
+     Have f t_1 ... t_i ... t_n = f t_1 ... (nat t_i') ... t_n
+     Obtain new function lift_f:
+       \<forall>u1...un. lift_f u1 ... ui ... un = f u1 ... (nat ui) ... un
+     Return lift_f t_1 ... t_i' ... t_n'
+   - If return type is of type nat
+     Obtain new function lift_f:
+       \<forall>u1...un. lift_f u1 ... ui ... un = (int (f u1 ... ui ... un))
+     Return (nat (lift_f t_1' ... t_i' ... t_n')). Add (lift_f t_1' ... t_i' ... t_n') \<ge> 0 to cond.
+   - If both:
+     Obtain new function lift_f:
+       \<forall>u1...un. lift_f u1 ... ui ... un = (int (f u1 ... (nat ui) ... un))
+   -  Otherwise, don't change
+5. For quantifier:
+   Add all conditions
+  
+
+
+
+For each function f
+
+Obtain new function variable
+ 1. \<And>lb0::nat. prime_nat lb0 = lift_prime_nat (int lb0)
+variables:
+    lift_prime_nat :: int \<Rightarrow> bool 
+
+
+
+
+
 *)
 
 signature SMT_GLOBAL_NORMALIZE =
@@ -33,9 +99,13 @@ fun intify_type (Type (str,Ts)) = (Type (intify_type_name str,map intify_type Ts
     intify_type (T as (TVar (idN,_))) =  (@{print}("TODO when does this case occur?",idN);T)
 fun intify_var (Free (str,T)) = Free (str,intify_type T)
 
+val intT = @{typ int}
+val natT = @{typ nat}
+
 fun all_pure_const T = Const ("Pure.all", (T --> @{typ "prop"}) --> @{typ "prop"});
 val nat_cast = @{term "nat::int => nat"}
 val int_cast = @{term "int::nat => int"} 
+val conj = @{term conj}
 
 fun mkLeTerm t = (@{term "Orderings.ord_class.less_eq::int \<Rightarrow> int \<Rightarrow> bool"} $ @{term "0::int"} $ t )
 fun mkGeTerm t = (@{term "Orderings.ord_class.greater_eq::int \<Rightarrow> int \<Rightarrow> bool"} $ t $ @{term "0::int"} )
@@ -91,6 +161,7 @@ fun result2 tac n facts ctxt =
         NONE => raise THM ("Obtain.result: tactic failed", 0, facts)
       | SOME th =>
           Obtain.check_result thesis_ctxt thesis (Raw_Simplifier.norm_hhf thesis_ctxt (Goal.conclude th)));
+  val _ = debug_msg ctxt middle (fn () => \<^print> ("n ",n))
 
     val closed_rule = Thm.forall_intr (Thm.cterm_of ctxt (Free thesis_var)) rule;
     val ((_, [rule']), ctxt') = Variable.import false [closed_rule] ctxt;
@@ -103,20 +174,22 @@ fun result2 tac n facts ctxt =
   in ((params, prems), ctxt'') end;
 
 (*
-Currently, this first shows
- \<exists>lift_foo. \<forall>lb0. foo lb0 = nat (lift_foo (int lb0)) \<and> 0 \<le> lift_foo (int lb0) 
-and then shows
-  \<And>lift_foo. \<forall>lb0. foo lb0 = nat (lift_foo (int lb0)) \<and> 0 \<le> lift_foo (int lb0)
 
-TODO: This should be done in one step instead
+Show:
+  \<And>lift_foo::int \<Rightarrow> int. 
+    \<forall>lb0::int.
+      foo (nat lb0) = nat (lift_foo lb0) \<and> 0 \<le> lift_foo lb0
 
+TODO
 *)
 
 fun obtain_new_variable ctxt new_var_name new_var_cond lambda_term =
 let
   val _ = debug_msg ctxt high (fn () => \<^print> ("Condition for new variable ",new_var_cond))
+  val _ = debug_msg ctxt high (fn () => \<^print> ("lambda_term ",lambda_term))
+  val _ = debug_msg ctxt high (fn () => \<^print> ("new_var_name ",new_var_name))
 
-  val exI_inst = Drule.infer_instantiate' ctxt [NONE,SOME(Thm.cterm_of ctxt lambda_term)] @{thm exI}
+  val exI_inst = Drule.infer_instantiate' ctxt [NONE,SOME(Thm.cterm_of ctxt lambda_term)] @{thm exI} |> @{print}
 
   val ex = Goal.prove ctxt [] [] (\<^make_judgment> new_var_cond)
     (fn {context = ctxt', ...} => 
@@ -136,6 +209,7 @@ let
  THEN (debug_msg_tac ctxt high "should be solved by now") (*THEN HEADGOAL (Skip_Proof.cheat_tac ctxt)*)
    val (res, ctxt1) =
        result2 (tactic_to_obtain) new_var_name [ex] ctxt
+   val _ = debug_msg ctxt1 high (fn () => \<^print> ("res",res))
 
 
    val (x, B) = res |> apfst (snd o the_single) |> apsnd the_single
@@ -147,28 +221,30 @@ in (ctxt1,x,B) end
 
 (*
   For each variable x::nat we want to add (x'::int) and the following theorem:
-    \<exists> x'. x = nat x' \<and> x' \<ge> 0
+    \<exists> x'::int. x = nat x' \<and> x' \<ge> 0
 *)
 fun mk_new_variable ctxt subst x t =
 let
   (*TODO: Check if name is already used first! Not sure if it matters because Isabelle renames, try out*)
   val x' =  "lift_" ^ (Long_Name.base_name x)
-  val new_t = (Free (x',@{typ int}))
-  val new_t_ge_0 = mkLeTerm new_t
-  val x_cond = HOLogic.mk_exists (x',@{typ int},
-               @{term "HOL.conj :: bool => bool \<Rightarrow> bool"}
-             $ (@{term "HOL.eq :: nat => nat \<Rightarrow> bool"} $ t $ (@{term "nat"} $ new_t))
-             $ new_t_ge_0)
-  val _ = debug_msg ctxt low (fn () => \<^print> ("Condition for new variable ",x_cond))
+  val _ = debug_msg ctxt middle (fn () => \<^print> ("x' ",x'))
+
+  val new_t = (Free (x',intT))
+  val new_t_ge_0 = mkLeTerm new_t (*x' \<ge> 0*)
+  val x_cond = HOLogic.mk_exists (x',intT,
+               conj
+             $ (@{term "HOL.eq :: nat => nat \<Rightarrow> bool"} $ t $ (nat_cast $ new_t))
+             $ new_t_ge_0) (*\<exists> x'::int. x = nat x' \<and> x' \<ge> 0*)
+  val _ = debug_msg ctxt middle (fn () => \<^print> ("Condition for new variable ", x_cond))
 
   val (ctxt1,c_x,B) = obtain_new_variable ctxt x' x_cond new_t
+
   val x = Thm.term_of c_x  
   val subst = Termtab.update (t,(c_x,B)) subst
-  val new_t_ge_0_2 = HOLogic.mk_Trueprop (mkLeTerm x)
 
-  val cond =  Drule.infer_instantiate' ctxt [SOME c_x] @{thm nat_0_le}
-  val _ = debug_msg ctxt low (fn () => \<^print> ("cond ",cond))
-in (ctxt1,subst,cond,B) end
+  val ([B1],B2) = split B
+  val _ = debug_msg ctxt middle (fn () => \<^print> ("(B1,B2) ",(B1,B2)))
+in (ctxt1,subst,B1,B) end
 
 fun arg_with_casts (t,a) = (if is_Bound t orelse is_Bound a then a else
   (if fastype_of t = @{typ nat} andalso fastype_of a = @{typ int} then @{term "nat"} $ a else a))
@@ -221,10 +297,14 @@ local
   fun mk_f_xs f xs = list_comb (f, xs)
 
   (* f', [x1, ..., xn] \<mapsto> f' x1' ... xn'*)
-  fun mk_f'_xs' f' xs =
-  let
-    val xs' = map (fn xi => (if is_Bound xi then xi else (if fastype_of xi = @{typ "nat"} then int_cast $ xi else xi))) xs
-  in list_comb (f', xs') end
+  fun mk_f'_xs' f' _ _ [] = [] |
+  mk_f'_xs' f' (T_f1::T_fs) (T_f1'::T_f's) (xi::xs) =
+let
+val _ = @{print}("xi",xi)
+in
+   (if (fastype_of xi <> T_f1') then xi else nat_cast $ xi) :: mk_f'_xs' f' T_fs T_f's xs
+end
+  fun mk_f'_xs'2 f' T_f T_f' xs = let val ys = mk_f'_xs' f' T_f T_f' xs in list_comb (f', ys) end
 
   (* f' x1' ... xn' \<mapsto> g x1' ... xn' *)
   fun mk_g_xs' retNat f'_xs' = (if retNat then nat_cast $ f'_xs' else f'_xs')
@@ -235,14 +315,23 @@ local
      I.e.
        f_xs = g \<and> f'_xs' \<ge> 0       , if retNat
        f_xs = g                     , otherwise
-   *)
+   *)open Term
   fun mk_f_def_ground retNat f f' xs = 
   let
-    val f_xs = mk_f_xs f xs
-    val f'_xs' = mk_f'_xs' f' xs 
+  val _ = @{print}("xs",xs)
+
+    val T_f = fastype_of f |> strip_type |> fst
+    val T_f' = fastype_of f' |> strip_type |> fst
+
+    val f_xs = mk_f'_xs'2 f T_f T_f' xs (*f t_1 ... (nat t_i) ... t_n*)
+  val _ = @{print}("f_xs",f_xs)
+
+    val f'_xs' = mk_f_xs (f') xs
+  val _ = @{print}("f'_xs'",f'_xs')
+
     val g = mk_g_xs' retNat f'_xs'
     val eq_term = HOLogic.mk_eq (f_xs,g)
-  in (if retNat then HOLogic.mk_conj (eq_term,mkGeTerm f'_xs') else eq_term) end
+  in (if retNat then HOLogic.mk_conj (eq_term, Const ("Orderings.ord_class.less_eq", @{typ "int \<Rightarrow> int \<Rightarrow> bool"}) $ @{term "0::int"} $ f'_xs') else eq_term) end
  
 
 
@@ -261,14 +350,16 @@ local
      f, [x1, ..., xn] \<mapsto> (f y1 ... yn), otherwise
     where yi = nat (xi::int), if xi is a nat
           yi = xi, otherwise *)
-  fun mk_nat_f_nat retNat f xs =
+  fun mk_nat_f_nat retNat f T_f T_f' xs =
   let
+    val f_xs = mk_f'_xs'2 f T_f T_f' xs (*f t_1 ... (nat t_i) ... t_n*)
+
     val f_t = mk_nat_f f xs
-  in (if retNat then int_cast $ f_t else f_t) end
+  in (if retNat then int_cast $ f_xs else f_xs) end
 
 
   fun mk_prop_all xi'_name T' H = all_pure_const T' $ absfree (xi'_name,T') H
-  fun mk_hol_all xi'_name T' H = HOLogic.mk_all(xi'_name,T',H)
+  fun mk_hol_all xi'_name T' H = HOLogic.mk_all(xi'_name,intify_type T',H)
   fun mk_lambda xi'_name T' H = absfree (xi'_name,(fn @{typ "nat"} => @{typ "int"} | x => x) T') H
 
   (*Combinator function*)
@@ -284,7 +375,7 @@ local
   let
     (*TODO: Check if name is already used first!*)
     val xi'_name = "lb" ^ Int.toString(k)
-    val xi' = Free(xi'_name,T)
+    val xi' = Free(xi'_name,intify_type T)
   in
     all_fun xi'_name T (mk_forall ground all_fun Ts (k+1) (xi'::US))
   end
@@ -298,8 +389,8 @@ let
   val Tt = fastype_of t
 
   val retNat = (Tt = @{typ nat})
-  val newf = Free(n,T')
-  val _ = debug_msg ctxt middle (fn () => \<^print> ("encountered function ",f, " for the first time. Replace by ",newf))
+  val newf = Free(n,intify_type T')
+  val _ = debug_msg ctxt low (fn () => \<^print> ("encountered function ",f, " for the first time. Replace by ",newf))
   val _ = @{print}("Tts",Tts)
   val _ = @{print}("new_args",new_args)
   val _ = @{print}("ts",ts)
@@ -314,7 +405,7 @@ let
   (*
     \<lambda>x1 ... xn. f y1 ... yn
   *)
-  val lambda_term = mk_forall (mk_nat_f_nat retNat f) mk_lambda Tts 0 [] 
+  val lambda_term = mk_forall (mk_nat_f_nat retNat f (strip_type T'|>fst) (strip_type T' |> fst) ) mk_lambda Tts 0 [] 
   (*val _ = debug_msg ctxt middle (fn () => \<^print> ("lambda_term ",lambda_term))*)
 
   (*
@@ -322,15 +413,16 @@ let
     \<exists>f'. \<forall>x1...xn. f x1' ... xn' = (f' x1' ... xn')
   *)
   val f_cond = HOLogic.mk_exists (n,T',forall_term)
-  val n' =  "lift_" ^ (Long_Name.base_name n)
+  val n' =  (Long_Name.base_name n)
+  val _ = debug_msg ctxt middle (fn () => \<^print> ("n' ",n'))
 
   val (ctxt1,x,B) = obtain_new_variable ctxt n' f_cond lambda_term
   
   (* Now show:
-       f ?x1' ... ?xn' = (nat (f' ?x1' ... ?xn')) \<and> (f' ?x1' ... ?xn') \<ge> 0
-       f ?x1' ... ?xn' = (f' ?x1' ... ?xn')
-     where ?xi' = nat ?xi if ?xi is a nat otherwise ?xi *)
-  val goal = (mk_forall (HOLogic.mk_Trueprop o (mk_f_def_ground retNat f (Thm.term_of x))) mk_prop_all Tts 0 [])
+       f ?x1'' ... ?xn'' = (nat (f' ?x1' ... ?xn')) \<and> (f' ?x1' ... ?xn') \<ge> 0
+       f ?x1'' ... ?xn'' = (f' ?x1' ... ?xn')
+     where ?xi'' = nat ?xi' if ?xi is a nat otherwise ?xi *)
+  val goal = (mk_forall (HOLogic.mk_Trueprop o (mk_f_def_ground retNat f (Thm.term_of x))) mk_prop_all (map intify_type Tts) 0 [])|> @{print}
   val goal_thm = Goal.prove ctxt1 [] [] goal (fn {context: Proof.context, ...}  => 
       print_tac context "Obtain new function variable" 
       THEN (unfold_tac context [@{thm atomize_all}])
@@ -354,7 +446,7 @@ fun inst_function_thm ctxt ts goal_thm =
 let
    val _ = debug_msg ctxt low (fn () => \<^print> ("goal_thm ",goal_thm))
    val _ = debug_msg ctxt low (fn () => \<^print> ("ts ",ts))
-  val ts' = (map (try (Thm.cterm_of ctxt)) ts)
+  val ts' = (map (try (Thm.cterm_of ctxt)) (map (fn Const ("Int.nat", @{typ "int \<Rightarrow> nat"}) $ t => t) ts))
   val B' = Drule.infer_instantiate' ctxt ts' goal_thm
   val _ = debug_msg ctxt middle (fn () => \<^print> ("Instantiated already existing theorem for current term ",B'))
   (*Only need to split if return type is nat*)
@@ -379,29 +471,8 @@ let
     val _ = debug_msg ctxt middle (fn () => \<^print> ("args_with_casts",args_with_casts))
     val _ = debug_msg ctxt middle (fn () => \<^print> ("ts",ts))
 
-fun arg_with_casts2 a = (if is_Bound a then a else
-  (if fastype_of a = @{typ nat} then @{term "int"} $ a else a))
-  val args_with_casts2' = map arg_with_casts2 ts
 
-    val _ = debug_msg ctxt middle (fn () => \<^print> ("args_with_casts2",args_with_casts2'))
-
-val y = (Thm.cterm_of ctxt (Term.list_comb (Thm.term_of x, args_with_casts2')))
-    val _ = debug_msg ctxt middle (fn () => \<^print> ("y",y))
-
-   val B_alpha' = if length B1 = 0 then [] else
- [Drule.infer_instantiate' ctxt [SOME y] @{thm nat_0_le}]
-
-    val _ = debug_msg ctxt middle (fn () => \<^print> ("(B_alpha')",B_alpha'))
-
-   val B_alpha'' = if length B1 = 0 then []
-  else [atomize_eq_thm ctxt (Thm.implies_elim (hd B_alpha') (hd B1))]
-
-    val _ = debug_msg ctxt middle (fn () => \<^print> ("(B_alpha'')",B_alpha''))
-
-
-
-
-in   (B1,B2,B_alpha'') end
+in   (B1,B2) end
 (*("B_alpha'",
  "0 \<le> (fa__::int \<Rightarrow> int) (int (nat (3::int))) \<Longrightarrow>
   int (nat (fa__ (int (nat (3::int))))) =
@@ -503,15 +574,18 @@ in
    (case Termtab.lookup subst t of
     NONE =>
      let
-       val _ = debug_msg ctxt high (fn () => \<^print> ("current term is free variable t of type nat" 
+(*lift_x = int x.
+   Return (nat lift_x). Add lift_x \<ge> 0 to cond. *)
+       val _ = debug_msg ctxt low (fn () => \<^print> ("current term is free variable t of type nat" 
          ^ " that has not been encountered yet: ",t))
        val (ctxt1,subst1,cond,B) = mk_new_variable ctxt subst x t
        val _ = debug_msg ctxt middle (fn () => \<^print> ("cond compare",cond))
+       val _ = debug_msg ctxt middle (fn () => \<^print> ("B",B))(* "(x::nat) = nat (lift_x__::int) \<and> 0 \<le> lift_x__"*)
 
     in (subst1,ctxt1,cond,B) end
   | (SOME (t',B)) => 
       let
-        val _ = debug_msg ctxt high (fn () => \<^print> ("current term is free variable t of type nat" 
+        val _ = debug_msg ctxt middle (fn () => \<^print> ("current term is free variable t of type nat" 
           ^ " that has already been encountered: ",t'))
         val cond =  Drule.infer_instantiate' ctxt [SOME t'] @{thm nat_0_le} (*TODO*)
        val _ = debug_msg ctxt middle (fn () => \<^print> ("cond compare",cond))
@@ -519,13 +593,13 @@ in
     in (subst,ctxt,cond,B) end
      ) 
    val ([ge_cond],lift_def) = mk_cond ctxt B
-       val nat_int_lemma = Thm.implies_elim cond ge_cond
-       val _ = debug_msg ctxt middle (fn () => \<^print> ("lift_def",lift_def))
+       (*val nat_int_lemma = Thm.implies_elim cond ge_cond*)
+       val _ = debug_msg ctxt middle (fn () => \<^print> ("lift_def",lift_def)) (*"x::nat \<equiv> nat (lift_x__::int)"*)
        val _ = debug_msg ctxt middle (fn () => \<^print> ("ge_cond",ge_cond))
-       val _ = debug_msg ctxt middle (fn () => \<^print> ("nat_int_lemma",nat_int_lemma))
-        val nat_int_lemma = (atomize_eq_thm ctxt1) nat_int_lemma
+      (* val _ = debug_msg ctxt middle (fn () => \<^print> ("nat_int_lemma",nat_int_lemma))
+        val nat_int_lemma = (atomize_eq_thm ctxt1) nat_int_lemma*)
 
-   in ((fn r => (subst1,ctxt1,[ge_cond],[nat_int_lemma],(Conv.top_rewrs_conv [lift_def] ctxt) r))) end
+   in ((fn r => (subst1,ctxt1,[ge_cond],[],(Conv.top_rewrs_conv [lift_def] ctxt) r))) end
 |
  _ =>
    let
@@ -551,54 +625,59 @@ transform2_function subst ctxt f n n' Ts ts Tts T T' t = (*Function only here to
   let
     val _ = debug_msg ctxt high (fn () => \<^print> ("current term is a numeral, so we skip it",f))
   in custom_no_conv ctxt subst end
-  else if n = "Int.nat"
-  then
-    (case ts of
-      [Const ("Groups.zero_class.zero",_)] => (fn r => (subst,ctxt,[],[@{thm SMT.H1(1)}],Conv.all_conv r))
-    | [Const ("Groups.zero_class.one",_)] => (fn r => (subst,ctxt,[],[@{thm SMT.H1(2)}],Conv.all_conv r))
-    | [Const ("Num.numeral_class.numeral", _) $ t1]
-      => (fn r => (subst,ctxt,[],[Drule.infer_instantiate' ctxt [SOME (Thm.cterm_of ctxt t1)] @{thm alethe_nat_embedding2}],Conv.all_conv r))
-    | _ => custom_no_conv ctxt subst)
-  else if  n = "Nat.semiring_1_class.of_nat"
-    orelse n = "Int.nat" then
+  else if n = "Int.nat" then
   let
-    val _ = debug_msg ctxt high (fn () => \<^print> ("current term is a conversion, so we skip it",t))
-  in custom_no_conv ctxt subst end
+    val _ = debug_msg ctxt high (fn () => \<^print> ("current term is a cast from int to nat if its child is a cast from nat to int, resolve it",t))
+    val nat_int_thm' = Drule.infer_instantiate' ctxt [SOME (Thm.cterm_of ctxt t)] (atomize_eq_thm ctxt @{thm nat_int}) |> @{print}
+  in  (fn r => (subst,ctxt,[], [],Conv.top_sweep_rewrs_conv [nat_int_thm'] ctxt r)) end
+  else if n = "Nat.semiring_1_class.of_nat" then
+  let
+    val _ = debug_msg ctxt high (fn () => \<^print> ("current term is a cast from nat to int. If its child is a cast from nat to int we know that we can delete the casts",t))
+    val _ = debug_msg ctxt high (fn () => \<^print> ("ts",ts))
+    (*Const ("Nat.semiring_1_class.of_nat", "nat \<Rightarrow> int") $
+   (Const ("Int.nat", "int \<Rightarrow> nat") $
+     Free ("lift_x__",
+           "int")))*)
 
-  else if SMT_Builtin.is_builtin_fun ctxt (n,Ts) ts
-    orelse SMT_Builtin.is_builtin_fun_ext ctxt (n,Ts) ts
-    orelse n = "Nat.semiring_1_class.of_nat"
-    orelse n = "Int.nat" then
-  let
-    val _ = debug_msg ctxt high (fn () => \<^print> ("current term is a builtin, so we skip it",f))
-  in custom_no_conv ctxt subst end
+    val _ = debug_msg ctxt high (fn () => \<^print> ("hd ts",hd ts))
+    val t = case (hd ts) of Const ("Int.nat", @{typ "int \<Rightarrow> nat"})$ t => t | t => t
+    val _ = debug_msg ctxt high (fn () => \<^print> ("t",t))
+
+    val thm_int_nat = Drule.infer_instantiate' ctxt [SOME (Thm.cterm_of ctxt t)] @{thm H_nat_embedding'} |> atomize_eq_thm ctxt
+    val _ = debug_msg ctxt high (fn () => \<^print> ("thm_int_nat",thm_int_nat|> Thm.cprop_of |> Thm.term_of))
+    val ass = Thm.assume (Thm.apply @{cterm Trueprop} (Thm.cterm_of ctxt ( Const ("Orderings.ord_class.less_eq", @{typ "int \<Rightarrow> int \<Rightarrow> bool"}) $ @{term "0::int"} $ t)))
+    val _ = debug_msg ctxt high (fn () => \<^print> ("ass",ass |> Thm.cprop_of |> Thm.term_of))
+    val thm3 = Thm.implies_elim thm_int_nat ass
+    val _ = debug_msg ctxt high (fn () => \<^print> ("thm3",thm3 ))
+
+  in (fn r => (subst,ctxt,[], [],Conv.top_sweep_rewrs_conv [thm3] ctxt r))  end
   else if T = T' then
   let
-    val _ = debug_msg ctxt high (fn () => \<^print> ("the type of the current term has no nats in it, so we skip it",f))
-  in custom_no_conv ctxt subst end     
+    val _ = debug_msg ctxt high (fn () => \<^print> ("current term is a function that does not take or return nats, skip it",t))
+  in custom_no_conv ctxt subst end
   else
   let
     val (ctxt1,subst,x,goal_thm) = 
     (case Termtab.lookup subst f of
       NONE =>
       let
-        val _ = debug_msg ctxt middle (fn () => \<^print> ("current term is a function f that has not been encountered yet ",t))
-        val (ctxt1,subst,x,goal_thm) = mk_new_fun subst t ts n T' ts Tts f ctxt
+        val _ = debug_msg ctxt low (fn () => \<^print> ("current term is a function f that has not been encountered yet ",(t,T')))
+        val (ctxt1,subst,x,goal_thm) = mk_new_fun subst t ts ("lift_" ^ n) T' ts Tts f ctxt
       in (ctxt1,subst,x,goal_thm) end |
       SOME (ct',B) => (ctxt, subst,ct', B)
     )
-    val _ = debug_msg ctxt1 middle (fn () => \<^print> ("goal_thm",goal_thm))
+    val _ = debug_msg ctxt1 middle (fn () => \<^print> ("goal_thm",goal_thm)) (* "foo2 (?lb0.0::nat) = (lift_foo2__::int \<Rightarrow> int) (int ?lb0.0)"*)
 
-    val (ge_cond,lift_def,nat_int_lemma) = mk_new_fun2 ts Tts f ctxt1 x goal_thm
+    val (ge_cond,lift_def) = mk_new_fun2 ts Tts f ctxt1 x goal_thm
     val _ = debug_msg ctxt1 middle (fn () => \<^print> ("lift_def",lift_def))
     val _ = debug_msg ctxt1 middle (fn () => \<^print> ("ge_cond",ge_cond))
 
         val _ = debug_msg ctxt1 middle (fn () => \<^print> ("x",x))
 
 
-        val _ = debug_msg ctxt1 middle (fn () => \<^print> ("nat_int_lemma",nat_int_lemma))
-        val nat_int_lemma = map (atomize_eq_thm ctxt1) nat_int_lemma
-      in (fn r => (subst,ctxt1,ge_cond,nat_int_lemma,
+        (*val _ = debug_msg ctxt1 middle (fn () => \<^print> ("nat_int_lemma",nat_int_lemma))
+        val nat_int_lemma = map (atomize_eq_thm ctxt1) nat_int_lemma*)
+      in (fn r => (subst,ctxt1,ge_cond,[],
 (then_conv2
 
   (fn x1 => (Conv.top_rewrs_conv [lift_def] ctxt1) (x1 |> @{print})
@@ -871,6 +950,7 @@ in
     (* "\<forall>x::nat. P (int x) \<equiv> \<forall>x::int. P' x" *)
     val thm23' = Thm.transitive qnt_original_unfold_nat_int_bound_var thm23'
     val _ = debug_msg ctxt1 high (fn () => \<^print> ("Body of quantified term was transformed to:",thm23'))
+    val _ = debug_msg ctxt high (fn () => \<^print> ("Transformed current: ",thm23'))
 
 
  in (tab1,ctxt1,[],[],thm23') end |
@@ -902,10 +982,11 @@ _ =>
 
     (*Transform current*)
     val (tab2,ctxt2,curr_ge_cond,curr_nat_int_lemma,thm_curr) = ccv' tab1 ctxt1 (Thm.rhs_of thm_children)
-    val _ = debug_msg ctxt high (fn () => \<^print> ("Transformed current: ",thm_curr))
+    val _ = debug_msg ctxt high (fn () => \<^print> ("thm_curr: ",thm_curr))
 
     val thm = Thm.transitive thm_children thm_curr
     val _ = debug_msg ctxt high (fn () => \<^print> ("Combine current and children: ",thm))
+    val _ = debug_msg ctxt low (fn () => \<^print> ("Transformed current (old,new): ",(Thm.lhs_of thm,Thm.rhs_of thm)))
 
     in (tab2,ctxt2,ocond @ args_ge_cond @ curr_ge_cond,cond @ curr_nat_int_lemma @ args_nat_int_lemma,thm) end)
  end 
