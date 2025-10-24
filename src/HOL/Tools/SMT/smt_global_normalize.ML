@@ -227,7 +227,7 @@ and
 
 (*Mostly copied from Obtain.result except for call to Variable.focus_cterm (we want to name the new
 variable ourselves *)
-fun result2 tac n facts ctxt =
+fun obtain_new_var tac n facts ctxt =
   let
     val ((thesis_var, thesis), thesis_ctxt) = Obtain.obtain_thesis ctxt;
     val st = Goal.init (Thm.cterm_of ctxt thesis);
@@ -269,33 +269,30 @@ let
              $ (@{term "HOL.eq :: nat => nat \<Rightarrow> bool"} $ t $ (nat_cast $ t'))
              $ mkLeTerm t') (*\<exists> x'::int. x = nat x' \<and> x' \<ge> 0*)
   val _ = debug_msg ctxt middle (fn () => \<^print> ("New variable is defined by", x'_def))
-  val exI_inst = Drule.infer_instantiate' ctxt [NONE,SOME(Thm.cterm_of ctxt t')] @{thm exI}
-  val x'_ex = Goal.prove ctxt [] [] (\<^make_judgment> x'_def)
+
+  val x'_ex_thm = Goal.prove ctxt [] [] (\<^make_judgment> x'_def)
     (fn {context = ctxt', ...} => 
-          (debug_msg_tac ctxt' high "needs to be shown to obtain new variable") THEN
+      (debug_msg_tac ctxt' high "needs to be shown to obtain new variable") THEN
       (HEADGOAL (resolve_tac ctxt' [@{thm alethe_nat_embedding}])
-      ORELSE 
-        (HEADGOAL (resolve_tac ctxt' [exI_inst])
-        THEN (unfold_tac ctxt' [@{thm nat_int}])
-        THEN (unfold_tac ctxt' [@{thm of_nat_0_le_iff},@{thm simp_thms(6)},@{thm simp_thms(22)},@{thm simp_thms(35)}])
-        )
-      )
       THEN(debug_msg_tac ctxt' high "should be solved by now"))
-   val _ = debug_msg ctxt high (fn () => \<^print> ("x' exists: ",x'_ex))
 
-   fun tactic_to_obtain ctxt = (debug_msg_tac ctxt high "extract new variable")
-     THEN  HEADGOAL (eresolve_tac ctxt @{thms exE})
-     THEN (debug_msg_tac ctxt high "should be solved by now")
-   val (x'_thm, ctxt1) = result2 (tactic_to_obtain) x'_name [x'_ex] ctxt
-   val _ = debug_msg ctxt1 high (fn () => \<^print> ("obtained a new lifted variable",x'_thm))
+    )
+  val _ = debug_msg ctxt high (fn () => \<^print> ("thm that x' exists: ",x'_ex_thm))
 
-   val (x', x'_thm_def) = x'_thm |> apfst (snd o the_single) |> apsnd the_single
+  fun tactic_to_obtain ctxt = (debug_msg_tac ctxt high "extract new variable")
+    THEN  HEADGOAL (eresolve_tac ctxt @{thms exE})
+    THEN (debug_msg_tac ctxt high "should be solved by now")
+
+  val (x'_thm, ctxt1) = obtain_new_var tactic_to_obtain x'_name [x'_ex_thm] ctxt
+  val _ = debug_msg ctxt1 high (fn () => \<^print> ("obtained a new lifted variable",x'_thm))
+
+  val (x', x'_thm_def) = x'_thm |> apfst (snd o the_single) |> apsnd the_single
      handle List.Empty => raise (SMT_GLOBAL_NORMALIZE "Could not obtain all lifted variables") 
      handle Match => raise (SMT_GLOBAL_NORMALIZE "Could not obtain all lifted variables")
 
-   val _ = debug_msg ctxt1 high (fn () => \<^print> ("Obtained new variable ",x'," defined by ",x'_thm_def))
+  val _ = debug_msg ctxt1 high (fn () => \<^print> ("Obtained new variable ",x'," defined by ",x'_thm_def))
 
-  val ([x'_ge_0],x'_def) = split x'_thm_def
+  val ([x'_ge_0],x'_def) = split x'_thm_def  (*TODO: Maybe make ge condition an option type instead of a list *)
   val x'_def = atomize_eq_thm ctxt1 x'_def
   val _ = debug_msg ctxt middle (fn () => \<^print> ("(x'_def,x'_ge_0) ",(x'_def,x'_ge_0)))
 in (ctxt1,x',(x'_def,[x'_ge_0])) end
@@ -423,9 +420,9 @@ let
   val _ = debug_msg ctxt middle (fn () => \<^print> ("New function is defined by", x'_def))
 
   (*The lambda term is needed for the proof*)
-  val lambda_term = mk_forall (mk_f_xs'_total f t') mk_lambda ts_T 0 [] 
+  val lambda_term = mk_forall (mk_f_xs'_total f t') mk_lambda ts_T 0 [] |> Thm.cterm_of ctxt
 
-  val exI_inst = Drule.infer_instantiate' ctxt [NONE,SOME(Thm.cterm_of ctxt t')] @{thm exI}
+  val exI_inst = Drule.infer_instantiate' ctxt [NONE,SOME lambda_term] @{thm exI}
   val _ = debug_msg ctxt middle (fn () => \<^print> ("exI_inst", exI_inst))
 
   val x'_ex = Goal.prove ctxt [] [] (\<^make_judgment> x'_def)
@@ -448,7 +445,7 @@ let
    fun tactic_to_obtain ctxt = (debug_msg_tac ctxt high "extract new variable")
      THEN  HEADGOAL (eresolve_tac ctxt @{thms exE})
      THEN (debug_msg_tac ctxt high "should be solved by now") (*THEN HEADGOAL (Skip_Proof.cheat_tac ctxt)*)
-   val (x'_thm, ctxt1) = result2 (tactic_to_obtain) f'_name [x'_ex] ctxt
+   val (x'_thm, ctxt1) = obtain_new_var (tactic_to_obtain) f'_name [x'_ex] ctxt
    val _ = debug_msg ctxt1 high (fn () => \<^print> ("obtained a new lifted variable",x'_thm))
 
    val (x', x'_thm_def) = x'_thm |> apfst (snd o the_single) |> apsnd the_single
@@ -501,14 +498,14 @@ fun transform_function ctxt subst t f f_name ts f_T f'_T =
      | Const ("Int.nat", @{typ "int \<Rightarrow> nat"})$ t1 =>
      let
       val _ = debug_msg ctxt high (fn () => \<^print> (" (t1 |> strip_comb |> fst)", (t1 |> strip_comb |> fst)))
-      fun search_for_value [] = NONE |
+      fun search_for_value [] = NONE | (*TODO: Restructure table so that both old and new name form the key*)
          search_for_value ((_,(a,(b,c)))::xs) = if (Thm.term_of a = (t1 |> strip_comb |> fst |> @{print})) then SOME c else search_for_value xs
       val t_thms = search_for_value (Termtab.dest subst)
       val _ = debug_msg ctxt high (fn () => \<^print> ("(Termtab.dest subst) ",(Termtab.dest subst) ))
      in
       case t_thms of
         NONE => (*We can only add an if-then-else lemma*)
-        (fn r => (subst,ctxt,[],Conv.top_sweep_rewrs_conv [Drule.infer_instantiate' ctxt [SOME (Thm.cterm_of ctxt t1)] @{thm int_nat_eq}|> atomize_eq_thm ctxt |> @{print}] ctxt r)) 
+        (fn r => (subst,ctxt,[],Conv.rewr_conv (@{thm int_nat_eq [THEN eq_reflection]}) r)) 
     | SOME t_thms => 
         let
           val _ = debug_msg ctxt high (fn () => \<^print> ("t1",t1))
@@ -600,6 +597,23 @@ in
 end
 
 
+fun add_conds ctxt ge_conds thm cthm =
+
+  if length ge_conds = 0 then thm else
+  let
+    fun mk_and [x] = x |
+        mk_and (x::xs) = (@{thm HOL.conjI} OF [x]) OF ([mk_and xs])
+    val ge_conds = mk_and ge_conds
+    val _ = @{print}("ge_cond with and in between them",ge_conds)
+    val (_,[thm_lhs_without_Trueprop]) = Drule.strip_comb (Thm.lhs_of thm)
+    val (_,[thm_rhs_without_Trueprop]) = Drule.strip_comb (Thm.rhs_of thm)
+
+    val trans_lemma =   @{lemma "A \<Longrightarrow> ( (Trueprop B) \<equiv> Trueprop C) \<Longrightarrow> ((Trueprop B) \<equiv> Trueprop(A \<and> C))" by simp}
+    val uuu = trans_lemma OF [ge_conds]
+    val uuu2 = uuu OF [thm]
+       
+in uuu2 end
+
 
 
 
@@ -684,7 +698,7 @@ let
  THEN  HEADGOAL (eresolve_tac ctxt @{thms exE})
  THEN (debug_msg_tac ctxt high "should be solved by now") (*THEN HEADGOAL (Skip_Proof.cheat_tac ctxt)*)
    val (res, ctxt1) =
-       result2 (tactic_to_obtain) new_var_name [ex] ctxt
+       obtain_new_var (tactic_to_obtain) new_var_name [ex] ctxt
    val _ = debug_msg ctxt1 high (fn () => \<^print> ("res",res))
 
 
@@ -1119,32 +1133,6 @@ fun else_conv2 ccv1' ccv2' tab ctxt ct =
       | TERM _ => ccv2' tab ctxt ct
       | TYPE _ => ccv2' tab ctxt ct);
 
-fun add_conds ctxt int_nat_conds ge_conds thm cthm =
-
-      if length ge_conds = 0 then thm else
-      let
-        fun mk_and [x] = x |
-           mk_and (x::xs) = (@{thm HOL.conjI} OF [x]) OF ([mk_and xs])
-        val ge_conds = mk_and ge_conds
-        val _ = @{print}("ge_cond",ge_conds)
-        val (_,[thm_unfolded_nat_int'_lhs]) = Drule.strip_comb (Thm.lhs_of thm)
-        val (_,[thm_unfolded_nat_int'_rhs]) = Drule.strip_comb (Thm.rhs_of thm)
-
-        val temp2 = Drule.infer_instantiate' ctxt [NONE,SOME thm_unfolded_nat_int'_lhs,SOME thm_unfolded_nat_int'_rhs]
-          @{lemma "A \<Longrightarrow> ( (Trueprop B) \<equiv> Trueprop C) \<Longrightarrow> ((Trueprop B) \<equiv> Trueprop(A \<and> C))" by simp}
-     val _ = @{print}("temp2",temp2)
-
-        val temp3 = temp2 OF [ge_conds]
-     val _ = @{print}("temp3",temp3 |> Thm.concl_of)
-     val _ = @{print}("thm_unfolded_nat_int'",thm|> Thm.concl_of)
-
-        val temp4 = Thm.implies_elim temp3 thm
-
-     val _ = @{print}("temp4",temp4)
-
-       
-      in temp4 end
-
 fun arg_conv ccv ct =
 let
   val (ct1,cts) = Drule.strip_comb ct 
@@ -1421,11 +1409,10 @@ fun unfold_test cthm ((ctxt,thms,mapping) :test)  =
    val _ = debug_msg ctxt low (fn () => \<^print> ("current transformed thm",thm))
 
 
-   val ge_conds = distinct (fn (a,b) => Thm.prop_of a = Thm.prop_of b) ge_conds
-   val _ = debug_msg ctxt low (fn () => \<^print> ("current transformed thm with unfolded int_nat_conds",thm))
+   val ge_conds = distinct (fn (a,b) => Thm.prop_of a = Thm.prop_of b) ge_conds (*TODO: Solve earlier*)
    val _ = debug_msg ctxt low (fn () => \<^print> ("obtained greater equal conditions",ge_conds))
 
-   val thms'' = add_conds ctxt1 [] ge_conds thm cthm 
+   val thms'' = add_conds ctxt1 ge_conds thm cthm 
    val _ = debug_msg ctxt low (fn () => \<^print> ("added greater equal conditions",thms''))
    val _ = debug_msg ctxt low (fn () => \<^print> ("cthm",cthm))
 
