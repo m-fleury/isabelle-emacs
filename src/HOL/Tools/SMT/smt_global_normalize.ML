@@ -354,6 +354,18 @@ local
   end
 
 
+ fun mk_f_xs'_total f f' xs = 
+  let
+    val (xs_T,f_T) = fastype_of f |> strip_type
+
+    val retNat = isNat f_T
+    val f'_T = fastype_of f' |> strip_type |> fst
+
+    val f_xs' = mk_f_xs' f xs_T xs (*f t_1 ... (nat t_i) ... t_n*)
+    val _ = @{print}("f x1' ... xn'",f_xs')
+  in f_xs' end
+
+
   (* f, f', [x1, ..., xn] to one of the following
        f x1' ... xn' = (nat (f' x1 ... xn)) \<and> (f' x1 ... xn) \<ge> 0, if retNat
        f x1' ... xn' = (f' x1 ... xn)                              , otherwise
@@ -382,12 +394,12 @@ local
   else eq_term) end
  
   fun mk_hol_all xi'_name T' H = HOLogic.mk_all(xi'_name,intify_type T',H)
-
+  fun mk_lambda xi'_name T' H = absfree (xi'_name,(fn @{typ "nat"} => @{typ "int"} | x => x) T') H
   fun mk_prop_all xi'_name T' H = all_pure_const T' $ absfree (xi'_name,T') H
 
 
 in
-fun mk_new_fun ctxt f f_name ts_T = (*TODO: Just copied from variable for now*)
+fun mk_new_fun ctxt f f_name ts_T =
 let
   (*TODO: Check if name is already used first! Not sure if it matters because Isabelle renames, try out*)
   val f'_name =  "lift_" ^ (Long_Name.base_name f_name)
@@ -409,14 +421,28 @@ let
   (*Show that lifted function exists*)
   val x'_def = HOLogic.mk_exists (f'_name,f'_T,forall_term)
   val _ = debug_msg ctxt middle (fn () => \<^print> ("New function is defined by", x'_def))
+
+  (*The lambda term is needed for the proof*)
+  val lambda_term = mk_forall (mk_f_xs'_total f t') mk_lambda ts_T 0 [] 
+
   val exI_inst = Drule.infer_instantiate' ctxt [NONE,SOME(Thm.cterm_of ctxt t')] @{thm exI}
+  val _ = debug_msg ctxt middle (fn () => \<^print> ("exI_inst", exI_inst))
+
   val x'_ex = Goal.prove ctxt [] [] (\<^make_judgment> x'_def)
     (fn {context = ctxt', ...} => 
-          (debug_msg_tac ctxt' high "needs to be shown to obtain new variable") THEN
-      (HEADGOAL (Skip_Proof.cheat_tac ctxt)
-      
+          (debug_msg_tac ctxt' high "needs to be shown to obtain new variablejj") THEN
+     (
+        (HEADGOAL (resolve_tac ctxt' [exI_inst])
+      THEN(debug_msg_tac ctxt' high "s1w4")
+
+        THEN (HEADGOAL (resolve_tac ctxt' [@{thm allI}]))
+      THEN(debug_msg_tac ctxt' high "s1w5")
+
+        THEN (unfold_tac ctxt' [@{thm of_nat_0_le_iff},@{thm simp_thms(6)},@{thm simp_thms(22)},@{thm simp_thms(35)}])
+        )
       )
-      THEN(debug_msg_tac ctxt' high "should be solved by now"))
+      THEN(debug_msg_tac ctxt' high "should be solved by now")
+      )
    val _ = debug_msg ctxt high (fn () => \<^print> ("x' exists: ",x'_ex))
 
    fun tactic_to_obtain ctxt = (debug_msg_tac ctxt high "extract new variable")
