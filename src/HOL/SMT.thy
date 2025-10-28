@@ -1280,16 +1280,5 @@ lemma "True"
   supply[[smt_trace]]
   apply (smt (cvc5_proof))
   done
-ML \<open>
-fun core_term_parser' (SMTLIB.Sym "true", _) = SOME \<^Const>\<open>False\<close> |
-core_term_parser' _ = NONE
-
-val _ = Theory.setup (Context.theory_map (
-  SMTLIB_Proof.add_term_parser core_term_parser')
-)
-\<close>
-lemma "True"
-  supply[[smt_trace]]
-  apply (smt (z3))
 
 end
