@@ -176,11 +176,12 @@ val isNat = (curry (op =)) @{typ nat}
 
 fun all_pure_const T = Const ("Pure.all", (T --> @{typ "prop"}) --> @{typ "prop"});
 val nat_cast = @{term "nat::int => nat"}
+val int_cast = @{term "int::nat => int"}
 val conj = @{term conj}
 
 fun mkLeTerm t = (@{term "Orderings.ord_class.less_eq::int \<Rightarrow> int \<Rightarrow> bool"} $ @{term "0::int"} $ t )
 
-fun split B = (SOME (@{thm conjunct2} OF [B]), @{thm conjunct1} OF [B])
+fun split B = (SOME (@{thm conjunct1} OF [B]), @{thm conjunct2} OF [B])
   handle (THM _) => (NONE,B)
 
 fun split_lift_cond B = 
@@ -235,8 +236,9 @@ let
   (*Show that lifted variable exists*)
   val x'_def = HOLogic.mk_exists (x'_name,intT,
                conj
+             $ mkLeTerm t'
              $ (@{term "HOL.eq :: nat => nat \<Rightarrow> bool"} $ t $ (nat_cast $ t'))
-             $ mkLeTerm t') (*\<exists> x'::int. x = nat x' \<and> x' \<ge> 0*)
+             ) (*\<exists> x'::int. x' \<ge> 0 \<and> x = nat x'*)
   val _ = debug_msg ctxt middle (fn () => \<^print> ("New variable is defined by", x'_def))
 
   val x'_ex_thm = Goal.prove ctxt [] [] (\<^make_judgment> x'_def)
@@ -393,7 +395,7 @@ local
 
     val f_xs = list_comb(f,mk_f_xs'_h xs_T xs)
     val _ = @{print}("f_xs",f_xs)
-    val f_xs = if retNat then f_xs else f_xs (*TODO*)
+    val f_xs = if retNat then int_cast $ f_xs else f_xs (*TODO*)
   in f_xs end
 
 
@@ -409,9 +411,8 @@ let
 
   val t'_T = intify_type t_T
   val (ts'_T,f'_T) = t'_T |> strip_type
-  val f' = if is_Free f then (Free (f'_name,t'_T)) else (Const (f'_name,t'_T))
+  val f' = (Free (f'_name,t'_T)) (*Note, even if original is const, the new variable needs to be free!*)
   val _ = debug_msg ctxt middle (fn () => \<^print> ("(variable, lifted variable)",(f,f')))
-
 
   (*
     \<forall>lb0::int ... lbn. f lb0 ... lbn = nat(f' u1' ... un') \<and> f' u1' ... un' \<ge> 0  or
@@ -420,11 +421,11 @@ let
   *)
   val ground = mk_f_def_ground f f'
   val forall_term = mk_forall ground mk_hol_all ts'_T
-  val _ = debug_msg ctxt middle (fn () => \<^print> ("forall_term",Thm.cterm_of ctxt forall_term))
+  val _ = debug_msg ctxt middle (fn () => \<^print> ("forall_term", forall_term))
 
   (*Show that lifted function exists*)
   val x'_def = HOLogic.mk_exists (f'_name,t'_T,forall_term) (*Same as forall_term but with \<exists>f' in front of it*)
-  val _ = debug_msg ctxt middle (fn () => \<^print> ("New function is defined by", Thm.cterm_of ctxt x'_def))
+  val _ = debug_msg ctxt middle (fn () => \<^print> ("New function is defined by", x'_def))
 
   (*The lambda term is needed for the proof*)
   val lambda_term = absfree (f'_name,t'_T) forall_term (*Same as forall_term but with \<lambda>f' in front of it*)
@@ -478,8 +479,16 @@ und nat_int solved das andere goal
 
         THEN (HEADGOAL (resolve_tac ctxt' [@{thm allI}]))
       THEN(debug_msg_tac ctxt' high "s1w5")
+        THEN TRY (HEADGOAL (resolve_tac ctxt' [@{thm conjI}]))
+      THEN(debug_msg_tac ctxt' high "s1w5")
 
-        THEN (unfold_tac ctxt' [@{thm of_nat_0_le_iff},@{thm simp_thms(6)},@{thm simp_thms(22)},@{thm simp_thms(35)}])
+        THEN TRY (unfold_tac ctxt' [@{thm of_nat_0_le_iff},@{thm simp_thms(6)},@{thm simp_thms(22)},@{thm simp_thms(35)}])
+      THEN(debug_msg_tac ctxt' high "s1w6")
+        THEN TRY (HEADGOAL (resolve_tac ctxt' [@{thm refl}]))
+
+        THEN TRY (HEADGOAL (resolve_tac ctxt' [@{thm nat_int[symmetric]}]))
+      THEN(debug_msg_tac ctxt' high "s1w7")
+
         )
       )
       THEN(debug_msg_tac ctxt' high "should be solved by now")
@@ -502,10 +511,14 @@ und nat_int solved das andere goal
        f ?x1'' ... ?xn'' = (nat (f' ?x1' ... ?xn')) \<and> (f' ?x1' ... ?xn') \<ge> 0
        f ?x1'' ... ?xn'' = (f' ?x1' ... ?xn')
      where ?xi'' = nat ?xi' if ?xi is a nat otherwise ?xi *)
-  val goal = (mk_forall (HOLogic.mk_Trueprop o (mk_f_def_ground f (Thm.term_of x'))) mk_prop_all (map intify_type ts_T))|> @{print}
+  val goal = (mk_forall (HOLogic.mk_Trueprop o (mk_f_def_ground f (Thm.term_of x'))) mk_prop_all ts'_T)|> @{print}
   val goal_thm = Goal.prove ctxt1 [] [] goal (fn {context: Proof.context, ...}  => 
-      print_tac context "Obtain new function variable" 
-      THEN HEADGOAL (Skip_Proof.cheat_tac ctxt))
+      print_tac context "Obtain new function variable"
+      THEN (unfold_tac context [@{thm atomize_all}])
+      THEN HEADGOAL (resolve_tac context [x'_thm_def])
+      
+      THEN (print_tac context "Obtain new function variable")
+)
      
    val _ = debug_msg ctxt1 high (fn () => \<^print> ("Showed goal from obtain thm:",goal_thm))
     val _ = debug_msg ctxt1 high (fn () => \<^print> ("retNat",retNat))

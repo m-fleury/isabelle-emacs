@@ -177,7 +177,6 @@ named_theorems slice_lift \<open>slice should be transformed to smt_extract befo
 named_theorems word_numeral_lift \<open>word constant c of bit-width n should be normalized to 0 \<le> c' < 2^n before translation\<close>
 
 
-
 subsection \<open>Integer division and modulo for Z3\<close>
 
 text \<open>
@@ -880,7 +879,7 @@ lemma alethe_qnt_miniscope_ITE:
   by simp_all
 
 lemma alethe_nat_embedding:
- "\<exists>x. (y::nat) = nat (x::int) \<and> x \<ge> 0"
+ "\<exists>x. x \<ge> 0 \<and> (y::nat) = nat (x::int)"
   using int_eq_iff by blast
 declare[[show_types]]
 lemma alethe_nat_embedding2:
@@ -897,7 +896,7 @@ lemma alethe_nat_embedding_ex:
 
 
 lemma int_nat_embedding_preproc_all:
- "(\<forall>(x::nat) . P x) \<equiv> (\<forall>(x::int). x \<ge> 0 \<longrightarrow> P (nat x)) "
+ "(\<forall>(x::nat) . P x) \<equiv> (\<forall>(x::int). x \<ge> 0 \<longrightarrow> P (nat x))"
   using all_nat by simp
 
 lemma int_nat_embedding_preproc_ex:
@@ -929,8 +928,15 @@ lemma H1:
  "int (nat 0) = 0" 
  "int (nat 1) = 1" 
   by simp_all
+lemma H1':
+ "int (nat 0) \<equiv> 0" 
+ "int (nat 1) \<equiv> 1" 
+  by simp_all
 
 lemma H_nat_embedding: \<open>x \<ge> 0 \<Longrightarrow> int (nat x) = x\<close>
+  by simp
+
+lemma H_nat_embedding': \<open>x \<ge> 0 \<Longrightarrow> int (nat x) \<equiv> x\<close>
   by simp
 
 lemma temp:
@@ -1001,6 +1007,7 @@ ML \<open>
 val _ = @{print}
 ( (SMT_Builtin.print_builtins @{context}))
 \<close>
+
 subsection \<open>Configuration\<close>
 
 text \<open>
@@ -1269,5 +1276,20 @@ declare[[smt_cvc_alethe = true]]
 declare[[smt_expert_debug_alethe_level=3]]
 declare[[smt_expert_debug_alethe_files="smt_global_normalize"]]
 
+lemma "True"
+  supply[[smt_trace]]
+  apply (smt (cvc5_proof))
+  done
+ML \<open>
+fun core_term_parser' (SMTLIB.Sym "true", _) = SOME \<^Const>\<open>False\<close> |
+core_term_parser' _ = NONE
+
+val _ = Theory.setup (Context.theory_map (
+  SMTLIB_Proof.add_term_parser core_term_parser')
+)
+\<close>
+lemma "True"
+  supply[[smt_trace]]
+  apply (smt (z3))
 
 end
