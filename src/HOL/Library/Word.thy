@@ -3405,7 +3405,6 @@ lemma unatSuc: "1 + n \<noteq> 0 \<Longrightarrow> unat (1 + n) = Suc (unat n)"
   for n :: "'a::len word"
   by unat_arith
 
-
 subsection \<open>Cardinality, finiteness of set of words\<close>
 
 lemma inj_on_word_of_int: \<open>inj_on (word_of_int :: int \<Rightarrow> 'a word) {0..<2 ^ LENGTH('a::len)}\<close>
@@ -4614,7 +4613,5 @@ lemma [nat_normalized_input]:
 ML_file \<open>Tools/smt_word.ML\<close>
 declare [[smt_nat_as_int]]
 
-lemma "(2::8 word) ^ 3 = 8"
-  supply[[smt_trace]]
-  apply (smt (cvc5))
+
 end
