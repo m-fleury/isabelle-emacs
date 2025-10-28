@@ -5,24 +5,10 @@ theory SMT_Global_Normalize_Examples
 begin
 
 (*None of the goals should contain any nats after encoding unless explicitly stated.*)
-(*Note: I have not finished filling in the expected outcomes and some might not be the 
-correct ones yet*)
-
 
 declare[[smt_expert_debug_alethe_files="smt_global_normalize"]]
 declare[[smt_expert_debug_alethe_level=3]]
 declare[[smt_nat_as_int=true,smt_trace]]
-declare[[show_hyps]]
-
-definition prime_nat :: "nat \<Rightarrow> bool" where
-  "prime_nat p = (1 < p \<and> (\<forall>m. m dvd p --> m = 1 \<or> m = p))"
-
-lemma "prime_nat (4*m + 1) \<Longrightarrow> m \<ge> (1::nat)" by (smt (cvc5) ) (*ERROR nat embedding*)
-
-
-thm SMT.int_ops(3)[symmetric]
-thm of_nat_numeral
-thm SMT.H1(1)
 
 lemma variable_only:
   shows "(x::nat) = (x::nat)" 
@@ -33,7 +19,6 @@ lemma variable_only:
 (assert (! (and (<= 0 lift_x$) (not (= lift_x$ lift_x$))) :named a0))
 \<close>)
   sorry
-
 
 lemma constant_only:
   shows "(42::nat) = (42::nat)"
@@ -756,6 +741,36 @@ lemma "bound = 3 + 1"
 (assert (! (and (<= 0 lift_bound$) (not (= lift_bound$ (+ 3 1)))) :named a1))
 \<close>)
   sorry
+
+
+definition prime_nat :: "nat \<Rightarrow> bool" where
+  "prime_nat p = (1 < p \<and> (\<forall>m. m dvd p --> m = 1 \<or> m = p))"
+
+lemma "prime_nat (4*m + 1) \<Longrightarrow> m \<ge> (1::nat)"
+  using prime_nat_def
+ apply (test_smt_translate 
+\<open>
+(set-logic AUFLIRA)
+(declare-fun lift_m$ () Int)
+(declare-fun lift_dvd$ (Int Int) Bool)
+(declare-fun lift_prime_nat$ (Int) Bool)
+(assert (! (forall ((?v0 Int)) (=> (<= 0 ?v0) (= (lift_prime_nat$ ?v0) (and (< 1 ?v0) (forall ((?v1 Int)) (=> (<= 0 ?v1) (=> (lift_dvd$ ?v1 ?v0) (or (= ?v1 1) (= ?v1 ?v0))))))))) :named a0))
+(assert (! (and (<= 0 lift_m$) (not (=> (lift_prime_nat$ (+ (* 4 lift_m$) 1)) (<= 1 lift_m$)))) :named a1))
+\<close>)
+  using dvd_def
+ apply (test_smt_translate 
+\<open>
+(set-logic AUFLIRA)
+(declare-fun dvd$ (Int Int) Bool)
+(declare-fun times$ (Int Int) Int)
+(declare-fun lift_m$ () Int)
+(declare-fun lift_prime_nat$ (Int) Bool)
+(assert (! (forall ((?v0 Int) (?v1 Int)) (= (dvd$ ?v0 ?v1) (exists ((?v2 Int)) (= ?v1 (times$ ?v0 ?v2))))) :named a0))
+(assert (! (and (<= 0 lift_m$) (not (=> (lift_prime_nat$ (+ (* 4 lift_m$) 1)) (<= 1 lift_m$)))) :named a1))
+\<close>)
+
+  sorry
+
 
 
 end
