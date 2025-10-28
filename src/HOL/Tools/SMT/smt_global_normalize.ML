@@ -477,7 +477,7 @@ und nat_int solved das andere goal
         (HEADGOAL (resolve_tac ctxt' [exI_inst])
       THEN(debug_msg_tac ctxt' high "s1w4")
 
-        THEN (HEADGOAL (resolve_tac ctxt' [@{thm allI}]))
+        THEN TRY (HEADGOAL (resolve_tac ctxt' [@{thm allI}]) ORELSE HEADGOAL (resolve_tac ctxt' [@{thm exI}]))
       THEN(debug_msg_tac ctxt' high "s1w5")
         THEN TRY (HEADGOAL (resolve_tac ctxt' [@{thm conjI}]))
       THEN(debug_msg_tac ctxt' high "s1w5")
@@ -533,7 +533,7 @@ end
 
 
 fun transform_function ctxt subst t f f_name ts f_T f'_T = 
-  if f_name = "Nat.semiring_1_class.of_nat" then
+  if f = @{term "Nat.semiring_1_class.of_nat::nat \<Rightarrow> int"} then
   let
     val _ = debug_msg ctxt high (fn () => \<^print> ("current term is a cast from nat to int. If its child is a cast from nat to int we know that we can delete the casts",t))
     val _ = debug_msg ctxt high (fn () => \<^print> ("current children ts",ts))
@@ -671,6 +671,8 @@ bottom (ccv':
 let
   val (ct1,cts) = Drule.strip_comb ct   
   val _ = debug_msg ctxt high (fn () => \<^print> ("(current term,current children)",(ct1,cts)))
+  val _ = debug_msg ctxt high (fn () => \<^print> ("(current term,current children)",Thm.term_of ct))
+
 in
  (case Thm.term_of ct of 
    Const (quant_name, T) $ (Abs (bv_name, T2, _)) => 
@@ -858,7 +860,7 @@ in
 
  in (tab1,ctxt1,[],thm23') end
 
- (*|
+ |
 (Abs (bv_name, T, t2)) => (*TODO: lambda case*)
   let
     val _ = @{print}("bv_name", bv_name)
@@ -871,7 +873,7 @@ in
     val thm23 = Thm.abstract_rule bv_name bound_var thm
     val _ = @{print}("thm23", thm23)
     (*TODO: Add/pass conditions *)
- in (tab1,ctxt1,[],thm23) end*) |
+ in (tab1,ctxt1,[],thm23) end |
 _ => 
   if length cts = 0
   then

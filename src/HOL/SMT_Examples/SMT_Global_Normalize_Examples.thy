@@ -511,12 +511,12 @@ lemma def_quant5:
 \<close>)
   sorry
 
-(*Lets*)
+(*Lets
+Some lets (where the let term has type nat)
+already get deleted during preprocessing so they are not an issue*)
 
-lemma let1: (*TODO*)
-  "let (x::nat) = y + 3  in
-  x = 1 + 2 + y"
-  supply[[smt_nat_as_int,smt_trace]]
+lemma let1:
+  "let (x::nat) = y + 3 in x = 1 + 2 + y"
  apply (test_smt_translate 
 \<open>
 (set-logic AUFLIRA)
@@ -526,39 +526,32 @@ lemma let1: (*TODO*)
 sorry
 
 lemma let2:
-  "let (x::int) = y + 3  in
-  x = 1 + 2 + y"
-  supply[[smt_nat_as_int,smt_trace]]
-  by (smt (cvc5_proof))
-
-lemma
-"   let P = (if ((1::nat) + y) > 0 then True else False) in
+"let P = (if ((1::nat) + y) > 0 then True else False) in
    False \<or> P = (((1::nat) + y) - 1 = y) \<or> (\<not>P \<longrightarrow> False)"
-  supply[[smt_nat_as_int]]
-  by (smt (cvc5_proof)) (*ERROR nat embedding*)
-
-lemma
-  "let x = (1::nat) + y in
-   let P = (if x > 0 then True else False) in
-   False \<or> P = (x - 1 = y) \<or> (\<not>P \<longrightarrow> False)"
-  supply[[smt_nat_as_int]]
-  by (smt (cvc5_proof)) (*ERROR nat embedding*)
-
-
+ apply (test_smt_translate 
+\<open>
+(set-logic AUFLIRA)
+(declare-fun lift_y$ () Int)
+(assert (! (and (<= 0 lift_y$) (not (or false (or (= (ite (< 0 (+ 1 lift_y$)) true false) (= (ite (< (+ 1 lift_y$) 1) 0 (- (+ 1 lift_y$) 1)) lift_y$)) (=> (not (ite (< 0 (+ 1 lift_y$)) true false)) false))))) :named a0))
+\<close>)
+  sorry
 
 
 (*Conversions*)
 
 lemma
   shows "nat x = y \<Longrightarrow> of_nat y = z \<Longrightarrow> x \<le> z"
-  sorry
+ apply (test_smt_translate 
+\<open>
+(set-logic AUFLIRA)
+(declare-fun x$ () Int)
+(declare-fun z$ () Int)
+(declare-fun lift_y$ () Int)
+(assert (! (and (<= 0 lift_y$) (not (=> (and (= (ite (<= 0 x$) x$ 0) lift_y$) (= lift_y$ z$)) (<= x$ z$)))) :named a0))
+\<close>)
+sorry
 
-
-
-declare[[smt_expert_debug_alethe_files="smt_global_normalize"]]
-declare[[smt_expert_debug_alethe_level=3]]
-
-(*There is nothing to be done here*)
+(*There is nothing to be done here but adding an ite*)
 lemma
   fixes x::int
   assumes "nat x = 4"
@@ -568,7 +561,7 @@ lemma
 \<open>
 (set-logic AUFLIRA)
 (declare-fun x$ () Int)
-(assert (! (= x$ 4) :named a0))
+(assert (! (= (ite (<= 0 x$) x$ 0) 4) :named a0))
 (assert (! (not true) :named a1))
 \<close>)
   sorry
@@ -587,6 +580,7 @@ lemma
 (assert (! (not true) :named a1))
 \<close>)
   sorry
+
 lemma
   shows "int 4 = 4"
  apply (test_smt_translate 
@@ -595,6 +589,7 @@ lemma
 (assert (! (not (= 4 4)) :named a0))
 \<close>)
   sorry
+
 lemma
   shows "nat 4 = 4"
  apply (test_smt_translate 
@@ -603,6 +598,7 @@ lemma
 (assert (! (not (= 4 4)) :named a0))
 \<close>)
   sorry
+
 lemma
   shows "int x = int y"
  apply (test_smt_translate 
@@ -613,7 +609,6 @@ lemma
 (assert (! (and (and (<= 0 lift_x$) (<= 0 lift_y$)) (not (= lift_x$ lift_y$))) :named a0))
 \<close>)
   sorry
-
 
 lemma
   shows "(x::nat) <= x - 1 \<Longrightarrow> x = 0"
@@ -635,163 +630,132 @@ lemma
 (assert (! (and (and (<= 0 lift_x$) (<= 0 lift_y$)) (not (=> (< (+ (ite (< lift_x$ lift_y$) 0 (- lift_x$ lift_y$)) lift_y$) lift_x$) (< lift_x$ lift_y$)))) :named a0))
 \<close>)
   sorry
+
 lemma
   shows "0 \<le> (x::int) \<Longrightarrow> y = nat x \<Longrightarrow> of_nat y = x"
  apply (test_smt_translate 
 \<open>
+(set-logic AUFLIRA)
+(declare-fun x$ () Int)
+(declare-fun lift_y$ () Int)
+(assert (! (and (<= 0 lift_y$) (not (=> (and (<= 0 x$) (= lift_y$ (ite (<= 0 x$) x$ 0))) (= lift_y$ x$)))) :named a0))
 \<close>)
-    apply (smt (cvc5) int_nat_eq)
-  done
+  sorry
+
+lemma
+  shows "0 > (x::int) \<Longrightarrow> y = nat x \<Longrightarrow> of_nat y = (0::int)"
+ apply (test_smt_translate 
+\<open>
+(set-logic AUFLIRA)
+(declare-fun x$ () Int)
+(declare-fun lift_y$ () Int)
+(assert (! (and (<= 0 lift_y$) (not (=> (and (< x$ 0) (= lift_y$ (ite (<= 0 x$) x$ 0))) (= lift_y$ 0)))) :named a0))
+\<close>)
+  sorry
 
 lemma
   shows "0 > (x::int) \<Longrightarrow> y = nat x \<Longrightarrow> of_nat y = 0"
  apply (test_smt_translate 
 \<open>
+(set-logic AUFLIRA)
+(declare-sort A$ 0)
+(declare-fun x$ () Int)
+(declare-fun zero$ () A$)
+(declare-fun lift_y$ () Int)
+(declare-fun lift_of_nat$ (Int) A$)
+(assert (! (and (<= 0 lift_y$) (not (=> (and (< x$ 0) (= lift_y$ (ite (<= 0 x$) x$ 0))) (= (lift_of_nat$ lift_y$) zero$)))) :named a0))
 \<close>)
-    apply (smt (cvc5) int_nat_eq)
-  done
+  sorry
 
 lemma "nat (int (x::nat)) = x" 
-  apply (smt (cvc5))
-  done
+ apply (test_smt_translate 
+\<open>
+(set-logic AUFLIRA)
+(declare-fun lift_x$ () Int)
+(assert (! (and (<= 0 lift_x$) (not (= lift_x$ lift_x$))) :named a0))
+\<close>)
+  sorry
 
 lemma "int x = y \<Longrightarrow> nat y = x"
-  apply (smt (cvc5))
-  done
-
+ apply (test_smt_translate 
+\<open>
+(set-logic AUFLIRA)
+(declare-fun y$ () Int)
+(declare-fun lift_x$ () Int)
+(assert (! (and (<= 0 lift_x$) (not (=> (= lift_x$ y$) (= (ite (<= 0 y$) y$ 0) lift_x$)))) :named a0))
+\<close>)
+  sorry
 
 lemma "(x::nat) = 3 + 4 \<Longrightarrow> x = 7" 
-  apply (smt (cvc5))
-  done
+ apply (test_smt_translate 
+\<open>
+(set-logic AUFLIRA)
+(declare-fun lift_x$ () Int)
+(assert (! (and (<= 0 lift_x$) (not (=> (= lift_x$ (+ 3 4)) (= lift_x$ 7)))) :named a0))
+\<close>)
+  sorry
 
 lemma "(x::int) = 3 + 4 \<Longrightarrow> x = 7" 
+ apply (test_smt_translate 
+\<open>
+(set-logic AUFLIRA)
+(declare-fun x$ () Int)
+(assert (! (not (=> (= x$ (+ 3 4)) (= x$ 7))) :named a0))
+\<close>)
+  sorry
 
-  apply (smt (cvc5))
-  done
+(*Misc*)
 
-
-definition g1 where
-"g1 (x::nat) (y::int) = y + 1"
+definition g1 where "g1 (x::nat) (y::int) = y + 1"
 
 lemma "\<exists>(x :: nat).((g :: nat \<Rightarrow> int \<Rightarrow> int) x (2 :: int)) = 3"
+ apply (test_smt_translate 
+\<open>
+(set-logic AUFLIRA)
+(declare-fun lift_g$ (Int Int) Int)
+(assert (! (not (exists ((?v0 Int)) (and (<= 0 ?v0) (= (lift_g$ ?v0 2) 3)))) :named a0))
+\<close>)
   sorry
-lemma "\<forall>(x :: nat).((g :: nat \<Rightarrow> int \<Rightarrow> int) x (2 :: int)) = 3"
-  sorry
-lemma "(if (\<forall>x::int. x < 0 \<or> x > 0) then -1 else 3) > (0::int)"
-  supply [[smt_trace]] by (smt (cvc5))
 
-lemma "(2::nat) ^ 3 = 8"
+lemma "\<forall>(x :: nat).((g :: nat \<Rightarrow> int \<Rightarrow> int) x (2 :: int)) = 3"
+ apply (test_smt_translate 
+\<open>
+(set-logic AUFLIRA)
+(declare-fun lift_g$ (Int Int) Int)
+(assert (! (not (forall ((?v0 Int)) (=> (<= 0 ?v0) (= (lift_g$ ?v0 2) 3)))) :named a0))
+\<close>)
   sorry
+
+lemma "(if (\<forall>x::int. x < 0 \<or> x > 0) then -1 else 3) > (0::int)"
+ apply (test_smt_translate 
+\<open>
+(set-logic AUFLIRA)
+(assert (! (not (< 0 (ite (forall ((?v0 Int)) (or (< ?v0 0) (< 0 ?v0))) (- 1) 3))) :named a0))
+\<close>)
+  sorry
+
+lemma "(2::nat) ^ 3 = 8" (*TODO*)
+ apply (test_smt_translate 
+\<open>
+(set-logic AUFLIRA)
+(declare-fun pow_2$ (Int) Int)
+(assert (! (not (= (pow_2$ 3) 8)) :named a0))
+\<close>)
+  sorry
+
 definition bound :: nat where
   "bound = 4"
 
 lemma "bound = 3 + 1"
   using bound_def
+ apply (test_smt_translate 
+\<open>
+(set-logic AUFLIRA)
+(declare-fun lift_bound$ () Int)
+(assert (! (and (<= 0 lift_bound$) (= lift_bound$ 4)) :named a0))
+(assert (! (and (<= 0 lift_bound$) (not (= lift_bound$ (+ 3 1)))) :named a1))
+\<close>)
   sorry
-
-(*
-  "(f::nat \<Rightarrow> int) (nat (3::int)) = (5::int)"
-
-
-
-  introduce free variable (f_lift::int \<Rightarrow> int)
-
-  transform this to a thm by Thm.assume (adds the same thing as a meta assumption):
-    "\<And>v0. (f::nat \<Rightarrow> int) (v0::nat) = (lift_f__::int \<Rightarrow> int) (int v0) \<and> int v0 \<ge> 0"
-
-  Create two lemmas from this:
-    "\<And>v0. (f::nat \<Rightarrow> int) (v0::nat) = (lift_f__::int \<Rightarrow> int) (int v0)"
-    "\<And>v0. int v0 \<ge> 0"
-
-  Use those for conversion:
-
-
-*)
-
-(*
-
-Before global normalization:
- "\<forall>(x::nat) y::int. boo x y = (int x = (2::int) \<and> y = (3::int))"
-After preproc:
-\<forall>x\<ge>0. \<forall>y::int. boo (nat x) y = (x = (2::int) \<and> y = (3::int)) 
-Term to show after:
- "\<forall>x\<ge>0. \<forall>y::int. lift_boo x y = (x = (2::int) \<and> y = (3::int))"
-
-Algo should have proven:
-boo (nat x) y = lift_boo x y
-
-
-
-\<forall>x\<ge>0. \<forall>y::int. boo (nat x) y = (int (nat x) = (2::int) \<and> y = (3::int)) \<Longrightarrow>
-(\<And>(lb0::nat) lb1::int. boo lb0 lb1 = lift_boo (int lb0) lb1)
-  \<Longrightarrow> \<forall>x\<ge>0. \<forall>y::int. lift_boo x y = (x = (2::int) \<and> y = (3::int))
-
-*)
-(*
-(declare-fun lift_f$ (Int) Int)
-(assert (! (and (<= 0 (lift_f$ 3)) (= (lift_f$ 3) 5)) :named a0))
-(assert (! (not true) :named a1))
-*)
-
-
-(*
-  original: "int((f::int \<Rightarrow> nat) (3::int)) = (5::int)"
-
-  introduce free variable (f_lift::int \<Rightarrow> int)
-
-  transform this to a thm by Thm.assume (adds the same thing as a meta assumption):
-    "\<And>v0. (f::int \<Rightarrow> nat) (v0::int) = (lift_f__::int \<Rightarrow> int) v0 \<and> lift_f__ v0 \<ge> 0"
-
-  Create two lemmas from this: NOTE: We can create these directly
-    1 "\<And>v0. (lift_f__::int \<Rightarrow> int) v0 = (f::int \<Rightarrow> nat) (v0::int)"
-    2 "\<And>v0. lift_f__ v0 \<ge> 0"
-
-  Make new lemma:
-  Int.nat_0_le: 0 \<le> (?z::int) \<Longrightarrow> int (nat ?z) = ?z
-  Instantiate: 0 \<le> lift_f__ 3 \<Longrightarrow> int (nat (lift_f__ 3)) = (lift_f__ 3)
-  3 Use above with 2: int (nat (lift_f__ 3)) = (lift_f__ 3)
-
-
-  Create new :
-  Use 1: "int(nat (lift_f__ (3::int))) = (5::int)"
-  Have a new conversion using 3:  "lift_f__ (3::int) = (5::int)" hyps 0 \<le> lift_f__ 3 
-  Use Thm.implies to pull meta hyp up to get "lift_f__ 3 \<ge> 0 \<longrightarrow> lift_f__ 3 = 5"
-  
-
-
-  end result:
-     lift_f__ 3 \<ge> 0 \<longrightarrow> lift_f__ 3 = 5
-*)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 end
