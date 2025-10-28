@@ -456,6 +456,8 @@ fun postprocess_proof compress ctxt step cx =
     fun transform_step_args rule step_args (cx, new_variable_names) =
       if not (allows_step_args rule) then []
       else let
+        (*Note: strings are not yet loaded so the arguments of rules like "rare_rewrite" have to be binarized.
+          Import HOL.String in your theory and they will be shown as strings*)
         val (termified_step_args,_) = fold_map node_of_term step_args cx
         val normalized_step_args = map (unsk_and_rewrite new_variable_names) (map (subproof_rewriter new_variable_names) termified_step_args)
         val _ = debug_msg ctxt middle (fn () => \<^print> ("Termified and normalized steps args:", normalized_step_args))
