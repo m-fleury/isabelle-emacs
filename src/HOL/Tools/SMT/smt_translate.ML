@@ -636,9 +636,7 @@ fun translate ctxt prover smt_options comments (ithms : ((int * SMT_Util.role) *
   in
     (ts4, tr_context)
     |-> intermediate (logic prover o map snd) dtyps (builtin SMT_Builtin.dest_builtin) ctxt2
-|> @{print}
     |>> uncurry (serialize smt_options comments)
-|> @{print}
 
     |> (fn x => let val _ = debug_msg ctxt high (fn () => \<^print> ("problem string is:",(fst x))) in x end)
     ||> replay_data_of ctxt2 ll_defs rewrite_rules ithms
