@@ -326,9 +326,9 @@ fun apply_solver_and_replay ctxt thms0 =
     val _ = debug_msg ctxt low (fn () => \<^print> ("set of theorems after normalization:",norm_thms))
 
     val (ctxt_nats,norm_thms,_) =
-      if Config.get ctxt (SMT_Config.nat_as_int)
+      (if Config.get ctxt (SMT_Config.nat_as_int)
       then SMT_Global_Normalize.global_normalize ctxt norm_thms
-      else (ctxt,norm_thms,[])
+      else (ctxt,norm_thms,[]))
       handle (SMT_Global_Normalize.SMT_GLOBAL_NORMALIZE _) => (ctxt,norm_thms,[])            
     val _ = debug_msg ctxt low (fn () => \<^print> ("set of theorems after nat embedding normalization:",norm_thms))
 
@@ -351,7 +351,7 @@ fun test_translation_only ctxt comp_str thms0 =
 
     (*We might end up not needing beta seperately*)
     val (ctxt_nats,norm_thms,_) =
-      if Config.get ctxt (SMT_Config.nat_as_int) then SMT_Global_Normalize.global_normalize ctxt norm_thms else (ctxt,norm_thms,[])
+      (if Config.get ctxt (SMT_Config.nat_as_int) then SMT_Global_Normalize.global_normalize ctxt norm_thms else (ctxt,norm_thms,[]))
       handle (SMT_Global_Normalize.SMT_GLOBAL_NORMALIZE _) => (ctxt,norm_thms,[])
     val _ = debug_msg ctxt low (fn () => \<^print> ("set of theorems after nat embedding normalization:",norm_thms))
 
@@ -556,7 +556,7 @@ fun apply_solver_and_counterexample ctxt thms0 =
 
   (*We might end up not needing beta seperately*)
     val (ctxt_nats,norm_thms,beta) =
-      if Config.get ctxt (SMT_Config.nat_as_int) then SMT_Global_Normalize.global_normalize ctxt norm_thms else (ctxt,norm_thms,[])
+      (if Config.get ctxt (SMT_Config.nat_as_int) then SMT_Global_Normalize.global_normalize ctxt norm_thms else (ctxt,norm_thms,[]))
       handle (SMT_Global_Normalize.SMT_GLOBAL_NORMALIZE _) => (ctxt,norm_thms,[])            
     val _ = debug_msg ctxt low (fn () => \<^print> ("set of theorems after nat embedding normalization:",norm_thms))
     val _ = @{print}("beta",beta)
