@@ -672,24 +672,28 @@ bottom (ccv':
 let
   val (ct1,cts) = Drule.strip_comb ct   
   val _ = debug_msg ctxt high (fn () => \<^print> ("(current term,current children)",(ct1,cts)))
-  val _ = debug_msg ctxt high (fn () => \<^print> ("(current term,current children)",Thm.term_of ct))
-
+  val t = Thm.term_of ct1
+  val _ = debug_msg ctxt high (fn () => \<^print> ("(current term)",t))
+  val ct1_nr_args = Term.fastype_of t |> strip_type |> fst |> length
+  val _ = if length cts < ct1_nr_args then raise (SMT_GLOBAL_NORMALIZE "partially applied function") else () 
 in
  (case Thm.term_of ct of 
    Const (quant_name, T) $ (Abs (bv_name, T2, _)) => 
    let
     val _ = debug_msg ctxt high (fn () => \<^print> ("current is quantifier: ",quant_name))
+    val _ = @{print}("quant",quant_name)
 
-    val is_all = (quant_name = "HOL.All")
-    val is_ex = (quant_name = "HOL.Ex")
-    val _ = if is_all orelse is_ex then () else raise (SMT_GLOBAL_NORMALIZE "Unsupported Quantifier")
-    val quant = Thm.cterm_of ctxt (Const(quant_name,intify_type T))
     val bound_is_nat = (T2 = @{typ nat})
     val ct_thm = Conv.all_conv ct |> @{print}
 
     val ((bound_var, body), ctxt) = Variable.dest_abs_cterm (hd cts) ctxt;
     val _ = debug_msg ctxt high (fn () => \<^print> ("body",body))
     val _ = debug_msg ctxt high (fn () => \<^print> ("bound_var",bound_var))
+
+    val is_all = (quant_name = "HOL.All")
+    val is_ex = (quant_name = "HOL.Ex")
+    val quant = Thm.cterm_of ctxt (Const(quant_name,intify_type T))
+    val _ = if (is_all orelse is_ex) orelse not bound_is_nat then () else raise (SMT_GLOBAL_NORMALIZE "Unsupported Quantifier")
 
     (* "(\<forall>(x::nat) . P x) \<equiv> (\<forall>(x::int). x \<ge> 0 \<longrightarrow> P (nat x))"*)
     val qnt_transform_thm =
@@ -898,7 +902,6 @@ _ =>
       val _ = debug_msg ctxt low (fn () => \<^print> ("Transformed current term with children (old,new): ",(Thm.lhs_of thm,Thm.rhs_of thm)))
 
    in (tab2,ctxt2,args_ge_cond @ curr_ge_cond,thm) end
-
  
 )
  end
