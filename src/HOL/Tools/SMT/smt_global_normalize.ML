@@ -578,15 +578,15 @@ fun transform_function ctxt subst t f f_name ts f_T f'_T =
   else
   let
     val (ts_T,_) = f_T |> Term.strip_type
-
-    val  (ctxt1,subst,c_f',(f'_def,t'_ge_0)) = 
+    val  (ctxt1,subst1,c_f',(f'_def,t'_ge_0)) = 
     (case Termtab.lookup subst f of
       NONE =>
       let
         val _ = debug_msg ctxt low (fn () => \<^print> ("current term is a function f that has not been encountered yet ",t))
         val (ctxt1,c_f',(f'_def,t'_ge_0)) = mk_new_fun ctxt f f_name
-
+   
         val subst = Termtab.update (f,(c_f',(f'_def,t'_ge_0))) subst
+
         val conds = t'_ge_0 |> the_list
 
       in (ctxt1,subst,conds,(f'_def,t'_ge_0)) end |
@@ -608,7 +608,7 @@ fun transform_function ctxt subst t f f_name ts f_T f'_T =
     val _ = debug_msg ctxt1 middle (fn () => \<^print> ("Instantiated f'_def ",f'_def_concrete))
     val _ = debug_msg ctxt1 middle (fn () => \<^print> ("Instantiated t'_ge_0_concrete ",t'_ge_0_concrete))
 
-      in ((fn r => (subst,ctxt,t'_ge_0_concrete,(Conv.top_rewrs_conv [f'_def_concrete] ctxt) r))) end
+      in ((fn r => (subst1,ctxt1,t'_ge_0_concrete,(Conv.top_rewrs_conv [f'_def_concrete] ctxt) r))) end
 
 
 
@@ -630,8 +630,8 @@ in
      val f'_T = intify_type T
    in
       transform_function ctxt subst t f f_name ts f_T f'_T 
-   end |
- _ => custom_all_conv ctxt subst
+   end
+| _ => custom_all_conv ctxt subst
 ) ct
 end
 
@@ -667,7 +667,8 @@ and
 
 bottom (ccv':
       (cterm * (thm * thm option)) Termtab.table ->
-        Proof.context -> cterm -> (cterm * (thm * thm option)) Termtab.table * Proof.context * thm list * thm) tab cond ctxt ct = 
+        Proof.context -> cterm -> (cterm * (thm * thm option)) Termtab.table * Proof.context * thm list * thm)
+   tab cond ctxt ct = 
 let
   val (ct1,cts) = Drule.strip_comb ct   
   val _ = debug_msg ctxt high (fn () => \<^print> ("(current term,current children)",(ct1,cts)))
@@ -743,7 +744,6 @@ in
      val [newb1,newb2] = Thm.cconcl_of body_unfold_nat_int_bound_var' |> Drule.strip_comb |> snd
      val newb1 = newb1 |> Drule.strip_comb |> snd |> tl |> the_single (*" P (int (nat x) *)
      val newb2 = newb2 |> Drule.strip_comb |> snd |> tl |> the_single (*" P x *)
-     val x = subst
      val lemma =
        if is_all then @{lemma "(a \<Longrightarrow> (a \<longrightarrow> B \<equiv> a \<longrightarrow> C)) \<Longrightarrow> (a \<longrightarrow> B \<equiv> a \<longrightarrow>C)" by simp}
        else @{lemma "(a \<Longrightarrow> (a \<and> B \<equiv> a \<and> C)) \<Longrightarrow> (a \<and> B \<equiv> a \<and> C)" by linarith}
@@ -891,9 +891,9 @@ _ =>
          mk_thm y (x::xs) = mk_thm (Thm.combination y x) xs
       val thm_children = mk_thm ct1_thm (rev thms_children)
 
-
       (*Transform current*)
       val (tab2,ctxt2,curr_ge_cond,thm_curr) = ccv' tab1 ctxt1 (Thm.rhs_of thm_children)
+
       val thm = Thm.transitive thm_children thm_curr
       val _ = debug_msg ctxt low (fn () => \<^print> ("Transformed current term with children (old,new): ",(Thm.lhs_of thm,Thm.rhs_of thm)))
 
@@ -907,15 +907,15 @@ _ =>
 fun all_conv2 tab ctxt ct = (tab,ctxt,[],Thm.reflexive ct);
 
 type test2 = ((int * SMT_Util.role) * thm) list
-type test = Proof.context * thm list * (Termtab.key * cterm) list
+type test = Proof.context * thm list * (Termtab.key * cterm) list * (cterm * (thm * thm option)) Termtab.table
 
-fun unfold_test cthm ((ctxt,thms,mapping) :test)  =
+fun unfold_test cthm ((ctxt,thms,mapping,tab) :test)  =
  let
    val _ = debug_msg ctxt low (fn () => \<^print> ("---------------------------------------------------"))
 
    val _ = debug_msg ctxt low (fn () => \<^print> ("current original thm",(Thm.cprop_of cthm)))
    val (tab,ctxt1,ge_conds,thm) =
-    (bottom (fn tab2 => fn ctxt2 => transform_non_quant_term ctxt2 tab2) (Termtab.empty) [] ctxt) (Thm.cprop_of cthm)
+    (bottom (fn tab => fn ctxt2 => transform_non_quant_term ctxt2 tab) tab [] ctxt) (Thm.cprop_of cthm)
    (*FIXME: This should be done on the fly*)
    val _ = debug_msg ctxt low (fn () => \<^print> ("current transformed thm",thm))
 
@@ -932,7 +932,7 @@ fun unfold_test cthm ((ctxt,thms,mapping) :test)  =
    (*This is used for counterexample generation only*)
    val keys = Termtab.keys tab
    val curr_mapping = ListPair.zip (keys, keys |> map (fst o the o Termtab.lookup tab))
-in ((ctxt1,thms'''::thms,curr_mapping @ mapping):test) end
+in ((ctxt1,thms'''::thms,curr_mapping @ mapping,tab):test) end
 
 fun global_normalize ctxt ithms =
 let
@@ -943,7 +943,7 @@ let
   val _ = debug_msg ctxt middle (fn () => \<^print> ("ithms before conversion ",ithms))
   val (i,thms) = split_list ithms
 
-  val (ctxt',thms',mapping) = fold unfold_test thms (ctxt,[],[])
+  val (ctxt',thms',mapping,_) = fold unfold_test thms (ctxt,[],[],Termtab.empty)
   val ithms' = ListPair.zip (i,rev thms')
 in
  (ctxt',ithms',mapping)
