@@ -280,10 +280,11 @@ lemma [rewrite_bool_and_de_morgan]:
 named_theorems rewrite_bool_or_and_distrib \<open>automatically_generated\<close>
 
 lemma [rewrite_bool_or_and_distrib]:
-  fixes zs :: "bool cvc_ListVar" and ys :: "bool cvc_ListVar" and y2 :: "bool" and y1 :: "bool"
-  shows "NO_MATCH cvc_a (undefined y1 y2 ys zs) \<Longrightarrow> cvc_list_right (\<or>) (y1 \<and> cvc_list_right (\<and>) y2 ys) zs =
-(cvc_list_right (\<or>) y1 zs \<and>
- cvc_list_right (\<or>) (cvc_list_right (\<and>) y2 ys) zs)"
+  fixes zs :: "bool cvc_ListVar" and ys :: "bool cvc_ListVar" and y2 :: "bool" and y1 :: "bool" and z1 :: "bool"
+  shows "NO_MATCH cvc_a (undefined y1 y2 ys z1 zs) \<Longrightarrow>
+ ((y1 \<and> cvc_list_right (\<and>) y2 ys) \<or> (cvc_list_right (\<or>) z1 zs)) =
+((y1 \<or> cvc_list_right (\<or>) z1 zs) \<and>
+  ((cvc_list_right (\<and>) y2 ys) \<or> cvc_list_right (\<or>) z1 zs))"
     apply (cases zs)
   apply (cases ys)
   subgoal for zss yss

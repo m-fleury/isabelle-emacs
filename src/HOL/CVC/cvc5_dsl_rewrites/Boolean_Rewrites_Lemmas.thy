@@ -50,8 +50,10 @@ lemma bool_or_flatten_lemma:
   by (metis(full_types) foldr_or_neutral)
  
 lemma bool_or_and_distrib_lemma:
-  shows " (y1 \<and> y2 \<and> foldr (\<and>) y3s True \<or> foldr (\<or>) zss False) =
-    ((y1 \<or> foldr (\<or>) zss False) \<and> (y2 \<and> foldr (\<and>) y3s True \<or> foldr (\<or>) zss False))"
+  shows "zs = ListVar zss \<Longrightarrow>
+    ys = ListVar yss \<Longrightarrow>
+    (y1 \<and> y2 \<and> foldr (\<and>) yss True \<or> z1 \<or> foldr (\<or>) zss False) =
+    ((y1 \<or> z1 \<or> foldr (\<or>) zss False) \<and> (y2 \<and> foldr (\<and>) yss True \<or> z1 \<or> foldr (\<or>) zss False))"
   using disj_conj_distribR by simp
 
 end

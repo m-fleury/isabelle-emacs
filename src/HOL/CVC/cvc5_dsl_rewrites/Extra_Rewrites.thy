@@ -400,8 +400,8 @@ named_theorems rewrite_or_not_refl \<open>added in postprocessing\<close>
 
 lemma [rewrite_or_not_refl]:
   fixes t::'a and xs::"bool cvc_ListVar"
-  shows "NO_MATCH cvc_a (undefined t xs) \<Longrightarrow>  
-   ((\<not>(t = t)) \<or>(cvc_list_right (\<or>) x xs)) = (cvc_list_right (\<or>) x xs)"
+  shows "NO_MATCH cvc_a (undefined t x xs) \<Longrightarrow>  
+   ((\<not>(t = t)) \<or> (cvc_list_right (\<or>) x xs)) = (cvc_list_right (\<or>) x xs)"
   by simp
 
 
