@@ -11,34 +11,28 @@ imports "HOL-Library.Word" "HOL.SMT_CVC_Word"
 begin
 
 declare [[smt_nat_as_int,smt_trace]]
-lemmas [bv_reconstruction_length] = len_num0 len_num1 len_bit0 len_bit1
+declare[[smt_expert_debug_alethe_level=0]]
 
-                          
-(*("(ct1,cts)", ("numeral", ["num.Bit1 (num.Bit1 (num.Bit0 (num.Bit1 num.One)))"]))*)
-ML\<open>
-val z0' =
-   Const ("Num.numeral_class.numeral", @{typ "num \<Rightarrow> 3 word"}) 
-  $ (Const ("Num.num.Bit1", @{typ"num \<Rightarrow> num"}) 
-  $ (Const ("Num.num.Bit0", @{typ "num \<Rightarrow> num"})
-  $ (Const ("Num.num.Bit0",@{typ "num \<Rightarrow> num"})
-  $ Const ("Num.num.One", @{typ "num"}))))
-   |> Thm.cterm_of @{context}
-(*"(9 :: 3 word)"*)
-\<close>
-ML\<open>
-val z0' =
-   Const ("Num.numeral_class.numeral", @{typ "num \<Rightarrow> 3 word"}) 
-  $ (Const ("Num.num.Bit0", @{typ"num \<Rightarrow> num"}) 
+lemmas [bv_reconstruction_length] = len_num0 len_num1 len_bit0 len_bit1 (*TODO: Move to appropriate place if this is necessary*)
 
-  $ (Const ("Num.num.Bit0", @{typ"num \<Rightarrow> num"}) 
-  $ (Const ("Num.num.Bit0", @{typ "num \<Rightarrow> num"})
-  $ (Const ("Num.num.Bit0",@{typ "num \<Rightarrow> num"})
-  $ Const ("Num.num.One", @{typ "num"})))))
-   |> Thm.cterm_of @{context}
-(*"(8 :: 3 word)"*)
-\<close>
+(* Overview:
 
-value "8::3 word"
+What has been done?
+
+- Word constants now translate correctly even with overflow
+- Conversions work well (of_int, Word.Word)
+- LENGTH translation works well
+
+What is still to do?
+
+- Word constants that overflow e.g., (27 :: 4 word) are now normalized during normalization using the simplifier. It would
+  be better to first check if that is necessary before calling the simplifier.
+- Normalization of negative word constants disturbs checking as in this lemma: lemma "- (- 11) = (11::5 word)"
+- int.log2 does not parse correctly
+
+
+*)
+
 ML\<open>
 
 val y1 = @{term "(7 :: 3 word)"} (*111*)
@@ -56,57 +50,17 @@ val z4 = @{term "(11 :: 3 word)"} (*1101 ---> 11*)
 val z5 = @{term "(12 :: 3 word)"} (*0011 ---> 001*)
 
 \<close>
-ML\<open>
-val x = @{thm word_numeral_lift} |> Thm.prop_of
-val y = @{term "(31 :: 4 word)"}
-val z =  Const ("Num.numeral_class.numeral", @{typ "num \<Rightarrow> 4 word"}) $
-     (Const ("Num.num.Bit1", @{typ "num \<Rightarrow> num"}) $
-       (Const ("Num.num.Bit1", @{typ "num \<Rightarrow> num"}) $
-         (Const ("Num.num.Bit1", @{typ "num \<Rightarrow> num"}) $ Const ("Num.num.One", @{typ "num"})))) |> Thm.cterm_of @{context}
-\<close>
-
-
 
 
 
 section \<open>Bitvector numbers\<close>
 
-(*TODO: Meeting with Clark: Before using simplifier check word length, figure out how much effort that would be*)
-lemma "(27 :: 4 word) = -5" by (smt (cvc5)) (*I solved this during normalization but this means every word constant has to be translated.*)
+lemma "(27 :: 4 word) = -5" by (smt (cvc5))
 lemma "(27 :: 4 word) = 11" by (smt (cvc5))
 lemma "23 < (27::8 word)" by (smt (cvc5))
 lemma "27 + 11 = (6::5 word)" by (smt (cvc5))
 lemma "7 * 3 = (21::8 word)" by (smt (cvc5))
 lemma "11 - 27 = (-16::8 word)" by (smt (cvc5))
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-lemma  " (log 2 4) = 2"
-  by (metis alethe_eq_simplify(10) log_eq_one log_mult mult_2 numeral_Bit0_eq_double
-      one_eq_numeral_iff zero_less_numeral)
-
-lemma  " int (floorlog (nat (4::int)) (2::nat) ) = x"
-  apply (code_simp)
 
 
 lemma "- (- 11) = (11::5 word)" by (smt (cvc5)) (*negs are weirdly deleted while printing but why and where?*)
@@ -134,8 +88,6 @@ lemma "word_of_int 8 = (8::5 word)" by (smt (cvc5))
 lemma "word_of_int 72 = (8::5 word)" by (smt (cvc5))
 
 
-
-
 section \<open>LENGTH\<close>
 
 text \<open>
@@ -149,6 +101,7 @@ lemma "LENGTH(1) = 1" by (smt(cvc5))
 lemma "LENGTH(64) = 64" by (smt(cvc5))
 lemma "LENGTH(5) = 5" by (smt(cvc5))
 lemma "LENGTH('a::len0) = LENGTH('a)" by (smt(cvc5))
+lemma "2 * LENGTH('n::len) = LENGTH('n) + LENGTH('n)" by (smt(cvc5))
 
 declare[[show_hyps]]
 
