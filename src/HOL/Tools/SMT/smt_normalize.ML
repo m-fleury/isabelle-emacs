@@ -363,6 +363,11 @@ the run that pushes the ints in*)
 fun nat_native_ops_table ctxt = no_simplifier [
   (\<^const_name>\<open>power\<close>, Named_Theorems.get ctxt \<^named_theorems>\<open>pow_2_word\<close>),
   ("Bit_Operations.semiring_bit_operations_class.push_bit", Named_Theorems.get ctxt \<^named_theorems>\<open>push_bit_lift\<close>),
+  ("Bit_Operations.semiring_bit_operations_class.drop_bit", Named_Theorems.get ctxt \<^named_theorems>\<open>drop_bit_lift\<close>),
+  ("Word.signed_drop_bit", Named_Theorems.get ctxt \<^named_theorems>\<open>signed_drop_bit_lift\<close>),
+  ("Word.word_rotr", Named_Theorems.get ctxt \<^named_theorems>\<open>word_rotr_lift\<close>),
+  ("Word.word_rotl", Named_Theorems.get ctxt \<^named_theorems>\<open>word_rotl_lift\<close>),
+
   ("Type_Length.len0_class.len_of", Named_Theorems.get ctxt \<^named_theorems>\<open>length_lift\<close>),
   ("Word.smt_extract", Named_Theorems.get ctxt \<^named_theorems>\<open>smt_extract_lift\<close>)
 ] 

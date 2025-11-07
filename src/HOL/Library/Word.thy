@@ -4568,8 +4568,6 @@ definition push_bit_lift :: \<open>int \<Rightarrow> 'a::len word \<Rightarrow> 
 lemma [push_bit_lift]:
   "push_bit x \<equiv> push_bit_lift (int x)"
   unfolding push_bit_lift_def by simp
-
-
 lemma push_bit_lift2[nat_normalized_input]:
   "push_bit (nat x) \<equiv> push_bit_lift x"
   unfolding push_bit_lift_def by simp
@@ -4579,6 +4577,12 @@ definition drop_bit_lift :: \<open>int \<Rightarrow> 'a::len word \<Rightarrow> 
 lemma [drop_bit_lift]:
   "drop_bit x \<equiv> drop_bit_lift (int x)"
   unfolding drop_bit_lift_def by simp
+
+definition signed_drop_bit_lift :: \<open>int \<Rightarrow> 'a::len word \<Rightarrow> 'a::len word\<close> where
+  "signed_drop_bit_lift x = signed_drop_bit (nat x)"
+lemma [signed_drop_bit_lift]:
+  "signed_drop_bit x \<equiv> signed_drop_bit_lift (int x)"
+  unfolding signed_drop_bit_lift_def by simp
 
 definition take_bit_lift :: \<open>int \<Rightarrow> 'a::len word \<Rightarrow> 'a::len word\<close> where
   "take_bit_lift x = take_bit (nat x)"
@@ -4597,6 +4601,26 @@ lemma [length_lift]: "(LENGTH('a)) \<equiv> nat(len_of_lift(TYPE('a::len0)))"
 lemma [nat_normalized_input]:
   "(len_of(TYPE('a))) \<equiv> len_of_lift(TYPE('a::len0))"
   unfolding len_of_lift_def by simp
+
+
+definition word_rotr_lift :: "int \<Rightarrow> 'a::len word \<Rightarrow> 'a::len word" where
+"word_rotr_lift j w = word_rotr (nat j) w"
+lemma [word_rotr_lift]:
+ "word_rotr j w \<equiv> word_rotr_lift (int j) w"
+  unfolding word_rotr_lift_def by simp
+lemma [nat_normalized_input]:
+  "word_rotr (nat j) w \<equiv> word_rotr_lift j w"
+  unfolding word_rotr_lift_def by simp
+
+
+definition word_rotl_lift :: "int \<Rightarrow> 'a::len word \<Rightarrow> 'a::len word" where
+"word_rotl_lift j w = word_rotl (nat j) w"
+lemma [word_rotl_lift]:
+ "word_rotl j w \<equiv> word_rotl_lift (int j) w"
+  unfolding word_rotl_lift_def by simp
+lemma [nat_normalized_input]:
+  "word_rotr (nat j) w \<equiv> word_rotr_lift j w"
+  unfolding word_rotr_lift_def by simp
 
 
 definition smt_extract_lift :: "int \<Rightarrow> int \<Rightarrow> 'a::len word \<Rightarrow> 'b::len word" where

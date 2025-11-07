@@ -166,8 +166,11 @@ lemma int_if:
 named_theorems pow_2_word \<open>power on words should be translated natively\<close>
 named_theorems push_bit_lift \<open>push_bit on words should be translated natively\<close>
 named_theorems drop_bit_lift \<open>drop_bit on words should be translated natively\<close>
+named_theorems signed_drop_bit_lift \<open>signed_drop_bit on words should be translated natively\<close>
 named_theorems take_bit_lift \<open>take_bit on words should be translated natively\<close>
 named_theorems length_lift \<open>LENGTH should be translated natively\<close>
+named_theorems word_rotr_lift \<open>word_rotr on words should be translated natively\<close>
+named_theorems word_rotl_lift \<open>word_rotl on words should be translated natively\<close>
 named_theorems smt_extract_lift \<open>smt_extract on words should be translated natively\<close>
 
 (*Simplification*)
