@@ -16,7 +16,7 @@ named_theorems bv_reconstruction_const_test
 named_theorems word_plus_rbl_bvadd_fun
 named_theorems word_plus_rbl_bvadd
 named_theorems word_minus_rbl_bvneg_fun
-named_theorems word_minus_rbl_bvneg 
+named_theorems word_minus_rbl_bvneg
 named_theorems word_mult_rbl_bvmult_fun
 named_theorems rbl_bvult_fun
 
