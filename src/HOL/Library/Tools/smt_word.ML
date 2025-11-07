@@ -791,8 +791,8 @@ val setup_builtins =
     (\<^term>\<open>signed_drop_bit :: nat \<Rightarrow> 'a::len word \<Rightarrow> _\<close>, "bvashr") ] #>
   fold (add_word_fun shift_lift) [
     (\<^term>\<open>push_bit_lift :: int \<Rightarrow> 'a::len word \<Rightarrow> _ \<close>, "bvshl"),
-    (\<^term>\<open>drop_bit_lift :: int \<Rightarrow> 'a::len word \<Rightarrow> _\<close>, "bvlshr")
-    (*(\<^term>\<open>signed_drop_bit_lift :: nat \<Rightarrow> 'a::len word \<Rightarrow> _\<close>, "bvashr")*) ] #>
+    (\<^term>\<open>drop_bit_lift :: int \<Rightarrow> 'a::len word \<Rightarrow> _\<close>, "bvlshr"),
+    (\<^term>\<open>signed_drop_bit_lift :: int \<Rightarrow> 'a::len word \<Rightarrow> _\<close>, "bvashr") ] #>
   add_word_fun slice
     (\<^term>\<open>slice :: _ \<Rightarrow> 'a::len word \<Rightarrow> _\<close>, "extract") #>
   add_len_of
@@ -805,6 +805,9 @@ val setup_builtins =
   fold (add_word_fun rotate) [
     (\<^term>\<open>word_rotl\<close>, "rotate_left"),
     (\<^term>\<open>word_rotr\<close>, "rotate_right") ] #>
+ fold (add_word_fun rotate) [
+    (\<^term>\<open>word_rotl_lift\<close>, "rotate_left"),
+    (\<^term>\<open>word_rotr_lift\<close>, "rotate_right") ] #>
   fold (add_word_fun if_fixed_args) [
     (\<^term>\<open>less :: 'a::len word \<Rightarrow> _\<close>, "bvult"),
     (\<^term>\<open>less_eq :: 'a::len word \<Rightarrow> _\<close>, "bvule"),
