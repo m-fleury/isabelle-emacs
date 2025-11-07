@@ -85,10 +85,11 @@ fun  string_term_parser (SMTLIB.Sym "str.++", t::ts) = SOME (mk_lassoc' \<^const
   | string_term_parser (SMTLIB.Sym "str.update", [t1,t2,t3]) = SOME (mk_ternary \<^const_name>\<open>smtlib_str_update\<close> \<^typ>\<open>String.string\<close> t1 t2 t3)
   | string_term_parser _ = NONE
 
+(*
 val _ = Theory.setup (Context.theory_map (
   SMTLIB_Proof.add_type_parser string_type_parser #>
   SMTLIB_Proof.add_term_parser string_term_parser))
-
+*)
 (*translation*)
 
 fun int_num _ i = SOME ("")
