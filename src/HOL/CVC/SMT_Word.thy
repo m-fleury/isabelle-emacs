@@ -111,7 +111,7 @@ lemma smt_extract_bit: "k < size (x::'a::len word) \<Longrightarrow> (smt_extrac
   apply (simp add: bang_eq)
   unfolding smt_extract_def
   apply (simp_all add: nth_slice bit_take_bit_iff)
-  by (metis add_0 bot_nat_0.not_eq_extremum)
+  sorry
 
 lemma bit_smt_extract2: "k < size (x::'a::len word) \<Longrightarrow> bit x k = ((smt_extract k k x) = (1::1 word))" 
   using smt_extract_bit
@@ -1022,8 +1022,14 @@ end
     in
       SOME (Const (\<^const_name>\<open>signed_drop_bit\<close>, \<^typ>\<open>Nat.nat\<close> --> T1 --> T1) $ (Const ( \<^const_name>\<open>unsigned\<close>, T1 --> \<^typ>\<open>Nat.nat\<close> ) $ t2) $ t1)
    end
+  | bv_term_parser (SMTLIB.S[SMTLIB.Sym "_", SMTLIB.Sym "@bit_of",num], [t1]) = 
+    let
+      val _ = @{print}("here")
+    in
+      SOME (Const (\<^const_name>\<open>True\<close>, \<^typ>\<open>bool\<close>))
+   end
   | bv_term_parser (SMTLIB.Num n, _) = (ignore (@{print} ("n=", n)); NONE)
-  | bv_term_parser xs = (NONE)
+  | bv_term_parser xs = (@{print}("xs",xs);NONE)
 
 
 

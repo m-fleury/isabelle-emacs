@@ -1530,10 +1530,16 @@ lemma div_word_one [simp]:
   \<open>1 div w = of_bool (w = 1)\<close> for w :: \<open>'a::len word\<close>
 proof transfer
   fix k :: int
-  show \<open>take_bit LENGTH('a) (take_bit LENGTH('a) 1 div take_bit LENGTH('a) k) =
+  have "take_bit LENGTH('a) 1 div take_bit LENGTH('a) k = (of_bool (take_bit LENGTH('a) k = take_bit LENGTH('a) 1))"
+    apply (cases k)
+     apply simp_all
+     apply (metis dual_order.order_iff_strict int_one_le_iff_zero_less take_bit_nonnegative
+        zdiv_eq_0_iff)
+    by (metis dual_order.order_iff_strict int_one_le_iff_zero_less take_bit_nonnegative
+        zdiv_eq_0_iff)
+  then show \<open>take_bit LENGTH('a) (take_bit LENGTH('a) 1 div take_bit LENGTH('a) k) =
          take_bit LENGTH('a) (of_bool (take_bit LENGTH('a) k = take_bit LENGTH('a) 1))\<close>
-    using take_bit_nonnegative [of \<open>LENGTH('a)\<close> k]
-    sorry
+    by simp
 qed
 
 lemma mod_word_one [simp]:
@@ -1938,7 +1944,8 @@ lift_definition word_roti :: \<open>int \<Rightarrow> 'a::len word \<Rightarrow>
   is \<open>\<lambda>r k. concat_bit (LENGTH('a) - nat (r mod int LENGTH('a)))
     (drop_bit (nat (r mod int LENGTH('a))) (take_bit LENGTH('a) k))
     (take_bit (nat (r mod int LENGTH('a))) k)\<close>
-  sorry
+  unfolding take_bit_tightened
+  by (smt (z3) concat_bit_0 min.absorb4 min.commute not_gr0 take_bit_take_bit zero_less_diff)
 
 lemma word_rotl_eq_word_rotr [code]:
   \<open>word_rotl n = (word_rotr (LENGTH('a) - n mod LENGTH('a)) :: 'a::len word \<Rightarrow> 'a word)\<close>
@@ -2844,7 +2851,7 @@ lemma uint_add_le: "uint (x + y) \<le> uint x + uint y"
   unfolding uint_word_ariths by (simp add: zmod_le_nonneg_dividend) 
 
 lemma uint_sub_ge: "uint (x - y) \<ge> uint x - uint y"
-  sorry
+  by (metis diff_ge_0_iff_ge linorder_le_cases order_trans uint_sub_lem unsigned_greater_eq)
 
 lemma int_mod_ge: \<open>a \<le> a mod n\<close> if \<open>a < n\<close> \<open>0 < n\<close>
   for a n :: int
@@ -2854,7 +2861,7 @@ lemma mod_add_if_z:
   "\<lbrakk>x < z; y < z; 0 \<le> y; 0 \<le> x; 0 \<le> z\<rbrakk> \<Longrightarrow>
     (x + y) mod z = (if x + y < z then x + y else x + y - z)"
   for x y z :: int
-  sorry
+  by (smt (verit) minus_mod_self2 mod_pos_pos_trivial)
 
 lemma uint_plus_if':
   "uint (a + b) =
@@ -2893,6 +2900,7 @@ lemma un_ui_le:
   \<open>unat a \<le> unat b \<longleftrightarrow> uint a \<le> uint b\<close>
   by transfer (simp add: nat_le_iff) 
 
+
 lemma unat_plus_if':
   \<open>unat (a + b) =
     (if unat a + unat b < 2 ^ LENGTH('a)
@@ -2900,8 +2908,10 @@ lemma unat_plus_if':
     else unat a + unat b - 2 ^ LENGTH('a))\<close> for a b :: \<open>'a::len word\<close>
   apply (auto simp: not_less le_iff_add)
   using of_nat_inverse apply force
-  supply [[smt_trace]]
-  sorry
+  unfolding int_int_eq[symmetric]
+  apply (simp add: uint_word_ariths)
+  by (metis (no_types, lifting) add.commute add_less_cancel_right of_nat_0_le_iff order_less_trans
+      take_bit_int_eq_self uint_word_of_int uint_word_of_int_eq unsigned_less)
 
 lemma unat_sub_if_size:
   "unat (x - y) =
@@ -3186,11 +3196,17 @@ lemma udvd_minus_le': "xy < k \<Longrightarrow> z udvd xy \<Longrightarrow> z ud
   unfolding udvd_unfold_int
   by (meson udvd_decr0)
 
+(*
 lemma udvd_incr2_K:
   "p < a + s \<Longrightarrow> a \<le> a + s \<Longrightarrow> K udvd s \<Longrightarrow> K udvd p - a \<Longrightarrow> a \<le> p \<Longrightarrow>
     0 < K \<Longrightarrow> p \<le> p + K \<and> p + K \<le> a + s"
   unfolding udvd_unfold_int
-  sorry
+  apply (simp add: add_diff_cancel_left' add_diff_cancel_right' add_diff_eq diff_add_cancel not_less
+      udvd_incr_lem uint_add_le uint_arith_simps(1) uint_sub_lem)
+  apply (subst uint_word_arith_bintrs(2))
+  apply (rule conjI)
+   apply (simp add: uint_word_arith_bintrs(1))
+*)
 
 subsection \<open>Arithmetic type class instantiations\<close>
 
@@ -4568,9 +4584,11 @@ definition push_bit_lift :: \<open>int \<Rightarrow> 'a::len word \<Rightarrow> 
 lemma [push_bit_lift]:
   "push_bit x \<equiv> push_bit_lift (int x)"
   unfolding push_bit_lift_def by simp
-lemma push_bit_lift2[nat_normalized_input]:
+(*lemma push_bit_lift2[nat_normalized_input]:
   "push_bit (nat x) \<equiv> push_bit_lift x"
-  unfolding push_bit_lift_def by simp
+  "push_bit (unat y) \<equiv> push_bit_lift (uint y)"
+  unfolding push_bit_lift_def by simp_all
+*)
 
 definition drop_bit_lift :: \<open>int \<Rightarrow> 'a::len word \<Rightarrow> 'a::len word\<close> where
   "drop_bit_lift x = drop_bit (nat x)"
@@ -4631,6 +4649,10 @@ lemma [smt_extract_lift]:
 lemma [nat_normalized_input]:
   "smt_extract (nat j) (nat i) w \<equiv> smt_extract_lift j i w"
   unfolding smt_extract_lift_def by simp
+
+lemma [nat_normalized_input]:
+  "ucast w \<equiv> Word.cast w"
+   by simp
 
 
 

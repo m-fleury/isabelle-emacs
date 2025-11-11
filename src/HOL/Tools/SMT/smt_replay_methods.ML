@@ -420,11 +420,19 @@ fun abstract_for_code_eval ctxt u =
           abstract_term t
       | abs (t as (c as Const (\<^const_name>\<open>If\<close>, _)) $ t1 $ t2 $ t3) =
           abstract_ter abs (fn (t1, t2, t3) => c $ t1 $ t2 $ t3) t t1 t2 t3
-      | abs (t as \<^Const_>\<open>Not\<close> $ t1) = abstract_sub t (abs t1 #>> HOLogic.mk_not)
+      | abs (t as (c as Const (_,_)) $ t1) = abstract_sub t (abs t1 #>> (fn u => c $ u))
+      | abs (t as (c as Const (_,_)) $ t1 $ t2) = abstract_sub t (abs t1 ##>> abs t2 #>> (fn (u1, u2) => c $ u1 $ u2))
+
+
+
+     (* | abs (t as \<^Const_>\<open>Not\<close> $ t1) = abstract_sub t (abs t1 #>> HOLogic.mk_not)
       | abs (t as \<^Const_>\<open>disj\<close> $ t1 $ t2) =
           abstract_sub t (abs t1 ##>> abs t2 #>> HOLogic.mk_disj)
       | abs (t as \<^Const_>\<open>conj\<close> $ t1 $ t2) =
           abstract_sub t (abs t1 ##>> abs t2 #>> HOLogic.mk_conj)
+      | abs (t as \<^Const_>\<open>implies\<close> $ t1 $ t2) =
+           abstract_sub t (abstract_bool t1 ##>> abstract_bool t2 #>>
+           HOLogic.mk_imp)
       | abs (t as (x as Const ("Archimedean_Field.floor_ceiling_class.floor", _)) $ t1) =
           abstract_sub t (abs t1 #>> curry (op $) x)
       | abs (t as (c as Const (\<^const_name>\<open>uminus_class.uminus\<close>, _)) $ t1) =
@@ -454,19 +462,81 @@ fun abstract_for_code_eval ctxt u =
       | abs (t as (c as Const (\<^const_name>\<open>ord_class.less_eq\<close>, _)) $ t1 $ t2) =
           abstract_sub t (abs t1 ##>> abs t2 #>> (fn (u1, u2) => c $ u1 $ u2))
       | abs (t as (c as Const ("SMT_Word.is_pow2", _)) $ t1) =
-          abstract_sub t (abs t1 #>> (fn u => c $ u))
+          abstract_sub t (abs t1 #>> (fn u => c $ u))*)
       | abs (t as (c as Const ("Log_Nat.floorlog", _)) $ t1 $ t2) =
           abstract_sub t (abs t1 ##>> abs t2 #>> (fn (u1, u2) => c $ u1 $ u2))
-      | abs (t as (Const ("Num.numeral_class.numeral", _)) $ _) =
-          (fn x => (t,x))
+ (*     | abs (t as (Const ("Num.numeral_class.numeral", _)) $ _) =
+          (fn x => (t,x))*)
+      | abs t =
+        let
+          val _ = @{print} ("werewr",t)
+          val (t1,ts) = strip_comb t
+        in
+        if length ts = 0 then abstract_arith_and_term ctxt abs t
+        else
+          (case t1 of
+            Const (name,T) => 
+            let
+              fun abs_children i tab [] ys = (ys,(i,tab)) |
+                  abs_children i tab (x::xs) ys =
+              let
+                val (x',(i',tab)) = abs x (i,tab)
+              in abs_children i' tab xs (x'::ys) end
+
+              fun f (i,tab) =
+              let
+                val (ts',(i',tab)) = abs_children i tab ts []
+                val _ = @{print}("ts'",list_comb (t1,ts'))
+              in (list_comb (t1,ts'),(i',tab)) end
+
+              val _ = @{print}("namHERE",name)
+              val dont_abstract = 
+                [\<^const_name>\<open>HOL.eq\<close>,
+                 \<^const_name>\<open>Not\<close>,
+                 \<^const_name>\<open>disj\<close>,
+                 \<^const_name>\<open>conj\<close>,
+                 \<^const_name>\<open>implies\<close>,
+                 \<^const_name>\<open>ord_class.less_eq\<close>,
+                 \<^const_name>\<open>uminus_class.uminus\<close>,
+                 \<^const_name>\<open>plus_class.plus\<close>,
+                 \<^const_name>\<open>divide_class.divide\<close>,
+                 \<^const_name>\<open>of_int\<close>,
+                 \<^const_name>\<open>of_nat\<close>,
+                 \<^const_name>\<open>Int.nat\<close>,
+                 \<^const_name>\<open>z3div\<close>,
+                 \<^const_name>\<open>z3mod\<close>,
+                 \<^const_name>\<open>Num.numeral_class.numeral\<close>,
+                 "SMT_Word.is_pow2",
+                 "Log_Nat.floorlog",
+                 "Archimedean_Field.floor_ceiling"
+                ]
+            in 
+              if List.exists (fn x => x = name) dont_abstract
+              then abstract_sub t f
+              else abstract_arith_and_term ctxt abs t 
+            end
+          | _ => abstract_arith_and_term ctxt abs t
+
+        )
+
+end
+
       | abs (t as (c as Const (_,Term.Type(_,T))) $ t1) =
-        (case List.find (fn (Term.Type (x, _)) => x = "Word.word" | _ => false) T of
+        (case List.find (fn (Term.Type (x, _)) => x = "Word.word" orelse x = "word" | _ => false) T of
           NONE => abstract_arith_and_term ctxt abs t |
           SOME _ => abstract_sub t (abs t1 #>> (fn u => c $ u)))
       | abs (t as (c as Const (_,Term.Type(_,T))) $ t1 $ t2) =
+      let
+val _ = @{print}("t",t)
+val _ = @{print}("tT",T)
+
+val _ = @{print}("t1,t2",(t1,t2))
+val _ = @{print}("hi ", List.find (fn (Term.Type (x, _)) => x = "Word.word" | _ => false) T)
+      in
         (case List.find (fn (Term.Type (x, _)) => x = "Word.word" | _ => false) T of
           NONE => abstract_arith_and_term ctxt abs t |
           SOME _ => abstract_sub t (abs t1 ##>> abs t2 #>> (fn (u1, u2) => c $ u1 $ u2)))
+      end
       | abs (t as (c as Const (_,Term.Type(_,T))) $ t1 $ t2 $ t3) =
         (case List.find (fn (Term.Type (x, _)) => x = "Word.word" | _ => false) T of
           NONE => abstract_arith_and_term ctxt abs t |

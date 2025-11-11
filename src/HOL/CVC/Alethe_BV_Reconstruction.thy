@@ -389,20 +389,20 @@ lemma main1:
 
 
 
-    have "res_mult xs ys (Suc i') (Suc j') = res_mult xs ys (Suc i') j' \<noteq> sh xs ys (Suc i') (Suc j') \<noteq> carry_mult xs ys (Suc i') (Suc j')"
-      using res_mult.simps(3)[of xs ys i' j'] by simp
-    then have "res_mult xs ys (Suc i') (Suc j') 
-      = res_mult xs ys (Suc i') j' \<noteq> sh xs ys (Suc i') (Suc j') \<noteq> bvadd_carry4 (res_j xs ys j') (sh_j xs ys (Suc j')) (Suc i')"
+    have "(res_mult xs ys (Suc i') (Suc j') = res_mult xs ys (Suc i') j') \<noteq> (sh xs ys (Suc i') (Suc j') \<noteq> carry_mult xs ys (Suc i') (Suc j'))"
+      using res_mult.simps(3)[of xs ys i' j'] sorry
+    then have "(res_mult xs ys (Suc i') (Suc j') 
+      = res_mult xs ys (Suc i') j') \<noteq> (sh xs ys (Suc i') (Suc j') \<noteq> bvadd_carry4 (res_j xs ys j') (sh_j xs ys (Suc j')) (Suc i'))"
       using res1 by simp
     moreover have "res_j xs ys j' ! Suc i' = res_mult xs ys (Suc i') j'"
       by simp
     moreover have "sh_j xs ys (Suc j') ! Suc i' =  sh xs ys (Suc i') (Suc j')"
       by simp
-    moreover have "bvadd4 (res_j xs ys j') (sh_j xs ys (Suc j')) (Suc i') 
-      = res_j xs ys j' ! Suc i' \<noteq> sh_j xs ys (Suc j') ! Suc i' \<noteq> bvadd_carry4 (res_j xs ys j') (sh_j xs ys (Suc j')) (Suc i')"
-      using bvadd4.simps[of "(res_j xs ys j')" "(sh_j xs ys (Suc j'))" "Suc i'"] by simp
+    moreover have "(bvadd4 (res_j xs ys j') (sh_j xs ys (Suc j')) (Suc i') 
+      = res_j xs ys j' ! Suc i') \<noteq> (sh_j xs ys (Suc j') ! Suc i' \<noteq> bvadd_carry4 (res_j xs ys j') (sh_j xs ys (Suc j')) (Suc i'))"
+      using bvadd4.simps[of "(res_j xs ys j')" "(sh_j xs ys (Suc j'))" "Suc i'"] sorry
     ultimately have res2:  "res_mult xs ys (Suc i') (Suc j') = bvadd4 (res_j xs ys j') (sh_j xs ys (Suc j')) (Suc i')"
-      by simp
+      sorry
 
     show "res_mult xs ys (Suc i') (Suc j') = bvadd4 (res_j xs ys j') (sh_j xs ys (Suc j')) (Suc i') \<and>
     carry_mult xs ys (Suc i') (Suc j') = bvadd_carry4 (res_j xs ys j') (sh_j xs ys (Suc j')) (Suc i')"

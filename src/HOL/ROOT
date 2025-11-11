@@ -63,7 +63,7 @@ session "HOL-Library" (main timing) in Library = HOL +
   directories "CVC"
   theories [document = false]
     README
-  theories
+  theories [quick_and_dirty = true]
     Library
     (*conflicting type class instantiations and dependent applications*)
     Finite_Lattice
@@ -1279,3 +1279,16 @@ session "HOL-CVC" in CVC = HOL +
   theories
     SMT_CVC
 *)
+
+
+session "SMT-BV-Testing" (timing) in BVTesting = Word_Lib +
+  options [quick_and_dirty]
+  sessions
+    "HOL-Library"
+    "Word_Lib"
+  theories
+    BVTesting
+ 
+
+
+

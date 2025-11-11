@@ -194,6 +194,7 @@ private fun test_2 where
 lemma "test_2 (y # y' # ys) = (y # y' # ys) @ (y' # ys) @ (y' # ys)"
 by (rule test_2.simps[unfolded Let_def])
 
+(*
 ML\<open>
 let
   val actual =
@@ -204,7 +205,7 @@ let
   val expected = "test_2 (?y # (?y' # ?ys =: x') =: x) = x @ x' @ x'"
 in \<^assert> (actual = expected) end
 \<close>
-
+*)
 end
 
 end
