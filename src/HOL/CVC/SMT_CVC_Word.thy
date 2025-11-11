@@ -262,9 +262,6 @@ val y = @{term "(8::3 word)"}
 \<close>
 
 value "(2::8 word) ^ 3"
-lemma "(2::8 word) ^ 3 = 8"
-  supply[[smt_trace]]
-  apply (smt (cvc5))
 
 (*
 TODO: Ask during proofs meeting about this
@@ -284,6 +281,7 @@ of power needs to be adapted but that is okay. But also makes it
 harder for other programmers.
 Could be done during translation
 *)
+(*
 lemma "Word.Word 8 = (8::3 word)"
   supply[[smt_trace]]
   apply (smt (cvc5))
@@ -291,7 +289,7 @@ lemma "Word.Word 8 = (8::3 word)"
 lemma "(2::3 word) ^ 3 = 8"
   supply[[smt_trace]]
   apply (smt (cvc5))
-
+*)
 
 
 

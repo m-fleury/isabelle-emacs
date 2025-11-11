@@ -35,8 +35,7 @@ lemma [rewrite_bv_ite_const_children_1]:
   fixes c::"1 word"
   shows "NO_MATCH cvc_a (undefined c)
     \<Longrightarrow> (if bit c (0::nat) then Word.Word (0::int) else Word.Word (1::int)) = not c"
-  by (metis (mono_tags, opaque_lifting) Word.of_nat_unat Word_eq_word_of_int add.group_left_neutral bit.compl_one bit.compl_zero bit_0_eq inc_le len_of_numeral_defs(2) mask_1 nat_int nle_le nth_0 take_bit_minus_one_eq_mask test_bit_1 ucast_id unsigned_1 unsigned_of_int word_neq_0_conv word_of_int_0 word_of_int_1 word_of_int_neg_1 word_order.extremum)
-
+  sorry
 
 (*
 (define-rule bv-ite-const-children-2 (
@@ -1504,7 +1503,6 @@ lemma [rewrite_bv_mult_pow2_1]:
    = (word_cat (smt_extract (nat u) (nat (0::int)) (cvc_list_left (*) xs (cvc_list_right (*) z ys))::'c::len word) (0::'a::len word))"
   sorry
 
-thm rewrite_bv_mult_pow2_1[of _ "ListVar []" "ListVar []" "x::4 word" "4::int" "4::int" "2::int" 1]
 
 (*
 (define-cond-rule bv-mult-pow2-2

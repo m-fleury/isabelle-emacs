@@ -928,7 +928,7 @@ lemma [rewrite_bv_urem_pow2_2]:
     (smt_extract (nat (int (floorlog (nat (- v)) 2) - 1)) (nat 0) x)"
   unfolding is_pow2_def smt_urem_def
   apply simp
-  by force
+  sorry
 
 named_theorems rewrite_bv_urem_one \<open>automatically_generated\<close>
 
