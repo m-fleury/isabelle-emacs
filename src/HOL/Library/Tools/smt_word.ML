@@ -878,7 +878,8 @@ fun mk_zero_extend i u =
 fun mk_scast i u =
   let
     val T = fastype_of u
-    val TU = Word_Lib.mk_wordT i
+    val j = Word_Lib.dest_wordT T
+    val TU = Word_Lib.mk_wordT (i + j)
   in Const (\<^const_name>\<open>Word.signed\<close>, T --> TU) $ u end;
 
 fun mk_extract i j u =
@@ -1018,7 +1019,22 @@ fun
   | bv_term_parser (SMTLIB.S [SMTLIB.Sym "_", SMTLIB.Sym "zero_extend", SMTLIB.Num i], [t]) =
       mk_zero_extend i t
   | bv_term_parser (SMTLIB.S [SMTLIB.Sym "_", SMTLIB.Sym "sign_extend", SMTLIB.Num i], [t]) =
-      SOME (mk_scast i t)
+  let
+     val _ = @{print}("sign_extend t",t)
+
+  in
+      SOME (mk_scast i t) end
+  | bv_term_parser (SMTLIB.Sym "sign_extend", [t1, t2]) =
+    let
+     val _ = @{print}("sign_extend t1",t1)
+     val _ = @{print}("sign_extend t2",t2)
+     (*("sign_extend t1", Free ("n", "int")) (line 368 of "/home/lachnitt/Sources/isabelle-git/isabelle-emacs/src/HOL/Library/Tools/smt_word.ML") 
+     ("sign_extend t2", Free ("x", "_ word"))*)
+     (*If type of t2 is known I could calculate type of t1, otherwise I would just ignore t1? Maybe better don't use signed*)
+   in
+     (*SOME (Const (\<^const_name>\<open>signed_take_bit\<close>,\<^typ>\<open>Nat.nat\<close>--> fastype_of t2 --> dummyT) $ (Const ( \<^const_name>\<open>nat\<close>, \<^typ>\<open>Int.int\<close> --> \<^typ>\<open>Nat.nat\<close>) $ t1) $ t2)*)
+     SOME (Const (\<^const_name>\<open>Word.signed_cast\<close>, fastype_of t2 --> dummyT) $ t2)
+   end
   | bv_term_parser (SMTLIB.S [SMTLIB.Sym "_",SMTLIB.Sym "extract", SMTLIB.Num i, SMTLIB.Num j],[t])
        = SOME (mk_extract i j t)
   | bv_term_parser (SMTLIB.Sym "extract",[ i, j ,t])
