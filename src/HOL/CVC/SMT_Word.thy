@@ -809,7 +809,10 @@ fun
    bv_term_parser (SMTLIB.Sym "extract",[ i, j ,t])
        = SOME (mk_extract_from_terms i j t)
 
-  | bv_term_parser (SMTLIB.Sym "@bbT", xs) =
+  | bv_term_parser (SMTLIB.Sym "@bbT", xs) = (*old name, now bbterm eventually remove*)
+        SOME ((Const ("Reversed_Bit_Lists.of_bl", \<^typ>\<open>HOL.bool list\<close> --> mk_wordT(length xs))) 
+        $ ((Const (\<^const_name>\<open>List.rev\<close>, \<^typ>\<open>HOL.bool list\<close> -->  \<^typ>\<open>HOL.bool list\<close>)) $ (HOLogic.mk_list \<^typ>\<open>bool\<close> xs)))
+  | bv_term_parser (SMTLIB.Sym "@bbterm", xs) =
         SOME ((Const ("Reversed_Bit_Lists.of_bl", \<^typ>\<open>HOL.bool list\<close> --> mk_wordT(length xs))) 
         $ ((Const (\<^const_name>\<open>List.rev\<close>, \<^typ>\<open>HOL.bool list\<close> -->  \<^typ>\<open>HOL.bool list\<close>)) $ (HOLogic.mk_list \<^typ>\<open>bool\<close> xs)))
   | bv_term_parser (SMTLIB.S [SMTLIB.Sym "_", SMTLIB.Sym "@bitOf", SMTLIB.Num i], [t]) =
@@ -1016,6 +1019,8 @@ end
     in
       SOME (Const (\<^const_name>\<open>True\<close>, \<^typ>\<open>bool\<close>))
    end
+ 
+
   | bv_term_parser (SMTLIB.Num n, _) = (ignore (@{print} ("n=", n)); NONE)
   | bv_term_parser xs = (@{print}("xs",xs);NONE)
 
