@@ -824,9 +824,12 @@ val setup_builtins =
   fold (add_word_fun take_bit) [
     (\<^term>\<open>take_bit :: _ \<Rightarrow> 'a::len word \<Rightarrow> _\<close>, "TODO")
    ] #>
- (* fold (add_word_fun bit) [
+  (*fold (add_word_fun bit) [
     (\<^term>\<open>bit :: 'a::len word \<Rightarrow> _ \<Rightarrow> _\<close>, "bit")
-   ] #>*)
+   ] #>
+   fold (add_word_fun bit) [
+    (\<^term>\<open>bit_lift :: 'a::len word  \<Rightarrow> _ \<Rightarrow> _\<close>, "bit")(*TODO*)
+   ] #>  *)
   add_word_fun extract
     (\<^term>\<open>smt_extract :: _ \<Rightarrow> _ \<Rightarrow> 'a::len word \<Rightarrow> _\<close>, "extract") #>
   add_word_fun extract_lift

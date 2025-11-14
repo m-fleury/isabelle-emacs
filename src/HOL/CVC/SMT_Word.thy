@@ -995,12 +995,6 @@ end
       SOME (HOLogic.mk_binop \<^const_name>\<open>Rings.divide\<close> (mk_unary \<^const_name>\<open>unsigned\<close> t1, mk_unary \<^const_name>\<open>unsigned\<close> t2))
  | bv_term_parser (SMTLIB.Sym "bvudiv", [t1,t2]) =
       SOME (HOLogic.mk_binop \<^const_name>\<open>smt_udiv\<close> (t1, t2)) (*TODO: What about the case whre t2 is 0? SMTLIB semantics says it should be mask *)
-  | bv_term_parser (SMTLIB.Sym "bvshl", [t1, t2]) = 
-    let
-      val T1 = fastype_of t1
-    in
-      SOME (Const (\<^const_name>\<open>semiring_bit_operations_class.push_bit\<close>, \<^typ>\<open>Nat.nat\<close> --> T1 --> T1) $ (Const ( \<^const_name>\<open>unsigned\<close>, T1 --> \<^typ>\<open>Nat.nat\<close> ) $ t2) $ t1)
-   end
   | bv_term_parser (SMTLIB.Sym "bvlshr", [t1, t2]) = 
     let
       val T1 = fastype_of t1
@@ -1040,7 +1034,6 @@ val _ = Theory.setup (Context.theory_map (
 val _ = Theory.setup (Context.theory_map (
   SMTLIB_Proof.add_type_parser bv_type_parser))*)
 \<close>
-
 
 ML \<open>
 let

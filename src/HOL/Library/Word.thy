@@ -4553,6 +4553,15 @@ lemma [slice_lift]:
   apply(subst take_bit_word_eq_self)
   by simp_all
 
+definition push_bit_lift :: \<open>int \<Rightarrow> 'a::len word \<Rightarrow> 'a::len word\<close> where
+  "push_bit_lift x = push_bit (nat x)"
+lemma [push_bit_lift]:
+  "push_bit x \<equiv> push_bit_lift (int x)"
+  unfolding push_bit_lift_def by simp
+lemma [nat_normalized_input]:
+  "push_bit (nat x) \<equiv> push_bit_lift x"
+  unfolding push_bit_lift_def by simp
+
 (*
 Lifting from operators that should be natively translated into SMT-LIB that take in natural numbers
 or return them to operators that work only on integers.
@@ -4579,16 +4588,11 @@ lemma [unset_bit_lift]:
 definition flip_bit_lift :: \<open>int \<Rightarrow> 'a::len word \<Rightarrow> 'a::len word\<close> where
   "flip_bit_lift x = flip_bit (nat x)"
 
-definition push_bit_lift :: \<open>int \<Rightarrow> 'a::len word \<Rightarrow> 'a::len word\<close> where
-  "push_bit_lift x = push_bit (nat x)"
-lemma [push_bit_lift]:
-  "push_bit x \<equiv> push_bit_lift (int x)"
-  unfolding push_bit_lift_def by simp
 (*lemma push_bit_lift2[nat_normalized_input]:
   "push_bit (nat x) \<equiv> push_bit_lift x"
   "push_bit (unat y) \<equiv> push_bit_lift (uint y)"
-  unfolding push_bit_lift_def by simp_all
-*)
+  unfolding push_bit_lift_def by simp_all*)
+
 
 definition drop_bit_lift :: \<open>int \<Rightarrow> 'a::len word \<Rightarrow> 'a::len word\<close> where
   "drop_bit_lift x = drop_bit (nat x)"
@@ -4649,6 +4653,9 @@ lemma [smt_extract_lift]:
 lemma [nat_normalized_input]:
   "smt_extract (nat j) (nat i) w \<equiv> smt_extract_lift j i w"
   unfolding smt_extract_lift_def by simp
+declare[[show_types,show_sorts]]
+
+
 
 lemma [nat_normalized_input]:
   "ucast w \<equiv> Word.cast w"

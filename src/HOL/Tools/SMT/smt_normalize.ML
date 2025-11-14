@@ -355,14 +355,15 @@ fun simplify_norm_table ctxt = [
   ("Type_Length.len0_class.len_of", (Named_Theorems.get ctxt \<^named_theorems>\<open>smt_word_len_evaluate\<close>, SOME [])),
   ("Word.Word", (Named_Theorems.get ctxt \<^named_theorems>\<open>Word_of_int\<close>, NONE)),
   ("Word.slice", (Named_Theorems.get ctxt \<^named_theorems>\<open>slice_lift\<close>, NONE)) ,
-  ("Num.numeral_class.numeral",(Named_Theorems.get ctxt \<^named_theorems>\<open>word_numeral_lift\<close>, SOME []))
+  ("Num.numeral_class.numeral",(Named_Theorems.get ctxt \<^named_theorems>\<open>word_numeral_lift\<close>, SOME [])),
+  ("Bit_Operations.semiring_bits_class.bit",(Named_Theorems.get ctxt \<^named_theorems>\<open>bit_lift\<close>, SOME[])),
+  ("Bit_Operations.semiring_bit_operations_class.push_bit", (Named_Theorems.get ctxt \<^named_theorems>\<open>push_bit_lift\<close>, SOME[]))
 ]
 
 (*NOTE: Might be integrated into one of the other passes eventually. However, needs to be run before
 the run that pushes the ints in*)
 fun nat_native_ops_table ctxt = no_simplifier [
   (\<^const_name>\<open>power\<close>, Named_Theorems.get ctxt \<^named_theorems>\<open>pow_2_word\<close>),
-  ("Bit_Operations.semiring_bit_operations_class.push_bit", Named_Theorems.get ctxt \<^named_theorems>\<open>push_bit_lift\<close>),
   ("Bit_Operations.semiring_bit_operations_class.drop_bit", Named_Theorems.get ctxt \<^named_theorems>\<open>drop_bit_lift\<close>),
   ("Word.signed_drop_bit", Named_Theorems.get ctxt \<^named_theorems>\<open>signed_drop_bit_lift\<close>),
   ("Word.word_rotr", Named_Theorems.get ctxt \<^named_theorems>\<open>word_rotr_lift\<close>),
@@ -370,6 +371,7 @@ fun nat_native_ops_table ctxt = no_simplifier [
 
   ("Type_Length.len0_class.len_of", Named_Theorems.get ctxt \<^named_theorems>\<open>length_lift\<close>),
   ("Word.smt_extract", Named_Theorems.get ctxt \<^named_theorems>\<open>smt_extract_lift\<close>)
+
 ] 
 
 local
