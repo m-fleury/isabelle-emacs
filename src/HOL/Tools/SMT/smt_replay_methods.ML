@@ -486,8 +486,8 @@ fun abstract_for_code_eval ctxt u =
               fun f (i,tab) =
               let
                 val (ts',(i',tab)) = abs_children i tab ts []
-                val _ = @{print}("ts'",list_comb (t1,ts'))
-              in (list_comb (t1,ts'),(i',tab)) end
+                val _ = @{print}("ts'",list_comb (t1,rev ts'))
+              in (list_comb (t1,rev ts'),(i',tab)) end
 
               val _ = @{print}("namHERE",name)
               val dont_abstract = 
@@ -507,6 +507,7 @@ fun abstract_for_code_eval ctxt u =
                  \<^const_name>\<open>z3mod\<close>,
                  \<^const_name>\<open>Num.numeral_class.numeral\<close>,
                  "SMT_Word.is_pow2",
+                 "Word.smt_extract",
                  "Log_Nat.floorlog",
                  "Archimedean_Field.floor_ceiling"
                 ]
