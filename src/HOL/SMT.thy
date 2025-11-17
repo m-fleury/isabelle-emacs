@@ -903,4 +903,8 @@ lemma [z3_rule]:  (* for def-axiom *)
 hide_type (open) symb_list pattern
 hide_const (open) Symb_Nil Symb_Cons trigger pat nopat fun_app z3div z3mod
 
+(*just for testing*)
+lemma True
+  by (smt (z3_new))
+
 end
