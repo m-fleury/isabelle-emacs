@@ -1319,7 +1319,6 @@ lemma [z3_rule]:  (* for def-axiom *)
 hide_type (open) symb_list pattern
 hide_const (open) Symb_Nil Symb_Cons trigger pat nopat fun_app z3div z3mod
 
-
 subsection \<open>Rules for cvc5 holes\<close>
 
 lemma [cvc5_holes_simp]:
@@ -1328,5 +1327,6 @@ lemma [cvc5_holes_simp]:
   by auto
 
 declare[[smt_cvc_alethe = true]]
+
 
 end
