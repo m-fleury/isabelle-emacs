@@ -4529,6 +4529,7 @@ lemma [pow_2_word]:
   "power (2::'a::len word) w \<equiv> push_bit w (1::'a word)"
   unfolding pow_2_word_def by simp
 
+named_theorems smt_word_len_evaluate \<open>\<close>
 (*Speed up for commonly used bit-widths*)
 lemma [smt_word_len_evaluate]:
   "len_of (a::8 itself) \<equiv> 8"
@@ -4542,20 +4543,21 @@ lemma [smt_word_len_evaluate]:
 lemmas [smt_word_len_evaluate] = eq_reflection[OF len_bit0] eq_reflection[OF len_bit1]
   eq_reflection[OF len_num0] eq_reflection[OF len_num1]
 
-lemma [Word_of_int]:
+lemma Word_of_int:
   "Word.Word x \<equiv> of_int x"
   by simp
 
-lemma [slice_lift]:
+lemma slice_lift:
   fixes x::"'a::len word"
   shows "slice n x \<equiv> smt_extract (LENGTH('a)) n x"
   unfolding smt_extract_def
   apply(subst take_bit_word_eq_self)
   by simp_all
 
+(*TODO: Might be able to move to nat normalization section*)
 definition push_bit_lift :: \<open>int \<Rightarrow> 'a::len word \<Rightarrow> 'a::len word\<close> where
   "push_bit_lift x = push_bit (nat x)"
-lemma [push_bit_lift]:
+lemma push_bit_lift:
   "push_bit x \<equiv> push_bit_lift (int x)"
   unfolding push_bit_lift_def by simp
 lemma [nat_normalized_input]:
@@ -4566,8 +4568,6 @@ lemma [nat_normalized_input]:
 Lifting from operators that should be natively translated into SMT-LIB that take in natural numbers
 or return them to operators that work only on integers.
 *)
-named_theorems set_bit_lift \<open>\<close>
-named_theorems unset_bit_lift \<open>\<close>
 
 
 definition smt_mask_lift :: \<open>int \<Rightarrow> 'a::len word\<close> where
@@ -4575,13 +4575,13 @@ definition smt_mask_lift :: \<open>int \<Rightarrow> 'a::len word\<close> where
 
 definition set_bit_lift :: \<open>int \<Rightarrow> 'a::len word \<Rightarrow> 'a::len word\<close> where
   "set_bit_lift x = set_bit (nat x)"
-lemma [set_bit_lift]:
+lemma set_bit_lift:
   "set_bit x \<equiv> set_bit_lift (int x)"
   unfolding set_bit_lift_def by simp
 
 definition unset_bit_lift :: \<open>int \<Rightarrow> 'a::len word \<Rightarrow> 'a::len word\<close> where
   "unset_bit_lift x = unset_bit (nat x)"
-lemma [unset_bit_lift]:
+lemma unset_bit_lift:
   "unset_bit x \<equiv> unset_bit_lift (int x)"
   unfolding unset_bit_lift_def by simp
 
@@ -4596,19 +4596,19 @@ definition flip_bit_lift :: \<open>int \<Rightarrow> 'a::len word \<Rightarrow> 
 
 definition drop_bit_lift :: \<open>int \<Rightarrow> 'a::len word \<Rightarrow> 'a::len word\<close> where
   "drop_bit_lift x = drop_bit (nat x)"
-lemma [drop_bit_lift]:
+lemma drop_bit_lift:
   "drop_bit x \<equiv> drop_bit_lift (int x)"
   unfolding drop_bit_lift_def by simp
 
 definition signed_drop_bit_lift :: \<open>int \<Rightarrow> 'a::len word \<Rightarrow> 'a::len word\<close> where
   "signed_drop_bit_lift x = signed_drop_bit (nat x)"
-lemma [signed_drop_bit_lift]:
+lemma signed_drop_bit_lift:
   "signed_drop_bit x \<equiv> signed_drop_bit_lift (int x)"
   unfolding signed_drop_bit_lift_def by simp
 
 definition take_bit_lift :: \<open>int \<Rightarrow> 'a::len word \<Rightarrow> 'a::len word\<close> where
   "take_bit_lift x = take_bit (nat x)"
-lemma [take_bit_lift]:
+lemma take_bit_lift:
   "take_bit x \<equiv> take_bit_lift (int x)"
   unfolding take_bit_lift_def by simp
 lemma [nat_normalized_input]:
@@ -4618,7 +4618,7 @@ lemma [nat_normalized_input]:
 
 definition len_of_lift :: "'a::len0 itself \<Rightarrow> int" where
 "len_of_lift(TYPE('a::len0)) = int(len_of(TYPE('a)))"
-lemma [length_lift]: "(LENGTH('a)) \<equiv> nat(len_of_lift(TYPE('a::len0)))"
+lemma length_lift: "(LENGTH('a)) \<equiv> nat(len_of_lift(TYPE('a::len0)))"
   unfolding len_of_lift_def by simp
 lemma [nat_normalized_input]:
   "(len_of(TYPE('a))) \<equiv> len_of_lift(TYPE('a::len0))"
@@ -4627,7 +4627,7 @@ lemma [nat_normalized_input]:
 
 definition word_rotr_lift :: "int \<Rightarrow> 'a::len word \<Rightarrow> 'a::len word" where
 "word_rotr_lift j w = word_rotr (nat j) w"
-lemma [word_rotr_lift]:
+lemma word_rotr_lift:
  "word_rotr j w \<equiv> word_rotr_lift (int j) w"
   unfolding word_rotr_lift_def by simp
 lemma [nat_normalized_input]:
@@ -4637,7 +4637,7 @@ lemma [nat_normalized_input]:
 
 definition word_rotl_lift :: "int \<Rightarrow> 'a::len word \<Rightarrow> 'a::len word" where
 "word_rotl_lift j w = word_rotl (nat j) w"
-lemma [word_rotl_lift]:
+lemma word_rotl_lift:
  "word_rotl j w \<equiv> word_rotl_lift (int j) w"
   unfolding word_rotl_lift_def by simp
 lemma [nat_normalized_input]:
@@ -4647,7 +4647,7 @@ lemma [nat_normalized_input]:
 
 definition smt_extract_lift :: "int \<Rightarrow> int \<Rightarrow> 'a::len word \<Rightarrow> 'b::len word" where
 "smt_extract_lift j i w  = smt_extract (nat j) (nat i) w"
-lemma [smt_extract_lift]:
+lemma smt_extract_lift:
  "smt_extract j i w \<equiv> smt_extract_lift (int j) (int i) w"
   unfolding smt_extract_lift_def by simp
 lemma [nat_normalized_input]:
@@ -4662,9 +4662,44 @@ lemma [nat_normalized_input]:
    by simp
 
 
+lemma word_numeral_lift:
+"(numeral (x::num)::'a::len word) \<equiv> word_of_int (take_bit LENGTH('a::len) (numeral x))"
+  using num_abs_bintr[of x]
+  by (smt (z3))
+
+
+ML \<open>
+
+val nat_native_ops_tab =
+[
+  ("Bit_Operations.semiring_bit_operations_class.drop_bit",@{thms drop_bit_lift}),
+  ("Word.signed_drop_bit", @{thms signed_drop_bit_lift}),
+  ("Word.word_rotr", @{thms word_rotr_lift}),
+  ("Word.word_rotl", @{thms word_rotl_lift}),
+  ("Word.smt_extract", @{thms smt_extract_lift})
+
+
+]
+val simplify_norm_table = [
+  ("Type_Length.len0_class.len_of", @{thms smt_word_len_evaluate}),
+  ("Word.Word", @{thms Word_of_int}),
+  ("Word.slice",@{thms slice_lift}) ,
+  ("Bit_Operations.semiring_bit_operations_class.push_bit", @{thms push_bit_lift}),
+  ("Num.numeral_class.numeral",@{thms word_numeral_lift})
+
+]
+
+val _ = fold SMT_Normalize.add_nat_native_ops_tab (nat_native_ops_tab)
+    |> Theory.setup o Context.theory_map
+
+val _ = fold SMT_Normalize.add_simplify_ops_tab (simplify_norm_table)
+    |> Theory.setup o Context.theory_map
+\<close>
 
 ML_file \<open>Tools/smt_word.ML\<close>
-declare [[smt_nat_as_int]]
 
+
+
+declare [[smt_nat_as_int]]
 
 end

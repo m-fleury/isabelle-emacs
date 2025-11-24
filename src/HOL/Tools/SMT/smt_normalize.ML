@@ -20,6 +20,9 @@ sig
         bool Config.T * (Proof.context -> conv) * (thm list -> thm list * thm list) ->
           Context.generic -> Context.generic
 
+  val add_nat_native_ops_tab : (string * thm list) -> Context.generic -> Context.generic
+  val add_simplify_ops_tab : (string * thm list) -> Context.generic -> Context.generic
+
 end;
 
 structure SMT_Normalize: SMT_NORMALIZE =
@@ -347,32 +350,76 @@ end
 
 val no_simplifier = map (fn (a,b) => (a,(b,NONE)))
 
-val cvc5_extension_table = no_simplifier [
+val cvc5_extension_table = [
   (\<^const_name>\<open>power\<close>, @{thms pow_2_raw''})
 ]
 
-fun simplify_norm_table ctxt = [
-  ("Type_Length.len0_class.len_of", (Named_Theorems.get ctxt \<^named_theorems>\<open>smt_word_len_evaluate\<close>, SOME [])),
-  ("Word.Word", (Named_Theorems.get ctxt \<^named_theorems>\<open>Word_of_int\<close>, NONE)),
-  ("Word.slice", (Named_Theorems.get ctxt \<^named_theorems>\<open>slice_lift\<close>, NONE)) ,
-  ("Num.numeral_class.numeral",(Named_Theorems.get ctxt \<^named_theorems>\<open>word_numeral_lift\<close>, SOME [])),
-  ("Bit_Operations.semiring_bits_class.bit",(Named_Theorems.get ctxt \<^named_theorems>\<open>bit_lift\<close>, SOME[])),
-  ("Bit_Operations.semiring_bit_operations_class.push_bit", (Named_Theorems.get ctxt \<^named_theorems>\<open>push_bit_lift\<close>, SOME[]))
-]
+
+
+(*fun fst_int_ord ((i1, _), (i2, _)) = int_ord (i1, i2)
+
+structure Mk_Builtins = Generic_Data
+(
+  type T = (int * mk_builtins) list
+  val empty = []
+  fun merge data = Ord_List.merge fst_int_ord data
+)
+*)
+type nat_native_ops = (string * thm list)
+
+fun fst_string_ord ((i1, _), (i2, _)) = string_ord (i1, i2)
+
+
+structure Nat_Native_Ops = Generic_Data
+(
+  type T = nat_native_ops list
+  val empty = []
+  fun merge (xs,ys) = Ord_List.merge (fst_string_ord) (xs,ys)
+)
+
+fun get_nat_native_ops_tab ctxt = (Nat_Native_Ops.get (Context.Proof ctxt) : nat_native_ops list)
+
+fun add_nat_native_ops_tab tabs context =
+let
+    val data = Nat_Native_Ops.get context
+in
+ Nat_Native_Ops.map  (K (AList.update (op =) tabs data))
+      context
+end
+
+
+
+type simplify_ops = (string * thm list)
+
+structure Simplify_Ops = Generic_Data
+(
+  type T = simplify_ops list
+  val empty = []
+  fun merge (xs,ys) = 
+    let
+      val _ = @{print}("smt_normalize xs",xs)
+      val _ = @{print}("smt_normalize",ys)
+      val zs = Ord_List.merge (fst_string_ord) (xs,ys)
+      val _ = @{print}("smt_normalize",zs)
+
+    in zs end
+)
+
+fun get_simplify_ops_tab ctxt = (Simplify_Ops.get (Context.Proof ctxt) : simplify_ops list)
+fun add_simplify_ops_tab tabs context = 
+let
+    val data = Nat_Native_Ops.get context
+in
+ Simplify_Ops.map  (K (AList.update (op =) tabs data))
+      context
+end
+
 
 (*NOTE: Might be integrated into one of the other passes eventually. However, needs to be run before
 the run that pushes the ints in*)
-fun nat_native_ops_table ctxt = no_simplifier [
-  (\<^const_name>\<open>power\<close>, Named_Theorems.get ctxt \<^named_theorems>\<open>pow_2_word\<close>),
-  ("Bit_Operations.semiring_bit_operations_class.drop_bit", Named_Theorems.get ctxt \<^named_theorems>\<open>drop_bit_lift\<close>),
-  ("Word.signed_drop_bit", Named_Theorems.get ctxt \<^named_theorems>\<open>signed_drop_bit_lift\<close>),
-  ("Word.word_rotr", Named_Theorems.get ctxt \<^named_theorems>\<open>word_rotr_lift\<close>),
-  ("Word.word_rotl", Named_Theorems.get ctxt \<^named_theorems>\<open>word_rotl_lift\<close>),
-
-  ("Type_Length.len0_class.len_of", Named_Theorems.get ctxt \<^named_theorems>\<open>length_lift\<close>),
-  ("Word.smt_extract", Named_Theorems.get ctxt \<^named_theorems>\<open>smt_extract_lift\<close>)
-
-] 
+fun nat_native_ops_table ctxt = ([
+  (\<^const_name>\<open>power\<close>, Named_Theorems.get ctxt \<^named_theorems>\<open>pow_2_word\<close>)] @ (get_nat_native_ops_tab ctxt))
+fun simplify_norm_table ctxt = (get_simplify_ops_tab ctxt) |> @{print}
 
 local
 
@@ -380,23 +427,31 @@ local
     let
       val t = Thm.term_of ct
       val t1 = Term.head_of t
- 
       fun rewr_conv thms = Conv.top_rewrs_conv thms ctxt
-      fun proper_num_ss thms ctxt = put_simpset HOL_ss ctxt addsimps thms
-     (* fun simp_rewr thms = Simplifier.rewrite (proper_num_ss thms ctxt)*)
-      fun simp_rewr thms' = Simplifier.rewrite ctxt
-
     in
       (case t1 of
         Const(n,T) =>
           (case AList.lookup (op =) tab n of (*TODO: use thms in Simplifier*)
-            SOME (thms,NONE) => rewr_conv thms
-            | SOME ([],SOME thms') => simp_rewr thms'
-            | SOME (thms,SOME thms') => rewr_conv thms then_conv simp_rewr thms'
+              SOME thms => rewr_conv thms
             | NONE => Conv.all_conv)
        | _ => Conv.all_conv) ct
+    end
 
-
+  fun unfold_extension_conv_simp tab ctxt ct =
+    let
+      val t = Thm.term_of ct
+      val t1 = Term.head_of t
+ 
+      fun proper_num_ss thms ctxt = put_simpset HOL_ss ctxt addsimps thms
+      fun simp_rewr thms' = Simplifier.rewrite (proper_num_ss thms' ctxt)
+      val _ = @{print}("tab",tab)
+    in
+      (case t1 of
+        Const(n,T) =>
+          (case AList.lookup (op =) tab (n|> @{print}) of (*TODO: use thms in Simplifier*)
+              SOME thms => rewr_conv thms then_conv simp_rewr (thms |> @{print})
+            | NONE => Conv.all_conv)
+       | _ => Conv.all_conv) (ct |> @{print})
     end
 in
 
@@ -408,7 +463,7 @@ fun unfold_cvc5_extension ctxt =
  (if SMT_Config.solver_of ctxt = "cvc5_proof" then map (apsnd (Conv.fconv_rule (unfold_cvc5_extension_conv ctxt))) else (fn x => x))
 
 fun simplify_norm_extension_conv ctxt =
- (Conv.top_conv (unfold_extension_conv (simplify_norm_table ctxt)) ctxt)
+ (Conv.top_conv (unfold_extension_conv_simp (simplify_norm_table ctxt)) ctxt)
 
 fun simplify_norm_extension ctxt = 
  map (apsnd (Conv.fconv_rule (simplify_norm_extension_conv ctxt)))
@@ -484,7 +539,6 @@ local
      then_conv print_nat_conv ctxt "rewrite SMT.int_ops(3)[symmetric], of_nat_numeral and int_nat_thm"
      then_conv Conv.top_sweep_conv (int_ops_conv nat_to_int_conv) ctxt
      then_conv print_nat_conv ctxt "recursive call to nat_to_int_conv") ct
-|> @{print}
 
   fun add_int_of_nat vs ct cu (q, cts) =
     (case Thm.term_of ct of

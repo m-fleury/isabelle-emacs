@@ -66,11 +66,21 @@ lemmas [cvc_evaluate_bv]
     bv_mult
     evaluate_concat evaluate_power 
 
+ML\<open>
+val nat_native_ops_tab =[]
+val simplify_norm_table = [
+  ("Bit_Operations.semiring_bits_class.bit",@{thms push_bit_lift})
 
-lemma [word_numeral_lift]:
-"(numeral (x::num)::'a::len word) \<equiv> word_of_int (take_bit LENGTH('a::len) (numeral x))"
-  using num_abs_bintr[of x] by simp
+]
 
+
+val _ = fold SMT_Normalize.add_nat_native_ops_tab (nat_native_ops_tab)
+    |> Theory.setup o  Context.theory_map
+
+
+val _ = fold SMT_Normalize.add_simplify_ops_tab (simplify_norm_table)
+    |> Theory.setup o  Context.theory_map
+\<close>
 
 lemmas [bv_aci_simp] =
 Bit_Operations.semiring_bit_operations_class.zero_and_eq
@@ -156,7 +166,6 @@ val _ = Theory.setup (Context.theory_map (
   SMTLIB_Proof.add_type_parser cvc_type_parser))
 \<close>
 
-
 cvc5_rare "BV_Rewrites.rewrite_bv_extract_whole"
 cvc5_rare "BV_Rewrites.rewrite_bv_ugt_eliminate"
 cvc5_rare "BV_Rewrites.rewrite_bv_uge_eliminate"
@@ -201,9 +210,6 @@ cvc5_rare "BV_Rewrites_Simplification.rewrite_bv_ule_zero"
 cvc5_rare "BV_Rewrites_Simplification.rewrite_bv_ashr_zero"
 cvc5_rare "BV_Rewrites_Simplification.rewrite_bv_xor_concat_pullup"
 
-
-declare[[smt_expert_debug_alethe_files="smt_global_normalize"]]
-declare[[smt_expert_debug_alethe_level=3]]
 
 (*
 Problem, power is translated differently depending on type of 
@@ -290,8 +296,6 @@ lemma "(2::3 word) ^ 3 = 8"
   supply[[smt_trace]]
   apply (smt (cvc5))
 *)
-
-
 
 
 
