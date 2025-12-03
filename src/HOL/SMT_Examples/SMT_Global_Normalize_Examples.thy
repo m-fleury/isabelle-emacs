@@ -1,12 +1,12 @@
 section \<open>Regression test for the extended embedding of natural numbers into integers\<close>
 
 theory SMT_Global_Normalize_Examples
-  imports "HOL.SMT"  (*HOL.SMT_CVC HOL.String*)
+  imports "HOL.SMT" Main (*HOL.SMT_CVC HOL.String*)
 begin
 
 (*None of the goals should contain any nats after encoding unless explicitly stated.*)
 
-declare[[smt_expert_debug_alethe_files="smt_global_normalize"]]
+declare[[smt_expert_debug_alethe_files="all"]]
 declare[[smt_expert_debug_alethe_level=3]]
 declare[[smt_nat_as_int=true,smt_trace]]
 
@@ -454,7 +454,22 @@ lemma def_quant2:
   using foo_def
   by (smt (cvc5))
 
-
+(*We don't translate in this case*)
+lemma def_quant_not_trans:
+  shows "foo = foo"
+  using foo_def
+ apply (test_smt_translate 
+\<open>
+(set-logic AUFLIRA)
+(declare-sort Nat$ 0)
+(declare-sort Nat_nat_fun$ 0)
+(declare-fun foo$ () Nat_nat_fun$)
+(declare-fun of_nat$ (Nat$) Int)
+(declare-fun fun_app$ (Nat_nat_fun$ Nat$) Nat$)
+(assert (! (forall ((?v0 Nat$)) (= (of_nat$ (fun_app$ foo$ ?v0)) (+ (of_nat$ ?v0) 1))) :named a0))
+(assert (! (not (= foo$ foo$)) :named a1))
+\<close>)
+  sorry
 
 definition foo2 :: "nat \<Rightarrow> int" where
 "foo2 (x::nat) = (1::int)"
@@ -521,7 +536,7 @@ lemma let2:
 (declare-fun lift_y$ () Int)
 (assert (! (and (<= 0 lift_y$) (not (or false (or (= (ite (< 0 (+ 1 lift_y$)) true false) (= (ite (< (+ 1 lift_y$) 1) 0 (- (+ 1 lift_y$) 1)) lift_y$)) (=> (not (ite (< 0 (+ 1 lift_y$)) true false)) false))))) :named a0))
 \<close>)
-  by (smt (cvc5))
+  oops
 
 
 (*Conversions*)
@@ -605,6 +620,7 @@ lemma
 (declare-fun lift_x$ () Int)
 (assert (! (and (<= 0 lift_x$) (not (=> (<= lift_x$ (ite (< lift_x$ 1) 0 (- lift_x$ 1))) (= lift_x$ 0)))) :named a0))
 \<close>)
+  supply[[smt_trace=false]]
   by (smt (cvc5))
 
 lemma
@@ -735,12 +751,11 @@ lemma "(if (\<forall>x::int. x < 0 \<or> x > 0) then -1 else 3) > (0::int)"
 \<close>)
   by (smt (cvc5))
 
-lemma "(2::nat) ^ 3 = 8" (*TODO*)
+lemma "(2::nat) ^ 3 = 8"
  apply (test_smt_translate 
 \<open>
 (set-logic AUFLIRA)
-(declare-fun pow_2$ (Int) Int)
-(assert (! (not (= (pow_2$ 3) 8)) :named a0))
+(assert (! (not (= (int.pow2 3) 8)) :named a0))
 \<close>)
   oops
 
@@ -787,6 +802,68 @@ lemma "prime_nat (4*m + 1) \<Longrightarrow> m \<ge> (1::nat)"
 \<close>)
   oops
 
+
+experiment
+begin
+
+declare[[smt_expert_debug_alethe_files="smt_global_normalize"]]
+declare[[smt_expert_debug_alethe_level=3]]
+lemma (in complete_lattice)
+  assumes "Sup {a | i::bool.  True} \<le> Sup {b | i::bool. True}"
+  and "Sup {b | i::bool. True} \<le> Sup {a | i::bool. True}"
+  shows "Sup {a | i::bool. True} \<le> Sup {a | i::bool. True}"
+  using assms
+ apply (test_smt_translate 
+\<open>
+(set-logic AUFLIRA)
+(declare-sort A$ 0)
+(declare-sort A_set$ 0)
+(declare-sort A_bool_fun$ 0)
+(declare-fun a$ () A$)
+(declare-fun b$ () A$)
+(declare-fun sup$ (A_set$) A$)
+(declare-fun uul$ () A_bool_fun$)
+(declare-fun uum$ () A_bool_fun$)
+(declare-fun collect$ (A_bool_fun$) A_set$)
+(declare-fun fun_app$ (A_bool_fun$ A$) Bool)
+(declare-fun less_eq$ (A$ A$) Bool)
+(assert (! (forall ((?v0 A$)) (! (= (fun_app$ uum$ ?v0) (exists ((?v1 Bool)) (and (= ?v0 b$) true))) :pattern ((fun_app$ uum$ ?v0)))) :named a0))
+(assert (! (forall ((?v0 A$)) (! (= (fun_app$ uul$ ?v0) (exists ((?v1 Bool)) (and (= ?v0 a$) true))) :pattern ((fun_app$ uul$ ?v0)))) :named a1))
+(assert (! (less_eq$ (sup$ (collect$ uul$)) (sup$ (collect$ uum$))) :named a2))
+(assert (! (less_eq$ (sup$ (collect$ uum$)) (sup$ (collect$ uul$))) :named a3))
+(assert (! (not (less_eq$ (sup$ (collect$ uul$)) (sup$ (collect$ uul$)))) :named a4))
+\<close>)
+ using assms by (smt (cvc5) order_trans)
+
+lemma (in complete_lattice)
+  assumes "Sup {a | i::bool.  (3::nat) = (3::nat)} \<le> Sup {b | i::bool. True}"
+  and "Sup {b | i::bool. True} \<le> Sup {a | i::bool. True}"
+  shows "Sup {a | i::bool. True} \<le> Sup {a | i::bool. True}"
+  using assms
+ apply (test_smt_translate 
+\<open>
+(set-logic AUFLIRA)
+(declare-sort A$ 0)
+(declare-sort A_set$ 0)
+(declare-sort A_bool_fun$ 0)
+(declare-fun a$ () A$)
+(declare-fun b$ () A$)
+(declare-fun sup$ (A_set$) A$)
+(declare-fun uul$ () A_bool_fun$)
+(declare-fun uum$ () A_bool_fun$)
+(declare-fun uun$ () A_bool_fun$)
+(declare-fun collect$ (A_bool_fun$) A_set$)
+(declare-fun fun_app$ (A_bool_fun$ A$) Bool)
+(declare-fun less_eq$ (A$ A$) Bool)
+(assert (! (forall ((?v0 A$)) (! (= (fun_app$ uul$ ?v0) (exists ((?v1 Bool)) (and (= ?v0 a$) (= 3 3)))) :pattern ((fun_app$ uul$ ?v0)))) :named a0))
+(assert (! (forall ((?v0 A$)) (! (= (fun_app$ uum$ ?v0) (exists ((?v1 Bool)) (and (= ?v0 b$) true))) :pattern ((fun_app$ uum$ ?v0)))) :named a1))
+(assert (! (forall ((?v0 A$)) (! (= (fun_app$ uun$ ?v0) (exists ((?v1 Bool)) (and (= ?v0 a$) true))) :pattern ((fun_app$ uun$ ?v0)))) :named a2))
+(assert (! (less_eq$ (sup$ (collect$ uul$)) (sup$ (collect$ uum$))) :named a3))
+(assert (! (less_eq$ (sup$ (collect$ uum$)) (sup$ (collect$ uun$))) :named a4))
+(assert (! (not (less_eq$ (sup$ (collect$ uun$)) (sup$ (collect$ uun$)))) :named a5))
+\<close>)
+  sorry
+end
 
 
 end

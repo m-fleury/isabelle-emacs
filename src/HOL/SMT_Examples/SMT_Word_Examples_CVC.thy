@@ -10,8 +10,32 @@ theory SMT_Word_Examples_CVC
 imports "HOL-Library.Word" "HOL.SMT_CVC_Word"
 begin
 
+
+declare[[smt_expert_debug_alethe_level=3]]
+declare[[smt_expert_debug_alethe_files="smt_normalize"]]
+
+definition shiftl_lift :: "'a::len word \<Rightarrow> int \<Rightarrow> 'a::len word" 
+  where "shiftl_lift x i = x << (nat i)"
+lemma [nat_normalized_input]:
+  "shiftl_lift w (int x) \<equiv> shiftl w x "
+  unfolding shiftl_lift_def by simp
+
+lemma test:
+  "(x << i) \<equiv> push_bit_lift (int i) x"
+  unfolding shiftl_def push_bit_lift_def by simp
+
+ML \<open>
+val nat_native_ops_tab =
+[
+  ("Bit_Shifts_Infix_Syntax.semiring_bit_operations_class.shiftl",@{thms test})
+]
+val ops_tab = fold SMT_Normalize.add_nat_native_ops_tab nat_native_ops_tab
+val _ = Theory.setup (Context.theory_map (ops_tab))
+
+\<close>
+
+
 declare [[smt_nat_as_int,smt_trace]]
-declare[[smt_expert_debug_alethe_level=0]]
 declare[[show_hyps]]
 
 lemmas [bv_reconstruction_length] = len_num0 len_num1 len_bit0 len_bit1 (*TODO: Move to appropriate place if this is necessary*)
@@ -328,9 +352,16 @@ lemma \<open>signed_take_bit (Suc (Suc (Suc 0))) (1 :: int) = 1\<close> by (smt 
 
 
 section \<open>\<^typ>\<open>'a word\<close> (I instantiated the ones using symbolic bit-widths with 32)\<close>
-declare[[smt_expert_debug_alethe_level=0]]
 
-lemma \<open>(1705 :: 8 word) = 169\<close> by (smt (cvc5))
+ML\<open>
+fun fst_string_ord ((i1, _), (i2, _)) = string_ord (i1, i2)
+
+val xs = [("hi",[1,2])]
+val ys = [("bye",[4,5])]
+
+val zs = Ord_List.merge (fst_string_ord) (xs,ys)
+\<close>
+lemma \<open>(1705 :: 8 word) = 169\<close> supply[[smt_trace]] by (smt (cvc5))
 lemma \<open>(- 1705 :: 8 word) = 87\<close> by (smt (cvc5))
 lemma \<open>(257 :: 8 word) = 1\<close> by (smt (cvc5))
 lemma \<open>(42 :: 8 word) \<le> 1705\<close> by (smt (cvc5))
@@ -383,19 +414,15 @@ lemma \<open>- (1705 :: 32 word) XOR 42 = - 1667\<close> by (smt (cvc5))
 lemma \<open>- (1705 :: 32 word) XOR - 42 = 1665\<close> by (smt (cvc5))
 lemma \<open>- (1705 :: 32 word) XOR 1 = - 1706\<close> by (smt (cvc5))
 
-
-
 lemma \<open>push_bit 3 (1705 :: 32 word) = 13640\<close> by (smt (cvc5))
 lemma \<open>push_bit (Suc (Suc (Suc 0))) (1705 :: 32 word) = 13640\<close> by (smt (cvc5))
 lemma \<open>push_bit 3 (- 1705 :: 32 word) = - 13640\<close> by (smt (cvc5))
 lemma \<open>push_bit (Suc (Suc (Suc 0))) (- 1705 :: 32 word) = - 13640\<close> by (smt (cvc5))
 lemma \<open>push_bit 3 (1 :: 32 word) = 8\<close> by (smt (cvc5))
 lemma \<open>push_bit (Suc (Suc (Suc 0))) (1 :: 32 word) = 8\<close> by (smt (cvc5))
-lemma \<open>push_bit 3 (- 1 :: 32 word) = - 8\<close>
-  by (simp add: mask_eq_exp_minus_1)
+lemma \<open>push_bit 3 (- 1 :: 32 word) = - 8\<close> by (simp add: mask_eq_exp_minus_1)
+lemma \<open>push_bit (Suc (Suc (Suc 0))) (- 1 :: 32 word) = - 8\<close> by (simp add: mask_eq_exp_minus_1)
 
-lemma \<open>push_bit (Suc (Suc (Suc 0))) (- 1 :: 32 word) = - 8\<close>
-  by (simp add: mask_eq_exp_minus_1)
 
 lemma \<open>(1705 :: 32 word) << 3 = 13640\<close> by (smt (cvc5))
 lemma \<open>(1705 :: 32 word) << Suc (Suc (Suc 0)) = 13640\<close> by (smt (cvc5))
@@ -416,195 +443,77 @@ lemma \<open>drop_bit (Suc (Suc (Suc 0))) (1 :: 16 word) = 0\<close> by (smt (cv
 lemma \<open>(1705 :: 16 word) >> 3 = 213\<close>
   by simp
 
-lemma \<open>(1705 :: 16 word) >> Suc (Suc (Suc 0)) = 213\<close>
-  by simp
-
-lemma \<open>(- 1705 :: 16 word) >> 3 = 7978\<close>
-  by simp
-
-lemma \<open>(- 1705 :: 16 word) >> Suc (Suc (Suc 0)) = 7978\<close>
-  by simp
-
-lemma \<open>(1 :: 16 word) >> 3 = 0\<close>
-  by simp
-
-lemma \<open>(1 :: 16 word) >> Suc (Suc (Suc 0)) = 0\<close>
-  by simp
-
-lemma \<open>signed_drop_bit 3 (1705 :: 16 word) = 213\<close>
-  by simp
-
-lemma \<open>signed_drop_bit (Suc (Suc (Suc 0))) (1705 :: 16 word) = 213\<close>
-  by simp
-
-lemma \<open>signed_drop_bit 3 (- 1705 :: 16 word) = - 214\<close>
-  by simp
-
-lemma \<open>signed_drop_bit (Suc (Suc (Suc 0))) (- 1705 :: 16 word) = - 214\<close>
-  by simp
-
-lemma \<open>signed_drop_bit 3 (1 :: 16 word) = 0\<close>
-  by simp
-
-lemma \<open>signed_drop_bit (Suc (Suc (Suc 0))) (1 :: 16 word) = 0\<close>
-  by simp
-
-lemma \<open>(1705 :: 16 word) >>> 3 = 213\<close>
-  by simp
-
-lemma \<open>(1705 :: 16 word) >>> Suc (Suc (Suc 0)) = 213\<close>
-  by simp
-
-lemma \<open>(- 1705 :: 16 word) >>> 3 = - 214\<close>
-  by simp
-
-lemma \<open>(- 1705 :: 16 word) >>> Suc (Suc (Suc 0)) = - 214\<close>
-  by simp
-
-lemma \<open>(1 :: 16 word) >>> 3 = 0\<close>
-  by simp
-
-lemma \<open>(1 :: 16 word) >>> Suc (Suc (Suc 0)) = 0\<close>
-  by simp
-
-lemma \<open>take_bit 3 (1705 :: 16 word) = 1\<close>
-  by simp
-
+lemma \<open>(1705 :: 16 word) >> Suc (Suc (Suc 0)) = 213\<close> by (smt (cvc5))
+lemma \<open>(- 1705 :: 16 word) >> 3 = 7978\<close> by (smt (cvc5))
+lemma \<open>(- 1705 :: 16 word) >> Suc (Suc (Suc 0)) = 7978\<close> by (smt (cvc5))
+lemma \<open>(1 :: 16 word) >> 3 = 0\<close> by (smt (cvc5))
+lemma \<open>(1 :: 16 word) >> Suc (Suc (Suc 0)) = 0\<close> by (smt (cvc5))
+lemma \<open>signed_drop_bit 3 (1705 :: 16 word) = 213\<close> by (smt (cvc5))
+lemma \<open>signed_drop_bit (Suc (Suc (Suc 0))) (1705 :: 16 word) = 213\<close> by (smt (cvc5))
+lemma \<open>signed_drop_bit 3 (- 1705 :: 16 word) = - 214\<close> by (smt (cvc5))
+lemma \<open>signed_drop_bit (Suc (Suc (Suc 0))) (- 1705 :: 16 word) = - 214\<close> by (smt (cvc5))
+lemma \<open>signed_drop_bit 3 (1 :: 16 word) = 0\<close> by (smt (cvc5))
+lemma \<open>signed_drop_bit (Suc (Suc (Suc 0))) (1 :: 16 word) = 0\<close> by (smt (cvc5))
+lemma \<open>(1705 :: 16 word) >>> 3 = 213\<close> by (smt (cvc5))
+lemma \<open>(1705 :: 16 word) >>> Suc (Suc (Suc 0)) = 213\<close> by (smt (cvc5))
+lemma \<open>(- 1705 :: 16 word) >>> 3 = - 214\<close> by (smt (cvc5))
+lemma \<open>(- 1705 :: 16 word) >>> Suc (Suc (Suc 0)) = - 214\<close> by (smt (cvc5))
+lemma \<open>(1 :: 16 word) >>> 3 = 0\<close> by (smt (cvc5))
+lemma \<open>(1 :: 16 word) >>> Suc (Suc (Suc 0)) = 0\<close> by (smt (cvc5))
+lemma \<open>take_bit 3 (1705 :: 16 word) = 1\<close> by (smt (cvc5))
 lemma \<open>take_bit (Suc (Suc (Suc 0))) (1705 :: 16 word) = 1\<close>
   by (simp flip: add_2_eq_Suc)
 
-lemma \<open>take_bit 3 (- 1705 :: 16 word) = 7\<close>
-  by simp
-
+lemma \<open>take_bit 3 (- 1705 :: 16 word) = 7\<close> by (smt (cvc5))
 lemma \<open>take_bit (Suc (Suc (Suc 0))) (- 1705 :: 16 word) = 7\<close>
   by (simp flip: add_2_eq_Suc)
 
-lemma \<open>take_bit 3 (1 :: 16 word) = 1\<close>
-  by simp
-
-lemma \<open>take_bit (Suc (Suc (Suc 0))) (1 :: 16 word) = 1\<close>
-  by simp
-
+lemma \<open>take_bit 3 (1 :: 16 word) = 1\<close> by (smt (cvc5))
+lemma \<open>take_bit (Suc (Suc (Suc 0))) (1 :: 16 word) = 1\<close> by (smt (cvc5))
 lemma \<open>take_bit 3 (- 1 :: 16 word) = 7\<close>
   by (simp add: mask_eq_exp_minus_1)
 
 lemma \<open>take_bit (Suc (Suc (Suc 0))) (- 1 :: 16 word) = 7\<close>
   by (simp add: mask_eq_exp_minus_1)
 
-lemma \<open>signed_take_bit 3 (1705 :: 16 word) = - 7\<close>
-  by simp
-
-lemma \<open>signed_take_bit (Suc (Suc (Suc 0))) (1705 :: 16 word) = - 7\<close>
-  by simp
-
-lemma \<open>signed_take_bit 3 (- 1705 :: 16 word) = 7\<close>
-  by simp
-
-lemma \<open>signed_take_bit (Suc (Suc (Suc 0))) (- 1705 :: 16 word) = 7\<close>
-  by simp
-
-lemma \<open>signed_take_bit 3 (1 :: 16 word) = 1\<close>
-  by simp
-
-lemma \<open>signed_take_bit (Suc (Suc (Suc 0))) (1 :: 16 word) = 1\<close>
-  by simp
-
-lemma \<open>(1705 :: 16 word) div 42 = 40\<close>
-  by simp
-
-lemma \<open>(- 1705 :: 16 word) div 42 = 1519\<close>
-  by simp
-
-lemma \<open>(1705 :: 16 word) div - 42 = 0\<close>
-  by simp
-
-lemma \<open>(- 1705 :: 16 word) div - 42 = 0\<close>
-  by simp
-
-lemma \<open>(1705 :: 16 word) div 1 = 1705\<close>
-  by simp
-
-lemma \<open>(1705 :: 16 word) div - 1 = 0\<close>
-  by simp
-
-lemma \<open>(1 :: 16 word) div 42 = 0\<close>
-  by simp
-
-lemma \<open>(- 1 :: 16 word) div 42 = 1560\<close>
-  by simp
-
-lemma \<open>(1705 :: 16 word) mod 42 = 25\<close>
-  by simp
-
-lemma \<open>(- 1705 :: 16 word) mod 42 = 33\<close>
-  by simp
-
-lemma \<open>(1705 :: 16 word) mod - 42 = 1705\<close>
-  by simp
-
-lemma \<open>(- 1705 :: 16 word) mod - 42 = 63831\<close>
-  by simp
-
-lemma \<open>(1705 :: 16 word) mod 1 = 0\<close>
-  by simp
-
-lemma \<open>(1705 :: 16 word) mod - 1 = 1705\<close>
-  by simp
-
-lemma \<open>(1 :: 16 word) mod 42 = 1\<close>
-  by simp
-
-lemma \<open>(- 1 :: 16 word) mod 42 = 15\<close>
-  by simp
-
-lemma \<open>(1705 :: 16 word) sdiv 42 = 40\<close>
-  by simp
-
-lemma \<open>(- 1705 :: 16 word) sdiv 42 = 65496\<close>
-  by simp
-
-lemma \<open>(1705 :: 16 word) sdiv - 42 = 65496\<close>
-  by simp
-
-lemma \<open>(- 1705 :: 16 word) sdiv - 42 = 40\<close>
-  by simp
-
-lemma \<open>(1705 :: 16 word) sdiv 1 = 1705\<close>
-  by simp
-
-lemma \<open>(1705 :: 16 word) sdiv - 1 = 63831\<close>
-  by simp
-
-lemma \<open>(1 :: 16 word) sdiv 42 = 0\<close>
-  by simp
-
-lemma \<open>(- 1 :: 16 word) sdiv 42 = 0\<close>
-  by simp
-
-lemma \<open>(1705 :: 16 word) smod 42 = 25\<close>
-  by simp
-
-lemma \<open>(- 1705 :: 16 word) smod 42 = 65511\<close>
-  by simp
-
-lemma \<open>(1705 :: 16 word) smod - 42 = 25\<close>
-  by simp
-
-lemma \<open>(- 1705 :: 16 word) smod - 42 = 65511\<close>
-  by simp
-
-lemma \<open>(1705 :: 16 word) smod 1 = 0\<close>
-  by simp
-
-lemma \<open>(1705 :: 16 word) smod - 1 = 0\<close>
-  by simp
-
-lemma \<open>(1 :: 16 word) smod 42 = 1\<close>
-  by simp
-
-lemma \<open>(- 1 :: 16 word) smod 42 = 65535\<close>
-  by simp
-
+lemma \<open>signed_take_bit 3 (1705 :: 16 word) = - 7\<close> by (smt (cvc5))
+lemma \<open>signed_take_bit (Suc (Suc (Suc 0))) (1705 :: 16 word) = - 7\<close> by (smt (cvc5))
+lemma \<open>signed_take_bit 3 (- 1705 :: 16 word) = 7\<close> by (smt (cvc5))
+lemma \<open>signed_take_bit (Suc (Suc (Suc 0))) (- 1705 :: 16 word) = 7\<close> by (smt (cvc5))
+lemma \<open>signed_take_bit 3 (1 :: 16 word) = 1\<close> by (smt (cvc5))
+lemma \<open>signed_take_bit (Suc (Suc (Suc 0))) (1 :: 16 word) = 1\<close> by (smt (cvc5))
+lemma \<open>(1705 :: 16 word) div 42 = 40\<close> by (smt (cvc5))
+lemma \<open>(- 1705 :: 16 word) div 42 = 1519\<close> by (smt (cvc5))
+lemma \<open>(1705 :: 16 word) div - 42 = 0\<close> by (smt (cvc5))
+lemma \<open>(- 1705 :: 16 word) div - 42 = 0\<close> by (smt (cvc5))
+lemma \<open>(1705 :: 16 word) div 1 = 1705\<close> by (smt (cvc5))
+lemma \<open>(1705 :: 16 word) div - 1 = 0\<close> by (smt (cvc5))
+lemma \<open>(1 :: 16 word) div 42 = 0\<close> by (smt (cvc5))
+lemma \<open>(- 1 :: 16 word) div 42 = 1560\<close> by (smt (cvc5))
+lemma \<open>(1705 :: 16 word) mod 42 = 25\<close> by (smt (cvc5))
+lemma \<open>(- 1705 :: 16 word) mod 42 = 33\<close> by (smt (cvc5))
+lemma \<open>(1705 :: 16 word) mod - 42 = 1705\<close> by (smt (cvc5))
+lemma \<open>(- 1705 :: 16 word) mod - 42 = 63831\<close> by (smt (cvc5))
+lemma \<open>(1705 :: 16 word) mod 1 = 0\<close> by (smt (cvc5))
+lemma \<open>(1705 :: 16 word) mod - 1 = 1705\<close> by (smt (cvc5))
+lemma \<open>(1 :: 16 word) mod 42 = 1\<close> by (smt (cvc5))
+lemma \<open>(- 1 :: 16 word) mod 42 = 15\<close> by (smt (cvc5))
+lemma \<open>(1705 :: 16 word) sdiv 42 = 40\<close> by (smt (cvc5))
+lemma \<open>(- 1705 :: 16 word) sdiv 42 = 65496\<close> by (smt (cvc5))
+lemma \<open>(1705 :: 16 word) sdiv - 42 = 65496\<close> by (smt (cvc5))
+lemma \<open>(- 1705 :: 16 word) sdiv - 42 = 40\<close> by (smt (cvc5))
+lemma \<open>(1705 :: 16 word) sdiv 1 = 1705\<close> by (smt (cvc5))
+lemma \<open>(1705 :: 16 word) sdiv - 1 = 63831\<close> by (smt (cvc5))
+lemma \<open>(1 :: 16 word) sdiv 42 = 0\<close> by (smt (cvc5))
+lemma \<open>(- 1 :: 16 word) sdiv 42 = 0\<close> by (smt (cvc5))
+lemma \<open>(1705 :: 16 word) smod 42 = 25\<close> by (smt (cvc5))
+lemma \<open>(- 1705 :: 16 word) smod 42 = 65511\<close> by (smt (cvc5))
+lemma \<open>(1705 :: 16 word) smod - 42 = 25\<close> by (smt (cvc5))
+lemma \<open>(- 1705 :: 16 word) smod - 42 = 65511\<close> by (smt (cvc5))
+lemma \<open>(1705 :: 16 word) smod 1 = 0\<close> by (smt (cvc5))
+lemma \<open>(1705 :: 16 word) smod - 1 = 0\<close> by (smt (cvc5))
+lemma \<open>(1 :: 16 word) smod 42 = 1\<close> by (smt (cvc5))
+lemma \<open>(- 1 :: 16 word) smod 42 = 65535\<close> by (smt (cvc5))
 text "modulus"
 
 lemma "(27 :: 4 word) = -5" by simp

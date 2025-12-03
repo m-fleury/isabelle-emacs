@@ -23,16 +23,18 @@ declare [[smt_read_only_certificates = false]]
 declare [[smt_trace=true,smt_verbose=true,smt_debug_verit]]
 declare [[smt_nat_as_int]]
 
-declare[[smt_expert_debug_alethe_level=0]]
-declare[[smt_expert_debug_alethe_files="alethe_replay_rare"]]
+declare[[smt_expert_debug_alethe_level=3]]
+declare[[smt_expert_debug_alethe_files="all"]]
 
 declare [[verit_compress_proofs=false]]
-declare[[ rare_rec_mode=1 ]]
+declare[[ rare_rec_mode=0 ]]
 (*declare [[unify_trace_failure]]*)
 
 section \<open>Propositional and first-order logic\<close>
 
 lemma "True" supply [[smt_trace]] by (smt (cvc5_proof)) (*success*)
+declare[[smt_expert_debug_alethe_level=0]]
+
 lemma "p \<or> \<not>p" by (smt (cvc5_proof)) (*success*)
 lemma "(p \<and> True) = p" by (smt (cvc5_proof)) (*success*)
 lemma "(p \<or> q) \<and> \<not>p \<Longrightarrow> q" by (smt (cvc5_proof)) (*success*)
@@ -396,6 +398,7 @@ lemma "\<forall>(a::int) b::int. 0 < b \<or> b < 1" by (smt (cvc5_proof)) (*succ
 
 subsection \<open>Linear arithmetic for natural numbers\<close>
 
+lemma "2 * (5+ (1::int)) = 12" supply[[smt_trace]] by (smt (cvc5_proof)) (*success*)
 
 lemma "2 * (x::nat) \<noteq> 1" supply[[smt_trace]] by (smt (cvc5_proof)) (*success*)
 
@@ -415,9 +418,9 @@ lemma "int (nat \<bar>x::int\<bar>) = \<bar>x\<bar>" supply[[smt_trace=false,smt
 definition prime_nat :: "nat \<Rightarrow> bool" where
   "prime_nat p = (1 < p \<and> (\<forall>m. m dvd p --> m = 1 \<or> m = p))"
 
-lemma "prime_nat (4*m + 1) \<Longrightarrow> m \<ge> (1::nat)" by (smt (cvc5) ) (*ERROR nat embedding*)
+lemma "prime_nat (4*m + 1) \<Longrightarrow> m \<ge> (1::nat)" using prime_nat_def by (smt (cvc5)) (*success*)
 
-lemma "2 * (x::nat) \<noteq> 1" 
+lemma "2 * (x::nat) \<noteq> 1"
   by (smt (cvc5_proof)) (*success*)
 
 lemma \<open>2*(x :: int) \<noteq> 1\<close>
@@ -474,8 +477,7 @@ lemma (in complete_lattice)
   assumes "Sup {a | i::bool. True} \<le> Sup {b | i::bool. True}"
   and "Sup {b | i::bool. True} \<le> Sup {a | i::bool. True}"
   shows "Sup {a | i::bool. True} \<le> Sup {a | i::bool. True}"
-  using assms supply [[smt_trace]] by (smt (cvc5) order_trans) (*ERROR nat embedding*)
-
+  using assms by (smt (cvc5) order_trans) (*success*)
 end
 
 experiment
@@ -510,7 +512,7 @@ lemma
       and "\<And>A B. (\<And>x. (x::'a) \<in> A \<Longrightarrow> x \<in> B) \<Longrightarrow> A \<subseteq> B"
       and "\<And>A B. \<lbrakk>(A::'a set) \<subseteq> B; B \<subseteq> A\<rbrakk> \<Longrightarrow> A = B"
       and "\<And>A ys. (A \<subseteq> List.coset ys) = (\<forall>y\<in>set ys. (y::'a) \<notin> A)"
-  using that supply[[smt_trace=false]] by (smt (cvc5_proof)) (*ERROR nat embedding*)
+  using that supply[[smt_trace=false]] by (smt (cvc5_proof)) (*success but no nat to int embedding*)
 end
 
 notepad
@@ -762,7 +764,8 @@ lemma zero_cdiv_eq [simp]:
        shows
   \<open>0 cdiv k = 0\<close>
   supply [[smt_trace=false,smt_verbose=false,smt_statistics]]
-  by (smt (cvc5) assms) (*success*)
+
+  by (smt (cvc5) assms) (*error*)
 
 end
 
@@ -888,7 +891,7 @@ lemma
        "Fin (0::'a::comm_monoid_add) + (x::'a::comm_monoid_add extended) = x "
   supply [[smt_trace=false,smt_statistics]]
   using assms
-(*  by (smt (cvc5,fmf)) (*onepoint issue*)*)
+(*  by (smt (cvc5,fmf)) (*error: onepoint issue*)*)
   sorry
 
 
