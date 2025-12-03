@@ -940,6 +940,9 @@ our more complicated translations\<close>
 named_theorems cvc5_holes_simp \<open>Simplification theorems for holes\<close>
 named_theorems cvc5_holes_pre \<open>Theorems applied for holes\<close>
 
+named_theorems simplify_translation \<open>Lemmas to normalize the assertions before translation. When an operator (such as a constant) appears the simplifier is called and uses this set\<close>
+
+
 subsection \<open>Setup\<close>
 declare[[show_hyps]]
 ML_file \<open>Tools/SMT/smt_util.ML\<close>

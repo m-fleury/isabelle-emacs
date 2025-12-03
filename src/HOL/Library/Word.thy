@@ -4672,7 +4672,9 @@ ML \<open>
 
 val nat_native_ops_tab =
 [
+  ("Bit_Operations.semiring_bit_operations_class.take_bit",@{thms take_bit_lift}),
   ("Bit_Operations.semiring_bit_operations_class.drop_bit",@{thms drop_bit_lift}),
+  ("Bit_Operations.semiring_bit_operations_class.push_bit", @{thms push_bit_lift}),
   ("Word.signed_drop_bit", @{thms signed_drop_bit_lift}),
   ("Word.word_rotr", @{thms word_rotr_lift}),
   ("Word.word_rotl", @{thms word_rotl_lift}),
@@ -4684,7 +4686,6 @@ val simplify_norm_table = [
   ("Type_Length.len0_class.len_of", @{thms smt_word_len_evaluate}),
   ("Word.Word", @{thms Word_of_int}),
   ("Word.slice",@{thms slice_lift}) ,
-  ("Bit_Operations.semiring_bit_operations_class.push_bit", @{thms push_bit_lift}),
   ("Num.numeral_class.numeral",@{thms word_numeral_lift})
 
 ]
@@ -4695,6 +4696,9 @@ val _ = fold SMT_Normalize.add_nat_native_ops_tab (nat_native_ops_tab)
 val _ = fold SMT_Normalize.add_simplify_ops_tab (simplify_norm_table)
     |> Theory.setup o Context.theory_map
 \<close>
+
+lemmas [simplify_translation] = len_bit0 len_bit1 len_num1 take_bit_numeral_numeral option.case take_bit_num_simps pred_numeral_simps option.case
+of_int_numeral
 
 ML_file \<open>Tools/smt_word.ML\<close>
 

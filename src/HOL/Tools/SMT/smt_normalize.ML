@@ -374,7 +374,7 @@ structure Nat_Native_Ops = Generic_Data
 (
   type T = nat_native_ops list
   val empty = []
-  fun merge (xs,ys) = Ord_List.merge (fst_string_ord) (xs,ys)
+  fun merge data = AList.merge (op =) (fn _ => true) data
 )
 
 fun get_nat_native_ops_tab ctxt = (Nat_Native_Ops.get (Context.Proof ctxt) : nat_native_ops list)
@@ -395,20 +395,14 @@ structure Simplify_Ops = Generic_Data
 (
   type T = simplify_ops list
   val empty = []
-  fun merge (xs,ys) = 
-    let
-      val _ = @{print}("smt_normalize xs",xs)
-      val _ = @{print}("smt_normalize",ys)
-      val zs = Ord_List.merge (fst_string_ord) (xs,ys)
-      val _ = @{print}("smt_normalize",zs)
-
-    in zs end
+  fun merge data = AList.merge (op =) (fn _ => true) data
+ 
 )
 
 fun get_simplify_ops_tab ctxt = (Simplify_Ops.get (Context.Proof ctxt) : simplify_ops list)
 fun add_simplify_ops_tab tabs context = 
 let
-    val data = Nat_Native_Ops.get context
+    val data = Simplify_Ops.get context
 in
  Simplify_Ops.map  (K (AList.update (op =) tabs data))
       context
@@ -419,7 +413,7 @@ end
 the run that pushes the ints in*)
 fun nat_native_ops_table ctxt = ([
   (\<^const_name>\<open>power\<close>, Named_Theorems.get ctxt \<^named_theorems>\<open>pow_2_word\<close>)] @ (get_nat_native_ops_tab ctxt))
-fun simplify_norm_table ctxt = (get_simplify_ops_tab ctxt) |> @{print}
+fun simplify_norm_table ctxt = (get_simplify_ops_tab ctxt)
 
 local
 
@@ -431,7 +425,7 @@ local
     in
       (case t1 of
         Const(n,T) =>
-          (case AList.lookup (op =) tab n of (*TODO: use thms in Simplifier*)
+          (case AList.lookup (op =) tab n of (* add another thm set to Simplifier?*)
               SOME thms => rewr_conv thms
             | NONE => Conv.all_conv)
        | _ => Conv.all_conv) ct
@@ -442,16 +436,19 @@ local
       val t = Thm.term_of ct
       val t1 = Term.head_of t
  
-      fun proper_num_ss thms ctxt = put_simpset HOL_ss ctxt addsimps thms
-      fun simp_rewr thms' = Simplifier.rewrite (proper_num_ss thms' ctxt)
-      val _ = @{print}("tab",tab)
+      fun proper_num_ss ctxt =
+        simpset_of (put_simpset HOL_ss ctxt addsimps (Named_Theorems.get ctxt \<^named_theorems>\<open>ac_simps\<close>)
+        addsimps @{thms arith_simps more_arith_simps} addsimps (Named_Theorems.get ctxt  \<^named_theorems>\<open>simplify_translation\<close>))
+
+      fun simp_rewr ctxt = Simplifier.rewrite (Simplifier.add_cong  @{thm option.case_cong} ((put_simpset (proper_num_ss  ctxt)) ctxt))
+      fun rewr_conv thms = Conv.top_rewrs_conv thms ctxt
     in
       (case t1 of
         Const(n,T) =>
-          (case AList.lookup (op =) tab (n|> @{print}) of (*TODO: use thms in Simplifier*)
-              SOME thms => rewr_conv thms then_conv simp_rewr (thms |> @{print})
+          (case AList.lookup (op =) tab n of (*TODO: use thms in Simplifier*)
+              SOME thms => rewr_conv thms then_conv (simp_rewr ctxt)
             | NONE => Conv.all_conv)
-       | _ => Conv.all_conv) (ct |> @{print})
+       | _ => Conv.all_conv) ct
     end
 in
 
