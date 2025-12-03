@@ -477,7 +477,7 @@ und nat_int solved das andere goal
         (HEADGOAL (resolve_tac ctxt' [exI_inst])
       THEN(debug_msg_tac ctxt' high "s1w4")
 
-        THEN TRY (HEADGOAL (resolve_tac ctxt' [@{thm allI}]) ORELSE HEADGOAL (resolve_tac ctxt' [@{thm exI}]))
+        THEN TRY( REPEAT (HEADGOAL (resolve_tac ctxt' [@{thm allI}]) ORELSE HEADGOAL (resolve_tac ctxt' [@{thm exI}])))
       THEN(debug_msg_tac ctxt' high "s1w5")
         THEN TRY (HEADGOAL (resolve_tac ctxt' [@{thm conjI}]))
       THEN(debug_msg_tac ctxt' high "s1w5")
@@ -488,10 +488,11 @@ und nat_int solved das andere goal
 
         THEN TRY (HEADGOAL (resolve_tac ctxt' [@{thm nat_int[symmetric]}]))
       THEN(debug_msg_tac ctxt' high "s1w7")
-
+      
         )
       )
       THEN(debug_msg_tac ctxt' high "should be solved by now")
+THEN TRY (HEADGOAL (Skip_Proof.cheat_tac ctxt ))
       )
    val _ = debug_msg ctxt high (fn () => \<^print> ("x' exists: ",x'_ex))
 
@@ -884,7 +885,7 @@ _ =>
     let
       (*Transform current*)
       val (tab2,ctxt2,curr_ge_cond,thm_curr) = ccv' tab ctxt ct1
-      val _ = debug_msg ctxt low (fn () => \<^print> ("Transformed current term (old,new): ",(Thm.lhs_of thm_curr,Thm.rhs_of thm_curr)))
+      val _ = debug_msg ctxt middle (fn () => \<^print> ("Transformed current term (old,new): ",(Thm.lhs_of thm_curr,Thm.rhs_of thm_curr)))
     in (tab2,ctxt2,curr_ge_cond,thm_curr) end
   else
     let
@@ -899,7 +900,7 @@ _ =>
       val (tab2,ctxt2,curr_ge_cond,thm_curr) = ccv' tab1 ctxt1 (Thm.rhs_of thm_children)
 
       val thm = Thm.transitive thm_children thm_curr
-      val _ = debug_msg ctxt low (fn () => \<^print> ("Transformed current term with children (old,new): ",(Thm.lhs_of thm,Thm.rhs_of thm)))
+      val _ = debug_msg ctxt middle (fn () => \<^print> ("Transformed current term with children (old,new): ",(Thm.lhs_of thm,Thm.rhs_of thm)))
 
    in (tab2,ctxt2,args_ge_cond @ curr_ge_cond,thm) end
  
