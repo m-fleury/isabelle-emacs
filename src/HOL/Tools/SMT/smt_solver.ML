@@ -412,12 +412,13 @@ local
 
   fun tac prove ctxt rules =
     CONVERSION (SMT_Normalize.atomize_conv ctxt)
-    THEN' K (print_tac ctxt "smt_tac 0")
+    THEN' K (print_tac ctxt "smt_tac after normalization")
 
     THEN' resolve_tac ctxt @{thms ccontr}
-    THEN' K (print_tac ctxt "smt_tac 0")
+    THEN' K (print_tac ctxt "smt_tac after contradicition")
 
     THEN' SUBPROOF (fn {context = ctxt', prems, ...} =>
+     (print_tac ctxt "in subproof") THEN
       resolve ctxt' (prove ctxt' (rules @ prems))) ctxt
 in
 
@@ -570,8 +571,6 @@ fun apply_solver_and_counterexample ctxt thms0 =
   end
 
 local
-    val _ = @{print}("name")
-
   fun str_of ctxt fail =
     "Solver " ^ SMT_Config.solver_of ctxt ^ ": " ^ SMT_Failure.string_of_failure fail
 
