@@ -217,19 +217,30 @@ lemma "(x AND 0xff00) OR (x AND 0x00ff) = (x::16 word)" by (smt (cvc5))
 lemma "w < 256 \<Longrightarrow> (w :: 16 word) AND 0x00FF = w" by (smt (cvc5))
 
 
+section \<open>Overview Regressions\<close>
 
-(*
+text \<open>
 From AFP Word_Lib Examples.thy
 
 These are now part of our monthly metrics that is why I numbered them
 
 Total: 336
 Date counted: 12/08/26
-*)
+\<close>
+
 section \<open>\<^typ>\<open>nat\<close>\<close>
 
-text \<open>These should not be encoded into bit-vector operators but any natural numbers
-should be lifted to integers\<close>
+text \<open>
+These should not be encoded into bit-vector operators but any natural numbers
+should be lifted to integers.
+
+Benchmark Nrs: 1-30
+Date counted: 12/08/26
+
+Total:    30
+Success:  0
+
+\<close>
 
 lemma bvex_1: \<open>bit (1705 :: nat) (Suc (Suc (Suc 0)))\<close> by (smt (cvc5))
 lemma bvex_2: \<open>bit (1705 :: nat) 3\<close> by (smt (cvc5))
@@ -247,62 +258,80 @@ lemma bvex_11: \<open>push_bit 3 (1705 :: nat) = 13640\<close> by (smt (cvc5))
 lemma bvex_12: \<open>push_bit (Suc (Suc (Suc 0))) (1705 :: nat) = 13640\<close> by (smt (cvc5))
 lemma bvex_13: \<open>push_bit 3 (Suc 0) = 8\<close> by (smt (cvc5))
 lemma bvex_14: \<open>push_bit (Suc (Suc (Suc 0))) (Suc 0) = 8\<close> by (smt (cvc5))
+
 lemma bvex_15: \<open>(1705 :: nat) << 3 = 13640\<close> by (smt (cvc5))
 lemma bvex_16: \<open>(1705 :: nat) << Suc (Suc (Suc 0)) = 13640\<close> by (smt (cvc5))
 lemma bvex_17: \<open>Suc 0 << 3 = 8\<close> by (smt (cvc5))
 lemma bvex_18: \<open>Suc 0 << Suc (Suc (Suc 0)) = 8\<close> by (smt (cvc5))
+
 lemma bvex_19: \<open>drop_bit 3 (1705 :: nat) = 213\<close> by (smt (cvc5))
 lemma bvex_20: \<open>drop_bit (Suc (Suc (Suc 0))) (1705 :: nat) = 213\<close> by (smt (cvc5))
 lemma bvex_21: \<open>drop_bit 3 (Suc 0) = 0\<close> by (smt (cvc5))
 lemma bvex_22: \<open>drop_bit (Suc (Suc (Suc 0))) (Suc 0) = 0\<close> by (smt (cvc5))
+
 lemma bvex_23: \<open>(1705 :: nat) >> 3 = 213\<close> by (smt (cvc5))
 lemma bvex_24: \<open>(1705 :: nat) >> Suc (Suc (Suc 0)) = 213\<close> by (smt (cvc5))
 lemma bvex_25: \<open>Suc 0 >> 3 = 0\<close> by (smt (cvc5))
 lemma bvex_26: \<open>Suc 0 >> Suc (Suc (Suc 0)) = 0\<close> by (smt (cvc5))
 
 lemma bvex_27: \<open>take_bit 3 (1705 :: nat) = 1\<close> by (smt (cvc5))
-lemma bvex_28: \<open>take_bit (Suc (Suc (Suc 0))) (1705 :: nat) = 1\<close> by (simp flip: add_2_eq_Suc)
+lemma bvex_28: \<open>take_bit (Suc (Suc (Suc 0))) (1705 :: nat) = 1\<close> by (smt (cvc5))
 lemma bvex_29: \<open>take_bit 3 (Suc 0) = 1\<close> by (smt (cvc5))
 lemma bvex_30: \<open>take_bit (Suc (Suc (Suc 0))) (Suc 0) = 1\<close> by (smt (cvc5))
 
 
 section \<open>\<^typ>\<open>int\<close>\<close>
 
+text \<open>
+These should not be encoded into bit-vector operators.
+
+Benchmark Nrs: 31-99
+Date counted: 12/08/26
+
+Total:    69
+Success:  0
+
+\<close>
 lemma bvex_31: \<open>bit (1705 :: int) (Suc (Suc (Suc 0)))\<close> by (smt (cvc5))
 lemma bvex_32: \<open>bit (1705 :: int) 3\<close> by (smt (cvc5))
 lemma bvex_33: \<open>\<not> bit (- 1705 :: int) (Suc (Suc (Suc 0)))\<close> by (smt (cvc5))
 lemma bvex_34: \<open>\<not> bit (- 1705 :: int) 3\<close> by (smt (cvc5))
 lemma bvex_35: \<open>\<not> bit (1 :: int) (Suc (Suc (Suc 0)))\<close> by (smt (cvc5))
 lemma bvex_36: \<open>\<not> bit (1 :: int) 3\<close> by (smt (cvc5))
+
 lemma bvex_37: \<open>(NOT 1705 :: int) = - 1706\<close> by (smt (cvc5))
 lemma bvex_38: \<open>(NOT (- 42 :: int)) = 41\<close> by (smt (cvc5))
 lemma bvex_39: \<open>(NOT 1 :: int) = - 2\<close> by (smt (cvc5))
+
 lemma bvex_40: \<open>(1705 :: int) AND 42 = 40\<close> by (smt (cvc5))
 lemma bvex_41: \<open>(1705 :: int) AND - 42 = 1664\<close> by (smt (cvc5))
 lemma bvex_42: \<open>(1705 :: int) AND 1 = 1\<close> by (smt (cvc5))
 lemma bvex_43: \<open>- (1705 :: int) AND 42 = 2\<close> by (smt (cvc5))
 lemma bvex_44: \<open>- (1705 :: int) AND - 42 = - 1706\<close> by (smt (cvc5))
 lemma bvex_45: \<open>- (1705 :: int) AND 1 = 1\<close> by (smt (cvc5))
+
 lemma bvex_46: \<open>(1705 :: int) OR 42 = 1707\<close> by (smt (cvc5))
 lemma bvex_47: \<open>(1705 :: int) OR - 42 = - 1\<close> by (smt (cvc5))
 lemma bvex_48: \<open>(1705 :: int) OR 1 = 1705\<close> by (smt (cvc5))
 lemma bvex_49: \<open>- (1705 :: int) OR 42 = - 1665\<close> by (smt (cvc5))
 lemma bvex_50: \<open>- (1705 :: int) OR - 42 = - 41\<close> by (smt (cvc5))
 lemma bvex_51: \<open>- (1705 :: int) OR 1 = - 1705\<close> by (smt (cvc5))
+
 lemma bvex_52: \<open>(1705 :: int) XOR 42 = 1667\<close> by (smt (cvc5))
 lemma bvex_53: \<open>(1705 :: int) XOR - 42 = - 1665\<close> by (smt (cvc5))
 lemma bvex_54: \<open>(1705 :: int) XOR 1 = 1704\<close> by (smt (cvc5))
 lemma bvex_55: \<open>- (1705 :: int) XOR 42 = - 1667\<close> by (smt (cvc5))
 lemma bvex_56: \<open>- (1705 :: int) XOR - 42 = 1665\<close> by (smt (cvc5))
 lemma bvex_57: \<open>- (1705 :: int) XOR 1 = - 1706\<close> by (smt (cvc5))
+
 lemma bvex_58: \<open>push_bit 3 (1705 :: int) = 13640\<close> by (smt (cvc5))
 lemma bvex_59: \<open>push_bit (Suc (Suc (Suc 0))) (1705 :: int) = 13640\<close> by (smt (cvc5))
 lemma bvex_60: \<open>push_bit 3 (- 1705 :: int) = - 13640\<close> by (smt (cvc5))
 lemma bvex_61: \<open>push_bit (Suc (Suc (Suc 0))) (- 1705 :: int) = - 13640\<close> by (smt (cvc5))
 lemma bvex_62: \<open>push_bit 3 (1 :: int) = 8\<close> by (smt (cvc5))
 lemma bvex_63: \<open>push_bit (Suc (Suc (Suc 0))) (1 :: int) = 8\<close> by (smt (cvc5))
-lemma bvex_64: \<open>push_bit 3 (- 1 :: int) = - 8\<close> by (simp add: mask_eq_exp_minus_1)
-lemma bvex_65: \<open>push_bit (Suc (Suc (Suc 0))) (- 1 :: int) = - 8\<close> by (simp add: mask_eq_exp_minus_1)
+lemma bvex_64: \<open>push_bit 3 (- 1 :: int) = - 8\<close>  by (smt (cvc5)) (*by (simp add: mask_eq_exp_minus_1)*)
+lemma bvex_65: \<open>push_bit (Suc (Suc (Suc 0))) (- 1 :: int) = - 8\<close>  by (smt (cvc5)) (*by (simp add: mask_eq_exp_minus_1)*)
 
 lemma bvex_66: \<open>(1705 :: int) << 3  = 13640\<close> by (smt (cvc5))
 lemma bvex_67: \<open>(1705 :: int) << Suc (Suc (Suc 0)) = 13640\<close> by (smt (cvc5))
@@ -310,32 +339,32 @@ lemma bvex_68: \<open>(- 1705 :: int) << 3 = - 13640\<close> by (smt (cvc5))
 lemma bvex_69: \<open>(- 1705 :: int) << Suc (Suc (Suc 0)) = - 13640\<close> by (smt (cvc5))
 lemma bvex_70: \<open>(1 :: int) << 3 = 8\<close> by (smt (cvc5))
 lemma bvex_71: \<open>(1 :: int) << Suc (Suc (Suc 0)) = 8\<close> by (smt (cvc5))
-lemma bvex_72: \<open>(- 1 :: int) << 3 = - 8\<close> by (simp add: mask_eq_exp_minus_1)
-
+lemma bvex_72: \<open>(- 1 :: int) << 3 = - 8\<close>  by (smt (cvc5)) (*by (simp add: mask_eq_exp_minus_1)*)
 lemma bvex_73: \<open>(- 1 :: int) << Suc (Suc (Suc 0)) = - 8\<close> by (smt (cvc5))
+
 lemma bvex_74: \<open>drop_bit 3 (1705 :: int) = 213\<close> by (smt (cvc5))
 lemma bvex_75: \<open>drop_bit (Suc (Suc (Suc 0))) (1705 :: int) = 213\<close> by (smt (cvc5))
 lemma bvex_76: \<open>drop_bit 3 (- 1705 :: int) = - 214\<close> by (smt (cvc5))
 lemma bvex_77: \<open>drop_bit (Suc (Suc (Suc 0))) (- 1705 :: int) = - 214\<close> by (smt (cvc5))
 lemma bvex_78: \<open>drop_bit 3 (1 :: int) = 0\<close> by (smt (cvc5))
 lemma bvex_79: \<open>drop_bit (Suc (Suc (Suc 0))) (1 :: int) = 0\<close> by (smt (cvc5))
+
 lemma bvex_80: \<open>(1705 :: int) >> 3 = 213\<close> by (smt (cvc5))
 lemma bvex_81: \<open>(1705 :: int) >> Suc (Suc (Suc 0)) = 213\<close> by (smt (cvc5))
 lemma bvex_82: \<open>(- 1705 :: int) >> 3 = - 214\<close> by (smt (cvc5))
 lemma bvex_83: \<open>(- 1705 :: int) >> Suc (Suc (Suc 0)) = - 214\<close> by (smt (cvc5))
 lemma bvex_84: \<open>(1 :: int) >> 3 = 0\<close> by (smt (cvc5))
 lemma bvex_85: \<open>(1 :: int) >> Suc (Suc (Suc 0)) = 0\<close> by (smt (cvc5))
+
 lemma bvex_86: \<open>take_bit 3 (1705 :: int) = 1\<close> by (smt (cvc5))
-lemma bvex_87: \<open>take_bit (Suc (Suc (Suc 0))) (1705 :: int) = 1\<close> by (simp flip: add_2_eq_Suc)
-
+lemma bvex_87: \<open>take_bit (Suc (Suc (Suc 0))) (1705 :: int) = 1\<close> by (smt (cvc5)) (*by (simp flip: add_2_eq_Suc)*)
 lemma bvex_88: \<open>take_bit 3 (- 1705 :: int) = 7\<close> by (smt (cvc5))
-lemma bvex_89: \<open>take_bit (Suc (Suc (Suc 0))) (- 1705 :: int) = 7\<close> by (simp flip: add_2_eq_Suc)
-
+lemma bvex_89: \<open>take_bit (Suc (Suc (Suc 0))) (- 1705 :: int) = 7\<close> by (smt (cvc5)) (* by (simp flip: add_2_eq_Suc)*)
 lemma bvex_90: \<open>take_bit 3 (1 :: int) = 1\<close> by (smt (cvc5))
 lemma bvex_91: \<open>take_bit (Suc (Suc (Suc 0))) (1 :: int) = 1\<close> by (smt (cvc5))
-lemma bvex_92: \<open>take_bit 3 (- 1 :: int) = 7\<close> by (simp add: mask_eq_exp_minus_1)
+lemma bvex_92: \<open>take_bit 3 (- 1 :: int) = 7\<close> by (smt (cvc5)) (*by (simp add: mask_eq_exp_minus_1)*)
+lemma bvex_93: \<open>take_bit (Suc (Suc (Suc 0))) (- 1 :: int) = 7\<close> by (smt (cvc5)) (*by (simp add: mask_eq_exp_minus_1)*)
 
-lemma bvex_93: \<open>take_bit (Suc (Suc (Suc 0))) (- 1 :: int) = 7\<close> by (simp add: mask_eq_exp_minus_1)
 lemma bvex_94: \<open>signed_take_bit 3 (1705 :: int) = - 7\<close> by (smt (cvc5))
 lemma bvex_95: \<open>signed_take_bit (Suc (Suc (Suc 0))) (1705 :: int) = - 7\<close> by (smt (cvc5))
 lemma bvex_96: \<open>signed_take_bit 3 (- 1705 :: int) = 7\<close> by (smt (cvc5))
@@ -344,17 +373,20 @@ lemma bvex_98: \<open>signed_take_bit 3 (1 :: int) = 1\<close> by (smt (cvc5))
 lemma bvex_99: \<open>signed_take_bit (Suc (Suc (Suc 0))) (1 :: int) = 1\<close> by (smt (cvc5))
 
 
-section \<open>\<^typ>\<open>'a word\<close> (I instantiated the ones using symbolic bit-widths with 32)\<close>
+section \<open>\<^typ>\<open>'a word\<close>/32 word\<close>
 
-ML\<open>
-fun fst_string_ord ((i1, _), (i2, _)) = string_ord (i1, i2)
+text \<open>
+I instantiated any lemmas using symbolic bit-widths with 32.
 
-val xs = [("hi",[1,2])]
-val ys = [("bye",[4,5])]
+Benchmark Nrs: 100-240
+Date counted: 12/08/26
 
-val zs = Ord_List.merge (fst_string_ord) (xs,ys)
+Total:    141
+Success:  53
+
 \<close>
-lemma bvex_100: \<open>(1705 :: 8 word) = 169\<close> supply[[smt_trace]] by (smt (cvc5))
+
+lemma bvex_100: \<open>(1705 :: 8 word) = 169\<close> by (smt (cvc5))
 lemma bvex_101: \<open>(- 1705 :: 8 word) = 87\<close> by (smt (cvc5))
 lemma bvex_102: \<open>(257 :: 8 word) = 1\<close> by (smt (cvc5))
 lemma bvex_103: \<open>(42 :: 8 word) \<le> 1705\<close> by (smt (cvc5))
@@ -379,27 +411,32 @@ lemma bvex_121: \<open>(- 42 :: 8 word) <s 230\<close> by (smt (cvc5))
 lemma bvex_122: \<open>(42 :: 8 word) <s - 1705\<close> by (smt (cvc5))
 lemma bvex_123: \<open>- (42 :: 8 word) <s - 1705\<close> by (smt (cvc5))
 lemma bvex_124: \<open>(1 :: 8 word) <s 42\<close> by (smt (cvc5))
+
 lemma bvex_125: \<open>bit (1705 :: 16 word) (Suc (Suc (Suc 0)))\<close> by (smt (cvc5))
 lemma bvex_126: \<open>bit (1705 :: 16 word) 3\<close> by (smt (cvc5))
 lemma bvex_127: \<open>\<not> bit (- 1705 :: 16 word) (Suc (Suc (Suc 0)))\<close> by (smt (cvc5))
 lemma bvex_128: \<open>\<not> bit (- 1705 :: 16 word) 3\<close> by (smt (cvc5))
 lemma bvex_129: \<open>\<not> bit (1 :: 32 word) (Suc (Suc (Suc 0)))\<close> by (smt (cvc5))
 lemma bvex_130: \<open>\<not> bit (1 :: 32 word) 3\<close> by (smt (cvc5))
+
 lemma bvex_131: \<open>(NOT 1705 :: 32 word) = - 1706\<close> by (smt (cvc5))
 lemma bvex_132: \<open>(NOT (- 42 :: 32 word)) = 41\<close> by (smt (cvc5))
 lemma bvex_133: \<open>(NOT 1 :: 32 word) = - 2\<close> by (smt (cvc5))
+
 lemma bvex_134: \<open>(1705 :: 32 word) AND 42 = 40\<close> by (smt (cvc5))
 lemma bvex_135: \<open>(1705 :: 32 word) AND - 42 = 1664\<close> by (smt (cvc5))
 lemma bvex_136: \<open>(1705 :: 32 word) AND 1 = 1\<close> by (smt (cvc5))
 lemma bvex_137: \<open>- (1705 :: 32 word) AND 42 = 2\<close> by (smt (cvc5))
 lemma bvex_138: \<open>- (1705 :: 32 word) AND - 42 = - 1706\<close> by (smt (cvc5))
 lemma bvex_139: \<open>- (1705 :: 32 word) AND 1 = 1\<close> by (smt (cvc5))
+
 lemma bvex_140: \<open>(1705 :: 32 word) OR 42 = 1707\<close> by (smt (cvc5))
 lemma bvex_141: \<open>(1705 :: 32 word) OR - 42 = - 1\<close> by (smt (cvc5))
 lemma bvex_142: \<open>(1705 :: 32 word) OR 1 = 1705\<close> by (smt (cvc5))
 lemma bvex_143: \<open>- (1705 :: 32 word) OR 42 = - 1665\<close> by (smt (cvc5))
 lemma bvex_144: \<open>- (1705 :: 32 word) OR - 42 = - 41\<close> by (smt (cvc5))
 lemma bvex_145: \<open>- (1705 :: 32 word) OR 1 = - 1705\<close> by (smt (cvc5))
+
 lemma bvex_146: \<open>(1705 :: 32 word) XOR 42 = 1667\<close> by (smt (cvc5))
 lemma bvex_147: \<open>(1705 :: 32 word) XOR - 42 = - 1665\<close> by (smt (cvc5))
 lemma bvex_148: \<open>(1705 :: 32 word) XOR 1 = 1704\<close> by (smt (cvc5))
@@ -413,9 +450,8 @@ lemma bvex_154: \<open>push_bit 3 (- 1705 :: 32 word) = - 13640\<close> by (smt 
 lemma bvex_155: \<open>push_bit (Suc (Suc (Suc 0))) (- 1705 :: 32 word) = - 13640\<close> by (smt (cvc5))
 lemma bvex_156: \<open>push_bit 3 (1 :: 32 word) = 8\<close> by (smt (cvc5))
 lemma bvex_157: \<open>push_bit (Suc (Suc (Suc 0))) (1 :: 32 word) = 8\<close> by (smt (cvc5))
-lemma bvex_158: \<open>push_bit 3 (- 1 :: 32 word) = - 8\<close> by (simp add: mask_eq_exp_minus_1)
-lemma bvex_159: \<open>push_bit (Suc (Suc (Suc 0))) (- 1 :: 32 word) = - 8\<close> by (simp add: mask_eq_exp_minus_1)
-
+lemma bvex_158: \<open>push_bit 3 (- 1 :: 32 word) = - 8\<close> by (smt (cvc5)) (*by (simp add: mask_eq_exp_minus_1)*)
+lemma bvex_159: \<open>push_bit (Suc (Suc (Suc 0))) (- 1 :: 32 word) = - 8\<close> by (smt (cvc5)) (*by (simp add: mask_eq_exp_minus_1)*)
 
 lemma bvex_160: \<open>(1705 :: 32 word) << 3 = 13640\<close> by (smt (cvc5))
 lemma bvex_161: \<open>(1705 :: 32 word) << Suc (Suc (Suc 0)) = 13640\<close> by (smt (cvc5))
@@ -423,49 +459,45 @@ lemma bvex_162: \<open>(- 1705 :: 32 word) << 3 = - 13640\<close> by (smt (cvc5)
 lemma bvex_163: \<open>(- 1705 :: 32 word) << Suc (Suc (Suc 0)) = - 13640\<close> by (smt (cvc5))
 lemma bvex_164: \<open>(1 :: 32 word) << 3 = 8\<close> by (smt (cvc5))
 lemma bvex_165: \<open>(1 :: 32 word) << Suc (Suc (Suc 0)) = 8\<close> by (smt (cvc5))
-lemma bvex_166: \<open>(- 1 :: 32 word) << 3 = - 8\<close>
-  by (simp add: mask_eq_exp_minus_1)
-
+lemma bvex_166: \<open>(- 1 :: 32 word) << 3 = - 8\<close> by (smt (cvc5)) (* by (simp add: mask_eq_exp_minus_1)*)
 lemma bvex_167: \<open>(- 1 :: 32 word) << Suc (Suc (Suc 0)) = - 8\<close> by (smt (cvc5))
+
 lemma bvex_168: \<open>drop_bit 3 (1705 :: 16 word) = 213\<close> by (smt (cvc5))
 lemma bvex_169: \<open>drop_bit (Suc (Suc (Suc 0))) (1705 :: 16 word) = 213\<close> by (smt (cvc5))
 lemma bvex_170: \<open>drop_bit 3 (- 1705 :: 16 word) = 7978\<close> by (smt (cvc5))
 lemma bvex_171: \<open>drop_bit (Suc (Suc (Suc 0))) (- 1705 :: 16 word) = 7978\<close> by (smt (cvc5))
 lemma bvex_172: \<open>drop_bit 3 (1 :: 16 word) = 0\<close> by (smt (cvc5))
 lemma bvex_173: \<open>drop_bit (Suc (Suc (Suc 0))) (1 :: 16 word) = 0\<close> by (smt (cvc5))
-lemma bvex_174: \<open>(1705 :: 16 word) >> 3 = 213\<close>
-  by simp
 
+lemma bvex_174: \<open>(1705 :: 16 word) >> 3 = 213\<close> by (smt (cvc5))
 lemma bvex_175: \<open>(1705 :: 16 word) >> Suc (Suc (Suc 0)) = 213\<close> by (smt (cvc5))
 lemma bvex_176: \<open>(- 1705 :: 16 word) >> 3 = 7978\<close> by (smt (cvc5))
 lemma bvex_177: \<open>(- 1705 :: 16 word) >> Suc (Suc (Suc 0)) = 7978\<close> by (smt (cvc5))
 lemma bvex_178: \<open>(1 :: 16 word) >> 3 = 0\<close> by (smt (cvc5))
 lemma bvex_179: \<open>(1 :: 16 word) >> Suc (Suc (Suc 0)) = 0\<close> by (smt (cvc5))
+
 lemma bvex_180: \<open>signed_drop_bit 3 (1705 :: 16 word) = 213\<close> by (smt (cvc5))
 lemma bvex_181: \<open>signed_drop_bit (Suc (Suc (Suc 0))) (1705 :: 16 word) = 213\<close> by (smt (cvc5))
 lemma bvex_182: \<open>signed_drop_bit 3 (- 1705 :: 16 word) = - 214\<close> by (smt (cvc5))
 lemma bvex_183: \<open>signed_drop_bit (Suc (Suc (Suc 0))) (- 1705 :: 16 word) = - 214\<close> by (smt (cvc5))
 lemma bvex_184: \<open>signed_drop_bit 3 (1 :: 16 word) = 0\<close> by (smt (cvc5))
 lemma bvex_185: \<open>signed_drop_bit (Suc (Suc (Suc 0))) (1 :: 16 word) = 0\<close> by (smt (cvc5))
+
 lemma bvex_186: \<open>(1705 :: 16 word) >>> 3 = 213\<close> by (smt (cvc5))
 lemma bvex_187: \<open>(1705 :: 16 word) >>> Suc (Suc (Suc 0)) = 213\<close> by (smt (cvc5))
 lemma bvex_188: \<open>(- 1705 :: 16 word) >>> 3 = - 214\<close> by (smt (cvc5))
 lemma bvex_189: \<open>(- 1705 :: 16 word) >>> Suc (Suc (Suc 0)) = - 214\<close> by (smt (cvc5))
 lemma bvex_190: \<open>(1 :: 16 word) >>> 3 = 0\<close> by (smt (cvc5))
 lemma bvex_191: \<open>(1 :: 16 word) >>> Suc (Suc (Suc 0)) = 0\<close> by (smt (cvc5))
+
 lemma bvex_192: \<open>take_bit 3 (1705 :: 16 word) = 1\<close> by (smt (cvc5))
-lemma bvex_193: \<open>take_bit (Suc (Suc (Suc 0))) (1705 :: 16 word) = 1\<close> by (simp flip: add_2_eq_Suc)
-
+lemma bvex_193: \<open>take_bit (Suc (Suc (Suc 0))) (1705 :: 16 word) = 1\<close> by (smt (cvc5))(* by (simp flip: add_2_eq_Suc)*)
 lemma bvex_194: \<open>take_bit 3 (- 1705 :: 16 word) = 7\<close> by (smt (cvc5))
-lemma bvex_195: \<open>take_bit (Suc (Suc (Suc 0))) (- 1705 :: 16 word) = 7\<close> by (simp flip: add_2_eq_Suc)
-
+lemma bvex_195: \<open>take_bit (Suc (Suc (Suc 0))) (- 1705 :: 16 word) = 7\<close> by (smt (cvc5)) (* by (simp flip: add_2_eq_Suc)*)
 lemma bvex_196: \<open>take_bit 3 (1 :: 16 word) = 1\<close> by (smt (cvc5))
 lemma bvex_197: \<open>take_bit (Suc (Suc (Suc 0))) (1 :: 16 word) = 1\<close> by (smt (cvc5))
-lemma bvex_198: \<open>take_bit 3 (- 1 :: 16 word) = 7\<close>
-  by (simp add: mask_eq_exp_minus_1)
-
-lemma bvex_200: \<open>take_bit (Suc (Suc (Suc 0))) (- 1 :: 16 word) = 7\<close>
-  by (simp add: mask_eq_exp_minus_1)
+lemma bvex_198: \<open>take_bit 3 (- 1 :: 16 word) = 7\<close> by (smt (cvc5)) (* by (simp add: mask_eq_exp_minus_1*)
+lemma bvex_200: \<open>take_bit (Suc (Suc (Suc 0))) (- 1 :: 16 word) = 7\<close> by (smt (cvc5)) (* by (simp add: mask_eq_exp_minus_1)*)
 
 lemma bvex_201: \<open>signed_take_bit 3 (1705 :: 16 word) = - 7\<close> by (smt (cvc5))
 lemma bvex_202: \<open>signed_take_bit (Suc (Suc (Suc 0))) (1705 :: 16 word) = - 7\<close> by (smt (cvc5))
@@ -473,6 +505,7 @@ lemma bvex_203: \<open>signed_take_bit 3 (- 1705 :: 16 word) = 7\<close> by (smt
 lemma bvex_204: \<open>signed_take_bit (Suc (Suc (Suc 0))) (- 1705 :: 16 word) = 7\<close> by (smt (cvc5))
 lemma bvex_205: \<open>signed_take_bit 3 (1 :: 16 word) = 1\<close> by (smt (cvc5))
 lemma bvex_206: \<open>signed_take_bit (Suc (Suc (Suc 0))) (1 :: 16 word) = 1\<close> by (smt (cvc5))
+
 lemma bvex_207: \<open>(1705 :: 16 word) div 42 = 40\<close> by (smt (cvc5))
 lemma bvex_208: \<open>(- 1705 :: 16 word) div 42 = 1519\<close> by (smt (cvc5))
 lemma bvex_209: \<open>(1705 :: 16 word) div - 42 = 0\<close> by (smt (cvc5))
@@ -481,6 +514,7 @@ lemma bvex_211: \<open>(1705 :: 16 word) div 1 = 1705\<close> by (smt (cvc5))
 lemma bvex_212: \<open>(1705 :: 16 word) div - 1 = 0\<close> by (smt (cvc5))
 lemma bvex_213: \<open>(1 :: 16 word) div 42 = 0\<close> by (smt (cvc5))
 lemma bvex_214: \<open>(- 1 :: 16 word) div 42 = 1560\<close> by (smt (cvc5))
+
 lemma bvex_215: \<open>(1705 :: 16 word) mod 42 = 25\<close> by (smt (cvc5))
 lemma bvex_216: \<open>(- 1705 :: 16 word) mod 42 = 33\<close> by (smt (cvc5))
 lemma bvex_217: \<open>(1705 :: 16 word) mod - 42 = 1705\<close> by (smt (cvc5))
@@ -489,6 +523,7 @@ lemma bvex_220: \<open>(1705 :: 16 word) mod 1 = 0\<close> by (smt (cvc5))
 lemma bvex_221: \<open>(1705 :: 16 word) mod - 1 = 1705\<close> by (smt (cvc5))
 lemma bvex_222: \<open>(1 :: 16 word) mod 42 = 1\<close> by (smt (cvc5))
 lemma bvex_223: \<open>(- 1 :: 16 word) mod 42 = 15\<close> by (smt (cvc5))
+
 lemma bvex_224: \<open>(1705 :: 16 word) sdiv 42 = 40\<close> by (smt (cvc5))
 lemma bvex_225: \<open>(- 1705 :: 16 word) sdiv 42 = 65496\<close> by (smt (cvc5))
 lemma bvex_226: \<open>(1705 :: 16 word) sdiv - 42 = 65496\<close> by (smt (cvc5))
@@ -497,6 +532,7 @@ lemma bvex_228: \<open>(1705 :: 16 word) sdiv 1 = 1705\<close> by (smt (cvc5))
 lemma bvex_229: \<open>(1705 :: 16 word) sdiv - 1 = 63831\<close> by (smt (cvc5))
 lemma bvex_230: \<open>(1 :: 16 word) sdiv 42 = 0\<close> by (smt (cvc5))
 lemma bvex_232: \<open>(- 1 :: 16 word) sdiv 42 = 0\<close> by (smt (cvc5))
+
 lemma bvex_233: \<open>(1705 :: 16 word) smod 42 = 25\<close> by (smt (cvc5))
 lemma bvex_234: \<open>(- 1705 :: 16 word) smod 42 = 65511\<close> by (smt (cvc5))
 lemma bvex_235: \<open>(1705 :: 16 word) smod - 42 = 25\<close> by (smt (cvc5))
@@ -507,17 +543,41 @@ lemma bvex_239: \<open>(1 :: 16 word) smod 42 = 1\<close> by (smt (cvc5))
 lemma bvex_240: \<open>(- 1 :: 16 word) smod 42 = 65535\<close> by (smt (cvc5))
 
 
-text "modulus"
+section "modulus"
 
-lemma bvex_241: "(27 :: 4 word) = -5" by simp
-lemma bvex_242: "(27 :: 4 word) = 11" by simp
-lemma bvex_243: "27 \<noteq> (11 :: 6 word)" by simp
+text \<open>
+Benchmark Nrs: 241-243
+Date counted: 12/08/26
 
-text "signed"
+Total:    3
+Success:  2
+\<close>
 
-lemma bvex_244: "(127 :: 6 word) = -1" by simp
+lemma bvex_241: "(27 :: 4 word) = -5" by (smt (cvc5))
+lemma bvex_242: "(27 :: 4 word) = 11" by (smt (cvc5))
+lemma bvex_243: "27 \<noteq> (11 :: 6 word)" by (smt (cvc5))
 
-text "number ring simps"
+section "signed"
+
+text \<open>
+Benchmark Nrs: 244
+Date counted: 12/08/26
+
+Total:    1
+Success:  0
+\<close>
+
+lemma bvex_244: "(127 :: 6 word) = -1" by (smt (cvc5))
+
+section "number ring simps"
+
+text \<open>
+Benchmark Nrs: 245-253
+Date counted: 12/08/26
+
+Total:    9
+Success:  4
+\<close>
 
 lemma bvex_245:
   "27 + 11 = (38::32 word)"
@@ -526,36 +586,52 @@ lemma bvex_245:
   "11 - 27 = (-16::32 word)"
   "- (- 11) = (11::32 word)"
   "-40 + 1 = (-39::32 word)"
-  by simp_all
+   by (smt (cvc5))
 
-lemma bvex_246: "word_pred 2 = 1" by simp
-lemma bvex_247: "word_succ (- 3) = -2" by simp
-lemma bvex_248: "23 < (27::8 word)" by simp
-lemma bvex_249: "23 \<le> (27::8 word)" by simp
-lemma bvex_250: "\<not> 23 < (27::2 word)" by simp
-lemma bvex_251: "0 < (4::3 word)" by simp
-lemma bvex_252: "1 < (4::3 word)" by simp
-lemma bvex_253: "0 < (1::3 word)" by simp
+lemma bvex_246: "word_pred 2 = 1" by (smt (cvc5))
+lemma bvex_247: "word_succ (- 3) = -2" by (smt (cvc5))
+lemma bvex_248: "23 < (27::8 word)" by (smt (cvc5))
+lemma bvex_249: "23 \<le> (27::8 word)" by (smt (cvc5))
+lemma bvex_250: "\<not> 23 < (27::2 word)" by (smt (cvc5))
+lemma bvex_251: "0 < (4::3 word)" by (smt (cvc5))
+lemma bvex_252: "1 < (4::3 word)" by (smt (cvc5))
+lemma bvex_253: "0 < (1::3 word)" by (smt (cvc5))
 
-text "ring operations"
+section "ring operations"
 
-lemma bvex_254: "a + 2 * b + c - b = (b + c) + (a :: 32 word)" by simp
+text \<open>
+Benchmark Nrs: 254
+Date counted: 12/08/26
 
-text "casting"
+Total:    1
+Success:  0
+\<close>
 
-lemma bvex_254: "uint (234567 :: 10 word) = 71" by simp
-lemma bvex_255: "uint (-234567 :: 10 word) = 953" by simp
-lemma bvex_256: "sint (234567 :: 10 word) = 71" by simp
-lemma bvex_257: "sint (-234567 :: 10 word) = -71" by simp
-lemma bvex_258: "uint (1 :: 10 word) = 1" by simp
+lemma bvex_254: "a + 2 * b + c - b = (b + c) + (a :: 32 word)" oops (*by (smt (cvc5))*)
 
-lemma bvex_259: "unat (-234567 :: 10 word) = 953" by simp
-lemma bvex_260: "unat (1 :: 10 word) = 1" by simp
+section "casting"
 
-lemma bvex_261: "ucast (0b1010 :: 4 word) = (0b10 :: 2 word)" by simp
-lemma bvex_262: "ucast (0b1010 :: 4 word) = (0b1010 :: 10 word)" by simp
-lemma bvex_263: "scast (0b1010 :: 4 word) = (0b111010 :: 6 word)" by simp
-lemma bvex_264: "ucast (1 :: 4 word) = (1 :: 2 word)" by simp
+text \<open>
+Benchmark Nrs: 254-264
+Date counted: 12/08/26
+
+Total:    1
+Success:  0
+\<close>
+
+lemma bvex_254: "uint (234567 :: 10 word) = 71" by (smt (cvc5))
+lemma bvex_255: "uint (-234567 :: 10 word) = 953" by (smt (cvc5))
+lemma bvex_256: "sint (234567 :: 10 word) = 71" by (smt (cvc5))
+lemma bvex_257: "sint (-234567 :: 10 word) = -71" by (smt (cvc5))
+lemma bvex_258: "uint (1 :: 10 word) = 1" by (smt (cvc5))
+
+lemma bvex_259: "unat (-234567 :: 10 word) = 953" by (smt (cvc5))
+lemma bvex_260: "unat (1 :: 10 word) = 1" by (smt (cvc5))
+
+lemma bvex_261: "ucast (0b1010 :: 4 word) = (0b10 :: 2 word)" by (smt (cvc5))
+lemma bvex_262: "ucast (0b1010 :: 4 word) = (0b1010 :: 10 word)" by (smt (cvc5))
+lemma bvex_263: "scast (0b1010 :: 4 word) = (0b111010 :: 6 word)" by (smt (cvc5))
+lemma bvex_264: "ucast (1 :: 4 word) = (1 :: 2 word)" by (smt (cvc5))
 
 text "reducing goals to nat or int and arith:"
 
