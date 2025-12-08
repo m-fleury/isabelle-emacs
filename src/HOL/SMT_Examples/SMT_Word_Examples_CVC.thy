@@ -226,6 +226,29 @@ These are now part of our monthly metrics that is why I numbered them
 
 Total: 336
 Date counted: 12/08/26
+
+
+Section           Total      Success
+------------------------------------------------
+nat                 30        0
+int                 69        0
+basic words         141       53
+modulus             3         2
+signed              1         0
+number ring simps   9         4
+ring operations     1         0
+casting             11        0
+reduction to arith  1         0
+bit operations      55        24
+signed division     2         0
+comparision         1         1
+bool lists          3         0
+bitwise expansion   5         0
+symbol shifts       2         0
+combined integer-bv 2         0
+misc                1         0
+------------------------------------------------
+total               337       84
 \<close>
 
 section \<open>\<^typ>\<open>nat\<close>\<close>
@@ -373,7 +396,7 @@ lemma bvex_98: \<open>signed_take_bit 3 (1 :: int) = 1\<close> by (smt (cvc5))
 lemma bvex_99: \<open>signed_take_bit (Suc (Suc (Suc 0))) (1 :: int) = 1\<close> by (smt (cvc5))
 
 
-section \<open>\<^typ>\<open>'a word\<close>/32 word\<close>
+section \<open>basic word 32 word\<close>
 
 text \<open>
 I instantiated any lemmas using symbolic bit-widths with 32.
@@ -615,7 +638,7 @@ text \<open>
 Benchmark Nrs: 254-264
 Date counted: 12/08/26
 
-Total:    1
+Total:    11
 Success:  0
 \<close>
 
@@ -633,96 +656,118 @@ lemma bvex_262: "ucast (0b1010 :: 4 word) = (0b1010 :: 10 word)" by (smt (cvc5))
 lemma bvex_263: "scast (0b1010 :: 4 word) = (0b111010 :: 6 word)" by (smt (cvc5))
 lemma bvex_264: "ucast (1 :: 4 word) = (1 :: 2 word)" by (smt (cvc5))
 
-text "reducing goals to nat or int and arith:"
+section "reducing goals to nat or int and arith:"
 
-lemma bvex_265: "i < x \<Longrightarrow> i < i + 1" for i x :: "32 word" by unat_arith
-lemma bvex_266: "i < x \<Longrightarrow> i < i + 1" for i x :: "32 word"
-  by unat_arith
+text \<open>
+Benchmark Nrs: 265
+Date counted: 12/08/26
 
-text "bit operations"
+Total:    1
+Success:  0
+\<close>
 
-lemma bvex_267: "0b110 AND 0b101 = (0b100 :: 32 word)" by simp
-lemma bvex_268: "0b110 OR 0b011 = (0b111 :: 8 word)" by simp
-lemma bvex_269: "0xF0 XOR 0xFF = (0x0F :: 8 word)" by simp
-lemma bvex_270: "NOT (0xF0 :: 16 word) = 0xFF0F" by simp
-lemma bvex_271: "0 AND 5 = (0 :: 8 word)" by simp
-lemma bvex_272: "1 AND 1 = (1 :: 8 word)" by simp
-lemma bvex_273: "1 AND 0 = (0 :: 8 word)" by simp
-lemma bvex_274: "1 AND 5 = (1 :: 8 word)" by simp
-lemma bvex_275: "1 OR 6 = (7 :: 8 word)" by simp
-lemma bvex_276: "1 OR 1 = (1 :: 8 word)" by simp
-lemma bvex_277: "1 XOR 7 = (6 :: 8 word)" by simp
-lemma bvex_278: "1 XOR 1 = (0 :: 8 word)" by simp
-lemma bvex_279: "NOT 1 = (254 :: 8 word)" by simp
-lemma bvex_280: "NOT 0 = (255 :: 8 word)" by simp
+lemma bvex_265: "i < x \<Longrightarrow> i < i + 1" for i x :: "32 word" oops (*by (smt (cvc5))*) (* by unat_arith*)
 
-lemma bvex_280: "(-1 :: 32 word) = 0xFFFFFFFF" by simp
+section "bit operations"
 
-lemma bvex_281: "bit (0b0010 :: 4 word) 1" by simp
-lemma bvex_282: "\<not> bit (0b0010 :: 4 word) 0" by simp
-lemma bvex_283: "\<not> bit (0b1000 :: 3 word) 4" by simp
-lemma bvex_284: "\<not> bit (1 :: 3 word) 2" by simp
+text \<open>
+Benchmark Nrs: 266-320
+Date counted: 12/08/26
 
-lemma bvex_285: "bit (0b11000 :: 10 word) n = (n = 4 \<or> n = 3)"
-  by (auto simp add: bit_numeral_rec bit_1_iff split: nat.splits)
+Total:    55
+Success:  24
+\<close>
 
-lemma bvex_286: "set_bit 55 7 True = (183::32 word)" by simp
-lemma bvex_287: "set_bit 0b0010 7 True = (0b10000010::32 word)" by simp
-lemma bvex_288: "set_bit 0b0010 1 False = (0::32 word)" by simp
-lemma bvex_289: "set_bit 1 3 True = (0b1001::32 word)" by simp
-lemma bvex_290: "set_bit 1 0 False = (0::32 word)" by simp
-lemma bvex_291: "set_bit 0 3 True = (0b1000::32 word)" by simp
-lemma bvex_292: "set_bit 0 3 False = (0::32 word)" by simp
+lemma bvex_266: "0b110 AND 0b101 = (0b100 :: 32 word)" by (smt (cvc5))
+lemma bvex_267: "0b110 OR 0b011 = (0b111 :: 8 word)" by (smt (cvc5))
+lemma bvex_268: "0xF0 XOR 0xFF = (0x0F :: 8 word)" by (smt (cvc5))
+lemma bvex_269: "NOT (0xF0 :: 16 word) = 0xFF0F" by (smt (cvc5))
+lemma bvex_270: "0 AND 5 = (0 :: 8 word)" by (smt (cvc5))
+lemma bvex_271: "1 AND 1 = (1 :: 8 word)" by (smt (cvc5))
+lemma bvex_272: "1 AND 0 = (0 :: 8 word)" by (smt (cvc5))
+lemma bvex_273: "1 AND 5 = (1 :: 8 word)" by (smt (cvc5))
+lemma bvex_274: "1 OR 6 = (7 :: 8 word)" by (smt (cvc5))
+lemma bvex_275: "1 OR 1 = (1 :: 8 word)" by (smt (cvc5))
+lemma bvex_276: "1 XOR 7 = (6 :: 8 word)" by (smt (cvc5))
+lemma bvex_277: "1 XOR 1 = (0 :: 8 word)" by (smt (cvc5))
+lemma bvex_278: "NOT 1 = (254 :: 8 word)" by (smt (cvc5))
+lemma bvex_279: "NOT 0 = (255 :: 8 word)" by (smt (cvc5))
+lemma bvex_280: "(-1 :: 32 word) = 0xFFFFFFFF" by (smt (cvc5))
 
-lemma bvex_292: "odd (0b0101::32 word)" by simp
-lemma bvex_293: "even (0b1000::32 word)" by simp
-lemma bvex_294: "odd (1::32 word)" by simp
-lemma bvex_295: "even (0::32 word)" by simp
+lemma bvex_281: "bit (0b0010 :: 4 word) 1" by (smt (cvc5))
+lemma bvex_282: "\<not> bit (0b0010 :: 4 word) 0" by (smt (cvc5))
+lemma bvex_283: "\<not> bit (0b1000 :: 3 word) 4" by (smt (cvc5))
+lemma bvex_284: "\<not> bit (1 :: 3 word) 2" by (smt (cvc5))
 
-lemma bvex_296: "\<not> msb (0b0101::4 word)" by simp
-lemma bvex_297: "msb (0b1000::4 word)" by simp
-lemma bvex_298: "\<not> msb (1::4 word)" by simp
-lemma bvex_299: "\<not> msb (0::4 word)" by simp
+lemma bvex_285: "bit (0b11000 :: 10 word) n = (n = 4 \<or> n = 3)" by (smt (cvc5))
+ (* by (auto simp add: bit_numeral_rec bit_1_iff split: nat.splits)*)
+
+lemma bvex_286: "set_bit 55 7 True = (183::32 word)" by (smt (cvc5))
+lemma bvex_287: "set_bit 0b0010 7 True = (0b10000010::32 word)" by (smt (cvc5))
+lemma bvex_288: "set_bit 0b0010 1 False = (0::32 word)" by (smt (cvc5))
+lemma bvex_289: "set_bit 1 3 True = (0b1001::32 word)" by (smt (cvc5))
+lemma bvex_290: "set_bit 1 0 False = (0::32 word)" by (smt (cvc5))
+lemma bvex_291: "set_bit 0 3 True = (0b1000::32 word)" by (smt (cvc5))
+lemma bvex_292: "set_bit 0 3 False = (0::32 word)" by (smt (cvc5))
+
+lemma bvex_292: "odd (0b0101::32 word)" by (smt (cvc5))
+lemma bvex_293: "even (0b1000::32 word)" by (smt (cvc5))
+lemma bvex_294: "odd (1::32 word)" by (smt (cvc5))
+lemma bvex_295: "even (0::32 word)" by (smt (cvc5))
+
+lemma bvex_296: "\<not> msb (0b0101::4 word)" by (smt (cvc5))
+lemma bvex_297: "msb (0b1000::4 word)" by (smt (cvc5))
+lemma bvex_298: "\<not> msb (1::4 word)" by (smt (cvc5))
+lemma bvex_299: "\<not> msb (0::4 word)" by (smt (cvc5))
 
 lemma bvex_300: "word_cat (27::4 word) (27::8 word) = (2843::32 word)"
-  by simp
+  by (smt (cvc5))
 lemma bvex_301: "word_cat (0b0011::4 word) (0b1111::6word) = (0b0011001111 :: 10 word)"
-  by simp
+  by (smt (cvc5))
 
-lemma bvex_302: "0b1011 << 2 = (0b101100::32 word)" by simp
-lemma bvex_303: "0b1011 >> 2 = (0b10::8 word)" by simp
-lemma bvex_304: "0b1011 >>> 2 = (0b10::8 word)" by simp
-lemma bvex_305: "1 << 2 = (0b100::32 word)" apply simp? oops
+lemma bvex_302: "0b1011 << 2 = (0b101100::32 word)" by (smt (cvc5))
+lemma bvex_303: "0b1011 >> 2 = (0b10::8 word)" by (smt (cvc5))
+lemma bvex_304: "0b1011 >>> 2 = (0b10::8 word)" by (smt (cvc5))
+lemma bvex_305: "1 << 2 = (0b100::32 word)"  by (smt (cvc5)) (*apply simp? oops*)
 
-lemma bvex_306: "slice 3 (0b101111::6 word) = (0b101::3 word)" by simp
-lemma bvex_307: "slice 3 (1::6 word) = (0::3 word)" apply simp? oops
+lemma bvex_306: "slice 3 (0b101111::6 word) = (0b101::3 word)" by (smt (cvc5))
+lemma bvex_307: "slice 3 (1::6 word) = (0::3 word)"  by (smt (cvc5)) (*apply simp? oops*)
 
-lemma bvex_308: "word_rotr 2 0b0110 = (0b1001::4 word)" by simp
-lemma bvex_309: "word_rotl 1 0b1110 = (0b1101::4 word)" by simp
-lemma bvex_310: "word_roti 2 0b1110 = (0b1011::4 word)" by simp
-lemma bvex_311: "word_roti (- 2) 0b0110 = (0b1001::4 word)" by simp
-lemma bvex_312: "word_rotr 2 0 = (0::4 word)" by simp
-lemma bvex_313: "word_rotr 2 1 = (0b0100::4 word)" apply simp? oops
-lemma bvex_314: "word_rotl 2 1 = (0b0100::4 word)" apply simp? oops
-lemma bvex_315: "word_roti (- 2) 1 = (0b0100::4 word)" apply simp? oops
+lemma bvex_308: "word_rotr 2 0b0110 = (0b1001::4 word)" by (smt (cvc5))
+lemma bvex_309: "word_rotl 1 0b1110 = (0b1101::4 word)" by (smt (cvc5))
+lemma bvex_310: "word_roti 2 0b1110 = (0b1011::4 word)" by (smt (cvc5))
+lemma bvex_311: "word_roti (- 2) 0b0110 = (0b1001::4 word)" by (smt (cvc5))
+lemma bvex_312: "word_rotr 2 0 = (0::4 word)" by (smt (cvc5))
+lemma bvex_313: "word_rotr 2 1 = (0b0100::4 word)" by (smt (cvc5)) (*apply simp? oops*)
+lemma bvex_314: "word_rotl 2 1 = (0b0100::4 word)" by (smt (cvc5)) (*apply simp? oops*)
+lemma bvex_315: "word_roti (- 2) 1 = (0b0100::4 word)" by (smt (cvc5)) (*apply simp? oops*)
 
 lemma bvex_316: "(x AND 0xff00) OR (x AND 0x00ff) = (x::16 word)"
+  by (smt (cvc5)) (*
 proof -
   have "(x AND 0xff00) OR (x AND 0x00ff) = x AND (0xff00 OR 0x00ff)"
     by (simp only: word_ao_dist2)
   also have "0xff00 OR 0x00ff = (-1::16 word)"
-    by simp
+    by (smt (cvc5))
   also have "x AND -1 = x"
-    by simp
+    by (smt (cvc5))
   finally show ?thesis .
-qed
+qed*)
 
-lemma bvex_317: "word_next (2:: 8 word) = 3" by eval
-lemma bvex_318: "word_next (255:: 8 word) = 255" by eval
-lemma bvex_319: "word_prev (2:: 8 word) = 1" by eval
-lemma bvex_320: "word_prev (0:: 8 word) = 0" by eval
+lemma bvex_317: "word_next (2:: 8 word) = 3" by (smt (cvc5)) (* by eval*)
+lemma bvex_318: "word_next (255:: 8 word) = 255" by (smt (cvc5))
+lemma bvex_319: "word_prev (2:: 8 word) = 1" by (smt (cvc5))
+lemma bvex_320: "word_prev (0:: 8 word) = 0" by (smt (cvc5))
 
-text \<open>signed division\<close>
+section \<open>signed division\<close>
+
+text \<open>
+Benchmark Nrs: 321-322
+Date counted: 12/08/26
+
+Total:    2
+Success:  0
+\<close>
 
 lemma bvex_321:
   "( 4 :: 32 word) sdiv  4 =  1"
@@ -732,7 +777,7 @@ lemma bvex_321:
   "(-3 :: 32 word) sdiv -4 =  0"
   "(-5 :: 32 word) sdiv -4 =  1"
   "( 5 :: 32 word) sdiv -4 = -1"
-  by (simp_all add: sdiv_word_def signed_divide_int_def)
+   by (smt (cvc5)) (*by (simp_all add: sdiv_word_def signed_divide_int_def)*)
 
 lemma bvex_322:
   "( 4 :: 32 word) smod  4 =   0"
@@ -742,70 +787,103 @@ lemma bvex_322:
   "(-3 :: 32 word) smod -4 =  -3"
   "(-5 :: 32 word) smod -4 =  -1"
   "( 5 :: 32 word) smod -4 =   1"
-  by (simp_all add: smod_word_def signed_modulo_int_def signed_divide_int_def)
+   by (smt (cvc5)) (*by (simp_all add: smod_word_def signed_modulo_int_def signed_divide_int_def)*)
 
 
-text \<open>comparison\<close>
+section \<open>comparison\<close>
 
-lemma bvex_323: "1 < (1024::32 word) \<and> 1 \<le> (1024::32 word)"
-  by simp
+text \<open>
+Benchmark Nrs: 323
+Date counted: 12/08/26
 
-text "bool lists"
+Total:    1
+Success:  1
+\<close>
 
-lemma bvex_324: "of_bl [True, False, True, True] = (0b1011::32 word)" by simp
+lemma bvex_323: "1 < (1024::32 word) \<and> 1 \<le> (1024::32 word)" by (smt (cvc5))
 
-lemma bvex_325: "to_bl (0b110::4 word) = [False, True, True, False]" by simp
+section "bool lists"
 
-lemma bvex_326: "of_bl (replicate 32 True) = (0xFFFFFFFF::32 word)"
-  by (simp add: numeral_eq_Suc)
+text \<open>
+Benchmark Nrs: 324-326
+Date counted: 12/08/26
 
-text "proofs using bitwise expansion"
+Total:    3
+Success:  0
+\<close>
+lemma bvex_324: "of_bl [True, False, True, True] = (0b1011::32 word)" by (smt (cvc5))
 
-lemma bvex_327: "(x AND 0xff00) OR (x AND 0x00ff) = (x::16 word)"
-  by word_bitwise
+lemma bvex_325: "to_bl (0b110::4 word) = [False, True, True, False]" by (smt (cvc5))
+
+lemma bvex_326: "of_bl (replicate 32 True) = (0xFFFFFFFF::32 word)" by (smt (cvc5))
+ (* by (simp add: numeral_eq_Suc)*)
+
+section "proofs using bitwise expansion"
+
+text \<open>
+Benchmark Nrs: 327-331
+Date counted: 12/08/26
+
+Total:    5
+Success:  0
+\<close>
+lemma bvex_327: "(x AND 0xff00) OR (x AND 0x00ff) = (x::16 word)" by (smt (cvc5)) (*by word_bitwise*)
 
 lemma bvex_328: "(x AND NOT 3) >> 4 << 2 = ((x >> 2) AND NOT 3)"
   for x :: "10 word"
-  by word_bitwise
+  by (smt (cvc5)) (*by word_bitwise*)
 
 lemma bvex_329: "((x AND -8) >> 3) AND 7 = (x AND 56) >> 3"
   for x :: "12 word"
-  by word_bitwise
-
-text "some problems require further reasoning after bit expansion"
+  by (smt (cvc5)) (*by word_bitwise*)
 
 lemma bvex_330: "x \<le> 42 \<Longrightarrow> x \<le> 89"
-  for x :: "8 word"
-  apply word_bitwise
+  for x :: "8 word" (*by (smt (cvc5)) *) oops
+  (*apply word_bitwise
   apply blast
-  done
+  done*)
 
 lemma bvex_331: "(x AND 1023) = 0 \<Longrightarrow> x \<le> -1024"
-  for x :: \<open>32 word\<close>
-  apply word_bitwise
+  for x :: \<open>32 word\<close> (*by (smt (cvc5)) *) oops
+ (* apply word_bitwise
   apply clarsimp
-  done
+  done*)
 
-text "operations like shifts by non-numerals will expose some internal list
+section "operations like shifts by non-numerals will expose some internal list
  representations but may still be easy to solve"
+
+text \<open>
+Benchmark Nrs: 332-333
+Date counted: 12/08/26
+
+Total:    2
+Success:  0
+\<close>
 
 lemma bvex_332: "32 \<le> a \<Longrightarrow> b >> a = 0"
   for b :: \<open>32 word\<close>
-  apply word_bitwise
+  by (smt (cvc5))
+  (*apply word_bitwise
   apply simp
-  done
+  done*)
 
 (* testing for presence of word_bitwise *)
 lemma bvex_333: "((x :: 32 word) >> 3) AND 7 = (x AND 56) >> 3"
-  by word_bitwise
-
-end
-
+  (*by word_bitwise*)
+  by (smt (cvc5))
 
 end
 
 
 section \<open>Combined integer-bitvector properties\<close>
+
+text \<open>
+Benchmark Nrs: 334-335
+Date counted: 12/08/26
+
+Total:    2
+Success:  0
+\<close>
 
 lemma bvex_334:
   assumes "bv2int 0 = 0"
@@ -814,15 +892,15 @@ lemma bvex_334:
       and "bv2int 3 = 3"
       and "\<forall>x::2 word. bv2int x > 0"
   shows "\<forall>i::int. i < 0 \<longrightarrow> (\<forall>x::2 word. bv2int x > i)"
-  using assms by (smt (cvc5)) (*TODO Mathias type problem*)
+  using assms (*by (smt (cvc5))*) oops
 
 lemma bvex_335: "P (0 \<le> (a :: 4 word)) = P True" by (smt (cvc5))
 
-section \<open>Misc\<close>
+section \<open>Misc and Unsorted\<close>
 
 (*TODO: support ABSORB rule*)
 lemma bvex_336: "a > (4294967294::32 word) \<Longrightarrow> a = 4294967295"
-  by (smt (cvc5))
+  (*by (smt (cvc5))*) oops
 
 
 
