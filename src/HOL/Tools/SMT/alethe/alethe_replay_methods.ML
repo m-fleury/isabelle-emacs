@@ -938,11 +938,16 @@ fun normalized_input ctxt prems t =
     val m_assm = matched_assm ()
     val _ = if length m_assm = 0 then SMT_Config.trace_msg ctxt (pretty ("warning: could not find assumption, had to add all premises")) [] else ()
     val prems = (if all_assms andalso not (length m_assm = 0) then m_assm else prems)
+    val _ = debug_msg ctxt low (fn () => \<^print> ("showing normalized input, premises",prems))
+
   in
     (SMT_Replay_Methods.prove ctxt t (fn _ =>
       Method.insert_tac ctxt prems
+      THEN' debug_msg_tac' ctxt high "normalized input after inserting premises"
       THEN' TRY' (K (unfold_tac ctxt (@{thms SMT.trigger_def} @  Named_Theorems.get ctxt \<^named_theorems>\<open>nat_normalized_input\<close>)))
- THEN' TRY' (partial_simplify_tac ctxt (@{thms eq_commute} @ Named_Theorems.get ctxt \<^named_theorems>\<open>cvc5_normalized_input\<close>))
+      THEN' debug_msg_tac' ctxt high "normalized input after unfolding triggers and nat_normalized_input"
+      THEN' TRY' (partial_simplify_tac ctxt (@{thms eq_commute} @ Named_Theorems.get ctxt \<^named_theorems>\<open>cvc5_normalized_input\<close>))
+      THEN' debug_msg_tac' ctxt high "normalized input after simplifying eq_commute and cvc5_normalized_input"
     ))
 end
 
