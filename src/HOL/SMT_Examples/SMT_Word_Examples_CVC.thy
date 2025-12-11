@@ -14,25 +14,28 @@ begin
 declare[[smt_expert_debug_alethe_level=3]]
 declare[[smt_expert_debug_alethe_files="smt_normalize"]]
 
-definition shiftl_lift :: "'a::len word \<Rightarrow> int \<Rightarrow> 'a::len word" 
-  where "shiftl_lift x i = x << (nat i)"
-lemma [nat_normalized_input]:
-  "shiftl_lift w (int x) \<equiv> shiftl w x "
-  unfolding shiftl_lift_def by simp
-
-lemma test:
+lemma shiftl_lift:
   "(x << i) \<equiv> push_bit_lift (int i) x"
   unfolding shiftl_def push_bit_lift_def by simp
+
+lemma shiftr_lift:
+  "(x >> i) \<equiv> drop_bit_lift (int i) x"
+  unfolding shiftr_def drop_bit_lift_def by simp
 
 ML \<open>
 val nat_native_ops_tab =
 [
-  ("Bit_Shifts_Infix_Syntax.semiring_bit_operations_class.shiftl",@{thms test})
+("Bit_Shifts_Infix_Syntax.semiring_bit_operations_class.shiftl", @{thms shiftl_lift}),
+("Bit_Shifts_Infix_Syntax.semiring_bit_operations_class.shiftr", @{thms shiftr_lift})
+
 ]
 val ops_tab = fold SMT_Normalize.add_nat_native_ops_tab nat_native_ops_tab
 val _ = Theory.setup (Context.theory_map (ops_tab))
 
 \<close>
+
+lemma bvex_126: \<open>bit (1705 :: 16 word) 3\<close>
+  supply[[smt_trace]] by (smt (cvc5))
 
 
 declare [[smt_nat_as_int,smt_trace]]
@@ -408,7 +411,8 @@ Total:    141
 Success:  53
 
 \<close>
-
+declare [[smt_trace,smt_verbose]]
+(*100 - 124 work*)
 lemma bvex_100: \<open>(1705 :: 8 word) = 169\<close> by (smt (cvc5))
 lemma bvex_101: \<open>(- 1705 :: 8 word) = 87\<close> by (smt (cvc5))
 lemma bvex_102: \<open>(257 :: 8 word) = 1\<close> by (smt (cvc5))
@@ -435,6 +439,7 @@ lemma bvex_122: \<open>(42 :: 8 word) <s - 1705\<close> by (smt (cvc5))
 lemma bvex_123: \<open>- (42 :: 8 word) <s - 1705\<close> by (smt (cvc5))
 lemma bvex_124: \<open>(1 :: 8 word) <s 42\<close> by (smt (cvc5))
 
+(*bvex_125 - 130 todo*)
 lemma bvex_125: \<open>bit (1705 :: 16 word) (Suc (Suc (Suc 0)))\<close> by (smt (cvc5))
 lemma bvex_126: \<open>bit (1705 :: 16 word) 3\<close> by (smt (cvc5))
 lemma bvex_127: \<open>\<not> bit (- 1705 :: 16 word) (Suc (Suc (Suc 0)))\<close> by (smt (cvc5))
@@ -442,6 +447,7 @@ lemma bvex_128: \<open>\<not> bit (- 1705 :: 16 word) 3\<close> by (smt (cvc5))
 lemma bvex_129: \<open>\<not> bit (1 :: 32 word) (Suc (Suc (Suc 0)))\<close> by (smt (cvc5))
 lemma bvex_130: \<open>\<not> bit (1 :: 32 word) 3\<close> by (smt (cvc5))
 
+(*bvex_131 - 151 work*)
 lemma bvex_131: \<open>(NOT 1705 :: 32 word) = - 1706\<close> by (smt (cvc5))
 lemma bvex_132: \<open>(NOT (- 42 :: 32 word)) = 41\<close> by (smt (cvc5))
 lemma bvex_133: \<open>(NOT 1 :: 32 word) = - 2\<close> by (smt (cvc5))
@@ -468,7 +474,7 @@ lemma bvex_150: \<open>- (1705 :: 32 word) XOR - 42 = 1665\<close> by (smt (cvc5
 lemma bvex_151: \<open>- (1705 :: 32 word) XOR 1 = - 1706\<close> by (smt (cvc5))
 
 lemma bvex_152: \<open>push_bit 3 (1705 :: 32 word) = 13640\<close> by (smt (cvc5))
-lemma bvex_153: \<open>push_bit (Suc (Suc (Suc 0))) (1705 :: 32 word) = 13640\<close> by (smt (cvc5))
+lemma bvex_153: \<open>push_bit (Suc (Suc (Suc 0))) (1705 :: 32 word) = 13640\<close>  by (smt (cvc5))
 lemma bvex_154: \<open>push_bit 3 (- 1705 :: 32 word) = - 13640\<close> by (smt (cvc5))
 lemma bvex_155: \<open>push_bit (Suc (Suc (Suc 0))) (- 1705 :: 32 word) = - 13640\<close> by (smt (cvc5))
 lemma bvex_156: \<open>push_bit 3 (1 :: 32 word) = 8\<close> by (smt (cvc5))

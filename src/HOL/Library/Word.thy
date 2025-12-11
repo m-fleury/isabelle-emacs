@@ -4554,15 +4554,6 @@ lemma slice_lift:
   apply(subst take_bit_word_eq_self)
   by simp_all
 
-(*TODO: Might be able to move to nat normalization section*)
-definition push_bit_lift :: \<open>int \<Rightarrow> 'a::len word \<Rightarrow> 'a::len word\<close> where
-  "push_bit_lift x = push_bit (nat x)"
-lemma push_bit_lift:
-  "push_bit x \<equiv> push_bit_lift (int x)"
-  unfolding push_bit_lift_def by simp
-lemma [nat_normalized_input]:
-  "push_bit (nat x) \<equiv> push_bit_lift x"
-  unfolding push_bit_lift_def by simp
 
 (*
 Lifting from operators that should be natively translated into SMT-LIB that take in natural numbers
@@ -4588,16 +4579,22 @@ lemma unset_bit_lift:
 definition flip_bit_lift :: \<open>int \<Rightarrow> 'a::len word \<Rightarrow> 'a::len word\<close> where
   "flip_bit_lift x = flip_bit (nat x)"
 
-(*lemma push_bit_lift2[nat_normalized_input]:
+definition push_bit_lift :: \<open>int \<Rightarrow> 'a::len word \<Rightarrow> 'a::len word\<close> where
+  "push_bit_lift x = push_bit (nat x)"
+lemma push_bit_lift:
+  "push_bit x \<equiv> push_bit_lift (int x)"
+  unfolding push_bit_lift_def by simp
+lemma [nat_normalized_input]:
   "push_bit (nat x) \<equiv> push_bit_lift x"
-  "push_bit (unat y) \<equiv> push_bit_lift (uint y)"
-  unfolding push_bit_lift_def by simp_all*)
-
+  unfolding push_bit_lift_def by simp
 
 definition drop_bit_lift :: \<open>int \<Rightarrow> 'a::len word \<Rightarrow> 'a::len word\<close> where
   "drop_bit_lift x = drop_bit (nat x)"
 lemma drop_bit_lift:
   "drop_bit x \<equiv> drop_bit_lift (int x)"
+  unfolding drop_bit_lift_def by simp
+lemma [nat_normalized_input]:
+  "drop_bit (nat x) \<equiv> drop_bit_lift x"
   unfolding drop_bit_lift_def by simp
 
 definition signed_drop_bit_lift :: \<open>int \<Rightarrow> 'a::len word \<Rightarrow> 'a::len word\<close> where
@@ -4653,8 +4650,20 @@ lemma smt_extract_lift:
 lemma [nat_normalized_input]:
   "smt_extract (nat j) (nat i) w \<equiv> smt_extract_lift j i w"
   unfolding smt_extract_lift_def by simp
-declare[[show_types,show_sorts]]
 
+definition bit_lift :: \<open>'a::len word \<Rightarrow> int \<Rightarrow> bool\<close> where
+  "bit_lift w x = bit w (nat x)"
+lemma bit_lift:
+  "bit w x \<equiv> bit_lift w (int x)"
+  unfolding bit_lift_def by simp
+(*
+We want to translate to smt_extract if the condition is met... Do we want to normalize here already?
+ "k < size (x::'a::len word) \<Longrightarrow> bit x k = ((smt_extract k k x) = (1::1 word))"
+*)
+  
+lemma [nat_normalized_input]:
+  "bit w (nat x) \<equiv> bit_lift w x"
+  unfolding bit_lift_def by simp
 
 
 lemma [nat_normalized_input]:
@@ -4667,7 +4676,6 @@ lemma word_numeral_lift:
   using num_abs_bintr[of x]
   by (smt (z3))
 
-
 ML \<open>
 
 val nat_native_ops_tab =
@@ -4675,6 +4683,7 @@ val nat_native_ops_tab =
   ("Bit_Operations.semiring_bit_operations_class.take_bit",@{thms take_bit_lift}),
   ("Bit_Operations.semiring_bit_operations_class.drop_bit",@{thms drop_bit_lift}),
   ("Bit_Operations.semiring_bit_operations_class.push_bit", @{thms push_bit_lift}),
+  ("Bit_Operations.semiring_bits_class.bit", @{thms bit_lift}),
   ("Word.signed_drop_bit", @{thms signed_drop_bit_lift}),
   ("Word.word_rotr", @{thms word_rotr_lift}),
   ("Word.word_rotl", @{thms word_rotl_lift}),
@@ -4697,13 +4706,36 @@ val _ = fold SMT_Normalize.add_simplify_ops_tab (simplify_norm_table)
     |> Theory.setup o Context.theory_map
 \<close>
 
+
 lemmas [simplify_translation] = len_bit0 len_bit1 len_num1 take_bit_numeral_numeral option.case take_bit_num_simps pred_numeral_simps option.case
 of_int_numeral
 
 ML_file \<open>Tools/smt_word.ML\<close>
 
+lemma "numeral (n1::num) + 1 \<equiv> numeral (n1 + num.One) "
+  supply[[simp_trace]]
 
-
+  by simp
+lemma "(nat ((4::int) + 1)) = 5"
+  supply[[simp_trace]]
+  apply simp
+  oops
 declare [[smt_nat_as_int]]
 
+
+lemma bvex_153: \<open>push_bit 3 (1705 :: 32 word) = 13640\<close> 
+  supply [[smt_trace,smt_verbose]] by (smt (cvc5))
+
+lemma bvex_157: \<open>push_bit (Suc (Suc (Suc 0))) (1705 :: 32 word) = 13640\<close> 
+  supply [[smt_trace,smt_verbose]] by (smt (cvc5))
+
+(*
+around 100 if there are many up to 1000 are okay
+
+bad idea:
+- randomly picked 3 files, randomly 3 proofs
+
+good idea:
+- we examined the files and picked these for a reason
+*)
 end

@@ -1009,14 +1009,14 @@ end
    end
   | bv_term_parser (SMTLIB.S[SMTLIB.Sym "_", SMTLIB.Sym "@bit_of",num], [t1]) = 
     let
-      val _ = @{print}("here")
+      (*val _ = @{print}("here")*)
     in
       SOME (Const (\<^const_name>\<open>True\<close>, \<^typ>\<open>bool\<close>))
    end
  
 
-  | bv_term_parser (SMTLIB.Num n, _) = (ignore (@{print} ("n=", n)); NONE)
-  | bv_term_parser xs = (@{print}("xs",xs);NONE)
+  | bv_term_parser (SMTLIB.Num n, _) = NONE (*(ignore (@{print} ("n=", n)); NONE)*)
+  | bv_term_parser xs = (NONE)
 
 
 
@@ -1229,7 +1229,5 @@ lemma [cvc_list_both_transfer_op]:
  = foldr xor xs (foldr xor ys (Word.Word 0) )"
   using cvc_list_both_transfer[of xor 0 xs ys] cvc_ListOp_neutral
   by simp
-
-
 
 end
