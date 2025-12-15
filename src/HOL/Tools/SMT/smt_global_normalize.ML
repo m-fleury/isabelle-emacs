@@ -352,13 +352,10 @@ local
     fun mk_f_xs'_h _ [] = []
      |  mk_f_xs'_h (xs_Ti::xs_Ts) (xi::xs) =
        (if isNat xs_Ti then nat_cast $ xi else xi) :: mk_f_xs'_h xs_Ts xs
-    val _ = @{print}("xs",xs)
 
     val f_xs' = list_comb(f, mk_f_xs'_h xs_T xs)
-    val _ = @{print}("f xs'",f_xs')
 
     val f'_xs = list_comb (f',xs) (*f' t_1 ... t_n*)
-    val _ = @{print}("f' x1 ... xn",f'_xs)
 
     val nat_f'_xs = (if retNat then nat_cast $ f'_xs else f'_xs)
     val eq_term = HOLogic.mk_eq (f_xs',nat_f'_xs)
@@ -367,7 +364,6 @@ local
       if retNat
       then HOLogic.mk_conj (less_eq $ @{term "0::int"} $ f'_xs,eq_term)
       else eq_term
-    val _ = @{print}("res",res)
 
   in res end
  
