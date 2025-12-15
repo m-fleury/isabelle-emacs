@@ -54,26 +54,34 @@ local
     (*obtain bitblasted variable*)
     fun find_bbT_var (_ $ (_ $ x $ _)) = x |
         find_bbT_var _ = error ("Bitblasting step (variable) has the wrong form!")
-    val bit_blasted_var = find_bbT_var t
+    val bit_blasted_var = find_bbT_var t |> @{print}
 
     (*instantiate with bitblasted variable*)
     val word_var_rbl_list_lemma =
-        nth (Named_Theorems.get ctxt @{named_theorems word_var_rbl_list}) 0
+        nth (Named_Theorems.get ctxt @{named_theorems word_var_rbl_list}) 0 |> @{print}
     val word_var_rbl_list_lemma_inst =
         Drule.infer_instantiate' ctxt (map (SOME o Thm.cterm_of ctxt) [bit_blasted_var]) word_var_rbl_list_lemma
-
+|> @{print}
   in  SMT_Replay_Methods.prove ctxt t (fn _ =>(
-      (*K (print_tac ctxt ("bv bitblast reconstruction debug 1"))
-      THEN'*) K (HEADGOAL (EqSubst.eqsubst_tac ctxt [1] [word_var_rbl_list_lemma_inst]))
-      (*THEN' K (print_tac ctxt ("bv bitblast reconstruction debug 2 "))*)
-      THEN' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems bv_reconstruction_length}))
-      (*THEN' K (print_tac ctxt ("bv bitblast reconstruction debug 3"))*)
-      THEN' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems smt_arith_simplify}))
-      (*THEN' K (print_tac ctxt ("bv bitblast reconstruction debug 4"))*)
-      THEN' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems arith_simp_cvc5}))
-      (*THEN' K (print_tac ctxt ("bv bitblast reconstruction debug 5"))*)
-      THEN' (simplify_tac ctxt ((Named_Theorems.get ctxt @{named_theorems bv_reconstruction_lists})))
-      (*THEN' K (print_tac ctxt ("bv bitblast reconstruction debug 6"))*)
+      K (print_tac ctxt ("bv bitblast reconstruction debug 1"))
+      THEN' K (HEADGOAL (EqSubst.eqsubst_tac ctxt [1] [word_var_rbl_list_lemma_inst]))
+      THEN' REPEAT_CHANGED (
+
+        REPEAT_CHANGED (
+
+        (*THEN' K (print_tac ctxt ("bv bitblast reconstruction debug 2 "))*)
+         (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems bv_reconstruction_length}))
+        (*THEN' K (print_tac ctxt ("bv bitblast reconstruction debug 3"))*)
+        THEN' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems smt_arith_simplify}))
+        (*THEN' K (print_tac ctxt ("bv bitblast reconstruction debug 4"))*)
+        THEN' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems arith_simp_cvc5}))
+        (*THEN' K (print_tac ctxt ("bv bitblast reconstruction debug 5"))*)
+        THEN' (simplify_tac ctxt ((Named_Theorems.get ctxt @{named_theorems bv_reconstruction_lists})))
+        THEN' K (print_tac ctxt ("bv bitblast reconstruction debug 6"))
+      )
+       THEN' TRY' (Code_Simp.dynamic_tac ctxt)
+      THEN' K (print_tac ctxt ("bv bitblast reconstruction debug 7"))
+      )
       ))
   end
 in
@@ -98,10 +106,12 @@ local
         Drule.infer_instantiate' ctxt (map (SOME o Thm.cterm_of ctxt) [fst bit_blasted_var, snd bit_blasted_var]) bv_reconstruction_const_lemma
 
   in  SMT_Replay_Methods.prove ctxt t (fn _ =>(
-      (*K (print_tac ctxt ("bv bitblast const reconstruction debug 1"))
-      THEN'*) K (HEADGOAL (EqSubst.eqsubst_tac ctxt [1] [bv_reconstruction_const_lemma_inst]))
+      K (print_tac ctxt ("bv bitblast const reconstruction debug 1"))
+      THEN' K (HEADGOAL (EqSubst.eqsubst_tac ctxt [1] [bv_reconstruction_const_lemma_inst]))
       (*THEN' K (print_tac ctxt ("bv bitblast const reconstruction debug 2"))*)
       THEN' REPEAT_CHANGED (
+
+       REPEAT_CHANGED (
        TRY' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems bv_reconstruction_const_test}))
        THEN' (TRY' (simplify_tac ctxt ((Named_Theorems.get ctxt @{named_theorems bv_reconstruction_length}))))
        THEN' (TRY' (simplify_tac ctxt ((Named_Theorems.get ctxt @{named_theorems bv_reconstruction_lists}))))
@@ -109,8 +119,14 @@ local
        THEN' (TRY' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems smt_arith_simplify})))
        THEN' (TRY' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems arith_simp_cvc5})))
        THEN' (TRY' (simplify_tac ctxt (@{thms monoid_mult_class.power_Suc0_right power_0})))
-       (*THEN' K (print_tac ctxt ("bv bitblast const reconstruction debug 5"))*)
+
+       THEN' TRY' (assume_tac ctxt)
+       THEN' K (print_tac ctxt ("bv bitblast const reconstruction debug 5"))
       )
+       THEN' TRY' (Code_Simp.dynamic_tac ctxt)
+       THEN' K (print_tac ctxt ("bv bitblast const reconstruction debug 6"))
+)
+
       ))
   end
 in

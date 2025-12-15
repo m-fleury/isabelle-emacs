@@ -11,9 +11,6 @@ imports "HOL-Library.Word" "HOL.SMT_CVC_Word"
 begin
 
 
-declare[[smt_expert_debug_alethe_level=3]]
-declare[[smt_expert_debug_alethe_files="smt_normalize"]]
-
 lemma shiftl_lift:
   "(x << i) \<equiv> push_bit_lift (int i) x"
   unfolding shiftl_def push_bit_lift_def by simp
@@ -34,7 +31,16 @@ val _ = Theory.setup (Context.theory_map (ops_tab))
 
 \<close>
 
-lemma bvex_126: \<open>bit (1705 :: 16 word) 3\<close>
+declare[[smt_expert_debug_alethe_level=3]]
+declare[[smt_expert_debug_alethe_files="smt_normalize"]]
+declare[[smt_nat_as_int]]
+
+lemma [nat_normalized_input]: "drop_bit_lift x \<equiv> drop_bit (unat x)" by simp
+lemma bvex_192: \<open>take_bit 3 (1705 :: 16 word) = 1\<close> supply[[smt_trace]] by (smt (cvc5))
+
+
+
+lemma  \<open>bit (1705 :: 16 word) 3\<close>
   supply[[smt_trace]] by (smt (cvc5))
 
 
@@ -273,12 +279,13 @@ lemma bvex_2: \<open>bit (1705 :: nat) 3\<close> by (smt (cvc5))
 lemma bvex_3: \<open>\<not> bit (1 :: nat) (Suc (Suc (Suc 0)))\<close> by (smt (cvc5))
 lemma bvex_4: \<open>\<not> bit (1 :: nat) 3\<close> by (smt (cvc5))
 
-lemma bvex_5: \<open>(1705 :: nat) AND 42 = 40\<close> by (smt (cvc5))
+lemma bvex_5: \<open>(1705 :: nat) AND 42 = 40\<close> (*using and_Suc_0_eq Suc_0_and_eq and_nat_unfold*) by (smt (cvc5))
 lemma bvex_6: \<open>(1705 :: nat) AND Suc 0 = 1\<close> by (smt (cvc5))
 lemma bvex_7: \<open>(1705 :: nat) OR 42 = 1707\<close> by (smt (cvc5))
 lemma bvex_8: \<open>(1705 :: nat) OR Suc 0 = 1705\<close> by (smt (cvc5))
 lemma bvex_9: \<open>(1705 :: nat) XOR 42 = 1667\<close> by (smt (cvc5))
 lemma bvex_10: \<open>(1705 :: nat) XOR 1 = 1704\<close> by (smt (cvc5))
+
 
 lemma bvex_11: \<open>push_bit 3 (1705 :: nat) = 13640\<close> by (smt (cvc5))
 lemma bvex_12: \<open>push_bit (Suc (Suc (Suc 0))) (1705 :: nat) = 13640\<close> by (smt (cvc5))
@@ -411,6 +418,7 @@ Total:    141
 Success:  53
 
 \<close>
+
 declare [[smt_trace,smt_verbose]]
 (*100 - 124 work*)
 lemma bvex_100: \<open>(1705 :: 8 word) = 169\<close> by (smt (cvc5))
@@ -518,7 +526,7 @@ lemma bvex_188: \<open>(- 1705 :: 16 word) >>> 3 = - 214\<close> by (smt (cvc5))
 lemma bvex_189: \<open>(- 1705 :: 16 word) >>> Suc (Suc (Suc 0)) = - 214\<close> by (smt (cvc5))
 lemma bvex_190: \<open>(1 :: 16 word) >>> 3 = 0\<close> by (smt (cvc5))
 lemma bvex_191: \<open>(1 :: 16 word) >>> Suc (Suc (Suc 0)) = 0\<close> by (smt (cvc5))
-
+declare[[smt_nat_as_int]]
 lemma bvex_192: \<open>take_bit 3 (1705 :: 16 word) = 1\<close> by (smt (cvc5))
 lemma bvex_193: \<open>take_bit (Suc (Suc (Suc 0))) (1705 :: 16 word) = 1\<close> by (smt (cvc5))(* by (simp flip: add_2_eq_Suc)*)
 lemma bvex_194: \<open>take_bit 3 (- 1705 :: 16 word) = 7\<close> by (smt (cvc5))

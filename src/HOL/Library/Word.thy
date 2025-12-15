@@ -4579,14 +4579,16 @@ lemma unset_bit_lift:
 definition flip_bit_lift :: \<open>int \<Rightarrow> 'a::len word \<Rightarrow> 'a::len word\<close> where
   "flip_bit_lift x = flip_bit (nat x)"
 
-definition push_bit_lift :: \<open>int \<Rightarrow> 'a::len word \<Rightarrow> 'a::len word\<close> where
-  "push_bit_lift x = push_bit (nat x)"
-lemma push_bit_lift:
-  "push_bit x \<equiv> push_bit_lift (int x)"
-  unfolding push_bit_lift_def by simp
-lemma [nat_normalized_input]:
-  "push_bit (nat x) \<equiv> push_bit_lift x"
-  unfolding push_bit_lift_def by simp
+definition push_bit_lift :: \<open>'a::len word  \<Rightarrow> 'a::len word \<Rightarrow> 'a::len word\<close> where
+  "push_bit_lift x = push_bit (unat x)"
+
+lemma push_bit_lift: "push_bit k (w::'a::len word) \<equiv> (if k > LENGTH('a) then 0 else push_bit_lift (Word.Word k) w)"
+  unfolding push_bit_lift_def
+  apply (simp add: atomize_eq)
+  apply (cases "k > LENGTH('a)")
+   apply simp_all
+  apply (simp add: unsigned_of_nat take_bit_nat_eq_self_iff)
+  by (metis dual_order.strict_trans less_exp nat_neq_iff take_bit_nat_eq_self_iff)
 
 definition drop_bit_lift :: \<open>int \<Rightarrow> 'a::len word \<Rightarrow> 'a::len word\<close> where
   "drop_bit_lift x = drop_bit (nat x)"
@@ -4603,14 +4605,11 @@ lemma signed_drop_bit_lift:
   "signed_drop_bit x \<equiv> signed_drop_bit_lift (int x)"
   unfolding signed_drop_bit_lift_def by simp
 
-definition take_bit_lift :: \<open>int \<Rightarrow> 'a::len word \<Rightarrow> 'a::len word\<close> where
-  "take_bit_lift x = take_bit (nat x)"
-lemma take_bit_lift:
-  "take_bit x \<equiv> take_bit_lift (int x)"
-  unfolding take_bit_lift_def by simp
-lemma [nat_normalized_input]:
-  "take_bit (nat x) \<equiv> take_bit_lift x"
-  unfolding take_bit_lift_def by simp
+(*TODO: support the non lifted case*)
+(*lemma take_bit_lift:
+  "take_bit n x \<equiv> (x - push_bit_lift (int n) (drop_bit_lift (int n) x))"
+  by (smt (z3) bits_ident diff_diff_eq diff_eq_diff_eq drop_bit_lift push_bit_lift)
+*)
 
 
 definition len_of_lift :: "'a::len0 itself \<Rightarrow> int" where
@@ -4680,7 +4679,7 @@ ML \<open>
 
 val nat_native_ops_tab =
 [
-  ("Bit_Operations.semiring_bit_operations_class.take_bit",@{thms take_bit_lift}),
+  (*("Bit_Operations.semiring_bit_operations_class.take_bit",@{thms take_bit_lift}),*)
   ("Bit_Operations.semiring_bit_operations_class.drop_bit",@{thms drop_bit_lift}),
   ("Bit_Operations.semiring_bit_operations_class.push_bit", @{thms push_bit_lift}),
   ("Bit_Operations.semiring_bits_class.bit", @{thms bit_lift}),
@@ -4712,22 +4711,16 @@ of_int_numeral
 
 ML_file \<open>Tools/smt_word.ML\<close>
 
-lemma "numeral (n1::num) + 1 \<equiv> numeral (n1 + num.One) "
-  supply[[simp_trace]]
-
-  by simp
-lemma "(nat ((4::int) + 1)) = 5"
-  supply[[simp_trace]]
-  apply simp
-  oops
 declare [[smt_nat_as_int]]
 
 
-lemma bvex_153: \<open>push_bit 3 (1705 :: 32 word) = 13640\<close> 
-  supply [[smt_trace,smt_verbose]] by (smt (cvc5))
 
-lemma bvex_157: \<open>push_bit (Suc (Suc (Suc 0))) (1705 :: 32 word) = 13640\<close> 
-  supply [[smt_trace,smt_verbose]] by (smt (cvc5))
+declare[[smt_expert_debug_alethe_level=3]]
+declare[[smt_expert_debug_alethe_files="alethe_replay_methods"]]
+
+lemma "push_bit 1 (3::2 word) = 2"
+  supply[[smt_trace]]
+  apply (smt (cvc5))
 
 (*
 around 100 if there are many up to 1000 are okay

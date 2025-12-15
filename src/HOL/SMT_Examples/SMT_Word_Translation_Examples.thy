@@ -6,8 +6,8 @@ begin
 
 (*None of the goals should contain any nats after encoding unless explicitly stated.*)
 
-declare[[smt_expert_debug_alethe_files="all"]]
-declare[[smt_expert_debug_alethe_level=0]]
+declare[[smt_expert_debug_alethe_files="alethe_replay_methods"]]
+declare[[smt_expert_debug_alethe_level=3]]
 declare[[smt_nat_as_int=true,smt_trace]]
 
 
@@ -155,6 +155,51 @@ lemma "push_bit 3 (1705 :: 32 word) = 13640"
 \<close>)
   by (smt (cvc5))
 
+(*
+
+
+This goal is translated into the assertion:
+
+0 \<le> (lift_x::int) \<and> push_bit_lift lift_x 0 \<noteq> 0
+
+Before being encoded into the SMT-LIB problem shown below (which introduces the int_to_bv cast).
+
+The important part for this examination being:  (bvshl (_ bv0 32) ((_ int_to_bv 32) lift_x$)) 
+
+When it is parsed back in should it become
+  \<not> push_bit (nat lift_x) 0 = 0
+or
+  \<not> push_bit (unat (nat2bv lift_x)) 0 = 0
+?
+
+What if it actually is (bvshl (_ bv0 32) ((_ int_to_bv 32) x$)) where x is an int (external proofs etc.), how do we distinguish.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Then, we
+can either transform that to push_bit_lift or transform push_bit_lift to it? I think there was something
+wrong with the latter. Probably that when we don't want to do the nat lifting it then gives issues.
+*)
+
+lemma "push_bit (3::nat) (0 :: 32 word) = 0"
+  supply[[smt_nat_as_int=false]]
+  apply (smt (cvc5)) (*TODO This should not happen with the flag set to false*)
+
+
+
 lemma "push_bit x (0 :: 32 word) = 0"
   apply (test_smt_translate 
 \<open>
@@ -164,6 +209,11 @@ lemma "push_bit x (0 :: 32 word) = 0"
 (assert (! (and (<= 0 lift_x$) (<= 0 lift_x$)) :named a1))
 \<close>)
   by (smt (cvc5))
+(*SMT: Goal: "__normalized_input"
+       assumptions:
+         0 \<le> (lift_x::int) \<and> push_bit_lift lift_x 0 \<noteq> 0
+       proposition:
+         0 \<le> (lift_x::int) \<and> \<not> push_bit (nat (of_int lift_x)) 0 = 0 *)
 
 
 (*

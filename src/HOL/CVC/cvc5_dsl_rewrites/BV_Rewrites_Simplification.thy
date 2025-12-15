@@ -317,28 +317,60 @@ TEST: PROOF
 
 named_theorems rewrite_bv_lshr_by_const_1 \<open>automatically_generated\<close>
 
+(*      assumptions:
+         ((24::int) < int (size (vptr::32 word))) = True
+         (31::int) = int (size (vptr::32 word)) - 1
+       arguments:
+         ''bv-lshr-by-const-1''
+         vptr::32 word
+         24::int
+         32::int
+         31::int
+       proposition:
+         drop_bit (nat (24::int)) (vptr::32 word) = word_cat 0 (smt_extract (nat (31::int)) (nat (24::int)) vptr)
+appears in proof to
+
+ "\<lbrakk>is_aligned (vptr::word32) 24; x \<le> 0xF\<rbrakk> \<Longrightarrow> x + (vptr >> 20) < 0x1000" *)
 lemma [rewrite_bv_lshr_by_const_1]:
-  fixes x::"'a ::len word" and amount::"int" and sz::"int"
-  shows "amount < int (size x) \<longrightarrow>
-   LENGTH('a) = LENGTH('b) + LENGTH('c) \<longrightarrow>
-  (nat (int (size x) - (1::int))) < LENGTH('a) \<longrightarrow>
-  0 \<le> amount \<longrightarrow>
-(nat amount) \<le> (nat (int (size x) - (1::int))) \<longrightarrow>
-  LENGTH('c) = 1 + ((nat (int (size x) - (1::int))) - (nat amount)) \<longrightarrow>
-amount < 2^LENGTH('d) \<longrightarrow>
-LENGTH('d) = sz \<longrightarrow>
-   (drop_bit (unat (Word.Word amount::'d::len word)) x::'a::len word) =
-   word_cat (Word.Word (0::int)::'b::len word)
-    (smt_extract (nat (int (size x) - (1::int))) (nat amount) x::'c::len word)"
-  apply rule+
-  apply (simp add:unsigned_of_int)
-  unfolding smt_extract_def
-  apply (subst Suc_nat_eq_nat_zadd1)
-   apply simp_all
-  apply (subst word_size[of x])
-  apply (subst take_bit_length_eq[of x])
-  unfolding slice_def slice1_def
-  sorry
+  fixes x::"'a ::len word" and amount::"int" and sz::"int" and nm1::"int" 
+  shows "NO_MATCH cvc_a (undefined x amount sz nm1)  \<Longrightarrow>
+   LENGTH('a) = LENGTH('b) + LENGTH('c) \<Longrightarrow> 
+   amount < int (size x) \<Longrightarrow> 
+   LENGTH('c) = nat nm1 + 1 - nat amount \<Longrightarrow>
+   nm1 = int (size x) - 1 \<Longrightarrow> 
+   (drop_bit (nat (amount)) x::'a::len word) =
+   word_cat (0::'b::len word)
+    (smt_extract (nat nm1) (nat amount) x::'c::len word)" 
+proof-
+  assume "NO_MATCH cvc_a (undefined x amount sz nm1)"
+   and a0: "LENGTH('a) = LENGTH('b) + LENGTH('c)"
+   and a1:  "amount < int (size x)"
+   and a3: "LENGTH('c) = nat nm1 + 1 - nat amount"
+  and a4: "nm1 =int (size x) - 1"
+
+  
+  have a2: "nat nm1 < size x"
+    by (simp add: a4 nat_less_iff)
+  have a4': "nm1 = LENGTH('a) - 1"
+    by (simp add: a4 int_minus size_word.rep_eq)
+  have "unat (drop_bit (nat amount) x) = drop_bit (nat amount) (unat x)"
+    by (simp only: unat_drop_bit_eq)
+  moreover have "(take_bit (Suc (nat nm1)) (unat x)) = unat x"
+    using a4'
+    by (metis One_nat_def Suc_pred len_gt_0 nat_int take_bit_length_eq unsigned_take_bit_eq)
+  moreover have "unat (word_cat (0::'b::len word)
+    (smt_extract (nat nm1) (nat amount) x::'c::len word)::'a::len word) =  drop_bit (nat amount) (take_bit (Suc (nat nm1)) (unat x))"
+    apply (subst unat_word_cat)
+     apply (simp add: a0)
+    apply (subst unat_smt_extract)
+       apply (simp_all add: a1 a2 a3)
+    by (metis a3 add.commute len_gt_0 less_Suc_eq_le plus_1_eq_Suc zero_less_diff)
+  ultimately show "(drop_bit (nat (amount)) x::'a::len word) =
+   word_cat (0::'b::len word)
+    (smt_extract (nat nm1) (nat amount) x::'c::len word)" 
+    by (metis word_unat.Rep_inverse)
+qed
+
 
 (*
 (define-cond-rule bv-lshr-by-const-2

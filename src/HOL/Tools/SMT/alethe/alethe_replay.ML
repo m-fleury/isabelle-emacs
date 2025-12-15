@@ -40,11 +40,11 @@ fun subst_only_free pairs =
 val is_input_rule = curry (op =) Alethe_Proof.input_rule
 
 
-fun under_fixes f unchanged_prems (prems, prems_as_thms_with_context_assms) names step_args context_assignments (concl, ctxt) tactic_args =
+fun under_fixes f unchanged_prems (prems, prems_as_thms_with_context_assms) names step_args context_assignments (concl, ctxt) tactic_args = (*TODO: names are not used*)
   let
-    val thms1 = unchanged_prems @ map (SMT_Replay.varify ctxt) prems(* |> @{print}*)
-    val thms2 = map snd prems_as_thms_with_context_assms(* |> @{print}*)
-    (*val _ = @{print}("decls",decls)*)
+    val thms1 = unchanged_prems @ map (SMT_Replay.varify ctxt) prems
+    val thms2 = map snd prems_as_thms_with_context_assms
+    val _ = debug_msg ctxt high (fn () => @{print} ("(thms1,thms2)", (thms1,thms2)))
   in (f ctxt (thms1 @ thms2) step_args context_assignments concl tactic_args) end
 
 
@@ -61,6 +61,8 @@ fun replay_thm method_for rewrite_rules ll_defs ctxt assumed unchanged_prems pre
     val rewrite_concl = (if Alethe_Proof.keep_app_symbols rule then
           filter (curry Term.could_unify (Thm.concl_of @{thm SMT.fun_app_def}) o Thm.concl_of) rewrite_rules
         else rewrite_rules)
+    val _ = debug_msg ctxt high (fn () => @{print} ("Some theorems that will be used to rewrite the conclusion", rewrite_concl))
+
     val post = let val thy = Proof_Context.theory_of (empty_simpset ctxt) in
         Raw_Simplifier.rewrite_term thy rewrite_concl []
         #> Object_Logic.atomize_term ctxt
@@ -68,17 +70,16 @@ fun replay_thm method_for rewrite_rules ll_defs ctxt assumed unchanged_prems pre
         #> SMTLIB_Isar.unskolemize_names ctxt
         #> HOLogic.mk_Trueprop
       end
-(*val _ = @{print}("rule",rule )
-val _ = @{print}("rule",not (Alethe_Proof.keep_raw_lifting rule ))
-val _ = @{print}("rule",not (null ll_defs ))
 
-val _ = @{print}("here",(not (null ll_defs) andalso not (Alethe_Proof.keep_raw_lifting rule) ))*)
     val concl = concl
       |> Term.subst_free concl_transformation
       |> subst_only_free global_transformation
       |> post
+    val _ = debug_msg ctxt high (fn () => @{print} ("Rewritten conclusion", concl))
 
-    val args = if rule = "refl" then SOME (Solver_Name "cvc5") else args
+    val args = if rule = "refl"
+               then let val _ = debug_msg ctxt high (fn () => @{print} ("TODO is this still needed")) in SOME (Solver_Name "cvc5") end
+               else args
 
   in
     if rule = Alethe_Proof.input_rule then
