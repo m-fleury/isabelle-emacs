@@ -4558,6 +4558,8 @@ lemma slice_lift:
 (*
 Lifting from operators that should be natively translated into SMT-LIB that take in natural numbers
 or return them to operators that work only on integers.
+
+TODO: These are not 
 *)
 
 
@@ -4714,21 +4716,4 @@ ML_file \<open>Tools/smt_word.ML\<close>
 declare [[smt_nat_as_int]]
 
 
-
-declare[[smt_expert_debug_alethe_level=3]]
-declare[[smt_expert_debug_alethe_files="alethe_replay_methods"]]
-
-lemma "push_bit 1 (3::2 word) = 2"
-  supply[[smt_trace]]
-  apply (smt (cvc5))
-
-(*
-around 100 if there are many up to 1000 are okay
-
-bad idea:
-- randomly picked 3 files, randomly 3 proofs
-
-good idea:
-- we examined the files and picked these for a reason
-*)
 end

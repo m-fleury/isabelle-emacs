@@ -1265,12 +1265,4 @@ lemma [cvc5_holes_simp]:
 
 declare[[smt_cvc_alethe = true]]
 
-declare[[smt_expert_debug_alethe_level=3]]
-declare[[smt_expert_debug_alethe_files="smt_global_normalize"]]
-
-lemma "True"
-  supply[[smt_trace]]
-  apply (smt (cvc5_proof))
-  done
-
 end
