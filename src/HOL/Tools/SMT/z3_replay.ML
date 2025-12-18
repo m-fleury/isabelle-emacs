@@ -148,26 +148,64 @@ fun parse_proof outer_ctxt
        fact_helper_ts prem_ids conjecture_id fact_helper_ids' steps}
   end
 
+fun subst_k_vars (lhs1 $ lhs2) (rhs1 $ rhs2) = (subst_k_vars lhs1 rhs1) $ (subst_k_vars lhs2 rhs2)
+  | subst_k_vars (Abs (_, _, lhs)) (Abs (x, y, rhs)) = Abs (x, y, (subst_k_vars lhs rhs))
+  | subst_k_vars lhs (Free (rhsname, rhstyp)) = 
+    if String.isPrefix "k_" (rhsname) then lhs else (Free (rhsname, rhstyp))
+  | subst_k_vars _ rhs = rhs
+
+fun unify_rhs (Const (\<^const_name>\<open>HOL.Trueprop\<close>, typtr) $ (Const (\<^const_name>\<open>HOL.eq\<close>, typeq) $ lhs $ rhs)) =
+         (Const (\<^const_name>\<open>HOL.Trueprop\<close>, typtr) $ (Const (\<^const_name>\<open>HOL.eq\<close>, typeq) $ lhs $ (subst_k_vars lhs rhs)))
+  | unify_rhs t = t
+
+(*
+  In Some cases, Z3 introduces new variables in it's proofs without declaring them.
+  Since these variables are unknown to Isabelle, it can lead to the proof replay failing.
+
+  We attempt to work around this issue by replacing all occurances of these variables in the 
+  right hand side of an equality term by the respective term from the left hand side, e.g.
+
+  (a & b | c & d) = (k_00 | k_10) --> (a & b | c & d) = (a & b | c & d)
+
+  We might have to propagate this substitution to other terms, but for the known test case
+  where these variables occur, only doing the substitution in the equality terms themselves seems
+  to be sufficient.
+*)
+
+fun fix_k_vars (Z3_Proof.Z3_Step {id, rule, prems, concl, fixes, is_fix_step}) =
+  let
+    val concl' = unify_rhs concl
+  in
+  Z3_Proof.Z3_Step ({
+    id=id, 
+    rule=rule, 
+    prems=prems, 
+    concl=concl',
+    fixes=fixes, 
+    is_fix_step=is_fix_step})
+  end (* Todo: There is probably a nicer way to write this *)
+
 fun replay outer_ctxt
     ({context = ctxt, typs, terms, rewrite_rules, assms, ...} : SMT_Translate.replay_data) output =
   let
     val (steps, ctxt2) = Z3_Proof.parse typs terms output ctxt
+    val steps2 = map fix_k_vars steps
     val ((_, rules), (ctxt3, assumed)) =
-      add_asserted outer_ctxt rewrite_rules (map (apfst fst) assms) steps ctxt2
+      add_asserted outer_ctxt rewrite_rules (map (apfst fst) assms) steps2 ctxt2
     val ctxt4 =
       ctxt3
       |> put_simpset (SMT_Replay.make_simpset ctxt3 [])
       |> Config.put SAT.solver (Config.get ctxt3 SMT_Config.sat_solver)
-    val len = length steps
+    val len = length steps2
     val start = Timing.start ()
     val print_runtime_statistics = SMT_Replay.intermediate_statistics ctxt4 start len
     fun blockwise f (i, x) y =
       (if i > 0 andalso i mod 100 = 0 then print_runtime_statistics i else (); f x y)
     val (proofs, stats) =
-      fold_index (blockwise (replay_step ctxt4 assumed)) steps (assumed, Symtab.empty)
+      fold_index (blockwise (replay_step ctxt4 assumed)) steps2 (assumed, Symtab.empty)
     val _ = print_runtime_statistics len
     val total = Time.toMilliseconds (#elapsed (Timing.result start))
-    val (_, Z3_Proof.Z3_Step {id, ...}) = split_last steps
+    val (_, Z3_Proof.Z3_Step {id, ...}) = split_last steps2
     val _ = SMT_Config.statistics_msg ctxt4 (Pretty.string_of o SMT_Replay.pretty_statistics "Z3" total) stats
   in
     Inttab.lookup proofs id |> the |> snd |> discharge rules outer_ctxt ctxt4
