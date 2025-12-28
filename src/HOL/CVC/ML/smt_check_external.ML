@@ -112,6 +112,7 @@ let
         => (print_error ("Unkown SMT error " ^ SMT_Failure.string_of_failure err); print_error_code 5; (thm,1))
     | (Timeout.TIMEOUT _) => (print_error ("Timeout"); print_error_code 7; (thm,1))
     | (TYPE x) => (print_error ("Type Error " ^ (fn (a,_,_) => a) x); print_error_code 1; (thm,1))
+    | Size => (print_error ("Size "); print_error_code 1; (thm,1))
     | (ERROR x) => (print_error ("Error " ^ x); print_error_code 1 ; (thm,1))
 
     val _ = (if i = 0 then (SMT_Config.statistics_msg ctxt (fn current => "RESULT_CODE: " ^ current) "0"; print_error_code 0) else ())
