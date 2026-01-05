@@ -421,7 +421,7 @@ local
     let
       val t = Thm.term_of ct
       val t1 = Term.head_of t
-      fun rewr_conv thms = Conv.top_rewrs_conv thms ctxt
+      fun rewr_conv thms = Conv.every_conv (map (fn thm => Conv.top_rewrs_conv [thm] ctxt) thms)
     in
       (case t1 of
         Const(n,T) =>
