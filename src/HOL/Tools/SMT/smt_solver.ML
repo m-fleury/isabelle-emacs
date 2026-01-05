@@ -587,7 +587,6 @@ local
 
   fun tac prove ctxt rules =
     CONVERSION (SMT_Normalize.atomize_conv ctxt)
-    THEN' K (print_tac ctxt "here")
     THEN' resolve_tac ctxt @{thms ccontr}
     THEN'
    (Subgoal.FOCUS_PREMS (fn {context = ctxt', prems, ...} =>
