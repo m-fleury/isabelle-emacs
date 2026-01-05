@@ -18,7 +18,7 @@ open Word_Lib
 
 
 (*This will be deleted eventually*)
-val trace = true
+val trace = false
 fun debug_msg (x : unit -> 'a) =
  if trace then ignore(x ()) else ()
 
@@ -146,18 +146,13 @@ local
 
       val U = Term.domain_type (Term.range_type T)
       val T1 = fastype_of t1
-        handle (TERM _) => @{typ "int"}
-      val T1' = @{typ "int"} --> U |> @{print}
+        handle (TERM _) => @{typ "int"} (*TODO*)
+
+      val T1' = @{typ "int"} --> U (*|> @{print}*)
       val T' = U --> U --> U
       val cast = Const("Int.ring_1_class.of_int",T1')
     in
-      (case (can dest_wordT U, try (snd o HOLogic.dest_number) t1,T1) of
-        (true, SOME i,_) => (*first arg is constant int*)
-          SOME (n, 2, [t2, HOLogic.mk_number U i], mk_shift (m, T))
-      | (true, NONE,@{typ "int"}) => (SOME (n, 2, [t2,cast $ t1], fn [t1,t2] => Const (m,T)  $ t2 $ t1))
-      | (true, NONE,_) => (SOME (n, 2, [t2,t1], mk_shift (m, T)))
-      | _ => NONE
-      )
+      (SOME (n, 2, [t1,t2], (fn ts => Term.list_comb (Const (m,T),ts))))
     end
      | shift_lift _ _ _ _ = NONE
 
@@ -783,22 +778,15 @@ val setup_builtins =
     (\<^term>\<open>and :: 'a::len word \<Rightarrow> _\<close>, "bvand"),
     (\<^term>\<open>or :: 'a::len word \<Rightarrow> _\<close>, "bvor"),
     (\<^term>\<open>xor :: 'a::len word \<Rightarrow> _\<close>, "bvxor") ] #>
+  fold (add_word_fun shift_lift) [
+    (\<^term>\<open>push_bit_lift :: 'a::len word \<Rightarrow> _ \<Rightarrow> _ \<close>, "bvshl"),
+    (\<^term>\<open>drop_bit_lift :: 'a::len word  \<Rightarrow> _ \<Rightarrow> _\<close>, "bvlshr"),
+    (\<^term>\<open>signed_drop_bit_lift :: 'a::len word \<Rightarrow> 'a::len word \<Rightarrow> _\<close>, "bvashr")
+   ] #>
   add_word_fun concat
     (\<^term>\<open>word_cat :: 'a::len word \<Rightarrow> _\<close>, "concat")  #>
-  fold (add_word_fun shift) [
-    (\<^term>\<open>push_bit :: nat \<Rightarrow> 'a::len word \<Rightarrow> _ \<close>, "bvshl"),
-    (\<^term>\<open>drop_bit :: nat \<Rightarrow> 'a::len word \<Rightarrow> _\<close>, "bvlshr"),
-    (\<^term>\<open>signed_drop_bit :: nat \<Rightarrow> 'a::len word \<Rightarrow> _\<close>, "bvashr") ] #>
-  fold (add_word_fun shift_lift) [
-    (\<^term>\<open>push_bit_lift :: 'a::len word \<Rightarrow> 'a::len word \<Rightarrow> _ \<close>, "bvshl"),
-    (\<^term>\<open>drop_bit_lift :: int \<Rightarrow> 'a::len word \<Rightarrow> _\<close>, "bvlshr"),
-    (\<^term>\<open>signed_drop_bit_lift :: int \<Rightarrow> 'a::len word \<Rightarrow> _\<close>, "bvashr") ] #>
   add_word_fun slice
     (\<^term>\<open>slice :: _ \<Rightarrow> 'a::len word \<Rightarrow> _\<close>, "extract") #>
-  add_len_of
-    (\<^term>\<open>len_of :: 'a :: len0 itself => nat\<close>, "IDDD") #>
-  add_of_nat
-    (\<^term>\<open>of_nat :: nat \<Rightarrow> int\<close>, "of_nat") #>
   fold (add_word_fun extend) [
     (\<^term>\<open>ucast :: 'a::len word \<Rightarrow> _\<close>, "zero_extend"),
     (\<^term>\<open>scast :: 'a::len word \<Rightarrow> _\<close>, "sign_extend") ] #>
@@ -841,6 +829,15 @@ val setup_builtins =
     (\<^term>\<open>pow_2_word :: _ \<Rightarrow> _ \<Rightarrow> _\<close>, "^")
    ]
 
+(*
+TODO: 
+
+add_len_of
+    (\<^term>\<open>len_of :: 'a :: len0 itself => nat\<close>, "IDDD") #>
+
+ add_of_nat
+    (\<^term>\<open>of_nat :: nat \<Rightarrow> int\<close>, "of_nat") #>
+*)
 val add_word_shift' = add_word_fun shift'
 
 end
@@ -897,10 +894,10 @@ fun mk_extract i j u =
   val _ = @{print}("u is",Thm.cterm_of @{context} u)*)
 
   val T = fastype_of u
-  val _ = @{print}("T is",T)
+  (*val _ = @{print}("T is",T)*)
 
   val TU = i - j + 1 |> Word_Lib.mk_wordT
-  val _ = @{print}("TU is",TU)
+  (*val _ = @{print}("TU is",TU)*)
 
   val res = Const (\<^const_name>\<open>smt_extract\<close>, @{typ nat} --> @{typ nat} --> T --> TU) $ I $ J $ u
   (*val _ = @{print}("res is",res)
@@ -916,16 +913,16 @@ fun mk_extract_from_terms i j u =
   val I = HOLogic.dest_number i |> snd
   val J = HOLogic.dest_number j |> snd
   val i' = Const (\<^const_name>\<open>nat\<close>, @{typ int} --> @{typ nat}) $ i
-  val _ = @{print}("i' is",Thm.cterm_of @{context} i')
+  (*val _ = @{print}("i' is",Thm.cterm_of @{context} i')*)
 
   val j' =  Const (\<^const_name>\<open>nat\<close>, @{typ int} --> @{typ nat}) $ j
-  val _ = @{print}("j' is",Thm.cterm_of @{context} j')
+  (*val _ = @{print}("j' is",Thm.cterm_of @{context} j')*)
 
   val T = fastype_of u
   val TU = I - J + 1 |> Word_Lib.mk_wordT
   val res = Const (\<^const_name>\<open>smt_extract\<close>, @{typ nat} --> @{typ nat} --> T --> TU) $ i' $ j' $ u
-  val _ = @{print}("re2s is",res)
-  val _ = @{print}("res2 is",res |> Thm.cterm_of @{context})
+  (*val _ = @{print}("re2s is",res)
+  val _ = @{print}("res2 is",res |> Thm.cterm_of @{context})*)
 
  in
    res
@@ -956,14 +953,6 @@ fun
       SOME (mk_unary \<^const_name>\<open>uminus_class.uminus\<close> t)
   | bv_term_parser (SMTLIB.Sym "bvand", (t::ts)) =
       SOME (mk_lassoc' \<^const_name>\<open>semiring_bit_operations_class.and\<close> t ts)
- (*| bv_term_parser (SMTLIB.Sym bv, []) =
-      (case try (unprefix "bv") bv of
-        NONE => NONE
-      | SOME t => (@{print}("TODO: when this happens in bv_term_parser investigate: ",bv);
-        SOME ((HOLogic.mk_term_of \<^typ>\<open>32 word\<close> (HOLogic.mk_string t)))))
-*)
-  (*| bv_term_parser (SMTLIB.Sym "bv", [int,(Const ("Nat.semiring_1_class.of_nat", _) $ (Const ("Nat.size_class.size", _) $
-     Free ("x", typ)))]) = SOME (Const (\<^const_name>\<open>Word.Word\<close>,\<^typ>\<open>Int.int\<close>--> typ) $ int)*)
   | bv_term_parser (SMTLIB.Sym "bv", [int, base]) = SOME (mk_bv_from_int_base int base)
   | bv_term_parser (SMTLIB.Sym "_", [Free(n,_),base]) =
     (case try (unprefix "bv") n of
@@ -974,7 +963,6 @@ fun
          |SOME t' => 
          let
           val int = HOLogic.mk_number @{typ int} t'
-          val _ = @{print}("Made it here",int)
          in
            SOME (mk_bv_from_int_base int base)
          end)
@@ -989,34 +977,15 @@ fun
       SOME (HOLogic.mk_binrel \<^const_name>\<open>Orderings.less_eq\<close> (t1, t2))
   | bv_term_parser (SMTLIB.Sym "bvshl", [t1, t2]) = 
     let     
-      val _ = @{print}("bvshl t1",Thm.cterm_of @{context} t1)
-
-      val _ = @{print}("bvshl t2",Thm.cterm_of @{context} t2)
-      (*We need to transform the first argument from a word into a nat. If it is a constant that
-        is easy, we make it an int and add a cast to nat.
-        If it is a int transformed into a word we can take away the cast. Otherwise, our
-        only choice is to add a cast.
-        Since the same is done when translating an Isabelle push_bit term into bvshl this should
-        enable reconstruction.*)
       val T1 = fastype_of t1
-      val t2'' = @{term "nat::int \<Rightarrow> nat"} $ 
-        (HOLogic.dest_number t2 |> snd |> HOLogic.mk_number @{typ "int"})
-        handle (TERM _) => t2
-      val _ = @{print}("bvshl t2''",Thm.cterm_of @{context} t2'')
     in
-      SOME (Const (\<^const_name>\<open>semiring_bit_operations_class.push_bit\<close>, \<^typ>\<open>Nat.nat\<close> --> T1 --> T1)
-        $ ( t2'') $ t1)
+      SOME (Const (\<^const_name>\<open>push_bit_lift\<close>, T1 --> T1 --> T1) $ t1 $ t2)
    end
   | bv_term_parser (SMTLIB.Sym "bvlshr", [t1, t2]) = 
     let
       val T1 = fastype_of t1
-      val t2'' = @{term "nat::int \<Rightarrow> nat"} $ 
-        (HOLogic.dest_number t2 |> snd |> HOLogic.mk_number @{typ "int"})
-        handle (TERM _) => t2
-      val _ = @{print}("bvlshr",t2'')
     in
-           SOME (Const (\<^const_name>\<open>semiring_bit_operations_class.drop_bit\<close>, \<^typ>\<open>Nat.nat\<close> --> T1 --> T1)
-        $ ( t2'') $ t1)
+      SOME (Const (\<^const_name>\<open>drop_bit_lift\<close>, T1 --> T1 --> T1) $ t1 $ t2)
    end
   | bv_term_parser (SMTLIB.Sym "bvadd", t) =
       let val (xs, a) = split_last t

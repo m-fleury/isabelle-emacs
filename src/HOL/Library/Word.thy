@@ -4559,12 +4559,58 @@ lemma slice_lift:
 Lifting from operators that should be natively translated into SMT-LIB that take in natural numbers
 or return them to operators that work only on integers.
 
-TODO: These are not 
+TODO: These are not about natural numbers anymore so we should change the name or make another
+set. They should always
+be done no matter if smt_nat_as_int is activated
 *)
 
 
-definition smt_mask_lift :: \<open>int \<Rightarrow> 'a::len word\<close> where
-  "smt_mask_lift x = mask (nat x)"
+definition push_bit_lift :: \<open>'a::len word  \<Rightarrow> 'a::len word \<Rightarrow> 'a::len word\<close> where
+  "push_bit_lift w k = push_bit (unat k) w"
+
+lemma push_bit_lift:
+ "push_bit k (w::'a::len word) \<equiv> (if k > LENGTH('a) then 0 else push_bit_lift w (Word.Word k))"
+  unfolding push_bit_lift_def
+  apply (simp add: atomize_eq)
+  apply (cases "k > LENGTH('a)")
+   apply simp_all
+  apply (simp add: unsigned_of_nat take_bit_nat_eq_self_iff)
+  by (metis dual_order.strict_trans less_exp nat_neq_iff take_bit_nat_eq_self_iff)
+
+
+definition drop_bit_lift :: \<open>'a::len word  \<Rightarrow> 'a::len word \<Rightarrow> 'a::len word\<close> where
+  "drop_bit_lift w k = drop_bit (unat k) w"
+
+lemma drop_bit_lift:
+ "drop_bit k (w::'a::len word) \<equiv> (if k > LENGTH('a) then 0 else drop_bit_lift w (Word.Word k))"
+  unfolding drop_bit_lift_def
+  apply (simp add: atomize_eq)
+  apply (cases "k > LENGTH('a)")
+   apply simp_all
+  apply (simp add: unsigned_of_nat take_bit_nat_eq_self_iff)
+  by (metis dual_order.strict_trans less_exp nat_neq_iff take_bit_nat_eq_self_iff)
+
+
+lemma take_bit_lift:
+  "take_bit k w \<equiv> w - push_bit k (drop_bit k w)"
+  using bits_ident
+  by (smt (z3) add_diff_cancel_left')
+
+definition signed_drop_bit_lift :: \<open>'a::len word  \<Rightarrow> 'a::len word \<Rightarrow> 'a::len word\<close> where
+  "signed_drop_bit_lift w k = signed_drop_bit (unat k) w"
+
+lemma signed_drop_bit_lift:
+ "signed_drop_bit k (w::'a::len word) \<equiv> (if k \<ge> LENGTH('a) then (if bit w (LENGTH('a) - Suc 0) then - 1 else 0) else signed_drop_bit_lift w (Word.Word k))"
+  using signed_drop_bit_beyond
+  unfolding signed_drop_bit_lift_def
+  apply (simp add: atomize_eq)
+  apply (cases "bit w (LENGTH('a) - Suc 0) ")
+  apply simp_all
+  apply (case_tac[!] "k \<ge> LENGTH('a)")
+   apply simp_all
+  apply (simp add: signed_drop_bit_beyond)
+    apply (simp add: unsigned_of_nat take_bit_nat_eq_self_iff)
+  oops (*TODO*)
 
 definition set_bit_lift :: \<open>int \<Rightarrow> 'a::len word \<Rightarrow> 'a::len word\<close> where
   "set_bit_lift x = set_bit (nat x)"
@@ -4581,31 +4627,7 @@ lemma unset_bit_lift:
 definition flip_bit_lift :: \<open>int \<Rightarrow> 'a::len word \<Rightarrow> 'a::len word\<close> where
   "flip_bit_lift x = flip_bit (nat x)"
 
-definition push_bit_lift :: \<open>'a::len word  \<Rightarrow> 'a::len word \<Rightarrow> 'a::len word\<close> where
-  "push_bit_lift x = push_bit (unat x)"
 
-lemma push_bit_lift: "push_bit k (w::'a::len word) \<equiv> (if k > LENGTH('a) then 0 else push_bit_lift (Word.Word k) w)"
-  unfolding push_bit_lift_def
-  apply (simp add: atomize_eq)
-  apply (cases "k > LENGTH('a)")
-   apply simp_all
-  apply (simp add: unsigned_of_nat take_bit_nat_eq_self_iff)
-  by (metis dual_order.strict_trans less_exp nat_neq_iff take_bit_nat_eq_self_iff)
-
-definition drop_bit_lift :: \<open>int \<Rightarrow> 'a::len word \<Rightarrow> 'a::len word\<close> where
-  "drop_bit_lift x = drop_bit (nat x)"
-lemma drop_bit_lift:
-  "drop_bit x \<equiv> drop_bit_lift (int x)"
-  unfolding drop_bit_lift_def by simp
-lemma [nat_normalized_input]:
-  "drop_bit (nat x) \<equiv> drop_bit_lift x"
-  unfolding drop_bit_lift_def by simp
-
-definition signed_drop_bit_lift :: \<open>int \<Rightarrow> 'a::len word \<Rightarrow> 'a::len word\<close> where
-  "signed_drop_bit_lift x = signed_drop_bit (nat x)"
-lemma signed_drop_bit_lift:
-  "signed_drop_bit x \<equiv> signed_drop_bit_lift (int x)"
-  unfolding signed_drop_bit_lift_def by simp
 
 (*TODO: support the non lifted case*)
 (*lemma take_bit_lift:
@@ -4681,11 +4703,10 @@ ML \<open>
 
 val nat_native_ops_tab =
 [
-  (*("Bit_Operations.semiring_bit_operations_class.take_bit",@{thms take_bit_lift}),*)
+  ("Bit_Operations.semiring_bit_operations_class.take_bit",@{thms take_bit_lift}),
   ("Bit_Operations.semiring_bit_operations_class.drop_bit",@{thms drop_bit_lift}),
   ("Bit_Operations.semiring_bit_operations_class.push_bit", @{thms push_bit_lift}),
   ("Bit_Operations.semiring_bits_class.bit", @{thms bit_lift}),
-  ("Word.signed_drop_bit", @{thms signed_drop_bit_lift}),
   ("Word.word_rotr", @{thms word_rotr_lift}),
   ("Word.word_rotl", @{thms word_rotl_lift}),
   ("Word.smt_extract", @{thms smt_extract_lift})
@@ -4716,4 +4737,10 @@ ML_file \<open>Tools/smt_word.ML\<close>
 declare [[smt_nat_as_int]]
 
 
+lemma bvex_152: \<open>push_bit 3 (1705 :: 32 word) = 13640\<close>
+  supply[[smt_trace]]
+  apply (smt (cvc5))
+
+lemma "push_bit x 0 = 0"
+  apply (smt (cvc5))
 end
