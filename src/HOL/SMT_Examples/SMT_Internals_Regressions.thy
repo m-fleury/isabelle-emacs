@@ -397,7 +397,7 @@ lemma not_not_2: "\<not>\<not>\<not>\<not>a \<or> \<not>a"
 lemma not_not_3: "\<not>\<not>\<not>(\<not>a \<or> b) \<or> (\<not>a \<or> b)"
   by (ctxt_tactic "not_not")
 
-(* Rule 5 & 6: resolution and th_resolution*)
+(* Rule 6 & 7: resolution and th_resolution*)
 
 lemma resolution_1:
   assumes "a" "\<not>a"
@@ -505,7 +505,7 @@ lemma la_disequality_4: "(2::int) = (7-6) \<or> \<not> (2::int) \<le> (7-6) \<or
   by (ctxt_tactic "la_disequality")
 
 
-(* Rule 14: la_tautology *)
+(* Rule 14: la_totality *)
 
 lemma la_totality_1: "(a::int) \<le> b \<or> b \<le> a"
   by (ctxt_tactic "la_totality")
@@ -864,9 +864,6 @@ lemma shuffle_and_6a:
   shows "(\<not> a \<and> \<not> b \<and> c \<and> d) = (c \<and> d \<and> \<not> a \<and> \<not> b)"
   by (ctxt_tactic "shuffle" "HOL.conj")
 
-declare[[smt_expert_debug_alethe_level=3]]
-declare[[smt_expert_debug_alethe_files="alethe_replay_methods"]]
-
 lemma shuffle_and_6b:
   shows "(\<not> (c \<and> a) \<and> \<not> (d \<and> b) \<and> c \<and> a) =
          (c \<and> a \<and> \<not> (c \<and> a) \<and> \<not> (d \<and> b))"
@@ -914,7 +911,7 @@ hi
 
 
 
-(* Rule 35: not_and *)
+(* Rule 36: not_and *)
 
 lemma not_and_1: 
   assumes "\<not>(a \<and> b \<and> c)"
@@ -947,7 +944,7 @@ lemma not_and_5:
   by (ctxt_tactic "not_and")
 
 
-(* Rule 36: xor1 *)
+(* Rule 37: xor1 *)
 
 lemma xor1_1: 
   assumes "\<not>(a = b)"
@@ -974,7 +971,7 @@ lemma xor1_4:
   by (ctxt_tactic "xor1")
 
 
-(* Rule 37: xor2 *)
+(* Rule 38: xor2 *)
 
 lemma xor2_1: 
   assumes "\<not>(a = b)"
@@ -1001,7 +998,7 @@ lemma xor2_4:
   by (ctxt_tactic "xor2")
 
 
-(* Rule 38: not_xor1 *)
+(* Rule 39: not_xor1 *)
 
 lemma not_xor1_1: 
   assumes "\<not>(\<not>(a = b))"
@@ -1028,7 +1025,7 @@ lemma not_xor1_4:
   by (ctxt_tactic "not_xor1")
 
 
-(* Rule 39: not_xor2 *)
+(* Rule 40: not_xor2 *)
 
 lemma not_xor2_1: 
   assumes "\<not>(\<not>(a = b))"
@@ -1055,7 +1052,7 @@ lemma not_xor2_4:
   by (ctxt_tactic "not_xor2")
 
 
-(* Rule 40: implies *)
+(* Rule 41: implies *)
 
 lemma implies_1: 
   assumes "(a \<longrightarrow> b)"
@@ -1090,39 +1087,6 @@ lemma implies_5:
 
 (* Rule 42: not_implies1 *)
 
-lemma not_implies2_1: 
-  assumes "\<not>(a \<longrightarrow> b)"
-  shows  "\<not>b"
-  using assms
-  by (ctxt_tactic "not_implies2")
-
-lemma not_implies2_2:
-  assumes "\<not>((a\<or>b) \<longrightarrow> b)"
-  shows  "\<not>b"
-  using assms
-  by (ctxt_tactic "not_implies2")
-
-lemma not_implies2_3:
-  assumes "\<not>(a \<longrightarrow> (a\<longrightarrow>b))"
-  shows  "\<not>(a\<longrightarrow>b)"
-  using assms
-  by (ctxt_tactic "not_implies2")
-
-lemma not_implies2_4:
-  assumes "\<not>((a \<longrightarrow> b) \<longrightarrow> (b \<longrightarrow> c))"
-  shows  "\<not>(b \<longrightarrow> c)"
-  using assms
-  by (ctxt_tactic "not_implies2")
-
-lemma not_implies2_5:
-  assumes "\<not>((a \<longrightarrow> b) \<longrightarrow> (\<not>(b \<longrightarrow> c)))"
-  shows  "\<not>(\<not>(b \<longrightarrow> c))"
-  using assms
-  by (ctxt_tactic "not_implies2")
-
-
-(* Rule 41: not_implies1 *)
-
 lemma not_implies1_1: 
   assumes "\<not>(a \<longrightarrow> b)"
   shows  "a"
@@ -1154,7 +1118,40 @@ lemma not_implies1_5:
   by (ctxt_tactic "not_implies1")
 
 
-(* Rule 43: equiv1 *)
+(* Rule 43: not_implies2 *)
+
+lemma not_implies2_1: 
+  assumes "\<not>(a \<longrightarrow> b)"
+  shows  "\<not>b"
+  using assms
+  by (ctxt_tactic "not_implies2")
+
+lemma not_implies2_2:
+  assumes "\<not>((a\<or>b) \<longrightarrow> b)"
+  shows  "\<not>b"
+  using assms
+  by (ctxt_tactic "not_implies2")
+
+lemma not_implies2_3:
+  assumes "\<not>(a \<longrightarrow> (a\<longrightarrow>b))"
+  shows  "\<not>(a\<longrightarrow>b)"
+  using assms
+  by (ctxt_tactic "not_implies2")
+
+lemma not_implies2_4:
+  assumes "\<not>((a \<longrightarrow> b) \<longrightarrow> (b \<longrightarrow> c))"
+  shows  "\<not>(b \<longrightarrow> c)"
+  using assms
+  by (ctxt_tactic "not_implies2")
+
+lemma not_implies2_5:
+  assumes "\<not>((a \<longrightarrow> b) \<longrightarrow> (\<not>(b \<longrightarrow> c)))"
+  shows  "\<not>(\<not>(b \<longrightarrow> c))"
+  using assms
+  by (ctxt_tactic "not_implies2")
+
+
+(* Rule 44: equiv1 *)
 
 lemma equiv1_1: 
   assumes "(a = b)"
@@ -1220,7 +1217,7 @@ lemma equiv2_5:
   by (ctxt_tactic "equiv2")
 
 
-(* Rule 45: not_equiv1 *)
+(* Rule 46: not_equiv1 *)
 
 lemma not_equiv1_1: 
   assumes "\<not>(a = b)"
@@ -1253,7 +1250,7 @@ lemma not_equiv1_5:
   by (ctxt_tactic "not_equiv1")
 
 
-(* Rule 46: not_equiv2 *)
+(* Rule 47: not_equiv2 *)
 
 lemma not_equiv2_1: 
   assumes "\<not>(a = b)"
@@ -1286,7 +1283,7 @@ lemma not_equiv2_5:
   by (ctxt_tactic "not_equiv2")
 
 
-(* Rule 47: and_pos *)
+(* Rule 48: and_pos *)
 (*b's are legacy versions where no index was given*)
 
 lemma and_pos_1a: "\<not>(a \<and> b \<and> c) \<or> b"
@@ -1339,7 +1336,7 @@ lemma and_neg_5: "((a = c) \<and> (b \<longrightarrow> \<not>c \<or> d)) \<or> \
   by (ctxt_tactic "and_neg")
 
 
-(* Rule 49: or_pos *)
+(* Rule 50: or_pos *)
 
 lemma or_pos_1: "\<not>(a \<or> b \<or> c) \<or> a \<or> b \<or> c"
   by (ctxt_tactic "or_pos")
@@ -1356,7 +1353,7 @@ lemma or_pos_4: "\<not>(\<not>(e \<or> f) \<or> (a \<or> b \<and> c) \<or> d) \<
 lemma or_pos_5: "\<not>(a) \<or> a"
   by (ctxt_tactic "or_pos")
 
-(* Rule 50: or_neg *)
+(* Rule 51: or_neg *)
 
 lemma or_neg_1: "(a \<or> b \<or> c) \<or> \<not>a"
   by (ctxt_tactic "or_neg")
@@ -1394,7 +1391,7 @@ lemma or_neg_11: "(\<not>a \<or> b) \<or> \<not>b"
 lemma or_neg_12: "(a) \<or> \<not>a"
   by (ctxt_tactic "or_neg")
 
-(* Rule 51: xor_pos1 *)
+(* Rule 52: xor_pos1 *)
 
 lemma xor_pos1_1: "\<not>(a \<noteq> b) \<or> a \<or> b"
   by (ctxt_tactic "xor_pos1")
@@ -1402,7 +1399,7 @@ lemma xor_pos1_1: "\<not>(a \<noteq> b) \<or> a \<or> b"
 lemma xor_pos1_2: "\<not>((a\<or>c) \<noteq> b) \<or> (a\<or>c) \<or> b"
   by (ctxt_tactic "xor_pos1")
 
-(* Rule 52: xor_pos2 *)
+(* Rule 53: xor_pos2 *)
 
 lemma xor_pos2_1: "\<not>(a \<noteq> b) \<or> \<not>a \<or> \<not>b"
   by (ctxt_tactic "xor_pos2")
@@ -1413,7 +1410,7 @@ lemma xor_pos2_2: "\<not>((a\<or>c) \<noteq> b) \<or> \<not>(a\<or>c) \<or> \<no
 lemma xor_pos2_3: "\<not>((a\<and>c) \<noteq> b) \<or> \<not>(a\<and>c) \<or> \<not>b"
   by (ctxt_tactic "xor_pos2")
 
-(* Rule 53: xor_neg1 *)
+(* Rule 54: xor_neg1 *)
 
 lemma xor_neg1_1: "(a \<noteq> b) \<or> a \<or> \<not>b"
   by (ctxt_tactic "xor_neg1")
@@ -1424,7 +1421,7 @@ lemma xor_neg1_2: "((a\<or>c) \<noteq> b) \<or> (a\<or>c) \<or> \<not>b"
 lemma xor_neg1_3: "(b \<noteq> (a\<and>c)) \<or> b \<or> \<not>(a\<and>c)"
   by (ctxt_tactic "xor_neg1")
 
-(* Rule 54: xor_neg2 *)
+(* Rule 55: xor_neg2 *)
 
 lemma xor_neg2_1: "(a \<noteq> b) \<or> \<not>a \<or> b"
   by (ctxt_tactic "xor_neg2")
@@ -1435,7 +1432,7 @@ lemma xor_neg2_2: "((a\<or>c) \<noteq> b) \<or> \<not>(a\<or>c) \<or> b"
 lemma xor_neg2_3: "(b \<noteq> (a\<and>c)) \<or> \<not>b \<or> (a\<and>c)"
   by (ctxt_tactic "xor_neg2")
 
-(* Rule 55: implies_pos *)
+(* Rule 56: implies_pos *)
 
 lemma implies_pos_1: "\<not>(a \<longrightarrow> b) \<or> \<not>a \<or> b"
   by (ctxt_tactic "implies_pos")
@@ -1449,7 +1446,7 @@ lemma implies_pos_3: "\<not>((a \<longrightarrow> b) \<longrightarrow> c) \<or> 
 lemma implies_pos_4: "\<not>((a \<longrightarrow> b) \<longrightarrow> (c \<longrightarrow> d)) \<or> \<not>(a \<longrightarrow> b) \<or> (c \<longrightarrow> d)"
   by (ctxt_tactic "implies_pos")
 
-(* Rule 56: implies_neg1 *)
+(* Rule 57: implies_neg1 *)
 
 lemma implies_neg_1: "(a \<longrightarrow> b) \<or> a"
   by (ctxt_tactic "implies_neg1")
@@ -1463,7 +1460,7 @@ lemma implies_neg_3: "((a \<longrightarrow> b) \<longrightarrow> c) \<or> (a \<l
 lemma implies_neg_4: "((a \<longrightarrow> b) \<longrightarrow> (c \<longrightarrow> d)) \<or> (a \<longrightarrow> b)"
   by (ctxt_tactic "implies_neg1")
 
-(* Rule 57: implies_neg2 *)
+(* Rule 58: implies_neg2 *)
 
 lemma implies_neg2_1: "(a \<longrightarrow> b) \<or> \<not>b"
   by (ctxt_tactic "implies_neg2")
@@ -1477,7 +1474,7 @@ lemma implies_neg2_3: "((a \<longrightarrow> b) \<longrightarrow> c) \<or> \<not
 lemma implies_neg2_4: "((a \<longrightarrow> b) \<longrightarrow> (c \<longrightarrow> d)) \<or> \<not>(c \<longrightarrow> d)"
   by (ctxt_tactic "implies_neg2")
 
-(* Rule 58: equiv_pos1 *)
+(* Rule 59: equiv_pos1 *)
 
 lemma equiv_pos1_1: "\<not>(a = b) \<or> a \<or> \<not>b"
   by (ctxt_tactic "equiv_pos1")
@@ -1488,7 +1485,7 @@ lemma equiv_pos1_2: "\<not>(a = (b = c)) \<or> a \<or> \<not>(b = c)"
 lemma equiv_pos1_3: "\<not>((a = d) = (b = c)) \<or> (a = d) \<or> \<not>(b = c)"
   by (ctxt_tactic "equiv_pos1")
 
-(* Rule 59: equiv_pos2 *)
+(* Rule 60: equiv_pos2 *)
 
 lemma equiv_pos2_1: "\<not>(a = b) \<or> \<not>a \<or> b"
   by (ctxt_tactic "equiv_pos2")
@@ -1499,7 +1496,7 @@ lemma equiv_pos2_2: "\<not>(a = (b = c)) \<or> \<not>a \<or> (b = c)"
 lemma equiv_pos2_3: "\<not>((a = d) = (b = c)) \<or> \<not>(a = d) \<or> (b = c)"
   by (ctxt_tactic "equiv_pos2")
 
-(* Rule 60: equiv_neg1 *)
+(* Rule 61: equiv_neg1 *)
 
 lemma equiv_neg1_1: "(a = b) \<or> \<not>a \<or> \<not>b"
   by (ctxt_tactic "equiv_neg1")
@@ -1513,7 +1510,7 @@ lemma equiv_neg1_3: "((a = d) = (b = c)) \<or> \<not>(a = d) \<or> \<not>(b = c)
 lemma equiv_neg1_4: "((\<not>a) = b) \<or> \<not>(\<not>a) \<or> \<not>b"
   by (ctxt_tactic "equiv_neg1")
 
-(* Rule 61: equiv_neg2 *)
+(* Rule 62: equiv_neg2 *)
 
 lemma equiv_neg2_1: "(a = b) \<or> a \<or> b"
   by (ctxt_tactic "equiv_neg2")
@@ -1527,7 +1524,7 @@ lemma equiv_neg2_3: "((a = d) = (b = c)) \<or> (a = d) \<or> (b = c)"
 lemma equiv_neg2_4: "((\<not>a) = b) \<or> \<not>a \<or> b"
   by (ctxt_tactic "equiv_neg2")
 
-(* Rule 62: ite1 *)
+(* Rule 63: ite1 *)
 
 lemma ite1_1: 
   assumes "(If a b c)"
@@ -1547,7 +1544,7 @@ lemma ite1_3:
   using assms
   by (ctxt_tactic "ite1")
 
-(* Rule 63: ite2 *)
+(* Rule 64: ite2 *)
 
 lemma ite2_1: 
   assumes "(If a b c)"
@@ -1567,7 +1564,7 @@ lemma ite2_3:
   using assms
   by (ctxt_tactic "ite2")
 
-(* Rule 64: ite_pos1 *)
+(* Rule 65: ite_pos1 *)
 
 lemma ite_pos1_1: "\<not>(If a b c) \<or> a \<or> c"
   by (ctxt_tactic "ite_pos1")
@@ -1581,7 +1578,7 @@ lemma ite_pos1_3: "\<not>(If a b (d \<or> c)) \<or> a \<or> (d \<or> c)"
 lemma ite_pos1_4: "\<not>(If a b (If a b c)) \<or> a \<or> (If a b c)"
   by (ctxt_tactic "ite_pos1")
 
-(* Rule 65: ite_pos2 *)
+(* Rule 66: ite_pos2 *)
 
 lemma ite_pos2_1: "\<not>(If a b c) \<or> \<not>a \<or> b"
   by (ctxt_tactic "ite_pos2")
@@ -1595,7 +1592,7 @@ lemma ite_pos2_3: "\<not>(If a b (d \<or> c)) \<or> \<not>a \<or> b"
 lemma ite_pos2_4: "\<not>(If a (If a b c) (If d b c)) \<or> \<not>a \<or> (If a b c)"
   by (ctxt_tactic "ite_pos2")
 
-(* Rule 66: ite_neg1 *)
+(* Rule 67: ite_neg1 *)
 
 lemma ite_neg1_1: "(If a b c) \<or> a \<or> \<not>c"
   by (ctxt_tactic "ite_neg1")
@@ -1609,7 +1606,7 @@ lemma ite_neg1_3: "(If a b (d \<or> c)) \<or> a \<or> \<not>(d \<or> c)"
 lemma ite_neg1_4: "(If a (If a b c) (If d b c)) \<or> a \<or> \<not>(If d b c)"
   by (ctxt_tactic "ite_neg1")
 
-(* Rule 67: ite_neg2 *)
+(* Rule 68: ite_neg2 *)
 
 lemma ite_neg2_1: "(If a b c) \<or> \<not>a \<or> \<not>b"
   by (ctxt_tactic "ite_neg2")
@@ -1623,7 +1620,7 @@ lemma ite_neg2_3: "(If a (d \<or> c)  b) \<or> \<not>a \<or> \<not>(d \<or> c)"
 lemma ite_neg2_4: "(If a (If a b c) (If d b c)) \<or> \<not>a \<or> \<not>(If a b c)"
   by (ctxt_tactic "ite_neg2")
 
-(* Rule 68: not_ite1 *)
+(* Rule 69: not_ite1 *)
 
 lemma not_ite1_1: 
   assumes "\<not>(If a b c)"
@@ -1643,7 +1640,7 @@ lemma not_ite1_3:
   using assms
   by (ctxt_tactic "not_ite1")
 
-(* Rule 69: not_ite2 *)
+(* Rule 70: not_ite2 *)
 
 lemma not_ite2_1: 
   assumes "\<not>(If a b c)"
@@ -1663,7 +1660,7 @@ lemma not_ite2_3:
   using assms
   by (ctxt_tactic "not_ite2")
 
-(* Rule 70: connective_def *)
+(* Rule 71: connective_def *)
 
 (*TODO: Add xor*)
 lemma connective_def_1: "\<not>(a = b) = ((\<not>a \<and> b) \<or> (a \<and> \<not>b))"
@@ -1687,7 +1684,7 @@ lemma connective_def_6: "(\<forall>x. x \<and> a) = (\<not>(\<exists>x. \<not>(x
 lemma connective_def_7: "(\<forall>x y. x \<and> y) = (\<not>(\<exists>x y. \<not>(x \<and> y)))"
   by (ctxt_tactic "connective_def")
 
-(* Rule 71: and_simplify *)
+(* Rule 72: and_simplify *)
 
 lemma and_simplify_1: "(True \<and> True) = True"
   by (ctxt_tactic "and_simplify")
@@ -1701,7 +1698,7 @@ lemma and_simplify_3: "(True \<and> a \<and> False) = False"
 lemma and_simplify_4: "(True \<and> \<not>\<not>a \<and> b \<and> \<not>\<not>\<not>a) = False"
   by (ctxt_tactic "and_simplify")
 
-(* Rule 72: or_simplify *)
+(* Rule 73: or_simplify *)
 
 lemma or_simplify_1: "(True \<or> True) = True"
   by (ctxt_tactic "or_simplify")
@@ -1715,7 +1712,7 @@ lemma or_simplify_3: "(True \<or> a \<or> False) = True"
 lemma or_simplify_4: "(False \<or> \<not>\<not>a \<or> b \<or> \<not>\<not>\<not>a) = True"
   by (ctxt_tactic "or_simplify")
 
-(* Rule 73: not_simplify *)
+(* Rule 74: not_simplify *)
 
 lemma not_simplify_1: "(\<not>False) = True"
   supply [[simp_trace]]
@@ -1736,7 +1733,7 @@ lemma not_simplify_5: "(\<not>\<not>\<not>True) = False"
 lemma not_simplify_6: "(\<not>\<not>\<not>False) = True"
   by (ctxt_tactic "not_simplify")
 
-(* Rule 74: implies_simplify *)
+(* Rule 75: implies_simplify *)
 
 lemma implies_simplify_1: "((\<not>a) \<longrightarrow> \<not>b) = (b \<longrightarrow> a)"
   by (ctxt_tactic "implies_simplify")
@@ -1765,7 +1762,7 @@ lemma implies_simplify_8: "(a \<longrightarrow> \<not>a) = (\<not>a)"
 lemma implies_simplify_9: "((False \<longrightarrow> a) \<longrightarrow> (\<not>a)) = (\<not>a)"
   by (ctxt_tactic "implies_simplify")
 
-(* Rule 75: equiv_simplify *)
+(* Rule 76: equiv_simplify *)
 
 lemma equiv_simplify_1: "(\<not>b = (\<not>b)) = True"
   by (ctxt_tactic "equiv_simplify")
@@ -1792,7 +1789,7 @@ lemma equiv_simplify_8: "((\<not>a) = (\<not>b)) = (a = b)"
   by (ctxt_tactic "equiv_simplify")
 
 
-(* Rule 76: bool_simplify *)
+(* Rule 77: bool_simplify *)
 
 lemma bool_simplify_1:
   shows "(\<not>(a \<longrightarrow> b)) = (a \<and> \<not>b)"
@@ -1822,7 +1819,7 @@ lemma bool_simplify_7:
   shows "((a \<longrightarrow> b) \<and> a) = (a \<and> b)"
   by (ctxt_tactic "bool_simplify")
 
-(* Rule 77: ac_simp *)
+(* Rule 78: ac_simp *)
 lemma ac_simp_1: "(b \<and> b) = b"
   by (ctxt_tactic "ac_simp")
 
@@ -1836,7 +1833,7 @@ lemma ac_simp_4: "(b \<and> ((a \<and> c) \<and> (d \<and> a))) = (a \<and> b \<
   by (ctxt_tactic "ac_simp")
 
 
-(* Rule 78: ite_simplify *)
+(* Rule 79: ite_simplify *)
            
 lemma ite_simplify_1:
   shows "(If True a b) = a"
@@ -1887,7 +1884,7 @@ lemma ite_simplify_12:
   by (ctxt_tactic "ite_simplify")
 
 
-(* Rule 79: qnt_simplify *)
+(* Rule 80: qnt_simplify *)
 
 lemma qnt_simplify_1:
   shows "(\<forall>x1. True) = True"
@@ -1906,7 +1903,7 @@ lemma qnt_simplify_4:
   by (ctxt_tactic "qnt_simplify")
 
 
-(* Rule 81: qnt_join *)
+(* Rule 82: qnt_join *)
 
 lemma qnt_join_1:
   shows "(\<forall>x1. a) = (\<forall>x1. a)"
@@ -1916,7 +1913,7 @@ lemma qnt_join_2:
   shows "(\<forall>x1 . (\<forall>x2. a \<and> x1)) = (\<forall>x1 x2. a \<and> x1)"
   by (ctxt_tactic "qnt_join")
 
-lemma qnt_join_3: (*TODO: Mathias*)
+lemma qnt_join_3:
   shows "(\<forall>x1 (x2::'a). (\<forall>x3 x4. (a \<and> x3 \<or> x4 \<and> x1))) = (\<forall>x1 (x2::'a) x3 x4. (a \<and> x3 \<or> x4 \<and> x1))"
   by (ctxt_tactic "qnt_join")
 
@@ -1932,7 +1929,7 @@ lemma qnt_join_6:
   shows "(\<exists>x1 . (\<exists>x2. a \<and> x1)) = (\<exists>x1 x2. a \<and> x1)"
   by (ctxt_tactic "qnt_join")
 
-lemma qnt_join_7: (*TODO: Mathias*)
+lemma qnt_join_7:
   shows "(\<exists>x1 (x2::'a). (\<exists>x3 x4. (a \<and> x3 \<or> x4 \<and> x1))) = (\<exists>x1 (x2::'a) x3 x4. (a \<and> x3 \<or> x4 \<and> x1))"
   by (ctxt_tactic "qnt_join")
 
@@ -1941,7 +1938,7 @@ lemma qnt_join_8:
   by (ctxt_tactic "qnt_join")
 
 
-(* Rule 82: qnt_rm_ununsed *)
+(* Rule 83: qnt_rm_ununsed *)
 
 lemma qnt_rm_unused_1:
   shows "(\<forall>x1. a) = a"
@@ -1987,7 +1984,7 @@ lemma eq_simplify_4:
   by (ctxt_tactic "eq_simplify")
 
 
-(* Rule 84: div_simplify *)
+(* Rule 85: div_simplify *)
 
 lemma div_simplify_1:
   shows "((a::int) div a) = 1"
@@ -2303,4 +2300,186 @@ lemma
 
   by (ctxt_tactic "qnt_miniscope_or")
 
+
+
+(*
+
+Rule Nr   Name            Nr Tests  Nr Success
+--------------------------------------------
+1         assume          8         8
+2         hole            0         0
+3         true            1         1
+4         false           1         1
+5         not_not         3         3
+6,7       resolution      3         0
+8         tautology       1         0
+9         contraction     9         9
+10        subproof        0         0
+--------------------------------------------
+                          26        22
+
+
+Rule Nr   Name            Nr Tests  Nr Success
+--------------------------------------------
+11        la_generic      1         0
+12        lia_generic     1         0
+13        la_disequality  4         4
+14        la_totality     2         2
+15        la_tautology    9         9
+16        la_mult_pos     3         3
+17        la_mult_neg     0         0
+18        bind            0         0
+19        sko_ex          0         0
+20        sko_forall      0         0
+--------------------------------------------
+                          20        18
+
+
+Rule Nr   Name            Nr Tests  Nr Success
+--------------------------------------------
+21        forall_inst     0         0
+22        refl            0         0
+23        trans           4         4
+24        cong            3         2
+25        eq_reflexive    3         3
+26        eq_transitive   4         4
+27        eq_congruent    3         3
+28        eq_congruent_pred 2       2
+29        qnt_cnf         1         0
+30        and             4         4
+--------------------------------------------
+                          24        22
+
+
+Rule Nr   Name            Nr Tests  Nr Success
+--------------------------------------------
+31        not_or          6         5
+32        or              3         3
+33        weakening       4         0
+34        reordering      4         4
+35        shuffle         15        15
+36        not_and         5         5
+37        xor1            4         4
+38        xor2            4         4
+39        not_xor         4         4
+40        not_xor2        4         4
+--------------------------------------------
+                          53        48
+
+
+Rule Nr   Name            Nr Tests  Nr Success
+--------------------------------------------
+41        implies         5         5
+42        not_implies1    5         5
+43        not_implies2    5         5
+44        equiv1          5         5
+45        equiv2          5         5
+46        not_equiv1      5         5
+47        not_equiv2      5         5
+48        and_pos         6         6
+49        and_neg         5         5
+50        or_pos          5         5
+--------------------------------------------
+                          51        51
+
+
+Rule Nr   Name            Nr Tests  Nr Success
+--------------------------------------------
+51        or_neg          12        12
+52        xor_pos1        2         2
+53        xor_pos2        3         3
+54        xor_neg1        3         3
+55        xor_neg2        3         3
+56        implies_pos     4         4
+57        implies_neg1    4         4
+58        implies_neg2    4         4
+59        equiv_pos1      3         3
+60        equiv_pos2      3         3
+--------------------------------------------
+                          41        41
+
+
+Rule Nr   Name            Nr Tests  Nr Success
+--------------------------------------------
+61        equiv_neg1      4         4
+62        equiv_neg2      4         4
+63        ite1            3         3
+64        ite2            3         3
+65        ite_pos1        4         4
+66        ite_pos2        4         4
+67        ite_neg1        4         4
+68        ite_neg2        4         4
+69        not_ite1        3         3
+70        not_ite2        3         3
+--------------------------------------------
+                          36        36
+
+
+Rule Nr   Name            Nr Tests  Nr Success
+--------------------------------------------
+71        connective_def  7         6
+72        and_simplify    4         4
+73        or_simplify     4         4
+74        not_simplify    6         6
+75        implies_simplify 9        9
+76        equiv_simplify  8         8
+77        bool_simplify   7         7
+78        ac_simp         4         4
+79        ite_simplify    12        12
+80        qnt_simplify    4         4
+--------------------------------------------
+                          65        65
+
+
+Rule Nr   Name            Nr Tests  Nr Success
+--------------------------------------------
+81        onepoint        0         0
+82        qnt_join        8         8
+83        qnt_rm_ununsed  6         6
+84        eq_simplify     0         0
+85        div_simplify    3         1
+86        prod_simplify   6         4
+87        unary_minus_simplify  3   3
+88        minus_simplify  4         4
+89        sum_simplify    3         3
+90        comp_simplify   9         9
+--------------------------------------------
+                          42        38
+
+
+Rule Nr   Name            Nr Tests  Nr Success
+--------------------------------------------
+91        let             0         0
+92        bind_let        0         0
+93        distinct_elim   6         6
+94        la_rw_eq1       3         3
+95        nary_elim       2         2
+96        bfun_elim       0         0
+97        ite_intro       0         0
+98        bitblast_extract 0        0
+99        bitblast_ult    0         0
+100       bitblast_add    0         0
+--------------------------------------------
+                          11        11
+
+
+Rule Nr   Name            Nr Tests  Nr Success
+--------------------------------------------
+101       sym             0         0
+102       not_symm        0         0
+103       eq_symmetric    0         0
+104       miniscope_distribute  10  10
+105       miniscope_split 14        14
+106       miniscope_ite   2         2
+107       aci_simp        0         0
+--------------------------------------------
+                          26        26
+
+
+
+
+Rule Nr   Name            Nr Tests  Nr Success
+--------------------------------------------
+Total                     395
+*)
 end
