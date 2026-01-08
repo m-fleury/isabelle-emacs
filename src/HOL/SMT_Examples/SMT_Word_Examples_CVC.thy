@@ -235,7 +235,7 @@ From AFP Word_Lib Examples.thy
 These are now part of our monthly metrics that is why I numbered them
 
 Total: 336
-Date counted: 12/08/26
+Date counted: 12/08/25
 
 
 Section           Total      Success
@@ -259,6 +259,33 @@ combined integer-bv 2         0
 misc                1         0
 ------------------------------------------------
 total               337       84
+
+
+Total: 336
+Date counted: 01/07/26
+
+
+Section           Total      Success
+------------------------------------------------
+nat                 30        0
+int                 69        0
+basic words         141       77
+modulus             3         2
+signed              1         0
+number ring simps   9         4
+ring operations     1         0
+casting             11        0
+reduction to arith  1         0
+bit operations      55        28
+signed division     2         0
+comparision         1         1
+bool lists          3         0
+bitwise expansion   5         0
+symbol shifts       2         0
+combined integer-bv 2         0
+misc                1         0
+------------------------------------------------
+total               337       105
 \<close>
 
 section \<open>\<^typ>\<open>nat\<close>\<close>
@@ -268,7 +295,7 @@ These should not be encoded into bit-vector operators but any natural numbers
 should be lifted to integers.
 
 Benchmark Nrs: 1-30
-Date counted: 12/08/26
+Date counted: 12/08/25
 
 Total:    30
 Success:  0
@@ -320,7 +347,7 @@ text \<open>
 These should not be encoded into bit-vector operators.
 
 Benchmark Nrs: 31-99
-Date counted: 12/08/26
+Date counted: 12/08/25
 
 Total:    69
 Success:  0
@@ -413,10 +440,17 @@ text \<open>
 I instantiated any lemmas using symbolic bit-widths with 32.
 
 Benchmark Nrs: 100-240
-Date counted: 12/08/26
+Date counted: 12/08/25
 
 Total:    141
 Success:  53
+
+
+Benchmark Nrs: 100-240
+Date counted: 01/07/26
+
+Total:    141
+Success:  77
 
 \<close>
 
@@ -597,7 +631,7 @@ section "modulus"
 
 text \<open>
 Benchmark Nrs: 241-243
-Date counted: 12/08/26
+Date counted: 12/08/25
 
 Total:    3
 Success:  2
@@ -611,7 +645,7 @@ section "signed"
 
 text \<open>
 Benchmark Nrs: 244
-Date counted: 12/08/26
+Date counted: 12/08/25
 
 Total:    1
 Success:  0
@@ -623,7 +657,7 @@ section "number ring simps"
 
 text \<open>
 Benchmark Nrs: 245-253
-Date counted: 12/08/26
+Date counted: 12/08/25
 
 Total:    9
 Success:  4
@@ -651,7 +685,7 @@ section "ring operations"
 
 text \<open>
 Benchmark Nrs: 254
-Date counted: 12/08/26
+Date counted: 12/08/25
 
 Total:    1
 Success:  0
@@ -663,7 +697,7 @@ section "casting"
 
 text \<open>
 Benchmark Nrs: 254-264
-Date counted: 12/08/26
+Date counted: 12/08/25
 
 Total:    11
 Success:  0
@@ -687,7 +721,7 @@ section "reducing goals to nat or int and arith:"
 
 text \<open>
 Benchmark Nrs: 265
-Date counted: 12/08/26
+Date counted: 12/08/25
 
 Total:    1
 Success:  0
@@ -699,10 +733,16 @@ section "bit operations"
 
 text \<open>
 Benchmark Nrs: 266-320
-Date counted: 12/08/26
+Date counted: 12/08/25
 
 Total:    55
 Success:  24
+
+Date counted: 01/07/26
+
+Total:    55
+Success:  28
+
 \<close>
 
 lemma bvex_266: "0b110 AND 0b101 = (0b100 :: 32 word)" by (smt (cvc5))
