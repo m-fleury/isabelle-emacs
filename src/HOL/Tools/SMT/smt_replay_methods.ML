@@ -469,7 +469,6 @@ fun abstract_for_code_eval ctxt u =
           (fn x => (t,x))*)
       | abs t =
         let
-          val _ = @{print} ("werewr",t)
           val (t1,ts) = strip_comb t
         in
         if length ts = 0 then abstract_arith_and_term ctxt abs t
@@ -486,10 +485,8 @@ fun abstract_for_code_eval ctxt u =
               fun f (i,tab) =
               let
                 val (ts',(i',tab)) = abs_children i tab ts []
-                val _ = @{print}("ts'",list_comb (t1,rev ts'))
               in (list_comb (t1,rev ts'),(i',tab)) end
 
-              val _ = @{print}("namHERE",name)
               val dont_abstract = 
                 [\<^const_name>\<open>HOL.eq\<close>,
                  \<^const_name>\<open>Not\<close>,
@@ -528,11 +525,11 @@ end
           SOME _ => abstract_sub t (abs t1 #>> (fn u => c $ u)))
       | abs (t as (c as Const (_,Term.Type(_,T))) $ t1 $ t2) =
       let
-val _ = @{print}("t",t)
+(*val _ = @{print}("t",t)
 val _ = @{print}("tT",T)
 
 val _ = @{print}("t1,t2",(t1,t2))
-val _ = @{print}("hi ", List.find (fn (Term.Type (x, _)) => x = "Word.word" | _ => false) T)
+val _ = @{print}("hi ", List.find (fn (Term.Type (x, _)) => x = "Word.word" | _ => false) T)*)
       in
         (case List.find (fn (Term.Type (x, _)) => x = "Word.word" | _ => false) T of
           NONE => abstract_arith_and_term ctxt abs t |
