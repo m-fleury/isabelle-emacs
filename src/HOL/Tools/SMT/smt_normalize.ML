@@ -33,7 +33,8 @@ open SMT_Config
 fun debug_msg ctxt = alethe_debug_msg ctxt "smt_normalize"
 fun print_conv prefix ctxt msg x =
 let
-  val _ = debug_msg ctxt high (fn () => \<^print> (prefix ^ " " ^ msg,x))
+  (*TODO: This is always printed and should not be*)
+  (*val _ = debug_msg ctxt high (fn () => \<^print> (prefix ^ " " ^ msg,x))*)
 in Conv.all_conv x end
 
 fun drop_fact_warning ctxt =
@@ -471,8 +472,14 @@ fun nat_native_extension_conv ctxt =
 fun nat_native_extension ctxt = 
  map (apsnd (Conv.fconv_rule (nat_native_extension_conv ctxt)))
 
-
-
+fun extensions ctxt = (*todo: better name for all of these*)
+ map (apsnd (Conv.fconv_rule (
+Conv.repeat_changed_conv
+(Conv.first_conv[
+  nat_native_extension_conv ctxt,
+  Conv.top_conv (unfold_extension_conv_simp (simplify_norm_table ctxt)) ctxt]
+)
+)))
 
 
 (* Not really sure if we should add this to the table.. after all this should only be done for cvc5
@@ -743,10 +750,9 @@ fun normalize ctxt wthms =
   |> debug ctxt "before"
   |> unfold_cvc5_extension ctxt
   |> debug ctxt "unfold_cvc5_extension"
-  |> simplify_norm_extension ctxt
-  |> debug ctxt "simplify_norm_extension"
-  |> nat_native_extension ctxt
-  |> debug ctxt "nat_native_extension"
+  
+  |> extensions ctxt
+  |> debug ctxt "nat_native_extension and simplify extensions"
   |> gen_normalize ctxt
   |> debug ctxt "gen_normalize"
   |> unfold_polymorph ctxt
