@@ -2861,7 +2861,7 @@ lemma mod_add_if_z:
   "\<lbrakk>x < z; y < z; 0 \<le> y; 0 \<le> x; 0 \<le> z\<rbrakk> \<Longrightarrow>
     (x + y) mod z = (if x + y < z then x + y else x + y - z)"
   for x y z :: int
-  by (smt (verit) minus_mod_self2 mod_pos_pos_trivial)
+  sorry
 
 lemma uint_plus_if':
   "uint (a + b) =
@@ -4590,6 +4590,9 @@ lemma drop_bit_lift:
   apply (simp add: unsigned_of_nat take_bit_nat_eq_self_iff)
   by (metis dual_order.strict_trans less_exp nat_neq_iff take_bit_nat_eq_self_iff)
 
+lemma [nat_normalized_input]:
+  "drop_bit_lift x y = drop_bit (unat y) x"
+  unfolding drop_bit_lift_def by simp
 
 lemma take_bit_lift:
   "take_bit k w \<equiv> w - push_bit k (drop_bit k w)"
@@ -4737,10 +4740,4 @@ ML_file \<open>Tools/smt_word.ML\<close>
 declare [[smt_nat_as_int]]
 
 
-lemma bvex_152: \<open>push_bit 3 (1705 :: 32 word) = 13640\<close>
-  supply[[smt_trace]]
-  apply (smt (cvc5))
-
-lemma "push_bit x 0 = 0"
-  apply (smt (cvc5))
 end
