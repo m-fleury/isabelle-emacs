@@ -412,13 +412,8 @@ local
 
   fun tac prove ctxt rules =
     CONVERSION (SMT_Normalize.atomize_conv ctxt)
-    THEN' K (print_tac ctxt "smt_tac after normalization")
-
     THEN' resolve_tac ctxt @{thms ccontr}
-    THEN' K (print_tac ctxt "smt_tac after contradicition")
-
     THEN' SUBPROOF (fn {context = ctxt', prems, ...} =>
-     (print_tac ctxt "in subproof") THEN
       resolve ctxt' (prove ctxt' (rules @ prems))) ctxt
 in
 
