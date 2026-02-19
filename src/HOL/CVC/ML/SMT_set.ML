@@ -40,6 +40,7 @@ fun mk_rassoc f t ts =
   in fold f (tl us) (hd us) end
 
 fun set_type_parser (SMTLIB.Sym "Set", [ts]) = SOME (Type(\<^type_name>\<open>Set.set\<close>,[ts]))
+  | set_type_parser (SMTLIB.S[SMTLIB.Sym "@type_of", t1],[]) =  SOME (dummyT)
   | set_type_parser _ = NONE
 
 fun set_term_parser (SMTLIB.Sym "set.card", [t1]) =
@@ -81,7 +82,8 @@ fun set_term_parser (SMTLIB.Sym "set.card", [t1]) =
    SOME (Const (\<^const_name>\<open>bot\<close>,Type(\<^type_name>\<open>Set.set\<close>,[dummyT])))
  | set_term_parser (SMTLIB.Sym "set.is_empty", [t1]) =
    SOME (mk_unary \<^const_name>\<open>Set.is_empty\<close> \<^typ>\<open>bool\<close> t1) 
-
+ | set_term_parser (SMTLIB.S [SMTLIB.Sym "@set.empty_of_type", SMTLIB.S[SMTLIB.Sym "@type_of", t1]],[]) =
+   SOME (Const (\<^const_name>\<open>bot\<close>,Type(\<^type_name>\<open>Set.set\<close>,[dummyT])))
 
 
 (* These don't work yet. Their semantics is more intricate.
@@ -91,7 +93,7 @@ fun set_term_parser (SMTLIB.Sym "set.card", [t1]) =
    SOME (Const (\<^const_name>\<open>Pow\<close>,Type(\<^type_name>\<open>Set.set\<close>,[dummyT]))
        $(Const (\<^const_name>\<open>top\<close>,Type(\<^type_name>\<open>Set.set\<close>,[dummyT]))))
 *)
-  | set_term_parser _ = NONE
+  | set_term_parser xs = NONE
 
 val _ = Theory.setup (Context.theory_map (
   SMTLIB_Proof.add_type_parser set_type_parser #>
