@@ -37,8 +37,6 @@ declare[[smt_expert_debug_alethe_level=3]]
 declare[[smt_expert_debug_alethe_files="smt_normalize"]]
 declare[[smt_nat_as_int]]
 
-lemma [nat_normalized_input]: "drop_bit_lift x \<equiv> drop_bit (unat x)" by simp
-
 
 
 lemma  \<open>bit (1705 :: 16 word) 3\<close>
