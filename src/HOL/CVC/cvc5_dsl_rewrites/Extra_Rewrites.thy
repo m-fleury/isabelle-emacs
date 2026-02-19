@@ -313,6 +313,14 @@ lemma [rewrite_arith_eq_elim_real]:
  \<Longrightarrow> ((t = s) = (t \<ge> s \<and> t \<le> s))"
   by auto
 
+named_theorems rewrite_arith_to_int_elim \<open>\<close>
+
+lemma [rewrite_arith_to_int_elim]:
+  fixes x::int
+  shows "NO_MATCH cvc_a (undefined x)
+ \<Longrightarrow> floor x = x"
+  by auto
+
 named_theorems rewrite_arith_to_int_elim_to_real \<open>\<close>
 
 lemma [rewrite_arith_to_int_elim_to_real]:

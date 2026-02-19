@@ -37,4 +37,22 @@ lemma [rewrite_array_store_self]:
   shows "NO_MATCH cvc_a (undefined t i) \<Longrightarrow> t(i := t i) = t"
   by auto
 
+
+named_theorems rewrite_array_read_over_write_split \<open>automatically_generated\<close>
+
+lemma [rewrite_array_read_over_write_split]:
+  fixes t::"'a::type \<Rightarrow> 'b::type option" and i::"'a::type" and j::"'a::type"
+  and e::"'b::type option"
+  shows "NO_MATCH cvc_a (undefined t i j e) \<Longrightarrow> (t(j := e)) i = (if (i=j) then e else t i)"
+  by auto
+
+
+named_theorems rewrite_array_store_swap \<open>automatically_generated\<close>
+
+lemma [rewrite_array_store_swap]:
+  fixes t::"'a::type \<Rightarrow> 'b::type option" and i::"'a::type" and j::"'a::type"
+  and e::"'b::type option" and f::"'b::type option"
+  shows "NO_MATCH cvc_a (undefined t i j e f) \<Longrightarrow> i \<noteq> j \<Longrightarrow> ((t(i := e)) (j := f)) = ((t(j := f)) (i := e))"
+  by auto
+
 end

@@ -6,89 +6,70 @@ begin
 All that remains to do is to prove any lemma whose provided proof fails.
 If you want to use the lemmas for proof reconstruction you'll also need to import this file in Rare_Interface.thy*)
 
-named_theorems rewrite_arith_plus_zero \<open>automatically_generated\<close>
-
-lemma [rewrite_arith_plus_zero]:
-  fixes t::"int cvc_ListVar" and s::"int cvc_ListVar"
-  shows "NO_MATCH cvc_a (undefined t s) \<Longrightarrow> cvc_list_right (+) (cvc_list_left (+) t (0::int)) s =
-   cvc_list_both (+) (0::int) t s"
-  apply (cases s)
-  apply (cases t)
-  subgoal for ss ts 
-    apply (simp add: cvc_list_left_transfer cvc_list_right_transfer_op cvc_list_both_transfer_op)
-    apply (induction ss)
-    apply simp_all
-    apply (induction ts)
-    apply simp_all
-    by (simp_all add: arith_plus_zero_lemma)
-  done
 
 
-named_theorems rewrite_arith_mul_one \<open>automatically_generated\<close>
+named_theorems rewrite_arith_int_div_total \<open>automatically_generated\<close>
 
-lemma [rewrite_arith_mul_one]:
-  fixes t::"int cvc_ListVar" and s::"int cvc_ListVar"
-  shows "NO_MATCH cvc_a (undefined t s) \<Longrightarrow> cvc_list_right (*) (cvc_list_left (*) t (1::int)) s =
-   cvc_list_both (*) (1::int) t s"
-  apply (cases s)
-  apply (cases t)
-  subgoal for ss ts 
-    apply (simp add: cvc_list_left_transfer cvc_list_right_transfer_op cvc_list_both_transfer_op)
-    apply (induction ss)
-    apply simp_all
-    apply (induction ts)
-    apply simp_all
-    by (simp_all add: arith_mul_one_lemma)
-  done
+lemma [rewrite_arith_int_div_total]:
+  fixes t::"int" and s::"int"
+  shows "NO_MATCH cvc_a (undefined t s) \<Longrightarrow> \<not>(s = 0) \<Longrightarrow> SMT.z3div t s = SMT.z3div t s"
+  by (simp add: SMT.z3div_def)
 
 
-named_theorems rewrite_arith_mul_zero \<open>automatically_generated\<close>
+named_theorems rewrite_arith_int_div_total_one \<open>automatically_generated\<close>
 
-lemma [rewrite_arith_mul_zero]:
-  fixes t::"int cvc_ListVar" and s::"int cvc_ListVar"
-  shows "NO_MATCH cvc_a (undefined t s) \<Longrightarrow> cvc_list_right (*) (cvc_list_left (*) t (0::int)) s = (0::int)"
-  apply (cases s)
-  apply (cases t)
-  subgoal for ss ts 
-    apply (simp add: cvc_list_left_transfer cvc_list_right_transfer_op cvc_list_both_transfer_op)
-    apply (induction ss)
-    apply simp_all
-    apply (induction ts)
-    apply simp_all
-    by (simp_all add: arith_mul_zero_lemma)
-  done
-
-
-named_theorems rewrite_arith_int_div_one \<open>automatically_generated\<close>
-
-lemma [rewrite_arith_int_div_one]:
+lemma [rewrite_arith_int_div_total_one]:
   fixes t::"int"
   shows "NO_MATCH cvc_a (undefined t) \<Longrightarrow> SMT.z3div t (1::int) = t"
   by (simp add: SMT.z3div_def)
 
 
-named_theorems rewrite_arith_neg_neg_one \<open>automatically_generated\<close>
+named_theorems rewrite_arith_int_div_total_zero \<open>automatically_generated\<close>
 
-lemma [rewrite_arith_neg_neg_one]:
+lemma [rewrite_arith_int_div_total_zero]:
   fixes t::"int"
-  shows "NO_MATCH cvc_a (undefined t) \<Longrightarrow> - (1::int) * (- (1::int) * t) = t"
-  by auto
+  shows "NO_MATCH cvc_a (undefined t) \<Longrightarrow> SMT.z3div t (0::int) = 0"
+  by (simp add: SMT.z3div_def)
 
 
-named_theorems rewrite_arith_elim_uminus \<open>automatically_generated\<close>
+named_theorems rewrite_arith_int_div_total_neg \<open>automatically_generated\<close>
 
-lemma [rewrite_arith_elim_uminus]:
-  fixes t::"int"
-  shows "NO_MATCH cvc_a (undefined t) \<Longrightarrow> - t = - (1::int) * t"
-  by auto
-
-
-named_theorems rewrite_arith_elim_minus \<open>automatically_generated\<close>
-
-lemma [rewrite_arith_elim_minus]:
+lemma [rewrite_arith_int_div_total_neg]:
   fixes t::"int" and s::"int"
-  shows "NO_MATCH cvc_a (undefined t s) \<Longrightarrow> t - s = t + - (1::int) * s"
-  by auto
+  shows "NO_MATCH cvc_a (undefined t s) \<Longrightarrow> s < 0 \<Longrightarrow> SMT.z3div t s = - (SMT.z3div t (-s))"
+  by (simp add: SMT.z3div_def)
+
+
+named_theorems rewrite_arith_int_mod_total \<open>automatically_generated\<close>
+
+lemma [rewrite_arith_int_mod_total]:
+  fixes t::"int" and s::"int"
+  shows "NO_MATCH cvc_a (undefined t s) \<Longrightarrow> \<not> s = 0 \<Longrightarrow> SMT.z3mod t s = SMT.z3mod t s"
+  by simp
+
+
+named_theorems rewrite_arith_int_mod_total_one \<open>automatically_generated\<close>
+
+lemma [rewrite_arith_int_mod_total_one]:
+  fixes t::"int"
+  shows "NO_MATCH cvc_a (undefined t) \<Longrightarrow> SMT.z3mod t 1 = 0"
+  by (simp add: SMT.z3mod_def)
+
+
+named_theorems rewrite_arith_int_mod_total_zero \<open>automatically_generated\<close>
+
+lemma [rewrite_arith_int_mod_total_zero]:
+  fixes t::"int"
+  shows "NO_MATCH cvc_a (undefined t) \<Longrightarrow> SMT.z3mod t 0 = t"
+  by (simp add: SMT.z3mod_def)
+
+
+named_theorems rewrite_arith_int_mod_total_neg \<open>automatically_generated\<close>
+
+lemma [rewrite_arith_int_mod_total_neg]:
+  fixes t::"int" and s::"int"
+  shows "NO_MATCH cvc_a (undefined t s) \<Longrightarrow> s < 0 \<Longrightarrow> SMT.z3mod t s = SMT.z3mod t (-s)"
+  by (simp add: SMT.z3mod_def)
 
 
 named_theorems rewrite_arith_elim_gt \<open>automatically_generated\<close>
@@ -104,6 +85,22 @@ named_theorems rewrite_arith_elim_lt \<open>automatically_generated\<close>
 lemma [rewrite_arith_elim_lt]:
   fixes t::"'a::linorder" and s::"'a::linorder"
   shows "NO_MATCH cvc_a (undefined t s) \<Longrightarrow> (t < s) = (\<not> s \<le> t)"
+  by auto
+
+
+named_theorems rewrite_arith_elim_int_gt \<open>automatically_generated\<close>
+
+lemma [rewrite_arith_elim_int_gt]:
+  fixes t::"int" and s::"int"
+  shows "NO_MATCH cvc_a (undefined t s) \<Longrightarrow> (t > s) = (t \<ge> (s+1))"
+  by auto
+
+
+named_theorems rewrite_arith_elim_int_lt \<open>automatically_generated\<close>
+
+lemma [rewrite_arith_elim_int_lt]:
+  fixes t::"int" and s::"int"
+  shows "NO_MATCH cvc_a (undefined t s) \<Longrightarrow> (t < s) = (s \<ge> (t+1))"
   by auto
 
 
@@ -139,6 +136,10 @@ lemma [rewrite_arith_geq_norm1_int]:
   by auto
 
 
+(*rewrite_arith_geq_norm1_real is in Extra_Rewrites*)
+
+
+
 named_theorems rewrite_arith_refl_leq \<open>automatically_generated\<close>
 
 lemma [rewrite_arith_refl_leq]:
@@ -170,13 +171,62 @@ lemma [rewrite_arith_refl_gt]:
   shows "NO_MATCH cvc_a (undefined t) \<Longrightarrow> (t < t) = False"
   by auto
 
-named_theorems rewrite_arith_eq_elim_int \<open>\<close>
+
+named_theorems rewrite_arith_eq_elim_int \<open>automatically_generated\<close>
 
 lemma [rewrite_arith_eq_elim_int]:
-  fixes t::int  and  s::int
+  fixes t::"int" and s::"int"
   shows "NO_MATCH cvc_a (undefined t s)
  \<Longrightarrow> ((t = s) = (t \<ge> s \<and> t \<le> s))"
   by auto
+
+
+named_theorems rewrite_arith_mod_over_mod \<open>automatically_generated\<close>
+
+lemma [rewrite_arith_mod_over_mod]:
+  fixes c::int and ts::"int cvc_ListVar" and r::int and ss::"int cvc_ListVar" 
+  shows "NO_MATCH cvc_a (undefined c ts r ss)
+ \<Longrightarrow> \<not>(c=0) 
+ \<Longrightarrow> SMT.z3mod (cvc_list_left (+) ts (cvc_list_right (+) (SMT.z3mod r c) ss)) c
+= SMT.z3mod (cvc_list_left (+) ts (cvc_list_right (+) r ss)) c"
+  apply (cases ts)
+  apply (cases ss)
+  subgoal for ts' ss'
+    unfolding SMT.z3mod_def
+     apply simp_all
+    apply (simp add: cvc_list_left_transfer cvc_list_right_transfer_op(3))
+     apply (induction ts' arbitrary: ts)
+     apply simp_all
+     apply (induction ss' arbitrary: ss)
+     apply simp_all
+     apply (meson mod_add_left_eq)
+    by (metis (no_types, lifting) mod_add_right_eq)
+  done
+
+
+named_theorems rewrite_arith_neg_neg_one \<open>automatically_generated\<close>
+
+lemma [rewrite_arith_neg_neg_one]:
+  fixes t::"int"
+  shows "NO_MATCH cvc_a (undefined t) \<Longrightarrow> - (1::int) * (- (1::int) * t) = t"
+  by auto
+
+
+named_theorems rewrite_arith_elim_uminus \<open>automatically_generated\<close>
+
+lemma [rewrite_arith_elim_uminus]:
+  fixes t::"int"
+  shows "NO_MATCH cvc_a (undefined t) \<Longrightarrow> - t = - (1::int) * t"
+  by auto
+
+
+named_theorems rewrite_arith_elim_minus \<open>automatically_generated\<close>
+
+lemma [rewrite_arith_elim_minus]:
+  fixes t::"int" and s::"int"
+  shows "NO_MATCH cvc_a (undefined t s) \<Longrightarrow> t - s = t + - (1::int) * s"
+  by auto
+
 
 named_theorems rewrite_arith_plus_flatten \<open>automatically_generated\<close>
 

@@ -22,6 +22,14 @@ lemma [rewrite_eq_symm]:
   by auto
 
 
+named_theorems rewrite_eq_cond_deq \<open>automatically_generated\<close>
+
+lemma [rewrite_eq_cond_deq]:
+  fixes t::"'a::type" and s::"'a::type" and r::"'a::type"
+  shows "NO_MATCH cvc_a (undefined t s r) \<Longrightarrow> ((t = s) = False) \<Longrightarrow> ((t = s) = (t = r)) = ((\<not>(t = s)) \<and> (\<not>(t = r)))"
+  by auto
+
+
 named_theorems rewrite_eq_ite_lift \<open>automatically_generated\<close>
 
 lemma [rewrite_eq_ite_lift]:
