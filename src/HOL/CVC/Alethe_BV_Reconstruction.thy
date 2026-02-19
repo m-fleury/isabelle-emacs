@@ -931,20 +931,59 @@ definition rbl_extract :: "nat \<Rightarrow> nat \<Rightarrow> bool list \<Right
    = rev (drop i (takefill False (length xs) (take (Suc j) (rev xs))))"
 
 lemma slice_take_bit_rbl:
-"LENGTH('a) = length xs \<Longrightarrow> Suc i < length xs  \<Longrightarrow> j \<le> i
+"LENGTH('a) = length xs \<Longrightarrow> Suc i < LENGTH('b) \<Longrightarrow> j \<le> i
 \<Longrightarrow> (slice j (take_bit (Suc i) (of_bl xs::'a::len word)) ::'b::len word)
 = of_bl (take (length xs - j) (rev (takefill False LENGTH('a::len) (rev (drop (length xs - Suc i) xs)))))"
   using of_bl_drop_eq_take_bit slice_take word_rev_tf
-  by (metis diff_diff_cancel nless_le)
-(*TODO:
-lemma smt_extract_rbl_extract[rbl_extract]:
-"j \<le> i \<Longrightarrow> Suc i < length xs \<Longrightarrow> length xs = LENGTH('a)
-\<Longrightarrow> Word.smt_extract j i (of_bl xs::'a::len word)
-= (of_bl (rbl_extract i j xs) :: 'b::len word)" for i j xs
-  unfolding Word.smt_extract_def rbl_extract_def
-  using slice_take_bit_rbl
-  by (metis length_takefill rev_drop take_rev)*)
+  by (metis (no_types, opaque_lifting) diff_diff_cancel length_rev nat_le_linear rev_rev_ident rev_take take_all
+      take_bit_word_beyond_length_eq)
 
+(* "  smt_extract (nat (7::int)) (nat 1)
+          (of_bl
+            (rev [lsb (x::8 word), x !! 1, x !! (2::nat), x !! (3::nat), x !! (4::nat), x !! (5::nat), x !! (6::nat), x !! (7::nat)])) =
+         of_bl (rev [x !! 1, x !! (2::nat), x !! (3::nat), x !! (4::nat), x !! (5::nat), x !! (6::nat), x !! (7::nat)]) 
+"
+
+*)
+value "rbl_extract 3 1 [True,False,False]" (*[True, False]*)
+value "rbl_extract 1 1 [True,False,False]" (*[False, False]*)
+value "rbl_extract 1 2 [True,False,False]" (*[False]*)
+value "smt_extract 3 1 (4::3 word)::2 word" (*[True, False]*)
+value "smt_extract 1 1 (4::3 word)::2 word" (*[False, False]*)
+value "smt_extract 1 2 (4::3 word)::1 word" (*[False]*)
+lemma temp:  "(\<forall>n::nat. bit x n = bit y n) \<Longrightarrow> ((x::'a::len word) = (y::'a word))"sorry
+value "take_bit"
+lemma smt_extract_rbl_extract[rbl_extract]:
+"- i + j + 1 = LENGTH('b) \<Longrightarrow> length xs = LENGTH('a) \<Longrightarrow>  LENGTH('b) < LENGTH('a) \<Longrightarrow>i \<le> j \<Longrightarrow> Suc j \<le> LENGTH('a) \<Longrightarrow> i \<ge>0 \<Longrightarrow> j \<ge> 0 \<Longrightarrow>
+ Word.smt_extract j i (of_bl xs::'a::len word)
+= (of_bl (rbl_extract j i xs) :: 'b::len word)"
+  unfolding Word.smt_extract_def
+  unfolding rbl_extract_def
+  apply (simp add: rev_drop)
+  apply (simp add: slice_take)
+  apply (rule  temp)
+  apply (simp add: bit_of_bl_iff)
+  apply (simp add: rev_take)
+  apply (rule allI)
+  subgoal for k
+    apply (cases "i + k < LENGTH('a)")
+    apply simp_all
+  apply (subst nth_takefill)
+     apply simp_all
+    apply (cases "i + k < Suc j ")
+     apply simp_all
+    apply (cases " k < LENGTH('a) - i")
+     apply simp_all
+    by (metis add.commute bit_of_bl_iff bit_take_bit_iff less_diff_conv nth_rev_to_bl)
+  done
+ 
+
+
+(* smt_extract 7 1
+          (of_bl
+            (rev [lsb x, x1,x2,x3,x4,x5,x6,x7])) =
+         of_bl (rev [x1,x2,x3,x4,x5,x6,x7]) 
+*)
 (* ---------------------------------------------------------------------------------------------- *)
 (* -------------------------------------- Bitblast concat---------------------------------------- *)
 (* ---------------------------------------------------------------------------------------------- *)
