@@ -509,11 +509,11 @@ THEN TRY (HEADGOAL (Skip_Proof.cheat_tac ctxt ))
      where ?xi'' = nat ?xi' if ?xi is a nat otherwise ?xi *)
   val goal = (mk_forall (HOLogic.mk_Trueprop o (mk_f_def_ground f (Thm.term_of x'))) mk_prop_all ts'_T)
   val goal_thm = Goal.prove ctxt1 [] [] goal (fn {context: Proof.context, ...}  => 
-      print_tac context "Obtain new function variable"
+      debug_msg_tac context middle "Obtain new function variable"
       THEN (unfold_tac context [@{thm atomize_all}])
       THEN HEADGOAL (resolve_tac context [x'_thm_def])
       
-      THEN (print_tac context "Obtain new function variable")
+      THEN (debug_msg_tac context middle "Obtain new function variable")
 )
      
    val _ = debug_msg ctxt1 high (fn () => \<^print> ("Showed goal from obtain thm:",goal_thm))
