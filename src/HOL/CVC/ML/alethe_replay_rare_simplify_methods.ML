@@ -162,10 +162,10 @@ fun dsl_tac_initialize rewrite_name args ctxt t _ =
           normalize_list_arg a _ = a
       
           fun rewrite_lemma_inst lemma [] [] = lemma
-           | rewrite_lemma_inst _ [] (_::_) =
+           (*| rewrite_lemma_inst _ [] (_::_) =
               raise RARE_REPLAY("Too few arguments for RARE rewrite " ^ rewrite_name)
            | rewrite_lemma_inst _ _ [] =
-              raise RARE_REPLAY("Too many arguments for RARE rewrite " ^ rewrite_name)
+              raise RARE_REPLAY("Too many arguments for RARE rewrite " ^ rewrite_name)*)
            | rewrite_lemma_inst lemma (a :: args') (t :: typs') =
              let
                val rec_lemma = rewrite_lemma_inst lemma args' typs' (*TODO: Is it faster to instantiate with all types at once? This is good for testing though*)
@@ -173,6 +173,7 @@ fun dsl_tac_initialize rewrite_name args ctxt t _ =
              in
                Drule.infer_instantiate' ctxt a_normalized rec_lemma
              end
+|rewrite_lemma_inst lemma xs ys = lemma
 
           fun instantitate_lemma lemma =
           let

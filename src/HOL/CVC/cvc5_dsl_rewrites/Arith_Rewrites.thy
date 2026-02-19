@@ -204,6 +204,39 @@ lemma [rewrite_arith_mod_over_mod]:
   done
 
 
+named_theorems rewrite_arith_divisible_elim \<open>automatically_generated\<close>
+
+lemma [rewrite_arith_divisible_elim]:
+  fixes n::"int" and t::"int"
+  shows "NO_MATCH cvc_a (undefined n t)
+ \<Longrightarrow> \<not>(n = 0) \<Longrightarrow> ((n dvd t) = (SMT.z3mod t n = 0))"
+  apply (simp add: SMT.z3mod_def)
+  by auto
+
+
+named_theorems rewrite_arith_abs_eq \<open>\<close>
+
+lemma [rewrite_arith_abs_eq]:
+  fixes x::"int" and y::"int"
+  shows "NO_MATCH cvc_a (undefined x y) \<Longrightarrow> (abs x = abs y) = ((x = y) \<or> (x = -y))"
+  apply simp
+  by (simp add: abs_eq_iff)
+
+
+named_theorems rewrite_arith_abs_int_gt \<open>\<close>
+
+lemma [rewrite_arith_abs_int_gt]:
+  fixes x::"int" and y::"int"
+  shows "NO_MATCH cvc_a (undefined x y) \<Longrightarrow> 
+(abs x > abs y) =
+ (if (x \<ge> 0) then
+   (if (y \<ge> 0) then (x > y) else (x > -y))
+ else
+   (if (y \<ge> 0) then (-x > y) else (-x > -y)))"
+  by simp
+
+(*Old*)
+
 named_theorems rewrite_arith_neg_neg_one \<open>automatically_generated\<close>
 
 lemma [rewrite_arith_neg_neg_one]:

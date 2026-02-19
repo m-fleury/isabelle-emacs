@@ -238,6 +238,20 @@ lemma [rewrite_arith_distrib_add]:
     done
   done
 
+
+named_theorems rewrite_arith_abs_real_gt \<open>\<close>
+
+lemma [rewrite_arith_abs_real_gt]:
+  fixes x::"real" and y::"real"
+  shows "NO_MATCH cvc_a (undefined x y) \<Longrightarrow> 
+(abs x > abs y) =
+ (if (x \<ge> 0/1) then
+   (if (y \<ge> 0/1) then (x > y) else (x > -y))
+ else
+   (if (y \<ge> 0/1) then (-x > y) else (-x > -y)))"
+  by simp
+
+
 (*
 named_theorems rewrite_arith_distrib_add \<open>\<close>
 
@@ -391,6 +405,40 @@ lemma [rewrite_arith_leq_ite_lift]:
   fixes c::real and t::"'a::linordered_idom" and r::"'a::linordered_idom" and s::"'a::linordered_idom"  
   shows "NO_MATCH cvc_a (undefined C t s r)
  \<Longrightarrow> (((if C then t else s) < r) = (if C then (t < r) else (s < r)))"
+  by auto
+
+named_theorems rewrite_arith_min_lt1 \<open>\<close>
+
+lemma [rewrite_arith_min_lt1]:
+  fixes t::"'a::linordered_idom" and s::"'a::linordered_idom"  
+  shows "NO_MATCH cvc_a (undefined t s)
+ \<Longrightarrow> ((if (t < s) then t else s) \<le> t) = True"
+  by auto
+
+named_theorems rewrite_arith_min_lt2 \<open>\<close>
+
+lemma [rewrite_arith_min_lt2]:
+  fixes t::"'a::linordered_idom" and s::"'a::linordered_idom"  
+  shows "NO_MATCH cvc_a (undefined t s)
+ \<Longrightarrow> ((if (t < s) then t else s) \<le> s) = True"
+  by auto
+
+
+named_theorems rewrite_arith_max_geq1 \<open>\<close>
+
+lemma [rewrite_arith_max_geq1]:
+  fixes t::"'a::linordered_idom" and s::"'a::linordered_idom"  
+  shows "NO_MATCH cvc_a (undefined t s)
+ \<Longrightarrow> ((if (t \<ge> s) then t else s) \<ge> t) = True"
+  by auto
+
+
+named_theorems rewrite_arith_max_geq2 \<open>\<close>
+
+lemma [rewrite_arith_max_geq2]:
+  fixes t::"'a::linordered_idom" and s::"'a::linordered_idom"  
+  shows "NO_MATCH cvc_a (undefined t s)
+ \<Longrightarrow> ((if (t \<ge> s) then t else s) \<ge> s) = True"
   by auto
 
 

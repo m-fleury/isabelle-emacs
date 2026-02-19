@@ -315,23 +315,7 @@ TEST: NO
 TEST: PROOF
 *)
 
-named_theorems rewrite_bv_lshr_by_const_1 \<open>automatically_generated\<close>
-
-(*      assumptions:
-         ((24::int) < int (size (vptr::32 word))) = True
-         (31::int) = int (size (vptr::32 word)) - 1
-       arguments:
-         ''bv-lshr-by-const-1''
-         vptr::32 word
-         24::int
-         32::int
-         31::int
-       proposition:
-         drop_bit (nat (24::int)) (vptr::32 word) = word_cat 0 (smt_extract (nat (31::int)) (nat (24::int)) vptr)
-appears in proof to
-
- "\<lbrakk>is_aligned (vptr::word32) 24; x \<le> 0xF\<rbrakk> \<Longrightarrow> x + (vptr >> 20) < 0x1000" *)
-lemma [rewrite_bv_lshr_by_const_1]:
+lemma rewrite_bv_lshr_by_const_1_original:
   fixes x::"'a ::len word" and amount::"int" and sz::"int" and nm1::"int" 
   shows "NO_MATCH cvc_a (undefined x amount sz nm1)  \<Longrightarrow>
    LENGTH('a) = LENGTH('b) + LENGTH('c) \<Longrightarrow> 
@@ -371,6 +355,48 @@ proof-
     by (metis word_unat.Rep_inverse)
 qed
 
+named_theorems rewrite_bv_lshr_by_const_1 \<open>automatically_generated\<close>
+
+(*    Goal: "rare_rewrite"
+       assumptions:
+         ((20::int) < int (size (vptr::32 word))) = True
+         (31::int) = int (size (vptr::32 word)) - 1
+       arguments:
+         ''bv-lshr-by-const-1''
+         vptr::32 word
+         20::int
+         32::int
+         31::int
+       proposition:
+         drop_bit_lift (vptr::32 word) (20::32 word) = word_cat 0 (smt_extract (nat (31::int)) (nat (20::int)) vptr) *)
+(*
+(define-cond-rule bv-lshr-by-const-1
+  ((x ?BitVec) (amount Int) (sz Int) (nm1 Int))
+  (def (n (@bvsize x)))
+  (and (< amount n) (= nm1 (- n 1)))
+  (bvlshr x (@bv amount sz))
+  (concat (@bv 0 amount) (extract nm1 amount x)))
+*)
+lemma [rewrite_bv_lshr_by_const_1]:
+  fixes x::"'a ::len word" and amount::"int" and sz::"int" and nm1::"int" 
+  shows "NO_MATCH cvc_a (undefined x amount sz nm1)  \<Longrightarrow>
+   LENGTH('a) = LENGTH('b) + LENGTH('c) \<Longrightarrow> 
+   amount < int (size x) \<Longrightarrow> 
+   LENGTH('c) = nat nm1 + 1 - nat amount \<Longrightarrow>
+   nm1 = int (size x) - 1 \<Longrightarrow>
+  unat w = amount \<Longrightarrow> LENGTH('a) > 0 \<Longrightarrow>
+   (drop_bit_lift x w::'a::len word) =
+   word_cat (0::'b::len word)
+    (smt_extract (nat nm1) (nat amount) x::'c::len word)"
+  using rewrite_bv_lshr_by_const_1_original[of cvc_a x amount sz nm1, where ?'b="'b", where ?'c="'c"]
+  unfolding drop_bit_lift
+  apply (cases "LENGTH('a::len) < nat amount")
+  apply (simp add: word_size)
+    apply (simp add: word_size)
+  apply (cases " 0 \<le> amount")
+   apply simp_all
+  apply (metis word_of_int_uint)
+  by fastforce
 
 (*
 (define-cond-rule bv-lshr-by-const-2
