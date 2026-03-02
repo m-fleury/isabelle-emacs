@@ -1,0 +1,12 @@
+(source gnu)
+(source melpa)
+
+(package-file "lsp-isar.el")
+(files "*.el")
+
+
+(development
+ (depends-on "async" :git "https://github.com/jwiegley/emacs-async.git")
+ (depends-on "lsp-mode")
+ (depends-on "isar-mode" :git "https://github.com/m-fleury/isar-mode.git")
+ (depends-on "isar-goal-mode" :git "https://github.com/m-fleury/isar-mode.git"))
