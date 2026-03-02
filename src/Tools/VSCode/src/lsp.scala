@@ -690,7 +690,6 @@ object LSP {
           "content" -> content))
   }
 
-
   /* abbrevs */
 
   object Abbrevs_Request extends Notification0("PIDE/abbrevs_request") {
@@ -783,5 +782,45 @@ object LSP {
           "line" -> node_pos.pos.line,
           "character" -> node_pos.pos.column,
           "text" -> text))
+  }
+  /* Progress indication */
+  object Progress_Node
+  {
+    def apply(name : String, node_status: isabelle.Document_Status.Node_Status): JSON.Object.T =
+    {
+
+      node_status match {
+        case isabelle.Document_Status.Node_Status(theory_status, suppressed, unprocessed, running, warned,
+          failed, finished, canceled, terminated, cumulated_time, max_time, threshold, command_timings, percentage) =>
+          JSON.Object(
+            "name" -> name,
+            "unprocessed" -> unprocessed,
+            "running" -> running,
+            "warned" -> warned,
+            "failed" -> failed,
+            "finished" -> finished,
+            "consolidated" -> isabelle.Document_Status.Theory_Status.consolidated(theory_status),
+            "canceled" -> canceled,
+            "terminated" -> terminated
+          )
+      }
+    }
+  }
+
+  object Progress_Nodes
+  {
+    def apply(nodes_status: List[JSON.Object.T]): JSON.T =
+    {
+      Notification("PIDE/progress", JSON.Object("nodes-status" -> nodes_status))
+    }
+  }
+
+  object Progress_Node_Request
+  {
+    def unapply(json: JSON.T): Option[Unit] =
+      for {
+        method <- JSON.string(json, "method")
+        if method == "PIDE/progress_request"
+      } yield ()
   }
 }

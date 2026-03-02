@@ -1,0 +1,10 @@
+(when (configuration-layer/package-usedp 'lsp-isar)
+  (defun spacemacs/open-isar-output-and-progress-right ()
+    "opens the *isar-output* and *isar-progress* buffers on the right"
+    (interactive)
+    (split-window-right-and-focus)
+    (switch-to-buffer "*isar-output*")
+    (split-window-below-and-focus)
+    (switch-to-buffer "*isar-progress*")
+    (other-window -2)
+    ))
