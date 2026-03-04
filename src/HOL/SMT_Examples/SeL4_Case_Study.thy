@@ -19,10 +19,30 @@ Or I might have missed copying over an assumption.
 *)
 
 
+lemma shiftl_lift:
+  "(x << i) \<equiv> push_bit i x"
+  unfolding shiftl_def by simp
+thm drop_bit_lift_def
+lemma shiftr_lift:
+  "(x >> i) \<equiv> drop_bit i x"
+  unfolding shiftr_def by simp
+
+
+ML \<open>
+val nat_native_ops_tab =
+[
+("Bit_Shifts_Infix_Syntax.semiring_bit_operations_class.shiftl", @{thms shiftl_lift push_bit_lift}),
+("Bit_Shifts_Infix_Syntax.semiring_bit_operations_class.shiftr", @{thms shiftr_lift drop_bit_lift})
+
+]
+val ops_tab = fold SMT_Normalize.add_nat_native_ops_tab nat_native_ops_tab
+val _ = Theory.setup (Context.theory_map (ops_tab))
+
+\<close>
 (*options*)
 
-declare[[smt_expert_debug_alethe_level=0]]
-declare[[smt_expert_debug_alethe_files="alethe_replay_rare"]]
+declare[[smt_expert_debug_alethe_level=3]]
+declare[[smt_expert_debug_alethe_files="alethe_replay_bv_methods"]]
 
 declare[[ML_print_depth=1000]]
 declare[[smt_verbose=false,smt_trace=true,smt_timeout=10]]
@@ -127,6 +147,8 @@ Description:
 *)
 lemma pde_shifting:
   "\<lbrakk>is_aligned (vptr::word32) 24; x \<le> 0xF\<rbrakk> \<Longrightarrow> x + (vptr >> 20) < 0x1000"
+  using is_aligned_iff_take_bit_eq_0
+  supply[[smt_trace=false]]
   sorry
 (*
   apply (rule order_less_le_trans)
@@ -232,19 +254,64 @@ Description:
   Just a simple and clean lemma
 *)
 
-lemma vptr_shiftr_le_2p:
+lemma [smt_arith_simplify]: " Suc (Suc (Suc (Suc (Suc (Suc (Suc (Suc (Suc (Suc (Suc (Suc (Suc (Suc
+ (Suc (Suc (Suc (Suc (Suc (Suc (Suc (Suc (Suc (Suc (Suc (Suc (Suc (Suc (Suc (Suc (Suc (Suc 0))))))))))))))))))))))))))))))) =
+    (32::nat)"
+  by simp
+lemma [smt_arith_simplify]: "Suc (Suc (Suc (Suc (Suc (Suc (Suc (Suc (Suc (Suc (Suc (Suc 0))))))))))) < (32::nat)"
+"nat (20::int) \<le> nat (31::int)" "Suc (nat (31::int)) \<le> (32::nat)"
+  by simp_all
+
+declare[[smt_expert_debug_alethe_level=0]]
+declare[[smt_expert_debug_alethe_files="alethe_replay_bv_methods"]]
+
+declare[[smt_verbose=false,smt_trace=false]]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+(*Same lemma but proof with the smt tactic*)
+
+definition pageBits :: "nat" where "pageBits \<equiv> 12"
+
+lemma vptr_shiftr_le_2pu:
   "(vptr :: word32)  >> 20 < 2 ^ pageBits"
-  sorry
-  (*
-  apply (rule le_less_trans[rotated])
-   apply (rule and_mask_less' [where w=max_word])
-   apply (simp add: pageBits_def)
-  apply (rule word_leI)
-  apply (simp add: word_size nth_shiftr)
-  apply (drule test_bit_size)
-  apply (simp add: pageBits_def word_size)
-  done
-*)
+
+  sledgehammer[provers=cvc5_proof]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 (*
@@ -259,7 +326,8 @@ Note: Apparently also in ArchAcc_R where ever that is
 
 lemma shiftr_shiftl_mask_pd_bits:
   "(((vptr :: word32) >> 20) << 2) && mask pd_bits = (vptr >> 20) << 2"
-  sorry
+   apply (smt (cvc5))
+
   (*
 apply (rule iffD2 [OF mask_eq_iff_w2p])
    apply (simp add: pd_bits_def pageBits_def word_size)
