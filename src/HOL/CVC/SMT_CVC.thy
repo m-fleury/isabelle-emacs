@@ -132,10 +132,7 @@ val _ = Outer_Syntax.local_theory \<^command_keyword>\<open>check_smt_dir\<close
 
 
 (**)
-cvc5_rare "Arith_Rewrites.rewrite_arith_plus_zero"
-cvc5_rare "Arith_Rewrites.rewrite_arith_mul_one"
-cvc5_rare "Arith_Rewrites.rewrite_arith_mul_zero"
-cvc5_rare "Arith_Rewrites.rewrite_arith_int_div_one"
+
 cvc5_rare "Arith_Rewrites.rewrite_arith_neg_neg_one"
 cvc5_rare "Arith_Rewrites.rewrite_arith_elim_uminus"
 cvc5_rare "Arith_Rewrites.rewrite_arith_elim_minus"
@@ -175,11 +172,6 @@ cvc5_rare "Boolean_Rewrites.rewrite_bool_impl_elim"
 
 cvc5_rare "Boolean_Rewrites.rewrite_bool_dual_impl_eq"
 
-cvc5_rare "Boolean_Rewrites.rewrite_bool_or_true"
-cvc5_rare "Boolean_Rewrites.rewrite_bool_or_flatten"
-
-cvc5_rare "Boolean_Rewrites.rewrite_bool_and_false"
-cvc5_rare "Boolean_Rewrites.rewrite_bool_and_flatten"
 
 cvc5_rare "Boolean_Rewrites.rewrite_bool_and_conf"
 cvc5_rare "Boolean_Rewrites.rewrite_bool_and_conf2"
@@ -223,14 +215,14 @@ cvc5_rare "Boolean_Rewrites.rewrite_ite_expand"
 cvc5_rare "Boolean_Rewrites.rewrite_bool_not_ite_elim"
 
 (*legacy*)
-cvc5_rare "Boolean_Rewrites.rewrite_bool_commutative_and"
+(*cvc5_rare "Boolean_Rewrites.rewrite_bool_commutative_and"
 cvc5_rare "Boolean_Rewrites.rewrite_bool_commutative_or"
 cvc5_rare "Boolean_Rewrites.rewrite_bool_commutative_xor"
 cvc5_rare "Boolean_Rewrites.rewrite_bool_not_ite_elim"
 cvc5_rare "Boolean_Rewrites.rewrite_bool_or_false"
 cvc5_rare "Boolean_Rewrites.rewrite_bool_or_dup"
 cvc5_rare "Boolean_Rewrites.rewrite_bool_and_true"
-cvc5_rare "Boolean_Rewrites.rewrite_bool_and_dup"
+cvc5_rare "Boolean_Rewrites.rewrite_bool_and_dup"*)
 
 cvc5_rare "Builtin_Rewrites.rewrite_ite_true_cond"
 cvc5_rare "Builtin_Rewrites.rewrite_ite_false_cond"
