@@ -53,6 +53,7 @@ sig
    Eq_Simplify | ITE_Simplify | Sum_Simplify | Prod_Simplify | Div_Simplify | All_Simplify | RARE_Rewrite |
    Qnt_Simplify | Not_Not | Tautological_Clause | Duplicate_Literals | Distinct_Elim |
    Qnt_Miniscope_Distribute | Qnt_Miniscope_Split | Qnt_Miniscope_ITE |
+   AC_Simp | ACI_Simp |
    (*Extended rules*)
    Symm | Not_Symm | Reordering | Shuffle | Tmp_Quantifier_Simplify | Contraction | 
    Qnt_Var_Reordering | (*Added for paper, not in Standard might change later*)
@@ -60,7 +61,6 @@ sig
    Other_Rule of string |
    Hole | Trust |
    (*Temporary rules, that the veriT developers want to remove:*)
-   AC_Simp |
    Bfun_Elim |
    Qnt_CNF |
    (*For compression*)
@@ -164,7 +164,8 @@ sig
   val subproof: alethe_tac
   val sum_simplify: alethe_tac
   val tautological_clause: alethe_tac
-  val tmp_AC_rule: alethe_tac
+  val AC_rule: alethe_tac
+  val ACI_rule: alethe_tac
   val bfun_elim: alethe_tac
   val qnt_cnf: alethe_tac
   val trans: alethe_tac
@@ -244,6 +245,7 @@ datatype alethe_rule =
    Implies_Simplify | Connective_Def | Minus_Simplify | Unary_Minus_Simplify | Comp_Simplify |
    Eq_Simplify | ITE_Simplify | Sum_Simplify | Prod_Simplify | Div_Simplify | All_Simplify | RARE_Rewrite |
    Qnt_Simplify | Not_Not | Tautological_Clause | Duplicate_Literals | Distinct_Elim | 
+   AC_Simp | ACI_Simp |
    (*Extended rules*)
    Symm | Not_Symm | Reordering | Shuffle | Tmp_Quantifier_Simplify | Contraction |
    Qnt_Miniscope_Distribute | Qnt_Miniscope_Split | Qnt_Miniscope_ITE | Qnt_Var_Reordering | (*Added for paper, not in Standard might change later*)
@@ -251,7 +253,6 @@ datatype alethe_rule =
    Other_Rule of string |
    Hole | Trust |
    (*Temporary rules, that the veriT developers want to remove:*)
-   AC_Simp |
    Bfun_Elim |
    Qnt_CNF |
    (*For compression*)
@@ -289,6 +290,7 @@ fun string_of_alethe_rule Bind = "Bind"
   | string_of_alethe_rule Or_Pos = "or_pos"
   | string_of_alethe_rule Or_Neg = "or_neg"
   | string_of_alethe_rule AC_Simp = "ac_simp"
+  | string_of_alethe_rule ACI_Simp = "aci_simp"
   | string_of_alethe_rule Not_Equiv1 = "not_equiv1"
   | string_of_alethe_rule Not_Equiv2 = "not_equiv2"
   | string_of_alethe_rule Xor_Pos1 = "xor_pos1"
@@ -1000,13 +1002,30 @@ fun trans ctxt thms t =
   end
 
 
-fun tmp_AC_rule ctxt thms t =
+fun AC_rule ctxt thms t =
   SMT_Replay_Methods.prove ctxt t (fn _ =>
     Method.insert_tac ctxt thms
     THEN' REPEAT_ALL_NEW (partial_simplify_tac ctxt @{thms eq_commute}
     THEN' TRY' (simplify_tac ctxt @{thms ac_simps conj_ac})
     THEN' TRY' (assume_tac ctxt)
     THEN' TRY' (Classical.fast_tac ctxt)))
+
+local
+  val idempotency_thms =
+   @{thms Groups.group_add_class.diff_0_right
+   Groups.monoid_add_class.add_0_right Groups.group_add_class.add.group_left_neutral
+   Rings.mult_zero_class.mult_zero_left Rings.mult_zero_class.mult_zero_right
+   } (*TODO: Add bit-vector theorems if necessary. TODO: Not clear if it helps to add some of these or not.*)
+in
+ 
+fun ACI_rule ctxt thms t =
+  SMT_Replay_Methods.prove ctxt t (fn _ =>
+    Method.insert_tac ctxt thms 
+    THEN' REPEAT_ALL_NEW (partial_simplify_tac ctxt @{thms eq_commute}
+    THEN' TRY' (simplify_tac ctxt (idempotency_thms @ @{thms ac_simps conj_ac}))
+    THEN' TRY' (assume_tac ctxt)
+    THEN' TRY' (Classical.fast_tac ctxt)))
+end
 
 
 (* And/Or *)
