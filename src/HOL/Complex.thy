@@ -349,6 +349,12 @@ end
 
 declare uniformity_Abort[where 'a = complex, code]
 
+lemma Re_divide': "Re (x / y) = (Re x * Re y + Im x * Im y) / (norm y)\<^sup>2"
+  by (simp add: Re_divide norm_complex_def)
+
+lemma Im_divide': "Im (x / y) = (Im x * Re y - Re x * Im y) / (norm y)\<^sup>2"
+  by (simp add: Im_divide norm_complex_def)
+
 lemma norm_ii [simp]: "norm \<i> = 1"
   by (simp add: norm_complex_def)
 
@@ -807,6 +813,10 @@ lemma complex_is_Int_iff: "z \<in> \<int> \<longleftrightarrow> Im z = 0 \<and> 
 lemma complex_is_Real_iff: "z \<in> \<real> \<longleftrightarrow> Im z = 0"
   by (auto simp: Reals_def complex_eq_iff)
 
+lemma sgn_complex_iff: "sgn x = sgn (Re x) \<longleftrightarrow> x \<in> \<real>"
+  by (metis Im_complex_of_real Im_sgn Reals_0 complex_is_Real_iff divide_eq_0_iff 
+      norm_eq_zero of_real_Re sgn_of_real)
+
 lemma Reals_cnj_iff: "z \<in> \<real> \<longleftrightarrow> cnj z = z"
   by (auto simp: complex_is_Real_iff complex_eq_iff)
 
@@ -877,6 +887,12 @@ lemma cis_inverse [simp]: "inverse (cis a) = cis (- a)"
 
 lemma cis_divide: "cis a / cis b = cis (a - b)"
   by (simp add: divide_complex_def cis_mult)
+
+lemma cis_power_int: "cis x powi n = cis (of_int n * x)"
+  by (auto simp: power_int_def DeMoivre)  
+
+lemma complex_cnj_power_int [simp]: "cnj (x powi n) = cnj x powi n"
+  by (auto simp: power_int_def)
 
 lemma divide_conv_cnj: "norm z = 1 \<Longrightarrow> x / z = x * cnj z"
   by (metis complex_div_cnj div_by_1 mult_1 of_real_1 power2_eq_square)
@@ -1026,6 +1042,32 @@ proof -
     using filterlim_norm_at_top_imp_at_infinity by blast
 qed
 
+lemma tendsto_cis [tendsto_intros]:
+  assumes "(f \<longlongrightarrow> x) F"
+  shows   "((\<lambda>u. cis (f u)) \<longlongrightarrow> cis x) F"
+  unfolding cis_conv_exp by (intro tendsto_intros assms)
+
+lemma tendsto_rcis [tendsto_intros]:
+  assumes "(f \<longlongrightarrow> r) F" "(g \<longlongrightarrow> x) F"
+  shows   "((\<lambda>u. rcis (f u) (g u)) \<longlongrightarrow> rcis r x) F"
+  unfolding rcis_def by (intro tendsto_intros assms)
+
+lemma continuous_on_rcis [continuous_intros]:
+  "continuous_on A f \<Longrightarrow> continuous_on A g \<Longrightarrow> continuous_on A (\<lambda>x. rcis (f x) (g x))"
+  unfolding rcis_def by (intro continuous_intros)
+
+lemma has_derivative_cis [derivative_intros]:
+  assumes "(f has_derivative d) (at x within A)"
+  shows   "((\<lambda>x. cis (f x)) has_derivative (\<lambda>t. d t *\<^sub>R (\<i> * cis (f x)))) (at x within A)"
+proof (rule has_derivative_compose[OF assms])
+  have cis_eq: "cis = (\<lambda>x. cos x + \<i> * sin x)"
+    by (auto simp: complex_eq_iff cos_of_real sin_of_real)
+  have "(cis has_vector_derivative (\<i> * cis (f x))) (at (f x))"
+    unfolding cis_eq by (auto intro!: derivative_eq_intros simp: cos_of_real sin_of_real algebra_simps)
+  thus "(cis has_derivative (\<lambda>a. a *\<^sub>R (\<i> * cis (f x)))) (at (f x))"
+    by (simp add: has_vector_derivative_def)
+qed
+
 subsubsection \<open>Complex argument\<close>
 
 definition Arg :: "complex \<Rightarrow> real"
@@ -1119,6 +1161,7 @@ lemma cos_Arg: "z \<noteq> 0 \<Longrightarrow> cos (Arg z) = Re z / norm z"
 
 lemma sin_Arg: "z \<noteq> 0 \<Longrightarrow> sin (Arg z) = Im z / norm z"
   by (metis Im_sgn cis.sel(2) cis_Arg)
+
 
 subsection \<open>Complex n-th roots\<close>
 
@@ -1359,7 +1402,7 @@ lemma csqrt_unique: "w\<^sup>2 = z \<Longrightarrow> 0 < Re w \<or> Re w = 0 \<a
 
 lemma csqrt_minus [simp]:
   assumes "Im x < 0 \<or> (Im x = 0 \<and> 0 \<le> Re x)"
-  shows "csqrt (- x) = \<i> * csqrt x"
+  shows "csqrt (-x) = \<i> * csqrt x"
 proof -
   have "csqrt ((\<i> * csqrt x)^2) = \<i> * csqrt x"
   proof (rule csqrt_square)
@@ -1373,12 +1416,35 @@ proof -
   finally show ?thesis .
 qed
 
+lemma csqrt_neq_neg_real:
+  assumes "Im x = 0" "Re x < 0"
+  shows   "csqrt z \<noteq> x"
+  using csqrt_principal[of z] assms by auto
 
-text \<open>Legacy theorem names\<close>
+lemma csqrt_of_real: "x \<ge> 0 \<Longrightarrow> csqrt (of_real x) = of_real (sqrt x)"
+  by (rule csqrt_unique) (auto simp flip: of_real_power)
+
+lemma csqrt_of_real': "csqrt (of_real x) = of_real (sqrt \<bar>x\<bar>) * (if x \<ge> 0 then 1 else \<i>)"
+  by (rule csqrt_unique) (auto simp flip: of_real_power simp: power_mult_distrib)
+
+lemma csqrt_minus_Reals:
+  assumes "x \<in> \<real>"
+  shows "csqrt (- x) = sgn (Re x) * \<i> * csqrt x"
+proof (cases "Re x \<ge> 0")
+  case True
+  then show ?thesis
+    using assms complex_is_Real_iff sgn_1_pos by force
+next
+  case False
+  then obtain "Im x = 0" "sgn (Re x) = -1"
+    using assms complex_is_Real_iff by auto
+  with False show ?thesis
+    by auto
+qed
 
 lemmas cmod_def = norm_complex_def
 
-lemma legacy_Complex_simps:
+lemma Complex_simps:
   shows Complex_eq_0: "Complex a b = 0 \<longleftrightarrow> a = 0 \<and> b = 0"
     and complex_add: "Complex a b + Complex c d = Complex (a + c) (b + d)"
     and complex_minus: "- (Complex a b) = Complex (- a) (- b)"
@@ -1409,6 +1475,12 @@ lemma legacy_Complex_simps:
 
 lemma Complex_in_Reals: "Complex x 0 \<in> \<real>"
   by (metis Reals_of_real complex_of_real_def)
+
+lemma Complex_divide_complex_of_real: "Complex x y / of_real r = Complex (x/r) (y/r)"
+  by (metis complex_of_real_mult_Complex divide_inverse mult.commute of_real_inverse)
+
+lemma cmod_neg_real: "cmod (Complex (-x) y) = cmod (Complex x y)"
+  by (metis complex_cnj complex_minus complex_mod_cnj norm_minus_cancel)
 
 text \<open>Express a complex number as a linear combination of two others, not collinear with the origin\<close>
 lemma complex_axes:

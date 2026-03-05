@@ -35,66 +35,6 @@ proof -
   finally show ?thesis .
 qed
 
-lemma plus_one_in_nonpos_Ints_imp: "z + 1 \<in> \<int>\<^sub>\<le>\<^sub>0 \<Longrightarrow> z \<in> \<int>\<^sub>\<le>\<^sub>0"
-  using nonpos_Ints_diff_Nats[of "z+1" "1"] by simp_all
-
-lemma of_int_in_nonpos_Ints_iff:
-  "(of_int n :: 'a :: ring_char_0) \<in> \<int>\<^sub>\<le>\<^sub>0 \<longleftrightarrow> n \<le> 0"
-  by (auto simp: nonpos_Ints_def)
-
-lemma one_plus_of_int_in_nonpos_Ints_iff:
-  "(1 + of_int n :: 'a :: ring_char_0) \<in> \<int>\<^sub>\<le>\<^sub>0 \<longleftrightarrow> n \<le> -1"
-proof -
-  have "1 + of_int n = (of_int (n + 1) :: 'a)" by simp
-  also have "\<dots> \<in> \<int>\<^sub>\<le>\<^sub>0 \<longleftrightarrow> n + 1 \<le> 0" by (subst of_int_in_nonpos_Ints_iff) simp_all
-  also have "\<dots> \<longleftrightarrow> n \<le> -1" by presburger
-  finally show ?thesis .
-qed
-
-lemma one_minus_of_nat_in_nonpos_Ints_iff:
-  "(1 - of_nat n :: 'a :: ring_char_0) \<in> \<int>\<^sub>\<le>\<^sub>0 \<longleftrightarrow> n > 0"
-proof -
-  have "(1 - of_nat n :: 'a) = of_int (1 - int n)" by simp
-  also have "\<dots> \<in> \<int>\<^sub>\<le>\<^sub>0 \<longleftrightarrow> n > 0" by (subst of_int_in_nonpos_Ints_iff) presburger
-  finally show ?thesis .
-qed
-
-lemma fraction_not_in_ints:
-  assumes "\<not>(n dvd m)" "n \<noteq> 0"
-  shows   "of_int m / of_int n \<notin> (\<int> :: 'a :: {division_ring,ring_char_0} set)"
-proof
-  assume "of_int m / (of_int n :: 'a) \<in> \<int>"
-  then obtain k where "of_int m / of_int n = (of_int k :: 'a)" by (elim Ints_cases)
-  with assms have "of_int m = (of_int (k * n) :: 'a)" by (auto simp add: field_split_simps)
-  hence "m = k * n" by (subst (asm) of_int_eq_iff)
-  hence "n dvd m" by simp
-  with assms(1) show False by contradiction
-qed
-
-lemma fraction_not_in_nats:
-  assumes "\<not>n dvd m" "n \<noteq> 0"
-  shows   "of_int m / of_int n \<notin> (\<nat> :: 'a :: {division_ring,ring_char_0} set)"
-proof
-  assume "of_int m / of_int n \<in> (\<nat> :: 'a set)"
-  also note Nats_subset_Ints
-  finally have "of_int m / of_int n \<in> (\<int> :: 'a set)" .
-  moreover have "of_int m / of_int n \<notin> (\<int> :: 'a set)"
-    using assms by (intro fraction_not_in_ints)
-  ultimately show False by contradiction
-qed
-
-lemma not_in_Ints_imp_not_in_nonpos_Ints: "z \<notin> \<int> \<Longrightarrow> z \<notin> \<int>\<^sub>\<le>\<^sub>0"
-  by (auto simp: Ints_def nonpos_Ints_def)
-
-lemma double_in_nonpos_Ints_imp:
-  assumes "2 * (z :: 'a :: field_char_0) \<in> \<int>\<^sub>\<le>\<^sub>0"
-  shows   "z \<in> \<int>\<^sub>\<le>\<^sub>0 \<or> z + 1/2 \<in> \<int>\<^sub>\<le>\<^sub>0"
-proof-
-  from assms obtain k where k: "2 * z = - of_nat k" by (elim nonpos_Ints_cases')
-  thus ?thesis by (cases "even k") (auto elim!: evenE oddE simp: field_simps)
-qed
-
-
 lemma sin_series: "(\<lambda>n. ((-1)^n / fact (2*n+1)) *\<^sub>R z^(2*n+1)) sums sin z"
 proof -
   from sin_converges[of z] have "(\<lambda>n. sin_coeff n *\<^sub>R z^n) sums sin z" .
@@ -2049,6 +1989,18 @@ lemma Beta_altdef: "Beta a b = Gamma a * Gamma b * rGamma (a + b)"
 lemma Beta_commute: "Beta a b = Beta b a"
   unfolding Beta_def by (simp add: ac_simps)
 
+lemma holomorphic_Beta [holomorphic_intros]:
+  assumes "f holomorphic_on A" "g holomorphic_on A"
+  assumes "\<And>z. z \<in> A \<Longrightarrow> f z \<notin> \<int>\<^sub>\<le>\<^sub>0" "\<And>z. z \<in> A \<Longrightarrow> g z \<notin> \<int>\<^sub>\<le>\<^sub>0"
+  shows   "(\<lambda>z. Beta (f z) (g z)) holomorphic_on A"
+  unfolding Beta_altdef by (intro holomorphic_intros assms)
+
+lemma analytic_Beta [analytic_intros]:
+  assumes "f analytic_on A" "g analytic_on A"
+  assumes "\<And>z. z \<in> A \<Longrightarrow> f z \<notin> \<int>\<^sub>\<le>\<^sub>0" "\<And>z. z \<in> A \<Longrightarrow> g z \<notin> \<int>\<^sub>\<le>\<^sub>0"
+  shows   "(\<lambda>z. Beta (f z) (g z)) analytic_on A"
+  unfolding Beta_altdef by (intro analytic_intros assms) (use assms in auto)
+
 lemma has_field_derivative_Beta1 [derivative_intros]:
   assumes "x \<notin> \<int>\<^sub>\<le>\<^sub>0" "x + y \<notin> \<int>\<^sub>\<le>\<^sub>0"
   shows   "((\<lambda>x. Beta x y) has_field_derivative (Beta x y * (Digamma x - Digamma (x + y))))
@@ -2156,7 +2108,7 @@ proof -
   } note lim = this
 
   from assms double_in_nonpos_Ints_imp[of z] have z': "2 * z \<notin> \<int>\<^sub>\<le>\<^sub>0" by auto
-  from fraction_not_in_ints[of 2 1] have "(1/2 :: 'a) \<notin> \<int>\<^sub>\<le>\<^sub>0"
+  from fraction_not_in_Ints[of 2 1] have "(1/2 :: 'a) \<notin> \<int>\<^sub>\<le>\<^sub>0"
     by (intro not_in_Ints_imp_not_in_nonpos_Ints) simp_all
   with lim[of "1/2 :: 'a"] have "?h \<longlonglongrightarrow> 2 * Gamma (1/2 :: 'a)" by (simp add: exp_of_real)
   from LIMSEQ_unique[OF this lim[OF assms]] z' show ?thesis
@@ -2448,18 +2400,22 @@ proof -
     case True
     with that have "z = 0 \<or> z = 1" by (force elim!: Ints_cases)
     moreover have "g 0 * g (1/2) = Gamma (1/2)^2 * g 0"
-      using fraction_not_in_ints[where 'a = complex, of 2 1] by (simp add: g_def power2_eq_square)
+      using fraction_not_in_Ints[where 'a = complex, of 2 1] by (simp add: g_def power2_eq_square)
     moreover have "g (1/2) * g 1 = Gamma (1/2)^2 * g 1"
-        using fraction_not_in_ints[where 'a = complex, of 2 1]
+        using fraction_not_in_Ints[where 'a = complex, of 2 1]
         by (simp add: g_def power2_eq_square Beta_def algebra_simps)
     ultimately show ?thesis by force
   next
     case False
-    hence z: "z/2 \<notin> \<int>" "(z+1)/2 \<notin> \<int>" using Ints_diff[of "z+1" 1] by (auto elim!: Ints_cases)
+    hence z: "z/2 \<notin> \<int> \<and> (z+1)/2 \<notin> \<int>"
+      by (metis Ints_1 Ints_cases Ints_of_int add.commute
+          add_in_Ints_iff_left divide_eq_eq_numeral1(1)
+          of_int_mult one_add_one zero_neq_numeral)
     hence z': "z/2 \<notin> \<int>\<^sub>\<le>\<^sub>0" "(z+1)/2 \<notin> \<int>\<^sub>\<le>\<^sub>0" by (auto elim!: nonpos_Ints_cases)
     from z have "1-z/2 \<notin> \<int>" "1-((z+1)/2) \<notin> \<int>"
       using Ints_diff[of 1 "1-z/2"] Ints_diff[of 1 "1-((z+1)/2)"] by auto
-    hence z'': "1-z/2 \<notin> \<int>\<^sub>\<le>\<^sub>0" "1-((z+1)/2) \<notin> \<int>\<^sub>\<le>\<^sub>0" by (auto elim!: nonpos_Ints_cases)
+    hence z'': "1-z/2 \<notin> \<int>\<^sub>\<le>\<^sub>0 \<and> 1-((z+1)/2) \<notin> \<int>\<^sub>\<le>\<^sub>0"
+      by blast
     from z have "g (z/2) * g ((z+1)/2) =
       (Gamma (z/2) * Gamma ((z+1)/2)) * (Gamma (1-z/2) * Gamma (1-((z+1)/2))) *
       (sin (of_real pi * z/2) * sin (of_real pi * (z+1)/2))"
@@ -2513,7 +2469,7 @@ proof -
       by (subst (1 2) g_eq[symmetric]) simp
     from DERIV_cmult[OF this, of "inverse ((Gamma (1/2))^2)"]
       have "(g has_field_derivative (g z * ((h (z/2) + h ((z+1)/2))/2))) (at z)"
-      using fraction_not_in_ints[where 'a = complex, of 2 1]
+      using fraction_not_in_Ints[where 'a = complex, of 2 1]
       by (simp add: divide_simps Gamma_eq_zero_iff not_in_Ints_imp_not_in_nonpos_Ints)
     moreover have "(g has_field_derivative (g z * h z)) (at z)"
       using g_g'[of z] by (simp add: ac_simps)
@@ -2652,7 +2608,7 @@ lemma Gamma_reflection_complex':
 
 lemma Gamma_one_half_real: "Gamma (1/2 :: real) = sqrt pi"
 proof -
-  from Gamma_reflection_complex[of "1/2"] fraction_not_in_ints[where 'a = complex, of 2 1]
+  from Gamma_reflection_complex[of "1/2"] fraction_not_in_Ints[where 'a = complex, of 2 1]
     have "Gamma (1/2 :: complex)^2 = of_real pi" by (simp add: power2_eq_square)
   hence "of_real pi = Gamma (complex_of_real (1/2))^2" by simp
   also have "\<dots> = of_real ((Gamma (1/2))^2)" by (subst Gamma_complex_of_real) simp_all
@@ -3447,6 +3403,22 @@ proof -
   ultimately show ?thesis by (simp add: has_integral_iff B_def)
 qed
 
+lemma Beta_real_mono:
+  fixes a b c d :: real
+  assumes "0 < c" "c \<le> a" "0 < d" "d \<le> b"
+  shows "Beta a b \<le> Beta c d"
+proof (rule has_integral_le)
+  show "((\<lambda>x. x powr (a - 1) * (1 - x) powr (b - 1)) has_integral Beta a b) {0<..<1}"
+    using has_integral_Beta_real[of a b] assms by (simp add: has_integral_Icc_iff_Ioo)
+  show "((\<lambda>x. x powr (c - 1) * (1 - x) powr (d - 1)) has_integral Beta c d) {0<..<1}"
+    using has_integral_Beta_real[of c d] assms by (simp add: has_integral_Icc_iff_Ioo)
+  show "x powr (a - 1) * (1 - x) powr (b - 1) \<le> x powr (c - 1) * (1 - x) powr (d - 1)" 
+    if "x \<in> {0<..<1}" for x :: real
+    by (intro mult_mono powr_mono') (use assms that in auto)
+qed
+
+lemma Beta_complex_of_real: "Beta (of_real a) (of_real b) = complex_of_real (Beta a b)"
+  unfolding Beta_def by (simp flip: Gamma_complex_of_real)
 
 subsection \<open>The Weierstra{\ss} product formula for the sine\<close>
 

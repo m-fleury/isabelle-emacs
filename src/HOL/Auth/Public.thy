@@ -407,14 +407,14 @@ struct
 
 val analz_image_freshK_ss =
   simpset_of
-   (\<^context> delsimps [image_insert, image_Un]
-    delsimps [@{thm imp_disjL}]    (*reduces blow-up*)
-    addsimps @{thms analz_image_freshK_simps})
+   (\<^context> |> Simplifier.del_simps @{thms image_insert image_Un}
+    |> Simplifier.del_simps @{thms imp_disjL}    (*reduces blow-up*)
+    |> Simplifier.add_simps @{thms analz_image_freshK_simps})
 
 (*Tactic for possibility theorems*)
 fun possibility_tac ctxt =
     REPEAT (*omit used_Says so that Nonces start from different traces!*)
-    (ALLGOALS (simp_tac (ctxt setSolver safe_solver delsimps [@{thm used_Says}]))
+    (ALLGOALS (simp_tac (ctxt |> Simplifier.set_unsafe_solver safe_solver |> Simplifier.del_simp @{thm used_Says}))
      THEN
      REPEAT_FIRST (eq_assume_tac ORELSE' 
                    resolve_tac ctxt [refl, conjI, @{thm Nonce_supply}]))
@@ -423,7 +423,7 @@ fun possibility_tac ctxt =
   nonces and keys initially*)
 fun basic_possibility_tac ctxt =
     REPEAT 
-    (ALLGOALS (asm_simp_tac (ctxt setSolver safe_solver))
+    (ALLGOALS (asm_simp_tac (ctxt |> Simplifier.set_unsafe_solver safe_solver))
      THEN
      REPEAT_FIRST (resolve_tac ctxt [refl, conjI]))
 
@@ -433,7 +433,7 @@ end
 method_setup analz_freshK = \<open>
     Scan.succeed (fn ctxt =>
      (SIMPLE_METHOD
-      (EVERY [REPEAT_FIRST (resolve_tac ctxt [allI, ballI, impI]),
+      (EVERY [REPEAT_FIRST (resolve_tac ctxt @{thms allI ballI impI}),
           REPEAT_FIRST (resolve_tac ctxt @{thms analz_image_freshK_lemma}),
           ALLGOALS (asm_simp_tac (put_simpset Public.analz_image_freshK_ss ctxt))])))\<close>
     "for proving the Session Key Compromise theorem"

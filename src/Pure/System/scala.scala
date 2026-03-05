@@ -296,7 +296,7 @@ object Scala {
     override def init(session: Session): Unit =
       synchronized { this.session = session }
 
-    override def exit(): Unit = synchronized {
+    override def exit(exit_state: Document.State): Unit = synchronized {
       for ((id, future) <- futures) cancel(id, future)
       futures = Map.empty
     }
@@ -371,10 +371,12 @@ class Scala_Functions extends Scala.Functions(
   Isabelle_System.Copy_File,
   Isabelle_System.Copy_File_Base,
   Isabelle_System.Rm_Tree,
+  Isabelle_System.Bash_Functions,
   Isabelle_System.Download,
   Isabelle_System.Isabelle_Id,
   Isabelle_Tool.Isabelle_Tools,
   isabelle.atp.SystemOnTPTP.List_Systems,
   isabelle.atp.SystemOnTPTP.Run_System,
+  ML_Process.Scala_Fun,
   Prismjs.Languages,
   Prismjs.Tokenize)

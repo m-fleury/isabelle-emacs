@@ -13,10 +13,8 @@ import isabelle._
 object Component_VSCode {
   /* build grammar */
 
-  def default_logic: String = Isabelle_System.getenv("ISABELLE_LOGIC")
-
   def build_grammar(options: Options, build_dir: Path,
-    logic: String = default_logic,
+    logic: String = Isabelle_System.default_logic(),
     dirs: List[Path] = Nil,
     progress: Progress = new Progress
   ): Unit = {
@@ -183,15 +181,10 @@ object Component_VSCode {
 
   def build_extension(options: Options,
     target_dir: Path = Path.current,
-    logic: String = default_logic,
+    logic: String = Isabelle_System.default_logic(),
     dirs: List[Path] = Nil,
     progress: Progress = new Progress
   ): Unit = {
-    Isabelle_System.require_command("node")
-    Isabelle_System.require_command("yarn")
-    Isabelle_System.require_command("vsce")
-
-
     /* component */
 
     val component_name = "vscode_extension-" + Date.Format.alt_date(Date.now())
@@ -203,6 +196,11 @@ object Component_VSCode {
 
     val vsix_name =
       Isabelle_System.with_tmp_dir("build") { build_dir =>
+        val node_dir =
+          Nodejs.setup(build_dir,
+            platform_context = Isabelle_Platform.Context(progress = progress),
+            packages = List("yarn", "vsce"))
+
         val manifest_text = File.read(VSCode_Main.extension_dir + VSCode_Main.MANIFEST)
         val manifest_entries = split_lines(manifest_text).filter(_.nonEmpty)
         for (name <- manifest_entries) {
@@ -238,7 +236,13 @@ object Component_VSCode {
         build_grammar(options, build_dir, logic = logic, dirs = dirs, progress = progress)
 
         val result =
-          progress.bash("yarn && vsce package", cwd = build_dir, echo = true).check
+          progress.bash(
+            Library.make_lines(
+              "set -e",
+              node_dir.path_setup,
+              "yarn",
+              "vsce package"),
+            cwd = build_dir, echo = true).check
         val Pattern = """.*Packaged:.*(isabelle-.*\.vsix).*""".r
         val vsix_name =
           result.out_lines.collectFirst({ case Pattern(name) => name })
@@ -276,7 +280,7 @@ It has been produced from the sources in $ISABELLE_HOME/src/Tools/extension/.
       { args =>
         var target_dir = Path.current
         var dirs: List[Path] = Nil
-        var logic = default_logic
+        var logic = Isabelle_System.default_logic()
 
         val getopts = Getopts("""
 Usage: isabelle component_vscode_extension
@@ -284,7 +288,8 @@ Usage: isabelle component_vscode_extension
   Options are:
     -D DIR       target directory (default ".")
     -d DIR       include session directory
-    -l NAME      logic session name (default ISABELLE_LOGIC=""" + quote(default_logic) + """)
+    -l NAME      logic session name (default ISABELLE_LOGIC=""" +
+          quote(Isabelle_System.default_logic()) + """)
 
 Build the Isabelle/VSCode extension as component, for inclusion into the
 local VSCodium configuration.

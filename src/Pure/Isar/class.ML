@@ -210,7 +210,8 @@ fun print_classes ctxt =
     Sorts.all_classes algebra
     |> sort (Name_Space.extern_ord ctxt class_space)
     |> map prt_entry
-    |> Pretty.writeln_chunks2
+    |> Pretty.chunks2
+    |> Pretty.writeln
   end;
 
 
@@ -361,12 +362,12 @@ fun guess_morphism_identity (b, rhs) phi1 phi2 =
     val rhs2 = Morphism.term phi2 rhs;
   in n1 = n2 andalso Term.aconv_untyped (rhs1, rhs2) end;
 
-fun target_const class phi0 prmode (b, rhs) lthy =
+fun target_const class phi prmode (b, rhs) lthy =
   let
     val export =
       Morphism.set_context' lthy (Variable.export_morphism lthy (Local_Theory.target_of lthy));
     val guess_identity = guess_morphism_identity (b, rhs) export;
-    val guess_canonical = guess_morphism_identity (b, rhs) (export $> phi0);
+    val guess_canonical = guess_morphism_identity (b, rhs) (export $> phi);
   in
     lthy
     |> Generic_Target.locale_target_const class
@@ -411,12 +412,13 @@ in
 fun const class ((b, mx), lhs) params lthy =
   let
     val phi = morphism lthy class;
+    val b_canonical = b |> Name_Space.transform_binding (Proof_Context.naming_of lthy);
     val dangling_params = map (Morphism.term phi) (uncurry append (dangling_params_for lthy class params));
   in
     lthy
     |> target_const class phi Syntax.mode_default (b, lhs)
     |> Local_Theory.raw_theory (canonical_const class phi dangling_params
-         ((Morphism.binding phi b, if null dangling_params then mx else NoSyn), Morphism.term phi lhs))
+         ((Morphism.binding phi b_canonical, if null dangling_params then mx else NoSyn), Morphism.term phi lhs))
     |> Generic_Target.standard_const (fn (this, other) => other <> 0 andalso this <> other)
          Syntax.mode_default ((b, if null dangling_params then NoSyn else mx), lhs)
     |> synchronize_class_syntax_target class

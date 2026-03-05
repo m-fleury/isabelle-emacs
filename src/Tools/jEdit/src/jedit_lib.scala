@@ -13,7 +13,7 @@ import java.io.{File => JFile}
 import java.awt.{Component, Container, Toolkit}
 import java.awt.event.{InputEvent, KeyEvent, KeyListener}
 import java.awt.font.FontRenderContext
-import javax.swing.{Icon, ImageIcon, JScrollBar, JWindow}
+import javax.swing.{ImageIcon, JScrollBar, JWindow}
 
 import scala.util.parsing.input.CharSequenceReader
 import scala.util.matching.Regex
@@ -23,8 +23,10 @@ import scala.annotation.tailrec
 import org.gjt.sp.jedit.{jEdit, Buffer, View, GUIUtilities, Debug, EditPane}
 import org.gjt.sp.jedit.io.{FileVFS, VFSManager}
 import org.gjt.sp.jedit.gui.{KeyEventWorkaround, KeyEventTranslator}
-import org.gjt.sp.jedit.buffer.{JEditBuffer, LineManager}
+import org.gjt.sp.jedit.buffer.{BufferListener, BufferAdapter, JEditBuffer, LineManager}
 import org.gjt.sp.jedit.textarea.{JEditTextArea, TextArea, TextAreaPainter, Selection, AntiAlias}
+
+import com.formdev.flatlaf.extras.FlatSVGIcon
 
 
 object JEdit_Lib {
@@ -111,7 +113,7 @@ object JEdit_Lib {
     jEdit.getViewManager().getViews().asScala.iterator
 
   def jedit_view(view: View = null): View =
-    if (view == null) jEdit.getActiveView() else view
+    if (view == null) jEdit.getActiveView else view
 
   def jedit_edit_panes(view: View): Iterator[EditPane] =
     if (view == null) Iterator.empty
@@ -384,29 +386,32 @@ object JEdit_Lib {
 
   /* icons */
 
-  def load_icon(name: String): Icon = {
-    val name1 =
-      if (name.startsWith("idea-icons/")) {
-        val file = File.uri(Path.explode("$ISABELLE_IDEA_ICONS")).toASCIIString
-        "jar:" + file + "!/" + name
-      }
-      else name
-    val icon = GUIUtilities.loadIcon(name1)
-    if (icon.getIconWidth < 0 || icon.getIconHeight < 0) error("Bad icon: " + name)
-    else icon
+  def load_icon(spec: String): ImageIcon =
+    GUIUtilities.loadIcon(spec).asInstanceOf[ImageIcon]
+
+
+  /* buffer event handling */
+
+  private def buffer_edit(ins: Boolean, buf: JEditBuffer, i: Text.Offset, n: Int): Text.Edit = {
+    val try_range = Text.Range(i, i + n.max(0)).try_restrict(buffer_range(buf))
+    val edit_range = try_range.getOrElse(Text.Range.zero)
+    val edit_text = try_range.flatMap(get_text(buf, _)).getOrElse("")
+    Text.Edit.make(ins, edit_range.start, edit_text)
   }
 
-  def load_image_icon(name: String): ImageIcon =
-    load_icon(name) match {
-      case icon: ImageIcon => icon
-      case _ => error("Bad image icon: " + name)
+  def buffer_listener(handle: (Buffer, Text.Edit) => Unit): BufferListener =
+    new BufferAdapter {
+      override def contentInserted(buf: JEditBuffer, line: Int, i: Int, lines: Int, n: Int): Unit =
+        handle(buf.asInstanceOf[Buffer], buffer_edit(true, buf, i, n))
+      override def preContentRemoved(buf: JEditBuffer, line: Int, i: Int, lines: Int, n: Int): Unit =
+        handle(buf.asInstanceOf[Buffer], buffer_edit(false, buf, i, n))
     }
 
 
   /* key event handling */
 
   def request_focus_view(alt_view: View = null): Unit = {
-    val view = if (alt_view != null) alt_view else jEdit.getActiveView()
+    val view = if (alt_view != null) alt_view else jEdit.getActiveView
     if (view != null) {
       val text_area = view.getTextArea
       if (text_area != null) text_area.requestFocus()

@@ -8,8 +8,10 @@ chapter \<open>The Isabelle system environment\<close>
 
 text \<open>
   This manual describes Isabelle together with related tools as seen from a
-  system oriented view. See also the \<^emph>\<open>Isabelle/Isar Reference Manual\<close> \<^cite>\<open>"isabelle-isar-ref"\<close> for the actual Isabelle input language and related
-  concepts, and \<^emph>\<open>The Isabelle/Isar Implementation Manual\<close> \<^cite>\<open>"isabelle-implementation"\<close> for the main concepts of the underlying
+  system oriented view. See also the \<^emph>\<open>Isabelle/Isar Reference Manual\<close>
+  \<^cite>\<open>"isabelle-isar-ref"\<close> for the actual Isabelle input language and
+  related concepts, and \<^emph>\<open>The Isabelle/Isar Implementation Manual\<close>
+  \<^cite>\<open>"isabelle-implementation"\<close> for the main concepts of the underlying
   implementation in Isabelle/ML.
 \<close>
 
@@ -20,7 +22,7 @@ text \<open>
   Isabelle executables may depend on the \<^emph>\<open>Isabelle settings\<close> within the
   process environment. This is a statically scoped collection of environment
   variables, such as @{setting ISABELLE_HOME}, @{setting ML_SYSTEM}, @{setting
-  ML_HOME}. These variables are \<^emph>\<open>not\<close> intended to be set directly from the
+  POLYML_HOME}. These variables are \<^emph>\<open>not\<close> intended to be set directly from the
   shell, but are provided by Isabelle \<^emph>\<open>components\<close> within their \<^emph>\<open>settings
   files\<close>, as explained below.
 \<close>
@@ -50,13 +52,12 @@ text \<open>
     This file holds a rather long list of shell variable assignments, thus
     providing the site-wide default settings. The Isabelle distribution
     already contains a global settings file with sensible defaults for most
-    variables. When installing the system, only a few of these may have to be
-    adapted (probably @{setting ML_SYSTEM} etc.).
+    variables.
 
     \<^enum> The file \<^path>\<open>$ISABELLE_HOME_USER/etc/settings\<close> (if it
     exists) is run in the same way as the site default settings. Note that the
     variable @{setting ISABELLE_HOME_USER} has already been set before ---
-    usually to something like \<^verbatim>\<open>$USER_HOME/.isabelle/Isabelle2025\<close>.
+    usually to something like \<^verbatim>\<open>$USER_HOME/.isabelle/Isabelle2025-2\<close>.
 
     Thus individual users may override the site-wide defaults. Typically, a
     user settings file contains only a few lines, with some assignments that
@@ -102,10 +103,12 @@ text \<open>
   ISABELLE_HOME} yourself from the shell!
 
   \<^descr>[@{setting_def ISABELLE_HOME_USER}] is the user-specific counterpart of
-  @{setting ISABELLE_HOME}. The default value is relative to \<^path>\<open>$USER_HOME/.isabelle\<close>, under rare circumstances this may be changed in the
-  global setting file. Typically, the @{setting ISABELLE_HOME_USER} directory
-  mimics @{setting ISABELLE_HOME} to some extend. In particular, site-wide
-  defaults may be overridden by a private \<^verbatim>\<open>$ISABELLE_HOME_USER/etc/settings\<close>.
+  @{setting ISABELLE_HOME}. The default value is relative to
+  \<^path>\<open>$USER_HOME/.isabelle\<close>, under rare circumstances this may be changed
+  in the global setting file. Typically, the @{setting ISABELLE_HOME_USER}
+  directory mimics @{setting ISABELLE_HOME} to some extend. In particular,
+  site-wide defaults may be overridden by a private
+  \<^verbatim>\<open>$ISABELLE_HOME_USER/etc/settings\<close>.
 
   \<^descr>[@{setting_def ISABELLE_PLATFORM_FAMILY}\<open>\<^sup>*\<close>] is automatically set to the
   general platform family (\<^verbatim>\<open>linux\<close>, \<^verbatim>\<open>macos\<close>, \<^verbatim>\<open>windows\<close>). Note that
@@ -135,21 +138,14 @@ text \<open>
   of the @{executable isabelle} executable.
 
   \<^descr>[@{setting_def ISABELLE_IDENTIFIER}\<open>\<^sup>*\<close>] refers to the name of this
-  Isabelle distribution, e.g.\ ``\<^verbatim>\<open>Isabelle2025\<close>''.
+  Isabelle distribution, e.g.\ ``\<^verbatim>\<open>Isabelle2025-2\<close>''.
 
-  \<^descr>[@{setting_def ML_SYSTEM}, @{setting_def ML_HOME}, @{setting_def
-  ML_OPTIONS}, @{setting_def ML_PLATFORM}, @{setting_def ML_IDENTIFIER}\<open>\<^sup>*\<close>]
-  specify the underlying ML system to be used for Isabelle. There is only a
-  fixed set of admissable @{setting ML_SYSTEM} names (see the
-  \<^file>\<open>$ISABELLE_HOME/etc/settings\<close> file of the distribution).
-
-  The actual compiler binary will be run from the directory @{setting
-  ML_HOME}, with @{setting ML_OPTIONS} as first arguments on the command line.
-  The optional @{setting ML_PLATFORM} may specify the binary format of ML heap
-  images, which is useful for cross-platform installations. The value of
-  @{setting ML_IDENTIFIER} is automatically obtained by composing the values
-  of @{setting ML_SYSTEM}, @{setting ML_PLATFORM} and the Isabelle version
-  values.
+  \<^descr>[@{setting ML_OPTIONS}, @{setting ML_OPTIONS32}, @{setting ML_OPTIONS64}]
+  provide command-line options to the underlying ML system of Isabelle.
+  @{setting ML_OPTIONS} is empty by default, but if a proper value is provided
+  (e.g.\ via user settings) that takes precedence. Otherwise, @{setting
+  ML_OPTIONS32} or @{setting ML_OPTIONS64} will be used, depending on the
+  system option @{system_option_ref ML_system_64}.
 
   \<^descr>[@{setting_def ISABELLE_JDK_HOME}] points to a full JDK (Java Development
   Kit) installation with \<^verbatim>\<open>javac\<close> and \<^verbatim>\<open>jar\<close> executables. Note that
@@ -309,35 +305,49 @@ text \<open>
 \<close>
 
 
-section \<open>The raw Isabelle ML process\<close>
-
-subsection \<open>Batch mode \label{sec:tool-process}\<close>
+section \<open>The raw ML process \label{sec:tool-ml-process}\<close>
 
 text \<open>
-  The @{tool_def process} tool runs the raw ML process in batch mode:
+  The raw ML process has limited use in actual applications: it lacks
+  the full session context that is required for export artifacts,
+  Isabelle/ML/Scala integration and Prover IDE messages or markup. It is
+  better to use @{tool build} (\secref{sec:tool-build}) for regular sessions,
+  or its front-end @{tool process_theories}
+  (\secref{sec:tool-process-theories}) for adhoc sessions.
+\<close>
+
+
+subsection \<open>The raw ML process as command-line tool\<close>
+
+text \<open>
+  The @{tool_def ML_process} tool runs the raw ML process from the
+  command-line:
+
   @{verbatim [display]
-\<open>Usage: isabelle process [OPTIONS]
+\<open>Usage: isabelle ML_process [OPTIONS]
 
   Options are:
-    -T THEORY    load theory
+    -C DIR       change working directory
     -d DIR       include session directory
     -e ML_EXPR   evaluate ML expression on startup
     -f ML_FILE   evaluate ML file on startup
     -l NAME      logic session name (default ISABELLE_LOGIC="HOL")
     -m MODE      add print mode for output
     -o OPTION    override Isabelle system OPTION (via NAME=VAL or NAME)
+    -r           redirect stderr to stdout
 
-  Run the raw Isabelle ML process in batch mode.\<close>}
+  Run the raw ML process without Isabelle/Scala context.\<close>}
+
+  Note that is often better to run the raw ML process directly from
+  Isabelle/ML (via \<^ML>\<open>Isabelle_System.ML_process\<close>) or Isabelle/Scala (via
+  \<^scala_object>\<open>isabelle.ML_Process\<close>): both avoid another bulky Java
+  process.
 
   \<^medskip>
   Options \<^verbatim>\<open>-e\<close> and \<^verbatim>\<open>-f\<close> allow to evaluate ML code, before the ML process is
   started. The source is either given literally or taken from a file. Multiple
   \<^verbatim>\<open>-e\<close> and \<^verbatim>\<open>-f\<close> options are evaluated in the given order. Errors lead to
   a premature exit of the ML process with return code 1.
-
-  \<^medskip>
-  Option \<^verbatim>\<open>-T\<close> loads a specified theory file. This is a wrapper for \<^verbatim>\<open>-e\<close> with
-  a suitable \<^ML>\<open>use_thy\<close> invocation.
 
   \<^medskip>
   Option \<^verbatim>\<open>-l\<close> specifies the logic session name. Option \<^verbatim>\<open>-d\<close> specifies
@@ -351,6 +361,10 @@ text \<open>
   \<^medskip>
   Option \<^verbatim>\<open>-o\<close> allows to override Isabelle system options for this process,
   see also \secref{sec:system-options}.
+
+  \<^medskip>
+  Option \<^verbatim>\<open>-C\<close> specifies an explicit working directory. Option \<^verbatim>\<open>-r\<close> redirects
+  \<^verbatim>\<open>stderr\<close> to \<^verbatim>\<open>stdout\<close>.
 \<close>
 
 
@@ -359,7 +373,7 @@ subsubsection \<open>Examples\<close>
 text \<open>
   The subsequent example retrieves the \<^verbatim>\<open>Main\<close> theory value from the theory
   loader within ML:
-  @{verbatim [display] \<open>isabelle process -e 'Thy_Info.get_theory "Main"'\<close>}
+  @{verbatim [display] \<open>isabelle ML_process -e 'Thy_Info.get_theory "Main"'\<close>}
 
   Observe the delicate quoting rules for the GNU bash shell vs.\ ML. The
   Isabelle/ML and Scala libraries provide functions for that, but here we need
@@ -368,8 +382,8 @@ text \<open>
   \<^medskip>
   This is how to invoke a function body with proper return code and printing
   of errors, and without printing of a redundant \<^verbatim>\<open>val it = (): unit\<close> result:
-  @{verbatim [display] \<open>isabelle process -e 'Command_Line.tool (fn () => writeln "OK")'\<close>}
-  @{verbatim [display] \<open>isabelle process -e 'Command_Line.tool (fn () => error "Bad")'\<close>}
+  @{verbatim [display] \<open>isabelle ML_process -e 'Command_Line.tool (fn () => writeln "OK")'\<close>}
+  @{verbatim [display] \<open>isabelle ML_process -e 'Command_Line.tool (fn () => error "Bad")'\<close>}
 \<close>
 
 
@@ -404,8 +418,8 @@ text \<open>
   relevant for Isabelle/Pure development.
 
   \<^medskip>
-  Options \<^verbatim>\<open>-d\<close>, \<^verbatim>\<open>-m\<close>, \<^verbatim>\<open>-o\<close> have the same meaning as for @{tool process}
-  (\secref{sec:tool-process}).
+  Options \<^verbatim>\<open>-d\<close>, \<^verbatim>\<open>-m\<close>, \<^verbatim>\<open>-o\<close> have the same meaning as for @{tool ML_process}
+  (\secref{sec:tool-ml-process}).
 
   \<^medskip>
   The Isabelle/ML process is run through the line editor that is specified via
@@ -415,8 +429,8 @@ text \<open>
 
   The user is connected to the raw ML toplevel loop: this is neither
   Isabelle/Isar nor Isabelle/ML within the usual formal context. The most
-  relevant ML commands at this stage are \<^ML>\<open>use\<close> (for ML files) and
-  \<^ML>\<open>use_thy\<close> (for theory files).
+  relevant ML commands at this stage are ``\<^ML>\<open>use "ROOT0.ML"\<close>'' and
+  ``\<^ML>\<open>use "ROOT.ML"\<close>'' to load the ML sources of Isabelle/Pure interactively.
 \<close>
 
 

@@ -26,6 +26,12 @@ lemma eventually_at_infinity: "eventually P at_infinity \<longleftrightarrow> (\
   by (subst eventually_INF_base)
      (auto simp: subset_eq eventually_principal intro!: exI[of _ "max a b" for a b])
 
+lemma eventually_at_infinityI:
+  fixes P::"'a::real_normed_vector \<Rightarrow> bool"
+  assumes "\<And>x. c \<le> norm x \<Longrightarrow> P x"
+  shows "eventually P at_infinity"  
+unfolding eventually_at_infinity using assms by auto
+
 corollary eventually_at_infinity_pos:
   "eventually p at_infinity \<longleftrightarrow> (\<exists>b. 0 < b \<and> (\<forall>x. norm x \<ge> b \<longrightarrow> p x))"
   unfolding eventually_at_infinity
@@ -1243,6 +1249,34 @@ lemma continuous_on_divide[continuous_intros]:
   shows "continuous_on s (\<lambda>x. (f x) / (g x))"
   using assms unfolding continuous_on_def by (blast intro: tendsto_divide)
 
+lemma continuous_cmult_left_iff:
+  fixes c::"'a::real_normed_field"
+  assumes "c \<noteq> 0"
+  shows "continuous F (\<lambda>x. c * f x) \<longleftrightarrow> continuous F f"
+  by (simp add: assms continuous_def)
+
+lemma continuous_cmult_right_iff:
+  fixes c::"'a::real_normed_field"
+  assumes "c \<noteq> 0"
+  shows "continuous F (\<lambda>x. f x * c) \<longleftrightarrow> continuous F f"
+  by (simp add: assms continuous_def)
+
+lemma continuous_cdivide_iff:
+  fixes c::"'a::real_normed_field"
+  assumes "c \<noteq> 0"
+  shows "continuous F (\<lambda>x. f x / c) \<longleftrightarrow> continuous F f"
+  using assms by (auto simp: continuous_def divide_inverse)
+
+lemma continuous_cong:
+  assumes "eventually (\<lambda>x. f x = g x) F" "f (Lim F (\<lambda>x. x)) = g (Lim F (\<lambda>x. x))"
+  shows "continuous F f \<longleftrightarrow> continuous F g"
+  unfolding continuous_def using assms filterlim_cong by force
+
+lemma continuous_at_within_cong:
+  assumes "f x = g x" "eventually (\<lambda>x. f x = g x) (at x within S)"
+  shows "continuous (at x within S) f \<longleftrightarrow> continuous (at x within S) g"
+  using assms by (simp add: continuous_within filterlim_cong)
+
 lemma tendsto_power_int [tendsto_intros]:
   fixes a :: "'a::real_normed_div_algebra"
   assumes f: "(f \<longlongrightarrow> a) F"
@@ -1266,9 +1300,9 @@ lemma continuous_at_within_power_int[continuous_intros]:
 
 lemma continuous_on_power_int [continuous_intros]:
   fixes f :: "'a::topological_space \<Rightarrow> 'b::real_normed_div_algebra"
-  assumes "continuous_on s f" and "\<forall>x\<in>s. f x \<noteq> 0"
+  assumes "continuous_on s f" and "n \<ge> 0 \<or> (\<forall>x\<in>s. f x \<noteq> 0)"
   shows "continuous_on s (\<lambda>x. power_int (f x) n)"
-  using assms unfolding continuous_on_def by (blast intro: tendsto_power_int)
+  using assms by (cases "n \<ge> 0") (auto simp: power_int_def intro!: continuous_intros)
 
 lemma tendsto_power_int' [tendsto_intros]:
   fixes a :: "'a::real_normed_div_algebra"
@@ -1550,7 +1584,34 @@ lemma at_right_minus: "at_right a = filtermap (\<lambda>x. - x) (at_left (- a))"
   for a :: real
   by (simp add: filter_eq_iff eventually_filtermap eventually_at_filter filtermap_nhds_minus[symmetric])
 
-
+lemma filtermap_linear_at_within:
+  assumes "bij f" and cont: "isCont f a" and open_map: "\<And>S. open S \<Longrightarrow> open (f`S)"
+  shows "filtermap f (at a within S) = at (f a) within f`S"
+  unfolding filter_eq_iff
+proof safe
+  fix P
+  assume "eventually P (filtermap f (at a within S))"
+  then obtain T where "open T" "a \<in> T" and impP:"\<forall>x\<in>T. x\<noteq>a \<longrightarrow> x\<in>S\<longrightarrow> P (f x)"
+    by (auto simp: eventually_filtermap eventually_at_topological)
+  then show "eventually P (at (f a) within f ` S)"
+    unfolding eventually_at_topological
+    apply (intro exI[of _ "f`T"])
+    using \<open>bij f\<close> open_map by (metis bij_pointE image_iff)  
+next
+  fix P
+  assume "eventually P (at (f a) within f ` S)"
+  then obtain T1 where "open T1" "f a \<in> T1" and impP:"\<forall>x\<in>T1. x\<noteq>f a \<longrightarrow> x\<in>f`S\<longrightarrow> P (x)"
+    unfolding eventually_at_topological by auto
+  then obtain T2 where "open T2" "a \<in> T2" "(\<forall>x'\<in>T2. f x' \<in> T1)"
+    using cont[unfolded continuous_at_open,rule_format,of T1] by blast 
+  then have "\<forall>x\<in>T2. x\<noteq>a \<longrightarrow> x\<in>S\<longrightarrow> P (f x)"
+    using impP by (metis assms(1) bij_pointE imageI)
+  then show "eventually P (filtermap f (at a within S))" 
+    unfolding eventually_filtermap eventually_at_topological 
+    apply (intro exI[of _ T2])
+    using \<open>open T2\<close> \<open>a \<in> T2\<close> by auto
+qed
+  
 lemma filterlim_at_left_to_right:
   "filterlim f F (at_left a) \<longleftrightarrow> filterlim (\<lambda>x. f (- x)) F (at_right (-a))"
   for a :: real
@@ -2013,6 +2074,32 @@ proof safe
     unfolding filterlim_at_top by auto
   ultimately show "eventually (\<lambda>x. Z \<le> f x + g x) F"
     by eventually_elim simp
+qed
+
+lemma filterlim_tendsto_add_at_top_iff:
+  assumes f: "(f \<longlongrightarrow> c) F"
+  shows "(LIM x F. (f x + g x :: real) :> at_top) \<longleftrightarrow> (LIM x F. g x :> at_top)"
+proof     
+  assume "LIM x F. f x + g x :> at_top" 
+  moreover have "((\<lambda>x. - f x) \<longlongrightarrow> - c) F"
+    by (simp add: f tendsto_minus)
+  ultimately show "filterlim g at_top F" 
+    using filterlim_tendsto_add_at_top  by fastforce
+qed (auto simp: filterlim_tendsto_add_at_top[OF f])    
+
+lemma filterlim_tendsto_add_at_bot_iff:
+  fixes c::real
+  assumes f: "(f \<longlongrightarrow> c) F"
+  shows "(LIM x F. f x + g x :> at_bot) \<longleftrightarrow> (LIM x F. g x :> at_bot)" 
+proof -
+  have "(LIM x F. f x + g x :> at_bot) 
+        \<longleftrightarrow>  (LIM x F. - f x + (- g x)  :> at_top)"
+    by (simp add: filterlim_uminus_at_bot)
+  also have "... = (LIM x F. - g x  :> at_top)"
+    by (metis f filterlim_tendsto_add_at_top_iff tendsto_minus)
+  also have "... = (LIM x F. g x  :> at_bot)"
+    by (simp add: filterlim_uminus_at_bot)
+  finally show ?thesis .
 qed
 
 lemma LIM_at_top_divide:

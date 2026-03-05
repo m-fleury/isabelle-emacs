@@ -955,10 +955,14 @@ text \<open>
   @{define_ML_type solver} \\
   @{define_ML Simplifier.mk_solver: "string ->
   (Proof.context -> int -> tactic) -> solver"} \\
-  @{define_ML_infix setSolver: "Proof.context * solver -> Proof.context"} \\
-  @{define_ML_infix addSolver: "Proof.context * solver -> Proof.context"} \\
-  @{define_ML_infix setSSolver: "Proof.context * solver -> Proof.context"} \\
-  @{define_ML_infix addSSolver: "Proof.context * solver -> Proof.context"} \\
+  @{define_ML Simplifier.set_safe_solver: "
+  solver -> Proof.context -> Proof.context"} \\
+  @{define_ML Simplifier.add_safe_solver: "
+  solver -> Proof.context -> Proof.context"} \\
+  @{define_ML Simplifier.set_unsafe_solver: "
+  solver -> Proof.context -> Proof.context"} \\
+  @{define_ML Simplifier.add_unsafe_solver: "
+  solver -> Proof.context -> Proof.context"} \\
   \end{mldecls}
 
   A solver is a tactic that attempts to solve a subgoal after simplification.
@@ -989,14 +993,14 @@ text \<open>
   \<^descr> \<^ML>\<open>Simplifier.mk_solver\<close>~\<open>name tac\<close> turns \<open>tac\<close> into a solver; the
   \<open>name\<close> is only attached as a comment and has no further significance.
 
-  \<^descr> \<open>ctxt setSSolver solver\<close> installs \<open>solver\<close> as the safe solver of \<open>ctxt\<close>.
+  \<^descr> \<^ML>\<open>Simplifier.set_safe_solver\<close>~\<open>solver ctxt\<close> installs \<open>solver\<close> as the safe solver of \<open>ctxt\<close>.
 
-  \<^descr> \<open>ctxt addSSolver solver\<close> adds \<open>solver\<close> as an additional safe solver; it
+  \<^descr> \<^ML>\<open>Simplifier.add_safe_solver\<close>~\<open>solver ctxt\<close> adds \<open>solver\<close> as an additional safe solver; it
   will be tried after the solvers which had already been present in \<open>ctxt\<close>.
 
-  \<^descr> \<open>ctxt setSolver solver\<close> installs \<open>solver\<close> as the unsafe solver of \<open>ctxt\<close>.
+  \<^descr> \<^ML>\<open>Simplifier.set_unsafe_solver\<close>~\<open>solver ctxt\<close> installs \<open>solver\<close> as the unsafe solver of \<open>ctxt\<close>.
 
-  \<^descr> \<open>ctxt addSolver solver\<close> adds \<open>solver\<close> as an additional unsafe solver; it
+  \<^descr> \<^ML>\<open>Simplifier.add_unsafe_solver\<close>~\<open>solver ctxt\<close> adds \<open>solver\<close> as an additional unsafe solver; it
   will be tried after the solvers which had already been present in \<open>ctxt\<close>.
 
 
@@ -1038,12 +1042,11 @@ subsubsection \<open>The looper\<close>
 
 text \<open>
   \begin{mldecls}
-  @{define_ML_infix setloop: "Proof.context *
-  (Proof.context -> int -> tactic) -> Proof.context"} \\
-  @{define_ML_infix addloop: "Proof.context *
-  (string * (Proof.context -> int -> tactic))
-  -> Proof.context"} \\
-  @{define_ML_infix delloop: "Proof.context * string -> Proof.context"} \\
+  @{define_ML Simplifier.set_loop: "(Proof.context -> int -> tactic) ->
+  Proof.context -> Proof.context"} \\
+  @{define_ML Simplifier.add_loop: "string * (Proof.context -> int -> tactic) ->
+  Proof.context -> Proof.context"} \\
+  @{define_ML Simplifier.del_loop: "string -> Proof.context -> Proof.context"} \\
   @{define_ML Splitter.add_split: "thm -> Proof.context -> Proof.context"} \\
   @{define_ML Splitter.add_split: "thm -> Proof.context -> Proof.context"} \\
   @{define_ML Splitter.add_split_bang: "
@@ -1060,14 +1063,14 @@ text \<open>
   Another possibility is to apply an elimination rule on the assumptions. More
   adventurous loopers could start an induction.
 
-    \<^descr> \<open>ctxt setloop tac\<close> installs \<open>tac\<close> as the only looper tactic of \<open>ctxt\<close>.
+    \<^descr> \<^ML>\<open>Simplifier.set_loop\<close>~\<open>tac ctxt\<close> installs \<open>tac\<close> as the only looper tactic of \<open>ctxt\<close>.
 
-    \<^descr> \<open>ctxt addloop (name, tac)\<close> adds \<open>tac\<close> as an additional looper tactic
+    \<^descr> \<^ML>\<open>Simplifier.add_loop\<close>~\<open>(name, tac) ctxt\<close> adds \<open>tac\<close> as an additional looper tactic
     with name \<open>name\<close>, which is significant for managing the collection of
     loopers. The tactic will be tried after the looper tactics that had
     already been present in \<open>ctxt\<close>.
 
-    \<^descr> \<open>ctxt delloop name\<close> deletes the looper tactic that was associated with
+    \<^descr> \<^ML>\<open>Simplifier.del_loop\<close>~\<open>name ctxt\<close> deletes the looper tactic that was associated with
     \<open>name\<close> from \<open>ctxt\<close>.
 
     \<^descr> \<^ML>\<open>Splitter.add_split\<close>~\<open>thm ctxt\<close> adds split tactic

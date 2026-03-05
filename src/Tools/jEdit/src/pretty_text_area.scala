@@ -16,7 +16,7 @@ import java.awt.im.InputMethodRequests
 import javax.swing.JTextField
 import javax.swing.event.{DocumentListener, DocumentEvent}
 
-import scala.swing.{Label, Component}
+import scala.swing.Component
 import scala.util.matching.Regex
 
 import org.gjt.sp.jedit.{jEdit, View, Registers, JEditBeanShellAction}
@@ -120,8 +120,7 @@ class Pretty_Text_Area(
   private var current_output: List[XML.Elem] = Nil
   private var current_base_snapshot = Document.Snapshot.init
   private var current_base_results = Command.Results.empty
-  private var current_rendering: JEdit_Rendering =
-    JEdit_Rendering(current_base_snapshot, Nil, Command.Results.empty)
+  private var current_rendering: JEdit_Rendering = JEdit_Rendering.make(current_base_snapshot)
 
   private val future_refresh = Synchronized[Option[Future[Unit]]](None)
   private def fork_refresh(body: => Unit): Future[Unit] =
@@ -156,7 +155,7 @@ class Pretty_Text_Area(
     for (i <- 0 to 3) {
       fold_line_style(i) =
         SyntaxUtilities.parseStyle(
-          jEdit.getProperty("view.style.foldLine." + i),
+          jEdit.getThemeProperty("view.style.foldLine." + i),
           current_font_info.family, current_font_info.size.round, true)
     }
     getPainter.setFoldLineStyle(fold_line_style)
@@ -185,8 +184,9 @@ class Pretty_Text_Area(
         {
           val (rich_texts, rendering) =
             try {
-              val rich_texts = Rich_Text.format(output, margin, metric, cache = PIDE.cache)
-              val rendering = JEdit_Rendering(snapshot, rich_texts, results)
+              val rich_texts = Rich_Text.format(output, margin, metric, cache = PIDE.session.cache)
+              val rendering =
+                JEdit_Rendering.make(snapshot, rich_texts = rich_texts, results = results)
               (rich_texts, rendering)
             }
             catch {
@@ -241,6 +241,9 @@ class Pretty_Text_Area(
     refresh()
   }
 
+  def update_output(output: Editor.Output): Unit =
+    if (output.defined) update(output.snapshot, output.results, output.messages)
+
   def update(
     base_snapshot: Document.Snapshot,
     base_results: Command.Results,
@@ -266,9 +269,7 @@ class Pretty_Text_Area(
 
   /* search */
 
-  private val search_label: Component = new Label("Search:") {
-    tooltip = "Search and highlight output via regular expression"
-  }
+  private val search_tooltip = "Search and highlight output via regular expression"
 
   private val search_field: Component =
     Component.wrap(new Completion_Popup.History_Text_Field("isabelle-search") {
@@ -280,11 +281,16 @@ class Pretty_Text_Area(
         def removeUpdate(e: DocumentEvent): Unit = input_delay.invoke()
       })
       setColumns(20)
-      setToolTipText(search_label.tooltip)
+      setToolTipText(search_tooltip)
       setFont(GUI.imitate_font(getFont, scale = 1.2))
     })
 
   private val search_field_foreground = search_field.foreground
+
+  private val search_label: Component =
+    new GUI.Label(jEdit.getProperty("view.search.find"), label_for = search_field) {
+      tooltip = search_tooltip
+    }
 
   private def search_action(text_field: JTextField): Unit = {
     val (pattern, ok) =

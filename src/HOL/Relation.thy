@@ -151,7 +151,7 @@ subsection \<open>Properties of relations\<close>
 subsubsection \<open>Reflexivity\<close>
 
 definition refl_on :: "'a set \<Rightarrow> 'a rel \<Rightarrow> bool"
-  where "refl_on A r \<longleftrightarrow> r \<subseteq> A \<times> A \<and> (\<forall>x\<in>A. (x, x) \<in> r)"
+  where "refl_on A r \<longleftrightarrow> (\<forall>x\<in>A. (x, x) \<in> r)"
 
 abbreviation refl :: "'a rel \<Rightarrow> bool" \<comment> \<open>reflexivity over a type\<close>
   where "refl \<equiv> refl_on UNIV"
@@ -167,10 +167,12 @@ lemma reflp_def[no_atp]: "reflp R \<longleftrightarrow> (\<forall>x. R x x)"
 
 text \<open>@{thm [source] reflp_def} is for backward compatibility.\<close>
 
-lemma reflp_refl_eq [pred_set_conv]: "reflp (\<lambda>x y. (x, y) \<in> r) \<longleftrightarrow> refl r"
-  by (simp add: refl_on_def reflp_def)
+lemma reflp_on_refl_on_eq[pred_set_conv]: "reflp_on A (\<lambda>a b. (a, b) \<in> r) \<longleftrightarrow> refl_on A r"
+  by (simp add: refl_on_def reflp_on_def)
 
-lemma refl_onI [intro?]: "r \<subseteq> A \<times> A \<Longrightarrow> (\<And>x. x \<in> A \<Longrightarrow> (x, x) \<in> r) \<Longrightarrow> refl_on A r"
+lemmas reflp_refl_eq = reflp_on_refl_on_eq[of UNIV]
+
+lemma refl_onI [intro?]: "(\<And>x. x \<in> A \<Longrightarrow> (x, x) \<in> r) \<Longrightarrow> refl_on A r"
   unfolding refl_on_def by (iprover intro!: ballI)
 
 lemma reflI: "(\<And>x. (x, x) \<in> r) \<Longrightarrow> refl r"
@@ -184,12 +186,6 @@ lemma reflpI[intro?]: "(\<And>x. R x x) \<Longrightarrow> reflp R"
   by (rule reflp_onI)
 
 lemma refl_onD: "refl_on A r \<Longrightarrow> a \<in> A \<Longrightarrow> (a, a) \<in> r"
-  unfolding refl_on_def by blast
-
-lemma refl_onD1: "refl_on A r \<Longrightarrow> (x, y) \<in> r \<Longrightarrow> x \<in> A"
-  unfolding refl_on_def by blast
-
-lemma refl_onD2: "refl_on A r \<Longrightarrow> (x, y) \<in> r \<Longrightarrow> y \<in> A"
   unfolding refl_on_def by blast
 
 lemma reflD: "refl r \<Longrightarrow> (a, a) \<in> r"
@@ -207,8 +203,21 @@ lemma reflpE:
   obtains "r x x"
   using assms by (auto dest: refl_onD simp add: reflp_def)
 
-lemma reflp_on_subset: "reflp_on A R \<Longrightarrow> B \<subseteq> A \<Longrightarrow> reflp_on B R"
-  by (auto intro: reflp_onI dest: reflp_onD)
+lemma refl_on_top[simp]: "refl_on A \<top>"
+  by (simp add: refl_on_def)
+
+lemma reflp_on_top[simp]: "reflp_on A \<top>"
+  by (simp add: reflp_on_def)
+
+lemma reflp_on_mono_strong:
+  "reflp_on B R \<Longrightarrow> A \<subseteq> B \<Longrightarrow> (\<And>x y. x \<in> A \<Longrightarrow> y \<in> A \<Longrightarrow> R x y \<Longrightarrow> Q x y) \<Longrightarrow> reflp_on A Q"
+  by (rule reflp_onI) (auto dest: reflp_onD)
+
+lemma reflp_on_mono[mono]: "A \<subseteq> B \<Longrightarrow> R \<le> Q \<Longrightarrow> reflp_on B R \<le> reflp_on A Q"
+  by (simp add: reflp_on_mono_strong le_fun_def)
+
+lemma reflp_on_subset: "reflp_on B R \<Longrightarrow> A \<subseteq> B \<Longrightarrow> reflp_on A R"
+  using reflp_on_mono_strong .
 
 lemma reflp_on_image: "reflp_on (f ` A) R \<longleftrightarrow> reflp_on A (\<lambda>a b. R (f a) (f b))"
   by (simp add: reflp_on_def)
@@ -243,7 +252,7 @@ lemma refl_on_UNION: "\<forall>x\<in>S. refl_on (A x) (r x) \<Longrightarrow> re
 lemma reflp_on_Sup: "\<forall>x\<in>S. reflp_on (A x) (R x) \<Longrightarrow> reflp_on (\<Union>(A ` S)) (\<Squnion>(R ` S))"
   by (auto intro: reflp_onI dest: reflp_onD)
 
-lemma refl_on_empty [simp]: "refl_on {} {}"
+lemma refl_on_empty [simp]: "refl_on {} r"
   by (simp add: refl_on_def)
 
 lemma reflp_on_empty [simp]: "reflp_on {} R"
@@ -252,19 +261,8 @@ lemma reflp_on_empty [simp]: "reflp_on {} R"
 lemma refl_on_singleton [simp]: "refl_on {x} {(x, x)}"
 by (blast intro: refl_onI)
 
-lemma refl_on_def' [nitpick_unfold, code]:
-  "refl_on A r \<longleftrightarrow> (\<forall>(x, y) \<in> r. x \<in> A \<and> y \<in> A) \<and> (\<forall>x \<in> A. (x, x) \<in> r)"
-  by (auto intro: refl_onI dest: refl_onD refl_onD1 refl_onD2)
-
 lemma reflp_on_equality [simp]: "reflp_on A (=)"
   by (simp add: reflp_on_def)
-
-lemma reflp_on_mono:
-  "reflp_on A R \<Longrightarrow> (\<And>x y. x \<in> A \<Longrightarrow> y \<in> A \<Longrightarrow> R x y \<Longrightarrow> Q x y) \<Longrightarrow> reflp_on A Q"
-  by (auto intro: reflp_onI dest: reflp_onD)
-
-lemma reflp_mono: "reflp R \<Longrightarrow> (\<And>x y. R x y \<Longrightarrow> Q x y) \<Longrightarrow> reflp Q"
-  by (rule reflp_on_mono[of UNIV R Q]) simp_all
 
 lemma (in preorder) reflp_on_le[simp]: "reflp_on A (\<le>)"
   by (simp add: reflp_onI)
@@ -324,16 +322,29 @@ lemma irreflp_onD: "irreflp_on A R \<Longrightarrow> a \<in> A \<Longrightarrow>
 lemma irreflpD: "irreflp R \<Longrightarrow> \<not> R x x"
   by (rule irreflD[to_pred])
 
+lemma irrefl_on_bot[simp]: "irrefl_on A \<bottom>"
+  by (simp add: irrefl_on_def)
+
+lemma irreflp_on_bot[simp]: "irreflp_on A \<bottom>"
+  using irrefl_on_bot[to_pred] .
+
 lemma irrefl_on_distinct [code]: "irrefl_on A r \<longleftrightarrow> (\<forall>(a, b) \<in> r. a \<in> A \<longrightarrow> b \<in> A \<longrightarrow> a \<noteq> b)"
   by (auto simp add: irrefl_on_def)
 
 lemmas irrefl_distinct = irrefl_on_distinct \<comment> \<open>For backward compatibility\<close>
 
-lemma irrefl_on_subset: "irrefl_on A r \<Longrightarrow> B \<subseteq> A \<Longrightarrow> irrefl_on B r"
+lemma irreflp_on_mono_strong:
+  "irreflp_on B Q \<Longrightarrow> A \<subseteq> B \<Longrightarrow> (\<And>x y. x \<in> A \<Longrightarrow> y \<in> A \<Longrightarrow> R x y \<Longrightarrow> Q x y) \<Longrightarrow> irreflp_on A R"
+  by (rule irreflp_onI) (auto dest: irreflp_onD)
+
+lemma irreflp_on_mono[mono]: "A \<subseteq> B \<Longrightarrow> R \<le> Q \<Longrightarrow> irreflp_on B Q \<le> irreflp_on A R"
+  by (simp add: irreflp_on_mono_strong le_fun_def)
+
+lemma irrefl_on_subset: "irrefl_on B r \<Longrightarrow> A \<subseteq> B \<Longrightarrow> irrefl_on A r"
   by (auto simp: irrefl_on_def)
 
-lemma irreflp_on_subset: "irreflp_on A R \<Longrightarrow> B \<subseteq> A \<Longrightarrow> irreflp_on B R"
-  by (auto simp: irreflp_on_def)
+lemma irreflp_on_subset: "irreflp_on B R \<Longrightarrow> A \<subseteq> B \<Longrightarrow> irreflp_on A R"
+  using irreflp_on_mono_strong .
 
 lemma irreflp_on_image: "irreflp_on (f ` A) R \<longleftrightarrow> irreflp_on A (\<lambda>a b. R (f a) (f b))"
   by (simp add: irreflp_on_def)
@@ -390,14 +401,27 @@ lemma asymp_onD: "asymp_on A R \<Longrightarrow> x \<in> A \<Longrightarrow> y \
 lemma asympD: "asymp R \<Longrightarrow> R x y \<Longrightarrow> \<not> R y x"
   by (rule asymD[to_pred])
 
+lemma asym_on_bot[simp]: "asym_on A \<bottom>"
+  by (simp add: asym_on_def)
+
+lemma asymp_on_bot[simp]: "asymp_on A \<bottom>"
+  using asym_on_bot[to_pred] .
+
 lemma asym_iff: "asym r \<longleftrightarrow> (\<forall>x y. (x,y) \<in> r \<longrightarrow> (y,x) \<notin> r)"
   by (blast dest: asymD)
 
-lemma asym_on_subset: "asym_on A r \<Longrightarrow> B \<subseteq> A \<Longrightarrow> asym_on B r"
+lemma asymp_on_mono_strong:
+  "asymp_on B Q \<Longrightarrow> A \<subseteq> B \<Longrightarrow> (\<And>x y. x \<in> A \<Longrightarrow> y \<in> A \<Longrightarrow> R x y \<Longrightarrow> Q x y) \<Longrightarrow> asymp_on A R"
+  by (rule asymp_onI) (auto dest: asymp_onD)
+
+lemma asymp_on_mono[mono]: "A \<subseteq> B \<Longrightarrow> R \<le> Q \<Longrightarrow> asymp_on B Q \<le> asymp_on A R"
+  by (simp add: asymp_on_mono_strong le_fun_def)
+
+lemma asym_on_subset: "asym_on B r \<Longrightarrow> A \<subseteq> B \<Longrightarrow> asym_on A r"
   by (auto simp: asym_on_def)
 
-lemma asymp_on_subset: "asymp_on A R \<Longrightarrow> B \<subseteq> A \<Longrightarrow> asymp_on B R"
-  by (auto simp: asymp_on_def)
+lemma asymp_on_subset: "asymp_on B R \<Longrightarrow> A \<subseteq> B \<Longrightarrow> asymp_on A R"
+  using asymp_on_mono_strong .
 
 lemma asymp_on_image: "asymp_on (f ` A) R \<longleftrightarrow> asymp_on A (\<lambda>a b. R (f a) (f b))"
   by (simp add: asymp_on_def)
@@ -442,15 +466,6 @@ lemma symp_on_sym_on_eq[pred_set_conv]: "symp_on A (\<lambda>x y. (x, y) \<in> r
 
 lemmas symp_sym_eq = symp_on_sym_on_eq[of UNIV] \<comment> \<open>For backward compatibility\<close>
 
-lemma sym_on_subset: "sym_on A r \<Longrightarrow> B \<subseteq> A \<Longrightarrow> sym_on B r"
-  by (auto simp: sym_on_def)
-
-lemma symp_on_subset: "symp_on A R \<Longrightarrow> B \<subseteq> A \<Longrightarrow> symp_on B R"
-  by (auto simp: symp_on_def)
-
-lemma symp_on_image: "symp_on (f ` A) R \<longleftrightarrow> symp_on A (\<lambda>a b. R (f a) (f b))"
-  by (simp add: symp_on_def)
-
 lemma sym_onI: "(\<And>x y. x \<in> A \<Longrightarrow> y \<in> A \<Longrightarrow> (x, y) \<in> r \<Longrightarrow> (y, x) \<in> r) \<Longrightarrow> sym_on A r"
   by (simp add: sym_on_def)
 
@@ -484,6 +499,30 @@ lemma symp_onD: "symp_on A R \<Longrightarrow> x \<in> A \<Longrightarrow> y \<i
 
 lemma sympD [dest?]: "symp R \<Longrightarrow> R x y \<Longrightarrow> R y x"
   by (rule symD[to_pred])
+
+lemma sym_on_bot[simp]: "sym_on A \<bottom>"
+  by (simp add: sym_on_def)
+
+lemma symp_on_bot[simp]: "symp_on A \<bottom>"
+  using sym_on_bot[to_pred] .
+
+lemma sym_on_top[simp]: "sym_on A \<top>"
+  by (simp add: sym_on_def)
+
+lemma symp_on_top[simp]: "symp_on A \<top>"
+  by (simp add: symp_on_def)
+
+lemma sym_on_subset: "sym_on B r \<Longrightarrow> A \<subseteq> B \<Longrightarrow> sym_on A r"
+  by (auto simp: sym_on_def)
+
+lemma symp_on_subset: "symp_on B R \<Longrightarrow> A \<subseteq> B \<Longrightarrow> symp_on A R"
+  by (auto simp: symp_on_def)
+
+lemma symp_on_image: "symp_on (f ` A) R \<longleftrightarrow> symp_on A (\<lambda>a b. R (f a) (f b))"
+  by (simp add: symp_on_def)
+
+lemma symp_on_equality[simp]: "symp_on A (=)"
+  by (simp add: symp_on_def)
 
 lemma sym_Int: "sym r \<Longrightarrow> sym s \<Longrightarrow> sym (r \<inter> s)"
   by (fast intro: symI elim: symE)
@@ -538,17 +577,6 @@ lemma antisymp_on_antisym_on_eq[pred_set_conv]:
 
 lemmas antisymp_antisym_eq = antisymp_on_antisym_on_eq[of UNIV] \<comment> \<open>For backward compatibility\<close>
 
-lemma antisym_on_subset: "antisym_on A r \<Longrightarrow> B \<subseteq> A \<Longrightarrow> antisym_on B r"
-  by (auto simp: antisym_on_def)
-
-lemma antisymp_on_subset: "antisymp_on A R \<Longrightarrow> B \<subseteq> A \<Longrightarrow> antisymp_on B R"
-  by (auto simp: antisymp_on_def)
-
-lemma antisymp_on_image:
-  assumes "inj_on f A"
-  shows "antisymp_on (f ` A) R \<longleftrightarrow> antisymp_on A (\<lambda>a b. R (f a) (f b))"
-  using assms by (auto simp: antisymp_on_def inj_on_def)
-
 lemma antisym_onI:
   "(\<And>x y. x \<in> A \<Longrightarrow> y \<in> A \<Longrightarrow> (x, y) \<in> r \<Longrightarrow> (y, x) \<in> r \<Longrightarrow> x = y) \<Longrightarrow> antisym_on A r"
   unfolding antisym_on_def by simp
@@ -581,6 +609,52 @@ lemma antisympD [dest?]:
   "antisymp R \<Longrightarrow> R x y \<Longrightarrow> R y x \<Longrightarrow> x = y"
   by (rule antisymD[to_pred])
 
+lemma antisym_on_bot[simp]: "antisym_on A \<bottom>"
+  by (simp add: antisym_on_def)
+
+lemma antisymp_on_bot[simp]: "antisymp_on A \<bottom>"
+  using antisym_on_bot[to_pred] .
+
+lemma antisymp_on_mono_stronger:
+  fixes
+    A :: "'a set" and R :: "'a \<Rightarrow> 'a \<Rightarrow> bool" and
+    B :: "'b set" and Q :: "'b \<Rightarrow> 'b \<Rightarrow> bool" and
+    f :: "'a \<Rightarrow> 'b"
+  assumes "antisymp_on B Q" and "f ` A \<subseteq> B" and
+    Q_imp_R: "\<And>x y. x \<in> A \<Longrightarrow> y \<in> A \<Longrightarrow> R x y \<Longrightarrow> Q (f x) (f y)" and
+    inj_f: "inj_on f A"
+  shows "antisymp_on A R"
+proof (rule antisymp_onI)
+  fix x y :: 'a
+  assume "x \<in> A" and "y \<in> A" and "R x y" and "R y x"
+  hence "Q (f x) (f y)" and "Q (f y) (f x)"
+    using Q_imp_R by iprover+
+  moreover have "f x \<in> B" and "f y \<in> B"
+    using \<open>f ` A \<subseteq> B\<close> \<open>x \<in> A\<close> \<open>y \<in> A\<close> by blast+
+  ultimately have "f x = f y"
+    using \<open>antisymp_on B Q\<close>[THEN antisymp_onD] by iprover
+  thus "x = y"
+    using inj_f[THEN inj_onD] \<open>x \<in> A\<close> \<open>y \<in> A\<close> by iprover
+qed
+
+lemma antisymp_on_mono_strong:
+  "antisymp_on B Q \<Longrightarrow> A \<subseteq> B \<Longrightarrow> (\<And>x y. x \<in> A \<Longrightarrow> y \<in> A \<Longrightarrow> R x y \<Longrightarrow> Q x y) \<Longrightarrow> antisymp_on A R"
+  using antisymp_on_mono_stronger[of B Q "\<lambda>x. x" A R, OF _ _ _ inj_on_id2, unfolded image_ident] .
+
+lemma antisymp_on_mono[mono]: "A \<subseteq> B \<Longrightarrow> R \<le> Q \<Longrightarrow> antisymp_on B Q \<le> antisymp_on A R"
+  by (simp add: antisymp_on_mono_strong le_fun_def)
+
+lemma antisym_on_subset: "antisym_on B r \<Longrightarrow> A \<subseteq> B \<Longrightarrow> antisym_on A r"
+  by (auto simp: antisym_on_def)
+
+lemma antisymp_on_subset: "antisymp_on B R \<Longrightarrow> A \<subseteq> B \<Longrightarrow> antisymp_on A R"
+  using antisymp_on_mono_strong .
+
+lemma antisymp_on_image:
+  assumes "inj_on f A"
+  shows "antisymp_on (f ` A) R \<longleftrightarrow> antisymp_on A (\<lambda>a b. R (f a) (f b))"
+  using assms by (auto simp: antisymp_on_def inj_on_def)
+
 lemma antisym_subset:
   "r \<subseteq> s \<Longrightarrow> antisym s \<Longrightarrow> antisym r"
   unfolding antisym_def by blast
@@ -589,17 +663,8 @@ lemma antisymp_less_eq:
   "r \<le> s \<Longrightarrow> antisymp s \<Longrightarrow> antisymp r"
   by (fact antisym_subset [to_pred])
     
-lemma antisym_empty [simp]:
-  "antisym {}"
-  unfolding antisym_def by blast
-
-lemma antisym_bot [simp]:
-  "antisymp \<bottom>"
-  by (fact antisym_empty [to_pred])
-    
-lemma antisymp_equality [simp]:
-  "antisymp HOL.eq"
-  by (auto intro: antisympI)
+lemma antisymp_on_equality[simp]: "antisymp_on A (=)"
+  by (auto intro: antisymp_onI)
 
 lemma antisym_singleton [simp]:
   "antisym {x}"
@@ -691,10 +756,10 @@ lemma transp_onD: "transp_on A R \<Longrightarrow> x \<in> A \<Longrightarrow> y
 lemma transpD[dest?]: "transp R \<Longrightarrow> R x y \<Longrightarrow> R y z \<Longrightarrow> R x z"
   by (rule transD[to_pred])
 
-lemma trans_on_subset: "trans_on A r \<Longrightarrow> B \<subseteq> A \<Longrightarrow> trans_on B r"
+lemma trans_on_subset: "trans_on B r \<Longrightarrow> A \<subseteq> B \<Longrightarrow> trans_on A r"
   by (auto simp: trans_on_def)
 
-lemma transp_on_subset: "transp_on A R \<Longrightarrow> B \<subseteq> A \<Longrightarrow> transp_on B R"
+lemma transp_on_subset: "transp_on B R \<Longrightarrow> A \<subseteq> B \<Longrightarrow> transp_on A R"
   by (auto simp: transp_on_def)
 
 lemma transp_on_image: "transp_on (f ` A) R \<longleftrightarrow> transp_on A (\<lambda>a b. R (f a) (f b))"
@@ -723,14 +788,23 @@ lemma trans_join: "trans r \<longleftrightarrow> (\<forall>(x, y1) \<in> r. \<fo
 lemma transp_trans: "transp r \<longleftrightarrow> trans {(x, y). r x y}"
   by (simp add: trans_def transp_def)
 
-lemma transp_equality [simp]: "transp (=)"
-  by (auto intro: transpI)
+lemma transp_on_equality[simp]: "transp_on A (=)"
+  by (auto intro: transp_onI)
 
-lemma trans_empty [simp]: "trans {}"
-  by (blast intro: transI)
+lemma trans_on_bot[simp]: "trans_on A \<bottom>"
+  by (simp add: trans_on_def)
+
+lemma transp_on_bot[simp]: "transp_on A \<bottom>"
+  using trans_on_bot[to_pred] .
+
+lemma trans_on_top[simp]: "trans_on A \<top>"
+  by (simp add: trans_on_def)
+
+lemma transp_on_top[simp]: "transp_on A \<top>"
+  by (simp add: transp_on_def)
 
 lemma transp_empty [simp]: "transp (\<lambda>x y. False)"
-  using trans_empty[to_pred] by (simp add: bot_fun_def)
+  using transp_on_bot unfolding bot_fun_def bot_bool_def .
 
 lemma trans_singleton [simp]: "trans {(a, a)}"
   by (blast intro: transI)
@@ -794,11 +868,65 @@ lemma totalp_onD:
 lemma totalpD: "totalp R \<Longrightarrow> x \<noteq> y \<Longrightarrow> R x y \<or> R y x"
   by (simp add: totalp_onD)
 
-lemma total_on_subset: "total_on A r \<Longrightarrow> B \<subseteq> A \<Longrightarrow> total_on B r"
+lemma total_on_top[simp]: "total_on A \<top>"
+  by (simp add: total_on_def)
+
+lemma totalp_on_top[simp]: "totalp_on A \<top>"
+  by (simp add: totalp_on_def)
+
+lemma totalp_on_mono_stronger:
+  fixes
+    A :: "'a set" and R :: "'a \<Rightarrow> 'a \<Rightarrow> bool" and
+    B :: "'b set" and Q :: "'b \<Rightarrow> 'b \<Rightarrow> bool" and
+    f :: "'a \<Rightarrow> 'b"
+  assumes "totalp_on B Q" and "f ` A \<subseteq> B" and
+    Q_imp_R: "\<And>x y. x \<in> A \<Longrightarrow> y \<in> A \<Longrightarrow> Q (f x) (f y) \<Longrightarrow> R x y" and
+    inj_f: "inj_on f A"
+  shows "totalp_on A R"
+proof (rule totalp_onI)
+  fix x y :: 'a
+  assume "x \<in> A" and "y \<in> A" and "x \<noteq> y"
+  hence "f x \<in> B" and "f y \<in> B" and "f x \<noteq> f y"
+    using \<open>f ` A \<subseteq> B\<close> inj_f by (auto dest: inj_onD)
+  hence "Q (f x) (f y) \<or> Q (f y) (f x)"
+    using \<open>totalp_on B Q\<close> by (iprover dest: totalp_onD)
+  thus "R x y \<or> R y x"
+    using Q_imp_R \<open>x \<in> A\<close> \<open>y \<in> A\<close> by iprover
+qed
+
+lemma totalp_on_mono_stronger_alt:
+  fixes
+    A :: "'a set" and R :: "'a \<Rightarrow> 'a \<Rightarrow> bool" and
+    B :: "'b set" and Q :: "'b \<Rightarrow> 'b \<Rightarrow> bool" and
+    f :: "'b \<Rightarrow> 'a"
+  assumes "totalp_on B Q" and "A \<subseteq> f ` B" and
+    Q_imp_R: "\<And>x y. x \<in> B \<Longrightarrow> y \<in> B \<Longrightarrow> Q x y \<Longrightarrow> R (f x) (f y)"
+  shows "totalp_on A R"
+proof (rule totalp_onI)
+  fix x y :: 'a
+  assume "x \<in> A" and "y \<in> A" and "x \<noteq> y"
+  then obtain x' y' where "x' \<in> B" and "x = f x'" and "y' \<in> B" and "y = f y'" and "x' \<noteq> y'"
+    using \<open>A \<subseteq> f ` B\<close> by blast
+  hence "Q x' y' \<or> Q y' x'"
+    using \<open>totalp_on B Q\<close>[THEN totalp_onD] by blast
+  hence "R (f x') (f y') \<or> R (f y') (f x')"
+    using Q_imp_R \<open>x' \<in> B\<close> \<open>y' \<in> B\<close> by blast
+  thus "R x y \<or> R y x"
+    using \<open>x = f x'\<close> \<open>y = f y'\<close> by blast
+qed
+
+lemma totalp_on_mono_strong:
+  "totalp_on B Q \<Longrightarrow> A \<subseteq> B \<Longrightarrow> (\<And>x y. x \<in> A \<Longrightarrow> y \<in> A \<Longrightarrow> Q x y \<Longrightarrow> R x y) \<Longrightarrow> totalp_on A R"
+  using totalp_on_mono_stronger[of B Q "\<lambda>x. x" A R, simplified] .
+
+lemma totalp_on_mono[mono]: "A \<subseteq> B \<Longrightarrow> Q \<le> R \<Longrightarrow> totalp_on B Q \<le> totalp_on A R"
+  by (auto intro: totalp_on_mono_strong)
+
+lemma total_on_subset: "total_on B r \<Longrightarrow> A \<subseteq> B \<Longrightarrow> total_on A r"
   by (auto simp: total_on_def)
 
-lemma totalp_on_subset: "totalp_on A R \<Longrightarrow> B \<subseteq> A \<Longrightarrow> totalp_on B R"
-  by (auto intro: totalp_onI dest: totalp_onD)
+lemma totalp_on_subset: "totalp_on B R \<Longrightarrow> A \<subseteq> B \<Longrightarrow> totalp_on A R"
+  using totalp_on_mono_strong .
 
 lemma totalp_on_image:
   assumes "inj_on f A"
@@ -830,52 +958,82 @@ lemma (in linorder) totalp_on_ge[simp]: "totalp_on A (\<ge>)"
   by (rule totalp_onI, rule linear)
 
 
-subsubsection \<open>Single valued relations\<close>
+subsubsection \<open>Left uniqueness\<close>
+
+definition left_unique :: "('a \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> bool" where
+  "left_unique R \<longleftrightarrow> (\<forall>x y z. R x z \<longrightarrow> R y z \<longrightarrow> x = y)"
+
+lemma left_uniqueI: "(\<And>x y z. A x z \<Longrightarrow> A y z \<Longrightarrow> x = y) \<Longrightarrow> left_unique A"
+  unfolding left_unique_def by blast
+
+lemma left_uniqueD: "left_unique A \<Longrightarrow> A x z \<Longrightarrow> A y z \<Longrightarrow> x = y"
+  unfolding left_unique_def by blast
+
+lemma left_unique_iff_Uniq: "left_unique r \<longleftrightarrow> (\<forall>y. \<exists>\<^sub>\<le>\<^sub>1x. r x y)"
+  unfolding Uniq_def left_unique_def by blast
+
+lemma left_unique_bot[simp]: "left_unique \<bottom>"
+  by (simp add: left_unique_def)
+
+lemma left_unique_mono_strong:
+  "left_unique Q \<Longrightarrow> (\<And>x y. R x y \<Longrightarrow> Q x y) \<Longrightarrow> left_unique R"
+  by (rule left_uniqueI) (auto dest: left_uniqueD)
+
+lemma left_unique_mono[mono]: "R \<le> Q \<Longrightarrow> left_unique Q \<le> left_unique R"
+  using left_unique_mono_strong[of Q R]
+  by (simp add: le_fun_def)
+
+
+subsubsection \<open>Right uniqueness\<close>
 
 definition single_valued :: "('a \<times> 'b) set \<Rightarrow> bool"
   where "single_valued r \<longleftrightarrow> (\<forall>x y. (x, y) \<in> r \<longrightarrow> (\<forall>z. (x, z) \<in> r \<longrightarrow> y = z))"
 
-definition single_valuedp :: "('a \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> bool"
-  where "single_valuedp r \<longleftrightarrow> (\<forall>x y. r x y \<longrightarrow> (\<forall>z. r x z \<longrightarrow> y = z))"
+definition right_unique :: "('a \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> bool" where
+  "right_unique R \<longleftrightarrow> (\<forall>x y z. R x y \<longrightarrow> R x z \<longrightarrow> y = z)"
 
-lemma single_valuedp_single_valued_eq [pred_set_conv]:
-  "single_valuedp (\<lambda>x y. (x, y) \<in> r) \<longleftrightarrow> single_valued r"
-  by (simp add: single_valued_def single_valuedp_def)
+lemma right_unique_single_valued_eq [pred_set_conv]:
+  "right_unique (\<lambda>x y. (x, y) \<in> r) \<longleftrightarrow> single_valued r"
+  by (simp add: single_valued_def right_unique_def)
 
-lemma single_valuedp_iff_Uniq:
-  "single_valuedp r \<longleftrightarrow> (\<forall>x. \<exists>\<^sub>\<le>\<^sub>1y. r x y)"
-  unfolding Uniq_def single_valuedp_def by auto
+lemma right_unique_iff_Uniq:
+  "right_unique r \<longleftrightarrow> (\<forall>x. \<exists>\<^sub>\<le>\<^sub>1y. r x y)"
+  unfolding Uniq_def right_unique_def by auto
 
 lemma single_valuedI:
   "(\<And>x y. (x, y) \<in> r \<Longrightarrow> (\<And>z. (x, z) \<in> r \<Longrightarrow> y = z)) \<Longrightarrow> single_valued r"
   unfolding single_valued_def by blast
 
-lemma single_valuedpI:
-  "(\<And>x y. r x y \<Longrightarrow> (\<And>z. r x z \<Longrightarrow> y = z)) \<Longrightarrow> single_valuedp r"
-  by (fact single_valuedI [to_pred])
+lemma right_uniqueI: "(\<And>x y z. R x y \<Longrightarrow> R x z \<Longrightarrow> y = z) \<Longrightarrow> right_unique R"
+  unfolding right_unique_def by fast
 
 lemma single_valuedD:
   "single_valued r \<Longrightarrow> (x, y) \<in> r \<Longrightarrow> (x, z) \<in> r \<Longrightarrow> y = z"
   by (simp add: single_valued_def)
 
-lemma single_valuedpD:
-  "single_valuedp r \<Longrightarrow> r x y \<Longrightarrow> r x z \<Longrightarrow> y = z"
-  by (fact single_valuedD [to_pred])
+lemma right_uniqueD: "right_unique R \<Longrightarrow> R x y \<Longrightarrow> R x z \<Longrightarrow> y = z"
+  unfolding right_unique_def by fast
 
 lemma single_valued_empty [simp]:
   "single_valued {}"
   by (simp add: single_valued_def)
 
-lemma single_valuedp_bot [simp]:
-  "single_valuedp \<bottom>"
-  by (fact single_valued_empty [to_pred])
+lemma right_unique_bot[simp]: "right_unique \<bottom>"
+  by (fact single_valued_empty[to_pred])
+
+lemma right_unique_mono_strong:
+  "right_unique Q \<Longrightarrow> (\<And>x y. R x y \<Longrightarrow> Q x y) \<Longrightarrow> right_unique R"
+  by (rule right_uniqueI) (auto dest: right_uniqueD)
+
+lemma right_unique_mono[mono]: "R \<le> Q \<Longrightarrow> right_unique Q \<le> right_unique R"
+  using right_unique_mono_strong[of Q R]
+  by (simp add: le_fun_def)
 
 lemma single_valued_subset:
   "r \<subseteq> s \<Longrightarrow> single_valued s \<Longrightarrow> single_valued r"
   unfolding single_valued_def by blast
 
-lemma single_valuedp_less_eq:
-  "r \<le> s \<Longrightarrow> single_valuedp s \<Longrightarrow> single_valuedp r"
+lemma right_unique_less_eq: "r \<le> s \<Longrightarrow> right_unique s \<Longrightarrow> right_unique r"
   by (fact single_valued_subset [to_pred])
 
 
@@ -914,8 +1072,11 @@ lemma single_valued_Id [simp]: "single_valued Id"
 lemma irrefl_diff_Id [simp]: "irrefl (r - Id)"
   by (simp add: irrefl_def)
 
-lemma trans_diff_Id: "trans r \<Longrightarrow> antisym r \<Longrightarrow> trans (r - Id)"
-  unfolding antisym_def trans_def by blast
+lemma trans_on_diff_Id: "trans_on A r \<Longrightarrow> antisym_on A r \<Longrightarrow> trans_on A (r - Id)"
+  by (blast intro: trans_onI dest: trans_onD antisym_onD)
+
+lemma trans_diff_Id[no_atp]: "trans r \<Longrightarrow> antisym r \<Longrightarrow> trans (r - Id)"
+  using trans_on_diff_Id .
 
 lemma total_on_diff_Id [simp]: "total_on A (r - Id) = total_on A r"
   by (simp add: total_on_def)
@@ -952,7 +1113,7 @@ lemma Id_on_subset_Times: "Id_on A \<subseteq> A \<times> A"
   by blast
 
 lemma refl_on_Id_on: "refl_on A (Id_on A)"
-  by (rule refl_onI [OF Id_on_subset_Times Id_onI])
+  by (rule refl_onI[OF Id_onI])
 
 lemma antisym_Id_on [simp]: "antisym (Id_on A)"
   unfolding antisym_def by blast
@@ -1229,6 +1390,12 @@ lemma total_on_converse [simp]: "total_on A (r\<inverse>) = total_on A r"
 
 lemma totalp_on_converse [simp]: "totalp_on A R\<inverse>\<inverse> = totalp_on A R"
   by (rule total_on_converse[to_pred])
+
+lemma left_unique_conversep[simp]: "left_unique A\<inverse>\<inverse> \<longleftrightarrow> right_unique A"
+  by (auto simp add: left_unique_def right_unique_def)
+
+lemma right_unique_conversep[simp]: "right_unique A\<inverse>\<inverse> \<longleftrightarrow> left_unique A"
+  by (auto simp add: left_unique_def right_unique_def)
 
 lemma conversep_noteq [simp]: "(\<noteq>)\<inverse>\<inverse> = (\<noteq>)"
   by (auto simp add: fun_eq_iff)

@@ -30,26 +30,26 @@ object Isabelle_System {
 
   object No_Env extends Env(JMap.of())
 
-  def settings(putenv: List[(String, String)] = Nil): JMap[String, String] = {
-    val env0 = isabelle.setup.Environment.settings()
-    if (putenv.isEmpty) env0
-    else {
-      val env = new HashMap(env0)
-      for ((a, b) <- putenv) env.put(a, b)
-      env
+  object Settings {
+    def env(putenv: List[(String, String)] = Nil): JMap[String, String] = {
+      val env0 = isabelle.setup.Environment.settings()
+      if (putenv.isEmpty) env0
+      else {
+        val env = new HashMap(env0)
+        for ((a, b) <- putenv) env.put(a, b)
+        env
+      }
     }
+
+    def apply(putenv: List[(String, String)] = Nil): Settings_Env =
+      new Env(env(putenv = putenv))
   }
 
-  def settings_env(putenv: List[(String, String)] = Nil): Settings_Env =
-    new Env(settings(putenv = putenv))
+  def getenv(name: String, env: Settings = Settings()): String = env.get(name)
 
-  def getenv(name: String, env: Settings = settings_env()): String = env.get(name)
-
-  def getenv_strict(name: String, env: Settings = settings_env()): String =
+  def getenv_strict(name: String, env: Settings = Settings()): String =
     proper_string(getenv(name, env)) getOrElse
       error("Undefined Isabelle environment variable: " + quote(name))
-
-  def ml_identifier(): String = getenv("ML_IDENTIFIER")
 
   def hostname(default: String = ""): String =
     proper_string(default) getOrElse getenv_strict("ISABELLE_HOSTNAME")
@@ -413,7 +413,7 @@ object Isabelle_System {
     description: String = "",
     ssh: SSH.System = SSH.Local,
     cwd: Path = Path.current,
-    env: JMap[String, String] = settings(),  // ignored for remote ssh
+    env: JMap[String, String] = Settings.env(),  // ignored for remote ssh
     redirect: Boolean = false,
     input: String = "",
     progress_stdout: String => Unit = (_: String) => (),
@@ -426,6 +426,16 @@ object Isabelle_System {
         redirect = redirect, cleanup = cleanup).
       result(input = input, progress_stdout = progress_stdout, progress_stderr = progress_stderr,
         watchdog = watchdog, strict = strict)
+  }
+
+  lazy val bash_functions: List[String] =
+    bash("declare -Fx").check.out_lines.flatMap(s => Word.explode(s).lastOption)
+
+  def no_bash_functions: List[String] = bash_functions.map("-" + _)
+
+  object Bash_Functions extends Scala.Fun_Strings("bash_functions") {
+    val here = Scala_Project.here
+    def apply(args: List[String]): List[String] = bash_functions
   }
 
 
@@ -487,11 +497,17 @@ object Isabelle_System {
         } Files.setLastModifiedTime(res, t)
       }
     }
-    else if (File.is_tar_bz2(name) || File.is_tgz(name) || File.is_tar_gz(name)) {
-      val flags = if (File.is_tar_bz2(name)) "-xjf " else "-xzf "
-      Isabelle_System.gnutar(flags + File.bash_path(archive), dir = dir, strip = strip).check
+    else {
+      val extr =
+        if (File.is_tar_bz2(name)) "-xjf"
+        else if (File.is_tgz(name) || File.is_tar_gz(name)) "-xzf"
+        else if (File.is_tar_xz(name)) "--xz -xf"
+        else ""
+      if (extr.nonEmpty) {
+        Isabelle_System.gnutar(extr + " " + File.bash_path(archive), dir = dir, strip = strip).check
+      }
+      else error("Cannot extract " + archive)
     }
-    else error("Cannot extract " + archive)
   }
 
   def make_patch(base_dir: Path, src: Path, dst: Path, diff_options: String = ""): String = {
@@ -501,6 +517,22 @@ object Isabelle_System {
           File.bash_path(src) + " " + File.bash_path(dst),
         cwd = base_dir).check_rc(Process_Result.RC.regular).out_lines
     Library.terminate_lines(lines)
+  }
+
+  def apply_patch(base_dir: Path, patch: String,
+    strip: Int = 1,
+    progress: Progress = new Progress
+  ): Unit = {
+    Isabelle_System.require_command("patch")
+    with_tmp_file("patch", ext = "rej") { rej =>
+      val result =
+        Isabelle_System.bash("patch -f -p" + strip + " -r " + File.bash_path(rej),
+          cwd = base_dir, input = patch, progress_stdout = progress.echo_if(progress.verbose, _))
+      if (!result.ok) {
+        val lines = if (rej.is_file) Library.trim_split_lines(File.read(rej)) else Nil
+        error("Failed to apply patch" + if_proper(lines, ":\n") + cat_lines(lines))
+      }
+    }
   }
 
   def git_clone(url: String, target: Path,
@@ -543,12 +575,8 @@ object Isabelle_System {
 
   /* default logic */
 
-  def default_logic(args: String*): String = {
-    args.find(_ != "") match {
-      case Some(logic) => logic
-      case None => getenv_strict("ISABELLE_LOGIC")
-    }
-  }
+  def default_logic(args: String*): String =
+    args.find(_.nonEmpty) getOrElse getenv_strict("ISABELLE_LOGIC")
 
 
   /* download file */

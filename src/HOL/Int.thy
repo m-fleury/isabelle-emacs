@@ -301,6 +301,9 @@ lemma of_int_0_eq_iff [simp]: "0 = of_int z \<longleftrightarrow> z = 0"
 lemma of_int_eq_1_iff [iff]: "of_int z = 1 \<longleftrightarrow> z = 1"
   using of_int_eq_iff [of z 1] by simp
 
+lemma of_nat_of_int_iff: "of_int i = of_nat n \<longleftrightarrow> i = of_nat n" "of_nat n = of_int i \<longleftrightarrow> i = of_nat n"
+  by (metis of_int_eq_iff of_int_of_nat_eq)+
+
 lemma numeral_power_eq_of_int_cancel_iff [simp]:
   "numeral x ^ n = of_int y \<longleftrightarrow> numeral x ^ n = y"
   using of_int_eq_iff[of "numeral x ^ n" y, unfolded of_int_numeral of_int_power] .
@@ -935,7 +938,7 @@ lemma Ints_add [simp]: "a \<in> \<int> \<Longrightarrow> b \<in> \<int> \<Longri
 lemma Ints_minus [simp]: "a \<in> \<int> \<Longrightarrow> -a \<in> \<int>"
   by (force simp add: Ints_def simp flip: of_int_minus intro: range_eqI)
 
-lemma minus_in_Ints_iff: "-x \<in> \<int> \<longleftrightarrow> x \<in> \<int>"
+lemma minus_in_Ints_iff [simp]: "-x \<in> \<int> \<longleftrightarrow> x \<in> \<int>"
   using Ints_minus[of x] Ints_minus[of "-x"] by auto
 
 lemma Ints_diff [simp]: "a \<in> \<int> \<Longrightarrow> b \<in> \<int> \<Longrightarrow> a - b \<in> \<int>"
@@ -1078,6 +1081,61 @@ proof -
     by (simp add: a)
   finally show ?thesis .
 qed
+
+lemma add_in_Ints_iff_left [simp]: "x \<in> \<int> \<Longrightarrow> x + y \<in> \<int> \<longleftrightarrow> y \<in> \<int>"
+  by (metis Ints_add Ints_diff add_diff_cancel_left')
+
+lemma add_in_Ints_iff_right [simp]: "y \<in> \<int> \<Longrightarrow> x + y \<in> \<int> \<longleftrightarrow> x \<in> \<int>"
+  by (subst add.commute) auto
+
+lemma diff_in_Ints_iff_left [simp]: "x \<in> \<int> \<Longrightarrow> x - y \<in> \<int> \<longleftrightarrow> y \<in> \<int>"
+  by (metis Ints_diff add_in_Ints_iff_left diff_add_cancel)
+
+lemma diff_in_Ints_iff_right [simp]: "y \<in> \<int> \<Longrightarrow> x - y \<in> \<int> \<longleftrightarrow> x \<in> \<int>"
+  by (metis Ints_minus diff_in_Ints_iff_left minus_diff_eq)
+
+lemmas [simp] = minus_in_Ints_iff
+
+lemma fraction_not_in_Ints:
+  assumes "\<not>(n dvd m)" "n \<noteq> 0"
+  shows   "of_int m / of_int n \<notin> (\<int> :: 'a :: {division_ring,ring_char_0} set)"
+proof
+  assume "of_int m / (of_int n :: 'a) \<in> \<int>"
+  then obtain k where "of_int m / of_int n = (of_int k :: 'a)" by (elim Ints_cases)
+  with assms have "of_int m = (of_int (k * n) :: 'a)" by (auto simp add: field_split_simps)
+  hence "m = k * n" by (subst (asm) of_int_eq_iff)
+  hence "n dvd m" by simp
+  with assms(1) show False by contradiction
+qed
+
+lemma of_int_div_of_int_in_Ints_iff:
+  "(of_int n / of_int m :: 'a :: {division_ring,ring_char_0}) \<in> \<int> \<longleftrightarrow> m = 0 \<or> m dvd n"
+proof
+  assume *: "m = 0 \<or> m dvd n"
+  have "of_int n / of_int m \<in> (\<int> :: 'a set)" if "m \<noteq> 0" "m dvd n"
+  proof -
+    from \<open>m dvd n\<close> obtain k where "n = m * k"
+      by (elim dvdE)
+    hence "n = k * m"
+      by (simp add: mult.commute)
+    hence "of_int n / (of_int m :: 'a) = of_int k"
+      using \<open>m \<noteq> 0\<close> by (simp add: field_simps)
+    also have "\<dots> \<in> \<int>"
+      by auto
+    finally show ?thesis .
+  qed
+  with * show "of_int n / of_int m \<in> (\<int> :: 'a set)"
+    by (cases "m = 0") auto
+next
+  assume *: "(of_int n / of_int m :: 'a) \<in> \<int>"
+  thus "m = 0 \<or> m dvd n"
+    using fraction_not_in_Ints[of m n, where ?'a = 'a] by auto
+qed
+
+lemma fraction_numeral_not_in_Ints [simp]:
+  assumes "\<not>(numeral b :: int) dvd numeral a"
+  shows   "numeral a / numeral b \<notin> (\<int> :: 'a :: {division_ring, ring_char_0} set)"
+  using fraction_not_in_Ints[of "numeral b" "numeral a", where ?'a = 'a] assms by simp
 
 
 subsection \<open>\<^term>\<open>sum\<close> and \<^term>\<open>prod\<close>\<close>
@@ -1733,6 +1791,18 @@ proof -
     by (simp add: ac_simps)
 qed
 
+lemma fraction_numeral_not_in_Ints' [simp]:
+  assumes "b \<noteq> Num.One"
+  shows   "1 / numeral b \<notin> (\<int> :: 'a :: {division_ring, ring_char_0} set)"
+proof -
+  have *: "\<not>numeral b dvd (1 :: int)"
+    using assms by simp
+  have "of_int 1 / of_int (numeral b) \<notin> (\<int> :: 'a set)"
+    by (rule fraction_not_in_Ints) (use * in auto)
+  thus ?thesis
+    by simp
+qed
+
 
 subsection \<open>Powers with integer exponents\<close>
 
@@ -1880,6 +1950,15 @@ lemma power_int_inverse [field_simps, field_split_simps, divide_simps]:
 
 lemma power_int_mult: "power_int (x :: 'a) (m * n) = power_int (power_int x m) n"
   by (auto simp: power_int_def zero_le_mult_iff simp flip: power_mult power_inverse nat_mult_distrib)
+
+lemma power_int_power: "(a ^ b :: 'a :: division_ring) powi c = a powi (int b * c)"
+  by (subst power_int_mult) simp
+
+lemma power_int_power': "(a powi b :: 'a :: division_ring) ^ c = a powi (b * int c)"
+  by (simp add: power_int_mult)
+
+lemma power_int_nonneg_exp: "n \<ge> 0 \<Longrightarrow> x powi n = x ^ nat n"
+  by (simp add: power_int_def)
 
 end
 

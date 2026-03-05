@@ -664,7 +664,7 @@ object Build_Manager {
         val log_opts = "--graph --color always"
         val rev1 = "children(" + rev0 + ")"
         val cmd = repository.command_line("log", Mercurial.opt_rev(rev1 + ":" + rev), log_opts)
-        val log = Isabelle_System.bash("export HGPLAINEXCEPT=color\n" + cmd).check.out
+        val log = Isabelle_System.bash(Bash.exports("HGPLAINEXCEPT=color") + cmd).check.out
         if (log.nonEmpty) File.write_gzip(dir + Path.basic(component).ext(log_ext).gz, log)
       }
 
@@ -677,7 +677,7 @@ object Build_Manager {
       if (rev0.nonEmpty && rev.nonEmpty) {
         val diff_opts = "--noprefix --nodates --ignore-all-space --color always"
         val cmd = repository.command_line("diff", Mercurial.opt_rev(rev0 + ":" + rev), diff_opts)
-        val diff = Isabelle_System.bash("export HGPLAINEXCEPT=color\n" + cmd).check.out
+        val diff = Isabelle_System.bash(Bash.exports("HGPLAINEXCEPT=color") + cmd).check.out
         if (diff.nonEmpty) File.write_gzip(dir + Path.basic(component).ext(diff_ext).gz, diff)
       }
 
@@ -871,7 +871,10 @@ object Build_Manager {
     val rsync_context = Rsync.Context()
 
     private def sync(repository: Mercurial.Repository, rev: String, target: Path): String = {
-      repository.pull()
+      val pull_result = Exn.capture(repository.pull())
+      if (Exn.is_exn(pull_result)) {
+        echo_error_message("Could not read from repository: " + Exn.the_exn(pull_result).getMessage)
+      }
 
       if (rev.nonEmpty) repository.sync(rsync_context, target, rev = rev)
 
@@ -1939,6 +1942,9 @@ Usage: isabelle build_manager_database [OPTIONS]
 
   /* Isabelle tool wrapper */
 
+  private val build_manager_ssh_options =
+    List("build_manager_ssh_user", "build_manager_ssh_host", "build_manager_ssh_port")
+
   val isabelle_tool2 = Isabelle_Tool("build_task", "submit build task for build manager",
     Scala_Project.here,
     { args =>
@@ -1959,6 +1965,9 @@ Usage: isabelle build_manager_database [OPTIONS]
       var rev = ""
       val exclude_sessions = new mutable.ListBuffer[String]
 
+      def show_options: String =
+        cat_lines(build_manager_ssh_options.flatMap(options.get).map(_.print))
+
       val getopts = Getopts("""
 Usage: isabelle build_task [OPTIONS] [SESSIONS ...]
 
@@ -1975,14 +1984,16 @@ Usage: isabelle build_task [OPTIONS] [SESSIONS ...]
     -f           fresh build
     -g NAME      select session group NAME
     -o OPTION    override Isabelle system OPTION (via NAME=VAL or NAME)
-    -p OPTION    override Isabelle system OPTION for build process (via NAME=VAL or NAME)
+    -p OPTION    override Isabelle system OPTION for build process
+                 (via NAME=VAL or NAME)
     -r REV       explicit revision (default: state of working directory)
     -v           verbose
     -x NAME      exclude session NAME and all descendants
 
-  Submit build task on SSH server. Notable system options:
+  Submit build task on managed server.
 
-""" + Library.indent_lines(2, options.get("build_manager_ssh_user").get.print) + "\n",
+  Requires SSH access to known host according to system options:
+""" + Library.indent_lines(4, show_options) + "\n",
         "A:" -> (arg => afp_root = Some(if (arg == ":") AFP.BASE else Path.explode(arg))),
         "B:" -> (arg => base_sessions += arg),
         "P" -> (_ => presentation = true),

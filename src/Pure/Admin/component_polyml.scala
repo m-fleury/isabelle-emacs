@@ -10,125 +10,191 @@ package isabelle
 
 
 object Component_PolyML {
-  /** platform-specific build **/
+  /** platform information **/
+
+  object Platform_Info {
+    def apply(platform: Isabelle_Platform): Platform_Info =
+      if (platform.is_linux) {
+        Platform_Info(
+          platform = platform,
+          gmp_options = List("CFLAGS=-std=gnu11"),
+          options = List("LDFLAGS=-Wl,-rpath,_DUMMY_"),
+          libs = Set("libgmp"))
+      }
+      else if (platform.is_macos) {
+        Platform_Info(
+          platform = platform,
+          gmp_options = List("CFLAGS=-std=gnu17"),
+          options = List("CFLAGS=-O3", "CXXFLAGS=-O3", "LDFLAGS=-segprot POLY rwx rwx"),
+          setup = "PATH=/usr/bin:/bin:/usr/sbin:/sbin",
+          libs = Set("libpolyml", "libgmp"))
+      }
+      else if (platform.is_windows) {
+        Platform_Info(
+          platform = platform,
+          gmp_options = List("CFLAGS=-std=gnu17"),
+          options =
+            List("--host=x86_64-w64-mingw32", "CPPFLAGS=-I/mingw64/include", "--disable-windows-gui"),
+          setup = MinGW.env_prefix,
+          libs = Set("libgcc_s_seh", "libgmp", "libstdc++", "libwinpthread"))
+      }
+      else error("Bad platform: " + quote(platform.toString))
+  }
 
   sealed case class Platform_Info(
+    platform: Isabelle_Platform = Isabelle_Platform.local,
+    gmp_options: List[String] = Nil,
     options: List[String] = Nil,
     setup: String = "",
-    libs: Set[String] = Set.empty)
+    libs: Set[String] = Set.empty
+  ) {
+    def polyml(arch_64: Boolean): String =
+      (if (arch_64) platform.arch_64 else platform.arch_64_32) + "-" + platform.os_name
+  }
 
-  private val platform_info = Map(
-    "linux" ->
-      Platform_Info(
-        options = List("LDFLAGS=-Wl,-rpath,_DUMMY_"),
-        libs = Set("libgmp")),
-    "darwin" ->
-      Platform_Info(
-        options = List("CFLAGS=-O3", "CXXFLAGS=-O3", "LDFLAGS=-segprot POLY rwx rwx"),
-        setup = "PATH=/usr/bin:/bin:/usr/sbin:/sbin",
-        libs = Set("libpolyml", "libgmp")),
-    "windows" ->
-      Platform_Info(
-        options =
-          List("--host=x86_64-w64-mingw32", "CPPFLAGS=-I/mingw64/include", "--disable-windows-gui"),
-        setup = MinGW.environment_export,
-        libs = Set("libgcc_s_seh", "libgmp", "libstdc++", "libwinpthread")))
 
-  def polyml_platform(arch_64: Boolean): String = {
-    val platform = Isabelle_Platform.self
-    (if (arch_64) platform.arch_64 else platform.arch_64_32) + "-" + platform.os_name
+  /** build stages **/
+
+  def make_polyml_gmp(
+    platform_context: Isabelle_Platform.Context,
+    dir: Path,
+    options: List[String] = Nil
+  ): Path = {
+    val progress = platform_context.progress
+    val platform = platform_context.isabelle_platform
+    val platform_info = Platform_Info(platform)
+
+    val platform_arch = if (platform.is_arm) "aarch64" else "x86_64"
+    val platform_os =
+      if (platform.is_linux) "unknown-linux-gnu"
+      else if (platform.is_windows) "w64-mingw32"
+      else if (platform.is_macos) """apple-darwin"$(uname -r)""""
+      else error("Bad platform " + platform)
+
+    val root = dir.absolute
+    val target_dir = root + Path.explode("target")
+
+    progress.echo("Building GMP library ...")
+    platform_context.bash(
+      Library.make_lines(
+        "set -e",
+        "[ -f Makefile ] && make distclean",
+        "./configure --disable-static --enable-shared --enable-cxx" +
+          " --build=" + platform_arch + "-" + platform_os +
+          """ --prefix="$PWD/target" """ +
+          Bash.strings(platform_info.gmp_options ::: options),
+        "rm -rf target",
+        "make",
+        "make check",
+        "make install"), cwd = root).check
+
+    if (platform.is_windows) {
+      val bin_dir = target_dir + Path.explode("bin")
+      val lib_dir = target_dir + Path.explode("lib")
+      Isabelle_System.copy_dir(bin_dir, lib_dir, direct = true)
+    }
+
+    target_dir
   }
 
   def make_polyml(
+    platform_context: Isabelle_Platform.Context,
     root: Path,
+    gmp_root: Option[Path] = None,
     sha1_root: Option[Path] = None,
     target_dir: Path = Path.current,
     arch_64: Boolean = false,
-    options: List[String] = Nil,
-    mingw: MinGW = MinGW.none,
-    progress: Progress = new Progress,
+    options: List[String] = Nil
   ): Unit = {
     if (!((root + Path.explode("configure")).is_file && (root + Path.explode("PolyML")).is_dir))
       error("Bad Poly/ML root directory: " + root)
 
-    val platform = Isabelle_Platform.self
-
-    val sha1_platform = platform.arch_64 + "-" + platform.os_name
-
-    val info =
-      platform_info.getOrElse(platform.os_name,
-        error("Bad OS platform: " + quote(platform.os_name)))
-
-    if (platform.is_linux) Isabelle_System.require_command("patchelf")
-
-
-    /* bash */
-
-    def bash(
-      cwd: Path, script: String,
-      redirect: Boolean = false,
-      echo: Boolean = false
-    ): Process_Result = {
-      val script1 =
-        if (platform.is_arm && platform.is_macos) {
-          "arch -arch arm64 bash -c " + Bash.string(script)
-        }
-        else mingw.bash_script(script)
-      progress.bash(script1, cwd = cwd, redirect = redirect, echo = echo)
-    }
+    val platform = platform_context.isabelle_platform
+    val platform_info = Platform_Info(platform)
 
 
     /* configure and make */
 
-    val configure_options =
-      List("--disable-shared", "--enable-intinf-as-int", "--with-gmp") :::
-        info.options ::: options ::: (if (arch_64) Nil else List("--enable-compact32bit"))
+    val configure_options = {
+      val options1 =
+        if (gmp_root.nonEmpty) List("--with-gmp") else List("--without-gmp")
 
-    bash(root,
-      info.setup + "\n" +
-      """
-        [ -f Makefile ] && make distclean
-        {
-          ./configure --prefix="$PWD/target" """ + Bash.strings(configure_options) + """
-          rm -rf target
-          make && make install
-        } || { echo "Build failed" >&2; exit 2; }
-      """, redirect = true, echo = true).check
+      def detect_CFLAGS(s: String): Boolean = s.startsWith("CFLAGS=")
+
+      val info_options =
+        if (platform_info.options.exists(detect_CFLAGS)) platform_info.options
+        else "CFLAGS=" :: platform_info.options
+
+      val options2 =
+        for (opt <- info_options) yield {
+          if (opt.startsWith("CFLAGS=") && gmp_root.nonEmpty) {
+            val root0 = gmp_root.get.absolute
+            val root1 = platform_context.standard_path(root0)
+            require(root0.implode == File.bash_path(root0), "Bad directory name " + root0)
+            opt + " " + "-I" + root1 + "/include -L" + root1 + "/lib"
+          }
+          else opt
+        }
+
+      val options3 = if (arch_64) Nil else List("--enable-compact32bit")
+
+      List("--disable-shared", "--enable-intinf-as-int") :::
+        options1 ::: options2 ::: options ::: options3
+    }
+
+    val gmp_setup =
+      gmp_root match {
+        case Some(dir) =>
+          val (x, y) = Executable.library_path(platform)
+          val z = platform_context.standard_path(dir.absolute) + "/" + y
+          "export " + x + "=" + quote(z + ":" + "$" + x)
+        case None => ""
+      }
+
+    platform_context.bash(
+      Library.make_lines(
+        "set -e",
+        platform_info.setup,
+        gmp_setup,
+        "[ -f Makefile ] && make distclean",
+        """./configure --prefix="$PWD/target" """ + Bash.strings(configure_options),
+        "rm -rf target",
+        "make",
+        "make install"), cwd = root).check
 
 
     /* sha1 library */
 
     val sha1_files =
-      if (sha1_root.isDefined) {
-        val dir1 = sha1_root.get
-        bash(dir1, "./build " + sha1_platform, redirect = true, echo = true).check
-
-        val dir2 = dir1 + Path.explode(sha1_platform)
-        File.read_dir(dir2).map(entry => dir2 + Path.basic(entry))
+      sha1_root match {
+        case Some(dir) =>
+          val platform_path = Path.explode(platform.ISABELLE_PLATFORM(windows = true, apple = true))
+          val platform_dir = dir + platform_path
+          platform_context.bash("./build " + File.bash_path(platform_path), cwd = dir).check
+          File.read_dir(platform_dir).map(entry => platform_dir + Path.basic(entry))
+        case None => Nil
       }
-      else Nil
 
 
     /* install */
 
-    val platform_path = Path.explode(polyml_platform(arch_64))
-
+    val platform_path = Path.explode(platform_info.polyml(arch_64))
     val platform_dir = target_dir + platform_path
+
     Isabelle_System.rm_tree(platform_dir)
     Isabelle_System.make_directory(platform_dir)
 
-    val root_platform_dir = Isabelle_System.make_directory(root + platform_path)
-    for {
-      d <- List("target/bin", "target/lib")
-      dir = root + Path.explode(d)
-      entry <- File.read_dir(dir)
-    } Isabelle_System.move_file(dir + Path.explode(entry), root_platform_dir)
+    for (d <- List("target/bin", "target/lib")) {
+      Isabelle_System.copy_dir(root + Path.explode(d), platform_dir, direct = true)
+    }
 
-    Isabelle_System.copy_dir(root_platform_dir, platform_dir, direct = true)
     for (file <- sha1_files) Isabelle_System.copy_file(file, platform_dir)
 
-    Executable.libraries_closure(
-      platform_dir + Path.basic("poly").platform_exe, mingw = mingw, filter = info.libs)
+    Executable.library_closure(
+      platform_dir + Path.basic("poly").platform_exe,
+      env_prefix = gmp_setup + "\n",
+      mingw = platform_context.mingw,
+      filter = platform_info.libs)
 
 
     /* polyc: directory prefix */
@@ -152,11 +218,13 @@ object Component_PolyML {
 
   /** skeleton for component **/
 
-  val default_polyml_url = "https://github.com/polyml/polyml/archive"
-  val default_polyml_version = "90c0dbb2514e"
-  val default_polyml_name = "polyml-5.9.1"
+  val default_gmp_url = "https://gmplib.org/download/gmp/gmp-6.3.0.tar.bz2"
 
-  val default_sha1_url = "https://isabelle.sketis.net/repos/sha1/archive"
+  val default_polyml_url = "https://github.com/polyml/polyml/archive"
+  val default_polyml_version = "ccd3e3717f72"
+  val default_polyml_name = "polyml-5.9.2"
+
+  val default_sha1_url = "https://files.sketis.net/sha1/archive"
   val default_sha1_version = "0ce12663fe76"
 
   private def init_src_root(src_dir: Path, input: String, output: String): Unit = {
@@ -178,17 +246,24 @@ not affect the running ML session. *)
 
 
   def build_polyml(
+    platform_context: Isabelle_Platform.Context,
     options: List[String] = Nil,
-    mingw: MinGW = MinGW.none,
     component_name: String = "",
+    gmp_url: String = "",
+    gmp_root: Option[Path] = None,
     polyml_url: String = default_polyml_url,
     polyml_version: String = default_polyml_version,
     polyml_name: String = default_polyml_name,
     sha1_url: String = default_sha1_url,
     sha1_version: String = default_sha1_version,
-    target_dir: Path = Path.current,
-    progress: Progress = new Progress
+    target_dir: Path = Path.current
   ): Unit = {
+    val platform = platform_context.isabelle_platform
+    val platform_info = Platform_Info(platform)
+
+    val progress = platform_context.progress
+
+
     /* component */
 
     val component_name1 = if (component_name.isEmpty) "polyml-" + polyml_version else component_name
@@ -198,14 +273,33 @@ not affect the running ML session. *)
 
     /* download and build */
 
-    Isabelle_System.with_tmp_dir("download") { download_dir =>
+    Isabelle_System.with_tmp_dir("build") { build_dir =>
+      /* GMP library */
+
+      val gmp_root1: Option[Path] =
+        if (gmp_url.isEmpty) gmp_root
+        else {
+          val gmp_dir = Isabelle_System.make_directory(build_dir + Path.basic("gmp"))
+
+          val archive_name =
+            Url.get_base_name(gmp_url).getOrElse(error("No base name in " + quote(gmp_url)))
+          val archive = build_dir + Path.basic(archive_name)
+          Isabelle_System.download_file(gmp_url, archive, progress = progress)
+          Isabelle_System.extract(archive, gmp_dir, strip = true)
+
+          Some(make_polyml_gmp(platform_context, gmp_dir))
+        }
+
+
+      /* Poly/ML */
+
       val List(polyml_download, sha1_download) =
         for {
           (url, version, target) <-
             List((polyml_url, polyml_version, "src"), (sha1_url, sha1_version, "sha1"))
         } yield {
           val remote = Url.append_path(url, version + ".tar.gz")
-          val download = download_dir + Path.basic(version)
+          val download = build_dir + Path.basic(version)
           Isabelle_System.download_file(remote, download.tar.gz, progress = progress)
           Isabelle_System.extract(download.tar.gz, download, strip = true)
           Isabelle_System.extract(
@@ -217,57 +311,31 @@ not affect the running ML session. *)
       init_src_root(component_dir.src, "RootX86.ML", "ROOT.ML")
 
       for (arch_64 <- List(false, true)) {
-        progress.echo("Building " + polyml_platform(arch_64))
+        progress.echo("Building Poly/ML " + platform_info.polyml(arch_64))
         make_polyml(
+          platform_context,
           root = polyml_download,
+          gmp_root = gmp_root1,
           sha1_root = Some(sha1_download),
           target_dir = component_dir.path,
           arch_64 = arch_64,
-          options = options,
-          mingw = mingw,
-          progress = if (progress.verbose) progress else new Progress)
+          options = options)
       }
     }
 
 
     /* settings */
 
-    component_dir.write_settings("""# -*- shell-script -*- :mode=shellscript:
-
+    component_dir.write_settings("""
 POLYML_HOME="$COMPONENT"
 
-if [ -n "$ISABELLE_APPLE_PLATFORM64" ]
-then
-  if grep "ML_system_apple.*=.*false" "$ISABELLE_HOME_USER/etc/preferences" >/dev/null 2>/dev/null
-  then
-    ML_PLATFORM="$ISABELLE_PLATFORM64"
-  else
-    ML_PLATFORM="$ISABELLE_APPLE_PLATFORM64"
-  fi
-else
-  ML_PLATFORM="${ISABELLE_WINDOWS_PLATFORM64:-$ISABELLE_PLATFORM64}"
-fi
-
-if grep "ML_system_64.*=.*true" "$ISABELLE_HOME_USER/etc/preferences" >/dev/null 2>/dev/null
-then
-  ML_OPTIONS="--minheap 1000"
-else
-  ML_PLATFORM="${ML_PLATFORM/64/64_32}"
-  ML_OPTIONS="--minheap 500"
-fi
-
 ML_SYSTEM=""" + Bash.string(polyml_name) + """
-ML_HOME="$POLYML_HOME/$ML_PLATFORM"
-ML_SOURCES="$POLYML_HOME/src"
+ML_OPTIONS32="--minheap 500"
+ML_OPTIONS64="--minheap 1000"
+ML_OPTIONS=""
+ML_PLATFORM=""
 
-case "$ML_PLATFORM" in
-  *arm64*)
-    ISABELLE_DOCS_EXAMPLES="$ISABELLE_DOCS_EXAMPLES:\$ML_SOURCES/ROOT0.ML"
-    ;;
-  *)
-    ISABELLE_DOCS_EXAMPLES="$ISABELLE_DOCS_EXAMPLES:\$ML_SOURCES/ROOT.ML"
-    ;;
-esac
+ISABELLE_DOCS_EXAMPLES="$ISABELLE_DOCS_EXAMPLES:\$POLYML_HOME/\$ML_SOURCES_ROOT"
 """)
 
 
@@ -281,8 +349,8 @@ This compilation of Poly/ML (https://www.polyml.org) is based on the
 source distribution from
 https://github.com/polyml/polyml/commit/""" + polyml_version + """
 
-This coincides with the official release of Poly/ML 5.9.1, see also
-https://github.com/polyml/polyml/releases/tag/v5.9.1
+This is the official release of Poly/ML 5.9.2 with some later changes,
+see also https://github.com/polyml/polyml/commits/fixes-5.9.2
 
 The Isabelle repository provides an administrative tool "isabelle
 component_polyml", which can be used in the polyml component directory as
@@ -297,34 +365,6 @@ follows:
   $ isabelle component_polyml -M /cygdrive/c/msys64
 
 
-Building libgmp on macOS
-========================
-
-The build_polyml invocations above implicitly use the GNU Multiple Precision
-Arithmetic Library (libgmp), but that is not available on macOS by default.
-Appending "--without-gmp" to the command-line omits this library. Building
-libgmp properly from sources works as follows (library headers and binaries
-will be placed in /usr/local).
-
-* Download:
-
-  $ curl https://gmplib.org/download/gmp/gmp-6.3.0.tar.bz2 | tar xjf -
-  $ cd gmp-6.3.0
-
-* build:
-
-  $ make distclean
-
-  #Intel
-  $ ./configure --enable-cxx --build=core2-apple-darwin"$(uname -r)"
-
-  #ARM
-  $ ./configure --enable-cxx --build=aarch64-apple-darwin"$(uname -r)"
-
-  $ make && make check
-  $ sudo make install
-
-
         Makarius
         """ + Date.Format.date(Date.now()) + "\n")
   }
@@ -334,32 +374,22 @@ will be placed in /usr/local).
   /** Isabelle tool wrappers **/
 
   val isabelle_tool1 =
-    Isabelle_Tool("make_polyml", "make Poly/ML from existing sources", Scala_Project.here,
+    Isabelle_Tool("make_polyml_gmp", "make GMP library from existing sources", Scala_Project.here,
       { args =>
         var mingw = MinGW.none
-        var arch_64 = false
-        var sha1_root: Option[Path] = None
+        var verbose = false
 
         val getopts = Getopts("""
-Usage: isabelle make_polyml [OPTIONS] ROOT [CONFIGURE_OPTIONS]
+Usage: isabelle make_polyml_gmp [OPTIONS] ROOT [CONFIGURE_OPTIONS]
 
   Options are:
     -M DIR       msys/mingw root specification for Windows
-    -m ARCH      processor architecture (32 or 64, default: """ +
-        (if (arch_64) "64" else "32") + """)
-    -s DIR       sha1 sources, see https://isabelle.sketis.net/repos/sha1
 
-  Make Poly/ML in the ROOT directory of its sources, with additional
-  CONFIGURE_OPTIONS (e.g. --without-gmp).
+  Make GMP library in the ROOT directory of its sources, with additional
+  CONFIGURE_OPTIONS.
 """,
           "M:" -> (arg => mingw = MinGW(Path.explode(arg))),
-          "m:" ->
-            {
-              case "32" => arch_64 = false
-              case "64" => arch_64 = true
-              case bad => error("Bad processor architecture: " + quote(bad))
-            },
-          "s:" -> (arg => sha1_root = Some(Path.explode(arg))))
+          "v" -> (_ => verbose = true))
 
         val more_args = getopts(args)
         val (root, options) =
@@ -367,15 +397,67 @@ Usage: isabelle make_polyml [OPTIONS] ROOT [CONFIGURE_OPTIONS]
             case root :: options => (Path.explode(root), options)
             case Nil => getopts.usage()
           }
-        make_polyml(root, sha1_root = sha1_root, progress = new Console_Progress,
-          arch_64 = arch_64, options = options, mingw = mingw)
+
+        val progress = new Console_Progress(verbose = verbose)
+
+        val platform_context = Isabelle_Platform.Context(mingw = mingw, progress = progress)
+        val target_dir = make_polyml_gmp(platform_context, root, options = options)
+
+        progress.echo("GMP installation directory: " + target_dir)
       })
 
   val isabelle_tool2 =
+    Isabelle_Tool("make_polyml", "make Poly/ML from existing sources", Scala_Project.here,
+      { args =>
+        var gmp_root: Option[Path] = None
+        var mingw = MinGW.none
+        var arch_64 = false
+        var sha1_root: Option[Path] = None
+        var verbose = false
+
+        val getopts = Getopts("""
+Usage: isabelle make_polyml [OPTIONS] ROOT [CONFIGURE_OPTIONS]
+
+  Options are:
+    -M DIR       msys/mingw root specification for Windows
+    -g DIR       GMP library root
+    -m ARCH      processor architecture (32 or 64, default: """ +
+        (if (arch_64) "64" else "32") + """)
+    -s DIR       sha1 sources, see https://isabelle.sketis.net/repos/sha1
+
+  Make Poly/ML in the ROOT directory of its sources, with additional
+  CONFIGURE_OPTIONS.
+""",
+          "M:" -> (arg => mingw = MinGW(Path.explode(arg))),
+          "g:" -> (arg => gmp_root = Some(Path.explode(arg))),
+          "m:" ->
+            {
+              case "32" => arch_64 = false
+              case "64" => arch_64 = true
+              case bad => error("Bad processor architecture: " + quote(bad))
+            },
+          "s:" -> (arg => sha1_root = Some(Path.explode(arg))),
+          "v" -> (_ => verbose = true))
+
+        val more_args = getopts(args)
+        val (root, options) =
+          more_args match {
+            case root :: options => (Path.explode(root), options)
+            case Nil => getopts.usage()
+          }
+
+        val progress = new Console_Progress(verbose = verbose)
+        val platform_context = Isabelle_Platform.Context(mingw = mingw, progress = progress)
+        make_polyml(platform_context, root,
+          gmp_root = gmp_root, sha1_root = sha1_root, arch_64 = arch_64, options = options)
+      })
+
+  val isabelle_tool3 =
     Isabelle_Tool("component_polyml", "build Poly/ML component from official repository",
       Scala_Project.here,
       { args =>
         var target_dir = Path.current
+        var gmp_url = default_gmp_url
         var mingw = MinGW.none
         var component_name = ""
         var sha1_url = default_sha1_url
@@ -383,13 +465,16 @@ Usage: isabelle make_polyml [OPTIONS] ROOT [CONFIGURE_OPTIONS]
         var polyml_url = default_polyml_url
         var polyml_version = default_polyml_version
         var polyml_name = default_polyml_name
+        var gmp_root: Option[Path] = None
         var verbose = false
-  
+
         val getopts = Getopts("""
 Usage: isabelle component_polyml [OPTIONS] [CONFIGURE_OPTIONS]
 
   Options are:
     -D DIR       target directory (default ".")
+    -G URL       build GMP library from source (overrides option -g)
+                 (default """ + quote(default_gmp_url) + """)
     -M DIR       msys/mingw root specification for Windows
     -N NAME      component name (default: derived from Poly/ML version)
     -S URL       SHA1 repository archive area
@@ -399,12 +484,14 @@ Usage: isabelle component_polyml [OPTIONS] [CONFIGURE_OPTIONS]
                  (default: """ + quote(default_polyml_url) + """)
     -V VERSION   Poly/ML version (default: """ + quote(default_polyml_version) + """)
     -W NAME      Poly/ML name (default: """ + quote(default_polyml_name) + """)
+    -g DIR       use existing GMP library (overrides option -G)
     -v           verbose
 
   Download and build Poly/ML component from source repositories, with additional
-  CONFIGURE_OPTIONS (e.g. --without-gmp).
+  CONFIGURE_OPTIONS.
 """,
           "D:" -> (arg => target_dir = Path.explode(arg)),
+          "G:" -> (arg => { gmp_url = arg; gmp_root = None }),
           "M:" -> (arg => mingw = MinGW(Path.explode(arg))),
           "N:" -> (arg => component_name = arg),
           "S:" -> (arg => sha1_url = arg),
@@ -412,15 +499,17 @@ Usage: isabelle component_polyml [OPTIONS] [CONFIGURE_OPTIONS]
           "U:" -> (arg => polyml_url = arg),
           "V:" -> (arg => polyml_version = arg),
           "W:" -> (arg => polyml_name = arg),
+          "g:" -> (arg => { gmp_root = Some(Path.explode(arg)); gmp_url = "" }),
           "v" -> (_ => verbose = true))
 
         val options = getopts(args)
 
         val progress = new Console_Progress(verbose = verbose)
+        val platform_context = Isabelle_Platform.Context(mingw = mingw, progress = progress)
 
-        build_polyml(options = options, mingw = mingw, component_name = component_name,
-          polyml_url = polyml_url, polyml_version = polyml_version, polyml_name = polyml_name,
-          sha1_url = sha1_url, sha1_version = sha1_version, target_dir = target_dir,
-          progress = progress)
+        build_polyml(platform_context, options = options, component_name = component_name,
+          gmp_url = gmp_url, gmp_root = gmp_root, polyml_url = polyml_url,
+          polyml_version = polyml_version, polyml_name = polyml_name, sha1_url = sha1_url,
+          sha1_version = sha1_version, target_dir = target_dir)
       })
 }

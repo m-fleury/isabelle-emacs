@@ -260,11 +260,11 @@ fun gen_def prep_spec prep_att raw_var raw_params raw_prems ((a, raw_atts), raw_
       |> Local_Theory.define_internal ((b, mx), ((Binding.suffix_name "_raw" name, []), rhs));
 
     val ([(def_name, [th])], lthy3) = lthy2
-      |> Local_Theory.notes [((name, atts), [([prove lthy2 raw_th], [])])];
+      |> Local_Theory.notes
+          [((name, Code.singleton_default_equation_attrib :: atts), [([prove lthy2 raw_th], [])])];
 
     val lthy4 = lthy3
-      |> Spec_Rules.add name Spec_Rules.equational [lhs] [th]
-      |> Code.declare_default_eqns [(th, true)];
+      |> Spec_Rules.add name Spec_Rules.equational [lhs] [th];
 
     val lhs' = Morphism.term (Local_Theory.target_morphism lthy4) lhs;
 
@@ -344,8 +344,7 @@ fun gen_theorems prep_fact prep_att add_fixes
       |> Attrib.transform_facts (Proof_Context.export_morphism ctxt' lthy);
     val (res, lthy') = lthy |> Local_Theory.notes_kind kind facts';
     val _ =
-      Proof_Display.print_results
-        {interactive = int, pos = Position.thread_data (), proof_state = false}
+      Proof_Display.print_results {interactive = int, pos = Position.thread_data ()}
         lthy' ((kind, ""), res);
   in (res, lthy') end;
 
@@ -398,9 +397,8 @@ fun gen_theorem schematic bundle_includes prep_att prep_stmt
       |> prep_statement (prep_att lthy) prep_stmt elems raw_concl;
     val atts = more_atts @ map (prep_att lthy) raw_atts;
 
-    val pos = Position.thread_data ();
     val print_results =
-      Proof_Display.print_results {interactive = int, pos = pos, proof_state = false};
+      Proof_Display.print_results {interactive = int, pos = Position.thread_data ()};
 
     fun after_qed' results goal_ctxt' =
       let

@@ -12,13 +12,13 @@ sig
   val pretty_theorems: bool -> Proof.context -> Pretty.T list
   val string_of_rule: Proof.context -> string -> thm -> string
   val pretty_goal_header: thm -> Pretty.T
-  val string_of_goal: Proof.context -> thm -> string
+  val pretty_goal: Proof.context -> thm -> Pretty.T
   val pretty_goal_facts: Proof.context -> string -> thm list option -> Pretty.T list
   val pretty_goal_inst: Proof.context -> term list list -> thm -> Pretty.T list
   val method_error: string -> Position.T ->
     {context: Proof.context, facts: thm list, goal: thm} -> 'a Seq.result
   val show_results: bool Config.T
-  val print_results: {interactive: bool, pos: Position.T, proof_state: bool} -> Proof.context ->
+  val print_results: {interactive: bool, pos: Position.T} -> Proof.context ->
     ((string * string) * (string * thm list) list) -> unit
   val print_theorem: Position.T -> Proof.context -> string * thm list -> unit
   val print_consts: bool -> Position.T -> Proof.context ->
@@ -200,10 +200,10 @@ in
 fun pretty_goal_header goal =
   Pretty.block ([Pretty.keyword1 "goal"] @ subgoals (Thm.nprems_of goal) @ [Pretty.str ":"]);
 
-end;
+fun pretty_goal ctxt goal =
+  Pretty.chunks [pretty_goal_header goal, Goal_Display.pretty_goal ctxt goal];
 
-fun string_of_goal ctxt goal =
-  Pretty.string_of (Pretty.chunks [pretty_goal_header goal, Goal_Display.pretty_goal ctxt goal]);
+end;
 
 
 (* goal facts *)
@@ -282,13 +282,14 @@ fun pretty_goal_inst ctxt propss goal =
 fun method_error kind pos {context = ctxt, facts, goal} = Seq.Error (fn () =>
   let
     val pr_header =
-      "Failed to apply " ^ (if kind = "" then "" else kind ^ " ") ^
-      "proof method" ^ Position.here pos ^ ":\n";
+      Pretty.block0
+       ([Pretty.str ("Failed to apply " ^ (if kind = "" then "" else kind ^ " ") ^ "proof method")]
+         @ Pretty.here pos @ [Pretty.str ":"]);
     val pr_facts =
-      if null facts then ""
-      else Pretty.string_of (Pretty.chunks (pretty_goal_facts ctxt "using" (SOME facts))) ^ "\n";
-    val pr_goal = string_of_goal ctxt goal;
-  in pr_header ^ pr_facts ^ pr_goal end);
+      if null facts then []
+      else [Pretty.chunks (pretty_goal_facts ctxt "using" (SOME facts))];
+    val pr_goal = pretty_goal ctxt goal;
+  in Pretty.string_of (Pretty.chunks ([pr_header] @ pr_facts @ [pr_goal])) end);
 
 
 (* results *)
@@ -300,7 +301,7 @@ val show_results =
   Attrib.setup_config_bool \<^binding>\<open>show_results\<close>
     (fn context =>
       Config.get_generic context interactive orelse
-      Options.default_bool \<^system_option>\<open>show_states\<close>);
+      Options.default_bool \<^system_option>\<open>show_results\<close>);
 
 fun no_print int ctxt = not (Config.get (Config.put interactive int ctxt) show_results);
 
@@ -317,25 +318,22 @@ fun pretty_facts ctxt =
 
 in
 
-fun print_results {interactive, pos, proof_state} ctxt ((kind, name), facts) =
-  let val print = if proof_state then Output.state o Pretty.string_of else Pretty.writeln in
-    if kind = "" orelse no_print interactive ctxt then ()
-    else if name = "" then
-      print
-        (Pretty.block (Pretty.mark_position pos (Pretty.keyword1 kind) :: Pretty.brk 1 ::
-          pretty_facts ctxt facts))
-    else
-      print
-        (case facts of
-          [fact] => Pretty.block1 [pretty_fact_name pos (kind, name), Pretty.fbrk,
-            Proof_Context.pretty_fact ctxt fact]
-        | _ => Pretty.block1 [pretty_fact_name pos (kind, name), Pretty.fbrk,
-            Pretty.block1 (Pretty.str "(" :: pretty_facts ctxt facts @ [Pretty.str ")"])])
-  end;
+fun print_results {interactive, pos} ctxt ((kind, name), facts) =
+  if kind = "" orelse no_print interactive ctxt then ()
+  else if name = "" then
+    Pretty.writeln_urgent
+      (Pretty.block (Pretty.mark_position pos (Pretty.keyword1 kind) :: Pretty.brk 1 ::
+        pretty_facts ctxt facts))
+  else
+    Pretty.writeln_urgent
+      (case facts of
+        [fact] => Pretty.block1 [pretty_fact_name pos (kind, name), Pretty.fbrk,
+          Proof_Context.pretty_fact ctxt fact]
+      | _ => Pretty.block1 [pretty_fact_name pos (kind, name), Pretty.fbrk,
+          Pretty.block1 (Pretty.str "(" :: pretty_facts ctxt facts @ [Pretty.str ")"])]);
 
 fun print_theorem pos ctxt fact =
-  print_results {interactive = true, pos = pos, proof_state = false}
-    ctxt ((Thm.theoremK, ""), [fact]);
+  print_results {interactive = true, pos = pos} ctxt ((Thm.theoremK, ""), [fact]);
 
 end;
 

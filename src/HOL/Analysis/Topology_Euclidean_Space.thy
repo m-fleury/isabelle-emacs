@@ -363,6 +363,12 @@ lemma box_Int_box:
     box (\<Sum>i\<in>Basis. max (a\<bullet>i) (c\<bullet>i) *\<^sub>R i) (\<Sum>i\<in>Basis. min (b\<bullet>i) (d\<bullet>i) *\<^sub>R i)"
   unfolding set_eq_iff and Int_iff and mem_box by auto
 
+lemma cbox_prod: "cbox a b = cbox (fst a) (fst b) \<times> cbox (snd a) (snd b)"
+  by (cases a; cases b) auto
+
+lemma box_prod: "box a b = box (fst a) (fst b) \<times> box (snd a) (snd b)"
+  by (cases a; cases b) (force simp: box_def Basis_prod_def)
+
 lemma rational_boxes:
   fixes x :: "'a::euclidean_space"
   assumes "e > 0"
@@ -722,6 +728,12 @@ lemma in_box_complex_iff:
 lemma box_complex_of_real [simp]: "box (complex_of_real x) (complex_of_real y) = {}"
   by (auto simp: in_box_complex_iff)
 
+lemma cbox_complex_eq: "cbox a b = {x. Re x \<in> {Re a..Re b} \<and> Im x \<in> {Im a..Im b}}"
+  by (auto simp: in_cbox_complex_iff)
+
+lemma box_complex_eq: "box a b = {x. Re x \<in> {Re a<..<Re b} \<and> Im x \<in> {Im a<..<Im b}}"
+  by (auto simp: in_box_complex_iff)
+
 lemma Int_interval:
   fixes a :: "'a::euclidean_space"
   shows "cbox a b \<inter> cbox c d =
@@ -767,6 +779,20 @@ proof -
   ultimately show ?thesis
     by (auto simp: box_def inner_sum_left inner_Basis sum.If_cases)
 qed
+
+lemma cbox_shift: "(+) c ` cbox a b = cbox (a + c) (b + c)"
+proof -
+  have "bij_betw ((+) c) (cbox a b) (cbox (a + c) (b + c))"
+    by (rule bij_betwI[of _ _ _ "\<lambda>x. x - c"]) (auto simp: cbox_def algebra_simps)
+  thus ?thesis
+    by (simp add: bij_betw_def)
+qed
+
+lemma cbox_shift': "(\<lambda>x. x + c) ` cbox a b = cbox (a + c) (b + c)"
+  using cbox_shift[of c a b] by (simp add: add.commute)
+
+lemma cbox_shift'': "(\<lambda>x. x - c) ` cbox a b = cbox (a - c) (b - c)"
+  using cbox_shift[of "-c" a b] by simp
 
 lemma image_affinity_cbox: fixes m::real
   fixes a b c :: "'a::euclidean_space"

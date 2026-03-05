@@ -1,5 +1,6 @@
 (*  Title:      Tools/Haskell/Haskell.thy
     Author:     Makarius
+    UUID:       0e3ceb40-61a8-4f78-a6c7-ae4892dd80b3
 
 Support for Isabelle tools in Haskell.
 *)
@@ -764,7 +765,7 @@ module Isabelle.Markup (
 
   forkedN, forked, joinedN, joined, runningN, running, finishedN, finished,
   failedN, failed, canceledN, canceled, initializedN, initialized, finalizedN, finalized,
-  consolidatedN, consolidated,
+  consolidatingN, consolidating, consolidatedN, consolidated,
 
   writelnN, writeln, stateN, state, informationN, information, tracingN, tracing,
   warningN, warning, legacyN, legacy, errorN, error, reportN, report, no_reportN, no_report,
@@ -1156,7 +1157,7 @@ comment3 = markup_elem comment3N
 {- command status -}
 
 forkedN, joinedN, runningN, finishedN, failedN, canceledN,
-  initializedN, finalizedN, consolidatedN :: Bytes
+  initializedN, finalizedN, consolidatingN, consolidatedN :: Bytes
 forkedN = \<open>Markup.forkedN\<close>
 joinedN = \<open>Markup.joinedN\<close>
 runningN = \<open>Markup.runningN\<close>
@@ -1165,10 +1166,11 @@ failedN = \<open>Markup.failedN\<close>
 canceledN = \<open>Markup.canceledN\<close>
 initializedN = \<open>Markup.initializedN\<close>
 finalizedN = \<open>Markup.finalizedN\<close>
+consolidatingN = \<open>Markup.consolidatingN\<close>
 consolidatedN = \<open>Markup.consolidatedN\<close>
 
 forked, joined, running, finished, failed, canceled,
-  initialized, finalized, consolidated :: T
+  initialized, finalized, consolidating, consolidated :: T
 forked = markup_elem forkedN
 joined = markup_elem joinedN
 running = markup_elem runningN
@@ -1177,6 +1179,7 @@ failed = markup_elem failedN
 canceled = markup_elem canceledN
 initialized = markup_elem initializedN
 finalized = markup_elem finalizedN
+consolidating = markup_elem consolidatingN
 consolidated = markup_elem consolidatedN
 
 

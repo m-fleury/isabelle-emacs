@@ -241,7 +241,7 @@ fun print_inductives verbose ctxt =
           map (Pretty.mark_str o #1)
             (Name_Space.markup_entries verbose ctxt space consts))),
      Pretty.big_list "monotonicity rules:" (map (Thm.pretty_thm_item ctxt) monos)]
-  end |> Pretty.writeln_chunks;
+  end |> Pretty.chunks |> Pretty.writeln;
 
 
 (* inductive info *)
@@ -333,7 +333,7 @@ val bad_ind_occ = "Inductive predicate occurs in argument of inductive predicate
 
 val bad_app = "Inductive predicate must be applied to parameter(s) ";
 
-fun atomize_term thy = Raw_Simplifier.rewrite_term thy inductive_atomize [];
+fun atomize_term thy = Simplifier.rewrite_term thy inductive_atomize [];
 
 in
 
@@ -617,8 +617,7 @@ fun gen_inductive_cases prep_att prep_prop args int lthy =
         args thmss;
     val (res, lthy') = lthy |> Local_Theory.notes facts
     val _ =
-      Proof_Display.print_results
-        {interactive = int, pos = Position.thread_data (), proof_state = false}
+      Proof_Display.print_results {interactive = int, pos = Position.thread_data ()}
         lthy' ((Thm.theoremK, ""), res); 
   in (res, lthy') end;
 
@@ -680,8 +679,7 @@ fun gen_inductive_simps prep_att prep_prop args int lthy =
         map (Thm.no_attributes o single o mk_simp_eq lthy o prep_prop lthy) props));
     val (res, lthy') = lthy |> Local_Theory.notes facts
     val _ =
-      Proof_Display.print_results
-        {interactive = int, pos = Position.thread_data (), proof_state = false}
+      Proof_Display.print_results {interactive = int, pos = Position.thread_data ()}
         lthy' ((Thm.theoremK, ""), res)
   in (res, lthy') end;
 
@@ -995,7 +993,7 @@ fun mk_ind_def quiet_mode skip_mono alt_name coind cs intr_ts monos params cname
            fold_rev lambda params (fp_const $ fp_fun)))
       ||> Proof_Context.restore_naming lthy;
     val fp_def' =
-      Simplifier.rewrite (put_simpset HOL_basic_ss lthy' addsimps [fp_def])
+      Simplifier.rewrite (put_simpset HOL_basic_ss lthy' |> Simplifier.add_simp fp_def)
         (Thm.cterm_of lthy' (list_comb (rec_const, params)));
     val specs =
       if is_auxiliary then

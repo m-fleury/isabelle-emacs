@@ -117,7 +117,7 @@ object Bytes {
   /* write */
 
   def write(file: JFile, bytes: Bytes): Unit =
-    using(new FileOutputStream(file))(bytes.write_stream(_))
+    using(new FileOutputStream(file))(bytes.write_stream)
 
   def write(path: Path, bytes: Bytes): Unit = write(path.file, bytes)
 
@@ -125,7 +125,7 @@ object Bytes {
   /* append */
 
   def append(file: JFile, bytes: Bytes): Unit =
-    using(new FileOutputStream(file, true))(bytes.write_stream(_))
+    using(new FileOutputStream(file, true))(bytes.write_stream)
 
   def append(path: Path, bytes: Bytes): Unit = append(path.file, bytes)
 
@@ -146,7 +146,7 @@ object Bytes {
     }
 
     private class Stream(hint: Long = 0L) extends OutputStream {
-      val builder = new Builder(hint)
+      val builder = new Builder(hint = hint)
 
       override def write(b: Int): Unit =
         { builder += b.toByte }
@@ -156,7 +156,7 @@ object Bytes {
     }
   }
 
-  final class Builder private[Bytes](hint: Long) {
+  final class Builder(hint: Long = 0L) {
     builder =>
 
     private var chunks =
@@ -233,7 +233,7 @@ object Bytes {
 
     def += (a: Subarray): Unit = { builder += (a.array, a.offset, a.length) }
 
-    private def done(): Bytes = {
+    def done(): Bytes = {
       val cs = chunks.toArray
       val b = buffer_content()
       val size = cs.foldLeft(b.length.toLong)({ case (n, a) => n + a.length })
@@ -506,7 +506,7 @@ final class Bytes private(
 
   def encode_base64: Bytes =
     Bytes.Builder.use_stream(hint = (size * 1.5).round) { out =>
-      using(Base64.encode_stream(out))(write_stream(_))
+      using(Base64.encode_stream(out))(write_stream)
     }
 
   def decode_base64: Bytes =

@@ -307,12 +307,14 @@ fun clasimpset_rule_table_of ctxt =
       let
         fun add stature th = Termtab.update (normalize_vars (Thm.prop_of th), stature)
 
-        val {safeIs, (* safeEs, *) unsafeIs, (* unsafeEs, *) ...} =
-          ctxt |> claset_of |> Classical.rep_cs
-        val intros = map #1 (Item_Net.content safeIs @ Item_Net.content unsafeIs)
+        val intros =
+          Classical.dest_decls ctxt (fn (_, {kind, ...}) =>
+            kind = Bires.intro_bang_kind orelse kind = Bires.intro_kind)
+          |> map #1
 (* Add once it is used:
-        val elims = Item_Net.content safeEs @ Item_Net.content unsafeEs
-          |> map Classical.classical_rule
+        val elims =
+          (claset_rules Bires.elim_bang_kind @ claset_rules Bires.elim_kind)
+          |> map (Classical.classical_rule ctxt);
 *)
         val specs = Spec_Rules.get ctxt
         val (rec_defs, nonrec_defs) = specs
@@ -370,10 +372,10 @@ fun build_name_tables name_of facts =
   end
 
 fun fact_distinct eq facts =
-  fold (fn (i, fact as (_, th)) =>
+  fold_index (fn (i, fact as (_, th)) =>
       Net.insert_term_safe (eq o apply2 (normalize_eq o Thm.prop_of o snd o snd))
         (normalize_eq (Thm.prop_of th), (i, fact)))
-    (tag_list 0 facts) Net.empty
+    facts Net.empty
   |> Net.entries
   |> sort (int_ord o apply2 fst)
   |> map snd
@@ -452,6 +454,13 @@ fun is_useful_unnamed_local_fact ctxt =
       not (member (op aconv) named_locals (normalize_eq (Thm.prop_of th)))
   end
 
+local
+
+type lazy_facts =
+  {singletons : lazy_fact list , dotteds : lazy_fact list, collections : lazy_fact list}
+
+in
+
 fun all_facts ctxt generous keywords add_ths chained css =
   let
     val thy = Proof_Context.theory_of ctxt
@@ -470,7 +479,7 @@ fun all_facts ctxt generous keywords add_ths chained css =
 
     val full_space = Name_Space.merge (Facts.space_of global_facts, Facts.space_of local_facts)
 
-    fun add_facts global foldx facts =
+    fun add_facts global foldx facts : 'a -> lazy_facts -> lazy_facts =
       foldx (fn (name0, ths) => fn accum =>
         if name0 <> "" andalso
            (Long_Name.is_hidden (Facts.intern facts name0) orelse
@@ -489,7 +498,7 @@ fun all_facts ctxt generous keywords add_ths chained css =
                 NONE => false
               | SOME ths' => eq_list Thm.eq_thm_prop (ths, ths'))
           in
-            snd (fold_rev (fn th0 => fn (j, accum) =>
+            snd (fold_rev (fn th0 => fn (j, accum as {singletons, dotteds, collections} : lazy_facts) =>
               let val th = transfer th0 in
                 (j - 1,
                  if not (member Thm.eq_thm_prop add_ths th) andalso
@@ -517,20 +526,26 @@ fun all_facts ctxt generous keywords add_ths chained css =
                      val stature = stature_of_thm global assms chained css name0 th
                      val new = ((get_name, stature), th)
                    in
-                     (if collection then apsnd o apsnd
-                      else if dotted_name then apsnd o apfst
-                      else apfst) (cons new) accum
+                     if collection then
+                       {singletons = singletons, dotteds = dotteds, collections = new :: collections}
+                      else if dotted_name then
+                       {singletons = singletons, dotteds = new :: dotteds, collections = collections}
+                      else
+                       {singletons = new :: singletons, dotteds = dotteds, collections = collections}
                    end)
               end) ths (n, accum))
           end)
+      val {singletons, dotteds, collections} =
+        {singletons = [], dotteds = [], collections = []}
+        |> add_facts false fold local_facts (unnamed_locals @ named_locals)
+        |> add_facts true Facts.fold_static global_facts global_facts
   in
     (* Names like "xxx" are preferred to "xxx.yyy", which are preferred to "xxx(666)" and the like.
        "Preferred" means "put to the front of the list". *)
-    ([], ([], []))
-    |> add_facts false fold local_facts (unnamed_locals @ named_locals)
-    |> add_facts true Facts.fold_static global_facts global_facts
-    ||> op @ |> op @
+    singletons @ dotteds @ collections
   end
+
+end
 
 fun nearly_all_facts ctxt inst_inducts {add, del, only} keywords css chained hyp_ts concl_t =
   if only andalso null add then

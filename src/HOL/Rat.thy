@@ -420,7 +420,6 @@ qed
 lemma quotient_of_inject_eq: "quotient_of a = quotient_of b \<longleftrightarrow> a = b"
   by (auto simp add: quotient_of_inject)
 
-
 subsubsection \<open>Various\<close>
 
 lemma Fract_of_int_quotient: "Fract k l = of_int k / of_int l"
@@ -438,6 +437,9 @@ proof -
   then show ?thesis using Fract_of_int_quotient
     by simp
 qed
+
+lemma Fract_quotient_of [simp]: "Fract (fst (quotient_of r)) (snd (quotient_of r)) = r"
+  using Fract_of_int_quotient quotient_of_div by auto 
 
 
 subsubsection \<open>The ordered field of rational numbers\<close>
@@ -463,12 +465,11 @@ lemma positive_zero: "\<not> positive 0"
 
 lemma positive_add: "positive x \<Longrightarrow> positive y \<Longrightarrow> positive (x + y)"
   apply transfer
-     apply (auto simp add: zero_less_mult_iff add_pos_pos add_neg_neg mult_pos_neg mult_neg_pos mult_neg_neg)
-  done
+  by (metis add_neg_neg fst_eqD mult_less_0_iff pos_add_strict snd_eqD zero_less_mult_iff)
 
 lemma positive_mult: "positive x \<Longrightarrow> positive y \<Longrightarrow> positive (x * y)"
   apply transfer
-  by (metis fst_conv mult.commute mult_pos_neg2 snd_conv zero_less_mult_iff)
+  by (metis mult_less_0_iff split_pairs zero_less_mult_iff)
 
 lemma positive_minus: "\<not> positive x \<Longrightarrow> x \<noteq> 0 \<Longrightarrow> positive (- x)"
   by transfer (auto simp: neq_iff zero_less_mult_iff mult_less_0_iff)
@@ -928,6 +929,12 @@ hide_const (open) of_int
 lemma quotient_of_int [code abstract]: "quotient_of (Rat.of_int a) = (a, 1)"
   by (simp add: of_int_def of_int_rat quotient_of_Fract)
 
+lemma quotient_of_rat_of_int [simp]: "quotient_of (rat_of_int i) = (i, 1)"
+  using Rat.of_int_def quotient_of_int by force
+
+lemma quotient_of_rat_of_nat [simp]: "quotient_of (rat_of_nat i) = (int i, 1)"
+  by (metis of_int_of_nat_eq quotient_of_rat_of_int)
+
 lemma [code_unfold]: "numeral k = Rat.of_int (numeral k)"
   by (simp add: Rat.of_int_def)
 
@@ -1095,8 +1102,6 @@ end
 instance rat :: partial_term_of ..
 
 lemma [code]:
-  "partial_term_of (ty :: rat itself) (Quickcheck_Narrowing.Narrowing_variable p tt) \<equiv>
-    Code_Evaluation.Free (STR ''_'') (Typerep.Typerep (STR ''Rat.rat'') [])"
   "partial_term_of (ty :: rat itself) (Quickcheck_Narrowing.Narrowing_constructor 0 [l, k]) \<equiv>
     Code_Evaluation.App
       (Code_Evaluation.Const (STR ''Rat.Frct'')
@@ -1114,6 +1119,8 @@ lemma [code]:
                  Typerep.Typerep (STR ''Product_Type.prod'')
                  [Typerep.Typerep (STR ''Int.int'') [], Typerep.Typerep (STR ''Int.int'') []]]]))
           (partial_term_of (TYPE(int)) l)) (partial_term_of (TYPE(int)) k))"
+  "partial_term_of (ty :: rat itself) (Quickcheck_Narrowing.Narrowing_variable p tt) \<equiv>
+    Code_Evaluation.Free (STR ''_'') (Typerep.Typerep (STR ''Rat.rat'') [])"
   by (rule partial_term_of_anything)+
 
 instantiation rat :: narrowing

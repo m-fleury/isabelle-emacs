@@ -262,7 +262,7 @@ fun print_codeproc ctxt =
     val post = (#post o the_thmproc) thy;
     val functrans = (map fst o #functrans o the_thmproc) thy;
   in
-    Pretty.writeln_chunks [
+    Pretty.writeln (Pretty.chunks [
       Pretty.block [
         Pretty.str "preprocessing simpset:",
         Pretty.fbrk,
@@ -278,7 +278,7 @@ fun print_codeproc ctxt =
         :: Pretty.fbrk
         :: (Pretty.fbreaks o map Pretty.str) functrans
       )
-    ]
+    ])
   end;
 
 fun simple_functrans f ctxt eqns = case f ctxt (map fst eqns)
@@ -329,7 +329,7 @@ val trace_all = Trace_Switch.put NONE;
 
 fun gen_trace_only prep_const raw_cs context =
   let
-    val cs = map (prep_const (Context.theory_of context)) raw_cs;
+    val cs = map (prep_const (Context.proof_of context)) raw_cs;
   in Trace_Switch.put (SOME cs) context end;
 
 val trace_only = gen_trace_only (K I);
@@ -511,7 +511,7 @@ and ensure_fun ctxt arities eqngr c (vardeps_data as (_, (eqntab, _))) =
 
 (* applying instantiations *)
 
-fun dicts_of ctxt (proj_sort, algebra) (T, sort) =
+fun dictss_of ctxt (proj_sort, algebra) (T, sort) =
   let
     val thy = Proof_Context.theory_of ctxt;
     fun class_relation _ (x, _) _ = x;
@@ -558,7 +558,7 @@ fun extend_arities_eqngr raw_ctxt cs ts (arities, (eqngr : code_graph)) =
     val algebra = Sorts.subalgebra (Context.Theory thy) (is_proper_class thy)
       (AList.lookup (op =) arities') (Sign.classes_of thy);
     val (rhss, eqngr') = Symtab.fold (add_cert ctxt vardeps) eqntab ([], eqngr);
-    fun deps_of (c, rhs) = c :: maps (dicts_of ctxt algebra)
+    fun deps_of (c, rhs) = c :: maps (dictss_of ctxt algebra)
       (rhs ~~ sortargs eqngr' c);
     val eqngr'' = fold (fn (c, rhs) => fold
       (curry Graph.add_edge c) (deps_of rhs)) rhss eqngr';

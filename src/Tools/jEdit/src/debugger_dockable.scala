@@ -13,9 +13,10 @@ import java.awt.BorderLayout
 import java.awt.event.KeyEvent
 import javax.swing.JMenuItem
 import javax.swing.event.TreeSelectionEvent
+import javax.swing.tree.TreePath
 
 import scala.collection.immutable.SortedMap
-import scala.swing.{Label, Component}
+import scala.swing.Component
 
 import org.gjt.sp.jedit.{jEdit, View}
 import org.gjt.sp.jedit.menu.EnhancedMenuItem
@@ -70,10 +71,7 @@ class Debugger_Dockable(view: View, position: String) extends Dockable(view, pos
     new Output_Area(view, root_name = "Threads") {
       override def handle_search(search: Pretty_Text_Area.Search_Results): Unit = {}
 
-      override def handle_tree_selection(e: TreeSelectionEvent): Unit = {
-        update_focus()
-        update_vals()
-      }
+      override def handle_tree_selection(path: TreePath): Unit = ()
 
       override def handle_update(): Unit = {
         val new_snapshot = PIDE.editor.current_node_snapshot(view).getOrElse(current_snapshot)
@@ -93,6 +91,11 @@ class Debugger_Dockable(view: View, position: String) extends Dockable(view, pos
       override def handle_focus(): Unit = update_focus()
     }
 
+  output.tree.addTreeSelectionListener({ (e: TreeSelectionEvent) =>
+    update_focus()
+    update_vals()
+  })
+
   override def detach_operation: Option[() => Unit] =
     output.pretty_text_area.detach_operation
 
@@ -102,8 +105,8 @@ class Debugger_Dockable(view: View, position: String) extends Dockable(view, pos
 
   /* tree view */
 
-  private def tree_selection(): Option[Debugger.Context] =
-    output.tree.get_selection({ case c: Debugger.Context => c })
+  private def tree_selection(path: TreePath = output.tree.getSelectionPath): Option[Debugger.Context] =
+    output.tree.get_selection(path, { case c: Debugger.Context => c })
 
   private def thread_selection(): Option[String] = tree_selection().map(_.thread_name)
 
@@ -182,9 +185,7 @@ class Debugger_Dockable(view: View, position: String) extends Dockable(view, pos
     override def clicked(): Unit = thread_selection().foreach(debugger.step_out)
   }
 
-  private val context_label = new Label("Context:") {
-    tooltip = "Isabelle/ML context: type theory, Proof.context, Context.generic"
-  }
+  private val context_tooltip = "Isabelle/ML context: type theory, Proof.context, Context.generic"
   private val context_field =
     new Completion_Popup.History_Text_Field("isabelle-debugger-context") {
       override def processKeyEvent(evt: KeyEvent): Unit = {
@@ -194,13 +195,14 @@ class Debugger_Dockable(view: View, position: String) extends Dockable(view, pos
         super.processKeyEvent(evt)
       }
       setColumns(20)
-      setToolTipText(context_label.tooltip)
+      setToolTipText(context_tooltip)
       setFont(GUI.imitate_font(getFont, scale = 1.2))
     }
-
-  private val expression_label = new Label("ML:") {
-    tooltip = "Isabelle/ML or Standard ML expression"
+  private val context_label = new GUI.Label("Context:", context_field) {
+    tooltip = context_tooltip
   }
+
+  private val expression_tooltip = "Isabelle/ML or Standard ML expression"
   private val expression_field =
     new Completion_Popup.History_Text_Field("isabelle-debugger-expression") {
       override def processKeyEvent(evt: KeyEvent): Unit = {
@@ -211,9 +213,12 @@ class Debugger_Dockable(view: View, position: String) extends Dockable(view, pos
       }
       { val max = getPreferredSize; max.width = Int.MaxValue; setMaximumSize(max) }
       setColumns(40)
-      setToolTipText(expression_label.tooltip)
+      setToolTipText(expression_tooltip)
       setFont(GUI.imitate_font(getFont, scale = 1.2))
     }
+  private val expression_label = new GUI.Label("ML:", expression_field) {
+    tooltip = expression_tooltip
+  }
 
   private val eval_button =
     new GUI.Button(GUI.Style_HTML.enclose_bold("Eval")) {
@@ -255,7 +260,7 @@ class Debugger_Dockable(view: View, position: String) extends Dockable(view, pos
       debugger.set_focus(c)
       for {
         pos <- c.debug_position
-        link <- PIDE.editor.hyperlink_position(false, current_snapshot, pos)
+        link <- PIDE.editor.hyperlink_position(current_snapshot, pos)
       } link.follow(view)
     }
     JEdit_Lib.jedit_text_areas(view.getBuffer).foreach(_.repaint())

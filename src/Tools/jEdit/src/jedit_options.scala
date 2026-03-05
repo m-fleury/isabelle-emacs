@@ -53,7 +53,7 @@ object JEdit_Options {
   object continuous_checking extends Bool_Access("editor_continuous_checking") {
     override def changed(): Unit = {
       super.changed()
-      PIDE.plugin.deps_changed()
+      PIDE.session.deps_changed()
     }
 
     class GUI extends Bool_GUI(this, "Continuous checking") {
@@ -114,8 +114,8 @@ object JEdit_Options {
 
     private val predefined =
       List(
-        JEdit_Sessions.logic_selector(options),
-        JEdit_Sessions.document_selector(options),
+        JEdit_Session.logic_selector(options),
+        JEdit_Session.document_selector(options),
         JEdit_Spell_Checker.dictionaries_selector())
 
     protected val components: List[(String, List[Entry])] =
@@ -124,10 +124,12 @@ object JEdit_Options {
   }
 
   class Isabelle_Rendering_Options extends Isabelle_Options("isabelle-rendering") {
+    private val is_dark = GUI.is_dark_laf()
+
     private val predefined =
       (for {
         opt <- PIDE.options.value.iterator
-        if opt.for_color_dialog
+        if opt.for_color_dialog && opt.is_dark == is_dark
       } yield PIDE.options.make_color_component(opt)).toList
 
     assert(predefined.nonEmpty)
@@ -138,7 +140,7 @@ object JEdit_Options {
 }
 
 class JEdit_Options(init_options: Options) extends Options_Variable(init_options) {
-  def color_value(s: String): Color = Color_Value(string(s))
+  def color_value(s: String): Color = Color_Value(string(s + Options.theme_suffix()))
 
   def make_color_component(opt: Options.Entry): JEdit_Options.Entry = {
     GUI_Thread.require {}

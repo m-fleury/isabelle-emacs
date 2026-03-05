@@ -75,6 +75,19 @@ lemmas\<comment> \<open>from \<open>module\<close>\<close>
   and linear_scale_left = module_hom_scale_left
   and linear_uminus = module_hom_uminus
 
+lemma linear_representation:
+  assumes "independent B" "span B = UNIV"
+  shows   "linear scale (*) (\<lambda>v. representation B v b)"
+proof (unfold_locales, goal_cases)
+  case (5 x y)
+  show ?case
+    using assms by (subst representation_add) auto
+next
+  case (6 r x)
+  show ?case
+    using assms by (subst representation_scale) auto
+qed (simp_all add: algebra_simps)
+
 lemma linear_imp_scale:
   fixes D::"'a \<Rightarrow> 'b"
   assumes "linear (*) scale D"
@@ -704,7 +717,7 @@ definition construct :: "'b set \<Rightarrow> ('b \<Rightarrow> 'c) \<Rightarrow
       vs1.representation (vs1.extend_basis B) v b *b (if b \<in> B then g b else 0))"
 
 lemma construct_cong: "(\<And>b. b \<in> B \<Longrightarrow> f b = g b) \<Longrightarrow> construct B f = construct B g"
-  unfolding construct_def by (rule ext, auto intro!: sum.cong)
+  unfolding construct_def by (auto intro!: sum.cong)
 
 lemma linear_construct:
   assumes B[simp]: "vs1.independent B"
@@ -1375,7 +1388,7 @@ proof -
   then have "vs1.span S = vs1.span B"
     using vs1.span_mono[of B S] vs1.span_mono[of S "vs1.span B"] vs1.span_span[of B] by auto
   moreover have "card (f ` B) = card B"
-    using assms card_image[of f B] subset_inj_on[of f "vs1.span S" B] B vs1.span_superset by auto
+    using assms card_image[of f B] inj_on_subset[of f "vs1.span S" B] B vs1.span_superset by auto
   moreover have "(f ` B) \<subseteq> (f ` S)"
     using B by auto
   ultimately show ?thesis
@@ -1503,6 +1516,42 @@ proof -
   from finite_basis_to_basis_subspace_isomorphism[OF s t d fB B fC C] show ?thesis .
 qed
 
+lemma basis_change_exists':
+  assumes "vs1.independent B" "vs2.independent B'"
+  assumes "vs1.span B = UNIV" "vs2.span B' = UNIV" "vs1.dimension = vs2.dimension"
+  shows   "\<exists>g. linear s1 s2 g \<and> bij g \<and> bij_betw g B B'"
+proof -
+  have "finite B" "finite B'"
+    using assms by (auto intro: vs1.finiteI_independent vs2.finiteI_independent)
+  moreover from assms have "card B = card B'"
+    by (metis vs1.dim_span vs2.dim_span vs1.dim_UNIV vs2.dim_UNIV vs1.dimension_def vs2.dimension_def
+              vs1.dim_eq_card_independent vs2.dim_eq_card_independent)
+  ultimately obtain h where h: "bij_betw h B B'"
+    using \<open>card B = card B'\<close> by (meson bij_betw_iff_card)
+
+  define g where "g = construct B h"
+  interpret g: Vector_Spaces.linear s1 s2 g
+    unfolding g_def by (rule linear_construct) fact
+
+  have "bij_betw g B B' \<longleftrightarrow> bij_betw h B B'"
+    using assms(1) by (intro bij_betw_cong) (auto simp: g_def construct_basis)
+  hence "bij_betw g B B'"
+    using h by simp
+  moreover from this have "bij g"
+    using assms(3-5)
+    by (metis bij_betw_imp_surj_on bij_def g.linear_axioms local.linear_span_image
+              local.linear_surjective_imp_injective vs1.dim_UNIV vs1.dimension_def
+              vs2.dim_UNIV vs2.dimension_def)
+  ultimately show ?thesis
+    using g.linear_axioms by blast
+qed
+
+lemma basis_change_exists:
+  assumes "vs1.dimension = vs2.dimension"
+  shows   "\<exists>g. linear s1 s2 g \<and> bij g \<and> bij_betw g B1 B2"
+  using basis_change_exists'[OF vs1.independent_Basis vs2.independent_Basis
+          vs1.span_Basis vs2.span_Basis assms] .
+
 end
 
 context finite_dimensional_vector_space begin
@@ -1597,6 +1646,83 @@ proof -
   then have "h = g"
     by (metis gf isomorphism_expand left_right_inverse_eq)
   with h(1) show ?thesis by blast
+qed
+
+lemma linear_independent_extend_inj:
+  assumes "independent B" "independent (f ` B)" "inj_on f B"
+  shows "\<exists>g. linear scale scale g \<and> inj g \<and> (\<forall>x\<in>B. g x = f x)"
+proof -
+  obtain B' where B': "span B' = UNIV" "B \<subseteq> B'" "independent B'"
+    using assms(1) by (meson extend_basis_superset independent_extend_basis span_extend_basis)
+  obtain B'' where B'': "span B'' = UNIV" "f ` B \<subseteq> B''" "independent B''"
+    using assms(2) by (meson extend_basis_superset independent_extend_basis span_extend_basis)
+  have "card B' = card B''"
+    using B' B'' by (metis local.dim_eq_card)
+  hence "card (B' - B) = card (B'' - f ` B)"
+    using finiteI_independent[OF assms(1)] B' B''
+    by (subst (1 2) card_Diff_subset) (auto simp: card_image[OF \<open>inj_on f B\<close>])
+  hence "\<exists>h. bij_betw h (B' - B) (B'' - f ` B)"
+    using finiteI_independent[of B'] finiteI_independent[of B''] B' B''
+    by (intro finite_same_card_bij) auto
+  then obtain h where h: "bij_betw h (B' - B) (B'' - f ` B)"
+    by blast
+
+  have [simp, intro]: "finite B'"
+    using finiteI_independent[of B'] B' by auto
+  define r where "r = representation B'"
+  define g where "g = (\<lambda>v. \<Sum>b\<in>B'. scale (r v b) (if b \<in> B then f b else h b))"
+  interpret pair: vector_space_pair scale scale ..
+  interpret g: Vector_Spaces.linear scale scale g
+    unfolding g_def r_def
+    by (intro pair.module_hom_sum pair.linear_compose_scale linear_representation B' conjI module_axioms)
+
+  have g_B: "g b = f b" if "b \<in> B" for b
+  proof -
+    from that have "g b = (\<Sum>b'\<in>{b}. f b)"
+      unfolding g_def using B'
+      by (intro sum.mono_neutral_cong_right) (auto simp: r_def representation_basis)
+    thus "g b = f b"
+      by simp
+  qed
+
+  have g_not_B: "g b = h b" if "b \<in> B' - B" for b
+  proof -
+    from that have "g b = (\<Sum>b'\<in>{b}. h b)"
+      unfolding g_def using B'
+      by (intro sum.mono_neutral_cong_right) (auto simp: r_def representation_basis)
+    thus "g b = h b"
+      by simp
+  qed
+
+  show ?thesis
+  proof (rule exI[of _ g]; safe)
+    have "B'' \<subseteq> range g"
+    proof
+      fix b assume b: "b \<in> B''"
+      thus "b \<in> range g"
+      proof (cases "b \<in> f ` B")
+        case True
+        then obtain b' where b': "b' \<in> B" "f b' = b"
+          by blast
+        thus ?thesis
+          by (auto simp: image_def g_B intro!: exI[of _ b'])
+      next
+        case False
+        with b have "b \<in> B'' - f ` B"
+          by blast
+        then obtain b' where "h b' = b" "b' \<in> B' - B"
+          using h by (metis bij_betw_iff_bijections)
+        thus ?thesis
+          by (intro rev_image_eqI[of b']) (simp_all add: g_not_B)
+      qed
+    qed
+    hence "span B'' \<le> span (range g)"
+      by (intro span_mono)
+    also have "span B'' = UNIV"
+      using B'' by simp
+    finally show "inj g"
+      by (simp add: g.linear_axioms g.span_image local.linear_surj_imp_inj set_eq_subset)
+  qed (use g_B g.linear_axioms in auto)
 qed
 
 end

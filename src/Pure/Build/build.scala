@@ -22,7 +22,6 @@ object Build {
   def engine_name(options: Options): String = options.string("build_engine")
 
 
-
   /* context */
 
   sealed case class Context(
@@ -31,7 +30,6 @@ object Build {
     engine: Engine = Engine.Default,
     afp_root: Option[Path] = None,
     build_hosts: List[Build_Cluster.Host] = Nil,
-    ml_platform: String = Isabelle_System.getenv("ML_PLATFORM"),
     hostname: String = Isabelle_System.hostname(),
     numa_shuffling: Boolean = false,
     numa_nodes: List[Int] = Nil,
@@ -46,6 +44,8 @@ object Build {
     master: Boolean = false
   ) {
     def build_options: Options = store.options
+
+    def ml_platform: String = store.ml_settings.ml_platform
 
     def sessions_structure: isabelle.Sessions.Structure = deps.sessions_structure
 
@@ -76,7 +76,7 @@ object Build {
     results: Map[String, Process_Result],
     other_rc: Int
   ) {
-    def cache: Term.Cache = store.cache
+    def cache: Rich_Text.Cache = store.cache
 
     def sessions_ok: List[String] =
       List.from(
@@ -96,6 +96,11 @@ object Build {
     def ok: Boolean = rc == Process_Result.RC.ok
 
     lazy val unfinished: List[String] = sessions.iterator.filterNot(apply(_).ok).toList.sorted
+
+    def check: Results =
+      if (ok) this
+      else if (unfinished.isEmpty) error("Build failed")
+      else error("Build failed with unfinished session(s): " + commas(unfinished))
 
     override def toString: String = rc.toString
   }
@@ -125,11 +130,16 @@ object Build {
     }
 
     final def build_store(options: Options,
+      private_dir: Option[Path] = None,
       build_cluster: Boolean = false,
-      cache: Term.Cache = Term.Cache.make()
+      cache: Rich_Text.Cache = Rich_Text.Cache.make()
     ): Store = {
       val build_options = engine.build_options(options, build_cluster = build_cluster)
-      val store = Store(build_options, build_cluster = build_cluster, cache = cache)
+      val store =
+        Store(build_options,
+          private_dir = private_dir,
+          build_cluster = build_cluster,
+          cache = cache)
       Isabelle_System.make_directory(store.output_dir + Path.basic("log"))
       Isabelle_Fonts.init()
       store
@@ -159,8 +169,12 @@ object Build {
 
   /* build */
 
+  def progress_threshold(options: Options): Time = options.seconds("build_progress_threshold")
+  def progress_detailed(options: Options): Boolean = options.bool("build_progress_detailed")
+
   def build(
     options: Options,
+    private_dir: Option[Path] = None,
     build_hosts: List[Build_Cluster.Host] = Nil,
     selection: Sessions.Selection = Sessions.Selection.empty,
     browser_info: Browser_Info.Config = Browser_Info.Config.none,
@@ -181,10 +195,14 @@ object Build {
     export_files: Boolean = false,
     augment_options: String => List[Options.Spec] = _ => Nil,
     session_setup: (String, Session) => Unit = (_, _) => (),
-    cache: Term.Cache = Term.Cache.make()
+    cache: Rich_Text.Cache = Rich_Text.Cache.make()
   ): Results = {
     val engine = Engine(engine_name(options))
-    val store = engine.build_store(options, build_cluster = build_hosts.nonEmpty, cache = cache)
+    val store =
+      engine.build_store(options,
+        private_dir = private_dir,
+        build_cluster = build_hosts.nonEmpty,
+        cache = cache)
     val build_options = store.options
 
     using(store.open_server()) { server =>
@@ -194,7 +212,7 @@ object Build {
       val full_sessions =
         Sessions.load_structure(build_options, dirs = AFP.main_dirs(afp_root) ::: dirs,
           select_dirs = select_dirs, infos = infos, augment_options = augment_options)
-      val full_sessions_selection = full_sessions.imports_selection(selection)
+      val selected_sessions = full_sessions.imports_selection(selection)
 
       val build_deps = {
         val deps0 =
@@ -246,7 +264,7 @@ object Build {
       /* build process and results */
 
       val clean_sessions =
-        if (clean_build) full_sessions.imports_descendants(full_sessions_selection) else Nil
+        if (clean_build) full_sessions.imports_descendants(selected_sessions) else Nil
 
       val numa_nodes = Host.numa_nodes(enabled = numa_shuffling)
       val build_context =
@@ -260,7 +278,7 @@ object Build {
       val results = engine.run_build_process(build_context, progress, server)
 
       if (export_files) {
-        for (name <- full_sessions_selection.iterator if results(name).ok) {
+        for (name <- selected_sessions.iterator if results(name).ok) {
           val info = results.info(name)
           if (info.export_files.nonEmpty) {
             progress.echo("Exporting " + info.name + " ...")
@@ -292,23 +310,40 @@ object Build {
 
   /* build logic image */
 
+  def build_logic_started(logic: String): String =
+    "Build started for Isabelle/" + logic + " ..."
+
+  def build_logic_failed(logic: String, editor: Boolean = false): String =
+    "Failed to build Isabelle/" + logic + if_proper(editor, " -- prover process remains inactive!")
+
   def build_logic(options: Options, logic: String,
+    private_dir: Option[Path] = None,
     progress: Progress = new Progress,
     build_heap: Boolean = false,
     dirs: List[Path] = Nil,
     fresh: Boolean = false,
     strict: Boolean = false
-  ): Int = {
+  ): Results = {
     val selection = Sessions.Selection.session(logic)
-    val rc =
-      if (!fresh && build(options, selection = selection,
-            build_heap = build_heap, no_build = true, dirs = dirs).ok) Process_Result.RC.ok
+
+    def test_build(): Results =
+      build(options, selection = selection,
+        build_heap = build_heap, no_build = true, dirs = dirs)
+
+    def full_build(): Results = {
+      progress.echo(build_logic_started(logic))
+      build(options, selection = selection, progress = progress,
+        build_heap = build_heap, fresh_build = fresh, dirs = dirs)
+    }
+
+    val results =
+      if (fresh) full_build()
       else {
-        progress.echo("Build started for Isabelle/" + logic + " ...")
-        build(options, selection = selection, progress = progress,
-          build_heap = build_heap, fresh_build = fresh, dirs = dirs).rc
+        val results0 = test_build()
+        if (results0.ok) results0 else full_build()
       }
-    if (strict && rc != Process_Result.RC.ok) error("Failed to build Isabelle/" + logic) else rc
+
+    if (strict && !results.ok) error(build_logic_failed(logic)) else results
   }
 
 
@@ -363,7 +398,6 @@ Usage: isabelle build [OPTIONS] [SESSIONS ...]
     -g NAME      select session group NAME
     -j INT       maximum number of parallel jobs
                  (default: 1 for local build, 0 for build cluster)
-    -k KEYWORD   check theory sources for conflicts with proposed keywords
     -l           list session source files
     -n           no build -- take existing session build databases
     -o OPTION    override Isabelle system OPTION (via NAME=VAL or NAME)
@@ -379,7 +413,7 @@ Usage: isabelle build [OPTIONS] [SESSIONS ...]
   Notable system options: see "isabelle options -l -t build"
 
   Notable system settings:
-""" + Library.indent_lines(4, Build_Log.Settings.show()) + "\n",
+""" + Library.indent_lines(4, Build_Log.Settings.show(ML_Settings(options))) + "\n",
         "A:" -> (arg => afp_root = Some(if (arg == ":") AFP.BASE else Path.explode(arg))),
         "B:" -> (arg => base_sessions += arg),
         "D:" -> (arg => select_dirs += Path.explode(arg)),
@@ -405,13 +439,18 @@ Usage: isabelle build [OPTIONS] [SESSIONS ...]
 
       val sessions = getopts(args)
 
-      val progress = new Console_Progress(verbose = verbose)
+      val progress =
+        new Console_Progress(verbose = verbose,
+          threshold = progress_threshold(options),
+          detailed = progress_detailed(options))
+
+      val ml_settings = ML_Settings(options)
 
       progress.echo(
         "Started at " + Build_Log.print_date(progress.start) +
-          " (" + Isabelle_System.ml_identifier() + " on " + hostname(options) +")",
+          " (" + ml_settings.ml_identifier + " on " + hostname(options) +")",
         verbose = true)
-      progress.echo(Build_Log.Settings.show() + "\n", verbose = true)
+      progress.echo(Build_Log.Settings.show(ml_settings) + "\n", verbose = true)
 
       val results =
         progress.interrupt_handler {
@@ -704,7 +743,8 @@ Usage: isabelle build_worker [OPTIONS]
 
   def read_theory(
     theory_context: Export.Theory_Context,
-    unicode_symbols: Boolean = false
+    unicode_symbols: Boolean = false,
+    migrate_file: String => String = identity
   ): Option[Document.Snapshot] = {
     def decode(str: String): String = Symbol.output(unicode_symbols, str)
 
@@ -718,28 +758,27 @@ Usage: isabelle build_worker [OPTIONS]
 
     for {
       id <- theory_context.document_id()
-      (thy_file, blobs_files) <- theory_context.files(permissive = true)
+      (thy_file0, blobs_files0) <- theory_context.files(permissive = true)
     }
     yield {
-      val master_dir =
-        Path.explode(Url.strip_base_name(thy_file).getOrElse(
-          error("Cannot determine theory master directory: " + quote(thy_file))))
+      val thy_file = migrate_file(thy_file0)
 
       val blobs =
-        blobs_files.map { name =>
-          val path = Path.explode(name)
-          val src_path = File.perhaps_relative_path(master_dir, path)
+        blobs_files0.map { case (command_offset, name0) =>
+          val node_name = Document.Node.Name(migrate_file(name0))
+          val src_path = Path.explode(name0)
 
-          val file = read_source_file(name)
+          val file = read_source_file(name0)
           val bytes = file.bytes
           val text = decode(bytes.text)
           val chunk = Symbol.Text_Chunk(text)
+          val content = Some((file.digest, chunk))
 
-          Command.Blob(Document.Node.Name(name), src_path, Some((file.digest, chunk))) ->
-            Document.Blobs.Item(bytes, text, chunk, changed = false)
+          Command.Blob(command_offset, node_name, src_path, content) ->
+            Document.Blobs.Item(bytes, text, chunk, command_offset = command_offset)
         }
 
-      val thy_source = decode(read_source_file(thy_file).bytes.text)
+      val thy_source = decode(read_source_file(thy_file0).bytes.text)
       val thy_xml = read_xml(Export.MARKUP)
       val blobs_xml =
         for (i <- (1 to blobs.length).toList)
@@ -757,7 +796,7 @@ Usage: isabelle build_worker [OPTIONS]
             yield i -> elem)
 
       val command =
-        Command.unparsed(thy_source, theory = true, id = id,
+        Command.unparsed(thy_source, theory_commands = Some(0), id = id,
           node_name = Document.Node.Name(thy_file, theory = theory_context.theory),
           blobs_info = Command.Blobs_Info.make(blobs),
           markups = markups, results = results)
@@ -771,6 +810,22 @@ Usage: isabelle build_worker [OPTIONS]
 
   /* print messages */
 
+  def print_log_check(
+    pos: Position.T,
+    elem: XML.Elem,
+    message_head: List[Regex],
+    message_body: List[Regex]
+  ): Boolean = {
+    def check(filter: List[Regex], make_string: => String): Boolean =
+      filter.isEmpty || {
+        val s = Protocol_Message.clean_output(make_string)
+        filter.forall(r => r.findFirstIn(Protocol_Message.clean_output(s)).nonEmpty)
+      }
+
+    check(message_head, Protocol.message_heading(elem, pos)) &&
+    check(message_body, Pretty.unformatted_string_of(List(elem)))
+  }
+
   def print_log(
     options: Options,
     sessions: List[String],
@@ -783,14 +838,8 @@ Usage: isabelle build_worker [OPTIONS]
     metric: Pretty.Metric = Symbol.Metric,
     unicode_symbols: Boolean = false
   ): Unit = {
-    val store = Store(options)
-    val session = new Session(options, Resources.bootstrap)
-
-    def check(filter: List[Regex], make_string: => String): Boolean =
-      filter.isEmpty || {
-        val s = Protocol_Message.clean_output(make_string)
-        filter.forall(r => r.findFirstIn(Protocol_Message.clean_output(s)).nonEmpty)
-      }
+    val session = Session.bootstrap(options)
+    val store = session.store
 
     def print(session_name: String): Unit = {
       using(Export.open_session_context0(store, session_name)) { session_context =>
@@ -817,23 +866,20 @@ Usage: isabelle build_worker [OPTIONS]
               Build.read_theory(session_context.theory(thy), unicode_symbols = unicode_symbols) match {
                 case None => progress.echo(thy_heading + " MISSING")
                 case Some(snapshot) =>
-                  val rendering = new Rendering(snapshot, options, session)
                   val messages =
-                    rendering.text_messages(Text.Range.full)
-                      .filter(message => progress.verbose || Protocol.is_exported(message.info))
+                    Rendering.text_messages(snapshot,
+                      filter = msg => progress.verbose || Protocol.is_exported(msg))
                   if (messages.nonEmpty) {
                     val line_document = Line.Document(snapshot.node.source)
                     val buffer = new mutable.ListBuffer[String]
                     for (Text.Info(range, elem) <- messages) {
                       val line = line_document.position(range.start).line1
                       val pos = Position.Line_File(line, snapshot.node_name.node)
-                      def message_text: String =
-                        Protocol.message_text(elem, heading = true, pos = pos,
-                          margin = margin, breakgain = breakgain, metric = metric)
-                      val ok =
-                        check(message_head, Protocol.message_heading(elem, pos)) &&
-                        check(message_body, Pretty.unformatted_string_of(List(elem)))
-                      if (ok) buffer += message_text
+                      if (print_log_check(pos, elem, message_head, message_body)) {
+                        buffer +=
+                          Protocol.message_text(elem, heading = true, pos = pos,
+                            margin = margin, breakgain = breakgain, metric = metric)
+                      }
                     }
                     if (buffer.nonEmpty) {
                       progress.echo(thy_heading)

@@ -40,6 +40,12 @@ setup \<open>
   end
 \<close>
 
+code_printing
+  constant Code_Numeral.push_bit \<rightharpoonup>
+    (Haskell_Quickcheck) "Bit'_Shifts.drop'"
+| constant Code_Numeral.drop_bit \<rightharpoonup>
+    (Haskell_Quickcheck) "Bit'_Shifts.push'"
+
 
 subsubsection \<open>Narrowing's deep representation of types and terms\<close>
 
@@ -265,8 +271,6 @@ instance ..
 
 end
 
-declare [[code drop: "partial_term_of :: int itself \<Rightarrow> _"]]
-
 lemma [code]:
   "partial_term_of (ty :: int itself) (Narrowing_variable p t) \<equiv>
     Code_Evaluation.Free (STR ''_'') (Typerep.Typerep (STR ''Int.int'') [])"
@@ -286,8 +290,6 @@ definition
 instance ..
 
 end
-
-declare [[code drop: "partial_term_of :: integer itself \<Rightarrow> _"]]  
 
 lemma [code]:
   "partial_term_of (ty :: integer itself) (Narrowing_variable p t) \<equiv>

@@ -556,7 +556,7 @@ lemma finite_bind:
 using assms by (simp add: bind_UNION)
 
 lemma finite_filter [simp]: "finite S \<Longrightarrow> finite (Set.filter P S)"
-unfolding Set.filter_def by simp
+  by (simp add:)
 
 lemma finite_set_of_finite_funs:
   assumes "finite A" "finite B"
@@ -1341,14 +1341,13 @@ proof -
   interpret commute_insert: comp_fun_commute "(\<lambda>x A'. if P x then Set.insert x A' else A')"
     by (fact comp_fun_commute_filter_fold)
   from \<open>finite A\<close> show ?thesis
-    by induct (auto simp add: Set.filter_def)
+    by induct (auto simp add: set_eq_iff)
 qed
 
 lemma inter_Set_filter:
   assumes "finite B"
   shows "A \<inter> B = Set.filter (\<lambda>x. x \<in> A) B"
-  using assms
-  by induct (auto simp: Set.filter_def)
+  using assms by (simp add: set_eq_iff ac_simps)
 
 lemma image_fold_insert:
   assumes "finite A"
@@ -2174,12 +2173,21 @@ lemma card_1_singletonE:
   obtains x where "A = {x}"
   using assms by (auto simp: card_Suc_eq)
 
-lemma is_singleton_altdef: "is_singleton A \<longleftrightarrow> card A = 1"
-  unfolding is_singleton_def
-  by (auto elim!: card_1_singletonE is_singletonE simp del: One_nat_def)
+lemma is_singleton_iff_card_eq_Suc_0 [code]:
+  \<open>is_singleton A \<longleftrightarrow> card A = Suc 0\<close>
+  by (simp add: is_singleton_def card_Suc_eq)
 
-lemma card_1_singleton_iff: "card A = Suc 0 \<longleftrightarrow> (\<exists>x. A = {x})"
-  by (simp add: card_Suc_eq)
+lemma is_singleton_altdef:
+  \<open>is_singleton A \<longleftrightarrow> card A = 1\<close>
+  by (simp add: is_singleton_iff_card_eq_Suc_0)
+
+lemma card_eq_Suc_0_iff_is_singleton:
+  \<open>card A = Suc 0 \<longleftrightarrow> is_singleton A\<close>
+  by (simp add: is_singleton_altdef)
+
+lemma card_1_singleton_iff:
+  \<open>card A = Suc 0 \<longleftrightarrow> (\<exists>x. A = {x})\<close>
+  by (simp add: card_eq_Suc_0_iff_is_singleton is_singleton_def)
 
 lemma card_le_Suc0_iff_eq:
   assumes "finite A"
@@ -2239,6 +2247,11 @@ next
     by auto
   then show "\<exists>B. finite B \<and> card B = Suc n \<and> B \<subseteq> A" ..
 qed
+
+corollary finite_arbitrarily_large_disj:
+  "\<lbrakk> \<not> finite(UNIV::'a set); finite (A::'a set) \<rbrakk> \<Longrightarrow> \<exists>B. finite B \<and> card B = n \<and> A \<inter> B = {}"
+using infinite_arbitrarily_large[of "UNIV - A"]
+by fastforce
 
 text \<open>Sometimes, to prove that a set is finite, it is convenient to work with finite subsets
 and to show that their cardinalities are uniformly bounded. This possibility is formalized in
@@ -2381,7 +2394,7 @@ qed (use assms in auto)
 
 lemma card_vimage_inj: "inj f \<Longrightarrow> A \<subseteq> range f \<Longrightarrow> card (f -` A) = card A"
   by (auto 4 3 simp: subset_image_iff inj_vimage_image_eq
-      intro: card_image[symmetric, OF subset_inj_on])
+      intro: card_image[symmetric, OF inj_on_subset])
 
 lemma card_inverse[simp]: "card (R\<inverse>) = card R"
 proof -
@@ -3054,7 +3067,7 @@ unfolding Fpow_def Pow_def by blast
 lemma inj_on_image_Fpow:
   assumes "inj_on f A"
   shows "inj_on (image f) (Fpow A)"
-  using assms Fpow_subset_Pow[of A] subset_inj_on[of "image f" "Pow A"]
+  using assms Fpow_subset_Pow[of A] inj_on_subset[of "image f" "Pow A"]
     inj_on_image_Pow by blast
 
 lemma image_Fpow_mono:

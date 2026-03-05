@@ -230,7 +230,7 @@ lemma (in perfect_space) UNIV_not_singleton: "UNIV \<noteq> {x}"
   by (metis (no_types) open_UNIV not_open_singleton)
 
 
-subsection \<open>Generators for toplogies\<close>
+subsection \<open>Generators for topologies\<close>
 
 inductive generate_topology :: "'a set set \<Rightarrow> 'a set \<Rightarrow> bool" for S :: "'a set set"
   where
@@ -357,6 +357,35 @@ next
   case Basis
   then show ?case
     by (fastforce intro: exI[of _ y] lt_ex)
+qed
+
+lemma filterlim_atLeastAtMost_at_bot_at_top:
+  fixes f g :: "'a \<Rightarrow> 'b :: linorder_topology"
+  assumes "filterlim f at_bot F" "filterlim g at_top F"
+  assumes [simp]: "\<And>a b. finite {a..b::'b}"
+  shows   "filterlim (\<lambda>x. {f x..g x}) finite_sets_at_top F"
+  unfolding filterlim_finite_subsets_at_top
+proof safe
+  fix X :: "'b set"
+  assume X: "finite X"
+  from X obtain lb where lb: "\<And>x. x \<in> X \<Longrightarrow> lb \<le> x"
+    by (metis finite_has_minimal2 nle_le)
+  from X obtain ub where ub: "\<And>x. x \<in> X \<Longrightarrow> x \<le> ub"
+    by (metis all_not_in_conv finite_has_maximal nle_le)
+  have "eventually (\<lambda>x. f x \<le> lb) F" "eventually (\<lambda>x. g x \<ge> ub) F"
+    using assms by (simp_all add: filterlim_at_bot filterlim_at_top)
+  thus "eventually (\<lambda>x. finite {f x..g x} \<and> X \<subseteq> {f x..g x} \<and> {f x..g x} \<subseteq> UNIV) F"
+  proof eventually_elim
+    case (elim x)
+    have "X \<subseteq> {f x..g x}"
+    proof
+      fix y assume "y \<in> X"
+      thus "y \<in> {f x..g x}"
+        using lb[of y] ub[of y] elim by auto
+    qed
+    thus ?case
+      by auto
+  qed
 qed
 
 
@@ -2288,6 +2317,26 @@ lemma continuous_on_eq_continuous_within:
 lemma continuous_discrete [simp]:
   "continuous (at x within A) (f :: 'a :: discrete_topology \<Rightarrow> _)"
   by (auto simp: continuous_def at_discrete)
+
+text \<open>Continuity in terms of open preimages.\<close>
+
+lemma continuous_at_open:
+  "continuous (at x) f \<longleftrightarrow> (\<forall>t. open t \<and> f x \<in> t \<longrightarrow> (\<exists>S. open S \<and> x \<in> S \<and> (\<forall>x' \<in> S. (f x') \<in> t)))"
+  by (metis UNIV_I continuous_within_topological)
+
+lemma continuous_imp_tendsto:
+  assumes "continuous (at x0) f" and "x \<longlonglongrightarrow> x0"
+  shows "(f \<circ> x) \<longlonglongrightarrow> (f x0)"
+proof (rule topological_tendstoI)
+  fix S
+  assume "open S" "f x0 \<in> S"
+  then obtain T where T_def: "open T" "x0 \<in> T" "\<forall>x\<in>T. f x \<in> S"
+     using assms continuous_at_open by metis
+  then have "eventually (\<lambda>n. x n \<in> T) sequentially"
+    using assms T_def by (auto simp: tendsto_def)
+  then show "eventually (\<lambda>n. (f \<circ> x) n \<in> S) sequentially"
+    using T_def by (auto elim!: eventually_mono)
+qed
 
 abbreviation isCont :: "('a::t2_space \<Rightarrow> 'b::topological_space) \<Rightarrow> 'a \<Rightarrow> bool"
   where "isCont f a \<equiv> continuous (at a) f"

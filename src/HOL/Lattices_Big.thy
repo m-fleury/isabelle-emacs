@@ -783,7 +783,7 @@ proof (induction rule: finite_psubset_induct)
     then obtain a where "f a = Max (f ` A)" and "a \<in> A"
       by (metis Max_in[of "f ` A"] imageE)
     then have "P (A - {a})"
-      using psubset member_remove by blast 
+      using psubset(2) [of \<open>A - {a}\<close>] by auto
     moreover 
     have "\<And>y. y \<in> A \<Longrightarrow> f y \<le> f a"
       using \<open>f a = Max (f ` A)\<close> \<open>finite (f ` A)\<close> by simp
@@ -808,6 +808,24 @@ proof -
       case (insert a A)
       have "(LEAST b. b = a \<or> b \<in> A) = min a (LEAST a. a \<in> A)"
         by (auto intro!: Least_equality simp add: min_def not_le Min_le_iff insert.hyps dest!: less_imp_le)
+      with insert show ?case by simp
+    qed
+  } from this [of "{a. P a}"] assms show ?thesis by simp
+qed
+
+lemma Greatest_Max:
+  assumes "finite {a. P a}" and "\<exists>a. P a"
+  shows "(GREATEST a. P a) = Max {a. P a}"
+proof -
+  { fix A :: "'a set"
+    assume A: "finite A" "A \<noteq> {}"
+    have "(GREATEST a. a \<in> A) = Max A"
+    using A proof (induct A rule: finite_ne_induct)
+      case singleton show ?case by (rule Greatest_equality) simp_all
+    next
+      case (insert a A)
+      have "(GREATEST b. b = a \<or> b \<in> A) = max a (GREATEST a. a \<in> A)"
+        by (auto intro!: Greatest_equality simp add: max_def not_le insert.hyps)
       with insert show ?case by simp
     qed
   } from this [of "{a. P a}"] assms show ?thesis by simp
@@ -903,6 +921,42 @@ end
 lemma disjnt_ge_max: \<^marker>\<open>contributor \<open>Lars Hupel\<close>\<close>
   \<open>disjnt X Y\<close> if \<open>finite Y\<close> \<open>\<And>x. x \<in> X \<Longrightarrow> x > Max Y\<close>
   using that by (auto simp add: disjnt_def) (use Max_less_iff in blast)
+
+
+subsection \<open>An aside: code generation for \<open>LEAST\<close> and \<open>GREATEST\<close>\<close>
+
+context
+begin
+
+qualified definition Least :: \<open>'a::linorder set \<Rightarrow> 'a\<close> \<comment> \<open>only for code generation\<close>
+  where Least_eq [code_abbrev, simp]: \<open>Least S = (LEAST x. x \<in> S)\<close>
+
+qualified lemma Least_filter_eq [code_abbrev]:
+  \<open>Least (Set.filter P S) = (LEAST x. x \<in> S \<and> P x)\<close>
+  by simp
+
+qualified definition Least_abort :: \<open>'a set \<Rightarrow> 'a::linorder\<close>
+  where \<open>Least_abort = Least\<close>
+
+qualified lemma Least_code [code abort: Lattices_Big.Least_abort, code]:
+  \<open>Least A = (if finite A \<longrightarrow> Set.is_empty A then Least_abort A else Min A)\<close>
+  using Least_Min [of \<open>\<lambda>x. x \<in> A\<close>] by (auto simp add: Least_abort_def)
+
+qualified definition Greatest :: \<open>'a::linorder set \<Rightarrow> 'a\<close> \<comment> \<open>only for code generation\<close>
+  where Greatest_eq [code_abbrev, simp]: \<open>Greatest S = (GREATEST x. x \<in> S)\<close>
+
+qualified lemma Greatest_filter_eq [code_abbrev]:
+  \<open>Greatest (Set.filter P S) = (GREATEST x. x \<in> S \<and> P x)\<close>
+  by simp
+
+qualified definition Greatest_abort :: \<open>'a set \<Rightarrow> 'a::linorder\<close>
+  where \<open>Greatest_abort = Greatest\<close>
+
+qualified lemma Greatest_code [code abort: Lattices_Big.Greatest_abort, code]:
+  \<open>Greatest A = (if finite A \<longrightarrow> Set.is_empty A then Greatest_abort A else Max A)\<close>
+  using Greatest_Max [of \<open>\<lambda>x. x \<in> A\<close>] by (auto simp add: Greatest_abort_def)
+
+end
 
 
 subsection \<open>Arg Min\<close>

@@ -95,11 +95,37 @@ object Rendering {
     legacy_pri -> Color.legacy_message,
     error_pri -> Color.error_message)
 
-  def output_messages(results: Command.Results, output_state: Boolean): List[XML.Elem] = {
-    val (states, other) =
-      results.iterator.map(_._2).filterNot(Protocol.is_result).toList
-        .partition(Protocol.is_state)
-    (if (output_state) states else Nil) ::: other
+
+  /* text messages */
+
+  def text_messages(
+    snapshot: Document.Snapshot,
+    range: Text.Range = Text.Range.full,
+    filter: XML.Elem => Boolean = _ => true
+  ): List[Text.Info[XML.Elem]] = {
+    val results =
+      snapshot.cumulate[Vector[Command.Results.Entry]](
+        range, Vector.empty, message_elements, command_states =>
+          {
+            case (res, Text.Info(_, elem)) =>
+              if (filter(elem)) {
+                Command.State.get_result_proper(command_states, elem.markup.properties)
+                  .map(res :+ _)
+              }
+              else None
+          })
+
+    var seen_serials = Set.empty[Long]
+    def seen(i: Long): Boolean = {
+      val b = seen_serials(i)
+      seen_serials += i
+      b
+    }
+    List.from(
+      for {
+        Text.Info(range, entries) <- results.iterator
+        (i, elem) <- entries.iterator if !seen(i)
+      } yield Text.Info(range, elem))
   }
 
 
@@ -242,7 +268,7 @@ object Rendering {
       Markup.COMMAND_SPAN)
 
   val tooltip_elements: Markup.Elements =
-    Markup.Elements(Markup.LANGUAGE, Markup.NOTATION, Markup.EXPRESSION, Markup.TIMING,
+    Markup.Elements(Markup.LANGUAGE, Markup.NOTATION, Markup.EXPRESSION,
       Markup.ENTITY, Markup.SORTING, Markup.TYPING, Markup.CLASS_PARAMETER, Markup.ML_TYPING,
       Markup.ML_BREAKPOINT, Markup.PATH, Markup.DOC, Markup.URL, Markup.COMMAND_SPAN,
       Markup.MARKDOWN_PARAGRAPH, Markup.MARKDOWN_ITEM, Markup.Markdown_List.name) ++
@@ -281,6 +307,8 @@ class Rendering(
   val options: Options,
   val session: Session
 ) {
+  val now: Date = Date.now()
+
   override def toString: String = "Rendering(" + snapshot.toString + ")"
 
   def get_text(range: Text.Range): Option[String] = None
@@ -452,7 +480,7 @@ class Rendering(
               case ((markups, color), Text.Info(_, XML.Elem(markup, _)))
               if markups.nonEmpty && Document_Status.Command_Status.proper_elements(markup.name) =>
                 Some((markup :: markups, color))
-              case (_, Text.Info(_, XML.Elem(Markup(Markup.BAD, _), _))) =>
+              case (_, Text.Info(_, XML.Elem(Markup.Bad(_), _))) =>
                 Some((Nil, Some(Rendering.Color.bad)))
               case (_, Text.Info(_, XML.Elem(Markup(Markup.INTENSIFY, _), _))) =>
                 Some((Nil, Some(Rendering.Color.intensify)))
@@ -484,7 +512,7 @@ class Rendering(
       color <-
         result match {
           case (markups, opt_color) if markups.nonEmpty =>
-            val status = Document_Status.Command_Status.make(markups.iterator)
+            val status = Document_Status.Command_Status.make(now, markups = markups)
             if (status.is_unprocessed) Some(Rendering.Color.unprocessed1)
             else if (status.is_running) Some(Rendering.Color.running1)
             else if (status.is_canceled) Some(Rendering.Color.canceled)
@@ -568,28 +596,6 @@ class Rendering(
     } yield Text.Info(r, color)
   }
 
-  def text_messages(range: Text.Range): List[Text.Info[XML.Elem]] = {
-    val results =
-      snapshot.cumulate[Vector[Command.Results.Entry]](
-        range, Vector.empty, Rendering.message_elements, command_states =>
-          {
-            case (res, Text.Info(_, elem)) =>
-              Command.State.get_result_proper(command_states, elem.markup.properties)
-                .map(res :+ _)
-          })
-
-    var seen_serials = Set.empty[Long]
-    def seen(i: Long): Boolean = {
-      val b = seen_serials(i)
-      seen_serials += i
-      b
-    }
-    for {
-      Text.Info(range, entries) <- results
-      (i, elem) <- entries if !seen(i)
-    } yield Text.Info(range, elem)
-  }
-
 
   /* markup structure */
 
@@ -613,15 +619,13 @@ class Rendering(
 
   /* tooltips */
 
-  def timing_threshold: Double = 0.0
+  def timing_threshold: Time = options.seconds("editor_timing_threshold")
 
   private sealed case class Tooltip_Info(
     range: Text.Range,
-    timing: Timing = Timing.zero,
     messages: List[(Long, XML.Elem)] = Nil,
     rev_infos: List[(Boolean, Int, XML.Elem)] = Nil
   ) {
-    def add_timing(t: Timing): Tooltip_Info = copy(timing = timing + t)
     def add_message(r0: Text.Range, serial: Long, msg: XML.Elem): Tooltip_Info = {
       val r = snapshot.convert(r0)
       if (range == r) copy(messages = (serial -> msg) :: messages)
@@ -639,19 +643,8 @@ class Rendering(
     def add_info_text(r0: Text.Range, text: String, ord: Int = 0): Tooltip_Info =
       add_info(r0, Pretty.string(text), ord = ord)
 
-    def timing_info(elem: XML.Elem): Option[XML.Elem] =
-      if (elem.markup.name == Markup.TIMING) {
-        if (timing.elapsed.seconds >= timing_threshold) {
-          Some(Pretty.string(timing.message))
-        }
-        else None
-      }
-      else Some(elem)
     def infos(important: Boolean = true): List[XML.Elem] =
-      for {
-        (is_important, _, elem) <- rev_infos.reverse.sortBy(_._2) if is_important == important
-        elem1 <- timing_info(elem)
-      } yield elem1
+      for ((imp, _, elem) <- rev_infos.reverse.sortBy(_._2) if imp == important) yield elem
   }
 
   def perhaps_append_file(node_name: Document.Node.Name, name: String): String =
@@ -662,9 +655,7 @@ class Rendering(
     val results =
       snapshot.cumulate[Tooltip_Info](range, Tooltip_Info(range), elements, command_states =>
         {
-          case (info, Text.Info(_, XML.Elem(Markup.Timing(t), _))) => Some(info.add_timing(t))
-
-          case (info, Text.Info(r0, msg @ XML.Elem(Markup(Markup.BAD, Markup.Serial(i)), body)))
+          case (info, Text.Info(r0, msg @ XML.Elem(Markup.Bad(i), body)))
           if body.nonEmpty => Some(info.add_message(r0, i, msg))
 
           case (info, Text.Info(r0, XML.Elem(Markup(name, props), _)))
@@ -672,11 +663,21 @@ class Rendering(
             for ((i, msg) <- Command.State.get_result_proper(command_states, props))
             yield info.add_message(r0, i, msg)
 
-          case (info, Text.Info(r0, XML.Elem(Markup.Entity(kind, name), _)))
+          case (info, Text.Info(r0, XML.Elem(markup@Markup.Entity(kind, name), _)))
           if kind != "" && kind != Markup.ML_DEF =>
             val txt = Rendering.gui_name(name, kind = kind)
             val info1 = info.add_info_text(r0, txt, ord = 2)
-            Some(if (kind == Markup.COMMAND) info1.add_info(r0, XML.elem(Markup.TIMING)) else info1)
+            val info2 =
+              if (kind == Markup.COMMAND) {
+                val timings = Document_Status.Command_Timings.merge(command_states.map(_.timings))
+                val t = timings.get_finished(Markup.Command_Offset.get(markup.properties))
+                if (t.is_notable(timing_threshold)) {
+                  info1.add_info(r0, Pretty.string(t.message))
+                }
+                else info1
+              }
+              else info1
+            Some(info2)
 
           case (info, Text.Info(r0, XML.Elem(Markup.Path(name), _))) =>
             val file = perhaps_append_file(snapshot.node_name, name)
@@ -774,7 +775,7 @@ class Rendering(
             }, status = true)
       if (results.isEmpty) None
       else {
-        val status = Document_Status.Command_Status.make(results.iterator.flatMap(_.info))
+        val status = Document_Status.Command_Status.make(now, markups = results.flatMap(_.info))
 
         if (status.is_running) Some(Rendering.Color.running)
         else if (status.is_failed) Some(Rendering.Color.error)

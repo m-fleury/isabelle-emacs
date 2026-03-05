@@ -36,6 +36,7 @@ sources = \
   src/Pure/Admin/component_jdk.scala \
   src/Pure/Admin/component_jedit.scala \
   src/Pure/Admin/component_jsoup.scala \
+  src/Pure/Admin/component_jsvg.scala \
   src/Pure/Admin/component_lipics.scala \
   src/Pure/Admin/component_llncs.scala \
   src/Pure/Admin/component_minisat.scala \
@@ -157,6 +158,7 @@ sources = \
   src/Pure/ML/ml_lex.scala \
   src/Pure/ML/ml_process.scala \
   src/Pure/ML/ml_profiling.scala \
+  src/Pure/ML/ml_settings.scala \
   src/Pure/ML/ml_statistics.scala \
   src/Pure/ML/ml_syntax.scala \
   src/Pure/PIDE/byte_message.scala \
@@ -217,6 +219,7 @@ sources = \
   src/Pure/Thy/thy_element.scala \
   src/Pure/Thy/thy_header.scala \
   src/Pure/Thy/thy_syntax.scala \
+  src/Pure/Tools/caddy_setup.scala \
   src/Pure/Tools/check_keywords.scala \
   src/Pure/Tools/debugger.scala \
   src/Pure/Tools/doc.scala \
@@ -232,6 +235,7 @@ sources = \
   src/Pure/Tools/phabricator.scala \
   src/Pure/Tools/print_operation.scala \
   src/Pure/Tools/prismjs.scala \
+  src/Pure/Tools/process_theories.scala \
   src/Pure/Tools/profiling.scala \
   src/Pure/Tools/profiling_report.scala \
   src/Pure/Tools/scala_build.scala \
@@ -285,6 +289,8 @@ sources = \
   src/Tools/VSCode/src/vscode_model.scala \
   src/Tools/VSCode/src/vscode_rendering.scala \
   src/Tools/VSCode/src/vscode_resources.scala \
+  src/Tools/VSCode/src/vscode_session.scala \
+  src/Tools/VSCode/src/vscode_sledgehammer.scala \
   src/Tools/VSCode/src/vscode_spell_checker.scala \
   src/Tools/jEdit/src/active.scala \
   src/Tools/jEdit/src/base_plugin.scala \
@@ -303,18 +309,21 @@ sources = \
   src/Tools/jEdit/src/isabelle.scala \
   src/Tools/jEdit/src/isabelle_encoding.scala \
   src/Tools/jEdit/src/isabelle_export.scala \
+  src/Tools/jEdit/src/isabelle_navigator.scala \
   src/Tools/jEdit/src/isabelle_session.scala \
   src/Tools/jEdit/src/isabelle_vfs.scala \
+  src/Tools/jEdit/src/jedit_accessible.scala \
   src/Tools/jEdit/src/jedit_bibtex.scala \
   src/Tools/jEdit/src/jedit_editor.scala \
   src/Tools/jEdit/src/jedit_jar.scala \
   src/Tools/jEdit/src/jedit_lib.scala \
   src/Tools/jEdit/src/jedit_main.scala \
+  src/Tools/jEdit/src/jedit_mouse_handler.scala \
   src/Tools/jEdit/src/jedit_options.scala \
   src/Tools/jEdit/src/jedit_plugins.scala \
   src/Tools/jEdit/src/jedit_rendering.scala \
   src/Tools/jEdit/src/jedit_resources.scala \
-  src/Tools/jEdit/src/jedit_sessions.scala \
+  src/Tools/jEdit/src/jedit_session.scala \
   src/Tools/jEdit/src/jedit_spell_checker.scala \
   src/Tools/jEdit/src/keymap_merge.scala \
   src/Tools/jEdit/src/main_plugin.scala \
@@ -349,6 +358,7 @@ services = \
   isabelle.Bibtex$File_Format \
   isabelle.Build$Engine$Default \
   isabelle.Build_Schedule$Build_Engine \
+  isabelle.Caddy_Setup \
   isabelle.CI_Jobs \
   isabelle.Document_Build$Build_Engine \
   isabelle.Document_Build$LIPIcs_LuaLaTeX_Engine \

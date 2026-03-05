@@ -34,25 +34,26 @@ machines are as follows:
       - **Ubuntu 18.04 LTS** (e.g. via `docker run -it ubuntu:18.04 bash`)
 
   * `x86_64-darwin`
-      - **macOS 11 Big Sur** (`mini1` Macmini8,1)
-      - macOS 12 Monterey (untested)
+      - **macOS 12 Monterey** (`mini1` Macmini8,1, 6 cores) (`aleppo` Macmini7,1, 2 cores)
       - macOS 13 Ventura (`mini3` Mac14,12 -- MacMini M2 Pro, 6+4 cores)
-      - macOS 14 Sonoma (`mini2` Macmini8,1)
-      - macOS 15 Sequoia (untested)
+      - macOS 14 Sonoma (`mini2` Macmini8,1, 6 cores)
+      - macOS 15 Sequoia (`hattusa` Mac16,11 -- MacMini M4 Pro, 10+4 cores)
+      - macOS 26 Tahoe (`hattusa` Mac16,11 -- MacMini M4 Pro, 10+4 cores)
   * `arm64-darwin`
-      - **macOS 11 Big Sur** (`assur` Macmini9,1 -- MacMini M1, 4+4 cores)
-      - macOS 12 Monterey (untested)
+      - **macOS 12 Monterey** (`assur` Macmini9,1 -- MacMini M1, 4+4 cores)
       - macOS 13 Ventura (`mini3` Mac14,12 -- MacMini M2 Pro, 6+4 cores)
       - macOS 14 Sonoma (`studio1` Mac13,2 M1 Ultra, 16+4 cores)
-      - macOS 15 Sequoia (untested)
+      - macOS 15 Sequoia (`hattusa` Mac16,11 -- MacMini M4 Pro, 10+4 cores)
+      - macOS 26 Tahoe (`hattusa` Mac16,11 -- MacMini M4 Pro, 10+4 cores)
 
   * `x86_64-windows`
+      - Windows Server 2019 (minimum for Java ZGC)
       - **Windows Server 2022** (`se0.proof.cit.tum.de`)
       - **Windows 10**
       - Windows 11
   * `x86_64-cygwin`
-      - **Cygwin 3.5.x**
-        https://isabelle.sketis.net/cygwin_2025 (`x86_64/release`)
+      - **Cygwin 3.6.x**
+        https://isabelle.sketis.net/cygwin_2025-1 (`x86_64/release`)
 
 Multi-platform tools require thorough testing on all platforms: base-line and
 latest versions. It "works for me on my system" is not sufficient for the

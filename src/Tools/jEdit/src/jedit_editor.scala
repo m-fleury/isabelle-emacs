@@ -12,10 +12,15 @@ import isabelle._
 
 import org.gjt.sp.jedit.{jEdit, View, Buffer}
 import org.gjt.sp.jedit.browser.VFSBrowser
+import org.gjt.sp.jedit.textarea.TextArea
 import org.gjt.sp.jedit.io.{VFSManager, VFSFile}
+import org.gjt.sp.util.AwtRunnableQueue
 
 
-class JEdit_Editor extends Editor[View] {
+class JEdit_Editor extends Editor {
+  type Context = View
+
+
   /* PIDE session and document model */
 
   override def session: Session = PIDE.session
@@ -35,6 +40,7 @@ class JEdit_Editor extends Editor[View] {
     Delay.first(PIDE.session.generated_input_delay, gui = true) { flush() }
 
   def invoke(): Unit = delay_input.invoke()
+  def revoke(): Unit = delay_input.revoke()
   def invoke_generated(): Unit = { delay_input.invoke(); delay_generated_input.invoke() }
 
   def shutdown(): Unit =
@@ -58,7 +64,7 @@ class JEdit_Editor extends Editor[View] {
 
   def state_changed(): Unit = {
     GUI_Thread.later { flush() }
-    PIDE.plugin.deps_changed()
+    PIDE.session.deps_changed()
     session.global_options.post(Session.Global_Options(PIDE.options.value))
   }
 
@@ -76,23 +82,21 @@ class JEdit_Editor extends Editor[View] {
   override def node_snapshot(name: Document.Node.Name): Document.Snapshot =
     GUI_Thread.require { Document_Model.get_snapshot(name) getOrElse session.snapshot(name) }
 
-  override def current_command(view: View, snapshot: Document.Snapshot): Option[Command] = {
-    GUI_Thread.require {}
-
-    val text_area = view.getTextArea
-    val buffer = view.getBuffer
-
-    Document_View.get(text_area) match {
-      case Some(doc_view) if doc_view.model.is_theory =>
-        snapshot.current_command(doc_view.model.node_name, text_area.getCaretPosition)
-      case _ =>
-        Document_Model.get_model(buffer) match {
-          case Some(model) if !model.is_theory =>
-            snapshot.version.nodes.commands_loading(model.node_name).headOption
-          case _ => None
-        }
+  override def current_command(view: View, snapshot: Document.Snapshot): Option[Command] =
+    GUI_Thread.require {
+      val text_area = view.getTextArea
+      val caret_offset = text_area.getCaretPosition
+      Document_View.get(text_area) match {
+        case Some(doc_view) if snapshot.loaded_theory_command(caret_offset).isEmpty =>
+          snapshot.current_command(doc_view.model.node_name, caret_offset)
+        case _ => None
+      }
     }
-  }
+
+
+  /* output messages */
+
+  override def output_state(): Boolean = JEdit_Options.output_state()
 
 
   /* overlays */
@@ -109,53 +113,32 @@ class JEdit_Editor extends Editor[View] {
 
   /* navigation */
 
-  def push_position(view: View): Unit = {
-    val navigator = jEdit.getPlugin("ise.plugin.nav.NavigatorPlugin")
-    if (navigator != null) {
-      try { Untyped.method(navigator.getClass, "pushPosition", view.getClass).invoke(null, view) }
-      catch { case _: NoSuchMethodException => }
-    }
-  }
-
-  def goto_buffer(focus: Boolean, view: View, buffer: Buffer, offset: Text.Offset): Unit = {
+  def goto_file(
+    view: View,
+    name: String,
+    line: Int = -1,
+    offset: Text.Offset = -1,
+    focus: Boolean = false
+  ): Unit = {
     GUI_Thread.require {}
 
-    push_position(view)
+    PIDE.plugin.navigator.record(Isabelle_Navigator.Pos(view))
 
-    if (focus) view.goToBuffer(buffer) else view.showBuffer(buffer)
-    try { view.getTextArea.moveCaretPosition(offset) }
-    catch {
-      case _: ArrayIndexOutOfBoundsException =>
-      case _: IllegalArgumentException =>
-    }
-  }
-
-  def goto_file(focus: Boolean, view: View, name: String): Unit =
-    goto_file(focus, view, Line.Node_Position.offside(name))
-
-  def goto_file(focus: Boolean, view: View, pos: Line.Node_Position): Unit = {
-    GUI_Thread.require {}
-
-    push_position(view)
-
-    val name = pos.name
-    val line = pos.line
-    val column = pos.column
+    def buffer_target(buffer: Buffer): Option[Text.Offset] =
+      if (buffer != null && (line >= 0 || offset >= 0)) {
+        val n = buffer.getLength
+        val line_offset =
+          if (line < 0) 0
+          else if (line >= buffer.getLineCount) n
+          else buffer.getLineStartOffset(line)
+        Some((line_offset + offset.max(0)) min n)
+      }
+      else None
 
     JEdit_Lib.jedit_buffer(name) match {
       case Some(buffer) =>
         if (focus) view.goToBuffer(buffer) else view.showBuffer(buffer)
-        val text_area = view.getTextArea
-
-        try {
-          val line_start = text_area.getBuffer.getLineStartOffset(line)
-          text_area.moveCaretPosition(line_start)
-          if (column > 0) text_area.moveCaretPosition(line_start + column)
-        }
-        catch {
-          case _: ArrayIndexOutOfBoundsException =>
-          case _: IllegalArgumentException =>
-        }
+        for (target <- buffer_target(buffer)) view.getTextArea.setCaretPosition(target)
 
       case None =>
         val is_dir =
@@ -168,28 +151,40 @@ class JEdit_Editor extends Editor[View] {
 
         if (is_dir) VFSBrowser.browseDirectory(view, name)
         else if (!Isabelle_System.open_external_file(name)) {
-          val args =
-            if (line <= 0) Array(name)
-            else if (column <= 0) Array(name, "+line:" + (line + 1))
-            else Array(name, "+line:" + (line + 1) + "," + (column + 1))
-          jEdit.openFiles(view, null, args)
+          val buffer = jEdit.openFile(view, name)
+          if (buffer_target(buffer).isDefined) {
+            AwtRunnableQueue.INSTANCE.runAfterIoTasks({ () =>
+              for (target <- buffer_target(buffer)) {
+                if (view.getBuffer == buffer) {
+                  view.getTextArea.setCaretPosition(target)
+                  buffer.setIntegerProperty(Buffer.CARET, target)
+                  buffer.setBooleanProperty(Buffer.CARET_POSITIONED, true)
+                }
+                else {
+                  buffer.setIntegerProperty(Buffer.CARET, target)
+                  buffer.setBooleanProperty(Buffer.CARET_POSITIONED, true)
+                  buffer.unsetProperty(Buffer.SCROLL_VERT)
+                }
+              }
+            })
+          }
         }
     }
   }
 
-  def goto_doc(view: View, path: Path): Unit = {
+  def goto_doc(view: View, path: Path, focus: Boolean = false): Unit = {
     if (path.is_pdf) Doc.view(path)
-    else goto_file(true, view, File.platform_path(path))
+    else goto_file(view, File.platform_path(path), focus = focus)
   }
 
 
   /* hyperlinks */
 
   def hyperlink_doc(name: String): Option[Hyperlink] =
-    Doc.contents().entries(name = _ == name).headOption.map(entry =>
+    Doc.contents(PIDE.ml_settings).entries(name = _ == name).headOption.map(entry =>
       new Hyperlink {
         override val external: Boolean = !entry.path.is_file
-        def follow(view: View): Unit = goto_doc(view, entry.path)
+        def follow(view: View): Unit = goto_doc(view, entry.path, focus = true)
         override def toString: String = "doc " + quote(name)
       })
 
@@ -209,38 +204,27 @@ class JEdit_Editor extends Editor[View] {
       override def toString: String = "URL " + quote(name)
     }
 
-  def hyperlink_file(focus: Boolean, name: String): Hyperlink =
-    hyperlink_file(focus, Line.Node_Position.offside(name))
-
-  def hyperlink_file(focus: Boolean, pos: Line.Node_Position): Hyperlink =
+  def hyperlink_file(
+    name: String,
+    line: Int = -1,
+    offset: Text.Offset = -1,
+    focus: Boolean = false
+  ): Hyperlink =
     new Hyperlink {
-      def follow(view: View): Unit = goto_file(focus, view, pos)
-      override def toString: String = "file " + quote(pos.name)
-    }
-
-  def hyperlink_model(focus: Boolean, model: Document_Model, offset: Text.Offset): Hyperlink =
-    model match {
-      case file_model: File_Model =>
-        val pos =
-          try { file_model.node_position(offset) }
-          catch { case ERROR(_) => Line.Node_Position(file_model.node_name.node) }
-        hyperlink_file(focus, pos)
-      case buffer_model: Buffer_Model =>
-        new Hyperlink {
-          def follow(view: View): Unit = goto_buffer(focus, view, buffer_model.buffer, offset)
-          override def toString: String = "buffer " + quote(model.node_name.node)
-        }
+      def follow(view: View): Unit =
+        goto_file(view, name, line = line, offset = offset, focus = focus)
+      override def toString: String = "file " + quote(name)
     }
 
   def hyperlink_source_file(
-    focus: Boolean,
     source_name: String,
     line1: Int,
-    offset: Symbol.Offset
+    offset: Symbol.Offset,
+    focus: Boolean = false,
   ) : Option[Hyperlink] = {
-    for (platform_path <- PIDE.resources.source_file(source_name)) yield {
+    for (platform_path <- PIDE.session.store.source_file(source_name)) yield {
       def hyperlink(pos: Line.Position) =
-        hyperlink_file(focus, Line.Node_Position(platform_path, pos))
+        hyperlink_file(platform_path, line = pos.line, offset = pos.column, focus = focus)
 
       if (offset > 0) {
         PIDE.resources.get_file_content(PIDE.resources.node_name(platform_path)) match {
@@ -257,13 +241,16 @@ class JEdit_Editor extends Editor[View] {
   }
 
   override def hyperlink_command(
-    focus: Boolean,
     snapshot: Document.Snapshot,
     id: Document_ID.Generic,
-    offset: Symbol.Offset = 0
+    offset: Symbol.Offset = 0,
+    focus: Boolean = false
   ) : Option[Hyperlink] = {
     if (snapshot.is_outdated) None
-    else snapshot.find_command_position(id, offset).map(hyperlink_file(focus, _))
+    else {
+      snapshot.find_command_position(id, offset)
+        .map(pos => hyperlink_file(pos.name, line = pos.line, offset = pos.column, focus = focus))
+    }
   }
 
   def is_hyperlink_position(
@@ -285,23 +272,23 @@ class JEdit_Editor extends Editor[View] {
     }
   }
 
-  def hyperlink_position(focus: Boolean, snapshot: Document.Snapshot, pos: Position.T)
+  def hyperlink_position(snapshot: Document.Snapshot, pos: Position.T, focus: Boolean = false)
       : Option[Hyperlink] =
     pos match {
       case Position.Item_File(name, line, range) =>
-        hyperlink_source_file(focus, name, line, range.start)
+        hyperlink_source_file(name, line, range.start, focus = focus)
       case Position.Item_Id(id, range) =>
-        hyperlink_command(focus, snapshot, id, range.start)
+        hyperlink_command(snapshot, id, range.start, focus = focus)
       case _ => None
     }
 
-  def hyperlink_def_position(focus: Boolean, snapshot: Document.Snapshot, pos: Position.T)
+  def hyperlink_def_position(snapshot: Document.Snapshot, pos: Position.T, focus: Boolean = false)
       : Option[Hyperlink] =
     pos match {
       case Position.Item_Def_File(name, line, range) =>
-        hyperlink_source_file(focus, name, line, range.start)
+        hyperlink_source_file(name, line, range.start, focus = focus)
       case Position.Item_Def_Id(id, range) =>
-        hyperlink_command(focus, snapshot, id, range.start)
+        hyperlink_command(snapshot, id, range.start, focus = focus)
       case _ => None
     }
 

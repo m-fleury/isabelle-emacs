@@ -23,7 +23,7 @@ fun moura_tac ctxt =
   REPEAT o EqSubst.eqsubst_tac ctxt [0]
     @{thms choice_iff[symmetric] bchoice_iff[symmetric]} THEN'
   TRY o Simplifier.asm_full_simp_tac
-    (clear_simpset ctxt addsimps @{thms all_simps ex_simps ex_iff_push}) THEN_ALL_NEW
+    (clear_simpset ctxt |> Simplifier.add_simps @{thms all_simps ex_simps ex_iff_push}) THEN_ALL_NEW
   Metis_Tactic.metis_tac (take 1 ATP_Proof_Reconstruct.partial_type_encs)
     ATP_Proof_Reconstruct.default_metis_lam_trans ctxt []
 \<close>
@@ -972,6 +972,7 @@ ML_file \<open>Tools/SMT/alethe/alethe_proof_parse.ML\<close>
 ML_file \<open>Tools/SMT/alethe/cvc_interface.ML\<close>
 ML_file \<open>Tools/SMT/alethe/cvc_proof_parse.ML\<close>
 
+
 ML_file \<open>Tools/SMT/conj_disj_perm.ML\<close>
 ML_file \<open>Tools/SMT/smt_replay_methods.ML\<close>
 ML_file \<open>Tools/SMT/smt_replay.ML\<close>
@@ -982,6 +983,8 @@ ML_file \<open>Tools/SMT/z3/z3_interface.ML\<close>
 ML_file \<open>Tools/SMT/z3/z3_replay_rules.ML\<close>
 ML_file \<open>Tools/SMT/z3/z3_replay_methods.ML\<close>
 ML_file \<open>Tools/SMT/z3/z3_replay.ML\<close>
+(*vampire*)
+ML_file \<open>Tools/SMT/vampire_interface.ML\<close>
 (*veriT and cvc5 replay*)
 ML_file \<open>Tools/SMT/alethe/alethe_replay_methods.ML\<close>
 ML_file \<open>Tools/SMT/alethe/cvc5_rare.ML\<close>

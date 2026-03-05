@@ -10,7 +10,7 @@ signature CODE =
 sig
   (*constants*)
   val check_const: theory -> term -> string
-  val read_const: theory -> string -> string
+  val read_const: Proof.context -> string -> string
   val string_of_const: theory -> string -> string
   val args_number: theory -> string -> int
 
@@ -41,10 +41,9 @@ sig
   val declare_abstype_global: thm -> theory -> theory
   val declare_default_eqns: (thm * bool) list -> local_theory -> local_theory
   val declare_default_eqns_global: (thm * bool) list -> theory -> theory
+  val singleton_default_equation_attrib: Token.src
   val declare_eqns: (thm * bool) list -> local_theory -> local_theory
   val declare_eqns_global: (thm * bool) list -> theory -> theory
-  val add_eqn_global: thm * bool -> theory -> theory
-  val del_eqn_global: thm -> theory -> theory
   val declare_abstract_eqn: thm -> local_theory -> local_theory
   val declare_abstract_eqn_global: thm -> theory -> theory
   val declare_aborting_global: string -> theory -> theory
@@ -62,6 +61,11 @@ sig
   val get_case_cong: theory -> string -> thm option
   val is_undefined: theory -> string -> bool
   val print_codesetup: theory -> unit
+
+  (*transitional*)
+  val only_single_equation: bool Config.T
+  val prepend_allowed: bool Config.T
+  val strict_drop: bool Config.T
 end;
 
 signature CODE_DATA_ARGS =
@@ -105,6 +109,17 @@ fun string_of_const thy c =
   end;
 
 
+(* transitional *)
+
+val only_single_equation = Attrib.setup_config_bool \<^binding>\<open>code_only_single_equation\<close> (K false);
+val prepend_allowed = Attrib.setup_config_bool \<^binding>\<open>code_prepend_allowed\<close> (K false);
+val strict_drop = Attrib.setup_config_bool \<^binding>\<open>code_strict_drop\<close> (K false);
+
+val _ = Theory.setup (Theory.at_end ((fn thy => if Config.get_global thy prepend_allowed
+  then thy |> Config.put_global prepend_allowed false |> SOME
+  else NONE)));
+
+
 (* constants *)
 
 fun const_typ thy = Term.strip_sortsT o Sign.the_const_type thy;
@@ -124,6 +139,8 @@ fun typscheme thy (c, ty) =
 fun typscheme_equiv (ty1, ty2) =
   Type.raw_instance (devarify ty1, ty2) andalso Type.raw_instance (devarify ty2, ty1);
 
+local
+
 fun check_bare_const thy t = case try dest_Const t
  of SOME c_ty => c_ty
   | NONE => error ("Not a constant: " ^ Syntax.string_of_term_global thy t);
@@ -142,11 +159,38 @@ fun check_unoverload thy (c, ty) =
         string_of_typ thy ty_decl)
   end;
 
-fun check_const thy = check_unoverload thy o check_bare_const thy;
+fun export_global ctxt thy =
+  Variable.export_terms ctxt (Proof_Context.init_global thy);
 
-fun read_bare_const thy = check_bare_const thy o Syntax.read_term_global thy;
+in
 
-fun read_const thy = check_unoverload thy o read_bare_const thy;
+fun check_const thy =
+  check_bare_const thy #> check_unoverload thy;
+
+fun read_bare_const thy =
+  Syntax.read_term (Proof_Context.init_global thy) #> check_bare_const thy;
+
+fun read_const ctxt =
+  let
+    val thy = Proof_Context.theory_of ctxt
+  in
+    Syntax.read_term ctxt
+    #> singleton (export_global ctxt thy)
+    #> Logic.unvarify_types_global
+    #> check_bare_const thy
+    #> check_unoverload thy
+  end;
+
+fun prospective_check_consts ctxt ts thy =
+  ts
+  |> export_global ctxt thy
+  |> map Logic.unvarify_types_global
+  |> map (check_const thy);
+
+val prospective_const_args = Args.context :|--
+  (fn ctxt => Scan.repeat1 Args.term >> prospective_check_consts ctxt);
+
+end;
 
 
 (** executable specifications **)
@@ -210,19 +254,13 @@ fun join_same_types ((vs, spec1), (_, spec2)) = (vs, join_same_types' (spec1, sp
 (* functions *)
 
 datatype fun_spec =
-    Eqns of bool * (thm * bool) list
+    Unimplemented
+  | Eqns of (thm * bool) list
   | Proj of term * (string * string)
   | Abstr of thm * (string * string);
 
-val unimplemented = Eqns (true, []);
-
-fun is_unimplemented (Eqns (true, [])) = true
+fun is_unimplemented Unimplemented = true
   | is_unimplemented _ = false;
-
-fun is_default (Eqns (true, _)) = true
-  | is_default _ = false;
-
-val aborting = Eqns (false, []);
 
 fun associated_abstype (Proj (_, tyco_abs)) = SOME tyco_abs
   | associated_abstype (Abstr (_, tyco_abs)) = SOME tyco_abs
@@ -249,49 +287,82 @@ fun associated_datatypes (Case {tycos, schema = (_, (_, raw_cos)), ...}) = (tyco
 structure History =
 struct
 
+datatype state =
+    Fresh       (*entry is active and unhistorized*)
+  | Historized  (*entry is active and historized*)
+  | Suppressed  (*incompatible entries are merely suppressed after theory merge but sustain*)
+
+fun is_unhistorized Fresh = true
+  | is_unhistorized _ = false;
+
 type 'a T = {
   entry: 'a,
-  suppressed: bool,     (*incompatible entries are merely suppressed after theory merge but sustain*)
-  history: serial list  (*explicit trace of declaration history supports non-monotonic declarations*)
+  state: state,
+  history: Context.id list  (*explicit trace of declaration history supports non-monotonic declarations*)
 } Symtab.table;
 
-fun some_entry (SOME {suppressed = false, entry, ...}) = SOME entry
+fun some_entry (SOME {state = Suppressed, ...}) = NONE
+  | some_entry (SOME {entry, ...}) = SOME entry
   | some_entry _ = NONE;
+
+fun the_history (SOME {history = history, ...}) = history
+  | the_history _ = [];
 
 fun lookup table =
   Symtab.lookup table #> some_entry;
 
+fun history_of table =
+  Symtab.lookup table #> the_history;
+
 fun register key entry table =
-  if is_some (Symtab.lookup table key)
-  then Symtab.map_entry key
-    (fn {history, ...} => {entry = entry, suppressed = false, history = serial () :: history}) table
-  else Symtab.update (key, {entry = entry, suppressed = false, history = [serial ()]}) table;
+  table
+  |> Symtab.update
+    (key, {entry = entry, state = Fresh, history = history_of table key});
 
-fun modify_entry key f = Symtab.map_entry key
-  (fn {entry, suppressed, history} => {entry = f entry, suppressed = suppressed, history = history});
+fun modify_entry key f =
+  Symtab.map_entry key (fn {entry, state, history} =>
+    {entry = f entry, state = state, history = history});
 
-fun all table = Symtab.dest table
-  |> map_filter (fn (key, {entry, suppressed = false, ...}) => SOME (key, entry) | _ => NONE);
+fun all table =
+  Symtab.dest table
+  |> map_filter (fn (key, record) => case some_entry (SOME record) of SOME entry => SOME (key, entry) | _ => NONE);
+
+fun has_unhistorized table =
+  Symtab.exists (fn (_, {state, ...}) => is_unhistorized state) table;
+
+fun historize_record thy (record as {entry, state, history}) =
+  if is_unhistorized state
+  then {entry = entry, state = Historized, history = Context.theory_identifier thy :: history}
+  else record;
+
+fun historize thy table =
+  Symtab.map (K (historize_record thy)) table;
 
 local
 
-fun merge_history join_same
-    ({entry = entry1, history = history1, ...}, {entry = entry2, history = history2, ...}) =
-  let
-    val history = merge (op =) (history1, history2);
-    val entry = if hd history1 = hd history2 then join_same (entry1, entry2)
-      else if hd history = hd history1 then entry1 else entry2;
-  in {entry = entry, suppressed = false, history = history} end;
+fun merge_history _ ({history = [], ...}, record) = record (*degenerate case: unfinished theory*)
+  | merge_history _ (record, {history = [], ...}) = record (*degenerate case: unfinished theory*)
+  | merge_history join_same
+      ({entry = entry1, history = history1, ...}, {entry = entry2, history = history2, ...}) =
+      let
+        val history = merge (op =) (history1, history2);
+        val entry = if hd history1 = hd history2 then join_same (entry1, entry2)
+          else if hd history = hd history1 then entry1 else entry2;
+      in {entry = entry, state = Historized, history = history} end;
+
+fun suppressed_if _ Suppressed = Suppressed
+  | suppressed_if true _ = Suppressed
+  | suppressed_if _ state = state;
 
 in
 
 fun join join_same tables = Symtab.join (K (merge_history join_same)) tables;
 
 fun suppress key = Symtab.map_entry key
-  (fn {entry, history, ...} => {entry = entry, suppressed = true, history = history});
+  (fn {entry, history, ...} => {entry = entry, state = Suppressed, history = history});
 
-fun suppress_except f = Symtab.map (fn key => fn {entry, suppressed, history} =>
-  {entry = entry, suppressed = suppressed orelse (not o f) (key, entry), history = history});
+fun suppress_except f = Symtab.map (fn key => fn {entry, state, history} =>
+  {entry = entry, state = suppressed_if ((not o f) (key, entry)) state, history = history});
 
 end;
 
@@ -355,6 +426,16 @@ val map_types = map_specs o apfst;
 val map_pending_eqns = map_specs o apsnd o apfst o apfst;
 val map_functions = map_specs o apsnd o apfst o apsnd;
 val map_cases = map_specs o apsnd o apsnd;
+
+fun has_unhistorized specs =
+  History.has_unhistorized (types_of specs)
+  orelse History.has_unhistorized (functions_of specs)
+  orelse History.has_unhistorized (cases_of specs);
+
+fun historize thy =
+  map_types (History.historize thy)
+  #> map_functions (History.historize thy)
+  #> map_cases (History.historize thy);
 
 
 (* data slots dependent on executable code *)
@@ -456,39 +537,30 @@ end; (*local*)
    declarations as "pending" and historize them as proper declarations
    at the end of each theory. *)
 
-fun modify_pending_eqns c f specs =
-  let
-    val existing_eqns = case History.lookup (functions_of specs) c of
-        SOME (Eqns (false, eqns)) => eqns
-      | _ => [];
-  in
-    specs
-    |> map_pending_eqns (Symtab.map_default (c, existing_eqns) f)
-  end;
+fun modify_pending_eqns thy { check_singleton } c f =
+  map_pending_eqns (Symtab.map_default (c, []) (fn eqns =>
+    if null eqns orelse not check_singleton orelse not (Config.get_global thy only_single_equation)
+    then f eqns
+    else error ("Only a single code equation is allowed for " ^ string_of_const thy c)
+  ));
 
 fun register_fun_spec c spec =
   map_pending_eqns (Symtab.delete_safe c)
   #> map_functions (History.register c spec);
 
-fun lookup_fun_spec specs c =
+fun the_fun_spec specs c =
   case Symtab.lookup (pending_eqns_of specs) c of
-    SOME eqns => Eqns (false, eqns)
-  | NONE => (case History.lookup (functions_of specs) c of
-      SOME spec => spec
-    | NONE => unimplemented);
-
-fun lookup_proper_fun_spec specs c =
-  let
-    val spec = lookup_fun_spec specs c
-  in
-    if is_unimplemented spec then NONE else SOME spec
-  end;
+    SOME eqns => Eqns eqns
+  | NONE => History.lookup (functions_of specs) c |> the_default Unimplemented;
 
 fun all_fun_specs specs =
-  map_filter (fn c => Option.map (pair c) (lookup_proper_fun_spec specs c))
-    (union (op =)
-      ((Symtab.keys o pending_eqns_of) specs)
-      ((Symtab.keys o functions_of) specs));
+  (Symtab.keys o functions_of) specs
+  |> union (op =) ((Symtab.keys o pending_eqns_of) specs)
+  |> map (fn c => (c, the_fun_spec specs c))
+  |> filter_out (is_unimplemented o snd);
+
+
+(* historization *)
 
 fun historize_pending_fun_specs thy =
   let
@@ -499,12 +571,17 @@ fun historize_pending_fun_specs thy =
     else
       thy
       |> modify_specs (map_functions
-          (Symtab.fold (fn (c, eqs) => History.register c (Eqns (false, eqs))) pending_eqns)
+          (Symtab.fold (fn (c, eqs) => History.register c (Eqns eqs)) pending_eqns)
           #> map_pending_eqns (K Symtab.empty))
       |> SOME
   end;
 
-val _ = Theory.setup (Theory.at_end historize_pending_fun_specs);
+fun historize_specs thy =
+  if (has_unhistorized o specs_of) thy
+  then thy |> modify_specs (historize thy) |> SOME
+  else NONE;
+
+val _ = Theory.setup (Theory.at_end (perhaps_apply [historize_pending_fun_specs, historize_specs]));
 
 
 (** foundation **)
@@ -1111,8 +1188,9 @@ fun rewrite_eqn conv ctxt =
 
 fun apply_functrans ctxt functrans =
   let
-    fun trace_eqns s eqns = (Pretty.writeln o Pretty.chunks)
-      (Pretty.str s :: map (Thm.pretty_thm ctxt o fst) eqns);
+    fun trace_eqns s eqns =
+      Pretty.writeln (Pretty.chunks
+        (Pretty.str s :: map (Thm.pretty_thm ctxt o fst) eqns));
     val tracing = if Config.get ctxt simp_trace then trace_eqns else (K o K) ();
   in
     tap (tracing "before function transformation")
@@ -1125,15 +1203,15 @@ fun preprocess conv ctxt =
   #> Axclass.unoverload ctxt;
 
 fun get_cert ctxt functrans c =
-  case lookup_proper_fun_spec (specs_of (Proof_Context.theory_of ctxt)) c of
-    NONE => nothing_cert ctxt c
-  | SOME (Eqns (_, eqns)) => eqns
+  case the_fun_spec (specs_of (Proof_Context.theory_of ctxt)) c of
+    Unimplemented => nothing_cert ctxt c
+  | Eqns eqns => eqns
       |> (map o apfst) (Thm.transfer' ctxt)
       |> apply_functrans ctxt functrans
       |> (map o apfst) (preprocess eqn_conv ctxt)
       |> cert_of_eqns ctxt c
-  | SOME (Proj (_, (tyco, _))) => cert_of_proj ctxt c tyco
-  | SOME (Abstr (abs_thm, (tyco, _))) => abs_thm
+  | Proj (_, (tyco, _)) => cert_of_proj ctxt c tyco
+  | Abstr (abs_thm, (tyco, _)) => abs_thm
       |> Thm.transfer' ctxt
       |> preprocess Conv.arg_conv ctxt
       |> cert_of_abs ctxt tyco c;
@@ -1211,7 +1289,7 @@ fun print_codesetup thy =
     fun pretty_equations const thms =
       (Pretty.block o Pretty.fbreaks)
         (Pretty.str (string_of_const thy const) :: map (Thm.pretty_thm_item ctxt) thms);
-    fun pretty_function (const, Eqns (_, eqns)) =
+    fun pretty_function (const, Eqns eqns) =
           pretty_equations const (map fst eqns)
       | pretty_function (const, Proj (proj, _)) = Pretty.block
           [Pretty.str (string_of_const thy const), Pretty.fbrk, Syntax.pretty_term ctxt proj]
@@ -1252,7 +1330,7 @@ fun print_codesetup thy =
       |> filter (fn (_, No_Case) => false | _ => true)
       |> sort (string_ord o apply2 fst);
   in
-    Pretty.writeln_chunks [
+    Pretty.writeln (Pretty.chunks [
       Pretty.block (
         Pretty.str "types:" :: Pretty.fbrk
         :: (Pretty.fbreaks o map pretty_type_spec) types
@@ -1265,7 +1343,7 @@ fun print_codesetup thy =
         Pretty.str "cases:" :: Pretty.fbrk
         :: (Pretty.fbreaks o map pretty_case) cases
       )
-    ]
+    ])
   end;
 
 
@@ -1317,10 +1395,10 @@ fun code_declaration (strictness: strictness) transform f x =
 (* types *)
 
 fun invalidate_constructors_of (_, type_spec) =
-  fold (fn (c, _) => History.register c unimplemented) (fst (constructors_of type_spec));
+  fold (fn (c, _) => History.register c Unimplemented) (fst (constructors_of type_spec));
 
 fun invalidate_abstract_functions_of (_, type_spec) =
-  fold (fn c => History.register c unimplemented) (abstract_functions_of type_spec);
+  fold (fn c => History.register c Unimplemented) (abstract_functions_of type_spec);
 
 fun invalidate_case_combinators_of (_, type_spec) =
   fold (fn c => History.register c No_Case) (case_combinators_of type_spec);
@@ -1380,7 +1458,29 @@ val declare_abstype = code_declaration Liberal Morphism.thm generic_declare_abst
 
 local
 
-fun subsumptive_add thy verbose (thm, proper) eqns =
+fun subsumptive_append thy { verbose } (thm, proper) eqns =
+  let
+    val args_of = drop_prefix is_Var o rev o snd o strip_comb
+      o Term.strip_sorts o fst o Logic.dest_equals o Thm.plain_prop_of
+      o Thm.transfer thy;
+    val args = args_of thm;
+    val incr_idx = Logic.incr_indexes ([], Thm.maxidx_of thm + 1);
+    fun matches_args args' =
+      let
+        val k = length args - length args'
+      in k >= 0 andalso Pattern.matchess thy (map incr_idx args', drop k args) end;
+    fun matches (thm', proper') =
+      (not proper orelse proper') andalso matches_args (args_of thm');
+  in
+    if exists matches eqns then
+      (if verbose then warning ("Code generator: ignoring syntactically subsumed code equation\n" ^
+        Thm.string_of_thm_global thy thm) else ();
+      eqns)
+    else
+      eqns @ [(thm |> Thm.close_derivation \<^here> |> Thm.trim_context, proper)]
+  end;
+
+fun subsumptive_prepend thy { verbose } (thm, proper) eqns =
   let
     val args_of = drop_prefix is_Var o rev o snd o strip_comb
       o Term.strip_sorts o fst o Logic.dest_equals o Thm.plain_prop_of
@@ -1390,29 +1490,34 @@ fun subsumptive_add thy verbose (thm, proper) eqns =
     fun matches_args args' =
       let
         val k = length args' - length args
-      in if k >= 0
-        then Pattern.matchess thy (args, (map incr_idx o drop k) args')
-        else false
-      end;
+      in k >= 0 andalso Pattern.matchess thy (args, (map incr_idx o drop k) args') end;
     fun drop (thm', proper') = if (proper orelse not proper')
       andalso matches_args (args_of thm') then
-        (if verbose then warning ("Code generator: dropping subsumed code equation\n" ^
-            Thm.string_of_thm_global thy thm') else (); true)
+        (if verbose then warning ("Code generator: dropping syntactically subsumed code equation\n" ^
+          Thm.string_of_thm_global thy thm') else (); true)
       else false;
   in (thm |> Thm.close_derivation \<^here> |> Thm.trim_context, proper) :: filter_out drop eqns end;
 
-fun add_eqn_for (c, eqn) thy =
-  thy |> modify_specs (modify_pending_eqns c (subsumptive_add thy true eqn));
+fun subsumptive_add thy { verbose, prepend } =
+  if prepend then
+    if Config.get_global thy prepend_allowed
+    then subsumptive_prepend thy { verbose = verbose }
+    else error "Not allowed to prepend code equation"
+  else
+    subsumptive_append thy { verbose = verbose };
 
-fun add_eqns_for default (c, proto_eqns) thy =
-  thy |> modify_specs (fn specs =>
-    if is_default (lookup_fun_spec specs c) orelse not default
-    then
-      let
-        val eqns = []
-          |> fold_rev (subsumptive_add thy (not default)) proto_eqns;
-      in specs |> register_fun_spec c (Eqns (default, eqns)) end
-    else specs);
+fun add_eqn_for { check_singleton, prepend } (c, eqn) thy =
+  thy |> (modify_specs o modify_pending_eqns thy { check_singleton = check_singleton } c)
+    (subsumptive_add thy { verbose = true, prepend = prepend } eqn);
+
+fun add_eqns_for { default } (c, proto_eqns) thy =
+  let
+    val eqns = []
+      |> fold (subsumptive_append thy { verbose = not default }) proto_eqns;
+  in
+    thy
+    |> modify_specs (register_fun_spec c (Eqns eqns))
+  end;
 
 fun add_abstract_for (c, (thm, tyco_abs as (tyco, _))) =
   modify_specs (register_fun_spec c (Abstr (Thm.close_derivation \<^here> thm |> Thm.trim_context, tyco_abs))
@@ -1420,45 +1525,60 @@ fun add_abstract_for (c, (thm, tyco_abs as (tyco, _))) =
 
 in
 
-fun generic_declare_eqns default strictness raw_eqns thy =
-  fold (add_eqns_for default) (prep_eqns strictness thy raw_eqns) thy;
+fun generic_declare_eqns { default } strictness raw_eqns thy =
+  fold (add_eqns_for { default = default }) (prep_eqns strictness thy raw_eqns) thy;
 
-fun generic_add_eqn strictness raw_eqn thy =
-  fold add_eqn_for (the_list (prep_eqn strictness thy raw_eqn)) thy;
+fun generic_add_eqn { prepend } raw_eqn thy =
+  fold (add_eqn_for { check_singleton = false, prepend = prepend }) (the_list (prep_eqn Liberal thy raw_eqn)) thy;
 
 fun generic_declare_abstract_eqn strictness raw_abs_eqn thy =
   fold add_abstract_for (the_list (prep_abs_eqn strictness thy raw_abs_eqn)) thy;
 
 fun add_maybe_abs_eqn_liberal thm thy =
   case prep_maybe_abs_eqn thy thm
-   of SOME (c, (eqn, NONE)) => add_eqn_for (c, eqn) thy
+   of SOME (c, (eqn, NONE)) => add_eqn_for { check_singleton = true, prepend = false } (c, eqn) thy
     | SOME (c, ((thm, _), SOME tyco)) => add_abstract_for (c, (thm, tyco)) thy
     | NONE => thy;
 
 end;
 
-val declare_default_eqns_global = generic_declare_eqns true Silent;
-val declare_default_eqns = code_declaration Silent (map o apfst o Morphism.thm) (generic_declare_eqns true);
+val declare_default_eqns_global = generic_declare_eqns { default = true } Silent;
+val declare_default_eqns = code_declaration Silent (map o apfst o Morphism.thm)
+  (generic_declare_eqns { default = true });
 
-val declare_eqns_global = generic_declare_eqns false Strict;
-val declare_eqns = code_declaration Liberal (map o apfst o Morphism.thm) (generic_declare_eqns false);
-
-val add_eqn_global = generic_add_eqn Strict;
+val declare_eqns_global = generic_declare_eqns { default = false } Strict;
+val declare_eqns = code_declaration Liberal (map o apfst o Morphism.thm)
+  (generic_declare_eqns  { default = false });
 
 fun del_eqn_global thm thy =
   case prep_eqn Liberal thy (thm, false) of
     SOME (c, (thm, _)) =>
-      modify_specs (modify_pending_eqns c (filter_out (fn (thm', _) => Thm.eq_thm_prop (thm, thm')))) thy
+      (modify_specs o modify_pending_eqns thy { check_singleton = false } c)
+        (filter_out (fn (thm', _) => Thm.eq_thm_prop (thm, thm'))) thy
   | NONE => thy;
 
 val declare_abstract_eqn_global = generic_declare_abstract_eqn Strict;
 val declare_abstract_eqn = code_declaration Liberal Morphism.thm generic_declare_abstract_eqn;
 
-fun declare_aborting_global c =
-  modify_specs (register_fun_spec c aborting);
+fun declare_from_thm decl thm thy =
+  case prep_eqn Liberal thy (thm, false) of
+    SOME (c, _) => decl c thy
+  | NONE => thy;
 
-fun declare_unimplemented_global c =
-  modify_specs (register_fun_spec c unimplemented);
+fun declare_aborting_global c =
+  modify_specs (register_fun_spec c (Eqns []));
+
+val declare_aborting_global' =
+  declare_from_thm declare_aborting_global;
+
+fun declare_unimplemented_global c thy =
+  if Config.get_global thy strict_drop
+    andalso is_unimplemented (the_fun_spec (specs_of thy) c)
+  then error "No implementation to drop"
+  else modify_specs (register_fun_spec c Unimplemented) thy;
+
+val declare_unimplemented_global' =
+  declare_from_thm declare_unimplemented_global;
 
 
 (* cases *)
@@ -1509,39 +1629,48 @@ fun declare_undefined_global c =
 
 (* attributes *)
 
-fun code_attribute f = Thm.declaration_attribute
-  (fn thm => Context.mapping (f thm) I);
+fun code_attribute decl = Thm.declaration_attribute
+  (fn thm => Context.mapping (decl thm) I);
 
-fun code_thm_attribute g f =
-  Scan.lift (g |-- Scan.succeed (code_attribute f));
+fun code_thm_attribute qualifier decl =
+  Scan.lift (qualifier |-- Scan.succeed (code_attribute decl));
 
-fun code_const_attribute g f =
-  Scan.lift (g -- Args.colon) |-- Scan.repeat1 Args.term
-    >> (fn ts => code_attribute (K (fold (fn t => fn thy => f ((check_const thy o Logic.unvarify_types_global) t) thy) ts)));
+fun code_const_attribute qualifier decl =
+  Scan.lift (qualifier -- Args.colon) |-- prospective_const_args
+  >> (fn prospective_cs => code_attribute (fn _ => fn thy => fold decl (prospective_cs thy) thy));
 
 val _ = Theory.setup
   (let
     val code_attribute_parser =
       code_thm_attribute (Args.$$$ "equation")
-        (fn thm => generic_add_eqn Liberal (thm, true))
+        (fn thm => generic_add_eqn { prepend = false } (thm, true))
+      || code_thm_attribute (Args.$$$ "prepend")
+          (fn thm => generic_add_eqn { prepend = true } (thm, true))
       || code_thm_attribute (Args.$$$ "nbe")
-          (fn thm => generic_add_eqn Liberal (thm, false))
+          (fn thm => generic_add_eqn { prepend = false } (thm, false))
       || code_thm_attribute (Args.$$$ "abstract")
           (generic_declare_abstract_eqn Liberal)
       || code_thm_attribute (Args.$$$ "abstype")
           (generic_declare_abstype Liberal)
       || code_thm_attribute Args.del
-          del_eqn_global
+          (fn thm => tap (fn _ => Output.legacy_feature "code del attribute") (del_eqn_global thm))
       || code_const_attribute (Args.$$$ "abort")
           declare_aborting_global
+      || code_thm_attribute (Args.$$$ "abort")
+          declare_aborting_global'
       || code_const_attribute (Args.$$$ "drop")
           declare_unimplemented_global
+      || code_thm_attribute (Args.$$$ "drop")
+          declare_unimplemented_global'
       || Scan.succeed (code_attribute
           add_maybe_abs_eqn_liberal);
   in
     Attrib.setup \<^binding>\<open>code\<close> code_attribute_parser
-        "declare theorems for code generation"
+      "declare theorems for code generation"
   end);
+
+val singleton_default_equation_attrib = Attrib.internal \<^here>
+  (K (code_attribute (fn thm => declare_default_eqns_global [(thm, true)])));
 
 end; (*struct*)
 

@@ -95,7 +95,8 @@ fun help thy pats =
   dest_commands thy
   |> filter (fn (name, _) => forall (fn pat => match_string pat name) pats)
   |> map pretty_command
-  |> Pretty.writeln_chunks;
+  |> Pretty.chunks
+  |> Pretty.writeln;
 
 fun print_commands thy =
   let
@@ -105,7 +106,8 @@ fun print_commands thy =
   in
     [Pretty.strs ("keywords:" :: map quote minor),
       Pretty.big_list "commands:" (map pretty_command commands)]
-    |> Pretty.writeln_chunks
+    |> Pretty.chunks
+    |> Pretty.writeln
   end;
 
 
@@ -227,9 +229,7 @@ fun parse_command thy markers =
     let
       val keywords = Thy_Header.get_keywords thy;
       val tr0 =
-        Toplevel.empty
-        |> Toplevel.name name
-        |> Toplevel.position pos
+        Toplevel.make name pos
         |> Keyword.is_proof_open keywords name ? Toplevel.skip_proof_open
         |> Keyword.is_proof_close keywords name ? Toplevel.skip_proof_close;
       val command_markers =
@@ -289,7 +289,13 @@ fun command_reports thy tok =
     let val name = Token.content_of tok in
       (case lookup_commands thy name of
         NONE => []
-      | SOME cmd => [((Token.pos_of tok, command_markup {def = false} (name, cmd)), "")])
+      | SOME cmd =>
+          let
+            val pos = Token.pos_of tok;
+            val markup =
+              command_markup {def = false} (name, cmd)
+              |> Markup.command_offset (Position.offset_of pos);
+          in [((pos, markup), "")] end)
     end
   else [];
 

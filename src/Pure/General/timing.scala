@@ -36,11 +36,18 @@ object Timing {
 
   def factor_format(f: Double): String =
     String.format(Locale.ROOT, ", factor %.2f", java.lang.Double.valueOf(f))
+
+  def make(elapsed: Time, cpu: Time, gc: Time): Timing =
+    if (elapsed.is_zero && cpu.is_zero && gc.is_zero) zero else Timing(elapsed, cpu, gc)
+
+  def merge(args: IterableOnce[Timing]): Timing =
+    args.iterator.foldLeft(zero)(_ + _)
 }
 
 sealed case class Timing(elapsed: Time, cpu: Time, gc: Time) {
   def is_zero: Boolean = elapsed.is_zero && cpu.is_zero && gc.is_zero
   def is_relevant: Boolean = elapsed.is_relevant || cpu.is_relevant || gc.is_relevant
+  def is_notable(threshold: Time): Boolean = is_relevant && elapsed.is_notable(threshold)
 
   def resources: Time = cpu + gc
 
@@ -50,7 +57,7 @@ sealed case class Timing(elapsed: Time, cpu: Time, gc: Time) {
     if (t1 >= 3.0 && t2 >= 3.0) Some(t2 / t1) else None
   }
 
-  def + (t: Timing): Timing = Timing(elapsed + t.elapsed, cpu + t.cpu, gc + t.gc)
+  def + (t: Timing): Timing = Timing.make(elapsed + t.elapsed, cpu + t.cpu, gc + t.gc)
 
   def message: String =
     elapsed.message + " elapsed time, " + cpu.message + " cpu time, " + gc.message + " GC time"

@@ -28,37 +28,24 @@ class Output_Dockable(view: View, position: String) extends Dockable(view, posit
 
   val output: Output_Area =
     new Output_Area(view) {
-      override def handle_update(): Unit = dockable.handle_update(true)
+      override def handle_update(): Unit = dockable.handle_update()
       override def handle_shown(): Unit = split_pane_layout()
     }
 
   override def detach_operation: Option[() => Unit] =
     output.pretty_text_area.detach_operation
 
-  private def handle_update(follow: Boolean, restriction: Option[Set[Command]] = None): Unit = {
-    GUI_Thread.require {}
-
-    for {
-      snapshot <- PIDE.editor.current_node_snapshot(view)
-      if follow && !snapshot.is_outdated
-    } {
-      val (command, results) =
-        PIDE.editor.current_command(view, snapshot) match {
-          case Some(command) => (command, snapshot.command_results(command))
-          case None => (Command.empty, Command.Results.empty)
+  private def handle_update(restriction: Option[Set[Command]] = None): Unit =
+    GUI_Thread.require {
+      val caret_offset = view.getTextArea.getCaretPosition
+      for (snapshot <- PIDE.editor.current_node_snapshot(view)) {
+        val output = PIDE.editor.output(snapshot, caret_offset, restriction = restriction)
+        if (output.defined && current_output != output.messages) {
+          dockable.output.pretty_text_area.update_output(output)
+          current_output = output.messages
         }
-
-      val new_output =
-        if (restriction.isEmpty || restriction.get.contains(command))
-          Rendering.output_messages(results, JEdit_Options.output_state())
-        else current_output
-
-      if (current_output != new_output) {
-        output.pretty_text_area.update(snapshot, results, new_output)
-        current_output = new_output
       }
     }
-  }
 
   output.setup(dockable)
   dockable.set_content(output.split_pane)
@@ -74,13 +61,13 @@ class Output_Dockable(view: View, position: String) extends Dockable(view, posit
     tooltip = "Indicate automatic update following cursor movement"
     override def clicked(state: Boolean): Unit = {
       do_update = state
-      handle_update(do_update)
+      if (do_update) handle_update()
     }
   }
 
   private val update_button = new GUI.Button("Update") {
     tooltip = "Update display according to the command at cursor position"
-    override def clicked(): Unit = handle_update(true)
+    override def clicked(): Unit = handle_update()
   }
 
   private val controls =
@@ -100,15 +87,15 @@ class Output_Dockable(view: View, position: String) extends Dockable(view, posit
           output.handle_resize()
           output_state_button.load()
           auto_hovering_button.load()
-          handle_update(do_update)
+          if (do_update) handle_update()
         }
 
       case changed: Session.Commands_Changed =>
         val restriction = if (changed.assignment) None else Some(changed.commands)
-        GUI_Thread.later { handle_update(do_update, restriction = restriction) }
+        GUI_Thread.later { if (do_update) handle_update(restriction = restriction) }
 
       case Session.Caret_Focus =>
-        GUI_Thread.later { handle_update(do_update) }
+        GUI_Thread.later { if (do_update) handle_update() }
     }
 
   override def init(): Unit = {

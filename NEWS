@@ -4,6 +4,588 @@ Isabelle NEWS -- history of user-relevant changes
 (Note: Isabelle/jEdit shows a tree-view of the NEWS file in Sidekick.)
 
 
+New in Isabelle2025-2 (January 2026)
+------------------------------------
+
+*** General ***
+
+* Command 'sorry' is rejected by "isabelle build" as expected, with the
+default option "quick_and_dirty=false". This was broken in
+Isabelle2025-1: Isar commands were considered interactive due to the
+default option "show_results=true". Proper behaviour could be recovered
+in Isabelle2025-1 via "isabelle build -o show_results=false", but it is
+better to use Isabelle2025-2. Both approaches result in minor changes of
+result messages stored in session build databases.
+
+
+*** Isabelle/jEdit Prover IDE ***
+
+* Console/Scala: proper treatment of interrupts via "Stop" button. It
+was broken since Isabelle2022: Scala interpreter thread became
+inoperative afterwards.
+
+
+
+New in Isabelle2025-1 (December 2025)
+-------------------------------------
+
+*** General ***
+
+* A Prover IDE session, e.g. in Isabelle/jEdit or Isabelle/VSCode, is
+now able to load markup and messages from the underlying session
+database. Example: "isabelle jedit -l HOL src/HOL/Nat.thy" for theory
+"HOL.Nat" in session "HOL". This information is read-only: editing
+theory sources in the editor will invalidate formal markup, and replace
+it by an error message. Output messages depend on system options
+"show_results" (default true) and "show_states" (default false),
+provided at build-time for the underlying session database.
+
+* Declarations of intro/elim/dest rules for Pure and the Classical
+Reasoner (e.g. HOL) are handled more uniformly and efficiently: the
+order of rule declarations is maintained accurately, regardless of
+intermediate [rule del] declarations. Furthermore, [dest] is now a
+proper declaration on its own account, instead of the former expansion
+[elim_format, elim]. Consequently, [rule del] no longer deletes the
+[elim_format] of the given rule, only the original rule. Very rare
+INCOMPATIBILITY: tools like "blast" and "auto" may fail in unusual
+situations.
+
+* Isar proof results --- notably from finished 'have' or 'show' --- are
+printed as regular "writeln" message instead of "state": this follows
+toplevel results from Isabelle2023. The order of output messages has
+been fine-tuned accordingly, to show results as "urgent" message before
+state output (if enabled). This affects Isabelle/jEdit panels for Output
+vs. State in particular.
+
+* For pretty-printed output a margin <= 0 means there is no margin to be
+observed: only forced breaks are taken.
+
+
+*** Isabelle/jEdit Prover IDE ***
+
+* Explicit support for screen reader technology via Java Accessibility
+API (JAAPI), for blind or visually impaired users. Tested with:
+
+  - NVDA (Windows), see https://www.nvaccess.org
+  - JAWS (Windows), see https://support.freedomscientific.com/Downloads/JAWS
+  - VoiceOver (macOS), builtin Command-F5
+
+* Explicit support for dark GUI themes: FlatLaf tells wether a Swing
+look & feel is dark or non-dark (default); jEdit options with suffix
+".dark" and Isabelle options with suffix "_dark" determine GUI rendering
+in dark mode. The panels for "Global Options" and "Plugin Options /
+Isabelle / Rendering" operate on options according to the current Swing
+look & feel, e.g. on "view.fgColor.dark" in dark mode vs. "view.fgColor"
+in non-dark mode.
+
+* Isabelle/jEdit provides builtin navigation support, with actions
+navigate-backwards (AS-LEFT) and navigate-forwards (AS-RIGHT). These
+actions are available via arrow icons in the Search Bar, which is now
+enabled by default. The old plugins Navigator and Code2HTML are now
+longer included. The old-fashioned toolbar, with its old Navigator
+icons, is now disabled by default.
+
+* Scalable icons for old-fashioned "tango" (from early Gnome or KDE),
+and "idea-icons" from current IntelliJ IDEA community edition. All icons
+are available for jEdit and Isabelle/jEdit add-ons. The special notation
+"myicon.svg?scale=0.5" allows to resize icons as specified in jEdit
+properties. The default properties of Isabelle/jEdit usually prefer
+scalable icons over fixed old bitmaps, but some notable icons are not
+available as SVG.
+
+* Session build progress is now more detailed: percentage and cumulated
+timing of running theories is continuously updated, while the finished
+state (100%) remains. Long-running commands are displayed as well.
+
+* Mouse event handling is now more robust and more reactive: this is
+especially relevant for macOS with Magic Mouse. The mouse reacts on
+pressing the button, and does not wait for its release. After jumping
+around in the editor, e.g. when following hyperlinks, mouse drag events
+are ignored (according to system option "editor_jump_delay", with
+default 0.3 seconds): this avoids spurious text selection after editor
+navigation.
+
+* GUI rendering of the gutter is now more accurate, using scaled icons
+to fit precisely into the available space.
+
+* GUI rendering for dark look-and-feels has been slightly improved:
+colors and icons, notably the menu accelerator font/color.
+
+* Additional look-and-feels "FlatLaf macOS Light" and "FlatLaf macOS
+Dark" imitate original macOS more closely. This is the default for the
+bundled application on macOS.
+
+* Automatic GUI scaling on Linux, based on global GDK_SCALE for Java.
+This is only an approximation: an integer factor that applies uniformly
+to all displays. In contrast, Windows and macOS work with accurate GUI
+scaling for each individual display, based on operating system settings
+and FlatLaf defaults.
+
+* The command-line tool "isabelle jedit" now supports option "-o" as in
+"isabelle build", but it takes persistent preferences into account. When
+options are loaded, command-line options take precedence. When options
+are saved, command-line options are ignored, but original preferences
+take precedence. Example:
+
+  isabelle jedit -o threads=1
+
+This runs Isabelle/jEdit with sequential evaluation in ML, without
+affecting stored preferences of option "threads".
+
+* Update GUI look-and-feel to current FlatLaf 3.6, with native library
+support on all Isabelle platforms (now including arm64-linux).
+
+
+*** Isabelle/VSCode Prover IDE ***
+
+* The command-line tool "isabelle vscode" builds its underlying logic
+session before starting the VSCodium editor and its Isabelle language
+server. Thus build progress, errors, and interrupts work more robustly
+via the regular console.
+
+* The command-line tool "isabelle vscode" supports new options -D and -J
+to configure the underlying Java process of "isabelle vscode_server",
+using the settings variable "VSCODE_JAVA_OPTIONS" as initial value to be
+augmented. This is analogous to "JEDIT_JAVA_OPTIONS", but without
+"JEDIT_JAVA_SYSTEM_OPTIONS"; regular "ISABELLE_JAVA_SYSTEM_OPTIONS" will
+be used instead of "VSCODE_JAVA_SYSTEM_OPTIONS".
+
+* The main toolbar provides access to Isabelle examples and
+documentation. Plain text files are opened in the editor, but PDFs
+require a suitable VSCode extension (e.g. "vscode-pdf" from the
+marketplace).
+
+* Output panels for Isabelle Symbols and Sledgehammer, which imitate
+Isabelle/jEdit dockables to some extent.
+
+* Update to recent VSCode 1.105 / VSCodium 1.105.17075 (September 2025),
+Electron 37.6.0, Chromium 138.0.7204.251, and Node.js 22.19.0. Note that
+some Linux systems (e.g. Ubuntu 24.04) require special file permissions
+to run "isabelle vscode" or "isabelle electron" like this:
+
+    cd .../vscodium-1.105.17075/x86_64-linux
+    sudo chown root:root chrome-sandbox
+    sudo chmod 4755 chrome-sandbox
+
+
+*** Pure ***
+
+* Command 'thy_deps' expects optional theory arguments as long theory
+names, the same way as the 'imports' clause. Minor INCOMPATIBILITY.
+
+
+*** HOL ***
+
+* Normalization by evaluation (method "normalization", command 'value')
+could yield false positives due to incomplete handling of polymorphism
+in certain situations.  This has been corrected.
+
+* New code declaration attributes 'code abort' and 'code drop'
+correspond to 'code abort: c' and 'code drop: c' respectively but derive
+the affected constant from the corresponding theorem.
+
+* Consolidated auxiliary operations intended for code generation:
+
+    const Set.is_empty
+    thm is_empty_def ~> Set.is_empty_iff [simp]
+
+    const Set.remove
+    thm remove_def ~> Set.remove_eq [simp]
+
+    const Set.filter
+    thm filter_def ~> Set.filter_eq [simp]
+
+    const [List.]can_select ~> Set.can_select
+    thm can_select_def ~> Set.can_select_iff [simp]
+
+    const member ~> List.member
+    thm member_def ~> List.member_iff [simp]
+
+    const null ~> List.null
+    thm null_def ~> List.null_iff [simp]
+
+    const List.all_interval_nat List.all_interval_int
+    discontinued in favour of a generic List.all_interval
+
+    const List.Bleast
+    discontinued in favour of more concise Lattices_Big.Least
+
+    const [List.]map_tailrec ~> List.map_tailrec
+    thm List.map_tailrec_eq [simp]
+
+    const [List.]gen_length ~> List.length_tailrec
+    thm List.length_tailrec_eq [simp]
+
+    const [List.]maps ~> List.maps
+    thm maps_def ~> List.maps_eq [simp]
+
+    const [List.]map_project ~> Option.image_filter
+    thm map_project_def ~> Option.image_filter_eq
+
+The _def suffix for characteristic theorems is avoided to emphasize that
+these auxiliary operations are candidates for unfolding since they are
+variants of existing logical concepts. The [simp] declarations try to
+move the attention of the casual user away from these auxiliary
+operations; if they expose problems in existing applications, they can
+be removed using [simp del] – the regular theory merge will make sure
+that this deviant setup will not persist in bigger developments.
+INCOMPATIBILITY.
+
+* ML bindings for theorems Ball_def, Bex_def, CollectD, CollectE,
+CollectI, Collect_conj_eq, Collect_mem_eq, IntD1, IntD2, IntE, IntI,
+Int_Collect, UNIV_I, UNIV_witness, UnE, UnI1, UnI2, ballE, ballI, bexCI,
+bexE, bexI, bex_triv, bspec, contra_subsetD, equalityCE, equalityD1,
+equalityD2, equalityE, equalityI, imageE, imageI, image_Un,
+image_insert, insert_commute, insert_iff, mem_Collect_eq, rangeE,
+rangeI, range_eqI, subsetCE, subsetD, subsetI, subset_refl,
+subset_trans, vimageD, vimageE, vimageI, vimageI2, vimage_Collect,
+vimage_Int, vimage_Un. INCOMPATIBILITY, use thm(s) antiquotation
+instead.
+
+* Clarified semantics for adding code equations:
+  - Code equations from preceding theories are superseded.
+  - Code equations declared in the course of a theory are appended, not
+    prepended.
+INCOMPATIBILITY.
+
+* More efficient default implementation for "prime" predicate on types
+nat and int.
+
+* Code generation for set intervals based on a type class covering nat,
+int and word types. INCOMPATIBILITY.
+
+* Finite datatypes and BNFs (e.g. list) now generate the theorem
+set_finite which is added as a simp rule.
+
+* SMT:
+  - Added Vampire as an experimental SMT solver ("vampire_smt_dt" has
+    native support for datatypes and "vampire_smt_nodt" does not).
+  - Added SMT solver "dummy_smtlib" which immediately fails; this is
+    useful when generating SMT-LIB files with Mirabelle.
+  - Added a record parameter to function SMT_Solver.add_solver that
+    indicates whether the solver is a dummy or not, and whether it
+    should be used by default in Sledgehammer or not.
+    Minor INCOMPATIBILITY.
+  - Splitted option "smt_debug_files" into "smt_problem_dest_dir" and
+    "smt_proof_dest_dir". Minor INCOMPATIBILITY.
+
+* try0:
+  - Proof methods can now be dynamically added with the function
+    Try0.register_proof_method and retrieved (e.g., to call them from
+    Isabelle/ML) with the function Try0.get_proof_method.
+  - Added the option "try0_schedule" to control which proof methods get
+    tried in which order. It accepts a list of proof method names
+    separated by either a space, meaning parallel evaluation,
+    or a semicolon, meaning sequential evaluation. The schedule is
+    interpreted as list of groups executed in sequence; in each group,
+    the proof methods are executed in parallel. INCOMPATIBILITY.
+  - Added the option "try0_default_timeout" to control the default
+    timeout (in seconds).
+  - Changed the default timeout from 5 to 2 seconds.
+    Minor INCOMPATIBILITY.
+
+* Sledgehammer:
+  - Don't suggest proofs by "smt (z3)" anymore.
+  - Added proof methods to default schedule; it now subsumes the "try0"
+    command. Minor INCOMPATIBILITY.
+  - Tuned the default schedule. Minor INCOMPATIBILITY.
+
+* Theory "HOL.Nat": Added Kleene's Fixed Point Theorem for lfp.
+
+* Theory "HOL.Fun":
+  - Added lemmas.
+      antimonotone_on_inf_fun
+      antimonotone_on_sup_fun
+      mono_on_invE
+      mono_on_strict_invE
+      monotone_on_inf_fun
+      monotone_on_sup_fun
+      strict_mono_on_eq
+      strict_mono_on_less
+      strict_mono_on_less_eq
+  - Removed lemmas. Minor INCOMPATIBILITY.
+      mono_on_greaterD (use mono_on_invE instead)
+      subset_inj_on (use inj_on_subset)
+
+* Theory "HOL.Relation":
+  - Changed definition of predicate refl_on to not constrain the domain
+    and range of the relation. To get the old semantics, explicitely use
+    the formula "r \<subset> A \<times> A \<and> refl_on A r". INCOMPATIBILITY.
+  - Removed predicate single_valuedp. Use predicate right_unique
+    instead. INCOMPATIBILITY.
+  - Removed lemmas. Minor INCOMPATIBILITY.
+      antisym_bot[simp] (use antisymp_on_bot instead)
+      antisym_empty[simp] (use antisym_on_bot instead)
+      reflp_mono (use reflp_on_mono_strong instead)
+      trans_empty[simp] (use trans_on_bot instead)
+  - Strengthened lemmas. Minor INCOMPATIBILITY.
+      refl_on_empty[simp]
+  - Strengthened (and renamed) lemmas. Minor INCOMPATIBILITY.
+      antisymp_equality[simp] ~> antisymp_on_equality[simp]
+      reflp_on_mono ~> reflp_on_mono_strong
+      transp_equality[simp] ~> transp_on_equality[simp]
+  - Added lemmas.
+      antisym_on_bot[simp]
+      antisymp_on_bot[simp]
+      antisymp_on_mono
+      antisymp_on_mono_strong
+      antisymp_on_mono_stronger
+      asym_on_bot[simp]
+      asymp_on_bot[simp]
+      asymp_on_mono[mono]
+      asymp_on_mono_strong
+      irrefl_on_bot[simp]
+      irreflp_on_bot[simp]
+      irreflp_on_mono[mono]
+      irreflp_on_mono_strong
+      left_unique_bot[simp]
+      left_unique_iff_Uniq
+      left_unique_mono[mono]
+      left_unique_mono_strong
+      refl_on_top[simp]
+      reflp_on_mono[mono]
+      reflp_on_refl_on_eq[pred_set_conv]
+      reflp_on_top[simp]
+      right_unique_mono[mono]
+      right_unique_mono_strong
+      sym_on_bot[simp]
+      sym_on_top[simp]
+      symp_on_bot[simp]
+      symp_on_equality[simp]
+      symp_on_top[simp]
+      total_on_top[simp]
+      totalp_on_mono[mono]
+      totalp_on_mono_strong
+      totalp_on_mono_stronger
+      totalp_on_mono_stronger_alt
+      totalp_on_top[simp]
+      trans_on_bot[simp]
+      trans_on_diff_Id
+      trans_on_top[simp]
+      transp_on_bot[simp]
+      transp_on_top[simp]
+
+* Theory "HOL.Wellfounded":
+  - Renamed lemmas. Minor INCOMPATIBILITY.
+      wf_on_antimono_stronger ~> wf_on_mono_stronger
+      wf_on_antimono_strong ~> wf_on_mono_strong
+      wf_on_antimono ~> wf_on_mono
+      wfp_on_antimono_stronger ~> wfp_on_mono_stronger
+      wfp_on_antimono_strong ~> wfp_on_mono_strong
+      wfp_on_antimono ~> wfp_on_mono
+  - Removed lemmas. Minor INCOMPATIBILITY.
+      wf_empty[iff] (use wf_on_bot instead)
+  - Added lemmas.
+      bex_rtrancl_min_element_if_wf_on
+      bex_rtransclp_min_element_if_wfp_on
+      wf_on_bot[simp]
+      wf_on_lex_prod[intro]
+      wfp_on_bot[simp]
+      wfp_on_iff_wfp
+
+* Theory "HOL.Order_Relation":
+  - Added lemmas.
+      antisym_relation_of[simp]
+      asym_relation_of[simp]
+      irrefl_relation_ofD
+      refl_relation_ofD
+      sym_relation_of[simp]
+      total_relation_ofD
+      trans_relation_of[simp]
+
+* Theory "HOL.Equiv_Relation":
+  - Strengthened lemmas. Minor INCOMPATIBILITY.
+      sym_trans_comp_subset
+  - Added lemmas.
+      quotient_disj_strong
+
+* Theory "HOL.Transfer":
+  - Moved predicates left_unique and right_unique from HOL.Transfer to
+    HOL.Relation. Minor INCOMPATIBILITY.
+  - Removed lemmas. Minor INCOMPATIBILITY.
+      left_unique_iff (use left_unique_iff_Uniq instead)
+      right_unique_iff (use right_unique_iff_Uniq instead)
+  - Added lemmas.
+      single_valuedp_eq_right_unique
+
+* Theory "HOL.List": theorem list_update_beyond is no longer a [simp]
+rule by default. INCOMPATIBILITY.
+
+* Theory "HOL-Library.Code_Target_Bit_Shifts" incorporated into
+HOL-Main. Minor INCOMPATIBILITY.
+
+* If theory "HOL-Library.Code_Target_Nat" is imported, bit operations on
+nat are implemented by bit operations on target-language integers. Minor
+INCOMPATIBILITY.
+
+* Theory "HOL-Library.Multiset":
+  - Renamed lemmas. Minor INCOMPATIBILITY.
+      filter_image_mset ~> filter_mset_image_mset
+  - Removed lemmas.
+      size_multiset_sum_mset[simp]
+  - Added lemmas.
+      filter_mset_eq_mempty_iff[simp]
+      filter_mset_mono_strong
+      filter_mset_sum_list
+      set_mset_sum_list[simp]
+      size_mset_sum_mset_conv[simp]
+
+* Theory "HOL-Library.Discrete_Functions" provides more efficient
+default implementation for "floor_sqrt".
+
+* Theory "HOL-Library.Divides" has been removed (finally).
+
+* Theory "HOL-Library.Time_Commands" provides infrastructure for
+generating running time functions for HOL functions. The accompanying
+manual is in theory "HOL-Library.Time_Manual".
+
+* Session "HOL-Analysis": much new material including the "slotted
+complex plane" and change-of-variables theorems.
+
+
+*** HOLCF ***
+
+* Theory "HOLCF.Cpo": simproc "apply_cont" solves "cont (\<lambda>f. f x y z)"
+etc.
+
+
+*** ML ***
+
+* Isabelle_System.ML_process and ML_Process.args allow to run an
+external ML process directly via the current Isabelle/Scala context,
+without running another bulky Java process of "isabelle ML_process" on
+the command-line.
+
+* Somewhat pointless and inefficient shortcuts Pretty.writeln_chunks /
+Pretty.writeln_chunks2 have been discontinued. INCOMPATIBILITY, use
+Pretty.writeln directly with Pretty.chunks / Pretty.chunks2.
+
+* ML structure "Bires" supports biresolution and resolution using nets
+uniformly, for Pure rules or Classical rules in HOL/FOL/ZF. Former
+operations from structure Tactic (which used to be pervasive) have been
+moved here: biresolve_from_nets_tac ~> Bires.biresolve_from_nets_tac
+etc. INCOMPATIBILITY.
+
+* ML function "Raw_Simplifier.rewrite" has been renamed to
+"Raw_Simplifier.rewrite_wrt", to avoid clash with existing
+'Simplifier.rewrite'. INCOMPATIBILITY.
+
+* Some old infix operations have been removed. INCOMPATIBILITY. The
+subsequent replacements have slightly different syntactic precedence and
+may require change of parentheses:
+
+  setloop       |> Simplifier.set_loop
+  addloop       |> Simplifier.add_loop
+  delloop       |> Simplifier.del_loop
+  setSSolver    |> Simplifier.set_safe_solver
+  addSSolver    |> Simplifier.add_safe_solver
+  setSolver     |> Simplifier.set_unsafe_solver
+  addSolver     |> Simplifier.add_unsafe_solver
+
+
+*** System ***
+
+* The traditional ML system settings have been reconsidered, and mostly
+replaced by ML_Settings in Isabelle/Scala (e.g. via
+ML_Settings.system(Options.init())). Potential INCOMPATIBILITY for old
+shell scripts, which should be replaced by proper Isabelle/Scala tools
+anyway. The following environment variables still have a purpose:
+
+  - ML_SYSTEM, ML_PLATFORM, ML_HOME as provided to Isabelle/ML (see also
+    structure ML_System).
+
+  - Optional ML_PLATFORM or ML_OPTIONS as input in user settings, which
+    take precedence if assigned to a proper value. Otherwise,
+    ML_PLATFORM is derived from system options ML_system_64 and
+    ML_system_apple, and ML_OPTIONS is taken from ML_OPTIONS32 or
+    ML_OPTIONS64 (depending on the effective ML_PLATFORM).
+
+Examples:
+
+    isabelle build -o ML_system_64 -b HOL
+    isabelle jedit -o ML_system_64
+
+* System option "ML_platform" specifies the underlying Poly/ML platform
+identifier explicitly: it takes precedence over all other options and
+settings to determine the ML_PLATFORM (see above).
+
+* The command-line tool "isabelle process_theories" tool takes source
+files and theories within a proper session context (like regular
+"isabelle build"). Output of prover messages works roughly like
+"isabelle build_log", while the theories are being processed.
+
+Examples:
+
+  isabelle process_theories -U -O HOL-Library.Multiset
+
+  isabelle process_theories -U -O -o show_states HOL-Library.Multiset
+
+  isabelle process_theories -f '~~/src/HOL/Examples/Seq.thy'
+
+* The former command-line tool "isabelle process" has been renamed to
+"isabelle ML_process", with new options -C DIR and -r (redirect). The
+old option option -T to load individual theories via the Isabelle/ML
+"use_thy" function has been removed. It is still possible to use
+"Thy_Info.use_thy_legacy" together with "isabelle ML_process -e ...",
+but that low-level entry to the theory loader will be removed at a later
+stage. The proper way to process individual theories under program
+control is via "isabelle process_theories". INCOMPATIBILITY.
+
+* System option "show_results" (default true) controls output of
+toplevel command results (definitions, theorems) in batch-builds. In
+interactive mode this is always enabled; in batch-builds it can be
+disable like this:
+
+    isabelle build -o show_results=false FOL
+
+Option "show_results" is also the default for the configuration option
+"show_results" within the formal context --- instead of "show_states"
+that was used for this purpose before.
+
+* Build cluster options support "settings" for specific host settings,
+e.g. for Java heap size. See also $ISABELLE_HOME_USER/etc/registry.toml
+or "isabelle build -H".
+
+* SSH connections allow both bash and zsh as remote shell. This is
+particularly important for macOS, where zsh is the default user shell.
+
+* System option "build_progress_detailed" tells "isabelle build -v" to
+output detailed information while processing theories, notably the
+percentage and cumulated timing and long-running commands (see also
+option "build_progress_threshold"). This requires an output channel
+(terminal) that supports ANSI control sequences, notably for cursor
+movement and deletion of previous output. The default is to output only
+the finished state (100%) with its timing information, and long-running
+commands, without using any ANSI control sequences.
+
+* System option "command_timing_threshold" has been renamed to
+"build_timing_threshold": it refers to batch-builds. Likewise,
+"jedit_timing_threshold" and "vscode_timing_threshold" have been unified
+as "editor_timing_threshold": it refers to PIDE editor interaction.
+
+* System option "record_theories" tells "isabelle build" to record
+intermediate theory commands and results, at the cost of approx. 5 times
+larger ML heap images. This allows to retrieve fine-grained semantic
+information later on, using Thy_Info.get_theory_segments or
+Thy_Info.get_theory_elements in Isabelle/ML.
+
+* Isabelle/Scala supports SVG via the "jsvg" library
+(com.github.weisj.jsvg.SVGDocument), as well as the "flatlaf-extras"
+library (com.formdev.flatlaf.extras.FlatSVGIcon).
+
+* The default Docker image is now based on ubuntu:24.04, instead of
+ubuntu:22.04.
+
+* Update to official Poly/ML 5.9.2, with minor changes to word and
+floating-point arithmetic.
+
+* The Z Garbage Collector (ZGC) of Java 21 is now used by default (see
+also https://wiki.openjdk.org/display/zgc). This should work uniformly
+on all platforms, but requires a reasonably new version of Windows
+(Windows 10 or Windows Server 2019).
+
+
+
 New in Isabelle2025 (March 2025)
 --------------------------------
 

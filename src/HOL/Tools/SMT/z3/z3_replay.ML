@@ -169,7 +169,7 @@ fun replay outer_ctxt
     val total = Time.toMilliseconds (#elapsed (Timing.result start))
     val (_, Z3_Proof.Z3_Step {id, ...}) = split_last steps
     val _ = SMT_Config.statistics_msg ctxt4 (Pretty.string_of o SMT_Replay.pretty_statistics "Z3" total) stats
-    val _ = SMT_Replay.spying (SMT_Config.spy_z3 ctxt) ctxt
+    val _ = SMT_Replay.spying (SMT_Config.spy_Z3 ctxt) ctxt
                                 (fn () => SMT_Replay.print_stats (Symtab.dest stats)) "$ISABELLE_SMT_Z3_SPY"
 
   in

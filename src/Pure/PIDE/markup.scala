@@ -443,21 +443,28 @@ object Markup {
 
   val COMMAND_SPAN = "command_span"
   object Command_Span {
-    sealed case class Arg(name: String, kind: String) {
+    val Is_Begin = new Properties.Boolean("is_begin")
+
+    sealed case class Args(name: String, kind: String, is_begin: Boolean) {
       def properties: Properties.T =
         (if (name.isEmpty) Nil else Name(name)) :::
-        (if (kind.isEmpty) Nil else Kind(kind))
+        (if (kind.isEmpty) Nil else Kind(kind)) :::
+        (if (!is_begin) Nil else Is_Begin(is_begin))
     }
 
-    def apply(arg: Arg): Markup = Markup(COMMAND_SPAN, arg.properties)
-    def apply(name: String, kind: String): Markup = apply(Arg(name, kind))
+    def apply(args: Args): Markup = Markup(COMMAND_SPAN, args.properties)
+    def apply(name: String, kind: String, is_begin: Boolean): Markup =
+      apply(Args(name, kind, is_begin))
 
-    def unapply(markup: Markup): Option[Arg] =
+    def unapply(markup: Markup): Option[Args] =
       if (markup.name == COMMAND_SPAN) {
-        Some(Arg(Name.get(markup.properties), Kind.get(markup.properties)))
+        val props = markup.properties
+        Some(Args(Name.get(props), Kind.get(props), Is_Begin.get(props)))
       }
       else None
   }
+
+  val COMMAND_RANGE = "command_range"
 
   val COMMAND = "command"
   val KEYWORD = "keyword"
@@ -499,27 +506,12 @@ object Markup {
     def apply(timing: isabelle.Timing): Properties.T =
       Elapsed(timing.elapsed.seconds) ::: CPU(timing.cpu.seconds) ::: GC(timing.gc.seconds)
 
-    def unapply(props: Properties.T): Option[isabelle.Timing] =
-      (props, props, props) match {
-        case (Elapsed(elapsed), CPU(cpu), GC(gc)) =>
-          Some(new isabelle.Timing(Time.seconds(elapsed), Time.seconds(cpu), Time.seconds(gc)))
-        case _ => None
-      }
-
-    def get(props: Properties.T): isabelle.Timing =
-      unapply(props).getOrElse(isabelle.Timing.zero)
-  }
-
-  val TIMING = "timing"
-
-  object Timing {
-    def apply(timing: isabelle.Timing): Markup = Markup(TIMING, Timing_Properties(timing))
-
-    def unapply(markup: Markup): Option[isabelle.Timing] =
-      markup match {
-        case Markup(TIMING, Timing_Properties(timing)) => Some(timing)
-        case _ => None
-      }
+    def get(props: Properties.T): isabelle.Timing = {
+      val elapsed = Time.seconds(Elapsed.get(props))
+      val cpu = Time.seconds(CPU.get(props))
+      val gc = Time.seconds(GC.get(props))
+      isabelle.Timing.make(elapsed, cpu, gc)
+    }
   }
 
 
@@ -535,8 +527,7 @@ object Markup {
     def unapply(props: Properties.T): Option[Process_Result] =
       props match {
         case Return_Code(rc) =>
-          val timing = Timing_Properties.unapply(props).getOrElse(isabelle.Timing.zero)
-          Some(isabelle.Process_Result(rc, timing = timing))
+          Some(isabelle.Process_Result(rc, timing = Timing_Properties.get(props)))
         case _ => None
       }
   }
@@ -569,6 +560,8 @@ object Markup {
   val CONSOLIDATING = "consolidating"
   val CONSOLIDATED = "consolidated"
 
+  val command_running: Properties.Entry = (COMMAND, RUNNING)
+
 
   /* interactive documents */
 
@@ -583,6 +576,8 @@ object Markup {
 
 
   /* messages */
+
+  val Urgent = new Properties.Boolean("urgent")
 
   val INIT = "init"
   val STATUS = "status"
@@ -624,6 +619,14 @@ object Markup {
   val NO_REPORT = "no_report"
 
   val BAD = "bad"
+  object Bad {
+    def apply(serial: Long): Markup = Markup(BAD, Serial(serial))
+    def unapply(markup: Markup): Option[Long] =
+      markup match {
+        case Markup(BAD, Serial(i)) => Some(i)
+        case _ => None
+      }
+  }
 
   val INTENSIFY = "intensify"
 
@@ -701,16 +704,17 @@ object Markup {
       }
   }
 
-  val command_timing_properties: Set[String] = Set(FILE, OFFSET, NAME, Elapsed.name)
-  def command_timing_property(entry: Properties.Entry): Boolean = command_timing_properties(entry._1)
+  val Command_Offset = new Properties.Int("command_offset")
+  private val command_timing_exports: Set[String] = Set(FILE, OFFSET, NAME, Elapsed.name)
+  def command_timing_export(entry: Properties.Entry): Boolean = command_timing_exports(entry._1)
 
   object Command_Timing extends Properties_Function("command_timing")
-  object Theory_Timing extends Properties_Function("theory_timing")
   object Session_Timing extends Properties_Function("session_timing") {
     val Threads = new Properties.Int("threads")
   }
   object Task_Statistics extends Properties_Function("task_statistics")
 
+  val Commands = new Properties.Int("commands")
   object Loading_Theory extends Properties_Function("loading_theory")
   object Build_Session_Finished extends Function("build_session_finished")
 

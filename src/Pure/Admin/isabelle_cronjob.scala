@@ -110,7 +110,7 @@ object Isabelle_Cronjob {
             val context = Build_Release.Release_Context(target_dir, progress = progress)
             Build_Release.build_release_archive(context, rev)
             Build_Release.build_release(logger.options, context, afp_rev = afp_rev,
-              build_sessions = List(Isabelle_System.getenv("ISABELLE_LOGIC")),
+              build_sessions = List(Isabelle_System.default_logic()),
               website = Some(website_dir))
           }
         )
@@ -346,7 +346,7 @@ object Isabelle_Cronjob {
       List(Remote_Build("Linux B", "lxbroy10", history = 90,
         options = "-m32 -B -M1x4,2,4,6", args = "-N -g timing")),
       List(
-        Remote_Build("macOS 11 Big Sur (Intel)", "mini1",
+        Remote_Build("macOS 12 Monterey (Intel)", "mini1-monterey",
           options = "-m32 -B -M1x2,2,4 -p pide_session=false" +
             " -e ISABELLE_OCAML=ocaml -e ISABELLE_OCAMLC=ocamlc -e ISABELLE_OCAML_SETUP=true" +
             " -e ISABELLE_GHC_SETUP=true" +

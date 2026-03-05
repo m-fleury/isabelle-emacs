@@ -76,7 +76,7 @@ object Thy_Syntax {
     val doc_edits = new mutable.ListBuffer[Document.Edit_Command]
 
     edits foreach {
-      case (name, Document.Node.Deps(header)) =>
+      case (name, Document.Node.Deps(header)) if !resources.loaded_theory(name) =>
         val node = nodes(name)
         val update_header =
           node.header.errors.nonEmpty || header.errors.nonEmpty || node.header != header
@@ -120,13 +120,13 @@ object Thy_Syntax {
   /* edit individual command source */
 
   @tailrec def edit_text(
-    eds: List[Text.Edit],
+    text_edits: List[Text.Edit],
     commands: Linear_Set[Command]
   ): Linear_Set[Command] = {
-    eds match {
+    text_edits match {
       case e :: es =>
         def insert_text(cmd: Option[Command], text: String): Linear_Set[Command] =
-          if (text == "") commands else commands.insert_after(cmd, Command.unparsed(text))
+          if (text.isEmpty) commands else commands.insert_after(cmd, Command.unparsed(text))
 
         Document.Node.Commands.starts(commands.iterator).find {
           case (cmd, cmd_start) =>
@@ -135,8 +135,7 @@ object Thy_Syntax {
         } match {
           case Some((cmd, cmd_start)) if e.can_edit(cmd.source, cmd_start) =>
             val (rest, text) = e.edit(cmd.source, cmd_start)
-            val new_commands = insert_text(Some(cmd), text) - cmd
-            edit_text(rest.toList ::: es, new_commands)
+            edit_text(rest.toList ::: es, insert_text(Some(cmd), text) - cmd)
 
           case Some((cmd, _)) =>
             edit_text(es, insert_text(Some(cmd), e.text))
@@ -146,6 +145,62 @@ object Thy_Syntax {
             edit_text(es, insert_text(None, e.text))
         }
       case Nil => commands
+    }
+  }
+
+
+  /* reload theory from session store */
+
+  def reload_theory(
+    session: Session,
+    doc_blobs: Document.Blobs,
+    node_name: Document.Node.Name,
+    node: Document.Node,
+  ): Document.Node = {
+    require(node_name.is_theory)
+    val theory = node_name.theory
+
+    val node_source = node.source
+    val unicode_symbols = Symbol.decode(node_source) == node_source
+
+    Exn.capture(session.read_theory(theory, unicode_symbols = unicode_symbols)) match {
+      case Exn.Res(snapshot) =>
+        val command = snapshot.snippet_commands.head
+        val node_commands =
+          if (node.is_empty) Linear_Set.empty
+          else {
+            val thy_changed = if (node_source == command.source) Nil else List(node_name.node)
+            val blobs_changed =
+              List.from(
+                for {
+                  blob_name <- command.blobs_names.iterator
+                  blob_node = snapshot.version.nodes(blob_name)
+                  doc_blob <- doc_blobs.get(blob_name)
+                  if blob_node.source != doc_blob.source
+                } yield blob_name.node)
+
+            val changed = thy_changed ::: blobs_changed
+            val command1 =
+              if (changed.isEmpty) command
+              else {
+                val node_range = Text.Range(0, Symbol.length(node.source))
+                val msg =
+                  XML.Elem(Markup.Bad(Document_ID.make()),
+                    XML.string("Changed sources for loaded theory " + quote(theory) +
+                      ":\n" + cat_lines(changed.map(a => "  " + quote(a)))))
+                Command.unparsed(node.source, theory_commands = Some(0), id = command.id,
+                  node_name = node_name, blobs_info = command.blobs_info,
+                  markups = Command.Markups.empty.add(Text.Info(node_range, msg)))
+              }
+
+            Linear_Set(command1)
+          }
+
+        node.update_commands(node_commands)
+
+      case Exn.Exn(exn) =>
+        session.system_output(Output.error_message_text(Exn.print(exn)))
+        node
     }
   }
 
@@ -170,8 +225,11 @@ object Thy_Syntax {
     can_import: Document.Node.Name => Boolean,
     node_name: Document.Node.Name,
     commands: Linear_Set[Command],
-    first: Command, last: Command
+    first: Command,
+    last: Command
   ): Linear_Set[Command] = {
+    require(!resources.loaded_theory(node_name))
+
     val cmds0 = commands.iterator(first, last).toList
     val blobs_spans0 =
       syntax.parse_spans(cmds0.iterator.map(_.source).mkString).map(span =>
@@ -249,14 +307,17 @@ object Thy_Syntax {
 
       case (name, Document.Node.Edits(text_edits)) =>
         if (name.is_theory) {
-          val commands0 = node.commands
-          val commands1 = edit_text(text_edits, commands0)
-          val commands2 = recover_spans(name, node.perspective.visible, commands1)
+          val commands1 = edit_text(text_edits, node.commands)
+          val commands2 =
+            if (resources.loaded_theory(name)) commands1
+            else recover_spans(name, node.perspective.visible, commands1)
           node.update_commands(commands2)
         }
         else node
 
       case (_, Document.Node.Deps(_)) => node
+
+      case (name, Document.Node.Perspective(_, _, _)) if resources.loaded_theory(name) => node
 
       case (name, Document.Node.Perspective(required, text_perspective, overlays)) =>
         val (visible, visible_overlay) = command_perspective(node, text_perspective, overlays)
@@ -294,20 +355,22 @@ object Thy_Syntax {
   }
 
   def parse_change(
-    resources: Resources,
-    reparse_limit: Int,
+    session: Session,
     previous: Document.Version,
     doc_blobs: Document.Blobs,
     edits: List[Document.Edit_Text],
     consolidate: List[Document.Node.Name]
   ): Session.Change = {
+    val resources = session.resources
+    val reparse_limit = session.reparse_limit
+
     val (syntax_changed, nodes0, doc_edits0) = header_edits(resources, previous, edits)
 
     def get_blob(name: Document.Node.Name): Option[Document.Blobs.Item] =
       doc_blobs.get(name) orElse previous.nodes(name).get_blob
 
     def can_import(name: Document.Node.Name): Boolean =
-      resources.session_base.loaded_theory(name) || nodes0(name).has_header
+      resources.loaded_theory(name) || nodes0(name).has_header
 
     val (doc_edits, version) =
       if (edits.isEmpty) (Nil, Document.Version.make(previous.nodes))
@@ -323,11 +386,9 @@ object Thy_Syntax {
         val reparse_set = reparse.toSet
 
         var nodes = nodes0
-        val doc_edits = new mutable.ListBuffer[Document.Edit_Command]; doc_edits ++= doc_edits0
+        val doc_edits = mutable.ListBuffer.from(doc_edits0)
 
-        val node_edits =
-          (edits ::: reparse.map((_, Document.Node.Edits(Nil)))).groupBy(_._1)
-            .asInstanceOf[Map[Document.Node.Name, List[Document.Edit_Text]]]  // FIXME ???
+        val node_edits = (edits ::: reparse.map((_, Document.Node.Edits(Nil)))).groupBy(_._1)
 
         node_edits foreach {
           case (name, edits) =>
@@ -336,17 +397,20 @@ object Thy_Syntax {
             val commands = node.commands
 
             val node1 =
-              if (reparse_set(name) && commands.nonEmpty) {
+              if (!resources.loaded_theory(name) && reparse_set(name) && commands.nonEmpty) {
                 node.update_commands(
                   reparse_spans(resources, syntax, get_blob, can_import, name,
-                    commands, commands.head, commands.last))
+                  commands, commands.head, commands.last))
               }
               else node
             val node2 =
               edits.foldLeft(node1)(
                 text_edit(resources, syntax, get_blob, can_import, reparse_limit, _, _))
             val node3 =
-              if (reparse_set.contains(name)) {
+              if (resources.loaded_theory(name)) {
+                reload_theory(session, doc_blobs, name, node2)
+              }
+              else if (reparse_set(name)) {
                 text_edit(resources, syntax, get_blob, can_import, reparse_limit,
                   node2, (name, node2.edit_perspective))
               }
@@ -356,7 +420,9 @@ object Thy_Syntax {
               doc_edits += (name -> node3.perspective)
             }
 
-            doc_edits += (name -> Document.Node.Edits(diff_commands(commands, node3.commands)))
+            if (!resources.loaded_theory(name)) {
+              doc_edits += (name -> Document.Node.Edits(diff_commands(commands, node3.commands)))
+            }
 
             nodes += (name -> node3)
         }

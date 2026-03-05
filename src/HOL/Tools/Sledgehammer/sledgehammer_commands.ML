@@ -25,6 +25,7 @@ open Sledgehammer_Fact
 open Sledgehammer_ATP_Systems
 open Sledgehammer_Prover
 open Sledgehammer_Prover_SMT
+open Sledgehammer_Prover_Tactic
 open Sledgehammer_Prover_Minimize
 open Sledgehammer_MaSh
 open Sledgehammer
@@ -73,7 +74,7 @@ val default_default_params =
    ("smt_proofs", "true"),
    ("instantiate", "smart"),
    ("minimize", "true"),
-   ("slices", string_of_int (12 * Multithreading.max_threads ())),
+   ("slices", string_of_int (24 * Multithreading.max_threads ())),
    ("preplay_timeout", "1"),
    ("cache_dir", "")]
 
@@ -169,9 +170,14 @@ structure Data = Theory_Data
 
 (* The first ATP of the list is used by Auto Sledgehammer. *)
 fun default_provers_param_value ctxt =
-  \<comment> \<open>see also \<^system_option>\<open>sledgehammer_provers\<close>\<close>
-  filter (is_prover_installed ctxt) (smts ctxt @ local_atps)
-  |> implode_param
+  let
+    val try0_provers = Try0.get_all_proof_method_names ()
+    \<comment> \<open>see also \<^system_option>\<open>sledgehammer_provers\<close>\<close>
+    and installed_provers =
+      filter (is_prover_installed ctxt) (default_smt_solvers ctxt @ local_atps)
+  in
+    implode_param (installed_provers @ try0_provers)
+  end
 
 fun set_default_raw_param param thy =
   let val ctxt = Proof_Context.init_global thy in
@@ -291,7 +297,7 @@ fun get_params mode = extract_params mode o default_raw_params
 fun default_params thy = get_params Normal thy o map (apsnd single)
 
 val silence_state =
-  Proof.map_contexts (Try0.silence_methods false #> Config.put SMT_Config.verbose false)
+  Proof.map_contexts (Try0_HOL.silence_methods #> Config.put SMT_Config.verbose false)
 
 (* Sledgehammer the given subgoal *)
 

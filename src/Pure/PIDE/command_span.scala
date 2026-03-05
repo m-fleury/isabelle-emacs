@@ -62,20 +62,26 @@ object Command_Span {
         case command: Command_Span => proper_string(command.name) getOrElse "<command>"
         case Ignored_Span => "<ignored>"
         case Malformed_Span => "<malformed>"
-        case Theory_Span => "<theory>"
+        case Theory_Span(_) => "<theory>"
       }
   }
   case class Command_Span(override val keyword_kind: Option[String], name: String, pos: Position.T)
     extends Kind
   case object Ignored_Span extends Kind
   case object Malformed_Span extends Kind
-  case object Theory_Span extends Kind
+  case class Theory_Span(commands: Int) extends Kind
 
 
   /* span */
 
   sealed case class Span(kind: Kind, content: List[Token]) {
-    def is_theory: Boolean = kind == Theory_Span
+    def is_theory: Boolean = kind.isInstanceOf[Theory_Span]
+
+    def theory_commands: Int =
+      kind match {
+        case Theory_Span(commands) => commands
+        case _ => 0
+      }
 
     def name: String =
       kind match { case k: Command_Span => k.name case _ => "" }
@@ -102,6 +108,7 @@ object Command_Span {
     def content_reader: CharSequenceReader = Scan.char_reader(Token.implode(content))
 
     def length: Int = content.foldLeft(0)(_ + _.source.length)
+    def symbol_length: Symbol.Offset = content.foldLeft(0)(_ + _.symbol_length)
 
     def compact_source: (String, Span) = {
       val source = Token.implode(content)
@@ -148,8 +155,12 @@ object Command_Span {
 
   val empty: Span = Span(Ignored_Span, Nil)
 
-  def unparsed(source: String, theory: Boolean = false): Span = {
-    val kind = if (theory) Theory_Span else Malformed_Span
+  def unparsed(source: String, theory_commands: Option[Int] = None): Span = {
+    val kind =
+      theory_commands match {
+        case Some(commands) => Theory_Span(commands)
+        case None => Malformed_Span
+      }
     Span(kind, List(Token(Token.Kind.UNPARSED, source)))
   }
 }

@@ -1,6 +1,6 @@
 (*  Title:      Pure/ROOT.ML
     Author:     Makarius
-    UUID:       26c42c05-587c-41c1-882d-903627102706
+    UUID:       a865e04a-256a-44b2-bb4b-364e8244b99a
 
 Main entry point for the Isabelle/Pure bootstrap process.
 
@@ -98,6 +98,7 @@ ML_file "General/seq.ML";
 ML_file "General/timing.ML";
 ML_file "General/sha1.ML";
 
+ML_file "ML/ml_process.ML";
 ML_file "ML/ml_profiling.ML";
 ML_file "PIDE/byte_message.ML";
 ML_file "PIDE/protocol_message.ML";
@@ -198,6 +199,7 @@ ML_file "goal_display.ML";
 ML_file "tactical.ML";
 ML_file "search.ML";
 ML_file "tactic.ML";
+ML_file "bires.ML";
 ML_file "raw_simplifier.ML";
 ML_file "conjunction.ML";
 ML_file "assumption.ML";

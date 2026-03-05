@@ -281,6 +281,10 @@ next
     by metis
 qed
 
+lemma winding_number_offset_NO_MATCH: 
+  "NO_MATCH 0 z \<Longrightarrow> winding_number p z = winding_number (\<lambda>w. p w - z) 0"
+  using winding_number_offset by metis
+
 lemma winding_number_negatepath:
   assumes \<gamma>: "valid_path \<gamma>" and 0: "0 \<notin> path_image \<gamma>"
   shows "winding_number(uminus \<circ> \<gamma>) 0 = winding_number \<gamma> 0"
@@ -851,7 +855,7 @@ proof -
       by (rule_tac x="min (pe/4) (e/2*pe^2/L/4)" in exI) (simp add: dist_norm cmod_wn_diff)
   qed
   then show ?thesis
-    apply (rule continuous_transform_within [where d = "min d e/2"])
+    apply (rule continuous_transform_within [where \<delta> = "min d e/2"])
     apply (auto simp: \<open>d>0\<close> \<open>e>0\<close> dist_norm wnwn)
     done
 qed
@@ -1180,6 +1184,26 @@ proof -
   show ?thesis
     by (intro winding_number_pos_lt [OF valid_path_linepath z assms]) (simp add: linepath_def algebra_simps)
 qed
+
+lemma winding_number_linepath_neg_lt:
+    assumes "0 < Im ((a - b) * cnj (a - z))"
+      shows "Re(winding_number(linepath a b) z) < 0"
+proof -
+  have z: "z \<notin> path_image (linepath a b)"
+    using assms
+    by (simp add: closed_segment_def) (force simp: algebra_simps)
+  have "Re(winding_number(linepath a b) z) = 
+          -Re(winding_number(reversepath (linepath a b)) z)"
+    by (subst winding_number_reversepath) (use z in auto)
+  also have "\<dots> = - Re(winding_number(linepath b a) z)"
+    by simp
+  finally have "Re (winding_number (linepath a b) z)  
+      = - Re (winding_number (linepath b a) z)" .
+  moreover have "0 < Re (winding_number (linepath b a) z)"
+    using winding_number_linepath_pos_lt[OF assms] .
+  ultimately show ?thesis by auto
+qed
+
 
 subsection\<^marker>\<open>tag unimportant\<close> \<open>More winding number properties\<close>
 
@@ -2179,6 +2203,12 @@ lemma simple_closed_path_winding_number_pos:
     \<Longrightarrow> winding_number \<gamma> z = 1"
 using simple_closed_path_winding_number_cases
   by fastforce
+
+lemma simple_closed_path_winding_number_neg:
+   "\<lbrakk>simple_path \<gamma>; pathfinish \<gamma> = pathstart \<gamma>; z \<notin> path_image \<gamma>; Re (winding_number \<gamma> z) < 0\<rbrakk>
+    \<Longrightarrow> winding_number \<gamma> z = -1"
+  using simple_closed_path_winding_number_cases by fastforce
+
 
 subsection \<open>Winding number for rectangular paths\<close>
 

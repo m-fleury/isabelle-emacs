@@ -15,11 +15,12 @@ sig
   val smt_builtins : bool Config.T
   val smt_triggers : bool Config.T
 
-  val is_smt_prover : Proof.context -> string -> bool
-  val is_smt_prover_installed : Proof.context -> string -> bool
+  val is_smt_solver : Proof.context -> string -> bool
+  val is_smt_solver_installed : Proof.context -> string -> bool
   val run_smt_solver : mode -> string -> prover
 
-  val smts : Proof.context -> string list
+  val smt_solvers : Proof.context -> string list
+  val default_smt_solvers : Proof.context -> string list
 end;
 
 structure Sledgehammer_Prover_SMT : SLEDGEHAMMER_PROVER_SMT =
@@ -38,10 +39,11 @@ open Sledgehammer_Prover
 val smt_builtins = Attrib.setup_config_bool \<^binding>\<open>sledgehammer_smt_builtins\<close> (K true)
 val smt_triggers = Attrib.setup_config_bool \<^binding>\<open>sledgehammer_smt_triggers\<close> (K true)
 
-val smts = sort_strings o SMT_Config.all_solvers_of
+val smt_solvers = sort_strings o SMT_Config.all_solvers_of
+val default_smt_solvers = sort_strings o SMT_Config.all_nondummy_sledgehammer_solvers_of
 
-val is_smt_prover = member (op =) o smts
-val is_smt_prover_installed = member (op =) o SMT_Config.available_solvers_of
+val is_smt_solver = member (op =) o smt_solvers
+val is_smt_solver_installed = member (op =) o SMT_Config.available_solvers_of
 
 (* "SMT_Failure.Abnormal_Termination" carries the solver's return code. Until these are sorted out
    properly in the SMT module, we must interpret these here. *)
@@ -86,8 +88,13 @@ fun smt_filter name ({debug, overlord, max_mono_iters, max_new_mono_instances, t
            SOME nat_as_int => Config.put SMT_Config.nat_as_int nat_as_int
          | NONE => I)
       |> (if overlord then
-            Config.put SMT_Config.debug_files
-              (overlord_file_location_of_prover name |> (fn (path, name) => path ^ "/" ^ name))
+            let
+              val (path, name) = overlord_file_location_of_prover name
+              val file_base = path ^ "/" ^ name
+            in
+              Config.put SMT_Config.problem_dest_file file_base #>
+              Config.put SMT_Config.proof_dest_file file_base
+            end
           else
             I)
        |> Config.put SMT_Config.infer_triggers (Config.get ctxt smt_triggers)
@@ -140,7 +147,7 @@ fun run_smt_solver mode name
         let
           val _ = found_something name;
           val preferred =
-            if smt_proofs then
+            if smt_proofs then (*TODO: I might have merged Isabelle2025-2 wrongly here*)
               SMT_Method (if name = "z3" then SMT_Z3 else (if name = "cvc5" orelse name = "cvc5_proof" then SMT_cvc "default" else SMT_Verit "default"))
             else
               Metis_Method (NONE, NONE, []);
@@ -153,7 +160,7 @@ fun run_smt_solver mode name
               bunches_of_metis_methods ctxt false true
         in
           ((preferred, methss),
-           fn preplay =>
+           fn preplay_outcome =>
              let
                val _ = if verbose then writeln "Generating proof text..." else ()
 
@@ -161,7 +168,11 @@ fun run_smt_solver mode name
                  (verbose, (NONE, NONE, []), preplay_timeout, compress, try0, minimize,
                   atp_proof (), goal)
 
-               val one_line_params = (preplay (), proof_banner mode name, subgoal, subgoal_count)
+                val preplay_result = preplay_outcome
+                  |> the_default
+                    (map (apfst Pretty.str) used_facts,
+                     (preferred, Play_Timed_Out Time.zeroTime))
+               val one_line_params = (preplay_result, proof_banner mode name, subgoal, subgoal_count)
                val num_chained = length (#facts (Proof.goal state))
              in
                proof_text ctxt debug isar_proofs smt_proofs isar_params num_chained one_line_params

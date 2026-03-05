@@ -10,7 +10,9 @@ section \<open>Convergence of Formal Power Series\<close>
 theory FPS_Convergence
 imports
   Generalised_Binomial_Theorem
-  "HOL-Computational_Algebra.Formal_Power_Series"
+  "HOL-Computational_Algebra.Formal_Power_Series" 
+  "HOL-Computational_Algebra.Polynomial_FPS"
+
 begin
 
 text \<open>
@@ -57,6 +59,9 @@ lemma ball_eball_mono: "ereal r \<le> r' \<Longrightarrow> ball z r \<le> eball 
   using eball_mono[of "ereal r" r'] by simp
 
 lemma open_eball [simp, intro]: "open (eball z r)" 
+  by (cases r) auto
+
+lemma connected_eball [intro]: "connected (eball (z :: 'a :: real_normed_vector) r)"
   by (cases r) auto
 
 
@@ -593,6 +598,52 @@ text \<open>
   that is available.
 \<close>
 
+subsection \<open>FPS of a polynomial\<close>
+
+lemma fps_conv_radius_fps_of_poly [simp]:
+  fixes p :: "'a :: {banach, real_normed_div_algebra} poly"
+  shows "fps_conv_radius (fps_of_poly p) = \<infinity>"
+proof -
+  have "conv_radius (poly.coeff p) = conv_radius (\<lambda>_. 0 :: 'a)"
+    using MOST_coeff_eq_0 unfolding cofinite_eq_sequentially by (rule conv_radius_cong')
+  also have "\<dots> = \<infinity>"
+    by simp
+  finally show ?thesis
+    by (simp add: fps_conv_radius_def)
+qed
+
+lemma eval_fps_power: 
+  fixes F :: "'a :: {banach, real_normed_div_algebra, comm_ring_1} fps"
+  assumes z: "norm z < fps_conv_radius F"
+  shows      "eval_fps (F ^ n) z = eval_fps F z ^ n"
+proof (induction n)
+  case 0
+  thus ?case
+    by (auto simp: eval_fps_mult)
+next
+  case (Suc n)
+  have "eval_fps (F ^ Suc n) z = eval_fps (F * F ^ n) z"
+    by simp
+  also from z have "\<dots> = eval_fps F z * eval_fps (F ^ n) z"
+    by (subst eval_fps_mult) (auto intro!: less_le_trans[OF _ fps_conv_radius_power])
+  finally show ?case
+    using Suc.IH by simp
+qed   
+
+lemma eval_fps_of_poly [simp]: "eval_fps (fps_of_poly p) z = poly p z"
+proof -
+  have "(\<lambda>n. poly.coeff p n * z ^ n) sums poly p z"
+    unfolding poly_altdef by (rule sums_finite) (auto simp: coeff_eq_0)
+  moreover have "(\<lambda>n. poly.coeff p n * z ^ n) sums eval_fps (fps_of_poly p) z"
+    using sums_eval_fps[of z "fps_of_poly p"] by simp
+  ultimately show ?thesis
+    using sums_unique2 by blast
+qed
+
+lemma poly_holomorphic_on [holomorphic_intros]:
+  assumes [holomorphic_intros]: "f holomorphic_on A"
+  shows   "(\<lambda>z. poly p (f z)) holomorphic_on A"
+  unfolding poly_altdef by (intro holomorphic_intros)
 
 subsection \<open>Power series expansions of analytic functions\<close>
 
@@ -639,6 +690,10 @@ proof -
     using assms by (intro higher_deriv_cong_ev) (auto simp: has_fps_expansion_def)
   finally show ?thesis .
 qed
+
+lemma eval_fps_has_fps_expansion:
+  "fps_conv_radius F > 0 \<Longrightarrow> eval_fps F has_fps_expansion F"
+  unfolding has_fps_expansion_def by simp
 
 lemma has_fps_expansion_imp_continuous:
   fixes F :: "'a::{real_normed_field,banach} fps"
@@ -794,6 +849,17 @@ proof -
   qed
   with radius show ?thesis by (auto simp: has_fps_expansion_def)
 qed
+
+lemma has_fps_expansion_sum [fps_expansion_intros]:
+  assumes "\<And>x. x \<in> A \<Longrightarrow> f x has_fps_expansion F x"
+  shows   "(\<lambda>z. \<Sum>x\<in>A. f x z) has_fps_expansion (\<Sum>x\<in>A. F x)"
+  using assms by (induction A rule: infinite_finite_induct) (auto intro!: fps_expansion_intros)
+
+lemma has_fps_expansion_prod [fps_expansion_intros]:
+  fixes F :: "'a \<Rightarrow> 'b :: {banach, real_normed_div_algebra, comm_ring_1} fps"
+  assumes "\<And>x. x \<in> A \<Longrightarrow> f x has_fps_expansion F x"
+  shows   "(\<lambda>z. \<Prod>x\<in>A. f x z) has_fps_expansion (\<Prod>x\<in>A. F x)"
+  using assms by (induction A rule: infinite_finite_induct) (auto intro!: fps_expansion_intros)
 
 lemma has_fps_expansion_exp [fps_expansion_intros]:
   fixes c :: "'a :: {banach, real_normed_field}"
@@ -1056,5 +1122,35 @@ proof -
   finally show ?thesis using s assms
     by (intro that[of ?s']) (auto simp: has_fps_expansion_def zero_ereal_def)
 qed
+
+lemma has_fps_expansionI:
+  fixes f :: "'a :: {banach, real_normed_div_algebra} \<Rightarrow> 'a"
+  assumes "eventually (\<lambda>u. (\<lambda>n. fps_nth F n * u ^ n) sums f u) (nhds 0)"
+  shows   "f has_fps_expansion F"
+proof -
+  from assms obtain X where X: "open X" "0 \<in> X" "\<And>u. u \<in> X \<Longrightarrow> (\<lambda>n. fps_nth F n * u ^ n) sums f u"
+    unfolding eventually_nhds by blast
+  obtain r where r: "r > 0" "cball 0 r \<subseteq> X"
+    using X(1,2) open_contains_cball by blast
+  have "0 < norm (of_real r :: 'a)"
+    using r(1) by simp
+  also have "fps_conv_radius F \<ge> norm (of_real r :: 'a)"
+    unfolding fps_conv_radius_def
+  proof (rule conv_radius_geI)
+    have "of_real r \<in> X"
+      using r by auto
+    from X(3)[OF this] show "summable (\<lambda>n. fps_nth F n * of_real r ^ n)"
+      by (simp add: sums_iff)
+  qed
+  finally have "fps_conv_radius F > 0"
+    by (simp_all add: zero_ereal_def)
+  moreover have "(\<forall>\<^sub>F z in nhds 0. eval_fps F z = f z)"
+    using assms by eventually_elim (auto simp: sums_iff eval_fps_def)
+  ultimately show ?thesis
+    unfolding has_fps_expansion_def ..
+qed
+
+lemma fps_mult_numeral_left [simp]: "fps_nth (numeral c * f) n = numeral c * fps_nth f n"
+  by (simp add: fps_numeral_fps_const)
 
 end

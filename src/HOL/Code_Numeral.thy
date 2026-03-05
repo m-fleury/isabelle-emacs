@@ -567,12 +567,12 @@ declare divmod_algorithm_code [where ?'a = integer,
   code]
 
 lemma divmod_abs_code [code]:
-  "divmod_abs (Pos k) (Pos l) = divmod k l"
-  "divmod_abs (Neg k) (Neg l) = divmod k l"
-  "divmod_abs (Neg k) (Pos l) = divmod k l"
-  "divmod_abs (Pos k) (Neg l) = divmod k l"
-  "divmod_abs j 0 = (0, \<bar>j\<bar>)"
   "divmod_abs 0 j = (0, 0)"
+  "divmod_abs j 0 = (0, \<bar>j\<bar>)"
+  "divmod_abs (Pos k) (Pos l) = divmod k l"
+  "divmod_abs (Pos k) (Neg l) = divmod k l"
+  "divmod_abs (Neg k) (Pos l) = divmod k l"
+  "divmod_abs (Neg k) (Neg l) = divmod k l"
   by (simp_all add: prod_eq_iff)
 
 lemma divmod_integer_eq_cases:
@@ -620,6 +620,10 @@ context
 begin
 
 lemma and_integer_code [code]:
+  \<open>0 AND k = 0\<close>
+  \<open>k AND 0 = 0\<close>
+  \<open>Neg Num.One AND k = k\<close>
+  \<open>k AND Neg Num.One = k\<close>
   \<open>Pos Num.One AND Pos Num.One = Pos Num.One\<close>
   \<open>Pos Num.One AND Pos (Num.Bit0 n) = 0\<close>
   \<open>Pos (Num.Bit0 m) AND Pos Num.One = 0\<close>
@@ -634,15 +638,15 @@ lemma and_integer_code [code]:
   \<open>Pos m AND Neg (num.Bit1 n) = (case and_not_num m (Num.Bit0 n) of None \<Rightarrow> 0 | Some n' \<Rightarrow> Pos n')\<close>
   \<open>Neg (num.Bit1 m) AND Pos n = (case and_not_num n (Num.Bit0 m) of None \<Rightarrow> 0 | Some n' \<Rightarrow> Pos n')\<close>
   \<open>Neg m AND Neg n = NOT (sub m Num.One OR sub n Num.One)\<close>
-  \<open>Neg Num.One AND k = k\<close>
-  \<open>k AND Neg Num.One = k\<close>
-  \<open>0 AND k = 0\<close>
-  \<open>k AND 0 = 0\<close>
     for k :: integer
   by (transfer; simp)+
 
 lemma or_integer_code [code]:
-  \<open>Pos Num.One AND Pos Num.One = Pos Num.One\<close>
+  \<open>0 OR k = k\<close>
+  \<open>k OR 0 = k\<close>
+  \<open>Neg Num.One OR k = Neg Num.One\<close>
+  \<open>k OR Neg Num.One = Neg Num.One\<close>
+  \<open>Pos Num.One OR Pos Num.One = Pos Num.One\<close>
   \<open>Pos Num.One OR Pos (Num.Bit0 n) = Pos (Num.Bit1 n)\<close>
   \<open>Pos (Num.Bit0 m) OR Pos Num.One = Pos (Num.Bit1 m)\<close>
   \<open>Pos Num.One OR Pos (Num.Bit1 n) = Pos (Num.Bit1 n)\<close>
@@ -656,29 +660,25 @@ lemma or_integer_code [code]:
   \<open>Pos m OR Neg (num.Bit1 n) = Neg (or_not_num_neg m (Num.Bit0 n))\<close>
   \<open>Neg (num.Bit1 m) OR Pos n = Neg (or_not_num_neg n (Num.Bit0 m))\<close>
   \<open>Neg m OR Neg n = NOT (sub m Num.One AND sub n Num.One)\<close>
-  \<open>Neg Num.One OR k = Neg Num.One\<close>
-  \<open>k OR Neg Num.One = Neg Num.One\<close>
-  \<open>0 OR k = k\<close>
-  \<open>k OR 0 = k\<close>
     for k :: integer
   by (transfer; simp)+
 
 lemma xor_integer_code [code]:
+  \<open>0 XOR k = k\<close>
+  \<open>k XOR 0 = k\<close>
+  \<open>Neg Num.One XOR k = NOT k\<close>
+  \<open>k XOR Neg Num.One = NOT k\<close>
+  \<open>Neg m XOR k = NOT (sub m num.One XOR k)\<close>
+  \<open>k XOR Neg n = NOT (k XOR (sub n num.One))\<close>
   \<open>Pos Num.One XOR Pos Num.One = 0\<close>
-  \<open>Pos Num.One XOR numeral (Num.Bit0 n) = Pos (Num.Bit1 n)\<close>
+  \<open>Pos Num.One XOR Pos (Num.Bit0 n) = Pos (Num.Bit1 n)\<close>
   \<open>Pos (Num.Bit0 m) XOR Pos Num.One = Pos (Num.Bit1 m)\<close>
-  \<open>Pos Num.One XOR numeral (Num.Bit1 n) = Pos (Num.Bit0 n)\<close>
+  \<open>Pos Num.One XOR Pos (Num.Bit1 n) = Pos (Num.Bit0 n)\<close>
   \<open>Pos (Num.Bit1 m) XOR Pos Num.One = Pos (Num.Bit0 m)\<close>
   \<open>Pos (Num.Bit0 m) XOR Pos (Num.Bit0 n) = dup (Pos m XOR Pos n)\<close>
   \<open>Pos (Num.Bit0 m) XOR Pos (Num.Bit1 n) = Pos Num.One + dup (Pos m XOR Pos n)\<close>
   \<open>Pos (Num.Bit1 m) XOR Pos (Num.Bit0 n) = Pos Num.One + dup (Pos m XOR Pos n)\<close>
   \<open>Pos (Num.Bit1 m) XOR Pos (Num.Bit1 n) = dup (Pos m XOR Pos n)\<close>
-  \<open>Neg m XOR k = NOT (sub m num.One XOR k)\<close>
-  \<open>k XOR Neg n = NOT (k XOR (sub n num.One))\<close>
-  \<open>Neg Num.One XOR k = NOT k\<close>
-  \<open>k XOR Neg Num.One = NOT k\<close>
-  \<open>0 XOR k = k\<close>
-  \<open>k XOR 0 = k\<close>
     for k :: integer
   by (transfer; simp)+
 
@@ -705,14 +705,6 @@ lemma [code]:
 lemma [code]:
   \<open>flip_bit n k = k XOR push_bit n 1\<close> for k :: integer
   by (fact flip_bit_def)
-
-lemma [code]:
-  \<open>push_bit n k = k * 2 ^ n\<close> for k :: integer
-  by (fact push_bit_eq_mult)
-
-lemma [code]:
-  \<open>drop_bit n k = k div  2 ^ n\<close> for k :: integer
-  by (fact drop_bit_eq_div)
 
 lemma [code]:
   \<open>take_bit n k = k AND mask n\<close> for k :: integer
@@ -828,31 +820,71 @@ proof -
       minus_mod_eq_mult_div [symmetric] *)
 qed
 
+lemma int_of_integer_code_nbe [code nbe]:
+  "int_of_integer 0 = 0"
+  "int_of_integer (Pos n) = Int.Pos n"
+  "int_of_integer (Neg n) = Int.Neg n"
+  by simp_all
+
 lemma int_of_integer_code [code]:
-  "int_of_integer k = (if k < 0 then - (int_of_integer (- k))
-     else if k = 0 then 0
-     else let
-       (l, j) = divmod_integer k 2;
-       l' = 2 * int_of_integer l
-     in if j = 0 then l' else l' + 1)"
-  by (auto simp add: split_def Let_def integer_eq_iff minus_mod_eq_mult_div [symmetric])
+  \<open>int_of_integer k = (
+    if k = 0 then 0
+    else if k = - 1 then - 1
+    else
+      let
+        (l, j) = divmod_integer k 2;
+        l' = 2 * int_of_integer l
+      in if j = 0 then l' else l' + 1)\<close>
+  by (auto simp add: case_prod_unfold Let_def integer_eq_iff simp flip: minus_mod_eq_mult_div)
+
+lemma integer_of_int_code_nbe [code nbe]:
+  "integer_of_int 0 = 0"
+  "integer_of_int (Int.Pos n) = Pos n"
+  "integer_of_int (Int.Neg n) = Neg n"
+  by simp_all
 
 lemma integer_of_int_code [code]:
-  "integer_of_int k = (if k < 0 then - (integer_of_int (- k))
-     else if k = 0 then 0
-     else let
-       l = 2 * integer_of_int (k div 2);
-       j = k mod 2
-     in if j = 0 then l else l + 1)"
-  by (auto simp add: split_def Let_def integer_eq_iff minus_mod_eq_mult_div [symmetric])
+  \<open>integer_of_int k = (
+    if k = 0 then 0
+    else if k = - 1 then - 1
+    else
+      let
+        l = 2 * integer_of_int (k div 2);
+        j = k mod 2
+      in if j = 0 then l else l + 1)\<close>
+  by (simp add: integer_eq_iff Let_def flip: minus_mod_eq_mult_div)
 
 hide_const (open) Pos Neg sub dup divmod_abs
 
+context
+begin
+
+qualified definition push_bit :: \<open>integer \<Rightarrow> integer \<Rightarrow> integer\<close>
+  where \<open>push_bit i k = Bit_Operations.push_bit (nat_of_integer \<bar>i\<bar>) k\<close>
+
+qualified lemma push_bit_code [code]:
+  \<open>push_bit i k = k * 2 ^ nat_of_integer \<bar>i\<bar>\<close>
+  by (simp add: push_bit_def push_bit_eq_mult)
+
+lemma push_bit_integer_code [code]:
+  \<open>Bit_Operations.push_bit n k = push_bit (of_nat n) k\<close>
+  by (simp add: push_bit_def)
+
+qualified definition drop_bit :: \<open>integer \<Rightarrow> integer \<Rightarrow> integer\<close>
+  where \<open>drop_bit i k = Bit_Operations.drop_bit (nat_of_integer \<bar>i\<bar>) k\<close>
+
+qualified lemma drop_bit_code [code]:
+  \<open>drop_bit i k = k div 2 ^ nat_of_integer \<bar>i\<bar>\<close>
+  by (simp add: drop_bit_def drop_bit_eq_div)
+
+lemma drop_bit_integer_code [code]:
+  \<open>Bit_Operations.drop_bit n k = drop_bit (of_nat n) k\<close>
+  by (simp add: drop_bit_def)
+
+end
+
 
 subsection \<open>Serializer setup for target language integers\<close>
-
-code_reserved
-  (Eval) int Integer abs
 
 code_printing
   type_constructor integer \<rightharpoonup>
@@ -863,6 +895,9 @@ code_printing
     and (Eval) "int"
 | class_instance integer :: equal \<rightharpoonup>
     (Haskell) -
+
+code_reserved
+  (Eval) int Integer
 
 code_printing
   constant "0::integer" \<rightharpoonup>
@@ -964,6 +999,152 @@ code_printing
     and (OCaml) "Z.lognot"
     and (Haskell) "Data.Bits.complement"
     and (Scala) "_.unary'_~"
+
+code_reserved
+  (Eval) abs
+
+code_printing code_module Bit_Shifts \<rightharpoonup>
+    (SML) \<open>
+structure Bit_Shifts : sig
+  type int = IntInf.int
+  val push : int -> int -> int
+  val drop : int -> int -> int
+end = struct
+
+open IntInf;
+
+fun fold _ [] y = y
+  | fold f (x :: xs) y = fold f xs (f x y);
+
+fun replicate n x = (if n <= 0 then [] else x :: replicate (n - 1) x);
+
+val max_index = pow (fromInt 2, Word.wordSize) - fromInt 1; (*largest possible word*)
+
+val word_of_int = Word.fromLargeInt o toLarge;
+
+val word_max_index = word_of_int max_index;
+
+fun words_of_int k = case divMod (k, max_index)
+  of (b, s) => word_of_int s :: replicate b word_max_index;
+
+fun push' i k = << (k, i);
+
+fun drop' i k = ~>> (k, i);
+
+(* The implementations are formally total, though indices >~ max_index will produce heavy computation load *)
+
+fun push i = fold push' (words_of_int (abs i));
+
+fun drop i = fold drop' (words_of_int (abs i));
+
+end;\<close> for constant Code_Numeral.push_bit Code_Numeral.drop_bit
+    and (OCaml) \<open>
+module Bit_Shifts : sig
+  val push : Z.t -> Z.t -> Z.t
+  val drop : Z.t -> Z.t -> Z.t
+end = struct
+
+let rec fold f xs y = match xs with
+  [] -> y
+  | (x :: xs) -> fold f xs (f x y);;
+
+let rec replicate n x = (if Z.leq n Z.zero then [] else x :: replicate (Z.pred n) x);;
+
+let max_index = Z.of_int max_int;;
+
+let splitIndex i = let (b, s) = Z.div_rem i max_index
+  in Z.to_int s :: replicate b max_int;;
+
+let push' i k = Z.shift_left k i;;
+
+let drop' i k = Z.shift_right k i;;
+
+(* The implementations are formally total, though indices >~ max_index will produce heavy computation load *)
+
+let push i = fold push' (splitIndex (Z.abs i));;
+
+let drop i = fold drop' (splitIndex (Z.abs i));;
+
+end;;
+\<close> for constant Code_Numeral.push_bit Code_Numeral.drop_bit
+    and (Haskell) \<open>
+module Bit_Shifts (push, drop, push', drop') where
+
+import Prelude (Int, Integer, toInteger, fromInteger, maxBound, divMod, (-), (<=), abs, flip)
+import GHC.Bits (Bits)
+import Data.Bits (shiftL, shiftR)
+
+fold :: (a -> b -> b) -> [a] -> b -> b
+fold _ [] y = y
+fold f (x : xs) y = fold f xs (f x y)
+
+replicate :: Integer -> a -> [a]
+replicate k x = if k <= 0 then [] else x : replicate (k - 1) x
+
+maxIndex :: Integer
+maxIndex = toInteger (maxBound :: Int)
+
+splitIndex :: Integer -> [Int]
+splitIndex i = fromInteger s : replicate (fromInteger b) maxBound
+  where (b, s) = i `divMod` maxIndex
+
+{- The implementations are formally total, though indices >~ maxIndex will produce heavy computation load -}
+
+push :: Integer -> Integer -> Integer
+push i = fold (flip shiftL) (splitIndex (abs i))
+
+drop :: Integer -> Integer -> Integer
+drop i = fold (flip shiftR) (splitIndex (abs i))
+
+push' :: Int -> Int -> Int
+push' i = flip shiftL (abs i)
+
+drop' :: Int -> Int -> Int
+drop' i = flip shiftR (abs i)
+\<close> for constant Code_Numeral.push_bit Code_Numeral.drop_bit
+    and (Scala) \<open>
+object Bit_Shifts {
+
+private val maxIndex : BigInt = BigInt(Int.MaxValue);
+
+private def replicate[A](i : BigInt, x : A) : List[A] =
+  i <= 0 match {
+    case true => Nil
+    case false => x :: replicate[A](i - 1, x)
+  }
+
+private def splitIndex(i : BigInt) : List[Int] = {
+  val (b, s) = i /% maxIndex
+  return s.intValue :: replicate(b, Int.MaxValue)
+}
+
+/* The implementations are formally total, though indices >~ maxIndex will produce heavy computation load */
+
+def push(i: BigInt, k: BigInt) : BigInt =
+  splitIndex(i).foldLeft(k) { (l, j) => l << j }
+
+def drop(i: BigInt, k: BigInt) : BigInt =
+  splitIndex(i).foldLeft(k) { (l, j) => l >> j }
+
+}
+\<close> for constant Code_Numeral.push_bit Code_Numeral.drop_bit
+
+code_reserved
+  (SML) Bit_Shifts
+  and (Haskell) Bit_Shifts
+  and (Scala) Bit_Shifts
+
+code_printing
+  constant Code_Numeral.push_bit \<rightharpoonup>
+    (SML) "Bit'_Shifts.push"
+    and (OCaml) "Bit'_Shifts.push"
+    and (Haskell) "Bit'_Shifts.push"
+    and (Scala) "Bit'_Shifts.push"
+| constant Code_Numeral.drop_bit \<rightharpoonup>
+    (SML) "Bit'_Shifts.drop"
+    and (OCaml) "Bit'_Shifts.drop"
+    and (Haskell) "Bit'_Shifts.drop"
+    and (Scala) "Bit'_Shifts.drop"
 
 code_identifier
   code_module Code_Numeral \<rightharpoonup> (SML) Arith and (OCaml) Arith and (Haskell) Arith
@@ -1364,12 +1545,12 @@ lemma [code abstract]:
   "integer_of_natural (m mod n) = integer_of_natural m mod integer_of_natural n"
   by transfer (simp add: zmod_int)
 
+lemma [code nbe]: "HOL.equal n (n::natural) \<longleftrightarrow> True"
+  by (rule equal_class.equal_refl)
+
 lemma [code]:
   "HOL.equal m n \<longleftrightarrow> HOL.equal (integer_of_natural m) (integer_of_natural n)"
   by transfer (simp add: equal)
-
-lemma [code nbe]: "HOL.equal n (n::natural) \<longleftrightarrow> True"
-  by (rule equal_class.equal_refl)
 
 lemma [code]: "m \<le> n \<longleftrightarrow> integer_of_natural m \<le> integer_of_natural n"
   by transfer simp

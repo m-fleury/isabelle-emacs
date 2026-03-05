@@ -35,7 +35,7 @@ structure Quantifier1 = Quantifier1
   val ex_comm = @{thm ex_comm}
   val atomize =
     let val rules = @{thms atomize_all atomize_imp atomize_eq atomize_conj}
-    in fn ctxt => Raw_Simplifier.rewrite ctxt true rules end
+    in fn ctxt => Simplifier.rewrite_wrt ctxt true rules end
 );
 
 structure Simpdata =
@@ -186,8 +186,8 @@ val mksimps_pairs =
 
 val HOL_basic_ss =
   empty_simpset \<^context>
-  setSSolver safe_solver
-  setSolver unsafe_solver
+  |> Simplifier.set_safe_solver safe_solver
+  |> Simplifier.set_unsafe_solver unsafe_solver
   |> Simplifier.set_subgoaler asm_simp_tac
   |> Simplifier.set_mksimps (mksimps mksimps_pairs)
   |> Simplifier.set_mkeqTrue mk_eq_True
@@ -195,10 +195,11 @@ val HOL_basic_ss =
   |> simpset_of;
 
 fun hol_simplify ctxt rews =
-  Simplifier.full_simplify (put_simpset HOL_basic_ss ctxt addsimps rews);
+  Simplifier.full_simplify (put_simpset HOL_basic_ss ctxt |> Simplifier.add_simps rews);
 
 fun unfold_tac ctxt ths =
-  ALLGOALS (full_simp_tac (clear_simpset (put_simpset HOL_basic_ss ctxt) addsimps ths));
+  ALLGOALS (full_simp_tac
+    (clear_simpset (put_simpset HOL_basic_ss ctxt) |> Simplifier.add_simps ths));
 
 end;
 

@@ -25,7 +25,7 @@ object Status_Widget {
   abstract class GUI(view: View) extends JComponent {
     /* init */
 
-    setFont(new JLabel().getFont)
+    setFont(GUI.copy_font(GUI.label_font()))
 
     private val font_render_context = new FontRenderContext(null, true, false)
     private val line_metrics = getFont.getLineMetrics(template, font_render_context)
@@ -86,7 +86,7 @@ object Status_Widget {
     def action: String
 
     addMouseListener(new MouseAdapter {
-      override def mouseClicked(evt: MouseEvent): Unit = {
+      override def mousePressed(evt: MouseEvent): Unit = {
         if (!evt.isConsumed() && evt.getClickCount == 2) {
           evt.consume()
           view.getInputHandler.invokeAction(action)

@@ -7,31 +7,35 @@ Basic GUI tools (for AWT/Swing).
 package isabelle
 
 import java.util.{Map => JMap}
-import java.awt.{Component, Container, Font, Image, Insets, KeyboardFocusManager, Window, Point,
-  Rectangle, Dimension, GraphicsEnvironment, MouseInfo, Toolkit}
+import java.awt.{Color, Component, Container, Font, Image, Insets, KeyboardFocusManager, Window,
+  Point, Rectangle, Dimension, GraphicsEnvironment, MouseInfo, Toolkit}
 import java.awt.event.{KeyAdapter, KeyEvent}
 import java.awt.font.{FontRenderContext, LineMetrics, TextAttribute, TransformAttribute}
 import java.awt.geom.AffineTransform
-import javax.swing.{ImageIcon, JButton, JLabel, JLayeredPane, JOptionPane,
+import javax.swing.{Icon, ImageIcon, JButton, JLabel, JLayeredPane, JOptionPane,
   RootPaneContainer, JTextField, JComboBox, LookAndFeel, UIManager, SwingUtilities}
 
-import scala.swing.{CheckBox, ComboBox, ScrollPane, TextArea, ListView, Separator}
+import scala.swing.{Alignment, CheckBox, ComboBox, ScrollPane, TextArea, ListView, Separator}
+import scala.swing.Swing.EmptyIcon
 import scala.swing.event.{ButtonClicked, SelectionChanged}
+
+import com.formdev.flatlaf
+import com.formdev.flatlaf.FlatLaf
 
 
 object GUI {
   /* Swing look-and-feel */
 
-  def init_laf(): Unit = {
-    val prop = com.formdev.flatlaf.FlatSystemProperties.USE_NATIVE_LIBRARY
-    System.setProperty(prop, System.getProperty(prop, "false"))
-    com.formdev.flatlaf.FlatLightLaf.setup()
-  }
-
   def current_laf(): String = UIManager.getLookAndFeel.getClass.getName()
 
-  def is_macos_laf: Boolean =
+  def is_macos_laf(): Boolean =
     Platform.is_macos && UIManager.getSystemLookAndFeelClassName() == current_laf()
+
+  def is_dark_laf(): Boolean = FlatLaf.isLafDark()
+
+  def default_foreground_color(): Color = if (is_dark_laf()) Color.WHITE else Color.BLACK
+  def default_background_color(): Color = if (is_dark_laf()) Color.BLACK else Color.WHITE
+  def default_intermediate_color(): Color = if (is_dark_laf()) Color.LIGHT_GRAY else Color.GRAY
 
   class Look_And_Feel(laf: LookAndFeel) extends Isabelle_System.Service {
     def info: UIManager.LookAndFeelInfo =
@@ -54,6 +58,11 @@ object GUI {
 
     // see https://www.formdev.com/flatlaf/customizing
     UIManager.put("Component.arrowType", "triangle")
+  }
+
+  def init_laf(): Unit = {
+    init_lafs()
+    flatlaf.FlatLightLaf.setup()
   }
 
 
@@ -220,6 +229,33 @@ object GUI {
   }
 
 
+  /* label for other component */
+
+  class Label(
+    label_text: String,
+    label_icon: Icon,
+    label_align: Alignment.Value,
+    label_for: java.awt.Component
+  ) extends scala.swing.Label(label_text, label_icon, label_align) {
+
+    override lazy val peer: JLabel =
+      new JLabel(label_text, if (label_icon == EmptyIcon) null else label_icon, label_align.id)
+        with SuperMixin { labelFor = label_for }
+
+    override def this(label_text: String, label_icon: Icon, label_align: Alignment.Value) =
+      this(label_text, label_icon, label_align, null)
+
+    def this(label_text: String, label_for: java.awt.Component) =
+      this(label_text, EmptyIcon, Alignment.Center, label_for)
+
+    def this(label_text: String, label_for: scala.swing.Component) =
+      this(label_text, EmptyIcon, Alignment.Center, label_for.peer)
+
+    def this(label_text: String) =
+      this(label_text, EmptyIcon, Alignment.Center)
+  }
+
+
   /* list selector */
 
   object Selector {
@@ -349,7 +385,7 @@ object GUI {
 
   def tooltip_lines(text: String): String =
     if (text == null || text == "") null
-    else Style_HTML.enclose_text(text)
+    else Style_HTML.enclose(split_lines(text).map(Style_HTML.make_text).mkString("<br/>"))
 
 
   /* icon */
@@ -541,5 +577,7 @@ object GUI {
   }
 }
 
-class FlatLightLaf extends GUI.Look_And_Feel(new com.formdev.flatlaf.FlatLightLaf)
-class FlatDarkLaf extends GUI.Look_And_Feel(new com.formdev.flatlaf.FlatDarkLaf)
+class FlatLightLaf extends GUI.Look_And_Feel(new flatlaf.FlatLightLaf)
+class FlatDarkLaf extends GUI.Look_And_Feel(new flatlaf.FlatDarkLaf)
+class FlatMacLightLaf extends GUI.Look_And_Feel(new flatlaf.themes.FlatMacLightLaf)
+class FlatMacDarkLaf extends GUI.Look_And_Feel(new flatlaf.themes.FlatMacDarkLaf)

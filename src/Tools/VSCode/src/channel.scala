@@ -33,7 +33,7 @@ class Channel(
   private def read_header(): List[String] = {
     val header = new mutable.ListBuffer[String]
     var line = ""
-    while ({ line = read_line(); line != "" }) header += line
+    while ({ line = read_line(); line.nonEmpty }) header += line
     header.toList
   }
 
@@ -63,16 +63,15 @@ class Channel(
   /* write message */
 
   def write(json: JSON.T): Unit = {
-    val msg = JSON.Format(json)
-    val content = UTF8.bytes(msg)
-    val n = content.length
+    val content = JSON.Format.bytes(json)
+    val n = content.size
     val header = UTF8.bytes("Content-Length: " + n + "\r\n\r\n")
 
     LSP.Message.log("OUT: " + n, json, log, verbose)
     out.synchronized {
       out.write(header)
-      out.write(content)
-      out.flush
+      content.write_stream(out)
+      out.flush()
     }
   }
 
@@ -98,11 +97,12 @@ class Channel(
   /* progress */
 
   def progress(verbose: Boolean = false): Progress = {
-    val verbose_ = verbose
-    new Progress {
-      override val verbose: Boolean = verbose_
-      override def output(message: Progress.Message): Unit =
-        if (do_output(message)) {
+    val progress_verbose = verbose
+    new Progress with Progress.Status {
+      override val verbose: Boolean = progress_verbose
+      override def status_output(msgs: Progress.Output): Unit =
+        for (msg <- msgs if do_output(msg)) {
+          val message = msg.message
           message.kind match {
             case Progress.Kind.writeln => log_writeln(message.text)
             case Progress.Kind.warning => log_warning(message.text)

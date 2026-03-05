@@ -33,6 +33,18 @@ lemma open_einterval[simp]: "open (einterval a b)"
 lemma borel_einterval[measurable]: "einterval a b \<in> sets borel"
   unfolding einterval_def by measurable
 
+lemma einterval_1l_eq_Icc [simp]: "einterval 1 (numeral a) = {1 <..< numeral a :: real}"
+  by (simp add: one_ereal_def)
+
+lemma einterval_1r_eq_Icc [simp]: "einterval (numeral a) 1 = {numeral a <..< 1 :: real}"
+  by (simp add: one_ereal_def)
+
+lemma einterval_m1l_eq_Icc [simp]: "einterval (-1) (numeral a) = {-1 <..< numeral a :: real}"
+  by (simp add: one_ereal_def)
+
+lemma einterval_m1r_eq_Icc [simp]: "einterval (numeral a) (-1) = {numeral a <..< (-1) :: real}"
+  by (simp add: one_ereal_def)
+
 subsection \<open>Approximating a (possibly infinite) interval\<close>
 
 lemma filterlim_sup1: "(LIM x F. f x :> G1) \<Longrightarrow> (LIM x F. f x :> (sup G1 G2))"
@@ -389,6 +401,14 @@ lemma interval_integral_Ioi:
 lemma interval_integral_Ioo:
   "a \<le> b \<Longrightarrow> \<bar>a\<bar> < \<infinity> ==> \<bar>b\<bar> < \<infinity> \<Longrightarrow> (LBINT x=a..b. f x) = (LBINT x : {real_of_ereal a <..< real_of_ereal b}. f x)"
   by (auto simp: interval_lebesgue_integral_def einterval_iff)
+
+lemma has_bochner_interval_integral_iff:
+  assumes "a\<le>b"
+  shows "has_bochner_integral (restrict_space lborel {a..b}) f x 
+      \<longleftrightarrow> set_integrable lborel {a..b} f \<and> (LBINT u=a..b. f u) = x"
+  using assms
+  by (simp add: has_bochner_integral_iff integral_restrict_space interval_integral_Icc
+      set_integrable_eq set_lebesgue_integral_def)
 
 lemma interval_integral_discrete_difference:
   fixes f :: "real \<Rightarrow> 'b::{banach, second_countable_topology}" and a b :: ereal

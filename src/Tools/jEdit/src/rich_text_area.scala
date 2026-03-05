@@ -222,13 +222,16 @@ class Rich_Text_Area(
   }
 
   private val mouse_listener = new MouseAdapter {
-    override def mouseClicked(e: MouseEvent): Unit = {
+    override def mousePressed(e: MouseEvent): Unit = {
       robust_body(()) {
         if (!e.isConsumed() && e.getClickCount == 1) {
           hyperlink_area.info match {
             case Some(Text.Info(range, link)) =>
               if (!link.external) {
-                try { text_area.moveCaretPosition(range.start) }
+                try {
+                  text_area.moveCaretPosition(range.start)
+                  PIDE.plugin.navigator.record(Isabelle_Navigator.Pos(buffer, range.start))
+                }
                 catch {
                   case _: ArrayIndexOutOfBoundsException =>
                   case _: IllegalArgumentException =>

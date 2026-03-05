@@ -88,6 +88,8 @@ session "HOL-Library" (main timing) in Library = HOL +
     DAList_Multiset
     RBT_Mapping
     RBT_Set
+    (* manual *)
+    Time_Manual
     (*printing modifications*)
     OptionalSugar
     Suc_Notation
@@ -110,8 +112,9 @@ session "HOL-Analysis" (main timing) in Analysis = HOL +
     "HOL-Combinatorics"
     "HOL-Computational_Algebra"
     "HOL-Real_Asymp"
-theories
+  theories
     Analysis
+    Finite_Function_Topology (* not part of main file because it imports problematic Sum_any notation *)
   document_files
     "root.tex"
     "root.bib"
@@ -148,11 +151,15 @@ session "HOL-Combinatorics" (main timing) in "Combinatorics" = "HOL" +
   document_files
     "root.tex"
 
-session "HOL-Computational_Algebra" (main timing) in "Computational_Algebra" = "HOL-Library" +
+session "HOL-Computational_Algebra" (main timing) in "Computational_Algebra" = "HOL" +
+  sessions
+    "HOL-Library"
   theories
     Computational_Algebra
     (*conflicting type class instantiations and dependent applications*)
     Field_as_Ring
+    (*checks that computation works*)
+    Computation_Checks
   document_files
     "root.tex"
     "root.bib"
@@ -238,8 +245,10 @@ session "HOL-Induct" in Induct = HOL +
     "root.bib"
     "root.tex"
 
-session "HOL-IMP" (timing) in IMP = "HOL-Library" +
+session "HOL-IMP" (timing) in IMP = "HOL" +
   options [document_variants = document]
+  sessions
+    "HOL-Library"
   theories
     BExp
     ASM
@@ -399,7 +408,7 @@ session "HOL-Codegenerator_Test" in Codegenerator_Test = "HOL-Library" +
   theories [condition = ISABELLE_GHC]
     Code_Test_GHC
 
-session "HOL-Metis_Examples" (timing) in Metis_Examples = "HOL-Library" +
+session "HOL-Metis_Examples" (timing) in Metis_Examples = "HOL" +
   description "
     Author:     Lawrence C Paulson, Cambridge University Computer Laboratory
     Author:     Jasmin Blanchette, TU Muenchen
@@ -407,6 +416,7 @@ session "HOL-Metis_Examples" (timing) in Metis_Examples = "HOL-Library" +
     Testing Metis and Sledgehammer.
   "
   sessions
+    "HOL-Library"
     "HOL-Decision_Procs"
   theories
     Abstraction
@@ -691,11 +701,13 @@ session "HOL-Lattice" in Lattice = HOL +
     "root.bib"
     "root.tex"
 
-session "HOL-ex" (timing) in ex = "HOL-Number_Theory" +
+session "HOL-ex" (timing) in ex = "HOL-Library" +
   description "
     Miscellaneous examples and experiments for Isabelle/HOL.
   "
   options [document = false]
+  sessions
+    "HOL-Number_Theory"
   theories
     Antiquote
     Argo_Examples

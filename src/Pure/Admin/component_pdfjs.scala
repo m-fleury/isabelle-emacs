@@ -8,6 +8,10 @@ See also:
   - https://github.com/mozilla/pdf.js
   - https://github.com/mozilla/pdf.js/releases
   - https://github.com/mozilla/pdf.js/wiki/Setup-PDF.js-in-a-website
+
+Example for Isabelle/jEdit with Console/Scala:
+
+  isabelle.HTTP.pdfjs_demo(PIDE.plugin.http_server.url)
 */
 
 package isabelle
@@ -17,7 +21,7 @@ object Component_PDFjs {
   /* build pdfjs component */
 
   val default_url = "https://github.com/mozilla/pdf.js/releases/download"
-  val default_version = "2.14.305"
+  val default_version = "5.4.394"
 
   def build_pdfjs(
     base_url: String = default_url,

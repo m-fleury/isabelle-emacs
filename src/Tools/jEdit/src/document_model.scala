@@ -18,7 +18,7 @@ import scala.annotation.tailrec
 
 import org.gjt.sp.jedit.View
 import org.gjt.sp.jedit.Buffer
-import org.gjt.sp.jedit.buffer.{BufferAdapter, BufferListener, JEditBuffer}
+import org.gjt.sp.jedit.buffer.{BufferListener, JEditBuffer}
 
 
 object Document_Model {
@@ -40,7 +40,7 @@ object Document_Model {
         (for {
           (node_name, model) <- models.iterator
           blob <- model.get_blob
-        } yield (node_name -> blob)).toMap)
+        } yield (node_name, blob)).toMap)
 
     def open_buffer(
       session: Session,
@@ -139,9 +139,10 @@ object Document_Model {
     GUI_Thread.require {}
 
     val models = state.value.models
-    for (name <- names.iterator; model <- models.get(name)) {
-      model match { case buffer_model: Buffer_Model => buffer_model.syntax_changed() case _ => }
-    }
+    for {
+      name <- names.iterator
+      case buffer_model: Buffer_Model <- models.get(name)
+    } buffer_model.syntax_changed()
   }
 
 
@@ -407,6 +408,9 @@ case class File_Model(
   last_perspective: Document.Node.Perspective_Text.T,
   pending_edits: List[Text.Edit]
 ) extends Document_Model {
+  override def toString: String = "file " + quote(node_name.node)
+
+
   /* content */
 
   def node_name: Document.Node.Name = content.node_name
@@ -435,7 +439,10 @@ case class File_Model(
 
   def get_blob: Option[Document.Blobs.Item] =
     if (is_theory) None
-    else Some(Document.Blobs.Item(content.bytes, content.text, content.chunk, pending_edits.nonEmpty))
+    else {
+      val changed = pending_edits.nonEmpty
+      Some(Document.Blobs.Item(content.bytes, content.text, content.chunk, changed = changed))
+    }
 
   def untyped_data: AnyRef = content.data
 
@@ -489,6 +496,9 @@ class Buffer_Model private(
   val node_name: Document.Node.Name,
   val buffer: Buffer
 ) extends Document_Model {
+  override def toString: String = "buffer " + quote(node_name.node)
+
+
   /* text */
 
   def get_text(range: Text.Range): Option[String] =
@@ -568,6 +578,8 @@ class Buffer_Model private(
       PIDE.editor.invoke()
     }
 
+    val listener: BufferListener = JEdit_Lib.buffer_listener((_, e) => edit(List(e)))
+
 
     // blob
 
@@ -587,8 +599,7 @@ class Buffer_Model private(
             blob = Some(x)
             x
           }
-        val changed = !is_stable
-        Some(Document.Blobs.Item(bytes, text, chunk, changed))
+        Some(Document.Blobs.Item(bytes, text, chunk, changed = !is_stable))
       }
     }
 
@@ -619,31 +630,6 @@ class Buffer_Model private(
 
   def get_blob: Option[Document.Blobs.Item] = buffer_state.get_blob
   def untyped_data: AnyRef = buffer_state.untyped_data
-
-
-  /* buffer listener */
-
-  private val buffer_listener: BufferListener = new BufferAdapter {
-    override def contentInserted(
-      buffer: JEditBuffer,
-      start_line: Int,
-      offset: Int,
-      num_lines: Int,
-      length: Int
-    ): Unit = {
-      buffer_state.edit(List(Text.Edit.insert(offset, buffer.getText(offset, length))))
-    }
-
-    override def preContentRemoved(
-      buffer: JEditBuffer,
-      start_line: Int,
-      offset: Int,
-      num_lines: Int,
-      removed_length: Int
-    ): Unit = {
-      buffer_state.edit(List(Text.Edit.remove(offset, buffer.getText(offset, removed_length))))
-    }
-  }
 
 
   /* syntax */
@@ -681,7 +667,7 @@ class Buffer_Model private(
             Text.Edit.replace(0, file_model.content.text, JEdit_Lib.buffer_text(buffer)))
     }
 
-    buffer.addBufferListener(buffer_listener)
+    buffer.addBufferListener(buffer_state.listener)
     init_token_marker()
 
     this
@@ -691,7 +677,7 @@ class Buffer_Model private(
   /* exit */
 
   def exit(): File_Model = GUI_Thread.require {
-    buffer.removeBufferListener(buffer_listener)
+    buffer.removeBufferListener(buffer_state.listener)
     init_token_marker()
 
     File_Model.init(session,

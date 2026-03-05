@@ -137,8 +137,10 @@ object Text {
   /* editing */
 
   object Edit {
-    def insert(start: Offset, text: String): Edit = new Edit(true, start, text)
-    def remove(start: Offset, text: String): Edit = new Edit(false, start, text)
+    def make(is_insert: Boolean, start: Offset, text: String): Edit =
+      new Edit(is_insert, start, text)
+    def insert(start: Offset, text: String): Edit = make(true, start, text)
+    def remove(start: Offset, text: String): Edit = make(false, start, text)
     def inserts(start: Offset, text: String): List[Edit] =
       if (text == "") Nil else List(insert(start, text))
     def removes(start: Offset, text: String): List[Edit] =
@@ -150,7 +152,7 @@ object Text {
 
   final class Edit private(val is_insert: Boolean, val start: Offset, val text: String) {
     override def toString: String =
-      (if (is_insert) "Insert(" else "Remove(") + (start, text).toString + ")"
+      (if (is_insert) "Insert(" else "Remove(") + (start, text.length).toString + ")"
 
 
     /* transform offsets */

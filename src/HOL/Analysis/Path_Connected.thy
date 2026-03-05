@@ -1266,6 +1266,46 @@ lemma Re_linepath: "Re(linepath (of_real a) (of_real b) x) = (1 - x)*a + x*b"
 lemma Im_linepath: "Im(linepath (of_real a) (of_real b) x) = 0"
   by (simp add: linepath_def)
 
+lemma
+  assumes "x \<in> closed_segment y z"
+  shows in_closed_segment_imp_Re_in_closed_segment: "Re x \<in> closed_segment (Re y) (Re z)" (is ?th1)
+    and in_closed_segment_imp_Im_in_closed_segment: "Im x \<in> closed_segment (Im y) (Im z)" (is ?th2)
+proof -
+  from assms obtain t where t: "t \<in> {0..1}" "x = linepath y z t"
+    by (metis imageE linepath_image_01)
+  have "Re x = linepath (Re y) (Re z) t" "Im x = linepath (Im y) (Im z) t"
+    by (simp_all add: t Re_linepath' Im_linepath')
+  with t(1) show ?th1 ?th2
+    using linepath_in_path[of t "Re y" "Re z"] linepath_in_path[of t "Im y" "Im z"] by simp_all
+qed
+
+lemma linepath_in_open_segment: "t \<in> {0<..<1} \<Longrightarrow> x \<noteq> y \<Longrightarrow> linepath x y t \<in> open_segment x y"
+  unfolding greaterThanLessThan_iff by (metis in_segment(2) linepath_def)
+
+lemma in_open_segment_imp_Re_in_open_segment:
+  assumes "x \<in> open_segment y z" "Re y \<noteq> Re z"
+  shows   "Re x \<in> open_segment (Re y) (Re z)"
+proof -
+  from assms obtain t where t: "t \<in> {0<..<1}" "x = linepath y z t"
+    by (metis greaterThanLessThan_iff in_segment(2) linepath_def)
+  have "Re x = linepath (Re y) (Re z) t"
+    by (simp_all add: t Re_linepath')
+  with t(1) show ?thesis
+    using linepath_in_open_segment[of t "Re y" "Re z"] assms by auto
+qed
+
+lemma in_open_segment_imp_Im_in_open_segment:
+  assumes "x \<in> open_segment y z" "Im y \<noteq> Im z"
+  shows   "Im x \<in> open_segment (Im y) (Im z)"
+proof -
+  from assms obtain t where t: "t \<in> {0<..<1}" "x = linepath y z t"
+    by (metis greaterThanLessThan_iff in_segment(2) linepath_def)
+  have "Im x = linepath (Im y) (Im z) t"
+    by (simp_all add: t Im_linepath')
+  with t(1) show ?thesis
+    using linepath_in_open_segment[of t "Im y" "Im z"] assms by auto
+qed
+
 lemma bounded_linear_linepath:
   assumes "bounded_linear f"
   shows   "f (linepath a b x) = linepath (f a) (f b) x"
@@ -1288,6 +1328,33 @@ lemma differentiable_linepath [intro]: "linepath a b differentiable at x within 
 lemma has_vector_derivative_linepath_within:
     "(linepath a b has_vector_derivative (b - a)) (at x within S)"
   by (force intro: derivative_eq_intros simp add: linepath_def has_vector_derivative_def algebra_simps)
+
+lemma linepath_real_ge_left:
+  fixes x y :: real
+  assumes "x \<le> y" "t \<ge> 0"
+  shows   "linepath x y t \<ge> x"
+proof -
+  have "x + 0 \<le> x + t *\<^sub>R (y - x)"
+    using assms by (intro add_left_mono) auto
+  also have "\<dots> = linepath x y t"
+    by (simp add: linepath_def algebra_simps)
+  finally show ?thesis by simp
+qed
+
+lemma linepath_real_le_right:
+  fixes x y :: real
+  assumes "x \<le> y" "t \<le> 1"
+  shows   "linepath x y t \<le> y"
+proof -
+  have "y + 0 \<ge> y + (1 - t) *\<^sub>R (x - y)"
+    using assms by (intro add_left_mono) (auto intro: mult_nonneg_nonpos)
+  also have "y + (1 - t) *\<^sub>R (x - y) = linepath x y t"
+    by (simp add: linepath_def algebra_simps)
+  finally show ?thesis by simp
+qed
+
+lemma linepath_translate: "(+) c \<circ> linepath a b = linepath (a + c) (b + c)"
+  by (auto simp: linepath_def algebra_simps)
 
 
 subsection\<^marker>\<open>tag unimportant\<close>\<open>Segments via convex hulls\<close>

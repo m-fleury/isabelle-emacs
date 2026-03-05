@@ -13,9 +13,10 @@ import java.sql.SQLException
 object Store {
   def apply(
     options: Options,
+    private_dir: Option[Path] = None,
     build_cluster: Boolean = false,
-    cache: Term.Cache = Term.Cache.make()
-  ): Store = new Store(options, build_cluster, cache)
+    cache: Rich_Text.Cache = Rich_Text.Cache.make()
+  ): Store = new Store(options, private_dir, build_cluster, cache)
 
 
   /* file names */
@@ -276,34 +277,71 @@ object Store {
 
 class Store private(
     val options: Options,
+    private_dir: Option[Path],
     val build_cluster: Boolean,
-    val cache: Term.Cache
+    val cache: Rich_Text.Cache
   ) {
   store =>
 
   override def toString: String = "Store(output_dir = " + output_dir.absolute + ")"
 
 
-  /* directories */
+  /* ML system settings */
 
-  val system_output_dir: Path = Path.explode("$ISABELLE_HEAPS_SYSTEM/$ML_IDENTIFIER")
-  val user_output_dir: Path = Path.explode("$ISABELLE_HEAPS/$ML_IDENTIFIER")
+  val ml_settings: ML_Settings = ML_Settings(options)
+
+  val private_output_dir: Option[Path] =
+    private_dir.map(dir => dir + Path.basic("heaps") + Path.basic(ml_settings.ml_identifier))
+
+  val system_output_dir: Path =
+    Path.variable("ISABELLE_HEAPS_SYSTEM") + Path.basic(ml_settings.ml_identifier)
+
+  val user_output_dir: Path =
+    Path.variable("ISABELLE_HEAPS") + Path.basic(ml_settings.ml_identifier)
+
+
+  /* source files of Isabelle/ML bootstrap */
+
+  def source_file(raw_name: String): Option[String] = {
+    if (Path.is_wellformed(raw_name)) {
+      if (Path.is_valid(raw_name)) {
+        def check(p: Path): Option[Path] = if (p.is_file) Some(p) else None
+
+        val path = Path.explode(raw_name)
+        val path1 =
+          if (path.is_absolute || path.is_current) check(path)
+          else {
+            check(Path.explode("~~/src/Pure") + path) orElse {
+              val ml_sources = ml_settings.ml_sources
+              if (ml_sources.is_dir) check(ml_sources + path) else None
+            }
+          }
+        Some(File.platform_path(path1 getOrElse path))
+      }
+      else None
+    }
+    else Some(raw_name)
+  }
+
+
+  /* directories */
 
   def system_heaps: Boolean = options.bool("system_heaps")
 
   val output_dir: Path =
-    if (system_heaps) system_output_dir else user_output_dir
+    private_output_dir.getOrElse(if (system_heaps) system_output_dir else user_output_dir)
 
   val input_dirs: List[Path] =
-    if (system_heaps) List(system_output_dir)
-    else List(user_output_dir, system_output_dir)
+    private_output_dir.toList :::
+      (if (system_heaps) List(system_output_dir) else List(user_output_dir, system_output_dir))
 
   val clean_dirs: List[Path] =
-    if (system_heaps) List(user_output_dir, system_output_dir)
-    else List(user_output_dir)
+    private_output_dir.toList :::
+      (if (system_heaps) List(user_output_dir, system_output_dir) else List(user_output_dir))
 
   def presentation_dir: Path =
-    if (system_heaps) Path.explode("$ISABELLE_BROWSER_INFO_SYSTEM")
+    if (private_dir.isDefined) private_dir.get + Path.basic("browser_info")
+    else if (system_heaps) Path.explode("$ISABELLE_BROWSER_INFO_SYSTEM")
     else Path.explode("$ISABELLE_BROWSER_INFO")
 
 
@@ -315,7 +353,7 @@ class Store private(
   def output_log_gz(name: String): Path = output_dir + Store.log_gz(name)
 
 
-  /* session */
+  /* session heaps */
 
   def get_session(name: String): Store.Session = {
     val heap = input_dirs.view.map(_ + Store.heap(name)).find(_.is_file)
@@ -329,8 +367,23 @@ class Store private(
     new Store.Session(name, heap, log_db, List(output_dir))
   }
 
+  def session_heaps(
+    session_background: Sessions.Background,
+    logic: String = ""
+  ): List[Path] = {
+    val logic_name = Isabelle_System.default_logic(logic)
 
-  /* heap */
+    session_background.sessions_structure.selection(logic_name).
+      build_requirements(List(logic_name)).
+      map(name => store.get_session(name).the_heap)
+  }
+
+
+  /* heap shasum */
+
+  def make_shasum(ancestors: List[SHA1.Shasum]): SHA1.Shasum =
+    if (ancestors.isEmpty) SHA1.shasum_meta_info(SHA1.digest(ml_settings.polyml_exe))
+    else SHA1.flat_shasum(ancestors)
 
   def heap_shasum(database_server: Option[SQL.Database], name: String): SHA1.Shasum = {
     def get_database: Option[SHA1.Digest] = {

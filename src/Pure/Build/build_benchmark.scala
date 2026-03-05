@@ -34,8 +34,7 @@ object Build_Benchmark {
     val options1 = options.string.update("build_engine", Build.Engine.Default.name)
     val selection =
       Sessions.Selection(requirements = true, sessions = List(benchmark_session(options)))
-    val res = Build.build(options1, selection = selection, progress = progress, build_heap = true)
-    if (!res.ok) error("Failed building requirements")
+    Build.build(options1, selection = selection, progress = progress, build_heap = true).check
   }
 
   def run_benchmark(options: Options, progress: Progress = new Progress): Unit = {
@@ -68,7 +67,7 @@ object Build_Benchmark {
         def get_shasum(name: String): SHA1.Shasum =
           store.check_output(database_server, name,
             sources_shasum = sessions(name).sources_shasum,
-            input_shasum = ML_Process.make_shasum(sessions(name).ancestors.map(get_shasum)),
+            input_shasum = store.make_shasum(sessions(name).ancestors.map(get_shasum)),
             build_thorough = build_context.sessions_structure(name).build_thorough)._2
 
         val deps = Sessions.deps(full_sessions.selection(selection)).check_errors

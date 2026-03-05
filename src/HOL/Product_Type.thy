@@ -37,11 +37,15 @@ setup \<open>Sign.parent_path\<close>
 declare case_split [cases type: bool]
   \<comment> \<open>prefer plain propositional version\<close>
 
-lemma [code]: "HOL.equal False P \<longleftrightarrow> \<not> P"
-  and [code]: "HOL.equal True P \<longleftrightarrow> P"
-  and [code]: "HOL.equal P False \<longleftrightarrow> \<not> P"
-  and [code]: "HOL.equal P True \<longleftrightarrow> P"
-  and [code nbe]: "HOL.equal P P \<longleftrightarrow> True"
+lemma [code]:
+  "HOL.equal False P \<longleftrightarrow> \<not> P"
+  "HOL.equal True P \<longleftrightarrow> P"
+  "HOL.equal P False \<longleftrightarrow> \<not> P"
+  "HOL.equal P True \<longleftrightarrow> P"
+  by (simp_all add: equal)
+
+lemma [code nbe]:
+  "HOL.equal P P \<longleftrightarrow> True" for P :: bool
   by (simp_all add: equal)
 
 lemma If_case_cert:
@@ -496,7 +500,7 @@ ML \<open>
     val ss =
       simpset_of
        (put_simpset HOL_basic_ss \<^context>
-        addsimps [@{thm split_paired_all}, @{thm unit_all_eq2}, @{thm unit_abs_eta_conv}]
+        |> Simplifier.add_simps [@{thm split_paired_all}, @{thm unit_all_eq2}, @{thm unit_abs_eta_conv}]
         |> Simplifier.add_proc \<^simproc>\<open>unit_eq\<close>);
   in
     fun split_all_tac ctxt = SUBGOAL (fn (t, i) =>
@@ -534,7 +538,7 @@ text \<open>
 ML \<open>
 local
   val cond_case_prod_eta_ss =
-    simpset_of (put_simpset HOL_basic_ss \<^context> addsimps @{thms cond_case_prod_eta});
+    simpset_of (put_simpset HOL_basic_ss \<^context> |> Simplifier.add_simps @{thms cond_case_prod_eta});
   fun Pair_pat k 0 (Bound m) = (m = k)
     | Pair_pat k i (Const (\<^const_name>\<open>Pair\<close>,  _) $ Bound m $ t) =
         i > 0 andalso m = k + i andalso Pair_pat k (i - 1) t
@@ -643,7 +647,9 @@ local (* filtering with exists_p_split is an essential optimization *)
 in
   fun split_conv_tac ctxt = SUBGOAL (fn (t, i) =>
     if exists_p_split t
-    then safe_full_simp_tac (put_simpset HOL_basic_ss ctxt addsimps @{thms case_prod_conv}) i
+    then
+      safe_full_simp_tac
+        (put_simpset HOL_basic_ss ctxt |> Simplifier.add_simps @{thms case_prod_conv}) i
     else no_tac);
 end;
 \<close>
@@ -1316,6 +1322,28 @@ next
     by auto
 qed
 
+lemma bij_betw_map_prod:
+  assumes "bij_betw f A C" "bij_betw g B D"
+  shows   "bij_betw (map_prod f g) (A \<times> B) (C \<times> D)"
+  using assms unfolding bij_betw_def inj_on_def by auto
+
+
+subsection \<open>Code generator setup for paired and tripled bounded set comprehension\<close>
+
+context
+begin
+
+qualified lemma paired_bounded_Collect_eq_filter [code_unfold, no_atp]:
+  \<open>{(x, y). (x, y) \<in> A \<and> P x y} = Set.filter (\<lambda>(x, y). P x y) A\<close>
+  by auto
+
+
+qualified lemma tripled_bounded_Collect_eq_filter [code_unfold, no_atp]:
+  \<open>{(x, y, z). (x, y, z) \<in> A \<and> P x y z} = Set.filter (\<lambda>(x, y, z). P x y z) A\<close>
+  by auto
+
+end
+
 
 subsection \<open>Simproc for rewriting a set comprehension into a pointfree expression\<close>
 
@@ -1358,7 +1386,7 @@ simproc_setup Collect_mem ("Collect t") = \<open>
                     let
                       val simp =
                         full_simp_tac (put_simpset HOL_basic_ss ctxt
-                          addsimps [@{thm split_paired_all}, @{thm case_prod_conv}]) 1
+                          |> Simplifier.add_simps [@{thm split_paired_all}, @{thm case_prod_conv}]) 1
                     in
                       SOME (Goal.prove ctxt [] [] \<^Const>\<open>Pure.eq \<^Type>\<open>set A\<close> for S S'\<close>
                         (K (EVERY

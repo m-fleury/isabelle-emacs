@@ -232,16 +232,14 @@ object Dump {
         session_name <-
           deps.sessions_structure.build_graph.restrict(selected_sessions.toSet).topological_order
         (name, theory_options) <- deps(session_name).used_theories
-        if !resources.session_base.loaded_theory(name.theory)
+        if !resources.loaded_theory(name)
         if {
           def warn(msg: String): Unit =
             progress.echo_warning("Skipping theory " + name + "  (" + msg + ")")
 
-          val conditions =
-            space_explode(',', theory_options.string("condition")).
-              filter(cond => Isabelle_System.getenv(cond) == "")
-          if (conditions.nonEmpty) {
-            warn("undefined " + conditions.mkString(", "))
+          val bad_conditions = Sessions.Conditions(theory_options).bad
+          if (bad_conditions.nonEmpty) {
+            warn("undefined " + bad_conditions.mkString(", "))
             false
           }
           else if (options.bool("skip_proofs") && !theory_options.bool("skip_proofs")) {

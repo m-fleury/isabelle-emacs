@@ -195,7 +195,7 @@ fun dsl_tac_initialize rewrite_name args ctxt t _ =
 
           (*This is done to get rid of the bogus term used to enforce the expected ordering on the arguments*)
           val inst_lemmas_without_true
-            = map (Basic_Tactic.rule_by_tactic ctxt (resolve_tac ctxt [@{thm TrueI}] 1)) inst_lemmas_without_list
+            = map (Tactic.rule_by_tactic ctxt (resolve_tac ctxt [@{thm TrueI}] 1)) inst_lemmas_without_list
           val _ = debug_msg ctxt middle (fn () => @{print} ("Instantiated lemmas without custom list operators",inst_lemmas_without_true));
 
           val _ = debug_msg ctxt middle (fn () => @{print} ("nr of viable instantiated lemmas",length inst_lemmas_without_true));

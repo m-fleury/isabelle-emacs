@@ -4,95 +4,6 @@ theory Laurent_Convergence
 
 begin
 
-instance fps :: (semiring_char_0) semiring_char_0
-proof
-  show "inj (of_nat :: nat \<Rightarrow> 'a fps)"
-  proof
-    fix m n :: nat
-    assume "of_nat m = (of_nat n :: 'a fps)"
-    hence "fps_nth (of_nat m) 0 = (fps_nth (of_nat n) 0 :: 'a)"
-      by (simp only: )
-    thus "m = n"
-      by simp
-  qed
-qed
-
-instance fls :: (semiring_char_0) semiring_char_0
-proof
-  show "inj (of_nat :: nat \<Rightarrow> 'a fls)"
-    by (metis fls_regpart_of_nat injI of_nat_eq_iff)
-qed
-
-lemma fls_const_eq_0_iff [simp]: "fls_const c = 0 \<longleftrightarrow> c = 0"
-  using fls_const_0 fls_const_nonzero by blast
-
-lemma fls_subdegree_add_eq1:
-  assumes "f \<noteq> 0" "fls_subdegree f < fls_subdegree g"
-  shows   "fls_subdegree (f + g) = fls_subdegree f"
-proof (intro antisym)
-  from assms have *: "fls_nth (f + g) (fls_subdegree f) \<noteq> 0"
-    by auto
-  from * show "fls_subdegree (f + g) \<le> fls_subdegree f"
-    by (rule fls_subdegree_leI)
-  from * have "f + g \<noteq> 0"
-    using fls_nonzeroI by blast
-  thus "fls_subdegree f \<le> fls_subdegree (f + g)"
-    using assms(2) fls_plus_subdegree by force
-qed
-
-lemma fls_subdegree_add_eq2:
-  assumes "g \<noteq> 0" "fls_subdegree g < fls_subdegree f"
-  shows   "fls_subdegree (f + g) = fls_subdegree g"
-proof (intro antisym)
-  from assms have *: "fls_nth (f + g) (fls_subdegree g) \<noteq> 0"
-    by auto
-  from * show "fls_subdegree (f + g) \<le> fls_subdegree g"
-    by (rule fls_subdegree_leI)
-  from * have "f + g \<noteq> 0"
-    using fls_nonzeroI by blast
-  thus "fls_subdegree g \<le> fls_subdegree (f + g)"
-    using assms(2) fls_plus_subdegree by force
-qed
-
-lemma fls_subdegree_diff_eq1:
-  assumes "f \<noteq> 0" "fls_subdegree f < fls_subdegree g"
-  shows   "fls_subdegree (f - g) = fls_subdegree f"
-  using fls_subdegree_add_eq1[of f "-g"] assms by simp
-
-lemma fls_subdegree_diff_eq2:
-  assumes "g \<noteq> 0" "fls_subdegree g < fls_subdegree f"
-  shows   "fls_subdegree (f - g) = fls_subdegree g"
-  using fls_subdegree_add_eq2[of "-g" f] assms by simp
-
-lemma nat_minus_fls_subdegree_plus_const_eq:
-  "nat (-fls_subdegree (F + fls_const c)) = nat (-fls_subdegree F)"
-proof (cases "fls_subdegree F < 0")
-  case True
-  hence "fls_subdegree (F + fls_const c) = fls_subdegree F"
-    by (intro fls_subdegree_add_eq1) auto
-  thus ?thesis
-    by simp
-next
-  case False
-  thus ?thesis
-    by (auto simp: fls_subdegree_ge0I)
-qed
-
-lemma at_to_0': "NO_MATCH 0 z \<Longrightarrow> at z = filtermap (\<lambda>x. x + z) (at 0)"
-  for z :: "'a::real_normed_vector"
-  by (rule at_to_0)
-
-lemma nhds_to_0: "nhds (x :: 'a :: real_normed_vector) = filtermap ((+) x) (nhds 0)"
-proof -
-  have "(\<lambda>xa. xa - - x) = (+) x"
-    by auto
-  thus ?thesis
-    using filtermap_nhds_shift[of "-x" 0] by simp
-qed
-
-lemma nhds_to_0': "NO_MATCH 0 x \<Longrightarrow> nhds (x :: 'a :: real_normed_vector) = filtermap ((+) x) (nhds 0)"
-  by (rule nhds_to_0)
-
 
 definition%important fls_conv_radius :: "complex fls \<Rightarrow> ereal" where
   "fls_conv_radius f = fps_conv_radius (fls_regpart f)"
@@ -153,12 +64,6 @@ qed
 lemma eval_fps_of_nat [simp]: "eval_fps (of_nat n) z = of_nat n"
   and eval_fps_of_int [simp]: "eval_fps (of_int m) z = of_int m"
   by (simp_all flip: fps_of_nat fps_of_int)
-
-lemma fls_subdegree_numeral [simp]: "fls_subdegree (numeral n) = 0"
-  by (metis fls_subdegree_of_nat of_nat_numeral)
-
-lemma fls_regpart_numeral [simp]: "fls_regpart (numeral n) = numeral n"
-  by (metis fls_regpart_of_nat of_nat_numeral)
 
 lemma fps_conv_radius_of_nat [simp]: "fps_conv_radius (of_nat n) = \<infinity>"
   and fps_conv_radius_of_int [simp]: "fps_conv_radius (of_int m) = \<infinity>"
@@ -385,6 +290,43 @@ proof (induction n)
     using Suc by simp
 qed auto
 
+lemma eval_fls_eq:
+  assumes "N \<le> fls_subdegree F" "fls_subdegree F \<ge> 0 \<or> z \<noteq> 0"
+  assumes "(\<lambda>n. fls_nth F (int n + N) * z powi (int n + N)) sums S"
+  shows   "eval_fls F z = S"
+proof (cases "z = 0")
+  case [simp]: True
+  have "(\<lambda>n. fls_nth F (int n + N) * z powi (int n + N)) =
+        (\<lambda>n. if n \<in> (if N \<le> 0 then {nat (-N)} else {}) then fls_nth F (int n + N) else 0)"
+    by (auto simp: fun_eq_iff split: if_splits)
+  also have "\<dots> sums (\<Sum>n\<in>(if N \<le> 0 then {nat (-N)} else {}). fls_nth F (int n + N))"
+    by (rule sums_If_finite_set) auto
+  also have "\<dots> = fls_nth F 0"
+    using assms by auto
+  also have "\<dots> = eval_fls F z"
+    using assms by (auto simp: eval_fls_def eval_fps_at_0 power_int_0_left_if)
+  finally show ?thesis 
+    using assms by (simp add: sums_iff)
+next
+  case [simp]: False
+  define N' where "N' = fls_subdegree F"
+  define d where "d = nat (N' - N)"
+
+  have "(\<lambda>n. fls_nth F (int n + N) * z powi (int n + N)) sums S"
+    by fact
+  also have "?this \<longleftrightarrow> (\<lambda>n. fls_nth F (int (n+d) + N) * z powi (int (n+d) + N)) sums S"
+    by (rule sums_zero_iff_shift [symmetric]) (use assms in \<open>auto simp: d_def N'_def\<close>)
+  also have "(\<lambda>n. int (n+d) + N) = (\<lambda>n. int n + N')"
+    using assms by (auto simp: N'_def d_def)
+  finally have "(\<lambda>n. fls_nth F (int n + N') * z powi (int n + N')) sums S" .
+  hence "(\<lambda>n. z powi (-N') * (fls_nth F (int n + N') * z powi (int n + N'))) sums (z powi (-N') * S)"
+    by (intro sums_mult)
+  hence "(\<lambda>n. fls_nth F (int n + N') * z ^ n) sums (z powi (-N') * S)"
+    by (simp add: power_int_add power_int_minus field_simps)
+  thus ?thesis
+    by (simp add: eval_fls_def eval_fps_def sums_iff power_int_minus N'_def)
+qed
+
 lemma norm_summable_fls:
   "norm z < fls_conv_radius f \<Longrightarrow> summable (\<lambda>n. norm (fls_nth f n * z ^ n))"
   using norm_summable_fps[of z "fls_regpart f"] by (simp add: fls_conv_radius_def)
@@ -463,9 +405,6 @@ lemma continuous_on_eval_fls' [continuous_intros]:
 
 lemmas has_field_derivative_eval_fps' [derivative_intros] =
   DERIV_chain2[OF has_field_derivative_eval_fps]
-
-lemma fps_deriv_fls_regpart: "fps_deriv (fls_regpart F) = fls_regpart (fls_deriv F)"
-  by (intro fps_ext) (auto simp: add_ac)
 
 (* TODO: generalise for nonneg subdegree *)
 lemma has_field_derivative_eval_fls:
@@ -1164,43 +1103,6 @@ lemma analytic_at_imp_has_fps_expansion_0:
   shows   "f has_fps_expansion fps_expansion f 0"
   using assms has_fps_expansion_fps_expansion analytic_at by fast
 
-lemma deriv_shift_0: "deriv f z = deriv (f \<circ> (\<lambda>x. z + x)) 0"
-proof -
-  have *: "(f \<circ> (+) z has_field_derivative D) (at z')"
-    if "(f has_field_derivative D) (at (z + z'))" for D z z' and f :: "'a \<Rightarrow> 'a"
-  proof -
-    have "(f \<circ> (+) z has_field_derivative D * 1) (at z')"
-      by (rule DERIV_chain that derivative_eq_intros refl)+ auto
-    thus ?thesis by simp
-  qed
-  have "(\<lambda>D. (f has_field_derivative D) (at z)) = (\<lambda> D. (f \<circ> (+) z has_field_derivative D) (at 0))"
-    using *[of f _ z 0] *[of "f \<circ> (+) z" _ "-z" z] by (intro ext iffI) (auto simp: o_def)
-  thus ?thesis
-    by (simp add: deriv_def)
-qed
-
-lemma deriv_shift_0': "NO_MATCH 0 z \<Longrightarrow> deriv f z = deriv (f \<circ> (\<lambda>x. z + x)) 0"
-  by (rule deriv_shift_0)
-
-lemma higher_deriv_shift_0: "(deriv ^^ n) f z = (deriv ^^ n) (f \<circ> (\<lambda>x. z + x)) 0"
-proof (induction n arbitrary: f)
-  case (Suc n)
-  have "(deriv ^^ Suc n) f z = (deriv ^^ n) (deriv f) z"
-    by (subst funpow_Suc_right) auto
-  also have "\<dots> = (deriv ^^ n) (\<lambda>x. deriv f (z + x)) 0"
-    by (subst Suc) (auto simp: o_def)
-  also have "\<dots> = (deriv ^^ n) (\<lambda>x. deriv (\<lambda>xa. f (z + x + xa)) 0) 0"
-    by (subst deriv_shift_0) (auto simp: o_def)
-  also have "(\<lambda>x. deriv (\<lambda>xa. f (z + x + xa)) 0) = deriv (\<lambda>x. f (z + x))"
-    by (rule ext) (simp add: deriv_shift_0' o_def add_ac)
-  also have "(deriv ^^ n) \<dots> 0 = (deriv ^^ Suc n) (f \<circ> (\<lambda>x. z + x)) 0"
-    by (subst funpow_Suc_right) (auto simp: o_def)
-  finally show ?case .
-qed auto
-
-lemma higher_deriv_shift_0': "NO_MATCH 0 z \<Longrightarrow> (deriv ^^ n) f z = (deriv ^^ n) (f \<circ> (\<lambda>x. z + x)) 0"
-  by (rule higher_deriv_shift_0)
-
 lemma analytic_at_imp_has_fps_expansion:
   assumes "f analytic_on {z}"
   shows   "(\<lambda>x. f (z + x)) has_fps_expansion fps_expansion f z"
@@ -1602,49 +1504,6 @@ proof -
     by (simp add: field_simps)
 qed
 
-lemma vector_derivative_translate [simp]:
-  "vector_derivative ((+) z \<circ> g) (at x within A) = vector_derivative g (at x within A)"
-proof -
-  have "(((+) z \<circ> g) has_vector_derivative g') (at x within A)"
-    if "(g has_vector_derivative g') (at x within A)" for g :: "real \<Rightarrow> 'a" and z g'
-    unfolding o_def using that by (auto intro!: derivative_eq_intros)
-  from this[of g _ z] this[of "\<lambda>x. z + g x" _ "-z"] show ?thesis
-    unfolding vector_derivative_def
-    by (intro arg_cong[where f = Eps] ext) (auto simp: o_def algebra_simps)
-qed
-
-lemma has_contour_integral_translate:
-  "(f has_contour_integral I) ((+) z \<circ> g) \<longleftrightarrow> ((\<lambda>x. f (x + z)) has_contour_integral I) g"
-  by (simp add: has_contour_integral_def add_ac)
-
-lemma contour_integrable_translate:
-  "f contour_integrable_on ((+) z \<circ> g) \<longleftrightarrow> (\<lambda>x. f (x + z)) contour_integrable_on g"
-  by (simp add: contour_integrable_on_def has_contour_integral_translate)
-
-lemma contour_integral_translate:
-  "contour_integral ((+) z \<circ> g) f = contour_integral g (\<lambda>x. f (x + z))"
-  by (simp add: contour_integral_def contour_integrable_translate has_contour_integral_translate)
-
-lemma residue_shift_0: "residue f z = residue (\<lambda>x. f (z + x)) 0"
-proof -
-  define Q where
-    "Q = (\<lambda>r f z \<epsilon>. (f has_contour_integral complex_of_real (2 * pi) * \<i> * r) (circlepath z \<epsilon>))"
-  define P where
-    "P = (\<lambda>r f z. \<exists>e>0. \<forall>\<epsilon>>0. \<epsilon> < e \<longrightarrow> Q r f z \<epsilon>)"
-  have path_eq: "circlepath (z - w) \<epsilon> = (+) (-w) \<circ> circlepath z \<epsilon>" for z w \<epsilon>
-    by (simp add: circlepath_def o_def part_circlepath_def algebra_simps)
-  have *: "P r f z" if "P r (\<lambda>x. f (x + w)) (z - w)" for r w f z
-    using that by (auto simp: P_def Q_def path_eq has_contour_integral_translate)
-  have "(SOME r. P r f z) = (SOME r. P r (\<lambda>x. f (z + x)) 0)"
-    using *[of _ f z z] *[of _ "\<lambda>x. f (z + x)" "-z"]
-    by (intro arg_cong[where f = Eps] ext iffI) (simp_all add: add_ac)
-  thus ?thesis
-    by (simp add: residue_def P_def Q_def)
-qed
-
-lemma residue_shift_0': "NO_MATCH 0 z \<Longrightarrow> residue f z = residue (\<lambda>x. f (z + x)) 0"
-  by (rule residue_shift_0)
-
 lemma has_laurent_expansion_residue_0:
   assumes "f has_laurent_expansion F"
   shows   "residue f 0 = fls_residue F"
@@ -1696,6 +1555,19 @@ lemma fps_expansion_eqI:
   using assms unfolding fps_eq_iff
   by (auto simp: fps_eq_iff fps_nth_fps_expansion fps_expansion_def)
 
+lemma holomorphic_on_imp_fps_conv_radius_ge:
+  assumes "f has_fps_expansion F" "f holomorphic_on eball 0 r"
+  shows   "fps_conv_radius F \<ge> r"
+proof -
+  define n where "n = subdegree F"
+  have "fps_conv_radius (fps_expansion f 0) \<ge> r"
+    by (intro conv_radius_fps_expansion assms)
+  also have "fps_expansion f 0 = F"
+    using assms by (intro fps_expansion_eqI)
+  finally show ?thesis
+    by simp
+qed
+
 lemma has_fps_expansion_imp_eval_fps_eq:
   assumes "f has_fps_expansion F" "norm z < r"
   assumes "f holomorphic_on ball 0 r"
@@ -1711,6 +1583,31 @@ proof -
     by (rule eval_fps_expansion'[OF *]) (use assms in auto)
   thus ?thesis
     by simp
+qed
+
+lemma has_fps_expansion_imp_sums_complex:
+  fixes F :: "complex fps"
+  assumes "f has_fps_expansion F" "f holomorphic_on eball 0 r" "ereal (norm z) < r"
+  shows   "(\<lambda>n. fps_nth F n * z ^ n) sums f z"
+proof -
+  have r: "fps_conv_radius F \<ge> r"
+    using assms(1,2) by (rule holomorphic_on_imp_fps_conv_radius_ge)
+  from assms obtain R where R: "norm z < R" "ereal R < r"
+    using ereal_dense2 less_ereal.simps(1) by blast
+  have z: "norm z < fps_conv_radius F"
+    using r R assms(3) by order
+
+  have "summable (\<lambda>n. fps_nth F n * z ^ n)"
+    by (rule summable_fps) (use z in auto)
+  moreover have "eval_fps F z = f z"
+  proof (rule has_fps_expansion_imp_eval_fps_eq[where r = R])
+    have *: "ereal (norm z) < r" if "norm z < R" for z :: complex
+      using that R ereal_le_less less_imp_le by blast
+    show "f holomorphic_on ball 0 R"
+      using assms(2) by (rule holomorphic_on_subset) (use * in auto)
+  qed (use R assms(1) in auto)
+  ultimately show ?thesis
+    unfolding eval_fps_def sums_iff by simp
 qed
 
 lemma fls_conv_radius_ge:
@@ -1745,9 +1642,6 @@ proof -
   finally show ?thesis
     by (simp add: fls_conv_radius_altdef G_def)
 qed
-
-lemma connected_eball [intro]: "connected (eball (z :: 'a :: real_normed_vector) r)"
-  by (cases r) auto
 
 lemma eval_fls_eqI:
   assumes "f has_laurent_expansion F" "f holomorphic_on eball 0 r - {0}"
@@ -1799,7 +1693,7 @@ qed
 
 lemma tendsto_0_subdegree_iff_0:
   assumes F:"f has_laurent_expansion F" and "F\<noteq>0"
-  shows "(f \<midarrow>0\<rightarrow>0) \<longleftrightarrow> fls_subdegree F > 0"
+  shows "(f \<midarrow>0\<rightarrow> 0) \<longleftrightarrow> fls_subdegree F > 0"
 proof -
   have ?thesis if "is_pole f 0"
   proof -
@@ -1850,15 +1744,15 @@ proof -
 qed
 
 lemma tendsto_0_subdegree_iff:
-  assumes F:"(\<lambda>w. f (z+w)) has_laurent_expansion F" and "F\<noteq>0"
-  shows "(f \<midarrow>z\<rightarrow>0) \<longleftrightarrow> fls_subdegree F > 0"
+  assumes F: "(\<lambda>w. f (z+w)) has_laurent_expansion F" and "F \<noteq> 0"
+  shows "(f \<midarrow>z\<rightarrow> 0) \<longleftrightarrow> fls_subdegree F > 0"
   apply (subst Lim_at_zero)
   apply (rule tendsto_0_subdegree_iff_0)
   using assms by auto
 
 lemma is_pole_0_deriv_divide_iff:
-  assumes F:"f has_laurent_expansion F" and "F\<noteq>0"
-  shows "is_pole (\<lambda>x. deriv f x / f x) 0 \<longleftrightarrow> is_pole f 0 \<or> (f \<midarrow>0\<rightarrow>0)"
+  assumes F: "f has_laurent_expansion F" and "F \<noteq> 0"
+  shows "is_pole (\<lambda>x. deriv f x / f x) 0 \<longleftrightarrow> is_pole f 0 \<or> (f \<midarrow>0\<rightarrow> 0)"
 proof -
   have "(\<lambda>x. deriv f x / f x) has_laurent_expansion fls_deriv F / F"
     using F by (auto intro:laurent_expansion_intros)
@@ -2319,14 +2213,6 @@ lemma zorder_eq_0_iff:
   shows   "zorder f z = 0 \<longleftrightarrow> f z \<noteq> 0"
   using assms zorder_eq_0I zorder_pos_iff' by fastforce
 
-lemma dist_mult_left:
-  "dist (a * b) (a * c :: 'a :: real_normed_field) = norm a * dist b c"
-  unfolding dist_norm right_diff_distrib [symmetric] norm_mult by simp
-
-lemma dist_mult_right:
-  "dist (b * a) (c * a :: 'a :: real_normed_field) = norm a * dist b c"
-  using dist_mult_left[of a b c] by (simp add: mult_ac)
-
 lemma zorder_scale:
   assumes "f analytic_on {a * z}" "eventually (\<lambda>w. f w \<noteq> 0) (at (a * z))" "a \<noteq> 0"
   shows "zorder (\<lambda>w. f (a * w)) z = zorder f (a * z)"
@@ -2381,43 +2267,6 @@ proof -
     qed
   qed
 qed
-
-lemma subdegree_fps_compose [simp]:
-  fixes F G :: "'a :: idom fps"
-  assumes [simp]: "fps_nth G 0 = 0"
-  shows "subdegree (fps_compose F G) = subdegree F * subdegree G"
-proof (cases "G = 0"; cases "F = 0")
-  assume [simp]: "G \<noteq> 0" "F \<noteq> 0"
-  define m where "m = subdegree F"
-  define F' where "F' = fps_shift m F"
-  have F_eq: "F = F' * fps_X ^ m"
-    unfolding F'_def by (simp add: fps_shift_times_fps_X_power m_def)
-  have [simp]: "F' \<noteq> 0"
-    using \<open>F \<noteq> 0\<close> unfolding F_eq by auto
-  have "subdegree (fps_compose F G) = subdegree (fps_compose F' G) + m * subdegree G"
-    by (simp add: F_eq fps_compose_mult_distrib fps_compose_eq_0_iff flip: fps_compose_power)
-  also have "subdegree (fps_compose F' G) = 0"
-    by (intro subdegree_eq_0) (auto simp: F'_def m_def)
-  finally show ?thesis by (simp add: m_def)
-qed auto
-
-lemma fls_subdegree_power_int [simp]:
-  fixes   F :: "'a :: field fls"
-  shows "fls_subdegree (F powi n) = n * fls_subdegree F"
-  by (auto simp: power_int_def fls_subdegree_pow)
-
-lemma subdegree_fls_compose_fps [simp]:
-  fixes G :: "'a :: field fps"
-  assumes [simp]: "fps_nth G 0 = 0"
-  shows "fls_subdegree (fls_compose_fps F G) = fls_subdegree F * subdegree G"
-proof (cases "F = 0"; cases "G = 0")
-  assume [simp]: "G \<noteq> 0" "F \<noteq> 0"
-  have nz1: "fls_base_factor_to_fps F \<noteq> 0"
-    using \<open>F \<noteq> 0\<close> fls_base_factor_to_fps_nonzero by blast
-  show ?thesis
-    unfolding fls_compose_fps_def using nz1
-    by (subst fls_subdegree_mult) (simp_all add: fps_compose_eq_0_iff fls_subdegree_fls_to_fps)
-qed (auto simp: fls_compose_fps_0_right)
 
 lemma zorder_compose_aux:
   assumes "isolated_singularity_at f 0" "not_essential f 0"
@@ -2580,5 +2429,65 @@ lemma has_laurent_expansion_prod_mset [laurent_expansion_intros]:
   assumes "\<And>x. x \<in># I \<Longrightarrow> f x has_laurent_expansion F x"
   shows   "(\<lambda>y. \<Prod>x\<in>#I. f x y) has_laurent_expansion (\<Prod>x\<in>#I. F x)"
   using assms by (induction I) (auto intro!: laurent_expansion_intros)
+
+
+subsection \<open>Formal convergence versus analytic convergence\<close>
+
+
+text \<open>
+  The convergence of a sequence of formal power series and the convergence of the functions
+  in the complex plane do not imply each other:
+
+  \<^item> If we have the sequence of constant power series $(1/n)_{n\geq 0}$, this clearly converges 
+    to the zero function analytically, but as a series of formal power series it is divergent 
+    (since the 0-th coefficient never stabilises).
+
+  \<^item> Conversely, the sequence of series $(n! x^n)_{n\geq 0}$ converges formally to $0$,
+    but the corresponding sequence of functions diverges for every $x \neq 0$.
+
+  However, if the sequence of series converges to some limit series $h$ and the corresponding
+  series of functions converges uniformly to some limit function $g(x)$, then $h$ is also a
+  series expansion of $g(x)$, i.e.\ in that case, formal and analytic convergence agree.
+\<close>
+proposition uniform_limit_imp_fps_expansion_eq:
+  fixes f :: "'a \<Rightarrow> complex fps"
+  assumes lim1: "(f \<longlongrightarrow> h) F"
+  assumes lim2: "uniform_limit A (\<lambda>x z. f' x z) g' F"
+  assumes expansions: "eventually (\<lambda>x. f' x has_fps_expansion f x) F" "g' has_fps_expansion g"
+  assumes holo: "eventually (\<lambda>x. f' x holomorphic_on A) F"
+  assumes A: "open A" "0 \<in> A"
+  assumes nontriv [simp]: "F \<noteq> bot"
+  shows "g = h"
+proof (rule fps_ext)
+  fix n :: nat
+  have "eventually (\<lambda>x. fps_nth (f x) n = fps_nth h n) F"
+    using lim1 unfolding tendsto_fps_iff by blast
+  hence "eventually (\<lambda>x. (deriv ^^ n) (f' x) 0 / fact n = fps_nth h n) F"
+    using expansions(1)
+  proof eventually_elim
+    case (elim x)
+    have "fps_nth (f x) n = (deriv ^^ n) (f' x) 0 / fact n"
+      by (rule fps_nth_fps_expansion) (use elim in auto)
+    with elim show ?case
+      by simp
+  qed
+  hence "((\<lambda>x. (deriv ^^ n) (f' x) 0 / fact n) \<longlongrightarrow> fps_nth h n) F"
+    by (simp add: tendsto_eventually)
+
+  moreover have "((\<lambda>x. (deriv ^^ n) (f' x) 0) \<longlongrightarrow> (deriv ^^ n) g' 0) F"
+    using lim2
+  proof (rule higher_deriv_complex_uniform_limit)
+    show "eventually (\<lambda>x. f' x holomorphic_on A) F"
+      using holo by eventually_elim auto
+  qed (use A in auto)
+  hence "((\<lambda>x. (deriv ^^ n) (f' x) 0 / fact n) \<longlongrightarrow> (deriv ^^ n) g' 0 / fact n) F"
+    by (intro tendsto_divide) auto
+
+  ultimately have "fps_nth h n = (deriv ^^ n) g' 0 / fact n"
+    using tendsto_unique[OF nontriv] by blast
+  also have "\<dots> = fps_nth g n"
+    by (rule fps_nth_fps_expansion [symmetric]) fact
+  finally show "fps_nth g n = fps_nth h n" ..
+qed
 
 end

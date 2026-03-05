@@ -87,14 +87,14 @@ sig
   val output: output_ops -> T -> Bytes.T
   val string_of_ops: output_ops -> T -> string
   val string_of: T -> string
+  val strings_of: T -> string list
   val pure_string_of: T -> string
   val writeln: T -> unit
+  val writeln_urgent: T -> unit
   val markup_chunks: Markup.T -> T list -> T
   val chunks: T list -> T
   val chunks2: T list -> T
   val block_enclose: T * T -> T list -> T
-  val writeln_chunks: T list -> unit
-  val writeln_chunks2: T list -> unit
 end;
 
 structure Pretty: PRETTY =
@@ -236,6 +236,17 @@ val unbreakable =
 
 
 (** formatting **)
+
+(* robust string output, with potential data loss *)
+
+fun robust_string_of out prt =
+  let
+    val bs = out prt;
+    val bs' =
+      if Bytes.size bs + 8000 <= String.maxSize then bs
+      else out (from_ML (ML_Pretty.no_markup (to_ML prt)));
+  in Bytes.content bs' end;
+
 
 (* output operations *)
 
@@ -405,8 +416,11 @@ in
 fun format_tree (ops: output_ops) input =
   let
     val margin = #margin ops;
-    val breakgain = margin div 20;     (*minimum added space required of a break*)
-    val emergencypos = margin div 2;   (*position too far to right*)
+    val margin_defined = margin > 0;
+    val margin1 = if margin_defined then margin else ML_Pretty.default_margin;
+
+    val breakgain = margin1 div 20;  (*minimum added space required of a break*)
+    val emergencypos = Int.max (margin1 div 2, 1);  (*position too far to right*)
 
     fun blanks_state n state = add_state (#1 (output_spaces ops n)) state;
     val blanks = string o output_spaces ops;
@@ -446,12 +460,13 @@ fun format_tree (ops: output_ops) input =
             val pos' = pos + indent;
             val pos'' = pos' mod emergencypos;
             val before' =
-              if pos' < emergencypos
+              if not margin_defined orelse pos' < emergencypos
               then (Option.map (close_state o blanks_state indent) (#line text), pos')
               else (Option.map (fn _ => blanks_state pos'' init_state) (#line text), pos'');
             val after' = break_dist (ts, after)
             val body' = body
-              |> (consistent andalso pos + blen > margin - after') ? map force_break;
+              |> (margin_defined andalso consistent andalso pos + blen > margin - after') ?
+                  map force_break;
             val btext: text =
               text |> push markup |> format (body' @ [End], before', after');
             (*if this block was broken then force the next break*)
@@ -462,7 +477,8 @@ fun format_tree (ops: output_ops) input =
             or if breaking would add only breakgain to space*)
           format (ts, before, after)
             (if not force andalso
-                pos + wd <= Int.max (margin - break_dist (ts, after), #2 before + breakgain)
+                (not margin_defined orelse
+                  pos + wd <= Int.max (margin - break_dist (ts, after), #2 before + breakgain))
              then text |> blanks wd  (*just insert wd blanks*)
              else text |> break before |> blanks ind)
       | Str str :: ts => format (ts, before, after) (string str text));
@@ -501,7 +517,7 @@ val symbolic_output =
       | output (Str (s, _)) = Bytes.add s;
   in Bytes.build o output o output_tree ops false end;
 
-val symbolic_string_of = Bytes.content o symbolic_output;
+val symbolic_string_of = robust_string_of symbolic_output;
 
 
 (* unformatted output: other markup only *)
@@ -516,20 +532,26 @@ fun unformatted ops =
   in Bytes.build o output o output_tree ops false end;
 
 fun unformatted_string_of prt =
-  Bytes.content (unformatted (output_ops NONE) prt);
+  robust_string_of (unformatted (output_ops NONE)) prt;
 
 
 (* output interfaces *)
 
 fun output ops = if #symbolic ops then symbolic_output else format_tree ops;
 
-fun string_of_ops ops = Bytes.content o output ops;
+fun string_of_ops ops = robust_string_of (output ops);
 fun string_of prt = string_of_ops (output_ops NONE) prt;
+
+fun strings_of prt = Bytes.contents (output (output_ops NONE) prt);
 
 val pure_string_of = string_of_ops (pure_output_ops NONE);
 
-fun writeln prt =
-  Output.writelns (Bytes.contents (output (output_ops NONE) prt));
+fun gen_writeln urgent prt =
+  (if urgent then Output.writelns_urgent else Output.writelns)
+    (Bytes.contents (output (output_ops NONE) prt));
+
+val writeln = gen_writeln false;
+val writeln_urgent = gen_writeln true;
 
 
 (* chunks *)
@@ -544,19 +566,6 @@ fun chunks2 prts =
       block0 (maps (fn prt => [text_fold [prt, fbrk], fbrk]) prefix @ [text_fold [last]]));
 
 fun block_enclose (prt1, prt2) prts = chunks [block (fbreaks (prt1 :: prts)), prt2];
-
-fun string_of_text_fold prt = string_of prt |> Markup.markup Markup.text_fold;
-
-fun writeln_chunks prts =
-  Output.writelns (Library.separate "\n" (map string_of_text_fold prts));
-
-fun writeln_chunks2 prts =
-  (case try split_last prts of
-    NONE => ()
-  | SOME (prefix, last) =>
-      (map (fn prt => Markup.markup Markup.text_fold (string_of prt ^ "\n") ^ "\n") prefix @
-        [string_of_text_fold last])
-      |> Output.writelns);
 
 end;
 

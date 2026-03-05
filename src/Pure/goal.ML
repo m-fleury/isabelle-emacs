@@ -80,7 +80,7 @@ fun conclude th = Drule.comp_no_flatten (th, Thm.nprems_of th) 1 Drule.protectD;
 *)
 fun check_finished ctxt th =
   if Thm.no_prems th then th
-  else raise THM ("Proof failed.\n" ^ Goal_Display.string_of_goal ctxt th, 0, [th]);
+  else raise THM (Goal_Display.print_goal ctxt "Proof failed." th, 0, [th]);
 
 fun finish ctxt = check_finished ctxt #> conclude;
 
@@ -268,7 +268,7 @@ fun unrestrict i = conclude #> rotate_prems (1 - i);
 
 (*with structural marker*)
 fun SELECT_GOAL tac i st =
-  if Thm.nprems_of st = 1 andalso i = 1 then tac st
+  if Thm.one_prem st andalso i = 1 then tac st
   else (PRIMITIVE (restrict i 1) THEN tac THEN PRIMITIVE (unrestrict i)) st;
 
 (*without structural marker*)

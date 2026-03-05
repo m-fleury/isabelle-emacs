@@ -403,7 +403,7 @@ object Completion_Popup {
     text_field =>
 
     // see https://forums.oracle.com/thread/1361677
-    if (GUI.is_macos_laf) text_field.setCaret(new DefaultCaret)
+    if (GUI.is_macos_laf()) text_field.setCaret(new DefaultCaret)
 
     // owned by GUI thread
     private var completion_popup: Option[Completion_Popup] = None
@@ -627,8 +627,8 @@ class Completion_Popup private(
   list_view.peer.addKeyListener(inner_key_listener)
 
   list_view.peer.addMouseListener(new MouseAdapter {
-    override def mouseClicked(e: MouseEvent): Unit = {
-      if (!e.isConsumed()) {
+    override def mousePressed(e: MouseEvent): Unit = {
+      if (!e.isConsumed() && e.getClickCount == 1) {
         if (complete_selected()) e.consume()
         hide_popup()
       }
@@ -643,7 +643,7 @@ class Completion_Popup private(
   /* main content */
 
   override def getFocusTraversalKeysEnabled = false
-  completion.setBorder(new LineBorder(Color.BLACK))
+  completion.setBorder(new LineBorder(GUI.default_foreground_color()))
   completion.add((new ScrollPane(list_view)).peer.asInstanceOf[JComponent])
 
 

@@ -132,6 +132,7 @@ class Tools extends Isabelle_Scala_Tools(
   Build_Manager.isabelle_tool2,
   Build_Schedule.isabelle_tool,
   Build_CI.isabelle_tool,
+  Caddy_Setup.isabelle_tool,
   Doc.isabelle_tool,
   Docker_Build.isabelle_tool,
   Document_Build.isabelle_tool,
@@ -149,6 +150,7 @@ class Tools extends Isabelle_Scala_Tools(
   Phabricator.isabelle_tool2,
   Phabricator.isabelle_tool3,
   Phabricator.isabelle_tool4,
+  Process_Theories.isabelle_tool,
   Profiling.isabelle_tool,
   Profiling_Report.isabelle_tool,
   Scala_Project.isabelle_tool,
@@ -160,9 +162,10 @@ class Tools extends Isabelle_Scala_Tools(
   Update_Then.isabelle_tool,
   Update_Theorems.isabelle_tool,
   Update_Tool.isabelle_tool,
+  isabelle.find_facts.Find_Facts.isabelle_tool2,
   isabelle.mirabelle.Mirabelle.isabelle_tool,
-  isabelle.vscode.Language_Server.isabelle_tool,
-  isabelle.vscode.VSCode_Main.isabelle_tool)
+  isabelle.vscode.VSCode_Main.isabelle_tool1,
+  isabelle.vscode.VSCode_Main.isabelle_tool2)
 
 class Admin_Tools extends Isabelle_Scala_Tools(
   Build_Doc.isabelle_tool,
@@ -189,6 +192,7 @@ class Admin_Tools extends Isabelle_Scala_Tools(
   Component_JDK.isabelle_tool,
   Component_JEdit.isabelle_tool,
   Component_Jsoup.isabelle_tool,
+  Component_JSVG.isabelle_tool,
   Component_LIPIcs.isabelle_tool,
   Component_LLNCS.isabelle_tool,
   Component_Minisat.isabelle_tool,
@@ -196,6 +200,7 @@ class Admin_Tools extends Isabelle_Scala_Tools(
   Component_PDFjs.isabelle_tool,
   Component_PolyML.isabelle_tool1,
   Component_PolyML.isabelle_tool2,
+  Component_PolyML.isabelle_tool3,
   Component_PostgreSQL.isabelle_tool,
   Component_Prismjs.isabelle_tool,
   Component_Rsync.isabelle_tool,
@@ -211,7 +216,6 @@ class Admin_Tools extends Isabelle_Scala_Tools(
   Component_Zipperposition.isabelle_tool,
   Component_Zstd.isabelle_tool,
   Components.isabelle_tool,
-  isabelle.find_facts.Find_Facts.isabelle_tool2,
   isabelle.vscode.Component_VSCode.isabelle_tool,
   isabelle.vscode.Component_VSCodium.isabelle_tool1,
   isabelle.vscode.Component_VSCodium.isabelle_tool2)

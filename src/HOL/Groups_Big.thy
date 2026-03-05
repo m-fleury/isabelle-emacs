@@ -1580,6 +1580,16 @@ next
   qed
 qed
 
+lemma prod_uminus: "(\<Prod>x\<in>A. -f x :: 'a :: comm_ring_1) = (-1) ^ card A * (\<Prod>x\<in>A. f x)"
+  by (induction A rule: infinite_finite_induct) (auto simp: algebra_simps)
+
+lemma prod_diff:
+  fixes f :: "'a \<Rightarrow> 'b :: field"
+  assumes "finite A" "B \<subseteq> A" "\<And>x. x \<in> B \<Longrightarrow> f x \<noteq> 0"
+  shows   "prod f (A - B) = prod f A / prod f B"
+  by (metis assms finite_subset nonzero_eq_divide_eq prod.subset_diff
+      prod_zero_iff)
+
 lemma sum_zero_power [simp]: "(\<Sum>i\<in>A. c i * 0^i) = (if finite A \<and> 0 \<in> A then c 0 else 0)"
   for c :: "nat \<Rightarrow> 'a::division_ring"
   by (induct A rule: infinite_finite_induct) auto
@@ -1712,9 +1722,21 @@ lemma prod_constant [simp]: "(\<Prod>x\<in> A. y) = y ^ card A"
   for y :: "'a::comm_monoid_mult"
   by (induct A rule: infinite_finite_induct) simp_all
 
+lemma prod_diff_swap:
+  fixes f :: "'a \<Rightarrow> 'b :: comm_ring_1"
+  shows "prod (\<lambda>x. f x - g x) A = (-1) ^ card A * prod (\<lambda>x. g x - f x) A"
+  using prod.distrib[of "\<lambda>_. -1" "\<lambda>x. f x - g x" A]
+  by simp
+
 lemma prod_power_distrib: "prod f A ^ n = prod (\<lambda>x. (f x) ^ n) A"
   for f :: "'a \<Rightarrow> 'b::comm_semiring_1"
   by (induct A rule: infinite_finite_induct) (auto simp add: power_mult_distrib)
+
+lemma power_inject_exp':
+  assumes "a \<noteq> 1" "a > (0 :: 'a :: linordered_semidom)"
+  shows   "a ^ m = a ^ n \<longleftrightarrow> m = n"
+  by (metis assms not_less_iff_gr_or_eq order_le_less power_decreasing_iff
+      power_inject_exp)
 
 lemma power_sum: "c ^ (\<Sum>a\<in>A. f a) = (\<Prod>a\<in>A. c ^ f a)"
   by (induct A rule: infinite_finite_induct) (simp_all add: power_add)
@@ -1768,6 +1790,76 @@ next
   also from * have "\<dots> \<le> g (f i) + sum (g \<circ> f) I" by (intro add_left_mono)
   also from insert have "\<dots> = sum (g \<circ> f) (insert i I)" by (simp add: sum.insert_if)
   finally show ?case .
+qed
+
+lemma prod_add:
+  fixes f1 f2 :: "'a \<Rightarrow> 'c :: comm_semiring_1"
+  assumes finite: "finite A"
+  shows   "(\<Prod>x\<in>A. f1 x + f2 x) = (\<Sum>X\<in>Pow A. (\<Prod>x\<in>X. f1 x) * (\<Prod>x\<in>A-X. f2 x))"
+  using assms
+proof (induction A rule: finite_induct)
+  case (insert x A)
+  have "(\<Sum>X\<in>Pow (insert x A). (\<Prod>x\<in>X. f1 x) * (\<Prod>x\<in>insert x A-X. f2 x)) =
+        (\<Sum>X\<in>Pow A. (\<Prod>x\<in>X. f1 x) * (\<Prod>x\<in>insert x A-X. f2 x)) +
+        (\<Sum>X\<in>insert x ` (Pow A). (\<Prod>x\<in>X. f1 x) * (\<Prod>x\<in>insert x A-X. f2 x))"
+    unfolding Pow_insert by (rule sum.union_disjoint) (use insert.hyps in auto)
+  also have "(\<Sum>X\<in>Pow A. (\<Prod>x\<in>X. f1 x) * (\<Prod>x\<in>insert x A-X. f2 x)) =
+             (\<Sum>X\<in>Pow A. f2 x * (\<Prod>x\<in>X. f1 x) * (\<Prod>x\<in>A-X. f2 x))"
+  proof (rule sum.cong)
+    fix X assume X: "X \<in> Pow A"
+    have "(\<Prod>x\<in>X. f1 x) * (\<Prod>x\<in>insert x (A-X). f2 x) = f2 x * (\<Prod>x\<in>X. f1 x) * (\<Prod>x\<in>A-X. f2 x)"
+      by (subst prod.insert) (use insert.hyps finite_subset[of X A] X in \<open>auto simp: mult_ac\<close>)
+    also have "insert x (A - X) = insert x A - X"
+      using insert.hyps X by auto
+    finally show "(\<Prod>x\<in>X. f1 x) * (\<Prod>x\<in>insert x A-X. f2 x) = f2 x * (\<Prod>x\<in>X. f1 x) * (\<Prod>x\<in>A-X. f2 x)" .
+  qed auto
+  also have "(\<Sum>X\<in>insert x ` (Pow A). (\<Prod>x\<in>X. f1 x) * (\<Prod>x\<in>insert x A-X. f2 x)) = 
+             (\<Sum>X\<in>Pow A. (\<Prod>x\<in>insert x X. f1 x) * (\<Prod>x\<in>insert x A-insert x X. f2 x))"
+    by (subst sum.reindex) (use insert.hyps in \<open>auto intro!: inj_onI simp: o_def\<close>)
+  also have "(\<Sum>X\<in>Pow A. (\<Prod>x\<in>insert x X. f1 x) * (\<Prod>x\<in>insert x A-insert x X. f2 x)) =
+             (\<Sum>X\<in>Pow A. f1 x * (\<Prod>x\<in>X. f1 x) * (\<Prod>x\<in>A-X. f2 x))"
+  proof (rule sum.cong)
+    fix X assume X: "X \<in> Pow A"
+    show "(\<Prod>x\<in>insert x X. f1 x) * (\<Prod>x\<in>insert x A-insert x X. f2 x) = 
+          f1 x * (\<Prod>x\<in>X. f1 x) * (\<Prod>x\<in>A-X. f2 x)"
+      by (subst prod.insert) (use insert.hyps finite_subset[of X A] X in auto)
+  qed auto
+  also have "(\<Sum>X\<in>Pow A. f2 x * prod f1 X * prod f2 (A - X)) + 
+             (\<Sum>X\<in>Pow A. f1 x * prod f1 X * prod f2 (A - X)) =
+             (f1 x + f2 x) * (\<Sum>X\<in>Pow A. prod f1 X * prod f2 (A - X))"
+    by (simp add: algebra_simps flip: sum_distrib_left sum_distrib_right)
+  finally show ?case
+    by (subst (asm) insert.IH [symmetric]) (use insert.hyps in simp)
+qed auto
+
+lemma prod_diff_conv_sum:
+  fixes f1 f2 :: "'a \<Rightarrow> 'c :: comm_ring_1"
+  assumes finite: "finite A"
+  shows   "(\<Prod>x\<in>A. f1 x - f2 x) = (\<Sum>X\<in>Pow A. (-1) ^ card X * (\<Prod>x\<in>X. f2 x) * (\<Prod>x\<in>A-X. f1 x))"
+proof -
+  have "(\<Prod>x\<in>A. f1 x - f2 x) = (\<Prod>x\<in>A. -f2 x + f1 x)"
+    by simp
+  also have "\<dots> = (\<Sum>X\<in>Pow A. (\<Prod>x\<in>X. - f2 x) * prod f1 (A - X))"
+    by (rule prod_add) fact+
+  also have "\<dots> = (\<Sum>X\<in>Pow A. (-1) ^ card X * (\<Prod>x\<in>X. f2 x) * prod f1 (A - X))"
+    by (simp add: prod_uminus)
+  finally show ?thesis .
+qed
+
+lemma prod_diff_conv_sum':
+  fixes f1 f2 :: "'a \<Rightarrow> 'c :: comm_ring_1"
+  assumes finite: "finite A"
+  shows   "(\<Prod>x\<in>A. f1 x - f2 x) = (\<Sum>X\<in>Pow A. (-1) ^ (card A - card X) * (\<Prod>x\<in>X. f1 x) * (\<Prod>x\<in>A-X. f2 x))"
+proof -
+  have "(\<Prod>x\<in>A. f1 x - f2 x) = (\<Prod>x\<in>A. f1 x + (-f2 x))"
+    by simp
+  also have "\<dots> = (\<Sum>X\<in>Pow A. (\<Prod>x\<in>X. f1 x) * (\<Prod>x\<in>A-X. -f2 x))"
+    by (rule prod_add) fact+
+  also have "\<dots> = (\<Sum>X\<in>Pow A. (-1) ^ card (A - X) * (\<Prod>x\<in>X. f1 x) * (\<Prod>x\<in>A-X. f2 x))"
+    by (simp add: prod_uminus mult_ac)
+  also have "\<dots> = (\<Sum>X\<in>Pow A. (-1) ^ (card A - card X) * (\<Prod>x\<in>X. f1 x) * (\<Prod>x\<in>A-X. f2 x))"
+    using finite_subset[OF _ assms] by (intro sum.cong refl, subst card_Diff_subset) auto
+  finally show ?thesis .
 qed
 
 end

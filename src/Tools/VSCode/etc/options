@@ -3,6 +3,9 @@
 option vscode_input_delay : real = 0.1 for vscode
   -- "delay for client input (edits)"
 
+option vscode_sledgehammer_history : string = "" for vscode
+  -- "history of Sledgehammer provers used in Isabelle/VSCode"
+
 option vscode_output_delay : real = 0.5 for vscode
   -- "delay for client output (rendering)"
 
@@ -14,9 +17,6 @@ option vscode_tooltip_margin : int = 60 for vscode
 
 option vscode_message_margin : int = 80 for vscode
   -- "margin for pretty-printing of diagnostic messages"
-
-option vscode_timing_threshold : real = 0.1 for vscode
-  -- "default threshold for timing display (seconds)"
 
 option vscode_pide_extensions : bool = false for vscode
   -- "use PIDE extensions for Language Server Protocol"

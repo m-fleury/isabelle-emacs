@@ -93,13 +93,13 @@ fun typecheck_tac ctxt = REPEAT (typecheck_step_tac ctxt);
 
 (*Compile a term-net for speed*)
 val basic_net =
-  Tactic.build_net @{thms TrueI refl reflexive iff_refl ballI allI conjI impI};
+  Bires.build_net @{thms TrueI refl reflexive iff_refl ballI allI conjI impI};
 
 (*Instantiates variables in typing conditions.
   drawback: does not simplify conjunctions*)
 fun type_solver_tac ctxt hyps = SELECT_GOAL
     (DEPTH_SOLVE (eresolve_tac ctxt @{thms FalseE} 1
-                  ORELSE resolve_from_net_tac ctxt basic_net 1
+                  ORELSE Bires.resolve_from_net_tac ctxt basic_net 1
                   ORELSE (ares_tac ctxt hyps 1
                           APPEND typecheck_step_tac ctxt)));
 
@@ -107,7 +107,8 @@ val type_solver =
   Simplifier.mk_solver "ZF typecheck" (fn ctxt =>
     type_solver_tac ctxt (Simplifier.prems_of ctxt));
 
-val _ = Theory.setup (map_theory_simpset (fn ctxt => ctxt setSolver type_solver));
+val _ =
+  Theory.setup (map_theory_simpset (fn ctxt => ctxt |> Simplifier.set_unsafe_solver type_solver));
 
 
 (* concrete syntax *)

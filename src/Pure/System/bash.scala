@@ -42,6 +42,13 @@ object Bash {
   def strings(ss: Iterable[String]): String =
     ss.iterator.map(Bash.string).mkString(" ")
 
+  def exports(environment: String*): String =
+    environment.iterator.map(a =>
+      Library.try_unprefix("-", a) match {
+        case None => "export " + string(a)
+        case Some(b) => "unset " + string(b)
+      }).mkString("", "\n", "\n")
+
 
   /* process and result */
 
@@ -50,10 +57,8 @@ object Bash {
     isabelle_identifier: String = "",
     cwd: Path = Path.current
   ): String = {
-    if_proper(user_home,
-      "export USER_HOME=" + Bash.string(user_home) + "\n") +
-    if_proper(isabelle_identifier,
-      "export ISABELLE_IDENTIFIER=" + Bash.string(isabelle_identifier) + "\n") +
+    if_proper(user_home, exports("USER_HOME=" + user_home)) +
+    if_proper(isabelle_identifier, exports("ISABELLE_IDENTIFIER=" + isabelle_identifier)) +
     (if (cwd == null || cwd.is_current) "" else "cd " + quote(cwd.implode) + "\n") +
     script
   }
@@ -90,7 +95,7 @@ object Bash {
       description: String = "",
       ssh: SSH.System = SSH.Local,
       cwd: Path = Path.current,
-      env: JMap[String, String] = Isabelle_System.settings(),  // ignored for remote ssh
+      env: JMap[String, String] = Isabelle_System.Settings.env(),  // ignored for remote ssh
       redirect: Boolean = false,
       cleanup: () => Unit = () => ()): Process =
     new Process(script, description, ssh, cwd, env, redirect, cleanup)
@@ -230,7 +235,7 @@ object Bash {
           val t =
             Word.explode(timing_text) match {
               case List(Value.Long(elapsed), Value.Long(cpu)) =>
-                Timing(Time.ms(elapsed), Time.ms(cpu), Time.zero)
+                Timing.make(Time.ms(elapsed), Time.ms(cpu), Time.zero)
               case _ => Timing.zero
             }
           Some(t)
@@ -316,6 +321,14 @@ object Bash {
       server.start()
       server
     }
+
+    def result(result: Process_Result): List[String] =
+      result.rc.toString ::
+      result.timing.elapsed.ms.toString ::
+      result.timing.cpu.ms.toString ::
+      result.out_lines.length.toString ::
+      result.out_lines :::
+      result.err_lines
   }
 
   class Server private(port: Int, debugging: => Boolean)
@@ -340,14 +353,7 @@ object Bash {
           else List(Server.FAILURE, Exn.message(exn)))
 
       def reply_result(result: Process_Result): Unit =
-        reply(
-          Server.RESULT ::
-          result.rc.toString ::
-          result.timing.elapsed.ms.toString ::
-          result.timing.cpu.ms.toString ::
-          result.out_lines.length.toString ::
-          result.out_lines :::
-          result.err_lines)
+        reply(Server.RESULT :: Server.result(result))
 
       connection.read_byte_message().map(_.map(_.text)) match {
         case None =>
@@ -375,7 +381,7 @@ object Bash {
                   case Some(s) => Path.explode(s)
                 },
               env =
-                Isabelle_System.settings(
+                Isabelle_System.Settings.env(
                   XML.Decode.list(XML.Decode.pair(XML.Decode.string, XML.Decode.string))(
                     YXML.parse_body(YXML.Source(putenv)))),
               redirect = redirect)
@@ -423,12 +429,13 @@ object Bash {
       server = Server.start(debugging = session.session_options.bool("bash_process_debugging"))
     }
 
-    override def exit(): Unit = {
+    def exit(): Unit =
       if (server != null) {
         server.stop()
         server = null
       }
-    }
+
+    override def exit(exit_state: Document.State): Unit = exit()
 
     override def prover_options(options: Options): Options = {
       val address = if (server == null) "" else server.address

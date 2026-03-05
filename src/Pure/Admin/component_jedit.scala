@@ -89,12 +89,10 @@ object Component_JEdit {
 
   private val download_plugins: List[(String, String)] =
     List(
-      "Code2HTML" -> "0.7",
       "CommonControls" -> "1.7.4",
       "Console" -> "5.1.4",
       "ErrorList" -> "2.4.0",
       "Highlight" -> "2.5",
-      "Navigator" -> "2.7",
       "SideKick" -> "1.8")
 
   private def exclude_package(name: String): Boolean =
@@ -146,6 +144,24 @@ isabelle_java java -Duser.home=""" + File.bash_platform_path(tmp_dir) +
       Isabelle_System.extract(source_path, jedit_dir)
 
 
+      /* tango icons (SVG) */
+
+      val tango_path = Isabelle_System.make_directory(tmp_dir + Path.explode("tango"))
+      Isabelle_System.download_file(
+        "https://github.com/stephenc/tango-icon-theme/archive/41b8f6abd7eb.zip",
+        tango_path.zip, progress = progress)
+      Isabelle_System.extract(tango_path.zip, tango_path, strip = true)
+
+
+      /* IntelliJ IDEA icons (SVG) */
+
+      val idea_path = Isabelle_System.make_directory(tmp_dir + Path.explode("idea"))
+      Isabelle_System.download_file(
+        "https://isabelle.sketis.net/components/idea-icons-20250415.tar.gz",
+        idea_path.tar.gz, progress = progress)
+      Isabelle_System.extract(idea_path.tar.gz, idea_path, strip = true)
+
+
       /* patched version */
 
       Isabelle_System.copy_dir(jedit_dir, jedit_patched_dir)
@@ -159,19 +175,37 @@ isabelle_java java -Duser.home=""" + File.bash_platform_path(tmp_dir) +
         name = file.getName
         if !File.is_backup(name)
       } {
-        progress.bash("patch -p2 < " + File.bash_path(File.path(file)),
-          cwd = source_dir, echo = true).check
+        val patch = File.read(File.path(file))
+        Isabelle_System.apply_patch(source_dir, patch, strip = 2, progress = progress)
       }
 
-      for { theme <- List("classic", "tango") } {
-        val path = Path.explode("org/gjt/sp/jedit/icons/themes/" + theme + "/32x32/apps/isabelle.gif")
+      progress.echo("Augmenting icons ...")
+
+      val jedit_icons_path = source_dir + Path.explode("org/gjt/sp/jedit/icons/themes")
+      val jedit_classic_path = jedit_icons_path + Path.basic("classic")
+      val jedit_tango_path = jedit_icons_path + Path.basic("tango")
+      val jedit_idea_path = jedit_tango_path + Path.basic("idea-icons")
+
+      for (theme <- List(jedit_classic_path, jedit_tango_path)) {
         Isabelle_System.copy_file(Path.explode("~~/lib/logo/isabelle_transparent-32.gif"),
-          source_dir + path)
+          theme + Path.explode("32x32/apps/isabelle.gif"))
       }
+
+      for {
+        svg_file <- File.find_files(tango_path.file, pred = file => File.is_svg(file.getName))
+        rel_path <- File.relative_path(tango_path, File.path(svg_file))
+      } {
+        val dir = Isabelle_System.make_directory(jedit_tango_path + rel_path.dir)
+        Isabelle_System.copy_file(File.path(svg_file), dir + rel_path.base)
+      }
+
+      Isabelle_System.extract(idea_path + Path.explode("jar/idea-icons.jar"), jedit_tango_path)
+      Isabelle_System.rm_tree(jedit_tango_path + Path.explode("META-INF"))
+      Isabelle_System.copy_file(idea_path + Path.explode("README"), jedit_idea_path)
 
       progress.echo("Building jEdit ...")
       Isabelle_System.copy_dir(source_dir, tmp_source_dir)
-      progress.bash("ant", cwd = tmp_source_dir, echo = true).check
+      progress.bash("ant", cwd = tmp_source_dir, echo = progress.verbose).check
       Isabelle_System.copy_file(tmp_source_dir + Path.explode("build/jedit.jar"), jedit_patched_dir)
 
       val java_sources =
@@ -234,6 +268,7 @@ console.dock-position=floating
 console.encoding=UTF-8
 console.font=Isabelle DejaVu Sans Mono
 console.fontsize=14
+console.shell.default=Scala
 delete-line.shortcut=A+d
 delete.shortcut2=C+d
 """ + drop_encodings.map(a => "encoding.opt-out." + a + "=true").mkString("\n") + """
@@ -340,7 +375,11 @@ metal.primary.font=Isabelle DejaVu Sans
 metal.primary.fontsize=12
 metal.secondary.font=Isabelle DejaVu Sans
 metal.secondary.fontsize=12
-navigator.showOnToolbar=true
+navigate-backwards.label=Navigate backwards
+navigate-backwards.shortcut=AS+LEFT
+navigate-forwards.label=Navigate forwards
+navigate-forwards.shortcut=AS+RIGHT
+navigate-toolbar=navigate-backwards navigate-forwards
 new-file-in-mode.shortcut=
 next-bracket.shortcut2=C+e C+9
 options.shortcuts.deletekeymap.label=Delete
@@ -404,12 +443,67 @@ view.gutter.lineNumbers=false
 view.gutter.selectionAreaWidth=18
 view.height=850
 view.middleMousePaste=true
-view.showToolbar=true
-view.status.memory.background=#666699
+view.showSearchbar=true
+view.showToolbar=false
+view.status.memory.background=\#ff666699
 view.status=( mode , fold , encoding ) locked wrap multiSelect rectSelect overwrite lineSep buffersets task-monitor java-status ml-status errors clock
 view.thickCaret=true
 view.width=1200
 xml-insert-closing-tag.shortcut=
+
+#dark theme
+console.bgColor.dark=\#ff2b2b2b
+console.plainColor.dark=\#ffffffff
+console.caretColor.dark=\#ffffffff
+console.infoColor.dark=\#ffc1dfee
+console.warningColor.dark=\#ffff8c00
+console.errorColor.dark=\#ffb22222
+view.bgColor.dark=\#ff2b2b2b
+view.caretColor.dark=\#ff99ff99
+view.eolMarkerColor.dark=\#ffffcc00
+view.fgColor.dark=\#ffffffff
+view.gutter.bgColor.dark=\#ff282828
+view.gutter.currentLineColor.dark=\#ff66cc00
+view.gutter.fgColor.dark=\#ffffffff
+view.gutter.focusBorderColor.dark=\#ff99ccff
+view.gutter.foldColor.dark=\#ff838383
+view.gutter.highlightColor.dark=\#ffffcc00
+view.gutter.markerColor.dark=\#ff006666
+view.gutter.noFocusBorderColor.dark=\#ffffffff
+view.gutter.selectionAreaBgColor.dark=\#ff282828
+view.gutter.structureHighlightColor.dark=\#ffcccccc
+view.lineHighlightColor.dark=\#ff1d0a0a
+view.multipleSelectionColor.dark=\#ff006622
+view.selectionColor.dark=\#ff0f4982
+view.status.background.dark=\#ff333333
+view.status.foreground.dark=\#ffffffff
+view.status.highlight.dark=\#ff141414
+view.status.memory.background.dark=\#ff666699
+view.status.memory.foreground.dark=\#ffcccccc
+view.structureHighlightColor.dark=\#ffffff00
+view.style.comment1.dark=color\:\#ff87ceeb
+view.style.comment2.dark=color\:\#ffcd5c5c
+view.style.comment3.dark=color\:\#ff999900
+view.style.comment4.dark=color\:\#ffcc6600
+view.style.digit.dark=color\:\#ffcc3300
+view.style.foldLine.0.dark=color\:\#ffffffff bgColor\:\#ff452424 style\:b
+view.style.foldLine.1.dark=color\:\#ffffffff bgColor\:\#ff625950 style\:b
+view.style.foldLine.2.dark=color\:\#ffffffff bgColor\:\#ff3c3c67 style\:b
+view.style.foldLine.3.dark=color\:\#ffffffff bgColor\:\#ff314444 style\:b
+view.style.function.dark=color\:\#ff98fb98
+view.style.invalid.dark=color\:\#ffff0066 bgColor\:\#ffffffcc
+view.style.keyword1.dark=color\:\#fff0e68c style\:b
+view.style.keyword2.dark=color\:\#ff009966 style\:b
+view.style.keyword3.dark=color\:\#ffcc6600 style\:b
+view.style.keyword4.dark=color\:\#ff66ccff style\:b
+view.style.label.dark=color\:\#ffffdead
+view.style.literal1.dark=color\:\#ffffa0a0
+view.style.literal2.dark=color\:\#ffcc6600
+view.style.literal3.dark=color\:\#ffffcc00
+view.style.literal4.dark=color\:\#ffffffff
+view.style.markup.dark=color\:\#ffbdb76b
+view.style.operator.dark=color\:\#ff9b9b9b style\:b
+view.wrapGuideColor.dark=\#ff8080ff
 """)
 
     val modes_dir = source_dir + Path.basic("modes")
@@ -517,6 +611,7 @@ https://sourceforge.net/projects/jedit-plugins/files
         var target_dir = Path.current
         var original = false
         var version = default_version
+        var verbose = false
 
         val getopts = Getopts("""
 Usage: isabelle component_jedit [OPTIONS]
@@ -525,18 +620,20 @@ Usage: isabelle component_jedit [OPTIONS]
     -D DIR       target directory (default ".")
     -O           retain copy of original jEdit directory
     -V VERSION   jEdit version (default: """ + quote(default_version) + """)
+    -v           verbose
 
   Build auxiliary jEdit component from original sources, with some patches.
 """,
           "D:" -> (arg => target_dir = Path.explode(arg)),
           "O" -> (_ => original = true),
-          "V:" -> (arg => version = arg))
+          "V:" -> (arg => version = arg),
+          "v" -> (_ => verbose = true))
 
         val more_args = getopts(args)
         if (more_args.nonEmpty) getopts.usage()
 
         val component_dir = target_dir + Path.basic("jedit-" + Date.Format.alt_date(Date.now()))
-        val progress = new Console_Progress()
+        val progress = new Console_Progress(verbose = verbose)
 
         build_jedit(component_dir, version, original = original, progress = progress)
       })

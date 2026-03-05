@@ -82,7 +82,7 @@ structure Quantifier1 = Quantifier1
   val ex_comm = @{thm ex_comm}
   val atomize =
     let val rules = @{thms atomize_all atomize_imp atomize_eq atomize_iff atomize_conj}
-    in fn ctxt => Raw_Simplifier.rewrite ctxt true rules end
+    in fn ctxt => Simplifier.rewrite_wrt ctxt true rules end
 );
 
 
@@ -125,15 +125,15 @@ fun safe_solver ctxt =
 (*No simprules, but basic infastructure for simplification*)
 val FOL_basic_ss =
   empty_simpset \<^context>
-  setSSolver (mk_solver "FOL safe" safe_solver)
-  setSolver (mk_solver "FOL unsafe" unsafe_solver)
+  |> Simplifier.set_safe_solver (mk_solver "FOL safe" safe_solver)
+  |> Simplifier.set_unsafe_solver (mk_solver "FOL unsafe" unsafe_solver)
   |> Simplifier.set_subgoaler asm_simp_tac
   |> Simplifier.set_mksimps (mksimps mksimps_pairs)
   |> Simplifier.set_mkcong mk_meta_cong
   |> simpset_of;
 
 fun unfold_tac ctxt ths =
-  ALLGOALS (full_simp_tac (clear_simpset (put_simpset FOL_basic_ss ctxt) addsimps ths));
+  ALLGOALS (full_simp_tac (clear_simpset (put_simpset FOL_basic_ss ctxt) |> Simplifier.add_simps ths));
 
 
 (*** integration of simplifier with classical reasoner ***)

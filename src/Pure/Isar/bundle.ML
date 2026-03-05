@@ -110,8 +110,63 @@ fun pretty_bundle ctxt (markup_name, bundle) =
   end;
 
 fun print_bundles verbose ctxt =
-  Pretty.writeln_chunks
-    (map (pretty_bundle ctxt) (Name_Space.markup_table verbose ctxt (get_all ctxt)));
+  Name_Space.markup_table verbose ctxt (get_all ctxt)
+  |> map (pretty_bundle ctxt)
+  |> Pretty.chunks
+  |> Pretty.writeln;
+
+
+
+(** open bundles **)
+
+fun polarity_decls b =
+  [([Drule.dummy_thm],
+    [Attrib.internal \<^here> (K (Thm.declaration_attribute (K (Syntax.set_polarity_generic b))))])];
+
+fun apply_bundle loc (add, bundle) ctxt =
+  let
+    val notes = if loc then Local_Theory.notes else Attrib.local_notes "";
+    val add0 = Syntax.get_polarity ctxt;
+    val add1 = Syntax.effective_polarity ctxt add;
+    val bundle' = if add1 then bundle else rev (map (apsnd rev) bundle);
+  in
+    ctxt
+    |> Context_Position.set_visible false
+    |> notes [(Binding.empty_atts, polarity_decls add1 @ bundle' @ polarity_decls add0)] |> snd
+    |> Context_Position.restore_visible ctxt
+  end;
+
+local
+
+fun gen_unbundle loc prep args ctxt =
+  let
+    val thy = Proof_Context.theory_of ctxt;
+    val bundles = map (prep ctxt #> apsnd (get ctxt #> transfer_bundle thy)) args;
+  in fold (apply_bundle loc) bundles ctxt end;
+
+fun gen_includes prep = gen_unbundle false prep;
+
+fun gen_include prep bs =
+  Proof.assert_forward #> Proof.map_context (gen_includes prep bs) #> Proof.reset_facts;
+
+fun gen_including prep bs =
+  Proof.assert_backward #> Proof.map_context (gen_includes prep bs);
+
+in
+
+val unbundle = gen_unbundle true (K I);
+val unbundle_cmd = gen_unbundle true check_name;
+
+val includes = gen_includes (K I);
+val includes_cmd = gen_includes check_name;
+
+val include_ = gen_include (K I);
+val include_cmd = gen_include check_name;
+
+val including = gen_including (K I);
+val including_cmd = gen_including check_name;
+
+end;
 
 
 

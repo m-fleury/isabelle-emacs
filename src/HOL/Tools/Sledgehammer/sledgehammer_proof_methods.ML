@@ -15,21 +15,21 @@ sig
     SMT_cvc of string
 
   datatype proof_method =
-    Metis_Method of string option * string option * string list |
-    Meson_Method |
-    SMT_Method of SMT_backend |
-    SATx_Method |
+    Algebra_Method |
     Argo_Method |
-    Blast_Method |
-    Simp_Method |
     Auto_Method |
+    Blast_Method |
     Fastforce_Method |
     Force_Method |
-    Moura_Method |
     Linarith_Method |
+    Meson_Method |
+    Metis_Method of string option * string option * string list |
+    Moura_Method |
+    Order_Method |
     Presburger_Method |
-    Algebra_Method |
-    Order_Method
+    SATx_Method |
+    Simp_Method |
+    SMT_Method of SMT_backend
 
   datatype play_outcome =
     Played of Time.time |
@@ -45,7 +45,8 @@ sig
   val tac_of_proof_method : Proof.context -> thm list * thm list -> proof_method -> int -> tactic
   val string_of_play_outcome : play_outcome -> string
   val play_outcome_ord : play_outcome ord
-  val one_line_proof_text : Proof.context -> int -> one_line_params -> string
+  val try_command_line : string -> play_outcome -> string -> string
+  val one_line_proof_text : one_line_params -> string
 end;
 
 structure Sledgehammer_Proof_Methods : SLEDGEHAMMER_PROOF_METHODS =
@@ -190,7 +191,7 @@ fun tac_of_proof_method ctxt (local_facts, global_facts) meth =
       Method.insert_tac ctxt local_facts THEN'
       (case meth of
         Meson_Method => Meson_Tactic.meson_general_tac ctxt global_facts
-      | Simp_Method => Simplifier.asm_full_simp_tac (ctxt addsimps global_facts)
+      | Simp_Method => Simplifier.asm_full_simp_tac (ctxt |> Simplifier.add_simps global_facts)
       | _ =>
         Method.insert_tac ctxt global_facts THEN'
         (case meth of
@@ -224,8 +225,7 @@ fun apply_on_subgoal _ 1 = "by "
   | apply_on_subgoal 1 _ = "apply "
   | apply_on_subgoal i n = "prefer " ^ string_of_int i ^ " " ^ apply_on_subgoal 1 n
 
-(* FIXME *)
-fun proof_method_command meth i n used_chaineds _(*num_chained*) extras =
+fun proof_method_command meth i n extras =
   let
     val (indirect_facts, direct_facts) =
       if is_proof_method_direct meth then ([], extras) else (extras, [])
@@ -251,11 +251,10 @@ val failed_command_line =
     (* Add optional markup break (command may need multiple lines) *)
     Markup.markup (Markup.break {width = 1, indent = 2}) " ")
 
-fun one_line_proof_text _ num_chained
-    ((used_facts, (meth, play)), banner, subgoal, subgoal_count) =
-  let val (chained, extra) = List.partition (fn (_, (sc, _)) => sc = Chained) used_facts in
+fun one_line_proof_text ((used_facts, (meth, play)), banner, subgoal, subgoal_count) =
+  let val extra = filter_out (fn (_, (sc, _)) => sc = Chained) used_facts in
     map fst extra
-    |> proof_method_command meth subgoal subgoal_count (map fst chained) num_chained
+    |> proof_method_command meth subgoal subgoal_count
     |> (if play = Play_Failed then failed_command_line else try_command_line banner play)
   end
 

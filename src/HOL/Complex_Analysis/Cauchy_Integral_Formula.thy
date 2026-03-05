@@ -412,11 +412,87 @@ proof (induction j arbitrary: f x)
   finally show ?case by simp
 qed simp_all
 
+lemma higher_deriv_cmult':
+  assumes "f analytic_on {x}"
+  shows   "(deriv ^^ j) (\<lambda>x. c * f x) x = c * (deriv ^^ j) f x"
+  using assms higher_deriv_cmult[of f _ x j c] assms
+  using analytic_at_two by blast
+
+lemma deriv_cmult':
+  assumes "f analytic_on {x}"
+  shows   "deriv (\<lambda>x. c * f x) x = c * deriv f x"
+  using higher_deriv_cmult'[OF assms, of 1 c] by simp
+
+lemma analytic_derivI:
+  assumes "f analytic_on {z}"
+  shows   "(f has_field_derivative (deriv f z)) (at z within A)"
+  using assms holomorphic_derivI[of f _ z] analytic_at by blast
+
+lemma deriv_compose_analytic:
+  fixes f g :: "complex \<Rightarrow> complex"
+  assumes "f analytic_on {g z}" "g analytic_on {z}"
+  shows "deriv (\<lambda>x. f (g x)) z = deriv f (g z) * deriv g z"
+proof -
+  have "((f \<circ> g) has_field_derivative (deriv f (g z) * deriv g z)) (at z)"
+    by (intro DERIV_chain analytic_derivI assms)
+  thus ?thesis
+    by (auto intro!: DERIV_imp_deriv simp add: o_def)
+qed
+
 lemma valid_path_compose_holomorphic:
   assumes "valid_path g" "f holomorphic_on S" and "open S" "path_image g \<subseteq> S"
   shows "valid_path (f \<circ> g)"
   by (meson assms holomorphic_deriv holomorphic_on_imp_continuous_on holomorphic_on_imp_differentiable_at
       holomorphic_on_subset subsetD valid_path_compose)
+
+lemma valid_path_compose_analytic:
+  assumes "valid_path g" and holo:"f analytic_on S" and "path_image g \<subseteq> S"
+  shows "valid_path (f \<circ> g)"
+proof (rule valid_path_compose[OF \<open>valid_path g\<close>])
+  fix x assume "x \<in> path_image g"
+  then show "f field_differentiable at x"
+    using analytic_on_imp_differentiable_at analytic_on_open assms holo by blast
+next
+  show "continuous_on (path_image g) (deriv f)"
+    by (intro holomorphic_on_imp_continuous_on analytic_imp_holomorphic analytic_intros
+              analytic_on_subset[OF holo] assms)
+qed
+
+lemma analytic_on_deriv [analytic_intros]:
+  assumes "f analytic_on g ` A"
+  assumes "g analytic_on A"
+  shows   "(\<lambda>x. deriv f (g x)) analytic_on A"
+proof -
+  have "(deriv f \<circ> g) analytic_on A"
+    by (rule analytic_on_compose_gen[OF assms(2) analytic_deriv[OF assms(1)]]) auto
+  thus ?thesis
+    by (simp add: o_def)
+qed
+
+lemma contour_integral_comp_analyticW:
+  assumes "f analytic_on s" "valid_path \<gamma>" "path_image \<gamma> \<subseteq> s"
+  shows "contour_integral (f \<circ> \<gamma>) g = contour_integral \<gamma> (\<lambda>w. deriv f w * g (f w))"
+proof -
+  obtain spikes where "finite spikes" and \<gamma>_diff: "\<gamma> C1_differentiable_on {0..1} - spikes"
+    using \<open>valid_path \<gamma>\<close> unfolding valid_path_def piecewise_C1_differentiable_on_def by auto  
+  show "contour_integral (f \<circ> \<gamma>) g 
+      = contour_integral \<gamma> (\<lambda>w. deriv f w * g (f w))"
+    unfolding contour_integral_integral
+  proof (rule integral_spike[rule_format,OF negligible_finite[OF \<open>finite spikes\<close>]])
+    fix t::real assume t:"t \<in> {0..1} - spikes"
+    then have "\<gamma> differentiable at t" 
+      using \<gamma>_diff unfolding C1_differentiable_on_eq by auto
+    moreover have "f field_differentiable at (\<gamma> t)" 
+    proof -
+      have "\<gamma> t \<in> s" using t assms unfolding path_image_def by auto 
+      thus ?thesis 
+        using \<open>f analytic_on s\<close>  analytic_on_imp_differentiable_at by blast
+    qed
+    ultimately show "deriv f (\<gamma> t) * g (f (\<gamma> t)) * vector_derivative \<gamma> (at t) =
+         g ((f \<circ> \<gamma>) t) * vector_derivative (f \<circ> \<gamma>) (at t)"
+      by (subst vector_derivative_chain_at_general) (simp_all add:field_simps)
+  qed
+qed
 
 subsection\<open>Morera's theorem\<close>
 
@@ -1097,6 +1173,151 @@ next
     by (fastforce simp add: holomorphic_on_open contg intro: that)
 qed
 
+lemma higher_deriv_complex_uniform_limit:
+  assumes ulim: "uniform_limit A f g F"
+      and f_holo: "eventually (\<lambda>n. f n holomorphic_on A) F"
+      and F: "F \<noteq> bot"
+      and A: "open A" "z \<in> A"
+    shows "((\<lambda>n. (deriv ^^ m) (f n) z) \<longlongrightarrow> (deriv ^^ m) g z) F"
+proof -
+  obtain r where r: "r > 0" "cball z r \<subseteq> A"
+    using A by (meson open_contains_cball)
+  have r': "ball z r \<subseteq> A"
+    using r by auto
+  define h where "h = (\<lambda>n z. f n z - g z)"
+  define c where "c = of_real (2*pi) * \<i> / fact m"
+  have [simp]: "c \<noteq> 0"
+    by (simp add: c_def)
+  have "g holomorphic_on ball z r \<and> continuous_on (cball z r) g"
+  proof (rule holomorphic_uniform_limit)
+    show "uniform_limit (cball z r) f g F"
+      by (rule uniform_limit_on_subset[OF ulim r(2)])
+    show "\<forall>\<^sub>F n in F. continuous_on (cball z r) (f n) \<and> f n holomorphic_on ball z r" using f_holo
+      by eventually_elim
+         (use holomorphic_on_subset[OF _ r(2)] holomorphic_on_subset[OF _ r'] 
+          in  \<open>auto intro!: holomorphic_on_imp_continuous_on\<close>)
+  qed (use F in auto)
+  hence g_holo: "g holomorphic_on ball z r" and g_cont: "continuous_on (cball z r) g"
+    by blast+
+
+  have ulim': "uniform_limit (sphere z r) (\<lambda>n x. h n x / (x - z) ^ (Suc m)) (\<lambda>_. 0) F"
+  proof -
+    have "uniform_limit (sphere z r) (\<lambda>n x. f n x / (x - z) ^ Suc m) (\<lambda>x. g x / (x - z) ^ Suc m) F"
+    proof (intro uniform_lim_divide uniform_limit_intros uniform_limit_on_subset[OF ulim])
+      have "compact (g ` sphere z r)"
+        by (intro compact_continuous_image continuous_on_subset[OF g_cont]) auto
+      thus "bounded (g ` sphere z r)"
+        by (rule compact_imp_bounded)
+      show "r ^ Suc m \<le> norm ((x - z) ^ Suc m)" if "x \<in> sphere z r" for x unfolding norm_power
+        by (intro power_mono) (use that r(1) in \<open>auto simp: dist_norm norm_minus_commute\<close>)
+    qed (use r in auto)
+    hence "uniform_limit (sphere z r) (\<lambda>n x. f n x / (x - z) ^ Suc m - g x / (x - z) ^ Suc m) 
+             (\<lambda>x. g x / (x - z) ^ Suc m - g x / (x - z) ^ Suc m) F"
+      by (intro uniform_limit_intros)
+    thus ?thesis
+      by (simp add: h_def diff_divide_distrib)
+  qed
+
+  have has_integral: "eventually (\<lambda>n. ((\<lambda>u. h n u / (u - z) ^ Suc m) has_contour_integral 
+                         c * (deriv ^^ m) (h n) z) (circlepath z r)) F"
+    using f_holo
+  proof eventually_elim
+    case (elim n)
+    show ?case
+      unfolding c_def
+    proof (rule Cauchy_has_contour_integral_higher_derivative_circlepath)
+      show "continuous_on (cball z r) (h n)" unfolding h_def 
+        by (intro continuous_intros g_cont holomorphic_on_imp_continuous_on
+                  holomorphic_on_subset[OF elim] r)
+      show "h n holomorphic_on ball z r"
+        unfolding h_def by (intro holomorphic_intros g_holo holomorphic_on_subset[OF elim] r')
+    qed (use r(1) in auto)
+  qed
+
+  have "((\<lambda>n. contour_integral (circlepath z r) (\<lambda>u. h n u / (u - z) ^ Suc m)) \<longlongrightarrow> 
+         contour_integral (circlepath z r) (\<lambda>u. 0 / (u - z) ^ Suc m)) F"
+  proof (rule contour_integral_uniform_limit_circlepath)
+    show "\<forall>\<^sub>F n in F. (\<lambda>u. h n u / (u - z) ^ Suc m) contour_integrable_on circlepath z r"
+      using has_integral by eventually_elim (blast intro: has_contour_integral_integrable)
+  qed (use r(1) \<open>F \<noteq> bot\<close> ulim' in simp_all)
+  hence "((\<lambda>n. contour_integral (circlepath z r) (\<lambda>u. h n u / (u - z) ^ Suc m)) \<longlongrightarrow> 0) F"
+    by simp
+  also have "?this \<longleftrightarrow> ((\<lambda>n. c * (deriv ^^ m) (h n) z) \<longlongrightarrow> 0) F"
+  proof (rule tendsto_cong)
+    show "\<forall>\<^sub>F x in F. contour_integral (circlepath z r) (\<lambda>u. h x u / (u - z) ^ Suc m) =
+                       c * (deriv ^^ m) (h x) z"
+      using has_integral by eventually_elim (simp add: contour_integral_unique)
+  qed
+  finally have "((\<lambda>n. (deriv ^^ m) g z + c * (deriv ^^ m) (h n) z / c) \<longlongrightarrow> 
+                  (deriv ^^ m) g z + 0 / c) F"
+    by (intro tendsto_intros) auto
+  also have "?this \<longleftrightarrow> ((\<lambda>n. (deriv ^^ m) (f n) z) \<longlongrightarrow> (deriv ^^ m) g z) F"
+  proof (intro filterlim_cong)
+    show "\<forall>\<^sub>F n in F. (deriv ^^ m) g z + c * (deriv ^^ m) (h n) z / c = (deriv ^^ m) (f n) z"
+      using f_holo
+    proof eventually_elim
+      case (elim n)
+      have "(deriv ^^ m) (h n) z = (deriv ^^ m) (f n) z - (deriv ^^ m) g z" unfolding h_def
+        by (rule higher_deriv_diff holomorphic_on_subset[OF elim r'] g_holo A)+ (use r(1) in auto)
+      thus ?case
+        by simp
+    qed
+  qed auto
+  finally show ?thesis .
+qed
+
+lemma deriv_complex_uniform_limit:
+  assumes ulim: "uniform_limit A f g F"
+      and f_holo: "eventually (\<lambda>n. f n holomorphic_on A) F"
+      and F: "F \<noteq> bot"
+      and A: "open A" "z \<in> A"
+    shows "((\<lambda>n. deriv (f n) z) \<longlongrightarrow> deriv g z) F"
+  using higher_deriv_complex_uniform_limit[OF assms, of 1] by simp
+
+lemma logderiv_prodinf_complex_uniform_limit:
+  fixes f :: "nat \<Rightarrow> complex \<Rightarrow> complex"
+  assumes lim: "uniform_limit A (\<lambda>n x. \<Prod>k<n. f k x) P sequentially"
+  assumes holo: "\<And>k. f k holomorphic_on A"
+  assumes nz: "P z \<noteq> 0"
+  assumes A: "open A" "z \<in> A"
+  shows   "(\<lambda>k. deriv (f k) z / f k z) sums (deriv P z / P z)"
+proof -
+  define f' where "f' = (\<lambda>k. deriv (f k))"
+  note [derivative_intros] = has_field_derivative_prod'
+  have [derivative_intros]: 
+    "(f k has_field_derivative f' k z) (at z within B)" if "z \<in> A" for B z k
+    using that holomorphic_derivI[OF holo[of k],  of z B] A unfolding f'_def by auto
+  have lim': "(\<lambda>n. \<Prod>k<n. f k z) \<longlonglongrightarrow> P z"
+    using lim by (rule tendsto_uniform_limitI) fact+
+
+  have nz': "f k z \<noteq> 0" for k
+  proof
+    assume "f k z = 0"
+    have "eventually (\<lambda>n. (\<Prod>k<n. f k z) = 0) sequentially"
+      using eventually_gt_at_top[of k] by eventually_elim (use \<open>f k z = 0\<close> in auto)
+    hence "(\<lambda>n. (\<Prod>k<n. f k z)) \<longlonglongrightarrow> 0"
+      by (rule tendsto_eventually)
+    with lim' have "P z = 0"
+      using tendsto_unique sequentially_bot by blast
+    with nz show False
+      by simp
+  qed
+
+  from lim have "(\<lambda>n. deriv (\<lambda>x. \<Prod>k<n. f k x) z) \<longlonglongrightarrow> deriv P z"
+    by (rule deriv_complex_uniform_limit)
+       (use A in \<open>auto intro!: always_eventually holomorphic_intros holo\<close>)
+  also have "(\<lambda>n. deriv (\<lambda>x. \<Prod>k<n. f k x) z) = (\<lambda>n. (\<Prod>k<n. f k z) * (\<Sum>k<n. f' k z / f k z))"
+    using \<open>z \<in> A\<close> by (auto intro!: ext DERIV_imp_deriv derivative_eq_intros simp: nz')
+  finally have "(\<lambda>n. (\<Prod>k<n. f k z) * (\<Sum>k<n. f' k z / f k z)) \<longlonglongrightarrow> deriv P z" .
+  hence "(\<lambda>n. (\<Prod>k<n. f k z) * (\<Sum>k<n. f' k z / f k z) / (\<Prod>k<n. f k z)) \<longlonglongrightarrow> deriv P z / P z"
+    by (intro tendsto_intros) (use nz lim' in auto)
+  also have "(\<lambda>n. (\<Prod>k<n. f k z) * (\<Sum>k<n. f' k z / f k z) / (\<Prod>k<n. f k z)) =
+             (\<lambda>n. (\<Sum>k<n. f' k z / f k z))"
+    by (simp add: nz')
+  finally show "(\<lambda>k. f' k z / f k z) sums (deriv P z / P z)"
+    unfolding sums_def .
+qed
+
 
 text\<open> Version showing that the limit is the limit of the derivatives.\<close>
 
@@ -1666,7 +1887,7 @@ proof -
         and \<eta>: "\<And>x x'. \<lbrakk>x\<in>?TZ; x'\<in>?TZ; dist x' x < \<eta>\<rbrakk> \<Longrightarrow>
                          dist ((\<lambda>(x,y). F x y) x') ((\<lambda>(x,y). F x y) x) < \<epsilon>/norm(b-a)"
       using \<open>0 < \<epsilon>\<close> \<open>a \<noteq> b\<close>
-      by (auto elim: uniformly_continuous_onE [where e = "\<epsilon>/norm(b-a)"])
+      by (auto elim: uniformly_continuous_onE [where \<epsilon> = "\<epsilon>/norm(b-a)"])
     have \<eta>: "\<lbrakk>norm (w - x1) \<le> \<delta>;   x2 \<in> closed_segment a b;
               norm (w - x1') \<le> \<delta>;  x2' \<in> closed_segment a b; norm ((x1', x2') - (x1, x2)) < \<eta>\<rbrakk>
               \<Longrightarrow> norm (F x1' x2' - F x1 x2) \<le> \<epsilon> / cmod (b-a)"
@@ -2018,7 +2239,7 @@ proof -
           then obtain kk where "kk>0"
             and kk: "\<And>x x'. \<lbrakk>x \<in> ?ddpa; x' \<in> ?ddpa; dist x' x < kk\<rbrakk> \<Longrightarrow>
                              dist ((\<lambda>(x,y). d x y) x') ((\<lambda>(x,y). d x y) x) < ee"
-            by (rule uniformly_continuous_onE [where e = ee]) (use \<open>0 < ee\<close> in auto)
+            by (rule uniformly_continuous_onE [where \<epsilon> = ee]) (use \<open>0 < ee\<close> in auto)
           have kk: "\<lbrakk>norm (w-x) \<le> dd; z \<in> path_image \<gamma>; norm ((w, z) - (x, z)) < kk\<rbrakk> \<Longrightarrow> norm (d w z - d x z) < ee"
             for  w z
             using \<open>dd>0\<close> kk [of "(x,z)" "(w,z)"] by (force simp: norm_minus_commute dist_norm)

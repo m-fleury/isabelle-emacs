@@ -454,7 +454,7 @@ lemma [code]:
     (\<lambda>(ss, w).
         let p = some_elem w in propa f (step p (ss ! p)) ss (w - {p}))
     (ss, w)"
-  unfolding iter_def Set.is_empty_def some_elem_def ..
+  by (simp add: iter_def some_elem_def)
 
 lemma JVM_sup_unfold [code]:
  "JVMType.sup S m n = lift2 (Opt.sup
@@ -465,11 +465,11 @@ lemma JVM_sup_unfold [code]:
          Listn.sl_def upto_esl_def JType.esl_def Err.esl_def) 
   by simp
 
-lemmas [code] = JType.sup_def [unfolded exec_lub_def] JVM_le_unfold
-lemmas [code] = lesub_def plussub_def
-
 lemmas [code] =
   JType.sup_def [unfolded exec_lub_def]
+  JVM_le_unfold
+  lesub_def
+  plussub_def
   wf_class_code
   widen.equation
   match_exception_entry_def

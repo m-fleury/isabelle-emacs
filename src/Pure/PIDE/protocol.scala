@@ -6,6 +6,9 @@ Protocol message formats for interactive proof documents.
 
 package isabelle
 
+import scala.collection.mutable
+import scala.annotation.tailrec
+
 
 object Protocol {
   /* markers for inlined messages */
@@ -23,12 +26,13 @@ object Protocol {
   /* batch build */
 
   object Loading_Theory {
-    def unapply(props: Properties.T): Option[(Document.Node.Name, Document_ID.Exec)] =
-      (props, props, props) match {
-        case (Markup.Name(theory), Position.File(file), Position.Id(id))
-        if Path.is_wellformed(file) => Some((Document.Node.Name(file, theory = theory), id))
-        case _ => None
-      }
+    def unapply(props: Properties.T): Option[(Document.Node.Name, Document_ID.Exec, Int)] =
+      for {
+        theory <- Markup.Name.unapply(props)
+        commands <- Markup.Commands.unapply(props)
+        file <- Position.File.unapply(props) if Path.is_wellformed(file)
+        id <- Position.Id.unapply(props)
+      } yield (Document.Node.Name(file, theory = theory), id, commands)
   }
 
 
@@ -78,34 +82,21 @@ object Protocol {
   /* command timing */
 
   object Command_Timing {
-    def unapply(props: Properties.T): Option[(Properties.T, Document_ID.Generic, isabelle.Timing)] =
+    def unapply(props: Properties.T): Option[(Document_ID.Generic, Properties.T)] =
       props match {
-        case Markup.Command_Timing(args) =>
-          (args, args) match {
-            case (Position.Id(id), Markup.Timing_Properties(timing)) => Some((args, id, timing))
-            case _ => None
-          }
-        case _ => None
-      }
-  }
-
-
-  /* theory timing */
-
-  object Theory_Timing {
-    def unapply(props: Properties.T): Option[(String, isabelle.Timing)] =
-      props match {
-        case Markup.Theory_Timing(args) =>
-          (args, args) match {
-            case (Markup.Name(name), Markup.Timing_Properties(timing)) => Some((name, timing))
-            case _ => None
-          }
+        case Markup.Command_Timing(args@Position.Id(id)) => Some((id, args))
         case _ => None
       }
   }
 
 
   /* result messages */
+
+  def is_urgent(msg: XML.Tree): Boolean =
+    msg match {
+      case XML.Elem(Markup(_, props), _) => Markup.Urgent.get(props)
+      case _ => false
+    }
 
   def is_result(msg: XML.Tree): Boolean =
     msg match {
@@ -162,6 +153,9 @@ object Protocol {
       case _ => false
     }
 
+  def is_warning_or_legacy(msg: XML.Tree): Boolean =
+    is_warning(msg) || is_legacy(msg)
+
   def is_inlined(msg: XML.Tree): Boolean =
     !(is_result(msg) || is_tracing(msg))
 
@@ -170,7 +164,7 @@ object Protocol {
 
   def message_heading(elem: XML.Elem, pos: Position.T): String = {
     val h =
-      if (is_warning(elem) || is_legacy(elem)) "Warning"
+      if (is_warning_or_legacy(elem)) "Warning"
       else if (is_error(elem)) "Error"
       else if (is_information(elem)) "Information"
       else if (is_tracing(elem)) "Tracing"
@@ -182,18 +176,19 @@ object Protocol {
   def message_text(elem: XML.Elem,
     heading: Boolean = false,
     pos: Position.T = Position.none,
+    recode: String => String = identity,
     margin: Double = Pretty.default_margin,
     breakgain: Double = Pretty.default_breakgain,
     metric: Pretty.Metric = Codepoint.Metric
   ): String = {
-    val text1 = if (heading) "\n" + message_heading(elem, pos) + ":\n" else ""
+    val text1 = if (heading) "\n" + recode(message_heading(elem, pos)) + ":\n" else ""
 
     val body =
-      Pretty.string_of(List(elem), margin = margin, breakgain = breakgain,
+      Pretty.string_of(List(elem), recode = recode, margin = margin, breakgain = breakgain,
         metric = metric, pure = true)
 
     val text2 =
-      if (is_warning(elem) || is_legacy(elem)) Output.warning_prefix(body)
+      if (is_warning_or_legacy(elem)) Output.warning_prefix(body)
       else if (is_error(elem)) Output.error_message_prefix(body)
       else body
 
@@ -254,6 +249,32 @@ object Protocol {
           Some(Args(proper_string(id), serial, theory_name, name, executable, compress, strict))
         case _ => None
       }
+  }
+
+
+  /* sendback snippets */
+
+  def sendback_snippets(xml: XML.Body): List[(String, Properties.T)] = {
+    var seen = Set.empty[(String, Properties.T)]
+    val result = new mutable.ListBuffer[(String, Properties.T)]
+
+    @tailrec def traverse(body: XML.Body): Unit =
+      body match {
+        case XML.Elem(Markup(Markup.SENDBACK, props), body1) :: body2 =>
+          val entry = (XML.content(body1), props)
+          if (!seen(entry)) {
+            seen += entry
+            result += entry
+          }
+          traverse(body2)
+        case XML.Wrapped_Elem(_, _, body1) :: body2 => traverse(body1 ::: body2)
+        case XML.Elem(_, body1) :: body2 => traverse(body1 ::: body2)
+        case XML.Text(_) :: body2 => traverse(body2)
+        case Nil =>
+      }
+
+    traverse(xml)
+    result.toList
   }
 
 
@@ -340,7 +361,7 @@ trait Protocol {
     val blobs_xml: XML.Body = {
       val encode_blob: T[Exn.Result[Command.Blob]] =
         variant(List(
-          { case Exn.Res(Command.Blob(a, b, c)) =>
+          { case Exn.Res(Command.Blob(_, a, b, c)) =>
               (Nil, triple(string, string, option(string))(
                 (a.node, b.implode, c.map(p => p._1.toString)))) },
           { case Exn.Exn(e) => (Nil, string(Exn.message(e))) }))

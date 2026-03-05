@@ -1,6 +1,6 @@
 (*  Title:      HOL/Analysis/Set_Integral.thy
     Author:     Jeremy Avigad (CMU), Johannes Hölzl (TUM), Luke Serafin (CMU)
-    Author:  Sébastien Gouëzel   sebastien.gouezel@univ-rennes1.fr
+    Author:     Sébastien Gouëzel   sebastien.gouezel@univ-rennes1.fr
     Author:     Ata Keskin, TU Muenchen
 
 Notation and useful facts for working with integrals over a set.
@@ -33,10 +33,11 @@ translations
 
 section \<open>Basic properties\<close>
 
-(*
-lemma indicator_abs_eq: "\<And>A x. \<bar>indicator A x\<bar> = ((indicator A x) :: real)"
-  by (auto simp add: indicator_def)
-*)
+lemma set_integrable_eq:
+  fixes f :: "'a \<Rightarrow> 'b::{banach, second_countable_topology}"
+  assumes "\<Omega> \<inter> space M \<in> sets M"
+  shows "set_integrable M \<Omega> f = integrable (restrict_space M \<Omega>) f"
+  by (meson assms integrable_restrict_space set_integrable_def)
 
 lemma set_integrable_cong:
   assumes "M = M'" "A = A'" "\<And>x. x \<in> A \<Longrightarrow> f x = f' x"
@@ -608,11 +609,11 @@ syntax_consts
 translations
   "CLINT x:A|M. f" == "CONST complex_set_lebesgue_integral M A (\<lambda>x. f)"
 
-lemma set_measurable_continuous_on_ivl:
-  assumes "continuous_on {a..b} (f :: real \<Rightarrow> real)"
-  shows "set_borel_measurable borel {a..b} f"
-  unfolding set_borel_measurable_def
-  by (rule borel_measurable_continuous_on_indicator[OF _ assms]) simp
+lemma set_measurable_continuous_on:
+  fixes f g :: "'a::topological_space \<Rightarrow> 'b::real_normed_vector"
+  shows "A \<in> sets borel \<Longrightarrow> continuous_on A f \<Longrightarrow> set_borel_measurable borel A f"
+  by (meson borel_measurable_continuous_on_indicator
+      set_borel_measurable_def)
 
 section \<open>NN Set Integrals\<close>
 

@@ -876,7 +876,7 @@ fun expand_tuples thy intro =
     val intro'''' =
       Simplifier.full_simplify
         (put_simpset HOL_basic_ss ctxt
-          addsimps [@{thm fst_conv}, @{thm snd_conv}, @{thm prod.inject}])
+          |> Simplifier.add_simps [@{thm fst_conv}, @{thm snd_conv}, @{thm prod.inject}])
       intro'''
     (* splitting conjunctions introduced by prod.inject*)
     val intro''''' = split_conjuncts_in_assms ctxt intro''''
@@ -955,7 +955,7 @@ fun case_betapply thy t =
     val Tcon = datatype_name_of_case_name thy case_name
     val th = instantiated_case_rewrite thy Tcon
   in
-    Raw_Simplifier.rewrite_term thy [th RS @{thm eq_reflection}] [] t
+    Simplifier.rewrite_term thy [th RS @{thm eq_reflection}] [] t
   end
 
 

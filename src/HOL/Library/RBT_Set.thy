@@ -25,17 +25,6 @@ definition Coset :: "('a::linorder, unit) rbt \<Rightarrow> 'a set"
   where [simp]: "Coset t = - Set t"
 
 
-section \<open>Deletion of already existing code equations\<close>
-
-declare [[code drop: Set.empty Set.is_empty uminus_set_inst.uminus_set
-  Set.member Set.insert Set.remove UNIV Set.filter image
-  Set.subset_eq Ball Bex can_select Set.union minus_set_inst.minus_set Set.inter
-  card the_elem Pow sum prod Product_Type.product Id_on
-  Image trancl relcomp wf_on wf_code Min Inf_fin Max Sup_fin
-  "(Inf :: 'a set set \<Rightarrow> 'a set)" "(Sup :: 'a set set \<Rightarrow> 'a set)"
-  sorted_list_of_set List.map_project List.Bleast]]
-
-
 section \<open>Lemmas\<close>
 
 subsection \<open>Auxiliary lemmas\<close>
@@ -90,8 +79,8 @@ definition rbt_filter :: "('a :: linorder \<Rightarrow> bool) \<Rightarrow> ('a,
 
 lemma Set_filter_rbt_filter:
   "Set.filter P (Set t) = rbt_filter P t"
-by (simp add: fold_keys_def Set_filter_fold rbt_filter_def 
-  finite_fold_fold_keys[OF comp_fun_commute_filter_fold])
+  by (subst Set_filter_fold)
+    (simp_all add: fold_keys_def rbt_filter_def finite_fold_fold_keys [OF comp_fun_commute_filter_fold])
 
 
 subsection \<open>foldi and Ball\<close>
@@ -449,7 +438,7 @@ by (auto simp: Set_def)
 
 lemma is_empty_Set [code]:
   "Set.is_empty (Set t) = RBT.is_empty t"
-  unfolding Set.is_empty_def by (auto simp: fun_eq_iff Set_def intro: lookup_empty_empty[THEN iffD1])
+  using non_empty_keys [of t] by (auto simp add: set_keys)
 
 lemma compl_code [code]:
   "- Set xs = Coset xs"
@@ -471,6 +460,14 @@ lemma remove_code [code]:
   "Set.remove x (Coset t) = Coset (RBT.insert x () t)"
 by (auto simp: Set_def)
 
+lemma inter_Set [code]:
+  "A \<inter> Set t = rbt_filter (\<lambda>k. k \<in> A) t"
+by (simp flip: Set_filter_rbt_filter add: inter_Set_filter)
+
+lemma union_Set_Set [code]:
+  "Set t1 \<union> Set t2 = Set (RBT.union t1 t2)"
+by (auto simp add: lookup_union map_add_Some_iff Set_def)
+
 lemma union_Set [code]:
   "Set t \<union> A = fold_keys Set.insert t A"
 proof -
@@ -479,10 +476,6 @@ proof -
   from finite_fold_fold_keys[OF comp_fun_commute_axioms]
   show ?thesis by (auto simp add: union_fold_insert)
 qed
-
-lemma inter_Set [code]:
-  "A \<inter> Set t = rbt_filter (\<lambda>k. k \<in> A) t"
-by (simp add: inter_Set_filter Set_filter_rbt_filter)
 
 lemma minus_Set [code]:
   "A - Set t = fold_keys Set.remove t A"
@@ -493,32 +486,28 @@ proof -
   show ?thesis by (auto simp add: minus_fold_remove)
 qed
 
-lemma union_Coset [code]:
-  "Coset t \<union> A = - rbt_filter (\<lambda>k. k \<notin> A) t"
-proof -
-  have *: "\<And>A B. (-A \<union> B) = -(-B \<inter> A)" by blast
-  show ?thesis by (simp del: boolean_algebra_class.compl_inf add: * inter_Set)
-qed
- 
-lemma union_Set_Set [code]:
-  "Set t1 \<union> Set t2 = Set (RBT.union t1 t2)"
+lemma inter_Coset_Coset [code]:
+  "Coset t1 \<inter> Coset t2 = Coset (RBT.union t1 t2)"
 by (auto simp add: lookup_union map_add_Some_iff Set_def)
 
 lemma inter_Coset [code]:
   "A \<inter> Coset t = fold_keys Set.remove t A"
 by (simp add: Diff_eq [symmetric] minus_Set)
 
-lemma inter_Coset_Coset [code]:
-  "Coset t1 \<inter> Coset t2 = Coset (RBT.union t1 t2)"
-by (auto simp add: lookup_union map_add_Some_iff Set_def)
+lemma union_Coset [code]:
+  "Coset t \<union> A = - rbt_filter (\<lambda>k. k \<notin> A) t"
+proof -
+  have *: "\<And>A B. (-A \<union> B) = -(-B \<inter> A)" by blast
+  show ?thesis by (simp del: boolean_algebra_class.compl_inf add: * inter_Set)
+qed
 
 lemma minus_Coset [code]:
   "A - Coset t = rbt_filter (\<lambda>k. k \<in> A) t"
 by (simp add: inter_Set[simplified Int_commute])
 
 lemma filter_Set [code]:
-  "Set.filter P (Set t) = (rbt_filter P t)"
-by (auto simp add: Set_filter_rbt_filter)
+  "Set.filter P (Set t) = rbt_filter P t"
+  by (fact Set_filter_rbt_filter)
 
 lemma image_Set [code]:
   "image f (Set t) = fold_keys (\<lambda>k A. Set.insert (f k) A) t {}"
@@ -580,6 +569,15 @@ proof -
     by standard (auto simp: ac_simps)
   then show ?thesis 
     by (auto simp add: sum.eq_fold finite_fold_fold_keys o_def)
+qed
+
+lemma prod_Set [code]:
+  "prod f (Set xs) = fold_keys (times \<circ> f) xs 1"
+proof -
+  have "comp_fun_commute (\<lambda>x. (*) (f x))"
+    by standard (auto simp: ac_simps)
+  then show ?thesis 
+    by (auto simp add: prod.eq_fold finite_fold_fold_keys o_def)
 qed
 
 lemma the_elem_set [code]:
@@ -711,7 +709,21 @@ qed
 context
 begin
 
-declare [[code drop: Gcd_fin Lcm_fin \<open>Gcd :: _ \<Rightarrow> nat\<close> \<open>Gcd :: _ \<Rightarrow> int\<close> \<open>Lcm :: _ \<Rightarrow> nat\<close> \<open>Lcm :: _ \<Rightarrow> int\<close>]]
+qualified definition Inf' :: "'a :: {linorder, complete_lattice} set \<Rightarrow> 'a"
+  where [code_abbrev]: "Inf' = Inf"
+
+lemma Inf'_Set_fold [code]:
+  "Inf' (Set t) = (if RBT.is_empty t then top else r_min_opt t)"
+  by (simp add: Inf'_def Inf_Set_fold)
+
+qualified definition Sup' :: "'a :: {linorder, complete_lattice} set \<Rightarrow> 'a"
+  where [code_abbrev]: "Sup' = Sup"
+
+lemma Sup'_Set_fold [code]:
+  "Sup' (Set t) = (if RBT.is_empty t then bot else r_max_opt t)"
+  by (simp add: Sup'_def Sup_Set_fold)
+
+end
 
 lemma [code]:
   "Gcd\<^sub>f\<^sub>i\<^sub>n (Set t) = fold_keys gcd t (0::'a::{semiring_gcd, linorder})"
@@ -724,7 +736,7 @@ proof -
   then show ?thesis
     by (simp add: Gcd_fin.eq_fold)
 qed
-    
+
 lemma [code]:
   "Gcd (Set t) = (Gcd\<^sub>f\<^sub>i\<^sub>n (Set t) :: nat)"
   by simp
@@ -745,58 +757,53 @@ proof -
     by (simp add: Lcm_fin.eq_fold)
 qed
 
-lemma [code drop: "Lcm :: _ \<Rightarrow> nat", code]:
+lemma [code]:
   "Lcm (Set t) = (Lcm\<^sub>f\<^sub>i\<^sub>n (Set t) :: nat)"
   by simp
 
-lemma [code drop: "Lcm :: _ \<Rightarrow> int", code]:
+lemma [code]:
   "Lcm (Set t) = (Lcm\<^sub>f\<^sub>i\<^sub>n (Set t) :: int)"
   by simp
 
-qualified definition Inf' :: "'a :: {linorder, complete_lattice} set \<Rightarrow> 'a"
-  where [code_abbrev]: "Inf' = Inf"
-
-lemma Inf'_Set_fold [code]:
-  "Inf' (Set t) = (if RBT.is_empty t then top else r_min_opt t)"
-  by (simp add: Inf'_def Inf_Set_fold)
-
-qualified definition Sup' :: "'a :: {linorder, complete_lattice} set \<Rightarrow> 'a"
-  where [code_abbrev]: "Sup' = Sup"
-
-lemma Sup'_Set_fold [code]:
-  "Sup' (Set t) = (if RBT.is_empty t then bot else r_max_opt t)"
-  by (simp add: Sup'_def Sup_Set_fold)
-
-end
-
-lemma sorted_list_set[code]: "sorted_list_of_set (Set t) = RBT.keys t"
+lemma sorted_list_set [code]: "sorted_list_of_set (Set t) = RBT.keys t"
   by (auto simp add: set_keys intro: sorted_distinct_set_unique) 
 
-lemma Bleast_code [code]:
-  "Bleast (Set t) P =
-    (case List.filter P (RBT.keys t) of
-      x # xs \<Rightarrow> x
-    | [] \<Rightarrow> abort_Bleast (Set t) P)"
-proof (cases "List.filter P (RBT.keys t)")
-  case Nil
-  thus ?thesis by (simp add: Bleast_def abort_Bleast_def)
-next
-  case (Cons x ys)
-  have "(LEAST x. x \<in> Set t \<and> P x) = x"
-  proof (rule Least_equality)
-    show "x \<in> Set t \<and> P x"
-      using Cons[symmetric]
-      by (auto simp add: set_keys Cons_eq_filter_iff)
-    next
-      fix y
-      assume "y \<in> Set t \<and> P y"
-      then show "x \<le> y"
-        using Cons[symmetric]
-        by(auto simp add: set_keys Cons_eq_filter_iff)
-          (metis sorted_wrt.simps(2) sorted_append sorted_keys)
-  qed
-  thus ?thesis using Cons by (simp add: Bleast_def)
-qed
+lemma Least_code [code]:
+  \<open>Lattices_Big.Least (Set t) = (if RBT.is_empty t then Lattices_Big.Least_abort {} else Min (Set t))\<close>
+  apply (auto simp add: Lattices_Big.Least_abort_def simp flip: empty_Set)
+  apply (subst Least_Min)
+  using is_empty_Set
+    apply auto
+  done
+
+lemma Greatest_code [code]:
+  \<open>Lattices_Big.Greatest (Set t) = (if RBT.is_empty t then Lattices_Big.Greatest_abort {} else Max (Set t))\<close>
+  apply (auto simp add: Lattices_Big.Greatest_abort_def simp flip: empty_Set)
+  apply (subst Greatest_Max)
+  using is_empty_Set
+    apply auto
+  done
+
+lemma [code]:
+  \<open>Option.these A = the ` Set.filter (Not \<circ> Option.is_none) A\<close>
+  by (fact Option.these_eq)
+
+lemma [code]:
+  \<open>Option.image_filter f A = Option.these (image f A)\<close>
+  by (fact Option.image_filter_eq)
+
+lemma [code]:
+  \<open>Set.can_select P A = is_singleton (Set.filter P A)\<close>
+  by (fact Set.can_select_iff_is_singleton)
+
+declare [[code drop:
+  \<open>Inf :: _ \<Rightarrow> 'a set\<close>
+  \<open>Sup :: _ \<Rightarrow> 'a set\<close>
+  \<open>Inf :: _ \<Rightarrow> 'a Predicate.pred\<close>
+  \<open>Sup :: _ \<Rightarrow> 'a Predicate.pred\<close>
+  pred_of_set
+  Wellfounded.acc
+]]
 
 hide_const (open) RBT_Set.Set RBT_Set.Coset
 

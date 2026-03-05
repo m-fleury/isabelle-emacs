@@ -47,7 +47,7 @@ object ML_Statistics {
 
   /* monitor process */
 
-  def monitor(pid: Long,
+  def monitor(ml_settings: ML_Settings, pid: Long,
     stats_dir: String = "",
     delay: Time = Time.seconds(0.5),
     consume: Properties.T => Unit = Console.println
@@ -57,10 +57,10 @@ object ML_Statistics {
       if (props.nonEmpty) consume(props)
     }
 
-    val env_prefix =
-      if_proper(stats_dir, "export POLYSTATSDIR=" + Bash.string(stats_dir) + "\n")
+    val env_prefix = if_proper(stats_dir, Bash.exports("POLYSTATSDIR=" + stats_dir))
 
-    Bash.process(env_prefix + "\"$POLYML_EXE\" -q --use src/Pure/ML/ml_statistics.ML --eval " +
+    Bash.process(env_prefix + File.bash_path(ml_settings.polyml_exe) +
+        " -q --use src/Pure/ML/ml_statistics.ML --eval " +
         Bash.string("ML_Statistics.monitor " + ML_Syntax.print_long(pid) + " " +
           ML_Syntax.print_double(delay.seconds)),
         cwd = Path.ISABELLE_HOME)
@@ -78,7 +78,7 @@ object ML_Statistics {
       this.session = session
     }
 
-    override def exit(): Unit = synchronized {
+    override def exit(exit_state: Document.State): Unit = synchronized {
       session = null
       monitoring.cancel()
     }
@@ -95,7 +95,7 @@ object ML_Statistics {
         case Markup.ML_Statistics(pid, stats_dir) =>
           monitoring =
             Future.thread("ML_statistics") {
-              monitor(pid, stats_dir = stats_dir, consume = consume)
+              monitor(session.store.ml_settings, pid, stats_dir = stats_dir, consume = consume)
             }
           true
         case _ => false

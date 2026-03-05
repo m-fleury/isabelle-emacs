@@ -7,12 +7,34 @@ General editor operations.
 package isabelle
 
 
-abstract class Editor[Context] {
+object Editor {
+  /* output messages */
+
+  object Output {
+    val none: Output = Output(defined = false)
+    val init: Output = Output()
+  }
+
+  sealed case class Output(
+    snapshot: Document.Snapshot = Document.Snapshot.init,
+    results: Command.Results = Command.Results.empty,
+    messages: List[XML.Elem] = Nil,
+    defined: Boolean = true
+  ) {
+    def proper: Boolean = messages.nonEmpty && defined
+  }
+}
+
+abstract class Editor {
+  type Context
+
+
   /* PIDE session and document model */
 
   def session: Session
   def flush(): Unit
   def invoke(): Unit
+  def revoke(): Unit
 
   def get_models(): Iterable[Document.Model]
 
@@ -89,6 +111,48 @@ abstract class Editor[Context] {
   def current_command(context: Context, snapshot: Document.Snapshot): Option[Command]
 
 
+  /* output messages */
+
+  def output_state(): Boolean
+
+  def output(
+    snapshot: Document.Snapshot,
+    caret_offset: Text.Offset,
+    restriction: Option[Set[Command]] = None
+  ): Editor.Output = {
+    if (snapshot.is_outdated) Editor.Output.none
+    else {
+      val thy_command_range = snapshot.loaded_theory_command(caret_offset)
+      val thy_command = thy_command_range.map(_._1)
+
+      def filter(msg: XML.Elem): Boolean =
+        (for {
+          (command, command_range) <- thy_command_range
+          msg_offset <- Position.Offset.unapply(msg.markup.properties)
+        } yield command_range.contains(command.chunk.decode(msg_offset))) getOrElse true
+
+      thy_command orElse snapshot.current_command(snapshot.node_name, caret_offset) match {
+        case None => Editor.Output.init
+        case Some(command) =>
+          if (thy_command.isDefined || restriction.isEmpty || restriction.get.contains(command)) {
+            val results = snapshot.command_results(command)
+            val messages = {
+              val (states, other) = {
+                List.from(
+                  for ((_, msg) <- results.iterator if !Protocol.is_result(msg) && filter(msg))
+                    yield msg).partition(Protocol.is_state)
+              }
+              val (urgent, regular) = other.partition(Protocol.is_urgent)
+              urgent ::: (if (output_state()) states else Nil) ::: regular
+            }
+            Editor.Output(snapshot = snapshot, results = results, messages = messages)
+          }
+          else Editor.Output.none
+      }
+    }
+  }
+
+
   /* overlays */
 
   def node_overlays(name: Document.Node.Name): Document.Node.Overlays
@@ -104,8 +168,10 @@ abstract class Editor[Context] {
   }
 
   def hyperlink_command(
-    focus: Boolean, snapshot: Document.Snapshot, id: Document_ID.Generic, offset: Symbol.Offset = 0)
-      : Option[Hyperlink]
+    snapshot: Document.Snapshot,
+    id: Document_ID.Generic,
+    offset: Symbol.Offset = 0,
+    focus: Boolean = false): Option[Hyperlink]
 
 
   /* dispatcher thread */

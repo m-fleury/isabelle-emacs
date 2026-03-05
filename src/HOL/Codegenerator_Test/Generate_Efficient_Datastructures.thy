@@ -17,10 +17,6 @@ text \<open>
 \<close>
 
 declare [[code drop:
-  "Inf :: _ Predicate.pred set \<Rightarrow> _"
-  "Sup :: _ Predicate.pred set \<Rightarrow> _"
-  pred_of_set
-  Wellfounded.acc
   Code_Cardinality.card'
   Code_Cardinality.finite'
   Code_Cardinality.subset'
@@ -30,6 +26,7 @@ declare [[code drop:
   "Gcd :: _ poly set \<Rightarrow> _"
   "Lcm :: _ poly set \<Rightarrow> _"
   nlists
+  Multiset.multisets_of_size
 ]]
 
 text \<open>

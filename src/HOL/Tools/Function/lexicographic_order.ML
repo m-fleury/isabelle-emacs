@@ -124,16 +124,12 @@ fun col_index j = string_of_int (j + 1)  (* FIXME not scalable wrt. table layout
 
 fun pr_unprovable_cell _ ((i,j), Less _) = []
   | pr_unprovable_cell ctxt ((i,j), LessEq (_, st)) =
-      ["(" ^ row_index i ^ ", " ^ col_index j ^ ", <):\n" ^
-       Goal_Display.string_of_goal ctxt st]
+      [Goal_Display.print_goal ctxt ("(" ^ row_index i ^ ", " ^ col_index j ^ ", <):") st]
   | pr_unprovable_cell ctxt ((i,j), None (st_leq, st_less)) =
-      ["(" ^ row_index i ^ ", " ^ col_index j ^ ", <):\n" ^
-       Goal_Display.string_of_goal ctxt st_less ^
-       "\n(" ^ row_index i ^ ", " ^ col_index j ^ ", <=):\n" ^
-       Goal_Display.string_of_goal ctxt st_leq]
+      [Goal_Display.print_goal ctxt ("(" ^ row_index i ^ ", " ^ col_index j ^ ", <):") st_less ^ "\n" ^
+       Goal_Display.print_goal ctxt ("(" ^ row_index i ^ ", " ^ col_index j ^ ", <=):") st_leq]
   | pr_unprovable_cell ctxt ((i,j), False st) =
-      ["(" ^ row_index i ^ ", " ^ col_index j ^ ", <):\n" ^
-       Goal_Display.string_of_goal ctxt st]
+      [Goal_Display.print_goal ctxt ("(" ^ row_index i ^ ", " ^ col_index j ^ ", <):") st]
 
 fun pr_unprovable_subgoals ctxt table =
   table
@@ -203,7 +199,7 @@ fun lex_order_tac quiet ctxt solve_tac st = SUBGOAL (fn _ =>
           st |>
           (PRIMITIVE (infer_instantiate ctxt [(#1 (dest_Var rel), Thm.cterm_of ctxt relation)])
             THEN (REPEAT (resolve_tac ctxt @{thms wf_mlex} 1))
-            THEN (resolve_tac ctxt @{thms wf_empty} 1)
+            THEN (resolve_tac ctxt @{thms wf_on_bot} 1)
             THEN EVERY (map (prove_row_tac ctxt) clean_table))
         end
   end) 1 st;
@@ -211,7 +207,7 @@ fun lex_order_tac quiet ctxt solve_tac st = SUBGOAL (fn _ =>
 fun lexicographic_order_tac quiet ctxt =
   TRY (Function_Common.termination_rule_tac ctxt 1) THEN
   lex_order_tac quiet ctxt
-    (auto_tac (ctxt addsimps (Named_Theorems.get ctxt \<^named_theorems>\<open>termination_simp\<close>)))
+    (auto_tac (ctxt |> Simplifier.add_simps (Named_Theorems.get ctxt \<^named_theorems>\<open>termination_simp\<close>)))
 
 val _ =
   Theory.setup

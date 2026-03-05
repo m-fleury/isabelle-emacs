@@ -50,6 +50,10 @@ declare
 
 end
 
+
+lemma trancl_incr: "r \<subseteq> r\<^sup>+"
+by auto
+
 abbreviation reflcl :: "('a \<times> 'a) set \<Rightarrow> ('a \<times> 'a) set"  (\<open>(\<open>notation=\<open>postfix =\<close>\<close>_\<^sup>=)\<close> [1000] 999)
   where "r\<^sup>= \<equiv> r \<union> Id"
 
@@ -435,6 +439,9 @@ proof -
     by (cases p) force
 qed
 
+lemma trancl_mono_subset: "A \<subseteq> B \<Longrightarrow> A^+ \<subseteq> B^+"
+by (blast intro: trancl_mono)
+
 lemma r_into_trancl': "\<And>p. p \<in> r \<Longrightarrow> p \<in> r\<^sup>+"
   by (simp only: split_tupled_all) (erule r_into_trancl)
 
@@ -546,6 +553,19 @@ lemma tranclp_into_tranclp2: "r a b \<Longrightarrow> r\<^sup>+\<^sup>+ b c \<Lo
   by (erule tranclp_trans [OF tranclp.r_into_trancl])
 
 lemmas trancl_into_trancl2 = tranclp_into_tranclp2 [to_set]
+
+lemma trancl_trancl_Un: "(A^+ \<union> B)^+ = (A \<union> B)^+"
+proof
+  show "(A\<^sup>+ \<union> B)\<^sup>+ \<subseteq> (A \<union> B)\<^sup>+"
+    using trancl_id[OF trans_trancl] trancl_incr[of "A \<union> B"]
+      trancl_mono_subset[of A "(A \<union> B)\<^sup>+"] trancl_mono_subset[of "A\<^sup>+ \<union> B" "(A \<union> B)\<^sup>+"]
+    by blast
+  show "(A \<union> B)\<^sup>+ \<subseteq> (A\<^sup>+ \<union> B)\<^sup>+"
+    using trancl_incr[of A] trancl_mono_subset[OF sup_mono] by blast
+qed
+
+lemma trancl_absorb_subset_trancl: "B \<subseteq> A^+ \<Longrightarrow> (A \<union> B)^+ = A^+"
+using trancl_trancl_Un[of A B] sup.order_iff[of B "A\<^sup>+"] by auto
 
 lemma tranclp_converseI:
   assumes "(r\<^sup>+\<^sup>+)\<inverse>\<inverse> x y" shows "(r\<inverse>\<inverse>)\<^sup>+\<^sup>+ x y"
@@ -951,13 +971,13 @@ definition relpowp :: "nat \<Rightarrow> ('a \<Rightarrow> 'a \<Rightarrow> bool
   where relpowp_code_def [code_abbrev]: "relpowp = compow"
 
 lemma [code]:
-  "relpow (Suc n) R = (relpow n R) O R"
   "relpow 0 R = Id"
+  "relpow (Suc n) R = relpow n R O R"
   by (simp_all add: relpow_code_def)
 
 lemma [code]:
-  "relpowp (Suc n) R = (R ^^ n) OO R"
   "relpowp 0 R = HOL.eq"
+  "relpowp (Suc n) R = relpowp n R OO R"
   by (simp_all add: relpowp_code_def)
 
 hide_const (open) relpow
@@ -1581,10 +1601,10 @@ structure Tranclp_Tac = Trancl_Tac
 
 setup \<open>
   map_theory_simpset (fn ctxt => ctxt
-    addSolver (mk_solver "Trancl" Trancl_Tac.trancl_tac)
-    addSolver (mk_solver "Rtrancl" Trancl_Tac.rtrancl_tac)
-    addSolver (mk_solver "Tranclp" Tranclp_Tac.trancl_tac)
-    addSolver (mk_solver "Rtranclp" Tranclp_Tac.rtrancl_tac))
+    |> Simplifier.add_unsafe_solver (mk_solver "Trancl" Trancl_Tac.trancl_tac)
+    |> Simplifier.add_unsafe_solver (mk_solver "Rtrancl" Trancl_Tac.rtrancl_tac)
+    |> Simplifier.add_unsafe_solver (mk_solver "Tranclp" Tranclp_Tac.trancl_tac)
+    |> Simplifier.add_unsafe_solver (mk_solver "Rtranclp" Tranclp_Tac.rtrancl_tac))
 \<close>
 
 lemma transp_rtranclp [simp]: "transp R\<^sup>*\<^sup>*"

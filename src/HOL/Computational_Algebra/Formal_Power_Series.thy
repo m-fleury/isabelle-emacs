@@ -11,6 +11,8 @@ imports
   Complex_Main
   Euclidean_Algorithm
   Primes
+  "HOL-Library.FuncSet"
+  "HOL-Library.Multiset"
 begin
 
 
@@ -748,6 +750,19 @@ proof
   from arg_cong[of _ _ "\<lambda>F. F $ 0", OF this] show False by simp
 qed 
 
+instance fps :: (semiring_char_0) semiring_char_0
+proof
+  show "inj (of_nat :: nat \<Rightarrow> 'a fps)"
+  proof
+    fix m n :: nat
+    assume "of_nat m = (of_nat n :: 'a fps)"
+    hence "fps_nth (of_nat m) 0 = (fps_nth (of_nat n) 0 :: 'a)"
+      by (simp only: )
+    thus "m = n"
+      by simp
+  qed
+qed
+
 lemma subdegree_power_ge:
   "f^n \<noteq> 0 \<Longrightarrow> subdegree (f^n) \<ge> n * subdegree f"
 proof (induct n)
@@ -800,6 +815,12 @@ qed simp
 lemma subdegree_power [simp]:
   "subdegree ((f :: ('a :: semiring_1_no_zero_divisors) fps) ^ n) = n * subdegree f"
   by (cases "f = 0"; induction n) simp_all
+
+lemma subdegree_prod:
+  fixes f :: "'a \<Rightarrow> 'b :: idom fps"
+  assumes "\<And>x. x \<in> A \<Longrightarrow> f x \<noteq> 0"
+  shows   "subdegree (\<Prod>x\<in>A. f x) = (\<Sum>x\<in>A. subdegree (f x))"
+  using assms by (induction A rule: infinite_finite_induct) auto
 
 
 lemma minus_one_power_iff: "(- (1::'a::ring_1)) ^ n = (if even n then 1 else - 1)"
@@ -1325,6 +1346,15 @@ lemma fps_cutoff_left_mult_nth:
   "k < n \<Longrightarrow> (fps_cutoff n f * g) $ k = (f * g) $ k"
   by (simp add: fps_mult_nth)
 
+lemma fps_cutoff_add: "fps_cutoff n (f + g :: 'a :: monoid_add fps) = fps_cutoff n f + fps_cutoff n g"
+  by (auto simp: fps_eq_iff)
+
+lemma fps_cutoff_diff: "fps_cutoff n (f - g :: 'a :: group_add fps) = fps_cutoff n f - fps_cutoff n g"
+  by (auto simp: fps_eq_iff)
+
+lemma fps_cutoff_uminus: "fps_cutoff n (-f :: 'a :: group_add fps) = -fps_cutoff n f"
+  by (auto simp: fps_eq_iff)
+
 lemma fps_cutoff_right_mult_nth:
   assumes "k < n"
   shows   "(f * fps_cutoff n g) $ k = (f * g) $ k"
@@ -1332,6 +1362,22 @@ proof-
   from assms have "\<forall>i\<in>{0..k}. fps_cutoff n g $ (k - i) = g $ (k - i)" by auto
   thus ?thesis by (simp add: fps_mult_nth)
 qed
+
+lemma fps_cutoff_eq_fps_cutoff_iff:
+  "fps_cutoff n f = fps_cutoff n g \<longleftrightarrow> (\<forall>k<n. fps_nth f k = fps_nth g k)"
+  by (subst fps_eq_iff) auto
+
+lemma fps_conv_fps_X_power_mult_fps_shift: 
+  assumes "f = 0 \<or> subdegree f \<ge> n"
+  shows   "f = fps_X ^ n * fps_shift n f"
+proof -
+  have "f = fps_X ^ n * fps_shift n f + fps_cutoff n f"
+    by (auto simp: fps_eq_iff fps_X_power_mult_nth)
+  also have "fps_cutoff n f = 0"
+    by (subst fps_cutoff_zero_iff) (use assms in auto)
+  finally show ?thesis by simp
+qed
+
 
 subsection \<open>Metrizability\<close>
 
@@ -1401,6 +1447,156 @@ declare uniformity_Abort[where 'a="'a :: group_add fps", code]
 
 lemma open_fps_def: "open (S :: 'a::group_add fps set) = (\<forall>a \<in> S. \<exists>r. r >0 \<and> {y. dist y a < r} \<subseteq> S)"
   unfolding open_dist subset_eq by simp
+
+
+text \<open>Topology\<close>
+
+subsection \<open>The topology of formal power series\<close>
+
+text \<open>
+  A set of formal power series is open iff for any power series $f$ in it, there exists some
+  number $n$ such that all power series that agree with $f$ on the first $n$ components are
+  also in it.
+\<close>
+lemma open_fps_iff:
+  "open A \<longleftrightarrow> (\<forall>F\<in>A. \<exists>n. {G. fps_cutoff n G = fps_cutoff n F} \<subseteq> A)"
+proof
+  assume "open A"
+  show "\<forall>F\<in>A. \<exists>n. {G. fps_cutoff n G = fps_cutoff n F} \<subseteq> A"
+  proof
+    fix F :: "'a fps"
+    assume F: "F \<in> A"
+    with \<open>open A\<close> obtain e where e: "e > 0" "\<And>G. dist G F < e \<Longrightarrow> G \<in> A"
+      by (force simp: open_fps_def)
+    thm dist_fps_def
+    have "filterlim (\<lambda>n. (1/2)^n :: real) (nhds 0) at_top"
+      by (intro LIMSEQ_realpow_zero) auto
+    from order_tendstoD(2)[OF this e(1)] have "eventually (\<lambda>n. 1 / 2 ^ n < e) at_top"
+      by (simp add: power_divide)
+    then obtain n where n: "1 / 2 ^ n < e"
+      by (auto simp: eventually_sequentially)
+    show "\<exists>n. {G. fps_cutoff n G = fps_cutoff n F} \<subseteq> A"
+    proof (rule exI[of _ n], safe)
+      fix G assume *: "fps_cutoff n G = fps_cutoff n F"
+      show "G \<in> A"
+      proof (cases "G = F")
+        case False
+        hence "dist G F = inverse (2 ^ subdegree (G - F))"
+          by (auto simp: dist_fps_def)
+        also have "subdegree (G - F) \<ge> n"
+        proof (rule subdegree_geI)
+          fix i assume "i < n"
+          hence "fps_nth (G - F) i = fps_nth (fps_cutoff n G - fps_cutoff n F) i"
+            by (auto simp: fps_eq_iff)
+          also from * have "\<dots> = 0"
+            by simp
+          finally show "fps_nth (G - F) i = 0" .
+        qed (use False in auto)
+        hence "inverse (2 ^ subdegree (G - F) :: real) \<le> inverse (2 ^ n)"
+          by (intro le_imp_inverse_le power_increasing) auto
+        also have "\<dots> < e"
+          using n by (simp add: field_simps)
+        finally show "G \<in> A"
+          using e(2)[of G] by auto
+      qed (use \<open>F \<in> A\<close> in auto)
+    qed
+  qed
+next
+  assume *: "\<forall>F\<in>A. \<exists>n. {G. fps_cutoff n G = fps_cutoff n F} \<subseteq> A"
+  show "open A"
+    unfolding open_fps_def
+  proof safe
+    fix F assume F: "F \<in> A"
+    with * obtain n where n: "\<And>G. fps_cutoff n G = fps_cutoff n F \<Longrightarrow> G \<in> A"
+      by blast
+    show "\<exists>r>0. {G. dist G F < r} \<subseteq> A"
+    proof (rule exI[of _ "1 / 2 ^ n"], safe)
+      fix G assume dist: "dist G F < 1 / 2 ^ n"
+      show "G \<in> A"
+      proof (cases "G = F")
+        case False
+        hence "dist G F = inverse (2 ^ subdegree (F - G))"
+          by (simp add: dist_fps_def)
+        with dist have "n < subdegree (F - G)"
+          by (auto simp: field_simps)
+        hence "fps_nth (F - G) i = 0" if "i \<le> n" for i
+          using that nth_less_subdegree_zero[of i "F - G"] by simp
+        hence "fps_cutoff n G = fps_cutoff n F"
+          by (auto simp: fps_eq_iff fps_cutoff_def)
+        thus "G \<in> A"
+          by (rule n)
+      qed (use \<open>F \<in> A\<close> in auto)
+    qed auto
+  qed
+qed
+
+lemma open_fps_cutoff: "open {H. fps_cutoff N H = fps_cutoff N G}"
+  unfolding open_fps_iff
+proof safe
+  fix F assume F: "fps_cutoff N F = fps_cutoff N G"
+  show "\<exists>n. {G. fps_cutoff n G = fps_cutoff n F}
+             \<subseteq> {H. fps_cutoff N H = fps_cutoff N G}"
+    by (rule exI[of _ N]) (use F in \<open>auto simp: fps_eq_iff\<close>)
+qed
+
+lemma eventually_fps_nth_eq_nhds_fps_strong:
+  "eventually (\<lambda>g. \<forall>k\<le>n. fps_nth g k = fps_nth f k) (nhds f)"
+proof -
+  have "eventually (\<lambda>g. g \<in> {g. fps_cutoff (n+1) g = fps_cutoff (n+1) f}) (nhds f)"
+    by (rule eventually_nhds_in_open, rule open_fps_cutoff) auto
+  thus ?thesis
+    by eventually_elim (auto simp: fps_cutoff_eq_fps_cutoff_iff)
+qed
+
+lemma eventually_fps_nth_eq_nhds_fps: "eventually (\<lambda>g. fps_nth g k = fps_nth f k) (nhds f)"
+  using eventually_fps_nth_eq_nhds_fps_strong[of k] by eventually_elim auto
+
+text \<open>
+  A family of formal power series $f_x$ tends to a limit series $g$ at some filter $F$
+  iff for any $N\geq 0$, the set of $x$ for which $f_x$ and $G$ agree on the first $N$ coefficients
+  is in $F$.
+
+  For a sequence $(f_i)_{n\geq 0}$ this means that $f_i \longrightarrow G$ iff for any 
+  $N\geq 0$, $f_x$ and $G$ agree for all but finitely many $x$.
+\<close>
+
+lemma tendsto_fps_iff:
+  "filterlim f (nhds (g :: 'a :: group_add fps)) F \<longleftrightarrow>
+     (\<forall>n. eventually (\<lambda>x. fps_nth (f x) n = fps_nth g n) F)"
+proof safe
+  assume lim: "filterlim f (nhds (g :: 'a :: group_add fps)) F"
+  show "eventually (\<lambda>x. fps_nth (f x) n = fps_nth g n) F" for n
+  proof -
+    define S where "S = {H. fps_cutoff (n+1) H = fps_cutoff (n+1) g}"
+    have S: "open S" "g \<in> S"
+      unfolding S_def using open_fps_cutoff[of "n+1" g] by (auto simp: S_def)
+    from lim and S have "eventually (\<lambda>x. f x \<in> S) F"
+      using topological_tendstoD by blast
+    thus "eventually (\<lambda>x. fps_nth (f x) n = fps_nth g n) F"
+      by eventually_elim (auto simp: S_def fps_cutoff_eq_fps_cutoff_iff)
+  qed
+next
+  assume *: "\<forall>n. eventually (\<lambda>x. fps_nth (f x) n = fps_nth g n) F"
+  show "filterlim f (nhds (g :: 'a :: group_add fps)) F"
+  proof (rule topological_tendstoI)
+    fix S :: "'a fps set"
+    assume S: "open S" "g \<in> S"
+    then obtain N where N: "{H. fps_cutoff N H = fps_cutoff N g} \<subseteq> S"
+      unfolding open_fps_iff by blast
+    have "eventually (\<lambda>x. \<forall>n\<in>{..<N}. fps_nth (f x) n = fps_nth g n) F"
+      by (subst eventually_ball_finite_distrib) (use * in auto)
+    hence "eventually (\<lambda>x. f x \<in> {H. fps_cutoff N H = fps_cutoff N g}) F"
+      by eventually_elim (auto simp: fps_cutoff_eq_fps_cutoff_iff)
+    thus "eventually (\<lambda>x. f x \<in> S) F"
+      by eventually_elim (use N in auto)
+  qed
+qed
+
+lemma tendsto_fpsI:
+  assumes "\<And>n. eventually (\<lambda>x. fps_nth (f x) n = fps_nth G n) F"
+  shows   "filterlim f (nhds (G :: 'a :: group_add fps)) F"
+  unfolding tendsto_fps_iff using assms by blast
+
 
 text \<open>The infinite sums and justification of the notation in textbooks.\<close>
 
@@ -2030,6 +2226,9 @@ lemma fps_inverse_mult_divring:
 lemma fps_inverse_mult: "inverse (f * g :: 'a::field fps) = inverse f * inverse g"
   by (simp add: fps_inverse_mult_divring)
 
+lemma inverse_prod_fps: "inverse (prod f A) = (\<Prod>x\<in>A. inverse (f x) :: 'a :: field fps)"
+  by (induction A rule: infinite_finite_induct) (auto simp: fps_inverse_mult)
+
 lemma fps_lr_inverse_gp_ring1:
   fixes   ones ones_inv :: "'a :: ring_1 fps"
   defines "ones \<equiv> Abs_fps (\<lambda>n. 1)"
@@ -2251,6 +2450,92 @@ lemma subdegree_inverse [simp]:
   shows "subdegree (inverse f) = 0"
   using subdegree_lr_inverse(2)
   by    (simp add: fps_inverse_def)
+
+lemma fps_right_inverse_constructor_rec:
+  "n > 0 \<Longrightarrow> fps_right_inverse_constructor f a n =
+               -a * sum (\<lambda>i. fps_nth f i * fps_right_inverse_constructor f a (n - i)) {1..n}"
+  by (cases n) auto
+
+lemma fps_right_inverse_constructor_cong:
+  assumes "\<And>k. k \<le> n \<Longrightarrow> fps_nth f k = fps_nth g k"
+  shows   "fps_right_inverse_constructor f c n = fps_right_inverse_constructor g c n"
+  using assms
+proof (induction n rule: less_induct)
+  case (less n)
+  show ?case
+  proof (cases "n > 0")
+    case n: True
+    have "fps_right_inverse_constructor f c n = 
+            -c * sum (\<lambda>i. fps_nth f i * fps_right_inverse_constructor f c (n - i)) {1..n}"
+      by (subst fps_right_inverse_constructor_rec) (use n in auto)
+    also have "sum (\<lambda>i. fps_nth f i * fps_right_inverse_constructor f c (n - i)) {1..n} =
+               sum (\<lambda>i. fps_nth g i * fps_right_inverse_constructor g c (n - i)) {1..n}"
+      by (intro sum.cong refl arg_cong2[of _ _ _ _ "(*)"] less) (use assms in auto)
+    also have "-c * \<dots> = fps_right_inverse_constructor g c n"
+      by (subst (2) fps_right_inverse_constructor_rec) (use n in auto)
+    finally show ?thesis .
+  qed auto
+qed
+
+lemma fps_cutoff_inverse:
+  fixes f :: "'a :: field fps"
+  assumes "fps_nth f 0 \<noteq> 0"
+  shows   "fps_cutoff n (inverse (fps_cutoff n f)) = fps_cutoff n (inverse f)"
+proof (cases "n = 0")
+  case True
+  show ?thesis
+    by (simp add: True)
+next
+  case False
+  show ?thesis
+  proof (subst fps_cutoff_eq_fps_cutoff_iff, safe)
+    fix k assume "k < n"
+    have "fps_nth (inverse (fps_cutoff n f)) k =
+            fps_right_inverse_constructor (fps_cutoff n f) (inverse (fps_nth f 0)) k"
+      using False by (simp add: fps_inverse_def)
+    also have "\<dots> = fps_right_inverse_constructor f (inverse (fps_nth f 0)) k"
+      by (rule fps_right_inverse_constructor_cong) (use \<open>k < n\<close> in auto)
+    also have "\<dots> = fps_nth (inverse f) k"
+      using False by (simp add: fps_inverse_def)
+    finally show "fps_nth (inverse (fps_cutoff n f)) k = fps_nth (inverse f) k" .
+  qed
+qed
+
+lemma tendsto_inverse_fps_aux:
+  fixes f :: "'a :: field fps"
+  assumes "fps_nth f 0 \<noteq> 0"
+  shows   "((\<lambda>f. inverse f) \<longlongrightarrow> inverse f) (at f)"
+  unfolding tendsto_fps_iff
+proof
+  fix n :: nat
+  have "eventually (\<lambda>g. \<forall>k\<le>n. fps_nth g k = fps_nth f k) (nhds f)"
+    by (rule eventually_fps_nth_eq_nhds_fps_strong)
+  hence "eventually (\<lambda>g. \<forall>k\<le>n. fps_nth g k = fps_nth f k) (at f)"
+    using eventually_nhds_conv_at by blast
+  thus "eventually (\<lambda>g. fps_nth (inverse g) n = fps_nth (inverse f) n) (at f)"
+  proof eventually_elim
+    case (elim g)
+    from elim have "fps_nth g 0 = fps_nth f 0"
+      by auto
+    with assms have [simp]: "fps_nth g 0 \<noteq> 0"
+      by simp
+    have "fps_cutoff (n+1) (inverse f) = fps_cutoff (n+1) (inverse (fps_cutoff (n+1) f))"
+      by (rule fps_cutoff_inverse [symmetric]) fact
+    also have "fps_cutoff (n+1) f = fps_cutoff (n+1) g"
+      by (subst fps_cutoff_eq_fps_cutoff_iff) (use elim in auto)
+    also have "fps_cutoff (n+1) (inverse \<dots>) = fps_cutoff (n+1) (inverse g)"
+      by (rule fps_cutoff_inverse) auto
+    finally show ?case
+      by (subst (asm) fps_cutoff_eq_fps_cutoff_iff) auto
+  qed
+qed
+
+lemma tendsto_inverse_fps [tendsto_intros]:
+  fixes g :: "'a :: field fps"
+  assumes "(f \<longlongrightarrow> g) F"
+  assumes "fps_nth g 0 \<noteq> 0"
+  shows   "((\<lambda>x. inverse (f x)) \<longlongrightarrow> inverse g) F"
+  by (rule tendsto_compose[OF tendsto_inverse_fps_aux assms(1)]) fact
 
 lemma fps_div_zero [simp]:
   "0 div (g :: 'a :: {comm_monoid_add,inverse,mult_zero,uminus} fps) = 0"
@@ -2863,6 +3148,105 @@ qed (simp_all add: fps_divide_def Let_def)
 end
 
 
+subsection \<open>Computing reciprocals via Hensel lifting\<close>
+
+lemma inverse_fps_hensel_lifting:
+  fixes F G :: "'a :: field fps" and n :: nat
+  assumes G_eq: "fps_cutoff n G = fps_cutoff n (inverse F)"
+  assumes unit: "fps_nth F 0 \<noteq> 0"
+  shows "fps_cutoff (2*n) (inverse F) = fps_cutoff (2*n) (G * (2 - F * G))"
+proof -
+  define R where "R = inverse F - G"
+  have eq: "G = inverse F - R"
+    by (simp add: R_def)
+  from assms have "fps_cutoff n R = 0"
+    by (simp add: R_def fps_cutoff_diff)
+  hence R: "R = 0 \<or> subdegree R \<ge> n"
+    by (simp add: fps_cutoff_zero_iff)
+
+  have "G * (2 - F * G) - inverse F = 
+         inverse F + F * inverse F * R * 2 - F * R\<^sup>2 - R * 2 - F * inverse F * inverse F"
+    by (simp add: eq algebra_simps power2_eq_square)
+  also have "F * inverse F = 1"
+    using unit by (simp add: inverse_mult_eq_1')
+  also have "inverse F + 1 * R * 2 - F * R\<^sup>2 - R * 2 - 1 * inverse F = -F * R\<^sup>2"
+    by (simp add: algebra_simps)
+  finally have "fps_cutoff (2*n) (G * (2 - F * G) - inverse F) = fps_cutoff (2*n) (-F * R\<^sup>2)"
+    by (rule arg_cong)
+  also have "\<dots> = 0"
+  proof (cases "-F * R\<^sup>2 = 0")
+    case False
+    have "2 * n \<le> subdegree (-F * R\<^sup>2)"
+      using False R unit by simp
+    thus ?thesis
+      by (simp add: fps_cutoff_zero_iff)
+  qed auto
+  finally show ?thesis
+    by (simp add: fps_cutoff_diff)
+qed
+
+lemma inverse_fps_hensel_lifting':
+  fixes F G :: "'a :: field fps" and n :: nat
+  assumes G_eq: "fps_cutoff n G = fps_cutoff n (inverse F)"
+  assumes unit: "fps_nth F 0 \<noteq> 0"
+  defines "P \<equiv> fps_shift n (F * G - 1)"
+  shows "fps_cutoff (2*n) (inverse F) = fps_cutoff (2*n) (G * (1 - fps_X ^ n * P))"
+proof -
+  define R where "R = inverse F - G"
+  have eq: "G = inverse F - R"
+    by (simp add: R_def)
+  from assms have "fps_cutoff n R = 0"
+    by (simp add: R_def fps_cutoff_diff)
+  hence R: "R = 0 \<or> subdegree R \<ge> n"
+    by (simp add: fps_cutoff_zero_iff)
+
+  have FG_eq: "F * G = 1 + fps_X ^ n * P"
+  proof (cases "F * G - 1 = 0")
+    case False
+    have eq: "F * G - 1 = F * (G - inverse F)"
+      using unit by (simp add: inverse_mult_eq_1' ring_distribs)
+    have "subdegree (F * (G - inverse F)) \<ge> n"
+    proof -
+      have "fps_cutoff n (G - inverse F) = 0"
+        using G_eq by (simp add: fps_cutoff_diff)
+      hence "n \<le> subdegree (G - inverse F)"
+        using False unfolding eq by (simp add: fps_cutoff_zero_iff)
+      also have "subdegree (G - inverse F) = subdegree (F * (G - inverse F))"
+        by (subst subdegree_mult) (use unit False in \<open>auto simp: eq\<close>)
+      finally have "n \<le> subdegree (F * (G - inverse F))" .
+      thus ?thesis
+        by blast
+    qed
+    hence "F * G - 1 = fps_X ^ n * P"
+      unfolding eq P_def by (intro fps_conv_fps_X_power_mult_fps_shift) auto
+    thus ?thesis
+      by (simp add: algebra_simps)
+  qed (auto simp: P_def)
+
+  have "G * (1 - fps_X ^ n * P) - inverse F = G * (2 - F * G) - inverse F"
+    by (auto simp: FG_eq)
+  also have "G * (2 - F * G) - inverse F = 
+         inverse F + F * inverse F * R * 2 - F * R\<^sup>2 - R * 2 - F * inverse F * inverse F"
+    by (simp add: eq algebra_simps power2_eq_square)
+  also have "F * inverse F = 1"
+    using unit by (simp add: inverse_mult_eq_1')
+  also have "inverse F + 1 * R * 2 - F * R\<^sup>2 - R * 2 - 1 * inverse F = -F * R\<^sup>2"
+    by (simp add: algebra_simps)
+  finally have "fps_cutoff (2*n) (G * (1 - fps_X ^ n * P) - inverse F) = fps_cutoff (2*n) (-F * R\<^sup>2)"
+    by (rule arg_cong)
+  also have "\<dots> = 0"
+  proof (cases "-F * R\<^sup>2 = 0")
+    case False
+    have "2 * n \<le> subdegree (-F * R\<^sup>2)"
+      using False R unit by simp
+    thus ?thesis
+      by (simp add: fps_cutoff_zero_iff)
+  qed auto
+  finally show ?thesis
+    by (simp add: fps_cutoff_diff)
+qed
+
+
 subsection \<open>Euclidean division\<close>
 
 instantiation fps :: (field) euclidean_ring_cancel
@@ -3445,6 +3829,165 @@ lemma fps_deriv_power:
   fixes a :: "'a::comm_semiring_1 fps"
   shows "fps_deriv (a ^ n) = fps_const (of_nat n) * fps_deriv a * a ^ (n - 1)"
   by (simp add: fps_deriv_power' fps_of_nat)
+
+
+subsection \<open>Finite and infinite products\<close>
+
+lemma fps_prod_nth':
+  assumes "finite A"
+  shows   "fps_nth (\<Prod>x\<in>A. f x) n = (\<Sum>X\<in>multisets_of_size A n. \<Prod>x\<in>A. fps_nth (f x) (count X x))"
+  using assms
+proof (induction A arbitrary: n rule: finite_induct)
+  case (insert a A n)
+  note [simp] = \<open>a \<notin> A\<close>
+  note [intro, simp] = \<open>finite A\<close>
+  have "(\<Sum>X\<in>multisets_of_size (insert a A) n. \<Prod>x\<in>insert a A. fps_nth (f x) (count X x)) =
+        (\<Sum>(m,X)\<in>(SIGMA m:{0..n}. multisets_of_size A (n-m)). 
+           \<Prod>x\<in>insert a A. fps_nth (f x) (count (X + replicate_mset m a) x))"
+    by (subst sum.reindex_bij_betw[OF bij_betw_multisets_of_size_insert, symmetric])
+       (simp_all add: case_prod_unfold)
+  also have "\<dots> = (\<Sum>m=0..n. \<Sum>X\<in>multisets_of_size A (n-m). 
+                    \<Prod>x\<in>insert a A. fps_nth (f x) (count (X + replicate_mset m a) x))"
+    by (rule sum.Sigma [symmetric]) auto
+  also have "\<dots> = (\<Sum>m=0..n. fps_nth (f a) m * fps_nth (\<Prod>x\<in>A. f x) (n - m))"
+  proof (rule sum.cong)
+    fix m
+    assume m: "m \<in> {0..n}"
+    have "(\<Sum>X\<in>multisets_of_size A (n-m). 
+              \<Prod>x\<in>insert a A. fps_nth (f x) (count (X + replicate_mset m a) x)) =
+          (\<Sum>X\<in>multisets_of_size A (n-m). fps_nth (f a) (count X a + m) *
+              (\<Prod>x\<in>A. fps_nth (f x) (count (X + replicate_mset m a) x)))"
+      by simp
+    also have "\<dots> = (\<Sum>X\<in>multisets_of_size A (n-m). fps_nth (f a) m *
+                      (\<Prod>x\<in>A. fps_nth (f x) (count (X + replicate_mset m a) x)))"
+      by (intro sum.cong arg_cong2[of _ _ _ _ "(*)"] arg_cong2[of _ _ _ _ fps_nth] refl)
+         (auto simp: multisets_of_size_def simp flip: not_in_iff)
+    also have "\<dots> = fps_nth (f a) m * (\<Sum>X\<in>multisets_of_size A (n-m). 
+                      (\<Prod>x\<in>A. fps_nth (f x) (count (X + replicate_mset m a) x)))"
+      by (simp add: sum_distrib_left)
+    also have "(\<Sum>X\<in>multisets_of_size A (n-m). \<Prod>x\<in>A. fps_nth (f x) (count (X + replicate_mset m a) x)) =
+               (\<Sum>X\<in>multisets_of_size A (n-m). \<Prod>x\<in>A. fps_nth (f x) (count X x))"
+      by (intro sum.cong prod.cong) auto
+    also have "\<dots> = fps_nth (\<Prod>x\<in>A. f x) (n - m)"
+      by (rule insert.IH [symmetric])
+    finally show "(\<Sum>X\<in>multisets_of_size A (n-m). \<Prod>x\<in>insert a A. fps_nth (f x) (count (X + replicate_mset m a) x)) = 
+                    fps_nth (f a) m * fps_nth (\<Prod>x\<in>A. f x) (n - m)" .
+  qed auto
+  also have "\<dots> = fps_nth (\<Prod>x\<in>insert a A. f x) n"
+    by (simp add: fps_mult_nth)
+  finally show ?case ..
+qed auto
+
+theorem tendsto_prod_fps:
+  fixes f :: "nat \<Rightarrow> 'a :: {idom,  t2_space} fps"
+  assumes [simp]: "\<And>k. f k \<noteq> 0"
+  assumes g: "\<And>n k. k > g n \<Longrightarrow> subdegree (f k - 1) > n"
+  defines "P \<equiv> Abs_fps (\<lambda>n. (\<Sum>X\<in>multisets_of_size {..g n} n. \<Prod>i\<le>g n. fps_nth (f i) (count X i)))"
+  shows   "(\<lambda>n. \<Prod>k\<le>n. f k) \<longlonglongrightarrow> P"
+proof (rule tendsto_fpsI)
+  fix n :: nat
+  show "eventually (\<lambda>N. fps_nth (prod f {..N}) n = fps_nth P n) at_top"
+    using eventually_ge_at_top[of "g n"]
+  proof eventually_elim
+    case (elim N)
+    have "fps_nth (prod f {..N}) n = (\<Sum>X\<in>multisets_of_size {..N} n. \<Prod>x\<le>N. fps_nth (f x) (count X x))"
+      by (subst fps_prod_nth') auto
+    also have "\<dots> = (\<Sum>X | X \<in> multisets_of_size {..N} n \<and> (\<forall>x\<le>N. fps_nth (f x) (count X x) \<noteq> 0). 
+                      \<Prod>x\<le>N. fps_nth (f x) (count X x))"
+      by (intro sum.mono_neutral_right) auto
+
+    also have "{X. X \<in> multisets_of_size {..N} n \<and> (\<forall>x\<le>N. fps_nth (f x) (count X x) \<noteq> 0)} =
+               {X. X \<in> multisets_of_size {..g n} n \<and> (\<forall>x\<le>N. fps_nth (f x) (count X x) \<noteq> 0)}" 
+      (is "?lhs = ?rhs")
+    proof (intro equalityI subsetI)
+      fix X assume "X \<in> ?rhs"
+      thus "X \<in> ?lhs" using elim multisets_of_size_mono[of "{..g n}" "{..N}"] by auto
+    next
+      fix X assume "X \<in> ?lhs"
+      hence X: "set_mset X \<subseteq> {..N}" "size X = n"  "\<And>x. x \<le> N \<Longrightarrow> fps_nth (f x) (count X x) \<noteq> 0"
+        by (auto simp: multisets_of_size_def)
+      have "set_mset X \<subseteq> {..g n}"
+      proof
+        fix x assume *: "x \<in> set_mset X"
+        show "x \<in> {..g n}"
+        proof (rule ccontr)
+          assume "x \<notin> {..g n}"
+          hence x: "x > g n" "x \<le> N"
+            using X(1) * by auto
+          have "count X x \<le> n"
+            using X x count_le_size[of X x] by (auto simp: Pi_def)
+          also have "n < subdegree (f x - 1)"
+            by (rule g) (use x in auto)
+          finally have "fps_nth (f x - 1) (count X x) = 0"
+            by blast
+          hence "fps_nth (f x) (count X x) = 0"
+            using * by simp
+          moreover have "fps_nth (f x) (count X x) \<noteq> 0"
+            by (intro X(3)) (use x in auto)
+          ultimately show False by contradiction
+        qed
+      qed
+      thus "X \<in> ?rhs" using X
+        by (auto simp: multisets_of_size_def)
+    qed
+
+    also have "(\<Sum>X | X \<in> multisets_of_size {..g n} n \<and> (\<forall>x\<le>N. fps_nth (f x) (count X x) \<noteq> 0). 
+                      \<Prod>x\<le>N. fps_nth (f x) (count X x)) = 
+               (\<Sum>X | X \<in> multisets_of_size {..g n} n \<and> (\<forall>x\<le>N. fps_nth (f x) (count X x) \<noteq> 0). 
+                      \<Prod>i\<le>g n. fps_nth (f i) (count X i))"
+    proof (intro sum.cong prod.mono_neutral_right ballI)
+      fix X i 
+      assume i: "i \<in> {..N} - {..g n}"
+      assume "X \<in> {X. X \<in> multisets_of_size {..g n} n \<and> (\<forall>x\<le>N. fps_nth (f x) (count X x) \<noteq> 0)}"
+      hence h: "X \<in> multisets_of_size {..g n} n" "\<And>x. x \<le> N \<Longrightarrow> fps_nth (f x) (count X x) \<noteq> 0"
+        by blast+
+      have "i \<notin># X"
+        using i h unfolding multisets_of_size_def by auto
+      have "n < subdegree (f i - 1)"
+        by (intro g) (use i in auto)
+      moreover have "count X i \<le> n"
+        using \<open>i \<notin># X\<close> by (simp add: not_in_iff)
+      ultimately have "fps_nth (f i - 1) (count X i) = 0"
+        by (intro nth_less_subdegree_zero) auto
+      thus "fps_nth (f i) (count X i) = 1"
+        using h(2) i \<open>i \<notin># X\<close> by (auto split: if_splits)
+    qed (use elim in auto)
+
+    also have "(\<Sum>X | X \<in> multisets_of_size {..g n} n \<and> (\<forall>x\<le>N. fps_nth (f x) (count X x) \<noteq> 0). 
+                   \<Prod>i\<le>g n. fps_nth (f i) (count X i)) =
+               (\<Sum>X \<in> multisets_of_size {..g n} n. \<Prod>i\<le>g n. fps_nth (f i) (count X i))"
+    proof (intro sum.mono_neutral_left ballI)
+      fix X assume "X \<in> multisets_of_size {..g n} n - 
+                      {X\<in>multisets_of_size {..g n} n. \<forall>x\<le>N. fps_nth (f x) (count X x) \<noteq> 0}"
+      then obtain i
+        where h: "X \<in> multisets_of_size {..g n} n" 
+        and i: "i \<le> N" "fps_nth (f i) (count X i) = 0"
+        by blast
+      have "\<not>(i > g n)"
+      proof
+        assume i': "i > g n"
+        hence "count X i = 0"
+          using h by (auto simp: multisets_of_size_def simp flip: not_in_iff)
+        have "subdegree (f i - 1) > n"
+          by (intro g) (use i' in auto)
+        hence "subdegree (f i - 1) > 0"
+          by simp
+        hence "fps_nth (f i - 1) 0 = 0"
+          by blast
+        hence "fps_nth (f i) (count X i) = 1"
+          using \<open>count X i = 0\<close> by simp
+        thus False using i by simp
+      qed
+      thus " (\<Prod>x\<le>g n. fps_nth (f x) (count X x)) = 0"
+        using i by auto
+    qed auto
+
+    also have "\<dots> = fps_nth P n"
+      by (simp add: P_def)
+    finally show "fps_nth (\<Prod>k\<le>N. f k) n = fps_nth P n" .
+  qed
+qed
+
 
 
 subsection \<open>Integration\<close>
@@ -4911,6 +5454,64 @@ lemma fps_compose_sub_distrib: "(a - b) oo (c::'a::ring_1 fps) = (a oo c) - (b o
 lemma fps_X_fps_compose: "fps_X oo a = Abs_fps (\<lambda>n. if n = 0 then (0::'a::comm_ring_1) else a$n)"
   by (simp add: fps_eq_iff fps_compose_nth mult_delta_left)
 
+lemma fps_compose_eq_0_iff:
+  fixes F G :: "'a :: idom fps"
+  assumes "fps_nth G 0 = 0"
+  shows "fps_compose F G = 0 \<longleftrightarrow> F = 0 \<or> (G = 0 \<and> fps_nth F 0 = 0)"
+proof safe
+  assume *: "fps_compose F G = 0" "F \<noteq> 0"
+  have "fps_nth (fps_compose F G) 0 = fps_nth F 0"
+    by simp
+  also have "fps_compose F G = 0"
+    by (simp add: *)
+  finally show "fps_nth F 0 = 0"
+    by simp
+  show "G = 0"
+  proof (rule ccontr)
+    assume "G \<noteq> 0"
+    hence "subdegree G > 0" using assms
+      using subdegree_eq_0_iff by blast
+    define N where "N = subdegree F * subdegree G"
+    have "fps_nth (fps_compose F G) N = (\<Sum>i = 0..N. fps_nth F i * fps_nth (G ^ i) N)"
+      unfolding fps_compose_def by (simp add: N_def)
+    also have "\<dots> = (\<Sum>i\<in>{subdegree F}. fps_nth F i * fps_nth (G ^ i) N)"
+    proof (intro sum.mono_neutral_right ballI)
+      fix i assume i: "i \<in> {0..N} - {subdegree F}"
+      show "fps_nth F i * fps_nth (G ^ i) N = 0"
+      proof (cases i "subdegree F" rule: linorder_cases)
+        assume "i > subdegree F"
+        hence "fps_nth (G ^ i) N = 0"
+          using i \<open>subdegree G > 0\<close> by (intro fps_pow_nth_below_subdegree) (auto simp: N_def)
+        thus ?thesis by simp
+      qed (use i in \<open>auto simp: N_def\<close>)
+    qed (use \<open>subdegree G > 0\<close> in \<open>auto simp: N_def\<close>)
+    also have "\<dots> = fps_nth F (subdegree F) * fps_nth (G ^ subdegree F) N"
+      by simp
+    also have "\<dots> \<noteq> 0"
+      using \<open>G \<noteq> 0\<close> \<open>F \<noteq> 0\<close> by (auto simp: N_def)
+    finally show False using * by auto
+  qed
+qed auto
+
+lemma subdegree_fps_compose [simp]:
+  fixes F G :: "'a :: idom fps"
+  assumes [simp]: "fps_nth G 0 = 0"
+  shows "subdegree (fps_compose F G) = subdegree F * subdegree G"
+proof (cases "G = 0"; cases "F = 0")
+  assume [simp]: "G \<noteq> 0" "F \<noteq> 0"
+  define m where "m = subdegree F"
+  define F' where "F' = fps_shift m F"
+  have F_eq: "F = F' * fps_X ^ m"
+    unfolding F'_def by (simp add: fps_shift_times_fps_X_power m_def)
+  have [simp]: "F' \<noteq> 0"
+    using \<open>F \<noteq> 0\<close> unfolding F_eq by auto
+  have "subdegree (fps_compose F G) = subdegree (fps_compose F' G) + m * subdegree G"
+    by (simp add: F_eq fps_compose_mult_distrib fps_compose_eq_0_iff flip: fps_compose_power)
+  also have "subdegree (fps_compose F' G) = 0"
+    by (intro subdegree_eq_0) (auto simp: F'_def m_def)
+  finally show ?thesis by (simp add: m_def)
+qed auto
+
 lemma fps_inverse_compose:
   assumes b0: "(b$0 :: 'a::field) = 0"
     and a0: "a$0 \<noteq> 0"
@@ -5166,6 +5767,18 @@ lemma fps_compose_uminus':
   "fps_compose f (-fps_X :: 'a :: comm_ring_1 fps) = Abs_fps (\<lambda>n. (-1)^n * f $ n)"
   using fps_compose_linear[of f "-1"] 
   by (simp only: fps_const_neg [symmetric] fps_const_1_eq_1) simp
+lemma fps_nth_compose_linear [simp]:
+  fixes f :: "'a :: comm_ring_1 fps"
+  shows "fps_nth (fps_compose f (fps_const c * fps_X)) n = c ^ n * fps_nth f n"
+proof -
+  have "fps_nth (fps_compose f (fps_const c * fps_X)) n =
+        (\<Sum>i\<in>{n}. fps_nth f i * fps_nth ((fps_const c * fps_X) ^ i) n)"
+    unfolding fps_compose_nth
+    by (intro sum.mono_neutral_cong_right) (auto simp: power_mult_distrib)
+  also have "\<dots> = c ^ n * fps_nth f n"
+    by (simp add: power_mult_distrib)
+  finally show ?thesis .
+qed
 
 subsection \<open>Elementary series\<close>
 

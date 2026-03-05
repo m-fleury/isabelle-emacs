@@ -258,26 +258,30 @@ object Server {
   extends Progress {
     override def verbose: Boolean = true
 
-    override def output(message: Progress.Message): Unit = {
-      val more1 = ("verbose" -> message.verbose.toString) :: more.toList
-      message.kind match {
-        case Progress.Kind.writeln => context.writeln(message.text, more1:_*)
-        case Progress.Kind.warning => context.warning(message.text, more1:_*)
-        case Progress.Kind.error_message => context.error_message(message.text, more1:_*)
+    override def output(msgs: Progress.Output): Unit =
+      for (msg <- msgs) {
+        msg match {
+          case message: Progress.Message =>
+            val more1 = ("verbose" -> message.verbose.toString) :: more.toList
+            message.kind match {
+              case Progress.Kind.writeln => context.writeln(message.text, more1: _*)
+              case Progress.Kind.warning => context.warning(message.text, more1: _*)
+              case Progress.Kind.error_message => context.error_message(message.text, more1: _*)
+            }
+          case theory: Progress.Theory =>
+            val entries: List[JSON.Object.Entry] =
+              List("theory" -> theory.theory, "session" -> theory.session) :::
+                (theory.percentage match { case None => Nil case Some(p) => List("percentage" -> p) })
+            context.writeln(theory.message.text, entries ::: more.toList:_*)
+        }
       }
-    }
 
-    override def theory(theory: Progress.Theory): Unit = {
-      val entries: List[JSON.Object.Entry] =
-        List("theory" -> theory.theory, "session" -> theory.session) :::
-          (theory.percentage match { case None => Nil case Some(p) => List("percentage" -> p) })
-      context.writeln(theory.message.text, entries ::: more.toList:_*)
-    }
-
-    override def nodes_status(nodes_status: Document_Status.Nodes_Status): Unit = {
+    override def nodes_status(nodes_status: Progress.Nodes_Status): Unit = {
       val json =
-        for ((name, node_status) <- nodes_status.present() if !node_status.is_empty)
-          yield name.json + ("status" -> node_status.json)
+        List.from(for {
+          name <- nodes_status.domain.iterator
+          node_status = nodes_status(name) if !node_status.is_empty
+        } yield name.json + ("status" -> node_status.json))
       context.notify(JSON.Object(Markup.KIND -> Markup.NODES_STATUS, Markup.NODES_STATUS -> json))
     }
 

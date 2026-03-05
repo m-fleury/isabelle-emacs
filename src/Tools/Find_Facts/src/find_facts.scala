@@ -204,37 +204,43 @@ object Find_Facts {
 
     object Fields {
       val id = Solr.Field("id", Solr.Type.string).make_unique_key
-      val version = Solr.Field("version", Solr.Type.long, Solr.Column_Wise(true))
-      val chapter = Solr.Field("chapter", Solr.Type.string, Solr.Column_Wise(true))
+      val version = Solr.Field("version", Solr.Type.long)
+      val chapter = Solr.Field("chapter", Solr.Type.string)
       val session = Solr.Field("session", Types.name)
       val session_facet = Solr.Field("session_facet", Solr.Type.string, Solr.Stored(false))
       val theory = Solr.Field("theory", Types.name)
       val theory_facet = Solr.Field("theory_facet", Solr.Type.string, Solr.Stored(false))
       val file = Solr.Field("file", Solr.Type.string, Solr.Indexed(false))
-      val file_type =
-        Solr.Field("file_type", Solr.Type.string, Solr.Column_Wise(true) ::: Solr.Stored(false))
-      val url_path = Solr.Field("url_path", Solr.Type.string, Solr.Indexed(false))
-      val command = Solr.Field("command", Solr.Type.string, Solr.Column_Wise(true))
-      val start_line = Solr.Field("start_line", Solr.Type.int, Solr.Column_Wise(true))
-      val src_before = Solr.Field("src_before", Solr.Type.string, Solr.Indexed(false))
-      val src_after = Solr.Field("src_after", Solr.Type.string, Solr.Indexed(false))
+      val file_type = Solr.Field("file_type", Solr.Type.string, Solr.Stored(false))
+      val url_path =
+        Solr.Field("url_path", Solr.Type.string, Solr.Column_Wise(false) ::: Solr.Indexed(false))
+      val command = Solr.Field("command", Solr.Type.string)
+      val start_line = Solr.Field("start_line", Solr.Type.int)
+      val src_before =
+        Solr.Field("src_before", Solr.Type.string, Solr.Column_Wise(false) ::: Solr.Indexed(false))
+      val src_after =
+        Solr.Field("src_after", Solr.Type.string, Solr.Column_Wise(false) ::: Solr.Indexed(false))
       val src = Solr.Field("src", Types.source)
       val xml = Solr.Field("xml", Solr.Type.bytes, Solr.Indexed(false))
       val html = Solr.Field("html", Solr.Type.bytes, Solr.Indexed(false))
-      val entity_kname = Solr.Field("entity_kname", Solr.Type.string, Solr.Indexed(false))
+      val entity_kname =
+        Solr.Field("entity_kname", Solr.Type.string,
+          Solr.Column_Wise(false) ::: Solr.Indexed(false))
       val consts = Solr.Field("consts", Types.name, Solr.Multi_Valued(true))
       val consts_facet =
-        Solr.Field("consts_facet", Solr.Type.string, Solr.Multi_Valued(true) ::: Solr.Stored(false))
+        Solr.Field("consts_facet", Solr.Type.string,
+          Solr.Column_Wise(false) ::: Solr.Multi_Valued(true) ::: Solr.Stored(false))
       val typs = Solr.Field("typs", Types.name, Solr.Multi_Valued(true))
       val typs_facet =
-        Solr.Field("typs_facet", Solr.Type.string, Solr.Multi_Valued(true) ::: Solr.Stored(false))
+        Solr.Field("typs_facet", Solr.Type.string,
+          Solr.Column_Wise(false) ::: Solr.Multi_Valued(true) ::: Solr.Stored(false))
       val thms = Solr.Field("thms", Types.name, Solr.Multi_Valued(true))
       val thms_facet =
-        Solr.Field("thms_facet", Solr.Type.string, Solr.Multi_Valued(true) ::: Solr.Stored(false))
+        Solr.Field("thms_facet", Solr.Type.string,
+          Solr.Column_Wise(false) ::: Solr.Multi_Valued(true) ::: Solr.Stored(false))
       val names = Solr.Field("names", Types.name, Solr.Multi_Valued(true) ::: Solr.Stored(false))
       val kinds =
-        Solr.Field("kinds", Solr.Type.string,
-          Solr.Multi_Valued(true) ::: Solr.Column_Wise(true) ::: Solr.Stored(false))
+        Solr.Field("kinds", Solr.Type.string, Solr.Multi_Valued(true) ::: Solr.Stored(false))
     }
 
     lazy val fields: Solr.Fields = Solr.Fields(
@@ -306,8 +312,8 @@ object Find_Facts {
 
     def update_theory(db: Solr.Database, theory_name: String, blocks: List[Block]): Unit =
       db.transaction {
-        val delete =
-          read_domain(db, Solr.filter(Fields.theory, Solr.phrase(theory_name))) -- blocks.map(_.id)
+        val domain = read_domain(db, Solr.filter(Fields.theory_facet, Solr.phrase(theory_name)))
+        val delete = domain -- blocks.map(_.id)
 
         if (delete.nonEmpty) db.execute_batch_delete(delete.toList)
 
@@ -352,7 +358,7 @@ object Find_Facts {
 
     def delete_session(db: Solr.Database, session_name: String): Unit =
       db.transaction {
-        val delete = read_domain(db, Solr.filter(Fields.session, Solr.phrase(session_name)))
+        val delete = read_domain(db, Solr.filter(Fields.session_facet, Solr.phrase(session_name)))
         if (delete.nonEmpty) db.execute_batch_delete(delete.toList)
       }
 
@@ -625,10 +631,9 @@ object Find_Facts {
     browser_info: Boolean = true,
     progress: Progress = new Progress
   ): Unit = {
-    val store = Store(options)
     val solr = Solr.init(solr_data_dir)
     val database = options.string("find_facts_database_name")
-    val session = Session(options, Resources.bootstrap)
+    val session = Session.bootstrap(options)
 
     val selection = Sessions.Selection(sessions = sessions)
     val sessions_structure =
@@ -643,7 +648,7 @@ object Find_Facts {
         val props = meta_info(if (browser_info) Some(Path.basic("browser_info.db")) else None)
         val stats =
           using(solr.init_database(database, Find_Facts.private_data, props, clean = true)) { db =>
-            using(Export.open_database_context(store)) { database_context =>
+            using(Export.open_database_context(session.store)) { database_context =>
               val document_info = Document_Info.read(database_context, deps, sessions)
               val context1 =
                 Browser_Info.context(sessions_structure, root_dir = root_dir,
@@ -656,7 +661,7 @@ object Find_Facts {
                   else Sessions.background0(session_name)
                 using(database_context.open_session(background)) { session_context =>
                   val info = sessions_structure(session_name)
-                  progress.echo("Session " + info.chapter + "/" + session_name + " ...")
+                  progress.echo("Indexing session " + info.chapter + "/" + session_name + " ...")
 
                   if (browser_info) Browser_Info.build_session(context1, session_context)
 
@@ -688,7 +693,7 @@ object Find_Facts {
 
         val timing = Date.now() - start_date
         progress.echo("Indexed " + stats.results + " blocks with " + stats.consts + " consts, " +
-          stats.typs + " typs, " + stats.thms + " thms in " + timing.message)
+          stats.typs + " typs, " + stats.thms + " thms in " + timing.message_hms)
       }
     }
   }

@@ -8,6 +8,8 @@ package isabelle
 
 import isabelle.find_facts.Find_Facts
 
+import scala.collection.mutable
+
 
 object Build_Release {
   /** release context **/
@@ -279,7 +281,10 @@ directory individually.
     isabelle_name: String,
     jdk_component: String,
     classpath: List[Path],
-    dock_icon: Boolean = false): Unit = {
+    dock_icon: Boolean = false
+  ): Unit = {
+    val script_classpath =
+      "-classpath " + quote(classpath.map(p => "$ISABELLE_HOME/" + p.implode).mkString(":"))
     val script = """#!/usr/bin/env bash
 #
 # Author: Makarius
@@ -306,14 +311,15 @@ source "$COMPONENT/etc/settings"
 
 declare -a JAVA_OPTIONS=($(grep -v '^#' "$ISABELLE_HOME/Isabelle.options"))
 
-"$ISABELLE_HOME/bin/isabelle" env "$ISABELLE_HOME/lib/scripts/java-gui-setup"
+eval $("$ISABELLE_JDK_HOME/bin/java" "${JAVA_OPTIONS[@]}" """ + script_classpath +
+  """ isabelle.setup.Setup gui_setup)
 
 exec "$ISABELLE_JDK_HOME/bin/java" \
   "-Disabelle.root=$ISABELLE_HOME" "${JAVA_OPTIONS[@]}" \
-  -classpath """" + classpath.map(p => "$ISABELLE_HOME/" + p.implode).mkString(":") + """" \
+  """ + script_classpath + """ \
   "-splash:$ISABELLE_HOME/lib/logo/isabelle.gif" \
 """ + (if (dock_icon) """"-Xdock:icon=$ISABELLE_HOME/lib/logo/isabelle_transparent-128.png" \
-""" else "") + """isabelle.jedit.JEdit_Main "$@"
+""" else "") + """  isabelle.jedit.JEdit_Main "$@"
 """
     val script_path = isabelle_target + Path.explode("lib/scripts/Isabelle_app")
     File.write(script_path, script)
@@ -422,6 +428,7 @@ exec "$ISABELLE_JDK_HOME/bin/java" \
   def build_release_archive(
     context: Release_Context,
     version: String,
+    more_settings: List[String] = Nil,
     parallel_jobs: Int = 1,
     build_library: Boolean = false,
     include_library: Boolean = false,
@@ -469,7 +476,9 @@ exec "$ISABELLE_JDK_HOME/bin/java" \
       def other_isabelle_purge(name: String): Unit =
         Isabelle_System.rm_tree(other_isabelle.isabelle_home + Path.basic(name))
 
-      other_isabelle.init(echo = true)
+      other_isabelle.init(
+        other_settings = other_isabelle.init_components() ::: more_settings,
+        echo = true)
 
       progress.echo("Building documentation ...")
       try {
@@ -553,6 +562,7 @@ exec "$ISABELLE_JDK_HOME/bin/java" \
     afp_rev: String = "",
     platform_families: List[Platform.Family] = default_platform_families,
     more_components: List[Path] = Nil,
+    more_settings: List[String] = Nil,
     website: Option[Path] = None,
     build_sessions: List[String] = Nil,
     parallel_jobs: Int = 1
@@ -665,19 +675,6 @@ exec "$ISABELLE_JDK_HOME/bin/java" \
 
         platform match {
           case Platform.Family.linux_arm | Platform.Family.linux =>
-            File.change(isabelle_target + jedit_options) {
-              _.replaceAll("jedit_reset_font_size : int =.*", "jedit_reset_font_size : int = 24")
-            }
-
-            File.change(isabelle_target + jedit_props) {
-              _.replaceAll("console.fontsize=.*", "console.fontsize=18")
-               .replaceAll("helpviewer.fontsize=.*", "helpviewer.fontsize=18")
-               .replaceAll("metal.primary.fontsize=.*", "metal.primary.fontsize=18")
-               .replaceAll("metal.secondary.fontsize=.*", "metal.secondary.fontsize=18")
-               .replaceAll("view.fontsize=.*", "view.fontsize=24")
-               .replaceAll("view.gutter.fontsize=.*", "view.gutter.fontsize=16")
-            }
-
             make_isabelle_options(
               isabelle_target + Path.explode("Isabelle.options"), java_options)
 
@@ -691,7 +688,8 @@ exec "$ISABELLE_JDK_HOME/bin/java" \
 
           case Platform.Family.macos =>
             File.change(isabelle_target + jedit_props) {
-              _.replaceAll("delete-line.shortcut=.*", "delete-line.shortcut=C+d")
+              _.replaceAll("lookAndFeel=.*", "lookAndFeel=com.formdev.flatlaf.themes.FlatMacLightLaf")
+               .replaceAll("delete-line.shortcut=.*", "delete-line.shortcut=C+d")
                .replaceAll("delete.shortcut2=.*", "delete.shortcut2=A+d")
             }
 
@@ -828,7 +826,9 @@ exec "$ISABELLE_JDK_HOME/bin/java" \
 
             progress.echo("Packaging " + archive_name + " ...")
             execute(tmp_dir,
-              "7z -y -bd a " + File.bash_path(exe_archive) + " " + Bash.string(isabelle_name))
+              File.bash_path(Component_Windows_App.seven_zip(exe = true)) +
+                " -myv=1602 -y -bd a " + File.bash_path(exe_archive) + " " +
+                Bash.string(isabelle_name))
             if (!exe_archive.is_file) error("Failed to create archive: " + exe_archive)
 
             val sfx_exe = tmp_dir + Component_Windows_App.sfx_path
@@ -899,7 +899,8 @@ exec "$ISABELLE_JDK_HOME/bin/java" \
       var source_archive = ""
       var website: Option[Path] = None
       var build_sessions: List[String] = Nil
-      var more_components: List[Path] = Nil
+      val more_components = new mutable.ListBuffer[Path]
+      val more_settings = new mutable.ListBuffer[String]
       var parallel_jobs = 1
       var build_library = false
       var options = Options.init()
@@ -919,6 +920,7 @@ Usage: Admin/build_release [OPTIONS]
     -W WEBSITE   produce minimal website in given directory
     -b SESSIONS  build platform-specific session images (separated by commas)
     -c ARCHIVE   clean bundling with additional component .tar.gz archive
+    -e TEXT      additional text for generated etc/settings
     -j INT       maximum number of parallel jobs (default 1)
     -l           build library archive
     -o OPTION    override Isabelle system OPTION (via NAME=VAL or NAME)
@@ -939,8 +941,9 @@ Usage: Admin/build_release [OPTIONS]
           {
             val path = Path.explode(arg)
             Components.Archive.get_name(path.file_name)
-            more_components = more_components ::: List(path)
+            more_components += path
           }),
+        "e:" -> (arg => more_settings += arg),
         "j:" -> (arg => parallel_jobs = Value.Int.parse(arg)),
         "l" -> (_ => build_library = true),
         "o:" -> (arg => options = options + arg),
@@ -950,9 +953,6 @@ Usage: Admin/build_release [OPTIONS]
       val more_args = getopts(args)
       if (more_args.nonEmpty) getopts.usage()
 
-      if (platform_families.contains(Platform.Family.windows) && !Isabelle_System.bash("7z i").ok)
-        error("Building for windows requires 7z")
-
       val progress = new Console_Progress()
       def make_context(name: String): Release_Context =
         Release_Context(target_dir, release_name = name, progress = progress)
@@ -961,8 +961,11 @@ Usage: Admin/build_release [OPTIONS]
         if (source_archive.isEmpty) {
           val context = make_context(release_name)
           val version = proper_string(rev) orElse proper_string(release_name) getOrElse "tip"
-          build_release_archive(context, version, parallel_jobs = parallel_jobs,
-            build_library = build_library, include_library = include_library,
+          build_release_archive(context, version,
+            more_settings = more_settings.toList,
+            parallel_jobs = parallel_jobs,
+            build_library = build_library,
+            include_library = include_library,
             include_find_facts = include_find_facts)
           context
         }
@@ -975,9 +978,13 @@ Usage: Admin/build_release [OPTIONS]
           context
         }
 
-      build_release(options, context, afp_rev = afp_rev, platform_families = platform_families,
-        more_components = more_components, build_sessions = build_sessions,
-        parallel_jobs = parallel_jobs, website = website)
+      build_release(options, context,
+        afp_rev = afp_rev,
+        platform_families = platform_families,
+        more_components = more_components.toList,
+        build_sessions = build_sessions,
+        parallel_jobs = parallel_jobs,
+        website = website)
     }
   }
 }

@@ -1,5 +1,6 @@
 (*  Title:      Pure/Isar/context_rules.ML
-    Author:     Stefan Berghofer and Markus Wenzel, TU Muenchen
+    Author:     Stefan Berghofer, TU Muenchen
+    Author:     Makarius
 
 Declarations of intro/elim/dest rules in Pure (see also
 Provers/classical.ML for a more specialized version of the same idea).
@@ -7,12 +8,11 @@ Provers/classical.ML for a more specialized version of the same idea).
 
 signature CONTEXT_RULES =
 sig
-  type netpair = ((int * int) * (bool * thm)) Net.net * ((int * int) * (bool * thm)) Net.net
-  val netpair_bang: Proof.context -> netpair
-  val netpair: Proof.context -> netpair
-  val orderlist: ((int * int) * 'a) list -> 'a list
-  val find_rules_netpair: Proof.context -> bool -> thm list -> term -> netpair -> thm list
+  val netpair_bang: Proof.context -> Bires.netpair
+  val netpair: Proof.context -> Bires.netpair
+  val find_rules_netpair: Proof.context -> bool -> thm list -> term -> Bires.netpair -> thm list
   val find_rules: Proof.context -> bool -> thm list -> term -> thm list list
+  val declared_rule: Context.generic -> thm -> bool
   val print_rules: Proof.context -> unit
   val addSWrapper: (Proof.context -> (int -> tactic) -> int -> tactic) -> theory -> theory
   val addWrapper: (Proof.context -> (int -> tactic) -> int -> tactic) -> theory -> theory
@@ -38,118 +38,104 @@ struct
 
 (** rule declaration contexts **)
 
-(* rule kinds *)
+(* rule declarations *)
 
-val intro_bangK = (0, false);
-val elim_bangK = (0, true);
-val introK = (1, false);
-val elimK = (1, true);
-val intro_queryK = (2, false);
-val elim_queryK = (2, true);
+type decl = thm Bires.decl;
+type decls = thm Bires.decls;
 
-val kind_names =
- [(intro_bangK, "safe introduction rules (intro!)"),
-  (elim_bangK, "safe elimination rules (elim!)"),
-  (introK, "introduction rules (intro)"),
-  (elimK, "elimination rules (elim)"),
-  (intro_queryK, "extra introduction rules (intro?)"),
-  (elim_queryK, "extra elimination rules (elim?)")];
+fun init_decl kind opt_weight th : decl =
+  let val weight = opt_weight |> \<^if_none>\<open>Bires.subgoals_of (Bires.kind_rule kind th)\<close>;
+  in {kind = kind, tag = Bires.weight_tag weight, info = th} end;
 
-val rule_kinds = map #1 kind_names;
-val rule_indexes = distinct (op =) (map #1 rule_kinds);
+fun insert_decl ({kind, tag, info = th}: decl) =
+  Bires.insert_tagged_rule (tag, Bires.kind_rule kind th);
+
+fun remove_decl ({tag = {index, ...}, info = th, ...}: decl) =
+  Bires.delete_tagged_rule (index, th);
 
 
 (* context data *)
 
-type netpair = ((int * int) * (bool * thm)) Net.net * ((int * int) * (bool * thm)) Net.net;
-val empty_netpairs: netpair list = replicate (length rule_indexes) (Net.empty, Net.empty);
-
 datatype rules = Rules of
- {next: int,
-  rules: (int * ((int * bool) * thm)) list,
-  netpairs: netpair list,
+ {decls: decls,
+  netpairs: Bires.netpair list,
   wrappers:
     ((Proof.context -> (int -> tactic) -> int -> tactic) * stamp) list *
     ((Proof.context -> (int -> tactic) -> int -> tactic) * stamp) list};
 
-fun make_rules next rules netpairs wrappers =
-  Rules {next = next, rules = rules, netpairs = netpairs, wrappers = wrappers};
+fun make_rules decls netpairs wrappers =
+  Rules {decls = decls, netpairs = netpairs, wrappers = wrappers};
 
-fun add_rule (i, b) opt_w th (Rules {next, rules, netpairs, wrappers}) =
+fun add_rule kind opt_weight th (rules as Rules {decls, netpairs, wrappers}) =
   let
-    val w = opt_w |> \<^if_none>\<open>Tactic.subgoals_of_brl (b, th)\<close>;
     val th' = Thm.trim_context th;
+    val th'' = Thm.trim_context (Bires.kind_make_elim kind th);
+    val decl' = init_decl kind opt_weight th'';
   in
-    make_rules (next - 1) ((w, ((i, b), th')) :: rules)
-      (nth_map i (Tactic.insert_tagged_brl ((w, next), (b, th'))) netpairs) wrappers
+    (case Bires.extend_decls (th', decl') decls of
+      (NONE, _) => rules
+    | (SOME new_decl, decls') =>
+        let val netpairs' = Bires.kind_map kind (insert_decl new_decl) netpairs
+        in make_rules decls' netpairs' wrappers end)
   end;
 
-fun del_rule0 th (rs as Rules {next, rules, netpairs, wrappers}) =
-  let
-    fun eq_th (_, (_, th')) = Thm.eq_thm_prop (th, th');
-    fun del b netpair = Tactic.delete_tagged_brl (b, th) netpair handle Net.DELETE => netpair;
-  in
-    if not (exists eq_th rules) then rs
-    else make_rules next (filter_out eq_th rules) (map (del false o del true) netpairs) wrappers
-  end;
+fun del_rule th (rules as Rules {decls, netpairs, wrappers}) =
+  (case Bires.remove_decls th decls of
+    ([], _) => rules
+  | (old_decls, decls') =>
+      let
+        val netpairs' =
+          fold (fn decl as {kind, ...} => Bires.kind_map kind (remove_decl decl))
+            old_decls netpairs;
+      in make_rules decls' netpairs' wrappers end);
 
-fun del_rule th = del_rule0 th o del_rule0 (Tactic.make_elim th);
 
-structure Rules = Generic_Data
+structure Data = Generic_Data
 (
   type T = rules;
-  val empty = make_rules ~1 [] empty_netpairs ([], []);
-  fun merge
-    (Rules {rules = rules1, wrappers = (ws1, ws1'), ...},
-      Rules {rules = rules2, wrappers = (ws2, ws2'), ...}) =
+  val empty = make_rules Bires.empty_decls (Bires.kind_values Bires.empty_netpair) ([], []);
+  fun merge (rules1, rules2) =
+    if pointer_eq (rules1, rules2) then rules1
+    else
     let
+      val Rules {decls = decls1, netpairs = netpairs1, wrappers = (ws1, ws1')} = rules1;
+      val Rules {decls = decls2, netpairs = _, wrappers = (ws2, ws2')} = rules2;
+      val (new_rules, decls) = Bires.merge_decls (decls1, decls2);
+      val netpairs =
+        netpairs1 |> map_index (uncurry (fn i =>
+          new_rules |> fold (fn decl =>
+            if Bires.kind_index (#kind decl) = i then insert_decl decl else I)))
       val wrappers =
-        (Library.merge (eq_snd (op =)) (ws1, ws2), Library.merge (eq_snd (op =)) (ws1', ws2'));
-      val rules = Library.merge (fn ((_, (k1, th1)), (_, (k2, th2))) =>
-          k1 = k2 andalso Thm.eq_thm_prop (th1, th2)) (rules1, rules2);
-      val next = ~ (length rules);
-      val netpairs = fold (fn (n, (w, ((i, b), th))) =>
-          nth_map i (Tactic.insert_tagged_brl ((w, n), (b, th))))
-        (next upto ~1 ~~ rules) empty_netpairs;
-    in make_rules (next - 1) rules netpairs wrappers end;
+       (Library.merge (eq_snd (op =)) (ws1, ws2),
+        Library.merge (eq_snd (op =)) (ws1', ws2'));
+    in make_rules decls netpairs wrappers end;
 );
 
+fun declared_rule context =
+  let val Rules {decls, ...} =  Data.get context
+  in Bires.has_decls decls end;
+
 fun print_rules ctxt =
-  let
-    val Rules {rules, ...} = Rules.get (Context.Proof ctxt);
-    fun prt_kind (i, b) =
-      Pretty.big_list ((the o AList.lookup (op =) kind_names) (i, b) ^ ":")
-        (map_filter (fn (_, (k, th)) =>
-            if k = (i, b) then SOME (Thm.pretty_thm_item ctxt th) else NONE)
-          (sort (int_ord o apply2 fst) rules));
-  in Pretty.writeln_chunks (map prt_kind rule_kinds) end;
+  let val Rules {decls, ...} = Data.get (Context.Proof ctxt)
+  in Pretty.writeln (Pretty.chunks (Bires.pretty_decls ctxt decls)) end;
 
 
 (* access data *)
 
-fun netpairs ctxt = let val Rules {netpairs, ...} = Rules.get (Context.Proof ctxt) in netpairs end;
+fun netpairs ctxt = let val Rules {netpairs, ...} = Data.get (Context.Proof ctxt) in netpairs end;
 val netpair_bang = hd o netpairs;
 val netpair = hd o tl o netpairs;
 
 
 (* retrieving rules *)
 
-fun untaglist [] = []
-  | untaglist [(_ : int * int, x)] = [x]
-  | untaglist ((k, x) :: (rest as (k', _) :: _)) =
-      if k = k' then untaglist rest
-      else x :: untaglist rest;
-
-fun orderlist brls =
-  untaglist (sort (prod_ord int_ord int_ord o apply2 fst) brls);
-
-fun orderlist_no_weight brls =
-  untaglist (sort (int_ord o apply2 (snd o fst)) brls);
-
 local
 
+fun order weighted =
+  make_order_list (Bires.weighted_tag_ord weighted) NONE;
+
 fun may_unify weighted t net =
-  map snd ((if weighted then orderlist else orderlist_no_weight) (Net.unify_term net t));
+  map snd (order weighted (Net.unify_term net t));
 
 fun find_erules _ [] = K []
   | find_erules w (fact :: _) = may_unify w (Logic.strip_assums_concl (Thm.prop_of fact));
@@ -171,15 +157,15 @@ end;
 (* wrappers *)
 
 fun gen_add_wrapper upd w =
-  Context.theory_map (Rules.map (fn Rules {next, rules, netpairs, wrappers} =>
-    make_rules next rules netpairs (upd (fn ws => (w, stamp ()) :: ws) wrappers)));
+  Context.theory_map (Data.map (fn Rules {decls, netpairs, wrappers} =>
+    make_rules decls netpairs (upd (fn ws => (w, stamp ()) :: ws) wrappers)));
 
 val addSWrapper = gen_add_wrapper Library.apfst;
 val addWrapper = gen_add_wrapper Library.apsnd;
 
 
 fun gen_wrap which ctxt =
-  let val Rules {wrappers, ...} = Rules.get (Context.Proof ctxt)
+  let val Rules {wrappers, ...} = Data.get (Context.Proof ctxt)
   in fold_rev (fn (w, _) => w ctxt) (which wrappers) end;
 
 val Swrap = gen_wrap #1;
@@ -191,21 +177,20 @@ val wrap = gen_wrap #2;
 
 (* add and del rules *)
 
+val rule_del = Thm.declaration_attribute (Data.map o del_rule);
 
-val rule_del = Thm.declaration_attribute (Rules.map o del_rule);
+fun rule_add k opt_w =
+  Thm.declaration_attribute (fn th => Data.map (add_rule k opt_w th o del_rule th));
 
-fun rule_add k view opt_w =
-  Thm.declaration_attribute (fn th => Rules.map (add_rule k opt_w (view th) o del_rule th));
-
-val intro_bang  = rule_add intro_bangK I;
-val elim_bang   = rule_add elim_bangK I;
-val dest_bang   = rule_add elim_bangK Tactic.make_elim;
-val intro       = rule_add introK I;
-val elim        = rule_add elimK I;
-val dest        = rule_add elimK Tactic.make_elim;
-val intro_query = rule_add intro_queryK I;
-val elim_query  = rule_add elim_queryK I;
-val dest_query  = rule_add elim_queryK Tactic.make_elim;
+val intro_bang  = rule_add Bires.intro_bang_kind;
+val elim_bang   = rule_add Bires.elim_bang_kind;
+val dest_bang   = rule_add Bires.dest_bang_kind;
+val intro       = rule_add Bires.intro_kind;
+val elim        = rule_add Bires.elim_kind;
+val dest        = rule_add Bires.dest_kind;
+val intro_query = rule_add Bires.intro_query_kind;
+val elim_query  = rule_add Bires.elim_query_kind;
+val dest_query  = rule_add Bires.dest_query_kind;
 
 val _ = Theory.setup
   (snd o Global_Theory.add_thms [((Binding.empty, Drule.equal_intr_rule), [intro_query NONE])]);
@@ -219,12 +204,12 @@ fun add a b c x =
 
 val _ = Theory.setup
  (Attrib.setup \<^binding>\<open>intro\<close> (add intro_bang intro intro_query)
-    "declaration of introduction rule" #>
+    "declaration of Pure introduction rule" #>
   Attrib.setup \<^binding>\<open>elim\<close> (add elim_bang elim elim_query)
-    "declaration of elimination rule" #>
+    "declaration of Pure elimination rule" #>
   Attrib.setup \<^binding>\<open>dest\<close> (add dest_bang dest dest_query)
-    "declaration of destruction rule" #>
+    "declaration of Pure destruction rule" #>
   Attrib.setup \<^binding>\<open>rule\<close> (Scan.lift Args.del >> K rule_del)
-    "remove declaration of intro/elim/dest rule");
+    "remove declaration of Pure intro/elim/dest rule");
 
 end;

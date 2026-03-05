@@ -46,10 +46,16 @@ object Document {
       bytes: Bytes,
       source: String,
       chunk: Symbol.Text_Chunk,
-      changed: Boolean
+      command_offset: Symbol.Offset = 0,
+      changed: Boolean = false
     ) {
+      override def toString: String =
+        "Blobs.Item(bytes = " + bytes.size + ", source = " + source.length +
+          if_proper(command_offset > 0, ", command_offset = " + command_offset) +
+          if_proper(changed, ", changed = true") + ")"
+
       def source_wellformed: Boolean = bytes.wellformed_text.nonEmpty
-      def unchanged: Item = copy(changed = false)
+      def unchanged: Item = if (changed) copy(changed = false) else this
     }
 
     def apply(blobs: Map[Node.Name, Item]): Blobs = new Blobs(blobs)
@@ -128,6 +134,8 @@ object Document {
       def file_name: String = Url.get_base_name(node).getOrElse("")
 
       def path: Path = Path.explode(File.standard_path(node))
+
+      def symbolic_path: Name = Name(File.symbolic_path(path), theory)
 
       def master_dir: String = Url.strip_base_name(node).getOrElse("")
 
@@ -315,6 +323,10 @@ object Document {
     def load_commands_changed(doc_blobs: Blobs): Boolean =
       load_commands.exists(_.blobs_changed(doc_blobs))
 
+    def get_theory: Option[Command] =
+      if (commands.size == 1 && commands.last.span.is_theory) Some(commands.last)
+      else None
+
     def update_header(new_header: Node.Header): Node =
       new Node(get_blob, new_header, syntax, text_perspective, perspective, _commands)
 
@@ -379,13 +391,13 @@ object Document {
   final class Nodes private(graph: Graph[Node.Name, Node]) {
     def apply(name: Node.Name): Node = Nodes.init(graph, name).get_node(name)
 
-    def is_suppressed(name: Node.Name): Boolean = {
+    def suppressed(name: Node.Name): Boolean = {
       val graph1 = Nodes.init(graph, name)
       graph1.is_maximal(name) && graph1.get_node(name).is_empty
     }
 
     def purge_suppressed: Option[Nodes] =
-      graph.keys_iterator.filter(is_suppressed).toList match {
+      names_iterator.filter(suppressed).toList match {
         case Nil => None
         case del => Some(new Nodes(del.foldLeft(graph)(_.del_node(_))))
       }
@@ -405,8 +417,10 @@ object Document {
     def iterator: Iterator[(Node.Name, Node)] =
       graph.iterator.map({ case (name, (node, _)) => (name, node) })
 
+    def names_iterator: Iterator[Node.Name] = graph.keys_iterator
+
     def theory_name(theory: String): Option[Node.Name] =
-      graph.keys_iterator.find(name => name.theory == theory)
+      names_iterator.find(name => name.theory == theory)
 
     def commands_loading(file_name: Node.Name): List[Command] =
       (for {
@@ -588,13 +602,33 @@ object Document {
     def node_files: List[Node.Name] =
       node_name :: node.load_commands.flatMap(_.blobs_names)
 
-    def node_consolidated(name: Node.Name): Boolean =
-      state.node_consolidated(version, name)
+    def node_export_files: List[(Symbol.Offset, String)] =
+      for ((i, name) <- (0, node_name) :: node.load_commands.flatMap(_.blobs_files))
+        yield (i, File.symbolic_path(name.path))
 
     def theory_consolidated(theory: String): Boolean =
       version.nodes.theory_name(theory) match {
-        case Some(name) => node_consolidated(name)
+        case Some(name) => state.node_consolidated(version, name)
         case None => false
+      }
+
+    def loaded_theory_command(caret_offset: Text.Offset): Option[(Command, Text.Range)] =
+      if (node_name.is_theory) {
+        node.commands.get_after(None) match {
+          case Some(command) if command.span.is_theory =>
+            Some(command -> command_range(Text.Range(caret_offset)))
+          case _ => None
+        }
+      }
+      else {
+        for {
+          command <- version.nodes.commands_loading(node_name).find(_.span.is_theory)
+          (symbol_offset, _) <- command.blobs_files.find({ case (_, name) => node_name == name })
+        } yield {
+          val chunk_offset = command.chunk.decode(symbol_offset)
+          val command_range = switch(command.node_name).command_range(Text.Range(chunk_offset))
+          command -> command_range
+        }
       }
 
 
@@ -626,7 +660,7 @@ object Document {
       } yield convert(cmd.core_range + start)).toList
 
 
-    /* command as add-on snippet */
+    /* add-on snippet via pro-forma commands */
 
     def snippet(commands: List[Command], doc_blobs: Blobs): Snapshot = {
       require(commands.nonEmpty, "no snippet commands")
@@ -812,13 +846,39 @@ object Document {
       for (case Text.Info(r, Some(x)) <- cumulate(range, None, elements, result1, status))
         yield Text.Info(r, x)
     }
+
+
+    /* command spans --- according to PIDE markup */
+
+    // Text.Info: core range
+    def command_spans(range: Text.Range = Text.Range.full): List[Text.Info[Markup.Command_Span.Args]] =
+      select(range, Markup.Elements(Markup.COMMAND_SPAN), _ =>
+        {
+          case Text.Info(range, XML.Elem(Markup.Command_Span(args), _)) =>
+            Some(Text.Info(range, args))
+          case _ => None
+        }).map(_.info)
+
+    // Text.Range: full source with trailing whitespace etc.
+    def command_ranges(range: Text.Range): List[Text.Range] =
+      select(range, Markup.Elements(Markup.COMMAND_RANGE), _ =>
+        {
+          case Text.Info(range, _) => Some(range)
+        }).map(_.info)
+    def command_range(range: Text.Range): Text.Range =
+      command_ranges(range) match {
+        case head :: _ => head
+        case Nil => Text.Range.offside
+      }
   }
 
 
   /* model */
 
   trait Session {
+    def session_options: Options
     def resources: Resources
+    def store: Store
   }
 
   trait Model {
@@ -849,7 +909,7 @@ object Document {
           case None =>
             List(
               Node.Deps(
-                if (session.resources.session_base.loaded_theory(node_name)) {
+                if (session.resources.loaded_theory(node_name)) {
                   node_header.append_errors(
                     List("Cannot update finished theory " + quote(node_name.theory)))
                 }
@@ -981,8 +1041,9 @@ object Document {
       message: XML.Elem,
       cache: XML.Cache
     ) : (Command.State, State) = {
+      val now = Date.now()
       def update(st: Command.State): (Command.State, State) = {
-        val st1 = st.accumulate(self_id(st), other_id, message, cache)
+        val st1 = st.accumulate(now, self_id(st), other_id, message, cache)
         (st1, copy(commands_redirection = redirection(st1)))
       }
       execs.get(id).map(update) match {
@@ -1031,14 +1092,15 @@ object Document {
     def begin_theory(
       node_name: Node.Name,
       id: Document_ID.Exec,
+      commands: Int,
       source: String,
       blobs_info: Command.Blobs_Info
     ): State = {
       if (theories.isDefinedAt(id)) fail
       else {
         val command =
-          Command.unparsed(source, theory = true, id = id, node_name = node_name,
-            blobs_info = blobs_info)
+          Command.unparsed(source, theory_commands = Some(commands), id = id,
+            node_name = node_name, blobs_info = blobs_info)
         copy(theories = theories + (id -> command.empty_state))
       }
     }
@@ -1047,15 +1109,19 @@ object Document {
       theories.get(id) match {
         case None => fail
         case Some(st) =>
-          val command = st.command
-          val node_name = command.node_name
-          val doc_blobs = document_blobs(node_name)
-          val command1 =
-            Command.unparsed(command.source, theory = true, id = id, node_name = node_name,
-              blobs_info = command.blobs_info, results = st.results, markups = st.markups)
+          val command1 = st.exit(id)
+          val doc_blobs = document_blobs(command1.node_name)
           val state1 = copy(theories = theories - id)
           (state1.snippet(List(command1), doc_blobs), state1)
       }
+
+    def progress_theories: List[Document_ID.Exec] =
+      List.from(
+        for ((id, st) <- theories.iterator if st.document_status.timings.has_running)
+          yield id)
+
+    def theory_snapshot(id: Document_ID.Exec, document_blobs: Node.Name => Blobs): Option[Snapshot] =
+      if (theories.isDefinedAt(id)) Some(end_theory(id, document_blobs)._1) else None
 
     def assign(
       id: Document_ID.Version,
@@ -1217,6 +1283,10 @@ object Document {
       self.map(_._2) ::: others.flatMap(_.redirect(command))
     }
 
+    def command_status(version: Version, command: Command): Document_Status.Command_Status =
+      Document_Status.Command_Status.merge(
+        command_states(version, command).iterator.map(_.document_status))
+
     def command_results(version: Version, command: Command): Command.Results =
       Command.State.merge_results(command_states(version, command))
 
@@ -1257,13 +1327,6 @@ object Document {
       }
       else Nil
     }
-
-    def node_initialized(version: Version, name: Node.Name): Boolean =
-      name.is_theory &&
-      (version.nodes(name).commands.iterator.find(_.potentially_initialized) match {
-        case None => false
-        case Some(command) => command_states(version, command).headOption.exists(_.initialized)
-      })
 
     def node_maybe_consolidated(version: Version, name: Node.Name): Boolean =
       name.is_theory &&

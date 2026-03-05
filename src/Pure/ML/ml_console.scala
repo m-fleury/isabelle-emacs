@@ -7,14 +7,17 @@ The raw ML process in interactive mode.
 package isabelle
 
 
+import scala.collection.mutable
+
+
 object ML_Console {
   /* command line entry point */
 
   def main(args: Array[String]): Unit = {
     Command_Line.tool {
-      var dirs: List[Path] = Nil
-      var include_sessions: List[String] = Nil
-      var logic = Isabelle_System.getenv("ISABELLE_LOGIC")
+      val dir_args = new mutable.ListBuffer[Path]
+      val include_sessions = new mutable.ListBuffer[String]
+      var logic = Isabelle_System.default_logic()
       var modes: List[String] = Nil
       var no_build = false
       var options = Options.init()
@@ -36,8 +39,8 @@ Usage: isabelle console [OPTIONS]
   in interactive mode, with line editor ISABELLE_LINE_EDITOR=""" +
   quote(Isabelle_System.getenv("ISABELLE_LINE_EDITOR")) + """.
 """,
-        "d:" -> (arg => dirs = dirs ::: List(Path.explode(arg))),
-        "i:" -> (arg => include_sessions = include_sessions ::: List(arg)),
+        "d:" -> (arg => dir_args += Path.explode(arg)),
+        "i:" -> (arg => include_sessions += arg),
         "l:" -> (arg => logic = arg),
         "m:" -> (arg => modes = arg :: modes),
         "n" -> (_ => no_build = true),
@@ -47,17 +50,18 @@ Usage: isabelle console [OPTIONS]
       val more_args = getopts(args)
       if (more_args.nonEmpty) getopts.usage()
 
+      val dirs = dir_args.toList
 
       val store = Store(options)
 
       // build logic
       if (!no_build && !raw_ml_system) {
         val progress = new Console_Progress()
-        val rc =
+        val results =
           progress.interrupt_handler {
             Build.build_logic(options, logic, build_heap = true, progress = progress, dirs = dirs)
           }
-        if (rc != Process_Result.RC.ok) sys.exit(rc)
+        if (!results.ok) sys.exit(results.rc)
       }
 
       val session_background =
@@ -68,12 +72,12 @@ Usage: isabelle console [OPTIONS]
         }
         else {
           Sessions.background(
-            options, logic, dirs = dirs, include_sessions = include_sessions).check_errors
+            options, logic, dirs = dirs, include_sessions = include_sessions.toList).check_errors
         }
 
       val session_heaps =
         if (raw_ml_system) Nil
-        else ML_Process.session_heaps(store, session_background, logic = logic)
+        else store.session_heaps(session_background, logic = logic)
 
       // process loop
       val process =

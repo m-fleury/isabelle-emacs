@@ -202,26 +202,7 @@ fun make_e_config max_new_mono_insts good_slices : atp_config =
    good_max_mono_iters = default_max_mono_iters,
    good_max_new_mono_instances = max_new_mono_insts}
 
-val old_e_config : atp_config = make_e_config default_max_new_mono_instances (let
-       val (format, type_enc, lam_trans, extra_options) =
-         if getenv "E_VERSION" >= "3.0" then
-           (* '$ite' support appears to be unsound. *)
-           (THF (Monomorphic, {with_ite = false, with_let = false}, THF_Without_Choice), "mono_native_higher", keep_lamsN, "--auto-schedule=4 --serialize-schedule=true --demod-under-lambda=true")
-         else if getenv "E_VERSION" >= "2.6" then
-           (THF (Monomorphic, {with_ite = false, with_let = false}, THF_Without_Choice), "mono_native_higher", keep_lamsN, "--auto-schedule")
-         else
-           (THF (Monomorphic, {with_ite = false, with_let = false}, THF_Lambda_Free), "mono_native_higher", combsN, "--auto-schedule")
-     in
-       (* FUDGE *)
-       [((1000 (* infinity *), false, false, 512, meshN), (format, type_enc, lam_trans, false, extra_options)),
-        ((1, true, false, 128, mashN), (format, type_enc, combsN, false, extra_options)),
-        ((1000 (* infinity *), false, false, 1024, meshN), (format, type_enc, lam_trans, false, extra_options)),
-        ((1000 (* infinity *), false, false, 64, mepoN), (format, type_enc, lam_trans, false, extra_options)),
-        ((1000 (* infinity *), false, false, 724, meshN), (TF0, "poly_guards??", lam_trans, false, extra_options)),
-        ((1000 (* infinity *), false, true, 256, mepoN), (format, type_enc, liftingN, false, extra_options))]
-     end)
-
-val new_e_config : atp_config =
+val e_config : atp_config =
   (* FUDGE: this solved 950/1500 (63.33 %) using MePo when testing *)
   let
     val extra_options = "--auto-schedule"
@@ -252,11 +233,7 @@ val new_e_config : atp_config =
 
 in
 
-val e = (eN, fn () =>
-  if string_ord (getenv "E_VERSION", "3.0") <> LESS then
-    new_e_config
-  else
-    old_e_config)
+val e = (eN, fn () => e_config)
 
 end
 
@@ -407,13 +384,6 @@ val spass = (spassN, fn () => spass_config)
 
 local
 
-val old_vampire_basic_options =
-  ["--proof tptp",
-   "--output_axiom_names on"] @
-  (if ML_System.platform_is_windows
-   then []  (*time slicing is not support in the Windows version of Vampire*)
-   else ["--mode casc"])
-
 val new_vampire_basic_options =
   ["--input_syntax tptp",
    "--proof tptp",
@@ -451,19 +421,7 @@ fun make_vampire_config vampire_basic_options good_max_new_mono_instances good_s
    good_max_mono_iters = default_max_mono_iters,
    good_max_new_mono_instances = good_max_new_mono_instances}
 
-val old_vampire_config : atp_config =
-  (* FUDGE *)
-  make_vampire_config old_vampire_basic_options (2 * default_max_new_mono_instances)
-  [((2, false, false, 512, meshN), (TX1, "mono_native", combsN, false, sosN)),
-   ((2, false, false, 1024, meshN), (TX1, "mono_native", liftingN, false, sosN)),
-   ((2, false, false, 256, mashN), (TX1, "mono_native", liftingN, false, no_sosN)),
-   ((2, false, true, 512, mepoN), (TF1, "poly_native", liftingN, false, no_sosN)),
-   ((2, false, false, 16, meshN), (TX1, "mono_native", liftingN, false, no_sosN)),
-   ((2, false, false, 32, meshN), (TX1, "mono_native", combsN, false, no_sosN)),
-   ((2, false, false, 64, meshN), (TX1, "mono_native", combs_or_liftingN, false, no_sosN)),
-   ((2, false, false, 128, meshN), (TX1, "mono_native", liftingN, false, no_sosN))]
-
-val new_vampire_config : atp_config =
+val vampire_config : atp_config =
   (* FUDGE: this solved 998/1500 (66.53 %) using MePo when testing *)
   make_vampire_config new_vampire_basic_options 256
     [(((2, false, false,  512, meshN), (TX0, "mono_native_fool", liftingN, false, ""))),
@@ -488,11 +446,7 @@ val new_vampire_config : atp_config =
 
 in
 
-val vampire = (vampireN, fn () =>
-  if string_ord (getenv "VAMPIRE_VERSION", "4.8") <> LESS then
-    new_vampire_config
-  else
-    old_vampire_config)
+val vampire = (vampireN, fn () => vampire_config)
 
 end
 

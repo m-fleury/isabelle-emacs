@@ -12,6 +12,9 @@ import scala.collection.immutable.Queue
 import scala.collection.mutable
 import scala.annotation.tailrec
 
+import java.util.{Collections, WeakHashMap, Map => JMap}
+import java.lang.ref.WeakReference
+
 
 object Session {
   /* outlets */
@@ -60,8 +63,7 @@ object Session {
   /* events */
 
   //{{{
-  case class Command_Timing(props: Properties.T)
-  case class Theory_Timing(props: Properties.T)
+  case class Command_Timing(state_id: Document_ID.Generic, props: Properties.T)
   case class Runtime_Statistics(props: Properties.T)
   case class Task_Statistics(props: Properties.T)
   case class Global_Options(options: Options)
@@ -114,23 +116,74 @@ object Session {
 
   abstract class Protocol_Handler extends Isabelle_System.Service {
     def init(session: Session): Unit = {}
-    def exit(): Unit = {}
+    def exit(state: Document.State): Unit = {}
     def functions: Protocol_Functions = Nil
     def prover_options(options: Options): Options = options
   }
+
+
+  /* bootstrap session */
+
+  def bootstrap(options: Options): Session =
+    new Session {
+      override def session_options: Options = options
+      override def resources: Resources = Resources.bootstrap
+    }
+
+
+  /* read_theory cache */
+
+  sealed case class Read_Theory_Key(name: String, unicode_symbols: Boolean)
 }
 
 
-class Session(_session_options: => Options, val resources: Resources) extends Document.Session {
+abstract class Session extends Document.Session {
   session =>
 
-  val init_time: Time = Time.now()
-  def print_now(): String = (Time.now() - init_time).toString
+  override def toString: String = resources.session_base.session_name
 
-  val cache: Term.Cache = Term.Cache.make()
+  def session_options: Options
+  def resources: Resources
+
+  val store: Store = Store(session_options)
+  def cache: Rich_Text.Cache = store.cache
 
   def build_blobs_info(name: Document.Node.Name): Command.Blobs_Info = Command.Blobs_Info.empty
   def build_blobs(name: Document.Node.Name): Document.Blobs = Document.Blobs.empty
+
+
+  /* session exports */
+
+  def open_session_context(
+    document_snapshot: Option[Document.Snapshot] = None
+  ): Export.Session_Context = {
+    Export.open_session_context(
+      store, resources.session_background, document_snapshot = document_snapshot)
+  }
+
+  private val read_theory_cache =
+    new WeakHashMap[Session.Read_Theory_Key, WeakReference[Document.Snapshot]]
+
+  def read_theory(name: String, unicode_symbols: Boolean = false): Document.Snapshot =
+    read_theory_cache.synchronized {
+      val key = Session.Read_Theory_Key(name, unicode_symbols)
+      Option(read_theory_cache.get(key)).map(_.get) match {
+        case Some(snapshot: Document.Snapshot) => snapshot
+        case _ =>
+          val maybe_snapshot =
+            using(open_session_context()) { session_context =>
+              Build.read_theory(session_context.theory(name),
+                unicode_symbols = unicode_symbols,
+                migrate_file = (a: String) => session.resources.append_path("", Path.explode(a)))
+            }
+          maybe_snapshot.map(_.snippet_commands) match {
+            case Some(List(_)) =>
+              read_theory_cache.put(key, new WeakReference(maybe_snapshot.get))
+              maybe_snapshot.get
+            case _ => error("Failed to load theory " + quote(name) + " from session database")
+          }
+      }
+    }
 
 
   /* global flags */
@@ -140,8 +193,6 @@ class Session(_session_options: => Options, val resources: Resources) extends Do
 
 
   /* dynamic session options */
-
-  def session_options: Options = _session_options
 
   def load_delay: Time = session_options.seconds("editor_load_delay")
   def input_delay: Time = session_options.seconds("editor_input_delay")
@@ -187,7 +238,6 @@ class Session(_session_options: => Options, val resources: Resources) extends Do
 
   val finished_theories = new Session.Outlet[Document.Snapshot](dispatcher)
   val command_timings = new Session.Outlet[Session.Command_Timing](dispatcher)
-  val theory_timings = new Session.Outlet[Session.Theory_Timing](dispatcher)
   val runtime_statistics = new Session.Outlet[Session.Runtime_Statistics](dispatcher)
   val task_statistics = new Session.Outlet[Session.Task_Statistics](dispatcher)
   val global_options = new Session.Outlet[Session.Global_Options](dispatcher)
@@ -251,14 +301,17 @@ class Session(_session_options: => Options, val resources: Resources) extends Do
     case Text_Edits(previous, doc_blobs, text_edits, consolidate, version_result) =>
       val prev = previous.get_finished
       val change =
-        Timing.timeit(
-          resources.parse_change(reparse_limit, prev, doc_blobs, text_edits, consolidate),
+        Timing.timeit(Thy_Syntax.parse_change(session, prev, doc_blobs, text_edits, consolidate),
           message = _ => "parse_change",
           enabled = timing)
       version_result.fulfill(change.version)
       manager.send(change)
       true
   }
+
+  def auto_resolve: Boolean = true
+  def syntax_changed(names: List[Document.Node.Name]): Unit = {}
+  def deps_changed(): Unit = {}
 
 
   /* buffered changes */
@@ -432,7 +485,7 @@ class Session(_session_options: => Options, val resources: Resources) extends Do
             }
           }
 
-          if (!global_state.value.defined_command(command.id)) {
+          if (!command.span.is_theory && !global_state.value.defined_command(command.id)) {
             global_state.change(_.define_command(command))
             id_commands += command
           }
@@ -449,7 +502,12 @@ class Session(_session_options: => Options, val resources: Resources) extends Do
       global_state.change(_.define_version(change.version, assignment))
 
       prover.get.update(change.previous.id, change.version.id, change.doc_edits, change.consolidate)
-      resources.commit(change)
+
+      if (change.syntax_changed.nonEmpty) syntax_changed(change.syntax_changed)
+
+      if (change.deps_changed || auto_resolve && resources.undefined_blobs(change.version).nonEmpty) {
+        deps_changed()
+      }
     //}}}
     }
 
@@ -478,13 +536,10 @@ class Session(_session_options: => Options, val resources: Resources) extends Do
           val handled = protocol_handlers.invoke(msg)
           if (!handled) {
             msg.properties match {
-              case Protocol.Command_Timing(props, state_id, timing) if prover.defined =>
-                command_timings.post(Session.Command_Timing(props))
-                val message = XML.elem(Markup.STATUS, List(XML.Elem(Markup.Timing(timing), Nil)))
+              case Protocol.Command_Timing(state_id, props) if prover.defined =>
+                val message = XML.elem(Markup(Markup.Command_Timing.name, props))
                 change_command(_.accumulate(state_id, cache.elem(message), cache))
-
-              case Markup.Theory_Timing(props) =>
-                theory_timings.post(Session.Theory_Timing(props))
+                command_timings.post(Session.Command_Timing(state_id, props))
 
               case Markup.Task_Statistics(props) =>
                 task_statistics.post(Session.Task_Statistics(props))
@@ -495,9 +550,11 @@ class Session(_session_options: => Options, val resources: Resources) extends Do
                 val entry = Export.Entry.make(Sessions.DRAFT, args, msg.chunk, cache)
                 change_command(_.add_export(id, (args.serial, entry)))
 
-              case Protocol.Loading_Theory(node_name, id) =>
+              case Protocol.Loading_Theory(node_name, id, commands) =>
                 val blobs_info = build_blobs_info(node_name)
-                try { global_state.change(_.begin_theory(node_name, id, msg.text, blobs_info)) }
+                try {
+                  global_state.change(_.begin_theory(node_name, id, commands, msg.text, blobs_info))
+                }
                 catch { case _: Document.State.Fail => bad_output() }
 
               case List(Markup.Commands_Accepted.THIS) =>
@@ -564,8 +621,9 @@ class Session(_session_options: => Options, val resources: Resources) extends Do
               }
 
             case Markup.Process_Result(result) if output.is_exit =>
-              if (prover.defined) protocol_handlers.exit()
-              for (id <- global_state.value.theories.keys) {
+              val exit_state = global_state.value
+              if (prover.defined) protocol_handlers.exit(exit_state)
+              for (id <- exit_state.theories.keys) {
                 val snapshot = global_state.change_result(_.end_theory(id, build_blobs))
                 finished_theories.post(snapshot)
               }
@@ -624,7 +682,7 @@ class Session(_session_options: => Options, val resources: Resources) extends Do
                 case Some(version) =>
                   val consolidate =
                     version.nodes.descendants(consolidation.flush().toList).filter { name =>
-                      !resources.session_base.loaded_theory(name) &&
+                      !resources.loaded_theory(name) &&
                       !state.node_consolidated(version, name) &&
                       state.node_maybe_consolidated(version, name)
                     }
@@ -714,6 +772,17 @@ class Session(_session_options: => Options, val resources: Resources) extends Do
     else snapshot
   }
 
+  def build(
+    progress: Progress = new Progress,
+    dirs: List[Path] = Nil,
+    no_build: Boolean = false
+  ): Build.Results = {
+    Build.build(store.options,
+      selection = Sessions.Selection.session(resources.session_base.session_name),
+      progress = progress, build_heap = true, no_build = no_build, dirs = dirs,
+      infos = resources.session_background.infos)
+  }
+
   def start(start_prover: Prover.Receiver => Prover): Unit = {
     file_formats
     _phase.change(
@@ -748,6 +817,9 @@ class Session(_session_options: => Options, val resources: Resources) extends Do
     }
   }
 
+  def system_output(text: String): Unit =
+    manager.send(new Prover.System_Output(text))
+
   def protocol_command_raw(name: String, args: List[Bytes]): Unit =
     manager.send(Protocol_Command_Raw(name, args))
 
@@ -768,4 +840,10 @@ class Session(_session_options: => Options, val resources: Resources) extends Do
 
   def dialog_result(id: Document_ID.Generic, serial: Long, result: String): Unit =
     manager.send(Session.Dialog_Result(id, serial, result))
+
+
+  /* diagnostics */
+
+  val init_time: Time = Time.now()
+  def print_now(): String = (Time.now() - init_time).toString
 }

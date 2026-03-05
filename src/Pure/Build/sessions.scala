@@ -8,7 +8,7 @@ package isabelle
 
 import java.io.{File => JFile}
 
-import scala.collection.immutable.SortedSet
+import scala.collection.immutable.{SortedSet, SortedMap}
 import scala.collection.mutable
 
 
@@ -102,7 +102,7 @@ object Sessions {
     document_theories: List[Document.Node.Name] = Nil,
     loaded_theories: Graph[String, Outer_Syntax] = Graph.string,  // cumulative imports
     used_theories: List[(Document.Node.Name, Options)] = Nil,  // new imports
-    theory_load_commands: Map[String, List[Command_Span.Span]] = Map.empty,
+    theory_load_commands: Map[String, List[(Command_Span.Span, Symbol.Offset)]] = Map.empty,
     known_theories: Map[String, Document.Node.Entry] = Map.empty,
     known_loaded_files: Map[String, List[Path]] = Map.empty,
     overall_syntax: Outer_Syntax = Outer_Syntax.empty,
@@ -187,31 +187,23 @@ object Sessions {
             val other_name = info.name + "_requirements(" + ancestor.get + ")"
             Isabelle_System.isabelle_tmp_prefix()
 
-            (other_name,
-              List(
-                Info.make(
-                  Chapter_Defs.empty,
-                  Options.init0(),
-                  info.options,
-                  augment_options = _ => Nil,
-                  dir_selected = false,
-                  dir = Path.explode("$ISABELLE_TMP_PREFIX"),
-                  chapter = info.chapter,
-                  Session_Entry(
-                    pos = info.pos,
-                    name = other_name,
-                    groups = info.groups,
-                    path = ".",
-                    parent = ancestor,
-                    description = "Required theory imports from other sessions",
-                    options = Nil,
-                    imports = info.deps,
-                    directories = Nil,
-                    theories = List((Nil, required_theories.map(thy => ((thy, Position.none), false)))),
-                    document_theories = Nil,
-                    document_files = Nil,
-                    export_files = Nil,
-                    export_classpath = Nil))))
+            val session_entry =
+              Session_Entry(
+                pos = info.pos,
+                name = other_name,
+                groups = info.groups,
+                parent = ancestor,
+                description = "Required theory imports from other sessions",
+                imports = info.deps,
+                theories = List((Nil, required_theories.map(thy => ((thy, Position.none), false)))))
+
+            val session_info =
+              Info.make(session_entry,
+                dir = Path.explode("$ISABELLE_TMP_PREFIX"),
+                options = info.options,
+                chapter = info.chapter)
+
+            (other_name, List(session_info))
           }
         }
         else (session, Nil)
@@ -301,11 +293,11 @@ object Sessions {
                 catch { case ERROR(msg) => (Nil, List(msg)) }
 
               val theory_load_commands =
-                (for ((name, span) <- load_commands.iterator) yield name.theory -> span).toMap
+                (for ((name, cmd) <- load_commands.iterator) yield name.theory -> cmd).toMap
 
               val loaded_files: List[(String, List[Path])] =
-                for ((name, spans) <- load_commands) yield {
-                  val (theory, files) = dependencies.loaded_files(name, spans)
+                for ((name, cmds) <- load_commands) yield {
+                  val (theory, files) = dependencies.loaded_files(name, cmds.map(_._1))
                   theory -> files.map(file => Path.explode(file.node))
                 }
 
@@ -552,6 +544,38 @@ object Sessions {
     Set.from(notable_groups.flatMap(g => if (g.afp) Some(g.name) else None))
 
 
+  /* conditions to load theories */
+
+  object Conditions {
+    private val empty_rep = SortedMap.empty[String, Boolean]
+    val empty: Conditions = new Conditions(empty_rep)
+    def apply(options: Options): Conditions = make(Set(options))
+    def make(opts: IterableOnce[Options]): Conditions =
+      new Conditions(
+        opts.iterator.flatMap(options => space_explode(',', options.string("condition")).iterator)
+          .foldLeft(empty_rep) {
+            case (map, a) =>
+              if (map.isDefinedAt(a)) map
+              else map + (a -> Isabelle_System.getenv(a).nonEmpty)
+          }
+      )
+  }
+
+  final class Conditions private(private val rep: SortedMap[String, Boolean]) {
+    def toList: List[(String, Boolean)] = rep.toList
+    def good: List[String] = List.from(for ((a, b) <- rep.iterator if b) yield a)
+    def bad: List[String] = List.from(for ((a, b) <- rep.iterator if !b) yield a)
+
+    override def toString: String =
+      if (rep.isEmpty) "Sessions.Conditions.empty"
+      else {
+        val a = if_proper(good, "good = " + quote(good.mkString(",")))
+        val b = if_proper(bad, "bad = " + quote(bad.mkString(",")))
+        "Sessions.Conditions(" + a + if_proper(a.nonEmpty && b.nonEmpty, ", ") + b + ")"
+      }
+  }
+
+
   /* cumulative session info */
 
   private val BUILD_PREFS_BG = "<build_prefs:"
@@ -587,19 +611,22 @@ object Sessions {
 
   object Info {
     def make(
-      chapter_defs: Chapter_Defs,
-      options0: Options,
-      options: Options,
-      augment_options: String => List[Options.Spec],
-      dir_selected: Boolean,
+      entry: Session_Entry,
       dir: Path,
-      chapter: String,
-      entry: Session_Entry
+      options: Options,
+      options0: Options = Options.init0(),
+      augment_options: String => List[Options.Spec] = _ => Nil,
+      chapter_defs: Chapter_Defs = Chapter_Defs.empty,
+      chapter: String = UNSORTED,
+      dir_selected: Boolean = false,
+      draft_session: Boolean = false
     ): Info = {
       try {
-        val name = entry.name
+        val name =
+          if (draft_session) DRAFT
+          else if (illegal_session(entry.name)) error("Illegal session name " + quote(entry.name))
+          else entry.name
 
-        if (illegal_session(name)) error("Illegal session name " + quote(name))
         if (is_pure(name) && entry.parent.isDefined) error("Illegal parent session")
         if (!is_pure(name) && !entry.parent.isDefined) error("Missing parent session")
 
@@ -636,9 +663,7 @@ object Sessions {
             else thy_name
           }
 
-        val conditions =
-          theories.flatMap(thys => space_explode(',', thys._1.string("condition"))).distinct.sorted.
-            map(x => (x, Isabelle_System.getenv(x) != ""))
+        val conditions = Conditions.make(theories.iterator.map(_._1)).toList
 
         val document_files =
           entry.document_files.map({ case (s1, s2) => (Path.explode(s1), Path.explode(s2)) })
@@ -824,8 +849,14 @@ object Sessions {
             case entry: Chapter_Entry => chapter = entry.name
             case entry: Session_Entry =>
               root_infos +=
-                Info.make(chapter_defs, options0, options, augment_options,
-                  root.select, root.dir, chapter, entry)
+                Info.make(entry,
+                  dir = root.dir,
+                  options = options,
+                  options0 = options0,
+                  augment_options = augment_options,
+                  chapter_defs = chapter_defs,
+                  chapter = chapter,
+                  dir_selected = root.select)
             case _ =>
           }
           chapter = UNSORTED
@@ -1094,20 +1125,20 @@ object Sessions {
   ) extends Entry
   sealed case class Chapter_Entry(name: String) extends Entry
   sealed case class Session_Entry(
-    pos: Position.T,
-    name: String,
-    groups: List[String],
-    path: String,
-    parent: Option[String],
-    description: String,
-    options: List[Options.Spec],
-    imports: List[String],
-    directories: List[String],
-    theories: List[(List[Options.Spec], List[((String, Position.T), Boolean)])],
-    document_theories: List[(String, Position.T)],
-    document_files: List[(String, String)],
-    export_files: List[(String, Int, List[String])],
-    export_classpath: List[String]
+    pos: Position.T = Position.none,
+    name: String = "",
+    groups: List[String] = Nil,
+    path: String = ".",
+    parent: Option[String] = None,
+    description: String = "",
+    options: List[Options.Spec] = Nil,
+    imports: List[String] = Nil,
+    directories: List[String] = Nil,
+    theories: List[(List[Options.Spec], List[((String, Position.T), Boolean)])] = Nil,
+    document_theories: List[(String, Position.T)] = Nil,
+    document_files: List[(String, String)] = Nil,
+    export_files: List[(String, Int, List[String])] = Nil,
+    export_classpath: List[String] = Nil
   ) extends Entry {
     def theories_no_position: List[(List[Options.Spec], List[(String, Boolean)])] =
       theories.map({ case (a, b) => (a, b.map({ case ((c, _), d) => (c, d) })) })
@@ -1154,6 +1185,12 @@ object Sessions {
     private val chapter_entry: Parser[Chapter_Entry] =
       command(CHAPTER) ~! chapter_name ^^ { case _ ~ a => Chapter_Entry(a) }
 
+    private val prune: Parser[Int] =
+      $$$("[") ~! (nat ~ $$$("]")) ^^ { case _ ~ (x ~ _) => x } | success(0)
+
+    private val export_files_args: Parser[(String, Int, List[String])] =
+      in_path_parens("export") ~ prune ~ rep1(embedded) ^^ { case x ~ y ~ z => (x, y, z) }
+
     private val session_entry: Parser[Session_Entry] = {
       val options = $$$("[") ~> rep1sep(option_spec, $$$(",")) <~ $$$("]")
 
@@ -1172,11 +1209,8 @@ object Sessions {
         $$$(DOCUMENT_FILES) ~! (in_path_parens("document") ~ rep1(path)) ^^
           { case _ ~ (x ~ y) => y.map((x, _)) }
 
-      val prune = $$$("[") ~! (nat ~ $$$("]")) ^^ { case _ ~ (x ~ _) => x } | success(0)
-
       val export_files =
-        $$$(EXPORT_FILES) ~! (in_path_parens("export") ~ prune ~ rep1(embedded)) ^^
-          { case _ ~ (x ~ y ~ z) => (x, y, z) }
+        $$$(EXPORT_FILES) ~! export_files_args ^^ { case _ ~ x => x }
 
       val export_classpath =
         $$$(EXPORT_CLASSPATH) ~! (rep1(embedded) | success(List("*:classpath/*.jar"))) ^^
@@ -1195,7 +1229,9 @@ object Sessions {
               rep(export_files) ~
               opt(export_classpath)))) ^^
         { case _ ~ ((a, pos) ~ b ~ c ~ (_ ~ (d ~ e ~ f ~ g ~ h ~ i ~ j ~ k ~ l ~ m))) =>
-            Session_Entry(pos, a, b, c, d, e, f, g, h, i, j, k, l, m.getOrElse(Nil)) }
+            Session_Entry(pos = pos, name = a, groups = b, path = c, parent = d, description = e,
+              options = f, imports = g, directories = h, theories = i, document_theories = j,
+              document_files = k, export_files = l, export_classpath = m.getOrElse(Nil)) }
     }
 
     def parse_root(path: Path): List[Entry] = {
@@ -1203,6 +1239,14 @@ object Sessions {
       val start = Token.Pos.file(path.implode)
       val parser: Parser[Entry] = chapter_def | chapter_entry | session_entry
       parse_all(rep(parser), Token.reader(toks, start)) match {
+        case Success(result, _) => result
+        case bad => error(bad.toString)
+      }
+    }
+
+    def parse_exports(str: String, start: Token.Pos): (String, Int, List[String]) = {
+      val toks = Token.explode(root_syntax.keywords, str)
+      parse_all(export_files_args, Token.reader(toks, start)) match {
         case Success(result, _) => result
         case bad => error(bad.toString)
       }
@@ -1220,6 +1264,9 @@ object Sessions {
       if !(line == "" || line.startsWith("#"))
     } yield line
   }
+
+  def parse_exports(str: String, start: Token.Pos = Token.Pos.none): (String, Int, List[String]) =
+    Parsers.parse_exports(str, start)
 
 
   /* load sessions from certain directories */

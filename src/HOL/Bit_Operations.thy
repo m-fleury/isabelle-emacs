@@ -338,6 +338,57 @@ lemma bit_mod_2_iff [simp]:
   \<open>bit (a mod 2) n \<longleftrightarrow> n = 0 \<and> odd a\<close>
   by (simp add: mod_2_eq_odd bit_simps)
 
+lemma stable_index:
+  obtains m where \<open>possible_bit TYPE('a) m\<close>
+    \<open>\<And>n. possible_bit TYPE('a) n \<Longrightarrow> n \<ge> m \<Longrightarrow> bit a n \<longleftrightarrow> bit a m\<close>
+proof -
+  have \<open>\<exists>m. possible_bit TYPE('a) m \<and> (\<forall>n\<ge>m. possible_bit TYPE('a) n \<longrightarrow> bit a n \<longleftrightarrow> bit a m)\<close>
+  proof (induction a rule: bit_induct)
+    case (stable a)
+    show ?case
+      by (rule exI [of _ \<open>0::nat\<close>]) (simp add: stable_imp_bit_iff_odd stable)
+  next
+    case (rec a b)
+    then obtain m where \<open>possible_bit TYPE('a) m\<close>
+       and hyp: \<open>\<And>n. possible_bit TYPE('a) n \<Longrightarrow> n \<ge> m \<Longrightarrow> bit a n \<longleftrightarrow> bit a m\<close>
+      by blast
+    show ?case
+    proof (cases \<open>possible_bit TYPE('a) (Suc m)\<close>)
+      case True
+      moreover have \<open>bit (of_bool b + 2 * a) n \<longleftrightarrow> bit (of_bool b + 2 * a) (Suc m)\<close>
+        if \<open>possible_bit TYPE('a) n\<close> \<open>Suc m \<le> n\<close> for n
+        using hyp [of \<open>n - 1\<close>] possible_bit_less_imp [of n \<open>n - 1\<close>] rec.hyps that
+        by (cases n) (simp_all add: bit_Suc)
+      ultimately show ?thesis
+        by blast
+    next
+      case False
+      have \<open>bit (of_bool b + 2 * a) n \<longleftrightarrow> bit (of_bool b + 2 * a) m\<close>
+        if \<open>possible_bit TYPE('a) n\<close> \<open>m \<le> n\<close> for n
+      proof (cases \<open>m = n\<close>)
+        case True
+        then show ?thesis
+          by simp
+      next
+        case False
+        with \<open>m \<le> n\<close> have \<open>m < n\<close>
+          by simp
+        with \<open>\<not> possible_bit TYPE('a) (Suc m)\<close>
+        have \<open>\<not> possible_bit TYPE('a) n\<close> using possible_bit_less_imp [of n \<open>Suc m\<close>]
+          by auto
+        with \<open>possible_bit TYPE('a) n\<close>
+        show ?thesis
+          by simp
+      qed
+      with \<open>possible_bit TYPE('a) m\<close> show ?thesis
+        by blast
+    qed
+  qed
+  with that show thesis
+    by blast
+qed
+
+
 end
 
 lemma nat_bit_induct [case_names zero even odd]:
@@ -727,6 +778,14 @@ next
     by (simp add: mask_eq_exp_minus_1)
 qed
 
+lemma mask_eq_iff_eq_exp:
+  \<open>mask n = a \<longleftrightarrow> a + 1 = 2 ^ n\<close>
+  by (auto simp flip: inc_mask_eq_exp)
+
+lemma eq_mask_iff_eq_exp:
+  \<open>a = mask n \<longleftrightarrow> a + 1 = 2 ^ n\<close>
+  by (auto simp flip: inc_mask_eq_exp)
+
 lemma mask_Suc_double:
   \<open>mask (Suc n) = 1 OR 2 * mask n\<close>
 proof -
@@ -1103,6 +1162,20 @@ next
     then show \<open>bit (take_bit n a) m \<longleftrightarrow> bit a m\<close>
       by (cases \<open>m < n\<close>) (auto simp: bit_simps)
   qed
+qed
+
+lemma impossible_bit_imp_take_bit_eq_self:
+  \<open>take_bit n a = a\<close> if \<open>\<not> possible_bit TYPE('a) n\<close>
+proof -
+  have \<open>drop_bit n a = 0\<close>
+  proof (rule bit_eqI)
+    fix m
+    show \<open>bit (drop_bit n a) m \<longleftrightarrow> bit 0 m\<close>
+      using possible_bit_less_imp [of \<open>n + m\<close> n] that
+      by (auto simp add: bit_simps dest: bit_imp_possible_bit)
+  qed
+  then show ?thesis
+    by (simp add: take_bit_eq_self_iff_drop_bit_eq_0)
 qed
 
 lemma drop_bit_exp_eq:
@@ -1485,6 +1558,11 @@ lemma push_bit_minus_one_eq_not_mask [simp]:
 lemma take_bit_not_mask_eq_0:
   \<open>take_bit m (NOT (mask n)) = 0\<close> if \<open>n \<ge> m\<close>
   by (rule bit_eqI) (use that in \<open>simp add: bit_take_bit_iff bit_not_iff bit_mask_iff\<close>)
+
+lemma mask_eq_minus_one_if_not_possible_bit:
+  \<open>mask n = - 1\<close> if \<open>\<not> possible_bit TYPE('a) n\<close>
+  using that mask_eq_take_bit_minus_one [of n] impossible_bit_imp_take_bit_eq_self [of n \<open>- 1\<close>]
+  by simp
 
 lemma unset_bit_eq_and_not:
   \<open>unset_bit n a = a AND NOT (push_bit n 1)\<close>
@@ -2327,6 +2405,10 @@ lemma take_bit_int_less_self_iff:
   by (auto simp: less_le take_bit_int_less_eq_self_iff take_bit_int_eq_self_iff
     intro: order_trans [of 0 \<open>2 ^ n\<close> k])
 
+lemma take_bit_int_less_eq_mask:
+  \<open>take_bit n k \<le> mask n\<close> for k :: int
+  using take_bit_int_less_exp [of n k] by (simp add: mask_eq_exp_minus_1)
+
 lemma take_bit_int_greater_self_iff:
   \<open>k < take_bit n k \<longleftrightarrow> k < 0\<close> for k :: int
   using take_bit_int_less_eq_self_iff [of n k] by auto
@@ -2408,7 +2490,7 @@ proof -
       using ** N_def \<open>r < q\<close> by auto
     moreover define n where \<open>n = Suc (Max N)\<close>
     ultimately have \<dagger>: \<open>\<And>m. n \<le> m \<Longrightarrow> bit k m \<longleftrightarrow> bit k n\<close>
-      sorry
+      by (smt (verit) "*" Max_ge Suc_n_not_le_n linorder_not_less mem_Collect_eq not_less_eq_eq)
     have \<open>bit k (Max N) \<noteq> bit k n\<close>
       by (metis (mono_tags, lifting) "*" Max_in N_def \<open>\<And>m. n \<le> m \<Longrightarrow> bit k m = bit k n\<close> \<open>finite N\<close> \<open>r \<in> N\<close> empty_iff le_cases mem_Collect_eq)
     with \<dagger> n_def that [of n] show thesis
@@ -2669,6 +2751,11 @@ next
   with \<open>0 < n\<close> show ?thesis
     by simp
 qed
+
+lemma take_bit_nat_less_eq_mask:
+  \<open>take_bit n m \<le> mask n\<close> for m :: nat
+  using take_bit_nat_less_exp [of n m]
+  by (simp flip: Suc_mask_eq_exp)
 
 lemma take_bit_tightened_less_eq_nat:
   \<open>take_bit m q \<le> take_bit n q\<close> if \<open>m \<le> n\<close> for q :: nat
@@ -3761,6 +3848,10 @@ lemma signed_take_bit_int_less_eq:
   for k :: int
   using that take_bit_int_less_eq [of \<open>Suc n\<close> \<open>k + 2 ^ n\<close>]
   by (simp add: signed_take_bit_eq_take_bit_shift)
+
+lemma signed_take_bit_Suc_sgn_eq [simp]:
+  \<open>signed_take_bit (Suc n) (sgn k) = sgn k\<close> for k :: int
+  by (simp add: sgn_if)
 
 lemma signed_take_bit_Suc_bit0 [simp]:
   \<open>signed_take_bit (Suc n) (numeral (Num.Bit0 k)) = signed_take_bit n (numeral k) * (2 :: int)\<close>

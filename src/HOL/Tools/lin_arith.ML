@@ -105,10 +105,10 @@ val neq_limit = Attrib.setup_config_int \<^binding>\<open>linarith_neq_limit\<cl
 val trace = Attrib.setup_config_bool \<^binding>\<open>linarith_trace\<close> (K false);
 
 fun nnf_simpset ctxt =
-  (empty_simpset ctxt
-    |> Simplifier.set_mkeqTrue mk_eq_True
-    |> Simplifier.set_mksimps (mksimps mksimps_pairs))
-  addsimps @{thms imp_conv_disj iff_conv_conj_imp de_Morgan_disj
+  empty_simpset ctxt
+  |> Simplifier.set_mkeqTrue mk_eq_True
+  |> Simplifier.set_mksimps (mksimps mksimps_pairs)
+  |> Simplifier.add_simps @{thms imp_conv_disj iff_conv_conj_imp de_Morgan_disj
     de_Morgan_conj not_all not_ex not_not}
 
 fun prem_nnf_tac ctxt = full_simp_tac (nnf_simpset ctxt)
@@ -946,7 +946,7 @@ end;
 
 val global_setup =
   map_theory_simpset (fn ctxt => ctxt
-    addSolver (mk_solver "lin_arith" (add_arith_facts #> Fast_Arith.prems_lin_arith_tac))) #>
+    |> Simplifier.add_unsafe_solver (mk_solver "lin_arith" (add_arith_facts #> Fast_Arith.prems_lin_arith_tac))) #>
   Attrib.setup \<^binding>\<open>linarith_split\<close> (Scan.succeed (Thm.declaration_attribute add_split))
     "declaration of split rules for arithmetic procedure" #>
   Method.setup \<^binding>\<open>linarith\<close>

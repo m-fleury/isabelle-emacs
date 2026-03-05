@@ -70,7 +70,7 @@ fun mk_update_defs typ_name lthy =
 
     fun simp_only_tac ctxt =
       REPEAT_ALL_NEW (resolve_tac ctxt @{thms impI allI}) THEN'
-        asm_full_simp_tac (put_simpset HOL_basic_ss ctxt addsimps simp_thms)
+        asm_full_simp_tac (put_simpset HOL_basic_ss ctxt |> Simplifier.add_simps simp_thms)
 
     fun prove ctxt defs ts n =
       let
@@ -173,7 +173,7 @@ fun mk_update_defs typ_name lthy =
       end
 
     fun define name t =
-      Local_Theory.define ((name, NoSyn), ((Binding.empty, @{attributes [datatype_record_update, code]}),t))
+      Local_Theory.define ((name, NoSyn), ((Binding.empty, Code.singleton_default_equation_attrib :: @{attributes [datatype_record_update]}),t))
       #> apfst (apsnd snd)
 
     val (updates, (lthy'', lthy')) =

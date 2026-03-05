@@ -798,6 +798,14 @@ lemma divideR_right:
 
 class real_normed_field = real_field + real_normed_div_algebra
 
+lemma dist_mult_left:
+  "dist (a * b) (a * c :: 'a :: real_normed_field) = norm a * dist b c"
+  unfolding dist_norm right_diff_distrib [symmetric] norm_mult by simp
+
+lemma dist_mult_right:
+  "dist (b * a) (c * a :: 'a :: real_normed_field) = norm a * dist b c"
+  using dist_mult_left[of a b c] by (simp add: mult_ac)
+
 instance real_normed_div_algebra < real_normed_algebra_1
 proof
   show "norm (x * y) \<le> norm x * norm y" for x y :: 'a
@@ -949,6 +957,18 @@ lemma norm_add_less: "norm x < r \<Longrightarrow> norm y < s \<Longrightarrow> 
   by (rule order_le_less_trans [OF norm_triangle_ineq add_strict_mono])
 
 end
+
+lemma dist_sum_le:
+  fixes f :: "'a \<Rightarrow> 'b :: real_normed_vector"
+  shows "dist (\<Sum>x\<in>A. f x) (\<Sum>x\<in>A. g x) \<le> (\<Sum>x\<in>A. dist (f x) (g x))"
+proof -
+  have "dist (\<Sum>x\<in>A. f x) (\<Sum>x\<in>A. g x) = norm (\<Sum>x\<in>A. f x - g x)"
+    by (simp add: dist_norm sum_subtractf)
+  also have "\<dots> \<le> (\<Sum>x\<in>A. norm (f x - g x))"
+    by (rule norm_sum)
+  finally show ?thesis
+    by (simp add: dist_norm)
+qed
 
 lemma dist_scaleR [simp]: "dist (x *\<^sub>R a) (y *\<^sub>R a) = \<bar>x - y\<bar> * norm a"
   for a :: "'a::real_normed_vector"

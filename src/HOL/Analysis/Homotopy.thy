@@ -116,21 +116,21 @@ proof (intro exI conjI allI ballI)
     by (cases "t = 1") (simp_all add: assms)
 qed auto
 
-lemma homotopic_with_imp_subset1:
-     "homotopic_with_canon P X Y f g \<Longrightarrow> f ` X \<subseteq> Y"
-  by (meson continuous_map_subtopology_eu homotopic_with_imp_continuous_maps)
-
-lemma homotopic_with_imp_subset2:
-     "homotopic_with_canon P X Y f g \<Longrightarrow> g ` X \<subseteq> Y"
-  by (meson continuous_map_subtopology_eu homotopic_with_imp_continuous_maps)
-
 lemma homotopic_with_imp_funspace1:
      "homotopic_with_canon P X Y f g \<Longrightarrow> f \<in> X \<rightarrow> Y"
-  using homotopic_with_imp_subset1 by blast
+  using homotopic_with_imp_continuous_maps by fastforce
+
+lemma homotopic_with_imp_subset1:
+     "homotopic_with_canon P X Y f g \<Longrightarrow> f ` X \<subseteq> Y"
+  using homotopic_with_imp_funspace1 by blast
 
 lemma homotopic_with_imp_funspace2:
      "homotopic_with_canon P X Y f g \<Longrightarrow> g \<in> X \<rightarrow> Y"
-  using homotopic_with_imp_subset2 by blast
+  using homotopic_with_imp_continuous_maps by force
+
+lemma homotopic_with_imp_subset2:
+     "homotopic_with_canon P X Y f g \<Longrightarrow> g ` X \<subseteq> Y"
+  using homotopic_with_imp_funspace2 by blast
 
 lemma homotopic_with_subset_left:
      "\<lbrakk>homotopic_with_canon P X Y f g; Z \<subseteq> X\<rbrakk> \<Longrightarrow> homotopic_with_canon P Z Y f g"
@@ -485,10 +485,11 @@ lemma homotopic_paths_imp_path:
 
 lemma homotopic_paths_imp_subset:
      "homotopic_paths S p q \<Longrightarrow> path_image p \<subseteq> S \<and> path_image q \<subseteq> S"
-  by (metis (mono_tags) continuous_map_subtopology_eu homotopic_paths_def homotopic_with_imp_continuous_maps path_image_def)
+  by (simp add: homotopic_paths_def homotopic_with_imp_subset1 homotopic_with_imp_subset2
+      path_image_def)
 
 proposition homotopic_paths_refl [simp]: "homotopic_paths S p p \<longleftrightarrow> path p \<and> path_image p \<subseteq> S"
-  by (simp add: homotopic_paths_def path_def path_image_def)
+  by (auto simp add: homotopic_paths_def path_def path_image_def)
 
 proposition homotopic_paths_sym: "homotopic_paths S p q \<Longrightarrow> homotopic_paths S q p"
   by (metis (mono_tags) homotopic_paths_def homotopic_paths_imp_pathfinish homotopic_paths_imp_pathstart homotopic_with_symD)
@@ -684,7 +685,7 @@ definition\<^marker>\<open>tag important\<close> homotopic_loops :: "'a::topolog
 lemma homotopic_loops:
    "homotopic_loops S p q \<longleftrightarrow>
       (\<exists>h. continuous_on ({0..1::real} \<times> {0..1}) h \<and>
-          image h ({0..1} \<times> {0..1}) \<subseteq> S \<and>
+          h \<in> ({0..1} \<times> {0..1}) \<rightarrow> S \<and>
           (\<forall>x \<in> {0..1}. h(0,x) = p x) \<and>
           (\<forall>x \<in> {0..1}. h(1,x) = q x) \<and>
           (\<forall>t \<in> {0..1}. pathfinish(h \<circ> Pair t) = pathstart(h \<circ> Pair t)))"
@@ -702,12 +703,13 @@ proposition homotopic_loops_imp_path:
 proposition homotopic_loops_imp_subset:
      "homotopic_loops S p q \<Longrightarrow> path_image p \<subseteq> S \<and> path_image q \<subseteq> S"
   unfolding homotopic_loops_def path_image_def
-  by (meson continuous_map_subtopology_eu homotopic_with_imp_continuous_maps)
+  by (simp add: homotopic_with_imp_subset1 homotopic_with_imp_subset2)
 
 proposition homotopic_loops_refl:
      "homotopic_loops S p p \<longleftrightarrow>
       path p \<and> path_image p \<subseteq> S \<and> pathfinish p = pathstart p"
-  by (simp add: homotopic_loops_def path_image_def path_def)
+  by (metis (mono_tags, lifting) homotopic_loops_def homotopic_paths_def
+      homotopic_paths_refl homotopic_with_refl)
 
 proposition homotopic_loops_sym: "homotopic_loops S p q \<Longrightarrow> homotopic_loops S q p"
   by (simp add: homotopic_loops_def homotopic_with_sym)
@@ -726,8 +728,9 @@ proposition homotopic_loops_subset:
 proposition homotopic_loops_eq:
    "\<lbrakk>path p; path_image p \<subseteq> S; pathfinish p = pathstart p; \<And>t. t \<in> {0..1} \<Longrightarrow> p(t) = q(t)\<rbrakk>
           \<Longrightarrow> homotopic_loops S p q"
-  unfolding homotopic_loops_def path_image_def path_def pathstart_def pathfinish_def
-  by (auto intro: homotopic_with_eq [OF homotopic_with_refl [where f = p, THEN iffD2]])
+  unfolding homotopic_loops_def path_image_def path_def pathstart_def pathfinish_def image_subset_iff_funcset
+  using homotopic_with_eq [OF homotopic_with_refl [where f = p, THEN iffD2]]
+  by fastforce
 
 proposition homotopic_loops_continuous_image:
    "\<lbrakk>homotopic_loops S f g; continuous_on S h; h \<in> S \<rightarrow> t\<rbrakk> \<Longrightarrow> homotopic_loops t (h \<circ> f) (h \<circ> g)"
@@ -1247,7 +1250,7 @@ proof -
       using p1 p2 unfolding homotopic_loops
       apply clarify
       subgoal for h k
-        by (rule_tac x="\<lambda>z. (h z, k z)" in exI) (force intro: continuous_intros simp: path_defs)
+        by (rule_tac x="\<lambda>z. (h z, k z)" in exI) (auto intro: continuous_intros simp: path_defs)
       done
   qed
   with assms show ?thesis
@@ -1451,6 +1454,168 @@ lemma is_interval_simply_connected_1:
   fixes S :: "real set"
   shows "is_interval S \<longleftrightarrow> simply_connected S"
   by (meson convex_imp_simply_connected is_interval_connected_1 is_interval_convex_1 simply_connected_imp_connected)
+
+
+subsection \<open>The slotted complex plane\<close>
+
+lemma closed_slot_left: "closed (complex_of_real ` {..c})"
+  by (intro closed_injective_linear_image) (auto simp: inj_def)
+
+lemma closed_slot_right: "closed (complex_of_real ` {c..})"
+  by (intro closed_injective_linear_image) (auto simp: inj_def)
+
+lemma complex_slot_left_eq: "complex_of_real ` {..c} = {z. Re z \<le> c \<and> Im z = 0}"
+  by (auto simp: image_iff complex_eq_iff)
+
+lemma complex_slot_right_eq: "complex_of_real ` {c..} = {z. Re z \<ge> c \<and> Im z = 0}"
+  by (auto simp: image_iff complex_eq_iff)
+
+lemma complex_double_slot_eq:
+  "complex_of_real ` ({..c1} \<union> {c2..}) = {z. Im z = 0 \<and> (Re z \<le> c1 \<or> Re z \<ge> c2)}"
+  by (auto simp: image_iff complex_eq_iff)
+
+lemma starlike_slotted_complex_plane_left_aux:
+  assumes z: "z \<in> -(complex_of_real ` {..c})" and c: "c < c'"
+  shows   "closed_segment (complex_of_real c') z \<subseteq> -(complex_of_real ` {..c})"
+proof -
+  show "closed_segment c' z \<subseteq> -of_real ` {..c}"
+  proof (cases "Im z = 0")
+    case True
+    thus ?thesis using z c
+      by (auto simp: closed_segment_same_Im closed_segment_eq_real_ivl complex_slot_left_eq)
+  next
+    case False
+    show ?thesis
+    proof
+      fix x assume x: "x \<in> closed_segment (of_real c') z"
+      consider "x = of_real c'" | "x = z" | "x \<in> open_segment (of_real c') z"
+        unfolding open_segment_def using x by blast
+      thus "x \<in> -complex_of_real ` {..c}"
+      proof cases
+        assume "x \<in> open_segment (of_real c') z"
+        hence "Im x \<in> open_segment (Im (complex_of_real c')) (Im z)"
+          by (intro in_open_segment_imp_Im_in_open_segment) (use False in auto)
+        hence "Im x \<noteq> 0"
+          by (auto simp: open_segment_eq_real_ivl split: if_splits)
+        thus ?thesis
+          by (auto simp: complex_slot_right_eq)
+      qed (use z c in \<open>auto simp: complex_slot_left_eq\<close>)
+    qed
+  qed
+qed
+
+lemma starlike_slotted_complex_plane_left: "starlike (-(complex_of_real ` {..c}))"
+  unfolding starlike_def
+proof (rule bexI[of _ "of_real c + 1"]; (intro ballI)?)
+  show "complex_of_real c + 1 \<in> -complex_of_real ` {..c}"
+    by (auto simp: complex_eq_iff)
+  show "closed_segment (complex_of_real c + 1) z \<subseteq> - complex_of_real ` {..c}"
+    if "z \<in> - complex_of_real ` {..c}" for z
+    using starlike_slotted_complex_plane_left_aux[OF that, of "c + 1"] by simp
+qed
+
+
+lemma starlike_slotted_complex_plane_right_aux:
+  assumes z: "z \<in> -(complex_of_real ` {c..})" and c: "c > c'"
+  shows   "closed_segment (complex_of_real c') z \<subseteq> -(complex_of_real ` {c..})"
+proof -
+  show "closed_segment c' z \<subseteq> -of_real ` {c..}"
+  proof (cases "Im z = 0")
+    case True
+    thus ?thesis using z c
+      by (auto simp: closed_segment_same_Im closed_segment_eq_real_ivl complex_slot_right_eq)
+  next
+    case False
+    show ?thesis
+    proof
+      fix x assume x: "x \<in> closed_segment (of_real c') z"
+      consider "x = of_real c'" | "x = z" | "x \<in> open_segment (of_real c') z"
+        unfolding open_segment_def using x by blast
+      thus "x \<in> -complex_of_real ` {c..}"
+      proof cases
+        assume "x \<in> open_segment (of_real c') z"
+        hence "Im x \<in> open_segment (Im (complex_of_real c')) (Im z)"
+          by (intro in_open_segment_imp_Im_in_open_segment) (use False in auto)
+        hence "Im x \<noteq> 0"
+          by (auto simp: open_segment_eq_real_ivl split: if_splits)
+        thus ?thesis
+          by (auto simp: complex_slot_right_eq)
+      qed (use z c in \<open>auto simp: complex_slot_right_eq\<close>)
+    qed
+  qed
+qed
+
+lemma starlike_slotted_complex_plane_right: "starlike (-(complex_of_real ` {c..}))"
+  unfolding starlike_def
+proof (rule bexI[of _ "of_real c - 1"]; (intro ballI)?)
+  show "complex_of_real c - 1 \<in> -complex_of_real ` {c..}"
+    by (auto simp: complex_eq_iff)
+  show "closed_segment (complex_of_real c - 1) z \<subseteq> - complex_of_real ` {c..}"
+    if "z \<in> - complex_of_real ` {c..}" for z
+    using starlike_slotted_complex_plane_right_aux[OF that, of "c - 1"] by simp
+qed
+
+
+lemma starlike_doubly_slotted_complex_plane_aux:
+  assumes z: "z \<in> -(complex_of_real ` ({..c1} \<union> {c2..}))" and c: "c1 < c" "c < c2"
+  shows   "closed_segment (complex_of_real c) z \<subseteq> -(complex_of_real ` ({..c1} \<union> {c2..}))"
+proof -
+  show "closed_segment c z \<subseteq> -of_real ` ({..c1} \<union> {c2..})"
+  proof (cases "Im z = 0")
+    case True
+    thus ?thesis using z c
+      by (auto simp: closed_segment_same_Im closed_segment_eq_real_ivl complex_double_slot_eq)
+  next
+    case False
+    show ?thesis
+    proof
+      fix x assume x: "x \<in> closed_segment (of_real c) z"
+      consider "x = of_real c" | "x = z" | "x \<in> open_segment (of_real c) z"
+        unfolding open_segment_def using x by blast
+      thus "x \<in> -complex_of_real ` ({..c1} \<union> {c2..})"
+      proof cases
+        assume "x \<in> open_segment (of_real c) z"
+        hence "Im x \<in> open_segment (Im (complex_of_real c)) (Im z)"
+          by (intro in_open_segment_imp_Im_in_open_segment) (use False in auto)
+        hence "Im x \<noteq> 0"
+          by (auto simp: open_segment_eq_real_ivl split: if_splits)
+        thus ?thesis
+          by (auto simp: complex_slot_right_eq)
+      qed (use z c in \<open>auto simp: complex_slot_right_eq\<close>)
+    qed
+  qed
+qed
+
+lemma starlike_doubly_slotted_complex_plane:
+  assumes "c1 < c2"
+  shows   "starlike (-(complex_of_real ` ({..c1} \<union> {c2..})))"
+proof -
+  from assms obtain c where c: "c1 < c" "c < c2"
+    using dense by blast
+  show ?thesis
+    unfolding starlike_def
+  proof (rule bexI[of _ "of_real c"]; (intro ballI)?)
+    show "complex_of_real c \<in> -complex_of_real ` ({..c1} \<union> {c2..})"
+      using c by (auto simp: complex_eq_iff)
+    show "closed_segment (complex_of_real c) z \<subseteq> - complex_of_real ` ({..c1} \<union> {c2..})"
+      if "z \<in> - complex_of_real ` ({..c1} \<union> {c2..})" for z
+      using starlike_doubly_slotted_complex_plane_aux[OF that, of c] c by simp
+  qed
+qed
+
+lemma simply_connected_slotted_complex_plane_left:
+  "simply_connected (-(complex_of_real ` {..c}))"
+  by (intro starlike_imp_simply_connected starlike_slotted_complex_plane_left)
+
+lemma simply_connected_slotted_complex_plane_right:
+  "simply_connected (-(complex_of_real ` {c..}))"
+  by (intro starlike_imp_simply_connected starlike_slotted_complex_plane_right)
+
+lemma simply_connected_doubly_slotted_complex_plane:
+  "c1 < c2 \<Longrightarrow> simply_connected (-(complex_of_real ` ({..c1} \<union> {c2..})))"
+  by (intro starlike_imp_simply_connected starlike_doubly_slotted_complex_plane)
+
+subsection \<open>Contractible sets\<close>
 
 lemma contractible_empty [simp]: "contractible {}"
   by (simp add: contractible_def homotopic_on_emptyI)
@@ -3786,7 +3951,9 @@ abbreviation\<^marker>\<open>tag important\<close> homotopy_eqv :: "'a::topologi
 
 lemma homeomorphic_imp_homotopy_eqv: "S homeomorphic T \<Longrightarrow> S homotopy_eqv T"
   unfolding homeomorphic_def homeomorphism_def homotopy_equivalent_space_def
-  by (metis continuous_map_subtopology_eu homotopic_with_id2 openin_imp_subset openin_subtopology_self topspace_euclidean_subtopology)
+  apply (erule ex_forward)+
+  by (metis continuous_map_subtopology_eu homotopic_with_id2 openin_imp_subset openin_subtopology_self topspace_euclidean_subtopology
+      image_subset_iff_funcset)
 
 lemma homotopy_eqv_inj_linear_image:
   fixes f :: "'a::euclidean_space \<Rightarrow> 'b::euclidean_space"
@@ -3963,7 +4130,8 @@ lemma homotopy_eqv_empty1 [simp]:
   shows "S homotopy_eqv ({}::'b::real_normed_vector set) \<longleftrightarrow> S = {}" (is "?lhs = ?rhs")
 proof
   assume ?lhs then show ?rhs
-    by (metis continuous_map_subtopology_eu empty_iff equalityI homotopy_equivalent_space_def image_subset_iff subsetI)
+    by (meson continuous_map_subtopology_eu equals0D equals0I funcset_mem
+        homotopy_equivalent_space_def)
 qed (use homeomorphic_imp_homotopy_eqv in force)
 
 lemma homotopy_eqv_empty2 [simp]:
@@ -5216,13 +5384,12 @@ proof (clarsimp simp: continuous_on_eq_continuous_within Ball_def)
   next
     case False
     show ?thesis
-    proof (rule continuous_transform_within [where f=g and d = "norm(x-a)"])
-      have "\<exists>d>0. \<forall>x'\<in>cball a r.
-                      dist x' x < d \<longrightarrow> dist (g x') (g x) < e" if "e>0" for e
+    proof (rule continuous_transform_within [where f=g and \<delta> = "norm(x-a)"])
+      have "\<exists>d>0. \<forall>x'\<in>cball a r. dist x' x < d \<longrightarrow> dist (g x') (g x) < e" 
+        if "e>0" for e
       proof -
         obtain d where "d > 0"
-           and d: "\<And>x'. \<lbrakk>dist x' a \<le> r; x' \<noteq> a; dist x' x < d\<rbrakk> \<Longrightarrow>
-                                 dist (g x') (g x) < e"
+           and d: "\<And>y. \<lbrakk>dist y a \<le> r; y \<noteq> a; dist y x < d\<rbrakk> \<Longrightarrow> dist (g y) (g x) < e"
           using contg False x \<open>e>0\<close>
           unfolding continuous_on_iff by (fastforce simp: dist_commute intro: that)
         show ?thesis
@@ -5281,8 +5448,8 @@ next
     assume c: "homotopic_with_canon (\<lambda>x. True) (sphere a r) S f (\<lambda>x. c)"
     then have contf: "continuous_on (sphere a r) f" 
       by (metis homotopic_with_imp_continuous)
-    moreover have fim: "f ` sphere a r \<subseteq> S"
-      by (meson continuous_map_subtopology_eu c homotopic_with_imp_continuous_maps)
+    moreover have fim: "f \<in> sphere a r \<rightarrow> S"
+      using homotopic_with_imp_subset1 that by blast
     show ?P
       using contf fim by (auto simp: sphere_def dist_norm norm_minus_commute)
   qed
@@ -5373,7 +5540,7 @@ next
         by (intro continuous_intros)
       qed (auto simp: dist_norm norm_minus_commute mult_left_le_one_le)
     moreover
-    have "?h ` ({0..1} \<times> sphere a r) \<subseteq> S"
+    have "?h \<in> ({0..1} \<times> sphere a r) \<rightarrow> S"
       by (auto simp: dist_norm norm_minus_commute mult_left_le_one_le gim [THEN subsetD])
     moreover
     have "\<forall>x\<in>sphere a r. ?h (0, x) = g a" "\<forall>x\<in>sphere a r. ?h (1, x) = f x"

@@ -1299,10 +1299,16 @@ lemma filter_mset_add_mset [simp]:
 lemma multiset_filter_subset[simp]: "filter_mset f M \<subseteq># M"
   by (simp add: mset_subset_eqI)
 
+lemma filter_mset_mono_strong:
+  assumes "A \<subseteq># B" "\<And>x. x \<in># A \<Longrightarrow> P x \<Longrightarrow> Q x"
+  shows   "filter_mset P A \<subseteq># filter_mset Q B"
+  by (rule mset_subset_eqI) (insert assms, auto simp: mset_subset_eq_count count_eq_zero_iff)
+
+(* TODO: rename to filter_mset_mono_strong *)
 lemma multiset_filter_mono:
   assumes "A \<subseteq># B"
   shows "filter_mset f A \<subseteq># filter_mset f B"
-  by (metis assms filter_sup_mset subset_mset.order_iff)
+  using filter_mset_mono_strong[OF \<open>A \<subseteq># B\<close>] .
 
 lemma filter_mset_eq_conv:
   "filter_mset P M = N \<longleftrightarrow> N \<subseteq># M \<and> (\<forall>b\<in>#N. P b) \<and> (\<forall>a\<in>#M - N. \<not> P a)" (is "?P \<longleftrightarrow> ?Q")
@@ -1330,6 +1336,9 @@ next
     qed
   qed
 qed
+
+lemma filter_mset_eq_mempty_iff[simp]: "filter_mset P A = {#} \<longleftrightarrow> (\<forall>x. x \<in># A \<longrightarrow> \<not> P x)"
+  by (auto simp: multiset_eq_iff count_eq_zero_iff)
 
 lemma filter_filter_mset: "filter_mset P (filter_mset Q M) = {#x \<in># M. Q x \<and> P x#}"
   by (auto simp: multiset_eq_iff)
@@ -1739,7 +1748,7 @@ lemma image_mset_If:
      image_mset f (filter_mset P A) + image_mset g (filter_mset (\<lambda>x. \<not>P x) A)"
   by (induction A) auto
 
-lemma filter_image_mset:
+lemma filter_mset_image_mset:
   "filter_mset P (image_mset f A) = image_mset f (filter_mset (\<lambda>x. P (f x)) A)"
   by (induction A) auto
 
@@ -1989,7 +1998,7 @@ lemma in_multiset_in_set:
   by (induct xs) simp_all
 
 lemma count_mset:
-  "count (mset xs) x = length (filter (\<lambda>y. x = y) xs)"
+  "count (mset xs) x = count_list xs x"
   by (induct xs) simp_all
 
 lemma mset_zero_iff[simp]: "(mset x = {#}) = (x = [])"
@@ -2098,7 +2107,7 @@ lemma mset_eq_length:
 
 lemma mset_eq_length_filter:
   assumes "mset xs = mset ys"
-  shows "length (filter (\<lambda>x. z = x) xs) = length (filter (\<lambda>y. z = y) ys)"
+  shows "count_list xs z = count_list ys z"
   using assms by (metis count_mset)
 
 lemma fold_multiset_equiv:
@@ -2162,6 +2171,31 @@ lemma mset_insort [simp]: "mset (insort x xs) = add_mset x (mset xs)"
 lemma mset_map[simp]: "mset (map f xs) = image_mset f (mset xs)"
   by (induct xs) simp_all
 
+lemma mset_removeAll_eq:
+  \<open>mset (removeAll x xs) = filter_mset ((\<noteq>) x) (mset xs)\<close>
+  by (induction xs) auto
+
+lemma singleton_set_mset_subset: fixes X Y :: "'a list set"
+  assumes "\<forall>xs \<in> X. set xs \<subseteq> {a}" "mset ` X \<subseteq> mset ` Y"
+  shows "X \<subseteq> Y"
+proof
+  fix xs assume "xs \<in> X"
+  obtain ys where ys: "ys \<in> Y" "mset xs = mset ys"
+    using \<open>xs \<in> X\<close> assms(2) by auto
+  then show "xs \<in> Y" using \<open>xs \<in> X\<close> assms(1) ys
+    by (metis singleton_iff mset_eq_setD replicate_eqI set_empty subset_singletonD size_mset)
+qed
+
+lemma singleton_set_mset_eq: fixes X Y :: "'a list set"
+  assumes "\<forall>xs \<in> X. set xs \<subseteq> {a}" "mset ` X = mset ` Y"
+  shows "X = Y"
+proof -
+  have "\<forall>ys \<in> Y. set ys \<subseteq> {a}"
+    by (metis (mono_tags, lifting) assms image_iff mset_eq_setD)
+  thus ?thesis
+    by (metis antisym assms(1,2) singleton_set_mset_subset subset_refl)
+qed
+
 global_interpretation mset_set: folding add_mset "{#}"
   defines mset_set = "folding_on.F add_mset {#}"
   by standard (simp add: fun_eq_iff)
@@ -2217,6 +2251,9 @@ proof -
   also from assms have "A - B \<union> B = A" by blast
   finally show ?thesis by simp
 qed
+
+lemma mset_minus_list_mset[simp]: "mset(minus_list_mset xs ys) = mset xs - mset ys"
+by (simp add: count_mset multiset_eq_iff)
 
 lemma mset_set_set: "distinct xs \<Longrightarrow> mset_set (set xs) = mset xs"
   by (induction xs) simp_all
@@ -2289,6 +2326,10 @@ lemma infinite_set_mset_mset_set: "\<not> finite A \<Longrightarrow> set_mset (m
 lemma set_sorted_list_of_multiset [simp]:
   "set (sorted_list_of_multiset M) = set_mset M"
   by (induct M) (simp_all add: set_insort_key)
+
+lemma sorted_sorted_list_of_multiset [iff]:
+  \<open>sorted (sorted_list_of_multiset M)\<close>
+  by (induction M) (simp_all add: sorted_insort)
 
 lemma sorted_list_of_mset_set [simp]:
   "sorted_list_of_multiset (mset_set A) = sorted_list_of_set A"
@@ -2817,6 +2858,12 @@ lemma sum_eq_empty_iff:
 lemma mset_concat: "mset (concat xss) = (\<Sum>xs\<leftarrow>xss. mset xs)"
   by (induction xss) auto
 
+lemma set_mset_sum_list [simp]: "set_mset (sum_list xs) = (\<Union>x\<in>set xs. set_mset x)"
+  by (induction xs) auto
+
+lemma filter_mset_sum_list: "filter_mset P (sum_list xs) = sum_list (map (filter_mset P) xs)"
+  by (induction xs) simp_all
+
 lemma sum_mset_singleton_mset [simp]: "(\<Sum>x\<in>#A. {#f x#}) = image_mset f A"
   by (induction A) auto
 
@@ -2829,8 +2876,31 @@ lemma Union_mset_empty_conv[simp]: "\<Sum>\<^sub># M = {#} \<longleftrightarrow>
 lemma Union_image_single_mset[simp]: "\<Sum>\<^sub># (image_mset (\<lambda>x. {#x#}) m) = m"
   by(induction m) auto
 
-lemma size_multiset_sum_mset [simp]: "size (\<Sum>X\<in>#A. X :: 'a multiset) = (\<Sum>X\<in>#A. size X)"
+lemma size_mset_sum_mset_conv [simp]: "size (\<Sum>\<^sub># A :: 'a multiset) = (\<Sum>X\<in>#A. size X)"
   by (induction A) auto
+
+lemma sum_mset_image_mset_mono_strong:
+  assumes "A \<subseteq># B" and f_subeq_g: "\<And>x. x \<in># A \<Longrightarrow> f x \<subseteq># g x"
+  shows "(\<Sum>x\<in>#A. f x) \<subseteq># (\<Sum>x\<in>#B. g x)"
+proof -
+  define B' where
+    "B' = B - A"
+
+  have "B = A + B'"
+    using B'_def assms(1) by fastforce
+
+  have "\<Sum>\<^sub># (image_mset f A) \<subseteq># \<Sum>\<^sub># (image_mset g A)"
+    using f_subeq_g by (induction A) (auto intro!: subset_mset.add_mono)
+  also have "\<dots> \<subseteq># \<Sum>\<^sub># (image_mset g A) + \<Sum>\<^sub># (image_mset g B')"
+    by simp
+  also have "\<dots> = \<Sum>\<^sub># (image_mset g A + image_mset g B')"
+    by simp
+  also have "\<dots> = \<Sum>\<^sub># (image_mset g (A + B'))"
+    by simp
+  also have "\<dots> = \<Sum>\<^sub># (image_mset g B)"
+    unfolding \<open>B = A + B'\<close> ..
+  finally show ?thesis .
+qed
 
 context comm_monoid_mult
 begin
@@ -3026,7 +3096,7 @@ proof (rule properties_for_sort_key)
   from multiset show "mset ys = mset xs" .
   from \<open>sorted ys\<close> show "sorted (map (\<lambda>x. x) ys)" by simp
   from multiset have "length (filter (\<lambda>y. k = y) ys) = length (filter (\<lambda>x. k = x) xs)" for k
-    by (rule mset_eq_length_filter)
+    by (metis mset_filter size_mset)
   then have "replicate (length (filter (\<lambda>y. k = y) ys)) k =
     replicate (length (filter (\<lambda>x. k = x) xs)) k" for k
     by simp
@@ -3174,6 +3244,10 @@ qed
 end
 
 hide_const (open) part
+
+lemma sort_sorted_list_of_multiset_eq [simp]:
+  \<open>sort (sorted_list_of_multiset M) = sorted_list_of_multiset M\<close> for M :: \<open>'a::linorder multiset\<close>
+  by (rule properties_for_sort) simp_all
 
 lemma mset_remdups_subset_eq: "mset (remdups xs) \<subseteq># mset xs"
   by (induct xs) (auto intro: subset_mset.order_trans)
@@ -4268,7 +4342,7 @@ lemma [code]: "add_mset x (mset xs) = mset (x # xs)"
   by simp
 
 lemma [code]: "Multiset.is_empty (mset xs) \<longleftrightarrow> List.null xs"
-  by (simp add: Multiset.is_empty_def List.null_def)
+  by (simp add: Multiset.is_empty_def)
 
 lemma union_code [code]: "mset xs + mset ys = mset (xs @ ys)"
   by simp
@@ -4279,8 +4353,8 @@ lemma [code]: "image_mset f (mset xs) = mset (map f xs)"
 lemma [code]: "filter_mset f (mset xs) = mset (filter f xs)"
   by simp
 
-lemma [code]: "mset xs - mset ys = mset (fold remove1 ys xs)"
-  by (rule sym, induct ys arbitrary: xs) (simp_all add: diff_add diff_right_commute diff_diff_add)
+lemma [code]: "mset xs - mset ys = mset (minus_list_mset xs ys)"
+  by simp
 
 lemma [code]:
   "mset xs \<inter># mset ys =
@@ -4795,5 +4869,186 @@ lifting_update multiset.lifting
 lifting_forget multiset.lifting
 
 hide_const (open) wcount
+
+
+subsection \<open>The set of multisets of a given size\<close>
+
+(* contributed by Manuel Eberl *)
+
+text \<open>
+  The following operator gives the set of all multisets consisting of $n$ elements drawn from
+  the set $A$. In other words: all the different ways to put $n$ unlabelled balls into
+  the labelled bins $A$.
+\<close>
+definition multisets_of_size :: "'a set \<Rightarrow> nat \<Rightarrow> 'a multiset set" where
+  "multisets_of_size A n = {X. set_mset X \<subseteq> A \<and> size X = n}"
+
+lemma 
+  assumes "X \<in> multisets_of_size A n"
+  shows   multisets_of_size_subset: "set_mset X \<subseteq> A"
+    and   multisets_of_size_size: "size X = n"
+  using assms by (auto simp: multisets_of_size_def)
+
+lemma multisets_of_size_mono:
+  assumes "A \<subseteq> B"
+  shows   "multisets_of_size A n \<subseteq> multisets_of_size B n"
+  unfolding multisets_of_size_def
+  by (intro Collect_mono) (use assms in auto)
+
+lemma multisets_of_size_0 [simp]: "multisets_of_size A 0 = {{#}}"
+proof (intro equalityI subsetI)
+  fix h :: "'a multiset" assume "h \<in> {{#}}"
+  thus "h \<in> multisets_of_size A 0"
+    by (auto simp: multisets_of_size_def)
+qed (auto simp: multisets_of_size_def fun_eq_iff)
+
+lemma multisets_of_size_empty [simp]: "n > 0 \<Longrightarrow> multisets_of_size {} n = {}"
+  by (auto simp: multisets_of_size_def fun_eq_iff)
+
+lemma count_le_size: "count X x \<le> size X"
+  by (induction X) auto
+
+lemma bij_betw_multisets_of_size_insert:
+  assumes "a \<notin> A"
+  shows   "bij_betw (\<lambda>(m,X). X + replicate_mset m a)
+             (SIGMA m:{0..n}. multisets_of_size A (n - m)) (multisets_of_size (insert a A) n)"
+proof -
+  define B where "B = (SIGMA m:{0..n}. multisets_of_size A (n - m))"
+  define C where "C = (multisets_of_size (insert a A) n)"
+  define f where "f = (\<lambda>(m,X). X + replicate_mset m a)"
+  define g where "g = (\<lambda>X. (count X a, filter_mset (\<lambda>x. x \<noteq> a) X))"
+  note defs = B_def C_def f_def g_def
+
+  have *: "size (filter_mset (\<lambda>x. x \<noteq> a) X) = size X - count X a" for X
+  proof -
+    have "size X = size (filter_mset (\<lambda>x. x \<noteq> a) X) + count X a"
+      by (induction X) auto
+    thus ?thesis
+      by linarith
+  qed
+
+  have 1: "f mX \<in> C" if "mX \<in> B" for mX
+    using that by (auto simp: multisets_of_size_def defs split: if_splits)
+  
+  have 2: "g X \<in> B" if "X \<in> C" for X
+    using that by (auto simp: multisets_of_size_def count_le_size * defs)
+
+  have 3: "g (f mX) = mX" if "mX \<in> B" for mX
+    using that assms
+    by (auto simp: multisets_of_size_def multiset_eq_iff defs simp flip: not_in_iff)
+
+  have 4: "f (g X) = X" if "X \<in> C" for X
+    using that
+    by (auto simp: multisets_of_size_def multiset_eq_iff defs simp flip: not_in_iff)
+
+  have "f ` B = C"
+    using 1 2 4 unfolding set_eq_iff image_iff by metis
+  moreover have "inj_on f B"
+    using 3 unfolding inj_on_def by metis
+  ultimately show ?thesis
+    unfolding bij_betw_def defs by metis
+qed
+
+lemma multisets_of_size_insert:
+  assumes "a \<notin> A"
+  shows   "multisets_of_size (insert a A) n =
+             (\<Union>m\<le>n. (\<lambda>X. X + replicate_mset m a) ` multisets_of_size A (n - m))"
+proof -
+  have "multisets_of_size (insert a A) n = 
+          (\<lambda>(m,X). X + replicate_mset m a) ` (SIGMA m:{0..n}. multisets_of_size A (n - m))"
+    using bij_betw_multisets_of_size_insert[OF assms, of n] unfolding bij_betw_def by simp
+  also have "\<dots> = (\<Union>m\<le>n. (\<lambda>X. X + replicate_mset m a) ` multisets_of_size A (n - m))"
+    unfolding Sigma_def image_UN atLeast0AtMost image_insert image_empty prod.case
+              UNION_singleton_eq_range image_image by (rule refl)
+  finally show ?thesis .
+qed
+
+primrec multisets_of_size_list :: "'a list \<Rightarrow> nat \<Rightarrow> 'a list list" where
+  "multisets_of_size_list [] n = (if n = 0 then [[]] else [])"
+| "multisets_of_size_list (x # xs) n =
+     [replicate m x @ ys . m \<leftarrow> [0..<n+1], ys \<leftarrow> multisets_of_size_list xs (n - m)]"
+
+lemma multisets_of_size_list_correct:
+  assumes "distinct xs"
+  shows   "mset ` set (multisets_of_size_list xs n) = multisets_of_size (set xs) n"
+  using assms
+proof (induction xs arbitrary: n)
+  case Nil
+  thus ?case
+    by (cases "n = 0") auto
+next
+  case (Cons x xs n)
+  have IH: "multisets_of_size (set xs) n = mset ` set (multisets_of_size_list xs n)" for n
+    by (rule Cons.IH [symmetric]) (use Cons.prems in auto)
+  from Cons.prems have "x \<notin> set xs"
+    by auto
+  thus ?case
+    by (simp add: multisets_of_size_insert image_UN atLeastLessThanSuc_atLeastAtMost image_image 
+                  add_ac atLeast0AtMost IH del: upt_Suc)
+qed
+
+lemma multisets_of_size_code [code]:
+  "multisets_of_size (set xs) n = set (map mset (multisets_of_size_list (remdups xs) n))"
+  using multisets_of_size_list_correct[of "remdups xs"] by simp 
+
+lemma finite_multisets_of_size [intro]:
+  assumes "finite A"
+  shows   "finite (multisets_of_size A n)"
+  using assms
+proof (induction arbitrary: n rule: finite_induct)
+  case empty
+  thus ?case
+    by (cases "n = 0") auto
+next
+  case (insert x A n)
+  have "finite (SIGMA m:{0..n}. multisets_of_size A (n - m))"
+    by (auto intro: insert.IH)
+  also have "?this \<longleftrightarrow> finite (multisets_of_size (insert x A) n)"
+    by (rule bij_betw_finite, rule bij_betw_multisets_of_size_insert) fact
+  finally show ?case .
+qed
+
+lemma card_multisets_of_size:
+  assumes "finite A"
+  shows   "card (multisets_of_size A n) = (card A + n - 1) choose n"
+  using assms
+proof (induction A arbitrary: n rule: finite_induct)
+  case empty
+  thus ?case 
+    by (cases "n = 0") auto
+next
+  case (insert a A n)
+  have "card (multisets_of_size (insert a A) n) = card (SIGMA m:{0..n}. multisets_of_size A (n - m))"
+    using bij_betw_same_card[OF bij_betw_multisets_of_size_insert[of a A], of n] insert.hyps
+    by simp
+  also have "\<dots> = (\<Sum>m=0..n. card (multisets_of_size A (n - m)))"
+    by (intro card_SigmaI) (use insert.hyps in auto)
+  also have "\<dots> = (\<Sum>m=0..n. (card A + (n - m) - 1) choose (n - m))"
+    by (intro sum.cong insert.IH refl)
+  also have "\<dots> = (\<Sum>m=0..n. (card A + m - 1) choose m)"
+    by (intro sum.reindex_bij_witness[of _ "\<lambda>m. n - m" "\<lambda>m. n - m"]) auto
+  also have "\<dots> = (card A + n) choose n"
+  proof (cases "card A = 0")
+    case True
+    have "(\<Sum>m=0..n. (card A + m - 1) choose m) = (\<Sum>m\<in>{0}. (m-1) choose m)"
+      by (intro sum.mono_neutral_cong_right) (use True in auto)
+    also have "\<dots> = 1"
+      by simp
+    also have "\<dots> = (card A + n) choose n"
+      using True by simp
+    finally show ?thesis .
+  next
+    case False
+    have "(\<Sum>m=0..n. (card A + m - 1) choose m) = (\<Sum>m\<le>n. ((card A - 1) + m) choose m)"
+      by (intro sum.cong) (use False in \<open>auto simp: algebra_simps\<close>)
+    also have "\<dots> = (\<Sum>m\<le>n. ((card A - 1) + m) choose (card A - 1))"
+      by (subst binomial_symmetric) auto
+    also have "\<dots> = (card A + n) choose n"
+      using choose_rising_sum(2)[of "card A - 1" n] False by simp
+    finally show ?thesis .
+  qed
+  finally show ?case
+    using insert.hyps by simp
+qed
 
 end

@@ -62,7 +62,7 @@ class State_Panel private(val server: Language_Server) {
   private val output_active = Synchronized(true)
   private val pretty_panel =
     Synchronized(Pretty_Text_Panel(
-      server.resources,
+      server.session,
       server.channel,
       (content, decorations) =>
         LSP.State_Output(id, content, auto_update_enabled.value, decorations)
@@ -70,9 +70,9 @@ class State_Panel private(val server: Language_Server) {
 
   private val print_state =
     new Query_Operation(server.editor, (), "print_state", _ => (),
-      (_, _, output) =>
-        if (output_active.value && output.nonEmpty) {
-          pretty_panel.value.refresh(output)
+      output =>
+        if (output_active.value && output.proper) {
+          pretty_panel.value.refresh(output.messages)
         })
 
   def locate(): Unit = print_state.locate_query()
@@ -80,7 +80,7 @@ class State_Panel private(val server: Language_Server) {
   def update(): Unit = {
     server.editor.current_node_snapshot(()) match {
       case Some(snapshot) =>
-        (server.editor.current_command((), snapshot), print_state.get_location) match {
+        (server.editor.current_command(snapshot), print_state.get_location) match {
           case (Some(command1), Some(command2)) if command1.id == command2.id =>
           case _ => print_state.apply_query(Nil)
         }

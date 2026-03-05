@@ -47,7 +47,7 @@ fun print_rules ctxt =
   let val pretty_thm = Thm.pretty_thm_item ctxt in
    [Pretty.big_list "transitivity rules:" (map pretty_thm (get_trans_rules ctxt)),
     Pretty.big_list "symmetry rules:" (map pretty_thm (get_sym_rules ctxt))]
-  end |> Pretty.writeln_chunks;
+  end |> Pretty.chunks |> Pretty.writeln;
 
 
 (* access calculation *)
@@ -160,7 +160,7 @@ fun maintain_calculation int final calc state =
       if int then
         Proof_Context.pretty_fact ctxt'
           (Proof_Context.full_name ctxt' (Binding.name calculationN), calc)
-        |> Pretty.string_of |> writeln
+        |> Pretty.writeln
       else ();
   in state' |> final ? (update_calculation NONE #> Proof.chain_facts calc) end;
 

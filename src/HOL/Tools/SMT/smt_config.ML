@@ -9,12 +9,16 @@ sig
   (*solver*)
   type solver_info = {
     name: string,
+    dummy: bool,
+    sledgehammer_default: bool,
     class: Proof.context -> SMT_Util.class list,
     avail: unit -> bool,
     options: Proof.context -> string list }
   val add_solver: solver_info -> Context.generic -> Context.generic
   val set_solver_options: string * string -> Context.generic -> Context.generic
   val all_solvers_of: Proof.context -> string list
+  val all_nondummy_solvers_of: Proof.context -> string list
+  val all_nondummy_sledgehammer_solvers_of: Proof.context -> string list
   val is_available: Proof.context -> string -> bool
   val available_solvers_of: Proof.context -> string list
   val select_solver: string -> Context.generic -> Context.generic
@@ -42,6 +46,8 @@ sig
   val nat_as_int: bool Config.T
   val infer_triggers: bool Config.T
   val debug_files: string Config.T
+  val problem_dest_file : string Config.T
+  val proof_dest_file : string Config.T
   val sat_solver: string Config.T
   val check_external: bool Config.T
   val compress_verit_proofs: Proof.context -> bool (*TODO: Rename to alethe if this works. Otherwise, we need two separate ones since or steps should also be skipped in cvc5*)
@@ -62,7 +68,7 @@ sig
   val alethe_debug_msg_tac: Proof.context -> string -> debugging_verbosity -> string -> tactic
   val spy_cvc: Proof.context -> bool
   val spy_verit: Proof.context -> bool
-  val spy_z3: Proof.context -> bool
+  val spy_Z3: Proof.context -> bool
   val use_alethe_proof_from_cvc: Proof.context -> bool
   val alethe_no_provided_assms: Proof.context -> bool
   val alethe_set_no_provided_assms: bool -> Proof.context -> Proof.context
@@ -82,6 +88,8 @@ struct
 
 type solver_info = {
   name: string,
+  dummy: bool,
+  sledgehammer_default: bool,
   class: Proof.context -> SMT_Util.class list,
   avail: unit -> bool,
   options: Proof.context -> string list};
@@ -125,6 +133,24 @@ fun add_solver (info as {name, ...} : solver_info) context =
 
 val all_solvers_of' = Symtab.keys o get_solvers';
 val all_solvers_of = all_solvers_of' o Context.Proof;
+
+fun all_nondummy_solvers_of (ctxt : Proof.context) : string list =
+  let
+    val solvers = get_solvers' (Context.Proof ctxt)
+    fun cons_nondummy (name, ({dummy = false, ...}, _)) names = name :: names
+      | cons_nondummy _ names = names
+  in
+    Library.build (Symtab.fold_rev cons_nondummy solvers)
+  end
+fun all_nondummy_sledgehammer_solvers_of (ctxt : Proof.context) : string list =
+  let
+    val solvers = get_solvers' (Context.Proof ctxt)
+    fun cons_nondummy (name, ({dummy = false, sledgehammer_default = true, ...}, _)) names =
+          name :: names
+      | cons_nondummy _ names = names
+  in
+    Library.build (Symtab.fold_rev cons_nondummy solvers)
+  end
 
 fun is_available' context name =
   (case Symtab.lookup (get_solvers' context) name of
@@ -193,7 +219,7 @@ val trace_expert_debug_alethe_level = Attrib.setup_config_int \<^binding>\<open>
 val trace_expert_debug_alethe_files = Attrib.setup_config_string \<^binding>\<open>smt_expert_debug_alethe_files\<close> (K "all");
 val spy_cvc_attr = Attrib.setup_config_bool \<^binding>\<open>smt_spy_cvc\<close> (K false);
 val spy_verit_attr = Attrib.setup_config_bool \<^binding>\<open>smt_spy_verit\<close> (K false);
-val spy_z3_attr = Attrib.setup_config_bool \<^binding>\<open>smt_spy_z3\<close> (K false);
+val spy_z3 = Attrib.setup_config_bool \<^binding>\<open>smt_spy_z3\<close> (K false);
 val trace_arith_verit = Attrib.setup_config_bool \<^binding>\<open>smt_debug_arith_verit\<close> (K false);
 val trace_verit_compression = Attrib.setup_config_bool \<^binding>\<open>verit_compress_proofs\<close> (K true);
 val statistics = Attrib.setup_config_bool \<^binding>\<open>smt_statistics\<close> (K false);
@@ -207,6 +233,8 @@ val native_bv = Attrib.setup_config_bool \<^binding>\<open>native_bv\<close> (K 
 val native_set = Attrib.setup_config_bool \<^binding>\<open>native_set\<close> (K false);
 val nat_as_int = Attrib.setup_config_bool \<^binding>\<open>smt_nat_as_int\<close> (K false);
 val infer_triggers = Attrib.setup_config_bool \<^binding>\<open>smt_infer_triggers\<close> (K false);
+val problem_dest_file = Attrib.setup_config_string \<^binding>\<open>smt_problem_dest_dir\<close> (K "");
+val proof_dest_file = Attrib.setup_config_string \<^binding>\<open>smt_proof_dest_dir\<close> (K "");
 val debug_files = Attrib.setup_config_string \<^binding>\<open>smt_debug_files\<close> (K "");
 val sat_solver = Attrib.setup_config_string \<^binding>\<open>smt_sat_solver\<close> (K "cdclite");
 val check_external = Attrib.setup_config_bool \<^binding>\<open>smt_check_external\<close> (K false);
@@ -253,12 +281,13 @@ end
 
 fun spy_cvc ctxt  = Config.get ctxt spy_cvc_attr
 fun spy_verit ctxt  = Config.get ctxt spy_verit_attr
-fun spy_z3 ctxt  = Config.get ctxt spy_z3_attr
+fun spy_Z3 ctxt  = Config.get ctxt spy_z3
 fun compress_verit_proofs ctxt  = Config.get ctxt trace_verit_compression
 
 fun use_alethe_proof_from_cvc ctxt = Config.get ctxt cvc_experimental_alethe
 fun alethe_no_provided_assms ctxt = Config.get ctxt alethe_no_assumption
 fun alethe_set_no_provided_assms b = Config.map alethe_no_assumption (K b)
+
 
 (* tools *)
 
@@ -271,6 +300,9 @@ fun with_time_limit ctxt error_msg timeout_config f x =
     handle Timeout.TIMEOUT _ => raise SMT_Failure.SMT (SMT_Failure.Time_Out error_msg)
 
 fun with_timeout ctxt error_msg = with_time_limit ctxt error_msg timeout
+    handle Timeout.TIMEOUT _ => raise SMT_Failure.SMT (SMT_Failure.Time_Out error_msg);
+
+fun with_timeout ctxt error_msg = with_time_limit ctxt error_msg timeout;
 
 
 (* certificates *)

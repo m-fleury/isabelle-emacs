@@ -13,17 +13,20 @@ sig
   val static_value: { ctxt: Proof.context, consts: string list }
     -> Proof.context -> term -> term
 
+  datatype Type =
+      Type of string * Type list
+    | TParam of string
   datatype Univ =
-      Const of int * Univ list               (*named (uninterpreted) constants*)
+      Const of (int * Type list) * Univ list (*named (uninterpreted) constants*)
     | DFree of string * int                  (*free (uninterpreted) dictionary parameters*)
-    | BVar of int * Univ list
+    | BVar of int * Univ list                (*bound variables, named*)
     | Abs of (int * (Univ list -> Univ)) * Univ list
   val apps: Univ -> Univ list -> Univ        (*explicit applications*)
   val abss: int -> (Univ list -> Univ) -> Univ
                                              (*abstractions as closures*)
   val same: Univ * Univ -> bool
 
-  val put_result: (unit -> Univ list -> Univ list)
+  val put_result: (unit -> (Type list -> Univ) list -> (Type list -> Univ) list)
     -> Proof.context -> Proof.context
   val trace: bool Config.T
 
@@ -153,7 +156,7 @@ end;
 (** the semantic universe **)
 
 (*
-   Functions are given by their semantical function value. To avoid
+   Functions are given by their semantic function value. To avoid
    trouble with the ML-type system, these functions have the most
    generic type, that is "Univ list -> Univ". The calling convention is
    that the arguments come as a list, the last argument first. In
@@ -170,29 +173,38 @@ end;
    and the number of arguments we're still waiting for.
 *)
 
-datatype Univ =
-    Const of int * Univ list           (*named (uninterpreted) constants*)
-  | DFree of string * int              (*free (uninterpreted) dictionary parameters*)
-  | BVar of int * Univ list            (*bound variables, named*)
-  | Abs of (int * (Univ list -> Univ)) * Univ list
-                                       (*abstractions as closures*);
+datatype Type =
+    Type of string * Type list
+  | TParam of string
 
+datatype Univ =
+    Const of (int * Type list) * Univ list (*named (uninterpreted) constants*)
+  | DFree of string * int                  (*free (uninterpreted) dictionary parameters*)
+  | BVar of int * Univ list                (*bound variables, named*)
+  | Abs of (int * (Univ list -> Univ)) * Univ list
+                                           (*abstractions as closures*)
 
 (* constructor functions *)
 
 fun abss n f = Abs ((n, f), []);
-fun apps (Abs ((n, f), xs)) ys = let val k = n - length ys in
+fun apps (Abs ((n, f), us)) ws = let val k = n - length ws in
       case int_ord (k, 0)
-       of EQUAL => f (ys @ xs)
-        | LESS => let val (zs, ws) = chop (~ k) ys in apps (f (ws @ xs)) zs end
-        | GREATER => Abs ((k, f), ys @ xs) (*note: reverse convention also for apps!*)
+       of EQUAL => f (ws @ us)
+        | LESS => let val (ws1, ws2) = chop (~ k) ws in apps (f (ws2 @ us)) ws1 end
+        | GREATER => Abs ((k, f), ws @ us) (*note: reverse convention also for apps!*)
       end
   | apps (Const (name, xs)) ys = Const (name, ys @ xs)
   | apps (BVar (n, xs)) ys = BVar (n, ys @ xs);
 
-fun same (Const (k, xs), Const (l, ys)) = k = l andalso eq_list same (xs, ys)
-  | same (DFree (s, k), DFree (t, l)) = s = t andalso k = l
-  | same (BVar (k, xs), BVar (l, ys)) = k = l andalso eq_list same (xs, ys)
+fun same_type (Type (tyco1, ty1), Type (tyco2, tys2)) =
+      (tyco1 = tyco2) andalso eq_list same_type (ty1, tys2)
+  | same_type (TParam v1, TParam v2) = (v1 = v2)
+  | same_type _ = false;
+
+fun same (Const ((k1, typargs1), us1), Const ((k2, typargs2), us2)) =
+      (k1 = k2) andalso eq_list same_type (typargs1, typargs2) andalso eq_list same (us1, us2)
+  | same (DFree (n1, i1), DFree (n2, i2)) = (n1 = n2) andalso (i1 = i2)
+  | same (BVar (i1, us1), BVar (i2, us2)) = (i1 = i2) andalso eq_list same (us1, us2)
   | same _ = false;
 
 
@@ -201,25 +213,29 @@ fun same (Const (k, xs), Const (l, ys)) = k = l andalso eq_list same (xs, ys)
 (* abstract ML syntax *)
 
 infix 9 `$` `$$`;
-fun e1 `$` e2 = "(" ^ e1 ^ " " ^ e2 ^ ")";
-fun e `$$` [] = e
-  | e `$$` es = "(" ^ e ^ " " ^ implode_space es ^ ")";
-fun ml_abs v e = "(fn " ^ v ^ " => " ^ e ^ ")";
+infix 8 `*`;
 
-fun ml_cases t cs =
-  "(case " ^ t ^ " of " ^ space_implode " | " (map (fn (p, t) => p ^ " => " ^ t) cs) ^ ")";
-fun ml_Let d e = "let\n" ^ d ^ " in " ^ e ^ " end";
-fun ml_as v t = "(" ^ v ^ " as " ^ t ^ ")";
+fun e1 `$` e2 = enclose "(" ")" (e1 ^ " " ^ e2);
+fun e `$$` [] = e
+  | e `$$` es = enclose "(" ")" (e ^ " " ^ implode_space es);
+fun ml_abs v e = enclose "(" ")" ("fn " ^ v ^ " => " ^ e);
+
+fun ml_cases e cs = enclose "(" ")"
+  ("case " ^ e ^ " of " ^ space_implode " | " (map (fn (p, e) => p ^ " => " ^ e) cs));
+fun ml_let d e = "\n  let\n" ^ prefix_lines "    " d ^ "\n  in " ^ e ^ " end";
 
 fun ml_and [] = "true"
-  | ml_and [x] = x
-  | ml_and xs = "(" ^ space_implode " andalso " xs ^ ")";
-fun ml_if b x y = "(if " ^ b ^ " then " ^ x ^ " else " ^ y ^ ")";
+  | ml_and [e] = e
+  | ml_and es = enclose "(" ")" (space_implode " andalso " es);
+fun ml_if b e1 e2 = enclose "(" ")" (implode_space ["if", b, "then", e1, "else", e2]);
 
-fun ml_list es = "[" ^ commas es ^ "]";
+fun e1 `*` e2 = enclose "(" ")" (e1 ^ ", " ^ e2);
+fun ml_list es = enclose "[" "]" (commas es);
+
+fun ml_exc s = enclose "(" ")" ("raise Fail " ^ quote s);
 
 fun ml_fundefs ([(name, [([], e)])]) =
-      "val " ^ name ^ " = " ^ e ^ "\n"
+      "val " ^ name ^ " = " ^ e ^ ""
   | ml_fundefs (eqs :: eqss) =
       let
         fun fundef (name, eqs) =
@@ -229,7 +245,6 @@ fun ml_fundefs ([(name, [([], e)])]) =
       in
         (prefix "fun " o fundef) eqs :: map (prefix "and " o fundef) eqss
         |> cat_lines
-        |> suffix "\n"
       end;
 
 
@@ -237,7 +252,7 @@ fun ml_fundefs ([(name, [([], e)])]) =
 
 structure Univs = Proof_Data
 (
-  type T = unit -> Univ list -> Univ list;
+  type T = unit -> (Type list -> Univ) list -> (Type list -> Univ) list;
   val empty: T = fn () => raise Fail "Univs";
   fun init _ = empty;
 );
@@ -248,6 +263,7 @@ local
   val prefix = "Nbe.";
   val name_put = prefix ^ "put_result";
   val name_const = prefix ^ "Const";
+  val name_type = prefix ^ "Type";
   val name_abss = prefix ^ "abss";
   val name_apps = prefix ^ "apps";
   val name_same = prefix ^ "same";
@@ -255,30 +271,33 @@ in
 
 val univs_cookie = (get_result, put_result, name_put);
 
-fun nbe_fun idx_of 0 (Code_Symbol.Constant "") = "nbe_value"
-  | nbe_fun idx_of i sym = "c_" ^ string_of_int (idx_of sym)
-      ^ "_" ^ Code_Symbol.default_base sym ^ "_" ^ string_of_int i;
+(*
+  Convention: parameters representing ("assembled") string representations of logical entities
+  are prefixed with an "a_" -- unless they are an unqualified name ready to become part of
+  an ML identifier.
+*)
+
+fun nbe_tparam v = "t_" ^ v;
 fun nbe_dict v n = "d_" ^ v ^ "_" ^ string_of_int n;
+fun nbe_global_param v = "w_" ^ v;
 fun nbe_bound v = "v_" ^ v;
 fun nbe_bound_optional NONE = "_"
   | nbe_bound_optional (SOME v) = nbe_bound v;
-fun nbe_default v = "w_" ^ v;
+fun nbe_type a_sym a_tys = name_type `$` (quote a_sym `*` ml_list a_tys);
+fun nbe_fun a_sym a_typargs = a_sym `$` ml_list a_typargs;
 
-(*note: these three are the "turning spots" where proper argument order is established!*)
-fun nbe_apps t [] = t
-  | nbe_apps t ts = name_apps `$$` [t, ml_list (rev ts)];
-fun nbe_apps_local idx_of i c ts = nbe_fun idx_of i c `$` ml_list (rev ts);
-fun nbe_apps_constr ctxt idx_of c ts =
-  let
-    val c' = if Config.get ctxt trace
-      then string_of_int (idx_of c) ^ " (*" ^ Code_Symbol.default_base c ^ "*)"
-      else string_of_int (idx_of c);
-  in name_const `$` ("(" ^ c' ^ ", " ^ ml_list (rev ts) ^ ")") end;
+(*note: these are the "turning spots" where proper argument order is established!*)
+fun nbe_apps a_u [] = a_u
+  | nbe_apps a_u a_us = name_apps `$$` [a_u, ml_list (rev a_us)];
+fun nbe_apps_fun a_sym a_typargs a_us = nbe_fun a_sym a_typargs `$` ml_list (rev a_us);
+fun nbe_apps_fallback_fun a_sym a_us = a_sym `$$` a_us;
+fun nbe_apps_const a_sym a_typargs a_us = name_const `$` ((a_sym `*` ml_list a_typargs) `*` ml_list (rev a_us));
+fun nbe_apps_constpat a_sym a_us = name_const `$` ((a_sym `*` "_") `*` ml_list (rev a_us));
 
 fun nbe_abss 0 f = f `$` ml_list []
   | nbe_abss n f = name_abss `$$` [string_of_int n, f];
 
-fun nbe_same (v1, v2) = "(" ^ name_same ^ " (" ^ nbe_bound v1 ^ ", " ^ nbe_bound v2 ^ "))";
+fun nbe_same (v1, v2) = enclose "(" ")" (name_same `$` (nbe_bound v1 `*` nbe_bound v2));
 
 end;
 
@@ -288,106 +307,133 @@ open Basic_Code_Thingol;
 
 (* code generation *)
 
-fun assemble_eqnss ctxt idx_of deps eqnss =
+fun subst_nonlin_vars args =
   let
-    fun prep_eqns (c, (vs, eqns)) =
-      let
-        val dicts = maps (fn (v, sort) => map_index (nbe_dict v o fst) sort) vs;
-        val num_args = length dicts + ((length o fst o hd) eqns);
-      in (c, (num_args, (dicts, eqns))) end;
-    val eqnss' = map prep_eqns eqnss;
+    val vs = (fold o Code_Thingol.fold_varnames)
+      (fn v => AList.map_default (op =) (v, 0) (Integer.add 1)) args [];
+    val names = Name.make_context (map fst vs);
+    val (vs_renames, _) = fold_map (fn (v, k) => if k > 1
+      then Name.invent' v (k - 1) #>> (fn vs => (v, vs))
+      else pair (v, [])) vs names;
+    val samepairs = maps (fn (v, vs) => map (pair v) vs) vs_renames;
+    fun subst_vars (t as IConst _) samepairs = (t, samepairs)
+      | subst_vars (t as IVar NONE) samepairs = (t, samepairs)
+      | subst_vars (t as IVar (SOME v)) samepairs = (case AList.lookup (op =) samepairs v
+         of SOME v' => (IVar (SOME v'), AList.delete (op =) v samepairs)
+          | NONE => (t, samepairs))
+      | subst_vars (t1 `$ t2) samepairs = samepairs
+          |> subst_vars t1
+          ||>> subst_vars t2
+          |>> (op `$)
+      | subst_vars (ICase { primitive = t, ... }) samepairs = subst_vars t samepairs;
+    val (args', _) = fold_map subst_vars args samepairs;
+  in (samepairs, args') end;
 
-    fun assemble_constapp sym dss ts = 
+fun preprocess_eqns (sym, (vs, eqns)) =
+  let
+    val a_tparams = map (fn (v, _) => nbe_tparam v) vs;
+    val a_dict_params = maps (fn (v, sort) => map_index (nbe_dict v o fst) sort) vs;
+    val num_args = length a_dict_params + ((length o fst o hd) eqns);
+    val a_global_params = map nbe_global_param (Name.invent_global "a" (num_args - length a_dict_params));
+  in (sym, (num_args, (a_tparams, a_dict_params, a_global_params, (map o apfst) subst_nonlin_vars eqns))) end;
+
+fun assemble_type (tyco `%% tys) = nbe_type tyco (map assemble_type tys)
+  | assemble_type (ITyVar v) = nbe_tparam v
+
+fun assemble_preprocessed_eqnss ctxt idx_of_sym deps eqnss =
+  let
+    fun suffixed_fun_ident suffix sym = space_implode "_"
+      ["c", if Code_Symbol.is_value sym then "0" else string_of_int (idx_of_sym sym),
+      Code_Symbol.default_base sym, suffix];
+    val fun_ident = suffixed_fun_ident "nbe";
+    fun fallback_fun_ident i = suffixed_fun_ident (string_of_int i);
+    fun const_ident sym =
+      if Config.get ctxt trace
+      then string_of_int (idx_of_sym sym) ^ " (*" ^ Code_Symbol.default_base sym ^ "*)"
+      else string_of_int (idx_of_sym sym);
+
+    fun assemble_fun sym = nbe_fun (fun_ident sym);
+    fun assemble_app_fun sym = nbe_apps_fun (fun_ident sym);
+    fun assemble_app_fallback_fun i sym = nbe_apps_fallback_fun (fallback_fun_ident i sym);
+    fun assemble_app_const sym = nbe_apps_const (const_ident sym);
+    fun assemble_app_constpat sym = nbe_apps_constpat (const_ident sym);
+
+    fun assemble_constapp sym typargs dictss a_ts =
       let
-        val ts' = (maps o map) assemble_dict dss @ ts;
-      in case AList.lookup (op =) eqnss' sym
-       of SOME (num_args, _) => if num_args <= length ts'
-            then let val (ts1, ts2) = chop num_args ts'
-            in nbe_apps (nbe_apps_local idx_of 0 sym ts1) ts2
-            end else nbe_apps (nbe_abss num_args (nbe_fun idx_of 0 sym)) ts'
+        val a_typargs = map (assemble_type) typargs;
+        val a_ts' = (maps o map) assemble_dict (map2 (fn ty => map (fn dict => (ty, dict))) typargs dictss) @ a_ts;
+      in case AList.lookup (op =) eqnss sym
+       of SOME (num_args, _) => if num_args <= length a_ts'
+            then let val (a_ts1, a_ts2) = chop num_args a_ts'
+            in nbe_apps (assemble_app_fun sym a_typargs a_ts1) a_ts2
+            end else nbe_apps (nbe_abss num_args (assemble_fun sym a_typargs)) a_ts'
         | NONE => if member (op =) deps sym
-            then nbe_apps (nbe_fun idx_of 0 sym) ts'
-            else nbe_apps_constr ctxt idx_of sym ts'
+            then nbe_apps (assemble_fun sym a_typargs) a_ts'
+            else assemble_app_const sym a_typargs a_ts'
       end
     and assemble_classrels classrels =
-      fold_rev (fn classrel => assemble_constapp (Class_Relation classrel) [] o single) classrels
-    and assemble_dict (Dict (classrels, x)) =
-          assemble_classrels classrels (assemble_plain_dict x)
-    and assemble_plain_dict (Dict_Const (inst, dss)) =
-          assemble_constapp (Class_Instance inst) (map snd dss) []
-      | assemble_plain_dict (Dict_Var { var, index, ... }) =
-          nbe_dict var index
+      fold_rev (fn classrel => assemble_constapp (Class_Relation classrel) [] [] o single) classrels
+    and assemble_dict (ty, Dict (classrels, dict)) =
+          assemble_classrels classrels (assemble_plain_dict ty dict)
+    and assemble_plain_dict (_ `%% tys) (Dict_Const (inst, dictss)) =
+          assemble_constapp (Class_Instance inst) tys (map snd dictss) []
+      | assemble_plain_dict _ (Dict_Var { var, index, ... }) =
+          nbe_dict var index;
 
-    fun assemble_iterm constapp =
+    fun assemble_iterm is_pat a_match_fallback t =
       let
-        fun of_iterm match_cont t =
+        fun assemble_app (IConst { sym, typargs, dictss, ... }) =
+              if is_pat then fn a_ts => assemble_app_constpat sym ((maps o map) (K "_") dictss @ a_ts)
+              else assemble_constapp sym typargs dictss
+          | assemble_app (IVar v) = nbe_apps (nbe_bound_optional v)
+          | assemble_app ((v, _) `|=> (t, _)) =
+              nbe_apps (nbe_abss 1 (ml_abs (ml_list [nbe_bound_optional v]) (assemble_iterm is_pat NONE t)))
+          | assemble_app (ICase { term = t, clauses = clauses, primitive = t0, ... }) =
+              nbe_apps (ml_cases (assemble_iterm is_pat NONE t)
+                (map (fn (p, t) => (assemble_iterm true NONE p, assemble_iterm is_pat a_match_fallback t)) clauses
+                  @ [("_", case a_match_fallback of SOME s => s | NONE => assemble_iterm is_pat NONE t0)]))
+        val (t', ts) = Code_Thingol.unfold_app t;
+        val a_ts = fold_rev (cons o assemble_iterm is_pat NONE) ts [];
+      in assemble_app t' a_ts end;
+
+    fun assemble_fallback_fundef sym a_global_params ((samepairs, args), rhs) a_fallback_rhs =
+      let
+        val a_rhs_core = assemble_iterm false (SOME a_fallback_rhs) rhs;
+        val a_rhs = if null samepairs then a_rhs_core
+          else ml_if (ml_and (map nbe_same samepairs)) a_rhs_core a_fallback_rhs;
+        val a_fallback_eqn = if forall Code_Thingol.is_IVar args then NONE
+          else SOME (replicate (length a_global_params) "_", a_fallback_rhs);
+      in (map (assemble_iterm true NONE) args, a_rhs) :: the_list a_fallback_eqn end;
+
+    fun assemble_fallback_fundefs sym a_tparams a_dict_params a_global_params [(([], []), rhs)] =
+          assemble_iterm false NONE rhs
+      | assemble_fallback_fundefs sym a_tparams a_dict_params a_global_params eqns =
           let
-            val (t', ts) = Code_Thingol.unfold_app t
-          in of_iapp match_cont t' (fold_rev (cons o of_iterm NONE) ts []) end
-        and of_iapp match_cont (IConst { sym, dicts = dss, ... }) ts = constapp sym dss ts
-          | of_iapp match_cont (IVar v) ts = nbe_apps (nbe_bound_optional v) ts
-          | of_iapp match_cont ((v, _) `|=> (t, _)) ts =
-              nbe_apps (nbe_abss 1 (ml_abs (ml_list [nbe_bound_optional v]) (of_iterm NONE t))) ts
-          | of_iapp match_cont (ICase { term = t, clauses = clauses, primitive = t0, ... }) ts =
-              nbe_apps (ml_cases (of_iterm NONE t)
-                (map (fn (p, t) => (of_iterm NONE p, of_iterm match_cont t)) clauses
-                  @ [("_", case match_cont of SOME s => s | NONE => of_iterm NONE t0)])) ts
-      in of_iterm end;
+            val a_fallback_syms = map_range (fn i => fallback_fun_ident i sym) (length eqns);
+            val a_fallback_rhss =
+              map_range (fn i => assemble_app_fallback_fun (i + 1) sym a_global_params) (length eqns - 1)
+              @ [assemble_app_const sym a_tparams (a_dict_params @ a_global_params)];
+          in
+            ml_let (ml_fundefs (a_fallback_syms ~~
+              map2 (assemble_fallback_fundef sym a_global_params) eqns a_fallback_rhss))
+              (assemble_app_fallback_fun 0 sym a_global_params)
+          end;
 
-    fun subst_nonlin_vars args =
+    fun assemble_fundef (sym, (num_args, (a_tparams, a_dict_params, a_global_params, eqns))) =
       let
-        val vs = (fold o Code_Thingol.fold_varnames)
-          (fn v => AList.map_default (op =) (v, 0) (Integer.add 1)) args [];
-        val names = Name.make_context (map fst vs);
-        val (vs_renames, _) = fold_map (fn (v, k) => if k > 1
-          then Name.invent' v (k - 1) #>> (fn vs => (v, vs))
-          else pair (v, [])) vs names;
-        val samepairs = maps (fn (v, vs) => map (pair v) vs) vs_renames;
-        fun subst_vars (t as IConst _) samepairs = (t, samepairs)
-          | subst_vars (t as IVar NONE) samepairs = (t, samepairs)
-          | subst_vars (t as IVar (SOME v)) samepairs = (case AList.lookup (op =) samepairs v
-             of SOME v' => (IVar (SOME v'), AList.delete (op =) v samepairs)
-              | NONE => (t, samepairs))
-          | subst_vars (t1 `$ t2) samepairs = samepairs
-              |> subst_vars t1
-              ||>> subst_vars t2
-              |>> (op `$)
-          | subst_vars (ICase { primitive = t, ... }) samepairs = subst_vars t samepairs;
-        val (args', _) = fold_map subst_vars args samepairs;
-      in (samepairs, args') end;
+        val a_lhs = [ml_list a_tparams, ml_list (rev (a_dict_params @ a_global_params))];
+        val a_rhs = assemble_fallback_fundefs sym a_tparams a_dict_params a_global_params eqns;
+        val a_univ = ml_abs (ml_list a_tparams) (nbe_abss num_args (assemble_fun sym a_tparams));
+      in
+        ((fun_ident sym, [(a_lhs, a_rhs), (a_lhs, ml_exc (fun_ident sym))]), a_univ)
+      end;
 
-    fun assemble_eqn sym dicts default_args (i, (args, rhs)) =
-      let
-        val match_cont = if Code_Symbol.is_value sym then NONE
-          else SOME (nbe_apps_local idx_of (i + 1) sym (dicts @ default_args));
-        val assemble_arg = assemble_iterm
-          (fn sym' => fn dss => fn ts => nbe_apps_constr ctxt idx_of sym' ((maps o map) (K "_")
-            dss @ ts)) NONE;
-        val assemble_rhs = assemble_iterm assemble_constapp match_cont;
-        val (samepairs, args') = subst_nonlin_vars args;
-        val s_args = map assemble_arg args';
-        val s_rhs = if null samepairs then assemble_rhs rhs
-          else ml_if (ml_and (map nbe_same samepairs))
-            (assemble_rhs rhs) (the match_cont);
-        val eqns = case match_cont
-         of NONE => [([ml_list (rev (dicts @ s_args))], s_rhs)]
-          | SOME default_rhs =>
-              [([ml_list (rev (dicts @ map2 ml_as default_args s_args))], s_rhs),
-                ([ml_list (rev (dicts @ default_args))], default_rhs)]
-      in (nbe_fun idx_of i sym, eqns) end;
+    val (a_fun_defs, a_fun_vals) = map_split assemble_fundef eqnss;
+    val dep_params = ml_list (map fun_ident deps);
+  in ml_abs dep_params (ml_let (ml_fundefs a_fun_defs) (ml_list a_fun_vals)) end;
 
-    fun assemble_eqns (sym, (num_args, (dicts, eqns))) =
-      let
-        val default_args = map nbe_default (Name.invent_global "a" (num_args - length dicts));
-        val eqns' = map_index (assemble_eqn sym dicts default_args) eqns
-          @ (if Code_Symbol.is_value sym then [] else [(nbe_fun idx_of (length eqns) sym,
-            [([ml_list (rev (dicts @ default_args))],
-              nbe_apps_constr ctxt idx_of sym (dicts @ default_args))])]);
-      in (eqns', nbe_abss num_args (nbe_fun idx_of 0 sym)) end;
-
-    val (fun_vars, fun_vals) = map_split assemble_eqns eqnss';
-    val deps_vars = ml_list (map (nbe_fun idx_of 0) deps);
-  in ml_abs deps_vars (ml_Let (ml_fundefs (flat fun_vars)) (ml_list fun_vals)) end;
+fun assemble_eqnss ctxt idx_of_sym deps eqnss =
+  assemble_preprocessed_eqnss ctxt idx_of_sym deps (map preprocess_eqns eqnss);
 
 
 (* compilation of equations *)
@@ -397,26 +443,26 @@ fun compile_eqnss ctxt nbe_program raw_deps [] = []
       let
         val (deps, deps_vals) = split_list (map_filter
           (fn dep => Option.map (fn univ => (dep, univ)) (fst ((Code_Symbol.Graph.get_node nbe_program dep)))) raw_deps);
-        val idx_of = raw_deps
+        val idx_of_sym = raw_deps
           |> map (fn dep => (dep, snd (Code_Symbol.Graph.get_node nbe_program dep)))
           |> AList.lookup (op =)
           |> (fn f => the o f);
-        val s = assemble_eqnss ctxt idx_of deps eqnss;
-        val cs = map fst eqnss;
+        val s = assemble_eqnss ctxt idx_of_sym deps eqnss;
+        val syms = map fst eqnss;
       in
         s
         |> traced ctxt (fn s => "\n--- code to be evaluated:\n" ^ s)
         |> pair ""
         |> Code_Runtime.value ctxt univs_cookie
-        |> (fn f => f deps_vals)
-        |> (fn univs => cs ~~ univs)
+        |> (fn dependent_fs => dependent_fs deps_vals)
+        |> (fn fs => syms ~~ fs)
       end;
 
 
 (* extraction of equations from statements *)
 
-fun dummy_const sym dss =
-  IConst { sym = sym, typargs = [], dicts = dss,
+fun dummy_const sym typargs dictss =
+  IConst { sym = sym, typargs = typargs, dictss = dictss,
     dom = [], annotation = NONE, range = ITyVar "" };
 
 fun eqns_of_stmt (_, Code_Thingol.NoStmt) =
@@ -431,11 +477,11 @@ fun eqns_of_stmt (_, Code_Thingol.NoStmt) =
       []
   | eqns_of_stmt (sym_class, Code_Thingol.Class (v, (classrels, classparams))) =
       let
-        val syms = map Class_Relation classrels @ map (Constant o fst) classparams;
+        val syms = map (rpair [] o Class_Relation) classrels @ map (rpair [(v, [])] o Constant o fst) classparams;
         val params = Name.invent_global "d" (length syms);
-        fun mk (k, sym) =
-          (sym, ([(v, [])],
-            [([dummy_const sym_class [] `$$ map (IVar o SOME) params],
+        fun mk (k, (sym, vs)) =
+          (sym, (vs,
+            [([dummy_const sym_class [] [] `$$ map (IVar o SOME) params],
               IVar (SOME (nth params k)))]));
       in map_index mk syms end
   | eqns_of_stmt (_, Code_Thingol.Classrel _) =
@@ -443,18 +489,19 @@ fun eqns_of_stmt (_, Code_Thingol.NoStmt) =
   | eqns_of_stmt (_, Code_Thingol.Classparam _) =
       []
   | eqns_of_stmt (sym_inst, Code_Thingol.Classinst { class, tyco, vs, superinsts, inst_params, ... }) =
-      [(sym_inst, (vs, [([], dummy_const (Type_Class class) [] `$$
-        map (fn (class, dss) => dummy_const (Class_Instance (tyco, class)) (map snd dss)) superinsts
-        @ map (IConst o fst o snd o fst) inst_params)]))];
+      [(sym_inst, (vs, [([], dummy_const (Type_Class class) [] [] `$$
+        map (fn (class, dictss) =>
+          dummy_const (Class_Instance (tyco, class)) (map (ITyVar o fst) vs) (map snd dictss)) superinsts
+          @ map (IConst o fst o snd o fst) inst_params)]))];
 
 
 (* compilation of whole programs *)
 
-fun ensure_const_idx name (nbe_program, (maxidx, idx_tab)) =
-  if can (Code_Symbol.Graph.get_node nbe_program) name
-  then (nbe_program, (maxidx, idx_tab))
-  else (Code_Symbol.Graph.new_node (name, (NONE, maxidx)) nbe_program,
-    (maxidx + 1, Inttab.update_new (maxidx, name) idx_tab));
+fun ensure_sym_idx sym (nbe_program, (max_idx, sym_tab)) =
+  if can (Code_Symbol.Graph.get_node nbe_program) sym
+  then (nbe_program, (max_idx, sym_tab))
+  else (Code_Symbol.Graph.new_node (sym, (NONE, max_idx)) nbe_program,
+    (max_idx + 1, Inttab.update_new (max_idx, sym) sym_tab));
 
 fun compile_stmts ctxt stmts_deps =
   let
@@ -469,19 +516,20 @@ fun compile_stmts ctxt stmts_deps =
       |> compile_eqnss ctxt nbe_program refl_deps
       |> rpair nbe_program;
   in
-    fold ensure_const_idx refl_deps
+    fold ensure_sym_idx refl_deps
     #> apfst (fold (fn (name, deps) => fold (curry Code_Symbol.Graph.add_edge name) deps) names_deps
       #> compile
-      #-> fold (fn (name, univ) => (Code_Symbol.Graph.map_node name o apfst) (K (SOME univ))))
+      #-> fold (fn (sym, univ) => (Code_Symbol.Graph.map_node sym o apfst) (K (SOME univ))))
   end;
 
 fun compile_program { ctxt, program } =
   let
-    fun add_stmts names (nbe_program, (maxidx, idx_tab)) = if exists ((can o Code_Symbol.Graph.get_node) nbe_program) names
-      then (nbe_program, (maxidx, idx_tab))
-      else (nbe_program, (maxidx, idx_tab))
-        |> compile_stmts ctxt (map (fn name => ((name, Code_Symbol.Graph.get_node program name),
-          Code_Symbol.Graph.immediate_succs program name)) names);
+    fun add_stmts names (nbe_program, (max_idx, sym_tab)) =
+      if exists ((can o Code_Symbol.Graph.get_node) nbe_program) names
+      then (nbe_program, (max_idx, sym_tab))
+      else (nbe_program, (max_idx, sym_tab))
+        |> compile_stmts ctxt (map (fn sym => ((sym, Code_Symbol.Graph.get_node program sym),
+          Code_Symbol.Graph.immediate_succs program sym)) names);
   in
     fold_rev add_stmts (Code_Symbol.Graph.strong_conn program)
   end;
@@ -491,71 +539,83 @@ fun compile_program { ctxt, program } =
 
 (* compilation and reconstruction of terms *)
 
-fun compile_term { ctxt, nbe_program, deps, term = (vs, t) } =
-  let 
+fun ad_hoc_eqn_of_term ((vs, _) : typscheme, t) =
+  (Code_Symbol.value, (vs, [([], t)]));
+
+fun compile_term { ctxt, nbe_program, deps, tfrees, vs_ty_t = vs_ty_t as ((vs, _), _) } =
+  let
+    val tparams = map (fn (v, _) => TParam v) tfrees;
     val dict_frees = maps (fn (v, sort) => map_index (curry DFree v o fst) sort) vs;
   in
-    (Code_Symbol.value, (vs, [([], t)]))
+    ad_hoc_eqn_of_term vs_ty_t
     |> singleton (compile_eqnss ctxt nbe_program deps)
     |> snd
-    |> (fn t => apps t (rev dict_frees))
+    |> (fn f => apps (f tparams) (rev dict_frees))
   end;
 
-fun reconstruct_term ctxt (idx_tab : Code_Symbol.T Inttab.table) t =
+fun reconstruct_term ctxt sym_tab tfrees =
   let
     fun take_until f [] = []
       | take_until f (x :: xs) = if f x then [] else x :: take_until f xs;
-    fun is_dict (Const (idx, _)) =
-          (case Inttab.lookup idx_tab idx of
+    fun is_dict (Const ((idx, _), _)) =
+          (case Inttab.lookup sym_tab idx of
             SOME (Constant _) => false
           | _ => true)
       | is_dict (DFree _) = true
       | is_dict _ = false;
     fun const_of_idx idx =
-      case Inttab.lookup idx_tab idx of SOME (Constant const) => const;
+      case Inttab.lookup sym_tab idx of SOME (Constant const) => const;
+    fun reconstruct_type (Type (tyco, tys)) = Term.Type (tyco, map reconstruct_type tys)
+      | reconstruct_type (TParam v) = TFree (v, the (AList.lookup (op =) tfrees v));
     fun of_apps bounds (t, ts) =
-      fold_map (of_univ bounds) ts
-      #>> (fn ts' => list_comb (t, rev ts'))
-    and of_univ bounds (Const (idx, ts)) typidx =
+      list_comb (t, rev (map (of_univ bounds) ts))
+    and of_univ bounds (Const ((idx, tparams), us)) =
           let
-            val ts' = take_until is_dict ts;
             val const = const_of_idx idx;
-            val T = map_type_tvar (fn ((v, i), _) =>
-              Type_Infer.param typidx (v ^ string_of_int i, []))
-                (Sign.the_const_type (Proof_Context.theory_of ctxt) const);
-            val typidx' = typidx + 1;
-          in of_apps bounds (Term.Const (const, T), ts') typidx' end
-      | of_univ bounds (BVar (n, ts)) typidx =
-          of_apps bounds (Bound (bounds - n - 1), ts) typidx
-      | of_univ bounds (t as Abs _) typidx =
-          typidx
-          |> of_univ (bounds + 1) (apps t [BVar (bounds, [])])
-          |-> (fn t' => pair (Term.Abs ("u", dummyT, t')))
-  in of_univ 0 t 0 |> fst end;
+            val us' = take_until is_dict us;
+            val T = Consts.instance (Proof_Context.consts_of ctxt) (const, map reconstruct_type tparams);
+          in of_apps bounds (Term.Const (const, T), us') end
+      | of_univ bounds (BVar (i, us)) =
+          of_apps bounds (Bound (bounds - i - 1), us)
+      | of_univ bounds (u as Abs _) =
+          Term.Abs ("u", dummyT, of_univ (bounds + 1) (apps u [BVar (bounds, [])]))
+  in of_univ 0 end;
 
-fun compile_and_reconstruct_term { ctxt, nbe_program, idx_tab, deps, term } =
-  compile_term
-    { ctxt = ctxt, nbe_program = nbe_program, deps = deps, term = term }
-  |> reconstruct_term ctxt idx_tab;
+fun compile_and_reconstruct_term { ctxt, nbe_program, sym_tab, deps, tfrees, vs_ty_t } =
+  compile_term { ctxt = ctxt, nbe_program = nbe_program, deps = deps, tfrees = tfrees, vs_ty_t = vs_ty_t }
+  |> reconstruct_term ctxt sym_tab tfrees;
 
-fun normalize_term (nbe_program, idx_tab) raw_ctxt t_original ((vs, ty) : typscheme, t) deps =
+fun retype_term ctxt t T =
   let
+    val ctxt' =
+      ctxt
+      |> Variable.declare_typ T
+      |> Config.put Type_Infer.object_logic false
+      |> Config.put Type_Infer_Context.const_sorts false
+  in
+    singleton (Variable.export_terms ctxt' ctxt') (Syntax.check_term ctxt' (Type.constraint T t))
+  end;
+
+fun normalize_term (nbe_program, sym_tab) raw_ctxt t_original vs_ty_t deps =
+  let
+    val T = fastype_of t_original;
+    val tfrees = Term.add_tfrees t_original [];
     val ctxt = Syntax.init_pretty_global (Proof_Context.theory_of raw_ctxt);
-    val string_of_term = Syntax.string_of_term (Config.put show_types true ctxt);
-    fun type_infer t' =
-      Syntax.check_term
-        (ctxt
-          |> Config.put Type_Infer.object_logic false
-          |> Config.put Type_Infer_Context.const_sorts false)
-        (Type.constraint (fastype_of t_original) t');
+    val string_of_term =
+      Syntax.string_of_term
+         (ctxt
+           |> Config.put show_types true
+           |> Config.put show_sorts true);
+    fun retype t' = retype_term ctxt t' T;
     fun check_tvars t' =
       if null (Term.add_tvars t' []) then t'
       else error ("Illegal schematic type variables in normalized term: " ^ string_of_term t');
   in
     Code_Preproc.timed "computing NBE expression" #ctxt compile_and_reconstruct_term
-      { ctxt = ctxt, nbe_program = nbe_program, idx_tab = idx_tab, deps = deps, term = (vs, t) }
+      { ctxt = ctxt, nbe_program = nbe_program, sym_tab = sym_tab, deps = deps,
+        tfrees = tfrees, vs_ty_t = vs_ty_t }
     |> traced ctxt (fn t => "Normalized:\n" ^ string_of_term t)
-    |> type_infer
+    |> retype
     |> traced ctxt (fn t => "Types inferred:\n" ^ string_of_term t)
     |> check_tvars
     |> traced ctxt (fn _ => "---\n")
@@ -566,17 +626,17 @@ fun normalize_term (nbe_program, idx_tab) raw_ctxt t_original ((vs, ty) : typsch
 
 structure Nbe_Functions = Code_Data
 (
-  type T = (Univ option * int) Code_Symbol.Graph.T * (int * Code_Symbol.T Inttab.table);
+  type T = ((Type list -> Univ) option * int) Code_Symbol.Graph.T * (int * Code_Symbol.T Inttab.table);
   val empty = (Code_Symbol.Graph.empty, (0, Inttab.empty));
 );
 
 fun compile ignore_cache ctxt program =
   let
-    val (nbe_program, (_, idx_tab)) =
+    val (nbe_program, (_, sym_tab)) =
       Nbe_Functions.change (if ignore_cache then NONE else SOME (Proof_Context.theory_of ctxt))
         (Code_Preproc.timed "compiling NBE program" #ctxt
           compile_program { ctxt = ctxt, program = program });
-  in (nbe_program, idx_tab) end;
+  in (nbe_program, sym_tab) end;
 
 
 (* evaluation oracle *)
@@ -590,11 +650,11 @@ fun mk_equals ctxt lhs raw_rhs =
 
 val (_, raw_oracle) =
   Theory.setup_result (Thm.add_oracle (\<^binding>\<open>normalization_by_evaluation\<close>,
-    fn (nbe_program_idx_tab, ctxt, vs_ty_t, deps, ct) =>
-      mk_equals ctxt ct (normalize_term nbe_program_idx_tab ctxt (Thm.term_of ct) vs_ty_t deps)));
+    fn (nbe_program_sym_tab, ctxt, vs_ty_t, deps, ct) =>
+      mk_equals ctxt ct (normalize_term nbe_program_sym_tab ctxt (Thm.term_of ct) vs_ty_t deps)));
 
-fun oracle nbe_program_idx_tab ctxt vs_ty_t deps ct =
-  raw_oracle (nbe_program_idx_tab, ctxt, vs_ty_t, deps, ct);
+fun oracle nbe_program_sym_tab ctxt vs_ty_t deps ct =
+  raw_oracle (nbe_program_sym_tab, ctxt, vs_ty_t, deps, ct);
 
 fun dynamic_conv ctxt = lift_triv_classes_conv ctxt
   (fn ctxt' => Code_Thingol.dynamic_conv ctxt' (fn program =>

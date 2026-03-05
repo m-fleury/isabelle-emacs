@@ -22,7 +22,7 @@ import org.gjt.sp.jedit.bufferio.BufferIORequest
 
 object JEdit_Resources {
   def apply(options: Options): JEdit_Resources =
-    new JEdit_Resources(JEdit_Sessions.session_background(options))
+    new JEdit_Resources(JEdit_Session.session_background(options))
 }
 
 class JEdit_Resources private(session_background: Sessions.Background)
@@ -34,7 +34,7 @@ extends Resources(session_background) {
       val vfs = VFSManager.getVFSForPath(path)
       val node = if (vfs.isInstanceOf[FileVFS]) MiscUtilities.resolveSymlinks(path) else path
       val theory = theory_name(Sessions.DRAFT, Thy_Header.theory_name(node))
-      if (session_base.loaded_theory(theory)) Document.Node.Name.loaded_theory(theory)
+      if (loaded_theory(theory)) Document.Node.Name.loaded_theory(theory)
       else Document.Node.Name(node, theory = theory)
     }
 
@@ -129,18 +129,4 @@ extends Resources(session_background) {
   }
 
   def make_file_content(buffer: Buffer): Bytes = (new File_Content_Request(buffer)).content()
-
-
-  /* theory text edits */
-
-  def auto_resolve: Boolean = PIDE.options.bool("jedit_auto_resolve")
-
-  override def commit(change: Session.Change): Unit = {
-    if (change.syntax_changed.nonEmpty) {
-      GUI_Thread.later { Document_Model.syntax_changed(change.syntax_changed) }
-    }
-    if (change.deps_changed || auto_resolve && undefined_blobs(change.version).nonEmpty) {
-      PIDE.plugin.deps_changed()
-    }
-  }
 }

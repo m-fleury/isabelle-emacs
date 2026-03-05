@@ -109,6 +109,10 @@ local
   fun if_fixed_args m = if_fixed (forall (can dest_wordT) o snd) m
 
 
+  fun add_word_fun f (t, n) =
+    let val m = dest_Const_name t
+    in SMT_Builtin.add_builtin_fun smtlibC (Term.dest_Const t, K (f m n)) end
+
   (*shifts*)
 
   fun mk_shift c [t,u] =

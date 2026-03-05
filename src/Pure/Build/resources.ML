@@ -209,38 +209,38 @@ val _ = Theory.setup
       in ML_Syntax.atomic (func ^ " " ^ ML_Syntax.print_string name) end)));
 
 
-(* manage source files *)
+(* theory resources *)
 
-type files =
+type data =
  {master_dir: Path.T,  (*master directory of theory source*)
   imports: (string * Position.T) list,  (*source specification of imports*)
   provided: (Path.T * SHA1.digest) list};  (*source path, digest*)
 
-fun make_files (master_dir, imports, provided): files =
+fun make_data (master_dir, imports, provided): data =
  {master_dir = master_dir, imports = imports, provided = provided};
 
-structure Files = Theory_Data
+structure Data = Theory_Data
 (
-  type T = files;
-  val empty = make_files (Path.current, [], []);
+  type T = data;
+  val empty = make_data (Path.current, [], []);
   fun merge ({master_dir, imports, provided = provided1}, {provided = provided2, ...}) =
     let val provided' = Library.merge (op =) (provided1, provided2)
-    in make_files (master_dir, imports, provided') end
+    in make_data (master_dir, imports, provided') end
 );
 
-fun map_files f =
-  Files.map (fn {master_dir, imports, provided} =>
-    make_files (f (master_dir, imports, provided)));
+fun map_data f =
+  Data.map (fn {master_dir, imports, provided} =>
+    make_data (f (master_dir, imports, provided)));
 
 
-val master_directory = #master_dir o Files.get;
-val imports_of = #imports o Files.get;
+val master_directory = #master_dir o Data.get;
+val imports_of = #imports o Data.get;
 
 fun begin_theory master_dir {name, imports, keywords} parents =
   let
     val thy =
       Theory.begin_theory name parents
-      |> map_files (fn _ => (Path.explode (File.symbolic_path master_dir), imports, []))
+      |> map_data (fn _ => (Path.explode (File.symbolic_path master_dir), imports, []))
       |> Thy_Header.add_keywords keywords;
     val ctxt = Proof_Context.init_global thy;
     val _ = List.app (ignore o check_load_command ctxt o #load_command o #2) keywords;
@@ -378,11 +378,11 @@ fun parse_files make_paths =
 val parse_file = parse_files single >> (fn f => f #> the_single);
 
 
-fun provide (src_path, id) =
-  map_files (fn (master_dir, imports, provided) =>
+fun provide (src_path, digest) =
+  map_data (fn (master_dir, imports, provided) =>
     if AList.defined (op =) provided src_path then
       error ("Duplicate use of source file: " ^ Path.print src_path)
-    else (master_dir, imports, (src_path, id) :: provided));
+    else (master_dir, imports, (src_path, digest) :: provided));
 
 fun provide_file (file: Token.file) = provide (#src_path file, #digest file);
 fun provide_file' file thy = (file, provide_file file thy);
@@ -397,15 +397,15 @@ fun load_file thy src_path =
   let
     val full_path = check_file (master_directory thy) src_path;
     val text = File.read full_path;
-    val id = SHA1.digest text;
-  in ((full_path, id), text) end;
+    val digest = SHA1.digest text;
+  in ((full_path, digest), text) end;
 
 fun loaded_files_current thy =
-  #provided (Files.get thy) |>
-    forall (fn (src_path, id) =>
+  #provided (Data.get thy) |>
+    forall (fn (src_path, digest) =>
       (case try (load_file thy) src_path of
         NONE => false
-      | SOME ((_, id'), _) => id = id'));
+      | SOME ((_, digest'), _) => digest = digest'));
 
 
 (* formal check *)

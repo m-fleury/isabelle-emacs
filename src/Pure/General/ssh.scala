@@ -174,9 +174,9 @@ object SSH {
       run_ssh(master = control_master, args = "printenv HOME \";\" printenv SHELL").check.out_lines
       match {
         case List(home, shell) =>
-          if (shell.endsWith("/bash")) home
+          if (shell.endsWith("/bash") || shell.endsWith("/zsh")) home
           else {
-            error("Bad SHELL for " + quote(toString) + " -- expected GNU bash, but found " + shell)
+            error("Bad SHELL for " + quote(toString) + " -- expected bash or zsh, but found " + shell)
           }
         case _ => error("Malformed remote environment for " + quote(toString))
       }
@@ -255,7 +255,8 @@ object SSH {
         progress_stderr = progress.echo(_)).check
     }
 
-    override lazy val isabelle_platform: Isabelle_Platform = Isabelle_Platform(ssh = Some(ssh))
+    override lazy val isabelle_platform: Isabelle_Platform =
+      Isabelle_Platform.remote(ssh)
 
 
     /* remote file-system */
@@ -555,7 +556,7 @@ object SSH {
         cleanup: () => Unit = () => ()
     ): Bash.Process = {
       Bash.process(script, description = description, cwd = cwd, redirect = redirect,
-        env = if (settings) Isabelle_System.settings() else null,
+        env = if (settings) Isabelle_System.Settings.env() else null,
         cleanup = cleanup)
     }
 
@@ -595,7 +596,7 @@ object SSH {
     def download_file(url_name: String, file: Path, progress: Progress = new Progress): Unit =
       Isabelle_System.download_file(url_name, file, progress = progress)
 
-    def isabelle_platform: Isabelle_Platform = Isabelle_Platform()
+    def isabelle_platform: Isabelle_Platform = Isabelle_Platform.local
 
     def isabelle_platform_family: Platform.Family =
       Platform.Family.parse(isabelle_platform.ISABELLE_PLATFORM_FAMILY)

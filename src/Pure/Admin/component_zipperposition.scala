@@ -31,7 +31,7 @@ object Component_Zipperposition {
 
       /* platform */
 
-      val platform_name = Isabelle_Platform.self.ISABELLE_PLATFORM()
+      val platform_name = Isabelle_Platform.local.ISABELLE_PLATFORM()
       val platform_dir =
         Isabelle_System.make_directory(component_dir.path + Path.basic(platform_name))
 
@@ -57,7 +57,7 @@ object Component_Zipperposition {
       Isabelle_System.copy_file(build_dir + Path.basic("bin") + prg_path, platform_dir + exe_path)
 
       if (!Platform.is_windows) {
-        Executable.libraries_closure(platform_dir + exe_path, filter = Set("libgmp"))
+        Executable.library_closure(platform_dir + exe_path, filter = Set("libgmp"))
       }
 
 

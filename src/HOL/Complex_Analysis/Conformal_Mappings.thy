@@ -723,7 +723,7 @@ proof -
     then have "(\<lambda>z. if z = \<xi> then deriv g \<xi> else (g z - g \<xi>) / (z - \<xi>)) holomorphic_on S"
       using \<xi> pole_lemma by blast
     then show ?thesis
-      using "\<section>" remove_def by fastforce
+      using "\<section>" by (smt (verit, best) DiffD2 singletonI) 
     qed
   ultimately show "?P = ?Q" and "?P = ?R"
     by meson+
@@ -1703,7 +1703,7 @@ proof -
       then have [simp]: "closure {r'<..<r} = {r'..r}" by simp
       show ?thesis
         apply (rule continuous_ge_on_closure
-                 [where f = "\<lambda>r. norm z / (r - norm z) * C" and s = "{r'<..<r}",
+                 [where f = "\<lambda>r. norm z / (r - norm z) * C" and S = "{r'<..<r}",
                   OF _ _ T1])
         using that r'
         by (auto simp: not_le intro!: continuous_intros)

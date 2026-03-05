@@ -27,16 +27,15 @@ sig
   val presentation_state: Proof.context -> state
   val pretty_context: state -> Pretty.T list
   val pretty_state: state -> Pretty.T list
-  val string_of_state: state -> string
   val pretty_abstract: state -> Pretty.T
   type presentation = state -> Latex.text
   type transition
+  val make: string -> Position.T -> transition
   val empty: transition
   val name_of: transition -> string
   val pos_of: transition -> Position.T
   val timing_of: transition -> Time.time
   val type_error: transition -> string
-  val name: string -> transition -> transition
   val position: Position.T -> transition -> transition
   val markers: Input.source list -> transition -> transition
   val timing: Time.time -> transition -> transition
@@ -82,7 +81,6 @@ sig
   val skip_proof_close: transition -> transition
   val exec_id: Document_ID.exec -> transition -> transition
   val setmp_thread_position: transition -> ('a -> 'b) -> 'a -> 'b
-  val transition: bool -> transition -> state -> state * (exn * string) option
   val command_errors: bool -> transition -> state -> Runtime.error list * state option
   val command_exception: bool -> transition -> state -> state
   val reset_theory: state -> state option
@@ -243,8 +241,6 @@ fun pretty_state state =
   | Proof (prf, _) => Proof.pretty_state (Proof_Node.current prf)
   | Skipped_Proof (d, _) => [Pretty.str ("skipped proof: depth " ^ string_of_int d)]);
 
-val string_of_state = pretty_state #> Pretty.chunks #> Pretty.string_of;
-
 fun pretty_abstract state = Pretty.str ("<Isar " ^ str_of_state state ^ ">");
 
 val _ = ML_system_pp (fn _ => fn _ => Pretty.to_ML o pretty_abstract);
@@ -353,7 +349,8 @@ fun make_transition (name, pos, markers, timing, trans) =
 fun map_transition f (Transition {name, pos, markers, timing, trans}) =
   make_transition (f (name, pos, markers, timing, trans));
 
-val empty = make_transition ("", Position.none, [], Time.zeroTime, []);
+fun make name pos = make_transition (name, pos, [], Time.zeroTime, []);
+val empty = make "" Position.none;
 
 
 (* diagnostics *)
@@ -371,9 +368,6 @@ fun type_error tr = command_msg "Bad context for " tr;
 
 
 (* modify transitions *)
-
-fun name name = map_transition (fn (_, pos, markers, timing, trans) =>
-  (name, pos, markers, timing, trans));
 
 fun position pos = map_transition (fn (name, _, markers, timing, trans) =>
   (name, pos, markers, timing, trans));
@@ -422,11 +416,8 @@ val malformedN = "<malformed>";
 fun is_ignored tr = name_of tr = ignoredN;
 fun is_malformed tr = name_of tr = malformedN;
 
-fun ignored pos =
-  empty |> name ignoredN |> position pos |> keep (fn _ => ());
-
-fun malformed pos msg =
-  empty |> name malformedN |> position pos |> keep (fn _ => error msg);
+fun ignored pos = make ignoredN pos |> keep (fn _ => ());
+fun malformed pos msg = make malformedN pos |> keep (fn _ => error msg);
 
 
 (* theory transitions *)
@@ -615,16 +606,19 @@ fun setmp_thread_position (Transition {pos, name, ...}) f x =
   Position.setmp_thread_data (Position.label (Long_Name.qualify Markup.commandN name) pos) f x;
 
 
-(* apply transitions *)
+(* command transitions *)
 
 local
 
-fun show_state (st', opt_err) =
+fun show_state tr (st', opt_err) =
   let
-    val enabled = is_none opt_err andalso Options.default_bool \<^system_option>\<open>show_states\<close>;
+    val enabled =
+      not (is_ignored tr) andalso
+      is_none opt_err andalso
+      Options.default_bool \<^system_option>\<open>show_states\<close>;
     val opt_err' =
       if enabled then
-        (case Exn.capture (Output.state o string_of_state) st' of
+        (case Exn.capture (Output.state o Pretty.strings_of o Pretty.chunks o pretty_state) st' of
           Exn.Exn exn => SOME exn
         | Exn.Res _ => opt_err)
       else opt_err;
@@ -632,13 +626,12 @@ fun show_state (st', opt_err) =
 
 fun app int (tr as Transition {name, markers, trans, ...}) =
   setmp_thread_position tr
-    (Timing.protocol (name_of tr) (pos_of tr) (apply_capture int name markers trans)
+    ((apply_capture int name markers trans
+        |> not (is_ignored tr) ? Timing.command_timing (name_of tr) (pos_of tr))
       ##> Option.map (fn Runtime.UNDEF => ERROR (type_error tr) | exn => exn)
-      #> show_state);
+      #> show_state tr);
 
-in
-
-fun transition int tr st =
+fun command_transition int tr st =
   let
     val (st', opt_err) =
       Context.setmp_generic_context (try (Context.Proof o presentation_context0) st)
@@ -648,24 +641,21 @@ fun transition int tr st =
         | exn => (Runtime.exn_context (try context_of st) exn, at_command tr));
   in (st', opt_err') end;
 
-end;
-
-
-(* managed commands *)
+in
 
 fun command_errors int tr st =
-  (case transition int tr st of
+  (case command_transition int tr st of
     (st', NONE) => ([], SOME st')
   | (_, SOME (exn, _)) => (Runtime.exn_messages exn, NONE));
 
 fun command_exception int tr st =
-  (case transition int tr st of
+  (case command_transition int tr st of
     (st', NONE) => st'
   | (_, SOME (exn, info)) =>
       if Exn.is_interrupt_proper exn then Exn.reraise exn
       else raise Runtime.EXCURSION_FAIL (exn, info));
 
-val command = command_exception false;
+end;
 
 
 (* reset state *)
@@ -740,12 +730,11 @@ fun future_proofs_enabled estimate st =
         then Future.proofs_enabled 1
         else Future.proofs_enabled 2 orelse Future.proofs_enabled_timing estimate));
 
-val empty_markers = markers [];
-val empty_trans = reset_trans #> keep (K ());
+val command = command_exception false;
 
 in
 
-fun fork_presentation tr = (tr |> empty_markers, tr |> empty_trans);
+fun fork_presentation tr = (markers [] tr, ignored (pos_of tr));
 
 fun atom_result keywords tr st =
   let

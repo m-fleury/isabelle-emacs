@@ -17,7 +17,7 @@ typedecl 'a set
 axiomatization Collect :: "('a \<Rightarrow> bool) \<Rightarrow> 'a set" \<comment> \<open>comprehension\<close>
   and member :: "'a \<Rightarrow> 'a set \<Rightarrow> bool" \<comment> \<open>membership\<close>
   where mem_Collect_eq [iff, code_unfold]: "member a (Collect P) = P a"
-    and Collect_mem_eq [simp]: "Collect (\<lambda>x. member x A) = A"
+    and Collect_mem_eq [simp, code_unfold]: "Collect (\<lambda>x. member x A) = A"
 
 notation
   member  (\<open>'(\<in>')\<close>) and
@@ -1182,7 +1182,7 @@ lemma subset_empty [simp]: "A \<subseteq> {} \<longleftrightarrow> A = {}"
   by (fact bot_unique)
 
 lemma not_psubset_empty [iff]: "\<not> (A < {})"
-  by (fact not_less_bot) (* FIXME: already simp *)
+  by (fact not_less_bot) (*already simp *)
 
 lemma Collect_subset [simp]: "{x\<in>A. P x} \<subseteq> A" by auto
 
@@ -1202,6 +1202,9 @@ lemma Collect_imp_eq: "{x. P x \<longrightarrow> Q x} = - {x. P x} \<union> {x. 
   by blast
 
 lemma Collect_conj_eq: "{x. P x \<and> Q x} = {x. P x} \<inter> {x. Q x}"
+  by blast
+
+lemma Collect_conj_eq2: "{x \<in> A. P x \<and> Q x} = {x \<in> A. P x} \<inter> {x \<in> A. Q x}"
   by blast
 
 lemma Collect_mono_iff: "Collect P \<subseteq> Collect Q \<longleftrightarrow> (\<forall>x. P x \<longrightarrow> Q x)"
@@ -1825,6 +1828,10 @@ lemma is_singletonI': "A \<noteq> {} \<Longrightarrow> (\<And>x y. x \<in> A \<L
 lemma is_singletonE: "is_singleton A \<Longrightarrow> (\<And>x. A = {x} \<Longrightarrow> P) \<Longrightarrow> P"
   unfolding is_singleton_def by blast
 
+lemma is_singleton_iff_ex1:
+  \<open>is_singleton A \<longleftrightarrow> (\<exists>!x. x \<in> A)\<close>
+  by (auto simp add: is_singleton_def)
+
 
 subsubsection \<open>Getting the contents of a singleton set\<close>
 
@@ -1876,33 +1883,39 @@ lemma bind_singleton_conv_image: "Set.bind A (\<lambda>x. {f x}) = f ` A"
 
 subsubsection \<open>Operations for execution\<close>
 
-definition is_empty :: "'a set \<Rightarrow> bool"
-  where [code_abbrev]: "is_empty A \<longleftrightarrow> A = {}"
+text \<open>
+  Use those operations only for generating executable / efficient code.
+  Otherwise use the RHSs directly.
+\<close>
 
-hide_const (open) is_empty
+context
+begin
 
-definition remove :: "'a \<Rightarrow> 'a set \<Rightarrow> 'a set"
-  where [code_abbrev]: "remove x A = A - {x}"
+qualified definition is_empty :: "'a set \<Rightarrow> bool" \<comment> \<open>only for code generation\<close>
+  where is_empty_iff [code_abbrev, simp]: "is_empty A \<longleftrightarrow> A = {}"
 
-hide_const (open) remove
+qualified definition remove :: "'a \<Rightarrow> 'a set \<Rightarrow> 'a set" \<comment> \<open>only for code generation\<close>
+  where remove_eq [code_abbrev, simp]: "remove x A = A - {x}"
 
-lemma member_remove [simp]: "x \<in> Set.remove y A \<longleftrightarrow> x \<in> A \<and> x \<noteq> y"
-  by (simp add: remove_def)
+qualified definition filter :: "('a \<Rightarrow> bool) \<Rightarrow> 'a set \<Rightarrow> 'a set" \<comment> \<open>only for code generation\<close>
+  where filter_eq [code_abbrev, simp]: "filter P A = {a \<in> A. P a}"
 
-definition filter :: "('a \<Rightarrow> bool) \<Rightarrow> 'a set \<Rightarrow> 'a set"
-  where [code_abbrev]: "filter P A = {a \<in> A. P a}"
+qualified definition can_select :: "('a \<Rightarrow> bool) \<Rightarrow> 'a set \<Rightarrow> bool" \<comment> \<open>only for code generation\<close>
+  where can_select_iff [code_abbrev, simp]: "can_select P A = (\<exists>!x\<in>A. P x)"
 
-hide_const (open) filter
+qualified lemma can_select_iff_is_singleton:
+  \<open>Set.can_select P A \<longleftrightarrow> is_singleton (Set.filter P A)\<close>
+  by (simp add: is_singleton_iff_ex1)
 
-lemma member_filter [simp]: "x \<in> Set.filter P A \<longleftrightarrow> x \<in> A \<and> P x"
-  by (simp add: filter_def)
+end
 
 instantiation set :: (equal) equal
 begin
 
 definition "HOL.equal A B \<longleftrightarrow> A \<subseteq> B \<and> B \<subseteq> A"
 
-instance by standard (auto simp add: equal_set_def)
+instance
+  by standard (auto simp add: equal_set_def)
 
 end
 
@@ -2026,60 +2039,5 @@ hide_const (open) member not_member
 lemmas equalityI = subset_antisym
 lemmas set_mp = subsetD
 lemmas set_rev_mp = rev_subsetD
-
-ML \<open>
-val Ball_def = @{thm Ball_def}
-val Bex_def = @{thm Bex_def}
-val CollectD = @{thm CollectD}
-val CollectE = @{thm CollectE}
-val CollectI = @{thm CollectI}
-val Collect_conj_eq = @{thm Collect_conj_eq}
-val Collect_mem_eq = @{thm Collect_mem_eq}
-val IntD1 = @{thm IntD1}
-val IntD2 = @{thm IntD2}
-val IntE = @{thm IntE}
-val IntI = @{thm IntI}
-val Int_Collect = @{thm Int_Collect}
-val UNIV_I = @{thm UNIV_I}
-val UNIV_witness = @{thm UNIV_witness}
-val UnE = @{thm UnE}
-val UnI1 = @{thm UnI1}
-val UnI2 = @{thm UnI2}
-val ballE = @{thm ballE}
-val ballI = @{thm ballI}
-val bexCI = @{thm bexCI}
-val bexE = @{thm bexE}
-val bexI = @{thm bexI}
-val bex_triv = @{thm bex_triv}
-val bspec = @{thm bspec}
-val contra_subsetD = @{thm contra_subsetD}
-val equalityCE = @{thm equalityCE}
-val equalityD1 = @{thm equalityD1}
-val equalityD2 = @{thm equalityD2}
-val equalityE = @{thm equalityE}
-val equalityI = @{thm equalityI}
-val imageE = @{thm imageE}
-val imageI = @{thm imageI}
-val image_Un = @{thm image_Un}
-val image_insert = @{thm image_insert}
-val insert_commute = @{thm insert_commute}
-val insert_iff = @{thm insert_iff}
-val mem_Collect_eq = @{thm mem_Collect_eq}
-val rangeE = @{thm rangeE}
-val rangeI = @{thm rangeI}
-val range_eqI = @{thm range_eqI}
-val subsetCE = @{thm subsetCE}
-val subsetD = @{thm subsetD}
-val subsetI = @{thm subsetI}
-val subset_refl = @{thm subset_refl}
-val subset_trans = @{thm subset_trans}
-val vimageD = @{thm vimageD}
-val vimageE = @{thm vimageE}
-val vimageI = @{thm vimageI}
-val vimageI2 = @{thm vimageI2}
-val vimage_Collect = @{thm vimage_Collect}
-val vimage_Int = @{thm vimage_Int}
-val vimage_Un = @{thm vimage_Un}
-\<close>
 
 end

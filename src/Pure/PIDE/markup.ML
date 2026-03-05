@@ -182,7 +182,8 @@ sig
   val descriptionN: string
   val inputN: string val input: bool -> Properties.T -> T
   val command_keywordN: string val command_keyword: T
-  val command_spanN: string val command_span: {name: string, kind: string} -> T
+  val command_spanN: string val command_span: {name: string, kind: string, is_begin: bool} -> T
+  val command_rangeN: string val command_range: T
   val commandN: string val command_properties: T -> T
   val keywordN: string val keyword_properties: T -> T
   val stringN: string val string: T
@@ -205,9 +206,9 @@ sig
   val cpuN: string
   val gcN: string
   val timing_properties: {elapsed: Time.time, cpu: Time.time, gc: Time.time} -> Properties.T
+  val command_offsetN: string val command_offset: int option -> T -> T
   val parse_command_timing_properties:
     Properties.T -> ({file: string, offset: int, name: string} * Time.time) option
-  val timingN: string val timing: {elapsed: Time.time, cpu: Time.time, gc: Time.time} -> T
   val command_indentN: string val command_indent: int -> T
   val goalN: string val goal: T
   val subgoalN: string val subgoal: string -> T
@@ -222,7 +223,9 @@ sig
   val finalizedN: string val finalized: T
   val consolidatingN: string val consolidating: T
   val consolidatedN: string val consolidated: T
+  val command_running: Properties.entry
   val exec_idN: string
+  val urgent_properties: Properties.T
   val initN: string
   val statusN: string val status: T
   val resultN: string val result: T
@@ -262,9 +265,8 @@ sig
   val cancel_scala: string -> Properties.T
   val task_statistics: Properties.entry
   val command_timing: Properties.entry
-  val theory_timing: Properties.entry
   val session_timing: Properties.entry
-  val loading_theory: string -> Properties.T
+  val loading_theory: {name: string, commands: int} -> Properties.T
   val build_session_finished: Properties.T
   val print_operations: Properties.T
   val exportN: string
@@ -292,6 +294,7 @@ sig
   val no_output: output
   val output: T -> output
   val markup: T -> string -> string
+  val markup_strings: T -> string list -> string list
   val markups: T list -> string -> string
   val markup_report: string -> string
 end;
@@ -657,8 +660,12 @@ fun input delimited props = (inputN, (delimitedN, Value.print_bool delimited) ::
 
 val (command_keywordN, command_keyword) = markup_elem "command_keyword";
 
+val is_beginN = "is_begin";
 val command_spanN = "command_span";
-fun command_span {name, kind} : T = (command_spanN, name_proper name @ kind_proper kind);
+fun command_span {name, kind, is_begin} : T =
+  (command_spanN, name_proper name @ kind_proper kind @ Properties.make_bool is_beginN is_begin);
+
+val (command_rangeN, command_range) = markup_elem "command_range";
 
 val commandN = "command"; val command_properties = properties [(kindN, commandN)];
 val keywordN = "keyword"; val keyword_properties = properties [(kindN, keywordN)];
@@ -707,11 +714,13 @@ fun timing_properties {elapsed, cpu, gc} =
   (cpuN, Time.print cpu),
   (gcN, Time.print gc)];
 
-val timingN = "timing";
-fun timing t = (timingN, timing_properties t);
-
 
 (* command timing *)
+
+val command_offsetN = "command_offset";
+fun command_offset offset =
+  let val i = the_default 0 offset
+  in if i = 0 then I else properties [(command_offsetN, Value.print_int i)] end;
 
 fun parse_command_timing_properties props =
   (case (Properties.get props fileN, Properties.get props offsetN, Properties.get props nameN) of
@@ -747,10 +756,14 @@ val (finalizedN, finalized) = markup_elem "finalized";
 val (consolidatingN, consolidating) = markup_elem "consolidating";
 val (consolidatedN, consolidated) = markup_elem "consolidated";
 
+val command_running = (commandN, runningN);
+
 
 (* messages *)
 
 val exec_idN = "exec_id";
+
+val urgent_properties = [("urgent", "true")];
 
 val initN = "init";
 val (statusN, status) = markup_elem "status";
@@ -822,11 +835,10 @@ val task_statistics = function "task_statistics";
 
 val command_timing = function "command_timing";
 
-val theory_timing = function "theory_timing";
-
 val session_timing = function "session_timing";
 
-fun loading_theory name = [function "loading_theory", (nameN, name)];
+fun loading_theory {name, commands} =
+  [function "loading_theory", (nameN, name), ("commands", Value.print_int commands)];
 
 val build_session_finished = [function "build_session_finished"];
 
@@ -894,6 +906,10 @@ fun output m =
   then YXML.output_markup m else no_output;
 
 fun markup m = output m |-> Library.enclose;
+
+fun markup_strings m =
+  let val (bg, en) = output m
+  in fn ss => [bg] @ ss @ [en] end;
 
 val markups = fold_rev markup;
 

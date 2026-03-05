@@ -653,8 +653,8 @@ local_setup \<open>
 end
 
 setup \<open>
-  map_theory_simpset (fn ctxt0 => ctxt0 addSolver
-    mk_solver "partial and linear orders" (fn ctxt => HOL_Order_Tac.tac (Simplifier.prems_of ctxt) ctxt))
+  map_theory_simpset (fn ctxt0 => ctxt0 |> Simplifier.add_unsafe_solver
+    (mk_solver "partial and linear orders" (fn ctxt => HOL_Order_Tac.tac (Simplifier.prems_of ctxt) ctxt)))
 \<close>
 
 ML \<open>
@@ -1307,6 +1307,9 @@ class no_bot = order +
 
 class unbounded_dense_linorder = dense_linorder + no_top + no_bot
 
+class unbounded_dense_order = dense_order + no_top + no_bot
+
+instance unbounded_dense_linorder \<subseteq> unbounded_dense_order ..
 
 subsection \<open>Wellorders\<close>
 
@@ -1388,6 +1391,10 @@ next
     from not_less_Least[OF m] have "\<not> P m" . }
   with LeastI_ex[OF H] show ?rhs by blast
 qed
+
+lemma exists_least_iff': 
+  shows "(\<exists>n. P n) \<longleftrightarrow> P (Least P) \<and> (\<forall>m < (Least P). \<not> P m)"
+  using LeastI_ex not_less_Least by auto
 
 end
 

@@ -492,7 +492,8 @@ fun conclude_goal ctxt goal propss =
     val _ =
       Context.subthy_id (Thm.theory_id goal, Context.theory_id thy) orelse
         error "Bad background theory of goal state";
-    val _ = Thm.no_prems goal orelse error (Proof_Display.string_of_goal ctxt goal);
+    val _ = Thm.no_prems goal orelse
+      error (Pretty.string_of (Proof_Display.pretty_goal ctxt goal));
 
     fun err_lost () = error ("Lost goal structure:\n" ^ Thm.string_of_thm ctxt goal);
 
@@ -521,13 +522,16 @@ fun conclude_goal ctxt goal propss =
 
 val finished_goal_error = "Failed to finish proof";
 
+fun finished_goal_error_pos pos =
+  Pretty.block0 (Pretty.str finished_goal_error :: Pretty.here pos @ [Pretty.str ":"]);
+
 fun finished_goal pos state =
   let val (ctxt, {goal, ...}) = find_goal state in
     if Thm.no_prems goal then Seq.Result state
     else
       Seq.Error (fn () =>
-        finished_goal_error ^ Position.here pos ^ ":\n" ^
-          Proof_Display.string_of_goal ctxt goal)
+        Pretty.string_of (Pretty.chunks
+          [finished_goal_error_pos pos, Proof_Display.pretty_goal ctxt goal]))
   end;
 
 
@@ -1231,8 +1235,7 @@ local
 
 fun gen_have prep_statement prep_att strict_asm before_qed after_qed fixes assumes shows int =
   local_goal
-    (Proof_Display.print_results
-      {interactive = int, pos = Position.thread_data (), proof_state = true})
+    (Proof_Display.print_results {interactive = int, pos = Position.thread_data ()})
     prep_statement prep_att strict_asm "have" before_qed after_qed fixes assumes shows;
 
 fun gen_show prep_statement prep_att strict_asm before_qed after_qed fixes assumes shows int state =
@@ -1244,16 +1247,15 @@ fun gen_show prep_statement prep_att strict_asm before_qed after_qed fixes assum
       (case ! rule of NONE => [] | SOME th => [Proof_Display.string_of_rule ctxt "Failed" th])
       |> cat_lines;
 
-    val pos = Position.thread_data ();
     fun print_results ctxt res =
       if ! testing then ()
-      else Proof_Display.print_results {interactive = int, pos = pos, proof_state = true} ctxt res;
+      else Proof_Display.print_results {interactive = int, pos = Position.thread_data ()} ctxt res;
     fun print_rule ctxt th =
       if ! testing then rule := SOME th
       else if int then
         Proof_Display.string_of_rule ctxt "Successful" th
         |> Markup.markup Markup.text_fold
-        |> Output.state
+        |> Output.writeln_urgent
       else ();
     val test_proof =
       local_skip_proof true
@@ -1344,7 +1346,7 @@ fun future_terminal_proof proof1 proof2 done state =
     state |> future_proof (fn state' =>
       let val pos = Position.thread_data () in
         Execution.fork {name = "Proof.future_terminal_proof", pos = pos, pri = ~1}
-          (fn () => ((), Timing.protocol "by" pos proof2 state'))
+          (fn () => ((), Timing.command_timing "by" pos proof2 state'))
       end) |> snd |> done
   else proof1 state;
 

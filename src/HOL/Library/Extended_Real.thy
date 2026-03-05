@@ -298,7 +298,7 @@ function real_of_ereal :: "ereal \<Rightarrow> real" where
 | "real_of_ereal \<infinity> = 0"
 | "real_of_ereal (-\<infinity>) = 0"
   by (auto intro: ereal_cases)
-termination by standard (rule wf_empty)
+termination by standard (rule wf_on_bot)
 
 lemma real_of_ereal[simp]:
   "real_of_ereal (- x :: ereal) = - (real_of_ereal x)"
@@ -327,7 +327,7 @@ function abs_ereal where
 | "\<bar>-\<infinity>\<bar> = (\<infinity>::ereal)"
 | "\<bar>\<infinity>\<bar> = (\<infinity>::ereal)"
 by (auto intro: ereal_cases)
-termination proof qed (rule wf_empty)
+termination proof qed (rule wf_on_bot)
 
 instance ..
 
@@ -377,7 +377,7 @@ proof goal_cases
   with prems show P
    by (cases rule: ereal2_cases[of a b]) auto
 qed auto
-termination by standard (rule wf_empty)
+termination by standard (rule wf_on_bot)
 
 lemma Infty_neq_0[simp]:
   "(\<infinity>::ereal) \<noteq> 0" "0 \<noteq> (\<infinity>::ereal)"
@@ -852,7 +852,7 @@ function sgn_ereal :: "ereal \<Rightarrow> ereal" where
 | "sgn (\<infinity>::ereal) = 1"
 | "sgn (-\<infinity>::ereal) = -1"
 by (auto intro: ereal_cases)
-termination by standard (rule wf_empty)
+termination by standard (rule wf_on_bot)
 
 function times_ereal where
   "ereal r * ereal p = ereal (r * p)"
@@ -1095,6 +1095,30 @@ next
   then show ?case
     by (simp add: inc numeral_inc)
 qed
+
+lemma m1_ereal_less_iff [simp]:
+  "((-1::ereal) < numeral a) \<longleftrightarrow> ((-1::real) < numeral a)"
+  by (simp add: one_ereal_def)
+
+lemma m1_ereal_le_iff [simp]:
+  "((-1::ereal) \<le> numeral a) \<longleftrightarrow> ((-1::real) \<le> numeral a)"
+  by (simp add: one_ereal_def)
+
+lemma m1_ereal_eq_iff [simp]:
+  "((-1::ereal) = numeral a) \<longleftrightarrow> ((-1::real) = numeral a)"
+  by (simp add: one_ereal_def)
+
+lemma ereal_less_m1_iff [simp]:
+  "(numeral a < (-1::ereal)) \<longleftrightarrow> (numeral a < (-1::real))"
+  by (simp add: one_ereal_def)
+
+lemma ereal_le_m1_iff [simp]:
+  "(numeral a \<le> (-1::ereal)) \<longleftrightarrow> (numeral a \<le> (-1::real))"
+  by (simp add: one_ereal_def)
+
+lemma ereal_eq_m1_iff [simp]:
+  "(numeral a = (-1::ereal)) \<longleftrightarrow> (numeral a = (-1::real))"
+  by (simp add: one_ereal_def)
 
 lemma distrib_left_ereal_nn:
   "c \<ge> 0 \<Longrightarrow> (x + y) * ereal c = x * ereal c + y * ereal c"

@@ -1067,8 +1067,8 @@ lemma DERIV_Uniq: "\<exists>\<^sub>\<le>\<^sub>1D. DERIV f x :> D"
   by (simp add: DERIV_unique Uniq_def)
 
 lemma DERIV_sum[derivative_intros]:
-  "(\<And> n. n \<in> S \<Longrightarrow> ((\<lambda>x. f x n) has_field_derivative (f' x n)) F) \<Longrightarrow>
-    ((\<lambda>x. sum (f x) S) has_field_derivative sum (f' x) S) F"
+  "(\<And> n. n \<in> S \<Longrightarrow> ((\<lambda>x. f x n) has_field_derivative (f' n)) F) \<Longrightarrow>
+    ((\<lambda>x. sum (f x) S) has_field_derivative sum f' S) F"
   by (rule has_derivative_imp_has_field_derivative [OF has_derivative_sum])
      (auto simp: sum_distrib_left mult_commute_abs dest: has_field_derivative_imp_has_derivative)
 
@@ -1130,18 +1130,19 @@ lemma DERIV_pow: "((\<lambda>x. x ^ n) has_field_derivative real n * (x ^ (n - S
   using DERIV_power [OF DERIV_ident] by simp
 
 lemma DERIV_power_int [derivative_intros]:
-  assumes [derivative_intros]: "(f has_field_derivative d) (at x within s)" and [simp]: "f x \<noteq> 0"
+  assumes [derivative_intros]: "(f has_field_derivative d) (at x within s)"
+  and "n \<ge> 0 \<or> f x \<noteq> 0"
   shows   "((\<lambda>x. power_int (f x) n) has_field_derivative
              (of_int n * power_int (f x) (n - 1) * d)) (at x within s)"
 proof (cases n rule: int_cases4)
   case (nonneg n)
   thus ?thesis 
-    by (cases "n = 0")
-       (auto intro!: derivative_eq_intros simp: field_simps power_int_diff
-             simp flip: power_Suc power_Suc2 power_add)
+    by (cases "n = 0"; cases "f x = 0")
+       (auto intro!: derivative_eq_intros simp: field_simps power_int_diff 
+                     power_diff power_int_0_left_if)
 next
   case (neg n)
-  thus ?thesis
+  thus ?thesis using assms(2)
     by (auto intro!: derivative_eq_intros simp: field_simps power_int_diff power_int_minus
              simp flip: power_Suc power_Suc2 power_add)
 qed
@@ -1154,6 +1155,35 @@ lemma DERIV_chain': "(f has_field_derivative D) (at x within s) \<Longrightarrow
 corollary DERIV_chain2: "DERIV f (g x) :> Da \<Longrightarrow> (g has_field_derivative Db) (at x within s) \<Longrightarrow>
   ((\<lambda>x. f (g x)) has_field_derivative Da * Db) (at x within s)"
   by (rule DERIV_chain')
+
+text \<open>Derivative of a finite product\<close>
+
+lemma has_field_derivative_prod:
+  assumes "\<And>x. x \<in> A \<Longrightarrow> (f x has_field_derivative f' x) (at z)"
+  shows   "((\<lambda>u. \<Prod>x\<in>A. f x u) has_field_derivative (\<Sum>x\<in>A. f' x * (\<Prod>y\<in>A-{x}. f y z))) (at z)"
+  using assms
+proof (induction A rule: infinite_finite_induct)
+  case (insert x A)
+  have eq: "insert x A - {y} = insert x (A - {y})" if "y \<in> A" for y
+    using insert.hyps that by auto
+  show ?case
+    using insert.hyps
+    by (auto intro!: derivative_eq_intros insert.prems insert.IH sum.cong
+             simp: sum_distrib_left sum_distrib_right eq)
+qed auto
+
+lemma has_field_derivative_prod':
+  assumes "\<And>x. x \<in> A \<Longrightarrow> f x z \<noteq> 0"
+  assumes "\<And>x. x \<in> A \<Longrightarrow> (f x has_field_derivative f' x) (at z)"
+  defines "P \<equiv> (\<lambda>A u. \<Prod>x\<in>A. f x u)"
+  shows   "(P A has_field_derivative (P A z * (\<Sum>x\<in>A. f' x / f x z))) (at z)"
+proof (cases "finite A")
+  case True
+  note [derivative_intros] = has_field_derivative_prod
+  show ?thesis using assms True
+    by (auto intro!: derivative_eq_intros
+             simp: prod_diff1 sum_distrib_left sum_distrib_right mult_ac)
+qed (auto simp: P_def)
 
 text \<open>Standard version\<close>
 

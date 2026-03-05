@@ -57,6 +57,31 @@ proof -
   finally show ?thesis .
 qed
 
+lemma atLeastAtMost_conv_list [code_unfold]:
+  \<open>set.F g {a..b} = list.F (map g (List.interval a b))\<close>
+  by (simp flip: List.set_interval_eq add: distinct_set_conv_list)
+
+lemma atLeastLessThan_conv_list [code_unfold]:
+  \<open>set.F g {a..<b} = (let d = b - 1 in if d < b
+    then list.F (map g (List.interval a d))
+    else \<^bold>1)\<close>
+  using List.atLeastLessThan_eq_interval [of a b]
+  by (simp flip: List.set_interval_eq add: distinct_set_conv_list Let_def)
+
+lemma greaterThanAtMost_conv_list [code_unfold]:
+  \<open>set.F g {a<..b} = (let c = a + 1 in if a < c
+    then list.F (map g (List.interval c b))
+    else \<^bold>1)\<close>
+  using List.greaterThanAtMost_eq_interval [of a b]
+  by (simp flip: List.set_interval_eq add: distinct_set_conv_list Let_def)
+
+lemma greaterThanLessThan_conv_list [code_unfold]:
+  \<open>set.F g {a<..<b} = (let c = a + 1; d = b - 1 in if a < c \<and> d < b
+    then list.F (map g (List.interval (a + 1) (b - 1)))
+    else \<^bold>1)\<close>
+  using List.greaterThanLessThan_eq_interval [of a b]
+  by (simp flip: List.set_interval_eq add: distinct_set_conv_list Let_def)
+
 end
 
 
@@ -146,6 +171,9 @@ lemma sum_list_of_nat: "sum_list (map of_nat xs) = of_nat (sum_list xs)"
 
 lemma sum_list_of_int: "sum_list (map of_int xs) = of_int (sum_list xs)"
   by (induction xs) auto
+
+lemma count_list_concat: "count_list (concat xss) x = sum_list (map (\<lambda>xs. count_list xs x) xss)"
+by(induction xss) auto
 
 lemma (in comm_monoid_add) sum_list_map_remove1:
   "x \<in> set xs \<Longrightarrow> sum_list (map f xs) = f x + sum_list (map f (remove1 x xs))"
@@ -588,11 +616,11 @@ subsection \<open>Tools setup\<close>
 
 lemmas sum_code = sum.set_conv_list
 
-lemma sum_set_upto_conv_sum_list_int [code_unfold]:
+lemma sum_set_upto_conv_sum_list_int:
   "sum f (set [i..j::int]) = sum_list (map f [i..j])"
   by (simp add: interv_sum_list_conv_sum_set_int)
 
-lemma sum_set_upt_conv_sum_list_nat [code_unfold]:
+lemma sum_set_upt_conv_sum_list_nat:
   "sum f (set [m..<n]) = sum_list (map f [m..<n])"
   by (simp add: interv_sum_list_conv_sum_set_nat)
 
@@ -664,5 +692,21 @@ end
 lemma prod_list_zero_iff:
   "prod_list xs = 0 \<longleftrightarrow> (0 :: 'a :: {semiring_no_zero_divisors, semiring_1}) \<in> set xs"
   by (induction xs) simp_all
+
+lemma prod_list_nonneg: "(\<And> x. (x :: 'a :: ordered_semiring_1) \<in> set xs \<Longrightarrow> x \<ge> 0) \<Longrightarrow> prod_list xs \<ge> 0"
+  by (induct xs) auto
+
+lemma prod_list_replicate[simp]: "prod_list (replicate n a) = a ^ n"
+  by (induct n) auto
+
+lemma prod_list_power: 
+  fixes xs :: "'a :: comm_monoid_mult list"
+  shows "prod_list xs ^ n = (\<Prod>x\<leftarrow>xs. x ^ n)"
+  by (induct xs, auto simp: power_mult_distrib)
+
+lemma prod_list_dvd: 
+  assumes "(x :: 'a :: comm_monoid_mult) \<in> set xs"
+  shows "x dvd prod_list xs"
+  by (metis assms dvd_mult dvd_triv_left in_set_conv_decomp prod_list.Cons prod_list.append)
 
 end

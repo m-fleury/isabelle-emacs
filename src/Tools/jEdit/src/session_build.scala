@@ -9,22 +9,21 @@ package isabelle.jedit
 
 import isabelle._
 
+import java.awt.Dimension
 import java.awt.event.{WindowEvent, WindowAdapter}
 import javax.swing.{WindowConstants, JDialog}
+import javax.swing.text.{AttributeSet, StyleConstants}
 
-import scala.swing.{ScrollPane, FlowPanel, BorderPanel, TextArea, Component, Label}
+import scala.swing.{ScrollPane, FlowPanel, BorderPanel, TextPane, Component, Label}
 
 import org.gjt.sp.jedit.View
 
 
 object Session_Build {
   def check_dialog(view: View): Unit = {
-    val options = PIDE.options.value
     Isabelle_Thread.fork() {
       try {
-        if (JEdit_Sessions.session_no_build ||
-          JEdit_Sessions.session_build(options, no_build = true) == 0)
-          JEdit_Sessions.session_start(options)
+        if (JEdit_Session.session_build_ok()) JEdit_Session.session_start()
         else GUI_Thread.later { new Dialog(view) }
       }
       catch {
@@ -35,35 +34,62 @@ object Session_Build {
   }
 
   private class Dialog(view: View) extends JDialog(view) {
-    val options: Options = PIDE.options.value
-
-
     /* text */
 
-    private val text = new TextArea
+    private val text = new TextPane
     text.editable = false
-    text.columns = 60
-    text.rows = 24
-    text.font = GUI.copy_font((new Label).font)
+    text.font = GUI.copy_font(GUI.label_font())
     text.caret.color = text.background
+    text.preferredSize = {
+      val metric = new Font_Metric(text.font)
+      new Dimension((metric.average_width * 100).toInt, (metric.height * 30).toInt)
+    }
+
+    private val inverse: AttributeSet = {
+      val style = text.styledDocument.addStyle("inverse", null)
+      StyleConstants.setBackground(style, text.foreground)
+      StyleConstants.setForeground(style, text.background)
+      style
+    }
 
     private val scroll_text = new ScrollPane(text)
+
+    private def scroll_to_bottom(): Unit = GUI_Thread.later {
+      val vertical = scroll_text.verticalScrollBar
+      vertical.value = vertical.maximum
+    }
 
 
     /* progress */
 
-    private val progress = new Progress {
-      override def output(message: Progress.Message): Unit =
-        if (do_output(message)) {
+    private val progress = new Progress with Progress.Status {
+      override def status_detailed: Boolean = true
+
+      override def status_hide(msgs: Progress.Output): Unit = {
+        val txt = output_text(msgs.map(Progress.output_theory), terminate = true)
+        val m = txt.length
+        if (m > 0) {
           GUI_Thread.later {
-            text.append(message.output_text + "\n")
-            val vertical = scroll_text.peer.getVerticalScrollBar
-            vertical.setValue(vertical.getMaximum)
+            val doc = text.styledDocument
+            doc.remove(doc.getLength - m, m)
           }
         }
+      }
 
-      override def theory(theory: Progress.Theory): Unit =
-        output(theory.message.copy(verbose = false))
+      override def status_output(msgs: Progress.Output): Unit = {
+        if (msgs.nonEmpty) {
+          GUI_Thread.later {
+            for (msg <- msgs) {
+              val txt = output_text(List(Progress.output_theory(msg)), terminate = true)
+              if (txt.nonEmpty) {
+                val doc = text.styledDocument
+                doc.insertString(doc.getLength, txt, if (msg.status) inverse else null)
+              }
+            }
+            scroll_to_bottom()
+          }
+        }
+      }
     }
 
 
@@ -146,7 +172,7 @@ object Session_Build {
 
     /* main */
 
-    setTitle("Isabelle build (" + Isabelle_System.ml_identifier() + " / " +
+    setTitle("Isabelle build (" + PIDE.ml_settings.ml_identifier + " / " +
       "jdk-" + Platform.jvm_version + "_" + Platform.jvm_platform + ")")
 
     pack()
@@ -154,11 +180,10 @@ object Session_Build {
     setVisible(true)
 
     Isabelle_Thread.fork(name = "session_build") {
-      progress.echo("Build started for Isabelle/" +
-        PIDE.resources.session_base.session_name + " ...")
+      progress.echo(Build.build_logic_started(PIDE.resources.session_base.session_name))
 
       val (out, rc) =
-        try { ("", JEdit_Sessions.session_build(options, progress = progress)) }
+        try { ("", JEdit_Session.session_build(progress)) }
         catch {
           case exn: Throwable =>
             (Output.error_message_text(Exn.message(exn)) + "\n", Exn.failure_rc(exn))
@@ -167,8 +192,11 @@ object Session_Build {
       val ok = rc == Process_Result.RC.ok
       progress.echo(out + (if (ok) "OK" else Process_Result.RC.print_long(rc)) + "\n")
 
-      if (ok) JEdit_Sessions.session_start(options)
-      else progress.echo("Session build failed -- prover process remains inactive!")
+      if (ok) JEdit_Session.session_start()
+      else {
+        progress.echo(
+          Build.build_logic_failed(PIDE.resources.session_base.session_name, editor = true))
+      }
 
       return_code(rc)
     }

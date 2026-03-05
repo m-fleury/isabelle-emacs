@@ -884,6 +884,12 @@ lemma eventually_at_bot_linorder:
   unfolding at_bot_def
   by (subst eventually_INF_base) (auto simp: eventually_principal intro: min.cobounded1 min.cobounded2)
 
+lemma eventually_at_bot_linorderI:
+  fixes c::"'a::linorder"
+  assumes "\<And>x. x \<le> c \<Longrightarrow> P x"
+  shows "eventually P at_bot"
+  using assms by (auto simp: eventually_at_bot_linorder)     
+
 lemma eventually_filtercomap_at_bot_linorder: 
   "eventually P (filtercomap f at_bot) \<longleftrightarrow> (\<exists>N::'a::linorder. \<forall>x. f x \<le> N \<longrightarrow> P x)"
   by (auto simp: eventually_filtercomap eventually_at_bot_linorder)
@@ -965,6 +971,8 @@ subsection \<open>Increasing finite subsets\<close>
 
 definition finite_subsets_at_top where
   "finite_subsets_at_top A = (\<Sqinter> X\<in>{X. finite X \<and> X \<subseteq> A}. principal {Y. finite Y \<and> X \<subseteq> Y \<and> Y \<subseteq> A})"
+
+abbreviation "finite_sets_at_top \<equiv> finite_subsets_at_top UNIV"
 
 lemma eventually_finite_subsets_at_top:
   "eventually P (finite_subsets_at_top A) \<longleftrightarrow>
@@ -1128,6 +1136,38 @@ next
   assume "eventually P B"
   then show "\<exists>Pf Pg. eventually Pf A \<and> eventually Pg B \<and> (\<forall>x y. Pf x \<longrightarrow> Pg y \<longrightarrow> P y)"
     by (intro exI[of _ P] exI[of _ "\<lambda>x. True"]) auto
+qed
+
+lemma eventually_eventually_prod_filter1:
+  assumes "eventually P (F \<times>\<^sub>F G)"
+  shows   "eventually (\<lambda>x. eventually (\<lambda>y. P (x, y)) G) F"
+proof -
+  from assms obtain Pf Pg where
+    *: "eventually Pf F" "eventually Pg G" "\<And>x y. Pf x \<Longrightarrow> Pg y \<Longrightarrow> P (x, y)"
+    unfolding eventually_prod_filter by auto
+  show ?thesis
+    using *(1)
+  proof eventually_elim
+    case x: (elim x)
+    show ?case
+      using *(2) by eventually_elim (use x *(3) in auto)
+  qed
+qed
+
+lemma eventually_eventually_prod_filter2:
+  assumes "eventually P (F \<times>\<^sub>F G)"
+  shows   "eventually (\<lambda>y. eventually (\<lambda>x. P (x, y)) F) G"
+proof -
+  from assms obtain Pf Pg where
+    *: "eventually Pf F" "eventually Pg G" "\<And>x y. Pf x \<Longrightarrow> Pg y \<Longrightarrow> P (x, y)"
+    unfolding eventually_prod_filter by auto
+  show ?thesis
+    using *(2)
+  proof eventually_elim
+    case y: (elim y)
+    show ?case
+      using *(1) by eventually_elim (use y *(3) in auto)
+  qed
 qed
 
 lemma INF_filter_bot_base:
@@ -1871,7 +1911,8 @@ by(simp add: bi_unique_alt_def left_unique_rel_filter right_unique_rel_filter)
 
 lemma eventually_parametric [transfer_rule]:
   "((A ===> (=)) ===> rel_filter A ===> (=)) eventually eventually"
-by(auto 4 4 intro!: rel_funI elim!: rel_filter.cases simp add: eventually_map_filter_on dest: rel_funD intro: always_eventually elim!: eventually_rev_mp)
+  unfolding rel_fun_def
+  by(force elim!: rel_filter.cases eventually_rev_mp simp add: eventually_map_filter_on intro: always_eventually)
 
 lemma frequently_parametric [transfer_rule]: "((A ===> (=)) ===> rel_filter A ===> (=)) frequently frequently"
   unfolding frequently_def[abs_def] by transfer_prover
@@ -2047,10 +2088,6 @@ definition abstract_filter :: "(unit \<Rightarrow> 'a filter) \<Rightarrow> 'a f
 code_datatype principal abstract_filter
 
 hide_const (open) abstract_filter
-
-declare [[code drop: filterlim prod_filter filtermap eventually
-  "inf :: _ filter \<Rightarrow> _" "sup :: _ filter \<Rightarrow> _" "less_eq :: _ filter \<Rightarrow> _"
-  Abs_filter]]
 
 declare filterlim_principal [code]
 declare principal_prod_principal [code]

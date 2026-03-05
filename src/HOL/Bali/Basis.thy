@@ -12,7 +12,7 @@ subsubsection "misc"
 ML \<open>fun strip_tac ctxt i = REPEAT (resolve_tac ctxt [impI, allI] i)\<close>
 
 declare if_split_asm  [split] option.split [split] option.split_asm [split]
-setup \<open>map_theory_simpset (fn ctxt => ctxt addloop ("split_all_tac", split_all_tac))\<close>
+setup \<open>map_theory_simpset (fn ctxt => ctxt |> Simplifier.add_loop ("split_all_tac", split_all_tac))\<close>
 declare if_weak_cong [cong del] option.case_cong_weak [cong del]
 declare length_Suc_conv [iff]
 
@@ -178,7 +178,7 @@ abbreviation the_In1r :: "('al + 'ar, 'b, 'c) sum3 \<Rightarrow> 'ar"
 ML \<open>
 fun sum3_instantiate ctxt thm =
   map (fn s =>
-    simplify (ctxt delsimps @{thms not_None_eq})
+    simplify (ctxt |> Simplifier.del_simps @{thms not_None_eq})
       (Rule_Insts.read_instantiate ctxt [((("t", 0), Position.none), "In" ^ s ^ " x")] ["x"] thm))
     ["1l","2","3","1r"]
 \<close>

@@ -10,7 +10,7 @@ package isabelle.jedit
 import isabelle._
 
 import scala.swing.{Label, ListView, Alignment, ScrollPane, Component, TextField}
-import scala.swing.event.{MouseClicked, ValueChanged}
+import scala.swing.event.{MousePressed, ValueChanged}
 
 import java.awt.BorderLayout
 import javax.swing.{JList, BorderFactory}
@@ -74,7 +74,7 @@ class Timing_Dockable(view: View, position: String) extends Dockable(view, posit
       new Theory_Entry(name, timing) { override val gui_style: String = Entry.make_gui_style() }
     def gui_name: GUI.Name = GUI.Name(name.theory, kind = "theory")
     def follow(snapshot: Document.Snapshot): Unit =
-      PIDE.editor.goto_file(true, view, name.node)
+      PIDE.editor.goto_file(view, name.node, focus = true)
   }
 
   private case class Command_Entry(command: Command, timing: Double) extends Entry {
@@ -82,7 +82,7 @@ class Timing_Dockable(view: View, position: String) extends Dockable(view, posit
     override val gui_style: String = Entry.make_gui_style(command = true)
     def gui_name: GUI.Name = GUI.Name(command.span.name, kind = "command")
     def follow(snapshot: Document.Snapshot): Unit =
-      PIDE.editor.hyperlink_command(true, snapshot, command.id).foreach(_.follow(view))
+      PIDE.editor.hyperlink_command(snapshot, command.id, focus = true).foreach(_.follow(view))
   }
 
 
@@ -91,8 +91,8 @@ class Timing_Dockable(view: View, position: String) extends Dockable(view, posit
   private val timing_view = new ListView(List.empty[Entry]) {
     listenTo(mouse.clicks)
     reactions += {
-      case MouseClicked(_, point, _, clicks, _) if clicks == 2 =>
-        val index = peer.locationToIndex(point)
+      case mouse: MousePressed if mouse.clicks == 2 =>
+        val index = peer.locationToIndex(mouse.point)
         if (index >= 0) listData(index).follow(PIDE.session.snapshot())
     }
   }
@@ -106,14 +106,9 @@ class Timing_Dockable(view: View, position: String) extends Dockable(view, posit
 
   /* timing threshold */
 
-  private var timing_threshold = PIDE.options.real("jedit_timing_threshold")
+  private var timing_threshold = PIDE.options.real("editor_timing_threshold")
 
   private val threshold_tooltip = "Threshold for timing display (seconds)"
-
-  private val threshold_label = new Label("Threshold: ") {
-    tooltip = threshold_tooltip
-  }
-
   private val threshold_value = new TextField(Time.print_seconds(timing_threshold)) {
     reactions += {
       case _: ValueChanged =>
@@ -126,6 +121,8 @@ class Timing_Dockable(view: View, position: String) extends Dockable(view, posit
     tooltip = threshold_tooltip
     verifier = { case Value.Double(x) => x >= 0.0 case _ => false }
   }
+  private val threshold_label =
+    new GUI.Label("Threshold: ", threshold_value) { tooltip = threshold_tooltip }
 
   private val controls = Wrap_Panel(List(threshold_label, threshold_value))
 
@@ -134,7 +131,7 @@ class Timing_Dockable(view: View, position: String) extends Dockable(view, posit
 
   /* component state -- owned by GUI thread */
 
-  private var nodes_timing = Map.empty[Document.Node.Name, Document_Status.Overall_Timing]
+  private var nodes_status = Document_Status.Nodes_Status.empty
 
   private def make_entries(): List[Entry] = {
     GUI_Thread.require {}
@@ -144,14 +141,16 @@ class Timing_Dockable(view: View, position: String) extends Dockable(view, posit
         case None => Document.Node.Name.empty
         case Some(doc_view) => doc_view.model.node_name
       }
-    val timing = nodes_timing.getOrElse(name, Document_Status.Overall_Timing.empty)
+
+    val now = Date.now()
 
     val theories =
-      (for ((node_name, node_timing) <- nodes_timing.toList if node_timing.command_timings.nonEmpty)
-        yield Theory_Entry(node_name, node_timing.total)).sorted(Entry.Ordering)
+      List.from(
+        for ((a, st) <- nodes_status.iterator if st.command_timings.nonEmpty)
+          yield Theory_Entry(a, st.cumulated_time.seconds)).sorted(Entry.Ordering)
     val commands =
-      (for ((command, command_timing) <- timing.command_timings.toList)
-        yield Command_Entry(command, command_timing)).sorted(Entry.Ordering)
+      (for ((command, timings) <- nodes_status(name).command_timings.toList)
+        yield Command_Entry(command, timings.sum(now).seconds)).sorted(Entry.Ordering)
 
     theories.flatMap(entry =>
       if (entry.name == name) entry.make_current :: commands
@@ -163,21 +162,15 @@ class Timing_Dockable(view: View, position: String) extends Dockable(view, posit
 
     val snapshot = PIDE.session.snapshot()
 
-    val nodes_timing1 =
-      (restriction match {
-        case Some(names) => names.iterator.map(name => (name, snapshot.get_node(name)))
-        case None => snapshot.version.nodes.iterator
-      }).foldLeft(nodes_timing) {
-          case (timing1, (name, node)) =>
-            if (PIDE.resources.session_base.loaded_theory(name)) timing1
-            else {
-              val node_timing =
-                Document_Status.Overall_Timing.make(
-                  snapshot.state, snapshot.version, node.commands, threshold = timing_threshold)
-              timing1 + (name -> node_timing)
-            }
-        }
-    nodes_timing = nodes_timing1
+    val domain =
+      restriction.getOrElse(
+        snapshot.version.nodes.names_iterator
+          .filterNot(PIDE.resources.loaded_theory).toSet)
+
+    nodes_status =
+      nodes_status.update_nodes(Date.now(), PIDE.resources, snapshot.state, snapshot.version,
+        threshold = Time.seconds(timing_threshold),
+        domain = Some(domain))
 
     val entries = make_entries()
     if (timing_view.listData.toList != entries) timing_view.listData = entries

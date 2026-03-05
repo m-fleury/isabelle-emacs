@@ -29,7 +29,7 @@ sig
      replay: (Proof.context -> SMT_Translate.replay_data -> string list -> thm) option}
 
   (*registry*)
-  val add_solver: solver_config -> theory -> theory
+  val add_solver: {dummy: bool, sledgehammer_default: bool} -> solver_config -> theory -> theory
   val good_slices: Proof.context -> string ->
     ((int * bool * bool * int * string) * string list) list
 
@@ -84,6 +84,25 @@ fun run ctxt name cmd input =
           val _ = File.write in_path input
           val result = Cache_IO.run cmd input
           val _ = Bytes.write out_path (Bytes.terminate_lines (Process_Result.out_lines result))
+          val () =
+            (case Config.get ctxt SMT_Config.problem_dest_file of
+              "" => ()
+            | base_path =>
+              let val in_path = Path.ext "smt_in" (Path.explode base_path) in
+                File.write in_path input
+              end)
+          val result =
+            with_trace ctxt ("Invoking SMT solver " ^ quote name ^ " ...") (Cache_IO.run cmd) input
+          val () =
+            (case Config.get ctxt SMT_Config.proof_dest_file of
+              "" => ()
+            | base_path =>
+              let
+                val out_path = Path.ext "smt_out" (Path.explode base_path)
+                val output = Bytes.terminate_lines (Process_Result.out_lines result)
+              in
+                Bytes.write out_path output
+              end)
         in result end
   | SOME certs =>
       (case Cache_IO.lookup certs input of
@@ -113,7 +132,6 @@ fun run_solver ctxt name cmd input =
     val res = Process_Result.out_lines result
     val err = Process_Result.err_lines result
     val return_code = Process_Result.rc result
-
     val _ = SMT_Config.trace_msg ctxt (pretty "Solver:") err
 
     val output = drop_suffix (equal "") res
@@ -153,6 +171,7 @@ fun invoke memoize_fun_call name command cmd_options smt_options ithms ctxt =
       |> tap (trace_assms ctxt)
       |> SMT_Translate.translate ctxt name smt_options comments
       ||> tap trace_replay_data
+
     val cmd = Bash.script (Bash.strings (command () @ options))
     val run_cmd = run_solver ctxt' name cmd
 
@@ -204,6 +223,7 @@ fun check_translation name smt_options ithms comparision_str ctxt =
       ^ comparision_str ^ "\nbut got\n\n" ^ input)) ())) else ())
 
   in eq end
+
 
 end
 
@@ -269,7 +289,8 @@ local
         (case parse_proof0 of
           SOME pp => pp outer_ctxt replay_data xfacts prems concl lines
         | NONE => {outcome = NONE, fact_ids = NONE, atp_proof = K []})
-    | (Time_Out, _) => raise SMT_Failure.SMT (SMT_Failure.Time_Out "parsing")
+        | (Time_Out, _) => raise SMT_Failure.SMT (SMT_Failure.Time_Out "parsing")
+        | (Unknown, _) => raise SMT_Failure.SMT (SMT_Failure.Other_Failure "Unknown")
     | (result, _) => raise SMT_Failure.SMT (SMT_Failure.Counterexample (result = Sat)))
 
   fun replay outcome replay0 oracle outer_ctxt
@@ -283,14 +304,15 @@ local
             SOME replay => replay outer_ctxt replay_data lines
           | NONE => error "No proof reconstruction for solver -- \
             \declare [[smt_oracle]] to allow oracle")
-    | (Time_Out, _) => raise SMT_Failure.SMT (SMT_Failure.Time_Out "replay")
-    | (result, _) => raise SMT_Failure.SMT (SMT_Failure.Counterexample (result = Sat)))
+          | (Time_Out, _) => raise SMT_Failure.SMT (SMT_Failure.Time_Out "replay")
+          | (Unknown, _) => raise SMT_Failure.SMT (SMT_Failure.Other_Failure "Unknown")
+          | (result, _) => raise SMT_Failure.SMT (SMT_Failure.Counterexample (result = Sat)))
 
   val cfalse = Thm.cterm_of \<^context> \<^prop>\<open>False\<close>
 in
 
-fun add_solver ({name, class, avail, command, options, smt_options, good_slices, outcome,
-    parse_proof = parse_proof0, replay = replay0} : solver_config) =
+fun add_solver {dummy, sledgehammer_default} ({name, class, avail, command, options, smt_options,
+    good_slices, outcome, parse_proof = parse_proof0, replay = replay0} : solver_config) =
   let
     fun solver oracle = {
       command = command,
@@ -299,7 +321,8 @@ fun add_solver ({name, class, avail, command, options, smt_options, good_slices,
       parse_proof = parse_proof (outcome name) parse_proof0,
       replay = replay (outcome name) replay0 oracle}
 
-    val info = {name = name, class = class, avail = avail, options = options}
+    val info = {name = name, dummy = dummy, sledgehammer_default = sledgehammer_default,
+      class = class, avail = avail, options = options}
   in
     Thm.add_oracle (Binding.name name, K cfalse) #-> (fn (_, oracle) =>
     Context.theory_map (Solvers.map (Symtab.update_new (name, solver oracle)))) #>
@@ -358,7 +381,6 @@ fun test_translation_only ctxt comp_str thms0 =
   in
     check_translation name smt_options norm_thms comp_str ctxt_nats
   end
-
 
 (* filter (for Sledgehammer) *)
 

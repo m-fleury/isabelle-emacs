@@ -9,23 +9,11 @@ package isabelle
 
 import java.util.{Map => JMap, HashMap}
 
+import scala.collection.mutable
+
 
 object ML_Process {
-  def make_shasum(ancestors: List[SHA1.Shasum]): SHA1.Shasum =
-    if (ancestors.isEmpty) SHA1.shasum_meta_info(SHA1.digest(Path.explode("$POLYML_EXE")))
-    else SHA1.flat_shasum(ancestors)
-
-  def session_heaps(
-    store: Store,
-    session_background: Sessions.Background,
-    logic: String = ""
-  ): List[Path] = {
-    val logic_name = Isabelle_System.default_logic(logic)
-
-    session_background.sessions_structure.selection(logic_name).
-      build_requirements(List(logic_name)).
-      map(name => store.get_session(name).the_heap)
-  }
+  /* process */
 
   def apply(
     options: Options,
@@ -36,11 +24,12 @@ object ML_Process {
     args: List[String] = Nil,
     modes: List[String] = Nil,
     cwd: Path = Path.current,
-    env: JMap[String, String] = Isabelle_System.settings(),
+    env: JMap[String, String] = Isabelle_System.Settings.env(),
     redirect: Boolean = false,
     cleanup: () => Unit = () => ()
   ): Bash.Process = {
     val ml_options = options.standard_ml()
+    val ml_settings = ML_Settings(ml_options)
 
     val eval_init =
       if (session_heaps.isEmpty) {
@@ -100,7 +89,7 @@ object ML_Process {
     val isabelle_tmp = Isabelle_System.tmp_dir("process")
 
     val ml_runtime_options = {
-      val ml_options0 = Word.explode(Isabelle_System.getenv("ML_OPTIONS"))
+      val ml_options0 = Word.explode(ml_settings.ml_options)
       val ml_options1 =
         if (ml_options0.exists(_.containsSlice("gcthreads"))) ml_options0
         else ml_options0 ::: List("--gcthreads", ml_options.threads().toString)
@@ -117,6 +106,8 @@ object ML_Process {
       use_prelude.flatMap(List("--use", _)) ::: List("--eval", eval_process) ::: args
 
     val bash_env = new HashMap(env)
+    bash_env.put("ML_PLATFORM", ml_settings.ml_platform)
+    bash_env.put("ML_HOME", File.standard_path(ml_settings.ml_home))
     bash_env.put("ISABELLE_PROCESS_OPTIONS", File.standard_path(isabelle_process_options))
     bash_env.put("ISABELLE_INIT_SESSION", File.standard_path(init_session))
     bash_env.put("ISABELLE_TMP", File.standard_path(isabelle_tmp))
@@ -125,7 +116,8 @@ object ML_Process {
     val process_policy = ml_options.string("process_policy")
     val process_prefix = if_proper(process_policy, process_policy + " ")
 
-    Bash.process(process_prefix + "\"$POLYML_EXE\" -q " + Bash.strings(bash_args),
+    Bash.process(
+      process_prefix + File.bash_path(ml_settings.polyml_exe) + " -q " + Bash.strings(bash_args),
       cwd = cwd,
       env = bash_env,
       redirect = redirect,
@@ -140,50 +132,65 @@ object ML_Process {
 
   /* Isabelle tool wrapper */
 
-  val isabelle_tool = Isabelle_Tool("process", "raw ML process (batch mode)",
-    Scala_Project.here,
-    { args =>
-      var dirs: List[Path] = Nil
-      var eval_args: List[String] = Nil
-      var logic = Isabelle_System.getenv("ISABELLE_LOGIC")
-      var modes: List[String] = Nil
-      var options = Options.init()
+  def tool_body(args: List[String], internal: Boolean = false): Process_Result = {
+    var cwd = Path.current
+    val dirs = new mutable.ListBuffer[Path]
+    val eval_args = new mutable.ListBuffer[String]
+    var logic = Isabelle_System.default_logic()
+    var modes: List[String] = Nil
+    var options = Options.init()
+    var redirect = false
 
-      val getopts = Getopts("""
-Usage: isabelle process [OPTIONS]
+    val getopts = Getopts("""
+Usage: isabelle ML_process [OPTIONS]
 
   Options are:
-    -T THEORY    load theory
+    -C DIR       change working directory
     -d DIR       include session directory
     -e ML_EXPR   evaluate ML expression on startup
     -f ML_FILE   evaluate ML file on startup
     -l NAME      logic session name (default ISABELLE_LOGIC=""" + quote(logic) + """)
     -m MODE      add print mode for output
     -o OPTION    override Isabelle system OPTION (via NAME=VAL or NAME)
+    -r           redirect stderr to stdout
 
-  Run the raw Isabelle ML process in batch mode.
+  Run the raw ML process without Isabelle/Scala context.
 """,
-        "T:" -> (arg =>
-          eval_args = eval_args ::: List("--eval", "use_thy " + ML_Syntax.print_string_bytes(arg))),
-        "d:" -> (arg => dirs = dirs ::: List(Path.explode(arg))),
-        "e:" -> (arg => eval_args = eval_args ::: List("--eval", arg)),
-        "f:" -> (arg => eval_args = eval_args ::: List("--use", arg)),
-        "l:" -> (arg => logic = arg),
-        "m:" -> (arg => modes = arg :: modes),
-        "o:" -> (arg => options = options + arg))
+      "C:" -> (arg => cwd = Path.explode(arg)),
+      "d:" -> (arg => dirs += Path.explode(arg)),
+      "e:" -> (arg => eval_args ++= List("--eval", arg)),
+      "f:" -> (arg => eval_args ++= List("--use", File.platform_path(arg))),
+      "l:" -> (arg => logic = arg),
+      "m:" -> (arg => modes = arg :: modes),
+      "o:" -> (arg => options = options + arg),
+      "r" -> (_ => redirect = true))
 
-      val more_args = getopts(args)
-      if (args.isEmpty || more_args.nonEmpty) getopts.usage()
+    val more_args = getopts(args, internal = internal)
+    if (more_args.nonEmpty) getopts.usage(internal = internal)
 
-      val store = Store(options)
-      val session_background = Sessions.background(options, logic, dirs = dirs).check_errors
-      val session_heaps = ML_Process.session_heaps(store, session_background, logic = logic)
-      val result =
-        ML_Process(options, session_background, session_heaps, args = eval_args, modes = modes)
-          .result(
-            progress_stdout = Output.writeln(_, stdout = true),
-            progress_stderr = Output.writeln(_))
+    val store = Store(options)
+    val session_background = Sessions.background(options, logic, dirs = dirs.toList).check_errors
+    val session_heaps = store.session_heaps(session_background, logic = logic)
 
-      sys.exit(result.rc)
-    })
+    val process =
+      ML_Process(options, session_background, session_heaps,
+        args = eval_args.toList, modes = modes, cwd = cwd, redirect = redirect)
+
+    if (internal) process.result()
+    else {
+      process.result(
+        progress_stdout = Output.writeln(_, stdout = true),
+        progress_stderr = Output.writeln(_))
+    }
+  }
+
+  val isabelle_tool =
+    Isabelle_Tool("ML_process", "low-level ML process without Isabelle/Scala context",
+      Scala_Project.here, args => sys.exit(tool_body(args).rc))
+
+  object Scala_Fun extends Scala.Fun_Strings("ML_process", thread = true) {
+    val here = Scala_Project.here
+    def apply(args: List[String]): List[String] =
+      Bash.Server.result(tool_body(args, internal = true))
+  }
 }

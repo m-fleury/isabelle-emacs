@@ -8,7 +8,8 @@ package isabelle
 
 
 object Component_VeriT {
-  val default_download_url = "https://verit.loria.fr/rmx/2021.06.2/verit-2021.06.2-rmx.tar.gz"
+  val default_download_url =
+    "https://www.verit-solver.org/download/2021.06.2/verit-2021.06.2-rmx.tar.gz"
 
 
   /* build veriT */
@@ -19,7 +20,7 @@ object Component_VeriT {
     target_dir: Path = Path.current,
     mingw: MinGW = MinGW.none
   ): Unit = {
-    mingw.check
+    mingw.check()
 
     Isabelle_System.with_tmp_dir("build") { tmp_dir =>
       /* component */
@@ -46,7 +47,7 @@ object Component_VeriT {
 
       /* platform */
 
-      val platform_name = Isabelle_Platform.self.ISABELLE_PLATFORM(windows = true)
+      val platform_name = Isabelle_Platform.local.ISABELLE_PLATFORM(windows = true, apple = true)
       val platform_dir =
         Isabelle_System.make_directory(component_dir.path + Path.basic(platform_name))
 
@@ -79,13 +80,13 @@ object Component_VeriT {
 
       val exe_path = Path.basic("veriT").platform_exe
       Isabelle_System.copy_file(source_dir + exe_path, platform_dir)
-      Executable.libraries_closure(platform_dir + exe_path, filter = Set("libgmp"), mingw = mingw)
+      Executable.library_closure(platform_dir + exe_path, filter = Set("libgmp"), mingw = mingw)
 
 
       /* settings */
 
       component_dir.write_settings("""
-ISABELLE_VERIT="$COMPONENT/${ISABELLE_WINDOWS_PLATFORM64:-$ISABELLE_PLATFORM64}/veriT"
+ISABELLE_VERIT="$COMPONENT/${ISABELLE_WINDOWS_PLATFORM64:-${ISABELLE_APPLE_PLATFORM64:-$ISABELLE_PLATFORM64}}/veriT"
 """)
 
 

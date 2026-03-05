@@ -72,6 +72,7 @@ sig
   datatype prover_slice_extra =
     ATP_Slice of atp_slice
   | SMT_Slice of string list
+  | No_Slice
 
   type prover_slice = base_slice * prover_slice_extra
 
@@ -81,7 +82,7 @@ sig
      used_from : fact list,
      preferred_methss : proof_method * proof_method list list,
      run_time : Time.time,
-     message : (unit -> (Pretty.T * stature) list * (proof_method * play_outcome)) -> string}
+     message : ((Pretty.T * stature) list * (proof_method * play_outcome)) option -> string}
 
   type prover = params -> prover_problem -> prover_slice -> prover_result
 
@@ -199,6 +200,7 @@ type prover_problem =
 datatype prover_slice_extra =
   ATP_Slice of atp_slice
 | SMT_Slice of string list
+| No_Slice
 
 type prover_slice = base_slice * prover_slice_extra
 
@@ -208,7 +210,7 @@ type prover_result =
    used_from : fact list,
    preferred_methss : proof_method * proof_method list list,
    run_time : Time.time,
-   message : (unit -> (Pretty.T * stature) list * (proof_method * play_outcome)) -> string}
+   message : ((Pretty.T * stature) list * (proof_method * play_outcome)) option -> string}
 
 type prover = params -> prover_problem -> prover_slice -> prover_result
 
@@ -257,6 +259,7 @@ fun bunches_of_smt_methods ctxt =
    single (SMT_Method SMT_Z3)]
   |> flat
   |> single
+
 
 fun bunches_of_proof_methods ctxt smt_proofs needs_full_types needs_lam_defs =
   let

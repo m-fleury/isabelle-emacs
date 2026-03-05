@@ -218,11 +218,14 @@ object Pretty {
   val default_breakgain: Double = default_margin / 20
 
   def formatted(input: XML.Body,
+    recode: String => String = identity,
     margin: Double = default_margin,
     breakgain: Double = default_breakgain,
     metric: Metric = Codepoint.Metric
   ): XML.Body = {
-    val emergencypos = (margin / 2).round.toInt
+    val margin_defined = margin > 0
+    val margin1 = if (margin_defined) margin else default_margin
+    val emergencypos = ((margin1 / 2) max 1).round.toInt
 
     def make_tree(inp: XML.Body): List[Tree] =
       inp flatMap {
@@ -240,7 +243,8 @@ object Pretty {
               List(make_block(make_tree(body), markup = (markup, None), open_block = true))
           }
         case XML.Text(text) =>
-          Library.separate(FBreak, split_lines(text).map(s => Str(s, metric(s))))
+          Library.separate(FBreak,
+            split_lines(text).map { s0 => val s = recode(s0); Str(s, metric(s)) })
       }
 
     def format(trees: List[Tree], before: Double, after: Double, text: Text): Text =
@@ -252,10 +256,12 @@ object Pretty {
         case (block: Block) :: ts =>
           val pos1 = text.pos + block.indent
           val pos2 = (pos1.round.toInt % emergencypos).toDouble
-          val before1 = if (pos1 < emergencypos) pos1 else pos2
+          val before1 = if (!margin_defined || pos1 < emergencypos) pos1 else pos2
           val after1 = break_dist(ts, after)
           val body1 =
-            if (block.consistent && text.pos + block.length > margin - after1) force_all(block.body)
+            if (margin_defined && block.consistent && text.pos + block.length > margin - after1) {
+              force_all(block.body)
+            }
             else block.body
           val btext1 =
             if (block.markup == no_markup) format(body1, before1, after1, text)
@@ -268,8 +274,10 @@ object Pretty {
           format(ts1, before, after, btext1)
         case Break(force, wd, ind) :: ts =>
           if (!force &&
-              text.pos + wd <= ((margin - break_dist(ts, after)) max (before + breakgain)))
+              (!margin_defined ||
+                text.pos + wd <= ((margin - break_dist(ts, after)) max (before + breakgain)))) {
             format(ts, before, after, text.blanks(wd))
+          }
           else format(ts, before, after, text.newline.blanks((before + ind).ceil.toInt))
         case Str(s, len) :: ts => format(ts, before, after, text.string(s, len))
       }
@@ -277,11 +285,17 @@ object Pretty {
   }
 
   def string_of(input: XML.Body,
+    recode: String => String = identity,
     margin: Double = default_margin,
     breakgain: Double = default_breakgain,
     metric: Metric = Codepoint.Metric,
     pure: Boolean = false
   ): String = {
-    output_content(pure, formatted(input, margin = margin, breakgain = breakgain, metric = metric))
+    if (input.isEmpty) ""
+    else {
+      val out =
+        formatted(input, recode = recode, margin = margin, breakgain = breakgain, metric = metric)
+      output_content(pure, out)
+    }
   }
 }

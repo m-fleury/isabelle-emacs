@@ -2583,13 +2583,14 @@ proof (rule antisym)
   qed
 qed
 
-lemma Gcd_remove0_nat: "finite M \<Longrightarrow> Gcd M = Gcd (M - {0})"
+lemma Gcd_remove0_nat: "Gcd M = Gcd (M - {0})"
   for M :: "nat set"
-proof (induct pred: finite)
-  case (insert x M)
-  then show ?case
-    by (simp add: insert_Diff_if)
-qed auto
+proof-
+  have "(\<forall> m \<in> M. b dvd m) \<longleftrightarrow> (\<forall> m \<in> (M - {0}). b dvd m)" for b
+    by blast+
+  thus ?thesis
+    unfolding Gcd_Lcm by presburger
+qed
 
 lemma Lcm_in_lcm_closed_set_nat:
   fixes M :: "nat set" 
@@ -2648,6 +2649,11 @@ lemma Gcd_nat_abs_eq [simp]:
 lemma abs_Gcd_eq [simp]:
   "\<bar>Gcd K\<bar> = Gcd K" for K :: "int set"
   by (simp only: Gcd_int_def)
+
+lemma uminus_Gcd_eq [simp]: 
+  fixes K::"int set"
+  shows "Gcd (uminus ` K) = Gcd K"
+  unfolding Gcd_int_def o_def by (simp add: image_image)
 
 lemma Gcd_int_greater_eq_0 [simp]:
   "Gcd K \<ge> 0"

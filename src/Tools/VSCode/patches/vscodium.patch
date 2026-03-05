@@ -1,0 +1,21 @@
+diff --git a/prepare_vscode.sh b/prepare_vscode.sh
+index d89246a..f0cb185 100755
+--- a/prepare_vscode.sh
++++ b/prepare_vscode.sh
+@@ -173,7 +173,6 @@ done
+ set -x
+ 
+ # {{{ install dependencies
+-export ELECTRON_SKIP_BINARY_DOWNLOAD=1
+ export PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
+ 
+ if [[ "${OS_NAME}" == "linux" ]]; then
+@@ -217,7 +216,7 @@ mv .npmrc.bak .npmrc
+ # package.json
+ cp package.json{,.bak}
+ 
+-setpath "package" "version" "${RELEASE_VERSION%-insider}"
++setpath "package" "version" "$MS_TAG"
+ 
+ replace 's|Microsoft Corporation|VSCodium|' package.json
+ 

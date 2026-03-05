@@ -38,7 +38,7 @@ text \<open>
 \<open>Usage: isabelle docker_build [OPTIONS] APP_ARCHIVE
 
   Options are:
-    -B NAME      base image (default "ubuntu:22.04")
+    -B NAME      base image (default "ubuntu:24.04")
     -E           set Isabelle/bin/isabelle as entrypoint
     -P NAME      additional Ubuntu package collection ("X11", "latex")
     -W DIR       working directory that is accessible to docker,
@@ -71,16 +71,15 @@ text \<open>
   \<^medskip>
   Option \<^verbatim>\<open>-B\<close> specifies the Docker image taken as starting point for the
   Isabelle installation: it needs to be a suitable version of Ubuntu Linux,
-  see also \<^url>\<open>https://hub.docker.com/_/ubuntu\<close>. The default for Isabelle2025
-  is \<^verbatim>\<open>ubuntu:22.04\<close>, but \<^verbatim>\<open>ubuntu:20.04\<close> and \<^verbatim>\<open>ubuntu:24.04\<close> should work as
-  well. Other versions might require experimentation with the package
-  selection.
+  see also \<^url>\<open>https://hub.docker.com/_/ubuntu\<close>. The default for Isabelle2025-2
+  is \<^verbatim>\<open>ubuntu:24.04\<close>, but \<^verbatim>\<open>ubuntu:22.04\<close> and \<^verbatim>\<open>ubuntu:20.04\<close> also work. Other
+  versions might require experimentation with the package selection.
 
   Option \<^verbatim>\<open>-p\<close> includes additional Ubuntu packages, using the terminology
   of \<^verbatim>\<open>apt-get install\<close> within the underlying Linux distribution.
 
   Option \<^verbatim>\<open>-P\<close> refers to high-level package collections: \<^verbatim>\<open>X11\<close> or \<^verbatim>\<open>latex\<close> as
-  provided by \<^verbatim>\<open>isabelle docker_build\<close> (assuming Ubuntu 20.04/22.04/24.04
+  provided by \<^verbatim>\<open>isabelle docker_build\<close> (assuming Ubuntu 24.04/22.04/20.04
   LTS). This imposes extra weight on the resulting Docker images. Note that
   \<^verbatim>\<open>X11\<close> will only provide remote X11 support according to the modest GUI
   quality standards of the late 1990-ies.
@@ -95,7 +94,7 @@ text \<open>
 
   \<^medskip>
   Option \<^verbatim>\<open>-W\<close> specifies an alternative work directory: it needs to be
-  accessible to docker, even if this is run via Snap (e.g.\ on Ubuntu 22.04).
+  accessible to docker, even if this is run via Snap (e.g.\ on Ubuntu 24.04).
   The default ``\<^verbatim>\<open>.\<close>'' usually works, if this is owned by the user: the tool
   will create a fresh directory within it, and remove it afterwards.
 \<close>
@@ -107,22 +106,22 @@ text \<open>
   Produce a Dockerfile (without image) from a remote Isabelle distribution:
   @{verbatim [display]
 \<open>  isabelle docker_build -E -n -o Dockerfile
-    https://isabelle.in.tum.de/website-Isabelle2025/dist/Isabelle2025_linux.tar.gz\<close>}
+    https://isabelle.in.tum.de/website-Isabelle2025-2/dist/Isabelle2025-2_linux.tar.gz\<close>}
 
   Build a standard Isabelle Docker image from a local Isabelle distribution,
   with \<^verbatim>\<open>bin/isabelle\<close> as executable entry point:
 
   @{verbatim [display]
-\<open>  isabelle docker_build -E -t test/isabelle:Isabelle2025 Isabelle2025_linux.tar.gz\<close>}
+\<open>  isabelle docker_build -E -t test/isabelle:Isabelle2025-2 Isabelle2025-2_linux.tar.gz\<close>}
 
   Invoke the raw Isabelle/ML process within that image:
   @{verbatim [display]
-\<open>  docker run test/isabelle:Isabelle2025 process -e "Session.welcome ()"\<close>}
+\<open>  docker run test/isabelle:Isabelle2025-2 ML_process -e "Session.welcome ()"\<close>}
 
   Invoke a Linux command-line tool within the contained Isabelle system
   environment:
   @{verbatim [display]
-\<open>  docker run test/isabelle:Isabelle2025 env uname -a\<close>}
+\<open>  docker run test/isabelle:Isabelle2025-2 env uname -a\<close>}
   The latter should always report a Linux operating system, even when running
   on Windows or macOS.
 \<close>
@@ -455,7 +454,7 @@ text \<open>
 
   \<^medskip>
   The default is to output the Isabelle distribution name, e.g.\
-  ``\<^verbatim>\<open>Isabelle2025\<close>''.
+  ``\<^verbatim>\<open>Isabelle2025-2\<close>''.
 
   \<^medskip>
   Option \<^verbatim>\<open>-i\<close> produces a short identification derived from the Mercurial id

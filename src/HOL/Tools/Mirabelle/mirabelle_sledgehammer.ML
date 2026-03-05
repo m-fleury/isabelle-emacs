@@ -94,7 +94,7 @@ local
 
 val str = string_of_int
 val str3 = Real.fmt (StringCvt.FIX (SOME 3))
-fun percentage a b = string_of_int (a * 100 div b)
+fun percentage a b = Real.fmt (StringCvt.FIX (SOME 1)) (Real.fromInt (a * 100) / Real.fromInt b)
 fun ms t = Real.fromInt t / 1000.0
 fun avg_time t n =
   if n > 0 then (Real.fromInt t / 1000.0) / Real.fromInt n else 0.0
@@ -135,11 +135,13 @@ fun run_sh params keep pos state =
             val filename = "prob_" ^
               StringCvt.padLeft #"0" 5 (str0 (Position.line_of pos)) ^ "_" ^
               StringCvt.padLeft #"0" 6 (str0 (Position.offset_of pos))
+            fun mk_smt_file () = dir ^ "/" ^ filename ^ "__" ^ serial_string ()
           in
             Config.put Sledgehammer_Prover_ATP.atp_problem_prefix (filename ^ "__")
             #> (keep_probs ? Config.put Sledgehammer_Prover_ATP.atp_problem_dest_dir dir)
             #> (keep_proofs ? Config.put Sledgehammer_Prover_ATP.atp_proof_dest_dir dir)
-            #> Config.put SMT_Config.debug_files (dir ^ "/" ^ filename ^ "__" ^ serial_string ())
+            #> (keep_probs ? Config.put SMT_Config.problem_dest_file (mk_smt_file ()))
+            #> (keep_proofs ? Config.put SMT_Config.proof_dest_file (mk_smt_file ()))
           end
         | set_file_name NONE = I
       val state' = state
@@ -157,7 +159,7 @@ fun run_sh params keep pos state =
 
 in
 
-fun run_sledgehammer (params as {provers, ...}) output_dir keep_probs keep_proofs
+fun run_sledgehammer params output_dir keep_probs keep_proofs
     exhaustive_preplay thy_index trivial pos st =
   let
     val triv_str = if trivial then "[T] " else ""
@@ -176,7 +178,6 @@ fun run_sledgehammer (params as {provers, ...}) output_dir keep_probs keep_proof
         end
       else
         NONE
-    val prover_name = hd provers
     val (sledgehamer_outcome, msg, cpu_time) = run_sh params keep pos st
     val (time_prover, change_data, exhaustive_preplay_msg) =
       (case sledgehamer_outcome of
@@ -208,8 +209,7 @@ fun run_sledgehammer (params as {provers, ...}) output_dir keep_probs keep_proof
       | _ => (NONE, I, ""))
     val outcome_msg =
       "(SH " ^ string_of_int cpu_time ^ "ms" ^
-      (case time_prover of NONE => "" | SOME ms => ", ATP " ^ string_of_int ms ^ "ms") ^
-      ") [" ^ prover_name ^ "]: "
+      (case time_prover of NONE => "" | SOME ms => ", ATP " ^ string_of_int ms ^ "ms") ^ "): "
   in
     (sledgehamer_outcome, triv_str ^ outcome_msg ^ Protocol_Message.clean_output msg ^
        (if exhaustive_preplay_msg = "" then "" else ("\n" ^ exhaustive_preplay_msg)),
@@ -218,7 +218,7 @@ fun run_sledgehammer (params as {provers, ...}) output_dir keep_probs keep_proof
 
 end
 
-val try0 = not o null o Try0.try0 (SOME (Time.fromSeconds 5)) []
+val try0 = not o null o Try0.try0 (SOME (Time.fromSeconds 5)) Try0.empty_facts
 
 fun make_action ({arguments, timeout, output_dir, ...} : Mirabelle.action_context) =
   let

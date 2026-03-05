@@ -8,7 +8,21 @@ package isabelle
 
 
 object Executable {
-  def libraries_closure(path: Path,
+  def library_path(platform: Isabelle_Platform): (String, String) = {
+    val x =
+      if (platform.is_linux) "LD_LIBRARY_PATH"
+      else if (platform.is_macos) "DYLD_LIBRARY_PATH"
+      else if (platform.is_windows) "PATH"
+      else error("Bad platform " + platform)
+    val y =
+      if (platform.is_linux || platform.is_macos) "lib"
+      else if (platform.is_windows) "bin"
+      else error("Bad platform " + platform)
+    (x, y)
+  }
+
+  def library_closure(path: Path,
+    env_prefix: String = "",
     mingw: MinGW = MinGW.none,
     filter: String => Boolean = _ => true
   ): List[String] = {
@@ -16,9 +30,9 @@ object Executable {
     val exe_dir = exe_path.dir
     val exe = exe_path.base
 
-    val ldd_lines = {
+    val lines = {
       val ldd = if (Platform.is_macos) "otool -L" else "ldd"
-      val script = mingw.bash_script(ldd + " " + File.bash_path(exe))
+      val script = mingw.bash_script(env_prefix + ldd + " " + File.bash_path(exe))
       split_lines(Isabelle_System.bash(script, cwd = exe_dir).check.out)
     }
 
@@ -30,19 +44,14 @@ object Executable {
       if (Platform.is_macos) {
         val Pattern = """^\s*(/.+)\s+\(.*\)$""".r
         for {
-          case Pattern(lib) <- ldd_lines
+          case Pattern(lib) <- lines
           if !lib.startsWith("@executable_path/") && filter(lib_name(lib))
         } yield lib
       }
       else {
         val Pattern = """^.*=>\s*(/.+)\s+\(.*\)$""".r
-        val prefix =
-          mingw.root match {
-            case None => ""
-            case Some(path) => path.absolute.implode
-          }
-        for { case Pattern(lib) <- ldd_lines if filter(lib_name(lib)) }
-          yield prefix + lib
+        for { case Pattern(lib) <- lines if filter(lib_name(lib)) }
+          yield File.standard_path(mingw.platform_path(lib))
       }
 
     if (libs.nonEmpty) {

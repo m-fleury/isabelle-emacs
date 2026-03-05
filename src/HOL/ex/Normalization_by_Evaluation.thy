@@ -3,7 +3,7 @@
 section \<open>Testing implementation of normalization by evaluation\<close>
 
 theory Normalization_by_Evaluation
-imports Complex_Main
+imports Complex_Main "HOL-Library.Word"
 begin
 
 lemma "True" by normalization
@@ -26,12 +26,13 @@ primrec add2 :: "n \<Rightarrow> n \<Rightarrow> n" where
  | "add2 (S m) n = S(add2 m n)"
 
 declare add2.simps [code]
-lemma [code nbe]: "add2 (add2 n m) k = add2 n (add2 m k)"
-  by (induct n) auto
-lemma [code]: "add2 n (S m) =  S (add2 n m)"
-  by(induct n) auto
 lemma [code]: "add2 n Z = n"
   by(induct n) auto
+lemma [code]: "add2 n (S m) =  S (add2 n m)"
+  by(induct n) auto
+lemma [code nbe]: "add2 (add2 n m) k = add2 n (add2 m k)"
+  by (induct n) auto
+
 
 lemma "add2 (add2 n m) k = add2 n (add2 m k)" by normalization
 lemma "add2 (add2 (S n) (S m)) (S k) = S(S(S(add2 n (add2 m k))))" by normalization
@@ -107,6 +108,9 @@ lemma "[Suc 0, 0] = [Suc 0, 0]" by normalization
 lemma "max (Suc 0) 0 = Suc 0" by normalization
 lemma "(42::rat) / 1704 = 1 / 284 + 3 / 142" by normalization
 value [nbe] "Suc 0 \<in> set ms"
+
+lemma "4 - 42 * 3 - 7 = (256 + 35) - (164 :: 8 word)"
+  by normalization
 
 (* non-left-linear patterns, equality by extensionality *)
 

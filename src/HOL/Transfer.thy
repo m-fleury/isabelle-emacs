@@ -106,17 +106,13 @@ lemma Rel_abs:
 
 subsection \<open>Predicates on relations, i.e. ``class constraints''\<close>
 
+text \<open>See also \<^const>\<open>Relation.left_unique\<close> and \<^const>\<open>Relation.right_unique\<close>.\<close>
+
 definition left_total :: "('a \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> bool"
   where "left_total R \<longleftrightarrow> (\<forall>x. \<exists>y. R x y)"
 
-definition left_unique :: "('a \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> bool"
-  where "left_unique R \<longleftrightarrow> (\<forall>x y z. R x z \<longrightarrow> R y z \<longrightarrow> x = y)"
-
 definition right_total :: "('a \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> bool"
   where "right_total R \<longleftrightarrow> (\<forall>y. \<exists>x. R x y)"
-
-definition right_unique :: "('a \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> bool"
-  where "right_unique R \<longleftrightarrow> (\<forall>x y z. R x y \<longrightarrow> R x z \<longrightarrow> y = z)"
 
 definition bi_total :: "('a \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> bool"
   where "bi_total R \<longleftrightarrow> (\<forall>x. \<exists>y. R x y) \<and> (\<forall>y. \<exists>x. R x y)"
@@ -125,15 +121,6 @@ definition bi_unique :: "('a \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> 
   where "bi_unique R \<longleftrightarrow>
     (\<forall>x y z. R x y \<longrightarrow> R x z \<longrightarrow> y = z) \<and>
     (\<forall>x y z. R x z \<longrightarrow> R y z \<longrightarrow> x = y)"
-
-lemma left_unique_iff: "left_unique R \<longleftrightarrow> (\<forall>z. \<exists>\<^sub>\<le>\<^sub>1x. R x z)"
-  unfolding Uniq_def left_unique_def by force
-
-lemma left_uniqueI: "(\<And>x y z. \<lbrakk> A x z; A y z \<rbrakk> \<Longrightarrow> x = y) \<Longrightarrow> left_unique A"
-unfolding left_unique_def by blast
-
-lemma left_uniqueD: "\<lbrakk> left_unique A; A x z; A y z \<rbrakk> \<Longrightarrow> x = y"
-unfolding left_unique_def by blast
 
 lemma left_totalI:
   "(\<And>x. \<exists>y. R x y) \<Longrightarrow> left_total R"
@@ -152,15 +139,6 @@ lemma bi_uniqueDl: "\<lbrakk> bi_unique A; A x y; A z y \<rbrakk> \<Longrightarr
 
 lemma bi_unique_iff: "bi_unique R \<longleftrightarrow> (\<forall>z. \<exists>\<^sub>\<le>\<^sub>1x. R x z) \<and> (\<forall>z. \<exists>\<^sub>\<le>\<^sub>1x. R z x)"
   unfolding Uniq_def bi_unique_def by force
-
-lemma right_unique_iff: "right_unique R \<longleftrightarrow> (\<forall>z. \<exists>\<^sub>\<le>\<^sub>1x. R z x)"
-  unfolding Uniq_def right_unique_def by force
-
-lemma right_uniqueI: "(\<And>x y z. \<lbrakk> A x y; A x z \<rbrakk> \<Longrightarrow> y = z) \<Longrightarrow> right_unique A"
-unfolding right_unique_def by fast
-
-lemma right_uniqueD: "\<lbrakk> right_unique A; A x y; A x z \<rbrakk> \<Longrightarrow> y = z"
-unfolding right_unique_def by fast
 
 lemma right_totalI: "(\<And>y. \<exists>x. A x y) \<Longrightarrow> right_total A"
 by(simp add: right_total_def)
@@ -202,11 +180,6 @@ qed
 lemma bi_unique_alt_def2:
   "bi_unique R \<longleftrightarrow> (R ===> R ===> (=)) (=) (=)"
   unfolding bi_unique_def rel_fun_def by auto
-
-lemma [simp]:
-  shows left_unique_conversep: "left_unique A\<inverse>\<inverse> \<longleftrightarrow> right_unique A"
-    and right_unique_conversep: "right_unique A\<inverse>\<inverse> \<longleftrightarrow> left_unique A"
-  by(auto simp add: left_unique_def right_unique_def)
 
 lemma [simp]:
   shows left_total_conversep: "left_total A\<inverse>\<inverse> \<longleftrightarrow> right_total A"
