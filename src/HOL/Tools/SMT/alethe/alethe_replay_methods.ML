@@ -44,7 +44,7 @@ sig
    Xor_Pos1 | Xor_Pos2 | Xor_Neg1 | Xor_Neg2 | Xor1 | Xor2 | Not_Xor1  | Not_Xor2 |
    (*Arithmetic:*)
    LA_Disequality | LA_Generic | LA_Tautology |  LIA_Generic | LA_Totality | LA_RW_Eq |
-   NLA_Generic |  LA_Mult_Pos | LA_Mult_Neg |
+   NLA_Generic |  LA_Mult_Pos | LA_Mult_Neg | Poly_Simp |
    (*Resolution:*)
    Theory_Resolution | Resolution |
    (*Simplification Rules*)
@@ -135,6 +135,7 @@ sig
   val lia_generic: alethe_tac
   val la_mult_pos: alethe_tac
   val la_mult_neg: alethe_tac
+  val poly_simp: alethe_tac
   val refl: alethe_tac_args
   val normalized_input: alethe_tac
   val not_and_rule: alethe_tac
@@ -237,7 +238,7 @@ datatype alethe_rule =
    Xor_Pos1 | Xor_Pos2 | Xor_Neg1 | Xor_Neg2 | Xor1 | Xor2 | Not_Xor1  | Not_Xor2 |
    (*Arithmetic:*)
    LA_Disequality | LA_Generic | LA_Tautology |  LIA_Generic | LA_Totality | LA_RW_Eq |
-   NLA_Generic |  LA_Mult_Pos | LA_Mult_Neg |
+   NLA_Generic |  LA_Mult_Pos | LA_Mult_Neg | Poly_Simp |
    (*Resolution:*)
    Theory_Resolution | Resolution |
    (*Simplification Rules*)
@@ -325,6 +326,7 @@ fun string_of_alethe_rule Bind = "Bind"
   | string_of_alethe_rule NLA_Generic = "nla_generic"
   | string_of_alethe_rule LA_Mult_Pos = "la_mult_pos"
   | string_of_alethe_rule LA_Mult_Neg = "la_mult_neg"
+  | string_of_alethe_rule Poly_Simp = "poly_simp"
   | string_of_alethe_rule Eq_Transitive = "eq_transitive"
   | string_of_alethe_rule Qnt_Rm_Unused = "qnt_remove_unused"
   | string_of_alethe_rule Onepoint = "onepoint"
@@ -1735,6 +1737,36 @@ THEN' Simplifier.full_simp_tac ctxt
 
 )
 end
+
+(*TODO: Wrote this to get this running quickly, should be refined*)
+fun poly_simp ctxt _ t =
+  SMT_Replay_Methods.prove ctxt t (fn _ =>
+    REPEAT_ALL_NEW (partial_simplify_tac ctxt @{thms eq_commute}
+    
+ THEN' 
+(*This is needed for reals:  (SMT_Replay.make_simpset ctxt [])*)
+  Simplifier.full_simp_tac 
+   (put_simpset (SMT_Replay.make_simpset ctxt []) (put_simpset HOL_basic_ss (empty_simpset ctxt))
+    addsimps @{thms HOL.simp_thms HOL.all_simps}
+    addsimps @{thms arith_simps ac_simps conj_ac ring_class.ring_distribs smt_arith_simplify alethe_div_simplify alethe_prod_simplify}
+    (*Same as linarith*)
+    addsimprocs [\<^simproc>\<open>semiring_assoc_fold\<close>,
+       \<^simproc>\<open>int_combine_numerals\<close>,
+       \<^simproc>\<open>inteq_cancel_numerals\<close>,
+       \<^simproc>\<open>intless_cancel_numerals\<close>,
+       \<^simproc>\<open>intle_cancel_numerals\<close>,
+       \<^simproc>\<open>field_combine_numerals\<close>,
+       \<^simproc>\<open>nat_combine_numerals\<close>,
+       \<^simproc>\<open>nateq_cancel_numerals\<close>,
+       \<^simproc>\<open>natless_cancel_numerals\<close>,
+       \<^simproc>\<open>natle_cancel_numerals\<close>,
+       \<^simproc>\<open>natdiff_cancel_numerals\<close>,
+       Numeral_Simprocs.field_divide_cancel_numeral_factor])
+    THEN' (debug_msg_tac' ctxt high "poly simp")
+    THEN' TRY' (assume_tac ctxt)
+    THEN' TRY' (Classical.fast_tac ctxt)
+ )
+)
 
 
 (* Symm and Not_Symm*)
