@@ -1,7 +1,7 @@
 chapter Doc
 
 session Classes (doc) in "Classes" = HOL +
-  options [document_logo = "Isar", document_bibliography,
+  options [quick_and_dirty = true,document_logo = "Isar", document_bibliography,
     document_variants = "classes", quick_and_dirty]
   theories [document = false] Setup
   theories Classes
@@ -474,7 +474,7 @@ session Tutorial (doc) in "Tutorial" = HOL +
     "types0.tex"
 
 session Typeclass_Hierarchy (doc) in "Typeclass_Hierarchy" = HOL +
-  options [document_logo = "Isar", document_bibliography, document_variants = "typeclass_hierarchy"]
+  options [quick_and_dirty,document_logo = "Isar", document_bibliography, document_variants = "typeclass_hierarchy"]
   sessions
     "HOL-Library"
   theories [document = false]

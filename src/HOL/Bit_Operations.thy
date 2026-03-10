@@ -2430,7 +2430,7 @@ qed
 lemma not_exp_less_eq_0_int [simp]:
   \<open>\<not> 2 ^ n \<le> (0::int)\<close>
   by (simp add: power_le_zero_eq)
-
+declare[[show_hyps=false,show_types=false,show_sorts=false]]
 lemma int_bit_bound:
   fixes k :: int
   obtains n where \<open>\<And>m. n \<le> m \<Longrightarrow> bit k m \<longleftrightarrow> bit k n\<close>
@@ -2485,12 +2485,20 @@ proof -
       by blast
     have \<open>r < q\<close>
       by (rule ccontr) (use * [of r] ** in simp)
-    define N where \<open>N = {n. n < q \<and> bit k n \<noteq> bit k q}\<close>
-    moreover have \<open>finite N\<close> \<open>r \<in> N\<close>
-      using ** N_def \<open>r < q\<close> by auto
-    moreover define n where \<open>n = Suc (Max N)\<close>
+    define N where N_def: \<open>N = {n. n < q \<and> bit k n \<noteq> bit k q}\<close>
+    define n where n_def: \<open>n = Suc (Max N)\<close>
+
+    have \<open>finite N\<close> \<open>r \<in> N\<close>
+      using ** N_def \<open>r < q\<close> by auto 
+    moreover have "\<forall>n. n \<in> N \<or> \<not> n < q \<or> bit k n = bit k q"
+          using N_def by force
     ultimately have \<dagger>: \<open>\<And>m. n \<le> m \<Longrightarrow> bit k m \<longleftrightarrow> bit k n\<close>
-      by (smt (verit) "*" Max_ge Suc_n_not_le_n linorder_not_less mem_Collect_eq not_less_eq_eq)
+      subgoal for m
+        unfolding n_def
+        apply (simp add: bit_Suc semiring_bits_class.bit_iff_odd)
+        by (metis "*" Max_ge Suc_n_not_le_n bit_int_def linorder_not_less not_less_eq_eq power_Suc)
+      done
+
     have \<open>bit k (Max N) \<noteq> bit k n\<close>
       by (metis (mono_tags, lifting) "*" Max_in N_def \<open>\<And>m. n \<le> m \<Longrightarrow> bit k m = bit k n\<close> \<open>finite N\<close> \<open>r \<in> N\<close> empty_iff le_cases mem_Collect_eq)
     with \<dagger> n_def that [of n] show thesis

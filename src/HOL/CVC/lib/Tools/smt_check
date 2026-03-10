@@ -61,6 +61,7 @@ parse_options "$@"
 [ "$proof"x = "x" ] && usage
 
 SCRATCH="Scratch_${PRG}_$$_${RANDOM}"
+SCRATCH_FILE="${SCRATCH}.thy"
 
 TIMEOUT=$1
 shift
@@ -69,7 +70,11 @@ $ISABELLE_HOME/bin/isabelle build ${directory_include} -b $session
 
 echo -e "theory $SCRATCH\n\timports \"$import_session\"\nbegin\n\
  check_smt (\"$solver\") \"$smt2\" \"$proof\"\nend" \
-     > /tmp/$SCRATCH.thy
+ > ${SCRATCH_FILE}
 
-cat /tmp/$SCRATCH.thy
-$ISABELLE_HOME/bin/isabelle process $directory_include -e "use_thy \"/tmp/$SCRATCH\"; exit 1;" -l $session
+cat ${SCRATCH_FILE}
+$ISABELLE_HOME/bin/isabelle process_theories $directory_include -O -U -v -l $session -f "${SCRATCH_FILE}" "${SCRATCH}"
+
+echo "deleting theory file"
+rm ${SCRATCH_FILE}
+

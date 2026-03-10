@@ -1650,9 +1650,12 @@ lemma ln_prod: "finite I \<Longrightarrow> (\<And>i. i \<in> I \<Longrightarrow>
 
 lemma ln_inverse: "ln (inverse x) = - ln x"
   for x :: real
-  by (smt (verit, best) abs_if abs_inverse exp_inj_iff exp_ln_abs exp_minus
-      inverse_nonzero_iff_nonzero ln_real_def)
-
+  unfolding ln_real_def
+  apply (cases "inverse x = 0")
+   apply simp_all
+  unfolding raw_ln_real_def
+  by (metis exp_ln_abs exp_minus raw_ln_exp raw_ln_real_def)
+  
 lemma ln_div: "ln (x/y) = (if x\<noteq>0 \<and> y\<noteq>0 then ln x - ln y else 0)"
   for x :: real
   by (simp add: divide_inverse ln_inverse ln_mult)
@@ -2447,7 +2450,12 @@ lemma powr_mult_base: "0 \<le> x \<Longrightarrow>x * x powr y = x powr (1 + y)"
 
 lemma powr_mult_base': "abs x * x powr y = x powr (1 + y)"
   for x :: real
-  by (smt (verit) powr_mult_base uminus_powr_eq)
+  apply (cases "x\<ge>0")
+  subgoal using powr_mult_base by simp
+  subgoal apply simp
+  by (metis linorder_linear mult_minus_left neg_le_0_iff_le powr_mult_base
+      uminus_powr_eq)
+  done
 
 lemma powr_powr: "(x powr a) powr b = x powr (a * b)"
   for a b x :: real

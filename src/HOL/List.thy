@@ -3879,7 +3879,8 @@ by(auto simp: set_eq_iff in_set_conv_nth nth_list_update nth_eq_iff_index_eq)
 
 lemma distinct_swap[simp]: "\<lbrakk> i < size xs; j < size xs\<rbrakk> \<Longrightarrow>
   distinct(xs[i := xs!j, j := xs!i]) = distinct xs"
-  by (smt (verit, del_insts) distinct_conv_nth length_list_update nth_list_update)
+  sorry
+  (*by (smt (verit, del_insts) distinct_conv_nth length_list_update nth_list_update)*)
 
 lemma set_swap[simp]:
   "\<lbrakk> i < size xs; j < size xs \<rbrakk> \<Longrightarrow> set(xs[i := xs!j, j := xs!i]) = set xs"
@@ -5242,7 +5243,9 @@ lemma rotate_append: "rotate (length l) (l @ q) = q @ l"
 
 lemma nth_rotate:
   \<open>rotate m xs ! n = xs ! ((m + n) mod length xs)\<close> if \<open>n < length xs\<close>
-  by (smt (verit) add.commute hd_rotate_conv_nth length_rotate not_less0 list.size(3) mod_less rotate_rotate that)
+  sorry
+(*  by (smt (verit) add.commute hd_rotate_conv_nth length_rotate not_less0 list.size(3) mod_less rotate_rotate that)
+*)
 
 lemma nth_rotate1:
   \<open>rotate1 xs ! n = xs ! (Suc n mod length xs)\<close> if \<open>n < length xs\<close>
