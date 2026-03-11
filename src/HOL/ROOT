@@ -1293,14 +1293,5 @@ session "HOL-CVC" in CVC = HOL +
 *)
 
 
-session "SMT-BV-Testing" (timing) in BVTesting = Word_Lib +
-  options [quick_and_dirty]
-  sessions
-    "HOL-Library"
-    "Word_Lib"
-  theories
-    BVTesting
- 
-
 
 
