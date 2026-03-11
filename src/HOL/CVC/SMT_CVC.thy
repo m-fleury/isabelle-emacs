@@ -36,10 +36,6 @@ lemmas [arith_simp_cvc5] =
 (*lemmas [cvc_evaluate] = arith_simp_cvc5*)
 
 
-named_theorems alethe_poly_norm \<open>Extra theorems for poly norm.\<close>
-
-lemmas [alethe_poly_norm] = mult_1_right mult_1_left
-
 named_theorems word_cat_helper_def \<open>test\<close>
 
 (*Term rewrites*)

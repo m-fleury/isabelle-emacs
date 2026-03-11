@@ -943,8 +943,12 @@ named_theorems cvc5_holes_pre \<open>Theorems applied for holes\<close>
 named_theorems simplify_translation \<open>Lemmas to normalize the assertions before translation. When an operator (such as a constant) appears the simplifier is called and uses this set\<close>
 lemmas [simplify_translation] = arith_simps more_arith_simps
 
+named_theorems alethe_poly_norm \<open>Extra theorems for poly norm.\<close>
+
+lemmas [alethe_poly_norm] = mult_1_right mult_1_left
+
 subsection \<open>Setup\<close>
-declare[[show_hyps]]
+
 ML_file \<open>Tools/SMT/smt_util.ML\<close>
 ML_file \<open>Tools/SMT/smt_failure.ML\<close>
 ML_file \<open>Tools/SMT/smt_config.ML\<close>

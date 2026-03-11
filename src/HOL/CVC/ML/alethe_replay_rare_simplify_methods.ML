@@ -66,46 +66,6 @@ fun try_evaluate ctxt t =
   SMT_Replay_Methods.prove_abstract' ctxt t evaluate_tac
     (SMT_Replay_Methods.abstract_for_code_eval ctxt (dest_prop t))
 
-
-(*The arith_poly_norm rule is a special rule for now. It is not a RARE rewrite but it is not the Alethe
-standard yet. It might become a proof rule eventually*)
-fun arith_poly_norm ctxt t = 
-  let
-    fun simplify_tac ctxt thms =
-      ctxt
-      |> empty_simpset
-      |> put_simpset HOL_basic_ss
-      |> (fn ctxt => ctxt addsimps @{thms simp_thms} addsimps thms)
-      |> (Simplifier.add_cong @{thm if_weak_cong})
-      |> (fn ctxt => ctxt
-           addsimprocs [@{simproc int_div_cancel_numeral_factors}, @{simproc int_combine_numerals},
-             @{simproc divide_cancel_numeral_factor}, @{simproc divide_cancel_factor},
-             @{simproc intle_cancel_numerals}, @{simproc intless_cancel_numerals}, @{simproc inteq_cancel_numerals},
-             @{simproc field_combine_numerals},
-             @{simproc ring_le_cancel_numeral_factor},
-             @{simproc HOL.NO_MATCH}, @{simproc Numeral_Simprocs.semiring_assoc_fold},
-             @{simproc Numeral_Simprocs.field_divide_cancel_numeral_factor},
-             @{simproc Numeral_Simprocs.field_eq_cancel_numeral_factor}])
-      |> Simplifier.full_simp_tac
-    fun simplify_tac_with_background_simp ctxt thms =
-      ctxt
-      |> (fn ctxt => ctxt addsimps thms)
-      |> Simplifier.full_simp_tac
-    val tac = (fn _ => fn _ =>
-        SOLVED' (
-        simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems alethe_poly_norm})
-        THEN' debug_msg_tac' ctxt high "tried to solve arith_poly_norm with custom simplify tac")
-        (*if the previous does not solve, use full simplification power with the current content*)
-      ORELSE'
-        (simplify_tac_with_background_simp ctxt (Named_Theorems.get ctxt @{named_theorems field_simps})
-        THEN' debug_msg_tac' ctxt high "tried full simplifier power on current arith_poly_norm step")
-      THEN' TRY' (Code_Simp.dynamic_tac ctxt)
-      THEN' debug_msg_tac' ctxt high "tried code evaluation on arith_poly_norm step since nothing else worked")
-  in
-  SMT_Replay_Methods.prove_abstract' ctxt t tac
-    (SMT_Replay_Methods.abstract_for_poly_norm ctxt (dest_prop t))
-  end
-
 (*TODO: Have different method based on theory rewrite is in*)
 fun try_simp_tac ctxt =
      TRY' (K (HEADGOAL (simplify_tac ctxt ((Named_Theorems.get ctxt @{named_theorems cvc_evaluate})))))
@@ -242,9 +202,6 @@ local
   fun pretty tag lines = map Pretty.str lines |> Pretty.big_list tag |> Pretty.string_of
 in 
 
-  fun arith_poly_norm_reconstruct ctxt _ _ t =
-    arith_poly_norm ctxt t
-
   fun rare_rewrite ctxt (th : thm list) (x:: args) t =
     let
       val rewrite_name = String.map (fn #"-"  => #"_" | x => x) (HOLogic.dest_string x)
@@ -253,7 +210,6 @@ in
         "evaluate" =>
           (debug_msg ctxt low (fn () => @{print} "Found evaluate, try to simplify");
           try_evaluate ctxt t)
-      | "arith_poly_norm" => arith_poly_norm ctxt t
       | _ =>
          (debug_msg ctxt low (fn () => @{print} "Found rare rewrite " ^ rewrite_name);
           dsl_tac_initialize rewrite_name args ctxt t th))

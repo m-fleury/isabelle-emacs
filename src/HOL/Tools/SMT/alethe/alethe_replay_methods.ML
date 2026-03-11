@@ -1738,36 +1738,41 @@ THEN' Simplifier.full_simp_tac ctxt
 )
 end
 
-(*TODO: Wrote this to get this running quickly, should be refined*)
-fun poly_simp ctxt _ t =
-  SMT_Replay_Methods.prove ctxt t (fn _ =>
-    REPEAT_ALL_NEW (partial_simplify_tac ctxt @{thms eq_commute}
-    
- THEN' 
-(*This is needed for reals:  (SMT_Replay.make_simpset ctxt [])*)
-  Simplifier.full_simp_tac 
-   (put_simpset (SMT_Replay.make_simpset ctxt []) (put_simpset HOL_basic_ss (empty_simpset ctxt))
-    addsimps @{thms HOL.simp_thms HOL.all_simps}
-    addsimps @{thms arith_simps ac_simps conj_ac ring_class.ring_distribs smt_arith_simplify alethe_div_simplify alethe_prod_simplify}
-    (*Same as linarith*)
-    addsimprocs [\<^simproc>\<open>semiring_assoc_fold\<close>,
-       \<^simproc>\<open>int_combine_numerals\<close>,
-       \<^simproc>\<open>inteq_cancel_numerals\<close>,
-       \<^simproc>\<open>intless_cancel_numerals\<close>,
-       \<^simproc>\<open>intle_cancel_numerals\<close>,
-       \<^simproc>\<open>field_combine_numerals\<close>,
-       \<^simproc>\<open>nat_combine_numerals\<close>,
-       \<^simproc>\<open>nateq_cancel_numerals\<close>,
-       \<^simproc>\<open>natless_cancel_numerals\<close>,
-       \<^simproc>\<open>natle_cancel_numerals\<close>,
-       \<^simproc>\<open>natdiff_cancel_numerals\<close>,
-       Numeral_Simprocs.field_divide_cancel_numeral_factor])
-    THEN' (debug_msg_tac' ctxt high "poly simp")
-    THEN' TRY' (assume_tac ctxt)
-    THEN' TRY' (Classical.fast_tac ctxt)
- )
-)
-
+fun poly_simp ctxt t = 
+  let
+    fun simplify_tac ctxt thms =
+      ctxt
+      |> empty_simpset
+      |> put_simpset HOL_basic_ss
+      |> (fn ctxt => ctxt addsimps @{thms simp_thms} addsimps thms)
+      |> (Simplifier.add_cong @{thm if_weak_cong})
+      |> (fn ctxt => ctxt
+           addsimprocs [@{simproc int_div_cancel_numeral_factors}, @{simproc int_combine_numerals},
+             @{simproc divide_cancel_numeral_factor}, @{simproc divide_cancel_factor},
+             @{simproc intle_cancel_numerals}, @{simproc intless_cancel_numerals}, @{simproc inteq_cancel_numerals},
+             @{simproc field_combine_numerals},
+             @{simproc ring_le_cancel_numeral_factor},
+             @{simproc HOL.NO_MATCH}, @{simproc Numeral_Simprocs.semiring_assoc_fold},
+             @{simproc Numeral_Simprocs.field_divide_cancel_numeral_factor},
+             @{simproc Numeral_Simprocs.field_eq_cancel_numeral_factor}])
+      |> Simplifier.full_simp_tac
+    fun simplify_tac_with_background_simp ctxt thms =
+      ctxt
+      |> (fn ctxt => ctxt addsimps thms)
+      |> Simplifier.full_simp_tac
+    val tac = (fn _ => fn _ =>
+        SOLVED' (
+        simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems alethe_poly_norm})
+        THEN' debug_msg_tac' ctxt high "tried to solve arith_poly_norm with custom simplify tac")
+        (*if the previous does not solve, use full simplification power with the current content*)
+      ORELSE'
+        (simplify_tac_with_background_simp ctxt (Named_Theorems.get ctxt @{named_theorems field_simps})
+        THEN' debug_msg_tac' ctxt high "tried full simplifier power on current arith_poly_norm step")
+      THEN' TRY' (Code_Simp.dynamic_tac ctxt)
+      THEN' debug_msg_tac' ctxt high "tried code evaluation on arith_poly_norm step since nothing else worked")
+  in
+  prove_abstract (SMT_Replay_Methods.abstract_for_poly_norm ctxt) tac ctxt []
+  end
 
 (* Symm and Not_Symm*)
 
