@@ -54,11 +54,11 @@ fun cvc_term_parser (SMTLIB.Sym "rare-list", []) = (
       fun remove_duplicates [] = []
         | remove_duplicates (x::xs) = x::remove_duplicates(List.filter (fn y => y <> x) xs)
 
-      val types_eq = map fastype_of ts |> remove_duplicates |> @{print}|> length 
+      val types_eq = map fastype_of ts |> remove_duplicates |> length 
       val new_ts =
          (if types_eq > 0
          then ts
-         else (map (fn t => Const("to_bl", fastype_of t -->  \<^typ>\<open>bool list \<close>) $ t) ts))|> @{print}
+         else (map (fn t => Const("to_bl", fastype_of t -->  \<^typ>\<open>bool list \<close>) $ t) ts))
       val new_type = if types_eq > 0 then fastype_of (hd ts) else \<^typ>\<open>Nat.nat\<close>
 
     in

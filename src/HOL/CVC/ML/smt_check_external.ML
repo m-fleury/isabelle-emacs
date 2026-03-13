@@ -75,7 +75,7 @@ let
   val thm = @{thm TrueE}
   val _ = SMT_Config.statistics_msg ctxt (fn current => "PROBLEMFILENAME: " ^ current) problem_file_name
   fun print_error_code code = SMT_Config.statistics_msg ctxt (fn current => "RESULT_CODE: " ^ current) ("-" ^ Int.toString code)
-  val print_error = SMT_Config.statistics_msg ctxt (fn current => "RESULT_MSG: " ^ current)
+  val print_error = SMT_Config.statistics_msg ctxt (fn current => (@{print}("RESULT_MSG",current); "RESULT_MSG: " ^ current))
 
   val (_,i) = (fn () => (replay_only prover ctxt problem_lines proof_lines opt_output_file,0)) ()
     handle
@@ -83,40 +83,46 @@ let
       (SMT_Parse_Problem.SMT_PROBLEM_PARSE(msg))
         => (if String.isPrefix "command not supported: " msg
             then
-             (print_error ("Unsupported SMT-LIB command in problem: " ^ msg); print_error_code 5; (thm,1))
+             (@{print}("RESULT_MSG","Unsupported SMT-LIB command");print_error ("Unsupported SMT-LIB command in problem: " ^ msg); print_error_code 5; (thm,1))
             else
-             (print_error ("Error parsing SMT-LIB problem: " ^ msg); print_error_code 5; (thm,1)))
+             (@{print}("RESULT_MSG","Error parsing SMT-LIB problem");print_error ("Error parsing SMT-LIB problem: " ^ msg); print_error_code 5; (thm,1)))
     | (*Error during Parsing into AST*)
       (SMTLIB.PARSE(l,err))
-        => (print_error ("Error parsing SMTLIB into SMTLIB Tree: " ^ err ^ " in line " ^ Int.toString l); print_error_code 5; (thm,1))
+        => (@{print}("RESULT_MSG","Error parsing SMTLIB into SMTLIB Tree");print_error ("Error parsing SMTLIB into SMTLIB Tree: " ^ err ^ " in line " ^ Int.toString l); print_error_code 5; (thm,1))
     | (*Errors during Parsing Into term*)
       (SMTLIB_Proof.SMTLIB_PARSE ("unknown SMT type",t))
-        => (print_error ("Either theory is not supported or parsing instructions for the type are not included in the parser" ^ SMTLIB.str_of t);
+        => (@{print}("RESULT_MSG","unknown SMT type");
+            print_error ("Either theory is not supported or parsing instructions for the type are not included in the parser" ^ SMTLIB.str_of t);
             print_error_code 2; (thm,1))
     | (SMTLIB_Proof.SMTLIB_PARSE ("bad SMT term",t))
-        => (print_error ("Either theory is not supported or parsing instructions for the term are not included in the parser" ^ SMTLIB.str_of t);
+        => (@{print}("RESULT_MSG","bad SMT term");
+            print_error ("Either theory is not supported or parsing instructions for the term are not included in the parser" ^ SMTLIB.str_of t);
             print_error_code 3; (thm,1))
     | (SMTLIB_Proof.SMTLIB_PARSE(err,t))
-        => (print_error ("Unkown error parsing SMTLIB: " ^ err ^ SMTLIB.str_of t); print_error_code 4; (thm,1))
+        => (@{print}("RESULT_MSG","Unkown error parsing SMTLIB");
+            print_error ("Unkown error parsing SMTLIB: " ^ err ^ SMTLIB.str_of t); print_error_code 4; (thm,1))
     | (*Errors during Replay*)
       (SMT_Failure.SMT (SMT_Failure.Replay(rule,ERROR msg)))
-        => (print_error ("Error replaying step " ^ rule ^ " is: " ^ msg); print_error_code 6; (thm,1))
+        => (@{print}("RESULT_MSG","Error replaying step " ^ rule);
+           print_error ("Error replaying step " ^ rule ^ " is: " ^ msg); print_error_code 6; (thm,1))
     | (SMT_Failure.SMT (SMT_Failure.Replay(rule,INTERRUPT)))
-        => (print_error ("Interrupt while replaying step (timeout) " ^ rule); print_error_code 7 ; (thm,1))
+        => (@{print}("RESULT_MSG","Error replaying step" ^ rule); print_error ("Interrupt while replaying step (timeout) " ^ rule); print_error_code 7 ; (thm,1))
     | (SMT_Failure.SMT (SMT_Failure.Replay(rule,exn)))
-        => (print_error ("Error replaying step " ^ rule ^ " is: " ^ General.exnMessage exn); print_error_code 1; (thm,1))
+        => (@{print}("RESULT_MSG","Error replaying step " ^ rule);print_error ("Error replaying step " ^ rule ^ " is: " ^ General.exnMessage exn); print_error_code 1; (thm,1))
     | (*Timeout*)
       (SMT_Failure.SMT (SMT_Failure.Time_Out rule))
-        => (print_error ("Timeout while reconstructing rule: " ^ rule); print_error_code 7; (thm,1))
+        => (@{print}("RESULT_MSG","Error replaying step " ^ rule);
+          print_error ("Timeout while reconstructing rule: " ^ rule); print_error_code 7; (thm,1))
     | (SMT_Failure.SMT err)
-        => (print_error ("Unkown SMT error " ^ SMT_Failure.string_of_failure err); print_error_code 5; (thm,1))
-    | (Timeout.TIMEOUT _) => (print_error ("Timeout"); print_error_code 7; (thm,1))
-    | (TYPE x) => (print_error ("Type Error " ^ (fn (a,_,_) => a) x); print_error_code 1; (thm,1))
-    | Size => (print_error ("Size "); print_error_code 1; (thm,1))
-    | (ERROR x) => (print_error ("Error " ^ x); print_error_code 1 ; (thm,1))
+        => (@{print}("RESULT_MSG","Unkown SMT error");
+          print_error ("Unkown SMT error " ^ SMT_Failure.string_of_failure err); print_error_code 5; (thm,1))
+    | (Timeout.TIMEOUT _) => (@{print}("RESULT_MSG","Timeout");print_error ("Timeout"); print_error_code 7; (thm,1))
+    | (TYPE x) => (@{print}("RESULT_MSG","Type Error");print_error ("Type Error " ^ (fn (a,_,_) => a) x); print_error_code 1; (thm,1))
+    | Size => (@{print}("RESULT_MSG","Size");print_error ("Size "); print_error_code 1; (thm,1))
+    | (ERROR x) => (@{print}("RESULT_MSG","Error");print_error ("Error " ^ x); print_error_code 1 ; (thm,1))
 
     val _ = (if i = 0 then (SMT_Config.statistics_msg ctxt (fn current => "RESULT_CODE: " ^ current) "0"; print_error_code 0) else ())
-
+    val _ = @{print}("RESULT_CODE",i)
 
 fun rm_quotation s = implode (filter_out (fn c => c = "\"") (raw_explode s))
 

@@ -228,8 +228,7 @@ end
 
 val rules = [
    ("rare_rewrite", rare_rewrite),
-   ("true", true_tac),
-   ("arith_poly_norm", arith_poly_norm_reconstruct)]
+   ("true", true_tac)]
 
 val _ = Theory.setup (Context.theory_map (
    fold (uncurry Alethe_Replay_Methods.declare_alethe_rule) rules))

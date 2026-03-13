@@ -57,6 +57,7 @@ sig
    (*Extended rules*)
    Symm | Not_Symm | Reordering | Shuffle | Tmp_Quantifier_Simplify | Contraction | 
    Qnt_Var_Reordering | (*Added for paper, not in Standard might change later*)
+   And_Intro |
    (*Other Rules*)
    Other_Rule of string |
    Hole | Trust |
@@ -179,6 +180,7 @@ sig
   val qnt_miniscope_split: alethe_tac
   val qnt_miniscope_ITE: alethe_tac
   val qnt_var_reordering: alethe_tac
+  val and_intro: alethe_tac
   val trust: alethe_tac
 
   (*Extension to declare new alethe rules*)
@@ -250,6 +252,7 @@ datatype alethe_rule =
    (*Extended rules*)
    Symm | Not_Symm | Reordering | Shuffle | Tmp_Quantifier_Simplify | Contraction |
    Qnt_Miniscope_Distribute | Qnt_Miniscope_Split | Qnt_Miniscope_ITE | Qnt_Var_Reordering | (*Added for paper, not in Standard might change later*)
+   And_Intro |
    (*Other Rules*)
    Other_Rule of string |
    Hole | Trust |
@@ -361,6 +364,7 @@ fun string_of_alethe_rule Bind = "Bind"
   | string_of_alethe_rule Qnt_Miniscope_Split = "qnt_miniscope_split"
   | string_of_alethe_rule Qnt_Miniscope_ITE = "qnt_miniscope_ITE"
   | string_of_alethe_rule Qnt_Var_Reordering = "qnt_var_reordering"
+  | string_of_alethe_rule And_Intro = "and_intro"
   | string_of_alethe_rule Not_Not = Alethe_Proof.not_not_rule
   | string_of_alethe_rule Tautological_Clause = "tautology"
   | string_of_alethe_rule Duplicate_Literals = Alethe_Proof.contract_rule
@@ -1871,6 +1875,13 @@ fun qnt_var_reordering ctxt _ t =
   SMT_Replay_Methods.prove ctxt t (fn _ => (
     blast_tac ctxt))
 
+fun and_intro ctxt thms t = 
+  SMT_Replay_Methods.prove ctxt t (fn _ =>
+  Method.insert_tac ctxt thms
+  THEN' REPEAT'
+   ((match_tac ctxt [@{thm conjI}])
+     THEN' TRY' (assume_tac ctxt))
+  THEN' TRY' (assume_tac ctxt))
 
 fun trust ctxt _ t = 
   SMT_Replay_Methods.prove ctxt t (fn _ => (

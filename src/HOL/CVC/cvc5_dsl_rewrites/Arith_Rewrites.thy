@@ -376,11 +376,12 @@ lemma [rewrite_arith_int_lt]:
   by auto
 
 
-named_theorems rewrite_arith_max_geq1 \<open>manually added, will autogenerate later\<close>
+named_theorems rewrite_arith_max_geq1 \<open>\<close>
 
 lemma [rewrite_arith_max_geq1]:
-  fixes t::int and s::int
-  shows "NO_MATCH cvc_a (undefined t s) \<Longrightarrow> ((HOL.If (t \<ge> s) t s) \<ge> t) = True"
+  fixes t::"'a::linordered_idom" and s::"'a::linordered_idom"  
+  shows "NO_MATCH cvc_a (undefined t s)
+ \<Longrightarrow> (t \<le> (if (s \<le> t) then t else s)) = True"
   by auto
 
 
