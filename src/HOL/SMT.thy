@@ -847,12 +847,12 @@ proof -
     by (subst H) auto
 qed
 
-lemma alethe_qnt_miniscope_distribute:
+lemma alethe_miniscope_distribute:
   \<open>(\<forall>X. (F1 X \<and> A X)) = ((\<forall>X. F1 X) \<and> (\<forall>X. A X))\<close>
   \<open>(\<exists>X. (F1 X \<or> A X)) = ((\<exists>X. F1 X) \<or> (\<exists>X. A X))\<close>
   by (simp_all only: all_conj_distrib ex_disj_distrib)
 
-lemma alethe_qnt_miniscope_split:
+lemma alethe_miniscope_split:
   \<open>((\<forall>x. F1 x) \<or> (\<forall>y. A y)) = (\<forall>x y. (F1 x \<or> A y))\<close>
   \<open>((\<forall>x. F1 x) \<or> B) = (\<forall>x. (F1 x \<or> B))\<close>
   \<open>(B \<or> (\<forall>x. F1 x)) = (\<forall>x. (B \<or> F1 x))\<close>
@@ -861,11 +861,13 @@ lemma alethe_qnt_miniscope_split:
   \<open>(B \<and> (\<exists>x. F1 x)) = (\<exists>x. (B \<and> F1 x))\<close>
   by simp_all
 
-lemma alethe_qnt_miniscope_ITE:
+lemma alethe_miniscope_ITE:
   \<open>(\<forall>x Y. (if C then F1 x else A Y)) = (if C then (\<forall>x. F1 x) else (\<forall>Y. A Y))\<close>
   \<open>(\<forall>x. (if C then F1 x else B)) = (if C then (\<forall>x. F1 x) else (\<forall>Y. B))\<close>
   \<open>(\<forall>Y. (if C then F2 else A Y)) = (if C then F2 else (\<forall>Y. A Y))\<close>
   by simp_all
+
+named_theorems alethe_poly_simp_rel \<open>Theorems required to replay poly_simp_rel\<close>
 
 lemma alethe_nat_embedding:
  "\<exists>x. x \<ge> 0 \<and> (y::nat) = nat (x::int)"

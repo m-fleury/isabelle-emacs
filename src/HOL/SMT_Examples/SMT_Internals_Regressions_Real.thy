@@ -147,5 +147,14 @@ lemma arith_poly_norm14:
   by (ctxt_tactic "arith_poly_norm")
 
 
+lemma miniscope_distribute1:
+"(\<forall>y3. (x1 = 31 / 70 + - 48 / 35 * y3 + - 11 / 14 * y2a \<or> \<not> 31 / 6 \<le> y3 + - 29 / 3 * y2a \<or> 67 / 97 \<le> x1 + - 26 / 97 * y3) \<and>
+               x1 = - 21 / 40 + 27 / 20 * y3 + - 4 / 5 * y2a \<and>
+               - 23 / 56 \<le> - 1 / 1 * x1 + 11 / 14 * y3 + 33 / 28 * y2a \<and> x1 = - 81 / 76 + 63 / 76 * y3 \<and> 0 / 1 \<le> x1 + - 5 / 7 * y3 + 1 / 14 * y2a) =
+         ((\<forall>y3. x1 = 31 / 70 + - 48 / 35 * y3 + - 11 / 14 * y2a \<or> \<not> 31 / 6 \<le> y3 + - 29 / 3 * y2a \<or> 67 / 97 \<le> x1 + - 26 / 97 * y3) \<and>
+          (\<forall>y3. x1 = - 21 / 40 + 27 / 20 * y3 + - 4 / 5 * y2a) \<and>
+          (\<forall>y3. - 23 / 56 \<le> - 1 / 1 * x1 + 11 / 14 * y3 + 33 / 28 * y2a) \<and>
+          (\<forall>y3. x1 = - 81 / 76 + 63 / 76 * y3) \<and> (\<forall>y3. 0 / 1 \<le> x1 + - 5 / 7 * y3 + 1 / 14 * y2a)) "
+  by (ctxt_tactic "miniscope_distribute")
 
 end

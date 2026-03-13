@@ -44,7 +44,7 @@ sig
    Xor_Pos1 | Xor_Pos2 | Xor_Neg1 | Xor_Neg2 | Xor1 | Xor2 | Not_Xor1  | Not_Xor2 |
    (*Arithmetic:*)
    LA_Disequality | LA_Generic | LA_Tautology |  LIA_Generic | LA_Totality | LA_RW_Eq |
-   NLA_Generic |  LA_Mult_Pos | LA_Mult_Neg | Poly_Simp |
+   NLA_Generic |  LA_Mult_Pos | LA_Mult_Neg | Poly_Simp | Poly_Simp_Rel |
    (*Resolution:*)
    Theory_Resolution | Resolution |
    (*Simplification Rules*)
@@ -52,7 +52,7 @@ sig
    Implies_Simplify | Connective_Def | Minus_Simplify | Unary_Minus_Simplify | Comp_Simplify |
    Eq_Simplify | ITE_Simplify | Sum_Simplify | Prod_Simplify | Div_Simplify | All_Simplify | RARE_Rewrite |
    Qnt_Simplify | Not_Not | Tautological_Clause | Duplicate_Literals | Distinct_Elim |
-   Qnt_Miniscope_Distribute | Qnt_Miniscope_Split | Qnt_Miniscope_ITE |
+   Miniscope_Distribute | Miniscope_Split | Miniscope_ITE |
    AC_Simp | ACI_Simp |
    (*Extended rules*)
    Symm | Not_Symm | Reordering | Shuffle | Tmp_Quantifier_Simplify | Contraction | 
@@ -137,6 +137,7 @@ sig
   val la_mult_pos: alethe_tac
   val la_mult_neg: alethe_tac
   val poly_simp: alethe_tac
+  val poly_simp_rel: alethe_tac
   val refl: alethe_tac_args
   val normalized_input: alethe_tac
   val not_and_rule: alethe_tac
@@ -176,9 +177,9 @@ sig
   val reordering: alethe_tac
   val shuffle: alethe_tac_step_args_and_arg
   val contraction: alethe_tac
-  val qnt_miniscope_distribute: alethe_tac
-  val qnt_miniscope_split: alethe_tac
-  val qnt_miniscope_ITE: alethe_tac
+  val miniscope_distribute: alethe_tac
+  val miniscope_split: alethe_tac
+  val miniscope_ITE: alethe_tac
   val qnt_var_reordering: alethe_tac
   val and_intro: alethe_tac
   val trust: alethe_tac
@@ -240,7 +241,7 @@ datatype alethe_rule =
    Xor_Pos1 | Xor_Pos2 | Xor_Neg1 | Xor_Neg2 | Xor1 | Xor2 | Not_Xor1  | Not_Xor2 |
    (*Arithmetic:*)
    LA_Disequality | LA_Generic | LA_Tautology |  LIA_Generic | LA_Totality | LA_RW_Eq |
-   NLA_Generic |  LA_Mult_Pos | LA_Mult_Neg | Poly_Simp |
+   NLA_Generic |  LA_Mult_Pos | LA_Mult_Neg | Poly_Simp | Poly_Simp_Rel |
    (*Resolution:*)
    Theory_Resolution | Resolution |
    (*Simplification Rules*)
@@ -251,7 +252,7 @@ datatype alethe_rule =
    AC_Simp | ACI_Simp |
    (*Extended rules*)
    Symm | Not_Symm | Reordering | Shuffle | Tmp_Quantifier_Simplify | Contraction |
-   Qnt_Miniscope_Distribute | Qnt_Miniscope_Split | Qnt_Miniscope_ITE | Qnt_Var_Reordering | (*Added for paper, not in Standard might change later*)
+   Miniscope_Distribute | Miniscope_Split | Miniscope_ITE | Qnt_Var_Reordering | (*Added for paper, not in Standard might change later*)
    And_Intro |
    (*Other Rules*)
    Other_Rule of string |
@@ -330,6 +331,7 @@ fun string_of_alethe_rule Bind = "Bind"
   | string_of_alethe_rule LA_Mult_Pos = "la_mult_pos"
   | string_of_alethe_rule LA_Mult_Neg = "la_mult_neg"
   | string_of_alethe_rule Poly_Simp = "poly_simp"
+  | string_of_alethe_rule Poly_Simp_Rel = "poly_simp_rel"
   | string_of_alethe_rule Eq_Transitive = "eq_transitive"
   | string_of_alethe_rule Qnt_Rm_Unused = "qnt_remove_unused"
   | string_of_alethe_rule Onepoint = "onepoint"
@@ -360,9 +362,9 @@ fun string_of_alethe_rule Bind = "Bind"
   | string_of_alethe_rule Reordering = "reordering"
   | string_of_alethe_rule Shuffle = "shuffle"
   | string_of_alethe_rule Contraction = "contraction"
-  | string_of_alethe_rule Qnt_Miniscope_Distribute = "qnt_miniscope_distribute"
-  | string_of_alethe_rule Qnt_Miniscope_Split = "qnt_miniscope_split"
-  | string_of_alethe_rule Qnt_Miniscope_ITE = "qnt_miniscope_ITE"
+  | string_of_alethe_rule Miniscope_Distribute = "miniscope_distribute"
+  | string_of_alethe_rule Miniscope_Split = "miniscope_split"
+  | string_of_alethe_rule Miniscope_ITE = "miniscope_ITE"
   | string_of_alethe_rule Qnt_Var_Reordering = "qnt_var_reordering"
   | string_of_alethe_rule And_Intro = "and_intro"
   | string_of_alethe_rule Not_Not = Alethe_Proof.not_not_rule
@@ -1778,6 +1780,14 @@ fun poly_simp ctxt t =
   prove_abstract (SMT_Replay_Methods.abstract_for_poly_norm ctxt) tac ctxt []
   end
 
+fun poly_simp_rel ctxt [thm] t =
+        SMT_Replay_Methods.prove ctxt t (fn _ =>
+        (Method.insert_tac ctxt [thm]
+        THEN' (resolve_tac ctxt @{thms alethe_poly_simp_rel})
+        THEN' TRY' (assume_tac ctxt)))
+    | poly_simp_rel ctxt thms t = replay_error ctxt "invalid application in some poly_simp_rel rule" Unsupported thms [] t
+
+
 (* Symm and Not_Symm*)
 
 local
@@ -1842,33 +1852,33 @@ fun contraction ctxt [prem] t =
 | contraction ctxt thms t = replay_error ctxt "Unsupported commutative operator in contraction rule" Unsupported thms [] t
 
 
-fun qnt_miniscope_distribute ctxt _ t = 
+fun miniscope_distribute ctxt _ t = 
  SMT_Replay_Methods.prove ctxt t (fn _ => (
-    debug_rule_tac' ctxt high Qnt_Miniscope_Distribute "start" THEN'
+    debug_rule_tac' ctxt high Miniscope_Distribute "start" THEN'
     REPEAT_CHANGED
     (
-      K (unfold_tac ctxt @{thms alethe_qnt_miniscope_distribute})
-      THEN' TRY' (debug_rule_tac' ctxt high Qnt_Miniscope_Distribute "applied lemma")
+      K (unfold_tac ctxt @{thms alethe_miniscope_distribute})
+      THEN' TRY' (debug_rule_tac' ctxt high Miniscope_Distribute "applied lemma")
     )
-    THEN' debug_rule_tac' ctxt high Qnt_Miniscope_Distribute "after repeating application of lemma"
+    THEN' debug_rule_tac' ctxt high Miniscope_Distribute "after repeating application of lemma"
     THEN' TRY' (resolve_tac ctxt @{thms refl})))
 
-fun qnt_miniscope_split ctxt _ t = 
+fun miniscope_split ctxt _ t = 
  SMT_Replay_Methods.prove ctxt t (fn _ => (
-    debug_rule_tac' ctxt high Qnt_Miniscope_Split "start" THEN'
+    debug_rule_tac' ctxt high Miniscope_Split "start" THEN'
     REPEAT_CHANGED
     (
-      K (unfold_tac ctxt @{thms alethe_qnt_miniscope_split})
-      THEN' TRY' (debug_rule_tac' ctxt high Qnt_Miniscope_Split "applied lemma")
+      K (unfold_tac ctxt @{thms alethe_miniscope_split})
+      THEN' TRY' (debug_rule_tac' ctxt high Miniscope_Split "applied lemma")
     )
-    THEN' debug_rule_tac' ctxt high Qnt_Miniscope_Split "after repeating application of lemma"
+    THEN' debug_rule_tac' ctxt high Miniscope_Split "after repeating application of lemma"
     THEN' TRY' (resolve_tac ctxt @{thms refl})
     THEN' TRY' (blast_tac ctxt) (*variable reordering*)
 ))
 
-fun qnt_miniscope_ITE ctxt _ t =
+fun miniscope_ITE ctxt _ t =
   SMT_Replay_Methods.prove ctxt t (fn _ => (
-    eqsubst_all ctxt @{thms alethe_qnt_miniscope_ITE}
+    eqsubst_all ctxt @{thms alethe_miniscope_ITE}
     THEN' TRY' (resolve_tac ctxt @{thms refl})))
 
 fun qnt_var_reordering ctxt _ t = 
