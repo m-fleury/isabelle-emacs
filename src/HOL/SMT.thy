@@ -869,6 +869,36 @@ lemma alethe_miniscope_ITE:
 
 named_theorems alethe_poly_simp_rel \<open>Theorems required to replay poly_simp_rel\<close>
 
+lemma [alethe_poly_simp_rel]:
+  fixes x1::"int" and x2 y1 y2 cx cy
+  shows "cx \<noteq> 0 \<Longrightarrow> cy \<noteq> 0 \<Longrightarrow>
+((cx * (x1 - x2)) = (cy * (y1 - y2))) \<longrightarrow> ((x1 = x2) = (y1 = y2))"
+  by force
+
+lemma [alethe_poly_simp_rel]:
+  fixes x1::"int" and x2 y1 y2 cx cy
+  shows "((cx > 0) = (cy > 0)) \<Longrightarrow> cx \<noteq> 0 \<Longrightarrow> cy \<noteq> 0 \<Longrightarrow>
+((cx * (x1 - x2)) = (cy * (y1 - y2))) \<Longrightarrow> ((x1 < x2) = (y1 < y2))"
+  by (metis less_iff_diff_less_0 mult_less_0_iff not_less_iff_gr_or_eq zero_less_mult_iff)
+
+lemma [alethe_poly_simp_rel]:
+  fixes x1::"int" and x2 y1 y2 cx cy
+  shows "((cx > 0) = (cy > 0)) \<Longrightarrow> cx \<noteq> 0 \<Longrightarrow> cy \<noteq> 0 \<Longrightarrow>
+((cx * (x1 - x2)) = (cy * (y1 - y2))) \<Longrightarrow> ((x1 \<le> x2) = (y1 \<le> y2))"
+  by (metis diff_gt_0_iff_gt linorder_not_le mult_less_0_iff not_less_iff_gr_or_eq zero_less_mult_iff)
+
+lemma [alethe_poly_simp_rel]:
+  fixes x1::"int" and x2 y1 y2 cx cy
+  shows "((cx > 0) = (cy > 0)) \<Longrightarrow> cx \<noteq> 0 \<Longrightarrow> cy \<noteq> 0 \<Longrightarrow>
+((cx * (x1 - x2)) = (cy * (y1 - y2))) \<longrightarrow> ((x1 > x2) = (y1 > y2))"
+  by (metis le_iff_diff_le_0 linorder_not_le mult_less_0_iff nless_le zero_less_mult_iff)
+
+lemma [alethe_poly_simp_rel]:
+  fixes x1::"int" and x2 y1 y2 cx cy
+  shows "((cx > 0) = (cy > 0)) \<Longrightarrow> cx \<noteq> 0 \<Longrightarrow> cy \<noteq> 0 \<Longrightarrow>
+((cx * (x1 - x2)) = (cy * (y1 - y2))) \<longrightarrow> ((x1 \<ge> x2) = (y1 \<ge> y2))"
+  by (metis diff_ge_0_iff_ge linorder_not_le mult_less_0_iff not_less_iff_gr_or_eq zero_less_mult_iff)
+
 lemma alethe_nat_embedding:
  "\<exists>x. x \<ge> 0 \<and> (y::nat) = nat (x::int)"
   using int_eq_iff by blast

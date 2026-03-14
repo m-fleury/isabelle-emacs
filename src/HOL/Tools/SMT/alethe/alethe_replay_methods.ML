@@ -1029,8 +1029,11 @@ in
 fun ACI_rule ctxt thms t =
   SMT_Replay_Methods.prove ctxt t (fn _ =>
     Method.insert_tac ctxt thms 
+    THEN' debug_msg_tac' ctxt high "aci_simp before commute"
     THEN' REPEAT_ALL_NEW (partial_simplify_tac ctxt @{thms eq_commute}
+    THEN' debug_msg_tac' ctxt high "aci_simp before simplification"
     THEN' TRY' (simplify_tac ctxt (idempotency_thms @ @{thms ac_simps conj_ac}))
+    THEN' debug_msg_tac' ctxt high "aci_simp after simplification"
     THEN' TRY' (assume_tac ctxt)
     THEN' TRY' (Classical.fast_tac ctxt)))
 end
@@ -1781,10 +1784,20 @@ fun poly_simp ctxt t =
   end
 
 fun poly_simp_rel ctxt [thm] t =
-        SMT_Replay_Methods.prove ctxt t (fn _ =>
-        (Method.insert_tac ctxt [thm]
-        THEN' (resolve_tac ctxt @{thms alethe_poly_simp_rel})
-        THEN' TRY' (assume_tac ctxt)))
+        SMT_Replay_Methods.prove ctxt t (fn _ => (    
+         (resolve_tac ctxt [@{lemma "P \<Longrightarrow> P \<longrightarrow> Q \<Longrightarrow> Q" by simp} OF [thm]] )
+         THEN' TRY' (resolve_tac ctxt (Named_Theorems.get ctxt @{named_theorems alethe_poly_simp_rel}))
+         THEN' debug_msg_tac' ctxt high "poly_simp_rel after applying lemma"
+         THEN' TRY' (assume_tac ctxt)
+         (*TODO: This should probably be replaced by something quicker.
+         For constants cx and cy you'd have to prove that: ((cx > 0) = (cy > 0)), cx \<noteq> 0, cy \<noteq> 0
+         For one of the cases you only need to prove the latter two.*)
+         THEN' (Code_Simp.dynamic_tac ctxt)
+         THEN' TRY' (Code_Simp.dynamic_tac ctxt)
+         THEN' TRY' (Code_Simp.dynamic_tac ctxt)
+         THEN' debug_msg_tac' ctxt high "poly_simp_rel after applying lemma"
+
+         ))
     | poly_simp_rel ctxt thms t = replay_error ctxt "invalid application in some poly_simp_rel rule" Unsupported thms [] t
 
 
