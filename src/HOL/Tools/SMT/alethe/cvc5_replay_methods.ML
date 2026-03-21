@@ -47,6 +47,7 @@ fun cvc5_rule_of "bind" = Bind
   | cvc5_rule_of "trans" = Trans
   | cvc5_rule_of "false" = False
   | cvc5_rule_of "ac_simp" = AC_Simp
+  | cvc5_rule_of "aci_simp" = ACI_Simp
   | cvc5_rule_of "and" = And
   | cvc5_rule_of "not_and" = Not_And
   | cvc5_rule_of "and_pos" = And_Pos
