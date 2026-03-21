@@ -1394,7 +1394,10 @@ local
     ORELSE' Blast.blast_tac ctxt
 in
 fun qnt_rm_unused ctxt _ t = SMT_Replay_Methods.prove ctxt t (fn _ =>
-  K (unfold_tac ctxt rm_unused))
+  K (unfold_tac ctxt rm_unused)
+  THEN' (debug_msg_tac' ctxt high "qnt_rm_unused")
+  THEN' TRY' (blast_tac ctxt) (*the quantifiers can be reordered, this could also be fixed earlier*)
+  )
 
 fun onepoint ctxt prems t = SMT_Replay_Methods.prove ctxt t (fn _ =>
   Method.insert_tac ctxt prems
