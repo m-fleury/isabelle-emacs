@@ -74,8 +74,8 @@ let
   val proof_lines = proof_file_path |> Bytes.read |> Bytes.split_lines;
   val thm = @{thm TrueE}
   val _ = SMT_Config.statistics_msg ctxt (fn current => "PROBLEMFILENAME: " ^ current) problem_file_name
-  fun print_error_code code = SMT_Config.statistics_msg ctxt (fn current => "RESULT_CODE: " ^ current) ("-" ^ Int.toString code)
-  val print_error = SMT_Config.statistics_msg ctxt (fn current => (@{print}("RESULT_MSG",current); "RESULT_MSG: " ^ current))
+  fun print_error_code code = SMT_Config.trace_msg ctxt (fn current => "RESULT_CODE: " ^ current) ("-" ^ Int.toString code)
+  val print_error = SMT_Config.trace_msg ctxt (fn current => (@{print}("RESULT_MSG",current); "RESULT_MSG: " ^ current))
 
   val (_,i) = (fn () => (replay_only prover ctxt problem_lines proof_lines opt_output_file,0)) ()
     handle
