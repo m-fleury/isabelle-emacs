@@ -3,8 +3,8 @@
     Author:     Mathias Fleury, University of Freiburg
 
 
-   43 rules in total
-   39 rules with test
+   41 rules in total
+   37 rules with test
    4 without test
     bool-not-true
     bool-and-conf2
@@ -82,16 +82,6 @@ check_smt ("cvc5_proof")
   "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/Bool_Rewrites/bool-dual-impl-eq.alethe"
 
 
-(*(define-rule* bool-or-flatten ((xs Bool :list) (b1 Bool) (b2 Bool) (ys Bool :list) (zs Bool :list)) (or xs (or b1 b2 ys) zs) (or xs b1 b2 ys zs))*)
-check_smt ("cvc5_proof")
-  "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/Bool_Rewrites/bool-or-flatten.smt2"
-  "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/Bool_Rewrites/bool-or-flatten.alethe"
-
-
-(*(define-rule* bool-and-flatten ((xs Bool :list) (b1 Bool) (b2 Bool) (ys Bool :list) (zs Bool :list)) (and xs (and b1 b2 ys) zs) (and xs b1 b2 ys zs))*)
-check_smt ("cvc5_proof")
-  "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/Bool_Rewrites/bool-and-flatten.smt2"
-  "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/Bool_Rewrites/bool-and-flatten.alethe"
 
 
 (*(define-rule bool-and-conf ((xs Bool :list) (w Bool) (ys Bool :list) (zs Bool :list)) (and xs w ys (not w) zs) false)*)
@@ -113,7 +103,6 @@ check_smt ("cvc5_proof")
 check_smt ("cvc5_proof")
   "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/Bool_Rewrites/bool-or-taut2.smt2"
   "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/Bool_Rewrites/bool-or-taut2.alethe"
-
 
 (*(define-rule* bool-or-de-morgan ((x Bool) (y Bool) (zs Bool :list)) 
   (not (or x y zs))
@@ -262,5 +251,19 @@ check_smt ("cvc5_proof")
   "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/Bool_Rewrites/bool-not-ite-elim.alethe"
 
 
+
+(*Old. TODO: check if they just moved or got deleted for real*)
+
+
+(*(define-rule* bool-or-flatten ((xs Bool :list) (b1 Bool) (b2 Bool) (ys Bool :list) (zs Bool :list)) (or xs (or b1 b2 ys) zs) (or xs b1 b2 ys zs))*)
+check_smt ("cvc5_proof")
+  "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/Bool_Rewrites/bool-or-flatten.smt2"
+  "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/Bool_Rewrites/bool-or-flatten.alethe"
+
+
+(*(define-rule* bool-and-flatten ((xs Bool :list) (b1 Bool) (b2 Bool) (ys Bool :list) (zs Bool :list)) (and xs (and b1 b2 ys) zs) (and xs b1 b2 ys zs))*)
+check_smt ("cvc5_proof")
+  "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/Bool_Rewrites/bool-and-flatten.smt2"
+  "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/Bool_Rewrites/bool-and-flatten.alethe"
 
 end
