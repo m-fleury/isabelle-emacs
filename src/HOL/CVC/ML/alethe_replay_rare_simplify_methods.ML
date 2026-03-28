@@ -101,6 +101,8 @@ fun dsl_tac_initialize rewrite_name args ctxt t _ =
           match_tac ctxt [@{lemma \<open>(a=a) = True\<close> by blast}])
       | "eq_symm" => SMT_Replay_Methods.prove ctxt t (fn _ =>
           match_tac ctxt @{thms eq_commute})
+      | "distinct_false" => SMT_Replay_Methods.prove ctxt t (fn _ =>
+         try_simp_tac ctxt)
       | _ =>
         let
           val rewrite_lemmas = CVC5_Rare.rare_rule (Context.Proof ctxt) ("rewrite_" ^ rewrite_name)
