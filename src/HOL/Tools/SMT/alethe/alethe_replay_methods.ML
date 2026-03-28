@@ -1786,23 +1786,30 @@ fun poly_simp ctxt t =
   prove_abstract (SMT_Replay_Methods.abstract_for_poly_norm ctxt) tac ctxt []
   end
 
+local
+  val lemma = @{lemma "((a::'a::{field}) \<noteq> 0 \<and> b \<noteq> 0) \<Longrightarrow> (a / b \<noteq> 0)" by simp}
+  val poly_simp_rel_assms_thms = @{thms divide_eq_0_iff ring_char_0_class.neg_numeral_neq_zero zero_neq_one_class.one_neq_zero ring_char_0_class.neg_one_neq_zero semiring_char_0_class.numeral_neq_zero}
+in
 fun poly_simp_rel ctxt [thm] t =
         SMT_Replay_Methods.prove ctxt t (fn _ => (    
          (resolve_tac ctxt [@{lemma "P \<Longrightarrow> P \<longrightarrow> Q \<Longrightarrow> Q" by simp} OF [thm]] )
+         THEN' debug_msg_tac' ctxt high "poly_simp_rel before applying lemma"
          THEN' TRY' (resolve_tac ctxt (Named_Theorems.get ctxt @{named_theorems alethe_poly_simp_rel}))
          THEN' debug_msg_tac' ctxt high "poly_simp_rel after applying lemma"
          THEN' TRY' (assume_tac ctxt)
-         (*TODO: This should probably be replaced by something quicker.
+         (*TODO: This should be replaced by something quicker.
          For constants cx and cy you'd have to prove that: ((cx > 0) = (cy > 0)), cx \<noteq> 0, cy \<noteq> 0
          For one of the cases you only need to prove the latter two.*)
-         THEN' (Code_Simp.dynamic_tac ctxt)
          THEN' TRY' (Code_Simp.dynamic_tac ctxt)
-         THEN' TRY' (Code_Simp.dynamic_tac ctxt)
-         THEN' debug_msg_tac' ctxt high "poly_simp_rel after applying lemma"
-
+         THEN' REPEAT' 
+            (TRY' (resolve_tac ctxt [lemma])
+             THEN' TRY' (resolve_tac ctxt @{thms conjI}) 
+             THEN' resolve_tac ctxt poly_simp_rel_assms_thms
+             )
+         THEN' debug_msg_tac' ctxt high "poly_simp_rel after resolving premises"
          ))
     | poly_simp_rel ctxt thms t = replay_error ctxt "invalid application in some poly_simp_rel rule" Unsupported thms [] t
-
+end
 
 (* Symm and Not_Symm*)
 
