@@ -878,13 +878,13 @@ lemma [alethe_poly_simp_rel]:
 lemma [alethe_poly_simp_rel]:
   fixes x1::"int" and x2 y1 y2 cx cy
   shows "((cx > 0) = (cy > 0)) \<Longrightarrow> cx \<noteq> 0 \<Longrightarrow> cy \<noteq> 0 \<Longrightarrow>
-((cx * (x1 - x2)) = (cy * (y1 - y2))) \<Longrightarrow> ((x1 < x2) = (y1 < y2))"
+((cx * (x1 - x2)) = (cy * (y1 - y2))) \<longrightarrow> ((x1 < x2) = (y1 < y2))"
   by (metis less_iff_diff_less_0 mult_less_0_iff not_less_iff_gr_or_eq zero_less_mult_iff)
 
 lemma [alethe_poly_simp_rel]:
   fixes x1::"int" and x2 y1 y2 cx cy
   shows "((cx > 0) = (cy > 0)) \<Longrightarrow> cx \<noteq> 0 \<Longrightarrow> cy \<noteq> 0 \<Longrightarrow>
-((cx * (x1 - x2)) = (cy * (y1 - y2))) \<Longrightarrow> ((x1 \<le> x2) = (y1 \<le> y2))"
+((cx * (x1 - x2)) = (cy * (y1 - y2))) \<longrightarrow> ((x1 \<le> x2) = (y1 \<le> y2))"
   by (metis diff_gt_0_iff_gt linorder_not_le mult_less_0_iff not_less_iff_gr_or_eq zero_less_mult_iff)
 
 lemma [alethe_poly_simp_rel]:
