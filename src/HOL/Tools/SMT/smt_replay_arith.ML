@@ -154,7 +154,7 @@ fun la_farkas_tac ({context = ctxt, prems, concl,  ...}: Subgoal.focus) (SOME (F
          @{simproc field_combine_numerals}, @{simproc intless_cancel_numerals}]
       |> asm_full_simplify
     val final_False = combined
-      |> arith_full_simps ctxt (Named_Theorems.get ctxt @{named_theorems ac_simps})
+      |> arith_full_simps ctxt (Named_Theorems.get ctxt @{named_theorems ac_simps} @ @{thms Groups.ac_simps})
     val _ =  trace (fn () => ("final arith theorem after simplification", final_False))
 
     val _ = trace (fn () => @{print} final_False)
