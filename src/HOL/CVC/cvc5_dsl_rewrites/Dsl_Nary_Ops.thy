@@ -42,6 +42,7 @@ fun cvc_bin_op_fold :: "('a \<Rightarrow> 'b \<Rightarrow> 'b) \<Rightarrow> 'a 
  cvc_bin_op_fold_Nil: "cvc_bin_op_fold op [] y = y" |
  cvc_bin_op_fold_Cons: "cvc_bin_op_fold op (x#xs) y = (op x (cvc_bin_op_fold op xs y))"
 
+
 (*
 definitions instead of functions are used to make sure unfolding can be done precisely.
 *)
@@ -74,6 +75,44 @@ fun cvc_bin_op3' where
   "cvc_bin_op3' op (ListVar xs) (ListVar []) = cvc_nary_op_fold op xs" | 
   "cvc_bin_op3' op (ListVar xs) (ListVar ys) = cvc_bin_op_fold op xs (cvc_nary_op_fold op ys)"
 definition cvc_list_both' where "cvc_list_both' op lv1 lv2 = cvc_bin_op3' op lv1 lv2"
+
+
+(*Pairwise*)
+
+(*
+Similar to chainable operators, a pairwise operator applied to a single argument reduces to the
+neutral element of the combining operator. 
+E.g., (distinct x) --> True
+E.g., (distinct x y z) --> (and (distinct x y) (distinct x z) (distinct y z))
+
+TODO: This is not finished yet.
+*)
+
+fun cvc_pairwise_op :: "('a \<Rightarrow> 'a \<Rightarrow> bool) \<Rightarrow> 'a cvc_ListVar \<Rightarrow> 'a \<Rightarrow> bool \<Rightarrow> bool" where
+ "cvc_pairwise_op op (ListVar []) y neutral = neutral" |
+ "cvc_pairwise_op op (ListVar [x]) y neutral = (op x y)" |
+ "cvc_pairwise_op op (ListVar (x#xs)) y neutral = ((op x y) \<and> cvc_pairwise_op op (ListVar xs) y neutral)"
+definition cvc_pairwise_list_left where "cvc_pairwise_list_left op lv y = cvc_pairwise_op op lv y"
+
+
+fun cvc_pairwise_op2 :: "('a \<Rightarrow> 'a \<Rightarrow> bool) \<Rightarrow> 'a \<Rightarrow> 'a cvc_ListVar \<Rightarrow> bool \<Rightarrow> bool" where
+ "cvc_pairwise_op2 op x (ListVar []) neutral = neutral" |
+ "cvc_pairwise_op2 op x (ListVar [y]) neutral = (op x y)" |
+ "cvc_pairwise_op2 op x (ListVar (y#ys)) neutral = ((op x y) \<and> cvc_pairwise_op op (ListVar ys) y neutral)"
+definition cvc_pairwise_list_right where "cvc_pairwise_list_right op lv y = cvc_pairwise_op2 op lv y"
+
+
+
+
+fun cvc_pairwise_fold :: "('a \<Rightarrow> 'a \<Rightarrow> bool) \<Rightarrow> 'a \<Rightarrow> 'a list \<Rightarrow> bool" where
+ cvc_pairwise_fold_Nil: "cvc_pairwise_fold op x [] = True" |
+ cvc_pairwise_fold_Cons: "cvc_pairwise_fold op x (y#ys) = ((op x y) \<and> (cvc_pairwise_fold op x ys))"
+
+fun cvc_pairwise_fold2 :: "('a \<Rightarrow> 'a \<Rightarrow> bool) \<Rightarrow> 'a list \<Rightarrow> bool" where
+ cvc_pairwise_fold2_Nil: "cvc_pairwise_fold2 op [] = True" |
+ cvc_pairwise_fold2_Cons: "cvc_pairwise_fold2 op (x#xs) = (cvc_pairwise_fold op x xs \<and> cvc_pairwise_fold2 op xs)"
+
+
 
 
 lemma cvc_nary_op_fold_transfer_h1:
