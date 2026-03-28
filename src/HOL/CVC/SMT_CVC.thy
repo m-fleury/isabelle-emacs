@@ -151,6 +151,8 @@ cvc5_rare "Arith_Rewrites.rewrite_arith_mult_dist"
 cvc5_rare "Arith_Rewrites.rewrite_arith_plus_cancel1"
 cvc5_rare "Arith_Rewrites.rewrite_arith_plus_cancel2"
 cvc5_rare "Arith_Rewrites.rewrite_arith_max_geq1"
+cvc5_rare "Arith_Rewrites.rewrite_arith_elim_int_gt"
+
 
 cvc5_rare "Boolean_Rewrites.rewrite_bool_double_not_elim"
 cvc5_rare "Boolean_Rewrites.rewrite_bool_not_true"
