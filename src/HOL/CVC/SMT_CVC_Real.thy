@@ -34,8 +34,13 @@ cvc5_rare "Extra_Rewrites.rewrite_or_not_refl_empty"
 cvc5_rare "Extra_Rewrites.rewrite_or_not_refl"
 
 (*TODO: Check if these can be moved to arith rewrites*)
+cvc5_rare "Extra_Rewrites.rewrite_arith_min_lt1"
 cvc5_rare "Extra_Rewrites.rewrite_arith_min_lt2"
 cvc5_rare "Extra_Rewrites.rewrite_arith_max_geq2"
+
+
+cvc5_rare "Extra_Rewrites.rewrite_distinct_false"
+
 
 lemma temp: "((0 < - a) = (0 < - (b::real))) = ((0 > (a::real)) = (0 > b))"
   by simp
@@ -71,7 +76,7 @@ lemma [alethe_poly_simp_rel]:
 lemma [alethe_poly_simp_rel]:
   fixes x1::"real" and x2 y1 y2 cx cy
   shows "((cx > 0) = (cy > 0)) \<Longrightarrow> cx \<noteq> 0 \<Longrightarrow> cy \<noteq> 0 \<Longrightarrow>
-((cx * (x1 - x2)) = (cy * (y1 - y2))) \<Longrightarrow> ((x1 < x2) = (y1 < y2))"
+((cx * (x1 - x2)) = (cy * (y1 - y2))) \<longrightarrow> ((x1 < x2) = (y1 < y2))"
   by (metis less_iff_diff_less_0 mult_less_0_iff not_less_iff_gr_or_eq zero_less_mult_iff)
 
 lemma [alethe_poly_simp_rel]:
@@ -92,4 +97,27 @@ lemma [alethe_poly_simp_rel]:
 ((cx * (x1 - x2)) = (cy * (y1 - y2))) \<longrightarrow> ((x1 \<ge> x2) = (y1 \<ge> y2))"
   by (metis diff_ge_0_iff_ge linorder_not_le mult_less_0_iff not_less_iff_gr_or_eq zero_less_mult_iff)
 
+lemma [alethe_poly_simp_rel]:
+  fixes x1 and x2 y1 y2 cx cy
+  shows "((cx > 0) = (cy > 0)) \<Longrightarrow> cx \<noteq> 0 \<Longrightarrow> cy \<noteq> 0 \<Longrightarrow>
+((cx * real_of_int (x1 - x2)) = (cy * ((real_of_int y1) - (real_of_int y2)))) \<longrightarrow> ((x1 \<le> x2) = (real_of_int y1 \<le> real_of_int y2))"
+  by (smt (z3) mult_le_0_iff of_int_le_0_iff zero_le_mult_iff)
+
+lemma [alethe_poly_simp_rel]:
+  fixes x1 x2 y1 y2 cx cy
+  shows "((cx > 0) = (cy > 0)) \<Longrightarrow> cx \<noteq> 0 \<Longrightarrow> cy \<noteq> 0 \<Longrightarrow>
+((cx * real_of_int (x1 - x2)) = (cy * (y1 - y2))) \<longrightarrow> ((x1 \<ge> x2) = ((real_of_int y1) \<ge> (real_of_int y2)))"
+  by (smt (z3) mult_le_0_iff of_int_0_le_iff zero_le_mult_iff)
+
+lemma [alethe_poly_simp_rel]:
+  fixes x1 x2 y1 y2 cx cy
+  shows "((cx > 0) = (cy > 0)) \<Longrightarrow> cx \<noteq> 0 \<Longrightarrow> cy \<noteq> 0 \<Longrightarrow>
+((cx * (real_of_int (x1 - x2))) = (cy * ((real_of_int y1) - (real_of_int y2)))) \<longrightarrow> ((x1 < x2) = ((real_of_int y1) < (real_of_int y2)))"
+  by (metis less_iff_diff_less_0 mult_less_0_iff not_less_iff_gr_or_eq of_int_less_0_iff zero_less_mult_iff)
+
+lemma [alethe_poly_simp_rel]:
+  fixes x1 x2 y1 y2 cx cy
+  shows "((cx > 0) = (cy > 0)) \<Longrightarrow> cx \<noteq> 0 \<Longrightarrow> cy \<noteq> 0 \<Longrightarrow>
+((cx * (real_of_int (x1 - x2))) = (cy * ((real_of_int y1) - (real_of_int y1)))) \<longrightarrow> ((x1 > x2) = ((real_of_int y1) > (real_of_int y1)))"
+  by simp
 end
