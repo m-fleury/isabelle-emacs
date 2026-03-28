@@ -245,6 +245,11 @@ lemma [rewrite_arith_leq_ite_lift]:
  \<Longrightarrow> (((if C then t else s) < r) = (if C then (t < r) else (s < r)))"
   by auto
 
+(*
+(define-rule arith-min-lt1 ((t ?) (s ?))
+  (<= (ite (< t s) t s) t)
+  true)
+*)
 named_theorems rewrite_arith_min_lt1 \<open>\<close>
 
 lemma [rewrite_arith_min_lt1]:
@@ -287,6 +292,11 @@ lemma [rewrite_or_not_refl]:
   shows "NO_MATCH cvc_a (undefined t xs) \<Longrightarrow>
    ((\<not>(t = t)) \<or> (cvc_list_right (\<or>) x xs)) = (cvc_list_right (\<or>) x xs)"
   by simp
+
+(*Alethe proofs produced by cvc5 only. Can be moved before reals*)
+(*TODO: We hardcoded to use simp for this*)
+named_theorems rewrite_distinct_false \<open>added in postprocessing\<close>
+
 
 
 (*Performance addition*)
