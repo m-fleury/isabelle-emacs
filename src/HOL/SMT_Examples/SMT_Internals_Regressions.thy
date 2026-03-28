@@ -290,10 +290,33 @@ let
   val prems=prems
   val step_args=[]
   val context_args=[]
+  (*arguments are only supported for some rules and are a little brittle*)
+  (*maybe I should have parsed tokens, at the time I wrote this I only wanted to test one specific rule*)
   val args= (if rule_name = "and_pos" andalso Option.isSome args
             then SOME (Index (Option.valOf args |> Syntax.read_term ctxt |> HOLogic.dest_number |> snd))
             else if rule_name = "shuffle" andalso Option.isSome args
             then SOME (CommOp (Option.valOf args |> Syntax.read_term ctxt))
+            else if rule_name = "la_generic" andalso Option.isSome args
+            (*There has to be an int parser from a string out there...*)
+            then 
+
+let
+val keyword_list = Keyword.empty_keywords |> Keyword.add_major_keywords [")","("]
+ |> Keyword.add_major_keywords ["[","]"] |> Keyword.add_major_keywords [","]
+
+(*TODO: there should be an optional in this for the last comma and can be made far nicer, had to get this working quick*)
+val x = (Option.valOf args |> Token.explode keyword_list Position.none
+        |> Parse.command_name "["  
+        |-- 
+ Scan.repeat (Parse.command_name "(" |-- Parse.int --| Parse.command_name "," -- Parse.int --| Parse.command_name ")"
+ --| ( Parse.command_name ","))
+--  (Parse.command_name "(" |-- Parse.int --| Parse.command_name "," -- Parse.int --| Parse.command_name ")")
+ --| ( Parse.command_name "]")
+) |> fst |> (fn (ys,z) => ys @ [z])
+
+in 
+SOME (Farkas_Coefficients x)
+end
             else NONE)|> @{print}
   fun rule_tac ctxt t = CVC5_Replay_Methods.choose (Context.the_generic_context ()) rule ctxt prems step_args context_args t args
   fun term_to_thm t = rule_tac ctxt t
@@ -478,9 +501,30 @@ lemma contraction_8:
 
 (* Rule 11: la_generic *)
 
-lemma la_generic_1:
-"1 / 5 * y + 3 / 10 \<noteq> 1 / 5 * y + 3 / 10 \<or> 1 / 3 * y \<noteq> - 1 / 5 + 1 / 5 * y \<or> - 3 / 2 \<le> y"
-  by (ctxt_tactic "la_generic")
+declare[[smt_debug_arith_verit]]
+declare[[show_types=false,show_hyps=false]]
+declare[[ML_print_depth=1000]]
+
+lemma la_generic_bug_1:
+"
+\<not> - 1 * ((x8::int) + - 1 * y8 + x1 + - 1 * y1) \<le> - 1 * 1 \<or>
+\<not> x8 + - 1 * y8 + - 1 * x2 + y2 + x1 + - 1 * y1 + - 1 * x0 + y0 \<le> 0 \<or>
+\<not> x2 + - 1 * y2 + x0 + - 1 * y0 < 1 \<or>
+- 1 * (x8 + - 1 * y8 + x1 + - 1 * y1) + 
+  (x8 + - 1 * y8 + - 1 * x2 + y2 + x1 + - 1 * y1 + - 1 * x0 + y0) +
+  (x2 + - 1 * y2 + x0 + - 1 * y0)
+  < - 1 * 1 + 0 + 1 "
+  by (ctxt_tactic "la_generic" "[(1,1),(1,1),(1,1),(1,1)]")
+
+lemma la_generic_bug_1h1:
+  fixes x8::int
+  shows 
+"
+\<not> - x1 + y1 - x8 + y8 \<le> - 1 \<or>
+\<not>   x1 - y1 + x8 - y8 - x0 + y0 - x2 + y2 \<le> 0 \<or>
+\<not>                       x0 - y0 + x2 - y2 < 1 \<or>
+0 < 0 "
+  by (ctxt_tactic "la_generic" "[(1,1),(1,1),(1,1),(1,1)]")
 
 
 (* Rule 12: lia_generic *)
@@ -2292,14 +2336,31 @@ lemma miniscope_split_ite2:
   "(\<forall>x1 ::'a. \<forall>x2 ::'a. (If a (P1 x1) (P2 x2))) = (If a (\<forall>x1 ::'a. \<forall>x2 ::'a. P1 x1) (\<forall>x1 ::'a. \<forall>x2 ::'a. P2 x2))"
   by (ctxt_tactic "miniscope_ite")
 
+(* Rule 106: miniscope_or *)
 
-
-
-lemma
+lemma miniscope_or1:
 "(\<forall>y. (n \<noteq> r m n \<or> a \<or>\<not> f m n y y \<or> n = y)) = ((n \<noteq> r m n) \<or> a \<or>(\<forall>y. (\<not> f m n y y \<or> n = y)))"
-
   by (ctxt_tactic "miniscope_or")
 
+
+(*Rule : poly_simp_rel*)
+
+lemma poly_simp_rel1:
+  assumes "- 1  *  ((arg2::int) + (2::int) * (x::int) + - 1 * (mul2_sum::int) - 1) =
+         - 1  * ( (arg2 + (2::int) * x + - 1 * mul2_sum) -  1)"
+  shows "((arg2::int) + (2::int) * (x::int) + - 1 * (mul2_sum::int) < 1) =
+         ( (arg2 + (2::int) * x + - 1 * mul2_sum) <  1)"
+  using assms
+  by (ctxt_tactic "poly_simp_rel")
+
+
+lemma poly_simp_rel2:
+  assumes "-88  *  ((arg2::int) + (2::int) * (x::int) + - 1 * (mul2_sum::int) - 1) =
+        - 15  * ( (arg2 + (2::int) * x + - 1 * mul2_sum) -  1)"
+  shows "((arg2::int) + (2::int) * (x::int) + - 1 * (mul2_sum::int) < 1) =
+         ( (arg2 + (2::int) * x + - 1 * mul2_sum) <  1)"
+  using assms
+  by (ctxt_tactic "poly_simp_rel")
 
 
 (*

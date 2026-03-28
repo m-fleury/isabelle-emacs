@@ -157,13 +157,32 @@ lemma miniscope_distribute1:
           (\<forall>y3. x1 = - 81 / 76 + 63 / 76 * y3) \<and> (\<forall>y3. 0 / 1 \<le> x1 + - 5 / 7 * y3 + 1 / 14 * y2a)) "
   by (ctxt_tactic "miniscope_distribute")
 
-(*TODO: premises*)
+(*Rule : poly_simp_rel*)
+
 lemma poly_simp_rel:
   assumes " - 31 / 70 * (- 70 / 1 * (x1::real) + - 96 / 1 * y3a + - 55 / 1 * y2a - - 31 / 1) =
          31 / 1 * (x1 - (31 / 70 + - 48 / 35 * y3a + - 11 / 14 * y2a))"
   shows "(- 70 / 1 * x1 + - 96 / 1 * y3a + - 55 / 1 * y2a = - 31 / 1) =
-    (x1 = 31 / 70 + - 48 / 35 * y3a + - 11 / 14 * y2a) "
+    (x1 = 31 / 70 + - 48 / 35 * y3a + - 11 / 14 * y2a)"
+  using assms
   by (ctxt_tactic "poly_simp_rel")
 
+lemma poly_simp_rel3:
+  assumes "15 / 8 *
+         (- 8 / 3 * (q19::real) + - 13 / 3 * q20 +
+          - 11 / 3 * q18 -
+          - 5 / 1) =
+         5 / 1 *
+         (- 1 / 1 * q19 + - 13 / 8 * q20 +
+          - 11 / 8 * q18 -
+          - 15 / 8)"
+  shows "(- 5 / 1
+          \<le> - 8 / 3 * q19 + - 13 / 3 * q20 +
+             - 11 / 3 * q18) =
+         (- 15 / 8
+          \<le> - 1 / 1 * q19 + - 13 / 8 * q20 +
+             - 11 / 8 * q18)"
+  using assms
+  by (ctxt_tactic "poly_simp_rel")
 
 end
