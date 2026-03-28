@@ -285,14 +285,19 @@ lemma [rewrite_or_not_refl_empty]:
 
 
 named_theorems rewrite_or_not_refl \<open>added in postprocessing\<close>
-(* (define-rule or-not-refl ((t ?) (x Bool) (xs Bool :list) (or (not (= t t)) xs) (or xs))) *)
+(*(define-rule or-not-refl ((t ?) (xs Bool :list)) (or (not (= t t)) xs) (or xs))*)
 
 lemma [rewrite_or_not_refl]:
   fixes t::'a and xs::"bool cvc_ListVar"
   shows "NO_MATCH cvc_a (undefined t xs) \<Longrightarrow>
-   ((\<not>(t = t)) \<or> (cvc_list_right (\<or>) x xs)) = (cvc_list_right (\<or>) x xs)"
-  by simp
-
+   ((cvc_list_right (\<or>) ( \<not>(t = t)) xs)) = (cvc_list_both (\<or>) False xs (ListVar []))"
+  unfolding cvc_list_both_def cvc_list_right_def
+  apply (cases xs)
+  subgoal for xs'
+    apply (induction xs')
+     apply simp_all
+    done
+  done
 (*Alethe proofs produced by cvc5 only. Can be moved before reals*)
 (*TODO: We hardcoded to use simp for this*)
 named_theorems rewrite_distinct_false \<open>added in postprocessing\<close>
