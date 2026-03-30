@@ -699,9 +699,48 @@ lemma eq_congruent_pred_2: "\<not> (a = a) \<or> \<not>(a = b) \<or> (P a a = P 
 (* Rule 29: qnt_cnf *)
 
 lemma qnt_cnf_1: "\<not> (\<forall>x1. ((x1 = 1) \<or> (x1 = 2))) \<or> (\<forall>x1. (x1 = 1))"
-  by (ctxt_tactic "eq_congruent_pred")
+  by (ctxt_tactic "qnt_cnf")
 
-
+lemma qnt_cnf_2:
+        " \<not> (\<forall>(veriT_vr756::int) veriT_vr757 veriT_vr758 (veriT_vr759::int) (veriT_vr760::int) veriT_vr761 veriT_vr762.
+                (fun_app (t veriT_vr756 veriT_vr757 veriT_vr758) (trans veriT_vr759 veriT_vr760 veriT_vr761 veriT_vr762) \<longrightarrow>
+                 (\<exists>veriT_vr763.
+                     membera veriT_vr763 veriT_vr756 \<and>
+                     membera veriT_vr763 (seta (userIDs veriT_vr762)) \<and>
+                     memberb veriT_vr757 (setb (fun_appv (outerPostIDs veriT_vr762) veriT_vr758)) \<and>
+                     (veriT_vr763 = admin veriT_vr762 \<or>
+                      memberh (pairb veriT_vr758 (fun_appn (fun_appz (outerOwner veriT_vr762) veriT_vr758) veriT_vr757)) (setf (fun_appaa (recvOuterFriendIDs veriT_vr762) veriT_vr763)) \<or>
+                      vsb
+                       (literal False False False False True True True
+                         (literal True False True False True True True
+                           (literal False True False False False True True
+                             (literal False False True True False True True (literal True False False True False True True (literal True True False False False True True zero)))))) =
+                      fun_appl (fun_appy (outerVis veriT_vr762) veriT_vr758) veriT_vr757))) \<and>
+                (\<not> (\<forall>veriT_vr764.
+                        \<not> (membera veriT_vr764 veriT_vr756 \<and>
+                            membera veriT_vr764 (seta (userIDs veriT_vr762)) \<and>
+                            memberb veriT_vr757 (setb (fun_appv (outerPostIDs veriT_vr762) veriT_vr758)) \<and>
+                            (admin veriT_vr762 = veriT_vr764 \<or>
+                             memberh (pairb veriT_vr758 (fun_appn (fun_appz (outerOwner veriT_vr762) veriT_vr758) veriT_vr757)) (setf (fun_appaa (recvOuterFriendIDs veriT_vr762) veriT_vr764)) \<or>
+                             vsb
+                              (literal False False False False True True True
+                                (literal True False True False True True True
+                                  (literal False True False False False True True
+                                    (literal False False True True False True True (literal True False False True False True True (literal True True False False False True True zero)))))) =
+                             fun_appl (fun_appy (outerVis veriT_vr762) veriT_vr758) veriT_vr757))) \<longrightarrow>
+                 fun_app (t veriT_vr756 veriT_vr757 veriT_vr758) (trans veriT_vr759 veriT_vr760 veriT_vr761 veriT_vr762))) \<or>
+         (\<forall>veriT_vr756 veriT_vr757 veriT_vr758 veriT_vr759 (veriT_vr760::int) veriT_vr761 veriT_vr762 veriT_vr764.
+             \<not> membera veriT_vr764 veriT_vr756 \<or>
+             \<not> membera veriT_vr764 (seta (userIDs veriT_vr762)) \<or>
+             \<not> memberb veriT_vr757 (setb (fun_appv (outerPostIDs veriT_vr762) veriT_vr758)) \<or>
+             vsb
+              (literal False False False False True True True
+                (literal True False True False True True True
+                  (literal False True False False False True True
+                    (literal False False True True False True True (literal True False False True False True True (literal True True False False False True True zero)))))) \<noteq>
+             fun_appl (fun_appy (outerVis veriT_vr762) veriT_vr758) veriT_vr757 \<or>
+             fun_app (t veriT_vr756 veriT_vr757 veriT_vr758) (trans veriT_vr759 veriT_vr760 veriT_vr761 veriT_vr762))
+"
 
 
 (* Rule 30: and *)

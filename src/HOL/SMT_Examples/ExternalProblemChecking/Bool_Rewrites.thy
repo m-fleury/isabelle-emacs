@@ -13,10 +13,14 @@
 *)
 
 theory Bool_Rewrites
-  imports HOL.SMT_CVC
+  imports HOL.SMT_CVC HOL.Real
 begin
 
 declare[[smt_trace=false,smt_verbose=false]]
+
+check_smt_dir ("cvc5_proof") "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/Bool_Rewrites/"
+
+declare[[smt_trace=true,smt_verbose=true]]
 
 (*(define-rule bool-double-not-elim ((t Bool)) (not (not t)) t))*)
 check_smt ("cvc5_proof")
