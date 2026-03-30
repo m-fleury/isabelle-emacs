@@ -647,6 +647,7 @@ lemmas [arith_simp_cvc5] =
          add_uminus_conv_diff mult.left_neutral semiring_class.distrib_right
          add_diff_cancel_left' add_diff_eq ring_distribs mult_minus_left minus_diff_eq
          mod_mult_self2_is_0
+         less_irrefl
 
 lemma [arith_simp_cvc5,arith_mult_poly_norm_cvc5]:
   \<open>\<not> (a' :: 'a :: linorder) < b' \<longleftrightarrow> b' \<le> a'\<close>
