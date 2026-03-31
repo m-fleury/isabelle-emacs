@@ -1429,17 +1429,24 @@ fun onepoint ctxt prems t = SMT_Replay_Methods.prove ctxt t (fn _ =>
   THEN' resolve_tac ctxt (@{print}prems)
   THEN' REPEAT' (resolve_tac ctxt @{thms refl})
   THEN' REPEAT' 
-    (SOLVED' 
+    (*cheap version: hope that nothing got reorder and simp will solve the goal. Otherwise,
+    try to move all equalities out of the quantifiers rewrite them with @{thm alethe_rewrite_in_imp}
+    and only afterwards try metis.*)
+    (SOLVED' ( 
       (ctxt
       |> empty_simpset
       |> put_simpset HOL_basic_ss
-      |> (fn ctxt => ctxt addsimps @{thms simp_thms})
-      |> Simplifier.add_cong @{thm imp_cong}
+      |> (fn ctxt => ctxt addsimps @{thms simp_thms all_simps ex_simps de_Morgan_conj
+        not_all not_imp not_ex de_Morgan_disj disj_not1 triv_forall_equality eq_commute})
+      |> Simplifier.add_cong @{thm alethe_rewrite_in_imp}
+      |> (fn ctxt => ctxt
+           addsimprocs [@{simproc defined_All}, @{simproc defined_Ex}])
       |> Simplifier.full_simp_tac)
-    ORELSE' 
+  THEN' K (print_tac ctxt "after simp")
+    THEN' 
       (*veriT can still reorder equalities, so we need something stronger than just reordering the
       implication as done above.*)
-      Metis_Tactic.metis_tac [] ATP_Problem_Generate.combsN ctxt []))
+      TRY' (Metis_Tactic.metis_tac [] ATP_Problem_Generate.combsN ctxt []))))
 end
 
 fun qnt_join ctxt _ t = SMT_Replay_Methods.prove ctxt t Classical.fast_tac
