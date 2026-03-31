@@ -650,6 +650,7 @@ fun or _ (thm :: _) _ = thm
 
 (* Implication *)
 
+(*TODO: We don't need the second lemmas*)
 val implies_pos_thm =
   [@{lemma \<open>\<not>(A \<longrightarrow> B) \<or> \<not>A \<or> B\<close> by blast},
   @{lemma \<open>\<not>(\<not>A \<longrightarrow> B) \<or> A \<or> B\<close> by blast}]
@@ -1024,6 +1025,7 @@ local
    Groups.monoid_add_class.add_0_right Groups.group_add_class.add.group_left_neutral
    Rings.mult_zero_class.mult_zero_left Rings.mult_zero_class.mult_zero_right
    } (*TODO: Add bit-vector theorems if necessary. TODO: Not clear if it helps to add some of these or not.*)
+  fun aci_simps_extra_thms ctxt = (Named_Theorems.get ctxt @{named_theorems alethe_aci_simp})
 in
  
 fun ACI_rule ctxt thms t =
@@ -1032,7 +1034,7 @@ fun ACI_rule ctxt thms t =
     THEN' debug_msg_tac' ctxt high "aci_simp before commute"
     THEN' REPEAT_ALL_NEW (partial_simplify_tac ctxt @{thms eq_commute}
     THEN' debug_msg_tac' ctxt high "aci_simp before simplification"
-    THEN' TRY' (simplify_tac ctxt (idempotency_thms @ @{thms ac_simps conj_ac}))
+    THEN' TRY' (simplify_tac ctxt (idempotency_thms @ aci_simps_extra_thms ctxt @ @{thms ac_simps conj_ac}))
     THEN' debug_msg_tac' ctxt high "aci_simp after simplification"
     THEN' TRY' (assume_tac ctxt)
     THEN' TRY' (Classical.fast_tac ctxt)))

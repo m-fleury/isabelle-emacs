@@ -976,8 +976,10 @@ named_theorems simplify_translation \<open>Lemmas to normalize the assertions be
 lemmas [simplify_translation] = arith_simps more_arith_simps
 
 named_theorems alethe_poly_norm \<open>Extra theorems for poly norm.\<close>
-
 lemmas [alethe_poly_norm] = mult_1_right mult_1_left
+
+named_theorems alethe_aci_simp \<open>Extra theorems for aci simp\<close>
+
 
 subsection \<open>Setup\<close>
 
