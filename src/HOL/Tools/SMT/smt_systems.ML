@@ -127,7 +127,7 @@ val cvc4: SMT_Solver.solver_config = {
      ((4, false, false, 1024, meshN), ["--relevant-triggers", "--full-saturate-quant"]),
      ((4, false, false, 32, meshN), ["--term-db-mode=relevant", "--full-saturate-quant"]),
      ((4, false, false, 128, meshN), ["--no-e-matching", "--full-saturate-quant"]),
-     ((4, false, false, 256, meshN), ["--finite-model-find", "--fmf-inst-engine"])],
+     ((4, false, false, 256, meshN), ["--finite-model-find", "--e-matching"])],
   outcome = on_first_line (outcome_of "unsat" "sat" "unknown" "timeout"),
   parse_proof = SOME (K CVC_Proof_Parse.parse_proof_unsatcore),
   replay = NONE }
@@ -147,7 +147,7 @@ val cvc5: SMT_Solver.solver_config = {
      ((4, false, false, 1024, meshN), ["--relevant-triggers", "--full-saturate-quant"]),
      ((4, false, false, 32, meshN), ["--term-db-mode=relevant", "--full-saturate-quant"]),
      ((4, false, false, 128, meshN), ["--no-e-matching", "--full-saturate-quant"]),
-     ((4, false, false, 256, meshN), ["--finite-model-find", "--fmf-inst-engine"])],
+     ((4, false, false, 256, meshN), ["--finite-model-find", "--e-matching"])],
   outcome = on_first_line (outcome_of "unsat" "sat" "unknown" "timeout"),
   parse_proof = SOME (K CVC_Proof_Parse.parse_proof_unsatcore),
   replay = NONE }
