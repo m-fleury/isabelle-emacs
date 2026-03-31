@@ -647,6 +647,7 @@ lemmas [arith_simp_cvc5] =
          add_uminus_conv_diff mult.left_neutral semiring_class.distrib_right
          add_diff_cancel_left' add_diff_eq ring_distribs mult_minus_left minus_diff_eq
          mod_mult_self2_is_0
+         less_irrefl
 
 lemma [arith_simp_cvc5,arith_mult_poly_norm_cvc5]:
   \<open>\<not> (a' :: 'a :: linorder) < b' \<longleftrightarrow> b' \<le> a'\<close>
@@ -964,6 +965,13 @@ lemma temp:
 "A \<Longrightarrow> ( B \<equiv>  C) \<Longrightarrow> ( B \<equiv> (A \<and> C))"
   by simp
 
+lemma alethe_onepoint:
+  \<open>(\<And>a. P a = Q a) \<Longrightarrow> (\<forall>a. P a) = (\<forall>a. Q a)\<close>
+  \<open>(\<And>a. P' a = Q') \<Longrightarrow> (\<forall>a. P' a) = Q'\<close>
+  \<open>(\<And>a. P a = Q a) \<Longrightarrow> (\<exists>a. P a) = (\<exists>a. Q a)\<close>
+  \<open>(\<And>a. P' a = Q') \<Longrightarrow> (\<exists>a. P' a) = Q'\<close>
+  by auto
+
 
 named_theorems nat_normalized_input \<open>Theorems required to replay nat operators embedded into lifted int versions\<close>
 named_theorems cvc5_normalized_input \<open>Theorems required to replay
@@ -980,6 +988,15 @@ lemmas [alethe_poly_norm] = mult_1_right mult_1_left
 
 named_theorems alethe_aci_simp \<open>Extra theorems for aci simp\<close>
 
+lemma alethe_onepoint2_all:
+  assumes \<open>\<And>x. x = t \<Longrightarrow> P t = Q\<close> \<open>\<And>x. P x = (x = t \<longrightarrow> P x)\<close>
+  shows \<open>(\<forall>x. P x) = Q\<close>
+  by (use assms in metis)+
+lemma alethe_onepoint2_ex:
+  assumes \<open>\<And>x. x = t \<Longrightarrow> P t = Q\<close> \<open>\<And>x. P x = (x = t \<and> P x)\<close>
+  shows \<open>(\<exists>x. P x) = Q\<close>
+  by (use assms in metis)+
+thm alethe_onepoint
 
 subsection \<open>Setup\<close>
 

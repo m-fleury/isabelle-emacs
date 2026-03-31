@@ -1401,13 +1401,55 @@ fun qnt_rm_unused ctxt _ t = SMT_Replay_Methods.prove ctxt t (fn _ =>
   THEN' TRY' (blast_tac ctxt) (*the quantifiers can be reordered, this could also be fixed earlier*)
   )
 
+local
+  fun onepoint_combine_quant ctxt (n1 :: bounds1) (n2 :: bounds2) =
+      TRY' (if n1 = n2
+        then resolve_tac ctxt @{thms alethe_onepoint(1,3)}
+         THEN' onepoint_combine_quant ctxt bounds1 bounds2
+       else resolve_tac ctxt @{thms alethe_onepoint2_all alethe_onepoint2_ex}
+         THEN' onepoint_combine_quant ctxt bounds1 (n2 :: bounds2))
+    | onepoint_combine_quant ctxt (_ :: bounds1) [] =
+      resolve_tac ctxt @{thms alethe_onepoint2_all alethe_onepoint2_ex}
+      THEN' onepoint_combine_quant ctxt bounds1 []
+    | onepoint_combine_quant _ _ _ = K all_tac
+  
+  fun onepoint_quants ctxt t =
+    let
+      val (t1, t2) = 
+        t
+        |> Thm.cterm_of ctxt
+        |> Thm.term_of o Object_Logic.dest_judgment ctxt
+        |> HOLogic.dest_eq
+    in
+       onepoint_combine_quant ctxt 
+           (extract_quantified_names_q t1 |> fst |> map to_upper |> @{print})
+           (extract_quantified_names_q t2 |> fst |> map to_upper |> @{print})
+    end
+in
 fun onepoint ctxt prems t = SMT_Replay_Methods.prove ctxt t (fn _ =>
-  Method.insert_tac ctxt prems
-  THEN' Simplifier.full_simp_tac (put_simpset HOL_basic_ss (empty_simpset ctxt)
-    addsimps @{thms HOL.simp_thms HOL.all_simps}
-    addsimprocs [@{simproc HOL.defined_All}, @{simproc HOL.defined_Ex}])
-  THEN' TRY' (Blast.blast_tac ctxt)
-  THEN' TRY' (Metis_Tactic.metis_tac [] ATP_Problem_Generate.combsN ctxt []))
+  onepoint_quants ctxt t
+  THEN' resolve_tac ctxt (@{print}prems)
+  THEN' REPEAT' (resolve_tac ctxt @{thms refl})
+  THEN' REPEAT' 
+    (*cheap version: hope that nothing got reorder and simp will solve the goal. Otherwise,
+    try to move all equalities out of the quantifiers rewrite them with @{thm alethe_rewrite_in_imp}
+    and only afterwards try metis.*)
+    (SOLVED' ( 
+      (ctxt
+      |> empty_simpset
+      |> put_simpset HOL_basic_ss
+      |> (fn ctxt => ctxt addsimps @{thms simp_thms all_simps ex_simps de_Morgan_conj
+        not_all not_imp not_ex de_Morgan_disj disj_not1 triv_forall_equality eq_commute})
+      |> Simplifier.add_cong @{thm alethe_rewrite_in_imp}
+      |> (fn ctxt => ctxt
+           addsimprocs [@{simproc defined_All}, @{simproc defined_Ex}])
+      |> Simplifier.full_simp_tac)
+  THEN' K (print_tac ctxt "after simp")
+    THEN' 
+      (*veriT can still reorder equalities, so we need something stronger than just reordering the
+      implication as done above.*)
+      TRY' (Metis_Tactic.metis_tac [] ATP_Problem_Generate.combsN ctxt []))))
+end
 
 fun qnt_join ctxt _ t = SMT_Replay_Methods.prove ctxt t Classical.fast_tac
 

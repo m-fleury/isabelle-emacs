@@ -147,11 +147,13 @@ fun la_farkas_tac ({context = ctxt, prems, concl,  ...}: Subgoal.focus) (SOME (F
        |> empty_simpset
        |> put_simpset HOL_basic_ss
        |> Simplifier.add_simps thms
+       |> Simplifier.add_simps @{thms simp_thms}
        |> Simplifier.add_simps arith_thms
        |> fold Simplifier.add_proc
         [@{simproc int_div_cancel_numeral_factors}, @{simproc int_combine_numerals},
          @{simproc divide_cancel_numeral_factor}, @{simproc intle_cancel_numerals},
          @{simproc field_combine_numerals}, @{simproc intless_cancel_numerals}]
+      |> Simplifier.add_cong @{thm if_weak_cong}
       |> asm_full_simplify
     val final_False = combined
       |> arith_full_simps ctxt (Named_Theorems.get ctxt @{named_theorems ac_simps} @ @{thms Groups.ac_simps})
