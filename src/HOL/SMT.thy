@@ -972,6 +972,9 @@ lemma alethe_onepoint:
   \<open>(\<And>a. P' a = Q') \<Longrightarrow> (\<exists>a. P' a) = Q'\<close>
   by auto
 
+lemma alethe_rewrite_in_imp:
+  \<open>(a::'a) = (b::'a) \<equiv> P'::bool \<Longrightarrow> (P' \<Longrightarrow> (P::'a \<Rightarrow> bool) a \<equiv> Q'::bool) \<Longrightarrow> a = b \<longrightarrow> P a \<equiv> P' \<longrightarrow> Q'\<close>
+  by auto
 
 named_theorems nat_normalized_input \<open>Theorems required to replay nat operators embedded into lifted int versions\<close>
 named_theorems cvc5_normalized_input \<open>Theorems required to replay
