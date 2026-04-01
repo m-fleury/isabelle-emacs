@@ -259,6 +259,8 @@ val _ = @{print}(" all_assms", all_assms)
 
     val ({elapsed, ...}, thm) =
       SMT_Config.with_time_limit ctxt (rule ^ "," ^ id) SMT_Config.reconstruction_step_timeout replay step (*Welche Felder von Step benutzt replay_thm? Nur die conclusion?*)
+      handle (ERROR exn) => Exn.reraise (ERROR (" in step " ^ id ^ " " ^ exn))
+
     val _ = (SMT_Config.verbose_msg ctxt (K ("Successfully checked step " ^ id)) ())
 
     val name =
