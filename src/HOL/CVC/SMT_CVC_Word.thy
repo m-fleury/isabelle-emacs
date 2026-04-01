@@ -65,6 +65,7 @@ lemmas [cvc_evaluate_bv]
   = evaluate_casts bit_operations 
     bv_mult
     evaluate_concat evaluate_power 
+    push_bit_lift_def
 
 ML\<open>
 val nat_native_ops_tab =[]
@@ -229,7 +230,10 @@ We are already checking for a name but this makes everything more complicated
 *)
 
 
-
+lemmas [alethe_aci_simp] =
+ Bit_Operations.semiring_bit_operations_class.and.idem
+ Bit_Operations.semiring_bit_operations_class.or.idem
+ Bit_Operations.ring_bit_operations_class.bit.xor_self
 
 
 
