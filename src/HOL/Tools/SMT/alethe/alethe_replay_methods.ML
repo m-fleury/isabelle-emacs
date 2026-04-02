@@ -969,13 +969,13 @@ fun false_rule ctxt _ t = SMT_Replay_Methods.match_instantiate ctxt t false_rule
 
 (* Transitivity *)
 
+(*cvc5 is not using this at the moment (see cvc5_replay_methods)*)
+
 val trans_bool_thm =
   @{lemma \<open>P = Q \<Longrightarrow> Q \<Longrightarrow> P\<close> by blast}
 
 fun trans ctxt thms t =
   let
-    (*val _ = @{print}("thms",thms)
-    val _ = @{print}("t",t)*)
 
     val prop_of = HOLogic.dest_Trueprop o Thm.full_prop_of
     fun combine_thms [thm1, thm2] =
@@ -991,19 +991,19 @@ fun trans ctxt thms t =
           combine_thms (combine_thms [thm1, thm2] :: thms)
       | combine_thms thms = replay_error ctxt "invalid bind application" Trans thms [] t
      val t' = Thm.eta_long_conversion (Object_Logic.dest_judgment ctxt (Thm.cterm_of ctxt t))
-    (*val _ = @{print}("t'",t')*)
+     val _ = debug_msg ctxt high (fn () => \<^print> ("trans t'",t'))
 
      val (_, t2) = Logic.dest_equals (Thm.prop_of t')
-    (*val _ = @{print}("t2",t2)*)
+     val _ = debug_msg ctxt high (fn () => \<^print> ("trans t2",t'))
 
      val thms = map (Conv.fconv_rule Thm.eta_long_conversion) thms
-    (*val _ = @{print}("thms",thms)*)
+     val _ = debug_msg ctxt high (fn () => \<^print> ("trans thms ",thms))
 
      val trans_thm = combine_thms thms
-    (*val _ = @{print}("trans_thm",trans_thm)*)
+     val _ = debug_msg ctxt high (fn () => \<^print> ("trans_thm ",trans_thm))
 
   in
-     ((*@{print}("YELL");*)(case (prop_of trans_thm, t2) of
+     ((case (prop_of trans_thm, t2) of
        ((Const(\<^const_name>\<open>HOL.eq\<close>, _) $ t1 $ _),
              (Const(\<^const_name>\<open>HOL.eq\<close>, _) $ t3 $ _)) =>
        if t1 aconv t3 then trans_thm else trans_thm RS sym
