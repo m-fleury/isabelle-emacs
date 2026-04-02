@@ -626,6 +626,13 @@ lemma trans_4:
   using assms
   by (ctxt_tactic "trans")
 
+lemma trans_5:
+assumes "f a b = f a (g b)"
+        "f a (g b) = f a b"
+        "f a b = True"
+shows   "f a b = True"
+  using assms
+  by (ctxt_tactic "trans")
 
 (* Rule 24: cong *)
 
