@@ -157,14 +157,22 @@ fun hole ctxt prems t = SMT_Replay_Methods.prove ctxt t (fn _ =>
 Example:
 lemma \<open>(\<forall>x y. P x = Q y) \<Longrightarrow> (\<forall> y z. Q y = R z) \<Longrightarrow> (\<forall>x z. P x = R z)\<close>
 *)
-fun trans ctxt prems t =
+local
+ fun trans_steps [] _ = K all_tac |
+     trans_steps (prem1::prems) ctxt =
+      resolve_tac ctxt [prem1 RSN (2, @{thm trans})]
+      (*THEN' K (print_tac ctxt "resolved once")*)
+      THEN' trans_steps prems ctxt
+in
+
+fun trans ctxt [] t =
   SMT_Replay_Methods.prove ctxt t (fn _ =>
-    (match_tac ctxt @{thms refl})
-  ORELSE'
-    (Method.insert_tac ctxt prems
-    THEN' (REPEAT_CHANGED (resolve_tac ctxt @{thms trans}
-    THEN' assume_tac ctxt))
-    THEN' (resolve_tac ctxt @{thms refl})))
+    (match_tac ctxt @{thms refl}))
+ | trans ctxt prems t =
+  SMT_Replay_Methods.prove ctxt t (fn _ =>
+    trans_steps (rev prems) ctxt
+    THEN' (resolve_tac ctxt @{thms refl}))
+end
 
 
 (* Mapping rules to tactics and hide away not needed arguments  *)
