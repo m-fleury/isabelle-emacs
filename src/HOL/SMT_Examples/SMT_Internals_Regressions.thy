@@ -1403,44 +1403,70 @@ lemma and_pos_5: "\<not>(a \<and> (b \<or> \<not>c \<and> d)) \<or> (b \<or> \<n
 lemma and_pos_6a: "\<not>(a \<and> (b \<and> c)) \<or> (b \<and> c)"
   by (ctxt_tactic "and_pos" "1")
 
-(*
+(* TODO: I will have a look at this since I want to improve the reconstruction of this rule anyways
 lemma and_pos_6b: "\<not>(a \<and> (b \<and> c)) \<or> (b \<and> c)" (*This should have worked but didn't*)
   by (ctxt_tactic "and_pos")
 *)
 
+lemma and_pos_7: "\<not>((\<not>a \<or> b) \<and> c) \<or> (\<not>a \<or> b)"
+  by (ctxt_tactic "and_pos" "0")
+
+lemma and_pos_8: "\<not>(a \<and> \<not>b) \<or> \<not>b"
+  by (ctxt_tactic "and_pos" "1")
+
+lemma and_pos_9: "\<not>(a) \<or> a"
+  by (ctxt_tactic "and_pos" "0")
+
 (* Rule 48: and_neg *)
 
-lemma and_neg_1: "(a \<and> b \<and> c) \<or> \<not>a \<or> \<not>b \<or> \<not>c"
+lemma and_neg_1: "(a \<and> b) \<or> \<not>a \<or> \<not>b"
   by (ctxt_tactic "and_neg")
 
-lemma and_neg_2: "(a \<and> (b \<and> c)) \<or> \<not>a \<or> \<not>(b \<and> c)"
+lemma and_neg_2: "(a \<and> b \<and> c) \<or> \<not>a \<or> \<not>b \<or> \<not>c"
   by (ctxt_tactic "and_neg")
 
-lemma and_neg_3: "((a \<and> b) \<and> d) \<or> \<not>(a \<and> b) \<or> \<not>d"
+lemma and_neg_3: "(a \<and> b \<and> c \<and> d) \<or> \<not>a \<or> \<not>b \<or> \<not>c \<or> \<not>d"
   by (ctxt_tactic "and_neg")
 
-lemma and_neg_4: "(a \<and> d) \<or> \<not>(a \<and> d)"
+lemma and_neg_4: "(a \<and> (b \<and> c)) \<or> \<not>a \<or> \<not>(b \<and> c)"
   by (ctxt_tactic "and_neg")
 
-lemma and_neg_5: "((a = c) \<and> (b \<longrightarrow> \<not>c \<or> d)) \<or> \<not>(a = c) \<or> \<not>(b \<longrightarrow> \<not>c \<or> d)"
+lemma and_neg_5: "((a \<and> b) \<and> d) \<or> \<not>(a \<and> b) \<or> \<not>d"
   by (ctxt_tactic "and_neg")
 
+lemma and_neg_6: "(a \<and> d) \<or> \<not>(a \<and> d)"
+  by (ctxt_tactic "and_neg")
+
+lemma and_neg_7: "((a = c) \<and> (b \<longrightarrow> \<not>c \<or> d)) \<or> \<not>(a = c) \<or> \<not>(b \<longrightarrow> \<not>c \<or> d)"
+  by (ctxt_tactic "and_neg")
+
+lemma and_neg_8: "(\<not>a \<and> \<not>(b \<or> c) \<and> d) \<or> \<not>\<not>a \<or> \<not>\<not>(b \<or> c) \<or> \<not>d"
+  by (ctxt_tactic "and_neg")
+
+lemma and_neg_9: "a \<or> (\<not>a)"
+  by (ctxt_tactic "and_neg")
 
 (* Rule 50: or_pos *)
 
-lemma or_pos_1: "\<not>(a \<or> b \<or> c) \<or> a \<or> b \<or> c"
+lemma or_pos_1: "\<not>(a \<or> b) \<or> a \<or> b"
   by (ctxt_tactic "or_pos")
 
-lemma or_pos_2: "\<not>(a \<or> (b \<or> c)) \<or> a \<or> b \<or> c"
+lemma or_pos_2: "\<not>(a \<or> b \<or> c) \<or> a \<or> b \<or> c"
   by (ctxt_tactic "or_pos")
 
-lemma or_pos_3: "\<not>((a \<or> b) \<or> c) \<or> (a \<or> b) \<or> c"
+lemma or_pos_3: "\<not>(a \<or> b \<or> c \<or> d) \<or> a \<or> b \<or> c \<or> d"
   by (ctxt_tactic "or_pos")
 
-lemma or_pos_4: "\<not>(\<not>(e \<or> f) \<or> (a \<or> b \<and> c) \<or> d) \<or> \<not>(e \<or> f) \<or> (a \<or> b \<and> c) \<or> d"
+lemma or_pos_4: "\<not>(a \<or> (b \<or> c)) \<or> a \<or> b \<or> c"
   by (ctxt_tactic "or_pos")
 
-lemma or_pos_5: "\<not>(a) \<or> a"
+lemma or_pos_5: "\<not>((a \<or> b) \<or> c) \<or> (a \<or> b) \<or> c"
+  by (ctxt_tactic "or_pos")
+
+lemma or_pos_6: "\<not>(\<not>(e \<or> f) \<or> (a \<or> b \<and> c) \<or> d) \<or> \<not>(e \<or> f) \<or> (a \<or> b \<and> c) \<or> d"
+  by (ctxt_tactic "or_pos")
+
+lemma or_pos_7: "\<not>(a) \<or> a"
   by (ctxt_tactic "or_pos")
 
 (* Rule 51: or_neg *)
@@ -1489,6 +1515,21 @@ lemma xor_pos1_1: "\<not>(a \<noteq> b) \<or> a \<or> b"
 lemma xor_pos1_2: "\<not>((a\<or>c) \<noteq> b) \<or> (a\<or>c) \<or> b"
   by (ctxt_tactic "xor_pos1")
 
+lemma xor_pos1_3: "\<not>((a\<and>c) \<noteq> b) \<or> (a\<and>c) \<or> b"
+  by (ctxt_tactic "xor_pos1")
+
+lemma xor_pos1_4: "\<not>(a \<noteq> (b \<and> c)) \<or> a \<or> (b \<and> c)"
+  by (ctxt_tactic "xor_pos1")
+
+lemma xor_pos1_5: "\<not>((a \<and> b) \<noteq> ((c \<or> d))) \<or> (a \<and> b) \<or> (c \<or> d)"
+  by (ctxt_tactic "xor_pos1")
+
+lemma xor_pos1_6: "\<not>((\<not>a) \<noteq> b) \<or> \<not>a \<or> b"
+  by (ctxt_tactic "xor_pos1")
+
+lemma xor_pos1_7: "\<not>(a \<noteq> (\<not>b)) \<or> a \<or> \<not>b"
+  by (ctxt_tactic "xor_pos1")
+
 (* Rule 53: xor_pos2 *)
 
 lemma xor_pos2_1: "\<not>(a \<noteq> b) \<or> \<not>a \<or> \<not>b"
@@ -1498,6 +1539,18 @@ lemma xor_pos2_2: "\<not>((a\<or>c) \<noteq> b) \<or> \<not>(a\<or>c) \<or> \<no
   by (ctxt_tactic "xor_pos2")
 
 lemma xor_pos2_3: "\<not>((a\<and>c) \<noteq> b) \<or> \<not>(a\<and>c) \<or> \<not>b"
+  by (ctxt_tactic "xor_pos2")
+
+lemma xor_pos2_4: "\<not>(a \<noteq> (b \<or> c)) \<or> \<not>a \<or> \<not>(b \<or> c)"
+  by (ctxt_tactic "xor_pos2")
+
+lemma xor_pos2_5: "\<not>((a \<and> b) \<noteq> (c \<or> d)) \<or> \<not>(a \<and> b) \<or> \<not>(c \<or> d)"
+  by (ctxt_tactic "xor_pos2")
+
+lemma xor_pos2_6: \<open>\<not>((\<not>a) \<noteq> b) \<or> \<not>\<not>a \<or> \<not>b\<close>
+  by (ctxt_tactic "xor_pos2")
+
+lemma xor_pos2_7: \<open>\<not>(a \<noteq> (\<not>b)) \<or> \<not>a \<or> \<not>\<not>b\<close>
   by (ctxt_tactic "xor_pos2")
 
 (* Rule 54: xor_neg1 *)
@@ -1511,6 +1564,12 @@ lemma xor_neg1_2: "((a\<or>c) \<noteq> b) \<or> (a\<or>c) \<or> \<not>b"
 lemma xor_neg1_3: "(b \<noteq> (a\<and>c)) \<or> b \<or> \<not>(a\<and>c)"
   by (ctxt_tactic "xor_neg1")
 
+lemma xor_neg1_4: "(a \<noteq> (\<not>b)) \<or> a \<or> \<not>\<not>b"
+  by (ctxt_tactic "xor_neg1")
+
+lemma xor_neg1_5: "((\<not>a) \<noteq> b) \<or> \<not>a \<or> \<not>b"
+  by (ctxt_tactic "xor_neg1")
+
 (* Rule 55: xor_neg2 *)
 
 lemma xor_neg2_1: "(a \<noteq> b) \<or> \<not>a \<or> b"
@@ -1522,32 +1581,50 @@ lemma xor_neg2_2: "((a\<or>c) \<noteq> b) \<or> \<not>(a\<or>c) \<or> b"
 lemma xor_neg2_3: "(b \<noteq> (a\<and>c)) \<or> \<not>b \<or> (a\<and>c)"
   by (ctxt_tactic "xor_neg2")
 
+lemma xor_neg2_4: "(a \<noteq> (\<not>b)) \<or> \<not>a \<or> \<not>b"
+  by (ctxt_tactic "xor_neg2")
+
+lemma xor_neg2_5: "((\<not>a) \<noteq> b) \<or> \<not>\<not>a \<or> b"
+  by (ctxt_tactic "xor_neg2")
+
 (* Rule 56: implies_pos *)
 
 lemma implies_pos_1: "\<not>(a \<longrightarrow> b) \<or> \<not>a \<or> b"
   by (ctxt_tactic "implies_pos")
 
-lemma implies_pos_2:  "\<not>((a \<and> b) \<longrightarrow> c) \<or> \<not>(a \<and> b) \<or> c"
+lemma implies_pos_2: "\<not>(p \<longrightarrow> \<not>q) \<or> \<not>p \<or> \<not>q"
   by (ctxt_tactic "implies_pos")
 
-lemma implies_pos_3: "\<not>((a \<longrightarrow> b) \<longrightarrow> c) \<or> \<not>(a \<longrightarrow> b) \<or> c"
+lemma implies_pos_3: \<open>\<not>(\<not>p \<longrightarrow> q) \<or> \<not>\<not>p \<or> q\<close>
   by (ctxt_tactic "implies_pos")
 
-lemma implies_pos_4: "\<not>((a \<longrightarrow> b) \<longrightarrow> (c \<longrightarrow> d)) \<or> \<not>(a \<longrightarrow> b) \<or> (c \<longrightarrow> d)"
+lemma implies_pos_4:  "\<not>((a \<and> b) \<longrightarrow> c) \<or> \<not>(a \<and> b) \<or> c"
+  by (ctxt_tactic "implies_pos")
+
+lemma implies_pos_5: "\<not>((a \<longrightarrow> b) \<longrightarrow> c) \<or> \<not>(a \<longrightarrow> b) \<or> c"
+  by (ctxt_tactic "implies_pos")
+
+lemma implies_pos_6: "\<not>((a \<longrightarrow> b) \<longrightarrow> (c \<longrightarrow> d)) \<or> \<not>(a \<longrightarrow> b) \<or> (c \<longrightarrow> d)"
   by (ctxt_tactic "implies_pos")
 
 (* Rule 57: implies_neg1 *)
 
-lemma implies_neg_1: "(a \<longrightarrow> b) \<or> a"
+lemma implies_neg1_1: "(a \<longrightarrow> b) \<or> a"
   by (ctxt_tactic "implies_neg1")
 
-lemma implies_neg_2:  "((a \<and> b) \<longrightarrow> c) \<or> (a \<and> b)"
+lemma implies_neg1_2:  "((a \<and> b) \<longrightarrow> c) \<or> (a \<and> b)"
   by (ctxt_tactic "implies_neg1")
 
-lemma implies_neg_3: "((a \<longrightarrow> b) \<longrightarrow> c) \<or> (a \<longrightarrow> b)"
+lemma implies_neg1_3: "((a \<longrightarrow> b) \<longrightarrow> c) \<or> (a \<longrightarrow> b)"
   by (ctxt_tactic "implies_neg1")
 
-lemma implies_neg_4: "((a \<longrightarrow> b) \<longrightarrow> (c \<longrightarrow> d)) \<or> (a \<longrightarrow> b)"
+lemma implies_neg1_4: "((a \<longrightarrow> b) \<longrightarrow> (c \<longrightarrow> d)) \<or> (a \<longrightarrow> b)"
+  by (ctxt_tactic "implies_neg1")
+
+lemma implies_neg1_5: "((a = b) \<longrightarrow> b) \<or> (a = b)"
+  by (ctxt_tactic "implies_neg1")
+
+lemma implies_neg1_6: "(\<not>(a = b) \<longrightarrow> b) \<or> \<not>(a = b)"
   by (ctxt_tactic "implies_neg1")
 
 (* Rule 58: implies_neg2 *)
@@ -1564,6 +1641,9 @@ lemma implies_neg2_3: "((a \<longrightarrow> b) \<longrightarrow> c) \<or> \<not
 lemma implies_neg2_4: "((a \<longrightarrow> b) \<longrightarrow> (c \<longrightarrow> d)) \<or> \<not>(c \<longrightarrow> d)"
   by (ctxt_tactic "implies_neg2")
 
+lemma implies_neg2_5: "(a \<longrightarrow> \<not>b) \<or> \<not>\<not>b"
+  by (ctxt_tactic "implies_neg2")
+
 (* Rule 59: equiv_pos1 *)
 
 lemma equiv_pos1_1: "\<not>(a = b) \<or> a \<or> \<not>b"
@@ -1575,6 +1655,12 @@ lemma equiv_pos1_2: "\<not>(a = (b = c)) \<or> a \<or> \<not>(b = c)"
 lemma equiv_pos1_3: "\<not>((a = d) = (b = c)) \<or> (a = d) \<or> \<not>(b = c)"
   by (ctxt_tactic "equiv_pos1")
 
+lemma equiv_pos1_4: "\<not>((\<not>a) = b) \<or> \<not>a \<or> \<not>b"
+  by (ctxt_tactic "equiv_pos1")
+
+lemma equiv_pos1_5: "\<not>(a = (\<not>b)) \<or> a \<or> \<not>\<not>b"
+  by (ctxt_tactic "equiv_pos1")
+
 (* Rule 60: equiv_pos2 *)
 
 lemma equiv_pos2_1: "\<not>(a = b) \<or> \<not>a \<or> b"
@@ -1584,6 +1670,12 @@ lemma equiv_pos2_2: "\<not>(a = (b = c)) \<or> \<not>a \<or> (b = c)"
   by (ctxt_tactic "equiv_pos2")
 
 lemma equiv_pos2_3: "\<not>((a = d) = (b = c)) \<or> \<not>(a = d) \<or> (b = c)"
+  by (ctxt_tactic "equiv_pos2")
+
+lemma equiv_pos2_4: "\<not>((\<not>a) = b) \<or> \<not>\<not>a \<or> b"
+  by (ctxt_tactic "equiv_pos2")
+
+lemma equiv_pos2_5: "\<not>(a = (\<not>b)) \<or> \<not>a \<or> \<not>b"
   by (ctxt_tactic "equiv_pos2")
 
 (* Rule 61: equiv_neg1 *)
@@ -1600,6 +1692,9 @@ lemma equiv_neg1_3: "((a = d) = (b = c)) \<or> \<not>(a = d) \<or> \<not>(b = c)
 lemma equiv_neg1_4: "((\<not>a) = b) \<or> \<not>(\<not>a) \<or> \<not>b"
   by (ctxt_tactic "equiv_neg1")
 
+lemma equiv_neg1_5: "(a = (\<not>b)) \<or> \<not>a \<or> \<not>(\<not>b)"
+  by (ctxt_tactic "equiv_neg1")
+
 (* Rule 62: equiv_neg2 *)
 
 lemma equiv_neg2_1: "(a = b) \<or> a \<or> b"
@@ -1612,6 +1707,9 @@ lemma equiv_neg2_3: "((a = d) = (b = c)) \<or> (a = d) \<or> (b = c)"
   by (ctxt_tactic "equiv_neg2")
 
 lemma equiv_neg2_4: "((\<not>a) = b) \<or> \<not>a \<or> b"
+  by (ctxt_tactic "equiv_neg2")
+
+lemma equiv_neg2_5: "(a = (\<not>b)) \<or> a \<or> \<not>b"
   by (ctxt_tactic "equiv_neg2")
 
 (* Rule 63: ite1 *)
@@ -1668,6 +1766,12 @@ lemma ite_pos1_3: "\<not>(If a b (d \<or> c)) \<or> a \<or> (d \<or> c)"
 lemma ite_pos1_4: "\<not>(If a b (If a b c)) \<or> a \<or> (If a b c)"
   by (ctxt_tactic "ite_pos1")
 
+lemma ite_pos1_5: "\<not>(If (\<not>a) True (\<not>(b \<or> c))) \<or> \<not>a \<or> \<not>(b \<or> c)"
+  by (ctxt_tactic "ite_pos1")
+
+lemma ite_pos1_6: "\<not>(If (\<not>a) False (b \<and> c)) \<or> \<not>a \<or> (b \<and> c)"
+  by (ctxt_tactic "ite_pos1")
+
 (* Rule 66: ite_pos2 *)
 
 lemma ite_pos2_1: "\<not>(If a b c) \<or> \<not>a \<or> b"
@@ -1680,6 +1784,12 @@ lemma ite_pos2_3: "\<not>(If a b (d \<or> c)) \<or> \<not>a \<or> b"
   by (ctxt_tactic "ite_pos2")
 
 lemma ite_pos2_4: "\<not>(If a (If a b c) (If d b c)) \<or> \<not>a \<or> (If a b c)"
+  by (ctxt_tactic "ite_pos2")
+
+lemma ite_pos2_5: "\<not>(If (\<not>a) (\<not>(b \<or> c)) True) \<or> \<not>(\<not>a) \<or> \<not>(b \<or> c)"
+  by (ctxt_tactic "ite_pos2")
+
+lemma ite_pos2_6: "\<not>(If (\<not>a) (b \<and> c) False) \<or> \<not>(\<not>a) \<or> (b \<and> c)"
   by (ctxt_tactic "ite_pos2")
 
 (* Rule 67: ite_neg1 *)
