@@ -650,10 +650,8 @@ fun or _ (thm :: _) _ = thm
 
 (* Implication *)
 
-(*TODO: We don't need the second lemmas*)
 val implies_pos_thm =
-  [@{lemma \<open>\<not>(A \<longrightarrow> B) \<or> \<not>A \<or> B\<close> by blast},
-  @{lemma \<open>\<not>(\<not>A \<longrightarrow> B) \<or> A \<or> B\<close> by blast}]
+  [@{lemma \<open>\<not>(A \<longrightarrow> B) \<or> \<not>A \<or> B\<close> by blast}]
 
 fun implies_pos ctxt _ t = SMT_Replay_Methods.prove ctxt t (fn _ =>
   resolve_tac ctxt implies_pos_thm)
