@@ -1400,19 +1400,50 @@ fun qnt_rm_unused ctxt _ t = SMT_Replay_Methods.prove ctxt t (fn _ =>
   )
 
 local
-  fun onepoint_combine_quant ctxt (n1 :: bounds1) (n2 :: bounds2) =
+  fun subst_free_untyped [] = I
+    | subst_free_untyped pairs =
+        let fun substf u =
+              case AList.lookup (op Term.aconv_untyped) pairs u of
+                  SOME u' => u'
+                | NONE => (case u of Abs(a,T,t) => Abs(a, T, substf t)
+                                   | t$u' => substf t $ substf u'
+                                   | _ => u)
+        in  substf  end;
+  fun resolve_and_instantiate_onepoint (_, i : term) insts {context, params, ...} =
+    let
+       val i = i
+         |> Term.subst_free insts
+         |> subst_free_untyped (map (fn (x, t) => (Free (x, @{typ dummy}), Thm.term_of t)) params)
+         |> Thm.cterm_of context
+       val thms = map (Drule.infer_instantiate' context [SOME i])
+           @{thms alethe_onepoint2_all alethe_onepoint2_ex}
+    in
+      resolve_tac context thms 1
+    end
+  fun onepoint_combine_quant ctxt (n1 :: bounds1) (n2 :: bounds2) (i :: insts) past_ints =
       TRY' (if n1 = n2
         then resolve_tac ctxt @{thms alethe_onepoint(1,3)}
-         THEN' onepoint_combine_quant ctxt bounds1 bounds2
-       else resolve_tac ctxt @{thms alethe_onepoint2_all alethe_onepoint2_ex}
-         THEN' onepoint_combine_quant ctxt bounds1 (n2 :: bounds2))
-    | onepoint_combine_quant ctxt (_ :: bounds1) [] =
-      resolve_tac ctxt @{thms alethe_onepoint2_all alethe_onepoint2_ex}
-      THEN' onepoint_combine_quant ctxt bounds1 []
-    | onepoint_combine_quant _ _ _ = K all_tac
-  
-  fun onepoint_quants ctxt t =
+         THEN' onepoint_combine_quant ctxt bounds1 bounds2 (i :: insts) past_ints
+       else Subgoal.FOCUS (resolve_and_instantiate_onepoint i past_ints) ctxt
+         THEN' onepoint_combine_quant ctxt bounds1 (n2 :: bounds2) insts (past_ints @ [i]))
+    | onepoint_combine_quant ctxt (_ :: bounds1) [] (i :: insts) past_ints =
+      Subgoal.FOCUS (resolve_and_instantiate_onepoint i past_ints) ctxt
+      THEN' onepoint_combine_quant ctxt bounds1 [] insts (past_ints @ [i])
+    | onepoint_combine_quant _ _ _ _ _ = K all_tac
+
+  fun extract_implications 
+     (Const (\<^const_name>\<open>Pure.imp\<close>,_) $ 
+       (Const (\<^const_name>\<open>Trueprop\<close>,_) $ (Const (\<^const_name>\<open>HOL.eq\<close>,_) $ u $ v)) $
+       t) = (u, v) :: extract_implications t
+    | extract_implications _ = []
+
+  val extract_instantiations =
+    Thm.prop_of
+    #> extract_implications
+ 
+  fun onepoint_quants ctxt prems t =
     let
+      val insts = extract_instantiations prems
       val (t1, t2) = 
         t
         |> Thm.cterm_of ctxt
@@ -1420,13 +1451,13 @@ local
         |> HOLogic.dest_eq
     in
        onepoint_combine_quant ctxt 
-           (extract_quantified_names_q t1 |> fst |> map to_upper |> @{print})
-           (extract_quantified_names_q t2 |> fst |> map to_upper |> @{print})
+         (extract_quantified_names_q t1 |> fst |> map to_upper)
+         (extract_quantified_names_q t2 |> fst |> map to_upper)
+         insts
     end
 in
-fun onepoint ctxt prems t = SMT_Replay_Methods.prove ctxt t (fn _ =>
-  onepoint_quants ctxt t
-  THEN' resolve_tac ctxt (@{print}prems)
+fun onepoint ctxt [prem] t = SMT_Replay_Methods.prove ctxt t (fn _ =>
+  onepoint_quants ctxt prem t []
   THEN' REPEAT' (resolve_tac ctxt @{thms refl})
   THEN' REPEAT' 
     (*cheap version: hope that nothing got reorder and simp will solve the goal. Otherwise,
@@ -1441,12 +1472,11 @@ fun onepoint ctxt prems t = SMT_Replay_Methods.prove ctxt t (fn _ =>
       |> Simplifier.add_cong @{thm alethe_rewrite_in_imp}
       |> (fn ctxt => ctxt
            addsimprocs [@{simproc defined_All}, @{simproc defined_Ex}])
-      |> Simplifier.full_simp_tac)
-  THEN' K (print_tac ctxt "after simp")
-    THEN' 
-      (*veriT can still reorder equalities, so we need something stronger than just reordering the
-      implication as done above.*)
-      TRY' (Metis_Tactic.metis_tac [] ATP_Problem_Generate.combsN ctxt []))))
+      |> Simplifier.asm_full_simp_tac)))
+  THEN' 
+    (*veriT can still reorder equalities, so we need something stronger than just reordering the
+    implication as done above.*)
+    REPEAT' (Metis_Tactic.metis_tac [] ATP_Problem_Generate.combsN ctxt []))
 end
 
 fun qnt_join ctxt _ t = SMT_Replay_Methods.prove ctxt t Classical.fast_tac
