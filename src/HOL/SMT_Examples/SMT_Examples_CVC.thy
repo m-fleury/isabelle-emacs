@@ -764,11 +764,77 @@ lemma zero_cdiv_eq [simp]:
        shows
   \<open>0 cdiv k = 0\<close>
   supply [[smt_trace=false,smt_verbose=false,smt_statistics]]
-
   by (smt (cvc5) assms) (*error*)
 
 end
 
+context
+  fixes
+   round_up :: "int \<Rightarrow> real \<Rightarrow> real"and
+   round_down :: "int \<Rightarrow> real \<Rightarrow> real" and
+   powr :: \<open>real \<Rightarrow> real \<Rightarrow> real\<close> (infix "powr" 80)
+  assumes powr_gt_zero: \<open>\<And>a b :: real. 0 < x powr a \<longleftrightarrow> x \<noteq> 0\<close>
+   and powr_minus_divide: "\<And>a x :: real. x powr (- a) = 1/(x powr a)"
+   and round_up_diff_round_down: \<open>\<And>prec (x::real). round_up prec x - round_down prec x
+    \<le> 2 powr (- real_of_int prec)\<close> 
+   and round_down_uminus_eq: \<open>\<And>prec x. round_down p (- x) = - round_up p x\<close>
+   and round_up: \<open>\<And>prec x. x \<le> round_up prec x\<close>
+   and round_up_diff_round_down: \<open>\<And>prec x. round_up prec x - round_down prec x \<le> 2 powr (- real_of_int prec)\<close>
+
+begin
+
+lemma
+  assumes "x < 1 / 2" \<open>p > 0\<close>
+     \<open>1 / 2 * 2 powr real_of_int p \<le> 2 powr real_of_int p - 1\<close> 
+     \<open>x * 2 powr real_of_int p < 1 / 2 * 2 powr real_of_int p\<close>
+  shows "round_up p x < 1"
+  supply [[smt_trace=false,smt_statistics]]
+  using comm_semiring_class.distrib divide_divide_eq_right
+ mult.assoc mult.commute mult_cancel_left1 mult_cancel_right mult_cancel_right2
+ mult_less_cancel_left_pos mult_minus_left nonzero_eq_divide_eq nonzero_mult_div_cancel_left
+ nonzero_mult_div_cancel_right powr_gt_zero powr_minus_divide round_down_uminus_eq
+ round_up round_up_diff_round_down times_divide_eq_right assms
+  by (smt (cvc5))
+end
+
+section \<open>Monomorphization examples\<close>
+
+definition Pred :: "'a \<Rightarrow> bool" where
+  "Pred x = True"
+
+lemma poly_Pred: "Pred x \<and> (Pred [x] \<or> \<not> Pred [x])"
+  by (simp add: Pred_def)
+
+lemma "Pred (1::int)"
+  by (smt (cvc5) poly_Pred)
+
+axiomatization g :: "'a \<Rightarrow> nat"
+axiomatization where
+  g1: "g (Some x) = g [x]" and
+  g2: "g None = g []" and
+  g3: "g xs = length xs"
+
+lemma "g (Some (3::int)) = g (Some True)" by (smt (cvc5) g1 g2 g3 list.size)
+
+
+section \<open>cvc5 only examples\<close>
+
+declare[[smt_expert_debug_alethe_files="smt_global_normalize"]]
+declare[[smt_expert_debug_alethe_level=3]]
+lemma "(2::nat) ^ 3 = 8"
+  apply (smt (cvc5))
+  oops
+(*("current term",
+ Const ("SMT.pow_2", "int \<Rightarrow> int") $
+   (Const ("Num.numeral_class.numeral", "num \<Rightarrow> int") $
+     (Const ("Num.num.Bit1", "num \<Rightarrow> num") $
+       Const ("Num.num.One", "num")))) (line 359 of "/home/lachnitt/Sources/isabelle-git/isabelle-emacs/src/HOL/Tools/SMT/smt_global_normalize.ML") 
+("builtin fun", false) (line 367 of "/home/lachnitt/Sources/isabelle-git/isabelle-emacs/src/HOL/Tools/SMT/smt_global_normalize.ML") 
+("builtin fun ext", false) (line 368 of "/h*)
+lemma "(3::nat) ^ 3 = 27"
+  using power_0 power_Suc
+  (*apply (smt (cvc5)) (*finds no proof*)*)
+  oops
 
 datatype 'a extended = Fin 'a | Pinf ("\<infinity>") | Minf ("-\<infinity>")
 instantiation extended :: (plus)plus
@@ -891,75 +957,8 @@ lemma
        "Fin (0::'a::comm_monoid_add) + (x::'a::comm_monoid_add extended) = x "
   supply [[smt_trace=false,smt_statistics]]
   using assms
-(*  by (smt (cvc5,fmf)) (*error: onepoint issue*)*)
-  sorry
-
-
-
-context
-  fixes
-   round_up :: "int \<Rightarrow> real \<Rightarrow> real"and
-   round_down :: "int \<Rightarrow> real \<Rightarrow> real"
-  assumes powr_gt_zero: \<open>\<And>a b :: real. 0 < x powr a \<longleftrightarrow> x \<noteq> 0\<close>
-   and powr_minus_divide: "\<And>a x :: real. x powr (- a) = 1/(x powr a)"
-   and round_up_diff_round_down: \<open>\<And>prec (x::real). round_up prec x - round_down prec x
-    \<le> 2 powr - real_of_int prec\<close> 
-   and round_down_uminus_eq: \<open>\<And>prec x. round_down p (- x) = - round_up p x\<close>
-   and round_up: \<open>\<And>prec x. x \<le> round_up prec x\<close>
-   and round_up_diff_round_down: \<open>\<And>prec x. round_up prec x - round_down prec x \<le> 2 powr - real_of_int prec\<close>
-
-begin
-
-lemma
-  assumes "x < 1 / 2" \<open>p > 0\<close>
-     \<open>1 / 2 * 2 powr real_of_int p \<le> 2 powr real_of_int p - 1\<close> 
-     \<open>x * 2 powr real_of_int p < 1 / 2 * 2 powr real_of_int p\<close>
-  shows "round_up p x < 1"
-  supply [[smt_trace=false]]
-  using comm_semiring_class.distrib divide_divide_eq_right
- mult.assoc mult.commute mult_cancel_left1 mult_cancel_right mult_cancel_right2
- mult_less_cancel_left_pos mult_minus_left nonzero_eq_divide_eq nonzero_mult_div_cancel_left
- nonzero_mult_div_cancel_right powr_gt_zero powr_minus_divide round_down_uminus_eq
- round_up round_up_diff_round_down times_divide_eq_right assms
-  by (smt (cvc5))
-end
-
-section \<open>Monomorphization examples\<close>
-
-definition Pred :: "'a \<Rightarrow> bool" where
-  "Pred x = True"
-
-lemma poly_Pred: "Pred x \<and> (Pred [x] \<or> \<not> Pred [x])"
-  by (simp add: Pred_def)
-
-lemma "Pred (1::int)"
-  by (smt (cvc5) poly_Pred)
-
-axiomatization g :: "'a \<Rightarrow> nat"
-axiomatization where
-  g1: "g (Some x) = g [x]" and
-  g2: "g None = g []" and
-  g3: "g xs = length xs"
-
-lemma "g (Some (3::int)) = g (Some True)" by (smt (cvc5) g1 g2 g3 list.size)
-
-
-section \<open>cvc5 only examples\<close>
-
-declare[[smt_expert_debug_alethe_files="smt_global_normalize"]]
-declare[[smt_expert_debug_alethe_level=3]]
-lemma "(2::nat) ^ 3 = 8"
-  apply (smt (cvc5))
-(*("current term",
- Const ("SMT.pow_2", "int \<Rightarrow> int") $
-   (Const ("Num.numeral_class.numeral", "num \<Rightarrow> int") $
-     (Const ("Num.num.Bit1", "num \<Rightarrow> num") $
-       Const ("Num.num.One", "num")))) (line 359 of "/home/lachnitt/Sources/isabelle-git/isabelle-emacs/src/HOL/Tools/SMT/smt_global_normalize.ML") 
-("builtin fun", false) (line 367 of "/home/lachnitt/Sources/isabelle-git/isabelle-emacs/src/HOL/Tools/SMT/smt_global_normalize.ML") 
-("builtin fun ext", false) (line 368 of "/h*)
-lemma "(3::nat) ^ 3 = 27"
-  using power_0 power_Suc
-  apply (smt (cvc5))
+  by (smt (cvc5,fmf))
+ 
 
 
 end
