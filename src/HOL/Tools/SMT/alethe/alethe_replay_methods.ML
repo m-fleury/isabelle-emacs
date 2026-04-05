@@ -637,7 +637,7 @@ fun forall_inst ctxt _ t (SOME (Insts insts)) =
       match_tac ctxt [@{thm disj_not1} RSN (1, @{thm iffD2}) OF [@{thm impI}]]
       THEN' (fn i => Subgoal.FOCUS (instantiate_and_solve i) ctxt i))
   end |
- forall_inst ctxt _ t _ = raise Fail ""
+ forall_inst _ _ _ _ = raise Fail ""
 
 end
 
@@ -690,7 +690,7 @@ skolem constant is used multiple times with a different name under the forall.
 For strictness, we use the multiple rewriting only when compressing is activated.
 *)
 local
-  fun rewrite_all_skolems ctxt_eq thm_indirect ctxt ((v,SOME thm) :: thms) =
+  fun rewrite_all_skolems ctxt_eq thm_indirect ctxt ((_,SOME thm) :: thms) =
      let
        val rewrite_sk_thms =
          List.mapPartial (fn tm => SOME (tm OF [thm]) handle THM _ => NONE) thm_indirect
@@ -1619,8 +1619,6 @@ local
   fun chain_rewrite_thms_two_step ctxt thms1 thms2 thms3 thms4 =
     chain_rewrite_two_step_with_ac_simps ctxt thms1 thms2
     THEN' TRY' (chain_rewrite_two_step_with_ac_simps ctxt thms3 thms4)
-
-  val imp_refl = @{lemma \<open>(P \<longrightarrow> P) = True\<close> by blast}
 
 in
 fun rewrite_bool_simplify ctxt _ t =
