@@ -67,6 +67,7 @@ lemmas [alethe_poly_norm] =
   divide_self_if if_True if_False one_neq_zero more_arith_simps
   division_ring_class.times_divide_eq_right divide_cancel_left
 
+(*TODO: These could be organized better to make sure we are not missing any*)
 lemma [alethe_poly_simp_rel]:
   fixes x1::"real" and x2 y1 y2 cx cy
   shows "cx \<noteq> 0 \<Longrightarrow> cy \<noteq> 0 \<Longrightarrow>
@@ -101,9 +102,7 @@ lemma [alethe_poly_simp_rel]:
   fixes x1 and x2 y1 y2 cx cy
   shows "((cx > 0) = (cy > 0)) \<Longrightarrow> cx \<noteq> 0 \<Longrightarrow> cy \<noteq> 0 \<Longrightarrow>
 ((cx * real_of_int (x1 - x2)) = (cy * ((real_of_int y1) - (real_of_int y2)))) \<longrightarrow> ((x1 \<le> x2) = (real_of_int y1 \<le> real_of_int y2))"
-  apply standard
   apply (cases "x1 \<le> x2")
-   apply simp_all
    apply (cases "(0 < cx)")
     apply simp_all
     apply (metis le_iff_diff_le_0 mult_le_cancel_left mult_zero_right not_less_iff_gr_or_eq of_int_le_iff)
@@ -114,13 +113,11 @@ lemma [alethe_poly_simp_rel]:
   fixes x1 x2 y1 y2 cx cy
   shows "((cx > 0) = (cy > 0)) \<Longrightarrow> cx \<noteq> 0 \<Longrightarrow> cy \<noteq> 0 \<Longrightarrow>
 ((cx * real_of_int (x1 - x2)) = (cy * (y1 - y2))) \<longrightarrow> ((x1 \<ge> x2) = ((real_of_int y1) \<ge> (real_of_int y2)))"
-  apply standard
   apply (cases "x1 \<ge> x2")
-   apply simp_all
    apply (cases "(0 < cx)")
-    apply simp_all
   apply (metis diff_ge_0_iff_ge dual_order.strict_iff_not of_int_0_le_iff of_int_diff zero_le_mult_iff)
-  apply (metis cvc_arith_rewrite_defs(5) less_iff_diff_less_0 of_int_diff of_int_less_0_iff order_le_less zero_less_mult_iff)
+   apply (metis cvc_arith_rewrite_defs(5) less_iff_diff_less_0 of_int_diff of_int_less_0_iff order_le_less zero_less_mult_iff)
+  apply simp
   by (metis cvc_arith_rewrite_defs(5) less_iff_diff_less_0 mult_less_0_iff of_int_less_iff order_le_less zero_less_mult_iff)
 
 lemma [alethe_poly_simp_rel]:
@@ -132,6 +129,19 @@ lemma [alethe_poly_simp_rel]:
 lemma [alethe_poly_simp_rel]:
   fixes x1 x2 y1 y2 cx cy
   shows "((cx > 0) = (cy > 0)) \<Longrightarrow> cx \<noteq> 0 \<Longrightarrow> cy \<noteq> 0 \<Longrightarrow>
-((cx * (real_of_int (x1 - x2))) = (cy * ((real_of_int y1) - (real_of_int y1)))) \<longrightarrow> ((x1 > x2) = ((real_of_int y1) > (real_of_int y1)))"
-  by simp
+((cx * (real_of_int (x2 - x1))) = (cy * ((real_of_int y2) - y1))) \<longrightarrow> ((x1 \<le> x2) = (y1 \<le> (real_of_int y2)))"
+  apply (cases "x1 \<le> x2")
+   apply (case_tac [!] "(0 < cx)")
+    apply simp_all
+  apply (metis diff_ge_0_iff_ge mult.commute mult_left_le_imp_le mult_zero_left of_int_0_le_iff of_int_diff split_mult_pos_le zero_le_square)
+   apply (metis cvc_arith_rewrite_defs(5) diff_ge_0_iff_ge mult_le_0_iff of_int_0_le_iff of_int_diff order_le_less)
+   apply (metis (no_types, lifting) diff_ge_0_iff_ge linorder_not_less mult_eq_0_iff mult_le_0_iff nle_le of_int_le_iff)
+   by (metis diff_ge_0_iff_ge leI mult_le_0_iff of_int_le_iff order_antisym_conv)
+
+lemma [alethe_poly_simp_rel]:
+  fixes x1 x2 y1 y2 cx cy
+  shows "((cx > 0) = (cy > 0)) \<Longrightarrow> cx \<noteq> 0 \<Longrightarrow> cy \<noteq> 0 \<Longrightarrow>
+((cx * (real_of_int (x1 - x2))) = (cy * ((real_of_int y1) - (real_of_int y2)))) \<longrightarrow> ((x1 = x2) = ((real_of_int y1) = (real_of_int y2)))"
+  by auto
+
 end

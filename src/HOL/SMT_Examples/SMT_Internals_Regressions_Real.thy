@@ -185,4 +185,19 @@ lemma poly_simp_rel3:
   using assms
   by (ctxt_tactic "poly_simp_rel")
 
+
+
+lemma poly_simp_rel4:
+  assumes " 1 / 2 * real_of_int (1 + 2 * v0 - 2 * v1) = 1 / 1 * (real_of_int (v0 + - 1 * v1) - - 1 / 2)"
+  shows "(2 * v1 \<le> 1 + 2 * v0) = (- 1 / 2 \<le> real_of_int (v0 + - 1 * v1))"
+  using assms
+  by (ctxt_tactic "poly_simp_rel")
+
+
+lemma poly_simp_rel5:
+  assumes " - 1 / 1 * real_of_int (2 * lift_x - 1) = - 1 / 1 * (real_of_int (2 * lift_x) - real_of_int 1)"
+  shows "(2 * lift_x = 1) = (real_of_int (2 * lift_x) = real_of_int 1)"
+  using assms
+  by (ctxt_tactic "poly_simp_rel")
+
 end
