@@ -1806,6 +1806,9 @@ lemma ite_neg1_3: "(If a b (d \<or> c)) \<or> a \<or> \<not>(d \<or> c)"
 lemma ite_neg1_4: "(If a (If a b c) (If d b c)) \<or> a \<or> \<not>(If d b c)"
   by (ctxt_tactic "ite_neg1")
 
+lemma ite_neg1_5: "(If (\<not>a) False (b \<and> c)) \<or> \<not>a \<or> \<not>(b \<and> c)"
+  by (ctxt_tactic "ite_neg1")
+
 (* Rule 68: ite_neg2 *)
 
 lemma ite_neg2_1: "(If a b c) \<or> \<not>a \<or> \<not>b"
@@ -1818,6 +1821,9 @@ lemma ite_neg2_3: "(If a (d \<or> c)  b) \<or> \<not>a \<or> \<not>(d \<or> c)"
   by (ctxt_tactic "ite_neg2")
 
 lemma ite_neg2_4: "(If a (If a b c) (If d b c)) \<or> \<not>a \<or> \<not>(If a b c)"
+  by (ctxt_tactic "ite_neg2")
+
+lemma ite_neg2_5: "(If (\<not>a) (b \<and> c) False) \<or> \<not>(\<not>a) \<or> \<not>(b \<and> c)"
   by (ctxt_tactic "ite_neg2")
 
 (* Rule 69: not_ite1 *)
