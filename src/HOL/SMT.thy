@@ -973,7 +973,7 @@ lemma alethe_onepoint:
   by auto
 
 lemma alethe_rewrite_in_imp:
-  \<open>(a::'a) = (b::'a) \<equiv> P'::bool \<Longrightarrow> (P' \<Longrightarrow> (P::'a \<Rightarrow> bool) a \<equiv> Q'::bool) \<Longrightarrow> a = b \<longrightarrow> P a \<equiv> P' \<longrightarrow> Q'\<close>
+  \<open>((a::'a) = (b::'a) \<equiv> P') \<Longrightarrow> (P' \<Longrightarrow> P = Q) \<Longrightarrow> (a = b \<longrightarrow> P) \<equiv> (P' \<longrightarrow> Q)\<close>
   by auto
 
 named_theorems nat_normalized_input \<open>Theorems required to replay nat operators embedded into lifted int versions\<close>
