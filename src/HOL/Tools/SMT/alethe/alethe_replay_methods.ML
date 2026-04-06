@@ -1472,8 +1472,7 @@ fun onepoint ctxt [prem] t = SMT_Replay_Methods.prove ctxt t (fn _ =>
       |> Simplifier.add_cong @{thm alethe_rewrite_in_imp}
       |> (fn ctxt => ctxt
            addsimprocs [@{simproc defined_All}, @{simproc defined_Ex}])
-      |> Simplifier.asm_full_simp_tac)
-      THEN' K (print_tac ctxt "post_simp")))
+      |> Simplifier.asm_full_simp_tac)))
   THEN' 
     (*veriT can still reorder equalities, so we need something stronger than just reordering the
     implication as done above.*)
