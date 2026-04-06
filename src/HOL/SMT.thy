@@ -976,6 +976,9 @@ lemma alethe_rewrite_in_imp:
   \<open>((a::'a) = (b::'a) \<equiv> P') \<Longrightarrow> (P' \<Longrightarrow> P = Q) \<Longrightarrow> (a = b \<longrightarrow> P) \<equiv> (P' \<longrightarrow> Q)\<close>
   by auto
 
+lemma alethe_imp_commute: \<open>(a \<longrightarrow> b \<longrightarrow> q) = (b \<longrightarrow> a \<longrightarrow> q)\<close>
+  by auto
+
 named_theorems nat_normalized_input \<open>Theorems required to replay nat operators embedded into lifted int versions\<close>
 named_theorems cvc5_normalized_input \<open>Theorems required to replay
 our more complicated translations\<close>

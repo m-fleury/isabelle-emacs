@@ -1468,7 +1468,7 @@ fun onepoint ctxt [prem] t = SMT_Replay_Methods.prove ctxt t (fn _ =>
       |> empty_simpset
       |> put_simpset HOL_basic_ss
       |> (fn ctxt => ctxt addsimps @{thms disj_not1 simp_thms all_simps ex_simps de_Morgan_conj
-        not_all not_ex de_Morgan_disj disj_not1 triv_forall_equality eq_commute})
+        not_all not_ex de_Morgan_disj disj_not1 triv_forall_equality eq_commute alethe_imp_commute})
       |> Simplifier.add_cong @{thm alethe_rewrite_in_imp}
       |> (fn ctxt => ctxt
            addsimprocs [@{simproc defined_All}, @{simproc defined_Ex}])
