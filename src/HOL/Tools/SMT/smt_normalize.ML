@@ -34,7 +34,7 @@ fun debug_msg ctxt = alethe_debug_msg ctxt "smt_normalize"
 fun print_conv prefix ctxt msg x =
 let
   (*TODO: This is always printed and should not be*)
-  (*val _ = debug_msg ctxt high (fn () => \<^print> (prefix ^ " " ^ msg,x))*)
+  val _ = debug_msg ctxt high (fn () => \<^print> (prefix ^ " " ^ msg,x))
 in Conv.all_conv x end
 
 fun drop_fact_warning ctxt =
@@ -342,82 +342,50 @@ val setup_abs_min_max = fold (SMT_Builtin.add_builtin_fun_ext'' o fst) abs_min_m
 
 end
 
-(** unfold cvc5 extensions **)
-(** simplify goals **)
-(** Lift nat operators that should be natively translated to int operators**)
 
-(*term,(lemmas applied as conversion,should simplifier be called, if so with which lemmas)*)
-(*NOTE: will integrate into other passes or at least make one pass*)
-
-val no_simplifier = map (fn (a,b) => (a,(b,NONE)))
-
-val cvc5_extension_table = [
-  (\<^const_name>\<open>power\<close>, @{thms pow_2_raw''})
-]
-
-
-
-(*fun fst_int_ord ((i1, _), (i2, _)) = int_ord (i1, i2)
-
-structure Mk_Builtins = Generic_Data
-(
-  type T = (int * mk_builtins) list
-  val empty = []
-  fun merge data = Ord_List.merge fst_int_ord data
-)
+(*
+The following passes might eventually be integrated into some other pass and/or merged together:
+1. It is used to lift natural number operators (especially machine word ones) to those that work on integers.
+2. It also applies the simplifier to certain subterms.
+3. It allows to apply unfold a lemma for a specific solver only.
 *)
+
+(*data structures*)
 type nat_native_ops = (string * thm list)
-
-fun fst_string_ord ((i1, _), (i2, _)) = string_ord (i1, i2)
-
-
 structure Nat_Native_Ops = Generic_Data
 (
   type T = nat_native_ops list
   val empty = []
   fun merge data = AList.merge (op =) (fn _ => true) data
 )
-
 fun get_nat_native_ops_tab ctxt = (Nat_Native_Ops.get (Context.Proof ctxt) : nat_native_ops list)
-
 fun add_nat_native_ops_tab tabs context =
-let
-    val data = Nat_Native_Ops.get context
-in
- Nat_Native_Ops.map  (K (AList.update (op =) tabs data))
-      context
-end
-
-
+ Nat_Native_Ops.map (K (AList.update (op =) tabs (Nat_Native_Ops.get context))) context
 
 type simplify_ops = (string * thm list)
-
 structure Simplify_Ops = Generic_Data
 (
   type T = simplify_ops list
   val empty = []
   fun merge data = AList.merge (op =) (fn _ => true) data
- 
 )
-
 fun get_simplify_ops_tab ctxt = (Simplify_Ops.get (Context.Proof ctxt) : simplify_ops list)
 fun add_simplify_ops_tab tabs context = 
-let
-    val data = Simplify_Ops.get context
-in
- Simplify_Ops.map  (K (AList.update (op =) tabs data))
-      context
-end
+ Simplify_Ops.map (K (AList.update (op =) tabs (Simplify_Ops.get context))) context
 
-
-(*NOTE: Might be integrated into one of the other passes eventually. However, needs to be run before
-the run that pushes the ints in*)
-fun nat_native_ops_table ctxt = ([
-  (\<^const_name>\<open>power\<close>, Named_Theorems.get ctxt \<^named_theorems>\<open>pow_2_word\<close>)] @ (get_nat_native_ops_tab ctxt))
+(*Dynamic tables with default values*)
+val cvc5_extension_table =
+[
+  (\<^const_name>\<open>power\<close>, @{thms pow_2_raw''})
+]
+fun nat_native_ops_table ctxt =
+  [(\<^const_name>\<open>power\<close>, Named_Theorems.get ctxt \<^named_theorems>\<open>pow_2_word\<close>)] (*TODO: This should be added later*)
+  @ (get_nat_native_ops_tab ctxt)
 fun simplify_norm_table ctxt = (get_simplify_ops_tab ctxt)
 
 local
-
+  (*Check if top-level operator is in list of operators to unfold*)
+  (*TODO: It should be enough to try all the thms from the table without looking them up*)
   fun unfold_extension_conv tab ctxt ct =
     let
       val t = Thm.term_of ct
@@ -447,44 +415,35 @@ local
       (case t1 of
         Const(n,T) =>
           (case AList.lookup (op =) tab n of (*TODO: use thms in Simplifier*)
-              SOME thms => rewr_conv thms then_conv (simp_rewr ctxt)
+              SOME thms => rewr_conv thms
+              then_conv (print_conv "unfold_extension_conv_simp") ctxt "unfolded one conv" 
+               then_conv (simp_rewr ctxt)
+              then_conv (print_conv "unfold_extension_conv_simp") ctxt "simp rewrite one conv" 
+
             | NONE => Conv.all_conv)
        | _ => Conv.all_conv) ct
     end
 in
 
-(*Going to be merged eventually*)
-fun unfold_cvc5_extension_conv ctxt =
- (Conv.top_conv (unfold_extension_conv cvc5_extension_table) ctxt)
-
-fun unfold_cvc5_extension ctxt = 
- (if SMT_Config.solver_of ctxt = "cvc5_proof" then map (apsnd (Conv.fconv_rule (unfold_cvc5_extension_conv ctxt))) else (fn x => x))
 
 fun simplify_norm_extension_conv ctxt =
  (Conv.top_conv (unfold_extension_conv_simp (simplify_norm_table ctxt)) ctxt)
 
-fun simplify_norm_extension ctxt = 
- map (apsnd (Conv.fconv_rule (simplify_norm_extension_conv ctxt)))
-
 fun nat_native_extension_conv ctxt =
- (Conv.top_conv (unfold_extension_conv (nat_native_ops_table ctxt)) ctxt)
+ (unfold_extension_conv (nat_native_ops_table ctxt) ctxt)
 
-fun nat_native_extension ctxt = 
- map (apsnd (Conv.fconv_rule (nat_native_extension_conv ctxt)))
 
 fun extensions ctxt = (*todo: better name for all of these*)
- map (apsnd (Conv.fconv_rule (
-Conv.repeat_changed_conv
-(Conv.first_conv[
-  nat_native_extension_conv ctxt,
-  Conv.top_conv (unfold_extension_conv_simp (simplify_norm_table ctxt)) ctxt]
-)
+ map (apsnd (Conv.fconv_rule (Conv.top_conv
+   (fn ctxt' => Conv.first_conv [nat_native_extension_conv ctxt']) ctxt
 )))
 
 
-(* Not really sure if we should add this to the table.. after all this should only be done for cvc5
-fun setup_cvc5_extension _ = fold (SMT_Builtin.add_builtin_fun_ext'' o fst) cvc5_extension_table
-*)
+fun unfold_cvc5_extension_conv ctxt =
+ (unfold_extension_conv (cvc5_extension_table) ctxt)
+
+fun unfold_cvc5_extension ctxt = 
+ (if SMT_Config.solver_of ctxt = "cvc5_proof" then map (apsnd (Conv.fconv_rule (unfold_cvc5_extension_conv ctxt))) else (fn x => x))
 
 end
 
@@ -675,7 +634,7 @@ fun unfold_conv ctxt =
   print_conv_unfold ctxt "get_unfold_conv ctxt" then_conv
   Thm.beta_conversion true then_conv
   print_conv_unfold ctxt "Thm.beta_conversion"
-
+            
 fun unfold_polymorph ctxt = map (apsnd (Conv.fconv_rule (unfold_conv ctxt)))
 fun unfold_monomorph ctxt =
   map (apsnd (Conv.fconv_rule (normalize_numerals_conv ctxt)))
@@ -750,7 +709,7 @@ fun normalize ctxt wthms =
   |> map_index (fn (n, (role, thm)) => ((n, role), thm))
   |> debug ctxt "before"
   |> unfold_cvc5_extension ctxt
-  |> debug ctxt "unfold_cvc5_extension"
+  |> debug ctxt "unfold_cvc5_extension" (*TODO: Is this needed? Why does this appear as a conv and here?*)
   
   |> extensions ctxt
   |> debug ctxt "nat_native_extension and simplify extensions"
