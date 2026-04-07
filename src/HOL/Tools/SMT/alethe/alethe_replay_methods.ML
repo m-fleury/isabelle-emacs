@@ -1596,16 +1596,33 @@ in
   val reordering2 = prove_reordering
 end
 
+(*
+The reconstruction of subproof changed a lot over time, thanks to the stricter assumptions.
+There are currently three paths:
+  1. The most efficient which might however not work if the conclusion of
+  the subproof is A & B
+
+  2. The second step where we unify with the premise and the we enable
+  reordering of equalities assuming
+
+  3. We hammer on the goal.
+
+
+*)
 fun subproof ctxt [prem] t =
      SMT_Replay_Methods.prove ctxt t (fn _ =>
-      (REPEAT' (resolve_tac ctxt [@{thm disj_not1} RSN (1, @{thm iffD2}) OF [@{thm impI}],
+      SOLVED' (REPEAT' (resolve_tac ctxt @{thms alethe_and_neg(2)})
+        THEN' TRY' (resolve_tac ctxt [prem |> @{print}])
+        THEN' REPEAT' (assume_tac ctxt))
+      ORELSE'  SOLVED' (
+        REPEAT' (resolve_tac ctxt [@{thm disj_not1} RSN (1, @{thm iffD2}) OF [@{thm impI}],
            @{thm disj_not1[of \<open>\<not>_\<close>, unfolded not_not]} RSN (1, @{thm iffD2}) OF [@{thm impI}]])
         THEN' resolve_tac ctxt [prem]
         THEN_ALL_NEW (assume_tac ctxt
           ORELSE'
             SOLVED' ((partial_simplify_tac ctxt @{thms eq_commute ac_simps}
             THEN' TRY' (assume_tac ctxt))))
-          THEN' TRY' (assume_tac ctxt))
+          THEN' TRY' (assume_tac ctxt)))
       ORELSE' TRY' (Method.insert_tac ctxt [prem]
         THEN' TRY' (partial_simplify_tac ctxt @{thms eq_commute ac_simps})
         THEN' TRY' (Blast.blast_tac ctxt)))
