@@ -705,8 +705,8 @@ lemma eq_congruent_pred_2: "\<not> (a = a) \<or> \<not>(a = b) \<or> (P a a = P 
 
 (* Rule 29: qnt_cnf *)
 
-lemma qnt_cnf_1: "\<not> (\<forall>x1. ((x1 = 1) \<or> (x1 = 2))) \<or> (\<forall>x1. (x1 = 1))"
-  by (ctxt_tactic "qnt_cnf")
+lemma qnt_cnf_1: "\<not> (\<forall>x1. \<not>((x1 = 1) \<or> (x1 = 2))) \<or> (\<forall>x1. (\<not>(x1 = 1) \<and> \<not>(x1 = 2)))"
+ by (ctxt_tactic "qnt_cnf")
 
 lemma qnt_cnf_2:
         " \<not> (\<forall>(veriT_vr756::int) veriT_vr757 veriT_vr758 (veriT_vr759::int) (veriT_vr760::int) veriT_vr761 veriT_vr762.
