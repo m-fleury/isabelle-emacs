@@ -1403,10 +1403,20 @@ fun qnt_rm_unused ctxt _ t = SMT_Replay_Methods.prove ctxt t (fn _ =>
   )
 
 local
-  fun subst_free_untyped [] = I
-    | subst_free_untyped pairs =
+  fun aconv_untyped (tm1, tm2) =
+    pointer_eq (tm1, tm2) orelse
+      (case (tm1, tm2) of
+        (t1 $ u1, t2 $ u2) => aconv_untyped (t1, t2) andalso aconv_untyped (u1, u2)
+      | (Abs (_, _, t1), Abs (_, _, t2)) => aconv_untyped (t1, t2)
+      | (Const (a, _), Const (b, _)) => a = b
+      | (Free (x, _), Free (y, _)) => x = y
+      | (Var (xi, _), Var (yj, _)) => xi = yj
+      | (Bound i, Bound j) => i = j
+      | _ => false);
+  fun subst_var_untyped [] = I
+    | subst_var_untyped pairs =
         let fun substf u =
-              case AList.lookup (op Term.aconv_untyped) pairs u of
+              case AList.lookup aconv_untyped pairs u of
                   SOME u' => u'
                 | NONE => (case u of Abs(a,T,t) => Abs(a, T, substf t)
                                    | t$u' => substf t $ substf u'
@@ -1414,14 +1424,18 @@ local
         in  substf  end;
   fun resolve_and_instantiate_onepoint (_, i : term) insts {context, params, ...} =
     let
+val _ = @{print} params
        val i = i
          |> Term.subst_free insts
-         |> subst_free_untyped (map (fn (x, t) => (Free (x, @{typ dummy}), Thm.term_of t)) params)
+|> @{print}
+         |> subst_var_untyped (map (fn (x, t) => (Var ((x, 0), @{typ dummy}), Thm.term_of t)) params)
          |> Thm.cterm_of context
+|> @{print}
        val thms = map (Drule.infer_instantiate' context [SOME i])
            @{thms alethe_onepoint2_all alethe_onepoint2_ex}
+           |> @{print}
     in
-      resolve_tac context thms 1
+      resolve_tac context thms 1 THEN (print_tac context "after resolve")
     end
   fun onepoint_combine_quant ctxt (n1 :: bounds1) (n2 :: bounds2) (i :: insts) past_ints =
       TRY' (if n1 = n2
@@ -1441,7 +1455,8 @@ local
     | extract_implications _ = []
 
   val extract_instantiations =
-    Thm.prop_of
+    @{print}
+    #> Thm.prop_of
     #> extract_implications
  
   fun onepoint_quants ctxt prems t =
@@ -1456,17 +1471,18 @@ local
        onepoint_combine_quant ctxt 
          (extract_quantified_names_q t1 |> fst |> map to_upper)
          (extract_quantified_names_q t2 |> fst |> map to_upper)
-         insts
+         (insts |> @{print})
     end
 in
 fun onepoint ctxt [prem] t = SMT_Replay_Methods.prove ctxt t (fn _ =>
   onepoint_quants ctxt prem t []
+  THEN' K (print_tac ctxt "before metis")
   THEN' REPEAT' (resolve_tac ctxt @{thms refl})
-  THEN' REPEAT' 
+  THEN_ALL_NEW 
     (*cheap version: hope that nothing got reorder and simp will solve the goal. Otherwise,
     try to move all equalities out of the quantifiers rewrite them with @{thm alethe_rewrite_in_imp}
     and only afterwards try metis.*)
-    (SOLVED' ( 
+    ((SOLVED' ( 
       (ctxt
       |> empty_simpset
       |> put_simpset HOL_basic_ss
@@ -1476,10 +1492,18 @@ fun onepoint ctxt [prem] t = SMT_Replay_Methods.prove ctxt t (fn _ =>
       |> (fn ctxt => ctxt
            addsimprocs [@{simproc defined_All}, @{simproc defined_Ex}])
       |> Simplifier.asm_full_simp_tac)))
-  THEN' 
-    (*veriT can still reorder equalities, so we need something stronger than just reordering the
-    implication as done above.*)
-    REPEAT' (Metis_Tactic.metis_tac [] ATP_Problem_Generate.combsN ctxt []))
+    ORELSE' 
+      (*
+      This part becomes really messy:
+        - veriT can still reorder equalities, so we need something stronger 
+        than just reordering the implication as done above.
+        - simp can destroy the structure
+        - metis is not always able to solve the goal, even if it falls within
+        the fragment of logic where it for sure should be able to.
+      *)
+      (SOLVED' (Meson.meson_tac ctxt [])
+      ORELSE' Metis_Tactic.metis_tac [] ATP_Problem_Generate.combsN ctxt []
+      ORELSE' K (Clasimp.auto_tac ctxt))))
 end
 
 fun qnt_join ctxt _ t = SMT_Replay_Methods.prove ctxt t Classical.fast_tac
