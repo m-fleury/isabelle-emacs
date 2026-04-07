@@ -1435,7 +1435,7 @@ val _ = @{print} params
            @{thms alethe_onepoint2_all alethe_onepoint2_ex}
            |> @{print}
     in
-      resolve_tac context thms 1 THEN (print_tac context "after resolve")
+      resolve_tac context thms 1
     end
   fun onepoint_combine_quant ctxt (n1 :: bounds1) (n2 :: bounds2) (i :: insts) past_ints =
       TRY' (if n1 = n2
@@ -1455,8 +1455,7 @@ val _ = @{print} params
     | extract_implications _ = []
 
   val extract_instantiations =
-    @{print}
-    #> Thm.prop_of
+    Thm.prop_of
     #> extract_implications
  
   fun onepoint_quants ctxt prems t =
@@ -1471,12 +1470,11 @@ val _ = @{print} params
        onepoint_combine_quant ctxt 
          (extract_quantified_names_q t1 |> fst |> map to_upper)
          (extract_quantified_names_q t2 |> fst |> map to_upper)
-         (insts |> @{print})
+         insts
     end
 in
 fun onepoint ctxt [prem] t = SMT_Replay_Methods.prove ctxt t (fn _ =>
   onepoint_quants ctxt prem t []
-  THEN' K (print_tac ctxt "before metis")
   THEN' REPEAT' (resolve_tac ctxt @{thms refl})
   THEN_ALL_NEW 
     (*cheap version: hope that nothing got reorder and simp will solve the goal. Otherwise,
@@ -1612,9 +1610,9 @@ There are currently three paths:
 fun subproof ctxt [prem] t =
      SMT_Replay_Methods.prove ctxt t (fn _ =>
       SOLVED' (REPEAT' (resolve_tac ctxt @{thms alethe_and_neg(2)})
-        THEN' TRY' (resolve_tac ctxt [prem |> @{print}])
+        THEN' TRY' (resolve_tac ctxt [prem])
         THEN' REPEAT' (assume_tac ctxt))
-      ORELSE'  SOLVED' (
+      ORELSE' SOLVED' (
         REPEAT' (resolve_tac ctxt [@{thm disj_not1} RSN (1, @{thm iffD2}) OF [@{thm impI}],
            @{thm disj_not1[of \<open>\<not>_\<close>, unfolded not_not]} RSN (1, @{thm iffD2}) OF [@{thm impI}]])
         THEN' resolve_tac ctxt [prem]
@@ -1622,7 +1620,7 @@ fun subproof ctxt [prem] t =
           ORELSE'
             SOLVED' ((partial_simplify_tac ctxt @{thms eq_commute ac_simps}
             THEN' TRY' (assume_tac ctxt))))
-          THEN' TRY' (assume_tac ctxt)))
+          THEN' TRY' (assume_tac ctxt))
       ORELSE' TRY' (Method.insert_tac ctxt [prem]
         THEN' TRY' (partial_simplify_tac ctxt @{thms eq_commute ac_simps})
         THEN' TRY' (Blast.blast_tac ctxt)))
