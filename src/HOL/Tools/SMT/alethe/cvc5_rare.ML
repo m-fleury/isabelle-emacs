@@ -11,6 +11,7 @@ sig
   val rare_rule: Context.generic -> string -> thm list
   val rare_add: string * string -> Context.generic -> Context.generic
   val rare_rm: string -> Context.generic -> Context.generic
+  val all_rare_rules: Context.generic -> (string * string) list
 end;
 
 
@@ -42,14 +43,40 @@ fun rare_lookup ctxt name =
   end
 
 fun rare_rule ctxt = rare_lookup ctxt #> the
+val all_rare_rules = Data.get #> #rules
+
+(*
+Searching for the rules is linear in the size of the number of rare rules.
+To reduce run time we sort the rules based on my (Mathias) intuition of the
+most important rules.
+*)
+fun sort_rules ((a, _), (b, _)) =
+  if String.isPrefix "rewrite_bool" a andalso String.isPrefix "rewrite_bool" b
+  then String.compare (a, b)
+  else if String.isPrefix "rewrite_bool" a 
+  then General.LESS
+  else if  String.isPrefix "rewrite_bool" b
+  then General.GREATER
+  else 
+  
+  if String.isPrefix "rewrite_arith" a andalso String.isPrefix "rewrite_arith" b
+  then String.compare (a, b)
+  else if String.isPrefix "rewrite_arith" a 
+  then General.LESS
+  else if  String.isPrefix "rewrite_arith" b
+  then General.GREATER
+  
+  else String.compare (a, b)
 
 
 fun rare_add name_thy context =
   let
     val {rules} = Data.get context
+    val all_rules = (AList.update (op =) name_thy rules)
+      |> sort sort_rules
   in
     Data.map
-      (K (mk_rare (AList.update (op =) name_thy rules)))
+      (K (mk_rare all_rules))
       context
   end
 
