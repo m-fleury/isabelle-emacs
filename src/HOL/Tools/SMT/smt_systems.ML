@@ -326,6 +326,25 @@ val z3: SMT_Solver.solver_config = {
   parse_proof = SOME Z3_Replay.parse_proof,
   replay = SOME Z3_Replay.replay }
 
+val z3_new: SMT_Solver.solver_config = {
+  name = "z3_new",
+  class = select_class,
+  avail = make_avail "Z3_NEW",
+  command = fn () => [getenv "Z3_SOLVER_NEW", "-in"],
+  options = z3_options,
+  smt_options = [(":produce-proofs", "true")],
+  good_slices =
+    (* FUDGE *)
+    [((4, false, false, 1024, meshN), []),
+     ((4, false, false, 512, mepoN), []),
+     ((4, false, false, 64, meshN), []),
+     ((4, false, true, 256, meshN), []),
+     ((4, false, false, 128, mashN), []),
+     ((4, false, false, 32, meshN), [])],
+  outcome = on_first_line (outcome_of "unsat" "sat" "unknown" "timeout"),
+  parse_proof = SOME Z3_Replay.parse_proof,
+  replay = SOME Z3_Replay.replay }
+
 end
 
 
@@ -437,6 +456,7 @@ val _ = Theory.setup (
   SMT_Solver.add_solver {dummy = false, sledgehammer_default = false} vampire_smt_nodt #>
   SMT_Solver.add_solver {dummy = false, sledgehammer_default = true} veriT #>
   SMT_Solver.add_solver {dummy = false, sledgehammer_default = true} z3 #>
+  SMT_Solver.add_solver {dummy = false, sledgehammer_default = false} z3_new #>
   SMT_Solver.add_solver {dummy = true, sledgehammer_default = false} dummy_smtlib)
 
 end;
