@@ -1382,16 +1382,19 @@ end
 
 local
   val rm_unused = @{lemma \<open>(\<forall>x. P) = P\<close> \<open>(\<exists>x. P) = P\<close> by blast+}
-  val qnt_cnf_basic = @{lemma \<open>(\<And>x. P x \<equiv> Q x) \<Longrightarrow> (\<not>(\<forall>x. P x)) \<or> (\<forall>x. Q x)\<close> by blast+}
-
+  val qnt_cnf_basic = @{lemma \<open>(\<And>x. P x \<Longrightarrow> Q x) \<Longrightarrow> (\<not>(\<forall>x. P x)) \<or> (\<forall>x. Q x)\<close> by blast+}
+  (*We try to recontruct the proof without looking too much into the structure, hence
+  first trying simp. The main issue is that the simplifer call can loop in complicated
+  cases.*)
   fun qnt_cnf_tac ctxt =
    (debug_msg_tac' ctxt high "qnt_cnf start") THEN'
     SOLVED' (resolve_tac ctxt [qnt_cnf_basic]
       THEN' (debug_msg_tac' ctxt high "qnt_cnf after resolving with qnt_cnf_basic")
-      THEN' simplify_tac ctxt @{thms de_Morgan_conj de_Morgan_disj imp_conv_disj
+      THEN' simplify_tac ctxt (@{thms
         iff_conv_conj_imp if_bool_eq_disj ex_simps all_simps ex_disj_distrib
-        alethe_connective_def(3) conj_disj_distribL conj_disj_distribR
-        all_conj_distrib not_all not_ex nnf_simps}
+        alethe_connective_def(3)  all_conj_distrib not_all not_ex} @ 
+        (*not_not is repeated as last theorem:*)
+        (curry List.take @{thms nnf_simps} (length @{thms nnf_simps} - 1)))
       THEN' (debug_msg_tac' ctxt high "qnt_cnf after resolving simplifying")
       THEN' TRY' (Blast.blast_tac ctxt))
     ORELSE' Blast.blast_tac ctxt
@@ -1424,16 +1427,12 @@ local
         in  substf  end;
   fun resolve_and_instantiate_onepoint (_, i : term) insts {context, params, ...} =
     let
-val _ = @{print} params
        val i = i
          |> Term.subst_free insts
-|> @{print}
          |> subst_var_untyped (map (fn (x, t) => (Var ((x, 0), @{typ dummy}), Thm.term_of t)) params)
          |> Thm.cterm_of context
-|> @{print}
        val thms = map (Drule.infer_instantiate' context [SOME i])
            @{thms alethe_onepoint2_all alethe_onepoint2_ex}
-           |> @{print}
     in
       resolve_tac context thms 1
     end
@@ -1484,7 +1483,7 @@ fun onepoint ctxt [prem] t = SMT_Replay_Methods.prove ctxt t (fn _ =>
       (ctxt
       |> empty_simpset
       |> put_simpset HOL_basic_ss
-      |> (fn ctxt => ctxt addsimps @{thms disj_not1 simp_thms all_simps ex_simps de_Morgan_conj
+      |> (fn ctxt => ctxt addsimps @{thms simp_thms all_simps ex_simps de_Morgan_conj
         not_all not_ex de_Morgan_disj disj_not1 triv_forall_equality eq_commute alethe_imp_commute})
       |> Simplifier.add_cong @{thm alethe_rewrite_in_imp}
       |> (fn ctxt => ctxt
