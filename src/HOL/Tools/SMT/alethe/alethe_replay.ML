@@ -395,7 +395,8 @@ fun replay solver method_for outer_ctxt
 
     val ctxt_with_asserts =
       ctxt_with_asserts
-   (* |> put_simpset (empty_simpset ctxt_with_asserts [])*) (*FIXME: commented out for easier development but should be added again since it will make auto faster (but also know less simplification rules)*)
+   (*FIXME: commented out for easier development and for the evaluate rules.*)
+   (* |> put_simpset (empty_simpset ctxt_with_asserts [])*)
       |> Config.put SAT.solver (Config.get ctxt_after_parsing SMT_Config.sat_solver)
     val _ = debug_msg ctxt low (fn () => @{print} ("num_ll_defs",num_ll_defs))
 
