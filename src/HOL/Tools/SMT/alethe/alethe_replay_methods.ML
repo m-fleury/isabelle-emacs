@@ -467,7 +467,7 @@ fun partial_simplify_tac ctxt thms =
 (* sko_forall requires the assumptions to be able to prove the equivalence in case of double
 skolemization. See comment below. *)
 fun requires_subproof_assms _ t =
-  member (op =) ["refl", "sko_forall", "sko_ex", "cong"] t
+  member (op =) ["sko_forall", "sko_ex", "refl"] t
 
 fun requires_local_input _ t =
   member (op =) [Alethe_Proof.local_input_rule] t
