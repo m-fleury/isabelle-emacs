@@ -548,13 +548,8 @@ lemma alethe_comp_simplify1:
 
 lemmas alethe_comp_simplify =
   alethe_comp_simplify1
-  le_numeral_simps
-  le_num_simps
-  less_numeral_simps
-  less_num_simps
   zero_less_one
   zero_le_one
-  less_neg_numeral_simps
   rel_simps
 
 lemma alethe_la_disequality:

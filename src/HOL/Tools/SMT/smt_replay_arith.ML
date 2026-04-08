@@ -50,21 +50,6 @@ fun la_farkas_tac ({context = ctxt, prems, concl,  ...}: Subgoal.focus) (SOME (F
       |> put_simpset HOL_basic_ss
       |> (fn ctxt => ctxt addsimps thms)
       |> asm_full_simplify
-    fun arith_full_simps ctxt thms =
-      ctxt
-       |> empty_simpset
-       |> put_simpset HOL_basic_ss
-       |> (fn ctxt => ctxt addsimps thms
-           addsimps @{thms simp_thms}  
-           addsimps arith_thms
-           addsimprocs [@{simproc int_div_cancel_numeral_factors}, @{simproc int_combine_numerals},
-             @{simproc divide_cancel_numeral_factor}, @{simproc intle_cancel_numerals},
-             @{simproc field_combine_numerals}, @{simproc intless_cancel_numerals},
-             @{simproc ring_le_cancel_numeral_factor}, @{simproc inteq_cancel_numerals},
-             @{simproc HOL.NO_MATCH}, @{simproc semiring_assoc_fold}])
-      |> asm_full_simplify
-
-
 
     (*Determine if we need to return the equation: \<not>\<le> \<rightarrow> \<ge> but only \<le> exists for Isabelle*)
 
@@ -156,7 +141,7 @@ fun la_farkas_tac ({context = ctxt, prems, concl,  ...}: Subgoal.focus) (SOME (F
       |> Simplifier.add_cong @{thm if_weak_cong}
       |> asm_full_simplify
     val final_False = combined
-      |> arith_full_simps ctxt (Named_Theorems.get ctxt @{named_theorems ac_simps} @ @{thms Groups.ac_simps})
+      |> arith_full_simps ctxt (Named_Theorems.get ctxt @{named_theorems ac_simps})
     val _ =  trace (fn () => ("final arith theorem after simplification", final_False))
 
     val _ = trace (fn () => @{print} final_False)
