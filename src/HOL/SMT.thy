@@ -997,7 +997,11 @@ lemma alethe_onepoint2_ex:
   assumes \<open>\<And>x. x = t \<Longrightarrow> P t = Q\<close> \<open>\<And>x. P x = (x = t \<and> P x)\<close>
   shows \<open>(\<exists>x. P x) = Q\<close>
   by (use assms in metis)+
-thm alethe_onepoint
+
+lemmas poly_simp_rel =
+   less_divide_eq_numeral1
+   less_numeral_simps div_by_1 alethe_div_simplify zero_less_one
+   not_one_less_zero neg_0_less_iff_less
 
 subsection \<open>Setup\<close>
 

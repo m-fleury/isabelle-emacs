@@ -1920,7 +1920,7 @@ fun poly_simp_rel ctxt [thm] t =
          (*TODO: This should be replaced by something quicker.
          For constants cx and cy you'd have to prove that: ((cx > 0) = (cy > 0)), cx \<noteq> 0, cy \<noteq> 0
          For one of the cases you only need to prove the latter two.*)
-         THEN' TRY' (Code_Simp.dynamic_tac ctxt)
+         THEN' REPEAT' (SOLVED' (partial_simplify_tac ctxt (@{thms poly_simp_rel} @ @{thms arith_simps})))
          THEN' REPEAT' 
             (TRY' (resolve_tac ctxt [lemma])
              THEN' TRY' (resolve_tac ctxt @{thms conjI}) 
