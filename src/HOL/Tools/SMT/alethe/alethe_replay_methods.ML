@@ -464,6 +464,14 @@ fun partial_simplify_tac ctxt thms =
   |> (fn ctxt => ctxt addsimps @{thms simp_thms} addsimps thms)
   |> Simplifier.full_simp_tac
 
+fun partial_simplify_tac_with_cong cong ctxt thms =
+  ctxt
+  |> empty_simpset
+  |> put_simpset HOL_basic_ss
+  |> (fn ctxt => ctxt addsimps @{thms simp_thms} addsimps thms)
+  |> Simplifier.add_cong cong
+  |> Simplifier.full_simp_tac
+
 (* sko_forall requires the assumptions to be able to prove the equivalence in case of double
 skolemization. See comment below. *)
 fun requires_subproof_assms _ t =
@@ -1718,8 +1726,7 @@ ORELSE'
       THEN' K (unfold_tac ctxt @{thms not_not })
      (*   THEN' K (print_tac ctxt "after step 3")*)
 
-      THEN' TRY' (resolve_tac ctxt @{thms cnf.iff_refl refl})
-
+      THEN' TRY' (resolve_tac ctxt @{thms refl})
      (*   THEN' K (print_tac ctxt "after step 4")*)
 )
 )
@@ -1776,6 +1783,8 @@ end
 local
   fun simplify_arith ctxt thms = partial_simplify_tac ctxt
     (thms @ Named_Theorems.get ctxt @{named_theorems ac_simps} @ @{thms arith_simps})
+  fun simplify_arith_ifcong ctxt thms = partial_simplify_tac_with_cong @{thm if_weak_cong} ctxt
+    (thms @ Named_Theorems.get ctxt @{named_theorems ac_simps} @ @{thms arith_simps})
 in
 
 fun sum_simplify ctxt _ t =
@@ -1790,7 +1799,7 @@ fun prod_simplify ctxt _ t =
 
 fun div_simplify ctxt _ t =
   SMT_Replay_Methods.prove ctxt t (fn _ =>
-    simplify_arith ctxt @{thms alethe_div_simplify}
+    simplify_arith_ifcong ctxt @{thms alethe_div_simplify}
     )
 
 end

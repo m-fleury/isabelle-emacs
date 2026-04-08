@@ -516,6 +516,7 @@ lemma la_generic_bug_1:
   < - 1 * 1 + 0 + 1 "
   by (ctxt_tactic "la_generic" "[(1,1),(1,1),(1,1),(1,1)]")
 
+
 lemma la_generic_bug_1h1:
   fixes x8::int
   shows 
@@ -2197,7 +2198,8 @@ lemma eq_simplify_4:
 
 
 (* Rule 85: div_simplify *)
-
+(*the following does not hold, because 0 div 0 is not defined
+in the theory of integer.*)
 lemma div_simplify_1:
   shows "((a::int) div a) = 1"
   by (ctxt_tactic "div_simplify")
@@ -2210,6 +2212,10 @@ lemma div_simplify_3:
   shows "((3::int) = 4) = False"
   by (ctxt_tactic "div_simplify")
 
+lemma div_simplify_4:
+  shows "((3::int) div 3) = 1"
+  by (ctxt_tactic "div_simplify")
+
 
 (* Rule 86: prod_simplify *)
 
@@ -2219,23 +2225,23 @@ lemma prod_simplify_1:
 
 lemma prod_simplify_2:
   shows "(3 * 4 * 0 * x) = (0::int)"
-  by (ctxt_tactic "div_simplify")
+  by (ctxt_tactic "prod_simplify")
 
 lemma prod_simplify_3:
   shows "(3 * y * 4 * 2 * x * 5) = (120::int) * y * x"
-  by (ctxt_tactic "div_simplify")
+  by (ctxt_tactic "prod_simplify")
 
 lemma prod_simplify_4:
   shows "(1 * y * 1 * x) = (y::int) * x"
-  by (ctxt_tactic "div_simplify")
+  by (ctxt_tactic "prod_simplify")
 
 lemma prod_simplify_5:
   shows "(13 + (1 * y * 0 * x)) = (13::int) + 0"
-  by (ctxt_tactic "div_simplify")
+  by (ctxt_tactic "prod_simplify")
 
 lemma prod_simplify_6:
   shows "(2 * (2 * y * 3 * x) * 1) = (12::int) * y * x"
-  by (ctxt_tactic "div_simplify")
+  by (ctxt_tactic "prod_simplify")
 
 
 (* Rule 87: unary_minus_simplify *)
