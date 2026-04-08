@@ -708,8 +708,14 @@ lemma eq_congruent_pred_2: "\<not> (a = a) \<or> \<not>(a = b) \<or> (P a a = P 
 lemma qnt_cnf_1: "\<not> (\<forall>x1. \<not>((x1 = 1) \<or> (x1 = 2))) \<or> (\<forall>x1. (\<not>(x1 = 1) \<and> \<not>(x1 = 2)))"
  by (ctxt_tactic "qnt_cnf")
 
+lemma \<open>\<not> (\<forall>veriT_vr1::'a. \<not> (P::bool \<Rightarrow> 'a \<Rightarrow> bool) False veriT_vr1 \<and> P True veriT_vr1) \<or>
+         (\<forall>veriT_vr1::'a. P True veriT_vr1) \<close>
+ by (ctxt_tactic "qnt_cnf")
+
 lemma qnt_cnf_2:
-        " \<not> (\<forall>(veriT_vr756::int) veriT_vr757 veriT_vr758 (veriT_vr759::int) (veriT_vr760::int) veriT_vr761 veriT_vr762.
+  fixes trans
+  shows
+        "\<not> (\<forall>(veriT_vr756::int) veriT_vr757 veriT_vr758 (veriT_vr759::int) (veriT_vr760::int) veriT_vr761 veriT_vr762.
                 (fun_app (t veriT_vr756 veriT_vr757 veriT_vr758) (trans veriT_vr759 veriT_vr760 veriT_vr761 veriT_vr762) \<longrightarrow>
                  (\<exists>veriT_vr763.
                      membera veriT_vr763 veriT_vr756 \<and>
@@ -748,7 +754,7 @@ lemma qnt_cnf_2:
              fun_appl (fun_appy (outerVis veriT_vr762) veriT_vr758) veriT_vr757 \<or>
              fun_app (t veriT_vr756 veriT_vr757 veriT_vr758) (trans veriT_vr759 veriT_vr760 veriT_vr761 veriT_vr762))
 "
-
+  by (ctxt_tactic "qnt_cnf")
 
 (* Rule 30: and *)
 
