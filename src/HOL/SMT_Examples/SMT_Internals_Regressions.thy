@@ -2525,6 +2525,28 @@ lemma poly_simp_rel2:
   by (ctxt_tactic "poly_simp_rel")
 
 
+(*onepoint**)
+experiment
+begin
+
+context
+  fixes v0 :: \<open>'a :: {one}\<close>
+  assumes H: \<open>v0 = 1\<close>
+begin
+
+lemma H: \<open>(v0 \<noteq> 1 \<or> v0 \<noteq> 1) = (1 \<noteq> 1)\<close>
+  using H by blast
+
+end
+
+ML \<open>
+Alethe_Replay_Methods.onepoint @{context} @{thms H[where 'a=nat]}
+  @{term \<open>Trueprop ((\<forall>v0::nat. (v0 \<noteq> 1 \<or> v0 \<noteq> 1)) = ((1::nat) \<noteq> 1))\<close>}
+|> Thm.prop_of
+|> curry (op =) @{term \<open>Trueprop ((\<forall>v0::nat. (v0 \<noteq> 1 \<or> v0 \<noteq> 1)) = ((1::nat) \<noteq> 1))\<close>}
+|> (fn x => if not x then error "failed" else ())\<close>
+end
+
 (*
 
 Rule Nr   Name            Nr Tests  Nr Success
