@@ -426,19 +426,19 @@ lemma resolution_1:
   assumes "a" "\<not>a"
   shows "False"
   using assms
-  by (ctxt_tactic "unit_res")
+  by (ctxt_tactic "resolution")
 
 lemma resolution_2:
   assumes "a \<or> b" "\<not>a"
   shows "b"
   using assms
-  by (ctxt_tactic "unit_res")
+  by (ctxt_tactic "resolution")
 
 lemma resolution_3:
   assumes "a \<or> b" "\<not>a \<or> c"
   shows "b \<or> c"
   using assms
-  by (ctxt_tactic "unit_res")
+  by (ctxt_tactic "resolution")
 
 (* Rule 8: tautology *)
 
@@ -531,7 +531,7 @@ lemma la_generic_bug_1h1:
 
 lemma lia_generic_1:
   shows "\<not>(3*x = 9) \<or> (x \<ge> 3)"
-  by (ctxt_tactic "tautology")
+  by (ctxt_tactic "la_tautology")
 
 
 (* Rule 13: la_disequality *)
@@ -1887,7 +1887,7 @@ lemma connective_def_3: "(a = b) = ((a \<longrightarrow> b) \<and> (b \<longrigh
 lemma connective_def_4: "(If a b c) = ((a \<longrightarrow> b) \<and> (\<not>a \<longrightarrow> c))"
   by (ctxt_tactic "connective_def")
 
-lemma connective_def_5: "(\<forall>x. y) = (\<not>(\<exists>x. \<not>y))"
+lemma connective_def_5: "(\<forall>x::'a. y) = (\<not>(\<exists>x::'a. \<not>y))"
   by (ctxt_tactic "connective_def")
 
 lemma connective_def_6: "(\<forall>x. x \<and> a) = (\<not>(\<exists>x. \<not>(x \<and> a)))"
