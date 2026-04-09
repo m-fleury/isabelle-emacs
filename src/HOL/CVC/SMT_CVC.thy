@@ -94,11 +94,6 @@ if is_none (SMT_Builtin.dest_builtin_fun @{context}
    [@{term "2::int"}])
 then error "fail to recognize int.pow2" else ()\<close>
 
-lemma "(2::nat) ^ a = 8"
-  supply [[smt_trace]]
-  apply (smt (cvc5))
-  oops
-  thm of_nat_power
 (*External proof checking*)
 ML_file \<open>ML/smt_parse_problem.ML\<close>
 ML_file \<open>ML/smt_check_external.ML\<close>
