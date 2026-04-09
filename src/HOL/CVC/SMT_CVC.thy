@@ -79,7 +79,7 @@ fun cvc_term_parser (SMTLIB.Sym "rare-list", []) = (
 
 val setup_builtins =
   SMT_Builtin.add_builtin_fun SMTLIB_Interface.smtlibC
-    (Term.dest_Const (Const (\<^const_name>\<open>SMT.pow_2\<close>, @{typ "int \<Rightarrow> int"})), power)
+    (("int.pow2", Term.dest_Const (\<^Const>\<open>SMT.pow_2\<close>) |> snd), power)
 
 val _ = Theory.setup (Context.theory_map (
   setup_builtins #>
@@ -87,7 +87,18 @@ val _ = Theory.setup (Context.theory_map (
 )
 \<close>
 
+(*check that int.pow2 is properly registered*)
+ML \<open>
+if is_none (SMT_Builtin.dest_builtin_fun @{context}
+  ("int.pow2", @{typ "int \<Rightarrow> int"})
+   [@{term "2::int"}])
+then error "fail to recognize int.pow2" else ()\<close>
 
+lemma "(2::nat) ^ a = 8"
+  supply [[smt_trace]]
+  apply (smt (cvc5))
+  oops
+  thm of_nat_power
 (*External proof checking*)
 ML_file \<open>ML/smt_parse_problem.ML\<close>
 ML_file \<open>ML/smt_check_external.ML\<close>
