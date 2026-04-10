@@ -757,6 +757,22 @@ lemma qnt_cnf_2:
 "
   by (ctxt_tactic "qnt_cnf")
 
+lemma \<open> \<not> (\<forall>(veriT_vr13::'a_topoly::type) veriT_vr14::'a::type option set.
+                ((Alexandroff_open::'a_topoly::type \<Rightarrow> 'a::type option set \<Rightarrow> bool) veriT_vr13 veriT_vr14 \<longrightarrow>
+                 (\<exists>veriT_vr15::'a::type set.
+                     veriT_vr14 = Some ` veriT_vr15 \<and> (openin::'a_topoly::type \<Rightarrow> 'a::type set \<Rightarrow> bool) veriT_vr13 veriT_vr15 \<or>
+                     veriT_vr14 = insert None (Some ` ((topspace::'a_topoly::type \<Rightarrow> 'a::type set) veriT_vr13 - veriT_vr15)) \<and>
+                     (compactin::'a_topoly::type \<Rightarrow> 'a::type set \<Rightarrow> bool) veriT_vr13 veriT_vr15 \<and> (closedin::'a_topoly::type \<Rightarrow> 'a::type set \<Rightarrow> bool) veriT_vr13 veriT_vr15)) \<and>
+                (\<not> (\<forall>veriT_vr16::'a::type set.
+                        \<not> (veriT_vr14 = Some ` veriT_vr16 \<and> openin veriT_vr13 veriT_vr16 \<or>
+                            veriT_vr14 = insert None (Some ` (topspace veriT_vr13 - veriT_vr16)) \<and> compactin veriT_vr13 veriT_vr16 \<and> closedin veriT_vr13 veriT_vr16)) \<longrightarrow>
+                 Alexandroff_open veriT_vr13 veriT_vr14)) \<or>
+         (\<forall>(veriT_vr13::'a_topoly::type) (veriT_vr14::'a::type option set) veriT_vr16::'a::type set.
+             veriT_vr14 \<noteq> insert None (Some ` (topspace veriT_vr13 - veriT_vr16)) \<or>
+             \<not> compactin veriT_vr13 veriT_vr16 \<or> \<not> closedin veriT_vr13 veriT_vr16 \<or> Alexandroff_open veriT_vr13 veriT_vr14) \<close>
+  by (ctxt_tactic "qnt_cnf")
+
+
 (* Rule 30: and *)
 
 lemma and_1:
