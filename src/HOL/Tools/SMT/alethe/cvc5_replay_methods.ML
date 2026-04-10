@@ -132,7 +132,7 @@ fun cvc5_rule_of "bind" = Bind
      else if r = Alethe_Proof.skolem_def then Definition
      else if r = Alethe_Proof.not_not_rule then Not_Not
      else if r = Alethe_Proof.contract_rule orelse r = "duplicate_literals" then Duplicate_Literals
-     else if r = Alethe_Proof.ite_intro_rule then ITE_Intro
+     else if r = Alethe_Proof.ite_intro_rule then ITE_Intro (* veriT only *)
      else if r = Alethe_Proof.eq_congruent_rule then Eq_Congruent
      else if r = Alethe_Proof.eq_congruent_pred_rule then Eq_Congruent_Pred
      else if r = Alethe_Proof.theory_resolution2_rule then Theory_Resolution2

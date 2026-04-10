@@ -427,7 +427,7 @@ lemma alethe_bool_simplify:
   by auto
 
 lemma alethe_connective_def:
-  \<open>(A = B) \<noteq> ((\<not>A \<and> B) \<or> (A \<and> \<not>B))\<close> \<comment> \<open>xor case\<close>
+  \<open>(A \<noteq> B) = ((\<not>A \<and> B) \<or> (A \<and> \<not>B))\<close> \<comment> \<open>xor case\<close>
   \<open>(A = B) = ((A \<longrightarrow> B) \<and> (B \<longrightarrow> A))\<close>
   \<open>(If A B C) = ((A \<longrightarrow> B) \<and> (\<not>A \<longrightarrow> C))\<close>
   apply (case_tac [!] A)
