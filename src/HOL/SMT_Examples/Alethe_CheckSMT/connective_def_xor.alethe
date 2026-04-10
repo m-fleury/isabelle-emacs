@@ -1,0 +1,7 @@
+unsat
+(
+(assume a0 false)
+(step t0 (cl (not false)) :rule false)
+(step t1 (cl (= (xor p q) (or (and (not p) q) (and p (not q))))) :rule connective_def)
+(step t2 (cl) :rule resolution :premises (a0 t0))
+)
