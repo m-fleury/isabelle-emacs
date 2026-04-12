@@ -1043,6 +1043,9 @@ ML_file \<open>Tools/SMT/z3/z3_interface.ML\<close>
 ML_file \<open>Tools/SMT/z3/z3_replay_rules.ML\<close>
 ML_file \<open>Tools/SMT/z3/z3_replay_methods.ML\<close>
 ML_file \<open>Tools/SMT/z3/z3_replay.ML\<close>
+
+ML_file \<open>Tools/SMT/z3/z3_new_replay_methods.ML\<close>
+ML_file \<open>Tools/SMT/z3/z3_new_replay.ML\<close>
 (*vampire*)
 ML_file \<open>Tools/SMT/vampire_interface.ML\<close>
 (*veriT and cvc5 replay*)

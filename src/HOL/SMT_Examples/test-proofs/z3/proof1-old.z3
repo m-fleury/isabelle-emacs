@@ -1,0 +1,17 @@
+unsat
+((set-logic AUFLIRA)
+(proof
+(let (($x46 (forall ((?v0 Int) )(! (<= ?v0 0) :qid k!4))
+))
+(let (($x33 (exists ((?v0 Int) )(! (let (($x29 (<= ?v0 0)))
+(not $x29)) :qid k!4))
+))
+(let (($x38 (not $x33)))
+(let ((@x47 (refl (~ (<= 0 0) (<= 0 0)))))
+(let ((@x34 (rewrite (= $x38 $x38))))
+(let (($x26 (exists ((?v0 Int) )(! (< 0 ?v0) :qid k!4))
+))
+(let (($x27 (not $x26)))
+(let ((@x31 (mp (asserted $x27) (rewrite (= $x27 $x38)) $x38)))
+(let ((@x51 (mp~ (mp (mp (mp @x31 @x34 $x38) @x34 $x38) @x34 $x38) (nnf-neg @x47 (~ $x38 $x46)) $x46)))
+(mp @x51 (rewrite (= $x46 false)) false))))))))))))
