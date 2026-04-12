@@ -102,4 +102,5 @@ end
 
 unbundle no lattice_syntax
 
+declare[[smt_trace=false,smt_verbose=false]]
 end
