@@ -757,6 +757,22 @@ lemma qnt_cnf_2:
 "
   by (ctxt_tactic "qnt_cnf")
 
+lemma \<open> \<not> (\<forall>(veriT_vr13::'a_topoly::type) veriT_vr14::'a::type option set.
+                ((Alexandroff_open::'a_topoly::type \<Rightarrow> 'a::type option set \<Rightarrow> bool) veriT_vr13 veriT_vr14 \<longrightarrow>
+                 (\<exists>veriT_vr15::'a::type set.
+                     veriT_vr14 = Some ` veriT_vr15 \<and> (openin::'a_topoly::type \<Rightarrow> 'a::type set \<Rightarrow> bool) veriT_vr13 veriT_vr15 \<or>
+                     veriT_vr14 = insert None (Some ` ((topspace::'a_topoly::type \<Rightarrow> 'a::type set) veriT_vr13 - veriT_vr15)) \<and>
+                     (compactin::'a_topoly::type \<Rightarrow> 'a::type set \<Rightarrow> bool) veriT_vr13 veriT_vr15 \<and> (closedin::'a_topoly::type \<Rightarrow> 'a::type set \<Rightarrow> bool) veriT_vr13 veriT_vr15)) \<and>
+                (\<not> (\<forall>veriT_vr16::'a::type set.
+                        \<not> (veriT_vr14 = Some ` veriT_vr16 \<and> openin veriT_vr13 veriT_vr16 \<or>
+                            veriT_vr14 = insert None (Some ` (topspace veriT_vr13 - veriT_vr16)) \<and> compactin veriT_vr13 veriT_vr16 \<and> closedin veriT_vr13 veriT_vr16)) \<longrightarrow>
+                 Alexandroff_open veriT_vr13 veriT_vr14)) \<or>
+         (\<forall>(veriT_vr13::'a_topoly::type) (veriT_vr14::'a::type option set) veriT_vr16::'a::type set.
+             veriT_vr14 \<noteq> insert None (Some ` (topspace veriT_vr13 - veriT_vr16)) \<or>
+             \<not> compactin veriT_vr13 veriT_vr16 \<or> \<not> closedin veriT_vr13 veriT_vr16 \<or> Alexandroff_open veriT_vr13 veriT_vr14) \<close>
+  by (ctxt_tactic "qnt_cnf")
+
+
 (* Rule 30: and *)
 
 lemma and_1:
@@ -1875,11 +1891,10 @@ lemma not_ite2_3:
 
 (* Rule 71: connective_def *)
 
-(*TODO: Add xor*)
-lemma connective_def_1: "\<not>(a = b) = ((\<not>a \<and> b) \<or> (a \<and> \<not>b))"
+lemma connective_def_1: "(a \<noteq> b) = ((\<not>a \<and> b) \<or> (a \<and> \<not>b))"
   by (ctxt_tactic "connective_def")
 
-lemma connective_def_2: "\<not>((a = c) = b) = ((\<not>(a = c) \<and> b) \<or> ((a = c) \<and> \<not>b))"
+lemma connective_def_2: "((a = c) \<noteq> b) = (((\<not>(a = c)) \<and> b) \<or> ((a = c) \<and> \<not>b))"
   by (ctxt_tactic "connective_def")
 
 lemma connective_def_3: "(a = b) = ((a \<longrightarrow> b) \<and> (b \<longrightarrow> a))"
@@ -1891,10 +1906,19 @@ lemma connective_def_4: "(If a b c) = ((a \<longrightarrow> b) \<and> (\<not>a \
 lemma connective_def_5: "(\<forall>x::'a. y) = (\<not>(\<exists>x::'a. \<not>y))"
   by (ctxt_tactic "connective_def")
 
-lemma connective_def_6: "(\<forall>x. x \<and> a) = (\<not>(\<exists>x. \<not>(x \<and> a)))"
+lemma connective_def_6: "(\<exists>x::'a. p) = (\<not>(\<forall>x::'a. \<not>p))"
   by (ctxt_tactic "connective_def")
 
-lemma connective_def_7: "(\<forall>x y. x \<and> y) = (\<not>(\<exists>x y. \<not>(x \<and> y)))"
+lemma connective_def_7: "(\<exists>(x::'a) y. (x = y)) = (\<not>(\<forall>(x::'a) y. \<not>(x = y)))"
+  by (ctxt_tactic "connective_def")
+
+lemma connective_def_8: "(\<forall>(x::'a) y. (x = y)) = (\<not>(\<exists>(x::'a) y. \<not>(x = y)))"
+  by (ctxt_tactic "connective_def")
+
+lemma connective_def_9: "(\<forall>x. x \<and> a) = (\<not>(\<exists>x. \<not>(x \<and> a)))"
+  by (ctxt_tactic "connective_def")
+
+lemma connective_def_10: "(\<forall>x y. x \<and> y) = (\<not>(\<exists>x y. \<not>(x \<and> y)))"
   by (ctxt_tactic "connective_def")
 
 (* Rule 72: and_simplify *)
@@ -2396,6 +2420,42 @@ lemma nary_elim_1:
 lemma nary_elim_2:
   "(t1 = t2) = (t1 = t2)"
   by (ctxt_tactic "nary_elim")
+
+(* Rule 97: ite_intro *)
+(* Note: This rule is veriT only. Reconstruction seems to fail on many tests *)
+lemma ite_intro_1: "(If p a b) = ((If p a b) \<and> (If p (a = (If p a b)) (b = (If p a b))))"
+  by (ctxt_tactic "ite_intro")
+
+lemma ite_intro_2: "(\<not>(If p a b)) = ((\<not>(If p a b)) \<and> (If p (a = (If p a b)) (b = (If p a b))))"
+  by (ctxt_tactic "ite_intro")
+
+lemma ite_intro_3: "((If p a b) \<or> (If q c d)) = ( ((If p a b) \<or> (If q c d)) 
+                                                 \<and> (If p (a = (If p a b)) (b = (If p a b))) 
+                                                 \<and> (If q (c = (If q c d)) (d = (If q c d))) )"
+  by (ctxt_tactic "ite_intro")
+
+lemma ite_intro_4: "((If p a b) \<or> ((If q c d) \<and> (If (\<not>p) b (\<not>d)))) 
+                          = ( ((If p a b) \<or> ((If q c d) \<and> (If (\<not>p) b (\<not>d))))
+                             \<and> (If p (a = (If p a b)) (b = (If p a b)))
+                             \<and> (If q (c = (If q c d)) (d = (If q c d)))
+                             \<and> (If (\<not>p) (b = (If (\<not>p) b (\<not>d))) ((\<not>d) = (If (\<not>p) b (\<not>d)))) )"
+  by (ctxt_tactic "ite_intro")
+
+lemma ite_intro_5: "(a \<or> b) = (a \<or> b)"
+  by (ctxt_tactic "ite_intro")
+
+lemma ite_intro_6: "(If p a b) = (If p a b)"
+  by (ctxt_tactic "ite_intro")
+
+lemma ite_intro_7: "((If p a b) \<and> ((If q c d) \<or> (If (\<not>p) b (~d)))) 
+                    = ((If p a b) \<and> ((If q c d) \<or> (If (\<not>p) b (~d))))"
+  by (ctxt_tactic "ite_intro")
+
+lemma ite_intro_8: "((If p a b) \<or> (If q c d) \<or> (If q d a)) 
+                          = ( (((If p a b) \<or> (If q c d) \<or> (If q d a)))
+                              \<and> (If p (a = (If p a b)) (b = (If p a b)))
+                              \<and> (If q (d = (If q d a)) (a = (If q d a))) )"
+  by (ctxt_tactic "ite_intro")
 
 (* Rule 104: miniscope_distribute *)
 (*Note: there isn't a solver that produces the exists case currently*)

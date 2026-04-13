@@ -342,8 +342,8 @@ val z3_new: SMT_Solver.solver_config = {
      ((4, false, false, 128, mashN), []),
      ((4, false, false, 32, meshN), [])],
   outcome = on_first_line (outcome_of "unsat" "sat" "unknown" "timeout"),
-  parse_proof = SOME Z3_Replay.parse_proof,
-  replay = SOME Z3_Replay.replay }
+  parse_proof = SOME Z3_New_Replay.parse_proof,
+  replay = SOME Z3_New_Replay.replay }
 
 end
 

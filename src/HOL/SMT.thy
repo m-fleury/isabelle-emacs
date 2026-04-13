@@ -427,7 +427,7 @@ lemma alethe_bool_simplify:
   by auto
 
 lemma alethe_connective_def:
-  \<open>(A = B) \<noteq> ((\<not>A \<and> B) \<or> (A \<and> \<not>B))\<close> \<comment> \<open>xor case\<close>
+  \<open>(A \<noteq> B) = ((\<not>A \<and> B) \<or> (A \<and> \<not>B))\<close> \<comment> \<open>xor case\<close>
   \<open>(A = B) = ((A \<longrightarrow> B) \<and> (B \<longrightarrow> A))\<close>
   \<open>(If A B C) = ((A \<longrightarrow> B) \<and> (\<not>A \<longrightarrow> C))\<close>
   apply (case_tac [!] A)
@@ -1043,6 +1043,9 @@ ML_file \<open>Tools/SMT/z3/z3_interface.ML\<close>
 ML_file \<open>Tools/SMT/z3/z3_replay_rules.ML\<close>
 ML_file \<open>Tools/SMT/z3/z3_replay_methods.ML\<close>
 ML_file \<open>Tools/SMT/z3/z3_replay.ML\<close>
+
+ML_file \<open>Tools/SMT/z3/z3_new_replay_methods.ML\<close>
+ML_file \<open>Tools/SMT/z3/z3_new_replay.ML\<close>
 (*vampire*)
 ML_file \<open>Tools/SMT/vampire_interface.ML\<close>
 (*veriT and cvc5 replay*)

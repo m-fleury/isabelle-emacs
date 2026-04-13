@@ -1958,11 +1958,10 @@ next
   proof (cases "x \<in># B")
     case True
     with add.prems have "image_mset f A = image_mset f (B - {#x#}) + C"
-      (*by (smt (verit) add_mset_add_mset_same_iff image_mset_add_mset insert_DiffM union_mset_add_mset_left)
- *) sorry
+      by (smt (verit) add_mset_add_mset_same_iff image_mset_add_mset insert_DiffM union_mset_add_mset_left)
       with add.IH have "\<exists>M3'. A = B - {#x#} + M3' \<and> image_mset f M3' = C"
-      (*by (smt (verit, del_insts) True Un_insert_left Un_insert_right add.prems(2) inj_on_insert
-          insert_DiffM set_mset_add_mset_insert)*) sorry
+      by (smt (verit, del_insts) True Un_insert_left Un_insert_right add.prems(2) inj_on_insert
+          insert_DiffM set_mset_add_mset_insert)
     with True show ?thesis
       by auto
   next
@@ -4652,8 +4651,7 @@ proof -
       (auto simp: finite_iff_ordLess_natLeq[symmetric])
   show "rel_mset R OO rel_mset S \<le> rel_mset (R OO S)" for R S
     unfolding rel_mset_def[abs_def] OO_def
-    sorry
-    (* by (smt (verit, ccfv_SIG) list_all2_reorder_left_invariance list_all2_trans predicate2I)*)
+    by (smt (verit, ccfv_SIG) list_all2_reorder_left_invariance list_all2_trans predicate2I)
   show "rel_mset R =
     (\<lambda>x y. \<exists>z. set_mset z \<subseteq> {(x, y). R x y} \<and>
     image_mset fst z = x \<and> image_mset snd z = y)" for R

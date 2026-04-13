@@ -1404,8 +1404,8 @@ local
         (*not_not is repeated as last theorem:*)
         (curry List.take @{thms nnf_simps} (length @{thms nnf_simps} - 1)))
       THEN' (debug_msg_tac' ctxt high "qnt_cnf after resolving simplifying")
-      THEN' TRY' (Blast.blast_tac ctxt))
-    ORELSE' Blast.blast_tac ctxt
+      THEN' TRY' (Metis_Tactic.metis_tac [] ATP_Problem_Generate.combsN ctxt []))
+    ORELSE' Metis_Tactic.metis_tac [] ATP_Problem_Generate.combsN ctxt []
 in
 fun qnt_rm_unused ctxt _ t = SMT_Replay_Methods.prove ctxt t (fn _ =>
   K (unfold_tac ctxt rm_unused)
