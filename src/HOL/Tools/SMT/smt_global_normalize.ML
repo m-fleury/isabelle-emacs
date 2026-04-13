@@ -846,11 +846,8 @@ in
 
     (* "\<lambda>x::int. P x \<equiv> \<lambda>x. P' x" *)
     val thm23 = Thm.abstract_rule bv_name transformed_bound_var_ct thm_unfolded_nat_int
-    val _ = @{print}("Re-add \<lambda>",thm23)
     (* "\<forall>x::int. P x \<equiv> \<forall>x. P' x" *)
     val thm23' = Thm.combination (Conv.all_conv quant) thm23
-    val _ = @{print}("Re-add quantifier",thm23')
-    val _ = @{print}("Re-add quantifier",qnt_original_unfold_nat_int_bound_var)
 
     (* "\<forall>x::nat. P (int x) \<equiv> \<forall>x::int. P' x" *)
     val thm23' = Thm.transitive qnt_original_unfold_nat_int_bound_var thm23'
@@ -863,15 +860,11 @@ in
  |
 (Abs (bv_name, T, t2)) => (*TODO: lambda case*)
   let
-    val _ = @{print}("bv_name", bv_name)
-    val _ = @{print}("t2", t2)
+   
     val ((bound_var, body), ctxt) = Variable.dest_abs_cterm ct1 ctxt;
-    val _ = @{print}("body", body)
 
     val (tab1,ctxt1,ge_conds,[thm]) = bottom_list ccv' tab [] ctxt [body] []
-    val _ = @{print}("thm", thm)
     val thm23 = Thm.abstract_rule bv_name bound_var thm
-    val _ = @{print}("thm23", thm23)
     (*TODO: Add/pass conditions *)
  in (tab1,ctxt1,[],thm23) end |
 _ => 

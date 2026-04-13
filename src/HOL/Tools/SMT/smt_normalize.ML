@@ -410,12 +410,15 @@ local
         addsimps (Named_Theorems.get ctxt \<^named_theorems>\<open>simplify_translation\<close>))
 
       fun simp_rewr ctxt = Simplifier.rewrite (Simplifier.add_cong  @{thm option.case_cong} ((put_simpset (proper_num_ss  ctxt)) ctxt))
-      fun rewr_conv thms = Conv.top_rewrs_conv thms ctxt
+      fun rewr_conv [] = Conv.all_conv |
+          rewr_conv (thm::thms) =( Conv.try_conv (Conv.top_rewrs_conv [thm |> @{print}] ctxt))
+then_conv (print_conv "unfold_extension_conv_simp") ctxt "test one conv" 
+then_conv rewr_conv thms
     in
       (case t1 of
         Const(n,T) =>
           (case AList.lookup (op =) tab n of (*TODO: use thms in Simplifier*)
-              SOME thms => rewr_conv thms
+              SOME thms => rewr_conv (thms |> @{print})
               then_conv (print_conv "unfold_extension_conv_simp") ctxt "unfolded one conv" 
                then_conv (simp_rewr ctxt)
               then_conv (print_conv "unfold_extension_conv_simp") ctxt "simp rewrite one conv" 
