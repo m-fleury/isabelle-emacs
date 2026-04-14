@@ -561,8 +561,8 @@ lemma la_generic_bug_1h1:
 (* Rule 12: lia_generic *)
 
 lemma lia_generic_1:
-  shows "\<not>(3*x = 9) \<or> (x \<ge> 3)"
-  by (ctxt_tactic "la_tautology")
+  shows "\<not>(3*(x::int) = 9) \<or> (x \<ge> 3)"
+  by (ctxt_tactic "lia_generic")
 
 (* Rule 13: la_disequality *)
 
