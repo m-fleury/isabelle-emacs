@@ -150,7 +150,7 @@ sig
   val not_not: alethe_tac
   val not_or_rule: alethe_tac
   val or: alethe_tac
-  val or_neg_rule: alethe_tac
+  val or_neg_rule: alethe_tac_args
   val or_pos_rule: alethe_tac
   val theory_resolution2: alethe_tac
   val prod_simplify: alethe_tac
@@ -1117,6 +1117,10 @@ end)
 
 
 (*TODO: Improve now that we have arguments*)
+(* TODO Benchmark or_neg versions *)
+
+(* Version 1: Old initial version *)
+(*
 val or_neg_rule = prove_abstract SMT_Replay_Methods.abstract_bool (fn ctxt => fn _ =>
 
   resolve_tac ctxt @{thms alethe_or_neg}
@@ -1126,6 +1130,20 @@ val or_neg_rule = prove_abstract SMT_Replay_Methods.abstract_bool (fn ctxt => fn
     (REPEAT'
       (SOLVED' (match_tac ctxt @{thms disjI1} THEN_ALL_NEW assume_tac ctxt)
        ORELSE' (match_tac ctxt @{thms disjI2} THEN' TRY' (assume_tac ctxt)))))
+*)
+(* Version 2: Index usage *)
+fun or_neg_rule ctxt _ t (SOME (Index k)) = 
+   SMT_Replay_Methods.prove ctxt t (fn _ =>
+     resolve_tac ctxt @{thms alethe_or_neg}
+     THEN' (REPEAT_DETERM_N' k (match_tac ctxt @{thms disjI2}))
+     THEN' FIRST' [
+                   (match_tac ctxt @{thms disjI1}) THEN' (assume_tac ctxt),
+                   (assume_tac ctxt)
+                  ]
+) |
+  or_neg_rule ctxt _ t _ = SMT_Replay_Methods.prove ctxt t (fn _ => K no_tac)
+
+(* TODO Version 3: Theorem construction *)
 
 (* TODO Benchmark and_pos versions *)
 
@@ -1146,15 +1164,28 @@ and_pos ctxt _ t _ = (*legacy*)
   THEN' TRY' (assume_tac ctxt))
 *)
 
+(* 
+SMT-LIB (and a b (and c d)), i = 2 ==> (and c d)
+
+Isabelle (and a b c d) ==> (and a (and b (and c d)))
+
+Isabelle (and a b (and c d)) ==> (and a (and b (and c d)))
+*)
+
 (* Version 2: d-tact and assume *)
 fun and_pos ctxt _ t (SOME (Index k)) =
   SMT_Replay_Methods.prove ctxt t (fn _ =>
   resolve_tac ctxt [@{lemma "(A \<Longrightarrow> B) \<Longrightarrow> (\<not>A \<or> B)" by blast}]
   THEN' REPEAT_DETERM_N' k (dmatch_tac ctxt @{thms conjunct2})
-  THEN' FIRST' [(dmatch_tac ctxt @{thms conjunct1}) THEN' (assume_tac ctxt),
-                (assume_tac ctxt)])
+  THEN' FIRST' [
+                (dmatch_tac ctxt @{thms conjunct1}) THEN' (assume_tac ctxt),
+                (assume_tac ctxt)
+               ]
+) |
+  and_pos ctxt _ t _ = SMT_Replay_Methods.prove ctxt t (fn _ => K no_tac)
 
 (* TODO Version 3: Theorem construction *)
+
 
 end
 

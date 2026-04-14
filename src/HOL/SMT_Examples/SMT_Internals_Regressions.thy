@@ -292,7 +292,7 @@ let
   val context_args=[]
   (*arguments are only supported for some rules and are a little brittle*)
   (*maybe I should have parsed tokens, at the time I wrote this I only wanted to test one specific rule*)
-  val args= (if rule_name = "and_pos" andalso Option.isSome args
+  val args= (if member (op =) ["and_pos", "or_neg"] rule_name andalso Option.isSome args
             then SOME (Index (Option.valOf args |> Syntax.read_term ctxt |> HOLogic.dest_number |> snd))
             else if rule_name = "shuffle" andalso Option.isSome args
             then SOME (CommOp (Option.valOf args |> Syntax.read_term ctxt))
@@ -563,7 +563,6 @@ lemma la_generic_bug_1h1:
 lemma lia_generic_1:
   shows "\<not>(3*x = 9) \<or> (x \<ge> 3)"
   by (ctxt_tactic "la_tautology")
-
 
 (* Rule 13: la_disequality *)
 
@@ -867,9 +866,9 @@ lemma not_or_5:
   by (ctxt_tactic "not_or" "2::int")
 
 lemma not_or_6:
-  assumes " \<not> (\<not> (\<not> 1 \<le> isabelle_internal_TransferToDisk \<and> 1 \<le> isabelle_internal_TaskReady \<and> 1 \<le> isabelle_internal_LoadingMem \<or>
-             1 \<le> isabelle_internal_TaskReady \<or> 1 \<le> isabelle_internal_LoadingMem))"
-  shows "\<not> \<not> (\<not> 1 \<le> isabelle_internal_TransferToDisk \<and> 1 \<le> isabelle_internal_TaskReady \<and> 1 \<le> isabelle_internal_LoadingMem)"
+  assumes " \<not> ((\<not> (\<not> 1 \<le> a \<and> 1 \<le> b \<and> 1 \<le> c) \<or>
+             1 \<le> b \<or> 1 \<le> c))"
+  shows "\<not> \<not> (\<not> 1 \<le> a \<and> 1 \<le> b \<and> 1 \<le> c)"
   using assms
   by (ctxt_tactic "not_or" "0::int")
 
@@ -917,7 +916,7 @@ lemma weakening_3:
 
 lemma weakening_4:
   assumes "(a \<or> b) \<or> b \<or> c"
-  shows  "(a \<or> b) \<or> c \<or> (c \<or> a) \<or> e"
+  shows  "(a \<or> b) \<or> b \<or> c \<or> (c \<or> a) \<or> e"
   using assms
   by (ctxt_tactic "weakening")
 
@@ -1011,47 +1010,6 @@ lemma shuffle_and_6b:
   shows "(\<not> (c \<and> a) \<and> \<not> (d \<and> b) \<and> c \<and> a) =
          (c \<and> a \<and> \<not> (c \<and> a) \<and> \<not> (d \<and> b))"
   by (ctxt_tactic "shuffle" "HOL.conj")
-
-
-(* (\<not> t1 \<and> \<not> t2 \<and> t1) = (c \<and> a \<and> \<not> t1 \<and> \<not> t2) *)
-
-ML \<open>
-
-val x
- = Alethe_Replay_Methods.shuffle
- (Context.the_local_context ()) [] [@{term "1::int"}]
- @{term  " (op e4 e4 \<noteq> e4 \<and> op e3 e4 \<noteq> e3 \<and> op e4 e3 \<noteq> e3 \<and> op e2 e4 \<noteq> e2 \<and> op e4 e2 \<noteq> e2 \<and> op e0 e4 \<noteq> e0 \<and> op e1 e4 \<noteq> e1 \<and> op e4 e0 \<noteq> e0 \<and> op e4 e1 \<noteq> e1) =
-    (op e0 e4 \<noteq> e0 \<and> op e1 e4 \<noteq> e1 \<and> op e2 e4 \<noteq> e2 \<and> op e3 e4 \<noteq> e3 \<and> op e4 e4 \<noteq> e4 \<and> op e4 e0 \<noteq> e0 \<and> op e4 e1 \<noteq> e1 \<and> op e4 e2 \<noteq> e2 \<and> op e4 e3 \<noteq> e3) "}
- (SOME (CommOp @{term "conj"}))
-\<close>
-
-ML \<open>
-
-val y
- = Alethe_Replay_Methods.shuffle
- (Context.the_local_context ()) [] [@{term "1::int"}]
- @{term  " (A \<or> B \<or> (C \<or> D))  = ((C \<or> D) \<or> B \<or> A)"}
- (*@{term  " (A \<or> B \<or> C)  = (C \<or> B \<or> A)"}*)
-
- (SOME (CommOp @{term "disj"}))
-
-
-\<close>
-
-
-
-
-(* 
-
-hi0
- 1. (a \<and> b \<and> c) = (b \<and> a \<and> c) 
-hi
- 1. (a \<and> b \<and> c) = ((a \<and> c) \<and> b) 
-hi
- 1. (a \<and> b \<and> c) = (b \<and> a \<and> c) 
-hi
-*)
-
 
 
 (* Rule 36: not_and *)
@@ -1510,40 +1468,40 @@ lemma or_pos_7: "\<not>(a) \<or> a"
 (* Rule 51: or_neg *)
 
 lemma or_neg_1: "(a \<or> b \<or> c) \<or> \<not>a"
-  by (ctxt_tactic "or_neg")
+  by (ctxt_tactic "or_neg" "0::int")
 
 lemma or_neg_2: "(a \<or> b \<or> c) \<or> \<not>b"
-  by (ctxt_tactic "or_neg")
+  by (ctxt_tactic "or_neg" "1")
 
 lemma or_neg_3: "(a \<or> b \<or> c) \<or> \<not>c"
-  by (ctxt_tactic "or_neg")
+  by (ctxt_tactic "or_neg" "2")
 
 lemma or_neg_4: "((a \<or> b) \<or> c) \<or> \<not>(a \<or> b)"
-  by (ctxt_tactic "or_neg")
+  by (ctxt_tactic "or_neg" "0")
 
 lemma or_neg_5: "(a \<or> (b \<or> c) \<or> d) \<or> \<not>(b \<or> c)"
-  by (ctxt_tactic "or_neg")
+  by (ctxt_tactic "or_neg" "1")
 
 lemma or_neg_6: "(a \<or> b \<or> (c \<or> d)) \<or> \<not>(c \<or> d)"
-  by (ctxt_tactic "or_neg")
+  by (ctxt_tactic "or_neg" "2")
 
 lemma or_neg_7: "((a \<and> b) \<or> b \<or> (\<not>c \<longrightarrow> d)) \<or> \<not>(\<not>c \<longrightarrow> d)"
-  by (ctxt_tactic "or_neg")
+  by (ctxt_tactic "or_neg" "2")
 
 lemma or_neg_8: "((a \<and> b) \<or> b \<or> \<not>(c \<longrightarrow> d)) \<or> \<not>(\<not>(c \<longrightarrow> d))"
-  by (ctxt_tactic "or_neg")
+  by (ctxt_tactic "or_neg" "2")
 
 lemma or_neg_9: "(\<not>a \<or> b \<or> c) \<or> \<not>(\<not>a)"
-  by (ctxt_tactic "or_neg")
+  by (ctxt_tactic "or_neg" "0")
 
 lemma or_neg_10: "(\<not>a \<or> b) \<or> \<not>(\<not>a)"
-  by (ctxt_tactic "or_neg")
+  by (ctxt_tactic "or_neg" "0")
 
 lemma or_neg_11: "(\<not>a \<or> b) \<or> \<not>b"
-  by (ctxt_tactic "or_neg")
+  by (ctxt_tactic "or_neg" "1")
 
 lemma or_neg_12: "(a) \<or> \<not>a"
-  by (ctxt_tactic "or_neg")
+  by (ctxt_tactic "or_neg" "0")
 
 (* Rule 52: xor_pos1 *)
 
@@ -2237,21 +2195,16 @@ lemma eq_simplify_4:
 
 
 (* Rule 85: div_simplify *)
-(*the following does not hold, because 0 div 0 is not defined
-in the theory of integer.*)
-lemma div_simplify_1:
-  shows "((a::int) div a) = 1"
-  by (ctxt_tactic "div_simplify")
 
-lemma div_simplify_2:
+lemma div_simplify_1:
   shows "((3::int) = 3) = True"
   by (ctxt_tactic "div_simplify")
 
-lemma div_simplify_3:
+lemma div_simplify_2:
   shows "((3::int) = 4) = False"
   by (ctxt_tactic "div_simplify")
 
-lemma div_simplify_4:
+lemma div_simplify_3:
   shows "((3::int) div 3) = 1"
   by (ctxt_tactic "div_simplify")
 
