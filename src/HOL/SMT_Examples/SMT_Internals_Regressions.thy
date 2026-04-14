@@ -2564,6 +2564,7 @@ lemma poly_simp_rel2:
   using assms
   by (ctxt_tactic "poly_simp_rel")
 
+end
 
 (*onepoint**)
 experiment
