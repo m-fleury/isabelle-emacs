@@ -824,6 +824,10 @@ lemma alethe_invert_farkas_equation:
 end
 
 lemma alethe_ite_intro:
+  \<open>(If p (a' = (If p a' b')) (b' = (If p a' b'))) \<longleftrightarrow> True\<close>
+  \<open>(If p (a' = (If p a' b')) ((If p a' b') = b')) \<longleftrightarrow> True\<close>
+  \<open>(If p ((If p a' b') = a') (b' = (If p a' b'))) \<longleftrightarrow> True\<close>
+  \<open>(If p ((If p a' b') =a') ((If p a' b') = b')) \<longleftrightarrow> True\<close>
   \<open>(if a then P (if a then a' else b') else Q) \<longleftrightarrow> (if a then P a' else Q)\<close>
   \<open>(if a then P' else Q' (if a then a' else b')) \<longleftrightarrow> (if a then P' else Q' b')\<close>
   \<open>A = f (if a then R else S) \<longleftrightarrow> (if a then A = f R else A = f S)\<close>

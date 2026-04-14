@@ -1416,19 +1416,27 @@ fun not_ite2 ctxt thm t = SMT_Replay_Methods.prove ctxt t
   (fn _ => prove_ite not_ite2_thm (extract_single_premise Not_ITE2 ctxt thm t) ctxt)
 
 (*ite_intro can introduce new terms that are in the proof exactly the sames as the old one, but are
-not internally, hence the possible reordering.*)
+not internally, hence the possible reordering.
+
+TODO: after updating this in 2026, I did not find any example that needed anything
+besides the first rule. The rest is kept as legacy though, because there are very few
+case of this rule in our tests.*)
 fun ite_intro ctxt _ t =
   let
-    fun simplify_ite ctxt thms =
+    fun simplify_ite ctxt thms cong =
       ctxt
       |> empty_simpset
       |> put_simpset HOL_basic_ss
-      |> (fn ctxt => ctxt addsimps thms @ @{thms if_True if_False refl simp_thms if_cancel})
-      |> Raw_Simplifier.add_eqcong @{thm alethe_ite_if_cong}
+      |> (fn ctxt => ctxt addsimps thms @ @{thms simp_thms})
+      |> cong ? (Raw_Simplifier.add_eqcong @{thm alethe_ite_if_cong})
       |> Simplifier.full_simp_tac
+    val use_cong = (0 = 0)
   in
-    SMT_Replay_Methods.prove ctxt t (fn _ => simplify_ite ctxt []
-       THEN' TRY' (simplify_ite ctxt @{thms eq_commute}))
+    SMT_Replay_Methods.prove ctxt t (fn _ => 
+      simplify_ite ctxt @{thms alethe_ite_intro(1-4)} (not use_cong)
+      THEN' TRY' (simplify_ite ctxt @{thms alethe_ite_intro} (not use_cong))
+      THEN' TRY' (simplify_ite ctxt @{thms if_cancel} use_cong)
+      THEN' TRY' (simplify_ite ctxt @{thms eq_commute} use_cong))
   end
 end
 

@@ -2425,6 +2425,14 @@ lemma ite_intro_8: "((If p a b) \<or> (If q c d) \<or> (If q d a))
                               \<and> (If q (d = (If q d a)) (a = (If q d a))) )"
   by (ctxt_tactic "ite_intro")
 
+lemma ite_intro_9:
+  fixes dec_10 :: \<open>int \<Rightarrow> int\<close>
+  shows
+  \<open> (dec_10 (4 * dec_10 4) = (if 4 * dec_10 4 < 10 then 4 * dec_10 4 else dec_10 (4 * dec_10 4 - 10))) =
+         (dec_10 (4 * dec_10 4) = (if 4 * dec_10 4 < 10 then 4 * dec_10 4 else dec_10 (4 * dec_10 4 - 10)) \<and>
+          (if 4 * dec_10 4 < 10 then 4 * dec_10 4 = (if 4 * dec_10 4 < 10 then 4 * dec_10 4 else dec_10 (4 * dec_10 4 - 10))
+           else dec_10 (4 * dec_10 4 - 10) = (if 4 * dec_10 4 < 10 then 4 * dec_10 4 else dec_10 (4 * dec_10 4 - 10)))) \<close>
+  by (ctxt_tactic "ite_intro")
 (* Rule 104: miniscope_distribute *)
 (*Note: there isn't a solver that produces the exists case currently*)
 
