@@ -241,6 +241,8 @@ lemma alethe_if_weak_cong':
   \<open>b \<equiv> c \<Longrightarrow> (if b then x else y) \<equiv> (if c then x else y)\<close>
   by auto
 
+(* TODO: Do these lemms still need their negated version? 
+   We removed it for implies_pos but here? *)
 lemma alethe_or_neg:
    \<open>(A \<Longrightarrow> B) \<Longrightarrow> B \<or> \<not>A\<close>
    \<open>(\<not>A \<Longrightarrow> B) \<Longrightarrow> B \<or> A\<close>

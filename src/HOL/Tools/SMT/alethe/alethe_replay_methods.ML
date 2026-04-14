@@ -1127,6 +1127,10 @@ val or_neg_rule = prove_abstract SMT_Replay_Methods.abstract_bool (fn ctxt => fn
       (SOLVED' (match_tac ctxt @{thms disjI1} THEN_ALL_NEW assume_tac ctxt)
        ORELSE' (match_tac ctxt @{thms disjI2} THEN' TRY' (assume_tac ctxt)))))
 
+(* TODO Benchmark and_pos versions *)
+
+(* Version 1: Old initial version *)
+(*
 fun and_pos ctxt _ t (SOME (Index k)) =
   SMT_Replay_Methods.prove ctxt t (fn _ =>
   REPEAT_DETERM_N' k (resolve_tac ctxt @{thms alethe_and_pos})  
@@ -1140,6 +1144,18 @@ and_pos ctxt _ t _ = (*legacy*)
   SMT_Replay_Methods.prove ctxt t (fn _ =>
   REPEAT_CHANGED (resolve_tac ctxt @{thms alethe_and_pos})
   THEN' TRY' (assume_tac ctxt))
+*)
+
+(* Version 2: d-tact and assume *)
+fun and_pos ctxt _ t (SOME (Index k)) =
+  SMT_Replay_Methods.prove ctxt t (fn _ =>
+  resolve_tac ctxt [@{lemma "(A \<Longrightarrow> B) \<Longrightarrow> (\<not>A \<or> B)" by blast}]
+  THEN' REPEAT_DETERM_N' k (dmatch_tac ctxt @{thms conjunct2})
+  THEN' FIRST' [(dmatch_tac ctxt @{thms conjunct1}) THEN' (assume_tac ctxt),
+                (assume_tac ctxt)])
+
+(* TODO Version 3: Theorem construction *)
+
 end
 
 

@@ -1427,39 +1427,24 @@ lemma not_equiv2_5:
 
 
 (* Rule 48: and_pos *)
-(*b's are legacy versions where no index was given*)
 
-lemma and_pos_1a: "\<not>(a \<and> b \<and> c) \<or> b"
-  by (ctxt_tactic "and_pos" "1::int")
-
-lemma and_pos_1b: "\<not>(a \<and> b \<and> c) \<or> b"
-  by (ctxt_tactic "and_pos")
-
-lemma and_pos_2a: "\<not>(a \<and> b \<and> c) \<or> c"
-  by (ctxt_tactic "and_pos" "2")
-
-lemma and_pos_2b: "\<not>(a \<and> b \<and> c) \<or> c"
-  by (ctxt_tactic "and_pos")
-
-lemma and_pos_3a: "\<not>(a \<and> (b \<and> c) \<and> d) \<or> (b \<and> c)"
+lemma and_pos_1: "\<not>(a \<and> b \<and> c) \<or> b"
   by (ctxt_tactic "and_pos" "1")
 
-lemma and_pos_3b: "\<not>(a \<and> (b \<and> c) \<and> d) \<or> (b \<and> c)"
-  by (ctxt_tactic "and_pos")
+lemma and_pos_2: "\<not>(a \<and> b \<and> c) \<or> c"
+  by (ctxt_tactic "and_pos" "2")
+
+lemma and_pos_3: "\<not>(a \<and> (b \<and> c) \<and> d) \<or> (b \<and> c)"
+  by (ctxt_tactic "and_pos" "1")
 
 lemma and_pos_4: "\<not>(a \<and> (b \<and> c) \<and> d) \<or> d"
   by (ctxt_tactic "and_pos" "2")
 
 lemma and_pos_5: "\<not>(a \<and> (b \<or> \<not>c \<and> d)) \<or> (b \<or> \<not>c \<and> d)"
-  by (ctxt_tactic "and_pos")
-
-lemma and_pos_6a: "\<not>(a \<and> (b \<and> c)) \<or> (b \<and> c)"
   by (ctxt_tactic "and_pos" "1")
 
-(* TODO: I will have a look at this since I want to improve the reconstruction of this rule anyways
-lemma and_pos_6b: "\<not>(a \<and> (b \<and> c)) \<or> (b \<and> c)" (*This should have worked but didn't*)
-  by (ctxt_tactic "and_pos")
-*)
+lemma and_pos_6: "\<not>(a \<and> (b \<and> c)) \<or> (b \<and> c)"
+  by (ctxt_tactic "and_pos" "1")
 
 lemma and_pos_7: "\<not>((\<not>a \<or> b) \<and> c) \<or> (\<not>a \<or> b)"
   by (ctxt_tactic "and_pos" "0")
