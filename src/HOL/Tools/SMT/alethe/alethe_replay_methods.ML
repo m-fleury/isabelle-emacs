@@ -1984,14 +1984,23 @@ shuffle ctxt thms _ t _ =
 end
 
 fun contraction ctxt [prem] t = 
- SMT_Replay_Methods.prove ctxt t (fn _ => (
-    Method.insert_tac ctxt [prem]
-    THEN' match_tac ctxt @{thms ccontr}
-    THEN' K (unfold_tac ctxt @{thms de_Morgan_disj})
-    THEN' TRY o CHANGED_PROP o REPEAT_ALL_NEW (ematch_tac ctxt @{thms conjE})
-    THEN' CHANGED_PROP o REPEAT_ALL_NEW (ematch_tac ctxt @{thms disjE})
-    THEN' REPEAT'(ematch_tac ctxt @{thms notE} THEN' TRY' (assume_tac ctxt))
-    ))
+  if Term.size_of_term t < 100
+  then
+    SMT_Replay_Methods.prove ctxt t (fn _ => (
+       Method.insert_tac ctxt [prem]
+       THEN' match_tac ctxt @{thms ccontr}
+       THEN' K (unfold_tac ctxt @{thms de_Morgan_disj})
+       THEN' TRY o CHANGED_PROP o REPEAT_ALL_NEW (ematch_tac ctxt @{thms conjE})
+       THEN' CHANGED_PROP o REPEAT_ALL_NEW (ematch_tac ctxt @{thms disjE})
+       THEN' REPEAT'(ematch_tac ctxt @{thms notE} THEN' TRY' (assume_tac ctxt))
+       ))
+   else
+    (*cvc5 produces steps with a lot of repetition (think about: 60 times the same literal).
+    In those cases, the simplifier is much faster, because it can reduce the size
+    of the term.*)
+    prove_abstract SMT_Replay_Methods.abstract_bool_shallow (fn ctxt => fn prems => (
+       Method.insert_tac ctxt prems
+       THEN' simplify_tac ctxt @{thms disj.commute disj.left_commute})) ctxt [prem] t
 | contraction ctxt thms t = replay_error ctxt "Unsupported commutative operator in contraction rule" Unsupported thms [] t
 
 

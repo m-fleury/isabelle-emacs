@@ -499,6 +499,36 @@ lemma contraction_8:
   using assms
   by (ctxt_tactic "contraction")
 
+context
+  fixes P :: \<open>nat \<Rightarrow> bool\<close>
+begin
+(*cvc5 sometimes produces extremely large goals (6000 lines of Isabelle terms if you print
+it as a lemma), so here is an ML version to be able to measure time.*)
+ML \<open>
+let
+  fun build_term n = 
+    if n = 0 then @{term \<open>P 0\<close>}
+    else HOLogic.mk_disj (@{term \<open>P\<close>} $ HOLogic.mk_nat (n),  build_term (n-1))
+  fun build_term2 n = 
+    if n = 0 then @{term \<open>P 0\<close>}
+    else HOLogic.mk_disj (build_term2 (n-1), 
+       HOLogic.mk_disj (@{term \<open>P\<close>} $ HOLogic.mk_nat (n), build_term (n-1)))
+  val ctxt = @{context}
+  fun measure_time ctxt n =
+    let
+    val ct = (Thm.cterm_of ctxt) (build_term2 n) |> HOLogic.mk_judgment
+    val (prems, ctxt') = Assumption.add_assumes [ct] ctxt
+    val start = Timing.start ()
+    val thm = Alethe_Replay_Methods.contraction ctxt' prems (@{term Trueprop} $ build_term n)
+    val total = Time.toMilliseconds (#elapsed (Timing.result start))
+    in
+     (thm, total)
+    end
+in
+   map (measure_time ctxt) [10,20,30,50,60]
+end
+\<close>
+
 (* Rule 11: la_generic *)
 
 declare[[smt_debug_arith_verit]]
