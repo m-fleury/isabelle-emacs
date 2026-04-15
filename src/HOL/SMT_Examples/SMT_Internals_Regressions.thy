@@ -649,10 +649,10 @@ lemma trans_3:
   shows  "a = b"
   using assms
   by (ctxt_tactic "trans")
-thm trans
+
 lemma trans_4:
-  assumes  "(f a = a)" "(a = f a)" "(f a = b)" "(f a = a)"
-  shows  "f a = a"
+  assumes "(a = f a)" "(f a = b)" "(b = a)"
+  shows  "a = a"
   using assms
   by (ctxt_tactic "trans")
 
@@ -2210,8 +2210,44 @@ lemma div_simplify_2:
   shows "((3::int) = 4) = False"
   by (ctxt_tactic "div_simplify")
 
+lemma div_simplify_2b:
+  shows "((-3::int) = 4) = False"
+  by (ctxt_tactic "div_simplify")
+
 lemma div_simplify_3:
   shows "((3::int) div 3) = 1"
+  by (ctxt_tactic "div_simplify")
+
+lemma div_simplify_3b:
+  shows "((-3::int) div 3) = -1"
+  by (ctxt_tactic "div_simplify")
+
+lemma div_simplify_3c:
+  shows "((-3::int) div -3) = 1"
+  by (ctxt_tactic "div_simplify")
+
+lemma div_simplify_4a:
+  shows "((-20::int) div -3) = 6"
+  by (ctxt_tactic "div_simplify")
+
+lemma div_simplify_4b:
+  shows "((-21::int) div -3) = 7"
+  by (ctxt_tactic "div_simplify")
+
+lemma div_simplify_4c:
+  shows "(((178::int) div -3) = 7) = False"
+  by (ctxt_tactic "div_simplify")
+
+lemma div_simplify_4d:
+  shows "(((179::int) div -3) = 7000) = False"
+  by (ctxt_tactic "div_simplify")
+
+lemma div_simplify_4e:
+  shows "(((82388::int) div -3) = 7000) = False"
+  by (ctxt_tactic "div_simplify")
+
+lemma div_simplify_4f:
+  shows "(((82388::int) div -30000) = 7000) = False"
   by (ctxt_tactic "div_simplify")
 
 (* Rule 86: prod_simplify *)
