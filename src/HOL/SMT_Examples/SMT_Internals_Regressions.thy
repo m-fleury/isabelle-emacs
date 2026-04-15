@@ -2186,6 +2186,234 @@ lemma qnt_rm_unused_6:
   shows "(\<exists>x1 x2 x3. x1 \<and> x3) = (\<exists>x1 x3. x1 \<and> x3)"
   by (ctxt_tactic "qnt_rm_unused")
 
+lemma
+\<open>(\<forall>(v0::'A_literal_multiset_list__a__i) (v1::'Nat__a__i) (v2::'A_literal_multiset_list__a__i) (v3::'A_multiset_list__a__i) (v4::'A_list__a__i)
+             (v5::'A_literal_multiset__a__i) (v0a::'A_literal_multiset_list__a__i) (v2a::'A_literal_multiset_list__a__i) (v3a::'A_multiset_list__a__i)
+             (v4a::'A_list__a__i) (v5a::'A_literal_multiset__a__i) v1a::'Nat__a__i.
+             v1a \<noteq> (size__a__ia::'A_literal_multiset_list__a__i \<Rightarrow> 'Nat__a__i) v0a \<or>
+             v1a \<noteq> size__a__ia v2a \<or>
+             v1a \<noteq> (size__a__i::'A_multiset_list__a__i \<Rightarrow> 'Nat__a__i) v3a \<or>
+             v1a \<noteq> (size__a__ib::'A_list__a__i \<Rightarrow> 'Nat__a__i) v4a \<or>
+             (zero__a__ib::'Nat__a__i) = v1a \<or>
+             \<not> (\<forall>v6::'Nat__a__i.
+                    \<not> (less__a__i::'Nat__a__i \<Rightarrow> 'Nat__a__i \<Rightarrow> bool) v6 v1a \<or>
+                    (nth__a__i::'A_literal_multiset_list__a__i \<Rightarrow> 'Nat__a__i \<Rightarrow> 'A_literal_multiset__a__i) v0a v6 =
+                    (plus__a__i::'A_literal_multiset__a__i \<Rightarrow> 'A_literal_multiset__a__i \<Rightarrow> 'A_literal_multiset__a__i) (nth__a__i v2a v6)
+                     ((image_mset__a__i::'A_a_literal_fun__a__i \<Rightarrow> 'A_multiset__a__i \<Rightarrow> 'A_literal_multiset__a__i) (pos__a__i::'A_a_literal_fun__a__i)
+                       ((nth__a__ia::'A_multiset_list__a__i \<Rightarrow> 'Nat__a__i \<Rightarrow> 'A_multiset__a__i) v3a v6))) \<or>
+             \<not> (\<forall>v6::'Nat__a__i. \<not> less__a__i v6 v1a \<or> (zero__a__i::'A_multiset__a__i) \<noteq> nth__a__ia v3a v6) \<or>
+             \<not> (\<forall>(v6::'Nat__a__i) isabelle_internal_BOUND_VARIABLE_7618::'A__a__i.
+                    \<not> less__a__i v6 v1a \<or>
+                    \<not> (member__a__i::'A__a__i \<Rightarrow> 'A_set__a__i \<Rightarrow> bool) isabelle_internal_BOUND_VARIABLE_7618
+                        ((set_mset__a__i::'A_multiset__a__i \<Rightarrow> 'A_set__a__i) (nth__a__ia v3a v6)) \<or>
+                    (nth__a__ib::'A_list__a__i \<Rightarrow> 'Nat__a__i \<Rightarrow> 'A__a__i) v4a v6 = isabelle_internal_BOUND_VARIABLE_7618) \<or>
+             \<not> (eligible__a__i::'A_literal_multiset_a_literal_multiset_fun__a__i \<Rightarrow> 'A_list__a__i \<Rightarrow> 'A_literal_multiset__a__i \<Rightarrow> bool)
+                 (s__a__i::'A_literal_multiset_a_literal_multiset_fun__a__i) v4a
+                 (plus__a__i v5a (image_mset__a__i (neg__a__i::'A_a_literal_fun__a__i) ((mset__a__i::'A_list__a__i \<Rightarrow> 'A_multiset__a__i) v4a))) \<or>
+             \<not> (\<forall>v6::'Nat__a__i.
+                    \<not> less__a__i v6 v1a \<or> (strictly_maximal_wrt__a__i::'A__a__i \<Rightarrow> 'A_literal_multiset__a__i \<Rightarrow> bool) (nth__a__ib v4a v6) (nth__a__i v2a v6)) \<or>
+             \<not> (\<forall>v6::'Nat__a__i.
+                    \<not> less__a__i v6 v1a \<or>
+                    (zero__a__ia::'A_literal_multiset__a__i) =
+                    (fun_app__a__i::'A_literal_multiset_a_literal_multiset_fun__a__i \<Rightarrow> 'A_literal_multiset__a__i \<Rightarrow> 'A_literal_multiset__a__i) s__a__i
+                     (nth__a__i v0a v6)) \<or>
+             (ord_resolve__a__i::'A_literal_multiset_a_literal_multiset_fun__a__i
+                            \<Rightarrow> 'A_literal_multiset_list__a__i
+                               \<Rightarrow> 'A_literal_multiset__a__i \<Rightarrow> 'A_multiset_list__a__i \<Rightarrow> 'A_list__a__i \<Rightarrow> 'A_literal_multiset__a__i \<Rightarrow> bool)
+              s__a__i v0a (plus__a__i v5a (image_mset__a__i neg__a__i (mset__a__i v4a))) v3a v4a
+              (plus__a__i
+                ((sum_mset__a__i::'A_literal_multiset_multiset__a__i \<Rightarrow> 'A_literal_multiset__a__i)
+                  ((mset__a__ia::'A_literal_multiset_list__a__i \<Rightarrow> 'A_literal_multiset_multiset__a__i) v2a))
+                v5a)) =
+         (\<forall>(v0::'A_literal_multiset_list__a__i) (v2::'A_literal_multiset_list__a__i) (v3::'A_multiset_list__a__i) (v4::'A_list__a__i)
+             (v5::'A_literal_multiset__a__i) v1::'Nat__a__i.
+             v1 \<noteq> size__a__ia v0 \<or>
+             v1 \<noteq> size__a__ia v2 \<or>
+             v1 \<noteq> size__a__i v3 \<or>
+             v1 \<noteq> size__a__ib v4 \<or>
+             zero__a__ib = v1 \<or>
+             \<not> (\<forall>v6::'Nat__a__i. \<not> less__a__i v6 v1 \<or> nth__a__i v0 v6 = plus__a__i (nth__a__i v2 v6) (image_mset__a__i pos__a__i (nth__a__ia v3 v6))) \<or>
+             \<not> (\<forall>v6::'Nat__a__i. \<not> less__a__i v6 v1 \<or> zero__a__i \<noteq> nth__a__ia v3 v6) \<or>
+             \<not> (\<forall>(v6::'Nat__a__i) isabelle_internal_BOUND_VARIABLE_7618::'A__a__i.
+                    \<not> less__a__i v6 v1 \<or>
+                    \<not> member__a__i isabelle_internal_BOUND_VARIABLE_7618 (set_mset__a__i (nth__a__ia v3 v6)) \<or>
+                    nth__a__ib v4 v6 = isabelle_internal_BOUND_VARIABLE_7618) \<or>
+             \<not> eligible__a__i s__a__i v4 (plus__a__i v5 (image_mset__a__i neg__a__i (mset__a__i v4))) \<or>
+             \<not> (\<forall>v6::'Nat__a__i. \<not> less__a__i v6 v1 \<or> strictly_maximal_wrt__a__i (nth__a__ib v4 v6) (nth__a__i v2 v6)) \<or>
+             \<not> (\<forall>v6::'Nat__a__i. \<not> less__a__i v6 v1 \<or> zero__a__ia = fun_app__a__i s__a__i (nth__a__i v0 v6)) \<or>
+             ord_resolve__a__i s__a__i v0 (plus__a__i v5 (image_mset__a__i neg__a__i (mset__a__i v4))) v3 v4 (plus__a__i (sum_mset__a__i (mset__a__ia v2)) v5)) \<close>
+  by (ctxt_tactic "qnt_rm_unused")
+  
+lemma \<open> (\<forall>(v0::'A_literal_multiset_list__a__i) (v1::'Nat__a__i) (v2::'A_literal_multiset_list__a__i) (v3::'A_multiset_list__a__i) (v4::'A_list__a__i)
+             (v5::'A_literal_multiset__a__i) (v0a::'A_literal_multiset_list__a__i) (v2a::'A_literal_multiset_list__a__i) (v3a::'A_multiset_list__a__i)
+             (v4a::'A_list__a__i) (v5a::'A_literal_multiset__a__i) v1a::'Nat__a__i.
+             v1a \<noteq> (size__a__ia::'A_literal_multiset_list__a__i \<Rightarrow> 'Nat__a__i) v0a \<or>
+             v1a \<noteq> size__a__ia v2a \<or>
+             v1a \<noteq> (size__a__i::'A_multiset_list__a__i \<Rightarrow> 'Nat__a__i) v3a \<or>
+             v1a \<noteq> (size__a__ib::'A_list__a__i \<Rightarrow> 'Nat__a__i) v4a \<or>
+             (zero__a__ib::'Nat__a__i) = v1a \<or>
+             \<not> (\<forall>v6::'Nat__a__i.
+                    \<not> (less__a__i::'Nat__a__i \<Rightarrow> 'Nat__a__i \<Rightarrow> bool) v6 v1a \<or>
+                    (nth__a__i::'A_literal_multiset_list__a__i \<Rightarrow> 'Nat__a__i \<Rightarrow> 'A_literal_multiset__a__i) v0a v6 =
+                    (plus__a__i::'A_literal_multiset__a__i \<Rightarrow> 'A_literal_multiset__a__i \<Rightarrow> 'A_literal_multiset__a__i) (nth__a__i v2a v6)
+                     ((image_mset__a__i::'A_a_literal_fun__a__i \<Rightarrow> 'A_multiset__a__i \<Rightarrow> 'A_literal_multiset__a__i) (pos__a__i::'A_a_literal_fun__a__i)
+                       ((nth__a__ia::'A_multiset_list__a__i \<Rightarrow> 'Nat__a__i \<Rightarrow> 'A_multiset__a__i) v3a v6))) \<or>
+             \<not> (\<forall>v6::'Nat__a__i. \<not> less__a__i v6 v1a \<or> (zero__a__i::'A_multiset__a__i) \<noteq> nth__a__ia v3a v6) \<or>
+             \<not> (\<forall>(v6::'Nat__a__i) isabelle_internal_BOUND_VARIABLE_7618::'A__a__i.
+                    \<not> less__a__i v6 v1a \<or>
+                    \<not> (member__a__i::'A__a__i \<Rightarrow> 'A_set__a__i \<Rightarrow> bool) isabelle_internal_BOUND_VARIABLE_7618
+                        ((set_mset__a__i::'A_multiset__a__i \<Rightarrow> 'A_set__a__i) (nth__a__ia v3a v6)) \<or>
+                    (nth__a__ib::'A_list__a__i \<Rightarrow> 'Nat__a__i \<Rightarrow> 'A__a__i) v4a v6 = isabelle_internal_BOUND_VARIABLE_7618) \<or>
+             \<not> (eligible__a__i::'A_literal_multiset_a_literal_multiset_fun__a__i \<Rightarrow> 'A_list__a__i \<Rightarrow> 'A_literal_multiset__a__i \<Rightarrow> bool)
+                 (s__a__i::'A_literal_multiset_a_literal_multiset_fun__a__i) v4a
+                 (plus__a__i v5a (image_mset__a__i (neg__a__i::'A_a_literal_fun__a__i) ((mset__a__i::'A_list__a__i \<Rightarrow> 'A_multiset__a__i) v4a))) \<or>
+             \<not> (\<forall>v6::'Nat__a__i.
+                    \<not> less__a__i v6 v1a \<or> (strictly_maximal_wrt__a__i::'A__a__i \<Rightarrow> 'A_literal_multiset__a__i \<Rightarrow> bool) (nth__a__ib v4a v6) (nth__a__i v2a v6)) \<or>
+             \<not> (\<forall>v6::'Nat__a__i.
+                    \<not> less__a__i v6 v1a \<or>
+                    (zero__a__ia::'A_literal_multiset__a__i) =
+                    (fun_app__a__i::'A_literal_multiset_a_literal_multiset_fun__a__i \<Rightarrow> 'A_literal_multiset__a__i \<Rightarrow> 'A_literal_multiset__a__i) s__a__i
+                     (nth__a__i v0a v6)) \<or>
+             (ord_resolve__a__i::'A_literal_multiset_a_literal_multiset_fun__a__i
+                            \<Rightarrow> 'A_literal_multiset_list__a__i
+                               \<Rightarrow> 'A_literal_multiset__a__i \<Rightarrow> 'A_multiset_list__a__i \<Rightarrow> 'A_list__a__i \<Rightarrow> 'A_literal_multiset__a__i \<Rightarrow> bool)
+              s__a__i v0a (plus__a__i v5a (image_mset__a__i neg__a__i (mset__a__i v4a))) v3a v4a
+              (plus__a__i
+                ((sum_mset__a__i::'A_literal_multiset_multiset__a__i \<Rightarrow> 'A_literal_multiset__a__i)
+                  ((mset__a__ia::'A_literal_multiset_list__a__i \<Rightarrow> 'A_literal_multiset_multiset__a__i) v2a))
+                v5a)) =
+         (\<forall>(v0::'A_literal_multiset_list__a__i) (v1::'Nat__a__i) (v2::'A_literal_multiset_list__a__i) (v3::'A_multiset_list__a__i) (v4::'A_list__a__i)
+             v5::'A_literal_multiset__a__i.
+             v1 \<noteq> size__a__ia v0 \<or>
+             v1 \<noteq> size__a__ia v2 \<or>
+             v1 \<noteq> size__a__i v3 \<or>
+             v1 \<noteq> size__a__ib v4 \<or>
+             zero__a__ib = v1 \<or>
+             \<not> (\<forall>v6::'Nat__a__i. \<not> less__a__i v6 v1 \<or> nth__a__i v0 v6 = plus__a__i (nth__a__i v2 v6) (image_mset__a__i pos__a__i (nth__a__ia v3 v6))) \<or>
+             \<not> (\<forall>v6::'Nat__a__i. \<not> less__a__i v6 v1 \<or> zero__a__i \<noteq> nth__a__ia v3 v6) \<or>
+             \<not> (\<forall>(v6::'Nat__a__i) isabelle_internal_BOUND_VARIABLE_7618::'A__a__i.
+                    \<not> less__a__i v6 v1 \<or>
+                    \<not> member__a__i isabelle_internal_BOUND_VARIABLE_7618 (set_mset__a__i (nth__a__ia v3 v6)) \<or>
+                    nth__a__ib v4 v6 = isabelle_internal_BOUND_VARIABLE_7618) \<or>
+             \<not> eligible__a__i s__a__i v4 (plus__a__i v5 (image_mset__a__i neg__a__i (mset__a__i v4))) \<or>
+             \<not> (\<forall>v6::'Nat__a__i. \<not> less__a__i v6 v1 \<or> strictly_maximal_wrt__a__i (nth__a__ib v4 v6) (nth__a__i v2 v6)) \<or>
+             \<not> (\<forall>v6::'Nat__a__i. \<not> less__a__i v6 v1 \<or> zero__a__ia = fun_app__a__i s__a__i (nth__a__i v0 v6)) \<or>
+             ord_resolve__a__i s__a__i v0 (plus__a__i v5 (image_mset__a__i neg__a__i (mset__a__i v4))) v3 v4 (plus__a__i (sum_mset__a__i (mset__a__ia v2)) v5)) \<close>
+  by (ctxt_tactic "qnt_rm_unused")
+
+lemma \<open>(\<forall>(v0::'A_literal_multiset_list__a__i) (v1::'Nat__a__i) (v2::'A_literal_multiset_list__a__i) (v3::'A_multiset_list__a__i) (v4::'A_list__a__i)
+             (v5::'A_literal_multiset__a__i) (v0a::'A_literal_multiset_list__a__i) (v2a::'A_literal_multiset_list__a__i) (v3a::'A_multiset_list__a__i)
+             (v4a::'A_list__a__i) (v5a::'A_literal_multiset__a__i) v1a::'Nat__a__i.
+             v1a \<noteq> (size__a__ia::'A_literal_multiset_list__a__i \<Rightarrow> 'Nat__a__i) v0a \<or>
+             v1a \<noteq> size__a__ia v2a \<or>
+             v1a \<noteq> (size__a__i::'A_multiset_list__a__i \<Rightarrow> 'Nat__a__i) v3a \<or>
+             v1a \<noteq> (size__a__ib::'A_list__a__i \<Rightarrow> 'Nat__a__i) v4a \<or>
+             (zero__a__ib::'Nat__a__i) = v1a \<or>
+             \<not> (\<forall>v6::'Nat__a__i.
+                    \<not> (less__a__i::'Nat__a__i \<Rightarrow> 'Nat__a__i \<Rightarrow> bool) v6 v1a \<or>
+                    (nth__a__i::'A_literal_multiset_list__a__i \<Rightarrow> 'Nat__a__i \<Rightarrow> 'A_literal_multiset__a__i) v0a v6 =
+                    (plus__a__i::'A_literal_multiset__a__i \<Rightarrow> 'A_literal_multiset__a__i \<Rightarrow> 'A_literal_multiset__a__i) (nth__a__i v2a v6)
+                     ((image_mset__a__i::'A_a_literal_fun__a__i \<Rightarrow> 'A_multiset__a__i \<Rightarrow> 'A_literal_multiset__a__i) (pos__a__i::'A_a_literal_fun__a__i)
+                       ((nth__a__ia::'A_multiset_list__a__i \<Rightarrow> 'Nat__a__i \<Rightarrow> 'A_multiset__a__i) v3a v6))) \<or>
+             \<not> (\<forall>v6::'Nat__a__i. \<not> less__a__i v6 v1a \<or> (zero__a__i::'A_multiset__a__i) \<noteq> nth__a__ia v3a v6) \<or>
+             \<not> (\<forall>(v6::'Nat__a__i) isabelle_internal_BOUND_VARIABLE_7618::'A__a__i.
+                    \<not> less__a__i v6 v1a \<or>
+                    \<not> (member__a__i::'A__a__i \<Rightarrow> 'A_set__a__i \<Rightarrow> bool) isabelle_internal_BOUND_VARIABLE_7618
+                        ((set_mset__a__i::'A_multiset__a__i \<Rightarrow> 'A_set__a__i) (nth__a__ia v3a v6)) \<or>
+                    (nth__a__ib::'A_list__a__i \<Rightarrow> 'Nat__a__i \<Rightarrow> 'A__a__i) v4a v6 = isabelle_internal_BOUND_VARIABLE_7618) \<or>
+             \<not> (eligible__a__i::'A_literal_multiset_a_literal_multiset_fun__a__i \<Rightarrow> 'A_list__a__i \<Rightarrow> 'A_literal_multiset__a__i \<Rightarrow> bool)
+                 (s__a__i::'A_literal_multiset_a_literal_multiset_fun__a__i) v4a
+                 (plus__a__i v5a (image_mset__a__i (neg__a__i::'A_a_literal_fun__a__i) ((mset__a__i::'A_list__a__i \<Rightarrow> 'A_multiset__a__i) v4a))) \<or>
+             \<not> (\<forall>v6::'Nat__a__i.
+                    \<not> less__a__i v6 v1a \<or> (strictly_maximal_wrt__a__i::'A__a__i \<Rightarrow> 'A_literal_multiset__a__i \<Rightarrow> bool) (nth__a__ib v4a v6) (nth__a__i v2a v6)) \<or>
+             \<not> (\<forall>v6::'Nat__a__i.
+                    \<not> less__a__i v6 v1a \<or>
+                    (zero__a__ia::'A_literal_multiset__a__i) =
+                    (fun_app__a__i::'A_literal_multiset_a_literal_multiset_fun__a__i \<Rightarrow> 'A_literal_multiset__a__i \<Rightarrow> 'A_literal_multiset__a__i) s__a__i
+                     (nth__a__i v0a v6)) \<or>
+             (ord_resolve__a__i::'A_literal_multiset_a_literal_multiset_fun__a__i
+                            \<Rightarrow> 'A_literal_multiset_list__a__i
+                               \<Rightarrow> 'A_literal_multiset__a__i \<Rightarrow> 'A_multiset_list__a__i \<Rightarrow> 'A_list__a__i \<Rightarrow> 'A_literal_multiset__a__i \<Rightarrow> bool)
+              s__a__i v0a (plus__a__i v5a (image_mset__a__i neg__a__i (mset__a__i v4a))) v3a v4a
+              (plus__a__i
+                ((sum_mset__a__i::'A_literal_multiset_multiset__a__i \<Rightarrow> 'A_literal_multiset__a__i)
+                  ((mset__a__ia::'A_literal_multiset_list__a__i \<Rightarrow> 'A_literal_multiset_multiset__a__i) v2a))
+                v5a)) =
+         (\<forall>(v0::'A_literal_multiset_list__a__i) (v2::'A_literal_multiset_list__a__i) (v3::'A_multiset_list__a__i) (v4::'A_list__a__i)
+             (v5::'A_literal_multiset__a__i) v1::'Nat__a__i.
+             v1 \<noteq> size__a__ia v0 \<or>
+             v1 \<noteq> size__a__ia v2 \<or>
+             v1 \<noteq> size__a__i v3 \<or>
+             v1 \<noteq> size__a__ib v4 \<or>
+             zero__a__ib = v1 \<or>
+             \<not> (\<forall>v6::'Nat__a__i. \<not> less__a__i v6 v1 \<or> nth__a__i v0 v6 = plus__a__i (nth__a__i v2 v6) (image_mset__a__i pos__a__i (nth__a__ia v3 v6))) \<or>
+             \<not> (\<forall>v6::'Nat__a__i. \<not> less__a__i v6 v1 \<or> zero__a__i \<noteq> nth__a__ia v3 v6) \<or>
+             \<not> (\<forall>(v6::'Nat__a__i) isabelle_internal_BOUND_VARIABLE_7618::'A__a__i.
+                    \<not> less__a__i v6 v1 \<or>
+                    \<not> member__a__i isabelle_internal_BOUND_VARIABLE_7618 (set_mset__a__i (nth__a__ia v3 v6)) \<or>
+                    nth__a__ib v4 v6 = isabelle_internal_BOUND_VARIABLE_7618) \<or>
+             \<not> eligible__a__i s__a__i v4 (plus__a__i v5 (image_mset__a__i neg__a__i (mset__a__i v4))) \<or>
+             \<not> (\<forall>v6::'Nat__a__i. \<not> less__a__i v6 v1 \<or> strictly_maximal_wrt__a__i (nth__a__ib v4 v6) (nth__a__i v2 v6)) \<or>
+             \<not> (\<forall>v6::'Nat__a__i. \<not> less__a__i v6 v1 \<or> zero__a__ia = fun_app__a__i s__a__i (nth__a__i v0 v6)) \<or>
+             ord_resolve__a__i s__a__i v0 (plus__a__i v5 (image_mset__a__i neg__a__i (mset__a__i v4))) v3 v4 (plus__a__i (sum_mset__a__i (mset__a__ia v2)) v5)) \<close>
+  by (ctxt_tactic "qnt_rm_unused")
+lemma \<open>(\<forall>(v0::'A_literal_multiset_list__a__i) (v1::'Nat__a__i) (v2::'A_literal_multiset_list__a__i) (v3::'A_multiset_list__a__i) (v4::'A_list__a__i)
+             (v5::'A_literal_multiset__a__i) (v0a::'A_literal_multiset_list__a__i) (v2a::'A_literal_multiset_list__a__i) (v3a::'A_multiset_list__a__i)
+             (v4a::'A_list__a__i) (v5a::'A_literal_multiset__a__i) v1a::'Nat__a__i.
+             v1a \<noteq> (size__a__ia::'A_literal_multiset_list__a__i \<Rightarrow> 'Nat__a__i) v0a \<or>
+             v1a \<noteq> size__a__ia v2a \<or>
+             v1a \<noteq> (size__a__i::'A_multiset_list__a__i \<Rightarrow> 'Nat__a__i) v3a \<or>
+             v1a \<noteq> (size__a__ib::'A_list__a__i \<Rightarrow> 'Nat__a__i) v4a \<or>
+             (zero__a__ib::'Nat__a__i) = v1a \<or>
+             \<not> (\<forall>v6::'Nat__a__i.
+                    \<not> (less__a__i::'Nat__a__i \<Rightarrow> 'Nat__a__i \<Rightarrow> bool) v6 v1a \<or>
+                    (nth__a__i::'A_literal_multiset_list__a__i \<Rightarrow> 'Nat__a__i \<Rightarrow> 'A_literal_multiset__a__i) v0a v6 =
+                    (plus__a__i::'A_literal_multiset__a__i \<Rightarrow> 'A_literal_multiset__a__i \<Rightarrow> 'A_literal_multiset__a__i) (nth__a__i v2a v6)
+                     ((image_mset__a__i::'A_a_literal_fun__a__i \<Rightarrow> 'A_multiset__a__i \<Rightarrow> 'A_literal_multiset__a__i) (pos__a__i::'A_a_literal_fun__a__i)
+                       ((nth__a__ia::'A_multiset_list__a__i \<Rightarrow> 'Nat__a__i \<Rightarrow> 'A_multiset__a__i) v3a v6))) \<or>
+             \<not> (\<forall>v6::'Nat__a__i. \<not> less__a__i v6 v1a \<or> (zero__a__i::'A_multiset__a__i) \<noteq> nth__a__ia v3a v6) \<or>
+             \<not> (\<forall>(v6::'Nat__a__i) isabelle_internal_BOUND_VARIABLE_7618::'A__a__i.
+                    \<not> less__a__i v6 v1a \<or>
+                    \<not> (member__a__i::'A__a__i \<Rightarrow> 'A_set__a__i \<Rightarrow> bool) isabelle_internal_BOUND_VARIABLE_7618
+                        ((set_mset__a__i::'A_multiset__a__i \<Rightarrow> 'A_set__a__i) (nth__a__ia v3a v6)) \<or>
+                    (nth__a__ib::'A_list__a__i \<Rightarrow> 'Nat__a__i \<Rightarrow> 'A__a__i) v4a v6 = isabelle_internal_BOUND_VARIABLE_7618) \<or>
+             \<not> (eligible__a__i::'A_literal_multiset_a_literal_multiset_fun__a__i \<Rightarrow> 'A_list__a__i \<Rightarrow> 'A_literal_multiset__a__i \<Rightarrow> bool)
+                 (s__a__i::'A_literal_multiset_a_literal_multiset_fun__a__i) v4a
+                 (plus__a__i v5a (image_mset__a__i (neg__a__i::'A_a_literal_fun__a__i) ((mset__a__i::'A_list__a__i \<Rightarrow> 'A_multiset__a__i) v4a))) \<or>
+             \<not> (\<forall>v6::'Nat__a__i.
+                    \<not> less__a__i v6 v1a \<or> (strictly_maximal_wrt__a__i::'A__a__i \<Rightarrow> 'A_literal_multiset__a__i \<Rightarrow> bool) (nth__a__ib v4a v6) (nth__a__i v2a v6)) \<or>
+             \<not> (\<forall>v6::'Nat__a__i.
+                    \<not> less__a__i v6 v1a \<or>
+                    (zero__a__ia::'A_literal_multiset__a__i) =
+                    (fun_app__a__i::'A_literal_multiset_a_literal_multiset_fun__a__i \<Rightarrow> 'A_literal_multiset__a__i \<Rightarrow> 'A_literal_multiset__a__i) s__a__i
+                     (nth__a__i v0a v6)) \<or>
+             (ord_resolve__a__i::'A_literal_multiset_a_literal_multiset_fun__a__i
+                            \<Rightarrow> 'A_literal_multiset_list__a__i
+                               \<Rightarrow> 'A_literal_multiset__a__i \<Rightarrow> 'A_multiset_list__a__i \<Rightarrow> 'A_list__a__i \<Rightarrow> 'A_literal_multiset__a__i \<Rightarrow> bool)
+              s__a__i v0a (plus__a__i v5a (image_mset__a__i neg__a__i (mset__a__i v4a))) v3a v4a
+              (plus__a__i
+                ((sum_mset__a__i::'A_literal_multiset_multiset__a__i \<Rightarrow> 'A_literal_multiset__a__i)
+                  ((mset__a__ia::'A_literal_multiset_list__a__i \<Rightarrow> 'A_literal_multiset_multiset__a__i) v2a))
+                v5a)) =
+         (\<forall>(v0::'A_literal_multiset_list__a__i) (v1::'Nat__a__i) (v2::'A_literal_multiset_list__a__i) (v3::'A_multiset_list__a__i) (v4::'A_list__a__i)
+             v5::'A_literal_multiset__a__i.
+             v1 \<noteq> size__a__ia v0 \<or>
+             v1 \<noteq> size__a__ia v2 \<or>
+             v1 \<noteq> size__a__i v3 \<or>
+             v1 \<noteq> size__a__ib v4 \<or>
+             zero__a__ib = v1 \<or>
+             \<not> (\<forall>v6::'Nat__a__i. \<not> less__a__i v6 v1 \<or> nth__a__i v0 v6 = plus__a__i (nth__a__i v2 v6) (image_mset__a__i pos__a__i (nth__a__ia v3 v6))) \<or>
+             \<not> (\<forall>v6::'Nat__a__i. \<not> less__a__i v6 v1 \<or> zero__a__i \<noteq> nth__a__ia v3 v6) \<or>
+             \<not> (\<forall>(v6::'Nat__a__i) isabelle_internal_BOUND_VARIABLE_7618::'A__a__i.
+                    \<not> less__a__i v6 v1 \<or>
+                    \<not> member__a__i isabelle_internal_BOUND_VARIABLE_7618 (set_mset__a__i (nth__a__ia v3 v6)) \<or>
+                    nth__a__ib v4 v6 = isabelle_internal_BOUND_VARIABLE_7618) \<or>
+             \<not> eligible__a__i s__a__i v4 (plus__a__i v5 (image_mset__a__i neg__a__i (mset__a__i v4))) \<or>
+             \<not> (\<forall>v6::'Nat__a__i. \<not> less__a__i v6 v1 \<or> strictly_maximal_wrt__a__i (nth__a__ib v4 v6) (nth__a__i v2 v6)) \<or>
+             \<not> (\<forall>v6::'Nat__a__i. \<not> less__a__i v6 v1 \<or> zero__a__ia = fun_app__a__i s__a__i (nth__a__i v0 v6)) \<or>
+             ord_resolve__a__i s__a__i v0 (plus__a__i v5 (image_mset__a__i neg__a__i (mset__a__i v4))) v3 v4 (plus__a__i (sum_mset__a__i (mset__a__ia v2)) v5)) \<close>
+  supply [[show_types=false]]
+  by (ctxt_tactic "qnt_rm_unused")
 
 (* Rule 83: eq_simplify *)
 

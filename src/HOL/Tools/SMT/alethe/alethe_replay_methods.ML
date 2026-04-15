@@ -1477,11 +1477,50 @@ local
       THEN' (debug_msg_tac' ctxt high "qnt_cnf after resolving simplifying")
       THEN' TRY' (Metis_Tactic.metis_tac [] ATP_Problem_Generate.combsN ctxt []))
     ORELSE' Metis_Tactic.metis_tac [] ATP_Problem_Generate.combsN ctxt []
+
+  val all_comm = @{lemma "(\<forall>x y. P x y) \<equiv> (\<forall>y x. P x y)" by (subst all_comm)}
+  fun plunge_down ctxt str ctrm =
+   case Thm.term_of ctrm of
+     _ $ Abs (v, _, _) => 
+       if String.isPrefix v str
+       then
+           (Conv.try_conv (Conv.rewr_conv all_comm) then_conv Conv.arg_conv (Conv.abs_conv (fn (_, ctxt) => plunge_down ctxt str) ctxt)) ctrm
+       else Conv.arg_conv (Conv.abs_conv (fn (_, ctxt) => plunge_down ctxt str) ctxt) ctrm
+   | _ => Conv.all_conv ctrm
+
+
+  fun reorder_prefix_to ctxt [] ctrm = Conv.all_conv ctrm
+   | reorder_prefix_to ctxt (str :: xs) ctrm =
+     (case (Thm.term_of ctrm) of
+       _ $ Abs (v, _, _) => 
+         if String.isPrefix v str
+         then
+           Conv.arg_conv (Conv.abs_conv (fn (_, ctxt) => reorder_prefix_to ctxt xs) ctxt) ctrm
+         else 
+           (plunge_down ctxt v then_conv reorder_prefix_to ctxt (str :: xs)) ctrm
+     | _ => Conv.all_conv ctrm)
+
+  fun extract_all_forall_exists_quantified_names_q (Const(\<^const_name>\<open>HOL.Ex\<close>, _) $ Abs (name, _, t)) =
+        name :: (extract_all_forall_exists_quantified_names_q t)
+    | extract_all_forall_exists_quantified_names_q (Const(\<^const_name>\<open>HOL.All\<close>, _) $ Abs (name, _, t)) =
+        name :: (extract_all_forall_exists_quantified_names_q t)
+    | extract_all_forall_exists_quantified_names_q _ = []
+  fun reorder_quantifer ctxt prop = 
+    let val strs =
+      prop
+      |> HOLogic.dest_Trueprop
+      |> HOLogic.dest_eq
+      |> fst
+      |> extract_all_forall_exists_quantified_names_q
+    in
+      CONVERSION (HOLogic.Trueprop_conv (Conv.arg_conv (reorder_prefix_to ctxt strs)))
+    end
 in
 fun qnt_rm_unused ctxt _ t = SMT_Replay_Methods.prove ctxt t (fn _ =>
   K (unfold_tac ctxt rm_unused)
   THEN' (debug_msg_tac' ctxt high "qnt_rm_unused")
-  THEN' TRY' (blast_tac ctxt) (*the quantifiers can be reordered, this could also be fixed earlier*)
+  THEN' TRY' (SUBGOAL (fn (prop, i) => reorder_quantifer ctxt prop i))
+  THEN' TRY' (resolve_tac ctxt @{thms refl})
   )
 
 local
@@ -1643,6 +1682,7 @@ in
 fun eq_congruent_pred ctxt _ t =
    SMT_Replay_Methods.prove ctxt t (fn _ =>
    REPEAT' (resolve_tac ctxt [@{thm disj_not1[of \<open>_ = _\<close>]} RSN (1, @{thm iffD2}) OF @{thms impI}])
+THEN' K (print_tac ctxt "stuff")
    THEN' (fn i => Subgoal.FOCUS (fn focus => eq_pred_rewrite_tac focus i) ctxt i)
    THEN' (resolve_tac ctxt @{thms refl excluded_middle excluded_middle[of \<open>\<not>_\<close>, unfolded not_not]}
      ORELSE' assume_tac ctxt))
