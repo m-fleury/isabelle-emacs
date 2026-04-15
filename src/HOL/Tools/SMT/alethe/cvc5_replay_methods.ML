@@ -153,27 +153,6 @@ fun hole ctxt prems t = SMT_Replay_Methods.prove ctxt t (fn _ =>
    ORELSE' Clasimp.force_tac (ctxt addsimps Named_Theorems.get ctxt @{named_theorems cvc5_holes_simp})
 )
 
-(*
-Example:
-lemma \<open>(\<forall>x y. P x = Q y) \<Longrightarrow> (\<forall> y z. Q y = R z) \<Longrightarrow> (\<forall>x z. P x = R z)\<close>
-*)
-local
- fun trans_steps [] _ = K all_tac |
-     trans_steps (prem1::prems) ctxt =
-      resolve_tac ctxt [prem1 RSN (2, @{thm trans})]
-      (*THEN' K (print_tac ctxt "resolved once")*)
-      THEN' trans_steps prems ctxt
-in
-
-fun trans ctxt [] t =
-  SMT_Replay_Methods.prove ctxt t (fn _ =>
-    (match_tac ctxt @{thms refl}))
- | trans ctxt prems t =
-  SMT_Replay_Methods.prove ctxt t (fn _ =>
-    trans_steps (rev prems) ctxt
-    THEN' (resolve_tac ctxt @{thms refl}))
-end
-
 
 (* Mapping rules to tactics and hide away not needed arguments  *)
 
@@ -280,7 +259,7 @@ fun choose _ And = ignore_args and_rule
   | choose _ ACI_Simp = ignore_args ACI_rule
   | choose _ Bfun_Elim = ignore_args bfun_elim
   | choose _ Qnt_CNF = ignore_args qnt_cnf
-  | choose _ Trans = ignore_args trans
+  | choose _ Trans = ignore_args strict_trans
   | choose _ Symm = ignore_args symm
   | choose _ Not_Symm = ignore_args not_symm
   | choose _ Reordering = ignore_args reordering

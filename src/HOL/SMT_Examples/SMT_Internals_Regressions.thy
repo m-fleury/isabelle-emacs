@@ -649,10 +649,10 @@ lemma trans_3:
   shows  "a = b"
   using assms
   by (ctxt_tactic "trans")
-
+thm trans
 lemma trans_4:
-  assumes "(a = f a)" "(f a = b)" "(f a = a)"
-  shows  "a = a"
+  assumes  "(f a = a)" "(a = f a)" "(f a = b)" "(f a = a)"
+  shows  "f a = a"
   using assms
   by (ctxt_tactic "trans")
 
@@ -1375,26 +1375,49 @@ lemma not_equiv2_5:
 
 (* Rule 48: and_pos *)
 
+lemma and_pos_lem: \<open>(A \<Longrightarrow> B) \<Longrightarrow> (\<not>A \<or> B)\<close> by auto
+
+ML \<open>
+fun TRY' tac = fn i => TRY (tac i)
+fun and_pos_rtac ctxt k = HEADGOAL (
+  resolve_tac ctxt @{thms and_pos_lem}
+  THEN' Subgoal.FOCUS (fn {context, prems, ...} =>
+    let
+        fun dconj th 1 = th
+          | dconj th k = dconj (th RS @{thm conjunct2}) (k-1)
+        val th1 = dconj (hd prems) k
+    in
+      HEADGOAL (
+       (resolve_tac context [th1]) ORELSE'
+       K (print_tac context "tsuff") THEN'
+       TRY' (resolve_tac ctxt @{thms conjunct1} THEN' resolve_tac context [th1])
+     )
+    end
+) ctxt)
+\<close>
+lemma "\<not>(a \<and> b \<and> c) \<or> c"
+  by (tactic \<open>and_pos_rtac @{context} 3\<close>)
+
 lemma and_pos_1: "\<not>(a \<and> b \<and> c) \<or> b"
-  by (ctxt_tactic "and_pos" "1")
+  by (tactic \<open>and_pos_rtac @{context} 2\<close>)
 
 lemma and_pos_2: "\<not>(a \<and> b \<and> c) \<or> c"
-  by (ctxt_tactic "and_pos" "2")
+  by (tactic \<open>and_pos_rtac @{context} 3\<close>)
 
 lemma and_pos_3: "\<not>(a \<and> (b \<and> c) \<and> d) \<or> (b \<and> c)"
-  by (ctxt_tactic "and_pos" "1")
+  by (tactic \<open>and_pos_rtac @{context} 2\<close>)
 
 lemma and_pos_4: "\<not>(a \<and> (b \<and> c) \<and> d) \<or> d"
-  by (ctxt_tactic "and_pos" "2")
+  by (tactic \<open>and_pos_rtac @{context} 3\<close>)
 
 lemma and_pos_5: "\<not>(a \<and> (b \<or> \<not>c \<and> d)) \<or> (b \<or> \<not>c \<and> d)"
-  by (ctxt_tactic "and_pos" "1")
+  by (tactic \<open>and_pos_rtac @{context} 2\<close>)
 
 lemma and_pos_6: "\<not>(a \<and> (b \<and> c)) \<or> (b \<and> c)"
-  by (ctxt_tactic "and_pos" "1")
+  by (tactic \<open>and_pos_rtac @{context} 2\<close>)
 
 lemma and_pos_7: "\<not>((\<not>a \<or> b) \<and> c) \<or> (\<not>a \<or> b)"
-  by (ctxt_tactic "and_pos" "0")
+  by (tactic \<open>and_pos_rtac @{context} 1\<close>)
 
 lemma and_pos_8: "\<not>(a \<and> \<not>b) \<or> \<not>b"
   by (ctxt_tactic "and_pos" "1")
@@ -2157,6 +2180,7 @@ lemma qnt_rm_unused_5:
 lemma qnt_rm_unused_6:
   shows "(\<exists>x1 x2 x3. x1 \<and> x3) = (\<exists>x1 x3. x1 \<and> x3)"
   by (ctxt_tactic "qnt_rm_unused")
+
 
 (* Rule 83: eq_simplify *)
 

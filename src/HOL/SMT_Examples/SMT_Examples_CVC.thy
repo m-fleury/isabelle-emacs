@@ -788,7 +788,7 @@ lemma
      \<open>1 / 2 * 2 powr real_of_int p \<le> 2 powr real_of_int p - 1\<close> 
      \<open>x * 2 powr real_of_int p < 1 / 2 * 2 powr real_of_int p\<close>
   shows "round_up p x < 1"
-  supply [[smt_trace=false,smt_statistics]]
+  supply [[smt_trace=false,smt_statistics=false]]
   using comm_semiring_class.distrib divide_divide_eq_right
  mult.assoc mult.commute mult_cancel_left1 mult_cancel_right mult_cancel_right2
  mult_less_cancel_left_pos mult_minus_left nonzero_eq_divide_eq nonzero_mult_div_cancel_left

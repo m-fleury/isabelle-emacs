@@ -172,6 +172,7 @@ sig
   val bfun_elim: alethe_tac
   val qnt_cnf: alethe_tac
   val trans: alethe_tac
+  val strict_trans: alethe_tac (*assumes assumptions in the right order*)
   val symm: alethe_tac
   val not_symm: alethe_tac
   val reordering: alethe_tac
@@ -1016,6 +1017,21 @@ fun trans ctxt thms t =
       | _ => trans_thm (*to be on the safe side*)))
   end
 
+
+local
+ fun trans_steps _ [prem] = prem
+   | trans_steps ctxt (prem1::prem2::prems) =
+       (@{thm trans} OF [prem1, prem2])::prems
+       |> trans_steps ctxt
+in
+
+fun strict_trans ctxt [] t =
+  SMT_Replay_Methods.prove ctxt t (fn _ =>
+    (match_tac ctxt @{thms refl}))
+ | strict_trans ctxt prems t =
+  SMT_Replay_Methods.prove ctxt t (fn _ =>
+    match_tac ctxt (trans_steps ctxt prems |> single))
+end
 
 fun AC_rule ctxt thms t =
   SMT_Replay_Methods.prove ctxt t (fn _ =>
