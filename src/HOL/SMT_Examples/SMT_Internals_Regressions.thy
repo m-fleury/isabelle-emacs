@@ -676,13 +676,13 @@ lemma cong_2:
   assumes "(a = a)" and "(a = b)"
   shows "(f a a) = (f a b)"
   using assms
-  by (ctxt_tactic "eq_congruent")
+  by (ctxt_tactic "cong")
 
 lemma cong_3:
   assumes "(3 = 2 + (1::int))" and "(c = g b)"
   shows "((3 + c) = ((2 + (1::int)) + g b))"
   using assms
-  by (ctxt_tactic "eq_congruent")
+  by (ctxt_tactic "cong")
 
 (* Rule 25: eq_reflexive *)
 
@@ -719,6 +719,11 @@ lemma eq_congruent_2: "\<not> (a = a) \<or> \<not>(a = b) \<or> (f a a = f a b)"
 
 lemma eq_congruent_3: "\<not> (3 = 2 + (1::int)) \<or> \<not>(c = g b) \<or> ((3 + c) = ((2 + (1::int)) + g b))"
   by (ctxt_tactic "eq_congruent")
+
+lemma eq_congruent_5:
+  shows "\<not>(3 = 2 + (1::int)) \<or> \<not>c = g b \<or> ((3 + c) = ((2 + (1::int)) + g b))"
+  by (ctxt_tactic "eq_congruent")
+
 
 (* Rule 28: eq_congruent_pred *)
 
