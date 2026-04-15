@@ -93,7 +93,8 @@ fun smt_filter name ({debug, overlord, max_mono_iters, max_new_mono_instances, t
               val file_base = path ^ "/" ^ name
             in
               Config.put SMT_Config.problem_dest_file file_base #>
-              Config.put SMT_Config.proof_dest_file file_base
+              Config.put SMT_Config.proof_dest_file file_base #>
+              Config.put SMT_Config.debug_files file_base
             end
           else
             I)

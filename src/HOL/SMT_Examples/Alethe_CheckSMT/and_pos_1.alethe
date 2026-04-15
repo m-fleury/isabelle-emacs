@@ -1,0 +1,11 @@
+unsat
+(
+(assume a0 false)
+(step t0 (cl (not false)) :rule false)
+(step t1 (cl (not (and p)) p) :rule and_pos :args(0))
+(step t2 (cl (not (and p q (and r s) t)) p) :rule and_pos :args(0))
+(step t3 (cl (not (and p q (and r s) t)) q) :rule and_pos :args(1))
+(step t4 (cl (not (and p q (and r s) t)) (and r s)) :rule and_pos :args(2))
+(step t5 (cl (not (and p q r (and s t))) (and s t)) :rule and_pos :args(3))
+(step t6 (cl) :rule resolution :premises (a0 t0))
+)

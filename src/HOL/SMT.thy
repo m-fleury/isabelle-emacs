@@ -537,8 +537,20 @@ lemmas alethe_prod_simplify =
    mult_1_right
 
 lemmas alethe_div_simplify =
-   divide_self
-   divide_numeral_1
+   divide_self div_minus_minus
+   divide_numeral_1 one_plus_numeral
+   divmod_steps less_irrefl divmod_trivial divmod_cancel
+   numeral_div_numeral prod.case mult.right_neutral
+   divmod_step_def euclidean_size_int_def comp_def of_bool_eq
+   nat_numeral  fst_conv snd_conv if_False if_True
+   minus_numeral_div_numeral Parity.adjust_div_eq
+   order_refl
+   num.simps numerals eq_neg_numeral_simps eq_numeral_simps
+   old.nat.distinct
+   mult_numeral_left_semiring_numeral le_numeral_Suc pred_numeral_simps Suc_le_mono le_zero_eq
+   le_num_simps less_num_simps euclidean_size_numeral le_numeral_simps numeral_plus_one
+   mult.left_neutral numeral_div_minus_numeral
+   nat_1 nat_0
 
 lemma alethe_comp_simplify1:
   \<open>(a :: 'a ::order) < a \<longleftrightarrow> False\<close>
@@ -824,6 +836,10 @@ lemma alethe_invert_farkas_equation:
 end
 
 lemma alethe_ite_intro:
+  \<open>(If p (a' = (If p a' b')) (b' = (If p a' b'))) \<longleftrightarrow> True\<close>
+  \<open>(If p (a' = (If p a' b')) ((If p a' b') = b')) \<longleftrightarrow> True\<close>
+  \<open>(If p ((If p a' b') = a') (b' = (If p a' b'))) \<longleftrightarrow> True\<close>
+  \<open>(If p ((If p a' b') =a') ((If p a' b') = b')) \<longleftrightarrow> True\<close>
   \<open>(if a then P (if a then a' else b') else Q) \<longleftrightarrow> (if a then P a' else Q)\<close>
   \<open>(if a then P' else Q' (if a then a' else b')) \<longleftrightarrow> (if a then P' else Q' b')\<close>
   \<open>A = f (if a then R else S) \<longleftrightarrow> (if a then A = f R else A = f S)\<close>

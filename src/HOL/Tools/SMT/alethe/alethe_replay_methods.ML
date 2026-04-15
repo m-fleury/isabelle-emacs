@@ -150,7 +150,7 @@ sig
   val not_not: alethe_tac
   val not_or_rule: alethe_tac
   val or: alethe_tac
-  val or_neg_rule: alethe_tac
+  val or_neg_rule: alethe_tac_args
   val or_pos_rule: alethe_tac
   val theory_resolution2: alethe_tac
   val prod_simplify: alethe_tac
@@ -172,6 +172,7 @@ sig
   val bfun_elim: alethe_tac
   val qnt_cnf: alethe_tac
   val trans: alethe_tac
+  val strict_trans: alethe_tac (*assumes assumptions in the right order*)
   val symm: alethe_tac
   val not_symm: alethe_tac
   val reordering: alethe_tac
@@ -1017,6 +1018,21 @@ fun trans ctxt thms t =
   end
 
 
+local
+ fun trans_steps _ [prem] = prem
+   | trans_steps ctxt (prem1::prem2::prems) =
+       (@{thm trans} OF [prem1, prem2])::prems
+       |> trans_steps ctxt
+in
+
+fun strict_trans ctxt [] t =
+  SMT_Replay_Methods.prove ctxt t (fn _ =>
+    (match_tac ctxt @{thms refl}))
+ | strict_trans ctxt prems t =
+  SMT_Replay_Methods.prove ctxt t (fn _ =>
+    match_tac ctxt (trans_steps ctxt prems |> single))
+end
+
 fun AC_rule ctxt thms t =
   SMT_Replay_Methods.prove ctxt t (fn _ =>
     Method.insert_tac ctxt thms
@@ -1117,6 +1133,10 @@ end)
 
 
 (*TODO: Improve now that we have arguments*)
+(* TODO Benchmark or_neg versions *)
+
+(* Version 1: Old initial version *)
+(*
 val or_neg_rule = prove_abstract SMT_Replay_Methods.abstract_bool (fn ctxt => fn _ =>
 
   resolve_tac ctxt @{thms alethe_or_neg}
@@ -1126,7 +1146,25 @@ val or_neg_rule = prove_abstract SMT_Replay_Methods.abstract_bool (fn ctxt => fn
     (REPEAT'
       (SOLVED' (match_tac ctxt @{thms disjI1} THEN_ALL_NEW assume_tac ctxt)
        ORELSE' (match_tac ctxt @{thms disjI2} THEN' TRY' (assume_tac ctxt)))))
+*)
+(* Version 2: Index usage *)
+fun or_neg_rule ctxt _ t (SOME (Index k)) = 
+   SMT_Replay_Methods.prove ctxt t (fn _ =>
+     resolve_tac ctxt @{thms alethe_or_neg}
+     THEN' (REPEAT_DETERM_N' k (match_tac ctxt @{thms disjI2}))
+     THEN' FIRST' [
+                   (match_tac ctxt @{thms disjI1}) THEN' (assume_tac ctxt),
+                   (assume_tac ctxt)
+                  ]
+) |
+  or_neg_rule ctxt _ t _ = SMT_Replay_Methods.prove ctxt t (fn _ => K no_tac)
 
+(* TODO Version 3: Theorem construction *)
+
+(* TODO Benchmark and_pos versions *)
+
+(* Version 1: Old initial version *)
+(*
 fun and_pos ctxt _ t (SOME (Index k)) =
   SMT_Replay_Methods.prove ctxt t (fn _ =>
   REPEAT_DETERM_N' k (resolve_tac ctxt @{thms alethe_and_pos})  
@@ -1140,6 +1178,31 @@ and_pos ctxt _ t _ = (*legacy*)
   SMT_Replay_Methods.prove ctxt t (fn _ =>
   REPEAT_CHANGED (resolve_tac ctxt @{thms alethe_and_pos})
   THEN' TRY' (assume_tac ctxt))
+*)
+
+(* 
+SMT-LIB (and a b (and c d)), i = 2 ==> (and c d)
+
+Isabelle (and a b c d) ==> (and a (and b (and c d)))
+
+Isabelle (and a b (and c d)) ==> (and a (and b (and c d)))
+*)
+
+(* Version 2: d-tact and assume *)
+fun and_pos ctxt _ t (SOME (Index k)) =
+  SMT_Replay_Methods.prove ctxt t (fn _ =>
+  resolve_tac ctxt [@{lemma "(A \<Longrightarrow> B) \<Longrightarrow> (\<not>A \<or> B)" by blast}]
+  THEN' REPEAT_DETERM_N' k (dmatch_tac ctxt @{thms conjunct2})
+  THEN' FIRST' [
+                (dmatch_tac ctxt @{thms conjunct1}) THEN' (assume_tac ctxt),
+                (assume_tac ctxt)
+               ]
+) |
+  and_pos ctxt _ t _ = SMT_Replay_Methods.prove ctxt t (fn _ => K no_tac)
+
+(* TODO Version 3: Theorem construction *)
+
+
 end
 
 
@@ -1369,19 +1432,27 @@ fun not_ite2 ctxt thm t = SMT_Replay_Methods.prove ctxt t
   (fn _ => prove_ite not_ite2_thm (extract_single_premise Not_ITE2 ctxt thm t) ctxt)
 
 (*ite_intro can introduce new terms that are in the proof exactly the sames as the old one, but are
-not internally, hence the possible reordering.*)
+not internally, hence the possible reordering.
+
+TODO: after updating this in 2026, I did not find any example that needed anything
+besides the first rule. The rest is kept as legacy though, because there are very few
+case of this rule in our tests.*)
 fun ite_intro ctxt _ t =
   let
-    fun simplify_ite ctxt thms =
+    fun simplify_ite ctxt thms cong =
       ctxt
       |> empty_simpset
       |> put_simpset HOL_basic_ss
-      |> (fn ctxt => ctxt addsimps thms @ @{thms if_True if_False refl simp_thms if_cancel})
-      |> Raw_Simplifier.add_eqcong @{thm alethe_ite_if_cong}
+      |> (fn ctxt => ctxt addsimps thms @ @{thms simp_thms})
+      |> cong ? (Raw_Simplifier.add_eqcong @{thm alethe_ite_if_cong})
       |> Simplifier.full_simp_tac
+    val use_cong = (0 = 0)
   in
-    SMT_Replay_Methods.prove ctxt t (fn _ => simplify_ite ctxt []
-       THEN' TRY' (simplify_ite ctxt @{thms eq_commute}))
+    SMT_Replay_Methods.prove ctxt t (fn _ => 
+      simplify_ite ctxt @{thms alethe_ite_intro(1-4)} (not use_cong)
+      THEN' TRY' (simplify_ite ctxt @{thms alethe_ite_intro} (not use_cong))
+      THEN' TRY' (simplify_ite ctxt @{thms if_cancel} use_cong)
+      THEN' TRY' (simplify_ite ctxt @{thms eq_commute} use_cong))
   end
 end
 
@@ -1984,14 +2055,23 @@ shuffle ctxt thms _ t _ =
 end
 
 fun contraction ctxt [prem] t = 
- SMT_Replay_Methods.prove ctxt t (fn _ => (
-    Method.insert_tac ctxt [prem]
-    THEN' match_tac ctxt @{thms ccontr}
-    THEN' K (unfold_tac ctxt @{thms de_Morgan_disj})
-    THEN' TRY o CHANGED_PROP o REPEAT_ALL_NEW (ematch_tac ctxt @{thms conjE})
-    THEN' CHANGED_PROP o REPEAT_ALL_NEW (ematch_tac ctxt @{thms disjE})
-    THEN' REPEAT'(ematch_tac ctxt @{thms notE} THEN' TRY' (assume_tac ctxt))
-    ))
+  if Term.size_of_term t < 100
+  then
+    SMT_Replay_Methods.prove ctxt t (fn _ => (
+       Method.insert_tac ctxt [prem]
+       THEN' match_tac ctxt @{thms ccontr}
+       THEN' K (unfold_tac ctxt @{thms de_Morgan_disj})
+       THEN' TRY o CHANGED_PROP o REPEAT_ALL_NEW (ematch_tac ctxt @{thms conjE})
+       THEN' CHANGED_PROP o REPEAT_ALL_NEW (ematch_tac ctxt @{thms disjE})
+       THEN' REPEAT'(ematch_tac ctxt @{thms notE} THEN' TRY' (assume_tac ctxt))
+       ))
+   else
+    (*cvc5 produces steps with a lot of repetition (think about: 60 times the same literal).
+    In those cases, the simplifier is much faster, because it can reduce the size
+    of the term.*)
+    prove_abstract SMT_Replay_Methods.abstract_bool_shallow (fn ctxt => fn prems => (
+       Method.insert_tac ctxt prems
+       THEN' simplify_tac ctxt @{thms disj.commute disj.left_commute})) ctxt [prem] t
 | contraction ctxt thms t = replay_error ctxt "Unsupported commutative operator in contraction rule" Unsupported thms [] t
 
 
