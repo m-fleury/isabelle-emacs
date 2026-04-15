@@ -952,7 +952,7 @@ value "smt_extract 3 1 (4::3 word)::2 word" (*[True, False]*)
 value "smt_extract 1 1 (4::3 word)::2 word" (*[False, False]*)
 value "smt_extract 1 2 (4::3 word)::1 word" (*[False]*)
 lemma temp:  "(\<forall>n::nat. bit x n = bit y n) \<Longrightarrow> ((x::'a::len word) = (y::'a word))"sorry
-value "take_bit"
+
 lemma smt_extract_rbl_extract[rbl_extract]:
 "- i + j + 1 = LENGTH('b) \<Longrightarrow> length xs = LENGTH('a) \<Longrightarrow>  LENGTH('b) < LENGTH('a) \<Longrightarrow>i \<le> j \<Longrightarrow> Suc j \<le> LENGTH('a) \<Longrightarrow> i \<ge>0 \<Longrightarrow> j \<ge> 0 \<Longrightarrow>
  Word.smt_extract j i (of_bl xs::'a::len word)
