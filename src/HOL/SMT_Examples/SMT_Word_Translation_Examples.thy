@@ -6,7 +6,7 @@ begin
 
 (*None of the goals should contain any nats after encoding unless explicitly stated.*)
 
-declare[[smt_expert_debug_alethe_files="alethe_replay_methods"]]
+declare[[smt_expert_debug_alethe_files="smt_normalize"]]
 declare[[smt_expert_debug_alethe_level=3]]
 declare[[smt_nat_as_int=true,smt_trace]]
 
@@ -79,8 +79,29 @@ lemma "(42 :: 8 word) <s 44"
   by (smt (cvc5))
 
 (*
-bit w n is translated into (= ((_ extract n n) w) #b1)
+smt_extract is not really used but just in case:
+
+TODO: Problem is that only one lemma gets added to the table in the first place
 *)
+lemma "(smt_extract 2 0 (4::3 word) :: 3 word) = (4::3 word)"
+  apply (test_smt_translate 
+\<open>
+(set-logic AUFBVLIRAFS)
+(assert (! (not (= ((_ extract 2 0) (_ bv4 3)) (_ bv4 3))) :named a0))
+(assert (! (<= 0 0) :named a1))
+(assert (! (<= 0 2) :named a2))
+\<close>) supply[[smt_trace]]
+  by (smt (cvc5))
+
+
+(*
+bit w n is translated into (= ((_ extract n n) w) #b1) if n < size w.
+
+This translation is tricky because of the condition. We can lift bit to bit_lift during normalization.
+Then, during translation we print extract but when parsing it in we cannot parse it back into bit_lift.
+Thus, we don't translate to extract but 
+*)
+  
 lemma "bit (1705 :: 16 word) 3"
   apply (test_smt_translate 
 \<open>
