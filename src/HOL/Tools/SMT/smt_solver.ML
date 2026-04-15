@@ -84,11 +84,12 @@ fun run ctxt name cmd input =
           val _ = File.write in_path input
           val result = Cache_IO.run cmd input
           val _ = Bytes.write out_path (Bytes.terminate_lines (Process_Result.out_lines result))
+          val serial_str = serial_string ()
           val () =
             (case Config.get ctxt SMT_Config.problem_dest_file of
               "" => ()
             | base_path =>
-              let val in_path = Path.ext "smt_in" (Path.explode base_path) in
+              let val in_path = Path.ext "smt_in" (Path.explode (base_path ^ "_" ^ serial_str)) in
                 File.write in_path input
               end)
           val result =
@@ -98,7 +99,7 @@ fun run ctxt name cmd input =
               "" => ()
             | base_path =>
               let
-                val out_path = Path.ext "smt_out" (Path.explode base_path)
+                val out_path = Path.ext "smt_out" (Path.explode (base_path ^ "_" ^ serial_str))
                 val output = Bytes.terminate_lines (Process_Result.out_lines result)
               in
                 Bytes.write out_path output
