@@ -406,7 +406,7 @@ lemma true_1: "\<top>"
 
 (* Rule 4: false*)
 
-lemma false_2: "\<not>\<bottom>"
+lemma false_1: "\<not>\<bottom>"
   by (ctxt_tactic "false_rule")
 
 (* Rule 5: not_not*)
@@ -447,7 +447,6 @@ lemma tautology_1:
   shows "True"
   using assms
   by (ctxt_tactic "tautology")
-
 
 (* Rule 9: contraction *)
 
@@ -528,6 +527,7 @@ in
    map (measure_time ctxt) [10,20,30,50,60]
 end
 \<close>
+end
 
 (* Rule 11: la_generic *)
 
@@ -684,7 +684,6 @@ lemma cong_3:
   using assms
   by (ctxt_tactic "eq_congruent")
 
-
 (* Rule 25: eq_reflexive *)
 
 lemma eq_reflexive_1: "a = a"
@@ -695,7 +694,6 @@ lemma eq_reflexive_2: "3 = (3::int)"
 
 lemma eq_reflexive_3: "(a = b) = (a = b)"
   by (ctxt_tactic "eq_reflexive")
-
 
 (* Rule 26: eq_transitive *)
 
@@ -711,7 +709,6 @@ lemma eq_transitive_3: "\<not> (a = f a) \<or> \<not>(f a = b) \<or> (a = b)"
 lemma eq_transitive_4: "\<not> (a = f a) \<or> \<not>(f a = b) \<or> \<not>(f a = a) \<or> (a = a)"
   by (ctxt_tactic "eq_transitive")
 
-
 (* Rule 27: eq_congruent *)
 
 lemma eq_congruent_1: "\<not> (a = a) \<or> (a = a)"
@@ -723,7 +720,6 @@ lemma eq_congruent_2: "\<not> (a = a) \<or> \<not>(a = b) \<or> (f a a = f a b)"
 lemma eq_congruent_3: "\<not> (3 = 2 + (1::int)) \<or> \<not>(c = g b) \<or> ((3 + c) = ((2 + (1::int)) + g b))"
   by (ctxt_tactic "eq_congruent")
 
-
 (* Rule 28: eq_congruent_pred *)
 
 lemma eq_congruent_pred_1: "\<not> (a = a) \<or> (a = a)"
@@ -732,17 +728,16 @@ lemma eq_congruent_pred_1: "\<not> (a = a) \<or> (a = a)"
 lemma eq_congruent_pred_2: "\<not> (a = a) \<or> \<not>(a = b) \<or> (P a a = P a b)"
   by (ctxt_tactic "eq_congruent_pred")
 
-
 (* Rule 29: qnt_cnf *)
 
 lemma qnt_cnf_1: "\<not> (\<forall>x1. \<not>((x1 = 1) \<or> (x1 = 2))) \<or> (\<forall>x1. (\<not>(x1 = 1) \<and> \<not>(x1 = 2)))"
  by (ctxt_tactic "qnt_cnf")
 
-lemma \<open>\<not> (\<forall>veriT_vr1::'a. \<not> (P::bool \<Rightarrow> 'a \<Rightarrow> bool) False veriT_vr1 \<and> P True veriT_vr1) \<or>
+lemma qnt_cnf_2: \<open>\<not> (\<forall>veriT_vr1::'a. \<not> (P::bool \<Rightarrow> 'a \<Rightarrow> bool) False veriT_vr1 \<and> P True veriT_vr1) \<or>
          (\<forall>veriT_vr1::'a. P True veriT_vr1) \<close>
  by (ctxt_tactic "qnt_cnf")
 
-lemma qnt_cnf_2:
+lemma qnt_cnf_3:
   fixes trans
   shows
         "\<not> (\<forall>(veriT_vr756::int) veriT_vr757 veriT_vr758 (veriT_vr759::int) (veriT_vr760::int) veriT_vr761 veriT_vr762.
@@ -786,7 +781,7 @@ lemma qnt_cnf_2:
 "
   by (ctxt_tactic "qnt_cnf")
 
-lemma \<open> \<not> (\<forall>(veriT_vr13::'a_topoly::type) veriT_vr14::'a::type option set.
+lemma qnt_cnf_4: \<open> \<not> (\<forall>(veriT_vr13::'a_topoly::type) veriT_vr14::'a::type option set.
                 ((Alexandroff_open::'a_topoly::type \<Rightarrow> 'a::type option set \<Rightarrow> bool) veriT_vr13 veriT_vr14 \<longrightarrow>
                  (\<exists>veriT_vr15::'a::type set.
                      veriT_vr14 = Some ` veriT_vr15 \<and> (openin::'a_topoly::type \<Rightarrow> 'a::type set \<Rightarrow> bool) veriT_vr13 veriT_vr15 \<or>
@@ -830,10 +825,6 @@ lemma and_4:
 
 
 (* Rule 31: not_or *)
-(*or_neg 0
- 1. (a \<or> b \<or> c) \<or> \<not> a 
-or neg 1
- 1. a \<Longrightarrow> a \<or> b \<or> c *)
 
 lemma not_or_1:
   assumes "\<not>(a \<or> b \<or> c)"
@@ -981,7 +972,6 @@ lemma shuffle_or_8:
   shows "(a \<or> b \<or> (c \<and> (d \<or> e))) = (a \<or> (c \<and> (d \<or> e)) \<or> b)"
   by (ctxt_tactic "shuffle" "HOL.disj")
 
-
 lemma shuffle_and_1: 
   shows "(b \<and> a) = (a \<and> b)"
   by (ctxt_tactic "shuffle" "HOL.conj")
@@ -1010,7 +1000,6 @@ lemma shuffle_and_6b:
   shows "(\<not> (c \<and> a) \<and> \<not> (d \<and> b) \<and> c \<and> a) =
          (c \<and> a \<and> \<not> (c \<and> a) \<and> \<not> (d \<and> b))"
   by (ctxt_tactic "shuffle" "HOL.conj")
-
 
 (* Rule 36: not_and *)
 
@@ -1925,7 +1914,6 @@ lemma or_simplify_4: "(False \<or> \<not>\<not>a \<or> b \<or> \<not>\<not>\<not
 (* Rule 74: not_simplify *)
 
 lemma not_simplify_1: "(\<not>False) = True"
-  supply [[simp_trace]]
   by (ctxt_tactic "not_simplify")
 
 lemma not_simplify_2: "(\<not>True) = False"
@@ -1998,7 +1986,6 @@ lemma equiv_simplify_7: "(False = b) = (\<not>b)"
 lemma equiv_simplify_8: "((\<not>a) = (\<not>b)) = (a = b)"
   by (ctxt_tactic "equiv_simplify")
 
-
 (* Rule 77: bool_simplify *)
 
 lemma bool_simplify_1:
@@ -2030,6 +2017,7 @@ lemma bool_simplify_7:
   by (ctxt_tactic "bool_simplify")
 
 (* Rule 78: ac_simp *)
+
 lemma ac_simp_1: "(b \<and> b) = b"
   by (ctxt_tactic "ac_simp")
 
@@ -2041,7 +2029,6 @@ lemma ac_simp_3: "(b \<and> a \<and> b) = (a \<and> b)"
 
 lemma ac_simp_4: "(b \<and> ((a \<and> c) \<and> (d \<and> a))) = (a \<and> b \<and> c \<and> d)"
   by (ctxt_tactic "ac_simp")
-
 
 (* Rule 79: ite_simplify *)
            
@@ -2093,7 +2080,6 @@ lemma ite_simplify_12:
   shows "(If c a True) = (\<not>c \<or> a)"
   by (ctxt_tactic "ite_simplify")
 
-
 (* Rule 80: qnt_simplify *)
 
 lemma qnt_simplify_1:
@@ -2111,7 +2097,6 @@ lemma qnt_simplify_3:
 lemma qnt_simplify_4:
   shows "(\<forall>x1 x2. False) = False"
   by (ctxt_tactic "qnt_simplify")
-
 
 (* Rule 82: qnt_join *)
 
@@ -2147,7 +2132,6 @@ lemma qnt_join_8:
   shows "(\<exists>x1 x2. (\<exists>x3 . (\<exists>x4. a))) = (\<forall>x1 x2 x3 x4. a)"
   by (ctxt_tactic "qnt_join")
 
-
 (* Rule 83: qnt_rm_ununsed *)
 
 lemma qnt_rm_unused_1:
@@ -2174,7 +2158,6 @@ lemma qnt_rm_unused_6:
   shows "(\<exists>x1 x2 x3. x1 \<and> x3) = (\<exists>x1 x3. x1 \<and> x3)"
   by (ctxt_tactic "qnt_rm_unused")
 
-
 (* Rule 83: eq_simplify *)
 
 lemma eq_simplify_1:
@@ -2193,7 +2176,6 @@ lemma eq_simplify_4:
   shows "\<not>((3::int) = 3) = False"
   by (ctxt_tactic "eq_simplify")
 
-
 (* Rule 85: div_simplify *)
 
 lemma div_simplify_1:
@@ -2207,7 +2189,6 @@ lemma div_simplify_2:
 lemma div_simplify_3:
   shows "((3::int) div 3) = 1"
   by (ctxt_tactic "div_simplify")
-
 
 (* Rule 86: prod_simplify *)
 
@@ -2235,7 +2216,6 @@ lemma prod_simplify_6:
   shows "(2 * (2 * y * 3 * x) * 1) = (12::int) * y * x"
   by (ctxt_tactic "prod_simplify")
 
-
 (* Rule 87: unary_minus_simplify *)
 
 lemma unary_minus_simplify_1:
@@ -2249,7 +2229,6 @@ lemma unary_minus_simplify_2:
 lemma unary_minus_simplify_3:
   shows "- (- (-3)) = -(3::int)"
   by (ctxt_tactic "unary_minus_simplify")
-
 
 (* Rule 88: minus_simplify *)
 
@@ -2269,7 +2248,6 @@ lemma minus_simplify_4:
   shows "0 - x - 0 - (-2 - 3) = -(x::int) - -5"
   by (ctxt_tactic "minus_simplify")
 
-
 (* Rule 89: sum_simplify *)
 
 lemma sum_simplify_1:
@@ -2283,7 +2261,6 @@ lemma sum_simplify_2:
 lemma sum_simplify_3:
   shows "1 + 3 + x + -4 + (y + 0) = (0::int) + x + y"
   by (ctxt_tactic "sum_simplify")
-
 
 (* Rule 90: comp_simplify *)
 
@@ -2323,8 +2300,6 @@ lemma comp_simplify_9:
   shows "(55 > (7::int)) = (\<not>((55::int) \<le> 7))"
   by (ctxt_tactic "comp_simplify")
 
-
-
 (* Rule 93: distinct_elim *)
 
 lemma distinct_elim_1: "(x \<noteq> y) = (x \<noteq> y)"
@@ -2356,7 +2331,6 @@ lemma distinct_elim_6:
  ) = False"
   by (ctxt_tactic "distinct_elim")
 
-
 (* Rule 94: la_rw_eq1 *)
 
 lemma la_rw_eq1_1:
@@ -2370,7 +2344,6 @@ lemma la_rw_eq1_2:
 lemma la_rw_eq1_3:
   "((7-2) = (5::int)) = ((7-2) \<le> (5::int) \<and> (5::int) \<le> (7-2))"
   by (ctxt_tactic "la_rw_eq1")
-
 
 (* Rule 95: nary_elim *)
 
@@ -2390,7 +2363,7 @@ lemma nary_elim_2:
   by (ctxt_tactic "nary_elim")
 
 (* Rule 97: ite_intro *)
-(* Note: This rule is veriT only. Reconstruction seems to fail on many tests *)
+(* Note: This rule is veriT only *)
 lemma ite_intro_1: "(If p a b) = ((If p a b) \<and> (If p (a = (If p a b)) (b = (If p a b))))"
   by (ctxt_tactic "ite_intro")
 
@@ -2433,6 +2406,7 @@ lemma ite_intro_9:
           (if 4 * dec_10 4 < 10 then 4 * dec_10 4 = (if 4 * dec_10 4 < 10 then 4 * dec_10 4 else dec_10 (4 * dec_10 4 - 10))
            else dec_10 (4 * dec_10 4 - 10) = (if 4 * dec_10 4 < 10 then 4 * dec_10 4 else dec_10 (4 * dec_10 4 - 10)))) \<close>
   by (ctxt_tactic "ite_intro")
+
 (* Rule 104: miniscope_distribute *)
 (*Note: there isn't a solver that produces the exists case currently*)
 
@@ -2541,7 +2515,6 @@ lemma miniscope_split_ite1:
   "(\<forall>x1 ::'a. \<forall>x2 ::'a. (If a b c)) = (If a (\<forall>x1 ::'a. \<forall>x2 ::'a. b) (\<forall>x1 ::'a. \<forall>x2 ::'a. c))"
   by (ctxt_tactic "miniscope_ite")
 
-
 lemma miniscope_split_ite2:
   "(\<forall>x1 ::'a. \<forall>x2 ::'a. (If a (P1 x1) (P2 x2))) = (If a (\<forall>x1 ::'a. \<forall>x2 ::'a. P1 x1) (\<forall>x1 ::'a. \<forall>x2 ::'a. P2 x2))"
   by (ctxt_tactic "miniscope_ite")
@@ -2551,7 +2524,6 @@ lemma miniscope_split_ite2:
 lemma miniscope_or1:
 "(\<forall>y. (n \<noteq> r m n \<or> a \<or>\<not> f m n y y \<or> n = y)) = ((n \<noteq> r m n) \<or> a \<or>(\<forall>y. (\<not> f m n y y \<or> n = y)))"
   by (ctxt_tactic "miniscope_or")
-
 
 (*Rule : poly_simp_rel*)
 
@@ -2563,7 +2535,6 @@ lemma poly_simp_rel1:
   using assms
   by (ctxt_tactic "poly_simp_rel")
 
-
 lemma poly_simp_rel2:
   assumes "-88  *  ((arg2::int) + (2::int) * (x::int) + - 1 * (mul2_sum::int) - 1) =
         - 15  * ( (arg2 + (2::int) * x + - 1 * mul2_sum) -  1)"
@@ -2571,8 +2542,6 @@ lemma poly_simp_rel2:
          ( (arg2 + (2::int) * x + - 1 * mul2_sum) <  1)"
   using assms
   by (ctxt_tactic "poly_simp_rel")
-
-end
 
 (*onepoint**)
 experiment
@@ -2605,18 +2574,18 @@ Rule Nr   Name            Nr Tests  Nr Success
 3         true            1         1
 4         false           1         1
 5         not_not         3         3
-6,7       resolution      3         0
-8         tautology       1         0
-9         contraction     9         9
+6,7       resolution      3         3
+8         tautology*      1         0
+9         contraction     8         8
 10        subproof        0         0
 --------------------------------------------
-                          26        22
+                          25        24
 
 
 Rule Nr   Name            Nr Tests  Nr Success
 --------------------------------------------
-11        la_generic      1         0
-12        lia_generic     1         0
+11        la_generic      2         2
+12        lia_generic     1         1
 13        la_disequality  4         4
 14        la_totality     2         2
 15        la_tautology    9         9
@@ -2626,30 +2595,30 @@ Rule Nr   Name            Nr Tests  Nr Success
 19        sko_ex          0         0
 20        sko_forall      0         0
 --------------------------------------------
-                          20        18
+                          21        21
 
 
 Rule Nr   Name            Nr Tests  Nr Success
 --------------------------------------------
 21        forall_inst     0         0
 22        refl            0         0
-23        trans           4         4
-24        cong            3         2
+23        trans*          5         4
+24        cong*           3         1
 25        eq_reflexive    3         3
 26        eq_transitive   4         4
 27        eq_congruent    3         3
 28        eq_congruent_pred 2       2
-29        qnt_cnf         1         0
+29        qnt_cnf         4         4
 30        and             4         4
 --------------------------------------------
-                          24        22
+                          28        25
 
 
 Rule Nr   Name            Nr Tests  Nr Success
 --------------------------------------------
-31        not_or          6         5
+31        not_or          6         6
 32        or              3         3
-33        weakening       4         0
+33        weakening*      4         0
 34        reordering      4         4
 35        shuffle         15        15
 36        not_and         5         5
@@ -2658,7 +2627,7 @@ Rule Nr   Name            Nr Tests  Nr Success
 39        not_xor         4         4
 40        not_xor2        4         4
 --------------------------------------------
-                          53        48
+                          53        49
 
 
 Rule Nr   Name            Nr Tests  Nr Success
@@ -2670,48 +2639,48 @@ Rule Nr   Name            Nr Tests  Nr Success
 45        equiv2          5         5
 46        not_equiv1      5         5
 47        not_equiv2      5         5
-48        and_pos         6         6
-49        and_neg         5         5
-50        or_pos          5         5
+48        and_pos         9         9
+49        and_neg         9         9
+50        or_pos          7         7
 --------------------------------------------
-                          51        51
+                          60        60
 
 
 Rule Nr   Name            Nr Tests  Nr Success
 --------------------------------------------
 51        or_neg          12        12
-52        xor_pos1        2         2
-53        xor_pos2        3         3
-54        xor_neg1        3         3
-55        xor_neg2        3         3
-56        implies_pos     4         4
-57        implies_neg1    4         4
-58        implies_neg2    4         4
-59        equiv_pos1      3         3
-60        equiv_pos2      3         3
+52        xor_pos1        7         7
+53        xor_pos2        7         7
+54        xor_neg1        5         5
+55        xor_neg2        5         5
+56        implies_pos     6         6
+57        implies_neg1    6         6
+58        implies_neg2    5         5
+59        equiv_pos1      5         5
+60        equiv_pos2      5         5
 --------------------------------------------
-                          41        41
+                          63        63
 
 
 Rule Nr   Name            Nr Tests  Nr Success
 --------------------------------------------
-61        equiv_neg1      4         4
-62        equiv_neg2      4         4
+61        equiv_neg1      5         5
+62        equiv_neg2      5         5
 63        ite1            3         3
 64        ite2            3         3
-65        ite_pos1        4         4
-66        ite_pos2        4         4
-67        ite_neg1        4         4
-68        ite_neg2        4         4
+65        ite_pos1        6         6
+66        ite_pos2        6         6
+67        ite_neg1        5         5
+68        ite_neg2        5         5
 69        not_ite1        3         3
 70        not_ite2        3         3
 --------------------------------------------
-                          36        36
+                          44        44
 
 
 Rule Nr   Name            Nr Tests  Nr Success
 --------------------------------------------
-71        connective_def  7         6
+71        connective_def  10        10
 72        and_simplify    4         4
 73        or_simplify     4         4
 74        not_simplify    6         6
@@ -2722,7 +2691,7 @@ Rule Nr   Name            Nr Tests  Nr Success
 79        ite_simplify    12        12
 80        qnt_simplify    4         4
 --------------------------------------------
-                          65        65
+                          68        68
 
 
 Rule Nr   Name            Nr Tests  Nr Success
@@ -2730,15 +2699,15 @@ Rule Nr   Name            Nr Tests  Nr Success
 81        onepoint        0         0
 82        qnt_join        8         8
 83        qnt_rm_ununsed  6         6
-84        eq_simplify     0         0
-85        div_simplify    3         1
-86        prod_simplify   6         4
+84        eq_simplify     4         4
+85        div_simplify*   3         1
+86        prod_simplify   6         6
 87        unary_minus_simplify  3   3
 88        minus_simplify  4         4
 89        sum_simplify    3         3
 90        comp_simplify   9         9
 --------------------------------------------
-                          42        38
+                          46        44
 
 
 Rule Nr   Name            Nr Tests  Nr Success
@@ -2749,12 +2718,12 @@ Rule Nr   Name            Nr Tests  Nr Success
 94        la_rw_eq1       3         3
 95        nary_elim       2         2
 96        bfun_elim       0         0
-97        ite_intro       0         0
+97        ite_intro       9         9
 98        bitblast_extract 0        0
 99        bitblast_ult    0         0
 100       bitblast_add    0         0
 --------------------------------------------
-                          11        11
+                          20        20
 
 
 Rule Nr   Name            Nr Tests  Nr Success
@@ -2774,6 +2743,9 @@ Rule Nr   Name            Nr Tests  Nr Success
 
 Rule Nr   Name            Nr Tests  Nr Success
 --------------------------------------------
-Total                     395
+Total                     454       444
+
+(Note: rule_name* means there is a deviation in the nr of tests and the nr of successes)
+
 *)
 end
