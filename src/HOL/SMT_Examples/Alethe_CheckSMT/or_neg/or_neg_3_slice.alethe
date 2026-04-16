@@ -1,0 +1,12 @@
+(define-fun @quantifiers_skolemize_22 () J_node_nat_char_list_char_list_char_list_prod_val_option_fun_prod_option_fun_nat_nat_prod_val_fun_nat_nat_prod_val_fun_prod_prod_edge_kind_j_node_prod_prod$ (! (choice ((?v2 J_node_nat_char_list_char_list_char_list_prod_val_option_fun_prod_option_fun_nat_nat_prod_val_fun_nat_nat_prod_val_fun_prod_prod_edge_kind_j_node_prod_prod$)) (not (or (not (fun_app$c (! (valid_edge$ (! (pair$ (! (abs_wf_jvmprog$ (! (pair$a ep$ phi_EP$) :named @p_4)) :named @p_3) (! (pair$b (! (cons$d (! (char$ (! true :named @p_8) @p_8 (! false :named @p_9) @p_9 @p_9 @p_9 @p_8 @p_9) :named @p_7) nil$d) :named @p_6) (! (cons$d (! (char$ @p_8 @p_9 @p_8 @p_8 @p_9 @p_9 @p_8 @p_9) :named @p_11) nil$d) :named @p_10)) :named @p_5)) :named @p_2)) :named @p_1) ?v2)) (and (not (= (fun_app$ fst$a ?v2) (! (node$ (! (cons$a (! (pair$e @p_6 (! (pair$f @p_10 (! (size_j_node$ entry$) :named @p_16)) :named @p_15)) :named @p_14) (! (framestack_to_callstack$ nil$b) :named @p_17)) :named @p_13) none$) :named @p_12))) (not (= (snd$ (snd$a ?v2)) @p_12)))))) :named @p_0))
+(anchor :step t4)
+(assume t4.a0 (! (= @p_12 (! (snd$ (! (pair$d (! (predicate$ uua$) :named @p_21) @p_12) :named @p_20)) :named @p_19)) :named @p_18))
+(assume t4.a1 (! (= @p_20 (! (snd$a (! (pair$c entry$ @p_20) :named @p_24)) :named @p_23)) :named @p_22))
+(assume t4.a2 (! (= @p_12 (! (snd$ (! (snd$a @quantifiers_skolemize_22) :named @p_27)) :named @p_26)) :named @p_25))
+(assume t4.a3 (! (fun_app$d (! (valid_node$a @p_2) :named @p_29) @p_26) :named @p_28))
+(assume t4.a4 (! (not (! (fun_app$d @p_29 (! (snd$ @p_23) :named @p_32)) :named @p_31)) :named @p_30))
+(step t4.t209 (cl (! (or (! (not (! (fun_app$c @p_1 @quantifiers_skolemize_22) :named @p_35)) :named @p_34) (! (and (! (not (! (= @p_12 (! (fun_app$ fst$a @quantifiers_skolemize_22) :named @p_39)) :named @p_38)) :named @p_37) (! (not @p_25) :named @p_40)) :named @p_36)) :named @p_33) (! (not @p_34) :named @p_41)) :rule or_neg :args (0))
+(step t4.t274 (cl (! (and @p_30 @p_22 @p_18 @p_25 @p_28) :named @p_42)) :rule hole :premises (t4.t209) :args ("trust"))
+(step t4 (cl (! (not @p_18) :named @p_43) (! (not @p_22) :named @p_44) @p_40 (! (not @p_28) :named @p_45) (! (not @p_30) :named @p_46) @p_42) :rule subproof :discharge (t4.a0 t4.a1 t4.a2 t4.a3 t4.a4))
+(step slice_end (cl) :rule hole :premises (t4) :args ("trust"))
+

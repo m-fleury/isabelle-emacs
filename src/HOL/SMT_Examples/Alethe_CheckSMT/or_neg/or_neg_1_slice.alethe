@@ -1,0 +1,4 @@
+(define-fun @quantifiers_skolemize_3 () Nat$ (! (choice ((?v0 Nat$)) (not (or (not (member$c ?v0 (! (set$ tau$) :named @p_1))) (fun_app$c (fun_app$d less$ ?v0) p$)))) :named @p_0))
+(step t4 (cl (! (or (! (not (! (member$c @quantifiers_skolemize_3 @p_1) :named @p_4)) :named @p_3) (! (fun_app$c (! (fun_app$d less$ @quantifiers_skolemize_3) :named @p_6) p$) :named @p_5)) :named @p_2) (! (not @p_5) :named @p_7)) :rule or_neg :args (1))
+(step slice_end (cl) :rule hole :premises (t4) :args ("trust"))
+

@@ -1,0 +1,8 @@
+(anchor :step t2)
+(assume t2.a0 (! (= a$ b$) :named @p_0))
+(assume t2.a1 (! (= b$ c$) :named @p_1))
+(step t2.t2 (cl (! (not (! (and @p_1 @p_0) :named @p_3)) :named @p_2) @p_1) :rule and_pos :args (0))
+(step t2.t13 (cl (! (= a$ c$) :named @p_4)) :rule hole :premises (t2.t2) :args ("trust"))
+(step t2 (cl (! (not @p_0) :named @p_5) (! (not @p_1) :named @p_6) @p_4) :rule subproof :discharge (t2.a0 t2.a1))
+(step slice_end (cl) :rule hole :premises (t2) :args ("trust"))
+
