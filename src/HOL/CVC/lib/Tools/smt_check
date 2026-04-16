@@ -8,10 +8,11 @@ PRG="$(basename "$0")"
 
 function usage() {
   echo
-  echo "Usage: isabelle $PRG [-d <directory>] [-l imports] [-t base_theory] [-s smt_solver] -i <smt2_problem> -p <alethe_proof>"
+  echo "Usage: isabelle $PRG [-d <directory>] [-l imports] [-t base_theory] [-s smt_solver] [-o declare_options] -i <smt2_problem> -p <alethe_proof>"
   echo
   echo "  Runs the proof reconstruction  on a given SMT problem and Alethe proof."
   echo "  Each problem is allocated at most TIMEOUT seconds."
+  echo "  declare_options need to be passed as a string, e.g. \"rare_mode=2, nat_as_int=false\""
   echo
   exit 1
 }
@@ -37,6 +38,9 @@ parse_options() {
                 ;;
             s)
                 solver="${OPTARG}"
+                ;;
+            o)
+                declare_options="${OPTARG}"
                 ;;
             \?)
                 echo "Invalid option: -$OPTARG" >&2
@@ -69,6 +73,7 @@ shift
 $ISABELLE_HOME/bin/isabelle build ${directory_include} -b $session
 
 echo -e "theory $SCRATCH\n\timports \"$import_session\"\nbegin\n\
+ declare[[$declare_options]]\n\
  check_smt (\"$solver\") \"$smt2\" \"$proof\"\nend" \
  > ${SCRATCH_FILE}
 
