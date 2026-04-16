@@ -916,6 +916,12 @@ lemma weakening_4:
   using assms
   by (ctxt_tactic "weakening")
 
+lemma weakening_5: 
+  assumes "a \<or> \<not>f"
+  shows  "a \<or> b \<or> \<not>f"
+  using assms
+  by (ctxt_tactic "weakening")
+
 
 (* Rule 34: reordering *)
 

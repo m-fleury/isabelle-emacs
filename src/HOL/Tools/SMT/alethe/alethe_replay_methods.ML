@@ -64,7 +64,7 @@ sig
    Bfun_Elim |
    Qnt_CNF |
    (*For compression*)
-   Theory_Resolution2 |
+   Theory_Resolution2 | Weakening |
    (*Unsupported rule*)
    Unsupported
 
@@ -182,6 +182,7 @@ sig
   val miniscope_ITE: alethe_tac
   val and_intro: alethe_tac
   val trust: alethe_tac
+  val weakening: alethe_tac
 
   (*Extension to declare new alethe rules*)
   val declare_alethe_rule:  string -> alethe_tac_step_args -> Context.generic -> Context.generic
@@ -260,7 +261,7 @@ datatype alethe_rule =
    Bfun_Elim |
    Qnt_CNF |
    (*For compression*)
-   Theory_Resolution2 |
+   Theory_Resolution2 | Weakening |
    (*Unsupported rule*)
    Unsupported
 
@@ -1223,6 +1224,16 @@ val not_implies2 = prove_equiv @{lemma \<open>\<not>(A \<longrightarrow>B) \<Lon
 
 end
 
+fun weakening ctxt [prem] t =
+  SMT_Replay_Methods.prove ctxt t (fn _ =>
+    Method.insert_tac ctxt [prem]
+    THEN' resolve_tac ctxt [@{lemma \<open>\<And>A B. A \<Longrightarrow> (\<not>B \<Longrightarrow> \<not>A) \<Longrightarrow> B\<close> by blast}]
+    THEN' assume_tac ctxt
+    THEN' REPEAT' (dresolve_tac ctxt @{thms de_Morgan_disj[THEN iffD1]}
+      THEN' eresolve_tac ctxt @{thms conjE})
+    THEN' REPEAT' (resolve_tac ctxt @{thms de_Morgan_disj[THEN iffD2]}
+      THEN' resolve_tac ctxt @{thms conjI} THEN' REPEAT' (assume_tac ctxt))
+    THEN' REPEAT' (assume_tac ctxt))
 
 (* Equivalence Lemma *)
 (*equiv_pos2 is very important for performance. We have tried various tactics, including

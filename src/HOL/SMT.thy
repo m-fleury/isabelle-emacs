@@ -537,7 +537,7 @@ lemmas alethe_prod_simplify =
    mult_1_right
 
 lemmas alethe_div_simplify =
-   divide_self div_minus_minus
+   divide_self div_minus_minus div_by_1
    divide_numeral_1 one_plus_numeral
    divmod_steps less_irrefl divmod_trivial divmod_cancel
    numeral_div_numeral prod.case mult.right_neutral
@@ -1016,7 +1016,7 @@ lemma alethe_onepoint2_ex:
 
 lemmas poly_simp_rel =
    less_divide_eq_numeral1
-   less_numeral_simps div_by_1 alethe_div_simplify zero_less_one
+   less_numeral_simps alethe_div_simplify zero_less_one
    not_one_less_zero neg_0_less_iff_less
 
 subsection \<open>Setup\<close>
