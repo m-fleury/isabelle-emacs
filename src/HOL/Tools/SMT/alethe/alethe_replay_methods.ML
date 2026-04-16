@@ -730,10 +730,10 @@ local
 fun skolem_tac extractor thm1 thms1 ctxt prems context_ass (decl:string list * string list) t =
   let
    
-                               
+  (*                              
     val (context_ass_thm,_) = Assumption.add_assumes (map (Thm.cterm_of ctxt) context_ass) ctxt
 
-  (*  val context_ass_thm_sym = map (fn x => @{thm sym} OF [x]) context_ass_thm
+   val context_ass_thm_sym = map (fn x => @{thm sym} OF [x]) context_ass_thm
     val _ = @{print}("context_ass_thm_sym",context_ass_thm_sym))*)
 
 (*
@@ -934,7 +934,7 @@ fun is_same_assms_eq_ac (Abs (_, _,  u)) (Abs (_, _, u')) =
     (is_same_assms_eq_ac u v' andalso is_same_assms_eq_ac v u')
   | is_same_assms_eq_ac (u $ v) (u' $ v') =
     (is_same_assms_eq_ac u u' andalso is_same_assms_eq_ac v v')
-  | is_same_assms_eq_ac u v  = (false)
+  | is_same_assms_eq_ac _ _  = (false)
 
 fun pretty tag lines = map Pretty.str lines |> Pretty.big_list tag |> Pretty.string_of
 
@@ -1111,25 +1111,26 @@ val or_pos_rule = prover or_pos_prove
 val and_neg_rule = prover and_neg_rule_prove
 
 (*not_or and or_neg should use the same *)
-fun not_or_rule ctxt prems t = SMT_Replay_Methods.prove ctxt t (fn _ =>
-let
-val y = Thm.cterm_of ctxt (HOLogic.dest_Trueprop (Thm.prop_of (hd prems)))
-val t2 = Thm.cterm_of ctxt (HOLogic.dest_Trueprop t)
-
-  val x = Drule.infer_instantiate' ctxt [SOME y, SOME t2] @{thm alethe_not_or(1)}
-
-in
-  (resolve_tac ctxt [x])
-  THEN' (resolve_tac ctxt prems)
-  THEN' K (unfold_tac ctxt @{thms alethe_not_or(2)})
-  THEN' (resolve_tac ctxt @{thms alethe_or_neg})
-
-  THEN' K (unfold_tac ctxt @{thms not_not})
-  THEN_ALL_NEW
-    (REPEAT'
-      (SOLVED' (match_tac ctxt @{thms disjI1} THEN_ALL_NEW assume_tac ctxt)
-       ORELSE' (match_tac ctxt @{thms disjI2} THEN' TRY' (assume_tac ctxt))))
-end)
+fun not_or_rule ctxt prems t = 
+  SMT_Replay_Methods.prove ctxt t (fn _ =>
+    let
+      val y = Thm.cterm_of ctxt (HOLogic.dest_Trueprop (Thm.prop_of (hd prems)))
+      val t2 = Thm.cterm_of ctxt (HOLogic.dest_Trueprop t)
+    
+      val x = Drule.infer_instantiate' ctxt [SOME y, SOME t2] @{thm alethe_not_or(1)}
+    
+    in
+      (resolve_tac ctxt [x])
+      THEN' (resolve_tac ctxt prems)
+      THEN' K (unfold_tac ctxt @{thms alethe_not_or(2)})
+      THEN' (resolve_tac ctxt @{thms alethe_or_neg})
+    
+      THEN' K (unfold_tac ctxt @{thms not_not})
+      THEN_ALL_NEW
+        (REPEAT'
+          (SOLVED' (match_tac ctxt @{thms disjI1} THEN_ALL_NEW assume_tac ctxt)
+           ORELSE' (match_tac ctxt @{thms disjI2} THEN' TRY' (assume_tac ctxt))))
+    end)
 
 
 (*TODO: Improve now that we have arguments*)
@@ -1477,11 +1478,50 @@ local
       THEN' (debug_msg_tac' ctxt high "qnt_cnf after resolving simplifying")
       THEN' TRY' (Metis_Tactic.metis_tac [] ATP_Problem_Generate.combsN ctxt []))
     ORELSE' Metis_Tactic.metis_tac [] ATP_Problem_Generate.combsN ctxt []
+
+  val all_comm = @{lemma "(\<forall>x y. P x y) \<equiv> (\<forall>y x. P x y)" by (subst all_comm)}
+  fun plunge_down ctxt str ctrm =
+   case Thm.term_of ctrm of
+     _ $ Abs (v, _, _) => 
+       if String.isPrefix v str
+       then
+           (Conv.try_conv (Conv.rewr_conv all_comm) then_conv Conv.arg_conv (Conv.abs_conv (fn (_, ctxt) => plunge_down ctxt str) ctxt)) ctrm
+       else Conv.arg_conv (Conv.abs_conv (fn (_, ctxt) => plunge_down ctxt str) ctxt) ctrm
+   | _ => Conv.all_conv ctrm
+
+
+  fun reorder_prefix_to _ [] ctrm = Conv.all_conv ctrm
+   | reorder_prefix_to ctxt (str :: xs) ctrm =
+     (case (Thm.term_of ctrm) of
+       _ $ Abs (v, _, _) => 
+         if String.isPrefix v str
+         then
+           Conv.arg_conv (Conv.abs_conv (fn (_, ctxt) => reorder_prefix_to ctxt xs) ctxt) ctrm
+         else 
+           (plunge_down ctxt v then_conv reorder_prefix_to ctxt (str :: xs)) ctrm
+     | _ => Conv.all_conv ctrm)
+
+  fun extract_all_forall_exists_quantified_names_q (Const(\<^const_name>\<open>HOL.Ex\<close>, _) $ Abs (name, _, t)) =
+        name :: (extract_all_forall_exists_quantified_names_q t)
+    | extract_all_forall_exists_quantified_names_q (Const(\<^const_name>\<open>HOL.All\<close>, _) $ Abs (name, _, t)) =
+        name :: (extract_all_forall_exists_quantified_names_q t)
+    | extract_all_forall_exists_quantified_names_q _ = []
+  fun reorder_quantifer ctxt prop = 
+    let val strs =
+      prop
+      |> HOLogic.dest_Trueprop
+      |> HOLogic.dest_eq
+      |> fst
+      |> extract_all_forall_exists_quantified_names_q
+    in
+      CONVERSION (HOLogic.Trueprop_conv (Conv.arg_conv (reorder_prefix_to ctxt strs)))
+    end
 in
 fun qnt_rm_unused ctxt _ t = SMT_Replay_Methods.prove ctxt t (fn _ =>
   K (unfold_tac ctxt rm_unused)
   THEN' (debug_msg_tac' ctxt high "qnt_rm_unused")
-  THEN' TRY' (blast_tac ctxt) (*the quantifiers can be reordered, this could also be fixed earlier*)
+  THEN' TRY' (SUBGOAL (fn (prop, i) => reorder_quantifer ctxt prop i))
+  THEN' TRY' (resolve_tac ctxt @{thms refl})
   )
 
 local
@@ -1736,10 +1776,6 @@ local
     TRY' (rewrite_only_thms ctxt thms1)
     THEN' TRY' (rewrite_thms ctxt thms2)
 
-  fun chain_rewrite_thms_two_step ctxt thms1 thms2 thms3 thms4 =
-    chain_rewrite_two_step_with_ac_simps ctxt thms1 thms2
-    THEN' TRY' (chain_rewrite_two_step_with_ac_simps ctxt thms3 thms4)
-
 in
 fun rewrite_bool_simplify ctxt _ t =
   SMT_Replay_Methods.prove ctxt t (fn _ =>
@@ -1941,7 +1977,7 @@ THEN' Simplifier.full_simp_tac ctxt
 )
 end
 
-fun poly_simp ctxt t = 
+fun poly_simp ctxt _ = 
   let
     fun simplify_tac ctxt thms =
       ctxt
@@ -1974,7 +2010,7 @@ fun poly_simp ctxt t =
       THEN' TRY' (Code_Simp.dynamic_tac ctxt)
       THEN' debug_msg_tac' ctxt high "tried code evaluation on arith_poly_norm step since nothing else worked")
   in
-  prove_abstract (SMT_Replay_Methods.abstract_for_poly_norm ctxt) tac ctxt []
+    prove_abstract (SMT_Replay_Methods.abstract_for_poly_norm ctxt) tac ctxt []
   end
 
 local
