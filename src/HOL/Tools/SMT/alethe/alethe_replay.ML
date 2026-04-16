@@ -464,7 +464,9 @@ fun replay solver method_for outer_ctxt
                                 (fn () => SMT_Replay.print_stats (Symtab.dest stats)) "$ISABELLE_SMT_VERIT_SPY"
 
   in
-    CVC5_Replay_Methods.discharge ctxt [thm_with_defs] @{term False} (*Hier koennte man das aendern sodass die offenen Schritte als neue goals zurueck gegeben werden. E.g, wenn rewrite nicht klappt*)
+    if SMT_Config.check_smt_is_slicing ctxt
+    then thm_with_defs
+    else CVC5_Replay_Methods.discharge ctxt [thm_with_defs] @{term False}
   end
 
 end

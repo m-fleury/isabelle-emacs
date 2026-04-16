@@ -50,6 +50,7 @@ sig
   val proof_dest_file : string Config.T
   val sat_solver: string Config.T
   val check_external: bool Config.T
+  val slice_only_no_full_proof_attr: bool Config.T
   val compress_verit_proofs: Proof.context -> bool (*TODO: Rename to alethe if this works. Otherwise, we need two separate ones since or steps should also be skipped in cvc5*)
 
   (*tools*)
@@ -69,6 +70,7 @@ sig
   val spy_cvc: Proof.context -> bool
   val spy_verit: Proof.context -> bool
   val spy_Z3: Proof.context -> bool
+  val check_smt_is_slicing: Proof.context -> bool
   val use_alethe_proof_from_cvc: Proof.context -> bool
   val alethe_no_provided_assms: Proof.context -> bool
   val alethe_set_no_provided_assms: bool -> Proof.context -> Proof.context
@@ -215,6 +217,7 @@ val read_only_certificates = Attrib.setup_config_bool \<^binding>\<open>smt_read
 val verbose = Attrib.setup_config_bool \<^binding>\<open>smt_verbose\<close> (K true);
 val trace = Attrib.setup_config_bool \<^binding>\<open>smt_trace\<close> (K false);
 val trace_verit = Attrib.setup_config_bool \<^binding>\<open>smt_debug_verit\<close> (K false);
+val slice_only_no_full_proof_attr = Attrib.setup_config_bool \<^binding>\<open>smt_alethe_slice\<close> (K false);
 val trace_expert_debug_alethe_level = Attrib.setup_config_int \<^binding>\<open>smt_expert_debug_alethe_level\<close> (K 0);
 val trace_expert_debug_alethe_files = Attrib.setup_config_string \<^binding>\<open>smt_expert_debug_alethe_files\<close> (K "all");
 val spy_cvc_attr = Attrib.setup_config_bool \<^binding>\<open>smt_spy_cvc\<close> (K false);
@@ -278,6 +281,8 @@ in
  then (print_tac ctxt msg) else TRY no_tac
 end
 
+
+fun check_smt_is_slicing ctxt  = Config.get ctxt slice_only_no_full_proof_attr
 
 fun spy_cvc ctxt  = Config.get ctxt spy_cvc_attr
 fun spy_verit ctxt  = Config.get ctxt spy_verit_attr
