@@ -200,4 +200,18 @@ lemma poly_simp_rel5:
   using assms
   by (ctxt_tactic "poly_simp_rel")
 
+(* Rule 85: div_simplify *)
+
+lemma div_simplify_1:
+  shows "((-3::real) / 3) = -1"
+  by (ctxt_tactic "div_simplify")
+
+lemma div_simplify_2:
+  shows "((-3::real) / -3) = 1"
+  by (ctxt_tactic "div_simplify")
+
+lemma div_simplify_3:
+  shows "((-180::real) / -6) \<noteq> 31"
+  by (ctxt_tactic "div_simplify")
+
 end

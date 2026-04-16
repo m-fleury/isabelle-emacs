@@ -462,12 +462,13 @@ fun partial_simplify_tac ctxt thms =
   |> (fn ctxt => ctxt addsimps @{thms simp_thms} addsimps thms)
   |> Simplifier.full_simp_tac
 
-fun partial_simplify_tac_with_cong cong ctxt thms =
+fun partial_simplify_tac_with_cong cong simprocs ctxt thms =
   ctxt
   |> empty_simpset
   |> put_simpset HOL_basic_ss
   |> (fn ctxt => ctxt addsimps @{thms simp_thms} addsimps thms)
   |> Simplifier.add_cong cong
+  |> (fn ctxt => ctxt addsimprocs simprocs)
   |> Simplifier.full_simp_tac
 
 (* sko_forall requires the assumptions to be able to prove the equivalence in case of double
@@ -1887,7 +1888,16 @@ end
 local
   fun simplify_arith ctxt thms = partial_simplify_tac ctxt
     (thms @ Named_Theorems.get ctxt @{named_theorems ac_simps} @ @{thms arith_simps})
-  fun simplify_arith_ifcong ctxt thms = partial_simplify_tac_with_cong @{thm if_weak_cong} ctxt
+  fun simplify_arith_ifcong ctxt thms = partial_simplify_tac_with_cong @{thm if_weak_cong}
+    [@{simproc int_div_cancel_numeral_factors}, @{simproc int_combine_numerals},
+         @{simproc divide_cancel_numeral_factor}, @{simproc divide_cancel_factor},
+         @{simproc intle_cancel_numerals}, @{simproc intless_cancel_numerals}, @{simproc inteq_cancel_numerals},
+         @{simproc field_combine_numerals},
+         @{simproc ring_le_cancel_numeral_factor},
+         @{simproc Numeral_Simprocs.semiring_assoc_fold},
+         @{simproc Numeral_Simprocs.field_divide_cancel_numeral_factor},
+         @{simproc Numeral_Simprocs.field_eq_cancel_numeral_factor}]
+     ctxt
     (thms @ Named_Theorems.get ctxt @{named_theorems ac_simps} @ @{thms arith_simps})
 in
 
