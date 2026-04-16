@@ -1,4 +1,4 @@
-theory Extra_Rewrites
+theory Rare_Interface_Real
   imports "HOL.Real"
 begin (*Since this needs real operators it is not included in RARE_interface*)
 

@@ -1,45 +1,15 @@
 theory SMT_CVC_Real
-  imports "cvc5_dsl_rewrites/Extra_Rewrites" "HOL.Real"
+  imports "cvc5_dsl_rewrites/Rare_Interface_Real" "HOL.Real"
 begin
 
-cvc5_rare "Extra_Rewrites.rewrite_ite_eq"
-cvc5_rare "Extra_Rewrites.rewrite_quant_var_elim_eq"
+cvc5_rare "Rare_Interface_Real.rewrite_arith_geq_norm1_real"
+cvc5_rare "Rare_Interface_Real.rewrite_arith_eq_elim_real"
+cvc5_rare "Rare_Interface_Real.rewrite_arith_to_int_to_real"
+cvc5_rare "Rare_Interface_Real.rewrite_arith_int_eq_conflict"
+cvc5_rare "Rare_Interface_Real.rewrite_arith_int_geq_tighten"
+cvc5_rare "Rare_Interface_Real.rewrite_arith_geq_ite_lift"
+cvc5_rare "Rare_Interface_Real.rewrite_arith_leq_ite_lift"
 
-
-cvc5_rare "Extra_Rewrites.rewrite_arith_to_int_to_real"
-cvc5_rare "Extra_Rewrites.rewrite_arith_to_real_distrib_uminus"
-cvc5_rare "Extra_Rewrites.rewrite_arith_to_real_distrib_add"
-cvc5_rare "Extra_Rewrites.rewrite_arith_to_real_distrib_minus"
-cvc5_rare "Extra_Rewrites.rewrite_arith_to_real_distrib_mult"
-cvc5_rare "Extra_Rewrites.rewrite_arith_distrib_add"
-cvc5_rare "Extra_Rewrites.rewrite_arith_distrib_mult"
-cvc5_rare "Extra_Rewrites.rewrite_arith_to_real_distrib_uminus_rev"
-
-
-cvc5_rare "Extra_Rewrites.rewrite_arith_geq_norm1_real"
-cvc5_rare "Extra_Rewrites.rewrite_arith_geq_norm2"
-cvc5_rare "Extra_Rewrites.rewrite_arith_eq_elim_real"
-cvc5_rare "Extra_Rewrites.rewrite_arith_to_int_elim_to_real"
-cvc5_rare "Extra_Rewrites.rewrite_arith_div_elim_to_real1"
-cvc5_rare "Extra_Rewrites.rewrite_arith_div_elim_to_real2"
-cvc5_rare "Extra_Rewrites.rewrite_arith_int_eq_conflict"
-cvc5_rare "Extra_Rewrites.rewrite_arith_int_geq_tighten"
-cvc5_rare "Extra_Rewrites.rewrite_arith_geq_ite_lift"
-cvc5_rare "Extra_Rewrites.rewrite_arith_gt_ite_lift"
-cvc5_rare "Extra_Rewrites.rewrite_arith_leq_ite_lift"
-cvc5_rare "Extra_Rewrites.rewrite_arith_lt_ite_lift"
-
-cvc5_rare "Extra_Rewrites.rewrite_arith_to_int_to_real2"
-cvc5_rare "Extra_Rewrites.rewrite_or_not_refl_empty"
-cvc5_rare "Extra_Rewrites.rewrite_or_not_refl"
-
-(*TODO: Check if these can be moved to arith rewrites*)
-cvc5_rare "Extra_Rewrites.rewrite_arith_min_lt1"
-cvc5_rare "Extra_Rewrites.rewrite_arith_min_lt2"
-cvc5_rare "Extra_Rewrites.rewrite_arith_max_geq2"
-
-
-cvc5_rare "Extra_Rewrites.rewrite_distinct_false"
 
 
 lemma temp: "((0 < - a) = (0 < - (b::real))) = ((0 > (a::real)) = (0 > b))"
