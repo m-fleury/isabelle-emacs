@@ -871,10 +871,7 @@ local
     THEN' CHANGED_PROP o REPEAT_ALL_NEW (ematch_tac ctxt @{thms disjE})
     THEN' REPEAT' (ematch_tac ctxt @{thms notE} THEN' TRY' (assume_tac ctxt))
 
-  fun tautological_clause_prove ctxt _ =
-    match_tac ctxt @{thms alethe_or_neg}
-    THEN' K (unfold_tac ctxt @{thms not_not disj_assoc[symmetric]})
-    THEN' TRY' (match_tac ctxt @{thms notE} THEN_ALL_NEW assume_tac ctxt)
+  fun tautological_clause_prove ctxt _ = resolve_tac ctxt @{thms TrueI}
 
   val theory_resolution2_lemma = @{lemma \<open>a \<Longrightarrow> a = b \<Longrightarrow> b\<close> by blast}
 

@@ -2873,11 +2873,11 @@ Rule Nr   Name            Nr Tests  Nr Success
 4         false           1         1
 5         not_not         3         3
 6,7       resolution      3         3
-8         tautology*      1         0
+8         tautology       1         1
 9         contraction     8         8
 10        subproof        0         0
 --------------------------------------------
-                          25        24
+                          25        25
 
 
 Rule Nr   Name            Nr Tests  Nr Success
@@ -3041,9 +3041,7 @@ Rule Nr   Name            Nr Tests  Nr Success
 
 Rule Nr   Name            Nr Tests  Nr Success
 --------------------------------------------
-Total                     461       460
-
-(Note: rule_name* means there is a deviation in the nr of tests and the nr of successes)
+Total                     461       461
 
 *)
 end

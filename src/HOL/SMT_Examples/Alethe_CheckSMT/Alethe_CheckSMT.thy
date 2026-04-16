@@ -6,8 +6,6 @@ begin
 declare [[smt_trace=false,smt_verbose=false]]
 (*declare [[smt_statistics]]*)
 
-(* Note: Slices are disabled at the moment *)
-
 (* and_pos *)
 
 check_smt "~~/src/HOL/SMT_Examples/Alethe_CheckSMT/and_pos/and_pos_1.smt2" "~~/src/HOL/SMT_Examples/Alethe_CheckSMT/and_pos/and_pos_1.alethe" 
