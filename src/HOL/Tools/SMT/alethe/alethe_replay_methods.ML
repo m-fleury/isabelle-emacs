@@ -1159,10 +1159,7 @@ fun or_neg_rule ctxt _ t (SOME (Index k)) =
 ) |
   or_neg_rule ctxt _ t _ = SMT_Replay_Methods.prove ctxt t (fn _ => K no_tac)
 
-(* TODO Version 3: Theorem construction *)
-
 (* TODO Benchmark and_pos versions *)
-
 (* Version 1: Old initial version *)
 (*
 fun and_pos ctxt _ t (SOME (Index k)) =
@@ -1180,14 +1177,6 @@ and_pos ctxt _ t _ = (*legacy*)
   THEN' TRY' (assume_tac ctxt))
 *)
 
-(* 
-SMT-LIB (and a b (and c d)), i = 2 ==> (and c d)
-
-Isabelle (and a b c d) ==> (and a (and b (and c d)))
-
-Isabelle (and a b (and c d)) ==> (and a (and b (and c d)))
-*)
-
 (* Version 2: d-tact and assume *)
 fun and_pos ctxt _ t (SOME (Index k)) =
   SMT_Replay_Methods.prove ctxt t (fn _ =>
@@ -1201,7 +1190,29 @@ fun and_pos ctxt _ t (SOME (Index k)) =
   and_pos ctxt _ t _ = SMT_Replay_Methods.prove ctxt t (fn _ => K no_tac)
 
 (* TODO Version 3: Theorem construction *)
-
+(*
+fun and_pos ctxt _ t (SOME (Index k)) =
+    let
+      fun and_focus i ({context, prems, ...}: Subgoal.focus) =
+        let
+          fun rconj th 0 = th
+            | rconj th k = rconj (th RS @{thm conjunct2}) (k-1)
+          val th1 = rconj (hd prems) k
+          val th2 = (th1 RS @{thm conjunct1} handle THM _ => th1)
+        in
+          FIRST [
+                 (resolve_tac context [th1] i),
+                 (resolve_tac context [th2] i)
+                ]
+        end
+    in
+      SMT_Replay_Methods.prove ctxt t (fn _ => 
+        resolve_tac ctxt [@{lemma "(A \<Longrightarrow> B) \<Longrightarrow> (\<not>A \<or> B)" by blast}]
+        THEN' (fn i => Subgoal.FOCUS (and_focus i) ctxt i))
+    end
+  |
+  and_pos ctxt _ t _ = SMT_Replay_Methods.prove ctxt t (fn _ => K no_tac)
+*)
 
 end
 
