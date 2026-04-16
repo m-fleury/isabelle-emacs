@@ -890,7 +890,6 @@ lemma or_3:
 
 
 (* Rule 33: weakening *)
-(*TODO: Add rule*)
 
 lemma weakening_1: 
   assumes "a"
@@ -913,6 +912,12 @@ lemma weakening_3:
 lemma weakening_4:
   assumes "(a \<or> b) \<or> b \<or> c"
   shows  "(a \<or> b) \<or> b \<or> c \<or> (c \<or> a) \<or> e"
+  using assms
+  by (ctxt_tactic "weakening")
+
+lemma weakening_5: 
+  assumes "a \<or> \<not>f"
+  shows  "a \<or> b \<or> \<not>f"
   using assms
   by (ctxt_tactic "weakening")
 
@@ -2487,7 +2492,7 @@ lemma div_simplify_4f:
 
 lemma prod_simplify_1:
   shows "(3 * 4 * 5) = (60::int)"
-  by (ctxt_tactic "div_simplify")
+  by (ctxt_tactic "prod_simplify")
 
 lemma prod_simplify_2:
   shows "(3 * 4 * 0 * x) = (0::int)"
@@ -2895,8 +2900,8 @@ Rule Nr   Name            Nr Tests  Nr Success
 --------------------------------------------
 21        forall_inst     0         0
 22        refl            0         0
-23        trans*          5         4
-24        cong*           3         1
+23        trans           5         5
+24        cong            3         3
 25        eq_reflexive    3         3
 26        eq_transitive   4         4
 27        eq_congruent    3         3
@@ -2904,14 +2909,14 @@ Rule Nr   Name            Nr Tests  Nr Success
 29        qnt_cnf         4         4
 30        and             4         4
 --------------------------------------------
-                          28        25
+                          28        28
 
 
 Rule Nr   Name            Nr Tests  Nr Success
 --------------------------------------------
 31        not_or          6         6
 32        or              3         3
-33        weakening*      4         0
+33        weakening       5         5
 34        reordering      4         4
 35        shuffle         15        15
 36        not_and         5         5
@@ -2920,7 +2925,7 @@ Rule Nr   Name            Nr Tests  Nr Success
 39        not_xor         4         4
 40        not_xor2        4         4
 --------------------------------------------
-                          53        49
+                          54        54
 
 
 Rule Nr   Name            Nr Tests  Nr Success
@@ -2993,14 +2998,14 @@ Rule Nr   Name            Nr Tests  Nr Success
 82        qnt_join        8         8
 83        qnt_rm_ununsed  6         6
 84        eq_simplify     4         4
-85        div_simplify*   3         1
+85        div_simplify    9         9
 86        prod_simplify   6         6
 87        unary_minus_simplify  3   3
 88        minus_simplify  4         4
 89        sum_simplify    3         3
 90        comp_simplify   9         9
 --------------------------------------------
-                          46        44
+                          52        52
 
 
 Rule Nr   Name            Nr Tests  Nr Success
@@ -3036,7 +3041,7 @@ Rule Nr   Name            Nr Tests  Nr Success
 
 Rule Nr   Name            Nr Tests  Nr Success
 --------------------------------------------
-Total                     454       444
+Total                     461       460
 
 (Note: rule_name* means there is a deviation in the nr of tests and the nr of successes)
 

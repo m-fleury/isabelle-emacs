@@ -81,44 +81,44 @@ val _ =
 
 lemma arith_poly_norm1:
   shows "real_of_int (- 3 * (- 2 - (- (v0 + v1) + 1))) = 9 / 1 + - 3 / 1 * real_of_int v0 + - 3 / 1 * real_of_int v1"
-  by (ctxt_tactic "arith_poly_norm")
+  by (ctxt_tactic "poly_simp")
 
 lemma arith_poly_norm2:
   shows "real_of_int (- 2 * (v0 - (2 + - 1 * v1))) = 4 / 1 + - 2 / 1 * real_of_int v0 + - 2 / 1 * real_of_int v1"
-  by (ctxt_tactic "arith_poly_norm")
+  by (ctxt_tactic "poly_simp")
 
 lemma arith_poly_norm3:
   shows "real_of_int (- 1 * (- 0 - (- v0 + 1))) = 1 / 1 + - 1 / 1 * real_of_int v0 "
-  by (ctxt_tactic "arith_poly_norm")
+  by (ctxt_tactic "poly_simp")
 
 lemma arith_poly_norm4:
   shows "- 1 / 2 * (y + (if 0 \<le> y then y else - y)) = - 1 / 2 * (y::real) + - 1 / 2 * (if 0 \<le> y then y else - y)"
-  by (ctxt_tactic "arith_poly_norm")
+  by (ctxt_tactic "poly_simp")
 
 lemma arith_poly_norm5:
   shows "real_of_int (- 4) = - 4"
-  by (ctxt_tactic "arith_poly_norm")
+  by (ctxt_tactic "poly_simp")
 
 lemma arith_poly_norm6:
   shows "3 / 2 * real_of_int (3 - 2 * x) = 9 / 2 + - 3 / 1 * real_of_int x"
-  by (ctxt_tactic "arith_poly_norm")
+  by (ctxt_tactic "poly_simp")
 
 lemma arith_poly_norm7:
   shows "3 / 1 * (real_of_int (- 1 * x) - - 3 / 2) = 9 / 2 + - 3 / 1 * real_of_int x "
-  by (ctxt_tactic "arith_poly_norm")
+  by (ctxt_tactic "poly_simp")
 
 lemma arith_poly_norm8:
   shows "- ((2 * real_of_int (int x) - 1) / 2) = 1 / 2 - real_of_int (int x) "
-  by (ctxt_tactic "arith_poly_norm")
+  by (ctxt_tactic "poly_simp")
 
 lemma arith_poly_norm9:
   shows "d / 2 + 0 + 0 - (d::real) / 2 = 0"
-  by (ctxt_tactic "arith_poly_norm")
+  by (ctxt_tactic "poly_simp")
 
 lemma arith_poly_norm10:
   shows "1 / 1 * (2 / 1 * (1 / 1 / (2 / 1)) * (t1 / (1 / 1 / (2 / 1))) - 2 / 1 * (1 / 1 / (2 / 1) * ((t1::real) / (1 / 1 / (2 / 1))))) =
     2 / 1 * (1 / 1 / (2 / 1)) * (t1 / (1 / 1 / (2 / 1))) + - 2 / 1 * (1 / 1 / (2 / 1) * (t1 / (1 / 1 / (2 / 1))))"
-  by (ctxt_tactic "arith_poly_norm")
+  by (ctxt_tactic "poly_simp")
 
 context
   fixes powr :: \<open>real \<Rightarrow> real \<Rightarrow> real\<close> (infix "powr" 80)
@@ -199,5 +199,19 @@ lemma poly_simp_rel5:
   shows "(2 * lift_x = 1) = (real_of_int (2 * lift_x) = real_of_int 1)"
   using assms
   by (ctxt_tactic "poly_simp_rel")
+
+(* Rule 85: div_simplify *)
+
+lemma div_simplify_1:
+  shows "((-3::real) / 3) = -1"
+  by (ctxt_tactic "div_simplify")
+
+lemma div_simplify_2:
+  shows "((-3::real) / -3) = 1"
+  by (ctxt_tactic "div_simplify")
+
+lemma div_simplify_3:
+  shows "((-180::real) / -6) \<noteq> 31"
+  by (ctxt_tactic "div_simplify")
 
 end

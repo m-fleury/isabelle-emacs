@@ -64,7 +64,7 @@ sig
    Bfun_Elim |
    Qnt_CNF |
    (*For compression*)
-   Theory_Resolution2 |
+   Theory_Resolution2 | Weakening |
    (*Unsupported rule*)
    Unsupported
 
@@ -182,6 +182,7 @@ sig
   val miniscope_ITE: alethe_tac
   val and_intro: alethe_tac
   val trust: alethe_tac
+  val weakening: alethe_tac
 
   (*Extension to declare new alethe rules*)
   val declare_alethe_rule:  string -> alethe_tac_step_args -> Context.generic -> Context.generic
@@ -260,7 +261,7 @@ datatype alethe_rule =
    Bfun_Elim |
    Qnt_CNF |
    (*For compression*)
-   Theory_Resolution2 |
+   Theory_Resolution2 | Weakening |
    (*Unsupported rule*)
    Unsupported
 
@@ -462,12 +463,13 @@ fun partial_simplify_tac ctxt thms =
   |> (fn ctxt => ctxt addsimps @{thms simp_thms} addsimps thms)
   |> Simplifier.full_simp_tac
 
-fun partial_simplify_tac_with_cong cong ctxt thms =
+fun partial_simplify_tac_with_cong cong simprocs ctxt thms =
   ctxt
   |> empty_simpset
   |> put_simpset HOL_basic_ss
   |> (fn ctxt => ctxt addsimps @{thms simp_thms} addsimps thms)
   |> Simplifier.add_cong cong
+  |> (fn ctxt => ctxt addsimprocs simprocs)
   |> Simplifier.full_simp_tac
 
 (* sko_forall requires the assumptions to be able to prove the equivalence in case of double
@@ -1157,10 +1159,7 @@ fun or_neg_rule ctxt _ t (SOME (Index k)) =
 ) |
   or_neg_rule ctxt _ t _ = SMT_Replay_Methods.prove ctxt t (fn _ => K no_tac)
 
-(* TODO Version 3: Theorem construction *)
-
 (* TODO Benchmark and_pos versions *)
-
 (* Version 1: Old initial version *)
 (*
 fun and_pos ctxt _ t (SOME (Index k)) =
@@ -1178,14 +1177,6 @@ and_pos ctxt _ t _ = (*legacy*)
   THEN' TRY' (assume_tac ctxt))
 *)
 
-(* 
-SMT-LIB (and a b (and c d)), i = 2 ==> (and c d)
-
-Isabelle (and a b c d) ==> (and a (and b (and c d)))
-
-Isabelle (and a b (and c d)) ==> (and a (and b (and c d)))
-*)
-
 (* Version 2: d-tact and assume *)
 fun and_pos ctxt _ t (SOME (Index k)) =
   SMT_Replay_Methods.prove ctxt t (fn _ =>
@@ -1199,7 +1190,29 @@ fun and_pos ctxt _ t (SOME (Index k)) =
   and_pos ctxt _ t _ = SMT_Replay_Methods.prove ctxt t (fn _ => K no_tac)
 
 (* TODO Version 3: Theorem construction *)
-
+(*
+fun and_pos ctxt _ t (SOME (Index k)) =
+    let
+      fun and_focus i ({context, prems, ...}: Subgoal.focus) =
+        let
+          fun rconj th 0 = th
+            | rconj th k = rconj (th RS @{thm conjunct2}) (k-1)
+          val th1 = rconj (hd prems) k
+          val th2 = (th1 RS @{thm conjunct1} handle THM _ => th1)
+        in
+          FIRST [
+                 (resolve_tac context [th1] i),
+                 (resolve_tac context [th2] i)
+                ]
+        end
+    in
+      SMT_Replay_Methods.prove ctxt t (fn _ => 
+        resolve_tac ctxt [@{lemma "(A \<Longrightarrow> B) \<Longrightarrow> (\<not>A \<or> B)" by blast}]
+        THEN' (fn i => Subgoal.FOCUS (and_focus i) ctxt i))
+    end
+  |
+  and_pos ctxt _ t _ = SMT_Replay_Methods.prove ctxt t (fn _ => K no_tac)
+*)
 
 end
 
@@ -1222,6 +1235,16 @@ val not_implies2 = prove_equiv @{lemma \<open>\<not>(A \<longrightarrow>B) \<Lon
 
 end
 
+fun weakening ctxt [prem] t =
+  SMT_Replay_Methods.prove ctxt t (fn _ =>
+    Method.insert_tac ctxt [prem]
+    THEN' resolve_tac ctxt [@{lemma \<open>\<And>A B. A \<Longrightarrow> (\<not>B \<Longrightarrow> \<not>A) \<Longrightarrow> B\<close> by blast}]
+    THEN' assume_tac ctxt
+    THEN' REPEAT' (dresolve_tac ctxt @{thms de_Morgan_disj[THEN iffD1]}
+      THEN' eresolve_tac ctxt @{thms conjE})
+    THEN' REPEAT' (resolve_tac ctxt @{thms de_Morgan_disj[THEN iffD2]}
+      THEN' resolve_tac ctxt @{thms conjI} THEN' REPEAT' (assume_tac ctxt))
+    THEN' REPEAT' (assume_tac ctxt))
 
 (* Equivalence Lemma *)
 (*equiv_pos2 is very important for performance. We have tried various tactics, including
@@ -1887,7 +1910,16 @@ end
 local
   fun simplify_arith ctxt thms = partial_simplify_tac ctxt
     (thms @ Named_Theorems.get ctxt @{named_theorems ac_simps} @ @{thms arith_simps})
-  fun simplify_arith_ifcong ctxt thms = partial_simplify_tac_with_cong @{thm if_weak_cong} ctxt
+  fun simplify_arith_ifcong ctxt thms = partial_simplify_tac_with_cong @{thm if_weak_cong}
+    [@{simproc int_div_cancel_numeral_factors}, @{simproc int_combine_numerals},
+         @{simproc divide_cancel_numeral_factor}, @{simproc divide_cancel_factor},
+         @{simproc intle_cancel_numerals}, @{simproc intless_cancel_numerals}, @{simproc inteq_cancel_numerals},
+         @{simproc field_combine_numerals},
+         @{simproc ring_le_cancel_numeral_factor},
+         @{simproc Numeral_Simprocs.semiring_assoc_fold},
+         @{simproc Numeral_Simprocs.field_divide_cancel_numeral_factor},
+         @{simproc Numeral_Simprocs.field_eq_cancel_numeral_factor}]
+     ctxt
     (thms @ Named_Theorems.get ctxt @{named_theorems ac_simps} @ @{thms arith_simps})
 in
 

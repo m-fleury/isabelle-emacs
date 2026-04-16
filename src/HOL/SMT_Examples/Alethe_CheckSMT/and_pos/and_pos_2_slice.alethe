@@ -1,0 +1,3 @@
+(step t6 (cl (! (not (! (and (! (ide$ d$ (! (fun_app$ (! (fun_app$a d$ (! (fun_app$b g$ (! (fun_app$c epsilon$ a$) :named @p_6)) :named @p_5)) :named @p_4) (! (fun_app$ eta$ (! (fun_app$b g$ a$) :named @p_8)) :named @p_7)) :named @p_3)) :named @p_2) (! (ide$ d$ (! (fun_app$ (! (fun_app$a d$ @p_7) :named @p_11) @p_5) :named @p_10)) :named @p_9)) :named @p_1)) :named @p_0) @p_9) :rule and_pos :args (1))
+(step slice_end (cl) :rule hole :premises (t6) :args ("trust"))
+
