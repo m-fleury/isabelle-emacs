@@ -53,6 +53,18 @@ cvc5_rare "Arith_Rewrites.rewrite_arith_eq_elim_int"
 (*ARITH_MIN_GEQ1 \<longrightarrow> No support for min*)
 (*ARITH_MIN_GEQ2 \<longrightarrow> No support for min*)
 
+lemmas [rare_arith_rewrites_simple] =
+"Arith_Rewrites.rewrite_arith_elim_gt"
+"Arith_Rewrites.rewrite_arith_elim_lt"
+"Arith_Rewrites.rewrite_arith_elim_int_gt"
+"Arith_Rewrites.rewrite_arith_elim_int_lt"
+"Arith_Rewrites.rewrite_arith_elim_leq"
+"Arith_Rewrites.rewrite_arith_leq_norm"
+"Arith_Rewrites.rewrite_arith_geq_tighten"
+"Arith_Rewrites.rewrite_arith_geq_norm1_int"
+"Arith_Rewrites.rewrite_arith_eq_elim_int"
+lemmas [rare_arith_rewrites_all] = rare_arith_rewrites_simple
+
 
 (*Booleans*)
 named_theorems rare_bool_rewrites_simple \<open>Boolean RARE rewrites that don't contain lists or are star rules \<close>
@@ -213,7 +225,7 @@ lemmas [rare_cvc5_rewrites_all] = rare_cvc5_rewrites_simple rare_cvc5_rewrites_c
 (*All*)
 
 lemmas [rare_rewrites_simple] = rare_bool_rewrites_simple rare_arith_rewrites_simple rare_uf_rewrites_simple rare_cvc5_rewrites_simple
-lemmas [rare_rewrites_complex] = rare_bool_rewrites_complex rare_arith_rewrites_complex rare_cvc5_rewrites_complex
+lemmas [rare_rewrites_complex] = rare_bool_rewrites_complex rare_arith_rewrites_complex rare_uf_rewrites_complex rare_cvc5_rewrites_complex
 lemmas [rare_rewrites_all] = rare_rewrites_simple rare_rewrites_complex
 
 
