@@ -28,7 +28,9 @@ named_theorems rare_arith_rewrites_all \<open>Arithmetic RARE rewrites\<close>
 
 cvc5_rare "Arith_Rewrites.rewrite_arith_elim_gt"
 cvc5_rare "Arith_Rewrites.rewrite_arith_elim_lt"
-cvc5_rare "Arith_Rewrites.rewrite_arith_refl_leq"
+cvc5_rare "Arith_Rewrites.rewrite_arith_elim_int_gt"
+cvc5_rare "Arith_Rewrites.rewrite_arith_elim_int_lt"
+cvc5_rare "Arith_Rewrites.rewrite_arith_elim_leq"
 cvc5_rare "Arith_Rewrites.rewrite_arith_leq_norm"
 cvc5_rare "Arith_Rewrites.rewrite_arith_geq_tighten"
 cvc5_rare "Arith_Rewrites.rewrite_arith_geq_norm1_int"
