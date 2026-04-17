@@ -1,3 +1,5 @@
+unsat
+(
 (define-fun @quantifiers_skolemize_3 () PostID$ (! (choice ((?v0 PostID$)) (not (or (= pid$ ?v0) (= (fun_app$c (! (fun_upd$ ntcs$ pid$a uu$) :named @p_1) ?v0) (fun_app$c (! (fun_upd$ ntcs1$ pid$a uu1$) :named @p_2) ?v0))))) :named @p_0))
 (anchor :step t10)
 (assume t10.a0 (! (not (! (= (! (fun_app$c @p_1 @quantifiers_skolemize_3) :named @p_5) (! (fun_app$c @p_2 @quantifiers_skolemize_3) :named @p_6)) :named @p_4)) :named @p_3))
@@ -8,5 +10,4 @@
 (step t10.t2 (cl (! (not (! (and @p_3 @p_12 @p_15 @p_7 @p_11) :named @p_17)) :named @p_16) @p_3) :rule and_pos :args (0))
 (step t10.t69 (cl (! (not (! (= uu$ uu1$) :named @p_19)) :named @p_18)) :rule hole :premises (t10.t2) :args ("trust"))
 (step t10 (cl (! (not @p_3) :named @p_20) (! (not @p_7) :named @p_21) (! (not @p_11) :named @p_22) (! (not @p_12) :named @p_23) (! (not @p_15) :named @p_24) @p_18) :rule subproof :discharge (t10.a0 t10.a1 t10.a2 t10.a3 t10.a4))
-(step slice_end (cl) :rule hole :premises (t10) :args ("trust"))
-
+)
