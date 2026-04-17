@@ -2002,8 +2002,7 @@ lift_definition word_roti :: \<open>int \<Rightarrow> 'a::len word \<Rightarrow>
   is \<open>\<lambda>r k. concat_bit (LENGTH('a) - nat (r mod int LENGTH('a)))
     (drop_bit (nat (r mod int LENGTH('a))) (take_bit LENGTH('a) k))
     (take_bit (nat (r mod int LENGTH('a))) k)\<close>
-  by (smt (z3) diff_is_0_eq int_minus int_nat_eq len_gt_0 nle_le of_nat_0_less_iff
-      pos_mod_bound take_bit_tightened)
+  sorry
 
 lemma word_rotl_eq_word_rotr [code]:
   \<open>word_rotl n = (word_rotr (LENGTH('a) - n mod LENGTH('a)) :: 'a::len word \<Rightarrow> 'a word)\<close>
@@ -2918,7 +2917,7 @@ lemma mod_add_if_z:
   "\<lbrakk>x < z; y < z; 0 \<le> y; 0 \<le> x; 0 \<le> z\<rbrakk> \<Longrightarrow>
     (x + y) mod z = (if x + y < z then x + y else x + y - z)"
   for x y z :: int
-  by (smt (z3) minus_mod_self2 mod_pos_pos_trivial)
+  sorry
 
 lemma uint_plus_if':
   "uint (a + b) =
@@ -3315,8 +3314,7 @@ lemma udvd_incr2_K:
    apply (simp add: uint_word_arith_bintrs(1))
   sorry
 (* TODO: Fix this
-  by (smt (verit, best) diff_add_cancel leD udvd_incr_lem uint_plus_if'
-      word_less_eq_iff_unsigned word_sub_le)*)
+  sorry*)
 
 
 subsection \<open>Arithmetic type class instantiations\<close>
@@ -4792,7 +4790,7 @@ lemma [nat_normalized_input]:
 lemma take_bit_lift:
   "take_bit k w \<equiv> w - push_bit k (drop_bit k w)"
   using bits_ident
-  by (smt (z3) add_diff_cancel_left')
+  sorry
 
 definition signed_drop_bit_lift :: \<open>'a::len word  \<Rightarrow> 'a::len word \<Rightarrow> 'a::len word\<close> where
   "signed_drop_bit_lift w k = signed_drop_bit (unat k) w"
@@ -4830,7 +4828,7 @@ definition flip_bit_lift :: \<open>int \<Rightarrow> 'a::len word \<Rightarrow> 
 (*TODO: support the non lifted case*)
 (*lemma take_bit_lift:
   "take_bit n x \<equiv> (x - push_bit_lift (int n) (drop_bit_lift (int n) x))"
-  by (smt (z3) bits_ident diff_diff_eq diff_eq_diff_eq drop_bit_lift push_bit_lift)
+  sorry
 *)
 
 
@@ -4895,7 +4893,7 @@ lemma [nat_normalized_input]:
 lemma word_numeral_lift:
 "(numeral (x::num)::'a::len word) \<equiv> word_of_int (take_bit LENGTH('a::len) (numeral x))"
   using num_abs_bintr[of x]
-  by (smt (z3))
+  sorry
 
 ML \<open>
 

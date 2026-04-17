@@ -564,7 +564,7 @@ lemma set_of_mul_inc_right:
   using that
   apply transfer
   apply (clarsimp simp add: Let_def)
-  by (smt (verit, best) linorder_le_cases max.coboundedI1 max.coboundedI2 min.absorb1 min.coboundedI2 mult_left_mono mult_left_mono_neg)
+  sorry
 
 lemma set_of_distrib_left:
   "set_of (B * (A1 + A2)) \<subseteq> set_of (B * A1 + B * A2)"

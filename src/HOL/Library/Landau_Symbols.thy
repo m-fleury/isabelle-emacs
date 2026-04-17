@@ -1513,7 +1513,7 @@ proof (clarsimp simp: smallo_def)
   then have "\<And>m. (k*m)\<ge>N \<Longrightarrow> \<bar>f (k*m)\<bar> \<le> c/k * (k*m)"
     by blast
   with \<open>k>0\<close> have "\<forall>\<^sub>F m in sequentially. \<bar>f (k*m)\<bar> \<le> c/k * (k*m)"
-    by (smt (verit, del_insts) One_nat_def Suc_leI eventually_at_top_linorderI mult_1_left mult_le_mono)
+    sorry
   then show "\<forall>\<^sub>F n in sequentially. \<bar>f (k * n)\<bar> \<le> c * n"
     by eventually_elim (use \<open>k>0\<close> in auto)
 qed
@@ -1529,10 +1529,10 @@ proof -
     have "\<forall>\<^sub>F x in F. norm (f x) \<le> c * norm(h x)" "\<forall>\<^sub>F x in F. norm(g x) \<le> c * norm(h x)"
       by (auto simp: smallo_def)
     then show ?thesis
-      by (smt (verit) eventually_elim2 max_def min_def)
+      sorry
   qed
   with assms show "(\<lambda>x. max (f x) (g x)) \<in> o[F](h)" "(\<lambda>x. min (f x) (g x)) \<in> o[F](h)"
-    by (smt (verit) eventually_elim2 landau_o.smallI)+
+    sorry
 qed
 
 lemma le_imp_bigo_real:

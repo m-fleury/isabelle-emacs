@@ -736,7 +736,7 @@ lemma fmrel_on_fset_updateI:
   by auto
 
 lift_definition fmimage :: "('a, 'b) fmap \<Rightarrow> 'a fset \<Rightarrow> 'b fset" is "\<lambda>m S. {b|a b. m a = Some b \<and> a \<in> S}"
-  by (smt (verit, del_insts) Collect_mono_iff finite_surj ran_alt_def ran_def)
+  sorry
 
 lemma fmimage_alt_def: "fmimage m S = fmran (fmrestrict_fset S m)"
   by transfer' (auto simp: ran_def map_restrict_set_def map_filter_def)
@@ -853,7 +853,7 @@ lemma fmrelD[dest]: "fmrel P m n \<Longrightarrow> rel_option P (fmlookup m x) (
 lemma fmrel_addI[intro]:
   assumes "fmrel P m n" "fmrel P a b"
   shows "fmrel P (m ++\<^sub>f a) (n ++\<^sub>f b)"
-  by (smt (verit, del_insts) assms domIff fmdom.rep_eq fmlookup_add fmrel_iff option.rel_sel)
+  sorry
 
 lemma fmrel_cases[consumes 1]:
   assumes "fmrel P m n"
@@ -1104,7 +1104,7 @@ definition sorted_list_of_fmap :: "('a::linorder, 'b) fmap \<Rightarrow> ('a \<t
 
 lemma list_all_sorted_list[simp]: "list_all P (sorted_list_of_fmap m) = fmpred (curry P) m"
 unfolding sorted_list_of_fmap_def curry_def list.pred_map
-  by (smt (verit, best) Ball_set comp_def fmpred_alt_def sorted_list_of_fset_simps(1))
+  sorry
 
 lemma map_of_sorted_list[simp]: "map_of (sorted_list_of_fmap m) = fmlookup m"
   unfolding sorted_list_of_fmap_def

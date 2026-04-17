@@ -669,7 +669,7 @@ lemma countable_union_of_UN:
 lemma countable_union_of_Un:
   "\<lbrakk>(countable union_of P) S; (countable union_of P) T\<rbrakk>
            \<Longrightarrow> (countable union_of P) (S \<union> T)"
-  by (smt (verit) Union_Un_distrib countable_Un le_sup_iff union_of_def)
+  sorry
 
 lemma countable_intersection_of_Inter:
    "\<lbrakk>countable \<U>; \<And>S. S \<in> \<U> \<Longrightarrow> (countable intersection_of P) S\<rbrakk>

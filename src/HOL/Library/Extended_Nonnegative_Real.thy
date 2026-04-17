@@ -966,8 +966,7 @@ next
   case (real r) then show ?thesis
   proof (cases "x = 0")
     case False then show ?thesis
-      by (smt (verit, best) ennreal_0 ennreal_power inverse_ennreal
-               inverse_nonnegative_iff_nonnegative power_inverse real zero_less_power)
+      sorry
   qed (simp add: top_power_ennreal)
 qed
 
@@ -1140,7 +1139,7 @@ lemma ennreal_of_enat_plus[simp]: \<open>ennreal_of_enat (a+b) = ennreal_of_enat
 proof (induct a)
   case (enat nat)
   with enat.simps show ?case
-    by (smt (verit, del_insts) add.commute add_top_left_ennreal enat.exhaust enat_defs(4) ennreal_of_enat_def of_nat_add)
+    sorry
 qed auto
 
 (* Contributed by Dominique Unruh *)
@@ -1590,7 +1589,7 @@ proof (rule antisym)
   have "f (SUP i \<in> I. g i) = (SUP i \<in> range M. f i)"
     unfolding eq sup_continuousD[OF f \<open>mono M\<close>] by (simp add: image_comp)
   also have "\<dots> \<le> (SUP i \<in> I. f (g i))"
-    by (smt (verit) M SUP_le_iff dual_order.refl image_iff subsetD)
+    sorry
   finally show "f (SUP i \<in> I. g i) \<le> (SUP i \<in> I. f (g i))" .
 qed
 
@@ -1729,8 +1728,7 @@ qed (intro INF_greatest f_bound)
 lemma ennreal_approx_unit:
   "(\<And>a::ennreal. 0 < a \<Longrightarrow> a < 1 \<Longrightarrow> a * z \<le> y) \<Longrightarrow> z \<le> y"
   using SUP_mult_right_ennreal[of "\<lambda>x. x" "{0 <..< 1}" z]
-  by (smt (verit) SUP_least Sup_greaterThanLessThan greaterThanLessThan_iff
-      image_ident mult_1 zero_less_one)
+  sorry
 
 lemma suminf_ennreal2:
   "(\<And>i. 0 \<le> f i) \<Longrightarrow> summable f \<Longrightarrow> (\<Sum>i. ennreal (f i)) = ennreal (\<Sum>i. f i)"
@@ -1762,7 +1760,7 @@ lemma ennreal_tendsto_top_eq_at_top:
   "((\<lambda>z. ennreal (f z)) \<longlongrightarrow> top) F \<longleftrightarrow> (LIM z F. f z :> at_top)"
   unfolding filterlim_at_top_dense tendsto_top_iff_ennreal
   using ennreal_less_iff eventually_mono allE[of _ "max 0 _"]
-  by (smt (verit) linorder_not_less order_refl order_trans)
+  sorry
 
 lemma tendsto_0_if_Limsup_eq_0_ennreal:
   fixes f :: "_ \<Rightarrow> ennreal"

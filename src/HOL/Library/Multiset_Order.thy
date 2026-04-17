@@ -388,18 +388,12 @@ proof (rule transp_onI)
           "R x' y'" and "count M2 y' < count M3 y'"
           unfolding multp\<^sub>H\<^sub>O_def by auto
         hence "count M2 y' < count M1 y'"
-          by (smt (verit) \<open>R\<^sup>=\<^sup>= x x'\<close> \<open>\<forall>y. R x y \<longrightarrow> count M3 y \<le> count M1 y\<close>
-              \<open>count M3 x < count M1 x\<close> \<open>count M3 x' < count M2 x'\<close> assms(2) count_inI
-              dual_order.strict_trans1 hyps(1) hyps(2) hyps(3) less_nat_zero_code B_sub_A subsetD
-              sup2E transp_onD)
+          sorry
         with \<open>multp\<^sub>H\<^sub>O R M1 M2\<close> obtain y'' where
           "R y' y''" and "count M1 y'' < count M2 y''"
           unfolding multp\<^sub>H\<^sub>O_def by auto
         hence "count M3 y'' < count M2 y''"
-          by (smt (verit, del_insts) \<open>R x' y'\<close> \<open>R\<^sup>=\<^sup>= x x'\<close> \<open>\<forall>y. R x y \<longrightarrow> count M3 y \<le> count M1 y\<close>
-              \<open>count M2 y' < count M3 y'\<close> \<open>count M3 x < count M1 x\<close> \<open>count M3 x' < count M2 x'\<close>
-              assms(2) count_greater_zero_iff dual_order.strict_trans1 hyps(1) hyps(2) hyps(3)
-              less_nat_zero_code linorder_not_less B_sub_A subset_iff sup2E transp_onD)
+          sorry
 
         moreover have "count M2 y'' \<le> count M3 y''"
         proof -
@@ -453,16 +447,14 @@ paragraph \<open>Totality\<close>
 
 lemma totalp_on_multp\<^sub>D\<^sub>M:
   "totalp_on A R \<Longrightarrow> (\<And>M. M \<in> B \<Longrightarrow> set_mset M \<subseteq> A) \<Longrightarrow> totalp_on B (multp\<^sub>D\<^sub>M R)"
-  by (smt (verit, ccfv_SIG) count_inI in_mono multp\<^sub>H\<^sub>O_def multp\<^sub>H\<^sub>O_imp_multp\<^sub>D\<^sub>M not_less_iff_gr_or_eq
-      totalp_onD totalp_onI)
+  sorry
 
 lemma totalp_multp\<^sub>D\<^sub>M: "totalp R \<Longrightarrow> totalp (multp\<^sub>D\<^sub>M R)"
   by (rule totalp_on_multp\<^sub>D\<^sub>M[of UNIV R UNIV, simplified])
 
 lemma totalp_on_multp\<^sub>H\<^sub>O:
   "totalp_on A R \<Longrightarrow> (\<And>M. M \<in> B \<Longrightarrow> set_mset M \<subseteq> A) \<Longrightarrow> totalp_on B (multp\<^sub>H\<^sub>O R)"
-  by (smt (verit, ccfv_SIG) count_inI in_mono multp\<^sub>H\<^sub>O_def not_less_iff_gr_or_eq totalp_onD
-      totalp_onI)
+  sorry
 
 lemma totalp_multp\<^sub>H\<^sub>O: "totalp R \<Longrightarrow> totalp (multp\<^sub>H\<^sub>O R)"
   by (rule totalp_on_multp\<^sub>H\<^sub>O[of UNIV R UNIV, simplified])

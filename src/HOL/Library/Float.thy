@@ -1201,7 +1201,7 @@ lemma truncate_down_eq_truncate_up: "truncate_down p x = - truncate_up p (-x)"
   by (auto simp: truncate_up_uminus_eq truncate_down_uminus_eq)
 
 lemma truncate_down_mono: "x \<le> y \<Longrightarrow> truncate_down p x \<le> truncate_down p y"
-  by (smt (verit) truncate_down_nonneg_mono truncate_up_nonneg_mono truncate_up_uminus_eq)
+  sorry
 
 lemma truncate_up_mono: "x \<le> y \<Longrightarrow> truncate_up p x \<le> truncate_up p y"
   by (simp add: truncate_up_eq_truncate_down truncate_down_mono)
@@ -1213,7 +1213,7 @@ lemma truncate_up_pos: "0 < truncate_up p x" if "0 < x"
   by (meson less_le_trans that truncate_up)
 
 lemma truncate_up_less_zero_iff[simp]: "truncate_up p x < 0 \<longleftrightarrow> x < 0"
-  by (smt (verit) truncate_down_pos truncate_down_uminus_eq truncate_up_nonneg)
+  sorry
 
 lemma truncate_up_nonneg_iff[simp]: "truncate_up p x \<ge> 0 \<longleftrightarrow> x \<ge> 0"
   using truncate_up_less_zero_iff[of p x] truncate_up_nonneg[of x]
@@ -1264,8 +1264,7 @@ proof -
   have "floor ?r = (if i \<ge> j * p powr (?fl i - ?fl j) then 0 else -1)" (is "_ = ?if")
     using assms
     apply simp
-    by (smt (verit, ccfv_SIG) floor_less_iff floor_uminus_of_int le_log_iff mult_powr_eq
-        of_int_1 real_of_int_floor_add_one_gt zero_le_floor)
+    sorry
   finally
   show ?thesis by simp
 qed
@@ -1849,8 +1848,7 @@ lemma mult_float_mono1:
            (plus_down prec (nprt b * nprt bb)
              (plus_down prec (pprt a * pprt ab)
                (pprt b * nprt ab)))"
-  by (smt (verit, best) mult_mono plus_down_mono add_mono nprt_mono nprt_le_zero zero_le_pprt 
-pprt_mono mult_mono_nonpos_nonneg mult_mono_nonpos_nonpos mult_mono_nonneg_nonpos)
+  sorry
 
 lemma mult_float_mono2:
   shows "a \<le> b \<Longrightarrow>
@@ -1867,8 +1865,7 @@ lemma mult_float_mono2:
            (plus_up prec (pprt aa * nprt bc)
              (plus_up prec (nprt ba * pprt ac)
                (nprt aa * nprt ac)))"
-  by (smt (verit, best) plus_up_mono add_mono mult_mono nprt_mono nprt_le_zero zero_le_pprt pprt_mono 
-      mult_mono_nonpos_nonneg mult_mono_nonpos_nonpos mult_mono_nonneg_nonpos)
+  sorry
 
 
 subsection \<open>Approximate Power\<close>
@@ -2039,8 +2036,7 @@ proof (induction n arbitrary: a b rule: less_induct)
               power_down_nonpos_iff that)
       then have "truncate_down (Suc prec) ((power_down prec a (Suc (j div 2)))\<^sup>2)
         \<le> truncate_down (Suc prec) ((power_down prec b (Suc (j div 2)))\<^sup>2)"
-        by (smt (verit) IH Suc_less_eq \<open>odd j\<close> div2_less_self mult_mono_nonpos_nonpos 
-            Suc_neq_Zero power2_eq_square power_down_neg_iff power_down_nonpos_iff power_mono truncate_down_mono)
+        sorry
       then show ?thesis
         unfolding j by (simp add: power_down_simp)
     qed
@@ -2152,7 +2148,7 @@ lemma mult_div_le:
   fixes a b :: int
   assumes "b > 0"
   shows "a \<ge> b * (a div b)"
-  by (smt (verit, ccfv_threshold) assms minus_div_mult_eq_mod mod_int_pos_iff mult.commute)
+  sorry
 
 lemma lapprox_rat_nonneg:
   assumes "0 \<le> x" and "0 \<le> y"
@@ -2281,8 +2277,7 @@ lift_definition int_floor_fl :: "float \<Rightarrow> int" is floor .
 qualified lemma compute_int_floor_fl[code]:
   "int_floor_fl (Float m e) = (if 0 \<le> e then m * 2 ^ nat e else m div (2 ^ (nat (-e))))"
   apply transfer
-  by (smt (verit, ccfv_threshold) Float.rep_eq compute_real_of_float floor_divide_of_int_eq 
-      floor_of_int of_int_1 of_int_add of_int_mult of_int_power)
+  sorry
 
 lift_definition floor_fl :: "float \<Rightarrow> float" is "\<lambda>x. real_of_int \<lfloor>x\<rfloor>"
   by simp

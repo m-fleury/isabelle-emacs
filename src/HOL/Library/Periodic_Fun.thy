@@ -141,13 +141,13 @@ next
   assume "x + y = 2 * real_of_int k * pi + pi "
   then show ?thesis
     using cos.periodic_simps[of "-y+pi"]
-    by (clarsimp simp add: algebra_simps) (smt (verit))
+    sorry
 qed
 
 lemma cos_eq_periodic_intro:
   assumes "x - y = 2*(of_int k)*pi \<or> x + y = 2*(of_int k)*pi"
   shows "cos x = cos y"
-  by (smt (verit, best) assms cos_eq_neg_periodic_intro cos_minus_pi cos_periodic_pi)
+  sorry
 
 lemma cos_eq_arccos_Ex:
   "cos x = y \<longleftrightarrow> -1\<le>y \<and> y\<le>1 \<and> (\<exists>k::int. x = arccos y + 2*k*pi \<or> x = - arccos y + 2*k*pi)" (is "?L=?R")

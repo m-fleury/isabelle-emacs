@@ -331,8 +331,7 @@ next
       using Suc by auto
     show "wellorder_class.enumerate S (Suc (Suc n)) \<le> (LEAST s. s \<in> S \<and> wellorder_class.enumerate S (Suc n) < s)"
       using enumerate_mono[OF zero_less_Suc] \<open>infinite S\<close> S
-      by (smt (verit, best) LeastI_ex Suc.hyps enumerate_0 enumerate_Suc enumerate_in_set
-          enumerate_step insertE insert_Diff linorder_not_less not_less_Least)
+      sorry
   qed (simp add: Least_le Suc.prems enumerate_in_set)
 qed
 

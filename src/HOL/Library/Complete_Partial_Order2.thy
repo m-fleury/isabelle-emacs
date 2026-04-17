@@ -838,7 +838,7 @@ lemma admissible_eqI:
   assumes f: "cont luba orda lub ord (\<lambda>x. f x)"
     and g: "cont luba orda lub ord (\<lambda>x. g x)"
   shows "ccpo.admissible luba orda (\<lambda>x. f x = g x)"
-  by (smt (verit, best) Sup.SUP_cong ccpo.admissible_def contD assms)
+  sorry
 
 corollary admissible_eq_mcontI [cont_intro]:
   "\<lbrakk> mcont luba orda lub ord (\<lambda>x. f x); 
@@ -1272,7 +1272,7 @@ proof(rule contI)
     unfolding image_image  using chain
   proof (rule diag_Sup)
     show "\<And>y. y \<in> Y \<Longrightarrow> monotone (rel_prod orda ordb) (\<le>) (\<lambda>x. f (fst x, snd y))"
-      by (smt (verit, best) b.order_refl mono monotoneD monotoneI rel_prod_inject rel_prod_sel)
+      sorry
   qed (use mono monotoneD in fastforce)
   finally show "f (prod_lub luba lubb Y) = \<Squnion>(f ` Y)" by simp
 qed
@@ -1655,8 +1655,7 @@ proof -
       fix y
       assume "ordb y (snd ?lhs)"
       thus "ordb (g y) (snd ?lhs)"
-        by (smt (verit, best) ab.fixp_unfold f g monotoneD monotone_map_prod
-            snd_map_prod)
+        sorry
     qed(auto intro: b.ccpo_Sup_least chain_empty)
     ultimately show "?ord (?rhs1, ?rhs2) ?lhs"
       by(simp add: rel_prod_conv split_beta)

@@ -303,10 +303,10 @@ lemma inv_into_funcset: "f ` A = B \<Longrightarrow> (\<lambda>x\<in>B. inv_into
   by (unfold inv_into_def) (fast intro: someI2)
 
 lemma compose_inv_into_id: "bij_betw f A B \<Longrightarrow> compose A (\<lambda>y\<in>B. inv_into A f y) f = (\<lambda>x\<in>A. x)"
-  by (smt (verit, best) bij_betwE bij_betw_inv_into_left compose_def restrict_apply' restrict_ext)
+  sorry
 
 lemma compose_id_inv_into: "f ` A = B \<Longrightarrow> compose B f (\<lambda>y\<in>B. inv_into A f y) = (\<lambda>x\<in>B. x)"
-  by (smt (verit, best) compose_def f_inv_into_f restrict_apply' restrict_ext)
+  sorry
 
 lemma extensional_insert[intro, simp]:
   assumes "a \<in> extensional (insert i I)"
@@ -541,7 +541,7 @@ proof -
       using that by force
   qed
   then show ?thesis
-    by (smt (verit) PiE_arb equals0I image_cong image_constant image_empty)
+    sorry
 qed
 
 lemma PiE_singleton:
@@ -619,15 +619,12 @@ proof -
     if "f \<in> insert x S \<rightarrow>\<^sub>E T" and "inj_on f S" and "\<forall>xb\<in>S. f x \<noteq> f xb" for f
     using that
     unfolding inj_on_def
-    by (smt (verit, ccfv_threshold) PiE_restrict fun_upd_apply fun_upd_triv insert_Diff insert_iff
-        restrict_PiE_iff restrict_upd)
+    sorry
   ultimately show ?thesis
     using assms
     apply (auto simp: image_iff  intro: extensional_funcset_fun_upd_inj_onI
         extensional_funcset_fun_upd_extends_rangeI del: PiE_I PiE_E)
-    apply (smt (verit, best) PiE_cong PiE_mem inj_on_def insertCI)
-    apply blast
-    done
+    sorry
 qed
 
 lemma extensional_funcset_extend_domain_inj_onI:

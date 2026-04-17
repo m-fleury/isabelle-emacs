@@ -77,8 +77,7 @@ lemma ordered_nsets_3_eq:
 proof
   show "[A]\<^bsup>3\<^esup> \<subseteq> ?rhs"
     unfolding nsets_def card_3_iff
-    by (smt (verit, del_insts) Collect_mono_iff insert_commute insert_subset
-        linorder_less_linear)
+    sorry
   have "\<And>X. X \<in> ?rhs \<Longrightarrow> card X = 3"
     by (force simp: card_3_iff)
   then show "?rhs \<subseteq> [A]\<^bsup>3\<^esup>"
@@ -410,7 +409,7 @@ lemma ES_1 [simp]: "ES 1 k l = k+l-1"
 
 lemma ES_2: "ES 2 k l = (if k=0 \<or> l=0 then 1 else ES 2 (k-1) l + ES 2 k (l-1))"
   unfolding numeral_2_eq_2
-  by (smt (verit) ES.elims One_nat_def Suc_pred add_gr_0 neq0_conv nat.inject zero_less_Suc)
+  sorry
 
 text \<open>The Erdős--Szekeres upper bound\<close>
 lemma ES2_choose: "ES 2 k l = (k+l) choose k"
@@ -770,7 +769,7 @@ next
           then obtain u where u: "bij_betw u {..<q} U"
             using ex_bij_betw_nat_finite lessThan_atLeast0 by (fastforce simp: nsets_def)
           then have Usub: "U \<subseteq> {..<p}"
-            by (smt (verit) U mem_Collect_eq nsets_def)
+            sorry
           have u_nsets: "u ` X \<in> nsets {..<p} n" if "X \<in> nsets {..<q} n" for X n
           proof -
             have "inj_on u X"

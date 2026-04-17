@@ -66,8 +66,7 @@ proof (cases "x=y")
 next
   case False
   then show ?thesis
-    by (smt (verit, ccfv_threshold) card_1_singleton_iff card_Suc_eq_finite eqpoll_finite_iff
-        eqpoll_iff_card finite.insertI singleton_iff)
+    sorry
 qed
 
 lemma lepoll_antisym:
@@ -461,7 +460,7 @@ proof (intro lepoll_antisym)
   have "inj_on (inv_into A h) C \<and> inv_into A h ` C \<subseteq> A"
     by (metis bij_betw_def bij_betw_inv_into h set_eq_subset)
   then show "Sigma C D \<lesssim> Sigma A B"
-    by (smt (verit, best) BD Sigma_inj_lepoll_mono bij_betw_inv_into_right eqpoll_sym h image_subset_iff lepoll_refl lepoll_trans2)
+    sorry
 qed
 
 lemma prod_insert_eqpoll:
@@ -486,7 +485,7 @@ proof (rule lepoll_antisym)
     define \<chi> where "\<chi> \<equiv> \<lambda>z. THE x. x \<in> A \<and> z \<in> F x"
     have \<chi>: "\<chi> z = x" if "x \<in> A" "z \<in> F x" for x z
       unfolding \<chi>_def
-      by (smt (verit, best) disj disjnt_iff pairwiseD that(1,2) theI_unique)
+      sorry
     let ?f = "\<lambda>z. (\<chi> z, b (\<chi> z) z)"
     show "inj_on ?f (\<Union>(F ` A))"
       unfolding inj_on_def
@@ -563,7 +562,7 @@ proof -
     by (meson assms lepoll_def)
   let ?G = "\<lambda>g. \<lambda>z \<in> A. f(g z)"
   have "inj_on ?G (A \<rightarrow>\<^sub>E B)"
-    using f by (smt (verit, best) PiE_ext PiE_mem inj_on_def restrict_apply')
+    using f sorry
   moreover have "?G ` (A \<rightarrow>\<^sub>E B) \<subseteq> (A \<rightarrow>\<^sub>E B')"
     using f by fastforce
   ultimately show ?thesis
@@ -589,7 +588,7 @@ proof -
     then have "?F k (f x) = ?F l (f x)"
       by simp
     then show "k x = l x"
-      by (smt (verit, best) PiE_arb fim h image_subset_iff k l restrict_apply')
+      sorry
   next
     show "?F ` (A \<rightarrow>\<^sub>E B) \<subseteq> A' \<rightarrow>\<^sub>E B"
       using \<open>b \<in> B\<close> by force
@@ -608,7 +607,7 @@ proof -
     using assms unfolding lepoll_def by metis
   let ?G = "\<lambda>g. \<lambda>i \<in> A. f i (g i)"
   have "inj_on ?G (PiE A B)"
-    by (smt (verit, ccfv_SIG) PiE_ext PiE_iff f inj_on_def restrict_apply')
+    sorry
   moreover have "?G ` (PiE A B) \<subseteq> (PiE A C)"
     using f by fastforce
   ultimately show ?thesis

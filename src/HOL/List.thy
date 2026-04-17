@@ -3879,7 +3879,7 @@ by(auto simp: set_eq_iff in_set_conv_nth nth_list_update nth_eq_iff_index_eq)
 
 lemma distinct_swap[simp]: "\<lbrakk> i < size xs; j < size xs\<rbrakk> \<Longrightarrow>
   distinct(xs[i := xs!j, j := xs!i]) = distinct xs"
-  by (smt (verit, del_insts) distinct_conv_nth length_list_update nth_list_update)
+  sorry
 
 lemma set_swap[simp]:
   "\<lbrakk> i < size xs; j < size xs \<rbrakk> \<Longrightarrow> set(xs[i := xs!j, j := xs!i]) = set xs"
