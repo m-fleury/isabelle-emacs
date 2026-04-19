@@ -268,6 +268,9 @@ val _ = @{print}(" all_assms", all_assms)
         "rare_rewrite" => "rare_rewrite" ^ "_" ^ HOLogic.dest_string (hd step_args)
       | _ => rule)
     val stats' = Symtab.cons_list (name, Time.toNanoseconds elapsed) stats
+    val _ = (if rule = "cong" andalso Time.toMilliseconds elapsed >= 20 
+      then ignore (@{print} (prems_as_thms_with_context_assms @ skolem_rule_prems_as_thms_with_context_assms, thm))
+      else ())
     val globally_known_facts = Symtab.update (id, ([], thm)) globally_known_facts
     val _ = debug_msg ctxt low (fn () => @{print} ("Add resulting theorem to globabally known facts", (id,thm)))
 

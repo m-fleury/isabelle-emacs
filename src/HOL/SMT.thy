@@ -1352,5 +1352,131 @@ lemma [cvc5_holes_simp]:
 
 declare[[smt_cvc_alethe = true]]
 
+declare [[show_types=false]]
+context
+  fixes a a' b b' c c' d d' x y z :: bool and 
+    f :: \<open>bool \<Rightarrow> bool \<Rightarrow> bool \<Rightarrow> bool \<Rightarrow> bool \<Rightarrow> bool\<Rightarrow> bool\<close>
+  assumes H: \<open>a = a\<close> \<open>b = b'\<close> \<open>c = c'\<close> \<open>d = d'\<close> 
+begin
+
+ML \<open>
+val ctxt = @{context}
+val t = @{term \<open>Trueprop (f a x b c d y = f a x b' c' d' y)\<close>}
+val ct = Thm.cterm_of ctxt t
+val prems = @{thms H}
+
+
+val rews = prems
+ |> map_filter (try (apfst (HOLogic.dest_eq o Thm.term_of o Object_Logic.dest_judgment ctxt o
+      Thm.cconcl_of) o `(fn x => x)))
+ |> map (apsnd (fn x => @{thm eq_reflection} OF [x]))
+
+
+  fun find_rew rews t t' =
+    (case AList.lookup (op =) rews (t, t') of
+      SOME thm => SOME (thm COMP @{thm symmetric})
+    | NONE =>
+      (case AList.lookup (op =) rews (t', t) of
+        SOME thm => SOME thm
+      | NONE => NONE))
+
+  fun eq_pred_conv rews t ctxt ctrm =
+    (case find_rew rews t (Thm.term_of (ctrm|> @{print})) of
+      SOME thm => Conv.rewr_conv thm ctrm
+    | NONE =>
+      (case t |> @{print} of
+        f $ arg =>
+          (Conv.fun_conv (eq_pred_conv rews f ctxt) then_conv
+             Conv.arg_conv (eq_pred_conv rews arg ctxt)) ctrm
+      | Abs (_, _, f) => Conv.abs_conv (eq_pred_conv rews f o snd) ctxt ctrm
+      | _ => Conv.all_conv ctrm))
+fun conv_left conv = Conv.arg_conv (Conv.arg_conv conv)
+\<close>
+
+ML \<open>
+Alethe_Replay_Methods.cong @{context} @{thms H} t NONE
+\<close>
+
+
+end
+
+(*
+ (\<lambda>uu. (- (d / 2), (2 * uu - 1) * diamond_y (- (d / 2)))) = (\<lambda>uu. ((uu - 1 / 2) * d, diamond_y ((uu - 1 / 2) * d)))
+         v0__ = v0__
+       proposition:
+         (- (d / 2), (2 * v0__ - 1) * diamond_y (- (d / 2))) = ((v0__ - 1 / 2) * d, diamond_y ((v0__ - 1 / 2) * d)) 
+*)
+lemma alethe_arg_cong0: \<open>f = g \<Longrightarrow> f a = f a\<close>
+  by (rule arg_cong)
+
+lemma alethe_arg_cong: \<open>f = g \<Longrightarrow> a = b \<Longrightarrow> f a = f b\<close>
+  by (rule arg_cong)
+
+context
+  fixes f g :: \<open>'a \<Rightarrow> 'a \<Rightarrow> 'a \<Rightarrow> 'a\<close> and x y s t u :: 'a
+  assumes H: \<open>(\<lambda>uu vv. f uu vv u) = (\<lambda>uu vv. g uu vv u)\<close>  
+    \<open>x = y\<close>
+    \<open>s = t\<close>
+begin
+
+
+ML \<open>
+exception no_lambda
+
+fun extract_lambda_function_and_arguments (x $ arg) =
+  extract_lambda_function_and_arguments x @ [arg]
+ | extract_lambda_function_and_arguments (x as Abs _) =
+   [x]
+ | extract_lambda_function_and_arguments _ = raise no_lambda
+
+
+val rews = @{thms H}
+ |> map_filter (try (apfst (apsnd Envir.beta_eta_contract o  HOLogic.dest_eq o Thm.term_of o Object_Logic.dest_judgment ctxt o
+      Thm.cconcl_of) o `(fn x => x)))
+
+datatype ('a, 'b) Either = Nothing | Found_Term of 'a | Found_Thm of 'b
+\<close>
+
+
+ML \<open>
+val ctxt = @{context}
+fun compose_fun tm ((_, SOME arg1) :: args) =
+   compose_fun (@{thm alethe_arg_cong} OF [tm, arg1]) args
+| compose_fun tm ((arg1, NONE) :: args) =
+   compose_fun (Drule.infer_instantiate' ctxt (map (SOME o Thm.cterm_of ctxt) [@{print}arg1]) 
+    (@{thm alethe_arg_cong0} OF [tm])) args
+| compose_fun tm _ = tm
+  \<close>
+ML \<open>
+
+(@{term \<open>(\<lambda>uu vv. f uu vv u)\<close>} $ @{term x}) $ @{term u}
+|> extract_lambda_function_and_arguments 
+|> map (`(fn x => x))
+|> @{print}
+|> map (apsnd (AList.lookup (fn (a, t) => a = fst t) rews))
+|> (fn (_, SOME t) :: xs => compose_fun t xs
+     | _ => raise no_lambda)
+handle no_lambda => @{thm TrueI} \<close>
+
+thm fun_cong arg_cong
+ML \<open>
+(@{term \<open>f\<close>} $ @{term x}) $ @{term y}
+|> extract_lambda_function_and_arguments 
+handle no_lambda => []\<close>
+
+ML \<open>Alethe_Replay_Methods.equality_ordered_cong
+  @{context}
+  @{thms H}
+  (@{term \<open>Trueprop\<close>} $ 
+   ((@{term \<open>(=) :: 'a \<Rightarrow> 'a \<Rightarrow> bool\<close>} $
+      (@{term \<open>(\<lambda>uu. f u uu)\<close>} $ @{term x}))$
+      (@{term \<open>(\<lambda>uu. g u uu)\<close>} $ @{term y})))
+  NONE\<close>
+end
+
+lemma "(p \<and> True) = p" supply [[smt_trace]] by (smt (cvc5_proof)) (*success*)
+lemma "le = (\<le>) \<Longrightarrow> le (1::int) 1" supply [[smt_trace]]by (smt (cvc5_proof))  (*success*)
+lemma "le = (\<le>) \<Longrightarrow> le (3::int) 42" supply [[smt_trace]]by (smt (cvc5_proof))  (*success*)
+
 
 end

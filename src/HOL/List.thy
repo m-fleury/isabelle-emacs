@@ -9023,4 +9023,5 @@ lemma Bex_set_list_ex: (* FIXME delete candidate *)
   "Bex (set xs) P \<longleftrightarrow> list_ex P xs"
   by (fact Bex_set)
 
+
 end

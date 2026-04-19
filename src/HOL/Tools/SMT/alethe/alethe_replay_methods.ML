@@ -1697,7 +1697,7 @@ local
     (case find_rew rews t (Thm.term_of ctrm) of
       SOME thm => Conv.rewr_conv thm ctrm
     | NONE =>
-      (case t |> @{print} of
+      (case t of
         f $ arg =>
           (Conv.fun_conv (eq_pred_conv rews f ctxt) then_conv
              Conv.arg_conv (eq_pred_conv rews arg ctxt)) ctrm
@@ -1733,17 +1733,16 @@ local
         if (current_size < min_size_right orelse Term.size_of_term t' < min_size_left) 
         then ((*@{print}("aborting", min_size_left, t, min_size_right, t');*) Conv.all_conv ctrm)
         else
-        (case t |> Envir.beta_eta_contract of
-          f $ arg =>
-            Conv.try_conv 
-              (Conv.fun_conv (cong_cong_conv min_size_left min_size_right
-                  (current_size - Term.size_of_term arg) rews f ctxt)
-              then_conv
-                (Conv.arg_conv (cong_cong_conv min_size_left min_size_right (Term.size_of_term arg)
-                  rews arg ctxt)))
-              ctrm
-
-        | _ => Conv.all_conv ctrm))
+          (case t of
+            f $ arg =>
+              Conv.try_conv 
+                (Conv.fun_conv (cong_cong_conv min_size_left min_size_right
+                    (current_size - Term.size_of_term arg) rews f ctxt)
+                then_conv
+                  (Conv.arg_conv (cong_cong_conv min_size_left min_size_right (Term.size_of_term arg)
+                    rews arg ctxt)))
+                ctrm
+          | _ => Conv.all_conv ctrm))
     end
 
   exception no_lambda

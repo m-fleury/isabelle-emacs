@@ -20,10 +20,10 @@ declare [[smt_certificates = "SMT_Examples_CVC.certs"]]
 declare [[smt_read_only_certificates = false]]
 *)
 
-declare [[smt_trace=true,smt_verbose=true,smt_debug_verit]]
+declare [[smt_trace=true,smt_verbose=false,smt_debug_verit,smt_statistics]]
 declare [[smt_nat_as_int]]
 
-declare[[smt_expert_debug_alethe_level=3]]
+declare[[smt_expert_debug_alethe_level=0]]
 declare[[smt_expert_debug_alethe_files="all"]]
 
 declare [[verit_compress_proofs=false]]
@@ -512,7 +512,7 @@ lemma
       and "\<And>A B. (\<And>x. (x::'a) \<in> A \<Longrightarrow> x \<in> B) \<Longrightarrow> A \<subseteq> B"
       and "\<And>A B. \<lbrakk>(A::'a set) \<subseteq> B; B \<subseteq> A\<rbrakk> \<Longrightarrow> A = B"
       and "\<And>A ys. (A \<subseteq> List.coset ys) = (\<forall>y\<in>set ys. (y::'a) \<notin> A)"
-  using that supply[[smt_trace=false]] by (smt (cvc5_proof)) (*success but no nat to int embedding*)
+  using that supply[[smt_trace=false,smt_verbose=false,smt_statistics]] by (smt (cvc5_proof)) (*success but no nat to int embedding*)
 end
 
 notepad
@@ -600,6 +600,7 @@ lemma
     False\<close>
   using assms supply [[smt_trace=false,smt_verbose=false]]
   by (smt (cvc5_proof)) (*success*)
+
 end
 (*qnt_rm_unused example*)
 lemma 
@@ -766,6 +767,29 @@ lemma zero_cdiv_eq [simp]:
   supply [[smt_trace=false,smt_verbose=false,smt_statistics]]
   by (smt (cvc5) assms) (*error*)
 
+(*
+final cong:
+cong: 415 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 1 ms maximum time, 26 ms total time
+cong: 415 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 1 ms maximum time, 24 ms total time
+cong: 415 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 1 ms maximum time, 24 ms total time
+              
+
+new cong:
+cong: 415 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 1 ms maximum time, 26 ms total time
+cong: 415 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 12 ms maximum time, 38 ms total time
+cong: 415 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 1 ms maximum time, 25 ms total time
+cong: 415 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 1 ms maximum time, 25 ms total time
+cong: 415 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 1 ms maximum time, 28 ms total time
+                                 
+
+old cong:
+cong: 415 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 3 ms maximum time, 50 ms total time
+cong: 415 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 2 ms maximum time, 36 ms total time
+cong: 415 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 2 ms maximum time, 35 ms total time
+cong: 415 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 2 ms maximum time, 37 ms total time
+cong: 415 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 2 ms maximum time, 36 ms total time
+                    
+*)
 end
 
 context
@@ -795,6 +819,48 @@ lemma
  nonzero_mult_div_cancel_right powr_gt_zero powr_minus_divide round_down_uminus_eq
  round_up round_up_diff_round_down times_divide_eq_right assms
   by (smt (cvc5))
+
+(*
+with full-cong and size limitation:
+
+with full-cong:
+cong: 788 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 23 ms maximum time, 119 ms total time
+cong: 788 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 27 ms maximum time, 162 ms total time
+cong: 788 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 24 ms maximum time, 129 ms total time
+cong: 788 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 24 ms maximum time, 121 ms total time
+cong: 788 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 74 ms maximum time, 193 ms total time
+cong: 788 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 23 ms maximum time, 131 ms total time
+                         
+
+with size + strict:
+cong: 788 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 25 ms maximum time, 115 ms total time
+cong: 788 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 26 ms maximum time, 132 ms total time
+cong: 788 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 24 ms maximum time, 116 ms total time
+cong: 788 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 24 ms maximum time, 117 ms total time
+cong: 788 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 25 ms maximum time, 121 ms total time
+            
+       
+with size:
+cong: 788 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 28 ms maximum time, 144 ms total time
+cong: 788 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 24 ms maximum time, 114 ms total time
+cong: 788 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 24 ms maximum time, 119 ms total time
+cong: 788 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 24 ms maximum time, 114 ms total time
+cong: 788 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 23 ms maximum time, 115 ms total time
+
+new cong:
+cong: 788 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 44 ms maximum time, 169 ms total time
+cong: 788 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 23 ms maximum time, 117 ms total time
+cong: 788 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 22 ms maximum time, 114 ms total time
+cong: 788 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 39 ms maximum time, 131 ms total time
+cong: 788 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 22 ms maximum time, 115 ms total time
+           
+old cong:
+cong: 788 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 34 ms maximum time, 202 ms total time
+cong: 788 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 33 ms maximum time, 192 ms total time
+cong: 788 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 34 ms maximum time, 185 ms total time
+cong: 788 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 33 ms maximum time, 183 ms total time
+cong: 788 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 33 ms maximum time, 185 ms total time                                     
+*)
 end
 
 section \<open>Monomorphization examples\<close>
@@ -959,6 +1025,29 @@ lemma
   using assms
   by (smt (cvc5,fmf))
  
-
+(*
+final cong:
+cong: 114 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 2 ms maximum time, 20 ms total time
+cong: 114 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 2 ms maximum time, 18 ms total time
+cong: 114 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 2 ms maximum time, 18 ms total time
+cong: 114 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 2 ms maximum time, 19 ms total time
+cong: 114 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 2 ms maximum time, 18 ms total time
+       
+             
+new cong:
+cong: 114 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 2 ms maximum time, 18 ms total time
+cong: 114 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 2 ms maximum time, 22 ms total time
+cong: 114 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 5 ms maximum time, 34 ms total time
+cong: 114 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 2 ms maximum time, 18 ms total time
+cong: 114 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 2 ms maximum time, 19 ms total time
+                       
+old cong:
+cong: 114 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 2 ms maximum time, 19 ms total time
+cong: 114 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 2 ms maximum time, 16 ms total time
+cong: 114 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 2 ms maximum time, 22 ms total time
+cong: 114 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 2 ms maximum time, 16 ms total time
+cong: 114 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 2 ms maximum time, 19 ms total time
+                           
+*)
 
 end
