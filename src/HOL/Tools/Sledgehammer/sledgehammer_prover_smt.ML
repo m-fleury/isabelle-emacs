@@ -65,6 +65,8 @@ fun failure_of_smt_failure (SMT_Failure.Counterexample genuine) =
     (case AList.lookup (op =) smt_failures code of
       SOME failure => failure
     | NONE => UnknownError ("Abnormal termination with exit code " ^ string_of_int code))
+  | failure_of_smt_failure SMT_Failure.Unknown = GaveUp
+  | failure_of_smt_failure (SMT_Failure.Replay _) = UnknownError "Replay Error" (*Temp for testing*)
   | failure_of_smt_failure SMT_Failure.Out_Of_Memory = OutOfResources
   | failure_of_smt_failure (SMT_Failure.Other_Failure s) = UnknownError s
 
@@ -141,7 +143,6 @@ fun run_smt_solver mode name
         NONE => map fst used_from
       | SOME ids => sort_by fst (map (fst o snd) ids))
     val outcome = Option.map failure_of_smt_failure outcome
-
     val (preferred_methss, message) =
       (case outcome of
         NONE =>

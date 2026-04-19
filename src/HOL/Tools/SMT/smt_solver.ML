@@ -291,7 +291,7 @@ local
           SOME pp => pp outer_ctxt replay_data xfacts prems concl lines
         | NONE => {outcome = NONE, fact_ids = NONE, atp_proof = K []})
         | (Time_Out, _) => raise SMT_Failure.SMT (SMT_Failure.Time_Out "parsing")
-        | (Unknown, _) => raise SMT_Failure.SMT (SMT_Failure.Other_Failure "Unknown")
+        | (Unknown, _) => raise SMT_Failure.SMT (SMT_Failure.Unknown)
     | (result, _) => raise SMT_Failure.SMT (SMT_Failure.Counterexample (result = Sat)))
 
   fun replay outcome replay0 oracle outer_ctxt
@@ -306,7 +306,7 @@ local
           | NONE => error "No proof reconstruction for solver -- \
             \declare [[smt_oracle]] to allow oracle")
           | (Time_Out, _) => raise SMT_Failure.SMT (SMT_Failure.Time_Out "replay")
-          | (Unknown, _) => raise SMT_Failure.SMT (SMT_Failure.Other_Failure "Unknown")
+          | (Unknown, _) => raise SMT_Failure.SMT (SMT_Failure.Unknown)
           | (result, _) => raise SMT_Failure.SMT (SMT_Failure.Counterexample (result = Sat)))
 
   val cfalse = Thm.cterm_of \<^context> \<^prop>\<open>False\<close>
