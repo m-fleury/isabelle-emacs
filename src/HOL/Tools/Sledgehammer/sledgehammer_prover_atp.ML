@@ -112,6 +112,7 @@ fun tptp_logic_of_atp_format CNF = "CNF"
 fun run_atp mode name
     ({debug, verbose, overlord, abduce = abduce_max_candidates, strict, max_mono_iters,
       max_new_mono_instances, isar_proofs, compress, try0, smt_proofs, minimize, slices, timeout,
+      preplay_provers,
       preplay_timeout, spy, ...} : params)
     ({comment, state, goal, subgoal, subgoal_count, factss, has_already_found_something,
       found_something, memoize_fun_call} : prover_problem)
@@ -359,7 +360,9 @@ fun run_atp mode name
           val preferred = Metis_Method (NONE, NONE, [])
           val preferred_methss =
             (preferred,
-             if try0 then
+             if length preplay_provers > 0 then
+               bunches_of_proof_methods_by_solver_name ctxt needs_full_types needs_lam_defs (hd preplay_provers) (*TODO: Can currently only accept one solver name*)
+             else if try0 then
                bunches_of_proof_methods ctxt smt_proofs needs_full_types needs_lam_defs
              else
                bunches_of_metis_methods ctxt needs_full_types needs_lam_defs)

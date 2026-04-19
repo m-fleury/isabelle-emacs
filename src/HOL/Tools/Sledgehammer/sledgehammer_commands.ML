@@ -9,6 +9,7 @@ sig
   type params = Sledgehammer_Prover.params
 
   val provers : string Unsynchronized.ref
+  val preplay_provers : string Unsynchronized.ref
   val default_params : theory -> (string * string) list -> params
   val parse_params: (string * string) list parser
 end;
@@ -46,6 +47,7 @@ fun merge_fact_overrides rs = fold merge_fact_override_pairwise rs (only_fact_ov
 (*** parameters ***)
 
 val provers = Unsynchronized.ref ""
+val preplay_provers = Unsynchronized.ref ""
 
 type raw_param = string * string list
 
@@ -76,10 +78,12 @@ val default_default_params =
    ("minimize", "true"),
    ("slices", string_of_int (24 * Multithreading.max_threads ())),
    ("preplay_timeout", "1"),
+   ("preplay_provers",""),
    ("cache_dir", "")]
 
 val alias_params =
   [("prover", ("provers", [])), (* undocumented *)
+   ("preplay_prover", ("preplay_provers", [])), (* undocumented *)
    ("dont_abduce", ("abduce", ["0"])),
    ("dont_preplay", ("preplay_timeout", ["0"])),
    ("dont_compress", ("compress", ["1"])),
@@ -100,7 +104,7 @@ val negated_alias_params =
    ("no_smt_proofs", "smt_proofs"),
    ("dont_instantiate", "instantiate")]
 
-val property_dependent_params = ["provers", "timeout"]
+val property_dependent_params = ["provers", "prelay_provers", "timeout"]
 
 fun is_known_raw_param s =
   AList.defined (op =) default_default_params s orelse
@@ -241,6 +245,7 @@ fun extract_params mode default_params override_params =
     val overlord = lookup_bool "overlord"
     val spy = getenv "SLEDGEHAMMER_SPY" = "yes" orelse lookup_bool "spy"
     val provers = lookup_string "provers" |> space_explode " " |> mode = Auto_Try ? single o hd
+    val preplay_provers = lookup_string "preplay_provers" |> space_explode " " |> mode = Auto_Try ? single o hd
     val abduce =
       if mode = Auto_Try then SOME 0
       else lookup_option lookup_int "abduce"
@@ -283,6 +288,7 @@ fun extract_params mode default_params override_params =
       (fn str => if str = "" then NONE else SOME (Path.explode str)) (lookup "cache_dir")
   in
     {debug = debug, verbose = verbose, overlord = overlord, spy = spy, provers = provers,
+     preplay_provers = preplay_provers,
      abduce = abduce, falsify = falsify, type_enc = type_enc, strict = strict,
      lam_trans = lam_trans, uncurried_aliases = uncurried_aliases, learn = learn,
      fact_filter = fact_filter, induction_rules = induction_rules, max_facts = max_facts,

@@ -29,6 +29,7 @@ sig
      overlord : bool,
      spy : bool,
      provers : string list,
+     preplay_provers : string list,
      abduce : int option,
      falsify : bool option,
      type_enc : string option,
@@ -95,6 +96,7 @@ sig
   val bunches_of_metis_methods : Proof.context -> bool -> bool -> proof_method list list
   val bunches_of_smt_methods : Proof.context -> proof_method list list
   val bunches_of_proof_methods : Proof.context -> bool -> bool -> bool -> proof_method list list
+  val bunches_of_proof_methods_by_solver_name : Proof.context -> bool -> bool -> string -> proof_method list list
   val facts_of_filter : string -> (string * fact list) list -> fact list
   val facts_of_basic_slice : base_slice -> (string * fact list) list -> fact list
   val is_fact_chained : (('a * stature) * 'b) -> bool
@@ -145,6 +147,7 @@ type params =
    overlord : bool,
    spy : bool,
    provers : string list,
+   preplay_provers : string list,
    abduce : int option,
    falsify : bool option,
    type_enc : string option,
@@ -279,6 +282,25 @@ fun bunches_of_proof_methods ctxt smt_proofs needs_full_types needs_lam_defs =
   in
     misc_methodss @ metis_methodss @ smt_methodss
   end
+
+fun bunches_of_proof_methods_by_solver_name ctxt needs_full_types needs_lam_defs solver_name =
+(case solver_name of
+ "simp" => [[Simp_Method]] |
+ "auto" => [[Auto_Method]] |
+ "blast" => [[Blast_Method]] |
+ "linarith" => [[Linarith_Method]] |
+ "meson" => [[Meson_Method]] |
+ "metis" => [[Metis_Method (NONE, NONE, [])]] @ tl (bunches_of_metis_methods ctxt needs_full_types needs_lam_defs)|
+ "fastforce" => [[Fastforce_Method]] |
+ "force" => [[Force_Method]] |
+ "presburger" => [[Presburger_Method]] |
+ "argo" => [[Argo_Method]] |
+ "order" => [[Order_Method]] |
+ "cvc5" => ([map (SMT_Method o SMT_cvc) (Verit_Strategies.all_cvc5_stgies (Context.Proof ctxt))]) |
+ "verit" => ([map (SMT_Method o SMT_Verit) (Verit_Strategies.all_veriT_stgies (Context.Proof ctxt))]) |
+ "z3" => [[SMT_Method SMT_Z3]] |
+ _ => raise Fail "Invalid solver name given to Sledgehammer by preplay_provers argument")
+
 
 fun facts_of_filter fact_filter factss =
   (case AList.lookup (op =) factss fact_filter of

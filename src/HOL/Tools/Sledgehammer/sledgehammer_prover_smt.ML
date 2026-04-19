@@ -126,7 +126,7 @@ fun smt_filter name ({debug, overlord, max_mono_iters, max_new_mono_instances, t
   end
 
 fun run_smt_solver mode name
-    (params as {debug, verbose, isar_proofs, compress, try0, smt_proofs, minimize, preplay_timeout,
+    (params as {debug, verbose, isar_proofs, compress, try0, smt_proofs, minimize, preplay_timeout, preplay_provers,
       ...} : params)
     ({state, goal, subgoal, subgoal_count, factss, found_something, memoize_fun_call,
       ...} : prover_problem)
@@ -154,7 +154,9 @@ fun run_smt_solver mode name
             else
               Metis_Method (NONE, NONE, []);
           val methss =
-            if try0 then
+            if length preplay_provers > 0 then
+               bunches_of_proof_methods_by_solver_name ctxt false false (hd preplay_provers) (*TODO: Can currently only accept one solver name*)
+            else if try0 then
               bunches_of_proof_methods ctxt smt_proofs false true
             else if smt_proofs then
               bunches_of_smt_methods ctxt

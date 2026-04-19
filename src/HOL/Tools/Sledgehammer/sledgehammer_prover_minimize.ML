@@ -87,7 +87,7 @@ fun n_facts names =
 
 fun print silent f = if silent then () else writeln (f ())
 
-fun test_facts ({debug, verbose, overlord, spy, provers, max_mono_iters, max_new_mono_instances,
+fun test_facts ({debug, verbose, overlord, spy, provers, preplay_provers, max_mono_iters, max_new_mono_instances,
       type_enc, strict, lam_trans, uncurried_aliases, isar_proofs, compress, try0, smt_proofs,
       instantiate, minimize, preplay_timeout, induction_rules, cache_dir, ...} : params)
     ((_, _, falsify, _, fact_filter), slice_extra) silent (prover : prover) timeout i n
@@ -99,6 +99,7 @@ fun test_facts ({debug, verbose, overlord, spy, provers, max_mono_iters, max_new
     val facts = facts |> maps (fn (n, ths) => map (pair n) ths)
     val params =
       {debug = debug, verbose = verbose, overlord = overlord, spy = spy, provers = provers,
+       preplay_provers = preplay_provers,
        type_enc = type_enc, abduce = SOME 0, falsify = SOME false, strict = strict,
        lam_trans = lam_trans, uncurried_aliases = uncurried_aliases, learn = false,
        fact_filter = NONE, induction_rules = induction_rules, max_facts = SOME (length facts),
