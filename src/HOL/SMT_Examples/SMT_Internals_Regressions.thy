@@ -3044,4 +3044,50 @@ Rule Nr   Name            Nr Tests  Nr Success
 Total                     461       461
 
 *)
+
+(* TODO (Pascal) Remove this block after experimenting *)
+(* and_pos and or_neg *)
+experiment
+begin
+ML 
+\<open>
+let
+  val genVar = fn i => Free ("A"^ (Int.toString i), @{typ bool});
+
+  fun makeConj c 1 = genVar c
+    | makeConj c n = HOLogic.mk_conj ((genVar c), (makeConj (c+1) (n-1))) 
+
+  fun makeDisj c 1 = genVar c
+    | makeDisj c n = HOLogic.mk_disj ((genVar c), (makeDisj (c+1) (n-1))) 
+
+  fun makeNeg t = (Const ("HOL.Not", @{typ "bool \<Rightarrow> bool"})) $ t 
+
+  fun buildAndPosTerm c n i = HOLogic.mk_disj (makeNeg (makeConj c n), (genVar i))
+  fun buildOrNegTerm c n i = HOLogic.mk_disj ((makeDisj c n), makeNeg (genVar i))
+
+  val ctxt = @{context}
+
+  fun measure_time ctxt (c, n, i) =
+    let val t1 = (@{term Trueprop} $ (buildAndPosTerm c n i))
+        val t2 = (@{term Trueprop} $ (buildOrNegTerm c n i))
+        val start = Timing.start ()
+        val _ = Alethe_Replay_Methods.and_pos ctxt [] t1 (SOME (Index i))
+        val total = Time.toMilliseconds (#elapsed (Timing.result start))
+        val start' = Timing.start ()
+        val _ = Alethe_Replay_Methods.or_neg_rule ctxt [] t2 (SOME (Index i))
+        val total' = Time.toMilliseconds (#elapsed (Timing.result start'))
+    in
+      (total, total')
+    end
+in
+  map (measure_time ctxt) [(0, 10, 5), 
+                           (0, 100, 50), 
+                           (0, 1000, 500), 
+                           (0, 10000, 5000), 
+                           (0, 20000, 10000)]
+end
+\<close>
+
+end
+
 end
