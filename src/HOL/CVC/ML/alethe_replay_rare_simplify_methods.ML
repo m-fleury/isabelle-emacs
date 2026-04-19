@@ -22,7 +22,12 @@ exception RARE_REPLAY of string
 1: use only lemma
 2: use only simplify
 3: use only simplify but add all lemmas to the simpset
-4: use simplify but add all simple lemmas to the simpset (see below but mainly those without lists in them that are not * rules)
+4: use lemma for complex cases & and simplify for easy ones
+5: use lemma for complex cases & and simplify for easy ones and add all simple lemmas to the simpset (see below but mainly those without lists in them that are not * rules)
+6: use only match (and assume_tac for premises)
+7: use lemma for complex case & match for simple case
+
+complex case: lemma includes lists
 *)
 val rare_rec_mode = Attrib.setup_config_int \<^binding>\<open>rare_rec_mode\<close> (K 0)
 
@@ -79,20 +84,71 @@ fun try_simp_tac thms ctxt  =
 
 fun try_simp ctxt t thms = SMT_Replay_Methods.prove ctxt t (fn ctxt => try_simp_tac thms ctxt)
 
+fun try_match_tac thms ctxt  =
+     (K (HEADGOAL (match_tac ctxt thms)))
+     THEN' debug_msg_tac' ctxt high "try_match after applying lemma"
+     THEN' TRY' (K (unfold_tac ctxt @{thms NO_MATCH_def}))
+     THEN' debug_msg_tac' ctxt high "try_match after applying lemma"
+
+     THEN' (K (ALLGOALS (assume_tac ctxt)))
+
+     THEN' (try_simp_tac [] ctxt)
+
+fun try_match ctxt t thms = SMT_Replay_Methods.prove ctxt t (fn ctxt => try_match_tac thms ctxt)
+
+
 (* Rare rewrite reconstruction *)
+(*We are not supporting conditional rules yet, since we still don't have an example...*)
 fun dsl_tac_initialize rewrite_name args ctxt t _ =
   let
     val rare_mode = (Config.get ctxt rare_rec_mode)
-    val _ = debug_msg ctxt high (fn () => @{print} ("rare_rec_mode " ^ Int.toString rare_mode))
 
+    val _ = debug_msg ctxt high (fn () => @{print} ("rare_rec_mode " ^ Int.toString rare_mode))
+    val all_rare_rewrite_lemmas = (Named_Theorems.get ctxt @{named_theorems rare_rewrites_all})
+    val simple_rare_rewrite_lemmas = (Named_Theorems.get ctxt @{named_theorems rare_rewrites_simple})
+    val simple_rare_rewrites_names = [
+      "Arith_Rewrites.rewrite_arith_elim_gt", "Arith_Rewrites.rewrite_arith_elim_lt", "Arith_Rewrites.rewrite_arith_elim_int_gt",
+      "Arith_Rewrites.rewrite_arith_elim_int_lt", "Arith_Rewrites.rewrite_arith_elim_leq", "Arith_Rewrites.rewrite_arith_leq_norm",
+      "Arith_Rewrites.rewrite_arith_geq_tighten", "Arith_Rewrites.rewrite_arith_geq_norm1_int", "Arith_Rewrites.rewrite_arith_eq_elim_int",
+      "Boolean_Rewrites.rewrite_bool_double_not_elim", "Boolean_Rewrites.rewrite_bool_not_true", "Boolean_Rewrites.rewrite_bool_not_false",
+      "Boolean_Rewrites.rewrite_bool_eq_true", "Boolean_Rewrites.rewrite_bool_eq_false", "Boolean_Rewrites.rewrite_bool_eq_nrefl",
+      "Boolean_Rewrites.rewrite_bool_impl_false1", "Boolean_Rewrites.rewrite_bool_impl_false2", "Boolean_Rewrites.rewrite_bool_impl_true1",
+      "Boolean_Rewrites.rewrite_bool_impl_true2", "Boolean_Rewrites.rewrite_bool_impl_elim", "Boolean_Rewrites.rewrite_bool_dual_impl_eq",
+      "Boolean_Rewrites.rewrite_bool_implies_de_morgan", "Boolean_Rewrites.rewrite_bool_xor_refl", "Boolean_Rewrites.rewrite_bool_xor_nrefl",
+      "Boolean_Rewrites.rewrite_bool_xor_false", "Boolean_Rewrites.rewrite_bool_xor_true", "Boolean_Rewrites.rewrite_bool_xor_comm",
+      "Boolean_Rewrites.rewrite_bool_xor_elim", "Boolean_Rewrites.rewrite_bool_not_xor_elim", "Boolean_Rewrites.rewrite_bool_not_eq_elim1",
+      "Boolean_Rewrites.rewrite_bool_not_eq_elim2", "Boolean_Rewrites.rewrite_ite_neg_branch", "Boolean_Rewrites.rewrite_ite_then_true",
+      "Boolean_Rewrites.rewrite_ite_else_false", "Boolean_Rewrites.rewrite_ite_then_false", "Boolean_Rewrites.rewrite_ite_else_true",
+      "Boolean_Rewrites.rewrite_ite_then_lookahead_self", "Boolean_Rewrites.rewrite_ite_else_lookahead_self", "Boolean_Rewrites.rewrite_ite_then_lookahead_not_self",
+      "Boolean_Rewrites.rewrite_ite_else_lookahead_not_self", "Boolean_Rewrites.rewrite_ite_expand", "Boolean_Rewrites.rewrite_bool_not_ite_elim",
+      "Builtin_Rewrites.rewrite_ite_true_cond", "Builtin_Rewrites.rewrite_ite_false_cond", "Builtin_Rewrites.rewrite_ite_not_cond",
+      "Builtin_Rewrites.rewrite_ite_eq_branch", "Builtin_Rewrites.rewrite_ite_then_lookahead", "Builtin_Rewrites.rewrite_ite_else_lookahead",
+      "Builtin_Rewrites.rewrite_ite_then_neg_lookahead", "Builtin_Rewrites.rewrite_ite_else_neg_lookahead",
+      "UF_Rewrites.rewrite_eq_refl", "UF_Rewrites.rewrite_eq_symm", "UF_Rewrites.rewrite_eq_cond_deq",
+      "UF_Rewrites.rewrite_eq_ite_lift", "UF_Rewrites.rewrite_distinct_binary_elim",
+      "cvc5_Rewrites.rewrite_ite_eq", "cvc5_Rewrites.rewrite_distinct_binary_elim", "cvc5_Rewrites.rewrite_bool_not_eq_false",
+      "Rare_Interface_Real.rewrite_arith_geq_norm1_real", "Rare_Interface_Real.rewrite_arith_eq_elim_real",
+      "Rare_Interface_Real.rewrite_arith_to_int_to_real", "Rare_Interface_Real.rewrite_arith_int_eq_conflict",
+      "Rare_Interface_Real.rewrite_arith_int_geq_tighten", "Rare_Interface_Real.rewrite_arith_geq_ite_lift",
+      "Rare_Interface_Real.rewrite_arith_leq_ite_lift"
+      ]
+      val is_simple = List.exists (fn x => x = rewrite_name) simple_rare_rewrites_names 
   in
-    if rare_mode = 2
+    if rare_mode = 2 (*Use only simplify*)
     then try_simp ctxt t []
-    else if rare_mode = 3
-    then try_simp ctxt t @{thms rare_rewrites_all}
+    else if rare_mode = 3 (*Use only simplify but add all lemmas to the simpset*)
+    then try_simp ctxt t all_rare_rewrite_lemmas
+    else if rare_mode = 4 andalso is_simple (*Use lemma for complex cases & and simplify for easy ones *)
+    then try_simp ctxt t []
+    else if rare_mode = 5 andalso is_simple (*Use lemma for complex cases & and simplify for easy ones and add all simple lemmas to the simpset (see below but mainly those without lists in them that are not * rules) *)
+    then try_simp ctxt t simple_rare_rewrite_lemmas
+    else if rare_mode = 6 (*Use only match (and assume_tac for premises)*)
+    then try_match ctxt t simple_rare_rewrite_lemmas
+    else if rare_mode = 7 andalso not is_simple (*7: use lemma for complex case & match for simple case *)
+    then try_match ctxt t simple_rare_rewrite_lemmas
     else
       if is_none (CVC5_Rare.rare_lookup (Context.Proof ctxt) ("rewrite_" ^ rewrite_name))
-      then if rare_mode = 0
+      then if rare_mode = 0 orelse (List.exists (fn x => x = rare_mode) [4,5,6]) 
         then
           let
             val _ = debug_msg ctxt high (fn () => @{print} ("undeclared RARE rule: " ^ rewrite_name ^ ". Use cvc5_rare \"full_name\"."))
@@ -186,6 +242,8 @@ fun dsl_tac_initialize rewrite_name args ctxt t _ =
                    (fn y => x y; debug_msg_tac'' ctxt high "could not apply lemma" THEN' K no_tac (*raise RARE_REPLAY("Lemmas could not be used to discharge rewrite rule.")*)) end)
                  else (K (print_tac ctxt "lemmas could not be used, continue to simplify") THEN' try_simp_tac [] ctxt))
             )
+           THEN' debug_msg_tac'' ctxt high "already solved?"
+
             THEN_ALL_NEW (
               debug_msg_tac'' ctxt high "trying to discharge assumption of RARE lemma"
               THEN' TRY' (simplify_tac ctxt cvc_evaluate_thms THEN' debug_msg_tac'' ctxt high "simplifed goal with cvc_evaluate")
@@ -198,7 +256,11 @@ fun dsl_tac_initialize rewrite_name args ctxt t _ =
            )
            )) t
         in
-          if length inst_lemmas_without_true > 0 then try_lemma_i 0 else (if rare_mode = 1 then try_simp ctxt t [] else raise ERROR("Rule could not be instantiated") )
+          if length inst_lemmas_without_true > 0
+          then (if (List.exists (fn x => x = rare_mode) [0,1,4,5,7]) 
+                then try_lemma_i 0
+                else raise ERROR("Rule could not be used") )
+          else (if rare_mode = 0 then try_simp ctxt t [] else raise ERROR("Rule could not be instantiated") )
       end)
 end
 
