@@ -1019,6 +1019,12 @@ lemmas poly_simp_rel =
    less_numeral_simps alethe_div_simplify zero_less_one
    not_one_less_zero neg_0_less_iff_less
 
+lemma alethe_arg_cong0: \<open>f = g \<Longrightarrow> f a = f a\<close>
+  by (rule arg_cong)
+
+lemma alethe_arg_cong: \<open>f = g \<Longrightarrow> a = b \<Longrightarrow> f a = g b\<close>
+  by (auto)
+
 subsection \<open>Setup\<close>
 
 ML_file \<open>Tools/SMT/smt_util.ML\<close>

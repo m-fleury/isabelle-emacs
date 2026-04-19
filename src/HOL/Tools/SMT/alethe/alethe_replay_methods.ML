@@ -94,6 +94,7 @@ sig
   val rewrite_implies_simplify: alethe_tac
   val rewrite_or_simplify: alethe_tac
   val cong: alethe_tac_args
+  val equality_ordered_cong: alethe_tac_args
   val rewrite_connective_def: alethe_tac
   val duplicate_literals: alethe_tac
   val distinct_elim: alethe_tac
@@ -1657,31 +1658,58 @@ fun eq_transitive ctxt _ t = SMT_Replay_Methods.prove ctxt t (fn  _ =>
   THEN' REPEAT' (fn i => dresolve_tac ctxt @{thms alethe_eq_transitive} i THEN assume_tac ctxt (i+1))
   THEN' resolve_tac ctxt @{thms refl})
 
+
+(*
+In essence, congruence, eq_congruent_pred, and eq_congruent are all the same. The idea is to iterate
+over the term, identify which terms needs to be rewritten, and we rewrite it.
+
+For congruence we do two different things:
+
+  1. usually, we simply go over the term in a conversion and check if there is a lemma that can be
+  used for rewriting. Complexity here comes from the fact that we need to be careful with lambda / 
+  non-reduced terms.
+  
+  We experimented with various versions and found that we need to avoid iterating over the entire
+  term. Therefore, we calculate the size of the term and don't try to rewrite if the term is
+  smaller than the smallest term to rewrite.
+
+
+  2. otherwise, we look for things (%x. f x) = (%x. g x), a = b |> (%x. f x) a = (%x. g x) b. For
+  eq_congruent_pred we don't have an issue because we simply avoid unfolding the lambda terms and 
+  keep them as constants. This does not work for cong, because we cannot refold the terms in the
+  assumptions.
+
+*)
 local
   fun find_rew rews t t' =
-    (case AList.lookup (op =) rews (t, t') of
+    (case AList.lookup (fn ((a,b), (c,d))=> a aconv c andalso b aconv d) rews (t, t') of
       SOME thm => SOME (thm COMP @{thm symmetric})
     | NONE =>
-      (case AList.lookup (op =) rews (t', t) of
+      (case AList.lookup (fn ((a,b), (c,d))=> a aconv c andalso b aconv d) rews (t', t) of
         SOME thm => SOME thm
       | NONE => NONE))
+  fun strict_find_rew rews t t' =
+    (case AList.lookup (fn ((a,b), (c,d))=> a aconv c andalso b aconv d) rews (t', t) of
+      SOME thm => SOME thm
+    | NONE => NONE)
 
   fun eq_pred_conv rews t ctxt ctrm =
     (case find_rew rews t (Thm.term_of ctrm) of
       SOME thm => Conv.rewr_conv thm ctrm
     | NONE =>
-      (case t of
+      (case t |> @{print} of
         f $ arg =>
           (Conv.fun_conv (eq_pred_conv rews f ctxt) then_conv
              Conv.arg_conv (eq_pred_conv rews arg ctxt)) ctrm
       | Abs (_, _, f) => Conv.abs_conv (eq_pred_conv rews f o snd) ctxt ctrm
       | _ => Conv.all_conv ctrm))
 
+  fun throwing_CONVERSION cv i st = Seq.single (Conv.gconv_rule cv i st)
   fun eq_pred_rewrite_tac ({context = ctxt, prems, concl, ...}: Subgoal.focus) =
     let
       val rews = prems
-       |> map_filter (try (apfst (HOLogic.dest_eq o Thm.term_of o Object_Logic.dest_judgment ctxt o
-            Thm.cconcl_of) o `(fn x => x)))
+       |> map_filter (try (apfst (apsnd Envir.beta_eta_contract o HOLogic.dest_eq o Thm.term_of o Object_Logic.dest_judgment ctxt o
+            Thm.cconcl_of o Conv.fconv_rule Drule.beta_eta_conversion) o `(fn x => x)))
        |> map (apsnd (fn x => @{thm eq_reflection} OF [x]))
       fun conv_left conv = Conv.arg_conv (Conv.arg_conv conv)
       fun conv_left_neg conv = Conv.arg_conv (Conv.arg_conv (Conv.arg_conv conv))
@@ -1691,9 +1719,98 @@ local
         | Const(_, _) $ t1 $ (Const(\<^const_name>\<open>HOL.Not\<close>, _) $ _) => (t1, conv_left_neg)
         | Const(_, _) $ t1 $ _ => (t1, conv_left)
         | t1 => (t1, conv_left))
-    fun throwing_CONVERSION cv i st = Seq.single (Conv.gconv_rule cv i st)
     in
       throwing_CONVERSION (conv_term (eq_pred_conv rews t1 ctxt))
+    end
+
+  fun cong_cong_conv min_size_left min_size_right current_size rews t ctxt ctrm =
+    let 
+      val t' = (Thm.term_of ctrm|> Envir.beta_eta_contract)
+    in
+      (case strict_find_rew rews t t' of
+        SOME thm => Conv.rewr_conv thm ctrm
+      | NONE =>
+        if (current_size < min_size_right orelse Term.size_of_term t' < min_size_left) 
+        then ((*@{print}("aborting", min_size_left, t, min_size_right, t');*) Conv.all_conv ctrm)
+        else
+        (case t |> Envir.beta_eta_contract of
+          f $ arg =>
+            Conv.try_conv 
+              (Conv.fun_conv (cong_cong_conv min_size_left min_size_right
+                  (current_size - Term.size_of_term arg) rews f ctxt)
+              then_conv
+                (Conv.arg_conv (cong_cong_conv min_size_left min_size_right (Term.size_of_term arg)
+                  rews arg ctxt)))
+              ctrm
+
+        | _ => Conv.all_conv ctrm))
+    end
+
+  exception no_lambda
+
+  fun extract_lambda_function_and_arguments (x $ arg) =
+        extract_lambda_function_and_arguments x @ [arg]
+    | extract_lambda_function_and_arguments (x as Abs _) = [x]
+    | extract_lambda_function_and_arguments _ = raise no_lambda
+
+  fun compose_fun ctxt tm ((_, SOME arg1) :: args) =
+     compose_fun ctxt (@{thm alethe_arg_cong} OF [tm, arg1]) args
+  | compose_fun ctxt tm ((arg1, NONE) :: args) =
+     compose_fun ctxt (Drule.infer_instantiate' ctxt (map (SOME o Thm.cterm_of ctxt) [arg1]) 
+      (@{thm alethe_arg_cong0} OF [tm])) args
+  | compose_fun _ tm _ = tm
+
+  fun cong_conv_lambda orig_t ctxt prems t =
+    let
+      val orig_t' =
+        orig_t
+        |> HOLogic.dest_Trueprop 
+        |> HOLogic.dest_eq
+        |> fst
+
+      val rews = prems
+       |> map_filter (try (apfst (apfst Envir.beta_eta_contract o apsnd Envir.beta_eta_contract o
+              HOLogic.dest_eq o Thm.term_of o Object_Logic.dest_judgment ctxt o
+            Thm.cconcl_of) o `(fn x => x)))
+     in
+       orig_t'
+       |> extract_lambda_function_and_arguments 
+       |> map Envir.beta_eta_contract
+       |> map (`(fn x => x))
+       |> map (apsnd (AList.lookup (fn (a, t) => a = fst t) rews))
+       |> (fn (_, SOME tm) :: xs =>
+            Conv.rewr_conv (compose_fun ctxt tm xs
+            |> Conv.fconv_rule (Thm.eta_conversion)
+            |> (fn x => @{thm eq_reflection} OF [x]))
+          | _ => Conv.all_conv)
+       |> (fn x => HOLogic.Trueprop_conv (HOLogic.eq_conv x Conv.all_conv) t)
+       handle no_lambda => Conv.all_conv t
+    end
+
+  fun cong_conv ctxt prems t =
+    let
+      val t' = t
+        |> Thm.term_of
+        |> HOLogic.dest_Trueprop 
+        |> HOLogic.dest_eq
+        |> snd
+        |> Envir.beta_eta_contract
+
+      val rews = prems
+        |> map_filter (try (apfst (apfst Envir.beta_eta_contract o apsnd Envir.beta_eta_contract o  HOLogic.dest_eq o Thm.term_of o Object_Logic.dest_judgment ctxt o
+            Thm.cconcl_of) o `(fn x => x)))
+        |> map (apsnd (fn x => @{thm eq_reflection} OF [x]))
+
+      val min_size_rewritting_right = List.foldl (fn (a,b) => Int.min (a, b))
+         ((Term.size_of_term o snd o fst o hd) rews) (map (Term.size_of_term o snd o fst) (tl rews))
+      val min_size_rewritting_left = List.foldl (fn (a,b) => Int.min (a, b))
+         ((Term.size_of_term o fst o fst o hd) rews) (map (Term.size_of_term o fst o fst) (tl rews))
+    in
+      t
+      |> HOLogic.Trueprop_conv (HOLogic.eq_conv 
+           (cong_cong_conv min_size_rewritting_left min_size_rewritting_right (Term.size_of_term t')
+             rews t' ctxt)
+           Conv.all_conv)
     end
 in
 
@@ -1705,6 +1822,16 @@ fun eq_congruent_pred ctxt _ t =
      ORELSE' assume_tac ctxt))
 
 val eq_congruent = eq_congruent_pred
+
+
+fun equality_ordered_cong ctxt prems t _ = 
+   SMT_Replay_Methods.prove ctxt t (fn _ =>
+     (CONVERSION (Thm.beta_conversion true then_conv cong_conv ctxt prems)
+     THEN' 
+       (resolve_tac ctxt @{thms refl}
+       ORELSE' 
+         (throwing_CONVERSION (Thm.eta_conversion then_conv cong_conv_lambda t ctxt prems)
+         THEN' resolve_tac ctxt @{thms refl}))))
 
 end
 
