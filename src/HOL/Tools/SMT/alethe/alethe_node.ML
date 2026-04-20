@@ -13,10 +13,9 @@ sig
     id: string,
     rule: string,
     prems: string list,
-    proof_ctxt: term list, (*TODO: Delete? Should be empty?*)
     concl: term}
 
-  val mk_step : string -> string -> string list -> term list -> term -> alethe_step
+  val mk_step : string -> string -> string list -> term -> alethe_step
 
   (* Pass information added during pre-processing to reconstruction *)
   datatype tactic_args =
@@ -110,11 +109,10 @@ fun mk_raw_definition_node id rule skolem_name skolem_term = Raw_Definition_Node
     id: string,
     rule: string,
     prems: string list,
-    proof_ctxt: term list, (*TODO: Delete?*)
     concl: term}
 
-fun mk_node id rule prems proof_ctxt concl =
-  Alethe_Step {id = id, rule = rule, prems = prems, proof_ctxt = proof_ctxt, concl = concl}
+fun mk_node id rule prems concl =
+  Alethe_Step {id = id, rule = rule, prems = prems, concl = concl}
 
 (* Sometimes we want to communicate additional information that is gained during parsing or
 preprocessing to the reconstruction tactic. *)
@@ -157,11 +155,10 @@ datatype alethe_step = Alethe_Step of {
   id: string,
   rule: string,
   prems: string list,
-  proof_ctxt: term list,
   concl: term}
 
-fun mk_step id rule prems proof_ctxt concl =
-  Alethe_Step {id = id, rule = rule, prems = prems, proof_ctxt = proof_ctxt, concl = concl}
+fun mk_step id rule prems concl =
+  Alethe_Step {id = id, rule = rule, prems = prems, concl = concl}
 
 
 end;

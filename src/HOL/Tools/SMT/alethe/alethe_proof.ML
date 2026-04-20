@@ -741,8 +741,8 @@ fun combine_proof_steps ((Alethe_Replay_Node step1 : alethe_replay_node) :: (Ale
 (* Flatten Subproofs for Sledgehammer's ISAR Generation *)
 val linearize_proof =
   let                          
-    fun map_node_concl f (Alethe_Step {id, rule, prems, proof_ctxt, concl}) =
-       mk_step id rule prems proof_ctxt (f concl)
+    fun map_node_concl f (Alethe_Step {id, rule, prems, concl}) =
+       mk_step id rule prems (f concl)
     fun linearize (Alethe_Replay_Node {id = id, rule = rule, step_args = _, context_assignments = _, prems = prems,
         concl = concl,
         subproof = (_, assms, inputs, subproof), args = args}) =
@@ -754,8 +754,8 @@ val linearize_proof =
         fun add_assumption assumption concl =
           \<^Const>\<open>Pure.imp for \<open>mk_prop_of_term assumption\<close> \<open>mk_prop_of_term concl\<close>\<close>
         fun inline_assumption assumption assumption_id
-            (Alethe_Step {id, rule, prems, proof_ctxt, concl}) =
-          mk_step id rule (remove_assumption_id assumption_id prems) proof_ctxt
+            (Alethe_Step {id, rule, prems, concl}) =
+          mk_step id rule (remove_assumption_id assumption_id prems)
             (add_assumption assumption concl)
         fun find_input_steps_and_inline [] = []
           | find_input_steps_and_inline
@@ -763,14 +763,14 @@ val linearize_proof =
             if rule = input_rule then
               find_input_steps_and_inline (map (inline_assumption concl id') steps)
             else
-              mk_step (id') rule prems [] concl :: find_input_steps_and_inline steps
+              mk_step (id') rule prems concl :: find_input_steps_and_inline steps
 
         val subproof = subproof
           |> flat o map linearize
           |> map (map_node_concl (fold add_assumption (assms @ inputs)))
           |> find_input_steps_and_inline
       in
-        subproof @ [mk_step id rule prems [] concl] (*TODO: proof_ctxt*)
+        subproof @ [mk_step id rule prems concl]
       end |
       linearize (Alethe_Definition_Node _) = []
 
@@ -928,7 +928,7 @@ fun parse typs funs lines ctxt =
        |> remove_skolem_definitions_proof
        |> flat o (map linearize_proof)
     fun node_to_step (Alethe_Step {id, rule, prems, concl, ...}) =
-      mk_step id rule prems [] concl
+      mk_step id rule prems concl
   in
     (map node_to_step t, ctxt_of env)
   end
