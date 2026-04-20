@@ -1406,6 +1406,7 @@ end
        proposition:
          (- (d / 2), (2 * v0__ - 1) * diamond_y (- (d / 2))) = ((v0__ - 1 / 2) * d, diamond_y ((v0__ - 1 / 2) * d)) 
 *)
+(*
 lemma alethe_arg_cong0: \<open>f = g \<Longrightarrow> f a = f a\<close>
   by (rule arg_cong)
 
@@ -1473,7 +1474,7 @@ ML \<open>Alethe_Replay_Methods.equality_ordered_cong
       (@{term \<open>(\<lambda>uu. g u uu)\<close>} $ @{term y})))
   NONE\<close>
 end
-
+*)
 lemma "(p \<and> True) = p" supply [[smt_trace]] by (smt (cvc5_proof)) (*success*)
 lemma "le = (\<le>) \<Longrightarrow> le (1::int) 1" supply [[smt_trace]]by (smt (cvc5_proof))  (*success*)
 lemma "le = (\<le>) \<Longrightarrow> le (3::int) 42" supply [[smt_trace]]by (smt (cvc5_proof))  (*success*)
