@@ -261,12 +261,23 @@ fun pretty_statistics solver total stats =
         val len = length is
         val mid = len div 2
       in if len mod 2 = 0 then (nth is (mid - 1) + nth is mid) div 2 else nth is mid end
+    fun quartile n is =
+      let
+        val len = length is
+        val pos = (len * n) div 4
+      in nth is pos end
     fun pretty_item name p = Pretty.item (Pretty.separate ":" [Pretty.str name, p])
-    fun pretty (name, milliseconds) = (Pretty.block (Pretty.str (name ^": ")  :: Pretty.separate "," [
-      Pretty.str (string_of_int (length milliseconds) ^ " occurrences") ,
-      Pretty.str (string_of_int (mean_of milliseconds) ^ " ms mean time"),
-      Pretty.str (string_of_int (fold Integer.max milliseconds 0) ^ " ms maximum time"),
-      Pretty.str (string_of_int (fold Integer.add milliseconds 0) ^ " ms total time")]))
+    fun pretty (name, milliseconds) = 
+      let val milliseconds = Library.sort int_ord milliseconds
+      in
+        Pretty.block (Pretty.str (name ^": ")  :: Pretty.separate "," [
+        Pretty.str (string_of_int (length milliseconds) ^ " occurrences"),
+        Pretty.str (string_of_int (quartile 1 milliseconds) ^ " ms 1/4th time"),
+        Pretty.str (string_of_int (mean_of milliseconds) ^ " ms mean time"),
+        Pretty.str (string_of_int (quartile 3 milliseconds) ^ " ms 3/4th time"),
+        Pretty.str (string_of_int (fold Integer.max milliseconds 0) ^ " ms maximum time"),
+        Pretty.str (string_of_int (fold Integer.add milliseconds 0) ^ " ms total time")])
+      end
   in
     Pretty.big_list (solver ^ " proof reconstruction statistics:") (
       pretty_item "total time" (Pretty.str (string_of_int total ^ " ms")) ::
