@@ -1131,87 +1131,79 @@ fun not_or_rule ctxt prems t =
 
 
 (*TODO: Improve now that we have arguments*)
-(* TODO Benchmark or_neg versions *)
-
-(* Version 1: Old initial version *)
-(*
-val or_neg_rule = prove_abstract SMT_Replay_Methods.abstract_bool (fn ctxt => fn _ =>
-
-  resolve_tac ctxt @{thms alethe_or_neg}
-
-  THEN' K (unfold_tac ctxt @{thms not_not})
-  THEN_ALL_NEW
-    (REPEAT'
-      (SOLVED' (match_tac ctxt @{thms disjI1} THEN_ALL_NEW assume_tac ctxt)
-       ORELSE' (match_tac ctxt @{thms disjI2} THEN' TRY' (assume_tac ctxt)))))
-*)
-(* Version 2: Index usage *)
-fun or_neg_rule ctxt _ t (SOME (Index k)) = 
-   SMT_Replay_Methods.prove ctxt t (fn _ =>
-     resolve_tac ctxt @{thms alethe_or_neg}
-     THEN' (REPEAT_DETERM_N' k (match_tac ctxt @{thms disjI2}))
-     THEN' FIRST' [
-                   (match_tac ctxt @{thms disjI1}) THEN' (assume_tac ctxt),
-                   (assume_tac ctxt)
-                  ]
-) |
+fun or_neg_rule ctxt thms t (SOME (Index k)) =
+        (* New version with arg *) 
+  let fun choice 0 =
+                 SMT_Replay_Methods.prove ctxt t (fn _ =>
+                 resolve_tac ctxt @{thms alethe_or_neg}
+                 THEN' (REPEAT_DETERM_N' k (match_tac ctxt @{thms disjI2}))
+                 THEN' FIRST' [
+                               (match_tac ctxt @{thms disjI1}) THEN' (assume_tac ctxt),
+                               (assume_tac ctxt)
+                              ]
+                 )
+        (* Old version, no arg *)
+        | choice _ = 
+                 prove_abstract SMT_Replay_Methods.abstract_bool (fn ctxt => fn _ =>
+                 resolve_tac ctxt @{thms alethe_or_neg}
+                 THEN' K (unfold_tac ctxt @{thms not_not})
+                 THEN_ALL_NEW
+                 (REPEAT'
+                 (SOLVED' (match_tac ctxt @{thms disjI1} THEN_ALL_NEW assume_tac ctxt)
+                 ORELSE' (match_tac ctxt @{thms disjI2} THEN' TRY' (assume_tac ctxt))))) ctxt thms t
+  in
+    choice 0 (* Change here to benchmark different versions *)
+  end |
   or_neg_rule ctxt _ t _ = SMT_Replay_Methods.prove ctxt t (fn _ => K no_tac)
 
-(* TODO Benchmark and_pos versions *)
-(* Version 1: Old initial version *)
-(*
+(* Wrapper to try different variants *)
 fun and_pos ctxt _ t (SOME (Index k)) =
-  SMT_Replay_Methods.prove ctxt t (fn _ =>
-  REPEAT_DETERM_N' k (resolve_tac ctxt @{thms alethe_and_pos})  
-  THEN' TRY' (
-    resolve_tac ctxt @{thms excluded_middle}
-    ORELSE'
-    resolve_tac ctxt [@{lemma "(a \<Longrightarrow> A) \<Longrightarrow> \<not>(a \<and> b) \<or> A" by blast}]
-  )
-  THEN' TRY' (assume_tac ctxt)) |
-and_pos ctxt _ t _ = (*legacy*)
-  SMT_Replay_Methods.prove ctxt t (fn _ =>
+          (* New version with argument *)
+  let fun choice 0 = 
+                   SMT_Replay_Methods.prove ctxt t (fn _ =>
+                   resolve_tac ctxt [@{lemma "(A \<Longrightarrow> B) \<Longrightarrow> (\<not>A \<or> B)" by blast}]
+                   THEN' REPEAT_DETERM_N' k (dmatch_tac ctxt @{thms conjunct2})
+                   THEN' FIRST' [
+                                 (dmatch_tac ctxt @{thms conjunct1}) THEN' (assume_tac ctxt),
+                                 (assume_tac ctxt)
+                                ]
+                   )
+        (* Old version with argument *)
+        | choice 1 = 
+                   SMT_Replay_Methods.prove ctxt t (fn _ =>
+                   REPEAT_DETERM_N' k (resolve_tac ctxt @{thms alethe_and_pos})  
+                   THEN' TRY' 
+                   (
+                    resolve_tac ctxt @{thms excluded_middle}
+                    ORELSE'
+                    resolve_tac ctxt [@{lemma "(a \<Longrightarrow> A) \<Longrightarrow> \<not>(a \<and> b) \<or> A" by blast}]
+                   )
+                   THEN' TRY' (assume_tac ctxt))
+        (* RS + FOCUS *)
+        | choice _ = let fun and_focus ({context, prems, ...}: Subgoal.focus) =
+                       let
+                         fun rconj th 0 = th
+                           | rconj th k = rconj (th RS @{thm conjunct2}) (k-1)
+                         val th1 = rconj (hd prems) k
+                         val th2 = (th1 RS @{thm conjunct1} handle THM _ => th1)
+                       in
+                         FIRST' [
+                                 (resolve_tac context [th1]),
+                                 (resolve_tac context [th2])
+                                ] 1
+                       end
+                     in
+                       SMT_Replay_Methods.prove ctxt t (fn _ => 
+                       resolve_tac ctxt [@{lemma "(A \<Longrightarrow> B) \<Longrightarrow> (\<not>A \<or> B)" by blast}]
+                       THEN' (Subgoal.FOCUS and_focus ctxt))
+                     end
+  in
+    choice 0 (* Change here to benchmark different versions *)
+  end |
+  (*Legacy fallback for no arg*)
+  and_pos ctxt _ t _ = SMT_Replay_Methods.prove ctxt t (fn _ =>
   REPEAT_CHANGED (resolve_tac ctxt @{thms alethe_and_pos})
   THEN' TRY' (assume_tac ctxt))
-*)
-
-(* Version 2: d-tact and assume *)
-fun and_pos ctxt _ t (SOME (Index k)) =
-  SMT_Replay_Methods.prove ctxt t (fn _ =>
-  resolve_tac ctxt [@{lemma "(A \<Longrightarrow> B) \<Longrightarrow> (\<not>A \<or> B)" by blast}]
-  THEN' REPEAT_DETERM_N' k (dmatch_tac ctxt @{thms conjunct2})
-  THEN' FIRST' [
-                (dmatch_tac ctxt @{thms conjunct1}) THEN' (assume_tac ctxt),
-                (assume_tac ctxt)
-               ]
-) |
-  and_pos ctxt _ t _ = SMT_Replay_Methods.prove ctxt t (fn _ => K no_tac)
-
-(* TODO Version 3: Theorem construction *)
-(*
-fun and_pos ctxt _ t (SOME (Index k)) =
-    let
-      fun and_focus i ({context, prems, ...}: Subgoal.focus) =
-        let
-          fun rconj th 0 = th
-            | rconj th k = rconj (th RS @{thm conjunct2}) (k-1)
-          val th1 = rconj (hd prems) k
-          val th2 = (th1 RS @{thm conjunct1} handle THM _ => th1)
-        in
-          FIRST [
-                 (resolve_tac context [th1] i),
-                 (resolve_tac context [th2] i)
-                ]
-        end
-    in
-      SMT_Replay_Methods.prove ctxt t (fn _ => 
-        resolve_tac ctxt [@{lemma "(A \<Longrightarrow> B) \<Longrightarrow> (\<not>A \<or> B)" by blast}]
-        THEN' (fn i => Subgoal.FOCUS (and_focus i) ctxt i))
-    end
-  |
-  and_pos ctxt _ t _ = SMT_Replay_Methods.prove ctxt t (fn _ => K no_tac)
-*)
-
 end
 
 
@@ -1671,7 +1663,9 @@ For congruence we do two different things:
   
   We experimented with various versions and found that we need to avoid iterating over the entire
   term. Therefore, we calculate the size of the term and don't try to rewrite if the term is
-  smaller than the smallest term to rewrite.
+  smaller than the smallest term to rewrite. However, the size calculation is only useful if you
+  need to go over the full term, which the standard does not allow for now. Therefore, we removed
+  it again and simplified the procedure.
 
 
   2. otherwise, we look for things (%x. f x) = (%x. g x), a = b |> (%x. f x) a = (%x. g x) b. For
@@ -1723,27 +1717,22 @@ local
       throwing_CONVERSION (conv_term (eq_pred_conv rews t1 ctxt))
     end
 
-  fun cong_cong_conv min_size_left min_size_right current_size rews t ctxt ctrm =
-    let 
-      val t' = (Thm.term_of ctrm|> Envir.beta_eta_contract)
-    in
-      (case strict_find_rew rews t t' of
-        SOME thm => Conv.rewr_conv thm ctrm
-      | NONE =>
-        if (current_size < min_size_right orelse Term.size_of_term t' < min_size_left) 
-        then ((*@{print}("aborting", min_size_left, t, min_size_right, t');*) Conv.all_conv ctrm)
-        else
-          (case t of
-            f $ arg =>
-              Conv.try_conv 
-                (Conv.fun_conv (cong_cong_conv min_size_left min_size_right
-                    (current_size - Term.size_of_term arg) rews f ctxt)
-                then_conv
-                  (Conv.arg_conv (cong_cong_conv min_size_left min_size_right (Term.size_of_term arg)
-                    rews arg ctxt)))
-                ctrm
-          | _ => Conv.all_conv ctrm))
-    end
+  fun only_replace rews t ctrm =
+    (case strict_find_rew rews t (Thm.term_of ctrm|> Envir.beta_eta_contract) of
+      SOME thm => Conv.rewr_conv thm ctrm
+    | NONE => Conv.no_conv ctrm)
+
+  fun cong_cong_conv rews t ty ctxt ctrm =
+    (case t of
+      f $ arg =>
+        Conv.try_conv 
+          (Conv.fun_conv (only_replace rews f else_conv cong_cong_conv rews f ty ctxt)
+          then_conv
+            (if fastype_of arg = ty
+             then Conv.arg_conv (only_replace rews arg) else_conv Conv.arg_conv (cong_cong_conv rews arg ty ctxt)
+             else Conv.try_conv (Conv.arg_conv (only_replace rews arg))))
+          ctrm
+    | _ => Conv.all_conv ctrm)
 
   exception no_lambda
 
@@ -1753,11 +1742,11 @@ local
     | extract_lambda_function_and_arguments _ = raise no_lambda
 
   fun compose_fun ctxt tm ((_, SOME arg1) :: args) =
-     compose_fun ctxt (@{thm alethe_arg_cong} OF [tm, arg1]) args
-  | compose_fun ctxt tm ((arg1, NONE) :: args) =
-     compose_fun ctxt (Drule.infer_instantiate' ctxt (map (SOME o Thm.cterm_of ctxt) [arg1]) 
-      (@{thm alethe_arg_cong0} OF [tm])) args
-  | compose_fun _ tm _ = tm
+        compose_fun ctxt (@{thm alethe_arg_cong} OF [tm, arg1]) args
+    | compose_fun ctxt tm ((arg1, NONE) :: args) =
+        compose_fun ctxt (Drule.infer_instantiate' ctxt (map (SOME o Thm.cterm_of ctxt) [arg1]) 
+          (@{thm alethe_arg_cong0} OF [tm])) args
+    | compose_fun _ tm _ = tm
 
   fun cong_conv_lambda orig_t ctxt prems t =
     let
@@ -1798,18 +1787,16 @@ local
       val rews = prems
         |> map_filter (try (apfst (apfst Envir.beta_eta_contract o apsnd Envir.beta_eta_contract o  HOLogic.dest_eq o Thm.term_of o Object_Logic.dest_judgment ctxt o
             Thm.cconcl_of) o `(fn x => x)))
+        |> filter_out (fn ((a, b), _) => a = b)
         |> map (apsnd (fn x => @{thm eq_reflection} OF [x]))
-
-      val min_size_rewritting_right = List.foldl (fn (a,b) => Int.min (a, b))
-         ((Term.size_of_term o snd o fst o hd) rews) (map (Term.size_of_term o snd o fst) (tl rews))
-      val min_size_rewritting_left = List.foldl (fn (a,b) => Int.min (a, b))
-         ((Term.size_of_term o fst o fst o hd) rews) (map (Term.size_of_term o fst o fst) (tl rews))
     in
-      t
-      |> HOLogic.Trueprop_conv (HOLogic.eq_conv 
-           (cong_cong_conv min_size_rewritting_left min_size_rewritting_right (Term.size_of_term t')
-             rews t' ctxt)
-           Conv.all_conv)
+      (case rews of 
+        [] => Conv.all_conv t
+      | _ =>
+          t
+          |> HOLogic.Trueprop_conv (HOLogic.eq_conv 
+               (cong_cong_conv rews t' (fastype_of t') ctxt)
+               Conv.all_conv))
     end
 in
 

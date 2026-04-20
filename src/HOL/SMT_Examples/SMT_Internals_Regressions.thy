@@ -1385,49 +1385,29 @@ lemma not_equiv2_5:
 
 (* Rule 48: and_pos *)
 
-lemma and_pos_lem: \<open>(A \<Longrightarrow> B) \<Longrightarrow> (\<not>A \<or> B)\<close> by auto
-
-ML \<open>
-fun TRY' tac = fn i => TRY (tac i)
-fun and_pos_rtac ctxt k = HEADGOAL (
-  resolve_tac ctxt @{thms and_pos_lem}
-  THEN' Subgoal.FOCUS (fn {context, prems, ...} =>
-    let
-        fun dconj th 1 = th
-          | dconj th k = dconj (th RS @{thm conjunct2}) (k-1)
-        val th1 = dconj (hd prems) k
-    in
-      HEADGOAL (
-       (resolve_tac context [th1]) ORELSE'
-       K (print_tac context "tsuff") THEN'
-       TRY' (resolve_tac ctxt @{thms conjunct1} THEN' resolve_tac context [th1])
-     )
-    end
-) ctxt)
-\<close>
 lemma "\<not>(a \<and> b \<and> c) \<or> c"
-  by (tactic \<open>and_pos_rtac @{context} 3\<close>)
+  by (ctxt_tactic "and_pos" "2")
 
 lemma and_pos_1: "\<not>(a \<and> b \<and> c) \<or> b"
-  by (tactic \<open>and_pos_rtac @{context} 2\<close>)
+  by (ctxt_tactic "and_pos" "1")
 
 lemma and_pos_2: "\<not>(a \<and> b \<and> c) \<or> c"
-  by (tactic \<open>and_pos_rtac @{context} 3\<close>)
+  by (ctxt_tactic "and_pos" "2")
 
 lemma and_pos_3: "\<not>(a \<and> (b \<and> c) \<and> d) \<or> (b \<and> c)"
-  by (tactic \<open>and_pos_rtac @{context} 2\<close>)
+  by (ctxt_tactic "and_pos" "1")
 
 lemma and_pos_4: "\<not>(a \<and> (b \<and> c) \<and> d) \<or> d"
-  by (tactic \<open>and_pos_rtac @{context} 3\<close>)
+  by (ctxt_tactic "and_pos" "2")
 
 lemma and_pos_5: "\<not>(a \<and> (b \<or> \<not>c \<and> d)) \<or> (b \<or> \<not>c \<and> d)"
-  by (tactic \<open>and_pos_rtac @{context} 2\<close>)
+  by (ctxt_tactic "and_pos" "1")
 
 lemma and_pos_6: "\<not>(a \<and> (b \<and> c)) \<or> (b \<and> c)"
-  by (tactic \<open>and_pos_rtac @{context} 2\<close>)
+  by (ctxt_tactic "and_pos" "1")
 
 lemma and_pos_7: "\<not>((\<not>a \<or> b) \<and> c) \<or> (\<not>a \<or> b)"
-  by (tactic \<open>and_pos_rtac @{context} 1\<close>)
+  by (ctxt_tactic "and_pos" "0")
 
 lemma and_pos_8: "\<not>(a \<and> \<not>b) \<or> \<not>b"
   by (ctxt_tactic "and_pos" "1")
@@ -3054,22 +3034,27 @@ ML
 let
   val genVar = fn i => Free ("A"^ (Int.toString i), @{typ bool});
 
-  fun makeConj c 1 = genVar c
+  fun makeConj c 0 = genVar c
     | makeConj c n = HOLogic.mk_conj ((genVar c), (makeConj (c+1) (n-1))) 
 
-  fun makeDisj c 1 = genVar c
+  fun makeDisj c 0 = genVar c
     | makeDisj c n = HOLogic.mk_disj ((genVar c), (makeDisj (c+1) (n-1))) 
 
   fun makeNeg t = (Const ("HOL.Not", @{typ "bool \<Rightarrow> bool"})) $ t 
 
-  fun buildAndPosTerm c n i = HOLogic.mk_disj (makeNeg (makeConj c n), (genVar i))
-  fun buildOrNegTerm c n i = HOLogic.mk_disj ((makeDisj c n), makeNeg (genVar i))
+  fun buildAndPosTerm n i = HOLogic.mk_disj (makeNeg (makeConj 0 n), (genVar i))
+  fun buildOrNegTerm n i = HOLogic.mk_disj ((makeDisj 0 n), makeNeg (genVar i))
 
   val ctxt = @{context}
+  
+  fun mkList n 0 = ((n, 0)::[])
+    | mkList n i = (n, i)::mkList n (i-1)
 
-  fun measure_time ctxt (c, n, i) =
-    let val t1 = (@{term Trueprop} $ (buildAndPosTerm c n i))
-        val t2 = (@{term Trueprop} $ (buildOrNegTerm c n i))
+  val benchmark = [(10, 10), (100, 100), (1000,1000), (10000, 10000), (20000, 20000), (50000, 50000)]
+
+  fun measure_time ctxt (n, i) =
+    let val t1 = (@{term Trueprop} $ (buildAndPosTerm n i))
+        val t2 = (@{term Trueprop} $ (buildOrNegTerm n i))
         val start = Timing.start ()
         val _ = Alethe_Replay_Methods.and_pos ctxt [] t1 (SOME (Index i))
         val total = Time.toMilliseconds (#elapsed (Timing.result start))
@@ -3077,15 +3062,17 @@ let
         val _ = Alethe_Replay_Methods.or_neg_rule ctxt [] t2 (SOME (Index i))
         val total' = Time.toMilliseconds (#elapsed (Timing.result start'))
     in
-      (total, total')
+      (("and_pos", total), ("or_neg", total'))
     end
 in
-  map (measure_time ctxt) [(0, 10, 5), 
-                           (0, 100, 50), 
-                           (0, 1000, 500), 
-                           (0, 10000, 5000), 
-                           (0, 20000, 10000)]
+  let val result = map (measure_time ctxt) benchmark 
+  in
+    (result, List.foldr (fn (((_,b), (_,d)), (accX, accY)) => (accX + b, accY + d)) (0,0) result)
+  end
 end
+(*               [(10, 10), (100, 100), (1000, 1000), (10000, 10000)] *)
+(* New: val it = [(0, 0),   (0, 0),     (24, 24),     (1808, 1798)  ] *)
+(* Old: val it = [(0, 0),   (2, 1),     (141, 41),    (12673, 2949) ] *)
 \<close>
 
 end

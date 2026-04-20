@@ -8,7 +8,37 @@ declare [[smt_trace=false,smt_statistics=true,smt_verbose=false]]
 
 (* and pos *)
 
-lemma and_pos_62: "\<bar>x :: real\<bar> + \<bar>y\<bar> \<ge> \<bar>x + y\<bar>" supply[[smt_trace=false,smt_verbose=false]] by (smt (cvc5_proof)) 
+lemma and_pos_62: "\<bar>x :: real\<bar> + \<bar>y\<bar> \<ge> \<bar>x + y\<bar>" by (smt (cvc5_proof))
+(*
+Old
+
+Run 1
+62 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 0 ms maximum time, 0 ms total time
+34 occurrences, 1 ms 1/4th time, 1 ms mean time, 1 ms 3/4th time, 1 ms maximum time, 28 ms total time
+
+Run 2
+and_pos: 62 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 1 ms maximum time, 2 ms total time
+or_neg: 34 occurrences, 1 ms 1/4th time, 1 ms mean time, 1 ms 3/4th time, 1 ms maximum time, 28 ms total time
+
+Run 3
+and_pos: 62 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 1 ms maximum time, 2 ms total time
+or_neg: 34 occurrences, 1 ms 1/4th time, 1 ms mean time, 1 ms 3/4th time, 1 ms maximum time, 28 ms total time
+
+New
+
+Run 1
+62 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 1 ms maximum time, 2 ms total time
+34 occurrences, 1 ms 1/4th time, 1 ms mean time, 1 ms 3/4th time, 1 ms maximum time, 28 ms total time
+
+Run 2
+62 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 1 ms maximum time, 1 ms total time
+34 occurrences, 1 ms 1/4th time, 1 ms mean time, 1 ms 3/4th time, 1 ms maximum time, 28 ms total time
+
+Run 3
+62 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 1 ms maximum time, 2 ms total time
+34 occurrences, 1 ms 1/4th time, 1 ms mean time, 1 ms 3/4th time, 1 ms maximum time, 28 ms total time
+
+*)
 
 (* ---------------------------------------- *)
 
@@ -44,8 +74,37 @@ lemma and_pos_115:
       and "\<And>A B. (\<And>x. (x::'a) \<in> A \<Longrightarrow> x \<in> B) \<Longrightarrow> A \<subseteq> B"
       and "\<And>A B. \<lbrakk>(A::'a set) \<subseteq> B; B \<subseteq> A\<rbrakk> \<Longrightarrow> A = B"
       and "\<And>A ys. (A \<subseteq> List.coset ys) = (\<forall>y\<in>set ys. (y::'a) \<notin> A)"
-  using that by (smt (cvc5_proof)) 
+  using that by (smt (cvc5_proof))
 end
+(*
+Old
+
+Run 1
+and_pos: 102 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 1 ms maximum time, 21 ms total time
+or_neg: 39 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 1 ms maximum time, 5 ms total time
+
+Run 2
+and_pos: 102 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 1 ms maximum time, 22 ms total time
+39 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 1 ms maximum time, 1 ms total time
+
+Run 3
+and_pos: 102 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 1 ms maximum time, 22 ms total time
+or_neg: 39 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 1 ms maximum time, 1 ms total time
+
+New
+
+Run 1
+and_pos: 102 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 1 ms maximum time, 22 ms total time
+or_neg: 39 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 1 ms maximum time, 2 ms total time
+
+Run 2
+and_pos: 102 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 1 ms maximum time, 22 ms total time
+or_neg: 39 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 1 ms maximum time, 1 ms total time
+
+Run 3
+and_pos: 102 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 1 ms maximum time, 22 ms total time
+or_neg: 39 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 1 ms maximum time, 1 ms total time
+*)
 
 (* ---------------------------------------- *)
 
@@ -74,8 +133,36 @@ lemma and_pos_378:
  mult_less_cancel_left_pos mult_minus_left nonzero_eq_divide_eq nonzero_mult_div_cancel_left
  nonzero_mult_div_cancel_right powr_gt_zero powr_minus_divide round_down_uminus_eq
  round_up round_up_diff_round_down times_divide_eq_right assms
-  by (smt (cvc5))
+   by (smt (cvc5))
 end
+(*
+Old
+
+Run 1
+and_pos: 378 occurrences, 2 ms 1/4th time, 4 ms mean time, 10 ms 3/4th time, 18 ms maximum time, 2104 ms total time
+or_neg: 225 occurrences, 4 ms 1/4th time, 8 ms mean time, 23 ms 3/4th time, 26 ms maximum time, 2691 ms total time
+
+Run 2
+378 occurrences, 2 ms 1/4th time, 4 ms mean time, 12 ms 3/4th time, 16 ms maximum time, 2316 ms total time
+or_neg: 225 occurrences, 3 ms 1/4th time, 9 ms mean time, 29 ms 3/4th time, 34 ms maximum time, 3047 ms total time
+
+Run 3
+and_pos: 378 occurrences, 2 ms 1/4th time, 4 ms mean time, 10 ms 3/4th time, 69 ms maximum time, 2192 ms total time
+or_neg: 225 occurrences, 3 ms 1/4th time, 8 ms mean time, 22 ms 3/4th time, 24 ms maximum time, 2602 ms total time
+New
+
+Run 1
+and_pos: 378 occurrences, 2 ms 1/4th time, 4 ms mean time, 9 ms 3/4th time, 14 ms maximum time, 2046 ms total time
+or_neg: 225 occurrences, 4 ms 1/4th time, 8 ms mean time, 21 ms 3/4th time, 36 ms maximum time, 2671 ms total time
+
+Run 2
+and_pos: 378 occurrences, 2 ms 1/4th time, 4 ms mean time, 10 ms 3/4th time, 14 ms maximum time, 2043 ms total time
+225 occurrences, 3 ms 1/4th time, 8 ms mean time, 21 ms 3/4th time, 25 ms maximum time, 2503 ms total time
+
+Run 3
+and_pos: 378 occurrences, 2 ms 1/4th time, 4 ms mean time, 10 ms 3/4th time, 14 ms maximum time, 2026 ms total time
+225 occurrences, 3 ms 1/4th time, 8 ms mean time, 20 ms 3/4th time, 24 ms maximum time, 2443 ms total time
+*)
 
 (* ---------------------------------------- *)
 
@@ -101,8 +188,37 @@ lemma and_pos_407 [simp]:
        "\<forall>a::int. odd a = (a mod (2::int) = (1::int))"
        shows
   \<open>0 cdiv k = 0\<close>
-  by (smt (cvc5) assms)
-
+    by (smt (cvc5) assms)
 end
+(*
+Old
+
+Run 1
+and_pos: 407 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 1 ms maximum time, 26 ms total time
+or_neg: 196 occurrences, 0 ms 1/4th time, 1 ms mean time, 1 ms 3/4th time, 114 ms maximum time, 251 ms total time
+
+Run 2
+and_pos: 407 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 1 ms maximum time, 36 ms total time
+or_neg: 196 occurrences, 0 ms 1/4th time, 1 ms mean time, 1 ms 3/4th time, 2 ms maximum time, 144 ms total time
+
+Run 3
+and_pos: 407 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 1 ms maximum time, 29 ms total time
+or_neg: 196 occurrences, 0 ms 1/4th time, 1 ms mean time, 1 ms 3/4th time, 2 ms maximum time, 135 ms total time
+
+New
+
+Run 1
+and_pos: 407 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 1 ms maximum time, 28 ms total time
+or_neg: 196 occurrences, 0 ms 1/4th time, 1 ms mean time, 1 ms 3/4th time, 2 ms maximum time, 125 ms total time
+
+Run 2
+and_pos: 407 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 1 ms maximum time, 32 ms total time
+or_neg: 196 occurrences, 0 ms 1/4th time, 1 ms mean time, 1 ms 3/4th time, 2 ms maximum time, 136 ms total time
+
+Run 3
+407 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 1 ms maximum time, 48 ms total time
+or_neg: 196 occurrences, 0 ms 1/4th time, 1 ms mean time, 1 ms 3/4th time, 1 ms maximum time, 126 ms total time
+
+*)
 
 end
