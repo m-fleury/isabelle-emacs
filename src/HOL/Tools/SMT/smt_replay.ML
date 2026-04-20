@@ -267,7 +267,7 @@ fun pretty_statistics solver total stats =
         val pos = (len * n) div 4
       in nth is pos end
     fun pretty_item name p = Pretty.item (Pretty.separate ":" [Pretty.str name, p])
-    fun pretty (name, milliseconds) = 
+    fun pretty (name, milliseconds) =
       let val milliseconds = Library.sort int_ord milliseconds
       in
         Pretty.block (Pretty.str (name ^": ")  :: Pretty.separate "," [
