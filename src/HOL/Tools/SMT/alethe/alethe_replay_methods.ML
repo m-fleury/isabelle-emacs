@@ -1152,7 +1152,7 @@ fun or_neg_rule ctxt thms t (SOME (Index k)) =
                  (SOLVED' (match_tac ctxt @{thms disjI1} THEN_ALL_NEW assume_tac ctxt)
                  ORELSE' (match_tac ctxt @{thms disjI2} THEN' TRY' (assume_tac ctxt))))) ctxt thms t
   in
-    choice 0
+    choice 0 (* Change here to benchmark different versions *)
   end |
   or_neg_rule ctxt _ t _ = SMT_Replay_Methods.prove ctxt t (fn _ => K no_tac)
 

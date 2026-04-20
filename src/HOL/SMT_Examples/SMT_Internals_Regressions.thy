@@ -3066,6 +3066,13 @@ let
   fun buildOrNegTerm n i = HOLogic.mk_disj ((makeDisj 0 n), makeNeg (genVar i))
 
   val ctxt = @{context}
+  
+  val benchmark = 
+    let fun mkList n 0 = ((n, 0)::[])
+          | mkList n i = (2500, i)::mkList n (i-1)
+    in
+      mkList 2500 57
+    end
 
   fun measure_time ctxt (n, i) =
     let val t1 = (@{term Trueprop} $ (buildAndPosTerm n i))
@@ -3077,17 +3084,17 @@ let
         val _ = Alethe_Replay_Methods.or_neg_rule ctxt [] t2 (SOME (Index i))
         val total' = Time.toMilliseconds (#elapsed (Timing.result start'))
     in
-      (total, total')
+      (("and_pos", total), ("or_neg", total'))
     end
 in
-  map (measure_time ctxt) [(10, 10), 
-                           (100, 100), 
-                           (1000, 1000), 
-                           (10000, 10000)]
+  let val result = map (measure_time ctxt) benchmark 
+  in
+    (result, List.foldr (fn (((_,b), (_,d)), (accX, accY)) => (accX + b, accY + d)) (0,0) result)
+  end
+end
+(* [(10, 10), (100, 100), (1000, 1000), (10000, 10000)] *)
 (* New: val it = [(0, 0), (0, 0), (24, 24), (1808, 1798)]: (int * int) list *)
 (* Old: val it = [(0, 0), (2, 1), (141, 41), (12673, 2949)]: (int * int) list *)
-
-end
 \<close>
 
 end

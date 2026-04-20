@@ -74,7 +74,7 @@ lemma and_pos_378:
  mult_less_cancel_left_pos mult_minus_left nonzero_eq_divide_eq nonzero_mult_div_cancel_left
  nonzero_mult_div_cancel_right powr_gt_zero powr_minus_divide round_down_uminus_eq
  round_up round_up_diff_round_down times_divide_eq_right assms
-  by (smt (cvc5))
+   supply [[smt_trace]] by (smt (cvc5))
 end
 
 (* ---------------------------------------- *)
@@ -101,8 +101,36 @@ lemma and_pos_407 [simp]:
        "\<forall>a::int. odd a = (a mod (2::int) = (1::int))"
        shows
   \<open>0 cdiv k = 0\<close>
-  by (smt (cvc5) assms)
-
+    by (smt (cvc5) assms)
 end
+
+(* 
+Old 
+or_neg: 34 occurrences, 1 ms 1/4th time, 1 ms mean time, 2 ms 3/4th time, 2 ms maximum time, 38 ms total time
+and_pos: 62 occurrences, 0 ms 1/4th time, 0 ms mean time, 1 ms 3/4th time, 1 ms maximum time, 31 ms total time
+
+or_neg: 39 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 1 ms maximum time, 5 ms total time
+and_pos: 102 occurrences, 0 ms 1/4th time, 0 ms mean time, 1 ms 3/4th time, 2 ms maximum time, 35 ms total time
+
+or_neg: 225 occurrences, 3 ms 1/4th time, 9 ms mean time, 29 ms 3/4th time, 35 ms maximum time, 3037 ms total time
+and_pos: 378 occurrences, 2 ms 1/4th time, 4 ms mean time, 13 ms 3/4th time, 15 ms maximum time, 2288 ms total time
+
+or_neg: 196 occurrences, 0 ms 1/4th time, 1 ms mean time, 1 ms 3/4th time, 2 ms maximum time, 143 ms total time
+and_pos: 407 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 1 ms maximum time, 23 ms total time
+*)
+(* 
+New 
+or_neg: 34 occurrences, 1 ms 1/4th time, 1 ms mean time, 1 ms 3/4th time, 1 ms maximum time, 28 ms total time
+and_pos: 62 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 1 ms maximum time, 11 ms total time
+
+or_neg: 39 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 1 ms maximum time, 4 ms total time
+and_pos: 102 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 1 ms maximum time, 23 ms total time
+
+or_neg: 225 occurrences, 3 ms 1/4th time, 8 ms mean time, 21 ms 3/4th time, 47 ms maximum time, 2516 ms total time
+and_pos: 378 occurrences, 2 ms 1/4th time, 4 ms mean time, 9 ms 3/4th time, 14 ms maximum time, 2121 ms total time
+
+or_neg: 196 occurrences, 0 ms 1/4th time, 1 ms mean time, 1 ms 3/4th time, 2 ms maximum time, 133 ms total time
+and_pos: 407 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 1 ms maximum time, 27 ms total time
+*)
 
 end
