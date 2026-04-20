@@ -1663,7 +1663,9 @@ For congruence we do two different things:
   
   We experimented with various versions and found that we need to avoid iterating over the entire
   term. Therefore, we calculate the size of the term and don't try to rewrite if the term is
-  smaller than the smallest term to rewrite.
+  smaller than the smallest term to rewrite. However, the size calculation is only useful if you
+  need to go over the full term, which the standard does not allow for now. Therefore, we removed
+  it again and simplified the procedure.
 
 
   2. otherwise, we look for things (%x. f x) = (%x. g x), a = b |> (%x. f x) a = (%x. g x) b. For
@@ -1715,27 +1717,22 @@ local
       throwing_CONVERSION (conv_term (eq_pred_conv rews t1 ctxt))
     end
 
-  fun cong_cong_conv min_size_left min_size_right current_size rews t ctxt ctrm =
-    let 
-      val t' = (Thm.term_of ctrm|> Envir.beta_eta_contract)
-    in
-      (case strict_find_rew rews t t' of
-        SOME thm => Conv.rewr_conv thm ctrm
-      | NONE =>
-        if (current_size < min_size_right orelse Term.size_of_term t' < min_size_left) 
-        then ((*@{print}("aborting", min_size_left, t, min_size_right, t');*) Conv.all_conv ctrm)
-        else
-          (case t of
-            f $ arg =>
-              Conv.try_conv 
-                (Conv.fun_conv (cong_cong_conv min_size_left min_size_right
-                    (current_size - Term.size_of_term arg) rews f ctxt)
-                then_conv
-                  (Conv.arg_conv (cong_cong_conv min_size_left min_size_right (Term.size_of_term arg)
-                    rews arg ctxt)))
-                ctrm
-          | _ => Conv.all_conv ctrm))
-    end
+  fun only_replace rews t ctrm =
+    (case strict_find_rew rews t (Thm.term_of ctrm|> Envir.beta_eta_contract) of
+      SOME thm => Conv.rewr_conv thm ctrm
+    | NONE => Conv.no_conv ctrm)
+
+  fun cong_cong_conv rews t ty ctxt ctrm =
+    (case t of
+      f $ arg =>
+        Conv.try_conv 
+          (Conv.fun_conv (only_replace rews f else_conv cong_cong_conv rews f ty ctxt)
+          then_conv
+            (if fastype_of arg = ty
+             then Conv.arg_conv (only_replace rews arg) else_conv Conv.arg_conv (cong_cong_conv rews arg ty ctxt)
+             else Conv.try_conv (Conv.arg_conv (only_replace rews arg))))
+          ctrm
+    | _ => Conv.all_conv ctrm)
 
   exception no_lambda
 
@@ -1745,11 +1742,11 @@ local
     | extract_lambda_function_and_arguments _ = raise no_lambda
 
   fun compose_fun ctxt tm ((_, SOME arg1) :: args) =
-     compose_fun ctxt (@{thm alethe_arg_cong} OF [tm, arg1]) args
-  | compose_fun ctxt tm ((arg1, NONE) :: args) =
-     compose_fun ctxt (Drule.infer_instantiate' ctxt (map (SOME o Thm.cterm_of ctxt) [arg1]) 
-      (@{thm alethe_arg_cong0} OF [tm])) args
-  | compose_fun _ tm _ = tm
+        compose_fun ctxt (@{thm alethe_arg_cong} OF [tm, arg1]) args
+    | compose_fun ctxt tm ((arg1, NONE) :: args) =
+        compose_fun ctxt (Drule.infer_instantiate' ctxt (map (SOME o Thm.cterm_of ctxt) [arg1]) 
+          (@{thm alethe_arg_cong0} OF [tm])) args
+    | compose_fun _ tm _ = tm
 
   fun cong_conv_lambda orig_t ctxt prems t =
     let
@@ -1790,18 +1787,16 @@ local
       val rews = prems
         |> map_filter (try (apfst (apfst Envir.beta_eta_contract o apsnd Envir.beta_eta_contract o  HOLogic.dest_eq o Thm.term_of o Object_Logic.dest_judgment ctxt o
             Thm.cconcl_of) o `(fn x => x)))
+        |> filter_out (fn ((a, b), _) => a = b)
         |> map (apsnd (fn x => @{thm eq_reflection} OF [x]))
-
-      val min_size_rewritting_right = List.foldl (fn (a,b) => Int.min (a, b))
-         ((Term.size_of_term o snd o fst o hd) rews) (map (Term.size_of_term o snd o fst) (tl rews))
-      val min_size_rewritting_left = List.foldl (fn (a,b) => Int.min (a, b))
-         ((Term.size_of_term o fst o fst o hd) rews) (map (Term.size_of_term o fst o fst) (tl rews))
     in
-      t
-      |> HOLogic.Trueprop_conv (HOLogic.eq_conv 
-           (cong_cong_conv min_size_rewritting_left min_size_rewritting_right (Term.size_of_term t')
-             rews t' ctxt)
-           Conv.all_conv)
+      (case rews of 
+        [] => Conv.all_conv t
+      | _ =>
+          t
+          |> HOLogic.Trueprop_conv (HOLogic.eq_conv 
+               (cong_cong_conv rews t' (fastype_of t') ctxt)
+               Conv.all_conv))
     end
 in
 
