@@ -1131,87 +1131,79 @@ fun not_or_rule ctxt prems t =
 
 
 (*TODO: Improve now that we have arguments*)
-(* TODO Benchmark or_neg versions *)
-
-(* Version 1: Old initial version *)
-(*
-val or_neg_rule = prove_abstract SMT_Replay_Methods.abstract_bool (fn ctxt => fn _ =>
-
-  resolve_tac ctxt @{thms alethe_or_neg}
-
-  THEN' K (unfold_tac ctxt @{thms not_not})
-  THEN_ALL_NEW
-    (REPEAT'
-      (SOLVED' (match_tac ctxt @{thms disjI1} THEN_ALL_NEW assume_tac ctxt)
-       ORELSE' (match_tac ctxt @{thms disjI2} THEN' TRY' (assume_tac ctxt)))))
-*)
-(* Version 2: Index usage *)
-fun or_neg_rule ctxt _ t (SOME (Index k)) = 
-   SMT_Replay_Methods.prove ctxt t (fn _ =>
-     resolve_tac ctxt @{thms alethe_or_neg}
-     THEN' (REPEAT_DETERM_N' k (match_tac ctxt @{thms disjI2}))
-     THEN' FIRST' [
-                   (match_tac ctxt @{thms disjI1}) THEN' (assume_tac ctxt),
-                   (assume_tac ctxt)
-                  ]
-) |
+fun or_neg_rule ctxt thms t (SOME (Index k)) =
+        (* New version with arg *) 
+  let fun choice 0 =
+                 SMT_Replay_Methods.prove ctxt t (fn _ =>
+                 resolve_tac ctxt @{thms alethe_or_neg}
+                 THEN' (REPEAT_DETERM_N' k (match_tac ctxt @{thms disjI2}))
+                 THEN' FIRST' [
+                               (match_tac ctxt @{thms disjI1}) THEN' (assume_tac ctxt),
+                               (assume_tac ctxt)
+                              ]
+                 )
+        (* Old version, no arg *)
+        | choice _ = 
+                 prove_abstract SMT_Replay_Methods.abstract_bool (fn ctxt => fn _ =>
+                 resolve_tac ctxt @{thms alethe_or_neg}
+                 THEN' K (unfold_tac ctxt @{thms not_not})
+                 THEN_ALL_NEW
+                 (REPEAT'
+                 (SOLVED' (match_tac ctxt @{thms disjI1} THEN_ALL_NEW assume_tac ctxt)
+                 ORELSE' (match_tac ctxt @{thms disjI2} THEN' TRY' (assume_tac ctxt))))) ctxt thms t
+  in
+    choice 0
+  end |
   or_neg_rule ctxt _ t _ = SMT_Replay_Methods.prove ctxt t (fn _ => K no_tac)
 
-(* TODO Benchmark and_pos versions *)
-(* Version 1: Old initial version *)
-(*
+(* Wrapper to try different variants *)
 fun and_pos ctxt _ t (SOME (Index k)) =
-  SMT_Replay_Methods.prove ctxt t (fn _ =>
-  REPEAT_DETERM_N' k (resolve_tac ctxt @{thms alethe_and_pos})  
-  THEN' TRY' (
-    resolve_tac ctxt @{thms excluded_middle}
-    ORELSE'
-    resolve_tac ctxt [@{lemma "(a \<Longrightarrow> A) \<Longrightarrow> \<not>(a \<and> b) \<or> A" by blast}]
-  )
-  THEN' TRY' (assume_tac ctxt)) |
-and_pos ctxt _ t _ = (*legacy*)
-  SMT_Replay_Methods.prove ctxt t (fn _ =>
+          (* New version with argument *)
+  let fun choice 0 = 
+                   SMT_Replay_Methods.prove ctxt t (fn _ =>
+                   resolve_tac ctxt [@{lemma "(A \<Longrightarrow> B) \<Longrightarrow> (\<not>A \<or> B)" by blast}]
+                   THEN' REPEAT_DETERM_N' k (dmatch_tac ctxt @{thms conjunct2})
+                   THEN' FIRST' [
+                                 (dmatch_tac ctxt @{thms conjunct1}) THEN' (assume_tac ctxt),
+                                 (assume_tac ctxt)
+                                ]
+                   )
+        (* Old version with argument *)
+        | choice 1 = 
+                   SMT_Replay_Methods.prove ctxt t (fn _ =>
+                   REPEAT_DETERM_N' k (resolve_tac ctxt @{thms alethe_and_pos})  
+                   THEN' TRY' 
+                   (
+                    resolve_tac ctxt @{thms excluded_middle}
+                    ORELSE'
+                    resolve_tac ctxt [@{lemma "(a \<Longrightarrow> A) \<Longrightarrow> \<not>(a \<and> b) \<or> A" by blast}]
+                   )
+                   THEN' TRY' (assume_tac ctxt))
+        (* RS + FOCUS *)
+        | choice _ = let fun and_focus ({context, prems, ...}: Subgoal.focus) =
+                       let
+                         fun rconj th 0 = th
+                           | rconj th k = rconj (th RS @{thm conjunct2}) (k-1)
+                         val th1 = rconj (hd prems) k
+                         val th2 = (th1 RS @{thm conjunct1} handle THM _ => th1)
+                       in
+                         FIRST' [
+                                 (resolve_tac context [th1]),
+                                 (resolve_tac context [th2])
+                                ] 1
+                       end
+                     in
+                       SMT_Replay_Methods.prove ctxt t (fn _ => 
+                       resolve_tac ctxt [@{lemma "(A \<Longrightarrow> B) \<Longrightarrow> (\<not>A \<or> B)" by blast}]
+                       THEN' (Subgoal.FOCUS and_focus ctxt))
+                     end
+  in
+    choice 0 (* Change here to benchmark different versions *)
+  end |
+  (*Legacy fallback for no arg*)
+  and_pos ctxt _ t _ = SMT_Replay_Methods.prove ctxt t (fn _ =>
   REPEAT_CHANGED (resolve_tac ctxt @{thms alethe_and_pos})
   THEN' TRY' (assume_tac ctxt))
-*)
-
-(* Version 2: d-tact and assume *)
-fun and_pos ctxt _ t (SOME (Index k)) =
-  SMT_Replay_Methods.prove ctxt t (fn _ =>
-  resolve_tac ctxt [@{lemma "(A \<Longrightarrow> B) \<Longrightarrow> (\<not>A \<or> B)" by blast}]
-  THEN' REPEAT_DETERM_N' k (dmatch_tac ctxt @{thms conjunct2})
-  THEN' FIRST' [
-                (dmatch_tac ctxt @{thms conjunct1}) THEN' (assume_tac ctxt),
-                (assume_tac ctxt)
-               ]
-) |
-  and_pos ctxt _ t _ = SMT_Replay_Methods.prove ctxt t (fn _ => K no_tac)
-
-(* TODO Version 3: Theorem construction *)
-(*
-fun and_pos ctxt _ t (SOME (Index k)) =
-    let
-      fun and_focus i ({context, prems, ...}: Subgoal.focus) =
-        let
-          fun rconj th 0 = th
-            | rconj th k = rconj (th RS @{thm conjunct2}) (k-1)
-          val th1 = rconj (hd prems) k
-          val th2 = (th1 RS @{thm conjunct1} handle THM _ => th1)
-        in
-          FIRST [
-                 (resolve_tac context [th1] i),
-                 (resolve_tac context [th2] i)
-                ]
-        end
-    in
-      SMT_Replay_Methods.prove ctxt t (fn _ => 
-        resolve_tac ctxt [@{lemma "(A \<Longrightarrow> B) \<Longrightarrow> (\<not>A \<or> B)" by blast}]
-        THEN' (fn i => Subgoal.FOCUS (and_focus i) ctxt i))
-    end
-  |
-  and_pos ctxt _ t _ = SMT_Replay_Methods.prove ctxt t (fn _ => K no_tac)
-*)
-
 end
 
 
