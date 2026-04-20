@@ -133,7 +133,7 @@ fun run_solver ctxt name cmd input =
     val res = Process_Result.out_lines result
     val err = Process_Result.err_lines result
     val return_code = Process_Result.rc result
-    val _ = SMT_Config.trace_msg ctxt (pretty "Solver:") err
+    val _ = SMT_Config.trace_msg ctxt (pretty ("Solver " ^ name ^ ":")) err
 
     val output = drop_suffix (equal "") res
     val _ = SMT_Config.trace_msg ctxt (pretty "Result:") output
