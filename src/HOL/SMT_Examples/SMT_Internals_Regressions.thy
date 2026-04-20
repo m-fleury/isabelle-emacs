@@ -3054,22 +3054,22 @@ ML
 let
   val genVar = fn i => Free ("A"^ (Int.toString i), @{typ bool});
 
-  fun makeConj c 1 = genVar c
+  fun makeConj c 0 = genVar c
     | makeConj c n = HOLogic.mk_conj ((genVar c), (makeConj (c+1) (n-1))) 
 
-  fun makeDisj c 1 = genVar c
+  fun makeDisj c 0 = genVar c
     | makeDisj c n = HOLogic.mk_disj ((genVar c), (makeDisj (c+1) (n-1))) 
 
   fun makeNeg t = (Const ("HOL.Not", @{typ "bool \<Rightarrow> bool"})) $ t 
 
-  fun buildAndPosTerm c n i = HOLogic.mk_disj (makeNeg (makeConj c n), (genVar i))
-  fun buildOrNegTerm c n i = HOLogic.mk_disj ((makeDisj c n), makeNeg (genVar i))
+  fun buildAndPosTerm n i = HOLogic.mk_disj (makeNeg (makeConj 0 n), (genVar i))
+  fun buildOrNegTerm n i = HOLogic.mk_disj ((makeDisj 0 n), makeNeg (genVar i))
 
   val ctxt = @{context}
 
-  fun measure_time ctxt (c, n, i) =
-    let val t1 = (@{term Trueprop} $ (buildAndPosTerm c n i))
-        val t2 = (@{term Trueprop} $ (buildOrNegTerm c n i))
+  fun measure_time ctxt (n, i) =
+    let val t1 = (@{term Trueprop} $ (buildAndPosTerm n i))
+        val t2 = (@{term Trueprop} $ (buildOrNegTerm n i))
         val start = Timing.start ()
         val _ = Alethe_Replay_Methods.and_pos ctxt [] t1 (SOME (Index i))
         val total = Time.toMilliseconds (#elapsed (Timing.result start))
@@ -3080,11 +3080,13 @@ let
       (total, total')
     end
 in
-  map (measure_time ctxt) [(0, 10, 5), 
-                           (0, 100, 50), 
-                           (0, 1000, 500), 
-                           (0, 10000, 5000), 
-                           (0, 20000, 10000)]
+  map (measure_time ctxt) [(10, 10), 
+                           (100, 100), 
+                           (1000, 1000), 
+                           (10000, 10000)]
+(* New: val it = [(0, 0), (0, 0), (24, 24), (1808, 1798)]: (int * int) list *)
+(* Old: val it = [(0, 0), (2, 1), (141, 41), (12673, 2949)]: (int * int) list *)
+
 end
 \<close>
 
