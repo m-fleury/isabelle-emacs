@@ -394,6 +394,7 @@ fun replay solver method_for outer_ctxt
     val parsing_time = Time.toNanoseconds (#elapsed (Timing.result start0))
     val _ = debug_msg ctxt low (fn () => @{print} ("Finished parsing proof steps"))
 
+    val start = Timing.start ()
     (*Find used and non lambda lifting definition assumptions *)
     val used_assert_ids = fold add_used_asserts_in_step parsed_proof_steps []
     val real_assms =
@@ -422,8 +423,7 @@ fun replay solver method_for outer_ctxt
         (real_assms) ctxt_after_parsing (*TODO: Ask Mathias, why do we filter?*)
     val _ = debug_msg ctxt high (fn () => @{print} ("Alle assumptions sind in assumed ",assumed)) (*TODO: Understand better*)
 
-    val ctxt_with_asserts =
-      ctxt_with_asserts
+    val ctxt_with_asserts = ctxt_with_asserts
    (*FIXME: commented out for easier development and for the evaluate rules.*)
    (* |> put_simpset (empty_simpset ctxt_with_asserts [])*)
       |> Config.put SAT.solver (Config.get ctxt_after_parsing SMT_Config.sat_solver)
@@ -449,7 +449,6 @@ fun replay solver method_for outer_ctxt
     val _ = debug_msg ctxt middle (fn () => @{print} ("Add indices to steps", actual_steps))
 
     (*Set-up Statistics*)
-    val start = Timing.start ()
     val print_runtime_statistics = SMT_Replay.intermediate_statistics ctxt_with_asserts start len
     fun blockwise f (i, x) (next, y) =
       (if i > next then print_runtime_statistics i else ();

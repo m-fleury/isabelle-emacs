@@ -255,6 +255,8 @@ fun intermediate_statistics ctxt start total =
 
 fun pretty_statistics solver total stats =
   let
+    fun sum_all xs = List.foldr (fn ((_,b), x) => x + List.foldr (op+) 0 b) 0 xs
+    val total_time_rules = (sum_all (Symtab.dest stats)) div 1000000
     val stats = Symtab.map (K (map (fn i => curry Int.div i 1000000))) stats
     fun mean_of is =
       let
@@ -281,6 +283,7 @@ fun pretty_statistics solver total stats =
   in
     Pretty.big_list (solver ^ " proof reconstruction statistics:") (
       pretty_item "total time" (Pretty.str (string_of_int total ^ " ms")) ::
+      pretty_item "total time in rules" (Pretty.str (string_of_int total_time_rules ^ " ms")) ::
       map pretty (Symtab.dest stats))
   end
 
