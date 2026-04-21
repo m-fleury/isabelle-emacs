@@ -1071,16 +1071,6 @@ local
      THEN' K (unfold_tac ctxt @{thms de_Morgan_conj de_Morgan_disj not_not})
      THEN' TRY' (assume_tac ctxt)
 
-  fun not_or_rule_prove ctxt prems =
-     Method.insert_tac ctxt prems
-     THEN' K (unfold_tac ctxt @{thms de_Morgan_disj not_not})
-     (*THEN' K (print_tac ctxt "not_or")*)
-     THEN' TRY' (REPEAT' (match_tac ctxt @{thms conjI}     THEN' K (print_tac ctxt "not_or1")
-))
-     THEN_ALL_NEW ((REPEAT' (ematch_tac ctxt @{thms conjE})     THEN' K (print_tac ctxt "not_or2")
-)
-       THEN' TRY' (assume_tac ctxt))
-
   fun and_rule_prove ctxt prems =
      Method.insert_tac ctxt prems
      THEN' REPEAT' (eresolve_tac ctxt @{thms conjE} THEN' TRY' (assume_tac ctxt))
