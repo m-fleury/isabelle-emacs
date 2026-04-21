@@ -35,7 +35,8 @@ fun parse_proof
     fun step_of_assume j ((_, role), th) =
       Alethe_Node.Alethe_Step
         {id = SMTLIB_Interface.assert_name_of_role_and_index role (id_of_index j),
-        rule = input_rule, prems = [], concl = Thm.prop_of th}
+        rule = input_rule, prems = [], concl = Thm.prop_of th,
+        prop_skeleton = @{term "True"}}
 
     val (actual_steps, _) = Alethe_Proof.parse typs terms output ctxt
     val used_assert_ids =

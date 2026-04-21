@@ -58,6 +58,7 @@ sig
 
   val keep_app_symbols: string -> bool
   val keep_raw_lifting: string -> bool
+  val keep_proposition_structure: string -> bool
 
   val number_of_steps: alethe_replay_node list -> int
   
@@ -115,6 +116,8 @@ fun is_assm_repetition id rule =
 
 val keep_app_symbols = member (op =) [eq_congruent_pred_rule, eq_congruent_rule, ite_intro_rule, and_pos_rule]
 val keep_raw_lifting = member (op =) [eq_congruent_pred_rule, eq_congruent_rule, ite_intro_rule, and_pos_rule] 
+
+val keep_proposition_structure = member (op =) ["resolution", "contraction", "reordering"] 
 
 val anchor_rules = ["bind","sko_forall","sko_ex","let","onepoint","subproof"]
 val is_anchor_rule = member (op =) anchor_rules
@@ -201,10 +204,17 @@ fun parse_raw_proof_steps (curr_anchor_id : string option) (smtlib_lines : SMTLI
           in (SMTLIB.S (SMTLIB.Sym "or" :: concl), (l, cx)) end
       | parse_and_clausify_conclusion t = raise Fail ("unrecognized Alethe proof " ^ \<^make_string> t)
 
+    fun parse_and_create_skeleton (SMTLIB.S (SMTLIB.Sym "cl" :: []) :: _, _) =
+          SMTLIB.Sym "true"
+      | parse_and_create_skeleton (SMTLIB.S (SMTLIB.Sym "cl" :: concl) :: _, _) =
+          SMTLIB.S (SMTLIB.Sym "or" :: map (fn _ => SMTLIB.Sym "true") concl)
+      | parse_and_create_skeleton t = raise Fail ("unrecognized Alethe proof " ^ \<^make_string> t)
+
     fun rotate_pair (a, (b, c)) = ((a, b), c)
     val parse_normal_step =
         parse_id_cx
-        ##> parse_and_clausify_conclusion
+        ##> (fn t=> (parse_and_create_skeleton t, parse_and_clausify_conclusion t))
+        #> rotate_pair
         #> rotate_pair
         ##> parse_rule
         #> rotate_pair
@@ -213,10 +223,10 @@ fun parse_raw_proof_steps (curr_anchor_id : string option) (smtlib_lines : SMTLI
         ##> parse_args
         #> rotate_pair
 
-   fun to_raw_node ANCHOR subproof ((((id, concl), rule), prems), context_assignment) =
-         mk_raw_node id rule [] context_assignment (the_default [] prems) concl subproof
-     | to_raw_node _ subproof ((((id, concl), rule), prems), step_args) =
-         mk_raw_node id rule step_args [] (the_default [] prems) concl subproof
+   fun to_raw_node ANCHOR subproof (((((id, prop_skeleton), concl), rule), prems), context_assignment) =
+         mk_raw_node id rule [] context_assignment (the_default [] prems) concl subproof prop_skeleton
+     | to_raw_node _ subproof (((((id, prop_skeleton), concl), rule), prems), step_args) =
+         mk_raw_node id rule step_args [] (the_default [] prems) concl subproof prop_skeleton
 
     fun closes_subproof NONE _ = false
       | closes_subproof (SOME id) step = step |> parse_id |> fst |> (curry (op =) id)
@@ -237,7 +247,7 @@ fun parse_raw_proof_steps (curr_anchor_id : string option) (smtlib_lines : SMTLI
           let
             val (id, t) = step |> parse_id ||> the_single
             val ((t, cx), _) = SMTLIB_Proof.extract_and_update_name_bindings t cx
-            val s = mk_raw_node id input_rule [] [] [] t []
+            val s = mk_raw_node id input_rule [] [] [] t [] (SMTLIB.Sym "true")
             val (rstep, rrest, cx) = parse_raw_proof_steps curr_anchor_id rest cx
           in (s :: rstep, rrest, cx) end
       | (ANCHOR, p, l) =>
@@ -283,7 +293,7 @@ fun preprocess compress step =
     val replace_assignment_sym = (fn SMTLIB.S [SMTLIB.Key "=", x, y] => SMTLIB.S [SMTLIB.Sym "=", x, y] | x => x)
 
     fun preprocess (x as Raw_Definition_Node _) (cx : ('a list, 'b) context, remap_prems) = ([x], (cx, remap_prems))
-      | preprocess (Raw_Alethe_Node {id, rule, step_args, context_assignments, prems, concl, subproof, ...})
+      | preprocess (Raw_Alethe_Node {id, rule, step_args, context_assignments, prems, concl, subproof, prop_skeleton, ...})
           (cx : ('a list, 'b) context, remap_prems)  =
         let
           val ctxt = #ctxt cx
@@ -305,7 +315,7 @@ fun preprocess compress step =
           val (subproof, (cx, _)) = fold_map preprocess subproof (cx, remap_prems) |> apfst flat
         
           (* Compression of `or` Steps *)
-          val skip_step = rule = or_rule andalso compress
+          val skip_step = rule = or_rule andalso compress andalso not (SMT_Config.alethe_use_prop_skeleton ctxt)
           fun compress_or_rule remap_prems = (id, hd prems) :: remap_prems
           val repaired_prems =
             if compress then
@@ -322,7 +332,8 @@ fun preprocess compress step =
             in skipped_step end
           else
             let
-              val preprocessed_node = [mk_raw_node id rule sanitized_step_args sanitized_context_assignments repaired_prems concl subproof]
+              val preprocessed_node = [mk_raw_node id rule sanitized_step_args sanitized_context_assignments
+                repaired_prems concl subproof prop_skeleton]
            in (preprocessed_node,(cx, remap_prems)) end
         end
       in preprocess step end
@@ -485,7 +496,8 @@ fun postprocess_proof compress ctxt step cx =
       in
         (step, (cx', new_variable_names))
       end
-    | postprocess (Raw_Alethe_Node {id, rule, step_args, context_assignments, prems, concl, subproof}) (cx, new_variable_names) =
+    | postprocess (Raw_Alethe_Node {id, rule, step_args, context_assignments, prems, concl, subproof,
+        prop_skeleton}) (cx, new_variable_names) =
       if is_anchor_rule rule
       then
       let
@@ -507,6 +519,8 @@ fun postprocess_proof compress ctxt step cx =
           |> (fn ((i,j,k),n) => ((map normalize_external i,map normalize_external j,k), map normalize_external2 n))
         (* Process conclusion *)
         val (cx',termified_concl) = transform_concl concl id (cx, new_variable_names)
+        val (_,termified_prop_skeleton) =
+          transform_concl (prop_skeleton) id (cx, new_variable_names)
         val _ = debug_msg ctxt middle (fn () => \<^print> ("... transformed conclusion of step closing the anchor ", termified_concl))
         val alpha_conversion = rule = "bind" andalso is_alpha_renaming termified_concl
     
@@ -574,7 +588,7 @@ fun postprocess_proof compress ctxt step cx =
           mk_replay_node id normalized_rule normalized_step_args normalized_context_ass
             normalized_premises termified_concl
             ((map (fn (a,b) => (a, fastype_of b)) (shadowing_vars @ rebound_lhs_vars)), [], assms_from_subproof, new_subproof)
-            tactic_args
+            tactic_args termified_prop_skeleton
       in
         (step, (cx', new_variable_names))
       end
@@ -584,6 +598,8 @@ fun postprocess_proof compress ctxt step cx =
 
         (* Process conclusion *)
         val (cx',termified_concl) = transform_concl concl id (cx, new_variable_names)
+        val (_,termified_prop_skeleton) = transform_concl prop_skeleton id (cx, new_variable_names)
+
         val _ = debug_msg ctxt middle (fn () => \<^print> ("... transform conclusion ", termified_concl))
 
         (* Process step arguments *)
@@ -675,10 +691,10 @@ fun postprocess_proof compress ctxt step cx =
          
          (* fix rule *)
          fun normalized_input_rule_name id = if can SMTLIB_Interface.role_and_index_of_assert_name id then normalized_input_rule else local_input_rule
-         val normalized_rule =
+         val (normalized_rule, termified_prop_skeleton) =
            if rule = input_rule
-           then normalized_input_rule_name id
-           else rule
+           then (normalized_input_rule_name id, @{term \<open>Trueprop True\<close>})
+           else (rule, termified_prop_skeleton)
          
          val empty_subproof = ([], [], [], [])
          val empty_context_assignment = []
@@ -692,7 +708,7 @@ fun postprocess_proof compress ctxt step cx =
              termified_concl
              empty_subproof
              tactic_args
-          
+             termified_prop_skeleton
          in
            (step, (cx', new_variable_names))
          end
@@ -704,16 +720,19 @@ fun postprocess_proof compress ctxt step cx =
 end
 
 (* Compression *)
+(*
+  The proposition skeleton does not matter for sledgehammer.
+*)
 fun combine_proof_steps ((Alethe_Replay_Node step1 : alethe_replay_node) :: (Alethe_Replay_Node step2) :: steps) =
   let
     val {id = id1, rule = rule1, step_args = step_args1,
         context_assignments = context_assignment1, prems = prems1,
          concl = concl1,
-        subproof = (bound_sub1, assms_sub1, assms_extra1, subproof1),args = args1} = step1
+        subproof = (bound_sub1, assms_sub1, assms_extra1, subproof1),args = args1, prop_skeleton = prop_skeleton1} = step1
     val {id = id2, rule = rule2, step_args = step_args2,
         context_assignments = context_assignment2, prems = prems2,
         concl = concl2,
-        subproof = (bound_sub2, assms_sub2, assms_extra2, subproof2),args = args2} = step2
+        subproof = (bound_sub2, assms_sub2, assms_extra2, subproof2),args = args2, prop_skeleton = prop_skeleton2} = step2
     val goals1 =
       (case concl1 of
         _ $ (Const (\<^const_name>\<open>HOL.disj\<close>, _) $ _ $
@@ -724,14 +743,14 @@ fun combine_proof_steps ((Alethe_Replay_Node step1 : alethe_replay_node) :: (Ale
     if rule1 = equiv_pos2_rule andalso rule2 = th_resolution_rule andalso member (op =) prems2 id1
       andalso member (op =) goals1 goal2
     then
-      mk_replay_node id2 theory_resolution2_rule step_args2 context_assignment2 (filter_out (curry (op =) id1) prems2)
+      (mk_replay_node id2 theory_resolution2_rule step_args2 context_assignment2 (filter_out (curry (op =) id1) prems2)
          concl2
-        (bound_sub2, assms_sub2, assms_extra2, combine_proof_steps subproof2) args2 ::
+        (bound_sub2, assms_sub2, assms_extra2, combine_proof_steps subproof2) args2 @{term \<open>Trueprop True\<close>}) ::
       combine_proof_steps steps
     else
-      mk_replay_node id1 rule1 step_args1 context_assignment1 prems1
+      (mk_replay_node id1 rule1 step_args1 context_assignment1 prems1
          concl1
-        (bound_sub1, assms_sub1, assms_extra1, combine_proof_steps subproof1) args1 ::
+        (bound_sub1, assms_sub1, assms_extra1, combine_proof_steps subproof1) args1 prop_skeleton1) ::
       combine_proof_steps (Alethe_Replay_Node step2 :: steps)
   end
 | combine_proof_steps ((step1 as Alethe_Definition_Node _ : alethe_replay_node) :: steps) =
@@ -740,12 +759,12 @@ fun combine_proof_steps ((Alethe_Replay_Node step1 : alethe_replay_node) :: (Ale
 
 (* Flatten Subproofs for Sledgehammer's ISAR Generation *)
 val linearize_proof =
-  let                          
-    fun map_node_concl f (Alethe_Step {id, rule, prems, concl}) =
-       mk_step id rule prems (f concl)
+  let
+    fun map_node_concl f (Alethe_Step {id, rule, prems, concl, prop_skeleton}) =
+       mk_step id rule prems (f concl)  prop_skeleton
     fun linearize (Alethe_Replay_Node {id = id, rule = rule, step_args = _, context_assignments = _, prems = prems,
         concl = concl,
-        subproof = (_, assms, inputs, subproof), args = args}) =
+        subproof = (_, assms, inputs, subproof), args = args, prop_skeleton = prop_skeleton2}) =
       let
         fun mk_prop_of_term concl =
           concl |> fastype_of concl = \<^typ>\<open>bool\<close> ? curry (op $) \<^term>\<open>Trueprop\<close>
@@ -754,23 +773,23 @@ val linearize_proof =
         fun add_assumption assumption concl =
           \<^Const>\<open>Pure.imp for \<open>mk_prop_of_term assumption\<close> \<open>mk_prop_of_term concl\<close>\<close>
         fun inline_assumption assumption assumption_id
-            (Alethe_Step {id, rule, prems, concl}) =
+            (Alethe_Step {id, rule, prems, concl, prop_skeleton}) =
           mk_step id rule (remove_assumption_id assumption_id prems)
-            (add_assumption assumption concl)
+            (add_assumption assumption concl) prop_skeleton
         fun find_input_steps_and_inline [] = []
           | find_input_steps_and_inline
-              (Alethe_Step {id = id', rule, prems, concl, ...} :: steps) =
+              (Alethe_Step {id = id', rule, prems, concl, prop_skeleton, ...} :: steps) =
             if rule = input_rule then
               find_input_steps_and_inline (map (inline_assumption concl id') steps)
             else
-              mk_step (id') rule prems concl :: find_input_steps_and_inline steps
+              mk_step (id') rule prems concl prop_skeleton :: find_input_steps_and_inline steps
 
         val subproof = subproof
           |> flat o map linearize
           |> map (map_node_concl (fold add_assumption (assms @ inputs)))
           |> find_input_steps_and_inline
       in
-        subproof @ [mk_step id rule prems concl]
+        subproof @ [mk_step id rule prems concl prop_skeleton2]
       end |
       linearize (Alethe_Definition_Node _) = []
 
@@ -821,7 +840,8 @@ fun remove_skolem_definitions_proof steps =
         context_assignments = context_assignments,
          prems = prems,
          concl = concl,
-        subproof = (vars, assms', extra_assms', subproof), args = args}) (prems_to_remove, skolems) =
+        subproof = (vars, assms', extra_assms', subproof), args = args,
+        prop_skeleton = prop_skeleton}) (prems_to_remove, skolems) =
     let
       val prems = prems
         |> filter_out (member (op =) prems_to_remove)
@@ -848,7 +868,7 @@ fun remove_skolem_definitions_proof steps =
         |> is_skolem ? replace_equivalent_by_imp
       val step = (if skolem_step_to_skip orelse rule = skolem_def orelse trivial_step then []
         else mk_replay_node id rule step_args context_assignments prems concl
-            (vars, assms', extra_assms', subproof) NONE (*TODO*)
+            (vars, assms', extra_assms', subproof) NONE prop_skeleton (*TODO*)
           |> single)
       val defs = (if rule = skolem_def orelse trivial_step then id :: prems_to_remove
          else prems_to_remove)
@@ -927,8 +947,8 @@ fun parse typs funs lines ctxt =
     val t = u
        |> remove_skolem_definitions_proof
        |> flat o (map linearize_proof)
-    fun node_to_step (Alethe_Step {id, rule, prems, concl, ...}) =
-      mk_step id rule prems concl
+    fun node_to_step (Alethe_Step {id, rule, prems, concl, prop_skeleton, ...}) =
+      mk_step id rule prems concl prop_skeleton
   in
     (map node_to_step t, ctxt_of env)
   end

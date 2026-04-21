@@ -13,9 +13,11 @@ sig
     id: string,
     rule: string,
     prems: string list,
+    prop_skeleton: term,
     concl: term}
 
-  val mk_step : string -> string -> string list -> term -> alethe_step
+  val mk_step : string -> string -> string list -> term -> term -> alethe_step
+
 
   (* Pass information added during pre-processing to reconstruction *)
   datatype tactic_args =
@@ -36,6 +38,7 @@ sig
     step_args: term list,
     context_assignments: term list,
     prems: string list,
+    prop_skeleton: term,
     concl: term,
     subproof: (string * typ) list * term list * term list * alethe_replay_node list,
     args: tactic_args option }
@@ -47,7 +50,7 @@ sig
 
 
   val mk_replay_node: string -> string -> term list -> term list -> string list -> term ->
-   (string * typ) list * term list * term list * alethe_replay_node list -> tactic_args option
+   (string * typ) list * term list * term list * alethe_replay_node list -> tactic_args option -> term
    -> alethe_replay_node
         
   datatype raw_alethe_node = Raw_Alethe_Node of {
@@ -57,6 +60,7 @@ sig
     context_assignments: SMTLIB.tree list,
     prems: string list,
     concl: SMTLIB.tree,
+    prop_skeleton: SMTLIB.tree,
     subproof: raw_alethe_node list}
   | Raw_Definition_Node of {
     id: string,
@@ -71,7 +75,7 @@ sig
           SMTLIB.tree list ->
             string list ->
                 SMTLIB.tree ->
-                  raw_alethe_node list -> raw_alethe_node
+                  raw_alethe_node list -> SMTLIB.tree -> raw_alethe_node
 
   val mk_raw_definition_node : string -> string -> string -> SMTLIB.tree -> raw_alethe_node
 
@@ -89,6 +93,7 @@ datatype raw_alethe_node = Raw_Alethe_Node of {
     context_assignments: SMTLIB.tree list,
     prems: string list,
     concl: SMTLIB.tree,
+    prop_skeleton: SMTLIB.tree,
     subproof: raw_alethe_node list}
   | Raw_Definition_Node of {
     id: string,
@@ -97,10 +102,10 @@ datatype raw_alethe_node = Raw_Alethe_Node of {
     skolem_term : SMTLIB.tree
   }
 
-fun mk_raw_node id rule step_args context_ass prems concl subproof =
+fun mk_raw_node id rule step_args context_ass prems concl subproof prop_skeleton =
   Raw_Alethe_Node {id = id, rule = rule, step_args = step_args,
     context_assignments = context_ass, prems = prems,
-    concl = concl, subproof = subproof}
+    concl = concl, subproof = subproof, prop_skeleton = prop_skeleton}
 
 fun mk_raw_definition_node id rule skolem_name skolem_term = Raw_Definition_Node {id=id, rule=rule, skolem_name=skolem_name, skolem_term=skolem_term}
 
@@ -109,10 +114,8 @@ fun mk_raw_definition_node id rule skolem_name skolem_term = Raw_Definition_Node
     id: string,
     rule: string,
     prems: string list,
+    prop_skeleton: term,
     concl: term}
-
-fun mk_node id rule prems concl =
-  Alethe_Step {id = id, rule = rule, prems = prems, concl = concl}
 
 (* Sometimes we want to communicate additional information that is gained during parsing or
 preprocessing to the reconstruction tactic. *)
@@ -138,6 +141,7 @@ datatype alethe_replay_node =
   context_assignments: term list,
   prems: string list,
   concl: term,
+  prop_skeleton: term,
   subproof: (string * typ) list * term list * term list * alethe_replay_node list,
   args: tactic_args option } |
  Alethe_Definition_Node of {
@@ -146,19 +150,20 @@ datatype alethe_replay_node =
   skolem_name : string,
   skolem_term : term }
 
-fun mk_replay_node id rule step_args context_ass prems concl subproof tactic_args =
-  Alethe_Replay_Node {id = id, rule = rule, step_args = step_args,
-    context_assignments = context_ass, prems = prems, concl = concl, subproof = subproof,
-    args = tactic_args}
-
 datatype alethe_step = Alethe_Step of {
   id: string,
   rule: string,
   prems: string list,
+  prop_skeleton : term,
   concl: term}
 
-fun mk_step id rule prems concl =
-  Alethe_Step {id = id, rule = rule, prems = prems, concl = concl}
+fun mk_step id rule prems concl prop_skeleton =
+  Alethe_Step {id = id, rule = rule, prems = prems, concl = concl,
+    prop_skeleton = prop_skeleton}
 
+fun mk_replay_node id rule step_args context_ass prems concl subproof tactic_args prop_skeleton =
+  Alethe_Replay_Node {id = id, rule = rule, step_args = step_args,
+    context_assignments = context_ass, prems = prems, concl = concl, subproof = subproof,
+    args = tactic_args, prop_skeleton = prop_skeleton}
 
 end;

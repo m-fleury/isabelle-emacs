@@ -908,7 +908,7 @@ val tautological_clause =
 val duplicate_literals =
   prove_abstract SMT_Replay_Methods.abstract_bool_shallow duplicate_literals_prove
 
-val unit_res = prove_abstract SMT_Replay_Methods.abstract_bool_shallow SMT_Replay_Methods.prop_tac
+val unit_res = prove_abstract SMT_Replay_Methods.abstract_bool_shallow SMT_Replay_Methods.prop_tac2
 
 (*match_instantiate does not work*)
 fun theory_resolution2 ctxt prems t =
@@ -1702,8 +1702,8 @@ local
   fun eq_pred_rewrite_tac ({context = ctxt, prems, concl, ...}: Subgoal.focus) =
     let
       val rews = prems
-       |> map_filter (try (apfst (apsnd Envir.beta_eta_contract o HOLogic.dest_eq o Thm.term_of o Object_Logic.dest_judgment ctxt o
-            Thm.cconcl_of o Conv.fconv_rule Drule.beta_eta_conversion) o `(fn x => x)))
+       |> map_filter (try (apfst (HOLogic.dest_eq o Thm.term_of o Object_Logic.dest_judgment ctxt o
+            Thm.cconcl_of) o `(fn x => x)))
        |> map (apsnd (fn x => @{thm eq_reflection} OF [x]))
       fun conv_left conv = Conv.arg_conv (Conv.arg_conv conv)
       fun conv_left_neg conv = Conv.arg_conv (Conv.arg_conv (Conv.arg_conv conv))
@@ -2196,14 +2196,26 @@ end
 
 (* Shuffling Clauses and Arguments of Nary Commutative Operators *)
 
-fun reordering ctxt [thm] t = SMT_Replay_Methods.prove ctxt t (fn _ => (
-    Method.insert_tac ctxt [thm]
-    THEN' match_tac ctxt @{thms ccontr}
-    THEN' K (unfold_tac ctxt @{thms de_Morgan_disj})
-    THEN' TRY o CHANGED_PROP o REPEAT_ALL_NEW (ematch_tac ctxt @{thms conjE})
-    THEN' CHANGED_PROP o REPEAT_ALL_NEW (ematch_tac ctxt @{thms disjE})
-    THEN' REPEAT'(ematch_tac ctxt @{thms notE} THEN' TRY' (assume_tac ctxt))
-    ))
+fun reordering (ctxt : Proof.context) [thm] t =
+    if Term.size_of_term t > 100 
+    then
+      prove_abstract SMT_Replay_Methods.abstract_bool_shallow (fn ctxt => fn [thm] => (
+        Method.insert_tac ctxt [thm]
+        THEN' match_tac ctxt @{thms ccontr}
+        THEN' K (unfold_tac ctxt @{thms de_Morgan_disj})
+        THEN' TRY o CHANGED_PROP o REPEAT_ALL_NEW (ematch_tac ctxt @{thms conjE})
+        THEN' CHANGED_PROP o REPEAT_ALL_NEW (ematch_tac ctxt @{thms disjE})
+        THEN' REPEAT'(ematch_tac ctxt @{thms notE} THEN' TRY' (assume_tac ctxt))
+        )) ctxt [thm] t
+    else 
+      SMT_Replay_Methods.prove ctxt t (fn _ => (
+        Method.insert_tac ctxt [thm]
+        THEN' match_tac ctxt @{thms ccontr}
+        THEN' K (unfold_tac ctxt @{thms de_Morgan_disj})
+        THEN' TRY o CHANGED_PROP o REPEAT_ALL_NEW (ematch_tac ctxt @{thms conjE})
+        THEN' CHANGED_PROP o REPEAT_ALL_NEW (ematch_tac ctxt @{thms disjE})
+        THEN' REPEAT'(ematch_tac ctxt @{thms notE} THEN' TRY' (assume_tac ctxt))
+        ))
   | reordering ctxt thms t =
     replay_error ctxt "Too many or no premises in some reordering rule" Unsupported thms [] t
 

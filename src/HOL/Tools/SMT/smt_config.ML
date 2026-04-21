@@ -52,6 +52,7 @@ sig
   val check_external: bool Config.T
   val slice_only_no_full_proof_attr: bool Config.T
   val compress_verit_proofs: Proof.context -> bool (*TODO: Rename to alethe if this works. Otherwise, we need two separate ones since or steps should also be skipped in cvc5*)
+  val alethe_use_prop_skeleton: Proof.context -> bool
 
   (*tools*)
   val get_timeout: Proof.context -> Time.time option
@@ -225,6 +226,7 @@ val spy_verit_attr = Attrib.setup_config_bool \<^binding>\<open>smt_spy_verit\<c
 val spy_z3 = Attrib.setup_config_bool \<^binding>\<open>smt_spy_z3\<close> (K false);
 val trace_arith_verit = Attrib.setup_config_bool \<^binding>\<open>smt_debug_arith_verit\<close> (K false);
 val trace_verit_compression = Attrib.setup_config_bool \<^binding>\<open>verit_compress_proofs\<close> (K true);
+val trace_alethe_use_prop_skeleton = Attrib.setup_config_bool \<^binding>\<open>alethe_use_propositional_skeleton\<close> (K true);
 val statistics = Attrib.setup_config_bool \<^binding>\<open>smt_statistics\<close> (K false);
 val rec_evaluation = Attrib.setup_config_bool \<^binding>\<open>smt_rec_evaluation\<close> (K false); (*temp for testing*)
 val statistics_file = Attrib.setup_config_string \<^binding>\<open>smt_statistics_file\<close> (K "cvc5_with_rewrites"); (*temp for testing*)
@@ -287,7 +289,8 @@ fun check_smt_is_slicing ctxt  = Config.get ctxt slice_only_no_full_proof_attr
 fun spy_cvc ctxt  = Config.get ctxt spy_cvc_attr
 fun spy_verit ctxt  = Config.get ctxt spy_verit_attr
 fun spy_Z3 ctxt  = Config.get ctxt spy_z3
-fun compress_verit_proofs ctxt  = Config.get ctxt trace_verit_compression
+fun compress_verit_proofs ctxt = Config.get ctxt trace_verit_compression
+fun alethe_use_prop_skeleton ctxt = Config.get ctxt trace_alethe_use_prop_skeleton
 
 fun use_alethe_proof_from_cvc ctxt = Config.get ctxt cvc_experimental_alethe
 fun alethe_no_provided_assms ctxt = Config.get ctxt alethe_no_assumption

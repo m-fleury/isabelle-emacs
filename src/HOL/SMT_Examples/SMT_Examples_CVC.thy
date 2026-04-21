@@ -812,7 +812,8 @@ lemma
      \<open>1 / 2 * 2 powr real_of_int p \<le> 2 powr real_of_int p - 1\<close> 
      \<open>x * 2 powr real_of_int p < 1 / 2 * 2 powr real_of_int p\<close>
   shows "round_up p x < 1"
-  supply [[smt_trace=false,smt_statistics=true,smt_verbose=false]]
+  supply [[smt_trace=false,smt_statistics=true,smt_verbose=false,
+ML_print_depth=1000,show_types]]
   using comm_semiring_class.distrib divide_divide_eq_right
  mult.assoc mult.commute mult_cancel_left1 mult_cancel_right mult_cancel_right2
  mult_less_cancel_left_pos mult_minus_left nonzero_eq_divide_eq nonzero_mult_div_cancel_left
@@ -820,47 +821,20 @@ lemma
  round_up round_up_diff_round_down times_divide_eq_right assms
   by (smt (cvc5))
 
-(*
-with full-cong and size limitation:
+lemma
+  assumes "x < 1 / 2" \<open>p > 0\<close>
+     \<open>1 / 2 * 2 powr real_of_int p \<le> 2 powr real_of_int p - 1\<close> 
+     \<open>x * 2 powr real_of_int p < 1 / 2 * 2 powr real_of_int p\<close>
+  shows "round_up p x < 1"
+  supply [[smt_trace=false,smt_statistics=true,smt_verbose=false,
+        ML_print_depth=1000,show_types,alethe_use_propositional_skeleton=false]]
+  using comm_semiring_class.distrib divide_divide_eq_right
+ mult.assoc mult.commute mult_cancel_left1 mult_cancel_right mult_cancel_right2
+ mult_less_cancel_left_pos mult_minus_left nonzero_eq_divide_eq nonzero_mult_div_cancel_left
+ nonzero_mult_div_cancel_right powr_gt_zero powr_minus_divide round_down_uminus_eq
+ round_up round_up_diff_round_down times_divide_eq_right assms
+  by (smt (cvc5))
 
-with full-cong:
-cong: 788 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 23 ms maximum time, 119 ms total time
-cong: 788 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 27 ms maximum time, 162 ms total time
-cong: 788 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 24 ms maximum time, 129 ms total time
-cong: 788 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 24 ms maximum time, 121 ms total time
-cong: 788 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 74 ms maximum time, 193 ms total time
-cong: 788 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 23 ms maximum time, 131 ms total time
-                         
-
-with size + strict:
-cong: 788 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 25 ms maximum time, 115 ms total time
-cong: 788 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 26 ms maximum time, 132 ms total time
-cong: 788 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 24 ms maximum time, 116 ms total time
-cong: 788 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 24 ms maximum time, 117 ms total time
-cong: 788 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 25 ms maximum time, 121 ms total time
-            
-       
-with size:
-cong: 788 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 28 ms maximum time, 144 ms total time
-cong: 788 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 24 ms maximum time, 114 ms total time
-cong: 788 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 24 ms maximum time, 119 ms total time
-cong: 788 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 24 ms maximum time, 114 ms total time
-cong: 788 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 23 ms maximum time, 115 ms total time
-
-new cong:
-cong: 788 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 44 ms maximum time, 169 ms total time
-cong: 788 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 23 ms maximum time, 117 ms total time
-cong: 788 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 22 ms maximum time, 114 ms total time
-cong: 788 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 39 ms maximum time, 131 ms total time
-cong: 788 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 22 ms maximum time, 115 ms total time
-           
-old cong:
-cong: 788 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 34 ms maximum time, 202 ms total time
-cong: 788 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 33 ms maximum time, 192 ms total time
-cong: 788 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 34 ms maximum time, 185 ms total time
-cong: 788 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 33 ms maximum time, 183 ms total time
-cong: 788 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 33 ms maximum time, 185 ms total time                                     
-*)
 end
 
 section \<open>Monomorphization examples\<close>
@@ -1024,30 +998,5 @@ lemma
   supply [[smt_trace=false,smt_statistics]]
   using assms
   by (smt (cvc5,fmf))
- 
-(*
-final cong:
-cong: 114 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 2 ms maximum time, 20 ms total time
-cong: 114 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 2 ms maximum time, 18 ms total time
-cong: 114 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 2 ms maximum time, 18 ms total time
-cong: 114 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 2 ms maximum time, 19 ms total time
-cong: 114 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 2 ms maximum time, 18 ms total time
-       
-             
-new cong:
-cong: 114 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 2 ms maximum time, 18 ms total time
-cong: 114 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 2 ms maximum time, 22 ms total time
-cong: 114 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 5 ms maximum time, 34 ms total time
-cong: 114 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 2 ms maximum time, 18 ms total time
-cong: 114 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 2 ms maximum time, 19 ms total time
-                       
-old cong:
-cong: 114 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 2 ms maximum time, 19 ms total time
-cong: 114 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 2 ms maximum time, 16 ms total time
-cong: 114 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 2 ms maximum time, 22 ms total time
-cong: 114 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 2 ms maximum time, 16 ms total time
-cong: 114 occurrences, 0 ms 1/4th time, 0 ms mean time, 0 ms 3/4th time, 2 ms maximum time, 19 ms total time
-                           
-*)
 
 end

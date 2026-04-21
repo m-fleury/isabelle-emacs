@@ -98,7 +98,7 @@ fun parse_proof_alethe
       in
           Alethe_Node.Alethe_Step 
            {id = SMTLIB_Interface.assert_name_of_role_and_index role (id_of_index i),
-            rule = input_rule, prems = [], concl = th}
+            rule = input_rule, prems = [], concl = th, prop_skeleton = th}
           |> single
       end
 

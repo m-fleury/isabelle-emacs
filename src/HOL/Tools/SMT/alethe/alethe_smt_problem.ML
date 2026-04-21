@@ -46,7 +46,7 @@ fun parse_raw_problem_steps (commands : SMTLIB.tree list) (cx : name_bindings) (
          let val (l, cx) = (fst oo SMTLIB_Proof.extract_and_update_name_bindings) def cx
          in
            (mk_raw_node (id ^ Alethe_Proof.skolem_def) Alethe_Proof.skolem_def [(SMTLIB.S [SMTLIB.Sym id, typ, l])]  [] []
-              (SMTLIB.S [SMTLIB.Sym "=", SMTLIB.Sym id, def]) [], cx)
+              (SMTLIB.S [SMTLIB.Sym "=", SMTLIB.Sym id, def]) [] (SMTLIB.S []), cx)
          end
 
   in
@@ -58,7 +58,7 @@ fun parse_raw_problem_steps (commands : SMTLIB.tree list) (cx : name_bindings) (
               | SMTLIB.S [SMTLIB.Sym "assert", term] => (Int.toString assms_nbr, term)
               |  xs => (@{print}("xs",xs);raise ERROR "unknown SMTLIB command"))
             val ((t, cx), _) = SMTLIB_Proof.extract_and_update_name_bindings term cx
-            val s = mk_raw_node id Alethe_Proof.input_rule [] []  [] t []
+            val s = mk_raw_node id Alethe_Proof.input_rule [] []  [] t [] (SMTLIB.S [])
             val (rp, rl, cx) = parse_raw_problem_steps l cx (assms_nbr + 1)
        in (s :: rp, rl, cx) end
       | SOME (FUN_DEF, p, l) =>

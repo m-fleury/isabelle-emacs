@@ -440,6 +440,46 @@ lemma resolution_3:
   using assms
   by (ctxt_tactic "resolution")
 
+
+lemma
+  assumes \<open>\<not> t1 \<or>
+    \<not> t2 \<or>
+    \<not> t3 \<or>
+    \<not> t4 \<or> \<not> t5 \<or> \<not> t6 \<or> \<not> t7 \<or> \<not> t8 \<or> \<not> t9 \<or> \<not> t10 \<or> \<not> t11 \<or> \<not> t12 \<or> \<not> t13 \<or> \<not> t14 \<or> \<not> t15 \<or>
+     \<not> t16 \<or> \<not> t17 \<or> \<not> t18 \<or> \<not> t19 \<or> \<not> t20 \<or> \<not> t21 \<or> \<not> t22 \<or> \<not> t23 \<or> \<not> t24 \<or> \<not> t25 \<or> t26\<close>
+    \<open>\<not> t27 \<or> t1\<close>
+    \<open>\<not> t27 \<or> t2\<close>
+    \<open>\<not> t27 \<or> t3\<close>
+    \<open>\<not> t27 \<or> t4\<close>
+    \<open>\<not> t27 \<or> t5\<close>
+    \<open>\<not> t27 \<or> t6\<close>
+    \<open>\<not> t27 \<or> t7\<close>
+    \<open>\<not> t27 \<or> t8\<close>
+    \<open>\<not> t27 \<or> t9\<close>
+    \<open>\<not> t27 \<or> t10\<close>
+    \<open>\<not> t27 \<or> t11\<close>
+    \<open>\<not> t27 \<or> t12\<close>
+    \<open>\<not> t27 \<or> t13\<close>
+    \<open>\<not> t27 \<or> t14\<close>
+    \<open>\<not> t27 \<or> t15\<close>
+    \<open>\<not> t27 \<or> t16\<close>
+    \<open>\<not> t27 \<or> t17\<close>
+    \<open>\<not> t27 \<or> t18\<close>
+    \<open>\<not> t27 \<or> t19\<close>
+    \<open>\<not> t27 \<or> t20\<close>
+    \<open>\<not> t27 \<or> t21\<close>
+    \<open>\<not> t27 \<or> t22\<close>
+    \<open>\<not> t27 \<or> t23\<close>
+    \<open>\<not> t27 \<or> t24\<close>
+    \<open>\<not> t27 \<or> t25\<close>
+  shows \<open>t26 \<or>
+    \<not> t27 \<or>
+    \<not> t27 \<or>
+    \<not> t27 \<or>
+    \<not> t27 \<or> \<not> t27 \<or> \<not> t27 \<or> \<not> t27 \<or> \<not> t27 \<or> \<not> t27 \<or> \<not> t27 \<or> \<not> t27 \<or> \<not> t27 \<or> \<not> t27 \<or> \<not> t27 \<or> \<not> t27 \<or> \<not> t27 \<or> \<not> t27 \<or> \<not> t27 \<or> \<not> t27 \<or> \<not> t27 \<or> \<not> t27 \<or> \<not> t27 \<or> \<not> t27 \<or> \<not> t27 \<or> \<not> t27\<close>
+  using assms
+  by (ctxt_tactic "resolution")
+
 (* Rule 8: tautology *)
 
 lemma tautology_1:

@@ -81,6 +81,7 @@ sig
 
   val dest_thm: thm -> term
   val prop_tac: Proof.context -> thm list -> int -> tactic
+  val prop_tac2: Proof.context -> thm list -> int -> tactic
 
   val certify_prop: Proof.context -> term -> cterm
   val dest_prop: term -> term
@@ -728,4 +729,10 @@ fun prop_tac ctxt prems =
     if Term.size_of_term prop > 100 then SAT.satx_tac ctxt i
     else (Classical.fast_tac ctxt ORELSE' Clasimp.force_tac ctxt) i)
 
+fun prop_tac2 ctxt prems =
+  Method.insert_tac ctxt prems
+  THEN' SUBGOAL (fn (prop, i) =>
+    if Term.size_of_term prop > 100 
+    then (SAT.sat_tac ctxt i)
+    else (Classical.fast_tac ctxt ORELSE' Clasimp.force_tac ctxt) i)
 end;
