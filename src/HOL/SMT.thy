@@ -252,6 +252,9 @@ lemma alethe_not_or:
   apply (cases A)
   by simp_all
 
+(* TODO: We had \<not>(\<not>A \<longrightarrow> B) \<or> A \<or> B here before too *)
+lemma alethe_implies_pos: \<open>\<not>(A \<longrightarrow> B) \<or> \<not>A \<or> B\<close> 
+  by auto
 
 
 lemma alethe_subst_bool: \<open>P \<Longrightarrow> f True \<Longrightarrow> f P\<close>
