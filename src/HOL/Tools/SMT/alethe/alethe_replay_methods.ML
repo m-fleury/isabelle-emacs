@@ -449,6 +449,9 @@ fun eqsubst_all ctxt thms =
    K ((REPEAT o HEADGOAL) (EqSubst.eqsubst_asm_tac ctxt [0] thms))
    THEN' K ((REPEAT o HEADGOAL) (EqSubst.eqsubst_tac ctxt [0] thms))
 
+(*TODO: Put first two steps + addsimps @{thms simp_thms} in ref object
+unsyncronized.ref src/Implementation/ML.thy
+parallel könnte probleme geben*)
 fun simplify_tac ctxt thms =
   ctxt
   |> empty_simpset
@@ -1982,6 +1985,7 @@ fun rewrite_ite_simplify ctxt _ t =
    (rewrite_only_thms ctxt @{thms alethe_ite_simplify}))
 
 local
+
   fun simplify_arith ctxt thms = partial_simplify_tac ctxt
     (thms @ Named_Theorems.get ctxt @{named_theorems ac_simps} @ @{thms arith_simps})
 in
