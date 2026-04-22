@@ -11,9 +11,9 @@ imports "HOL-Library.Word" "HOL.SMT_CVC_Word"
 begin
 
 
-declare[[smt_trace]]
+declare[[smt_trace = false]]
 declare[[smt_expert_debug_alethe_level=0]]
-declare[[smt_expert_debug_alethe_files="all"]]
+declare[[smt_expert_debug_alethe_files="rare_rec_mode"]]
 declare[[smt_nat_as_int]]
 
 section \<open>Bitvector numbers\<close>
@@ -26,11 +26,10 @@ lemma "7 * 3 = (21::8 word)" by (smt (cvc5))
 lemma "11 - 27 = (-16::8 word)" by (smt (cvc5))
 
 
-lemma "- (- 11) = (11::5 word)" by (smt (cvc5)) (*negs are weirdly deleted while printing but why and where?*)
+lemma "- (- 11) = (11::5 word)" by (smt (cvc5))
 lemma "-40 + 1 = (-39::7 word)" by (smt (cvc5))
-lemma "a + 2 * b + c - b = (b + c) + (a :: 32 word)" supply [[smt_trace]](* by (smt (cvc5))*) sorry
-lemma "x = (5 :: 4 word) \<Longrightarrow> 4 * x = 4" by (smt (cvc5))
-
+lemma "a + 2 * b + c - b = (b + c) + (a :: 32 word)" supply [[smt_trace]] by (smt (cvc5))
+lemma "x = (5 :: 4 word) \<Longrightarrow> 4 * x = 4" supply [[smt_trace]] by (smt (cvc5))
 
 section \<open>Conversions\<close>
 
