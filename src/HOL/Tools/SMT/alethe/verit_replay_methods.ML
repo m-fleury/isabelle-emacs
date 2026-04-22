@@ -194,6 +194,7 @@ fun choose And = ignore_args and_rule
   | choose LA_Mult_Pos = ignore_args la_mult_pos
   | choose LA_Mult_Neg = ignore_args la_mult_neg
   | choose RARE_Rewrite = ignore_args rare_rewrite
+  | choose Evaluate = ignore_args evaluate
   | choose Reordering = ignore_args reordering
   | choose Symm = ignore_args symm
   | choose Not_Symm = ignore_args not_symm

@@ -47,7 +47,7 @@ sig
    (*Simplification Rules*)
    Bool_Simplify | Or_Simplify | Not_Simplify | And_Simplify | Equiv_Simplify |
    Implies_Simplify | Connective_Def | Minus_Simplify | Unary_Minus_Simplify | Comp_Simplify |
-   Eq_Simplify | ITE_Simplify | Sum_Simplify | Prod_Simplify | Div_Simplify | All_Simplify | RARE_Rewrite |
+   Eq_Simplify | ITE_Simplify | Sum_Simplify | Prod_Simplify | Div_Simplify | All_Simplify | RARE_Rewrite | Evaluate |
    Qnt_Simplify | Not_Not | Tautological_Clause | Distinct_Elim |
    Miniscope_Distribute | Miniscope_Split | Miniscope_ITE |
    AC_Simp | ACI_Simp |
@@ -156,6 +156,7 @@ sig
   val qnt_simplify: alethe_tac
   val all_simplify: alethe_tac
   val rare_rewrite: alethe_tac
+  val evaluate: alethe_tac
   val unit_res: alethe_tac
   val sko_ex: alethe_tac_context_args_and_arg
   val sko_forall: alethe_tac_context_args_and_arg
@@ -243,7 +244,7 @@ datatype alethe_rule =
    (*Simplification Rules*)
    Bool_Simplify | Or_Simplify | Not_Simplify | And_Simplify | Equiv_Simplify |
    Implies_Simplify | Connective_Def | Minus_Simplify | Unary_Minus_Simplify | Comp_Simplify |
-   Eq_Simplify | ITE_Simplify | Sum_Simplify | Prod_Simplify | Div_Simplify | All_Simplify | RARE_Rewrite |
+   Eq_Simplify | ITE_Simplify | Sum_Simplify | Prod_Simplify | Div_Simplify | All_Simplify | RARE_Rewrite | Evaluate |
    Qnt_Simplify | Not_Not | Tautological_Clause | Distinct_Elim | 
    AC_Simp | ACI_Simp |
    (*Extended rules*)
@@ -348,6 +349,7 @@ fun string_of_alethe_rule Bind = "Bind"
   | string_of_alethe_rule Div_Simplify = "div_simplify"
   | string_of_alethe_rule All_Simplify = "all_simplify"
   | string_of_alethe_rule RARE_Rewrite = "rare_rewrite"
+  | string_of_alethe_rule Evaluate = "evaluate"
   | string_of_alethe_rule Comp_Simplify = "comp_simplify"
   | string_of_alethe_rule Qnt_Simplify = "qnt_simplify"
   | string_of_alethe_rule Symm = "symm"
@@ -1968,6 +1970,7 @@ fun rare_rewrite ctxt prems t = (@{print}("t",t);
      THEN' TRY' (Code_Simp.dynamic_tac ctxt )
 )))
 
+val evaluate = rare_rewrite
 
 (* Arithmetics *)
 local

@@ -267,14 +267,9 @@ in
     let
       val rewrite_name = String.map (fn #"-"  => #"_" | x => x) (HOLogic.dest_string x)
     in
-      ((case rewrite_name of
-        "evaluate" =>
-          (debug_msg ctxt low (fn () => @{print} "Found evaluate, try to simplify");
-          try_evaluate ctxt t)
-      | _ =>
-         (debug_msg ctxt low (fn () => @{print} "Found rare rewrite " ^ rewrite_name);
-          dsl_tac_initialize rewrite_name args ctxt t th))
-      handle (RARE_REPLAY msg) => raise (SMT_Failure.SMT (SMT_Failure.Replay("rare-rewrite",ERROR msg))))
+      (debug_msg ctxt low (fn () => @{print} "Found rare rewrite " ^ rewrite_name);
+      dsl_tac_initialize rewrite_name args ctxt t th)
+      handle (RARE_REPLAY msg) => raise (SMT_Failure.SMT (SMT_Failure.Replay("rare-rewrite",ERROR msg)))
     end
   | rare_rewrite ctxt _ args _ =
       (SMT_Config.verbose_msg ctxt (pretty ("No dsl rule found, try to simplify" ^
@@ -285,10 +280,13 @@ in
   fun true_tac ctxt _ _ t = 
     SMT_Replay_Methods.prove ctxt t (fn ctxt =>
       resolve_tac ctxt @{thms TrueI})
+
+  fun evaluate ctxt thms _  = try_evaluate ctxt
 end
 
 val rules = [
    ("rare_rewrite", rare_rewrite),
+   ("evaluate",evaluate),
    ("true", true_tac)]
 
 val _ = Theory.setup (Context.theory_map (
