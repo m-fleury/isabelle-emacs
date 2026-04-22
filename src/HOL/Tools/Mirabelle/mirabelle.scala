@@ -191,7 +191,7 @@ Usage: isabelle mirabelle [OPTIONS] [SESSIONS ...]
         "v" -> (_ => verbose = true),
         "x:" -> (arg => exclude_sessions = exclude_sessions ::: List(arg)),
         "y" -> (arg => options = options + ("mirabelle_dry_run=true")),
-        "f:" -> (arg => options = options + ("mirabelle_mirabelle_goals_from_file=" + arg)))
+        "f:" -> (arg => options = options + ("mirabelle_goals_from_file=" + arg)))
 
       val sessions = getopts(args)
       if (actions.isEmpty) getopts.usage()
