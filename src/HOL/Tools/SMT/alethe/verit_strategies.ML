@@ -61,6 +61,7 @@ smt tactic.
 It is not clear if we should keep that or not.
 
 Die die SMT methode benutzt
+ ./build/bin/cvc5 --portfolio-dry-run --use-portfolio 
 *)
 val cvc5_stgy_default_name = "best"
 val cvc5_stgy_default_insts = []
