@@ -176,7 +176,8 @@ val _ = expect_parsing_error [malformed_args]
 
 val testTree = SMTLIB.parse ["(step t99 (cl) :rule resolution)"]
 val resTree = 
-  Raw_Alethe_Node {concl = Sym "false", context_assignments = [], id = "t99", prems = [], rule = "resolution", step_args = [], subproof = []}
+  Raw_Alethe_Node {concl = Sym "false", context_assignments = [], id = "t99", prems = [],
+   rule = "resolution", step_args = [], subproof = [], prop_skeleton = Sym "true"}
 val _ = check_raw_node [testTree] [resTree] true
 
 (*Testing step arguments*)
@@ -185,38 +186,46 @@ val _ = check_raw_node [testTree] [resTree] true
 (* No step argument given for argument optional rule *)
 val testTree = SMTLIB.parse ["(step t17 (cl (+ @p_517 0)) :rule hole)"]
 val resTree = Raw_Alethe_Node
-      {concl = S [Sym "or", S [Sym "+", Sym "@p_517",Num 0]], context_assignments = [], id = "t17", prems = [], rule = "hole", step_args = [], subproof = []}
+  {concl = S [Sym "or", S [Sym "+", Sym "@p_517",Num 0]], context_assignments = [], id = "t17", 
+  prems = [], rule = "hole", step_args = [], subproof = [], prop_skeleton = S [Sym "or", Sym "true"]}
 val _ = check_raw_node [testTree] [resTree] true
 
 (* Step argument given but not added *)
 val testTree = SMTLIB.parse ["(step t17 (cl) :rule hole :args (0))"]
 val resTree = Raw_Alethe_Node
-      {concl = Sym "false", context_assignments = [], id = "t17", prems = [], rule = "hole", step_args = [], subproof = []}
+  {concl = Sym "false", context_assignments = [], id = "t17", prems = [], rule = "hole",
+   step_args = [], subproof = [], prop_skeleton = Sym "true"}
 val _ = check_raw_node [testTree] [resTree] false
 
 (* Step argument given and properly added *)
 val testTree = SMTLIB.parse ["(step t17 (cl) :rule hole :args (0))"]
 val resTree = Raw_Alethe_Node
-      {concl = Sym "false", context_assignments = [], id = "t17", prems = [], rule = "hole", step_args = [Num 0], subproof = []}
+ {concl = Sym "false", context_assignments = [], id = "t17", prems = [], rule = "hole", 
+  step_args = [Num 0], subproof = [], prop_skeleton = Sym "true"}
 val _ = check_raw_node [testTree] [resTree] true
 
 (* Rule does not allow step argument and none given *)
 val testTree = SMTLIB.parse ["(step t17 (cl (not (not (not a))) a) :rule not_not)"]
 val resTree = Raw_Alethe_Node
-      {concl =  S [Sym "or", S [Sym "not", S [Sym "not", S [Sym "not", Sym "a"]]], Sym "a"], context_assignments = [], id = "t17", prems = [], rule = "not_not", step_args = [], subproof = []}
+  {concl =  S [Sym "or", S [Sym "not", S [Sym "not", S [Sym "not", Sym "a"]]], Sym "a"],
+   context_assignments = [], id = "t17", prems = [], rule = "not_not", step_args = [], 
+   subproof = [], prop_skeleton = S [Sym "or", Sym "true", Sym "true"]}
 val _ = check_raw_node [testTree] [resTree] true
 
 (* Unexpected step argument given TODO*)
 val testTree = SMTLIB.parse ["(step t17 (cl (not (not (not a))) a) :rule not_not :args (0))"]
 val _ = check_raw_node [testTree] [resTree] false
 val resTree = Raw_Alethe_Node
-      {concl =  S [Sym "or", S [Sym "not", S [Sym "not", S [Sym "not", Sym "a"]]], Sym "a"], context_assignments = [], id = "t17", prems = [], rule = "not_not", step_args = [Num 0], subproof = []}
+  {concl =  S [Sym "or", S [Sym "not", S [Sym "not", S [Sym "not", Sym "a"]]], Sym "a"], 
+   context_assignments = [], id = "t17", prems = [], rule = "not_not", step_args = [Num 0],
+   subproof = [], prop_skeleton = S [Sym "or", Sym "true", Sym "true"]}
 val x = check_raw_node [testTree] [resTree] true
 
 (* Step argument is string *)
 val testTree = SMTLIB.parse ["(step t17 (cl) :rule rare_rewrite :args (\"evaluate\"))"]
 val resTree = Raw_Alethe_Node
-      {concl = Sym "false", context_assignments = [], id = "t17", prems = [], rule = "rare_rewrite", step_args = [Str "evaluate"], subproof = []}
+  {concl = Sym "false", context_assignments = [], id = "t17", prems = [], rule = "rare_rewrite",
+   step_args = [Str "evaluate"], subproof = [], prop_skeleton = Sym "true"}
 val _ = check_raw_node [testTree] [resTree] true
 
 (* Weird characters in symbol names*)
@@ -226,7 +235,8 @@ val resTree = Raw_Alethe_Node
        S [Sym "exists", S [S [Sym "main_~i~6", Sym "Int"]],
           S [Sym "and", S [Sym "<=", Sym "c_main_~j~6", S [Sym "+", S [Sym "*", Num 2, Sym "main_~i~6"], Num 2]], S [Sym "<=", Sym "main_~i~6", Num 4],
              S [Sym "<=", Sym "main_~i~6", Sym "c_main_~k~6"]]]]
-  , context_assignments = [], id = "t17", prems = [], rule = "rare_rewrite", step_args = [Str "evaluate"], subproof = []}
+  , context_assignments = [], id = "t17", prems = [], rule = "rare_rewrite", 
+  step_args = [Str "evaluate"], subproof = [], prop_skeleton = S [Sym "or", Sym "true"]}
 val _ = check_raw_node [testTree] [resTree] true
 
 
