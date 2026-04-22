@@ -1,24 +1,21 @@
-(*  Title:      HOL/Tools/SMT/alethe_replay_methods.ML
+(*  Title:      HOL/Tools/SMT/alethe/alethe_replay_methods.ML
     Author:     Mathias Fleury, MPII, JKU, University Freiburg
+    Author:     Hanna Lachnitt, Stanford University
 
-Proof method for replaying veriT proofs.
+Proof method for replaying Alethe proofs.
 *)
 
 signature ALETHE_REPLAY_METHODS =
 sig
 
   (*
-  TODO possibly add:
-   Add Weakening
-   xor1, xor2, not_xor1, not_xor2
-   xor_pos1, xor_pos2, xor_neg1, xor_neg2
-   div_simplify
+  Could be included in the future:
    let, bind_let
    nary_elim
    eq_symmetric
   *)
   datatype alethe_rule =
-   (*input: a repeated (normalized) assumption of  assumption of in a subproof*)
+   (*input: a repeated (normalized) assumption or an assumption in a subproof*)
    Normalized_Input | Local_Input |
    (*Used to introduce skolem constants*)
    Definition |
@@ -60,7 +57,6 @@ sig
    (*Other Rules*)
    Other_Rule of string |
    Hole | Trust |
-   (*Temporary rules, that the veriT developers want to remove:*)
    Bfun_Elim |
    Qnt_CNF |
    (*For compression*)
@@ -258,7 +254,6 @@ datatype alethe_rule =
    (*Other Rules*)
    Other_Rule of string |
    Hole | Trust |
-   (*Temporary rules, that the veriT developers want to remove:*)
    Bfun_Elim |
    Qnt_CNF |
    (*For compression*)
@@ -437,13 +432,13 @@ fun print_alethe_tac context =
 (** Tactics for Reconstruction **)
 (* General Notes:
 t is usually the goal as a term
-prems are usually the premises of the rule as a list of theorems
+thms are usually just the premises of the rule as a list of theorems.
 *)
 
 fun replay_error ctxt msg rule thms args t =
   SMT_Replay_Methods.replay_error ctxt msg (string_of_alethe_rule rule) thms args t
 
-(* utility function *)                            
+(* utility function *)
 
 fun eqsubst_all ctxt thms =
    K ((REPEAT o HEADGOAL) (EqSubst.eqsubst_asm_tac ctxt [0] thms))
@@ -488,7 +483,6 @@ val try_provers = SMT_Replay_Methods.try_provers
 
 fun TRY' tac = fn i => TRY (tac i)
 fun REPEAT' tac = fn i => REPEAT (tac i)
-fun REPEAT1' tac = fn i => REPEAT1 (tac i)
 fun REPEAT_CHANGED tac = fn i => REPEAT (CHANGED (tac i))
 fun REPEAT_DETERM_N' k tac = fn i => REPEAT_DETERM_N k (tac i)
 
@@ -500,7 +494,7 @@ fun extract_single_premise rule ctxt thm t =
 
 (* Bind *)
 
-(*The bind rule is non-obvious due to the handling of quantifiers:
+(*The bind rule is non-obvious due to the handling of quantifiers. For example:
   "\<And>x y a. x = y ==> (\<forall>b. P a b x) \<longleftrightarrow> (\<forall>b. P' a b y)"
   ------------------------------------------------------
             \<forall>a. (\<forall>b x. P a b x) \<longleftrightarrow> (\<forall>b y. P' a b y)
@@ -519,7 +513,7 @@ val bind_thms_same_name =
    @{lemma \<open>(\<And>x. P x = Q x) \<Longrightarrow> (\<forall>x. P x = Q x)\<close> by blast}]
 
 fun extract_quantified_names_q (_ $ Abs (name, _, t)) =
-   apfst (curry (op ::) name) (extract_quantified_names_q t)
+   apfst (cons name) (extract_quantified_names_q t)
   | extract_quantified_names_q t = ([], t)
 
 fun extract_forall_quantified_names_q (Const(\<^const_name>\<open>HOL.All\<close>, _) $ Abs (name, ty, t)) =
@@ -558,15 +552,14 @@ fun ignore_new_bound_var [] = [] |
 
 fun combine_quant ctxt ((n1, n2) :: bounds) (n1' :: formula) =
     TRY' (if n1 = n1'
-     then if n1 <> n2
-       then
-         resolve_tac ctxt bind_thms
-         THEN' TRY'(resolve_tac ctxt [@{thm refl}])
-         THEN' combine_quant ctxt bounds formula
-       else resolve_tac ctxt bind_thms_same_name THEN' combine_quant ctxt bounds formula
-     else resolve_tac ctxt @{thms allI} THEN' combine_quant ctxt ((n1, n2) :: bounds) formula)
+      then if n1 <> n2
+        then
+          resolve_tac ctxt bind_thms
+          THEN' TRY'(resolve_tac ctxt [@{thm refl}])
+          THEN' combine_quant ctxt bounds formula
+        else resolve_tac ctxt bind_thms_same_name THEN' combine_quant ctxt bounds formula
+      else resolve_tac ctxt @{thms allI} THEN' combine_quant ctxt ((n1, n2) :: bounds) formula)
   | combine_quant _ _ _ = K all_tac
-
 
 fun bind_quants ctxt args t =
   combine_quant ctxt 
@@ -579,18 +572,19 @@ fun generalize_prems_q [] prems = prems
 
 fun generalize_prems t = generalize_prems_q (fst (extract_quantified_names_ba t))
 
-fun bind ctxt [prems] context_ass t =
- (SMT_Replay_Methods.prove ctxt t (fn _ =>
+fun bind ctxt [thms] context_ass t =
+ ((SMT_Replay_Methods.prove ctxt t (fn _ =>
    bind_quants ctxt context_ass t
-   THEN' TRY' (SOLVED' (resolve_tac ctxt [generalize_prems t prems]
+   THEN' TRY' (SOLVED' (resolve_tac ctxt [generalize_prems t thms]
    THEN_ALL_NEW TRY' (assume_tac ctxt ORELSE' resolve_tac ctxt @{thms refl})))))
+   handle (Fail msg) => replay_error ctxt msg Bind [thms] [] t)
  | bind ctxt thms _ t = replay_error ctxt "invalid bind application" Bind thms [] t
 
 
 (* Congruence/Refl *)
 
 fun get_solver_name (SOME (Solver_Name name)) = name |
-  get_solver_name _ = "unkown solver name"  
+  get_solver_name _ = "unknown solver name"
 
 fun cong ctxt thms t args = try_provers (get_solver_name args) ctxt
     (string_of_alethe_rule Cong) [
@@ -599,12 +593,12 @@ fun cong ctxt thms t args = try_provers (get_solver_name args) ctxt
   ("unfolding then auto", SMT_Replay_Methods.cong_unfolding_first ctxt thms),
   ("full", SMT_Replay_Methods.cong_full ctxt thms)] thms [] t
 
-fun refl ctxt thm t args = (
-  (case find_first (fn thm => t = Thm.full_prop_of thm) thm of
+fun refl ctxt thms t args = (
+  (case find_first (fn thm => t = Thm.full_prop_of thm) thms of
       SOME thm => thm
     | NONE =>
         (case try (fn t => SMT_Replay_Methods.match_instantiate ctxt t @{thm refl}) t of
-          NONE => cong ctxt thm t args
+          NONE => cong ctxt thms t args
         | SOME thm => thm))
 )
 (* Instantiation *)
@@ -729,7 +723,7 @@ local
 
 fun skolem_tac extractor thm1 thms1 ctxt prems context_ass (decl:string list * string list) t =
   let
-   
+
   (*                              
     val (context_ass_thm,_) = Assumption.add_assumes (map (Thm.cterm_of ctxt) context_ass) ctxt
 
@@ -1047,7 +1041,7 @@ local
    } (*TODO: Add bit-vector theorems if necessary. TODO: Not clear if it helps to add some of these or not.*)
   fun aci_simps_extra_thms ctxt = (Named_Theorems.get ctxt @{named_theorems alethe_aci_simp})
 in
- 
+
 fun ACI_rule ctxt thms t =
   SMT_Replay_Methods.prove ctxt t (fn _ =>
     Method.insert_tac ctxt thms 
@@ -1104,15 +1098,15 @@ fun not_or_rule ctxt prems t =
     let
       val y = Thm.cterm_of ctxt (HOLogic.dest_Trueprop (Thm.prop_of (hd prems)))
       val t2 = Thm.cterm_of ctxt (HOLogic.dest_Trueprop t)
-    
+
       val x = Drule.infer_instantiate' ctxt [SOME y, SOME t2] @{thm alethe_not_or(1)}
-    
+
     in
       (resolve_tac ctxt [x])
       THEN' (resolve_tac ctxt prems)
       THEN' K (unfold_tac ctxt @{thms alethe_not_or(2)})
       THEN' (resolve_tac ctxt @{thms alethe_or_neg})
-    
+
       THEN' K (unfold_tac ctxt @{thms not_not})
       THEN_ALL_NEW
         (REPEAT'
@@ -1152,7 +1146,7 @@ fun and_pos ctxt _ t (SOME (Index k)) =
         (* original version *)
         | choice 1 = 
          SMT_Replay_Methods.prove ctxt t (fn _ =>
-         REPEAT_DETERM_N' k (resolve_tac ctxt @{thms alethe_and_pos})  
+         REPEAT_DETERM_N' k (resolve_tac ctxt @{thms alethe_and_pos})
          THEN' TRY' (resolve_tac ctxt @{thms excluded_middle} 
            ORELSE' resolve_tac ctxt [@{lemma "(a \<Longrightarrow> A) \<Longrightarrow> \<not>(a \<and> b) \<or> A" by blast}])
          THEN' TRY' (assume_tac ctxt))
@@ -1558,7 +1552,7 @@ local
   val extract_instantiations =
     Thm.prop_of
     #> extract_implications
- 
+
   fun onepoint_quants ctxt prems t =
     let
       val insts = extract_instantiations prems
@@ -1633,7 +1627,7 @@ For congruence we do two different things:
   1. usually, we simply go over the term in a conversion and check if there is a lemma that can be
   used for rewriting. Complexity here comes from the fact that we need to be careful with lambda / 
   non-reduced terms.
-  
+
   We experimented with various versions and found that we need to avoid iterating over the entire
   term. Therefore, we calculate the size of the term and don't try to rewrite if the term is
   smaller than the smallest term to rewrite. However, the size calculation is only useful if you
@@ -1973,7 +1967,7 @@ fun all_simplify ctxt _ t =
      THEN' TRY' (Lin_Arith.tac ctxt)
 
      THEN' TRY' (simplify_arith ctxt @{thms alethe_sum_simplify arith_special zmult_eq_1_iff})
- 
+
      THEN' TRY' (simplify_arith ctxt @{thms alethe_prod_simplify})
 
      THEN' TRY' (chain_rewrite_two_step_with_ac_simps ctxt
@@ -2080,7 +2074,7 @@ end
 
 fun la_mult_neg ctxt _ t =
   SMT_Replay_Methods.prove ctxt t (fn _ =>
-(*K (print_tac ctxt "la_mult")       
+(*K (print_tac ctxt "la_mult")
 THEN'*) match_tac ctxt @{thms alethe_la_mult_neg}
 THEN' TRY' (assume_tac ctxt)
 (*THEN' K (print_tac ctxt "la_mult 1")*)
@@ -2131,7 +2125,7 @@ local
   val poly_simp_rel_assms_thms = @{thms divide_eq_0_iff ring_char_0_class.neg_numeral_neq_zero zero_neq_one_class.one_neq_zero ring_char_0_class.neg_one_neq_zero semiring_char_0_class.numeral_neq_zero}
 in
 fun poly_simp_rel ctxt [thm] t =
-        SMT_Replay_Methods.prove ctxt t (fn _ => (    
+        SMT_Replay_Methods.prove ctxt t (fn _ => (
          (resolve_tac ctxt [@{lemma "P \<Longrightarrow> P \<longrightarrow> Q \<Longrightarrow> Q" by simp} OF [thm]] )
          THEN' debug_msg_tac' ctxt high "poly_simp_rel before applying lemma"
          THEN' TRY' (resolve_tac ctxt (Named_Theorems.get ctxt @{named_theorems alethe_poly_simp_rel}))
