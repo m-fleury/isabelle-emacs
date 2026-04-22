@@ -425,6 +425,7 @@ fun replay solver method_for outer_ctxt
 
     val ctxt_with_asserts = ctxt_with_asserts
    (*FIXME: commented out for easier development and for the evaluate rules.*)
+   (*TODO: Hanna see what breaks if this goes back in*)
    (* |> put_simpset (empty_simpset ctxt_with_asserts [])*)
       |> Config.put SAT.solver (Config.get ctxt_after_parsing SMT_Config.sat_solver)
     val _ = debug_msg ctxt low (fn () => @{print} ("num_ll_defs",num_ll_defs))
