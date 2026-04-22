@@ -277,6 +277,7 @@ fun choose _ And = ignore_args and_rule
     | SOME a => include_step_args a)
   | choose _ Hole = ignore_args hole
   | choose _ RARE_Rewrite = ignore_args rare_rewrite
+  | choose _ Evaluate = ignore_args evaluate
   | choose _ r = (@{print} ("unknown rule, using hole", r); ignore_args hole)
 (*unsupported (string_of_alethe_rule r)*)
 
