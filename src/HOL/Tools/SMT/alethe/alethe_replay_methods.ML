@@ -574,13 +574,13 @@ fun bind ctxt [thms] context_ass t =
    THEN' TRY' (SOLVED' (resolve_tac ctxt [generalize_prems t thms]
    THEN_ALL_NEW TRY' (assume_tac ctxt ORELSE' resolve_tac ctxt @{thms refl})))))
    handle (Fail msg) => replay_error ctxt msg Bind [thms] [] t)
- | bind ctxt thms _ t = replay_error ctxt "invalid bind application" Bind thms [] t
+ | bind ctxt thms _ t = replay_error ctxt "invalid application" Bind thms [] t
 
 
 (* Congruence/Refl *)
 
-fun get_solver_name (SOME (Solver_Name name)) = name |
-  get_solver_name _ = "unknown solver name"
+fun get_solver_name (SOME (Solver_Name name)) = name
+  | get_solver_name _ = "unknown solver name"
 
 fun cong ctxt thms t args = try_provers (get_solver_name args) ctxt
     (string_of_alethe_rule Cong) [
@@ -589,47 +589,38 @@ fun cong ctxt thms t args = try_provers (get_solver_name args) ctxt
   ("unfolding then auto", SMT_Replay_Methods.cong_unfolding_first ctxt thms),
   ("full", SMT_Replay_Methods.cong_full ctxt thms)] thms [] t
 
-fun refl ctxt thms t args = (
+fun refl ctxt thms t args =
   (case find_first (fn thm => t = Thm.full_prop_of thm) thms of
       SOME thm => thm
     | NONE =>
         (case try (fn t => SMT_Replay_Methods.match_instantiate ctxt t @{thm refl}) t of
           NONE => cong ctxt thms t args
         | SOME thm => thm))
-)
-(* Instantiation *)
 
-local
-fun dropWhile _ [] = []
-  | dropWhile f (x :: xs) = if f x then dropWhile f xs else x :: xs
-in
+(* Instantiation *)
 
 fun forall_inst ctxt _ t (SOME (Insts insts)) =
   let
     fun instantiate_and_solve i ({context = ctxt, prems = [prem], ...}: Subgoal.focus) =
         let
-          val t = Thm.prop_of prem
-          val quants = t
+          val t_prem = Thm.prop_of prem
+          val quants = t_prem
             |> SMT_Replay_Methods.dest_prop
             |> extract_forall_quantified_names_q
-          val insts = map (Symtab.lookup insts o fst) (rev quants)
-            |> dropWhile (curry (op =) NONE)
-            |> rev
-          fun option_map _ NONE = NONE
-            | option_map f (SOME a) = SOME (f a)
+          val insts = quants
+            |> map (Symtab.lookup insts o fst) 
+            |> drop_suffix is_none
+
           fun instantiate_with inst prem =
             Drule.infer_instantiate' ctxt [NONE, inst] @{thm spec} OF [prem]
           val inst_thm =
             fold instantiate_with
-              (map (option_map (Thm.cterm_of ctxt)) insts)
+              (map (Option.map (Thm.cterm_of ctxt)) insts)
               prem
         in
-           ((*  (K (print_tac ctxt "sd 0")) THEN'  *)Method.insert_tac ctxt [inst_thm]
-           (* THEN' (K (print_tac ctxt "sd 0")) *)
+           (Method.insert_tac ctxt [inst_thm]
            THEN' TRY' (fn i => assume_tac ctxt i)
-           (* THEN' (K (print_tac ctxt "sd 1")) *)
            THEN' TRY' (partial_simplify_tac ctxt @{thms eq_commute ac_simps})
-           (* THEN' (K (print_tac ctxt "sd 2")) *)
            THEN' TRY' (blast_tac ctxt)) i
         end
      | instantiate_and_solve _ ({context = ctxt, prems = thms, ...}: Subgoal.focus) =
@@ -639,49 +630,33 @@ fun forall_inst ctxt _ t (SOME (Insts insts)) =
       match_tac ctxt [@{thm disj_not1} RSN (1, @{thm iffD2}) OF [@{thm impI}]]
       THEN' (fn i => Subgoal.FOCUS (instantiate_and_solve i) ctxt i))
   end |
- forall_inst _ _ _ _ = raise Fail ""
-
-end
+ forall_inst ctxt _ t _ = replay_error ctxt "invalid application" Forall_Inst [] [] t
 
 
 (* Or *)
 
 fun or _ (thm :: _) _ = thm
-  | or ctxt thms t = replay_error ctxt "invalid bind application" Or thms [] t
+  | or ctxt thms t = replay_error ctxt "invalid application" Or thms [] t
 
-
-(* Implication *)
-
-fun implies_pos ctxt _ t = SMT_Replay_Methods.prove ctxt t (fn _ =>
-  resolve_tac ctxt @{thms alethe_implies_pos})
 
 (* Skolemization *)
-local
-  fun split _ [] = ([], [])
-    | split f (a :: xs) =
-        split f xs
-        |> (if f a then apfst (curry (op ::) a) else apsnd (curry (op ::) a))
-in
-fun extract_rewrite_rule_assumption _ thms =
+
+fun extract_rewrite_rule_assumption thms =
   let
     fun is_rewrite_rule thm =
       (case Thm.prop_of thm of
-        \<^term>\<open>Trueprop\<close> $ (Const(\<^const_name>\<open>HOL.eq\<close>, _) $ _ $ Free(_, _)) => true
+        \<^term>\<open>Trueprop\<close> $ (Const(\<^const_name>\<open>HOL.eq\<close>, _) $ _ $ Free _) => true
       | _ => false)
     fun is_context_rule thm =
       (case Thm.prop_of thm of
-        \<^term>\<open>Trueprop\<close> $ (Const(\<^const_name>\<open>HOL.eq\<close>, _) $ Free(_, _) $ Free(_, _)) => true
+        \<^term>\<open>Trueprop\<close> $ (Const(\<^const_name>\<open>HOL.eq\<close>, _) $ Free _ $ Free _) => true
       | _ => false)
-    val (ctxt_eq, other) =
-      thms
-      |> split is_context_rule
-    val (rew, other) =
-      other
-      |> split is_rewrite_rule
+    val (ctxt_eq, other) = List.partition is_context_rule thms
+    val (rew, other) = List.partition is_rewrite_rule other
   in
     (ctxt_eq, rew, other)
   end
-end
+
 (*
 Without compression, we have to rewrite skolems only once. However, it can happen than the same
 skolem constant is used multiple times with a different name under the forall.
@@ -692,16 +667,13 @@ local
   fun rewrite_all_skolems ctxt_eq thm_indirect ctxt ((_,SOME thm) :: thms) =
      let
        val rewrite_sk_thms =
-         List.mapPartial (fn tm => SOME (tm OF [thm]) handle THM _ => NONE) thm_indirect
-       val multiple_rew = if SMT_Config.compress_verit_proofs ctxt then REPEAT_CHANGED else fn x => x
+         map_filter (try (fn tm => tm OF [thm])) thm_indirect
+       val multiple_rew = if SMT_Config.compress_verit_proofs ctxt then REPEAT_CHANGED else I
      in
        multiple_rew (EqSubst.eqsubst_tac ctxt [0] rewrite_sk_thms
-         (* THEN' K (print_tac ctxt "In rewrite_all_skolems")*)
          THEN' SOLVED' (K (HEADGOAL (partial_simplify_tac ctxt (ctxt_eq @ @{thms eq_commute}))))
-         (*THEN' K (print_tac ctxt "In rewrite_all_skolems 2")*))
+       )
        THEN' rewrite_all_skolems ctxt_eq thm_indirect ctxt thms
-         (*THEN' K (print_tac ctxt "In rewrite_all_skolems 3")*)
-
      end
    | rewrite_all_skolems ctxt_eq thm_indirect ctxt ((_,NONE) :: thms) =
        rewrite_all_skolems ctxt_eq thm_indirect ctxt thms
@@ -745,30 +717,13 @@ lemma alethe_sko_forall_indirect2:
     \<open>x = (SOME x. \<not>P x) \<Longrightarrow> (\<And>x :: 'a. (P x = P' x)) \<Longrightarrow>(\<forall>x. P' x) \<longleftrightarrow> P x\<close>
   using someI[of \<open>\<lambda>x. \<not>P x\<close>]
   by auto*)
-(*
-    val _ = @{print}("thm1",thm1)
-    val _ = @{print}("thms1",thms1)
-    val _ = @{print}("prems",prems)
-    val _ = @{print}("context_ass",context_ass)
 
-    val _ = @{print}("t",t)
-    val _ = @{print}("decl",decl)
-*)
-    val (ctxt_eq, rew, other) = extract_rewrite_rule_assumption ctxt prems
-(*
-    val _ = @{print}("ctxt_eq",ctxt_eq)
+    val (ctxt_eq, rew, other) = extract_rewrite_rule_assumption prems
 
-    val _ = @{print}("rew",rew)
-    val _ = @{print}("other",other)
-*)
     fun ordered_definitions () =
       let
         val var_order = extractor t
-        (*val _ = @{print}("var_order",var_order)*)
-
         val thm_names_with_var = extract_var_name rew |> flat
-        (*val _ = @{print}("thm_names_with_var",thm_names_with_var)*)
-
       in map (fn v => (v, AList.lookup (op =) thm_names_with_var v)) var_order end
     (*veriT produces longer terms for skolem function like
     SK1 = eps x. P x
@@ -801,8 +756,7 @@ lemma alethe_sko_forall_indirect2:
       THEN' ((*((resolve_tac ctxt @{thms refl}) THEN' K (print_tac ctxt "sko 0")))
       ORELSE' 
       (
-*) (*K (print_tac ctxt "sko 2")
-      THEN'*) TRY' (eqsubst_all ctxt (map (fn thm => thm RS sym) other))
+*)    TRY' (eqsubst_all ctxt (map (fn thm => thm RS sym) other))
       THEN_ALL_NEW TRY' (resolve_tac ctxt @{thms refl})
       THEN' K (unfold_tac ctxt ctxt_eq)
       THEN' TRY' (partial_simplify_tac ctxt (@{thms eq_commute}))))
@@ -1296,6 +1250,10 @@ in
 end
 
 
+(* Implication *)
+
+fun implies_pos ctxt _ t = SMT_Replay_Methods.prove ctxt t (fn _ =>
+  resolve_tac ctxt @{thms alethe_implies_pos})
 
 val implies_neg1_thm = @{lemma \<open>(a \<longrightarrow> b) \<or> a\<close> by blast}
 val implies_neg1  = prove_implies_pos_neg implies_neg1_thm
