@@ -1,7 +1,7 @@
-(set-logic BV)
-(declare-fun a () (_ BitVec 8))
-(declare-fun b () (_ BitVec 8))
-(declare-fun c () (_ BitVec 1))
-(assert (not (= (= ((_ @bitOf 2) a) true) ((_ @bitOf 2) a))))
+;originally had bit-vectors
+(set-logic AUFLIA)
+(declare-fun a () Bool)
+(declare-fun f (Bool) Bool)
+(assert (not (= (= (f a) true) (f a))))
 (check-sat)
 (exit)
