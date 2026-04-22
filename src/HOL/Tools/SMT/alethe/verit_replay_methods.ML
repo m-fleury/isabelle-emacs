@@ -95,6 +95,7 @@ fun verit_rule_of "bind" = Bind
   | verit_rule_of "rare_rewrite" = RARE_Rewrite
   | verit_rule_of "distinct_elim" = Distinct_Elim
   | verit_rule_of "tautology" = Tautological_Clause
+  | verit_rule_of "contraction" = Contraction
   | verit_rule_of "qnt_cnf" = Qnt_CNF
   | verit_rule_of "unary_minus_simplify" = Unary_Minus_Simplify
   | verit_rule_of r =
