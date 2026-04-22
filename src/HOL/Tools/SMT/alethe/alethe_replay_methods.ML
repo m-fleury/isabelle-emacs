@@ -48,7 +48,7 @@ sig
    Bool_Simplify | Or_Simplify | Not_Simplify | And_Simplify | Equiv_Simplify |
    Implies_Simplify | Connective_Def | Minus_Simplify | Unary_Minus_Simplify | Comp_Simplify |
    Eq_Simplify | ITE_Simplify | Sum_Simplify | Prod_Simplify | Div_Simplify | All_Simplify | RARE_Rewrite |
-   Qnt_Simplify | Not_Not | Tautological_Clause | Duplicate_Literals | Distinct_Elim |
+   Qnt_Simplify | Not_Not | Tautological_Clause | Distinct_Elim |
    Miniscope_Distribute | Miniscope_Split | Miniscope_ITE |
    AC_Simp | ACI_Simp |
    (*Extended rules*)
@@ -92,7 +92,6 @@ sig
   val cong: alethe_tac_args
   val equality_ordered_cong: alethe_tac_args
   val rewrite_connective_def: alethe_tac
-  val duplicate_literals: alethe_tac
   val distinct_elim: alethe_tac
   val eq_congruent: alethe_tac
   val eq_congruent_pred: alethe_tac
@@ -245,7 +244,7 @@ datatype alethe_rule =
    Bool_Simplify | Or_Simplify | Not_Simplify | And_Simplify | Equiv_Simplify |
    Implies_Simplify | Connective_Def | Minus_Simplify | Unary_Minus_Simplify | Comp_Simplify |
    Eq_Simplify | ITE_Simplify | Sum_Simplify | Prod_Simplify | Div_Simplify | All_Simplify | RARE_Rewrite |
-   Qnt_Simplify | Not_Not | Tautological_Clause | Duplicate_Literals | Distinct_Elim | 
+   Qnt_Simplify | Not_Not | Tautological_Clause | Distinct_Elim | 
    AC_Simp | ACI_Simp |
    (*Extended rules*)
    Symm | Not_Symm | Reordering | Shuffle | Tmp_Quantifier_Simplify | Contraction |
@@ -260,8 +259,6 @@ datatype alethe_rule =
    Theory_Resolution2 | Weakening |
    (*Unsupported rule*)
    Unsupported
-
-
 
 fun string_of_alethe_rule Bind = "Bind"
   | string_of_alethe_rule Cong = "Cong"
@@ -364,7 +361,6 @@ fun string_of_alethe_rule Bind = "Bind"
   | string_of_alethe_rule And_Intro = "and_intro"
   | string_of_alethe_rule Not_Not = Alethe_Proof.not_not_rule
   | string_of_alethe_rule Tautological_Clause = "tautology"
-  | string_of_alethe_rule Duplicate_Literals = Alethe_Proof.contract_rule
   | string_of_alethe_rule Distinct_Elim = "distinct_elim"
   | string_of_alethe_rule Qnt_CNF = "qnt_cnf"
   | string_of_alethe_rule Trust = "trust"
@@ -858,15 +854,6 @@ local
     K (unfold_tac ctxt @{thms not_not})
     THEN' match_tac ctxt @{thms alethe_or_simplify_1}
 
-  (*TODO Remove duplicate_literals_prove*)
-  fun duplicate_literals_prove ctxt prems =
-    Method.insert_tac ctxt prems
-    THEN' match_tac ctxt @{thms ccontr}
-    THEN' K (unfold_tac ctxt @{thms de_Morgan_disj not_not})
-    THEN' TRY o CHANGED_PROP o REPEAT_ALL_NEW (ematch_tac ctxt @{thms conjE})
-    THEN' CHANGED_PROP o REPEAT_ALL_NEW (ematch_tac ctxt @{thms disjE})
-    THEN' REPEAT' (ematch_tac ctxt @{thms notE} THEN' TRY' (assume_tac ctxt))
-
   fun tautological_clause_prove ctxt _ = resolve_tac ctxt @{thms TrueI}
 
   val theory_resolution2_lemma = @{lemma \<open>a \<Longrightarrow> a = b \<Longrightarrow> b\<close> by blast}
@@ -899,9 +886,6 @@ val not_not = prove_abstract SMT_Replay_Methods.abstract_bool_shallow not_not_pr
 
 val tautological_clause =
   prove_abstract SMT_Replay_Methods.abstract_bool_shallow tautological_clause_prove
-
-val duplicate_literals =
-  prove_abstract SMT_Replay_Methods.abstract_bool_shallow duplicate_literals_prove
 
 val unit_res = prove_abstract SMT_Replay_Methods.abstract_bool_shallow SMT_Replay_Methods.prop_tac2
 

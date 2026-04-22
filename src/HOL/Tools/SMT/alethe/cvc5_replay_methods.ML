@@ -131,7 +131,6 @@ fun cvc5_rule_of "bind" = Bind
      else if r = Alethe_Proof.local_input_rule then Local_Input
      else if r = Alethe_Proof.skolem_def then Definition
      else if r = Alethe_Proof.not_not_rule then Not_Not
-     else if r = Alethe_Proof.contract_rule orelse r = "duplicate_literals" then Duplicate_Literals
      else if r = Alethe_Proof.ite_intro_rule then ITE_Intro (* veriT only *)
      else if r = Alethe_Proof.eq_congruent_rule then Eq_Congruent
      else if r = Alethe_Proof.eq_congruent_pred_rule then Eq_Congruent_Pred
@@ -175,7 +174,6 @@ fun choose _ And = ignore_args and_rule
   | choose _ Cong = include_args equality_ordered_cong
   | choose _ Connective_Def = ignore_args rewrite_connective_def
   | choose _ Distinct_Elim = ignore_args distinct_elim
-  | choose _ Duplicate_Literals = ignore_args duplicate_literals
   | choose _ Eq_Congruent = ignore_args eq_congruent
   | choose _ Eq_Congruent_Pred = ignore_args eq_congruent_pred
   | choose _ Eq_Reflexive = ignore_args eq_reflexive
