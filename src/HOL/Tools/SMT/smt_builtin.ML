@@ -178,10 +178,15 @@ fun is_builtin_typ_ext ctxt T =
 
 (* built-in numbers *)
 
-fun dest_builtin_num ctxt t =
-  (case try HOLogic.dest_number t of
-    NONE => NONE
-  | SOME (T, i) =>
+(* HOLogic.dest_number evaluates a term. Thus, double negations are deleted.
+But as a consequence the assumption in a SMT certificate cannot be matched to the original assertion
+in Isabelle anymore. Thus, we skip this case here. *)
+
+fun dest_builtin_num ctxt (Const ("Groups.uminus_class.uminus", _) $ (t as Const ("Groups.uminus_class.uminus", _) $ _)) = dest_builtin_num ctxt t
+  | dest_builtin_num ctxt t =
+    (case try HOLogic.dest_number t of
+      NONE => NONE
+    | SOME (T, i) =>
       if i < 0 then NONE else
         (case lookup_builtin_typ ctxt T of
           SOME (_, Int (_, g)) => g T i |> Option.map (rpair T)
