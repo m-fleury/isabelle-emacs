@@ -389,6 +389,8 @@ lemma uint_smt_srem:
 definition is_pow2 :: "int \<Rightarrow> bool" where
   \<open>is_pow2 i \<equiv> (i > 0) \<and> (and i (i-1) = 0)\<close>
 
+lemmas cvc_evaluate_bv = is_pow2_def
+
 definition smt_udiv :: "'a::len word \<Rightarrow> 'a::len word \<Rightarrow> 'a::len word" where
 "smt_udiv s t =
 (if (unat t) = 0 then (mask (size s)) else s div t)
