@@ -67,10 +67,25 @@ lemmas [cvc_evaluate_bv]
     evaluate_concat evaluate_power 
     push_bit_lift_def
 
-ML\<open>
-val nat_native_ops_tab =[]
+
+lemma shiftl_lift:
+  "(x << i) \<equiv> push_bit i x"
+  unfolding shiftl_def by simp
+
+lemma shiftr_lift:
+  "(x >> i) \<equiv> drop_bit i x"
+  unfolding shiftr_def by simp
+
+
+ML \<open>
+val nat_native_ops_tab =
+[
+("Bit_Shifts_Infix_Syntax.semiring_bit_operations_class.shiftl", @{thms shiftl_lift push_bit_lift}),
+("Bit_Shifts_Infix_Syntax.semiring_bit_operations_class.shiftr", @{thms shiftr_lift drop_bit_lift})
+
+]
 val simplify_norm_table = [
-  ("Bit_Operations.semiring_bits_class.bit",@{thms push_bit_lift})
+  ("Bit_Operations.semiring_bits_class.bit",(NONE,@{thms push_bit_lift}))
 
 ]
 

@@ -4889,14 +4889,20 @@ lemma [nat_normalized_input]:
   "ucast w \<equiv> Word.cast w"
    by simp
 
-
 lemma word_numeral_lift:
 "(numeral (x::num)::'a::len word) \<equiv> word_of_int (take_bit LENGTH('a::len) (numeral x))"
   using num_abs_bintr[of x]
   sorry
 
-ML \<open>
 
+lemmas [simplify_translation] = len_bit0 len_bit1 len_num1 take_bit_numeral_numeral option.case take_bit_num_simps pred_numeral_simps option.case
+of_int_numeral
+
+ML_file \<open>Tools/smt_word.ML\<close>
+
+
+
+ML \<open>
 val nat_native_ops_tab =
 [
   ("Bit_Operations.semiring_bit_operations_class.take_bit",@{thms take_bit_lift}),
@@ -4909,11 +4915,27 @@ val nat_native_ops_tab =
 
 
 ]
+
+(*Find out if a bit-vector constant is larger than it's bit-width allows*)
+(*TODO: Make nicer*)
+fun count_consts (Const _ $ t) = 1 + count_consts t |
+    count_consts _ = 0
+
+
+fun is_overflow_bv_const (Const ("Num.numeral_class.numeral", Type("fun",[_,T])) $ t) =
+let
+  val bitwidth = Word_Lib.dest_wordT T (*TODO: try*)
+  val nr_children = count_consts t
+in bitwidth <  (1 + nr_children) end | 
+is_overflow_bv_const _ = false
+
+
+
 val simplify_norm_table = [
-  ("Type_Length.len0_class.len_of", @{thms smt_word_len_evaluate}),
-  ("Word.Word", @{thms Word_of_int}),
-  ("Word.slice",@{thms slice_lift}) ,
-  ("Num.numeral_class.numeral",@{thms word_numeral_lift})
+  ("Type_Length.len0_class.len_of", (NONE, @{thms smt_word_len_evaluate})),
+  ("Word.Word", (NONE, @{thms Word_of_int})),
+  ("Word.slice",(NONE, @{thms slice_lift})) ,
+  ("Num.numeral_class.numeral",(SOME (fn x => is_overflow_bv_const x), @{thms word_numeral_lift}))
 
 ]
 
@@ -4924,13 +4946,6 @@ val _ = fold SMT_Normalize.add_simplify_ops_tab (simplify_norm_table)
     |> Theory.setup o Context.theory_map
 \<close>
 
-
-lemmas [simplify_translation] = len_bit0 len_bit1 len_num1 take_bit_numeral_numeral option.case take_bit_num_simps pred_numeral_simps option.case
-of_int_numeral
-
-ML_file \<open>Tools/smt_word.ML\<close>
-
 declare [[smt_nat_as_int]]
-
 
 end
