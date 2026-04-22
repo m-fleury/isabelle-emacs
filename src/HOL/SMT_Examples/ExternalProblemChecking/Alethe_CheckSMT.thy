@@ -1,0 +1,23 @@
+theory Alethe_CheckSMT
+  imports Main
+
+begin 
+
+declare [[smt_trace=false,smt_verbose=false]]
+(*declare [[smt_statistics]]*)
+
+(* or_neg *)
+check_smt "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/or_neg/1776309183726509767.smt2" "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/or_neg/1776309183726509767.alethe" 
+check_smt "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/or_neg/1776309184477962081.smt2" "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/or_neg/1776309184477962081.alethe" 
+check_smt "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/or_neg/1776309184626455221.smt2" "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/or_neg/1776309184626455221.alethe" 
+check_smt "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/or_neg/1776309184748737531.smt2" "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/or_neg/1776309184748737531.alethe" 
+check_smt "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/or_neg/1776309184872995788.smt2" "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/or_neg/1776309184872995788.alethe" 
+
+(* and_pos *)
+check_smt "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/and_pos/1776309182721929989.smt2" "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/and_pos/1776309182721929989.alethe" 
+check_smt "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/and_pos/1776309183192212150.smt2" "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/and_pos/1776309183192212150.alethe" 
+check_smt "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/and_pos/1776309184319275756.smt2" "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/and_pos/1776309184319275756.alethe" 
+check_smt "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/and_pos/1776309184396476070.smt2" "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/and_pos/1776309184396476070.alethe" 
+check_smt "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/and_pos/1776309184542667460.smt2" "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/and_pos/1776309184542667460.alethe" 
+
+end

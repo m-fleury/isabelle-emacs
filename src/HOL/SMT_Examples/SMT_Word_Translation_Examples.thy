@@ -10,10 +10,20 @@ declare[[smt_expert_debug_alethe_files="smt_normalize"]]
 declare[[smt_expert_debug_alethe_level=3]]
 declare[[smt_nat_as_int=true,smt_trace]]
 
+section \<open>Bitvector numbers\<close>
 
-(*
-Overflows should be normalized before generating the SMT-LIB problem.
-*)
+
+(* Normal Words are normally encoded as Bit-vectors :) *)
+lemma "(169 :: 8 word) = 169"
+  apply (test_smt_translate 
+\<open>
+(set-logic AUFBVLIRAFS)
+(assert (! (not (= (_ bv169 8) (_ bv169 8))) :named a0))
+\<close>)  
+  by (smt (cvc5))
+
+
+(* Overflows should be normalized before generating the SMT-LIB problem.*)
 lemma "(1705 :: 8 word) = 169"
   apply (test_smt_translate 
 \<open>
@@ -23,9 +33,7 @@ lemma "(1705 :: 8 word) = 169"
   by (smt (cvc5))
 
 
-(*
-- is translated into bvneg
-*)
+(* - is translated into bvneg *)
 lemma "(- 169 :: 8 word) = 87"
   apply (test_smt_translate 
 \<open>
@@ -34,9 +42,10 @@ lemma "(- 169 :: 8 word) = 87"
 \<close>)
   by (smt (cvc5))
 
-(*
-\<le> is translated into bvule
-*)
+
+section \<open>Ordering\<close>
+
+(* \<le> is translated into bvule *)
 lemma "(42 :: 8 word) \<le> 43"
   apply (test_smt_translate 
 \<open>
@@ -45,9 +54,7 @@ lemma "(42 :: 8 word) \<le> 43"
 \<close>)
   by (smt (cvc5))
 
-(*
-< is translated into bvult
-*)
+(* < is translated into bvult *)
 lemma "(42 :: 8 word) < 43"
   apply (test_smt_translate 
 \<open>
@@ -56,9 +63,7 @@ lemma "(42 :: 8 word) < 43"
 \<close>)
   by (smt (cvc5))
 
-(*
-\<le>s is translated into bvsle
-*)
+(* \<le>s is translated into bvsle *)
 lemma "(42 :: 8 word) \<le>s 44"
   apply (test_smt_translate 
 \<open>
@@ -67,9 +72,7 @@ lemma "(42 :: 8 word) \<le>s 44"
 \<close>)
   by (smt (cvc5))
 
-(*
-<s is translated into bvslt
-*)
+(* <s is translated into bvslt *)
 lemma "(42 :: 8 word) <s 44"
   apply (test_smt_translate 
 \<open>
@@ -77,6 +80,23 @@ lemma "(42 :: 8 word) <s 44"
 (assert (! (not (bvslt (_ bv42 8) (_ bv44 8))) :named a0))
 \<close>)
   by (smt (cvc5))
+
+section \<open>Basic operators\<close>
+
+(* + is translated into bvadd *)
+lemma "1 + 3 = (4::5 word)"
+  apply (test_smt_translate 
+\<open>
+(set-logic AUFBVLIRAFS)
+(assert (! (not (= (bvadd (_ bv1 5) (_ bv3 5)) (_ bv4 5))) :named a0))
+\<close>)
+  by (smt (cvc5))
+
+
+
+
+
+
 
 (*
 smt_extract is not really used but just in case:

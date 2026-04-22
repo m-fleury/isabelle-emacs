@@ -114,6 +114,7 @@ object Mirabelle {
       val mirabelle_output_dir = options.check_name("mirabelle_output_dir")
       val mirabelle_parallel_group_size = options.check_name("mirabelle_parallel_group_size")
       val mirabelle_subgoals = options.check_name("mirabelle_subgoals")
+      val mirabelle_goals_from_file = options.check_name("mirabelle_goals_from_file")
 
       var actions: List[String] = Nil
       var base_sessions: List[String] = Nil
@@ -154,6 +155,7 @@ Usage: isabelle mirabelle [OPTIONS] [SESSIONS ...]
     -v           verbose
     -x NAME      exclude session NAME and all descendants
     -y           """ + mirabelle_dry_run.description + " (default " + mirabelle_dry_run.default_value + """)
+    -f           """ + mirabelle_goals_from_file + " (default " + mirabelle_goals_from_file.default_value + """)
 
   Apply the given ACTIONs at all theories and proof steps of the
   specified sessions.
@@ -188,7 +190,8 @@ Usage: isabelle mirabelle [OPTIONS] [SESSIONS ...]
         "t:" -> (arg => options = options + ("mirabelle_timeout=" + arg)),
         "v" -> (_ => verbose = true),
         "x:" -> (arg => exclude_sessions = exclude_sessions ::: List(arg)),
-        "y" -> (arg => options = options + ("mirabelle_dry_run=true")))
+        "y" -> (arg => options = options + ("mirabelle_dry_run=true")),
+        "f:" -> (arg => options = options + ("mirabelle_goals_from_file=" + arg)))
 
       val sessions = getopts(args)
       if (actions.isEmpty) getopts.usage()

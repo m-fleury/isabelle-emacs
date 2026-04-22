@@ -10,99 +10,11 @@ theory SMT_Word_Examples_CVC
 imports "HOL-Library.Word" "HOL.SMT_CVC_Word"
 begin
 
-(*TODO: These are here for convinience of debugging and will be moved later*)
-
-lemma shiftl_lift:
-  "(x << i) \<equiv> push_bit i x"
-  unfolding shiftl_def by simp
-
-lemma shiftr_lift:
-  "(x >> i) \<equiv> drop_bit i x"
-  unfolding shiftr_def by simp
-
-
-ML \<open>
-val nat_native_ops_tab =
-[
-("Bit_Shifts_Infix_Syntax.semiring_bit_operations_class.shiftl", @{thms shiftl_lift push_bit_lift}),
-("Bit_Shifts_Infix_Syntax.semiring_bit_operations_class.shiftr", @{thms shiftr_lift drop_bit_lift})
-
-]
-val ops_tab = fold SMT_Normalize.add_nat_native_ops_tab nat_native_ops_tab
-val _ = Theory.setup (Context.theory_map (ops_tab))
-
-\<close>
-lemmas [bv_reconstruction_length] = len_num0 len_num1 len_bit0 len_bit1 (*TODO: Move to appropriate place if this is necessary*)
 
 declare[[smt_trace]]
-declare[[smt_expert_debug_alethe_level=3]]
+declare[[smt_expert_debug_alethe_level=0]]
 declare[[smt_expert_debug_alethe_files="all"]]
 declare[[smt_nat_as_int]]
-
-
-check_smt "~/Sources/Benchmark/errors/bv-term-small-rw_5.smt2" "~/Sources/Benchmark/errors/bv-term-small-rw_5.alethe"
-
-
-
-(* Overview:
-
-What has been done?
-
-- Word constants now translate correctly even with overflow
-- Conversions work well (of_int, Word.Word)
-- LENGTH translation works well
-
-What is still to do?
-
-- Word constants that overflow e.g., (27 :: 4 word) are now normalized during normalization using the simplifier. It would
-  be better to first check if that is necessary before calling the simplifier.
-- Normalization of negative word constants disturbs checking as in this lemma: lemma "- (- 11) = (11::5 word)"
-- int.log2 does not parse correctly
-- Problem with finding the assumptions in cases where parsing adds a nat cast
-    lemma "(2::4 word) ^ 3 = 8"
-    by (smt (cvc5))
-
-  Goal: "__normalized_input"
-       assumptions:
-         push_bit_lift (3::int) 1 \<noteq> (8::4 word)
-       proposition:
-         push_bit (nat (3::int)) 1 \<noteq> (8::4 word) 
-- Evaluate abstracts too much for bit-vector operators:
-  SMT: Goal: "rare_rewrite"
-       arguments:
-         ''evaluate''
-       proposition:
-         push_bit (nat (3::int)) 1 = (8::4 word) 
-  Proof failed.
-  1. uint t1 = (8::int)
-
-- slice does not get translated correctly anymore
-  (declare-fun smt_extract_lift$ (Int Int (_ BitVec 3)) (_ BitVec 2))
-  (assert (! (not (= (smt_extract_lift$ 3 1 (_ bv6 3)) (_ bv3 2))) :named a0))
-
-*)
-
-ML\<open>
-
-val y1 = @{term "(7 :: 3 word)"} (*111*)
-val y2 = @{term "(6 :: 3 word)"} (*011*)
-val y3 = @{term "(2 :: 3 word)"} (*01*)
-val y4 = @{term "(3 :: 3 word)"} (*11*)
-val y5 = @{term "(4 :: 3 word)"} (*001*)
-
-val z0 = @{term "(0 :: 3 word)"} (*0 ---> *)
-
-val z1 = @{term "(8 :: 3 word)"} (*0001 ---> *)
-val z2 = @{term "(9 :: 3 word)"} (*1001 ---> 1*)
-val z3 = @{term "(10 :: 3 word)"} (*0101 ---> 01*)
-val z4 = @{term "(11 :: 3 word)"} (*1101 ---> 11*)
-val z5 = @{term "(12 :: 3 word)"} (*0011 ---> 001*)
-
-\<close>
-
-
-
-
 
 section \<open>Bitvector numbers\<close>
 

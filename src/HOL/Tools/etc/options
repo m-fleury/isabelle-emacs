@@ -79,3 +79,8 @@ option mirabelle_theories : string = ""
 
 option mirabelle_subgoals : string = "apply,by,proof,unfolding,using"
   -- "comma-separated list of subgoal classes to consider"
+
+option mirabelle_goals_from_file : string = ""
+  -- "run Mirabelle only on the goals listed in the input file.
+  The format should be Session.Theory line_nr:position_nr For example, Ordered_Resolution_Prover.Clausal_Logic 252:7378 Cannot be used together with -T option."
+

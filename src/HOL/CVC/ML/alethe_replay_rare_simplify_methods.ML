@@ -225,14 +225,17 @@ fun dsl_tac_initialize rewrite_name args ctxt t _ =
                 fun try_lemma_i i = 
                 (fn t => (SMT_Replay_Methods.prove ctxt t (fn ctxt =>
                   debug_msg_tac'' ctxt high "start"
+                  THEN' K (print_tac ctxt "start")
                   THEN' (
-                   (EqSubst.eqsubst_tac ctxt [0] [nth inst_lemmas_without_true 0] (*TODO: Use lemma i*)
-                   THEN' debug_msg_tac'' ctxt high "applied lemma"
-                   THEN' TRY' (resolve_tac ctxt [@{thm refl}]))
-                  ORELSE'
+                   (CHANGED_GOAL (EqSubst.eqsubst_tac ctxt [0] [nth inst_lemmas_without_true 0] (*TODO: Use lemma i*)
+                    THEN' K (print_tac ctxt "after applying lemma")
+
+                     THEN' debug_msg_tac'' ctxt high "applied lemma"
+                     THEN' TRY' (resolve_tac ctxt [@{thm refl}])))
+                  ORELSE' (*TODO: This is wrong but I don't get how to change it. I want a UNLESS changed*)
                    (if rare_mode = 1 orelse (List.exists (fn x => x = rare_mode) [4,5,7])
-                   then (let fun x _ = @{print}("lemma,goal",(nth inst_lemmas_without_true 0,Thm.cterm_of ctxt t)) in 
-                   (fn y => x y; debug_msg_tac'' ctxt high "could not apply lemma" THEN'(*K no_tac*) ( raise RARE_REPLAY("Lemmas could not be used to discharge rewrite rule."))) end)
+                   then (let val _ = @{print}("lemma,goal",(nth inst_lemmas_without_true 0,Thm.cterm_of ctxt t)) in 
+                   (debug_msg_tac'' ctxt high "could not apply lemma" THEN' (K no_tac) (* This won't work: raise RARE_REPLAY("Lemmas could not be used to discharge rewrite rule."*)) end)
                    else (K (print_tac ctxt "lemmas could not be used, continue to simplify") THEN' try_simp_tac [] ctxt THEN' K (print_tac ctxt "after simplification")))
                   )
                   THEN_ALL_NEW (

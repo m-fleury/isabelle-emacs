@@ -208,6 +208,7 @@ val _ =
           val check_theory = check_theories (space_explode "," mirabelle_theories);
           val mirabelle_subgoals = Options.default_string \<^system_option>\<open>mirabelle_subgoals\<close>;
           val considered_subgoals = space_explode "," mirabelle_subgoals;
+          val mirabelle_goals_from_file = Options.default_string \<^system_option>\<open>mirabelle_goals_from_file\<close>;
 
           fun parallel_app (f : 'a -> unit) (xs : 'a list) : unit =
             chop_groups mirabelle_parallel_group_size xs
@@ -233,9 +234,41 @@ val _ =
                     pre = Toplevel.proof_of st, post = st'}
                   else NONE
                 end;
+
+              local 
+                val targets = (split_lines o File.read) (Path.explode mirabelle_goals_from_file)
+                  handle IO.Io _ => raise Fail "Could not read file with target positions"
+                fun map_one_target delim x = (apsnd tl) (chop (find_index (fn y => y = delim) x) x)
+                val targets2 = targets  |> List.filter (fn x =>  size x > 0) |> map (map_one_target " " o raw_explode) |> map (apfst implode)
+                val targets3 = targets2 |> map (apsnd (apply2 implode o map_one_target ":"))
+                fun make_symtab (thy_name,(line:string,offset)) tab =
+                  (case Symtab.lookup tab thy_name of
+                    NONE => Symtab.insert (K true) (thy_name,Symtab.update (line,[Value.parse_int offset]) Symtab.empty) tab |
+                    (SOME tab') =>
+                    let
+                      val offset_list = Symtab.lookup tab' line |> these
+                    in Symtab.update (thy_name,Symtab.update (line,Value.parse_int offset :: offset_list) tab') tab end
+                   )
+                val target_symtab = fold make_symtab targets3 Symtab.empty
+              in 
+              fun filter_command {pos: Position.T,...} =
+                let
+
+                val line = (case Position.line_of pos of (SOME i) => i | NONE => 0)
+                val offset = (case Position.offset_of pos of (SOME i) => i | NONE => 0)
+                val theory_name = Context.theory_long_name thy
+
+                in
+                 (case Symtab.lookup target_symtab theory_name of
+                   NONE => false
+                 | (SOME line_tab) => (case Symtab.lookup line_tab (string_of_int line)  of
+                                        NONE => false |
+                                        (SOME xs) =>  List.exists (fn ofs => (ofs = offset)) xs ))
+                end;
+              end
             in
               if Resources.theory_qualifier thy_long_name = qualifier then
-                map_filter make_command segments
+                map_filter make_command segments |> (if mirabelle_goals_from_file = "" then (fn x => x) else filter filter_command)
               else
                 []
             end;

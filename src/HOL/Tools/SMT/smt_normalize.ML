@@ -21,7 +21,7 @@ sig
           Context.generic -> Context.generic
 
   val add_nat_native_ops_tab : (string * thm list) -> Context.generic -> Context.generic
-  val add_simplify_ops_tab : (string * thm list) -> Context.generic -> Context.generic
+  val add_simplify_ops_tab : (string * ((term -> bool) option * thm list)) -> Context.generic -> Context.generic
 
 end;
 
@@ -362,7 +362,15 @@ fun get_nat_native_ops_tab ctxt = (Nat_Native_Ops.get (Context.Proof ctxt) : nat
 fun add_nat_native_ops_tab tabs context =
  Nat_Native_Ops.map (K (AList.update (op =) tabs (Nat_Native_Ops.get context))) context
 
-type simplify_ops = (string * thm list)
+(*
+First argument is the top-level operator of the term the simplifier should be applied to.
+Second argument is a tuple with the first entry being optional additional condition on the term
+and the second a potentially empty list of lemmas applied before the simplifier is called.
+
+E.g., for machine word constants we only want to call the simplifier if they are larger than their bit-width allows.
+
+*)
+type simplify_ops = (string * ((term -> bool) option * thm list))
 structure Simplify_Ops = Generic_Data
 (
   type T = simplify_ops list
@@ -404,7 +412,7 @@ local
     let
       val t = Thm.term_of ct
       val t1 = Term.head_of t
- 
+      
       fun proper_num_ss ctxt =
         simpset_of (put_simpset HOL_ss ctxt
         addsimps (Named_Theorems.get ctxt \<^named_theorems>\<open>simplify_translation\<close>))
@@ -412,17 +420,26 @@ local
       fun simp_rewr ctxt = Simplifier.rewrite (Simplifier.add_cong  @{thm option.case_cong} ((put_simpset (proper_num_ss  ctxt)) ctxt))
       fun rewr_conv [] = Conv.all_conv |
           rewr_conv (thm::thms) =( Conv.try_conv (Conv.top_rewrs_conv [thm |> @{print}] ctxt))
-then_conv (print_conv "unfold_extension_conv_simp") ctxt "test one conv" 
-then_conv rewr_conv thms
+          then_conv (print_conv "unfold_extension_conv_simp") ctxt "test one conv" 
+          then_conv rewr_conv thms
     in
       (case t1 of
         Const(n,T) =>
           (case AList.lookup (op =) tab n of (*TODO: use thms in Simplifier*)
-              SOME thms => rewr_conv (thms |> @{print})
-              then_conv (print_conv "unfold_extension_conv_simp") ctxt "unfolded one conv" 
-               then_conv (simp_rewr ctxt)
-              then_conv (print_conv "unfold_extension_conv_simp") ctxt "simp rewrite one conv" 
-
+              SOME (cond,thms) =>
+              (case cond of
+                NONE => Conv.all_conv |
+                (SOME f) =>
+                let
+                  val cond_ev = f t
+                in
+                  if cond_ev then 
+                    rewr_conv (thms)
+                    then_conv (print_conv "unfold_extension_conv_simp") ctxt "unfolded one conv" 
+                    then_conv (simp_rewr ctxt)
+                    then_conv (print_conv "unfold_extension_conv_simp") ctxt "simp rewrite one conv"
+                  else Conv.all_conv
+                end)
             | NONE => Conv.all_conv)
        | _ => Conv.all_conv) ct
     end
