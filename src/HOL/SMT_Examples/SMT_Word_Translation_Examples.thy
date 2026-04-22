@@ -42,6 +42,15 @@ lemma "(- 169 :: 8 word) = 87"
 \<close>)
   by (smt (cvc5))
 
+(* -- is translated to bvneg bvneg (this used to be broken)*)
+lemma "-(- 2 :: 8 word) = 2"
+  apply (test_smt_translate
+\<open>
+(set-logic AUFBVLIRAFS)
+(assert (! (not (= (bvneg (bvneg (_ bv2 8))) (_ bv2 8))) :named a0))
+\<close>)
+  by (smt (cvc5))
+
 
 section \<open>Ordering\<close>
 
