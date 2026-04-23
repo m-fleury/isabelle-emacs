@@ -492,23 +492,9 @@ fun extract_single_premise rule ctxt thm t =
 
 (* Bind *)
 
-(*The bind rule is non-obvious due to the handling of quantifiers. For example:
-  "\<And>x y a. x = y ==> (\<forall>b. P a b x) \<longleftrightarrow> (\<forall>b. P' a b y)"
-  ------------------------------------------------------
-            \<forall>a. (\<forall>b x. P a b x) \<longleftrightarrow> (\<forall>b y. P' a b y)
-is a valid application.*)
-
 val bind_thms =
-  [@{lemma \<open>(\<And>x x'. x = x' \<Longrightarrow> P x = Q x') \<Longrightarrow> (\<forall>x. P x) = (\<forall>y. Q y)\<close> by blast},
-   @{lemma \<open>(\<And>x x'. x = x' \<Longrightarrow> P x = Q x') \<Longrightarrow> (\<exists>x. P x) = (\<exists>y. Q y)\<close> by blast},
-   @{lemma \<open>(\<And>x x'. x = x' \<Longrightarrow> P x = Q x') \<Longrightarrow> (\<exists>x. P x = Q x)\<close> by blast},
-   @{lemma \<open>(\<And>x x'. x = x' \<Longrightarrow> P x = Q x') \<Longrightarrow> (\<forall>x. P x = Q x)\<close> by blast}]
-
-val bind_thms_same_name =
   [@{lemma \<open>(\<And>x. P x = Q x) \<Longrightarrow> (\<forall>x. P x) = (\<forall>y. Q y)\<close> by blast},
-   @{lemma \<open>(\<And>x. P x = Q x) \<Longrightarrow> (\<exists>x. P x) = (\<exists>y. Q y)\<close> by blast},
-   @{lemma \<open>(\<And>x. P x = Q x) \<Longrightarrow> (\<exists>x. P x = Q x)\<close> by blast},
-   @{lemma \<open>(\<And>x. P x = Q x) \<Longrightarrow> (\<forall>x. P x = Q x)\<close> by blast}]
+   @{lemma \<open>(\<And>x. P x = Q x) \<Longrightarrow> (\<exists>x. P x) = (\<exists>y. Q y)\<close> by blast}]
 
 fun extract_quantified_names_q (_ $ Abs (name, _, t)) =
    apfst (cons name) (extract_quantified_names_q t)
@@ -517,18 +503,6 @@ fun extract_quantified_names_q (_ $ Abs (name, _, t)) =
 fun extract_forall_quantified_names_q (Const(\<^const_name>\<open>HOL.All\<close>, _) $ Abs (name, ty, t)) =
    (name,  ty) :: (extract_forall_quantified_names_q t)
   | extract_forall_quantified_names_q _ = []
-
-val extract_quantified_names_ba =
-  SMT_Replay_Methods.dest_prop
-  #> extract_quantified_names_q
-  ##> HOLogic.dest_eq
-  ##> fst
-  ##> extract_quantified_names_q
-  ##> fst
-
-val extract_quantified_names =
-  extract_quantified_names_ba
-  #> (op @)
 
 fun extract_all_forall_exists_quantified_names_q (Const(\<^const_name>\<open>HOL.Ex\<close>, _) $ Abs (name, _, t)) =
       name :: (extract_all_forall_exists_quantified_names_q t)
@@ -540,41 +514,11 @@ fun extract_all_forall_exists_quantified_names_q (Const(\<^const_name>\<open>HOL
 
 val to_upper = raw_explode #> map Symbol.to_ascii_upper #> implode;
 
-val extract_bind_names =
-   HOLogic.dest_eq
-   #> apply2 (fn (Free (name, _)) => name |> to_upper | _ => raise Fail "could not extract bound variable names in reconstruction of bind rule")
-
-fun ignore_new_bound_var [] = [] |
-    ignore_new_bound_var (Free (_, _) :: xs) = ignore_new_bound_var xs |
-    ignore_new_bound_var (t :: xs) = t::ignore_new_bound_var xs
-
-fun combine_quant ctxt ((n1, n2) :: bounds) (n1' :: formula) =
-    TRY' (if n1 = n1'
-      then if n1 <> n2
-        then
-          resolve_tac ctxt bind_thms
-          THEN' TRY'(resolve_tac ctxt [@{thm refl}])
-          THEN' combine_quant ctxt bounds formula
-        else resolve_tac ctxt bind_thms_same_name THEN' combine_quant ctxt bounds formula
-      else resolve_tac ctxt @{thms allI} THEN' combine_quant ctxt ((n1, n2) :: bounds) formula)
-  | combine_quant _ _ _ = K all_tac
-
-fun bind_quants ctxt args t =
-  combine_quant ctxt 
-  (map extract_bind_names (ignore_new_bound_var (map HOLogic.dest_Trueprop args)))
-    (extract_quantified_names t |> map to_upper)
-
-fun generalize_prems_q [] prems = prems
-  | generalize_prems_q (_ :: quants) prems =
-      generalize_prems_q quants (@{thm spec} OF [prems])
-
-fun generalize_prems t = generalize_prems_q (fst (extract_quantified_names_ba t))
-
 fun bind ctxt [thms] context_ass t =
- ((SMT_Replay_Methods.prove ctxt t (fn _ =>
-   bind_quants ctxt context_ass t
-   THEN' TRY' (SOLVED' (resolve_tac ctxt [generalize_prems t thms]
-   THEN_ALL_NEW TRY' (assume_tac ctxt ORELSE' resolve_tac ctxt @{thms refl})))))
+  (SMT_Replay_Methods.prove ctxt t (fn _ =>
+    REPEAT_DETERM_N' (length context_ass div 2) (resolve_tac ctxt bind_thms)
+    THEN' (resolve_tac ctxt [thms]
+      THEN_ALL_NEW TRY' (eq_assume_tac ORELSE' resolve_tac ctxt @{thms refl})))
    handle (Fail msg) => replay_error ctxt msg Bind [thms] [] t)
  | bind ctxt thms _ t = replay_error ctxt "invalid application" Bind thms [] t
 
