@@ -565,9 +565,16 @@ fun forall_inst ctxt _ t (SOME (Insts insts)) =
               prem
         in
            (Method.insert_tac ctxt [inst_thm]
-           THEN' TRY' (fn i => assume_tac ctxt i)
+           THEN' TRY' (fn i => eq_assume_tac i)
            THEN' TRY' (partial_simplify_tac ctxt @{thms eq_commute ac_simps})
-           THEN' TRY' (blast_tac ctxt)) i
+
+           (*https://gitlab.uliege.be/verit/verit/-/issues?show=eyJpaWQiOiI0MSIsImZ1bGxfcGF0aCI6InZlcml0L3Zlcml0IiwiaWQiOjM4NjI4fQ%3D%3D
+           the blast tac is not useful for cvc5, but veriT did instantiate quantifiers not on outmost
+           level without specifying how. Therefore we need blast.
+
+           Important: there is actually a real example we got from Peter Lammich where we needed
+           the blast call, see the test file.*)
+           THEN' TRY' (Blast.blast_tac ctxt)) i
         end
      | instantiate_and_solve _ ({context = ctxt, prems = thms, ...}: Subgoal.focus) =
          replay_error ctxt "invalid application" Forall_Inst thms [] t
@@ -575,8 +582,8 @@ fun forall_inst ctxt _ t (SOME (Insts insts)) =
     SMT_Replay_Methods.prove ctxt t (fn _ =>
       match_tac ctxt [@{thm disj_not1} RSN (1, @{thm iffD2}) OF [@{thm impI}]]
       THEN' (fn i => Subgoal.FOCUS (instantiate_and_solve i) ctxt i))
-  end |
- forall_inst ctxt _ t _ = replay_error ctxt "invalid application" Forall_Inst [] [] t
+  end
+ | forall_inst ctxt _ t _ = replay_error ctxt "invalid application" Forall_Inst [] [] t
 
 
 (* Or *)
