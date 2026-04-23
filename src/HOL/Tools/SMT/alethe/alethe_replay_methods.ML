@@ -694,32 +694,6 @@ local
 fun skolem_tac extractor thm1 thms1 ctxt prems context_ass (decl:string list * string list) t =
   let
 
-  (*                              
-    val (context_ass_thm,_) = Assumption.add_assumes (map (Thm.cterm_of ctxt) context_ass) ctxt
-
-   val context_ass_thm_sym = map (fn x => @{thm sym} OF [x]) context_ass_thm
-    val _ = @{print}("context_ass_thm_sym",context_ass_thm_sym))*)
-
-(*
-lemma alethe_sko_forall: \<open>(\<forall>x. P x) \<longleftrightarrow> P (SOME x. \<not>P x)\<close>
-  using someI[of \<open>\<lambda>x. \<not>P x\<close>]
-  by auto
-
-lemma alethe_sko_forall': \<open>P (SOME x. \<not>P x) = A \<Longrightarrow> (\<forall>x. P x) = A\<close>
-  by (subst alethe_sko_forall)
-
-lemma alethe_sko_forall'': \<open>B = A \<Longrightarrow> (SOME x. P x) = A \<equiv> (SOME x. P x) = B\<close>
-  by auto
-
-lemma alethe_sko_forall_indirect: \<open>x = (SOME x. \<not>P x) \<Longrightarrow> (\<forall>x. P x) \<longleftrightarrow> P x\<close>
-  using someI[of \<open>\<lambda>x. \<not>P x\<close>]
-  by auto
-
-lemma alethe_sko_forall_indirect2:
-    \<open>x = (SOME x. \<not>P x) \<Longrightarrow> (\<And>x :: 'a. (P x = P' x)) \<Longrightarrow>(\<forall>x. P' x) \<longleftrightarrow> P x\<close>
-  using someI[of \<open>\<lambda>x. \<not>P x\<close>]
-  by auto*)
-
     val (ctxt_eq, rew, other) = extract_rewrite_rule_assumption prems
 
     fun ordered_definitions () =
@@ -750,56 +724,28 @@ lemma alethe_sko_forall_indirect2:
            |> put_simpset HOL_basic_ss
            |> (fn ctxt => ctxt addsimps acc)
         in ((v, SOME (Simplifier.full_simplify simp_ctxt thm)) :: fold_definition xs acc') end
-    val defs = fold_definition (ordered_definitions ()) []
+    val defs = fold_definition (ordered_definitions ()) [] (*The skolem definitions are stored in the context*)
   in
     SMT_Replay_Methods.prove ctxt t (fn _ =>
       rewrite_all_skolems ctxt_eq thms1 ctxt defs
-
-      THEN' ((*((resolve_tac ctxt @{thms refl}) THEN' K (print_tac ctxt "sko 0")))
-      ORELSE' 
-      (
-*)    TRY' (eqsubst_all ctxt (map (fn thm => thm RS sym) other))
+      THEN' (TRY' (eqsubst_all ctxt (map (fn thm => thm RS sym) other)) (*Skolems can be nested in veriT proofs:*)
       THEN_ALL_NEW TRY' (resolve_tac ctxt @{thms refl})
+       (*If the above hasn't worked try unfolding + simplifier *)
       THEN' K (unfold_tac ctxt ctxt_eq)
       THEN' TRY' (partial_simplify_tac ctxt (@{thms eq_commute}))))
   end
 in
 
-(*forall a b c d e f. P(a,b,c,d,e,f)
-
-extract_all_forall_exists_quantified_names_q: returns a b c d e f
-
-The context has the definitions of the skolems
-Then, they are ordered
-THEN' rewrite_all_skolems thm2 ctxt (ordered_definitions ())
-
-We should be able to stop there:
-but skolems can appear in each other, they might be folded in or only partially
-choices in choices
-in cvc5: order guaranteed to be respected, no choice inside choice.
-
-If 
-      THEN' (eqsubst_all ctxt (map (fn thm => thm RS sym) other))
-unfolding all things that might be in the context (should not happen but never sure)
-if skolem_forall closes subproof that is in another subproof.
-
-Then, we hope that everything works out:
-      THEN_ALL_NEW TRY' (resolve_tac ctxt @{thms refl})
-
-If it doesn't work we brute force it by unfolding everything. And then use the simplifier:
-      THEN' K (unfold_tac ctxt ctxt_eq)
-Mathias does not remember a case where this happens.
-
-  type alethe_tac_args = Proof.context -> thm list -> term -> Alethe_Node.tactic_args -> thm
-
-*)
+(*TODO: Context assumptions are not used so could be omitted*)
 fun sko_forall ctxt prems context_ass t (SOME (Sko_Def_Prems decl)) =
   skolem_tac extract_all_forall_exists_quantified_names_q @{thm alethe_sko_forall_indirect}
     @{thms alethe_sko_forall_indirect2 alethe_sko_ex_indirect2} ctxt prems context_ass decl t
+  |  sko_forall ctxt thms _ t _ = replay_error ctxt "invalid application" Sko_Forall thms [] t
 
 fun sko_ex ctxt prems context_ass t (SOME (Sko_Def_Prems decl)) =
   skolem_tac extract_all_forall_exists_quantified_names_q @{thm alethe_sko_ex_indirect}
     @{thms alethe_sko_ex_indirect2 alethe_sko_forall_indirect2} ctxt prems context_ass decl t
+  |  sko_ex ctxt thms _ t _ = replay_error ctxt "invalid application" Sko_Ex thms [] t
 
 end
 
@@ -818,24 +764,21 @@ in
 
 fun prove_abstract abstracter tac ctxt thms t =
   let
-    val _ = debug_msg ctxt low (fn () => \<^print> ("Current goal is abstracted"))
 
-    val thms = map (Conv.fconv_rule Thm.eta_long_conversion) thms
-    val _ = (if (length thms = 0) then () else debug_msg ctxt middle (fn () => \<^print> ("Premises after ",thms)))
+    val t_eta_long_eq = Thm.eta_long_conversion (Object_Logic.dest_judgment ctxt (Thm.cterm_of ctxt t))
+    val (_, t_eta_long) = Logic.dest_equals (Thm.prop_of t_eta_long_eq)
+    val _ = debug_msg ctxt middle (fn () => \<^print> ("Current goal (term) as thm before abstraction",t_eta_long))
 
-    val t' = Thm.eta_long_conversion (Object_Logic.dest_judgment ctxt (Thm.cterm_of ctxt t))
-    val _ = debug_msg ctxt middle (fn () => \<^print> ("Current goal (term) as thm before abstraction",t'))
-    val (_, t2) = Logic.dest_equals (Thm.prop_of t')
-    val thm =
-      (SMT_Replay_Methods.prove_abstract ctxt thms t2 tac (
-        fold_map (abstracter o SMT_Replay_Methods.dest_thm) thms ##>>
-        abstracter (SMT_Replay_Methods.dest_prop t2)))
-      (*handle (ERROR _) => (@{print}("here");raise (Fail "")*)
-
-    val _ = debug_msg ctxt middle (fn () => \<^print> ("Current goal (term) as thm after abstraction",thm))
+    val thms_eta_long = map (Conv.fconv_rule Thm.eta_long_conversion) thms
+    val _ = (if null thms_eta_long then () else debug_msg ctxt middle (fn () => \<^print> ("Premises after being abstracted",thms_eta_long)))
+    val abstract_thm =
+      (SMT_Replay_Methods.prove_abstract ctxt thms_eta_long t_eta_long tac (
+        fold_map (abstracter o SMT_Replay_Methods.dest_thm) thms_eta_long ##>>
+        abstracter (SMT_Replay_Methods.dest_prop t_eta_long)))
+    val _ = debug_msg ctxt middle (fn () => \<^print> ("Current goal (term) as thm after abstraction",abstract_thm))
 
   in
-    @{thm alethe_Pure_trans} OF [t', thm]
+    @{thm alethe_Pure_trans} OF [t_eta_long_eq, abstract_thm]
   end
 
 val not_not = prove_abstract SMT_Replay_Methods.abstract_bool_shallow not_not_prove
@@ -887,7 +830,7 @@ fun normalized_input ctxt prems t =
       | NONE => [])
     val m_assm = matched_assm ()
     val _ = if length m_assm = 0 then SMT_Config.trace_msg ctxt (pretty ("warning: could not find assumption, had to add all premises")) [] else ()
-    val prems = (if all_assms andalso not (length m_assm = 0) then m_assm else prems)
+    val prems = (if all_assms andalso not (null m_assm) then m_assm else prems)
     val _ = debug_msg ctxt low (fn () => \<^print> ("showing normalized input, premises",prems))
 
   in
