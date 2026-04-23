@@ -1255,7 +1255,7 @@ fun ite_intro ctxt _ t =
       |> (fn ctxt => ctxt addsimps thms @ @{thms simp_thms})
       |> cong ? (Raw_Simplifier.add_eqcong @{thm alethe_ite_if_cong})
       |> Simplifier.full_simp_tac
-    val use_cong = (0 = 0)
+    val use_cong = true
   in
     SMT_Replay_Methods.prove ctxt t (fn _ => 
       simplify_ite ctxt @{thms alethe_ite_intro(1-4)} (not use_cong)
@@ -1293,7 +1293,9 @@ local
      _ $ Abs (v, _, _) => 
        if String.isPrefix v str
        then
-           (Conv.try_conv (Conv.rewr_conv all_comm) then_conv Conv.arg_conv (Conv.abs_conv (fn (_, ctxt) => plunge_down ctxt str) ctxt)) ctrm
+         ctrm
+         |> (Conv.try_conv (Conv.rewr_conv all_comm)
+             then_conv Conv.arg_conv (Conv.abs_conv (fn (_, ctxt) => plunge_down ctxt str) ctxt))
        else Conv.arg_conv (Conv.abs_conv (fn (_, ctxt) => plunge_down ctxt str) ctxt) ctrm
    | _ => Conv.all_conv ctrm
 
@@ -1500,9 +1502,9 @@ local
   fun eq_pred_rewrite_tac ({context = ctxt, prems, concl, ...}: Subgoal.focus) =
     let
       val rews = prems
-       |> map_filter (try (apfst (HOLogic.dest_eq o Thm.term_of o Object_Logic.dest_judgment ctxt o
-            Thm.cconcl_of) o `(fn x => x)))
-       |> map (apsnd (fn x => @{thm eq_reflection} OF [x]))
+        |> map_filter (try (apfst (HOLogic.dest_eq o Thm.term_of o Object_Logic.dest_judgment ctxt o
+             Thm.cconcl_of) o `(fn x => x)))
+        |> map (apsnd (fn x => @{thm eq_reflection} OF [x]))
       fun conv_left conv = Conv.arg_conv (Conv.arg_conv conv)
       fun conv_left_neg conv = Conv.arg_conv (Conv.arg_conv (Conv.arg_conv conv))
       val (t1, conv_term) =
@@ -1520,17 +1522,18 @@ local
       SOME thm => Conv.rewr_conv thm ctrm
     | NONE => Conv.no_conv ctrm)
 
-  fun cong_cong_conv rews t ty ctxt ctrm =
+  fun cong_cong_conv rews t ty ctxt =
     (case t of
       f $ arg =>
         Conv.try_conv 
           (Conv.fun_conv (only_replace rews f else_conv cong_cong_conv rews f ty ctxt)
           then_conv
             (if fastype_of arg = ty
-             then Conv.arg_conv (only_replace rews arg) else_conv Conv.arg_conv (cong_cong_conv rews arg ty ctxt)
+             then
+               Conv.arg_conv (only_replace rews arg) 
+               else_conv Conv.arg_conv (cong_cong_conv rews arg ty ctxt)
              else Conv.try_conv (Conv.arg_conv (only_replace rews arg))))
-          ctrm
-    | _ => Conv.all_conv ctrm)
+    | _ => Conv.all_conv)
 
   exception no_lambda
 
@@ -1583,8 +1586,9 @@ local
         |> Envir.beta_eta_contract
 
       val rews = prems
-        |> map_filter (try (apfst (apfst Envir.beta_eta_contract o apsnd Envir.beta_eta_contract o  HOLogic.dest_eq o Thm.term_of o Object_Logic.dest_judgment ctxt o
-            Thm.cconcl_of) o `(fn x => x)))
+        |> map_filter (try (apfst (apfst Envir.beta_eta_contract o apsnd Envir.beta_eta_contract o
+            HOLogic.dest_eq o Thm.term_of o Object_Logic.dest_judgment ctxt o Thm.cconcl_of) o
+            `(fn x => x)))
         |> filter_out (fn ((a, b), _) => a = b)
         |> map (apsnd (fn x => @{thm eq_reflection} OF [x]))
     in
