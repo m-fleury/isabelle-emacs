@@ -1,5 +1,0 @@
-bool-not-true
-bool-and-conf2
-bool-xor-nrefl
-ite-then-lookahead-not-self
-bool-not-ite-elim

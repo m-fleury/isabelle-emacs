@@ -1,4 +1,0 @@
-unsat
-(assume nst7.0 (not (= (or x (not x) (forall ((_x Int)) (not (select _x 0)))) true)))
-(step st7 (cl (= (or x (not x) (forall ((_x (Array Int Bool))) (not (select _x 0)))) true)) :rule rare_rewrite :args ("bool-or-taut" rare-list x rare-list (rare-list (forall ((_x (Array Int Bool))) (not (select _x 0))))))
-(step t.end (cl) :rule resolution :premises (nst7.0 st7))

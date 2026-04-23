@@ -1,8 +1,0 @@
-(set-logic AUFLIA)
-(declare-fun _substvar_29_ () (Array Bool Int))
-(declare-fun _substvar_55_ () (Array Bool Int))
-(declare-fun arr-8129271443090794560_6381925390096970410-0 () (Array Bool Int))
-(assert (not (not (forall ((q1 Int)) (= (and (= _substvar_29_ arr-8129271443090794560_6381925390096970410-0) (= arr-8129271443090794560_6381925390096970410-0 (store _substvar_55_ true 70))) (= q1 51))))))
-(assert (not (= (and (= _substvar_29_ arr-8129271443090794560_6381925390096970410-0) (= arr-8129271443090794560_6381925390096970410-0 (store _substvar_55_ true 70))) (= 50 51))))
-(check-sat)
-(exit)

@@ -1,13 +1,4 @@
 unsat
-(assume nt15.0 (not (not (not (= (ite (= v5 (ite (= v5 v6) v5 v6)) v5 v6) (ite (= v5 v6) v5 v6))))))
-(assume nt15.1 (not (not (= v5 (ite (= v5 (ite (= v5 v6) v5 v6)) v5 v6)))))
-(assume nt15.2 (not (not (= v5 (ite (= v5 v6) v5 v6)))))
-(assume nt15.3 (not (and (= v5 (ite (= v5 v6) v5 v6)) (= v5 (ite (= v5 (ite (= v5 v6) v5 v6)) v5 v6)) (not (= (ite (= v5 (ite (= v5 v6) v5 v6)) v5 v6) (ite (= v5 v6) v5 v6))))))
-(anchor :step t15)
-(assume t15.a0 (not (= (ite (= v5 (ite (= v5 v6) v5 v6)) v5 v6) (ite (= v5 v6) v5 v6))))
-(assume t15.a1 (= v5 (ite (= v5 (ite (= v5 v6) v5 v6)) v5 v6)))
-(assume t15.a2 (= v5 (ite (= v5 v6) v5 v6)))
-(step st15.t525 (cl (= (=> true (not (= (not (= v0 (store (ite (= v2 v6) (store v0 v1 v2) (ite (= v3 v4) v0 (store v0 v1 v2))) v1 (ite (= v4 v5) v5 v3)))) (ite (= v2 (ite (= v2 v6) v3 (ite (= v2 v3) v6 v5))) (not (= v0 (ite (= v2 v3) (ite (= v0 (store v0 v1 v2)) v0 (store v0 v1 v2)) (store v0 v1 v2)))) (not (= v2 v5)))))) (not (= (not (= v0 (store (ite (= v2 v6) (store v0 v1 v2) (ite (= v3 v4) v0 (store v0 v1 v2))) v1 (ite (= v4 v5) v5 v3)))) (ite (= v2 (ite (= v2 v6) v3 (ite (= v2 v3) v6 v5))) (not (= v0 (ite (= v2 v3) (ite (= v0 (store v0 v1 v2)) v0 (store v0 v1 v2)) (store v0 v1 v2)))) (not (= v2 v5))))))) :rule rare_rewrite :args ("bool-impl-true2" (not (= (not (= v0 (store (ite (= v2 v6) (store v0 v1 v2) (ite (= v3 v4) v0 (store v0 v1 v2))) v1 (ite (= v4 v5) v5 v3)))) (ite (= v2 (ite (= v2 v6) v3 (ite (= v2 v3) v6 v5))) (not (= v0 (ite (= v2 v3) (ite (= v0 (store v0 v1 v2)) v0 (store v0 v1 v2)) (store v0 v1 v2)))) (not (= v2 v5)))))))
-(step t15.t668 (cl (and (= v5 (ite (= v5 v6) v5 v6)) (= v5 (ite (= v5 (ite (= v5 v6) v5 v6)) v5 v6)) (not (= (ite (= v5 (ite (= v5 v6) v5 v6)) v5 v6) (ite (= v5 v6) v5 v6))))) :rule trust)
-(step t15 (cl (not (not (= (ite (= v5 (ite (= v5 v6) v5 v6)) v5 v6) (ite (= v5 v6) v5 v6)))) (not (= v5 (ite (= v5 (ite (= v5 v6) v5 v6)) v5 v6))) (not (= v5 (ite (= v5 v6) v5 v6))) (and (= v5 (ite (= v5 v6) v5 v6)) (= v5 (ite (= v5 (ite (= v5 v6) v5 v6)) v5 v6)) (not (= (ite (= v5 (ite (= v5 v6) v5 v6)) v5 v6) (ite (= v5 v6) v5 v6))))) :rule subproof :discharge (t15.a0 t15.a1 t15.a2))
-(step t.end (cl) :rule resolution :premises (nt15.0 nt15.1 nt15.2 nt15.3 t15))
+(step t26 (cl (! (= (! (=> (! true :named @p_2) (! (= u_a$ (! (fun_app$c (! (moebius_pt$ (! (fun_app$d moebius_inv$ m$) :named @p_6)) :named @p_5) (! (fun_app$c (! (moebius_pt$ m$) :named @p_8) u_a$) :named @p_7)) :named @p_4)) :named @p_3)) :named @p_1) @p_3) :named @p_0)) :rule rare_rewrite :args ("bool-impl-true2" @p_3))
+(step slice_end (cl) :rule trust :premises (t26) :args ("trust"))
+

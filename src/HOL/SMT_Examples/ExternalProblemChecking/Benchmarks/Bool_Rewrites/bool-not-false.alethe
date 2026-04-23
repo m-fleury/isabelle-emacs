@@ -1,9 +1,0 @@
-unsat
-(anchor :step t41)
-(assume t41.a0 (! (>= (! (* -1/1 x_29) :named @p_1) 0.0) :named @p_0))
-(assume t41.a1 (! (>= x_29 1.0) :named @p_2))
-(step t41.t93 (cl (! (= (! (= x_12 (! true :named @p_5)) :named @p_4) x_12) :named @p_3)) :rule rare_rewrite :args ("bool-eq-true" x_12))
-(step t41.t148 (cl (! false :named @p_6)) :rule trust :premises (t41.t93) :args ("trust"))
-(step t41 (cl (! (not @p_0) :named @p_7) (! (not @p_2) :named @p_8) @p_6) :rule subproof :discharge (t41.a0 t41.a1))
-(step slice_end (cl) :rule trust :premises (t41) :args ("trust"))
-
