@@ -1,0 +1,4 @@
+(assume a5 (! (not (! (or (! (fun_app$b (! (fun_app$e p$ x$) :named @p_3) xsa$) :named @p_2) (! (not @p_2) :named @p_4)) :named @p_1)) :named @p_0))
+(step t1 (cl (! (not @p_4) :named @p_5)) :rule not_or :premises (a5) :args (1))
+(step slice_end (cl) :rule hole :premises (t1) :args ("trust"))
+

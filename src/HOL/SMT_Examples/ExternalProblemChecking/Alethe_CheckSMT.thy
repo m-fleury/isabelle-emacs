@@ -20,4 +20,11 @@ check_smt "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/and_pos/17
 check_smt "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/and_pos/1776309184396476070.smt2" "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/and_pos/1776309184396476070.alethe" 
 check_smt "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/and_pos/1776309184542667460.smt2" "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/and_pos/1776309184542667460.alethe" 
 
+(* not_or *)
+check_smt "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/not_or/1776309182903737805.smt2" "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/not_or/1776309182903737805.alethe" 
+check_smt "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/not_or/1776309185320626911.smt2" "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/not_or/1776309185320626911.alethe" 
+check_smt "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/not_or/1776309185537445774.smt2" "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/not_or/1776309185537445774.alethe" 
+check_smt "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/not_or/1776309186374601446.smt2" "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/not_or/1776309186374601446.alethe" 
+check_smt "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/not_or/1776309187381950718.smt2" "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/not_or/1776309187381950718.alethe" 
+
 end

@@ -143,7 +143,7 @@ sig
   val not_ite1: alethe_tac
   val not_ite2: alethe_tac
   val not_not: alethe_tac
-  val not_or_rule: alethe_tac
+  val not_or_rule: alethe_tac_args
   val or: alethe_tac
   val or_neg_rule: alethe_tac_args
   val or_pos_rule: alethe_tac
@@ -898,6 +898,10 @@ local
      THEN' K (unfold_tac ctxt @{thms de_Morgan_conj})
      THEN_ALL_NEW TRY' (assume_tac ctxt)
 
+  fun or_intro_prove ctxt k = 
+    (REPEAT_DETERM_N' k (match_tac ctxt @{thms disjI2}))
+    THEN' FIRST' [(match_tac ctxt @{thms disjI1}) THEN' (assume_tac ctxt), (assume_tac ctxt)]
+
   fun or_pos_prove ctxt _ =
      K (unfold_tac ctxt @{thms de_Morgan_disj not_not})
      THEN' match_tac ctxt @{thms alethe_and_pos alethe_farkas}
@@ -922,55 +926,41 @@ val and_rule = prover and_rule_prove
 
 val not_and_rule = prover not_and_rule_prove
 
-
 val or_pos_rule = prover or_pos_prove
 
 val and_neg_rule = prover and_neg_rule_prove
 
-(*not_or and or_neg should use the same *)
-fun not_or_rule ctxt prems t = 
+fun not_or_rule ctxt prems t (SOME (Index k)) = 
   SMT_Replay_Methods.prove ctxt t (fn _ =>
     let
-      val y = Thm.cterm_of ctxt (HOLogic.dest_Trueprop (Thm.prop_of (hd prems)))
-      val t2 = Thm.cterm_of ctxt (HOLogic.dest_Trueprop t)
-
-      val x = Drule.infer_instantiate' ctxt [SOME y, SOME t2] @{thm alethe_not_or(1)}
-
+      val ct_prem = Thm.cterm_of ctxt (HOLogic.dest_not (HOLogic.dest_Trueprop (Thm.prop_of (hd prems))))
+      val ct_concl = Thm.cterm_of ctxt (HOLogic.dest_not (HOLogic.dest_Trueprop t))
+      val x = Drule.infer_instantiate' ctxt [SOME ct_prem, SOME ct_concl] @{thm contrapos_nn}
     in
-      (resolve_tac ctxt [x])
+      resolve_tac ctxt [x]
       THEN' (resolve_tac ctxt prems)
-      THEN' K (unfold_tac ctxt @{thms alethe_not_or(2)})
-      THEN' (resolve_tac ctxt @{thms alethe_or_neg})
-
-      THEN' K (unfold_tac ctxt @{thms not_not})
-      THEN_ALL_NEW
-        (REPEAT'
-          (SOLVED' (match_tac ctxt @{thms disjI1} THEN_ALL_NEW assume_tac ctxt)
-           ORELSE' (match_tac ctxt @{thms disjI2} THEN' TRY' (assume_tac ctxt))))
+      THEN' (or_intro_prove ctxt k)
     end)
+  | not_or_rule ctxt _ t _ = SMT_Replay_Methods.prove ctxt t (fn _ => fn _ => no_tac)
 
-
-(*TODO: Improve now that we have arguments*)
-fun or_neg_rule ctxt thms t (SOME (Index k)) =
+(* TODO (Pascal) Remove alternatives and only leave in best version *)
+fun or_neg_rule ctxt prems t (SOME (Index k)) =
   (* New version with arg *) 
   let fun choice 0 =
-        SMT_Replay_Methods.prove ctxt t (fn _ =>
-        resolve_tac ctxt @{thms alethe_or_neg}
-        THEN' (REPEAT_DETERM_N' k (match_tac ctxt @{thms disjI2}))
-        THEN' FIRST' [(match_tac ctxt @{thms disjI1}) THEN' (assume_tac ctxt), (assume_tac ctxt)])
+        SMT_Replay_Methods.prove ctxt t (fn _ => (resolve_tac ctxt @{thms alethe_or_neg}) THEN' (or_intro_prove ctxt k))
         (* Old version, no arg *)
         | choice _ = 
          prove_abstract SMT_Replay_Methods.abstract_bool (fn ctxt => fn _ =>
          resolve_tac ctxt @{thms alethe_or_neg}
          THEN' K (unfold_tac ctxt @{thms not_not})
          THEN_ALL_NEW (REPEAT' (SOLVED' (match_tac ctxt @{thms disjI1} THEN_ALL_NEW assume_tac ctxt)
-                 ORELSE' (match_tac ctxt @{thms disjI2} THEN' TRY' (assume_tac ctxt))))) ctxt thms t
+                 ORELSE' (match_tac ctxt @{thms disjI2} THEN' TRY' (assume_tac ctxt))))) ctxt prems t
   in
     choice 0 (* Change here to benchmark different versions *)
   end 
   | or_neg_rule ctxt _ t _ = SMT_Replay_Methods.prove ctxt t (fn _ => K no_tac)
 
-(* Wrapper to try different variants *)
+(* TODO (Pascal) Remove alternatives and only leave in best version *)
 fun and_pos ctxt _ t (SOME (Index k)) =
         (* dmatch version *)
   let fun choice 0 = 

@@ -302,7 +302,7 @@ let
   val context_args=[]
   (*arguments are only supported for some rules and are a little brittle*)
   (*maybe I should have parsed tokens, at the time I wrote this I only wanted to test one specific rule*)
-  val args= (if member (op =) ["and_pos", "or_neg"] rule_name andalso Option.isSome args
+  val args= (if member (op =) ["and_pos", "or_neg", "Not_Or"] rule_name andalso Option.isSome args
             then SOME (Index (Option.valOf args |> Syntax.read_term ctxt |> HOLogic.dest_number |> snd))
             else if rule_name = "shuffle" andalso Option.isSome args
             then SOME (CommOp (Option.valOf args |> Syntax.read_term ctxt))
@@ -891,7 +891,7 @@ lemma not_or_2:
   assumes "\<not>(a)"
   shows  "\<not>a"
   using assms
-  by (ctxt_tactic "not_or" "1::int")
+  by (ctxt_tactic "not_or" "0::int")
 
 lemma not_or_3:
   assumes "\<not>((a \<or> d) \<or> b \<or> c)"
@@ -3102,7 +3102,7 @@ fun measure_time_arg rule ctxt (n, i) =
         | buildTerms Not_or  = (SOME (makeNeg (makeDisj 0 n)), (HOLogic.mk_Trueprop (makeNeg (genVar i))))
       fun selectRule And_pos = Alethe_Replay_Methods.and_pos
         | selectRule Or_neg  = Alethe_Replay_Methods.or_neg_rule
-        | selectRule Not_or  = (fn ctx => fn thms => fn t => fn _ => Alethe_Replay_Methods.not_or_rule ctx thms t)
+        | selectRule Not_or  = Alethe_Replay_Methods.not_or_rule
   in
     let val (t_prem, t_concl) = buildTerms rule
         val f = selectRule rule

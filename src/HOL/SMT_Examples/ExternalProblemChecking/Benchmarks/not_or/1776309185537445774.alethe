@@ -1,0 +1,9 @@
+unsat
+(
+(assume a5 (! (not (or (! (fun_app$b (fun_app$e p$ x$) xsa$) :named @p_1) (! (not @p_1) :named @p_2))) :named @p_3))
+(step t0 (cl (not (! (not @p_2) :named @p_4)) @p_1) :rule not_not)
+(step t1 (cl @p_4) :rule not_or :premises (a5) :args (1))
+(step t2 (cl @p_1) :rule resolution :premises (t0 t1))
+(step t3 (cl @p_2) :rule not_or :premises (a5) :args (0))
+(step t4 (cl) :rule resolution :premises (t2 t3))
+)
