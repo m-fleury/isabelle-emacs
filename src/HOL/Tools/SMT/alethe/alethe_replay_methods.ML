@@ -134,7 +134,7 @@ sig
   val poly_simp: alethe_tac
   val poly_simp_rel: alethe_tac
   val refl: alethe_tac_args
-  val normalized_input: alethe_tac
+  val normalized_input: alethe_tac_args
   val not_and_rule: alethe_tac
   val not_equiv1: alethe_tac
   val not_equiv2: alethe_tac
@@ -444,6 +444,9 @@ fun eqsubst_all ctxt thms =
    K ((REPEAT o HEADGOAL) (EqSubst.eqsubst_asm_tac ctxt [0] thms))
    THEN' K ((REPEAT o HEADGOAL) (EqSubst.eqsubst_tac ctxt [0] thms))
 
+fun get_solver_name (SOME (Solver_Name name)) = name
+  | get_solver_name _ = "unknown solver name"
+
 (*TODO Hanna: 
 - Put first two steps + addsimps @{thms simp_thms} in ref object
 unsyncronized.ref src/Implementation/ML.thy
@@ -533,9 +536,6 @@ fun bind ctxt [thms] context_ass t =
 
 
 (* Congruence/Refl *)
-
-fun get_solver_name (SOME (Solver_Name name)) = name
-  | get_solver_name _ = "unknown solver name"
 
 fun cong ctxt thms t args = try_provers (get_solver_name args) ctxt
     (string_of_alethe_rule Cong) [
@@ -696,7 +696,8 @@ fun skolem_tac extractor thm1 thms1 ctxt prems context_ass (decl:string list * s
   end
 in
 
-(*TODO Hanna: Context assumptions are not used so could be omitted*)
+(*TODO Hanna: Context assumptions are not used so could be omitted. I will wait until the rewrite
+has finished in case they are somehow useful after all. The info should be in decl already though*)
 (*TODO Pascal: decl should be used. Pascal?*)
 fun sko_forall ctxt prems context_ass t (SOME (Sko_Def_Prems decl)) =
   skolem_tac extract_all_forall_exists_quantified_names_q @{thm alethe_sko_forall_indirect}
@@ -756,7 +757,6 @@ fun theory_resolution2 ctxt prems t =
 end
 
 (*Modulo implicit reordering. Needed for veriT when checking external problems + proofs.*)
-(*TODO: add *)
 fun is_same_assms_eq_ac (Abs (_, _,  u)) (Abs (_, _, u')) = 
      is_same_assms_eq_ac u u' (*the name cannot be relevant due to implicit eta-contraction*)
   | is_same_assms_eq_ac (Free (var, _)) (Free (var', _)) =
@@ -774,25 +774,31 @@ fun is_same_assms_eq_ac (Abs (_, _,  u)) (Abs (_, _, u')) =
 
 fun pretty tag lines = map Pretty.str lines |> Pretty.big_list tag |> Pretty.string_of
 
-fun normalized_input ctxt prems t = 
+fun normalized_input ctxt prems t args = 
   let
     (* External problems only: Retrieve correct assertion for this assume *)
     val all_assms = SMT_Config.alethe_no_provided_assms ctxt
     val termify = Thm.prop_of #> (fn x => single (0, x)) #> SMT_Translate.eta_expand ctxt Termtab.empty #> hd #> snd
     val normalized =
        let val thy = Proof_Context.theory_of (empty_simpset ctxt) in
-        Raw_Simplifier.rewrite_term thy (Named_Theorems.get ctxt \<^named_theorems>\<open>cvc5_normalized_input\<close>) []
+        Raw_Simplifier.rewrite_term thy (Named_Theorems.get ctxt \<^named_theorems>\<open>cvc5_normalized_input\<close>) [] (*TODO: This is now done twice, there should at least be a check below if this is already enough*)
         #> Object_Logic.atomize_term ctxt
         #> HOLogic.mk_Trueprop
       end
+    val solver_name = get_solver_name args
+    fun check_implicit_reordering t' p = (if solver_name = "verit" then is_same_assms_eq_ac t' p else t' = p)
     fun matched_assm () =
-      (case find_first (is_same_assms_eq_ac (normalized t) o normalized o termify) prems of
+      (case find_first (check_implicit_reordering (normalized t) o normalized o termify) prems of
         SOME thm => [thm]
       | NONE => [])
     val m_assm = matched_assm ()
-    val _ = if length m_assm = 0 then SMT_Config.trace_msg ctxt (pretty ("warning: could not find assumption, had to add all premises")) [] else ()
-    (*TODO Hanna: There should be a guard here, only for external problems we need to calculate m_assm*)
-    val prems = (if all_assms andalso not (null m_assm) then m_assm else prems)
+
+    val prems =
+      if all_assms andalso not (null m_assm)
+      then
+        let val _ = SMT_Config.trace_msg ctxt (pretty ("warning: could not find assumption, had to add all premises"))
+        in m_assm end
+      else prems
     val _ = debug_msg ctxt low (fn () => \<^print> ("showing normalized input, premises",prems))
 
   in
