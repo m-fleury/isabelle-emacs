@@ -33,7 +33,7 @@ open SMT_Config
 fun debug_msg ctxt = alethe_debug_msg ctxt "smt_normalize"
 fun print_conv prefix ctxt msg x =
 let
-  (*TODO: This is always printed and should not be*)
+  (*TODO Hanna: This is always printed and should not be*)
   val _ = debug_msg ctxt high (fn () => \<^print> (prefix ^ " " ^ msg,x))
 in Conv.all_conv x end
 
@@ -387,7 +387,7 @@ val cvc5_extension_table =
   (\<^const_name>\<open>power\<close>, @{thms pow_2_raw''})
 ]
 fun nat_native_ops_table ctxt =
-  [(\<^const_name>\<open>power\<close>, Named_Theorems.get ctxt \<^named_theorems>\<open>pow_2_word\<close>)] (*TODO: This should be added later*)
+  [(\<^const_name>\<open>power\<close>, Named_Theorems.get ctxt \<^named_theorems>\<open>pow_2_word\<close>)] (*TODO Hanna: This should be added later*)
   @ (get_nat_native_ops_tab ctxt)
 fun simplify_norm_table ctxt = (get_simplify_ops_tab ctxt)
 

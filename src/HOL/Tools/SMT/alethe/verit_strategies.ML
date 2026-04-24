@@ -3,7 +3,7 @@
 
 VeriT proofs: parsing and abstract syntax tree.
 
-TODO: Rename
+TODO Hanna: Rename
 *)
 
 signature VERIT_STRATEGIES =

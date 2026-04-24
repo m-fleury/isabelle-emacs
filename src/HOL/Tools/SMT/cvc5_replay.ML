@@ -163,8 +163,6 @@ fun replay_theorem_step rewrite_rules ll_defs assumed inputs proof_prems
     val ({elapsed, ...}, thm) =
       SMT_Config.with_time_limit ctxt SMT_Config.reconstruction_step_timeout replay step
         handle Timeout.TIMEOUT _ => raise SMT_Failure.SMT SMT_Failure.Time_Out
-    (*TODO: Maybe add flag so this is only output when checking an external proof, although I feel
-      it would be useful even when not*)
     val _ = (SMT_Config.verbose_msg ctxt (K ("Successfully checked step " ^ id)) ())
 
     val stats' = Symtab.cons_list (rule, Time.toNanoseconds elapsed) stats

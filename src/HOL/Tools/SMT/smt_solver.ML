@@ -356,9 +356,8 @@ fun apply_solver_and_replay ctxt thms0 =
       handle (SMT_Global_Normalize.SMT_GLOBAL_NORMALIZE _) => (ctxt,norm_thms,[])            
     val _ = debug_msg ctxt low (fn () => \<^print> ("set of theorems after nat embedding normalization:",norm_thms))
 
-    (*TODO: Add names from global normalization to terms symtab that is part of replaydata *)
     val (output, replay_data) =
-      invoke NONE name command [] smt_options (norm_thms ) ctxt_nats
+      invoke NONE name command [] smt_options norm_thms ctxt_nats
   in
     replay ctxt_nats replay_data output
     |> singleton (Proof_Context.export ctxt_nats ctxt)
@@ -485,6 +484,7 @@ local
 
 
 in 
+(*TODO Hanna: Take changes back*)
 fun replay_counterexample ctxt {assms=assms,ctxt=ctxt2,terms=terms,typs=typs,...} output nat_to_int_defs =
 if hd output <> "sat"
 then raise SMT_Failure.SMT (SMT_Failure.Other_Failure "solver did not find the problem to be sat")
@@ -508,7 +508,6 @@ else let
         SMTLIB.S[SMTLIB.Sym"=", SMTLIB.S ([name] @ (map normalize_arg arg_list)), normalize_names ret_value]]))
       | _ => raise SMT_Failure.SMT(SMT_Failure.Other_Failure "Define-fun in Model is malformed!"))
     model_as_tree
-  val res = iter cx model_as_eqs |> @{print}
 
   val nat_to_int_defs = map swap nat_to_int_defs |> map (apfst Thm.term_of) (*TODO: Already do this before passing the information here*)
 

@@ -51,7 +51,7 @@ sig
   val sat_solver: string Config.T
   val check_external: bool Config.T
   val slice_only_no_full_proof_attr: bool Config.T
-  val compress_verit_proofs: Proof.context -> bool (*TODO: Rename to alethe if this works. Otherwise, we need two separate ones since or steps should also be skipped in cvc5*)
+  val compress_verit_proofs: Proof.context -> bool (*TODO Hanna: Rename to alethe *)
   val alethe_use_prop_skeleton: Proof.context -> bool
 
   (*tools*)
@@ -66,7 +66,7 @@ sig
   val verit_msg: Proof.context -> (unit -> 'a) -> unit
   val verit_arith_msg: Proof.context -> (unit -> 'a) -> unit
   datatype debugging_verbosity = off | low | middle | high
-  val alethe_debug_msg: Proof.context -> string -> debugging_verbosity -> (unit -> 'a) -> unit (*TODO: integrate this with the other options, wanted to make it possible to select files*)
+  val alethe_debug_msg: Proof.context -> string -> debugging_verbosity -> (unit -> 'a) -> unit
   val alethe_debug_msg_tac: Proof.context -> string -> debugging_verbosity -> string -> tactic
   val spy_cvc: Proof.context -> bool
   val spy_verit: Proof.context -> bool

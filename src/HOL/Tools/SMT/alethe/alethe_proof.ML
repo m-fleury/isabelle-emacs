@@ -26,7 +26,7 @@ sig
   val step_prefix : string
 
   (*Some variables for rule types that need special handling*)
-  (*TODO: which of these do we really need to export*)
+  (*TODO Hanna: which of these do we really need to export*)
   val and_pos_rule: string
   val contract_rule : string
   val eq_congruent_pred_rule : string
@@ -83,7 +83,7 @@ val normalized_input_rule = "__normalized_input" (*arbitrary*)
 val rewrite_rule = "__rewrite" (*arbitrary*)
 val local_input_rule = "__local_input" (*arbitrary*)
 val skolem_def = "__skolem_definition" (*arbitrary*)
-val default_skolem_rule = "sko_forall" (*arbitrary, but must be one of the skolems*) (*TODO: I don't like this..*)
+val default_skolem_rule = "sko_forall" (*arbitrary, but must be one of the skolems*)
 val theory_resolution2_rule = "__theory_resolution2" (*arbitrary*)
 
 val and_pos_rule = "and_pos"
@@ -273,8 +273,8 @@ fun parse_raw_proof_steps (curr_anchor_id : string option) (smtlib_lines : SMTLI
 (* Second parsing pass: parse proof into alethe replay nodes *)
 
 (* The preprocessing takes care of:
-     1. unfolding the shared terms TODO: Where?
-     2. extract the declarations of skolems to make sure that there are not unfolded TODO: Where?
+     1. unfolding the shared terms
+     2. extract the declarations of skolems to make sure that there are not unfolded
      3. ignore unexpected arguments (both step args and context assignments)
      4. compressing of or steps if compression is activated
 *)
@@ -506,8 +506,8 @@ fun postprocess_proof compress ctxt step cx =
         val _ = debug_msg ctxt low (fn () => \<^print> ("postprocessing started for anchor: ", id))
 
         (* Preprocess context arguments *)
-        (*TODO: Maybe it would be okay to only change the name of the term and not of the key, I have not tried yet*)
-        (*TODO: Make more elegant*)
+        (*TODO Hanna: Maybe it would be okay to only change the name of the term and not of the key, I have not tried yet*)
+        (*TODO Hanna: Make more elegant*)
         fun normalize_external (raw_name, Free(a,b)) =
           if Config.get ctxt SMT_Config.check_external andalso Char.isUpper (hd ( String.explode raw_name))
           then ("isabelle_internal_" ^ raw_name,Free("isabelle_internal_" ^ a,b)) else (raw_name,Free(a,b))
@@ -525,7 +525,7 @@ fun postprocess_proof compress ctxt step cx =
         val alpha_conversion = rule = "bind" andalso is_alpha_renaming termified_concl
     
         (* Process subproof *)
-        val new_subproof = 
+        val (new_subproof,subproof_cx) = 
           let
             val subproof_cx =
               add_bound_variables_to_cx (map (fn (a,b) => (a,Term b)) (shadowing_vars @ rebound_lhs_vars)) cx
@@ -540,17 +540,15 @@ fun postprocess_proof compress ctxt step cx =
             val (new_subproof : alethe_replay_node list, _) =
               fold_map postprocess new_subproof (subproof_cx, new_variable_names)
             val _ = debug_msg ctxt low (fn () => \<^print> ("Finished postprocessing subproof. Returning to rule with id",id))
-          in new_subproof end
+          in (new_subproof,subproof_cx) end
     
-        (* Process context assignment *)
-        val context_ass_cx = (*TODO: Why this, same as subproof context*)
-            add_bound_variables_to_cx (map (fn (a,b) => (a,Term b)) (shadowing_vars @ rebound_lhs_vars)) cx
+        (* Process context assignment *) 
         fun rm_types [] = [] |
             rm_types (SMTLIB.S [SMTLIB.Sym v,_]::xs) = SMTLIB.Sym v::rm_types xs |
             rm_types (SMTLIB.S [SMTLIB.Sym "=", SMTLIB.S [SMTLIB.Sym v,_],t]::xs) = SMTLIB.S [SMTLIB.Sym "=",SMTLIB.Sym v,t]::rm_types xs |
             rm_types t = raise throw_alethe_ex ("malformed context assignment" ^ @{make_string} t) 
         val (termified_context_ass, _) =
-         fold_map node_of (rm_types context_assignments) context_ass_cx 
+         fold_map node_of (rm_types context_assignments) subproof_cx 
          |>> map fst
         val normalized_context_ass = map unsk_and_rewrite' (map subproof_rewriter' termified_context_ass)
         val _ = debug_msg ctxt middle (fn () => \<^print> ("... transformed context assignments of anchor ", normalized_context_ass))
@@ -645,21 +643,15 @@ fun postprocess_proof compress ctxt step cx =
             in SOME (Farkas_Coefficients (map extract_coefficients step_args)) end
           | "forall_inst" =>
             let
-              (*TODO*)
               fun get_foralls (SMTLIB.S [_,SMTLIB.S[_,SMTLIB.S [_,SMTLIB.S[_,SMTLIB.S xs,_]],_]]) step_args =
                   let
                     fun get_vars [] _ = []
                       | get_vars (SMTLIB.S[v,_]::ys) (z::zs) = SMTLIB.S[SMTLIB.Sym "=",v,z]:: get_vars ys zs
                       | get_vars _ _ = raise throw_alethe_ex ("malformed conclusion or argument of forall_inst step") 
-                        (* ("x",
-                     [S [Sym "v0", Sym "Int_int_fun$"], S [Sym "v1", Sym "Int"],
-                      S [Sym "v2", Sym "Int_list$"]]
-                    I cannot do this on the SMTLIB term after all... Or at least not this easily. Names might
-                    be different... TODO*)
                   in get_vars xs step_args end 
                 | get_foralls _ _ = raise throw_alethe_ex ("malformed conclusion or argument of forall_inst step")
           
-              (*TODO: clean-up*)
+              (*TODO Hanna: clean-up*)
               fun normalize_external2 (raw_name,b) =
                 if Config.get ctxt SMT_Config.check_external andalso Char.isUpper (hd ( String.explode raw_name))
                 then (("isabelle_internal_" ^ raw_name),b) else ( raw_name,b)
@@ -868,7 +860,7 @@ fun remove_skolem_definitions_proof steps =
         |> is_skolem ? replace_equivalent_by_imp
       val step = (if skolem_step_to_skip orelse rule = skolem_def orelse trivial_step then []
         else mk_replay_node id rule step_args context_assignments prems concl
-            (vars, assms', extra_assms', subproof) NONE prop_skeleton (*TODO*)
+            (vars, assms', extra_assms', subproof) NONE prop_skeleton
           |> single)
       val defs = (if rule = skolem_def orelse trivial_step then id :: prems_to_remove
          else prems_to_remove)
@@ -903,7 +895,7 @@ local
 
       val smtlib_lines_without_qm =
         lines
-        (*TODO: Hotfix, make better. Difference between external checking and internal*)
+        (*TODO Hanna: Hotfix, make better. Difference between external checking and internal*)
         |> (fn ("("::xs) =>
           let
             val len_xs = length xs

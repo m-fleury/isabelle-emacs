@@ -21,7 +21,7 @@ sig
 
   (* Pass information added during pre-processing to reconstruction *)
   datatype tactic_args =
-    Declarations of (string * term) list | (*only used for sko_definitions*) (*TODO: Delete*)
+    Declarations of (string * term) list | (*only used for sko_definitions*) (*TODO Hanna: Delete*)
     Insts of term Symtab.table | (*only used for forall_inst*)
     Sko_Def_Prems of string list * string list | (*only used for sko_forall and sko_exists*)
     Solver_Name of string | (*used for refl and cong*)
