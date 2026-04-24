@@ -1,0 +1,7 @@
+unsat
+(assume nt18.0 (not (= (forall ((c Int)) (or (>= c -1) (not (>= c -1)))) (forall ((c Int)) true))))
+(anchor :step t18 :args ((c Int) (:= (c Int) c)))
+(step st18.t0 (cl (= (or (not (>= c -1)) (>= c -1)) true)) :rule rare_rewrite :args ("bool-or-taut2" rare-list (>= c -1) rare-list rare-list))
+(step t18.t0 (cl (= (or (>= c -1) (not (>= c -1))) true)) :rule trust :args ("bool-or-taut" rare-list (>= c -1) rare-list rare-list))
+(step t18 (cl (= (forall ((c Int)) (or (>= c -1) (not (>= c -1)))) (forall ((c Int)) true))) :rule bind)
+(step t.end (cl) :rule resolution :premises (nt18.0 t18))

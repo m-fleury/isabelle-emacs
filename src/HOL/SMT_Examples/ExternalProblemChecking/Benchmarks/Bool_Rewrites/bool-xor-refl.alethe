@@ -1,0 +1,4 @@
+unsat
+(step t4533 (cl (= (xor (f t) (f t)) false)) :rule rare_rewrite :args ("bool-xor-refl" (f t)))
+(step slice_end (cl) :rule trust :premises (t4533) :args ("trust"))
+

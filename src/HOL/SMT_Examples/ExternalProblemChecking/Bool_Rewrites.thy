@@ -10,12 +10,11 @@ theory Bool_Rewrites
   imports HOL.SMT_CVC HOL.Real
 begin
 
-declare[[smt_trace=false,smt_verbose=false]]
+declare[[smt_trace=true,smt_verbose=true]]
 
 check_smt_dir ("cvc5_proof") "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/Bool_Rewrites/"
 
 declare[[smt_trace=true,smt_verbose=true]]
-declare[[rare_rec_mode=0]]
 
 declare[[smt_expert_debug_alethe_level=3]]
 declare[[smt_expert_debug_alethe_files="alethe_replay_rare"]]
@@ -30,11 +29,15 @@ check_smt ("cvc5_proof")
 
 (*(define-cond-rule bool-not-true ((t Bool))
   (= t false) (not t) true)*)
-
+check_smt ("cvc5_proof")
+  "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/Bool_Rewrites/bool-not-true.smt2"
+  "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/Bool_Rewrites/bool-not-true.alethe"
 
 (*(define-cond-rule bool-not-false ((t Bool))
   (= t true) (not t) false)*)
-
+check_smt ("cvc5_proof")
+  "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/Bool_Rewrites/bool-not-false.smt2"
+  "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/Bool_Rewrites/bool-not-false.alethe"
 
 (*(define-rule bool-eq-true ((t Bool)) (= t true) t)*)
 check_smt ("cvc5_proof")
@@ -81,16 +84,21 @@ check_smt ("cvc5_proof")
   "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/Bool_Rewrites/bool-dual-impl-eq.smt2"
   "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/Bool_Rewrites/bool-dual-impl-eq.alethe"
 
-
 (*(define-rule bool-and-conf ((xs Bool :list) (w Bool) (ys Bool :list) (zs Bool :list)) (and xs w ys (not w) zs) false)*)
-
+check_smt ("cvc5_proof")
+  "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/Bool_Rewrites/bool-and-conf.smt2"
+  "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/Bool_Rewrites/bool-and-conf.alethe"
 
 (*(define-rule bool-and-conf2 ((xs Bool :list) (w Bool) (ys Bool :list) (zs Bool :list)) (and xs (not w) ys w zs) false)*)
-
+check_smt ("cvc5_proof")
+  "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/Bool_Rewrites/bool-and-conf2.smt2"
+  "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/Bool_Rewrites/bool-and-conf2.alethe"
 
 (*(define-rule bool-or-taut ((xs Bool :list) (w Bool) (ys Bool :list) (zs Bool :list)) (or xs w ys (not w) zs) true)*)
+check_smt ("cvc5_proof")
+  "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/Bool_Rewrites/bool-or-taut.smt2"
+  "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/Bool_Rewrites/bool-or-taut.alethe"
 
-declare[[show_types]]
 (*(define-rule bool-or-taut2 ((xs Bool :list) (w Bool) (ys Bool :list) (zs Bool :list)) (or xs (not w) ys w zs) true)*)
 check_smt ("cvc5_proof")
   "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/Bool_Rewrites/bool-or-taut2.smt2"
@@ -119,7 +127,6 @@ check_smt ("cvc5_proof")
   "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/Bool_Rewrites/bool-and-de-morgan.smt2"
   "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/Bool_Rewrites/bool-and-de-morgan.alethe"
 
-
 (*(define-rule* bool-or-and-distrib ((y1 Bool) (y2 Bool) (ys Bool :list) (z1 Bool) (zs Bool :list))
   (or (and y1 y2 ys) z1 zs)
   (or (and y2 ys) z1 zs)
@@ -127,7 +134,6 @@ check_smt ("cvc5_proof")
 check_smt ("cvc5_proof")
   "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/Bool_Rewrites/bool-or-and-distrib.smt2"
   "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/Bool_Rewrites/bool-or-and-distrib.alethe"
-
 
 (*(define-rule* bool-implies-or-distrib ((y1 Bool) (y2 Bool) (ys Bool :list) (z Bool))
   (=> (or y1 y2 ys) z)
@@ -143,6 +149,9 @@ check_smt ("cvc5_proof")
   "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/Bool_Rewrites/bool-xor-refl.alethe"
 
 (*(define-rule bool-xor-nrefl ((x Bool)) (xor x (not x)) true)*)
+check_smt ("cvc5_proof")
+  "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/Bool_Rewrites/bool-xor-nrefl.smt2"
+  "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/Bool_Rewrites/bool-xor-nrefl.alethe"
 
 (*(define-rule bool-xor-false ((x Bool)) (xor x false) x)*)
 check_smt ("cvc5_proof")
@@ -162,6 +171,9 @@ check_smt ("cvc5_proof")
   "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/Bool_Rewrites/bool-xor-elim.alethe"
 
 (*(define-rule bool-not-xor-elim ((x Bool) (y Bool)) (not (xor x y)) (= x y))*)
+check_smt ("cvc5_proof")
+  "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/Bool_Rewrites/bool-not-xor-elim.smt2"
+  "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/Bool_Rewrites/bool-not-xor-elim.alethe"
 
 (*(define-rule bool-not-eq-elim1 ((x Bool) (y Bool)) (not (= x y)) (= (not x) y))*)
 check_smt ("cvc5_proof")
@@ -189,9 +201,6 @@ check_smt ("cvc5_proof")
   "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/Bool_Rewrites/ite-else-false.alethe"
 
 (*(define-rule ite-then-false ((c Bool) (x Bool)) (ite c false x) (and (not c) x))*)
-check_smt ("cvc5_proof")
-  "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/Bool_Rewrites/ite-then-false.smt2"
-  "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/Bool_Rewrites/ite-then-false.alethe"
 
 (*(define-rule ite-else-true ((c Bool) (x Bool)) (ite c x true) (or (not c) x))*)
 check_smt ("cvc5_proof")
@@ -199,13 +208,16 @@ check_smt ("cvc5_proof")
   "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/Bool_Rewrites/ite-else-true.alethe"
 
 (*(define-rule ite-then-lookahead-self ((c Bool) (x Bool)) (ite c c x) (ite c true x))*)
-check_smt ("cvc5_proof")
-  "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/Bool_Rewrites/ite-then-lookahead-self.smt2"
-  "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/Bool_Rewrites/ite-then-lookahead-self.alethe"
 
 (*(define-rule ite-else-lookahead-self ((c Bool) (x Bool)) (ite c x c) (ite c x false))*)
+check_smt ("cvc5_proof")
+  "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/Bool_Rewrites/ite-else-lookahead-self.smt2"
+  "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/Bool_Rewrites/ite-else-lookahead-self.alethe"
 
 (*(define-rule ite-then-lookahead-not-self ((c Bool) (x Bool)) (ite c (not c) x) (ite c false x))*)
+check_smt ("cvc5_proof")
+  "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/Bool_Rewrites/ite-else-lookahead-not-self.smt2"
+  "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/Bool_Rewrites/ite-else-lookahead-not-self.alethe"
 
 (*(define-rule ite-else-lookahead-not-self ((c Bool) (x Bool)) (ite c x (not c)) (ite c x true))*)
 check_smt ("cvc5_proof")

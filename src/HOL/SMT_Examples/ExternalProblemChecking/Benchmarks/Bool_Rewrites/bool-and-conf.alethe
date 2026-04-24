@@ -1,0 +1,4 @@
+unsat
+(step t21361 (cl (! (= (! (and (! (>= (! (+ F7 (! (* -1 F134) :named @p_4)) :named @p_3) 0) :named @p_2) (! (or (! true :named @p_6) (! false :named @p_7)) :named @p_5) (! (= (! (and @p_6 (! (or (! (and (! (or (! (not @p_7) :named @p_13) (! (and @p_6 @p_13) :named @p_14)) :named @p_12) (! (or (! (not @p_6) :named @p_16) @p_7) :named @p_15)) :named @p_11) (! (and @p_16 @p_13) :named @p_17)) :named @p_10)) :named @p_9) (! (and @p_6 (! (or @p_17 (! (and @p_12 @p_6) :named @p_20)) :named @p_19)) :named @p_18)) :named @p_8) @p_6 @p_6 @p_10 @p_6 @p_13 @p_13 @p_16 @p_16) :named @p_1) @p_7) :named @p_0)) :rule rare_rewrite :args ("bool-and-conf" (! (rare-list @p_2 @p_5 @p_8) :named @p_21) @p_6 (! (rare-list @p_6 @p_10 @p_6 @p_13 @p_13) :named @p_22) (! (rare-list @p_16) :named @p_23)))
+(step slice_end (cl) :rule trust :premises (t21361) :args ("trust"))
+

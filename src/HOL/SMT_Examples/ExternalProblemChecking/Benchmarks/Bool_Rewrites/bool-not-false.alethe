@@ -1,0 +1,5 @@
+unsat
+(assume a0 (= (f t) true)) 
+(step t0 (cl (= (not (f t)) false)) :rule rare_rewrite :premises (a0) :args ("bool-not-false" (f t)))
+(step t1 (cl) :rule trust)
+
