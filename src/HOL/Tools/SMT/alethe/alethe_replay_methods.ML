@@ -491,6 +491,7 @@ fun TRY' tac = fn i => TRY (tac i)
 fun REPEAT' tac = fn i => REPEAT (tac i)
 fun REPEAT_CHANGED tac = fn i => REPEAT (CHANGED (tac i))
 fun REPEAT_DETERM_N' k tac = fn i => REPEAT_DETERM_N k (tac i)
+fun DETERM' tac = fn i => DETERM (tac i)
 
 fun extract_single_premise rule ctxt thm t =
   case thm of
