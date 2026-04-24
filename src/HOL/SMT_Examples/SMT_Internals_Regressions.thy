@@ -851,7 +851,41 @@ lemma qnt_cnf_4: \<open> \<not> (\<forall>(veriT_vr13::'a_topoly::type) veriT_vr
              \<not> compactin veriT_vr13 veriT_vr16 \<or> \<not> closedin veriT_vr13 veriT_vr16 \<or> Alexandroff_open veriT_vr13 veriT_vr14) \<close>
   by (ctxt_tactic "qnt_cnf")
 
-
+lemma
+  fixes ACIDZ (infix \<open>~\<close> 64)
+  shows
+  \<open>\<not> (\<forall>(veriT_vr58::'a_rexp) veriT_vr59::'a_rexp.
+        (veriT_vr58 ~ veriT_vr59 \<longrightarrow>
+                 (\<exists>(veriT_vr60::'a_rexp) (veriT_vr61::'a_rexp) veriT_vr62::'a_rexp.
+                     veriT_vr58 = Alt (Alt veriT_vr60 veriT_vr61) veriT_vr62 \<and> veriT_vr59 = Alt veriT_vr60 (Alt veriT_vr61 veriT_vr62)) \<or>
+                 (\<exists>(veriT_vr63::'a_rexp) (veriT_vr64::'a_rexp) veriT_vr65::'a_rexp.
+                     veriT_vr58 = Alt veriT_vr63 (Alt veriT_vr64 veriT_vr65) \<and> veriT_vr59 = Alt (Alt veriT_vr63 veriT_vr64) veriT_vr65) \<or>
+                 (\<exists>(veriT_vr66::'a_rexp) veriT_vr67::'a_rexp. veriT_vr58 = Alt veriT_vr66 veriT_vr67 \<and> veriT_vr59 = Alt veriT_vr67 veriT_vr66) \<or>
+                 veriT_vr59 = Alt veriT_vr58 veriT_vr58 \<or>
+                 (\<exists>veriT_vr68::'a_rexp. veriT_vr59 = elim_zeros veriT_vr68 \<and> veriT_vr58 ~ veriT_vr68) \<or>
+                 (\<exists>(veriT_vr69::'a_rexp) veriT_vr70::'a_rexp. veriT_vr58 = Conc veriT_vr69 veriT_vr70 \<and> veriT_vr59 = distribute veriT_vr70 veriT_vr69) \<or>
+                 veriT_vr58 = veriT_vr59 \<or>
+                 (\<exists>(veriT_vr71::'a_rexp) (veriT_vr72::'a_rexp) (veriT_vr73::'a_rexp) veriT_vr74::'a_rexp.
+                     veriT_vr58 = Alt veriT_vr71 veriT_vr73 \<and> veriT_vr59 = Alt veriT_vr72 veriT_vr74 \<and> veriT_vr71 ~ veriT_vr72 \<and> veriT_vr73 ~ veriT_vr74) \<or>
+                 (\<exists>(veriT_vr75::'a_rexp) (veriT_vr76::'a_rexp) veriT_vr77::'a_rexp.
+                     veriT_vr58 = Conc veriT_vr75 veriT_vr77 \<and> veriT_vr59 = Conc veriT_vr76 veriT_vr77 \<and> veriT_vr75 ~ veriT_vr76)) \<and>
+        (\<not> (\<forall>(veriT_vr78::'a_rexp) (veriT_vr79::'a_rexp) veriT_vr80::'a_rexp.
+                        \<not> (veriT_vr58 = Alt (Alt veriT_vr78 veriT_vr79) veriT_vr80 \<and> veriT_vr59 = Alt veriT_vr78 (Alt veriT_vr79 veriT_vr80))) \<or>
+                 \<not> (\<forall>(veriT_vr81::'a_rexp) (veriT_vr82::'a_rexp) veriT_vr83::'a_rexp.
+                        \<not> (veriT_vr58 = Alt veriT_vr81 (Alt veriT_vr82 veriT_vr83) \<and> veriT_vr59 = Alt (Alt veriT_vr81 veriT_vr82) veriT_vr83)) \<or>
+                 \<not> (\<forall>(veriT_vr84::'a_rexp) veriT_vr85::'a_rexp. \<not> (veriT_vr58 = Alt veriT_vr84 veriT_vr85 \<and> veriT_vr59 = Alt veriT_vr85 veriT_vr84)) \<or>
+                 veriT_vr59 = Alt veriT_vr58 veriT_vr58 \<or>
+                 \<not> (\<forall>veriT_vr86::'a_rexp. \<not> (veriT_vr59 = elim_zeros veriT_vr86 \<and> veriT_vr58 ~ veriT_vr86)) \<or>
+                 \<not> (\<forall>(veriT_vr87::'a_rexp) veriT_vr88::'a_rexp. \<not> (veriT_vr58 = Conc veriT_vr87 veriT_vr88 \<and> veriT_vr59 = distribute veriT_vr88 veriT_vr87)) \<or>
+                 veriT_vr58 = veriT_vr59 \<or>
+                 \<not> (\<forall>(veriT_vr89::'a_rexp) (veriT_vr90::'a_rexp) (veriT_vr91::'a_rexp) veriT_vr92::'a_rexp.
+                        \<not> (veriT_vr58 = Alt veriT_vr89 veriT_vr91 \<and> veriT_vr59 = Alt veriT_vr90 veriT_vr92 \<and> veriT_vr89 ~ veriT_vr90 \<and> veriT_vr91 ~ veriT_vr92)) \<or>
+                 \<not> (\<forall>(veriT_vr93::'a_rexp) (veriT_vr94::'a_rexp) veriT_vr95::'a_rexp.
+                        \<not> (veriT_vr58 = Conc veriT_vr93 veriT_vr95 \<and> veriT_vr59 = Conc veriT_vr94 veriT_vr95 \<and> veriT_vr93 ~ veriT_vr94)) \<longrightarrow>
+                 veriT_vr58 ~ veriT_vr59)) \<or>
+    (\<forall>(veriT_vr58::'a_rexp) veriT_vr59::'a_rexp. veriT_vr58 \<noteq> veriT_vr59 \<or> veriT_vr58 ~ veriT_vr59)\<close>
+  by (ctxt_tactic "qnt_cnf")
+  (*currently not working in veriT, needs miniscoping!*)
 (* Rule 30: and *)
 
 lemma and_1:
@@ -2926,7 +2960,6 @@ Alethe_Replay_Methods.onepoint @{context} @{thms H}
 |> curry (op =) @{term \<open>Trueprop ((\<forall>(v0::'a) (v1::'a) (v2::'a \<Rightarrow> 'b) (v3::'a \<Rightarrow> 'b) (v4::'b) v5::'b. v0 = v1 \<and> (\<forall>v6::'a. v1 \<noteq> v6 \<longrightarrow> v2 v6 = v3 v6) \<and> v4 = v5 \<longrightarrow> v2 \<midarrow>v0\<rightarrow> v4 = v3 \<midarrow>v1\<rightarrow> v5) =
  (\<forall>(v0::'a) (v2::'a \<Rightarrow> 'b) (v3::'a \<Rightarrow> 'b) v4::'b. v0 = v0 \<and> (\<forall>v6::'a. v0 \<noteq> v6 \<longrightarrow> v2 v6 = v3 v6) \<and> v4 = v4 \<longrightarrow> v2 \<midarrow>v0\<rightarrow> v4 = v3 \<midarrow>v0\<rightarrow> v4))\<close>}
 |> (fn x => if not x then error "failed" else ())\<close>
-end
 
 end
 (*
