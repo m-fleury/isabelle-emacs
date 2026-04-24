@@ -443,9 +443,15 @@ fun eqsubst_all ctxt thms =
    K ((REPEAT o HEADGOAL) (EqSubst.eqsubst_asm_tac ctxt [0] thms))
    THEN' K ((REPEAT o HEADGOAL) (EqSubst.eqsubst_tac ctxt [0] thms))
 
-(*TODO: Put first two steps + addsimps @{thms simp_thms} in ref object
+(*TODO Hanna: 
+- Put first two steps + addsimps @{thms simp_thms} in ref object
 unsyncronized.ref src/Implementation/ML.thy
-parallel könnte probleme geben*)
+parallel könnte probleme geben
+- vllt datastructure (dann koennte man alle schritte sparen)
+- ist so wegen evaluate, sonst koennte man die ersten zwei schritte sparen
+Mathias hatte zwei Context in alethe_replay, eins für evaluate eins fuer alles andere.
+=> Bisher hat er keine Verbesserung nur Code komplizierter.
+*)
 fun simplify_tac ctxt thms =
   ctxt
   |> empty_simpset
@@ -688,7 +694,8 @@ fun skolem_tac extractor thm1 thms1 ctxt prems context_ass (decl:string list * s
   end
 in
 
-(*TODO: Context assumptions are not used so could be omitted*)
+(*TODO Hanna: Context assumptions are not used so could be omitted*)
+(*TODO Pascal: decl should be used. Pascal?*)
 fun sko_forall ctxt prems context_ass t (SOME (Sko_Def_Prems decl)) =
   skolem_tac extract_all_forall_exists_quantified_names_q @{thm alethe_sko_forall_indirect}
     @{thms alethe_sko_forall_indirect2 alethe_sko_ex_indirect2} ctxt prems context_ass decl t
@@ -746,8 +753,8 @@ fun theory_resolution2 ctxt prems t =
 
 end
 
-(*TODO: Check if this is still needed*)
-(*Modulo implicit reordering*)
+(*Modulo implicit reordering. Needed for veriT when checking external problems + proofs.*)
+(*TODO: add *)
 fun is_same_assms_eq_ac (Abs (_, _,  u)) (Abs (_, _, u')) = 
      is_same_assms_eq_ac u u' (*the name cannot be relevant due to implicit eta-contraction*)
   | is_same_assms_eq_ac (Free (var, _)) (Free (var', _)) =
@@ -782,6 +789,7 @@ fun normalized_input ctxt prems t =
       | NONE => [])
     val m_assm = matched_assm ()
     val _ = if length m_assm = 0 then SMT_Config.trace_msg ctxt (pretty ("warning: could not find assumption, had to add all premises")) [] else ()
+    (*TODO Hanna: There should be a guard here, only for external problems we need to calculate m_assm*)
     val prems = (if all_assms andalso not (null m_assm) then m_assm else prems)
     val _ = debug_msg ctxt low (fn () => \<^print> ("showing normalized input, premises",prems))
 
@@ -873,7 +881,7 @@ local
    @{thms Groups.group_add_class.diff_0_right
    Groups.monoid_add_class.add_0_right Groups.group_add_class.add.group_left_neutral
    Rings.mult_zero_class.mult_zero_left Rings.mult_zero_class.mult_zero_right
-   } (*TODO: Add bit-vector theorems if necessary. TODO: Not clear if it helps to add some of these or not.*)
+   } (*TODO Hanna: Add bit-vector theorems if necessary. FINAL TEST: Not clear if it helps to add some of these or not.*)
   fun aci_simps_extra_thms ctxt = (Named_Theorems.get ctxt @{named_theorems alethe_aci_simp})
 in
 
@@ -950,7 +958,7 @@ fun not_or_rule ctxt prems t =
     end)
 
 
-(*TODO: Improve now that we have arguments*)
+(*TODO Pascal: Improve now that we have arguments*)
 fun or_neg_rule ctxt thms t (SOME (Index k)) =
   (* New version with arg *) 
   let fun choice 0 =
@@ -1251,7 +1259,7 @@ fun not_ite2 ctxt thm t = SMT_Replay_Methods.prove ctxt t
 (*ite_intro can introduce new terms that are in the proof exactly the sames as the old one, but are
 not internally, hence the possible reordering.
 
-TODO: after updating this in 2026, I did not find any example that needed anything
+FINAL TEST: after updating this in 2026, I did not find any example that needed anything
 besides the first rule. The rest is kept as legacy though, because there are very few
 case of this rule in our tests.*)
 fun ite_intro ctxt _ t =
@@ -1821,7 +1829,7 @@ fun all_simplify ctxt _ t =
 
      THEN' TRY' (Code_Simp.dynamic_tac ctxt )
     THEN' TRY' (K (Clasimp.auto_tac ctxt)) 
-) (*TODO: TEMP until cvc5 produces fine grained simplification steps *)
+) (*TODO Hanna: TEMP until cvc5 produces fine grained simplification steps. This is the case now, integrate in hole and then delete *)
 end
 end
 
@@ -1975,7 +1983,7 @@ fun poly_simp_rel ctxt [thm] t =
          THEN' TRY' (resolve_tac ctxt (Named_Theorems.get ctxt @{named_theorems alethe_poly_simp_rel}))
          THEN' debug_msg_tac' ctxt high "poly_simp_rel after applying lemma"
          THEN' TRY' (assume_tac ctxt)
-         (*TODO: This should be replaced by something quicker.
+         (*
          For constants cx and cy you'd have to prove that: ((cx > 0) = (cy > 0)), cx \<noteq> 0, cy \<noteq> 0
          For one of the cases you only need to prove the latter two.*)
          THEN' REPEAT' (SOLVED' (partial_simplify_tac ctxt (@{thms poly_simp_rel} @ @{thms arith_simps})))

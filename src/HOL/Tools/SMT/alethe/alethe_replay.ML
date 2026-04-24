@@ -103,7 +103,7 @@ fun replay_thm method_for rewrite_rules ll_defs ctxt assumed unchanged_prems pre
     val _ = debug_msg ctxt high (fn () => @{print} ("Rewritten conclusion", concl))
 
     val args = if rule = "refl"
-               then let val _ = debug_msg ctxt high (fn () => @{print} ("TODO is this still needed")) in SOME (Solver_Name "cvc5") end
+               then let val _ = debug_msg ctxt high (fn () => @{print} ("TODO Hanna is this still needed")) in SOME (Solver_Name "cvc5") end
                else args
     (*The Alethe proof format distinguishes between the propositional structure (cl ...) and the 
     disjunction purely from the theory solver. Using that structure reduces the size of the terms
@@ -165,7 +165,7 @@ fun replay_theorem_step method_for rewrite_rules all_assms ll_defs assumed (inpu
       |> (fn (_, ctxt) => fold Variable.declare_term [SMTLIB_Isar.unskolemize_names ctxt concl] ctxt)
     val (names, sub_ctxt) = Variable.variant_fixes (map fst fixes) ctxt
        ||> fold Variable.declare_term (map Free fixes)
-    val export_vars = concl_tranformation @ (*TODO: Sollte keine __ auf der rechten Seite haben*)
+    val export_vars = concl_tranformation @ (*Sollte keine __ auf der rechten Seite haben*)
        (ListPair.zip (map Free fixes, map Free (ListPair.zip (names, map snd fixes))))
     val _ = debug_cond_msg ctxt (fixes <> []) low (fn () => @{print} ("Neuen Variablen vom Subproof (e.g., im Subproof neue Variablen):",fixes))
     val _ = debug_msg ctxt high (fn () => @{print} ("Add names from the step's conclusion to context"))
@@ -243,7 +243,7 @@ fun replay_theorem_step method_for rewrite_rules all_assms ll_defs assumed (inpu
       (if Alethe_Proof.is_skolemization rule (*Choice terms only appear in sko_forall and exists*)
        then prems_skolem_def |> map_filter (Symtab.lookup globally_known_facts) (*Skolem definitionen sind immer im auesseren Kontext*)
        else [])
-    val step_args = map subst_transform step_args (*TODO*)
+    val step_args = map subst_transform step_args
     val args =
       (case args of
         SOME (Alethe_Node.Insts tab) => SOME (Alethe_Node.Insts (Symtab.map (K subst_transform) tab)) |
@@ -343,7 +343,7 @@ fun replay_definition_step rewrite_rules ll_defs _ _ _
 fun replay_assumed assms ll_defs rewrite_rules stats ctxt term =
   let
     val rewrite = let val thy = Proof_Context.theory_of (empty_simpset ctxt) in
-        Raw_Simplifier.rewrite_term thy rewrite_rules [] (*TODO: Figure out what rewrite_rules do*)
+        Raw_Simplifier.rewrite_term thy rewrite_rules []
         #> not (null ll_defs) ? SMTLIB_Isar.unlift_term ll_defs (*Lambda definitions werden unfolded*)
       end
     val replay = Timing.timing (SMT_Replay_Methods.prove ctxt (rewrite term)) (*Dasselbe fuer alle solver*)
@@ -419,7 +419,7 @@ fun replay solver method_for outer_ctxt
 
     val ctxt_with_asserts = ctxt_with_asserts
    (*FIXME: commented out for easier development and for the evaluate rules.*)
-   (*TODO: Hanna see what breaks if this goes back in*)
+   (*TODO Hanna: see what breaks if this goes back in*)
    (* |> put_simpset (empty_simpset ctxt_with_asserts [])*)
       |> Config.put SAT.solver (Config.get ctxt_after_parsing SMT_Config.sat_solver)
     val _ = debug_msg ctxt low (fn () => @{print} ("num_ll_defs",num_ll_defs))
@@ -431,9 +431,9 @@ fun replay solver method_for outer_ctxt
         val name = SMTLIB_Interface.assert_name_of_role_and_index SMT_Util.Axiom id
       in
         (Symtab.update (name, (@{term "Trueprop True"}, thm)) assumed, stats) (*Das Replay hat das Theorem veraendert? (vllt wegen monomorphisierung?)*)
-      end) (*TODO: Look at a few examples to see what it does, not sure if needed*)
+      end) (*TODO Hanna: Look at a few examples to see what it does, not sure if needed*)
       used_lldefs (assumed, Symtab.cons_list ("parsing", parsing_time) Symtab.empty)
-    val _ = debug_msg ctxt high (fn () => @{print} ("Alle assumptions sind in assumed ",assumed)) (*TODO: Understand better*)
+    val _ = debug_msg ctxt high (fn () => @{print} ("Alle assumptions sind in assumed ",assumed))
 
     (* Lineralize Step Ids *)
     val len = Alethe_Proof.number_of_steps parsed_proof_steps

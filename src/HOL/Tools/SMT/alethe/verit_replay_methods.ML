@@ -189,8 +189,7 @@ fun choose And = ignore_args and_rule
   | choose Qnt_Rm_Unused = ignore_args qnt_rm_unused
   | choose Onepoint = ignore_args onepoint
   | choose Qnt_Simplify = ignore_args qnt_simplify
-(*TODO: Added for Carcara valuation*)
-  | choose All_Simplify = ignore_args all_simplify
+  | choose All_Simplify = ignore_args all_simplify (*TODO Hanna: delete*)
   | choose LA_Mult_Pos = ignore_args la_mult_pos
   | choose LA_Mult_Neg = ignore_args la_mult_neg
   | choose RARE_Rewrite = ignore_args rare_rewrite
