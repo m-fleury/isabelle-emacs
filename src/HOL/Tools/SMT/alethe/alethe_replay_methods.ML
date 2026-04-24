@@ -2051,13 +2051,13 @@ fun simplify_shuffle_tac ctxt thms =
 in 
 
 fun shuffle ctxt _ _ t (SOME (CommOp @{term "HOL.conj"})) = 
- (prove_abstract (SMT_Replay_Methods.abstract_shuffle @{term "HOL.conj"}) (fn ctxt => fn _ =>
-    simplify_shuffle_tac ctxt @{thms Lattices.conj.commute Lattices.conj.left_commute conj_assoc}) ctxt [] t) |
-shuffle ctxt _ _ t  (SOME (CommOp @{term "HOL.disj"})) =
-  (prove_abstract (SMT_Replay_Methods.abstract_shuffle @{term "HOL.disj"}) (fn ctxt => fn _ =>
-    simplify_shuffle_tac ctxt @{thms Lattices.disj.commute Lattices.disj.left_commute disj_assoc}) ctxt [] t) |
-shuffle ctxt thms _ t _ =
-    replay_error ctxt "Unsupported commutative operator in shuffle rule" Unsupported thms [] t
+      (prove_abstract (SMT_Replay_Methods.abstract_shuffle @{term "HOL.conj"}) (fn ctxt => fn _ =>
+        simplify_shuffle_tac ctxt @{thms Lattices.conj.commute Lattices.conj.left_commute conj_assoc}) ctxt [] t)
+  | shuffle ctxt _ _ t  (SOME (CommOp @{term "HOL.disj"})) =
+      (prove_abstract (SMT_Replay_Methods.abstract_shuffle @{term "HOL.disj"}) (fn ctxt => fn _ =>
+        simplify_shuffle_tac ctxt @{thms Lattices.disj.commute Lattices.disj.left_commute disj_assoc}) ctxt [] t)
+  | shuffle ctxt thms _ t _ =
+      replay_error ctxt "Unsupported commutative operator in shuffle rule" Unsupported thms [] t
 end
 
 fun contraction ctxt [prem] t = 
