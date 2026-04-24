@@ -1,6 +1,6 @@
 unsat
-(assume nst5.0 (not (= (bvult x (bvadd y (_ bv1 5))) (and (not (= y (bvnot (@bv 0 5)))) (not (bvult y x))))))
-(assume t2 (= (_ bv1 5) (@bv 1 5)))
-(assume t4 (= 5 (@bvsize x)))
-(step st5 (cl (= (bvult x (bvadd y (_ bv1 5))) (and (not (= y (bvnot (@bv 0 5)))) (not (bvult y x))))) :rule rare_rewrite :premises (t2 t4) :args ("bv-ult-add-one" x (rare-list y) rare-list (_ bv1 5) 5))
-(step t.end (cl) :rule resolution :premises (nst5.0 st5))
+(step t305 (cl (= (_ bv1 32) (@bv 1 32))) :rule trust :args ("trust"))
+(step t307 (cl (= 32 (@bvsize (_ bv2147483647 32)))) :rule trust :args ("trust"))
+(step t308 (cl (= (bvult (_ bv2147483647 32) (bvadd (concat (_ bv0 16) T1_10603 T1_10602) (_ bv1 32))) (and (not (= (concat (_ bv0 16) T1_10603 T1_10602) (bvnot (@bv 0 32)))) (not (bvult (concat (_ bv0 16) T1_10603 T1_10602) (_ bv2147483647 32)))))) :rule rare_rewrite :premises (t305 t307) :args ("bv-ult-add-one" (_ bv2147483647 32) (rare-list (concat (_ bv0 16) T1_10603 T1_10602)) rare-list (_ bv1 32) 32))
+(step slice_end (cl) :rule trust :premises (t308) :args ("trust"))
+

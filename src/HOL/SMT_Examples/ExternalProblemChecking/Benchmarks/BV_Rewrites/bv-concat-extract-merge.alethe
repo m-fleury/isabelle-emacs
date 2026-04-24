@@ -1,0 +1,5 @@
+unsat
+(step t1485 (cl (= 7 (+ 6 1))) :rule trust :args ("trust"))
+(step t1486 (cl (= (concat ((_ extract 4 0) x) ((_ extract 7 7) x) ((_ extract 6 5) x)) (concat ((_ extract 4 0) x) ((_ extract 7 5) x)))) :rule rare_rewrite :premises (t1485) :args ("bv-concat-extract-merge" (rare-list ((_ extract 4 0) x)) x rare-list 5 6 7 7))
+(step slice_end (cl) :rule trust :premises (t1486) :args ("trust"))
+

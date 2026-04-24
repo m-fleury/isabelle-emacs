@@ -1,0 +1,8 @@
+unsat
+(step t88 (cl (= (< 4 (@bvsize (ite (= Fresh__1 (@bv 1 1)) (@bv 0 8) v119914656))) true)) :rule trust :args ("trust"))
+(step t89 (cl (= (>= 31 (@bvsize (ite (= Fresh__1 (@bv 1 1)) (@bv 0 8) v119914656))) true)) :rule trust :args ("trust"))
+(step t91 (cl (= 7 (- (@bvsize (ite (= Fresh__1 (@bv 1 1)) (@bv 0 8) v119914656)) 1))) :rule trust :args ("trust"))
+(step t93 (cl (= 24 (+ 1 (- 31 (@bvsize (ite (= Fresh__1 (@bv 1 1)) (@bv 0 8) v119914656)))))) :rule trust :args ("trust"))
+(step t94 (cl (= ((_ extract 31 4) ((_ sign_extend 24) (ite (= Fresh__1 (@bv 1 1)) (@bv 0 8) v119914656))) ((_ sign_extend 24) ((_ extract 7 4) (ite (= Fresh__1 (@bv 1 1)) (@bv 0 8) v119914656))))) :rule rare_rewrite :premises (t88 t89 t91 t93) :args ("bv-extract-sign-extend-2" (ite (= Fresh__1 (@bv 1 1)) (@bv 0 8) v119914656) 4 31 24 7 24))
+(step slice_end (cl) :rule trust :premises (t94) :args ("trust"))
+

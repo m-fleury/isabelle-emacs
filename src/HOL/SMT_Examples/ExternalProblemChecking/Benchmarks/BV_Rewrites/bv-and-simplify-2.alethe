@@ -1,5 +1,5 @@
 unsat
-(assume nst3.0 (not (= (bvand x y z (bvnot y) w) (@bv 0 4))))
-(assume t2 (= 4 (@bvsize y)))
-(step st3 (cl (= (bvand x y z (bvnot y) w) (@bv 0 4))) :rule rare_rewrite :premises (t2) :args ("bv-and-simplify-2" (rare-list x) (rare-list z) (rare-list w) y 4))
-(step t.end (cl) :rule resolution :premises (nst3.0 st3))
+(step t2 (cl (= 32 (@bvsize t))) :rule trust :args ("trust"))
+(step t3 (cl (= (bvand t (bvnot t)) (@bv 0 32))) :rule rare_rewrite :premises (t2) :args ("bv-and-simplify-2" rare-list rare-list rare-list t 32))
+(step slice_end (cl) :rule trust :premises (t3) :args ("trust"))
+

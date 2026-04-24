@@ -1,0 +1,7 @@
+unsat
+(step t596 (cl (= 31 (- (@bvsize CV6454e1049395t23p24659th1) 1))) :rule trust :args ("trust"))
+(step t598 (cl (= 1 (+ 0 1))) :rule trust :args ("trust"))
+(step t599 (cl (= (> 31 0) true)) :rule trust :args ("trust"))
+(step t600 (cl (= (= ((_ extract 0 0) CV6454e1049395t23p24659th1) (@bv 1 1)) (= CV6454e1049395t23p24659th1 (concat ((_ extract 31 1) CV6454e1049395t23p24659th1) (@bv 1 1))))) :rule rare_rewrite :premises (t596 t598 t599) :args ("bv-eq-extract-elim2" CV6454e1049395t23p24659th1 (@bv 1 1) 0 31 1))
+(step slice_end (cl) :rule trust :premises (t600) :args ("trust"))
+

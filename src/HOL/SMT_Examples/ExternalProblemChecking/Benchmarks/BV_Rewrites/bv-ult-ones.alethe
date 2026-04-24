@@ -1,0 +1,5 @@
+unsat
+(step t1073 (cl (= 4294967295 (- (int.pow2 32) 1))) :rule trust :args ("trust"))
+(step t1074 (cl (= (bvult T4_10728 (@bv 4294967295 32)) (distinct T4_10728 (@bv 4294967295 32)))) :rule rare_rewrite :premises (t1073) :args ("bv-ult-ones" T4_10728 4294967295 32))
+(step slice_end (cl) :rule trust :premises (t1074) :args ("trust"))
+

@@ -1,5 +1,0 @@
-(set-logic ALL)
-(declare-fun b () (_ BitVec 1))
-(assert (not (= (ite (= b (@bv 1 1)) (@bv 1 1) (@bv 0 1)) b)))
-(check-sat)
-(exit)

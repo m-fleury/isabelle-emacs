@@ -1,0 +1,5 @@
+unsat
+(step t300 (cl (= (<= 14 (@bvsize (bvnot ((_ extract 14 0) a)))) true)) :rule trust :args ("trust"))
+(step t301 (cl (= ((_ extract 14 0) (concat (@bv 0 1) (bvnot ((_ extract 14 0) a)))) ((_ extract 14 0) (bvnot ((_ extract 14 0) a))))) :rule rare_rewrite :premises (t300) :args ("bv-extract-concat-1" (bvnot ((_ extract 14 0) a)) rare-list (@bv 0 1) 0 14))
+(step slice_end (cl) :rule trust :premises (t301) :args ("trust"))
+

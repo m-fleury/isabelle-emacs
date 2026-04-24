@@ -1,4 +1,0 @@
-unsat
-(assume nst12.0 (not (= (bvcomp b (@bv 1 1)) (ite (= b (@bv 1 1)) (@bv 1 1) (@bv 0 1)))))
-(step st12 (cl (= (bvcomp b (@bv 1 1)) (ite (= b (@bv 1 1)) (@bv 1 1) (@bv 0 1)))) :rule rare_rewrite :args ("bv-comp-eliminate" b (@bv 1 1)))
-(step t.end (cl) :rule resolution :premises (nst12.0 st12))

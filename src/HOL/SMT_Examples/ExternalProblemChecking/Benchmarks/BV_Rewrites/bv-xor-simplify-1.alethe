@@ -1,7 +1,0 @@
-unsat
-(assume nt14.0 (not (= (forall ((s (_ BitVec 4))) (not (= (bvxor (bvxor (_ bv0 4) s) s) (_ bv0 4)))) (forall ((s (_ BitVec 4))) false))))
-(anchor :step t14 :args ((s (_ BitVec 4)) (:= (s (_ BitVec 4)) s)))
-(step st14.t4 (cl (= (bvxor s s (_ bv0 4)) (_ bv0 4))) :rule rare_rewrite :args ("bv-xor-simplify-1" rare-list rare-list (rare-list (_ bv0 4)) s))
-(step t14.t12 (cl (= (not (= (bvxor (bvxor (_ bv0 4) s) s) (_ bv0 4))) false)) :rule trust)
-(step t14 (cl (= (forall ((s (_ BitVec 4))) (not (= (bvxor (bvxor (_ bv0 4) s) s) (_ bv0 4)))) (forall ((s (_ BitVec 4))) false))) :rule bind)
-(step t.end (cl) :rule resolution :premises (nt14.0 t14))

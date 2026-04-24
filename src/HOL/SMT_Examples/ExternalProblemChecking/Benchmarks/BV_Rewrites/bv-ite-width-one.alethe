@@ -1,4 +1,0 @@
-unsat
-(assume nst13.0 (not (= (ite (= b (@bv 1 1)) (@bv 1 1) (@bv 0 1)) b)))
-(step st13 (cl (= (ite (= b (@bv 1 1)) (@bv 1 1) (@bv 0 1)) b)) :rule rare_rewrite :args ("bv-ite-width-one" b))
-(step t.end (cl) :rule resolution :premises (nst13.0 st13))
