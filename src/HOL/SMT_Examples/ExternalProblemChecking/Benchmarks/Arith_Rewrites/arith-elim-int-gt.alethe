@@ -1,0 +1,3 @@
+(step t46 (cl (! (= (! (> x45_92 x45_92) :named @p_1) (! (>= x45_92 (! (+ x45_92 1) :named @p_3)) :named @p_2)) :named @p_0)) :rule rare_rewrite :args ("arith-elim-int-gt" x45_92 x45_92))
+(step slice_end (cl) :rule hole :premises (t46) :args ("trust"))
+
