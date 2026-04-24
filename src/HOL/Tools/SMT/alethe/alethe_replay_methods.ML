@@ -52,7 +52,7 @@ sig
    Miniscope_Distribute | Miniscope_Split | Miniscope_ITE |
    AC_Simp | ACI_Simp |
    (*Extended rules*)
-   Symm | Not_Symm | Reordering | Shuffle | Tmp_Quantifier_Simplify | Contraction | 
+   Symm | Not_Symm | Reordering | Shuffle | Contraction | 
    And_Intro |
    (*Other Rules*)
    Other_Rule of string |
@@ -250,7 +250,7 @@ datatype alethe_rule =
    Qnt_Simplify | Not_Not | Tautological_Clause | Distinct_Elim | 
    AC_Simp | ACI_Simp |
    (*Extended rules*)
-   Symm | Not_Symm | Reordering | Shuffle | Tmp_Quantifier_Simplify | Contraction |
+   Symm | Not_Symm | Reordering | Shuffle | Contraction |
    Miniscope_Distribute | Miniscope_Split | Miniscope_ITE |
    And_Intro |
    (*Other Rules*)
