@@ -1,0 +1,4 @@
+unsat
+(step t1 (cl (= (bvugt (bvadd x (_ bv1 22495)) y) (bvult y (bvadd x (_ bv1 22495))))) :rule rare_rewrite :args ("bv-ugt-eliminate" (bvadd x (_ bv1 22495)) y))
+(step slice_end (cl) :rule trust :premises (t1) :args ("trust"))
+

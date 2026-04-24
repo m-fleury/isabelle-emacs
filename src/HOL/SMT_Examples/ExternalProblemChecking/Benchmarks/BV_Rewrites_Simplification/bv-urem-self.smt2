@@ -1,6 +1,0 @@
-(set-logic QF_BV)
-(declare-fun x () (_ BitVec 5))
-(assert (not (= (bvurem x x) (@bv 0 5))))
-(assert (= 5 (@bvsize x)))
-(check-sat)
-(exit)

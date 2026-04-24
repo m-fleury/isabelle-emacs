@@ -1,0 +1,4 @@
+unsat
+(step t5132 (cl (= (bvule (_ bv18 32) x25) (not (bvult x25 (_ bv18 32))))) :rule rare_rewrite :args ("bv-ule-eliminate" (_ bv18 32) x25))
+(step slice_end (cl) :rule trust :premises (t5132) :args ("trust"))
+

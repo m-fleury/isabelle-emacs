@@ -1,0 +1,7 @@
+unsat
+(step t478 (cl (= 16 (- (@bvsize (concat (@bv 0 16) T1_11170 (@bv 0 8))) (@bvsize (@bv 0 16))))) :rule trust :args ("trust"))
+(step t480 (cl (= 31 (- (@bvsize (concat (@bv 0 16) T1_11170 (@bv 0 8))) 1))) :rule trust :args ("trust"))
+(step t482 (cl (= 15 (- (- (@bvsize (concat (@bv 0 16) T1_11170 (@bv 0 8))) (@bvsize (@bv 0 16))) 1))) :rule trust :args ("trust"))
+(step t483 (cl (= (bvor (concat (@bv 0 16) T1_11170 (@bv 0 8)) (concat (@bv 0 24) T1_11169)) (concat (bvor ((_ extract 31 16) (concat (@bv 0 24) T1_11169)) (@bv 0 16)) (bvor ((_ extract 15 0) (concat (@bv 0 24) T1_11169)) (concat T1_11170 (@bv 0 8)))))) :rule rare_rewrite :premises (t478 t480 t482) :args ("bv-or-concat-pullup2" rare-list (rare-list (concat (@bv 0 24) T1_11169)) T1_11170 (@bv 0 16) (rare-list (@bv 0 8)) 31 16 15))
+(step slice_end (cl) :rule trust :premises (t483) :args ("trust"))
+

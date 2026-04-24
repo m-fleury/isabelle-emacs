@@ -1,0 +1,5 @@
+unsat
+(step t233 (cl (= 15 (- (int.pow2 4) 1))) :rule trust :args ("trust"))
+(step t234 (cl (= (bvxor ((_ extract 5 2) T_32t2_5074_174) (@bv 15 4)) (bvnot ((_ extract 5 2) T_32t2_5074_174)))) :rule rare_rewrite :premises (t233) :args ("bv-xor-ones" (rare-list ((_ extract 5 2) T_32t2_5074_174)) rare-list 15 4))
+(step slice_end (cl) :rule trust :premises (t234) :args ("trust"))
+

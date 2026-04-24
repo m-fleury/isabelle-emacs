@@ -1,0 +1,6 @@
+unsat
+(step t209 (cl (= (< 31 (@bvsize (bvand (bvxor T_32t2_1531_174 (@bv 60 32)) (bvxor T_32t2_1531_174 T_32t0_1523_180)))) true)) :rule trust :args ("trust"))
+(step t211 (cl (= 31 (- (@bvsize (bvand (bvxor T_32t2_1531_174 (@bv 60 32)) (bvxor T_32t2_1531_174 T_32t0_1523_180))) 1))) :rule trust :args ("trust"))
+(step t212 (cl (= (bvlshr (bvand (bvxor T_32t2_1531_174 (@bv 60 32)) (bvxor T_32t2_1531_174 T_32t0_1523_180)) (@bv 31 32)) (concat (@bv 0 31) ((_ extract 31 31) (bvand (bvxor T_32t2_1531_174 (@bv 60 32)) (bvxor T_32t2_1531_174 T_32t0_1523_180)))))) :rule rare_rewrite :premises (t209 t211) :args ("bv-lshr-by-const-1" (bvand (bvxor T_32t2_1531_174 (@bv 60 32)) (bvxor T_32t2_1531_174 T_32t0_1523_180)) 31 32 31))
+(step slice_end (cl) :rule trust :premises (t212) :args ("trust"))
+

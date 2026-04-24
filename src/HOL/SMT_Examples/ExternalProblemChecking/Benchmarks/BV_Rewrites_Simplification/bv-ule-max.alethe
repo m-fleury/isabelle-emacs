@@ -1,0 +1,6 @@
+unsat
+(step t1071 (cl (= 32 (@bvsize (concat T1_11170 T1_11169 T1_11168 T1_11167)))) :rule trust :args ("trust"))
+(step t1073 (cl (= 4294967295 (- (int.pow2 (@bvsize (concat T1_11170 T1_11169 T1_11168 T1_11167))) 1))) :rule trust :args ("trust"))
+(step t1074 (cl (= (bvule (concat T1_11170 T1_11169 T1_11168 T1_11167) (@bv 4294967295 32)) true)) :rule rare_rewrite :premises (t1071 t1073) :args ("bv-ule-max" (concat T1_11170 T1_11169 T1_11168 T1_11167) 4294967295 32))
+(step slice_end (cl) :rule trust :premises (t1074) :args ("trust"))
+

@@ -1,4 +1,5 @@
 unsat
-(assume nst13.0 (not (= (bvult x1 (@bv 1 10)) (= x1 (@bv 0 10)))))
-(step st13 (cl (= (bvult x1 (@bv 1 10)) (= x1 (@bv 0 10)))) :rule rare_rewrite :args ("bv-ult-one" x1 10))
-(step t.end (cl) :rule resolution :premises (nst13.0 st13))
+(step t3462 (cl (= (> (@bvsize ((_ extract 14 0) x)) 0) true)) :rule trust :args ("trust"))
+(step t3463 (cl (= (bvult ((_ extract 14 0) x) (@bv 1 15)) (= ((_ extract 14 0) x) (@bv 0 15)))) :rule rare_rewrite :premises (t3462) :args ("bv-ult-one" ((_ extract 14 0) x) 15))
+(step slice_end (cl) :rule trust :premises (t3463) :args ("trust"))
+

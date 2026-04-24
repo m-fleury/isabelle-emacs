@@ -1,0 +1,5 @@
+unsat
+(step t538 (cl (= 31 (- (@bvsize (@bv 0 32)) 1))) :rule trust :args ("trust"))
+(step t539 (cl (= (bvsdiv (@bv 0 32) T4_10524) (ite (xor (= ((_ extract 31 31) (@bv 0 32)) (@bv 1 1)) (= ((_ extract 31 31) T4_10524) (@bv 1 1))) (bvneg (bvudiv (ite (= ((_ extract 31 31) (@bv 0 32)) (@bv 1 1)) (bvneg (@bv 0 32)) (@bv 0 32)) (ite (= ((_ extract 31 31) T4_10524) (@bv 1 1)) (bvneg T4_10524) T4_10524))) (bvudiv (ite (= ((_ extract 31 31) (@bv 0 32)) (@bv 1 1)) (bvneg (@bv 0 32)) (@bv 0 32)) (ite (= ((_ extract 31 31) T4_10524) (@bv 1 1)) (bvneg T4_10524) T4_10524))))) :rule rare_rewrite :premises (t538) :args ("bv-sdiv-eliminate" (@bv 0 32) T4_10524 31))
+(step slice_end (cl) :rule trust :premises (t539) :args ("trust"))
+

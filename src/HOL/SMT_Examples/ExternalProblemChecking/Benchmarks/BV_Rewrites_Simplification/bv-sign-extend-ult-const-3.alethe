@@ -1,0 +1,6 @@
+unsat
+(step t122 (cl (= (or (bvult (@bv 23 32) (bvshl (@bv 1 32) (@bv (- (@bvsize (bvashr T2_10586 ((_ zero_extend 8) (@bv 11 8)))) 1) 32))) (bvuge (@bv 23 32) (bvnot (bvshl (@bv 1 32) (@bv (- (@bvsize (bvashr T2_10586 ((_ zero_extend 8) (@bv 11 8)))) 1) 32))))) true)) :rule trust :args ("trust"))
+(step t124 (cl (= 15 (- (@bvsize (bvashr T2_10586 ((_ zero_extend 8) (@bv 11 8)))) 1))) :rule trust :args ("trust"))
+(step t125 (cl (= (bvult (@bv 23 32) ((_ sign_extend 16) (bvashr T2_10586 ((_ zero_extend 8) (@bv 11 8))))) (bvult ((_ extract 15 0) (@bv 23 32)) (bvashr T2_10586 ((_ zero_extend 8) (@bv 11 8)))))) :rule rare_rewrite :premises (t122 t124) :args ("bv-sign-extend-ult-const-3" (bvashr T2_10586 ((_ zero_extend 8) (@bv 11 8))) 16 23 32 15))
+(step slice_end (cl) :rule trust :premises (t125) :args ("trust"))
+

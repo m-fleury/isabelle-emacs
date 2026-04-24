@@ -1,0 +1,4 @@
+unsat
+(step t21 (cl (= (bvxnor s t) (bvnot (bvxor s t)))) :rule rare_rewrite :args ("bv-xnor-eliminate" s t))
+(step slice_end (cl) :rule trust :premises (t21) :args ("trust"))
+

@@ -1,4 +1,4 @@
 unsat
-(assume nst11.0 (not (= (bvlshr x (@bv 0 5)) x)))
-(step st11 (cl (= (bvlshr x (@bv 0 5)) x)) :rule rare_rewrite :args ("bv-lshr-by-const-0" x 5))
-(step t.end (cl) :rule resolution :premises (nst11.0 st11))
+(step t10 (cl (= (bvlshr t (@bv 0 32)) t)) :rule rare_rewrite :args ("bv-lshr-by-const-0" t 32))
+(step slice_end (cl) :rule trust :premises (t10) :args ("trust"))
+

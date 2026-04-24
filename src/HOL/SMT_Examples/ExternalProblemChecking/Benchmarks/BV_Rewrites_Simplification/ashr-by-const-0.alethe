@@ -1,3 +1,0 @@
-(assume nst11.0 (not (= (bvashr x (@bv 0 5)) x)))
-(step st11 (cl (= (bvashr x (@bv 0 5)) x)) :rule rare_rewrite :args ("bv-ashr-by-const-0" x 5))
-(step t.end (cl) :rule resolution :premises (nst11.0 st11))

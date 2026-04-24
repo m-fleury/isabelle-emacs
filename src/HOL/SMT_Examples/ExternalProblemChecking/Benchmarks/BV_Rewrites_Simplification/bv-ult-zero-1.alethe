@@ -1,4 +1,4 @@
 unsat
-(assume nst21.0 (not (= (bvult (@bv 0 4) y) (not (= y (@bv 0 4))))))
-(step st21 (cl (= (bvult (@bv 0 4) y) (not (= y (@bv 0 4))))) :rule rare_rewrite :args ("bv-ult-zero-1" y 4))
-(step t.end (cl) :rule resolution :premises (nst21.0 st21))
+(step t10 (cl (= (bvult (@bv 0 32) T4_10657) (not (= T4_10657 (@bv 0 32))))) :rule rare_rewrite :args ("bv-ult-zero-1" T4_10657 32))
+(step slice_end (cl) :rule trust :premises (t10) :args ("trust"))
+

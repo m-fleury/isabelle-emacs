@@ -1,0 +1,4 @@
+unsat
+(step t549 (cl (= (bvnot (bvnot (bvand (bvnot (ite (bvult (bvnot (concat (bvnot ((_ extract 7 7) (bvadd b (_ bv128 8)))) (_ bv0 7))) a) (_ bv1 1) (_ bv0 1))) (bvnot (ite (= (_ bv0 8) (concat ((_ extract 7 7) (bvand b d)) (_ bv0 7))) (_ bv1 1) (_ bv0 1)))))) (bvand (bvnot (ite (bvult (bvnot (concat (bvnot ((_ extract 7 7) (bvadd b (_ bv128 8)))) (_ bv0 7))) a) (_ bv1 1) (_ bv0 1))) (bvnot (ite (= (_ bv0 8) (concat ((_ extract 7 7) (bvand b d)) (_ bv0 7))) (_ bv1 1) (_ bv0 1)))))) :rule rare_rewrite :args ("bv-not-idemp" (bvand (bvnot (ite (bvult (bvnot (concat (bvnot ((_ extract 7 7) (bvadd b (_ bv128 8)))) (_ bv0 7))) a) (_ bv1 1) (_ bv0 1))) (bvnot (ite (= (_ bv0 8) (concat ((_ extract 7 7) (bvand b d)) (_ bv0 7))) (_ bv1 1) (_ bv0 1))))))
+(step slice_end (cl) :rule trust :premises (t549) :args ("trust"))
+

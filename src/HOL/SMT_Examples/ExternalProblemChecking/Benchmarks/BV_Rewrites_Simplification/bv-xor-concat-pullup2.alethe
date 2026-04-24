@@ -1,0 +1,7 @@
+unsat
+(step t4107 (cl (= 5 (- (@bvsize (concat (@bv 0 2) (bvand a ((_ sign_extend 3) ((_ extract 1 1) b))) (@bv 0 1))) (@bvsize (@bv 0 2))))) :rule trust :args ("trust"))
+(step t4109 (cl (= 6 (- (@bvsize (concat (@bv 0 2) (bvand a ((_ sign_extend 3) ((_ extract 1 1) b))) (@bv 0 1))) 1))) :rule trust :args ("trust"))
+(step t4111 (cl (= 4 (- (- (@bvsize (concat (@bv 0 2) (bvand a ((_ sign_extend 3) ((_ extract 1 1) b))) (@bv 0 1))) (@bvsize (@bv 0 2))) 1))) :rule trust :args ("trust"))
+(step t4112 (cl (= (bvxor f1 (concat (@bv 0 2) (bvand a ((_ sign_extend 3) ((_ extract 1 1) b))) (@bv 0 1))) (concat (bvxor ((_ extract 6 5) f1) (@bv 0 2)) (bvxor ((_ extract 4 0) f1) (concat (bvand a ((_ sign_extend 3) ((_ extract 1 1) b))) (@bv 0 1)))))) :rule rare_rewrite :premises (t4107 t4109 t4111) :args ("bv-xor-concat-pullup2" (rare-list f1) rare-list (bvand a ((_ sign_extend 3) ((_ extract 1 1) b))) (@bv 0 2) (rare-list (@bv 0 1)) 6 5 4))
+(step slice_end (cl) :rule trust :premises (t4112) :args ("trust"))
+
