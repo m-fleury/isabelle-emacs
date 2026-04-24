@@ -149,7 +149,7 @@ let
   fun check_all [] i = ((),i) |
     check_all (problem_path::ts) i =
     let
-      val _ = SMT_Config.trace_msg ctxt (pretty ("problem" ^problem_path)) []
+      val _ = SMT_Config.trace_msg ctxt (pretty ("problem " ^problem_path)) []
 
 
        val problem_path = files_dir ^ problem_path
