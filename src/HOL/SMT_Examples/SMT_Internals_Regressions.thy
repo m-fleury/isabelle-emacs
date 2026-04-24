@@ -2735,6 +2735,12 @@ lemma ite_intro_9:
            else dec_10 (4 * dec_10 4 - 10) = (if 4 * dec_10 4 < 10 then 4 * dec_10 4 else dec_10 (4 * dec_10 4 - 10)))) \<close>
   by (ctxt_tactic "ite_intro")
 
+lemma ite_intro_10:
+  shows \<open>((if t < 0 then - t else t) = cmod (complex_of_real t)) =
+         (cmod (complex_of_real t) = (if t < 0 then - t else t) \<and> 
+     (if t < 0 then - t = (if t < 0 then - t else t) else t = (if t < 0 then - t else t)))\<close>
+  by (ctxt_tactic "ite_intro")
+
 (* Rule 104: miniscope_distribute *)
 (*Note: there isn't a solver that produces the exists case currently*)
 
@@ -2892,6 +2898,49 @@ Alethe_Replay_Methods.onepoint @{context} @{thms H[where 'a=nat]}
 |> curry (op =) @{term \<open>Trueprop ((\<forall>v0::nat. (v0 \<noteq> 1 \<or> v0 \<noteq> 1)) = ((1::nat) \<noteq> 1))\<close>}
 |> (fn x => if not x then error "failed" else ())\<close>
 end
+
+
+context
+  fixes
+LIM :: "('a \<Rightarrow> 'b) \<Rightarrow> 'a \<Rightarrow> 'b \<Rightarrow> bool"
+    (\<open>(\<open>notation=\<open>infix LIM\<close>\<close>(_)/ \<midarrow>(_)/\<rightarrow> (_))\<close> [60, 0, 60] 60)
+begin
+
+
+context
+  fixes v0 v1 :: \<open>'a\<close> and v4 v5 :: 'b
+  assumes H: \<open>v0 = v1\<close> \<open>v4 = v5\<close>
+begin
+lemma H:
+ \<open>(v0 = v1 \<and> (\<forall>v6. v1 \<noteq> v6 \<longrightarrow> v2 v6 = v3 v6) \<and> v4 = v5 \<longrightarrow> v2 \<midarrow>v0\<rightarrow> v4 = v3 \<midarrow>v1\<rightarrow> v5) =
+         (v0 = v0 \<and> (\<forall>v6. v0 \<noteq> v6 \<longrightarrow> v2 v6 = v3 v6) \<and> v4 = v4 \<longrightarrow> v2 \<midarrow>v0\<rightarrow> v4 = v3 \<midarrow>v0\<rightarrow> v4)\<close>
+  using H by auto
+end
+
+ML \<open>
+Alethe_Replay_Methods.onepoint @{context} @{thms H}
+  @{term \<open>Trueprop ((\<forall>v0 v1 v2 v3 v4 v5. v0 = v1 \<and> (\<forall>v6. v1 \<noteq> v6 \<longrightarrow> v2 v6 = v3 v6) \<and> v4 = v5 \<longrightarrow> v2 \<midarrow>v0\<rightarrow> v4 = v3 \<midarrow>v1\<rightarrow> v5) =
+         (\<forall>v0 v2 v3 v4. v0 = v0 \<and> (\<forall>v6. v0 \<noteq> v6 \<longrightarrow> v2 v6 = v3 v6) \<and> v4 = v4 \<longrightarrow> v2 \<midarrow>v0\<rightarrow> v4 = v3 \<midarrow>v0\<rightarrow> v4))\<close>}
+|> @{print}
+|> Thm.prop_of
+|> curry (op =) @{term \<open>Trueprop ((\<forall>(v0::'a) (v1::'a) (v2::'a \<Rightarrow> 'b) (v3::'a \<Rightarrow> 'b) (v4::'b) v5::'b. v0 = v1 \<and> (\<forall>v6::'a. v1 \<noteq> v6 \<longrightarrow> v2 v6 = v3 v6) \<and> v4 = v5 \<longrightarrow> v2 \<midarrow>v0\<rightarrow> v4 = v3 \<midarrow>v1\<rightarrow> v5) =
+ (\<forall>(v0::'a) (v2::'a \<Rightarrow> 'b) (v3::'a \<Rightarrow> 'b) v4::'b. v0 = v0 \<and> (\<forall>v6::'a. v0 \<noteq> v6 \<longrightarrow> v2 v6 = v3 v6) \<and> v4 = v4 \<longrightarrow> v2 \<midarrow>v0\<rightarrow> v4 = v3 \<midarrow>v0\<rightarrow> v4))\<close>}
+|> (fn x => if not x then error "failed" else ())\<close>
+end
+
+end
+(*
+
+SMT: Goal: "onepoint"
+       assumptions:
+         (?v0.2 = ?v1.2 \<and> (\<forall>v6. ?v1.2 \<noteq> v6 \<longrightarrow> ?v2.2 v6 = ?v3.2 v6) \<and> ?v4.2 = ?v5.2 \<longrightarrow> ?v2.2 \<midarrow>?v0.2\<rightarrow> ?v4.2 = ?v3.2 \<midarrow>?v1.2\<rightarrow> ?v5.2) =
+         (?v0.2 = ?v0.2 \<and> (\<forall>v6. ?v0.2 \<noteq> v6 \<longrightarrow> ?v2.2 v6 = ?v3.2 v6) \<and> ?v4.2 = ?v4.2 \<longrightarrow> ?v2.2 \<midarrow>?v0.2\<rightarrow> ?v4.2 = ?v3.2 \<midarrow>?v0.2\<rightarrow> ?v4.2)
+       proposition:
+         (\<forall>v0 v1 v2 v3 v4 v5. v0 = v1 \<and> (\<forall>v6. v1 \<noteq> v6 \<longrightarrow> v2 v6 = v3 v6) \<and> v4 = v5 \<longrightarrow> v2 \<midarrow>v0\<rightarrow> v4 = v3 \<midarrow>v1\<rightarrow> v5) =
+         (\<forall>v0 v2 v3 v4. v0 = v0 \<and> (\<forall>v6. v0 \<noteq> v6 \<longrightarrow> v2 v6 = v3 v6) \<and> v4 = v4 \<longrightarrow> v2 \<midarrow>v0\<rightarrow> v4 = v3 \<midarrow>v0\<rightarrow> v4) 
+
+*)
+
 
 (*
 

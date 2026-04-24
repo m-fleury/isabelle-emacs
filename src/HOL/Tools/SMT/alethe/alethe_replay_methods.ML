@@ -1274,7 +1274,7 @@ fun ite_intro ctxt _ t =
   in
     SMT_Replay_Methods.prove ctxt t (fn _ => 
       simplify_ite ctxt @{thms alethe_ite_intro(1-4)} (not use_cong)
-      THEN' TRY' (simplify_ite ctxt @{thms alethe_ite_intro} (not use_cong))
+      THEN' TRY' (simplify_ite ctxt @{thms alethe_ite_intro(1-6)} (not use_cong))
       THEN' TRY' (simplify_ite ctxt @{thms if_cancel} use_cong)
       THEN' TRY' (simplify_ite ctxt @{thms eq_commute} use_cong))
   end
@@ -1369,12 +1369,16 @@ local
                                    | t$u' => substf t $ substf u'
                                    | _ => u)
         in  substf  end;
-  fun resolve_and_instantiate_onepoint (_, i : term) insts {context, params, ...} =
+  fun resolve_and_instantiate_onepoint n1 (i, j: term) insts {context, params, ...} =
     let
-       val i = i
+       val i = 
+         (case i of
+           Var ((n2, _), _) => if n1 = n2 then j else i
+         | _ => i) (*veriT: j or i; cvc5: only j*)
          |> Term.subst_free insts
          |> subst_var_untyped (map (fn (x, t) => (Var ((x, 0), @{typ dummy}), Thm.term_of t)) params)
          |> Thm.cterm_of context
+
        val thms = map (Drule.infer_instantiate' context [SOME i])
            @{thms alethe_onepoint2_all alethe_onepoint2_ex}
     in
@@ -1384,10 +1388,10 @@ local
       TRY' (if n1 = n2
         then resolve_tac ctxt @{thms alethe_onepoint(1,3)}
          THEN' onepoint_combine_quant ctxt bounds1 bounds2 (i :: insts) past_ints
-       else Subgoal.FOCUS (resolve_and_instantiate_onepoint i past_ints) ctxt
+       else Subgoal.FOCUS (resolve_and_instantiate_onepoint n1 i past_ints) ctxt
          THEN' onepoint_combine_quant ctxt bounds1 (n2 :: bounds2) insts (past_ints @ [i]))
-    | onepoint_combine_quant ctxt (_ :: bounds1) [] (i :: insts) past_ints =
-      Subgoal.FOCUS (resolve_and_instantiate_onepoint i past_ints) ctxt
+    | onepoint_combine_quant ctxt (n1 :: bounds1) [] (i :: insts) past_ints =
+      Subgoal.FOCUS (resolve_and_instantiate_onepoint n1 i past_ints) ctxt
       THEN' onepoint_combine_quant ctxt bounds1 [] insts (past_ints @ [i])
     | onepoint_combine_quant _ _ _ _ _ = K all_tac
 
@@ -1403,7 +1407,7 @@ local
 
   fun onepoint_quants ctxt prems t =
     let
-      val insts = extract_instantiations prems
+      val insts = extract_instantiations prems |> @{print}
       val (t1, t2) = 
         t
         |> Thm.cterm_of ctxt
@@ -1411,8 +1415,8 @@ local
         |> HOLogic.dest_eq
     in
        onepoint_combine_quant ctxt 
-         (extract_quantified_names_q t1 |> fst |> map to_upper)
-         (extract_quantified_names_q t2 |> fst |> map to_upper)
+         (extract_quantified_names_q t1 |> fst)
+         (extract_quantified_names_q t2 |> fst)
          insts
     end
 in
@@ -1428,7 +1432,8 @@ fun onepoint ctxt [prem] t = SMT_Replay_Methods.prove ctxt t (fn _ =>
       |> empty_simpset
       |> put_simpset HOL_basic_ss
       |> (fn ctxt => ctxt addsimps @{thms simp_thms all_simps ex_simps de_Morgan_conj
-        not_all not_ex de_Morgan_disj disj_not1 triv_forall_equality eq_commute alethe_imp_commute})
+        not_all not_ex de_Morgan_disj disj_not1 triv_forall_equality eq_commute
+        alethe_onepoint_simp alethe_imp_commute})
       |> Simplifier.add_cong @{thm alethe_rewrite_in_imp}
       |> (fn ctxt => ctxt
            addsimprocs [@{simproc defined_All}, @{simproc defined_Ex}])
@@ -1442,9 +1447,11 @@ fun onepoint ctxt [prem] t = SMT_Replay_Methods.prove ctxt t (fn _ =>
         - metis is not always able to solve the goal, even if it falls within
         the fragment of logic where it for sure should be able to.
       *)
-      (SOLVED' (Meson.meson_tac ctxt [])
-      ORELSE' Metis_Tactic.metis_tac [] ATP_Problem_Generate.combsN ctxt []
-      ORELSE' K (Clasimp.auto_tac ctxt))))
+      REPEAT' (SOLVED' (Meson.meson_tac ctxt []
+        ORELSE' Metis_Tactic.metis_tac [] ATP_Problem_Generate.combsN ctxt []
+        ORELSE' K (Clasimp.auto_tac ctxt)))))
+
+
 end
 
 fun qnt_join ctxt _ t = SMT_Replay_Methods.prove ctxt t Classical.fast_tac

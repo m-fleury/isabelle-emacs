@@ -986,6 +986,10 @@ lemma alethe_onepoint:
   \<open>(\<And>a. P' a = Q') \<Longrightarrow> (\<exists>a. P' a) = Q'\<close>
   by auto
 
+lemma alethe_onepoint_simp:
+  \<open>(\<forall>x. a = b \<and>  P x\<longrightarrow> Q x) \<longleftrightarrow> (a = b \<longrightarrow> (\<forall>x. P x \<longrightarrow> Q x))\<close>
+  by auto
+
 lemma alethe_rewrite_in_imp:
   \<open>((a::'a) = (b::'a) \<equiv> P') \<Longrightarrow> (P' \<Longrightarrow> P = Q) \<Longrightarrow> (a = b \<longrightarrow> P) \<equiv> (P' \<longrightarrow> Q)\<close>
   by auto
