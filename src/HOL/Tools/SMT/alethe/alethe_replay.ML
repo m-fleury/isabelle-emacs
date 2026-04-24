@@ -81,7 +81,7 @@ fun under_fixes f unchanged_prems (prems, prems_as_thms_with_context_assms) step
 
 (** Replaying **)
 
-fun replay_thm method_for rewrite_rules ll_defs ctxt assumed unchanged_prems prems prems_as_thms_with_context_assms
+fun replay_thm solver method_for rewrite_rules ll_defs ctxt assumed unchanged_prems prems prems_as_thms_with_context_assms
     concl_transformation global_transformation step_args context_assignments args
     (Alethe_Node.Alethe_Replay_Node {id, rule, concl, prop_skeleton, ...}) =
   let
@@ -108,8 +108,8 @@ fun replay_thm method_for rewrite_rules ll_defs ctxt assumed unchanged_prems pre
       |> post
     val _ = debug_msg ctxt high (fn () => @{print} ("Rewritten conclusion", concl))
 
-    val args = if rule = "refl"
-               then let val _ = debug_msg ctxt high (fn () => @{print} ("TODO Hanna is this still needed")) in SOME (Solver_Name "cvc5") end
+    val args = if rule = Alethe_Proof.refl_rule orelse rule = "cong" orelse rule = Alethe_Proof.normalized_input_rule
+               then SOME (Solver_Name solver)
                else args
     (*The Alethe proof format distinguishes between the propositional structure (cl ...) and the 
     disjunction purely from the theory solver. Using that structure reduces the size of the terms
@@ -144,7 +144,7 @@ fun replay_thm method_for rewrite_rules ll_defs ctxt assumed unchanged_prems pre
        then (raise SMT_Failure.SMT (SMT_Failure.Replay(rule,ERROR "failure")))
        else Exn.reraise (Fail msg)
   end
- | replay_thm _ _ _ _ _ _ _ _ _ _ _ _ _ _  = raise (Fail "TODO")
+ | replay_thm _ _ _ _ _ _ _ _ _ _ _ _ _ _ _  = raise (Fail "unreachable code to silence the compiler")
 
 
 
@@ -159,7 +159,7 @@ ll_defs: lambda_lifting defs
 
 __ in variablen Namen wenn der Term im falschen Kontext ist
 *)
-fun replay_theorem_step method_for rewrite_rules all_assms ll_defs assumed (inputs : thm list) (all_local_assumptions : thm list)
+fun replay_theorem_step solver method_for rewrite_rules all_assms ll_defs assumed (inputs : thm list) (all_local_assumptions : thm list)
   (step as Alethe_Node.Alethe_Replay_Node {id, rule, prems, step_args, context_assignments, 
      subproof = (fixes, assms, input, subproof), concl, args, prop_skeleton, ...})
   (globally_known_facts, stats, ctxt, concl_tranformation, global_transformation) =
@@ -227,7 +227,7 @@ fun replay_theorem_step method_for rewrite_rules all_assms ll_defs assumed (inpu
     (* Processing Subproof *)
     val _ = debug_cond_msg ctxt (not (null subproof)) low (fn () => @{print} ("Interrupting the replay of the current step " ^ id ^ " to replay its subproof"))
     (*val _ = @{print}("input",input)*)
-    val replay = replay_theorem_step method_for rewrite_rules all_assms ll_defs assumed (input_as_thm @ inputs) updated_local_assumptions
+    val replay = replay_theorem_step solver method_for rewrite_rules all_assms ll_defs assumed (input_as_thm @ inputs) updated_local_assumptions
     val (locally_known_facts, stats, _, _, sub_global_rew) =                                       
        fold replay subproof (globally_known_facts, stats, sub_ctxt2, export_vars, global_transformation)
     val _ = debug_cond_msg ctxt (not (null subproof)) high (fn () => @{print} ("Filled table with mapping from names (id or for skolems var_def) to " ^
@@ -285,7 +285,7 @@ fun replay_theorem_step method_for rewrite_rules all_assms ll_defs assumed (inpu
 *)
     (*val _ = @{print}("(nthms @ skolem_prems_as_thms_with_context_assms)",(nthms @ skolem_prems_as_thms_with_context_assms))*)
     val _ = debug_msg ctxt low (fn () => @{print} ("Calling reconstruction method"))
-    val replay = (Timing.timing (replay_thm method_for rewrite_rules ll_defs
+    val replay = (Timing.timing (replay_thm solver method_for rewrite_rules ll_defs
        ctxt assumed [] (missing_assumptions @ all_local_assumptions @ local_inputs)
        (prems_as_thms_with_context_assms @ skolem_rule_prems_as_thms_with_context_assms) concl_tranformation
        global_transformation step_args context_assignments args))
@@ -305,7 +305,7 @@ fun replay_theorem_step method_for rewrite_rules all_assms ll_defs assumed (inpu
     val _ = debug_msg ctxt low (fn () => @{print} ("Add resulting theorem to globally known facts", (id,(prop_skeleton,thm))))
 
   in (globally_known_facts, stats', ctxt, concl_tranformation, sub_global_rew) end
- | replay_theorem_step _ _ _ _ _ _ _ _ _  = raise (Fail "unreachable code to silence the compiler")
+ | replay_theorem_step _ _ _ _ _ _ _ _ _ _  = raise (Fail "unreachable code to silence the compiler")
 
 
 fun replay_definition_step rewrite_rules ll_defs _ _ _
@@ -343,7 +343,7 @@ fun replay_definition_step rewrite_rules ll_defs _ _ _
     val total = Time.toNanoseconds (#elapsed (Timing.result start0))
     val stats = Symtab.cons_list ("choice", total) stats
   in (proofs, stats, ctxt, concl_tranformation, global_transformation) end
- | replay_definition_step _ _ _ _ _ _ _   = raise (Fail "TODO")
+ | replay_definition_step _ _ _ _ _ _ _   = raise (Fail "unreachable code to silence the compiler")
 
 
 fun replay_assumed assms ll_defs rewrite_rules stats ctxt term =
@@ -361,10 +361,10 @@ fun replay_assumed assms ll_defs rewrite_rules stats ctxt term =
     (thm, stats')
   end
 
-fun replay_step method_for rewrite_rules all_assms ll_defs assumed inputs all_local_assumptions
+fun replay_step solver method_for rewrite_rules all_assms ll_defs assumed inputs all_local_assumptions
     (step as Alethe_Node.Alethe_Replay_Node {...}) state =
-     replay_theorem_step method_for rewrite_rules all_assms ll_defs assumed inputs all_local_assumptions step state
-  | replay_step _ rewrite_rules _ ll_defs assumed inputs all_local_assumptions
+     replay_theorem_step solver method_for rewrite_rules all_assms ll_defs assumed inputs all_local_assumptions step state
+  | replay_step solver _ rewrite_rules _ ll_defs assumed inputs all_local_assumptions
     (step as Alethe_Node.Alethe_Definition_Node {...}) state =
      replay_definition_step rewrite_rules ll_defs assumed inputs all_local_assumptions step state
  
@@ -458,7 +458,7 @@ fun replay solver method_for outer_ctxt
     (*Replay Steps*)
     val global_transformation : term Termtab.table = Termtab.empty
     val (_, (proofs, stats, ctxt5, _, _)) =
-      fold (blockwise (replay_step method_for rewrite_rules (map snd assms) ll_defs assumed [] [])) actual_steps
+      fold (blockwise (replay_step solver method_for rewrite_rules (map snd assms) ll_defs assumed [] [])) actual_steps
         (1, (assumed, stats, ctxt_with_asserts, [], global_transformation))
     val total = Time.toMilliseconds (#elapsed (Timing.result start))
     val (_, (_, Alethe_Node.Alethe_Replay_Node {id, ...})) = split_last actual_steps
