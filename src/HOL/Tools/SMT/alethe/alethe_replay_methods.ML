@@ -161,6 +161,7 @@ sig
   val sko_ex: alethe_tac_context_args_and_arg
   val sko_forall: alethe_tac_context_args_and_arg
   val subproof: alethe_tac
+  val ordered_subproof: alethe_tac
   val sum_simplify: alethe_tac
   val tautological_clause: alethe_tac
   val AC_rule: alethe_tac
@@ -1638,20 +1639,30 @@ There are currently three paths:
 
 
 *)
+fun ordered_subproof ctxt [prem] t =
+     SMT_Replay_Methods.prove ctxt t (fn _ =>
+      SOLVED' (
+        REPEAT' (DETERM' (match_tac ctxt [@{thm disj_not1} RSN (1, @{thm iffD2}) OF [@{thm impI}],
+            @{thm disj_not1[of \<open>\<not>_\<close>, unfolded not_not]} RSN (1, @{thm iffD2}) OF [@{thm impI}]])
+          THEN' (TRY' o SOLVED') (match_tac ctxt [prem]
+            THEN_ALL_NEW eq_assume_tac))))
+  | ordered_subproof ctxt prems t =
+      replay_error ctxt "invalid application, only one assumption expected" Subproof prems [] t
+
 fun subproof ctxt [prem] t =
      SMT_Replay_Methods.prove ctxt t (fn _ =>
       SOLVED' (REPEAT' (resolve_tac ctxt @{thms alethe_and_neg(2)})
         THEN' TRY' (resolve_tac ctxt [prem])
-        THEN' REPEAT' (assume_tac ctxt))
+        THEN' REPEAT' (eq_assume_tac))
       ORELSE' SOLVED' (
         REPEAT' (resolve_tac ctxt [@{thm disj_not1} RSN (1, @{thm iffD2}) OF [@{thm impI}],
            @{thm disj_not1[of \<open>\<not>_\<close>, unfolded not_not]} RSN (1, @{thm iffD2}) OF [@{thm impI}]])
         THEN' resolve_tac ctxt [prem]
-        THEN_ALL_NEW (assume_tac ctxt
+        THEN_ALL_NEW (eq_assume_tac
           ORELSE'
             SOLVED' ((partial_simplify_tac ctxt @{thms eq_commute ac_simps}
-            THEN' TRY' (assume_tac ctxt))))
-          THEN' TRY' (assume_tac ctxt))
+            THEN' TRY' (eq_assume_tac))))
+          THEN' TRY' (eq_assume_tac))
       ORELSE' TRY' (Method.insert_tac ctxt [prem]
         THEN' TRY' (partial_simplify_tac ctxt @{thms eq_commute ac_simps})
         THEN' TRY' (Blast.blast_tac ctxt)))
