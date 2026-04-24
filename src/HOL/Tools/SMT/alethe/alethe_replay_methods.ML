@@ -190,6 +190,7 @@ sig
   (*Useful lifting of tactics*)
   val REPEAT_CHANGED: ('a -> tactic) -> 'a -> tactic
   val TRY': ('a -> tactic) -> 'a -> tactic
+  val REPEAT': ('a -> tactic) -> 'a -> tactic
 
   val simplify_tac: Proof.context -> thm list -> int -> tactic
   val replay_error: Proof.context -> string -> alethe_rule -> thm list -> term list -> term -> 'a
