@@ -734,14 +734,6 @@ lemma poly_Pred: "Pred x \<and> (Pred [x] \<or> \<not> Pred [x])"
 lemma "Pred (1::int)"
   by (smt (verit) poly_Pred)
 
-axiomatization g :: "'a \<Rightarrow> nat"
-axiomatization where
-  g1: "g (Some x) = g [x]" and
-  g2: "g None = g []" and
-  g3: "g xs = length xs"
-
-lemma "g (Some (3::int)) = g (Some True)" by (smt (verit) g1 g2 g3 list.size)
-
 experiment
 begin
 
@@ -874,7 +866,43 @@ lemma
        "(t::real) < inverse (cmod (w::complex) ^ ((k::nat) + 1) * (m::real))"
        "\<not> cmod (complex_of_real (t::real) * (w::complex)) \<le> cmod w"
      shows False
-  using assms by (smt (verit))
+  using assms supply [[smt_trace]]by (smt (verit))
 end
+
+locale comm_monoid_fun = comm_monoid
+begin
+
+definition G :: "('b \<Rightarrow> 'a) \<Rightarrow> 'a"
+where
+  expand_set: "G g = comm_monoid_set.F f \<^bold>1 g {a. g a \<noteq> \<^bold>1}"
+
+interpretation F: comm_monoid_set f "\<^bold>1"
+  ..
+
+lemma
+  assumes
+       "\<forall>(P::'b \<Rightarrow> bool) Q::'b \<Rightarrow> bool. (\<forall>x::'b. P x \<longrightarrow> Q x) \<longrightarrow> Collect P \<subseteq> Collect Q"
+       "\<forall>(P::'c \<Rightarrow> bool) Q::'c \<Rightarrow> bool. (\<forall>x::'c. P x \<longrightarrow> Q x) \<longrightarrow> Collect P \<subseteq> Collect Q"
+       "\<forall>(g::'b \<Rightarrow> 'a) h::'b \<Rightarrow> 'a. (\<forall>a::'b. g a = h a) \<longrightarrow> G g = G h"
+       "\<forall>(g::'c \<Rightarrow> 'a) h::'c \<Rightarrow> 'a. (\<forall>a::'c. g a = h a) \<longrightarrow> G g = G h"
+       "\<forall>g::'b \<Rightarrow> 'a. G g \<noteq> \<^bold>1 \<and> (\<forall>a::'b. g a \<noteq> \<^bold>1 \<longrightarrow> False) \<longrightarrow> False"
+       "\<forall>g::'c \<Rightarrow> 'a. G g \<noteq> \<^bold>1 \<and> (\<forall>a::'c. g a \<noteq> \<^bold>1 \<longrightarrow> False) \<longrightarrow> False"
+       "finite {a::'b. \<exists>b::'c. (g::'b \<Rightarrow> 'c \<Rightarrow> 'a) a b \<noteq> \<^bold>1}"
+       "finite {b::'c. \<exists>a::'b. (g::'b \<Rightarrow> 'c \<Rightarrow> 'a) a b \<noteq> \<^bold>1}"
+       "\<forall>(A::'b set) g::'b \<Rightarrow> 'a. finite A \<and> {a::'b. g a \<noteq> \<^bold>1} \<subseteq> A \<longrightarrow> G g = F.F g A"
+       "\<forall>(A::'c set) g::'c \<Rightarrow> 'a. finite A \<and> {a::'c. g a \<noteq> \<^bold>1} \<subseteq> A \<longrightarrow> G g = F.F g A"
+       "G (\<lambda>a::'b. G ((g::'b \<Rightarrow> 'c \<Rightarrow> 'a) a)) \<noteq> F.F (\<lambda>a::'b. F.F (g a) {b::'c. \<exists>a::'b. g a b \<noteq> \<^bold>1}) {a::'b. \<exists>b::'c. g a b \<noteq> \<^bold>1}" 
+     shows False
+  using assms supply [[smt_trace]] by (smt (verit, del_insts))
+end
+
+ML \<open>@{term \<open>a \<noteq> b\<close>}\<close>
+axiomatization g :: "'a \<Rightarrow> nat"
+axiomatization where
+  g1: "g (Some x) = g [x]" and
+  g2: "g None = g []" and
+  g3: "g xs = length xs"
+
+lemma "g (Some (3::int)) = g (Some True)" by (smt (verit) g1 g2 g3 list.size)
 
 end

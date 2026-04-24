@@ -1624,23 +1624,6 @@ end
 
 (* Subproof *)
 
-(* Reordering *)
-val split_neq = @{lemma "\<not>a \<or> \<not>c \<Longrightarrow> a \<or> c ==> a \<noteq> c" by auto}
-
-local
-  fun prove_reordering ctxt = 
-      REPEAT' (resolve_tac ctxt [split_neq])
-      THEN' K (unfold_tac ctxt @{thms de_Morgan_disj})
-
-      THEN' TRY o CHANGED_PROP o REPEAT_ALL_NEW (ematch_tac ctxt @{thms conjE})
-
-      THEN' CHANGED_PROP o REPEAT_ALL_NEW (ematch_tac ctxt @{thms disjE})
-
-      THEN' REPEAT'(ematch_tac ctxt @{thms notE}
-      THEN' TRY' (assume_tac ctxt))
-in
-  val reordering2 = prove_reordering
-end
 
 (*
 The reconstruction of subproof changed a lot over time, thanks to the stricter assumptions.
