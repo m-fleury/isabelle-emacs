@@ -45,12 +45,18 @@ val is_input_rule = curry (op =) Alethe_Proof.input_rule
 fun add_box_symbols ctxt t ct =
   let
     fun add_box_symbols @{term True} = 
-          Conv.try_conv (Conv.top_conv (K (Conv.rewrs_conv @{thms alethe_Box})) ctxt)
+          (case Thm.term_of ct of
+            @{term Not} $ _ => 
+              Conv.try_conv (Conv.arg_conv (Conv.top_conv (K (Conv.rewrs_conv @{thms alethe_Box})) ctxt))
+          | _ => 
+              Conv.try_conv (Conv.top_conv (K (Conv.rewrs_conv @{thms alethe_Box})) ctxt))
       | add_box_symbols (u $ v) =
           Conv.fun_conv (add_box_symbols u) then_conv Conv.arg_conv (add_box_symbols v)
       | add_box_symbols _ = Conv.all_conv
   in
-    HOLogic.Trueprop_conv (add_box_symbols (HOLogic.dest_Trueprop t)) ct
+    (*some terms coming from veriT are not beta-reduced.*)
+    ct
+    |> (Thm.beta_conversion true then_conv HOLogic.Trueprop_conv (add_box_symbols (HOLogic.dest_Trueprop t)))
   end
 
 fun under_fixes f unchanged_prems (prems, prems_as_thms_with_context_assms) step_args 
