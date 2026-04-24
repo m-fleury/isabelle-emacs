@@ -3076,55 +3076,56 @@ Total                     461       461
 *)
 
 (* TODO (Pascal) Remove this block after experimenting *)
-(* and_pos and or_neg *)
+(* Benchmarking shallow term sequences *)
 experiment
 begin
-ML 
-\<open>
-let
-  val genVar = fn i => Free ("A"^ (Int.toString i), @{typ bool});
 
-  fun makeConj c 0 = genVar c
+ML \<open>
+fun genVar i = Free ("A"^ (Int.toString i), @{typ bool})
+
+fun makeConj c 0 = genVar c
     | makeConj c n = HOLogic.mk_conj ((genVar c), (makeConj (c+1) (n-1))) 
 
-  fun makeDisj c 0 = genVar c
+fun makeDisj c 0 = genVar c
     | makeDisj c n = HOLogic.mk_disj ((genVar c), (makeDisj (c+1) (n-1))) 
 
-  fun makeNeg t = (Const ("HOL.Not", @{typ "bool \<Rightarrow> bool"})) $ t 
+fun makeNeg t = (Const ("HOL.Not", @{typ "bool \<Rightarrow> bool"})) $ t
 
-  fun buildAndPosTerm n i = HOLogic.mk_disj (makeNeg (makeConj 0 n), (genVar i))
-  fun buildOrNegTerm n i = HOLogic.mk_disj ((makeDisj 0 n), makeNeg (genVar i))
+fun buildAndPosTerm n i = HOLogic.mk_disj (makeNeg (makeConj 0 n), (genVar i))
+fun buildOrNegTerm n i = HOLogic.mk_disj ((makeDisj 0 n), makeNeg (genVar i))
 
-  val ctxt = @{context}
-  
-  fun mkList n 0 = ((n, 0)::[])
-    | mkList n i = (n, i)::mkList n (i-1)
+datatype rule_choice = And_pos | Or_neg | Not_or;
 
-  val benchmark = [(10, 10), (100, 100), (1000,1000), (10000, 10000), (20000, 20000), (50000, 50000)]
-
-  fun measure_time ctxt (n, i) =
-    let val t1 = (@{term Trueprop} $ (buildAndPosTerm n i))
-        val t2 = (@{term Trueprop} $ (buildOrNegTerm n i))
-        val start = Timing.start ()
-        val _ = Alethe_Replay_Methods.and_pos ctxt [] t1 (SOME (Index i))
-        val total = Time.toMilliseconds (#elapsed (Timing.result start))
-        val start' = Timing.start ()
-        val _ = Alethe_Replay_Methods.or_neg_rule ctxt [] t2 (SOME (Index i))
-        val total' = Time.toMilliseconds (#elapsed (Timing.result start'))
-    in
-      (("and_pos", total), ("or_neg", total'))
-    end
-in
-  let val result = map (measure_time ctxt) benchmark 
+fun measure_time_arg rule ctxt (n, i) =
+  let fun buildTerms And_pos = (NONE, (@{term Trueprop} $ (buildAndPosTerm n i)))
+        | buildTerms Or_neg  = (NONE, (@{term Trueprop} $ (buildOrNegTerm n i)))
+        | buildTerms Not_or  = (SOME (makeNeg (makeDisj 0 n)), (HOLogic.mk_Trueprop (makeNeg (genVar i))))
+      fun selectRule And_pos = Alethe_Replay_Methods.and_pos
+        | selectRule Or_neg  = Alethe_Replay_Methods.or_neg_rule
+        | selectRule Not_or  = (fn ctx => fn thms => fn t => fn _ => Alethe_Replay_Methods.not_or_rule ctx thms t)
   in
-    (result, List.foldr (fn (((_,b), (_,d)), (accX, accY)) => (accX + b, accY + d)) (0,0) result)
+    let val (t_prem, t_concl) = buildTerms rule
+        val f = selectRule rule
+        val (prems, ctxt') = case t_prem of
+           NONE => ([], ctxt)
+           | SOME t => Assumption.add_assumes [(Thm.cterm_of ctxt) t |> HOLogic.mk_judgment] ctxt
+        val start = Timing.start()
+        val _ = f ctxt' prems t_concl (SOME (Index i))
+        val total = Time.toMilliseconds (#elapsed (Timing.result start))
+    in
+      total
+    end
   end
-end
-(*               [(10, 10), (100, 100), (1000, 1000), (10000, 10000)] *)
-(* New: val it = [(0, 0),   (0, 0),     (24, 24),     (1808, 1798)  ] *)
-(* Old: val it = [(0, 0),   (2, 1),     (141, 41),    (12673, 2949) ] *)
-\<close>
 
+fun measure_times_arg rule benchmark =
+  let val ctxt = @{context}
+      val f = measure_time_arg rule
+  in
+    map (f ctxt) benchmark
+  end
+
+val result = measure_times_arg And_pos [(1000,1000)]
+\<close>
 end
 
 end
