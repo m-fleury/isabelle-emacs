@@ -858,6 +858,23 @@ proof -
         (is_least_false_clause (N |\<union>| Ur |\<union>| Uff) Cr)"
     by (smt (verit) L2_matches_L3.elims(2))
   oops
+
+
+lemma
+  assumes
+  "       \<forall>(a::real) c::real. (a * c \<le> c) = ((0 < c \<longrightarrow> a \<le> 1) \<and> (c < 0 \<longrightarrow> 1 \<le> a))"
+       "\<forall>x::real. 0 \<le> norm x"
+       "\<forall>x::complex. 0 \<le> cmod x"
+       "\<forall>(x::real) y::real. norm (x * y) = norm x * norm y"
+       "\<forall>(x::complex) y::complex. cmod (x * y) = cmod x * cmod y"
+       "\<forall>r::real. norm (of_real r) = (if r < 0 then - r else r)"
+       "\<forall>r::real. cmod (complex_of_real r) = (if r < 0 then - r else r)"
+       "0 < (t::real)"
+       "(t::real) < 1"
+       "(t::real) < inverse (cmod (w::complex) ^ ((k::nat) + 1) * (m::real))"
+       "\<not> cmod (complex_of_real (t::real) * (w::complex)) \<le> cmod w"
+     shows False
+  using assms by (smt (verit))
 end
 
 end
