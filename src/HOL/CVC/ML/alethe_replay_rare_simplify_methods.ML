@@ -26,6 +26,7 @@ exception RARE_REPLAY of string
 5: use lemma for complex cases & and simplify for easy ones and add all simple lemmas to the simpset (see below but mainly those without lists in them that are not * rules)
 6: use only match (and assume_tac for premises)
 7: use lemma for complex case & match for simple case
+8: use lemma but first try to resolve without instantiation
 
 complex case: lemma includes lists
 *)
@@ -34,6 +35,7 @@ val rare_rec_mode = Attrib.setup_config_int \<^binding>\<open>rare_rec_mode\<clo
 
 (*imports*)
 val TRY' = Alethe_Replay_Methods.TRY'
+val REPEAT' = Alethe_Replay_Methods.REPEAT'
 val simplify_tac = Alethe_Replay_Methods.simplify_tac
 val low = SMT_Config.low
 val middle = SMT_Config.middle
@@ -98,7 +100,6 @@ fun try_match ctxt t thms = SMT_Replay_Methods.prove ctxt t (fn ctxt => try_matc
 
 
 (* Rare rewrite reconstruction *)
-(*We are not supporting conditional rules yet, since we still don't have an example...*)
 
 
 fun normalize_list_arg (Const (\<^const_name>\<open>Dsl_Nary_Ops.cvc_ListVar.ListVar\<close>, _) $ Const (\<^const_name>\<open>List.Nil\<close>, _)) t =
@@ -117,9 +118,21 @@ fun rewrite_lemma_inst ctxt lemma [] [] = lemma
               raise RARE_REPLAY("Too many arguments for RARE rewrite " ^ rewrite_name)*)
   | rewrite_lemma_inst ctxt lemma (a :: args') (t :: typs') =
   let
+    val _ = debug_msg ctxt high (fn () => @{print} ("(args',typs')",(args',typs')));
+    val _ = debug_msg ctxt high (fn () => @{print} ("lemma",lemma));
+
     val rec_lemma = rewrite_lemma_inst ctxt lemma args' typs' (*TODO: Is it faster to instantiate with all types at once? This is good for testing though*)
+    val _ = debug_msg ctxt high (fn () => @{print} ("One instantiation further:",rec_lemma));
+    val _ = debug_msg ctxt high (fn () => @{print} ("a before:",a));
+    val _ = debug_msg ctxt high (fn () => @{print} ("t before:",t));
+
     val a_normalized = normalize_list_arg a t |> Thm.cterm_of ctxt |> SOME |> single
-   in  Drule.infer_instantiate' ctxt a_normalized rec_lemma end
+
+    val _ = debug_msg ctxt high (fn () => @{print} ("a_normalized:",a_normalized));
+    val res = Drule.infer_instantiate' ctxt a_normalized rec_lemma
+    val _ = debug_msg ctxt high (fn () => @{print} ("res:",(res)));
+
+   in res  end
   | rewrite_lemma_inst ctxt lemma xs ys = lemma
 
 
@@ -128,12 +141,12 @@ fun instantitate_lemma ctxt args lemma =
 let
   fun get_types lemma = map snd (rev (Term.add_vars (Thm.full_prop_of lemma) []))
   val args_types_from_lemma = rev (get_types lemma) (*TODO: get rid of revs if possible*)
-  val args_types_from_step = rev args @ [Const ("Groups.zero_class.zero",@{typ int})] (*The extra term is for the dummy argument we need to add the expected order to the arguments*)
+  val args_terms =  rev (Const ("Groups.zero_class.zero",@{typ int}) :: args) (*The extra term is for the dummy argument we need to add the expected order to the arguments*)
   val _ = debug_msg ctxt high (fn () => @{print} ("Argument types extracted from lemma",args_types_from_lemma));
-  val _ = debug_msg ctxt high (fn () => @{print} ("Argument types extracted from proof step",args_types_from_step));
-in rewrite_lemma_inst ctxt lemma args_types_from_step args_types_from_lemma end
+  val _ = debug_msg ctxt high (fn () => @{print} ("Arguments ",args_terms));
+in rewrite_lemma_inst ctxt lemma args_terms args_types_from_lemma end
 
-fun dsl_tac_initialize rewrite_name args ctxt t _ =
+fun dsl_tac_initialize rewrite_name args ctxt t prems =
   let
     val rare_mode = (Config.get ctxt rare_rec_mode)
 
@@ -195,7 +208,7 @@ fun dsl_tac_initialize rewrite_name args ctxt t _ =
        | _ => 
           (case (CVC5_Rare.rare_lookup (Context.Proof ctxt) ("rewrite_" ^ rewrite_name)) of
            NONE  => 
-             if rare_mode = 1 orelse (List.exists (fn x => x = rare_mode) [4,5,7]) then
+             if rare_mode = 1 orelse (List.exists (fn x => x = rare_mode) [4,5,7,8]) then
                let
                 val _ = debug_msg ctxt high (fn () => @{print} ("undeclared RARE rule: " ^ rewrite_name ^ ". Use cvc5_rare \"full_name\"."))
                in raise RARE_REPLAY("could not find lemma for rare rewrite" ^ rewrite_name) end
@@ -227,10 +240,20 @@ fun dsl_tac_initialize rewrite_name args ctxt t _ =
                   debug_msg_tac'' ctxt high "start"
                   THEN' K (print_tac ctxt "start")
                   THEN' (
-                   (CHANGED_GOAL (EqSubst.eqsubst_tac ctxt [0] [nth inst_lemmas_without_true 0] (*TODO: Use lemma i*)
+                   (
+                     CHANGED_GOAL
+                       (if rare_mode = 8
+                        then  (*This would also need to work on the premises etc. kind of annoying*)
+                              (CHANGED_GOAL (EqSubst.eqsubst_tac ctxt [0] rewrite_lemmas)
+                              THEN' K (print_tac ctxt "trying to use lemma without instantiation")
+                              THEN' ((match_tac ctxt @{thms NO_MATCH_def NO_MATCH_cong}))
+                              THEN' K (print_tac ctxt "here"))
+                            ORELSE' (EqSubst.eqsubst_tac ctxt [0] [nth inst_lemmas_without_true 0] )
+                        else (EqSubst.eqsubst_tac ctxt [0] [nth inst_lemmas_without_true 0] (*TODO: Use lemma i*))
                     THEN' K (print_tac ctxt "after applying lemma")
 
                      THEN' debug_msg_tac'' ctxt high "applied lemma"
+                     THEN' REPEAT' (resolve_tac ctxt prems)
                      THEN' TRY' (resolve_tac ctxt [@{thm refl}])))
                   ORELSE' (*TODO: This is wrong but I don't get how to change it. I want a UNLESS changed*)
                    (if rare_mode = 1 orelse (List.exists (fn x => x = rare_mode) [4,5,7])
@@ -250,7 +273,7 @@ fun dsl_tac_initialize rewrite_name args ctxt t _ =
                 ))) t
              in
                if length inst_lemmas_without_true > 0
-               then (if (List.exists (fn x => x = rare_mode) [0,1,4,5,7]) 
+               then (if (List.exists (fn x => x = rare_mode) [0,1,4,5,7,8]) 
                 then try_lemma_i 0
                 else raise ERROR("Rule could not be used") )
                else (if rare_mode = 0 then try_simp ctxt t [] else raise ERROR("Rule could not be instantiated") )
