@@ -109,7 +109,6 @@ fun cvc5_rule_of "bind" = Bind
   | cvc5_rule_of "div_simplify" = Div_Simplify
   | cvc5_rule_of "comp_simplify" = Comp_Simplify
   | cvc5_rule_of "qnt_simplify" = Qnt_Simplify
-  | cvc5_rule_of "all_simplify" = All_Simplify
   | cvc5_rule_of "tautology" = Tautological_Clause
   | cvc5_rule_of "qnt_cnf" = Qnt_CNF
   | cvc5_rule_of "symm" = Symm
@@ -141,15 +140,6 @@ fun cvc5_rule_of "bind" = Bind
 
 fun qnt_simplify ctxt _ t = SMT_Replay_Methods.prove ctxt t (fn _ =>
       K (Clasimp.auto_tac ctxt))
-
-
-fun hole ctxt prems t = SMT_Replay_Methods.prove ctxt t (fn _ =>
-   Method.insert_tac ctxt prems
-   THEN' SOLVED' (
-     resolve_tac ctxt (Named_Theorems.get ctxt @{named_theorems cvc5_holes_pre})
-     THEN_ALL_NEW assume_tac ctxt)
-   ORELSE' Clasimp.force_tac (ctxt addsimps Named_Theorems.get ctxt @{named_theorems cvc5_holes_simp})
-)
 
 
 (* Mapping rules to tactics and hide away not needed arguments  *)
@@ -239,7 +229,6 @@ fun choose _ And = ignore_args and_rule
   | choose _ Theory_Resolution2 = ignore_args theory_resolution2
   | choose _ Prod_Simplify = ignore_args prod_simplify
   | choose _ Div_Simplify = ignore_args div_simplify
-  | choose _ All_Simplify = ignore_args all_simplify
   | choose _ Qnt_Join = ignore_args qnt_join
   | choose _ Qnt_Rm_Unused = ignore_args qnt_rm_unused
   | choose _ Onepoint = ignore_args onepoint

@@ -47,7 +47,7 @@ sig
    (*Simplification Rules*)
    Bool_Simplify | Or_Simplify | Not_Simplify | And_Simplify | Equiv_Simplify |
    Implies_Simplify | Connective_Def | Minus_Simplify | Unary_Minus_Simplify | Comp_Simplify |
-   Eq_Simplify | ITE_Simplify | Sum_Simplify | Prod_Simplify | Div_Simplify | All_Simplify | RARE_Rewrite | Evaluate |
+   Eq_Simplify | ITE_Simplify | Sum_Simplify | Prod_Simplify | Div_Simplify | RARE_Rewrite | Evaluate |
    Qnt_Simplify | Not_Not | Tautological_Clause | Distinct_Elim |
    Miniscope_Distribute | Miniscope_Split | Miniscope_ITE |
    AC_Simp | ACI_Simp |
@@ -154,7 +154,6 @@ sig
   val qnt_rm_unused: alethe_tac
   val onepoint: alethe_tac
   val qnt_simplify: alethe_tac
-  val all_simplify: alethe_tac
   val rare_rewrite: alethe_tac
   val evaluate: alethe_tac
   val unit_res: alethe_tac
@@ -180,6 +179,7 @@ sig
   val miniscope_ITE: alethe_tac
   val and_intro: alethe_tac
   val trust: alethe_tac
+  val hole: alethe_tac
   val weakening: alethe_tac
 
   (*Extension to declare new alethe rules*)
@@ -246,7 +246,7 @@ datatype alethe_rule =
    (*Simplification Rules*)
    Bool_Simplify | Or_Simplify | Not_Simplify | And_Simplify | Equiv_Simplify |
    Implies_Simplify | Connective_Def | Minus_Simplify | Unary_Minus_Simplify | Comp_Simplify |
-   Eq_Simplify | ITE_Simplify | Sum_Simplify | Prod_Simplify | Div_Simplify | All_Simplify | RARE_Rewrite | Evaluate |
+   Eq_Simplify | ITE_Simplify | Sum_Simplify | Prod_Simplify | Div_Simplify | RARE_Rewrite | Evaluate |
    Qnt_Simplify | Not_Not | Tautological_Clause | Distinct_Elim | 
    AC_Simp | ACI_Simp |
    (*Extended rules*)
@@ -349,7 +349,6 @@ fun string_of_alethe_rule Bind = "Bind"
   | string_of_alethe_rule Sum_Simplify = "sum_simplify"
   | string_of_alethe_rule Prod_Simplify = "prod_simplify"
   | string_of_alethe_rule Div_Simplify = "div_simplify"
-  | string_of_alethe_rule All_Simplify = "all_simplify"
   | string_of_alethe_rule RARE_Rewrite = "rare_rewrite"
   | string_of_alethe_rule Evaluate = "evaluate"
   | string_of_alethe_rule Comp_Simplify = "comp_simplify"
@@ -1801,35 +1800,6 @@ fun rewrite_ite_simplify ctxt _ t =
   SMT_Replay_Methods.prove ctxt t (fn _ =>
    (rewrite_only_thms ctxt @{thms alethe_ite_simplify}))
 
-local
-
-  fun simplify_arith ctxt thms = partial_simplify_tac ctxt
-    (thms @ Named_Theorems.get ctxt @{named_theorems ac_simps} @ @{thms arith_simps})
-in
-
-fun all_simplify ctxt _ t =
-  SMT_Replay_Methods.prove ctxt t (fn _ => K (print_tac ctxt "in all_simp0")
-     THEN' TRY' (K (Clasimp.auto_tac ctxt))
-     (*THEN' K (print_tac ctxt "in all_simp1")*)
-     THEN' TRY' (Code_Simp.dynamic_tac ctxt )
-     (*THEN' K (print_tac ctxt "in all_simp2")*)
-
-     THEN' TRY' (Lin_Arith.tac ctxt)
-
-     THEN' TRY' (simplify_arith ctxt @{thms alethe_sum_simplify arith_special zmult_eq_1_iff})
-
-     THEN' TRY' (simplify_arith ctxt @{thms alethe_prod_simplify})
-
-     THEN' TRY' (chain_rewrite_two_step_with_ac_simps ctxt
-         @{thms arith_simps alethe_minus_simplify}
-         (Named_Theorems.get ctxt @{named_theorems ac_simps} @
-          @{thms numerals arith_simps arith_special
-             numeral_class.numeral.numeral_One}))
-
-     THEN' TRY' (Code_Simp.dynamic_tac ctxt )
-    THEN' TRY' (K (Clasimp.auto_tac ctxt)) 
-) (*TODO Hanna: TEMP until cvc5 produces fine grained simplification steps. This is the case now, integrate in hole and then delete *)
-end
 end
 
 
@@ -2117,6 +2087,14 @@ fun and_intro ctxt thms t =
    ((match_tac ctxt [@{thm conjI}])
      THEN' TRY' (assume_tac ctxt))
   THEN' TRY' (assume_tac ctxt))
+
+fun hole ctxt prems t = SMT_Replay_Methods.prove ctxt t (fn _ =>
+   Method.insert_tac ctxt prems
+   THEN' SOLVED' (
+     resolve_tac ctxt (Named_Theorems.get ctxt @{named_theorems cvc5_holes_pre})
+     THEN_ALL_NEW assume_tac ctxt)
+   ORELSE' Clasimp.force_tac (ctxt addsimps Named_Theorems.get ctxt @{named_theorems cvc5_holes_simp})
+)
 
 fun trust ctxt _ t = 
   SMT_Replay_Methods.prove ctxt t (fn _ => (
