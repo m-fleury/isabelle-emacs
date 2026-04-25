@@ -1327,22 +1327,30 @@ local
     | _ => Conv.all_conv t)
   
   fun miniscope ctxt =
-    HOLogic.Trueprop_conv (Conv.fun_conv (Conv.arg_conv (miniscope_term ctxt)))
+    HOLogic.Trueprop_conv (Conv.arg_conv (miniscope_term ctxt) then_conv Conv.fun_conv (Conv.arg_conv (miniscope_term ctxt)))
   
   (*We try to recontruct the proof without looking too much into the structure, hence
   first trying simp. The main issue is that the simplifer call can loop in complicated
   cases.*)
   fun qnt_cnf_tac ctxt =
    (debug_msg_tac' ctxt high "qnt_cnf start") THEN'
-    SOLVED' (simplify_tac ctxt (@{thms
+    SOLVED' (simplify_tac ctxt (@{thms if_bool_eq_conj disj_comms
          all_simps ex_simps all_conj_distrib} @ 
-        @{lemma \<open>\<And>P Q R. (\<forall>x y. P x y \<and> Q x y \<or> R x y) = ((\<forall>x y. P x y \<or> R x y) \<and> (\<forall>x y. Q x y \<or> R x y) )\<close>
-          \<open>\<And>P Q R. (\<forall>x. P x \<and> Q x \<or> R x) = ((\<forall>x. P x \<or> R x) \<and> (\<forall>x. Q x \<or> R x) )\<close>
-          by blast+} @ 
+        [@{lemma
+          \<open>\<And>P Q R. (\<forall>x y. P x y \<and> Q x y \<or> R x y) = ((\<forall>x y. P x y \<or> R x y) \<and> (\<forall>x y. Q x y \<or> R x y))\<close>
+          by blast+}] @ 
         (*not_not is repeated as last theorem:*)
         (curry List.take @{thms nnf_simps} (length @{thms nnf_simps} - 1)))
-      THEN' CONVERSION (miniscope ctxt)
-      THEN' TRY' (Blast.blast_tac ctxt)
+      THEN' K (print_tac ctxt "pre miniscope")
+      THEN' TRY' (CONVERSION (miniscope ctxt)) (*goal can be already solved*)
+      THEN' K (print_tac ctxt "post miniscope")
+      THEN' TRY' (simplify_tac ctxt ( 
+        @{lemma
+          \<open>\<And>P Q R. (\<forall>x y. P x y \<and> Q x y \<or> R x y) = ((\<forall>x y. P x y \<or> R x y) \<and> (\<forall>x y. Q x y \<or> R x y))\<close>
+          \<open>\<And>a b c x y. NO_MATCH (x \<and> y) a \<Longrightarrow> (a \<or> b \<and> c) = ((b \<and> c) \<or> a)\<close>
+          by blast+}))
+      THEN' K (print_tac ctxt "post simp")
+      THEN' TRY' (Clasimp.force_tac ctxt)
       THEN' (debug_msg_tac' ctxt high "qnt_cnf after resolving with qnt_cnf_basic")
       (*split the forall in smaller conjunctions*)
       THEN' TRY' (simplify_tac ctxt (@{thms

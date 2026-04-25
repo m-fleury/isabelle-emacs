@@ -884,9 +884,30 @@ lemma qnt_cnf_5:
                         \<not> (veriT_vr58 = Conc veriT_vr93 veriT_vr95 \<and> veriT_vr59 = Conc veriT_vr94 veriT_vr95 \<and> veriT_vr93 ~ veriT_vr94)) \<longrightarrow>
                  veriT_vr58 ~ veriT_vr59)) \<or>
     (\<forall>(veriT_vr58::'a_rexp) veriT_vr59::'a_rexp. veriT_vr58 \<noteq> veriT_vr59 \<or> veriT_vr58 ~ veriT_vr59)\<close>
+  supply [[show_types]]
   by (ctxt_tactic "qnt_cnf")
-(* Rule 30: and *)
 
+lemma
+  fixes scaleR :: "'real \<Rightarrow> 'a :: {comm_monoid_add,inverse,times,zero,ord} \<Rightarrow> 'a" (infixr \<open>*\<^sub>R\<close> 75)
+  shows \<open>\<not> (\<forall>veriT_vr37.
+                veriT_vr37 \<in> space M \<longrightarrow>
+                (\<Sum>uua\<in>f ` space M. indicat_real (f -` {uua} \<inter> space M) veriT_vr37 *\<^sub>R uua) = f veriT_vr37) \<or>
+         (\<forall>veriT_vr37.
+             veriT_vr37 \<notin> space M \<or>
+             (\<Sum>uua\<in>f ` space M. indicat_real (f -` {uua} \<inter> space M) veriT_vr37 *\<^sub>R uua) = f veriT_vr37) \<close>
+  by (ctxt_tactic "qnt_cnf")
+
+lemma \<open>\<not> (\<forall>veriT_vr7 veriT_vr8 veriT_vr9 :: 'a.
+                (veriT_vr7 / veriT_vr8 < veriT_vr9) =
+                (if 0 < veriT_vr8 then veriT_vr7 < veriT_vr9 * veriT_vr8
+                 else if veriT_vr8 < 0 then veriT_vr9 * veriT_vr8 < veriT_vr7 else 0 < veriT_vr9)) \<or>
+         (\<forall>veriT_vr7 veriT_vr8 veriT_vr9 :: 'a:: {comm_monoid_add,inverse,times,zero,ord}.
+             \<not> veriT_vr7 / veriT_vr8 < veriT_vr9 \<or> \<not> 0 < veriT_vr8 \<or> veriT_vr7 < veriT_vr9 * veriT_vr8)\<close>
+  supply [[show_types]]
+  by (ctxt_tactic "qnt_cnf")
+
+(* Rule 30: and *)
+  thm all_simps
 lemma and_1:
   assumes "a \<and> b \<and> c"
   shows  "a"
