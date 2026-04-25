@@ -918,10 +918,8 @@ local
     THEN' FIRST' [(match_tac ctxt @{thms disjI1}) THEN' (assume_tac ctxt), (assume_tac ctxt)]
 
   fun or_pos_prove ctxt _ =
-     K (unfold_tac ctxt @{thms de_Morgan_disj not_not})
-     THEN' match_tac ctxt @{thms alethe_and_pos alethe_farkas}
-     THEN' K (unfold_tac ctxt @{thms de_Morgan_conj de_Morgan_disj not_not})
-     THEN' TRY' (assume_tac ctxt)
+     match_tac ctxt @{thms alethe_farkas(1)}
+     THEN' assume_tac ctxt
 
   fun and_rule_prove ctxt prems =
      Method.insert_tac ctxt prems

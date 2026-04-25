@@ -851,7 +851,7 @@ lemma qnt_cnf_4: \<open> \<not> (\<forall>(veriT_vr13::'a_topoly::type) veriT_vr
              \<not> compactin veriT_vr13 veriT_vr16 \<or> \<not> closedin veriT_vr13 veriT_vr16 \<or> Alexandroff_open veriT_vr13 veriT_vr14) \<close>
   by (ctxt_tactic "qnt_cnf")
 
-lemma
+lemma qnt_cnf_5:
   fixes ACIDZ (infix \<open>~\<close> 64)
   shows
   \<open>\<not> (\<forall>(veriT_vr58::'a_rexp) veriT_vr59::'a_rexp.
@@ -3018,10 +3018,10 @@ Rule Nr   Name            Nr Tests  Nr Success
 26        eq_transitive   4         4
 27        eq_congruent    3         3
 28        eq_congruent_pred 2       2
-29        qnt_cnf         4         4
+29        qnt_cnf         5         4
 30        and             4         4
 --------------------------------------------
-                          28        28
+                          29        28
 
 
 Rule Nr   Name            Nr Tests  Nr Success
@@ -3153,7 +3153,7 @@ Rule Nr   Name            Nr Tests  Nr Success
 
 Rule Nr   Name            Nr Tests  Nr Success
 --------------------------------------------
-Total                     461       461
+Total                     462       461
 
 *)
 
