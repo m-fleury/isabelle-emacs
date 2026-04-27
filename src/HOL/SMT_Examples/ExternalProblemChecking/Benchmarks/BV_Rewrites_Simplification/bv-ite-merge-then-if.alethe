@@ -1,0 +1,4 @@
+unsat
+(step t1 (cl (! (= (! (bvite c0 (! (bvite c1 t1 e1) :named @p_2) t1) :named @p_1) (! (bvite (! (bvand c0 (! (bvnot c1) :named @p_5)) :named @p_4) e1 t1) :named @p_3)) :named @p_0)) :rule rare_rewrite :args ("bv-ite-merge-then-if" c0 c1 t1 e1))
+(step slice_end (cl) :rule trust :premises (t1) :args ("trust"))
+

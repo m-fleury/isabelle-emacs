@@ -1,0 +1,5 @@
+(set-logic QF_BV)
+(declare-fun c () (_ BitVec 1))
+(declare-fun x () (_ BitVec 4))
+(check-sat)
+(exit)
