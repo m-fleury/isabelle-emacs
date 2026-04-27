@@ -3049,67 +3049,30 @@ end
 
 end
 
-context
-    fixes
-    L2_final :: "'afset \<Rightarrow> 'afset \<times> 'afset \<Rightarrow> bool" and
-    L3_final :: "'afset \<Rightarrow> 'afset \<times> 'afset \<Rightarrow> bool" and
-    ground_resolution :: "'a \<Rightarrow> 'a \<Rightarrow> 'a \<Rightarrow> bool" and
-    is_least_false_clause :: "'afset \<Rightarrow> 'a \<Rightarrow> bool" and
-    fset :: "'afset \<Rightarrow> 'a set" and
-    union_fset :: "'afset \<Rightarrow> 'afset \<Rightarrow> 'afset" (infixr \<open>|\<union>|\<close> 50) and
- Const2 Const3 :: 'afset and thesis :: bool
+experiment
 begin
 
 context
-  fixes v0
-  assumes H: \<open>v0 = Const2\<close>  \<open>v0 = Const3\<close>
+    fixes A:: "('a \<Rightarrow> 'a) set" and result_lub :: "'a set \<Rightarrow> 'a"
 begin
 
-lemma \<open>  (v0 = Const2 \<and>
-          v0 = Const3 \<and>
-          S2 = (v1, v2) \<and>
-          S3 = (v3, v2) \<and>
-          (\<forall>v4. v4 \<in> fset v1 \<longrightarrow>
-                (\<exists>v5. v5 \<in> fset (v0 |\<union>| v3 |\<union>| v2) \<and>
-                      (\<exists>v6. v6 \<in> fset (v0 |\<union>| v3 |\<union>| v2) \<and>
-                            ((ground_resolution v6)\<^sup>+\<^sup>+ v5 v4 \<and> (\<exists>v7. v7 \<in> fset v3 \<and> (ground_resolution v6)\<^sup>*\<^sup>* v4 v7) \<or> is_least_false_clause (v0 |\<union>| v1 |\<union>| v2) v4)))) \<longrightarrow>
-          thesis) =
-         (Const2 = Const2 \<and>
-          Const2 = Const3 \<and>
-          S2 = (v1, v2) \<and>
-          S3 = (v3, v2) \<and>
-          (\<forall>v4. v4 \<in> fset v1 \<longrightarrow>
-                (\<exists>v5. v5 \<in> fset (Const2 |\<union>| v3 |\<union>| v2) \<and>
-                      (\<exists>v6. v6 \<in> fset (Const2 |\<union>| v3 |\<union>| v2) \<and>
-                            ((ground_resolution v6)\<^sup>+\<^sup>+ v5 v4 \<and> (\<exists>v7. v7 \<in> fset v3 \<and> (ground_resolution v6)\<^sup>*\<^sup>* v4 v7) \<or> is_least_false_clause (Const2 |\<union>| v1 |\<union>| v2) v4)))) \<longrightarrow>
-          thesis)\<close>
+context
+  fixes v0 v1 :: 'a
+  assumes H: \<open>v1 = result_lub {uua. \<exists>xa. xa \<in> A \<and> uua = xa v0}\<close>
+begin
+
+lemma H: \<open>(v1 = result_lub {uua. \<exists>xa. xa \<in> A \<and> uua = xa v0} \<longrightarrow> v1 = NT \<or> v1 \<in> {uua. \<exists>xa. xa \<in> A \<and> uua = xa v0}) =
+         (result_lub {uua. \<exists>xa. xa \<in> A \<and> uua = xa v0} = result_lub {uua. \<exists>xa. xa \<in> A \<and> uua = xa v0} \<longrightarrow>
+          NT = result_lub {uua. \<exists>xa. xa \<in> A \<and> uua = xa v0} \<or> result_lub {uua. \<exists>xa. xa \<in> A \<and> uua = xa v0} \<in> {uua. \<exists>xa. xa \<in> A \<and> uua = xa v0})\<close>
   using H by auto
 
 end
 
-
 ML \<open>
 let
-  val goal = @{term \<open>Trueprop ((\<forall>v0 v1 v2 v3.
-             v0 = Const2 \<and>
-             v0 = Const3 \<and>
-             S2 = (v1, v2) \<and>
-             S3 = (v3, v2) \<and>
-             (\<forall>v4. v4 \<in> fset v1 \<longrightarrow>
-                   (\<exists>v5. v5 \<in> fset (v0 |\<union>| v3 |\<union>| v2) \<and>
-                         (\<exists>v6. v6 \<in> fset (v0 |\<union>| v3 |\<union>| v2) \<and>
-                               ((ground_resolution v6)\<^sup>+\<^sup>+ v5 v4 \<and> (\<exists>v7. v7 \<in> fset v3 \<and> (ground_resolution v6)\<^sup>*\<^sup>* v4 v7) \<or> is_least_false_clause (v0 |\<union>| v1 |\<union>| v2) v4)))) \<longrightarrow>
-             thesis) =
-         (\<forall>v1 v2 v3.
-             Const2 = Const2 \<and>
-             Const2 = Const3 \<and>
-             S2 = (v1, v2) \<and>
-             S3 = (v3, v2) \<and>
-             (\<forall>v4. v4 \<in> fset v1 \<longrightarrow>
-                   (\<exists>v5. v5 \<in> fset (Const2 |\<union>| v3 |\<union>| v2) \<and>
-                         (\<exists>v6. v6 \<in> fset (Const2 |\<union>| v3 |\<union>| v2) \<and>
-                               ((ground_resolution v6)\<^sup>+\<^sup>+ v5 v4 \<and> (\<exists>v7. v7 \<in> fset v3 \<and> (ground_resolution v6)\<^sup>*\<^sup>* v4 v7) \<or> is_least_false_clause (Const2 |\<union>| v1 |\<union>| v2) v4)))) \<longrightarrow>
-             thesis))\<close>}
+  val goal = @{term \<open>Trueprop ((\<forall>v0 v1. v1 = result_lub {uua. \<exists>xa. xa \<in> A \<and> uua = xa v0} \<longrightarrow> v1 = NT \<or> v1 \<in> {uua. \<exists>xa. xa \<in> A \<and> uua = xa v0}) =
+         (\<forall>v0. result_lub {uua. \<exists>xa. xa \<in> A \<and> uua = xa v0} = result_lub {uua. \<exists>xa. xa \<in> A \<and> uua = xa v0} \<longrightarrow>
+               NT = result_lub {uua. \<exists>xa. xa \<in> A \<and> uua = xa v0} \<or> result_lub {uua. \<exists>xa. xa \<in> A \<and> uua = xa v0} \<in> {uua. \<exists>xa. xa \<in> A \<and> uua = xa v0}) )\<close>}
 in
 Alethe_Replay_Methods.onepoint @{context} @{thms H} goal
 |> @{print}
@@ -3118,81 +3081,7 @@ Alethe_Replay_Methods.onepoint @{context} @{thms H} goal
 |> (fn x => if not x then error "failed" else ())
 end\<close>
 
-lemma \<open> \<And>v0. (v0 = Const2 \<longrightarrow>
-           Const2 = Const3 \<and>
-           (\<exists>v1 v2.
-               S2 = (v1, v2) \<and>
-               (\<exists>v3. S3 = (v3, v2) \<and>
-                     (\<forall>v4. v4 \<in> fset v1 \<longrightarrow>
-                           (\<exists>v5. v5 \<in> fset (Const2 |\<union>| v3 |\<union>| v2) \<and>
-                                 (\<exists>v6. v6 \<in> fset (Const2 |\<union>| v3 |\<union>| v2) \<and>
-                                       ((ground_resolution v6)\<^sup>+\<^sup>+ v5 v4 \<and> (\<exists>v7. v7 \<in> fset v3 \<and> (ground_resolution v6)\<^sup>*\<^sup>* v4 v7) \<or> is_least_false_clause (Const2 |\<union>| v1 |\<union>| v2) v4)))))) \<longrightarrow>
-           thesis) =
-          (v0 = Const2 \<and>
-           v0 = Const3 \<and>
-           (\<exists>v1 v2.
-               S2 = (v1, v2) \<and>
-               (\<exists>v3. S3 = (v3, v2) \<and>
-                     (\<forall>v4. v4 \<in> fset v1 \<longrightarrow>
-                           (\<exists>v5. v5 \<in> fset (v0 |\<union>| v3 |\<union>| v2) \<and>
-                                 (\<exists>v6. v6 \<in> fset (v0 |\<union>| v3 |\<union>| v2) \<and>
-                                       ((ground_resolution v6)\<^sup>+\<^sup>+ v5 v4 \<and> (\<exists>v7. v7 \<in> fset v3 \<and> (ground_resolution v6)\<^sup>*\<^sup>* v4 v7) \<or> is_least_false_clause (v0 |\<union>| v1 |\<union>| v2) v4)))))) \<longrightarrow>
-           thesis) \<close>
-  apply (metis (combs))
-
-(*
-  (v0 = Const2 \<and>
-          v0 = Const3 \<and>
-          S2 = (v1, v2) \<and>
-          S3 = (v3, v2) \<and>
-          (\<forall>v4. v4 \<in> fset v1 \<longrightarrow>
-                (\<exists>v5. v5 \<in> fset (v0 |\<union>| v3 |\<union>| v2) \<and>
-                      (\<exists>v6. v6 \<in> fset (v0 |\<union>| v3 |\<union>| v2) \<and>
-                            ((ground_resolution v6)\<^sup>+\<^sup>+ v5 v4 \<and> (\<exists>v7. v7 \<in> fset v3 \<and> (ground_resolution v6)\<^sup>*\<^sup>* v4 v7) \<or> is_least_false_clause (v0 |\<union>| v1 |\<union>| v2) v4)))) \<longrightarrow>
-          thesis) =
-         (Const2 = Const2 \<and>
-          Const2 = Const3 \<and>
-          S2 = (v1, v2) \<and>
-          S3 = (v3, v2) \<and>
-          (\<forall>v4. v4 \<in> fset v1 \<longrightarrow>
-                (\<exists>v5. v5 \<in> fset (Const2 |\<union>| v3 |\<union>| v2) \<and>
-                      (\<exists>v6. v6 \<in> fset (Const2 |\<union>| v3 |\<union>| v2) \<and>
-                            ((ground_resolution v6)\<^sup>+\<^sup>+ v5 v4 \<and> (\<exists>v7. v7 \<in> fset v3 \<and> (ground_resolution v6)\<^sup>*\<^sup>* v4 v7) \<or> is_least_false_clause (Const2 |\<union>| v1 |\<union>| v2) v4)))) \<longrightarrow>
-          thesis)
-       proposition:
-         (\<forall>v0 v1 v2 v3.
-             v0 = Const2 \<and>
-             v0 = Const3 \<and>
-             S2 = (v1, v2) \<and>
-             S3 = (v3, v2) \<and>
-             (\<forall>v4. v4 \<in> fset v1 \<longrightarrow>
-                   (\<exists>v5. v5 \<in> fset (v0 |\<union>| v3 |\<union>| v2) \<and>
-                         (\<exists>v6. v6 \<in> fset (v0 |\<union>| v3 |\<union>| v2) \<and>
-                               ((ground_resolution v6)\<^sup>+\<^sup>+ v5 v4 \<and> (\<exists>v7. v7 \<in> fset v3 \<and> (ground_resolution v6)\<^sup>*\<^sup>* v4 v7) \<or> is_least_false_clause (v0 |\<union>| v1 |\<union>| v2) v4)))) \<longrightarrow>
-             thesis) =
-         (\<forall>v1 v2 v3.
-             Const2 = Const2 \<and>
-             Const2 = Const3 \<and>
-             S2 = (v1, v2) \<and>
-             S3 = (v3, v2) \<and>
-             (\<forall>v4. v4 \<in> fset v1 \<longrightarrow>
-                   (\<exists>v5. v5 \<in> fset (Const2 |\<union>| v3 |\<union>| v2) \<and>
-                         (\<exists>v6. v6 \<in> fset (Const2 |\<union>| v3 |\<union>| v2) \<and>
-                               ((ground_resolution v6)\<^sup>+\<^sup>+ v5 v4 \<and> (\<exists>v7. v7 \<in> fset v3 \<and> (ground_resolution v6)\<^sup>*\<^sup>* v4 v7) \<or> is_least_false_clause (Const2 |\<union>| v1 |\<union>| v2) v4)))) \<longrightarrow>
-             thesis)
-*)
-(*
-
-SMT: Goal: "onepoint"
-       assumptions:
-         (?v0.2 = ?v1.2 \<and> (\<forall>v6. ?v1.2 \<noteq> v6 \<longrightarrow> ?v2.2 v6 = ?v3.2 v6) \<and> ?v4.2 = ?v5.2 \<longrightarrow> ?v2.2 \<midarrow>?v0.2\<rightarrow> ?v4.2 = ?v3.2 \<midarrow>?v1.2\<rightarrow> ?v5.2) =
-         (?v0.2 = ?v0.2 \<and> (\<forall>v6. ?v0.2 \<noteq> v6 \<longrightarrow> ?v2.2 v6 = ?v3.2 v6) \<and> ?v4.2 = ?v4.2 \<longrightarrow> ?v2.2 \<midarrow>?v0.2\<rightarrow> ?v4.2 = ?v3.2 \<midarrow>?v0.2\<rightarrow> ?v4.2)
-       proposition:
-         (\<forall>v0 v1 v2 v3 v4 v5. v0 = v1 \<and> (\<forall>v6. v1 \<noteq> v6 \<longrightarrow> v2 v6 = v3 v6) \<and> v4 = v5 \<longrightarrow> v2 \<midarrow>v0\<rightarrow> v4 = v3 \<midarrow>v1\<rightarrow> v5) =
-         (\<forall>v0 v2 v3 v4. v0 = v0 \<and> (\<forall>v6. v0 \<noteq> v6 \<longrightarrow> v2 v6 = v3 v6) \<and> v4 = v4 \<longrightarrow> v2 \<midarrow>v0\<rightarrow> v4 = v3 \<midarrow>v0\<rightarrow> v4) 
-
-*)
-
+end
 
 (*
 

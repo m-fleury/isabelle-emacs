@@ -1367,7 +1367,7 @@ local
       | (Abs (_, _, t1), Abs (_, _, t2)) => aconv_untyped (t1, t2)
       | (Const (a, _), Const (b, _)) => a = b
       | (Free (x, _), Free (y, _)) => x = y
-      | (Var (xi, _), Var (yj, _)) => xi = yj
+      | (Var ((xi,_), _), Var ((yj,_), _)) => xi = yj
       | (Bound i, Bound j) => i = j
       | _ => false);
   fun subst_var_untyped [] = I
@@ -1391,6 +1391,7 @@ local
 
        val thms = map (Drule.infer_instantiate' context [SOME i])
            @{thms alethe_onepoint2_all alethe_onepoint2_ex}
+
     in
       resolve_tac context thms 1
     end
@@ -1433,7 +1434,6 @@ in
 fun onepoint ctxt [prem] t = SMT_Replay_Methods.prove ctxt t (fn _ =>
   onepoint_quants ctxt prem t []
   THEN' REPEAT' (resolve_tac ctxt @{thms refl})
-  THEN' K (print_tac ctxt "post align")
   THEN_ALL_NEW 
     (*cheap version: hope that nothing got reorder and simp will solve the goal. Otherwise,
     try to move all equalities out of the quantifiers rewrite them with @{thm alethe_rewrite_in_imp}
