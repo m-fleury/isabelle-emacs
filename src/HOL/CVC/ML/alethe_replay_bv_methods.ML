@@ -658,22 +658,22 @@ fun REPEAT' tac = fn i => REPEAT (tac i)
 fun REPEAT_DETERM_N' times tac = fn i => REPEAT_DETERM_N times (tac i)
 fun bv_bitwise_slicing ctxt _  _ t = 
 SMT_Replay_Methods.prove ctxt t (fn _ =>(
-     K(print_tac ctxt "here") THEN'
+     (*K(print_tac ctxt "here") THEN'*)
       REPEAT'
       ((EqSubst.eqsubst_tac ctxt [0] @{thms xor_word_cat_smt_extract_step})
-     THEN' K(print_tac ctxt "after applying lemma") 
+     (*THEN' K(print_tac ctxt "after applying lemma")*) 
      THEN' (REPEAT_DETERM_N' 11 ( (simplify_tac ctxt  @{thms arith_simps nat_mono nat_0 nat_1})
         THEN' (Code_Simp.dynamic_tac ctxt)
         THEN' K(print_tac ctxt "resolving assumptions") )))
-    THEN' K(print_tac ctxt "before final step") 
+    THEN' K(print_tac ctxt "before final step")*) 
     THEN' (EqSubst.eqsubst_tac ctxt [0] @{thms bitwise_slicing_smt_extract_identity})
     THEN' (Code_Simp.dynamic_tac ctxt)
-    THEN' K(print_tac ctxt "afterfinal step") 
+    (*THEN' K(print_tac ctxt "afterfinal step") *)
     THEN' (EqSubst.eqsubst_tac ctxt [0] @{thms bitwise_slicing_smt_extract_identity})
     THEN' (Code_Simp.dynamic_tac ctxt)
-    THEN' K(print_tac ctxt "afterfinal step")
+    (*THEN' K(print_tac ctxt "afterfinal step")*)
     THEN' (match_tac ctxt @{thms semiring_bit_operations_class.xor.commute})
-    THEN' K(print_tac ctxt "afterfinal step")
+    (*THEN' K(print_tac ctxt "afterfinal step")*)
 
 ))
 (* smt_extract (nat (7::int)) (nat 0) (27::8 word) XOR smt_extract (nat (7::int)) (nat 0) (lift_shiftla v0__ 1)*)

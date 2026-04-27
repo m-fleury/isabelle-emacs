@@ -1328,7 +1328,14 @@ local
   
   fun miniscope ctxt =
     HOLogic.Trueprop_conv (Conv.arg_conv (miniscope_term ctxt) then_conv Conv.fun_conv (Conv.arg_conv (miniscope_term ctxt)))
-  
+  fun simplify_tac_with_NOMATCH ctxt thms =
+    ctxt
+    |> empty_simpset
+    |> put_simpset HOL_basic_ss
+    |> (fn ctxt => ctxt addsimps @{thms simp_thms} addsimps thms)
+    |> (fn ctxt => ctxt addsimprocs [@{simproc HOL.NO_MATCH}])
+    |> Simplifier.asm_full_simp_tac
+
   (*We try to recontruct the proof without looking too much into the structure, hence
   first trying simp. The main issue is that the simplifer call can loop in complicated
   cases.*)
@@ -1344,15 +1351,18 @@ local
       THEN' K (print_tac ctxt "pre miniscope")
       THEN' TRY' (CONVERSION (miniscope ctxt)) (*goal can be already solved*)
       THEN' K (print_tac ctxt "post miniscope")
-      THEN' TRY' (simplify_tac ctxt ( 
+      (*split the forall in smaller conjunctions*)
+      THEN' TRY' (simplify_tac_with_NOMATCH ctxt ( 
         @{lemma
           \<open>\<And>P Q R. (\<forall>x y. P x y \<and> Q x y \<or> R x y) = ((\<forall>x y. P x y \<or> R x y) \<and> (\<forall>x y. Q x y \<or> R x y))\<close>
           \<open>\<And>a b c x y. NO_MATCH (x \<and> y) a \<Longrightarrow> (a \<or> b \<and> c) = ((b \<and> c) \<or> a)\<close>
           by blast+}))
-      THEN' K (print_tac ctxt "post simp")
-      THEN' TRY' (Clasimp.force_tac ctxt)
+      THEN' REPEAT' (resolve_tac ctxt 
+        @{lemma \<open>(A \<Longrightarrow> a \<or> B) \<Longrightarrow> a \<or> \<not>A \<or> B\<close>
+        \<open>(A \<Longrightarrow> a) \<Longrightarrow> a \<or> \<not>A\<close> by auto})
+      THEN' TRY' (simplify_tac ctxt [])
       THEN' (debug_msg_tac' ctxt high "qnt_cnf after resolving with qnt_cnf_basic")
-      (*split the forall in smaller conjunctions*)
+      (*try again to split*)
       THEN' TRY' (simplify_tac ctxt (@{thms
         iff_conv_conj_imp if_bool_eq_disj ex_simps all_simps ex_disj_distrib
         alethe_connective_def(3)  all_conj_distrib not_all not_ex} @ 
@@ -1467,7 +1477,7 @@ local
 
   fun onepoint_quants ctxt prems t =
     let
-      val insts = extract_instantiations prems |> @{print}
+      val insts = extract_instantiations prems
       val (t1, t2) = 
         t
         |> Thm.cterm_of ctxt

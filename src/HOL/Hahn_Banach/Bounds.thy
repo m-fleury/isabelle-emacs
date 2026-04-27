@@ -14,7 +14,7 @@ locale lub =
     and upper [intro?]: "a \<in> A \<Longrightarrow> a \<le> x"
 
 lemmas [elim?] = lub.least lub.upper
-
+no_notation Sup (\<open>(\<open>open_block notation=\<open>prefix \<Squnion>\<close>\<close>\<Squnion> _)\<close> [900] 900)
 definition the_lub :: "'a::order set \<Rightarrow> 'a"  (\<open>\<Squnion>_\<close> [90] 90)
   where "the_lub A = The (lub A)"
 

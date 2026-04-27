@@ -2002,7 +2002,7 @@ lift_definition word_roti :: \<open>int \<Rightarrow> 'a::len word \<Rightarrow>
   is \<open>\<lambda>r k. concat_bit (LENGTH('a) - nat (r mod int LENGTH('a)))
     (drop_bit (nat (r mod int LENGTH('a))) (take_bit LENGTH('a) k))
     (take_bit (nat (r mod int LENGTH('a))) k)\<close>
-  sorry
+  by (smt (z3) concat_bit_0 diff_is_0_eq' min.absorb1 of_nat_le_iff take_bit_take_bit)
 
 lemma word_rotl_eq_word_rotr [code]:
   \<open>word_rotl n = (word_rotr (LENGTH('a) - n mod LENGTH('a)) :: 'a::len word \<Rightarrow> 'a word)\<close>
@@ -2917,7 +2917,7 @@ lemma mod_add_if_z:
   "\<lbrakk>x < z; y < z; 0 \<le> y; 0 \<le> x; 0 \<le> z\<rbrakk> \<Longrightarrow>
     (x + y) mod z = (if x + y < z then x + y else x + y - z)"
   for x y z :: int
-  sorry
+  by (smt (z3) int_mod_ge minus_mod_self2 zmod_le_nonneg_dividend)
 
 lemma uint_plus_if':
   "uint (a + b) =
@@ -3311,8 +3311,8 @@ lemma udvd_incr2_K:
       udvd_incr_lem uint_add_le uint_arith_simps(1) uint_sub_lem)
   apply (subst uint_word_arith_bintrs(2))
   apply (rule conjI)
-   apply (simp add: uint_word_arith_bintrs(1))
-  sorry
+  apply (smt (z3) udvd_incr_lem0 uint_add_lem word_less_iff_unsigned)
+  by (smt (z3) mod_pos_pos_trivial take_bit_eq_mod udvd_incr_lem0 uint_add_lem uint_ge_0 word_less_iff_unsigned)
 (* TODO: Fix this
   sorry*)
 
@@ -4790,7 +4790,7 @@ lemma [nat_normalized_input]:
 lemma take_bit_lift:
   "take_bit k w \<equiv> w - push_bit k (drop_bit k w)"
   using bits_ident
-  sorry
+  by (smt (verit, best) add_diff_cancel_left')
 
 definition signed_drop_bit_lift :: \<open>'a::len word  \<Rightarrow> 'a::len word \<Rightarrow> 'a::len word\<close> where
   "signed_drop_bit_lift w k = signed_drop_bit (unat k) w"
@@ -4892,7 +4892,7 @@ lemma [nat_normalized_input]:
 lemma word_numeral_lift:
 "(numeral (x::num)::'a::len word) \<equiv> word_of_int (take_bit LENGTH('a::len) (numeral x))"
   using num_abs_bintr[of x]
-  sorry
+  by auto
 
 
 lemmas [simplify_translation] = len_bit0 len_bit1 len_num1 take_bit_numeral_numeral option.case take_bit_num_simps pred_numeral_simps option.case

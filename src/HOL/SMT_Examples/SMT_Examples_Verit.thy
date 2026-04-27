@@ -848,9 +848,9 @@ proof -
       (ground_resolution D)\<^sup>+\<^sup>+ C Cr \<and>
       (\<exists>Crr \<in> fset Urr. (ground_resolution D)\<^sup>*\<^sup>* Cr Crr) \<or>
         (is_least_false_clause (N |\<union>| Ur |\<union>| Uff) Cr)"
+    supply [[smt_trace]]
     by (smt (verit) L2_matches_L3.elims(2))
   oops
-
 
 lemma
   assumes

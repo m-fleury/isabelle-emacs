@@ -28,7 +28,7 @@ lemma conditionalize:
   assumes "finite A"
   shows "F.F g A = G (\<lambda>a. if a \<in> A then g a else \<^bold>1)"
   using assms
-  sorry
+  by (smt (verit, ccfv_threshold) Diff_iff F.mono_neutral_cong_right expand_set mem_Collect_eq subsetI)
 
 
 lemma neutral [simp]:
@@ -136,7 +136,7 @@ proof -
   have *: "G (\<lambda>a. G (g a)) =
     (F.F (\<lambda>a. F.F (g a) {b. \<exists>a. g a b \<noteq> \<^bold>1}) {a. \<exists>b. g a b \<noteq> \<^bold>1})"
     using \<open>finite ?A\<close> \<open>finite ?B\<close> expand_superset
-    sorry
+    by (smt (verit, del_insts) Collect_mono local.cong not_neutral_obtains_not_neutral)
   have **: "{p. (case p of (a, b) \<Rightarrow> g a b) \<noteq> \<^bold>1} \<subseteq> ?A \<times> ?B"
     by auto
   show ?thesis

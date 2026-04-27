@@ -248,6 +248,7 @@ lemma ACIDZ_elim_zeros_rtranclp:
 lemma Alt_elim_zeros[simp]:
   "Alt (elim_zeros r) s ~ elim_zeros (Alt r s)"
   "Alt r (elim_zeros s) ~ elim_zeros (Alt r s)"
+  supply [[smt_trace,show_types]]
   by (smt (verit, ccfv_threshold) ACIDZ.simps elim_zeros.simps(1) elim_zeros_idem)+
 
 lemma strong_confluentp_ACIDZ: "strong_confluentp (~)"

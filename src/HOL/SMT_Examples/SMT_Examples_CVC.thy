@@ -377,7 +377,7 @@ subsection \<open>Linear arithmetic with quantifiers\<close>
 lemma "~ (\<exists>x::int. False)" by (smt (cvc5_proof)) (*success*)
 lemma "~ (\<exists>x::real. False)" by (smt (cvc5_proof)) (*success*)
 
-lemma "\<forall>x y::int. (x = 0 \<and> y = 1) \<longrightarrow> x \<noteq> y" by (smt (cvc5_proof)) (*success*)
+lemma "\<forall>x y::int. (x = 0 \<and> y = 1) \<longrightarrow> x \<noteq> y" supply [[smt_trace]] by (smt (cvc5_proof)) (*success*)
 lemma "\<forall>x y::int. x < y \<longrightarrow> (2 * x + 1) < (2 * y)" by (smt (cvc5_proof)) (*success*)
 lemma "\<forall>x y::int. x + y > 2 \<or> x + y = 2 \<or> x + y < 2" supply[[smt_trace]] by (smt (cvc5_proof)) (*success*)
 lemma "\<forall>x::int. if x > 0 then x + 1 > 0 else 1 > x" by (smt (cvc5_proof)) (*success*)

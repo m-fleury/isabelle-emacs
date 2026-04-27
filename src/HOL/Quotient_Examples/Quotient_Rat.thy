@@ -7,6 +7,7 @@ Rational numbers defined with the quotient package, based on 'HOL/Rat.thy' by Ma
 theory Quotient_Rat imports HOL.Archimedean_Field
   "HOL-Library.Quotient_Product"
 begin
+hide_const Fract
 
 definition
   ratrel :: "(int \<times> int) \<Rightarrow> (int \<times> int) \<Rightarrow> bool" (infix \<open>\<approx>\<close> 50)
@@ -108,7 +109,8 @@ definition
   Fract_raw :: "int \<Rightarrow> int \<Rightarrow> (int \<times> int)"
 where [simp]: "Fract_raw a b = (if b = 0 then (0, 1) else (a, b))"
 
-quotient_definition "Fract :: int \<Rightarrow> int \<Rightarrow> rat" is
+
+quotient_definition "Fract :: int \<Rightarrow> int \<Rightarrow> Quotient_Rat.rat" is
   Fract_raw by simp
 
 lemmas [simp] = Respects_def

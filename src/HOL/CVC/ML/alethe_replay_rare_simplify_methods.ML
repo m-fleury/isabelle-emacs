@@ -238,19 +238,19 @@ fun dsl_tac_initialize rewrite_name args ctxt t prems =
                 fun try_lemma_i i = 
                 (fn t => (SMT_Replay_Methods.prove ctxt t (fn ctxt =>
                   debug_msg_tac'' ctxt high "start"
-                  THEN' K (print_tac ctxt "start")
+                  (*THEN' K (print_tac ctxt "start")*)
                   THEN' (
                    (
                      CHANGED_GOAL
                        (if rare_mode = 8
                         then  (*This would also need to work on the premises etc. kind of annoying*)
                               (CHANGED_GOAL (EqSubst.eqsubst_tac ctxt [0] rewrite_lemmas)
-                              THEN' K (print_tac ctxt "trying to use lemma without instantiation")
+                              (*THEN' K (print_tac ctxt "trying to use lemma without instantiation")*)
                               THEN' ((match_tac ctxt @{thms NO_MATCH_def NO_MATCH_cong}))
-                              THEN' K (print_tac ctxt "here"))
+                              (*THEN' K (print_tac ctxt "here")*))
                             ORELSE' (EqSubst.eqsubst_tac ctxt [0] [nth inst_lemmas_without_true 0] )
                         else (EqSubst.eqsubst_tac ctxt [0] [nth inst_lemmas_without_true 0] (*TODO: Use lemma i*))
-                    THEN' K (print_tac ctxt "after applying lemma")
+                    (*THEN' K (print_tac ctxt "after applying lemma")*)
 
                      THEN' debug_msg_tac'' ctxt high "applied lemma"
                      THEN' REPEAT' (resolve_tac ctxt prems)
@@ -259,7 +259,7 @@ fun dsl_tac_initialize rewrite_name args ctxt t prems =
                    (if rare_mode = 1 orelse (List.exists (fn x => x = rare_mode) [4,5,7])
                    then (let val _ = @{print}("lemma,goal",(nth inst_lemmas_without_true 0,Thm.cterm_of ctxt t)) in 
                    (debug_msg_tac'' ctxt high "could not apply lemma" THEN' (K no_tac) (* This won't work: raise RARE_REPLAY("Lemmas could not be used to discharge rewrite rule."*)) end)
-                   else (K (print_tac ctxt "lemmas could not be used, continue to simplify") THEN' try_simp_tac [] ctxt THEN' K (print_tac ctxt "after simplification")))
+                   else ((*K (print_tac ctxt "lemmas could not be used, continue to simplify") THEN'*) try_simp_tac [] ctxt THEN' K (print_tac ctxt "after simplification")))
                   )
                   THEN_ALL_NEW (
                     debug_msg_tac'' ctxt high "trying to discharge assumption of RARE lemma"

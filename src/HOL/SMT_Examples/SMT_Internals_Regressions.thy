@@ -903,11 +903,16 @@ lemma \<open>\<not> (\<forall>veriT_vr7 veriT_vr8 veriT_vr9 :: 'a.
                  else if veriT_vr8 < 0 then veriT_vr9 * veriT_vr8 < veriT_vr7 else 0 < veriT_vr9)) \<or>
          (\<forall>veriT_vr7 veriT_vr8 veriT_vr9 :: 'a:: {comm_monoid_add,inverse,times,zero,ord}.
              \<not> veriT_vr7 / veriT_vr8 < veriT_vr9 \<or> \<not> 0 < veriT_vr8 \<or> veriT_vr7 < veriT_vr9 * veriT_vr8)\<close>
-  supply [[show_types]]
   by (ctxt_tactic "qnt_cnf")
 
+lemma
+  fixes Cons :: \<open>'a :: {zero} \<Rightarrow> 'alist \<Rightarrow> 'alist\<close> (infix \<open>#\<close> 70) and Nil :: 'alist
+  shows \<open>(\<forall>veriT_vr18. 0 = veriT_vr18 \<or> (\<forall>veriT_vr19. poly Nil \<noteq> poly (veriT_vr18 # veriT_vr19))) \<or>
+    \<not> (\<forall>veriT_vr18 veriT_vr19. poly Nil \<noteq> poly (veriT_vr18 # veriT_vr19) \<or> 0 = veriT_vr18 \<and> poly Nil = poly veriT_vr19)\<close>
+  supply [[show_types]] by (ctxt_tactic "qnt_cnf")
+
 (* Rule 30: and *)
-  thm all_simps
+
 lemma and_1:
   assumes "a \<and> b \<and> c"
   shows  "a"
