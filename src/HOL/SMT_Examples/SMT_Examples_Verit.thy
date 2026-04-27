@@ -866,7 +866,7 @@ lemma
        "(t::real) < inverse (cmod (w::complex) ^ ((k::nat) + 1) * (m::real))"
        "\<not> cmod (complex_of_real (t::real) * (w::complex)) \<le> cmod w"
      shows False
-  using assms supply [[smt_trace]]by (smt (verit))
+  using assms by (smt (verit))
 end
 
 locale comm_monoid_fun = comm_monoid
@@ -893,7 +893,7 @@ lemma
        "\<forall>(A::'c set) g::'c \<Rightarrow> 'a. finite A \<and> {a::'c. g a \<noteq> \<^bold>1} \<subseteq> A \<longrightarrow> G g = F.F g A"
        "G (\<lambda>a::'b. G ((g::'b \<Rightarrow> 'c \<Rightarrow> 'a) a)) \<noteq> F.F (\<lambda>a::'b. F.F (g a) {b::'c. \<exists>a::'b. g a b \<noteq> \<^bold>1}) {a::'b. \<exists>b::'c. g a b \<noteq> \<^bold>1}" 
      shows False
-  using assms supply [[smt_trace]] by (smt (verit, del_insts))
+  using assms by (smt (verit, del_insts))
 end
 
 ML \<open>@{term \<open>a \<noteq> b\<close>}\<close>

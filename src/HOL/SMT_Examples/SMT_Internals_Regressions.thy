@@ -851,7 +851,7 @@ lemma qnt_cnf_4: \<open> \<not> (\<forall>(veriT_vr13::'a_topoly::type) veriT_vr
              \<not> compactin veriT_vr13 veriT_vr16 \<or> \<not> closedin veriT_vr13 veriT_vr16 \<or> Alexandroff_open veriT_vr13 veriT_vr14) \<close>
   by (ctxt_tactic "qnt_cnf")
 
-lemma
+lemma qnt_cnf_5:
   fixes ACIDZ (infix \<open>~\<close> 64)
   shows
   \<open>\<not> (\<forall>(veriT_vr58::'a_rexp) veriT_vr59::'a_rexp.
@@ -884,10 +884,30 @@ lemma
                         \<not> (veriT_vr58 = Conc veriT_vr93 veriT_vr95 \<and> veriT_vr59 = Conc veriT_vr94 veriT_vr95 \<and> veriT_vr93 ~ veriT_vr94)) \<longrightarrow>
                  veriT_vr58 ~ veriT_vr59)) \<or>
     (\<forall>(veriT_vr58::'a_rexp) veriT_vr59::'a_rexp. veriT_vr58 \<noteq> veriT_vr59 \<or> veriT_vr58 ~ veriT_vr59)\<close>
+  supply [[show_types]]
   by (ctxt_tactic "qnt_cnf")
-  (*currently not working in veriT, needs miniscoping!*)
-(* Rule 30: and *)
 
+lemma
+  fixes scaleR :: "'real \<Rightarrow> 'a :: {comm_monoid_add,inverse,times,zero,ord} \<Rightarrow> 'a" (infixr \<open>*\<^sub>R\<close> 75)
+  shows \<open>\<not> (\<forall>veriT_vr37.
+                veriT_vr37 \<in> space M \<longrightarrow>
+                (\<Sum>uua\<in>f ` space M. indicat_real (f -` {uua} \<inter> space M) veriT_vr37 *\<^sub>R uua) = f veriT_vr37) \<or>
+         (\<forall>veriT_vr37.
+             veriT_vr37 \<notin> space M \<or>
+             (\<Sum>uua\<in>f ` space M. indicat_real (f -` {uua} \<inter> space M) veriT_vr37 *\<^sub>R uua) = f veriT_vr37) \<close>
+  by (ctxt_tactic "qnt_cnf")
+
+lemma \<open>\<not> (\<forall>veriT_vr7 veriT_vr8 veriT_vr9 :: 'a.
+                (veriT_vr7 / veriT_vr8 < veriT_vr9) =
+                (if 0 < veriT_vr8 then veriT_vr7 < veriT_vr9 * veriT_vr8
+                 else if veriT_vr8 < 0 then veriT_vr9 * veriT_vr8 < veriT_vr7 else 0 < veriT_vr9)) \<or>
+         (\<forall>veriT_vr7 veriT_vr8 veriT_vr9 :: 'a:: {comm_monoid_add,inverse,times,zero,ord}.
+             \<not> veriT_vr7 / veriT_vr8 < veriT_vr9 \<or> \<not> 0 < veriT_vr8 \<or> veriT_vr7 < veriT_vr9 * veriT_vr8)\<close>
+  supply [[show_types]]
+  by (ctxt_tactic "qnt_cnf")
+
+(* Rule 30: and *)
+  thm all_simps
 lemma and_1:
   assumes "a \<and> b \<and> c"
   shows  "a"
@@ -2962,6 +2982,168 @@ Alethe_Replay_Methods.onepoint @{context} @{thms H}
 |> (fn x => if not x then error "failed" else ())\<close>
 
 end
+
+
+experiment
+begin
+
+context
+  fixes v1 :: nat
+begin
+
+context
+  fixes v0 :: \<open>nat\<close>
+begin
+
+lemma H: \<open>(v0 \<noteq> 0 \<or> v0 \<noteq> 0 \<or> v1 \<noteq> 1 \<or> v0 \<noteq> v1) = (0 \<noteq> 0 \<or> v1 \<noteq> 1 \<or> 0 \<noteq> v1)\<close>
+  by auto
+
+end
+
+ML \<open>
+Alethe_Replay_Methods.onepoint @{context} @{thms H}
+  @{term \<open>Trueprop ((\<forall>v0. v0 \<noteq> 0 \<or> v0 \<noteq> 0 \<or> v1 \<noteq> 1 \<or> v0 \<noteq> v1) = (0 \<noteq> (0::nat) \<or> v1 \<noteq> 1 \<or> 0 \<noteq> v1))\<close>}
+|> @{print}
+|> Thm.prop_of
+|> curry (op =) @{term \<open>Trueprop ((\<forall>v0::nat. v0 \<noteq> 0 \<or> v0 \<noteq> 0 \<or> v1 \<noteq> 1 \<or> v0 \<noteq> v1) = (0 \<noteq> (0::nat) \<or> v1 \<noteq> 1 \<or> 0 \<noteq> v1))\<close>}
+|> (fn x => if not x then error "failed" else ())\<close>
+
+end
+
+end
+
+context
+    fixes
+    L2_final :: "'afset \<Rightarrow> 'afset \<times> 'afset \<Rightarrow> bool" and
+    L3_final :: "'afset \<Rightarrow> 'afset \<times> 'afset \<Rightarrow> bool" and
+    ground_resolution :: "'a \<Rightarrow> 'a \<Rightarrow> 'a \<Rightarrow> bool" and
+    is_least_false_clause :: "'afset \<Rightarrow> 'a \<Rightarrow> bool" and
+    fset :: "'afset \<Rightarrow> 'a set" and
+    union_fset :: "'afset \<Rightarrow> 'afset \<Rightarrow> 'afset" (infixr \<open>|\<union>|\<close> 50) and
+ Const2 Const3 :: 'afset and thesis :: bool
+begin
+
+context
+  fixes v0
+  assumes H: \<open>v0 = Const2\<close>  \<open>v0 = Const3\<close>
+begin
+
+lemma \<open>  (v0 = Const2 \<and>
+          v0 = Const3 \<and>
+          S2 = (v1, v2) \<and>
+          S3 = (v3, v2) \<and>
+          (\<forall>v4. v4 \<in> fset v1 \<longrightarrow>
+                (\<exists>v5. v5 \<in> fset (v0 |\<union>| v3 |\<union>| v2) \<and>
+                      (\<exists>v6. v6 \<in> fset (v0 |\<union>| v3 |\<union>| v2) \<and>
+                            ((ground_resolution v6)\<^sup>+\<^sup>+ v5 v4 \<and> (\<exists>v7. v7 \<in> fset v3 \<and> (ground_resolution v6)\<^sup>*\<^sup>* v4 v7) \<or> is_least_false_clause (v0 |\<union>| v1 |\<union>| v2) v4)))) \<longrightarrow>
+          thesis) =
+         (Const2 = Const2 \<and>
+          Const2 = Const3 \<and>
+          S2 = (v1, v2) \<and>
+          S3 = (v3, v2) \<and>
+          (\<forall>v4. v4 \<in> fset v1 \<longrightarrow>
+                (\<exists>v5. v5 \<in> fset (Const2 |\<union>| v3 |\<union>| v2) \<and>
+                      (\<exists>v6. v6 \<in> fset (Const2 |\<union>| v3 |\<union>| v2) \<and>
+                            ((ground_resolution v6)\<^sup>+\<^sup>+ v5 v4 \<and> (\<exists>v7. v7 \<in> fset v3 \<and> (ground_resolution v6)\<^sup>*\<^sup>* v4 v7) \<or> is_least_false_clause (Const2 |\<union>| v1 |\<union>| v2) v4)))) \<longrightarrow>
+          thesis)\<close>
+  using H by auto
+
+end
+
+
+ML \<open>
+let
+  val goal = @{term \<open>Trueprop ((\<forall>v0 v1 v2 v3.
+             v0 = Const2 \<and>
+             v0 = Const3 \<and>
+             S2 = (v1, v2) \<and>
+             S3 = (v3, v2) \<and>
+             (\<forall>v4. v4 \<in> fset v1 \<longrightarrow>
+                   (\<exists>v5. v5 \<in> fset (v0 |\<union>| v3 |\<union>| v2) \<and>
+                         (\<exists>v6. v6 \<in> fset (v0 |\<union>| v3 |\<union>| v2) \<and>
+                               ((ground_resolution v6)\<^sup>+\<^sup>+ v5 v4 \<and> (\<exists>v7. v7 \<in> fset v3 \<and> (ground_resolution v6)\<^sup>*\<^sup>* v4 v7) \<or> is_least_false_clause (v0 |\<union>| v1 |\<union>| v2) v4)))) \<longrightarrow>
+             thesis) =
+         (\<forall>v1 v2 v3.
+             Const2 = Const2 \<and>
+             Const2 = Const3 \<and>
+             S2 = (v1, v2) \<and>
+             S3 = (v3, v2) \<and>
+             (\<forall>v4. v4 \<in> fset v1 \<longrightarrow>
+                   (\<exists>v5. v5 \<in> fset (Const2 |\<union>| v3 |\<union>| v2) \<and>
+                         (\<exists>v6. v6 \<in> fset (Const2 |\<union>| v3 |\<union>| v2) \<and>
+                               ((ground_resolution v6)\<^sup>+\<^sup>+ v5 v4 \<and> (\<exists>v7. v7 \<in> fset v3 \<and> (ground_resolution v6)\<^sup>*\<^sup>* v4 v7) \<or> is_least_false_clause (Const2 |\<union>| v1 |\<union>| v2) v4)))) \<longrightarrow>
+             thesis))\<close>}
+in
+Alethe_Replay_Methods.onepoint @{context} @{thms H} goal
+|> @{print}
+|> Thm.prop_of
+|> curry (op =) goal
+|> (fn x => if not x then error "failed" else ())
+end\<close>
+
+lemma \<open> \<And>v0. (v0 = Const2 \<longrightarrow>
+           Const2 = Const3 \<and>
+           (\<exists>v1 v2.
+               S2 = (v1, v2) \<and>
+               (\<exists>v3. S3 = (v3, v2) \<and>
+                     (\<forall>v4. v4 \<in> fset v1 \<longrightarrow>
+                           (\<exists>v5. v5 \<in> fset (Const2 |\<union>| v3 |\<union>| v2) \<and>
+                                 (\<exists>v6. v6 \<in> fset (Const2 |\<union>| v3 |\<union>| v2) \<and>
+                                       ((ground_resolution v6)\<^sup>+\<^sup>+ v5 v4 \<and> (\<exists>v7. v7 \<in> fset v3 \<and> (ground_resolution v6)\<^sup>*\<^sup>* v4 v7) \<or> is_least_false_clause (Const2 |\<union>| v1 |\<union>| v2) v4)))))) \<longrightarrow>
+           thesis) =
+          (v0 = Const2 \<and>
+           v0 = Const3 \<and>
+           (\<exists>v1 v2.
+               S2 = (v1, v2) \<and>
+               (\<exists>v3. S3 = (v3, v2) \<and>
+                     (\<forall>v4. v4 \<in> fset v1 \<longrightarrow>
+                           (\<exists>v5. v5 \<in> fset (v0 |\<union>| v3 |\<union>| v2) \<and>
+                                 (\<exists>v6. v6 \<in> fset (v0 |\<union>| v3 |\<union>| v2) \<and>
+                                       ((ground_resolution v6)\<^sup>+\<^sup>+ v5 v4 \<and> (\<exists>v7. v7 \<in> fset v3 \<and> (ground_resolution v6)\<^sup>*\<^sup>* v4 v7) \<or> is_least_false_clause (v0 |\<union>| v1 |\<union>| v2) v4)))))) \<longrightarrow>
+           thesis) \<close>
+  apply (metis (combs))
+
+(*
+  (v0 = Const2 \<and>
+          v0 = Const3 \<and>
+          S2 = (v1, v2) \<and>
+          S3 = (v3, v2) \<and>
+          (\<forall>v4. v4 \<in> fset v1 \<longrightarrow>
+                (\<exists>v5. v5 \<in> fset (v0 |\<union>| v3 |\<union>| v2) \<and>
+                      (\<exists>v6. v6 \<in> fset (v0 |\<union>| v3 |\<union>| v2) \<and>
+                            ((ground_resolution v6)\<^sup>+\<^sup>+ v5 v4 \<and> (\<exists>v7. v7 \<in> fset v3 \<and> (ground_resolution v6)\<^sup>*\<^sup>* v4 v7) \<or> is_least_false_clause (v0 |\<union>| v1 |\<union>| v2) v4)))) \<longrightarrow>
+          thesis) =
+         (Const2 = Const2 \<and>
+          Const2 = Const3 \<and>
+          S2 = (v1, v2) \<and>
+          S3 = (v3, v2) \<and>
+          (\<forall>v4. v4 \<in> fset v1 \<longrightarrow>
+                (\<exists>v5. v5 \<in> fset (Const2 |\<union>| v3 |\<union>| v2) \<and>
+                      (\<exists>v6. v6 \<in> fset (Const2 |\<union>| v3 |\<union>| v2) \<and>
+                            ((ground_resolution v6)\<^sup>+\<^sup>+ v5 v4 \<and> (\<exists>v7. v7 \<in> fset v3 \<and> (ground_resolution v6)\<^sup>*\<^sup>* v4 v7) \<or> is_least_false_clause (Const2 |\<union>| v1 |\<union>| v2) v4)))) \<longrightarrow>
+          thesis)
+       proposition:
+         (\<forall>v0 v1 v2 v3.
+             v0 = Const2 \<and>
+             v0 = Const3 \<and>
+             S2 = (v1, v2) \<and>
+             S3 = (v3, v2) \<and>
+             (\<forall>v4. v4 \<in> fset v1 \<longrightarrow>
+                   (\<exists>v5. v5 \<in> fset (v0 |\<union>| v3 |\<union>| v2) \<and>
+                         (\<exists>v6. v6 \<in> fset (v0 |\<union>| v3 |\<union>| v2) \<and>
+                               ((ground_resolution v6)\<^sup>+\<^sup>+ v5 v4 \<and> (\<exists>v7. v7 \<in> fset v3 \<and> (ground_resolution v6)\<^sup>*\<^sup>* v4 v7) \<or> is_least_false_clause (v0 |\<union>| v1 |\<union>| v2) v4)))) \<longrightarrow>
+             thesis) =
+         (\<forall>v1 v2 v3.
+             Const2 = Const2 \<and>
+             Const2 = Const3 \<and>
+             S2 = (v1, v2) \<and>
+             S3 = (v3, v2) \<and>
+             (\<forall>v4. v4 \<in> fset v1 \<longrightarrow>
+                   (\<exists>v5. v5 \<in> fset (Const2 |\<union>| v3 |\<union>| v2) \<and>
+                         (\<exists>v6. v6 \<in> fset (Const2 |\<union>| v3 |\<union>| v2) \<and>
+                               ((ground_resolution v6)\<^sup>+\<^sup>+ v5 v4 \<and> (\<exists>v7. v7 \<in> fset v3 \<and> (ground_resolution v6)\<^sup>*\<^sup>* v4 v7) \<or> is_least_false_clause (Const2 |\<union>| v1 |\<union>| v2) v4)))) \<longrightarrow>
+             thesis)
+*)
 (*
 
 SMT: Goal: "onepoint"
@@ -3018,10 +3200,10 @@ Rule Nr   Name            Nr Tests  Nr Success
 26        eq_transitive   4         4
 27        eq_congruent    3         3
 28        eq_congruent_pred 2       2
-29        qnt_cnf         4         4
+29        qnt_cnf         5         4
 30        and             4         4
 --------------------------------------------
-                          28        28
+                          29        28
 
 
 Rule Nr   Name            Nr Tests  Nr Success
@@ -3153,7 +3335,7 @@ Rule Nr   Name            Nr Tests  Nr Success
 
 Rule Nr   Name            Nr Tests  Nr Success
 --------------------------------------------
-Total                     461       461
+Total                     462       461
 
 *)
 
