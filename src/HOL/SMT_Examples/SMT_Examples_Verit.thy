@@ -651,7 +651,7 @@ private datatype( 'a, 'b) result =
 
 lemma
   fixes clock :: \<open>'astate \<Rightarrow> nat\<close> and
-    fun_evaluate_match :: \<open>'astate \<Rightarrow> 'vsemv_env \<Rightarrow> _ \<Rightarrow> ('aat \<times> 'exp0) list \<Rightarrow> _ \<Rightarrow>
+    fun_evaluate_match :: \<open>'astate \<Rightarrow> 'vsemv_env \<Rightarrow> _ \<Rightarrow> ('pat \<times> 'exp0) list \<Rightarrow> _ \<Rightarrow>
       'astate*((('v)list),('v))result\<close>
   assumes
     "fix_clock (st::'astate) (fun_evaluate st (env::'vsemv_env) [e::'exp0]) =
@@ -671,13 +671,13 @@ lemma
        (update_clock (\<lambda>_::nat. if clock s' \<le> clock s then clock s' else clock s) s', res)"
     "\<forall>(x2::'v error_result) x1::'v.
        (r::('v list, 'v) result) = Rerr x2 \<and> x2 = Rraise x1 \<longrightarrow>
-       clock (fst (fun_evaluate_match (st'::'astate) (env::'vsemv_env) x1 (pes::('aat \<times> 'exp0) list) x1))
+       clock (fst (fun_evaluate_match (st'::'astate) (env::'vsemv_env) x1 (pes::('pat \<times> 'exp0) list) x1))
        \<le> clock st'"
   shows "((r::('v list, 'v) result) = Rerr (x2::'v error_result) \<longrightarrow>
            clock
             (fst (case x2 of
                   Rraise (v2::'v) \<Rightarrow>
-                    fun_evaluate_match (st'::'astate) (env::'vsemv_env) v2 (pes::('aat \<times> 'exp0) list) v2
+                    fun_evaluate_match (st'::'astate) (env::'vsemv_env) v2 (pes::('pat \<times> 'exp0) list) v2
                   | Rabort (abort::abort) \<Rightarrow> (st', Rerr (Rabort abort))))
            \<le> clock (st::'astate))"
   using assms [[smt_trace=false]] by (smt (verit))
