@@ -911,6 +911,38 @@ lemma
     \<not> (\<forall>veriT_vr18 veriT_vr19. poly Nil \<noteq> poly (veriT_vr18 # veriT_vr19) \<or> 0 = veriT_vr18 \<and> poly Nil = poly veriT_vr19)\<close>
   supply [[show_types]] by (ctxt_tactic "qnt_cnf")
 
+lemma
+  fixes Sum :: "['a,'a,'a,'a,'a,'a] \<Rightarrow> bool" ("Sum _ _ _ _ _ _" [99,99,99,99,99,99] 50) 
+  shows
+    \<open>\<not> (\<forall>veriT_vr80 veriT_vr81 veriT_vr82 veriT_vr83 veriT_vr84 veriT_vr85 veriT_vr86 veriT_vr87 veriT_vr88.
+                Sum veriT_vr80 veriT_vr81 veriT_vr82 veriT_vr83 veriT_vr84 veriT_vr85 \<and>
+                Sum veriT_vr80 veriT_vr81 veriT_vr82 veriT_vr84 veriT_vr86 veriT_vr87 \<longrightarrow>
+                (Sum veriT_vr80 veriT_vr81 veriT_vr82 veriT_vr83 veriT_vr87 veriT_vr88) =
+                (Sum veriT_vr80 veriT_vr81 veriT_vr82 veriT_vr85 veriT_vr86 veriT_vr88)) \<or>
+         (\<forall>veriT_vr80 veriT_vr81 veriT_vr82 veriT_vr83 veriT_vr84 veriT_vr85 veriT_vr86 veriT_vr87 veriT_vr88.
+             \<not> Sum veriT_vr80 veriT_vr81 veriT_vr82 veriT_vr83 veriT_vr84 veriT_vr85 \<or>
+             \<not> Sum veriT_vr80 veriT_vr81 veriT_vr82 veriT_vr84 veriT_vr86 veriT_vr87 \<or>
+             \<not> Sum veriT_vr80 veriT_vr81 veriT_vr82 veriT_vr85 veriT_vr86 veriT_vr88 \<or>
+             Sum veriT_vr80 veriT_vr81 veriT_vr82 veriT_vr83 veriT_vr87 veriT_vr88) \<close>
+  by (ctxt_tactic "qnt_cnf")
+
+lemma 
+  fixes Sum :: "['a,'a,'a,'a,'a,'a] \<Rightarrow> bool" ("Sum _ _ _ _ _ _" [99,99,99,99,99,99] 50) and
+        Opp :: "['a,'a,'a,'a,'a] \<Rightarrow> bool" ("Opp _ _ _ _ _" [99,99,99,99,99] 50) and
+        Diff :: "['a,'a,'a,'a,'a,'a] \<Rightarrow> bool" ("Diff _ _ _ _ _ _" [99,99,99,99,99,99] 50)
+  shows \<open>\<not> (\<forall>veriT_vr80 veriT_vr81 veriT_vr82 veriT_vr83 veriT_vr84 veriT_vr85 veriT_vr86 veriT_vr87 veriT_vr88.
+            Sum veriT_vr80 veriT_vr81 veriT_vr82 veriT_vr83 veriT_vr84 veriT_vr85 \<and>
+            Sum veriT_vr80 veriT_vr81 veriT_vr82 veriT_vr84 veriT_vr86 veriT_vr87 \<longrightarrow>
+            (Sum veriT_vr80 veriT_vr81 veriT_vr82 veriT_vr83 veriT_vr87 veriT_vr88) =
+            (Sum veriT_vr80 veriT_vr81 veriT_vr82 veriT_vr85 veriT_vr86 veriT_vr88)) \<or>
+     (\<forall>veriT_vr80 veriT_vr81 veriT_vr82 veriT_vr83 veriT_vr84 veriT_vr85 veriT_vr86 veriT_vr87 veriT_vr88.
+         \<not> Sum veriT_vr80 veriT_vr81 veriT_vr82 veriT_vr83 veriT_vr84 veriT_vr85 \<or>
+         \<not> Sum veriT_vr80 veriT_vr81 veriT_vr82 veriT_vr84 veriT_vr86 veriT_vr87 \<or>
+         \<not> Sum veriT_vr80 veriT_vr81 veriT_vr82 veriT_vr85 veriT_vr86 veriT_vr88 \<or>
+         Sum veriT_vr80 veriT_vr81 veriT_vr82 veriT_vr83 veriT_vr87 veriT_vr88)\<close>
+  by (ctxt_tactic "qnt_cnf")
+
+
 (* Rule 30: and *)
 
 lemma and_1:
