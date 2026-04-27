@@ -11,9 +11,9 @@ imports "HOL-Library.Word" "HOL.SMT_CVC_Word"
 begin
 
 
-declare[[smt_trace = false]]
-declare[[smt_expert_debug_alethe_level=0]]
-declare[[smt_expert_debug_alethe_files="rare_rec_mode"]]
+declare[[smt_trace = true, smt_verbose=true]]
+declare[[smt_expert_debug_alethe_level=2]]
+declare[[smt_expert_debug_alethe_files="alethe_replay_methods"]]
 declare[[smt_nat_as_int]]
 
 section \<open>Bitvector numbers\<close>
@@ -35,7 +35,7 @@ section \<open>Conversions\<close>
 
 lemma "Word.Word 0 = (0::5 word)" by (smt (cvc5))
 lemma "Word.Word 8 = (8::5 word)" by (smt (cvc5))
-lemma "Word.Word 72 = (8::5 word)" by (smt (cvc5))
+lemma "Word.Word 72 = (8::5 word)"  by (smt (cvc5))
 lemma "of_int 0 = (0::5 word)" by (smt (cvc5))
 lemma "of_int 8 = (8::5 word)" by (smt (cvc5))
 lemma "of_int 72 = (8::5 word)" by (smt (cvc5))
@@ -53,10 +53,11 @@ LENGTH(constant) is now calculated during normalization using the simplifier
 LENGTH(type variable) is lifted to len_of_lift during normalization
 (len_of_lift TYPE('a::len0))
  \<close>
-
+thm smt_word_len_evaluate
 lemma "LENGTH(0) = 0" by (smt(cvc5))
 lemma "LENGTH(1) = 1" by (smt(cvc5))
-lemma "LENGTH(64) = 64" by (smt(cvc5))
+lemma "LENGTH(64) = 64"  supply [[smt_trace,smt_verbose,smt_expert_debug_alethe_files="smt_normalize",smt_expert_debug_alethe_level=3]]
+  by (smt(cvc5))
 lemma "LENGTH(5) = 5" by (smt(cvc5))
 lemma "LENGTH('a::len0) = LENGTH('a)" by (smt(cvc5))
 lemma "2 * LENGTH('n::len) = LENGTH('n) + LENGTH('n)" by (smt(cvc5))
@@ -64,7 +65,7 @@ lemma "2 * LENGTH('n::len) = LENGTH('n) + LENGTH('n)" by (smt(cvc5))
 section \<open>power\<close>
 
 ML \<open>
-val x = @{term "push_bit ::nat \<Rightarrow> 4 word \<Rightarrow> 4 word"} |> fastype_of |> strip_type
+val x = @{term "LENGTH(64)"} 
 \<close>
 
 

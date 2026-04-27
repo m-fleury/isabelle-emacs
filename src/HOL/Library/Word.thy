@@ -4723,6 +4723,7 @@ lemma [pow_2_word]:
   unfolding pow_2_word_def by simp
 
 named_theorems smt_word_len_evaluate \<open>\<close>
+
 (*Speed up for commonly used bit-widths*)
 lemma [smt_word_len_evaluate]:
   "len_of (a::8 itself) \<equiv> 8"
@@ -4732,7 +4733,6 @@ lemma [smt_word_len_evaluate]:
   "len_of (e::128 itself) \<equiv> 128"
   by simp_all
 
-(*Evaluates LENGTH of a constant... Not sure if we want that*)
 lemmas [smt_word_len_evaluate] = eq_reflection[OF len_bit0] eq_reflection[OF len_bit1]
   eq_reflection[OF len_num0] eq_reflection[OF len_num1]
 
@@ -4923,19 +4923,17 @@ fun count_consts (Const _ $ t) = 1 + count_consts t |
 
 
 fun is_overflow_bv_const (Const ("Num.numeral_class.numeral", Type("fun",[_,T])) $ t) =
-let
-  val bitwidth = Word_Lib.dest_wordT T (*TODO: try*)
-  val nr_children = count_consts t
-in bitwidth <  (1 + nr_children) end | 
-is_overflow_bv_const _ = false
+      (case try Word_Lib.dest_wordT T of
+         NONE => false
+       | SOME bitwidth => bitwidth < (1 + count_consts t))
+  | is_overflow_bv_const _ = false
 
 
-
+(*TODO Hanna: That should work with NONE*)
 val simplify_norm_table = [
-  ("Type_Length.len0_class.len_of", (NONE, @{thms smt_word_len_evaluate})),
-  ("Word.Word", (NONE, @{thms Word_of_int})),
-  ("Word.slice",(NONE, @{thms slice_lift})) ,
-  ("Num.numeral_class.numeral",(SOME (fn x => is_overflow_bv_const x), @{thms word_numeral_lift}))
+  ("Type_Length.len0_class.len_of", (NONE, ( @{thms },SOME @{thms smt_word_len_evaluate}))),
+  ("Word.slice",(SOME (K true), ([],SOME @{thms slice_lift}))) ,
+  ("Num.numeral_class.numeral",(SOME (fn x => is_overflow_bv_const x), (@{thms word_numeral_lift},SOME @{thms drop_bit_int_code})))
 
 ]
 
@@ -4947,5 +4945,6 @@ val _ = fold SMT_Normalize.add_simplify_ops_tab (simplify_norm_table)
 \<close>
 
 declare [[smt_nat_as_int]]
+lemmas [smt_word_len_evaluate] = semiring_numeral_class.numeral_times_numeral
 
 end

@@ -252,8 +252,7 @@ lemmas [alethe_aci_simp] =
 
 
 
-
-
+lemmas [cvc5_normalized_input] = Word_of_int
 
 
 

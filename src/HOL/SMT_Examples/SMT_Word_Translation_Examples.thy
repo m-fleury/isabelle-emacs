@@ -10,7 +10,10 @@ declare[[smt_expert_debug_alethe_files="smt_normalize"]]
 declare[[smt_expert_debug_alethe_level=3]]
 declare[[smt_nat_as_int=true,smt_trace]]
 
-section \<open>Bitvector numbers\<close>
+section \<open>Bit-vector lengths\<close>
+
+
+section \<open>Bit-vector numerals\<close>
 
 
 (* Normal Words are normally encoded as Bit-vectors :) *)
@@ -103,6 +106,16 @@ lemma "1 + 3 = (4::5 word)"
 
 
 
+section \<open>Casts\<close>
+
+(* Word.Word is translated into int_to_bv *)
+lemma "Word.Word 8 = (8::5 word)"
+  apply (test_smt_translate 
+\<open>
+(set-logic AUFBVLIRAFS)
+(assert (! (not (= ((_ int_to_bv 5) 8) (_ bv8 5))) :named a0))
+\<close>)
+  by (smt (cvc5))
 
 
 

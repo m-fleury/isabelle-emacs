@@ -21,7 +21,7 @@ sig
           Context.generic -> Context.generic
 
   val add_nat_native_ops_tab : (string * thm list) -> Context.generic -> Context.generic
-  val add_simplify_ops_tab : (string * ((term -> bool) option * thm list)) -> Context.generic -> Context.generic
+  val add_simplify_ops_tab : (string * ((term -> bool) option * (thm list * thm list option))) -> Context.generic -> Context.generic
 
 end;
 
@@ -370,7 +370,7 @@ and the second a potentially empty list of lemmas applied before the simplifier 
 E.g., for machine word constants we only want to call the simplifier if they are larger than their bit-width allows.
 
 *)
-type simplify_ops = (string * ((term -> bool) option * thm list))
+type simplify_ops = (string * ((term -> bool) option * (thm list * thm list option)))
 structure Simplify_Ops = Generic_Data
 (
   type T = simplify_ops list
@@ -408,46 +408,45 @@ local
        | _ => Conv.all_conv) ct
     end
 
+  (*TODO: Delete some of the unnecessary try_convs*)
   fun unfold_extension_conv_simp tab ctxt ct =
     let
       val t = Thm.term_of ct
       val t1 = Term.head_of t
-      
+
       fun proper_num_ss ctxt =
         simpset_of (put_simpset HOL_ss ctxt
         addsimps (Named_Theorems.get ctxt \<^named_theorems>\<open>simplify_translation\<close>))
 
-      fun simp_rewr ctxt = Simplifier.rewrite (Simplifier.add_cong  @{thm option.case_cong} ((put_simpset (proper_num_ss  ctxt)) ctxt))
+      fun simp_rewr thms ctxt = Simplifier.rewrite (Simplifier.add_cong  @{thm option.case_cong} ( (((put_simpset (proper_num_ss  ctxt)) ctxt) addsimps thms)))
       fun rewr_conv [] = Conv.all_conv |
-          rewr_conv (thm::thms) =( Conv.try_conv (Conv.top_rewrs_conv [thm |> @{print}] ctxt))
-          then_conv (print_conv "unfold_extension_conv_simp") ctxt "test one conv" 
+          rewr_conv (thm::thms) = (Conv.try_conv (Conv.top_rewrs_conv [thm] ctxt))
           then_conv rewr_conv thms
-    in
-      (case t1 of
-        Const(n,T) =>
-          (case AList.lookup (op =) tab n of (*TODO: use thms in Simplifier*)
-              SOME (cond,thms) =>
-              (case cond of
-                NONE => Conv.all_conv |
-                (SOME f) =>
-                let
-                  val cond_ev = f t
-                in
-                  if cond_ev then 
-                    rewr_conv (thms)
-                    then_conv (print_conv "unfold_extension_conv_simp") ctxt "unfolded one conv" 
-                    then_conv (simp_rewr ctxt)
-                    then_conv (print_conv "unfold_extension_conv_simp") ctxt "simp rewrite one conv"
-                  else Conv.all_conv
-                end)
-            | NONE => Conv.all_conv)
-       | _ => Conv.all_conv) ct
-    end
+
+      fun transform (rw_thms,NONE) = Conv.try_conv (rewr_conv rw_thms) (*only rewrite*)
+        | transform (rw_thms,SOME simp_thms) =
+            (Conv.try_conv (rewr_conv rw_thms))
+            then_conv (Conv.try_conv (simp_rewr simp_thms ctxt))
+ in
+  ((case t1 of
+    Const(n,T) =>
+      (case AList.lookup (op =) tab n of
+        SOME (cond,thms) =>
+          (case cond of
+            NONE => Conv.try_conv (transform thms)
+          | SOME cond_fun => if cond_fun t then Conv.try_conv (transform thms) else Conv.all_conv)                                                                         
+      | NONE => Conv.all_conv)
+  | _ => Conv.all_conv) ct)
+ end
+
 in
+fun simplify_norm_extension_conv ctxt ct =
+ (Conv.top_conv ((fn ctxt' => ( unfold_extension_conv_simp (simplify_norm_table ctxt') ctxt'))) ctxt) ct
 
 
-fun simplify_norm_extension_conv ctxt =
- (Conv.top_conv (unfold_extension_conv_simp (simplify_norm_table ctxt)) ctxt)
+fun simplify_norm ctxt =
+map (apsnd (Conv.fconv_rule (simplify_norm_extension_conv ctxt)))
+
 
 fun nat_native_extension_conv ctxt =
  (unfold_extension_conv (nat_native_ops_table ctxt) ctxt)
@@ -728,6 +727,9 @@ fun normalize ctxt wthms =
   wthms
   |> map_index (fn (n, (role, thm)) => ((n, role), thm))
   |> debug ctxt "before"
+  |> simplify_norm ctxt
+  |> debug ctxt "after"
+
   |> unfold_cvc5_extension ctxt
   |> debug ctxt "unfold_cvc5_extension" (*TODO: Is this needed? Why does this appear as a conv and here?*)
   
