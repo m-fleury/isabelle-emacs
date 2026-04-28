@@ -429,9 +429,9 @@ fun postprocess_proof compress ctxt step cx =
          in 
            if SMTLIB_Proof.lookup_binding cx new_name = None then new_name else assign_unused_name t (i+1)
          end
-        val new_variable_names = fold (fn t => curry (op ::) (t, assign_unused_name t 1)) (map fst rebound_lhs_vars) []
+        val new_variable_names = fold (fn t => curry (op ::) (t, assign_unused_name t 0)) (map fst rebound_lhs_vars) []
         val _ = debug_msg ctxt high (fn () => \<^print> ("... mapping between new variables introduced in the anchor and their original names", new_variable_names))
-      in ((shadowing_vars, map (apfst (fn t => assign_unused_name t 1)) rebound_lhs_vars, substitute_terms), new_variable_names) end
+      in ((shadowing_vars, map (apfst (fn t => assign_unused_name t 0)) rebound_lhs_vars, substitute_terms), new_variable_names) end
   
     (* Functions for rewriting terms and the context *)
     fun synctactic_var_subst old_name new_name (u $ v) =
