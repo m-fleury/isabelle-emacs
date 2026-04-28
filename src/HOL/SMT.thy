@@ -243,19 +243,10 @@ lemma alethe_if_weak_cong':
 
 lemma alethe_or_neg:
    \<open>(A \<Longrightarrow> B) \<Longrightarrow> B \<or> \<not>A\<close>
-   \<open>(\<not>A \<Longrightarrow> B) \<Longrightarrow> B \<or> A\<close>
   by auto
 
-lemma alethe_not_or:
-  \<open>B \<Longrightarrow> (\<not>B \<or> A) \<Longrightarrow> A\<close>
-  \<open>(B \<or> A) \<Longrightarrow> (\<not>\<not>B \<or> A)\<close>
-  apply (cases A)
-  by simp_all
-
-(* TODO: We had \<not>(\<not>A \<longrightarrow> B) \<or> A \<or> B here before too *)
-lemma alethe_implies_pos: \<open>\<not>(A \<longrightarrow> B) \<or> \<not>A \<or> B\<close> 
+lemma alethe_implies_pos: \<open>\<not>(A \<longrightarrow> B) \<or> \<not>A \<or> B\<close>
   by auto
-
 
 lemma alethe_subst_bool: \<open>P \<Longrightarrow> f True \<Longrightarrow> f P\<close>
   by auto
@@ -274,11 +265,6 @@ lemma alethe_and_pos0:
 lemma alethe_farkas:
   \<open>(a \<Longrightarrow> A) \<Longrightarrow> \<not>a \<or> A\<close>
   \<open>(\<not>a \<Longrightarrow> A) \<Longrightarrow> a \<or> A\<close>
-  by blast+
-
-lemma alethe_and_pos2:
-  \<open>(a \<Longrightarrow> \<not>(b \<and> c) \<or> A) \<Longrightarrow> \<not>(a \<and> b \<and> c) \<or> A\<close>
-  \<open>(a \<Longrightarrow> b \<Longrightarrow> A) \<Longrightarrow> \<not>(a \<and> b) \<or> A\<close>
   by blast+
 
 lemma alethe_or_pos:
@@ -333,9 +319,6 @@ lemma alethe_shuffle_and4:
   \<open>A \<Longrightarrow>  (a = (a \<and> A))\<close>
   apply (cases a)
   by simp_all
-
-
-
 
 lemma alethe_shuffle_or_split:
   "(a \<longrightarrow> (b \<or> B)) \<Longrightarrow> (\<not>a \<Longrightarrow> A = (b \<or> B)) \<Longrightarrow> (a \<or> A) = (b \<or> B)"
