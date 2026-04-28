@@ -848,9 +848,9 @@ proof -
       (ground_resolution D)\<^sup>+\<^sup>+ C Cr \<and>
       (\<exists>Crr \<in> fset Urr. (ground_resolution D)\<^sup>*\<^sup>* Cr Crr) \<or>
         (is_least_false_clause (N |\<union>| Ur |\<union>| Uff) Cr)"
+    supply [[smt_trace]]
     by (smt (verit) L2_matches_L3.elims(2))
   oops
-
 
 lemma
   assumes
@@ -904,5 +904,127 @@ axiomatization where
   g3: "g xs = length xs"
 
 lemma "g (Some (3::int)) = g (Some True)" by (smt (verit) g1 g2 g3 list.size)
+
+text \<open>Regressions\<close>
+experiment
+begin
+
+lemma 
+  fixes eq :: "'qt1 \<Rightarrow> 'qt1 \<Rightarrow> bool" (infix "#=" 50) and
+        card_of :: "'var set \<Rightarrow> 'var rel" (\<open>(\<open>open_block notation=\<open>mixfix card_of\<close>\<close>|_|)\<close>) and
+        ordLess2 :: "'var rel \<Rightarrow> 'var rel \<Rightarrow> bool" (infix \<open><o\<close> 50) and
+        qGood :: "'qt1 \<Rightarrow> bool" and
+        asTerm :: "'qt1 \<Rightarrow> 'qt1 set"
+  assumes "\<forall>(qX::'qt1) qY::'qt1.
+          qGood qX \<and> asTerm qX = asTerm qY \<longrightarrow> qX #= qY"
+       "\<forall>x2::'qt1. the (Some x2) = x2"
+       "\<forall>x2::'qt1 set. the (Some x2) = x2"
+       "\<forall>(f1::'qt1 set option)
+          (f2::'qt1 \<Rightarrow> 'qt1 set option)
+          x2::'qt1.
+          (case Some x2 of None \<Rightarrow> f1 | Some (x::'qt1) \<Rightarrow> f2 x) = f2 x2"
+       "\<forall>(f1::'qt1 set option)
+          (f2::'qt1 \<Rightarrow> 'qt1 set option)
+          option::'qt1 option.
+          (case option of None \<Rightarrow> f1 | Some (x::'qt1) \<Rightarrow> f2 x) =
+          (if option = None then f1 else f2 (the option))"
+       "\<forall>x2::'qt1. None \<noteq> Some x2"
+       "\<forall>x2::'qt1 set. None \<noteq> Some x2"
+       "\<not> (((\<forall>(xs::'varSort) (i::'var) v::'qt1.
+                (qrho::'varSort \<Rightarrow> 'var \<Rightarrow> 'qt1 option) xs i = Some v \<longrightarrow> qGood v) \<and>
+            (\<forall>ys::'varSort. |{y::'var. \<exists>ya::'qt1. qrho ys y = Some ya}| <o (card_of UNIV))) \<and>
+           (\<lambda>(xs::'varSort) i::'var.
+               case qrho xs i of None \<Rightarrow> None | Some (v::'qt1) \<Rightarrow> Some (asTerm v)) =
+           (\<lambda>(xs::'varSort) i::'var.
+               case (qrho'::'varSort \<Rightarrow> 'var \<Rightarrow> 'qt1 option) xs i of None \<Rightarrow> None
+               | Some (v::'qt1) \<Rightarrow> Some (asTerm v)) \<longrightarrow>
+           (\<forall>xs::'varSort.
+               (\<forall>i::'var. (qrho xs i = None) = (qrho' xs i = None)) \<and>
+               (\<forall>(i::'var) (v1::'qt1) v2::'qt1.
+                   qrho xs i = Some v1 \<and> qrho' xs i = Some v2 \<longrightarrow> v1 #= v2)))"
+  shows "False"
+   using assms by (smt (verit)) (*bind From: Binding_Syntax_Theory/Transition_QuasiTerms_Terms.thy*)
+
+datatype ('n, 'e) result =
+  Normal (normal: 'n)
+| Exception (ex: 'e)
+| NT
+
+lemma
+  assumes "\<forall>(P::('a \<Rightarrow> ('b, 'c) result) \<Rightarrow> bool) Q::('a \<Rightarrow> ('b, 'c) result) \<Rightarrow> bool.
+          (\<forall>x::'a \<Rightarrow> ('b, 'c) result. P x = Q x) \<longrightarrow> Collect P = Collect Q"
+       "\<forall>(P::('b, 'c) result \<Rightarrow> bool) Q::('b, 'c) result \<Rightarrow> bool.
+          (\<forall>x::('b, 'c) result. P x = Q x) \<longrightarrow> Collect P = Collect Q"
+       "\<forall>(a::'a \<Rightarrow> ('b, 'c) result) P::('a \<Rightarrow> ('b, 'c) result) \<Rightarrow> bool. (a \<in> Collect P) = P a"
+       "\<forall>(a::('b, 'c) result) P::('b, 'c) result \<Rightarrow> bool. (a \<in> Collect P) = P a"
+       "\<forall>(f1::'b \<Rightarrow> bool) (f2::'c \<Rightarrow> bool) (f3::bool) result::('b, 'c) result.
+          (case result of Normal (x::'b) \<Rightarrow> f1 x | Exception (x::'c) \<Rightarrow> f2 x | NT \<Rightarrow> f3) =
+          (if is_Normal result then f1 (normal result) else if is_Exception result then f2 (ex result) else f3)"
+       "\<forall>result::('b, 'c) result. (result = NT) = (case result of NT \<Rightarrow> True | _ \<Rightarrow> False)"
+       "\<forall>(x::'a) a::('b, 'c) result.
+          result_lub
+           {y::('b, 'c) result. \<exists>xa::'a \<Rightarrow> ('b, 'c) result. xa \<in> (A::('a \<Rightarrow> ('b, 'c) result) set) \<and> y = xa x} =
+          a \<longrightarrow>
+          a = NT \<or> a \<in> {y::('b, 'c) result. \<exists>xa::'a \<Rightarrow> ('b, 'c) result. xa \<in> A \<and> y = xa x}"
+       "is_Normal
+        (result_lub
+          {y::('b, 'c) result. \<exists>x::'a \<Rightarrow> ('b, 'c) result. x \<in> (A::('a \<Rightarrow> ('b, 'c) result) set) \<and> y = x (h::'a)}) \<and>
+       (r::'b + 'c) = Inl (normal (result_lub {y::('b, 'c) result. \<exists>x::'a \<Rightarrow> ('b, 'c) result. x \<in> A \<and> y = x h}))"
+       "is_Normal (fun_lub result_lub (A::('a \<Rightarrow> ('b, 'c) result) set) (h::'a)) \<and>
+       (r::'b + 'c) = Inl (normal (fun_lub result_lub A h))"
+       "\<forall>x::'a \<Rightarrow> ('b, 'c) result.
+          x \<in> (A::('a \<Rightarrow> ('b, 'c) result) set) \<longrightarrow>
+          (\<forall>(h::'a) r::'b + 'c.
+              is_Normal (x h) \<and> r = Inl (normal (x h)) \<or> is_Exception (x h) \<and> r = Inr (ex (x h)) \<longrightarrow>
+              (P::'a \<Rightarrow> 'b + 'c \<Rightarrow> bool) h r)"
+       "\<not> (P::'a \<Rightarrow> 'b + 'c \<Rightarrow> bool) (h::'a) (r::'b + 'c)"
+       shows "False"
+  using assms by (smt (verit)) (*onepoint From: Isabelle-Solidity/State_Monad.thy*)
+
+lemma
+  fixes Sum :: "['a,'a,'a,'a,'a,'a] \<Rightarrow> bool" ("Sum _ _ _ _ _ _" [99,99,99,99,99,99] 50) and
+        Opp :: "['a,'a,'a,'a,'a] \<Rightarrow> bool" ("Opp _ _ _ _ _" [99,99,99,99,99] 50) and
+        Diff :: "['a,'a,'a,'a,'a,'a] \<Rightarrow> bool" ("Diff _ _ _ _ _ _" [99,99,99,99,99,99] 50)
+  assumes "\<forall>(PO::'a) (E::'a) (E'::'a) (A::'a) (B::'a) C::'a.
+          (Ar2 PO E E' A B C) = (\<not> Col PO E E' \<and> Col PO E A \<and> Col PO E B \<and> Col PO E C)"
+       "\<forall>(PO::'a) (E::'a) (E'::'a) (A::'a) (B::'a) C::'a.
+          (Diff PO E E' A B C) = (\<exists>B'::'a. Opp PO E E' B B' \<and> Sum PO E E' A B' C)"
+       "Diff (PO::'a) (E::'a) (E'::'a) (B::'a) (A::'a) (dBA::'a)"
+       "Diff (PO::'a) (E::'a) (E'::'a) (C::'a) (B::'a) (dCB::'a)"
+       "Diff (PO::'a) (E::'a) (E'::'a) (C::'a) (A::'a) (dCA::'a)"
+       "\<forall>(PO::'a) (E::'a) (E'::'a) (A::'a) (B::'a) AMB::'a. Diff PO E E' A B AMB \<longrightarrow> Ar2 PO E E' A B AMB"
+       "\<forall>(PO::'a) (E::'a) (E'::'a) (S::'a) (A::'a) B::'a. Diff PO E E' S A B \<longrightarrow> Sum PO E E' A B S"
+       "\<forall>(PO::'a) (E::'a) (E'::'a) (A::'a) (MA1::'a) MA2::'a.
+          \<not> Col PO E E' \<and> Opp PO E E' A MA1 \<and> Opp PO E E' A MA2 \<longrightarrow> MA1 = MA2"
+       "\<forall>(PO::'a) (E::'a) (E'::'a) (A::'a) (B::'a) (AB::'a) (C::'a) (BC::'a) ABC::'a.
+          Sum PO E E' A B AB \<and> Sum PO E E' B C BC \<longrightarrow> (Sum PO E E' A BC ABC) = (Sum PO E E' AB C ABC)"
+       "\<forall>(PO::'a) (E::'a) (E'::'a) (A::'a) (B::'a) C::'a. \<not> Col PO E E' \<and> Sum PO E E' A B C \<longrightarrow> Sum PO E E' B A C"
+       "\<not> Sum (PO::'a) (E::'a) (E'::'a) (dCB::'a) (dBA::'a) (dCA::'a)"
+       shows "False"
+  using assms by (smt (verit)) (*qnt_cnf From: IsaGeoCoq/Tarski_Euclidean_2D.thy*)
+
+lemma 
+  fixes  holds_for :: "(_ \<Rightarrow> bool) \<Rightarrow> _ \<Rightarrow> bool" (\<open>_ holds'_for _\<close> [100, 99] 100)
+  assumes "\<forall>(x::'cell list \<times> 'cell list \<Rightarrow> bool) xa::nat \<times> 'cell list \<times> 'cell list.
+          \<not> x holds_for xa \<and>
+          (\<forall>(P::'cell list \<times> 'cell list \<Rightarrow> bool) (s::nat) (l::'cell list) (r::'cell list).
+              x = P \<and> xa = (s, l, r) \<and> \<not> P (l, r) \<longrightarrow> False) \<longrightarrow> False"
+       "\<forall>(n::nat) (s::nat) tap::'cell list \<times> 'cell list.
+          inv_tm_skip_first_arg_len_eq_1 n (s, tap) =
+          (if s = 0 then inv_tm_skip_first_arg_len_eq_1_s0 n tap
+           else if s = 1 then inv_tm_skip_first_arg_len_eq_1_s1 n tap
+                else if s = (2::nat) then inv_tm_skip_first_arg_len_eq_1_s2 n tap
+                     else if s = (3::nat) then inv_tm_skip_first_arg_len_eq_1_s3 n tap
+                          else if s = (4::nat) then inv_tm_skip_first_arg_len_eq_1_s4 n tap
+                               else if s = (5::nat) then inv_tm_skip_first_arg_len_eq_1_s5 n tap else False)"
+       "\<forall>(s::nat) tap::'cell list \<times> 'cell list. is_final (s, tap) = (s = 0)"
+       "is_final (steps0 (1, l::'cell list, r::'cell list) tm_skip_first_arg (stp::nat))"
+       "inv_tm_skip_first_arg_len_eq_1 (n::nat) (steps0 (1, l::'cell list, r::'cell list) tm_skip_first_arg (stp::nat))"
+       "\<not> inv_tm_skip_first_arg_len_eq_1_s0
+           (n::nat) holds_for steps0 (1, l::'cell list, r::'cell list) tm_skip_first_arg (stp::nat)" 
+  shows "False"
+  using assms by (smt (verit)) (*qnt_cnf (From: Universal_Turing_Machine/StrongCopyTM.thy)*)
+
+end
 
 end

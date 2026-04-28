@@ -2693,7 +2693,7 @@ proof -
     then have "eventually (\<lambda>x. ereal r < f x) F" 
       if "r > c" for r using that by blast
     then have "eventually (\<lambda>x. ereal r < f x) F"
-      sorry
+      by (smt (verit, del_insts) ereal_less_le eventually_mono gt_ex)
   } then show ?thesis
     using tendsto_PInfty by blast
 qed 
@@ -3108,7 +3108,7 @@ qed
 
 lemma Sup_ereal_mult_left':
   "\<lbrakk> Y \<noteq> {}; x \<ge> 0 \<rbrakk> \<Longrightarrow> ereal x * (SUP i\<in>Y. f i) = (SUP i\<in>Y. ereal x * f i)"
-  sorry
+  by (smt (verit) Sup.SUP_cong Sup_ereal_mult_right' mult.commute)
 
 lemma sup_continuous_add[order_continuous_intros]:
   fixes f g :: "'a::complete_lattice \<Rightarrow> ereal"

@@ -1442,6 +1442,7 @@ proof-
     by (smt (verit) Collect_cong f(1) local.cong) 
 qed
 
+ 
 lemma finite_nn_integral_imp_ae_finite:
   fixes f :: "'a \<Rightarrow> ennreal"
   assumes "f \<in> borel_measurable M" "(\<integral>\<^sup>+x. f x \<partial>M) < \<infinity>"

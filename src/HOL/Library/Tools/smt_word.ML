@@ -336,7 +336,7 @@ fun bit m n T ts =
           $ word)
 
           fun cond i i_suc =
-      (Const(\<^const_name>\<open>smt_extract\<close>, @{typ "nat"} --> @{typ "nat"} --> fastype_of (word) --> @{typ "1 word"})
+      (Const("smt_extract", @{typ "nat"} --> @{typ "nat"} --> fastype_of (word) --> @{typ "1 word"})
         $ i $ i
           $ word)
 

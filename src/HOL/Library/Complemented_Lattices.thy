@@ -235,7 +235,7 @@ lemma image_of_maximum:
     and "\<And>x. x:M \<Longrightarrow> x\<le>m"
     and "m:M"
   shows "(SUP x\<in>M. f x) = f m"
-  sorry
+  by (smt (verit, ccfv_threshold) assms(1) assms(2) assms(3) cSup_eq_maximum imageE imageI monoD)
 
 lemma cSup_eq_cSup:
   fixes A B :: \<open>'a::conditionally_complete_lattice set\<close>

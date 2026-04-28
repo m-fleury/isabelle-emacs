@@ -1283,79 +1283,29 @@ end
 local
   val rm_unused = @{lemma \<open>(\<forall>x. P) = P\<close> \<open>(\<exists>x. P) = P\<close> by blast+}
 
-  fun term_contains v (t $ u) = 
-        t = v orelse v = u orelse term_contains v t orelse term_contains v u
-    | term_contains v (s as Abs (_, _, xs)) =
-        v = s orelse term_contains v xs
-    | term_contains v t = v = t
-  
-  fun print_conv (str : string) ct = (@{print} (str, ct, Thm.term_of ct); Conv.all_conv ct)
-  
-  fun find_independant_terms dest thms (v, ctxt) t =
-    let
-      val disjs = 
-        dest (Thm.term_of t)
-        |> filter_out (term_contains (Thm.term_of v))
-        |> map (Thm.cterm_of ctxt)
-      fun move_term_to_the_beginning (ct :: cts) =
-          (Conv.rewrs_conv
-         (map (Drule.infer_instantiate' ctxt [NONE, SOME ct]) thms)
-          then_conv move_term_to_the_beginning cts)
-       | move_term_to_the_beginning [] = Conv.all_conv
-    in
-      move_term_to_the_beginning disjs t
-    end
-  (*for miniscoping we go over the term recursively and if we detect a conjuction/disjunction with a term
-   does not depend en the variables, we move it to the front and and the rewrite the entire thing
-   with rewr_conv outside of the quantifier.*)
-  fun miniscope_term ctxt t = 
-    (case t |> Thm.term_of  of
-      \<^Const_>\<open>HOL.All _\<close> $ _ =>
-        Conv.try_conv (Conv.arg_conv (Conv.abs_conv (find_independant_terms HOLogic.disjuncts 
-        @{thms disj_left_commute[THEN eq_reflection] disj_commute[THEN eq_reflection]}) ctxt)
-        then_conv Conv.try_conv (Conv.rewr_conv @{lemma \<open>\<And>P1 Q1. \<forall>x::'d1. (P1::bool) \<or> (Q1::'d1 \<Rightarrow> bool) x \<equiv> P1 \<or> (\<forall>x::'d1. Q1 x)\<close> by auto})
-        then_conv Conv.fun_conv (miniscope_term ctxt)
-        then_conv Conv.arg_conv (miniscope_term ctxt)) t
-     | \<^Const_>\<open>HOL.Ex _\<close> $ _ =>
-        Conv.try_conv (Conv.arg_conv (Conv.abs_conv (find_independant_terms HOLogic.conjuncts 
-        @{thms conj_left_commute[THEN eq_reflection] conj_commute[THEN eq_reflection]}) ctxt)
-        then_conv Conv.try_conv (Conv.rewr_conv @{lemma \<open>\<And>P1 Q1. \<exists>x::'d1. (P1::bool) \<and> (Q1::'d1 \<Rightarrow> bool) x \<equiv> P1 \<and> (\<exists>x::'d1. Q1 x)\<close> by auto})
-        then_conv Conv.fun_conv (miniscope_term ctxt)
-        then_conv Conv.arg_conv (miniscope_term ctxt)) t
-    | _ $ _ => Conv.try_conv (Conv.fun_conv (miniscope_term ctxt) then_conv Conv.arg_conv (miniscope_term ctxt)) t
-    | Abs _ => Conv.try_conv (Conv.abs_conv (fn (_, ctxt) => miniscope_term ctxt) ctxt) t
-    | _ => Conv.all_conv t)
-  
-  fun miniscope ctxt =
-    HOLogic.Trueprop_conv (Conv.arg_conv (miniscope_term ctxt) then_conv Conv.fun_conv (Conv.arg_conv (miniscope_term ctxt)))
-  
-  (*We try to recontruct the proof without looking too much into the structure, hence
-  first trying simp. The main issue is that the simplifer call can loop in complicated
-  cases.*)
+  (*We follow here the approach from carcara: CNF transformation, then distribution of forall 
+  quantifiers.*)
   fun qnt_cnf_tac ctxt =
    (debug_msg_tac' ctxt high "qnt_cnf start") THEN'
-    SOLVED' (simplify_tac ctxt (@{thms if_bool_eq_conj disj_comms
-         all_simps ex_simps all_conj_distrib} @ 
+    SOLVED' (
+       REPEAT' (resolve_tac ctxt 
+        @{lemma \<open>(A \<Longrightarrow> a) \<Longrightarrow> a \<or> \<not>A\<close>
+           \<open>(a \<Longrightarrow> A) \<Longrightarrow> \<not>a \<or>A\<close> by auto})
+      THEN' simplify_tac ctxt (@{thms if_bool_eq_conj disj_comms
+         ex_simps all_conj_distrib} @ 
         [@{lemma
           \<open>\<And>P Q R. (\<forall>x y. P x y \<and> Q x y \<or> R x y) = ((\<forall>x y. P x y \<or> R x y) \<and> (\<forall>x y. Q x y \<or> R x y))\<close>
           by blast+}] @ 
         (*not_not is repeated as last theorem:*)
         (curry List.take @{thms nnf_simps} (length @{thms nnf_simps} - 1)))
-      THEN' K (print_tac ctxt "pre miniscope")
-      THEN' TRY' (CONVERSION (miniscope ctxt)) (*goal can be already solved*)
-      THEN' K (print_tac ctxt "post miniscope")
-      THEN' TRY' (simplify_tac ctxt ( 
-        @{lemma
-          \<open>\<And>P Q R. (\<forall>x y. P x y \<and> Q x y \<or> R x y) = ((\<forall>x y. P x y \<or> R x y) \<and> (\<forall>x y. Q x y \<or> R x y))\<close>
-          \<open>\<And>a b c x y. NO_MATCH (x \<and> y) a \<Longrightarrow> (a \<or> b \<and> c) = ((b \<and> c) \<or> a)\<close>
-          by blast+}))
-      THEN' K (print_tac ctxt "post simp")
-      THEN' TRY' (Clasimp.force_tac ctxt)
-      THEN' (debug_msg_tac' ctxt high "qnt_cnf after resolving with qnt_cnf_basic")
+      THEN' TRY' (CNF.cnf_rewrite_tac ctxt)
       (*split the forall in smaller conjunctions*)
-      THEN' TRY' (simplify_tac ctxt (@{thms
-        iff_conv_conj_imp if_bool_eq_disj ex_simps all_simps ex_disj_distrib
-        alethe_connective_def(3)  all_conj_distrib not_all not_ex} @ 
+      THEN' TRY' (simplify_tac ctxt @{thms all_conj_distrib})
+      THEN' REPEAT' (eresolve_tac ctxt @{thms conjE})
+      THEN' TRY' (simplify_tac ctxt []) (*cheap attempt*)
+      THEN' (debug_msg_tac' ctxt high "qnt_cnf after resolving with qnt_cnf_basic")
+      (*try again to split*)
+      THEN' TRY' (simplify_tac ctxt (@{thms ac_simps} @ 
         (*not_not is repeated as last theorem:*)
         (curry List.take @{thms nnf_simps} (length @{thms nnf_simps} - 1))))
       THEN' (debug_msg_tac' ctxt high "qnt_cnf after resolving simplifying")
@@ -1417,7 +1367,7 @@ local
       | (Abs (_, _, t1), Abs (_, _, t2)) => aconv_untyped (t1, t2)
       | (Const (a, _), Const (b, _)) => a = b
       | (Free (x, _), Free (y, _)) => x = y
-      | (Var (xi, _), Var (yj, _)) => xi = yj
+      | (Var ((xi,_), _), Var ((yj,_), _)) => xi = yj
       | (Bound i, Bound j) => i = j
       | _ => false);
   fun subst_var_untyped [] = I
@@ -1441,6 +1391,7 @@ local
 
        val thms = map (Drule.infer_instantiate' context [SOME i])
            @{thms alethe_onepoint2_all alethe_onepoint2_ex}
+
     in
       resolve_tac context thms 1
     end
@@ -1467,7 +1418,7 @@ local
 
   fun onepoint_quants ctxt prems t =
     let
-      val insts = extract_instantiations prems |> @{print}
+      val insts = extract_instantiations prems
       val (t1, t2) = 
         t
         |> Thm.cterm_of ctxt
@@ -1483,7 +1434,6 @@ in
 fun onepoint ctxt [prem] t = SMT_Replay_Methods.prove ctxt t (fn _ =>
   onepoint_quants ctxt prem t []
   THEN' REPEAT' (resolve_tac ctxt @{thms refl})
-  THEN' K (print_tac ctxt "post align")
   THEN_ALL_NEW 
     (*cheap version: hope that nothing got reorder and simp will solve the goal. Otherwise,
     try to move all equalities out of the quantifiers rewrite them with @{thm alethe_rewrite_in_imp}

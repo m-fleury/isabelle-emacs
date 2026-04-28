@@ -373,7 +373,7 @@ lemma R_trans [trans]: "R a b \<Longrightarrow> R b c \<Longrightarrow> R a c"
 lemma R_mult_left_mono: "R a b \<Longrightarrow> c \<ge> 0 \<Longrightarrow> R (c*a) (c*b)"
   using R by (auto simp: mult_left_mono)
 
-lemma R_mult_right_mono: "R a b \<Longrightarrow> c \<ge> 0 \<Longrightarrow> R (a * c) (b * c)"
+lemma R_mult_right_mono: "R a b \<Longrightarrow> c \<ge> 0 \<Longrightarrow> R (a*c) (b*c)"
   using R by (auto simp: mult_right_mono)
 
 lemma big_trans:
@@ -1513,7 +1513,7 @@ proof (clarsimp simp: smallo_def)
   then have "\<And>m. (k*m)\<ge>N \<Longrightarrow> \<bar>f (k*m)\<bar> \<le> c/k * (k*m)"
     by blast
   with \<open>k>0\<close> have "\<forall>\<^sub>F m in sequentially. \<bar>f (k*m)\<bar> \<le> c/k * (k*m)"
-    sorry
+    by (smt (verit, del_insts) One_nat_def Suc_leI eventually_at_top_linorderI mult_1_left mult_le_mono)
   then show "\<forall>\<^sub>F n in sequentially. \<bar>f (k * n)\<bar> \<le> c * n"
     by eventually_elim (use \<open>k>0\<close> in auto)
 qed
@@ -1529,10 +1529,10 @@ proof -
     have "\<forall>\<^sub>F x in F. norm (f x) \<le> c * norm(h x)" "\<forall>\<^sub>F x in F. norm(g x) \<le> c * norm(h x)"
       by (auto simp: smallo_def)
     then show ?thesis
-      sorry
+      by (smt (verit) eventually_elim2 max_def min_def)
   qed
   with assms show "(\<lambda>x. max (f x) (g x)) \<in> o[F](h)" "(\<lambda>x. min (f x) (g x)) \<in> o[F](h)"
-    sorry
+    by (smt (verit) eventually_elim2 landau_o.smallI)+
 qed
 
 lemma le_imp_bigo_real:

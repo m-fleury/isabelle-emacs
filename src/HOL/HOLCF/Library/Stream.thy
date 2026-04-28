@@ -9,6 +9,7 @@ imports HOLCF "HOL-Library.Extended_Nat"
 begin
 
 default_sort pcpo
+no_notation bot (\<open>\<bottom>\<close>)
 
 domain (unsafe) 'a stream = scons (ft::'a) (lazy rt::"'a stream") (infixr \<open>&&\<close> 65)
 

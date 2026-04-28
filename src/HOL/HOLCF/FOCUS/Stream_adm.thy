@@ -8,6 +8,8 @@ theory Stream_adm
 imports "HOLCF-Library.Stream" "HOL-Library.Order_Continuity"
 begin
 
+no_notation Sup (\<open>(\<open>open_block notation=\<open>prefix \<Squnion>\<close>\<close>\<Squnion> _)\<close> [900] 900)
+
 definition
   stream_monoP  :: "(('a stream) set \<Rightarrow> ('a stream) set) \<Rightarrow> bool" where
   "stream_monoP F = (\<exists>Q i. \<forall>P s. enat i \<le> #s \<longrightarrow>
@@ -213,7 +215,7 @@ lemma adm_set:
 "{\<Squnion>i. Y i |Y. chain Y \<and> (\<forall>i. Y i \<in> P)} \<subseteq> P \<Longrightarrow> adm (\<lambda>x. x\<in>P)"
 apply (unfold adm_def)
 apply (fast)
-done
+  done
 
 lemma def_gfp_admI: "P \<equiv> gfp F \<Longrightarrow> {\<Squnion>i. Y i |Y. chain Y \<and> (\<forall>i. Y i \<in> P)} \<subseteq> 
   F {\<Squnion>i. Y i |Y. chain Y \<and> (\<forall>i. Y i \<in> P)} \<Longrightarrow> adm (\<lambda>x. x\<in>P)"
