@@ -3082,6 +3082,64 @@ Alethe_Replay_Methods.onepoint @{context} @{thms H} goal
 end\<close>
 
 end
+end
+
+(* Bind *)
+experiment
+begin
+
+context
+  fixes eq :: "'qt1 \<Rightarrow> 'qt1 \<Rightarrow> bool" (infix "#=" 50) and
+        card_of :: "'var set \<Rightarrow> 'var rel" (\<open>(\<open>open_block notation=\<open>mixfix card_of\<close>\<close>|_|)\<close>) and
+        ordLess2 :: "'var rel \<Rightarrow> 'var rel \<Rightarrow> bool" (infix \<open><o\<close> 50) and
+        qGood :: "'qt1 \<Rightarrow> bool" and
+        asTerm :: "'qt1 \<Rightarrow> 'qt1 set" and
+     qrho qrho' :: \<open>'qt1 \<Rightarrow> 'qt1 \<Rightarrow> 'qt1 option\<close> and
+     veriT_vr45 veriT_vr50 :: 'qt1
+  assumes overall_assms:
+    "veriT_vr45 = veriT_vr50"
+begin
+context
+  fixes veriT_vr48' veriT_vr48 veriT_vr47 veriT_vr46 veriT_vr52 
+    veriT_vr53 :: 'qt1
+  assumes H:
+         "veriT_vr46 = veriT_vr52"
+         "veriT_vr47 = veriT_vr48'"
+         "veriT_vr48 = veriT_vr53"
+begin
+
+lemma H: \<open>(qrho veriT_vr45 veriT_vr46 = Some veriT_vr47 \<and> qrho' veriT_vr45 veriT_vr46 = Some veriT_vr48 \<longrightarrow> veriT_vr47 #= veriT_vr48) =
+         (Some veriT_vr48' = qrho veriT_vr50 veriT_vr52 \<and> qrho' veriT_vr50 veriT_vr52 = Some veriT_vr53 \<longrightarrow> veriT_vr48' #= veriT_vr53)\<close>
+  unfolding H overall_assms by auto
+
+end
+
+
+lemma \<open>(P = Q) \<Longrightarrow> P = P' \<Longrightarrow> Q = Q' \<Longrightarrow> Q = Q'\<close>
+  by auto
+
+ML \<open>Alethe_Replay_Methods.bind\<close>
+ML \<open>
+let
+  val goal = @{term \<open>Trueprop ((\<forall>veriT_vr46 veriT_vr47 veriT_vr48. qrho veriT_vr45 veriT_vr46 = Some veriT_vr47 \<and> qrho' veriT_vr45 veriT_vr46 = Some veriT_vr48 \<longrightarrow> veriT_vr47 #= veriT_vr48) =
+         (\<forall>veriT_vr52 veriT_vr48 veriT_vr53. Some veriT_vr48 = qrho veriT_vr50 veriT_vr52 \<and> qrho' veriT_vr50 veriT_vr52 = Some veriT_vr53 \<longrightarrow> veriT_vr48 #= veriT_vr53)  )\<close>}
+in
+Alethe_Replay_Methods.bind @{context} @{thms H} [
+@{term \<open>Trueprop (veriT_vr52 = veriT_vr48)\<close>},
+@{term \<open>Trueprop (veriT_vr48')\<close>},
+@{term \<open>Trueprop (veriT_vr53)\<close>},
+@{term \<open>Trueprop (veriT_vr46 = veriT_vr52)\<close>},
+@{term \<open>Trueprop (veriT_vr47 = veriT_vr48)\<close>},
+@{term \<open>Trueprop (veriT_vr48' = veriT_vr53)\<close>}]
+
+ goal
+|> Thm.prop_of
+|> curry (op =) goal
+|> (fn x => if not x then error "failed" else ())
+end\<close>
+
+end
+end
 
 (*
 
