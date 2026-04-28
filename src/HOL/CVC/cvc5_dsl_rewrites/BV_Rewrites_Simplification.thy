@@ -2,12 +2,8 @@ theory BV_Rewrites_Simplification
   imports BV_Rewrites_Lemmas 
 begin
 
-(*Status May 2025: 70 rules total*)
-
 (*
 (define-rule bv-ite-equal-children ((c (_ BitVec 1)) (x ?BitVec)) (bvite c x x) x)
-
-TEST: NO
 *)
 
 named_theorems rewrite_bv_ite_equal_children \<open>automatically_generated\<close>
@@ -16,8 +12,7 @@ lemma [rewrite_bv_ite_equal_children]:
   fixes c::"1 word" and x::"'a ::len word"
   shows "NO_MATCH cvc_a (undefined c x)
     \<Longrightarrow> (if bit c (0::nat) then x else x) = x"
-  by auto
-
+  by simp
 
 (*
 (define-rule bv-ite-const-children-1 (
@@ -25,8 +20,6 @@ lemma [rewrite_bv_ite_equal_children]:
   )
   (bvite c (@bv 0 1) (@bv 1 1))
   (bvnot c))
-
-TEST: NO
 *)
 
 named_theorems rewrite_bv_ite_const_children_1 \<open>automatically_generated\<close>
@@ -34,8 +27,11 @@ named_theorems rewrite_bv_ite_const_children_1 \<open>automatically_generated\<c
 lemma [rewrite_bv_ite_const_children_1]:
   fixes c::"1 word"
   shows "NO_MATCH cvc_a (undefined c)
-    \<Longrightarrow> (if bit c (0::nat) then Word.Word (0::int) else Word.Word (1::int)) = not c"
-  sorry
+    \<Longrightarrow> (if bit c (0::nat) then (0::1 word) else (1::1 word)) = not c"
+  apply (cases "lsb c")
+  apply (metis (mono_tags, opaque_lifting) and_one_neq_simps(2) bit.compl_eq_compl_iff bit.compl_zero nth_0 sint_minus1 smt_redand_cast_1(2,3) test_bit.Rep_inject unsigned_1 word_and_max_word
+      word_test_bit_def)
+  by (metis (no_types, lifting) One_nat_def and.right_neutral and_one_neq_simps(2) bit.compl_zero bit_1_0 sint_minus1 smt_redand_cast_1(1,3) unat_eq_1)
 
 (*
 (define-rule bv-ite-const-children-2 (
@@ -43,8 +39,6 @@ lemma [rewrite_bv_ite_const_children_1]:
   )
   (bvite c (@bv 1 1) (@bv 0 1))
   c)
-
-TEST: NO
 *)
 
 named_theorems rewrite_bv_ite_const_children_2 \<open>automatically_generated\<close>
@@ -52,8 +46,8 @@ named_theorems rewrite_bv_ite_const_children_2 \<open>automatically_generated\<c
 lemma [rewrite_bv_ite_const_children_2]:
   fixes c::"1 word"
   shows "NO_MATCH cvc_a (undefined c)
-    \<Longrightarrow> (if bit c (0::nat) then Word.Word (1::int) else Word.Word (0::int)) = c"
-  by (metis (mono_tags, opaque_lifting) Word.of_nat_unat add.group_left_neutral bit.compl_zero len_of_numeral_defs(2) mask_1 nat_int nth_0 one_word_def take_bit_minus_one_eq_mask ucast_id unsigned_1 unsigned_of_int word_and_1 word_ao_nth word_exists_nth word_of_int_neg_1 word_plus_and_or_coroll2 zero_word_def)
+    \<Longrightarrow> (if bit c (0::nat) then (1::1 word) else (0::1 word)) = c"
+  by (metis (mono_tags, opaque_lifting) Word.of_nat_unat add.group_left_neutral bit.compl_zero len_of_numeral_defs(2) mask_1 nat_int nth_0 take_bit_minus_one_eq_mask ucast_id unsigned_1 unsigned_of_int word_and_1 word_ao_nth word_exists_nth word_of_int_neg_1 word_plus_and_or_coroll2 zero_word_def)
 
 
 (*
@@ -65,8 +59,6 @@ lemma [rewrite_bv_ite_const_children_2]:
   )
   (bvite c0 (bvite c0 t0 e0) e1)
   (bvite c0 t0 e1))
-
-TEST: NO
 *)
 
 named_theorems rewrite_bv_ite_equal_cond_1 \<open>automatically_generated\<close>
@@ -76,7 +68,7 @@ lemma [rewrite_bv_ite_equal_cond_1]:
   shows "NO_MATCH cvc_a (undefined c0 t0 e0 e1)
     \<Longrightarrow> (if bit c0 (0::nat) then if bit c0 (0::nat) then t0 else e0 else e1) =
    (if bit c0 (0::nat) then t0 else e1)"
-  by auto
+  by simp
 
 
 (*
@@ -88,15 +80,14 @@ lemma [rewrite_bv_ite_equal_cond_1]:
   )
   (bvite c0 t0 (bvite c0 t1 e1))
   (bvite c0 t0 e1))
-
-TEST: NO
 *)
 
 named_theorems rewrite_bv_ite_equal_cond_2 \<open>automatically_generated\<close>
 
 lemma [rewrite_bv_ite_equal_cond_2]:
   fixes c0::"1 word" and t0::"'a ::len word" and t1::"'a ::len word" and e1::"'a ::len word"
-  shows "(if bit c0 (0::nat) then t0 else if bit c0 (0::nat) then t1 else e1) =
+  shows "NO_MATCH cvc_a (undefined c0 t0 t1 e1)
+    \<Longrightarrow> (if bit c0 (0::nat) then t0 else if bit c0 (0::nat) then t1 else e1) =
    (if bit c0 (0::nat) then t0 else e1)"
   by auto
 
@@ -111,8 +102,6 @@ lemma [rewrite_bv_ite_equal_cond_2]:
   )
   (bvite c0 (bvite c0 t0 e0) (bvite c0 t1 e1))
   (bvite c0 t0 e1))
-
-TEST: NO
 *)
 
 
@@ -120,7 +109,8 @@ named_theorems rewrite_bv_ite_equal_cond_3 \<open>automatically_generated\<close
 
 lemma [rewrite_bv_ite_equal_cond_3]:
   fixes c0::"1 word" and t0::"'a ::len word" and e0::"'a ::len word" and t1::"'a ::len word" and e1::"'a ::len word"
-  shows "(if bit c0 (0::nat) then if bit c0 (0::nat) then t0 else e0
+  shows "NO_MATCH cvc_a (undefined c0 t0 e0 t1 e1)
+    \<Longrightarrow> (if bit c0 (0::nat) then if bit c0 (0::nat) then t0 else e0
     else if bit c0 (0::nat) then t1 else e1) =
    (if bit c0 (0::nat) then t0 else e1)"
   by auto
@@ -134,15 +124,14 @@ lemma [rewrite_bv_ite_equal_cond_3]:
   )
   (bvite c0 (bvite c1 t1 e1) t1)
   (bvite (bvand c0 (bvnot c1)) e1 t1))
-
-TEST: NO
 *)
 
 named_theorems rewrite_bv_ite_merge_then_if \<open>automatically_generated\<close>
 
 lemma [rewrite_bv_ite_merge_then_if]:
   fixes c0::"1 word" and c1::"1  word" and t1::"'a ::len word" and e1::"'a ::len word"
-  shows "(if bit c0 (0::nat) then if bit c1 (0::nat) then t1 else e1 else t1) =
+  shows "NO_MATCH cvc_a (undefined c0 c1 t1 e1)
+    \<Longrightarrow> (if bit c0 (0::nat) then if bit c1 (0::nat) then t1 else e1 else t1) =
    (if bit (and c0 (not c1)) (0::nat) then e1 else t1)"
   by (metis lsb0)
 
@@ -156,15 +145,14 @@ lemma [rewrite_bv_ite_merge_then_if]:
   )
   (bvite c0 (bvite c1 t1 e1) e1)
   (bvite (bvand c0 c1) t1 e1))
-
-TEST: NO
 *)
 
 named_theorems rewrite_bv_ite_merge_else_if \<open>automatically_generated\<close>
 
 lemma [rewrite_bv_ite_merge_else_if]:
   fixes c0::"1 word" and c1::"1 word" and t1::"'a ::len word" and e1::"'a ::len word"
-  shows "(if bit c0 (0::nat) then if bit c1 (0::nat) then t1 else e1 else e1) =
+  shows "NO_MATCH cvc_a (undefined c0 c1 t1 e1)
+    \<Longrightarrow> (if bit c0 (0::nat) then if bit c1 (0::nat) then t1 else e1 else e1) =
    (if bit (and c0 c1) (0::nat) then t1 else e1)"
   by (metis word_ao_nth)
 
@@ -178,16 +166,15 @@ lemma [rewrite_bv_ite_merge_else_if]:
   )
   (bvite c0 t0 (bvite c1 t0 e1))
   (bvite (bvand (bvnot c0) (bvnot c1)) e1 t0))
-
-TEST: NO
 *)
 
 named_theorems rewrite_bv_ite_merge_then_else \<open>automatically_generated\<close>
 
 lemma [rewrite_bv_ite_merge_then_else]:
   fixes c0::"1 word" and c1::"1 word" and t0::"'a ::len word" and e1::"'a ::len word"
-  shows "(if bit c0 (0::nat) then t0 else if bit c1 (0::nat) then t0 else e1) =
-   (if bit (not (or c0 c1)) (0::nat) then e1 else t0)"
+  shows "NO_MATCH cvc_a (undefined c0 c1 t0 e1)
+    \<Longrightarrow>(if bit c0 (0::nat) then t0 else if bit c1 (0::nat) then t0 else e1) =
+   (if bit (and (not c0) (not c1)) (0::nat) then e1 else t0)"
   by (metis lsb0)
 
 
@@ -200,15 +187,14 @@ lemma [rewrite_bv_ite_merge_then_else]:
   )
   (bvite c0 t0 (bvite c1 t1 t0))
   (bvite (bvand (bvnot c0) c1) t1 t0))
-
-TEST: NO
 *)
 
 named_theorems rewrite_bv_ite_merge_else_else \<open>automatically_generated\<close>
 
 lemma [rewrite_bv_ite_merge_else_else]:
   fixes c0::"1  word" and c1::"1 word" and t1::"'a ::len word" and t0::"'a ::len word"
-  shows "(if bit c0 (0::nat) then t0 else if bit c1 (0::nat) then t1 else t0) =
+  shows "NO_MATCH cvc_a (undefined c0 c1 t1 t0)
+    \<Longrightarrow>(if bit c0 (0::nat) then t0 else if bit c1 (0::nat) then t1 else t0) =
    (if bit (and (not c0) c1) (0::nat) then t1 else t0)"
   by (metis lsb0)
 
@@ -218,16 +204,19 @@ lemma [rewrite_bv_ite_merge_else_else]:
   ((x ?BitVec) (sz Int))
   (bvshl x (@bv 0 sz))
   x)
-
-TEST: YES
 *)
-
+declare[[show_types,show_sorts]]
 named_theorems rewrite_bv_shl_by_const_0 \<open>automatically_generated\<close>
 
-lemma [rewrite_bv_shl_by_const_0]:
+lemma 
   fixes x::"'a::len word" and sz::"int"
-  shows "push_bit (unat (Word.Word (0::int))) x = x"
+  shows "NO_MATCH cvc_a (undefined x sz) \<Longrightarrow> sz = LENGTH('b) \<Longrightarrow> push_bit (unat (Word.Word (0::int) ::'b::len word)) x = x"
   by auto
+
+lemma [rewrite_bv_shl_by_const_0]:
+  fixes x::"'a::len word" and sz::"nat"
+  shows "NO_MATCH cvc_a (undefined x sz) \<Longrightarrow> push_bit_lift x 0 = x"
+  unfolding push_bit_lift_def sorry
 
 
 (*

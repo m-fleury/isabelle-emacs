@@ -85,7 +85,7 @@ val nat_native_ops_tab =
 
 ]
 val simplify_norm_table = [
-  ("Bit_Operations.semiring_bits_class.bit",(NONE,@{thms push_bit_lift}))
+  ("Bit_Operations.semiring_bits_class.bit",(NONE,(@{thms push_bit_lift},NONE)))
 
 ]
 
@@ -207,6 +207,7 @@ cvc5_rare "BV_Rewrites.rewrite_bv_sdivo_eliminate"
 cvc5_rare "BV_Rewrites.rewrite_bv_srem_eliminate_fewer_bitwise_ops"
 cvc5_rare "BV_Rewrites.rewrite_bv_usubo_eliminate"
 
+cvc5_rare "BV_Rewrites_Simplification.rewrite_bv_ite_equal_children"
 cvc5_rare "BV_Rewrites_Simplification.rewrite_bv_ite_const_children_1"
 cvc5_rare "BV_Rewrites_Simplification.rewrite_bv_ite_const_children_2"
 cvc5_rare "BV_Rewrites_Simplification.rewrite_bv_ite_equal_cond_1"
@@ -249,7 +250,6 @@ lemmas [alethe_aci_simp] =
  Bit_Operations.semiring_bit_operations_class.and.idem
  Bit_Operations.semiring_bit_operations_class.or.idem
  Bit_Operations.ring_bit_operations_class.bit.xor_self
-
 
 
 lemmas [cvc5_normalized_input] = Word_of_int

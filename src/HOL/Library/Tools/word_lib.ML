@@ -10,6 +10,7 @@ sig
   val is_wordT: typ -> bool
   val dest_wordT: typ -> int
   val mk_wordT: int -> typ
+  val mk_word_const: int -> int -> term
 end
 
 structure Word_Lib: WORD_LIB =
@@ -43,5 +44,7 @@ fun mk_binT size =
 fun mk_wordT size =
   if size >= 0 then Type (\<^type_name>\<open>word\<close>, [mk_binT size])
   else raise TYPE ("mk_wordT: " ^ string_of_int size, [], [])
+
+fun mk_word_const value size = HOLogic.mk_number (mk_wordT size) value
 
 end

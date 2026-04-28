@@ -18,7 +18,7 @@ open Word_Lib
 
 
 (*This will be deleted eventually*)
-val trace = false
+val trace = true
 fun debug_msg (x : unit -> 'a) =
  if trace then ignore(x ()) else ()
 
@@ -159,6 +159,26 @@ local
       (SOME (n, 2, [t1,t2], (fn ts => Term.list_comb (Const (m,T),ts))))
     end
      | shift_lift _ _ _ _ = NONE
+
+  fun shift_lift2 m n T [t1,t2] =
+    let
+      val _ = print_binary_info "shift lift2" m n T t1 t2
+
+      val U = Term.domain_type (Term.range_type T)
+      val T1 = fastype_of t1
+        handle (TERM _) => @{typ "int"} (*TODO*)
+
+      val T1' = @{typ "int"} --> U (*|> @{print}*)
+      val T' = U --> U --> U
+      val cast = Const("Int.ring_1_class.of_int",T1')
+
+      (*Make word out of t2*)
+      val t2 = HOLogic.mk_number T1 (snd (HOLogic.dest_number t2))
+    in
+      (SOME (n, 2, [t1,t2], (fn ts => Term.list_comb (Const (m,T),ts))))
+    end
+     | shift_lift2 _ _ _ _ = NONE
+
 
 
   fun mk_shift' c [t, u] = Const c $ t $ mk_nat (snd (HOLogic.dest_number u))
@@ -783,9 +803,11 @@ val setup_builtins =
     (\<^term>\<open>or :: 'a::len word \<Rightarrow> _\<close>, "bvor"),
     (\<^term>\<open>xor :: 'a::len word \<Rightarrow> _\<close>, "bvxor") ] #>
   fold (add_word_fun shift_lift) [
-    (\<^term>\<open>push_bit_lift :: 'a::len word \<Rightarrow> _ \<Rightarrow> _ \<close>, "bvshl"),
     (\<^term>\<open>drop_bit_lift :: 'a::len word  \<Rightarrow> _ \<Rightarrow> _\<close>, "bvlshr"),
     (\<^term>\<open>signed_drop_bit_lift :: 'a::len word \<Rightarrow> 'a::len word \<Rightarrow> _\<close>, "bvashr")
+   ] #>
+  fold (add_word_fun shift_lift2) [
+    (\<^term>\<open>push_bit_lift :: 'a::len word \<Rightarrow> _ \<Rightarrow> _ \<close>, "bvshl")
    ] #>
   add_word_fun concat
     (\<^term>\<open>word_cat :: 'a::len word \<Rightarrow> _\<close>, "concat")  #>
@@ -820,9 +842,6 @@ val setup_builtins =
   fold (add_word_fun bit) [
     (\<^term>\<open>bit :: 'a::len word \<Rightarrow> _ \<Rightarrow> _\<close>, "bit")
    ] #>
-   fold (add_word_fun bit) [
-    (\<^term>\<open>bit_lift :: 'a::len word  \<Rightarrow> _ \<Rightarrow> _\<close>, "bit")(*TODO*)
-   ] #>  
   add_word_fun extract
     (\<^term>\<open>smt_extract :: _ \<Rightarrow> _ \<Rightarrow> 'a::len word \<Rightarrow> _\<close>, "extract") #>
   add_word_fun extract_lift
@@ -982,8 +1001,9 @@ fun
   | bv_term_parser (SMTLIB.Sym "bvshl", [t1, t2]) = 
     let     
       val T1 = fastype_of t1
+      val (t2_nat) = HOLogic.dest_number t2 |> snd |> HOLogic.mk_number @{typ int}
     in
-      SOME (Const (\<^const_name>\<open>push_bit_lift\<close>, T1 --> T1 --> T1) $ t1 $ t2)
+      SOME (Const (\<^const_name>\<open>push_bit_lift\<close>, T1 --> @{typ int} --> T1) $ t1 $ t2_nat)
    end
   | bv_term_parser (SMTLIB.Sym "bvlshr", [t1, t2]) = 
     let

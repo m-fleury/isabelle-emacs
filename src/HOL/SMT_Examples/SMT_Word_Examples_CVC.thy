@@ -53,11 +53,10 @@ LENGTH(constant) is now calculated during normalization using the simplifier
 LENGTH(type variable) is lifted to len_of_lift during normalization
 (len_of_lift TYPE('a::len0))
  \<close>
-thm smt_word_len_evaluate
+
 lemma "LENGTH(0) = 0" by (smt(cvc5))
 lemma "LENGTH(1) = 1" by (smt(cvc5))
-lemma "LENGTH(64) = 64"  supply [[smt_trace,smt_verbose,smt_expert_debug_alethe_files="smt_normalize",smt_expert_debug_alethe_level=3]]
-  by (smt(cvc5))
+lemma "LENGTH(64) = 64" by (smt(cvc5))
 lemma "LENGTH(5) = 5" by (smt(cvc5))
 lemma "LENGTH('a::len0) = LENGTH('a)" by (smt(cvc5))
 lemma "2 * LENGTH('n::len) = LENGTH('n) + LENGTH('n)" by (smt(cvc5))
@@ -241,13 +240,9 @@ lemma bvex_122: \<open>(42 :: 8 word) <s - 1705\<close> by (smt (cvc5))
 lemma bvex_123: \<open>- (42 :: 8 word) <s - 1705\<close> by (smt (cvc5))
 lemma bvex_124: \<open>(1 :: 8 word) <s 42\<close> by (smt (cvc5))
 
-lemma [nat_normalized_input]:
-  "(smt_extract_lift j j w \<noteq> (1::1 word)) \<equiv> \<not>bit_lift w j"
-  unfolding word_rotr_lift_def smt_extract_lift_def bit_lift_def
-  using bit_smt_extract2 oops
-
 declare[[smt_expert_debug_alethe_level=3]]
 declare[[smt_expert_debug_alethe_files="alethe_replay_methods"]]
+
 (*bvex_125 - 130 todo*)
 lemma bvex_125: \<open>bit (1705 :: 16 word) (Suc (Suc (Suc 0)))\<close> by (smt (cvc5))
 lemma bvex_126: \<open>bit (1705 :: 16 word) 3\<close> by (smt (cvc5))
@@ -352,7 +347,7 @@ lemma bvex_201: \<open>signed_take_bit 3 (1705 :: 16 word) = - 7\<close> by (smt
 lemma bvex_202: \<open>signed_take_bit (Suc (Suc (Suc 0))) (1705 :: 16 word) = - 7\<close> by (smt (cvc5))
 lemma bvex_203: \<open>signed_take_bit 3 (- 1705 :: 16 word) = 7\<close> by (smt (cvc5))
 lemma bvex_204: \<open>signed_take_bit (Suc (Suc (Suc 0))) (- 1705 :: 16 word) = 7\<close> by (smt (cvc5))
-lemma bvex_205: \<open>signed_take_bit 3 (1 :: 16 word) = 1\<close> by (smt (cvc5))
+lemma bvex_205: \<open>signed_take_bit 3 (1 :: 16 word) = 1\<close> using signed_take_bit_def  by (smt (cvc5))
 lemma bvex_206: \<open>signed_take_bit (Suc (Suc (Suc 0))) (1 :: 16 word) = 1\<close> by (smt (cvc5))
 
 (*bvex_207 - 214 todo*)
@@ -397,10 +392,10 @@ section "modulus"
 
 text \<open>
 Benchmark Nrs: 241-243
-Date counted: 12/08/25
+Date counted: 04/27/26
 
 Total:    3
-Success:  2
+Success:  3
 \<close>
 
 lemma bvex_241: "(27 :: 4 word) = -5" by (smt (cvc5))
@@ -411,7 +406,7 @@ section "signed"
 
 text \<open>
 Benchmark Nrs: 244
-Date counted: 12/08/25
+Date counted: 04/27/26
 
 Total:    1
 Success:  0
