@@ -2015,9 +2015,16 @@ fun poly_simp_rel ctxt [thm] t =
          THEN' debug_msg_tac' ctxt high "poly_simp_rel after applying lemma"
          THEN' TRY' (assume_tac ctxt)
          (*
+         Non bv case:
          For constants cx and cy you'd have to prove that: ((cx > 0) = (cy > 0)), cx \<noteq> 0, cy \<noteq> 0
-         For one of the cases you only need to prove the latter two.*)
+         For one of the cases you only need to prove the latter two.
+
+         Bv case:
+         You need to show odd cx, odd cy, cx * (x1 - x2) = 1 and cy * (x1 - x2) = 1 
+         *)
          THEN' REPEAT' (SOLVED' (partial_simplify_tac ctxt (@{thms poly_simp_rel} @ @{thms arith_simps})))
+         THEN' debug_msg_tac' ctxt high "poly_simp_rel after first try of resolving premises"
+
          THEN' REPEAT' 
             (TRY' (resolve_tac ctxt [lemma])
              THEN' TRY' (resolve_tac ctxt @{thms conjI}) 

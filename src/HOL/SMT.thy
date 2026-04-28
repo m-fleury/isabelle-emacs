@@ -1025,6 +1025,8 @@ lemmas poly_simp_rel =
    less_divide_eq_numeral1
    less_numeral_simps alethe_div_simplify zero_less_one
    not_one_less_zero neg_0_less_iff_less
+   Parity.semiring_parity_class.odd_numeral
+   Parity.semiring_parity_class.odd_one
 
 lemma alethe_arg_cong0: \<open>f = g \<Longrightarrow> f a = f a\<close>
   by (rule arg_cong)
