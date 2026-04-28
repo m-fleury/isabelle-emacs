@@ -420,6 +420,7 @@ fun postprocess_proof compress ctxt step cx =
         val (shadowing_vars, rebound_lhs_vars) =
           substituted_vars @ fixed_vars
           |> filter_split (not_already_bound cx)
+          |> (fn (shadow, rebound) => (Library.distinct (op =) shadow, Library.duplicates (op =) shadow @ rebound))
         val _ = debug_msg ctxt high (fn () => \<^print> ("... (new variables, already bound variables)", (shadowing_vars, rebound_lhs_vars)))
       
         fun assign_unused_name t i = 
@@ -428,9 +429,9 @@ fun postprocess_proof compress ctxt step cx =
          in 
            if SMTLIB_Proof.lookup_binding cx new_name = None then new_name else assign_unused_name t (i+1)
          end
-        val new_variable_names = fold (fn t => curry (op ::) (t, assign_unused_name t 0)) (map fst rebound_lhs_vars) []
-        val _ = debug_msg ctxt high (fn () => \<^print> ("... mapping between new variables introduced in the anchor and their original names"))
-      in ((shadowing_vars, rebound_lhs_vars, substitute_terms), new_variable_names) end
+        val new_variable_names = fold (fn t => curry (op ::) (t, assign_unused_name t 1)) (map fst rebound_lhs_vars) []
+        val _ = debug_msg ctxt high (fn () => \<^print> ("... mapping between new variables introduced in the anchor and their original names", new_variable_names))
+      in ((shadowing_vars, map (apfst (fn t => assign_unused_name t 1)) rebound_lhs_vars, substitute_terms), new_variable_names) end
   
     (* Functions for rewriting terms and the context *)
     fun synctactic_var_subst old_name new_name (u $ v) =
@@ -509,13 +510,14 @@ fun postprocess_proof compress ctxt step cx =
         (*TODO Hanna: Maybe it would be okay to only change the name of the term and not of the key, I have not tried yet*)
         (*TODO Hanna: Make more elegant*)
         fun normalize_external (raw_name, Free(a,b)) =
-          if Config.get ctxt SMT_Config.check_external andalso Char.isUpper (hd ( String.explode raw_name))
+          if Config.get ctxt SMT_Config.check_external andalso Char.isUpper (hd (String.explode raw_name))
           then ("isabelle_internal_" ^ raw_name,Free("isabelle_internal_" ^ a,b)) else (raw_name,Free(a,b))
         fun normalize_external2 (raw_name,b) =
-          if Config.get ctxt SMT_Config.check_external andalso Char.isUpper (hd ( String.explode raw_name))
+          if Config.get ctxt SMT_Config.check_external andalso Char.isUpper (hd (String.explode raw_name))
           then (("isabelle_internal_" ^ raw_name),b) else ( raw_name,b)
         val ((shadowing_vars, rebound_lhs_vars, substitute_terms),new_variable_names) =
-          process_context_assignments context_assignments cx ||> (curry (op @)) new_variable_names
+          process_context_assignments context_assignments cx
+          ||> (curry (op @)) new_variable_names
           |> (fn ((i,j,k),n) => ((map normalize_external i,map normalize_external j,k), map normalize_external2 n))
         (* Process conclusion *)
         val (cx',termified_concl) = transform_concl concl id (cx, new_variable_names)
@@ -550,7 +552,7 @@ fun postprocess_proof compress ctxt step cx =
         val (termified_context_ass, _) =
          fold_map node_of (rm_types context_assignments) subproof_cx 
          |>> map fst
-        val normalized_context_ass = map unsk_and_rewrite' (map subproof_rewriter' termified_context_ass)
+        val normalized_context_ass = map (unsk_and_rewrite' o subproof_rewriter' o subproof_rewriter new_variable_names) termified_context_ass
         val _ = debug_msg ctxt middle (fn () => \<^print> ("... transformed context assignments of anchor ", normalized_context_ass))
     
         (* Add rule-specific arguments *)
