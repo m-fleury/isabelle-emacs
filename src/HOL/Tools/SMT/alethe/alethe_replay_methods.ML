@@ -845,14 +845,8 @@ fun trans ctxt thms t =
           combine_thms (combine_thms [thm1, thm2] :: thms)
       | combine_thms thms = replay_error ctxt "invalid bind application" Trans thms [] t
      val t' = Thm.eta_long_conversion (Object_Logic.dest_judgment ctxt (Thm.cterm_of ctxt t))
-     val _ = debug_msg ctxt high (fn () => \<^print> ("trans t'",t'))
-
      val (_, t2) = Logic.dest_equals (Thm.prop_of t')
-     val _ = debug_msg ctxt high (fn () => \<^print> ("trans t2",t'))
-
      val thms = map (Conv.fconv_rule Thm.eta_long_conversion) thms
-     val _ = debug_msg ctxt high (fn () => \<^print> ("trans thms ",thms))
-
      val trans_thm = combine_thms thms
      val _ = debug_msg ctxt high (fn () => \<^print> ("trans_thm ",trans_thm))
 
@@ -864,21 +858,17 @@ fun trans ctxt thms t =
       | _ => trans_thm (*to be on the safe side*)))
   end
 
-
-local
- fun trans_steps _ [prem] = prem
-   | trans_steps ctxt (prem1::prem2::prems) =
-       (@{thm trans} OF [prem1, prem2])::prems
-       |> trans_steps ctxt
-in
-
 fun strict_trans ctxt [] t =
   SMT_Replay_Methods.prove ctxt t (fn _ =>
     (match_tac ctxt @{thms refl}))
  | strict_trans ctxt prems t =
-  SMT_Replay_Methods.prove ctxt t (fn _ =>
-    match_tac ctxt (trans_steps ctxt prems |> single))
-end
+     let
+        fun trans_steps [] = replay_error ctxt "invalid application in strict version" Trans [] [] t
+          | trans_steps [prem] = prem
+          | trans_steps (prem1::prem2::prems) = (@{thm trans} OF [prem1, prem2])::prems |> trans_steps
+     in
+       SMT_Replay_Methods.prove ctxt t (fn _ =>  match_tac ctxt (trans_steps prems |> single))
+     end
 
 fun AC_rule ctxt thms t =
   SMT_Replay_Methods.prove ctxt t (fn _ =>
@@ -1045,7 +1035,9 @@ fun weakening ctxt [prem] t =
       THEN' eresolve_tac ctxt @{thms conjE})
     THEN' REPEAT' (resolve_tac ctxt @{thms de_Morgan_disj[THEN iffD2]}
       THEN' resolve_tac ctxt @{thms conjI} THEN' REPEAT' (assume_tac ctxt))
-    THEN' REPEAT' (assume_tac ctxt))
+    THEN' REPEAT' (assume_tac ctxt)) |
+ weakening ctxt thms t = replay_error ctxt "invalid application" Weakening thms [] t
+
 
 (* Equivalence Lemma *)
 (*equiv_pos2 is very important for performance. We have tried various tactics, including
