@@ -2,6 +2,9 @@ theory BV_Rewrites_Simplification
   imports BV_Rewrites_Lemmas 
 begin
 
+declare[[show_types,show_sorts]]
+
+
 (*
 (define-rule bv-ite-equal-children ((c (_ BitVec 1)) (x ?BitVec)) (bvite c x x) x)
 *)
@@ -205,18 +208,12 @@ lemma [rewrite_bv_ite_merge_else_else]:
   (bvshl x (@bv 0 sz))
   x)
 *)
-declare[[show_types,show_sorts]]
 named_theorems rewrite_bv_shl_by_const_0 \<open>automatically_generated\<close>
 
-lemma 
-  fixes x::"'a::len word" and sz::"int"
-  shows "NO_MATCH cvc_a (undefined x sz) \<Longrightarrow> sz = LENGTH('b) \<Longrightarrow> push_bit (unat (Word.Word (0::int) ::'b::len word)) x = x"
-  by auto
-
 lemma [rewrite_bv_shl_by_const_0]:
-  fixes x::"'a::len word" and sz::"nat"
+  fixes x::"'a::len word" and sz::"int"
   shows "NO_MATCH cvc_a (undefined x sz) \<Longrightarrow> push_bit_lift x 0 = x"
-  unfolding push_bit_lift_def sorry
+  unfolding push_bit_lift_def by simp
 
 
 (*
@@ -226,8 +223,6 @@ lemma [rewrite_bv_shl_by_const_0]:
   (and (< amount n) (= en (- n (+ 1 amount))))
   (bvshl x (@bv amount sz))
   (concat (extract en 0 x) (@bv 0 amount)))
-
-TEST: NO
 *)
 
 named_theorems rewrite_bv_shl_by_const_1 \<open>automatically_generated\<close>
@@ -236,24 +231,22 @@ lemma [rewrite_bv_shl_by_const_1]:
   fixes x::"'a::len word" and amount::"int" and sz::"int" and en::"int"
   shows "NO_MATCH cvc_a (undefined x amount sz en)
     \<Longrightarrow> (amount < int(size x)) = True
-    \<Longrightarrow> en = int (size x) - (1 + amount)
-    \<Longrightarrow> LENGTH('b) = amount \<Longrightarrow> LENGTH('a) = LENGTH('c) + LENGTH('b) \<Longrightarrow> LENGTH('c) = en + 1
+    \<Longrightarrow> en = (int (size x)) - (1 + amount)
+    \<Longrightarrow> LENGTH('b) = (nat amount) \<Longrightarrow> LENGTH('a) = LENGTH('c) + LENGTH('b) \<Longrightarrow> LENGTH('c) = (nat en) + 1
     \<Longrightarrow>
-   (push_bit (nat amount) x ::'a::len word)=
+   (push_bit_lift x amount::'a::len word)=
    word_cat
     (smt_extract (nat en) (nat (0::int)) x::'c::len word)
     (0::'b::len word)"
+  unfolding push_bit_lift_def
+  apply (cases "0 \<le> amount")
+  apply simp_all
   apply (subst word_unat_eq_iff)
   apply (simp only: unsigned_push_bit_eq unat_word_cat)
   apply (subst unat_smt_extract)
      apply simp_all
-  apply (simp only: take_bit_push_bit)
-  apply (rule arg_cong2[where f = push_bit])
-   apply simp
-  apply (rule arg_cong2[where f = take_bit])
-   apply simp
-  apply simp
-  done
+  by (simp add: add.commute push_bit_take_bit)
+
 
 (*
 (define-cond-rule bv-shl-by-const-2
@@ -262,17 +255,18 @@ lemma [rewrite_bv_shl_by_const_1]:
   (bvshl x (@bv amount sz))
   (@bv 0 w))
 
-TEST: YES
+Note assumption: int LENGTH('a) = w is not needed here
 *)
 
 named_theorems rewrite_bv_shl_by_const_2 \<open>automatically_generated\<close>
 
 lemma [rewrite_bv_shl_by_const_2]:
-  fixes x::"'a ::len word" and amount::"int" and sz::"int"
-  shows "int (size x) \<le> amount \<longrightarrow> LENGTH('b) = sz \<longrightarrow> amount < 2^LENGTH('b) \<longrightarrow>
-   push_bit (unat (Word.Word amount::'b::len word)) x = (Word.Word (0::int)::'a::len word)"
-  by (simp add: take_bit_int_eq_self unsigned_of_int word_size)
-
+  fixes x::"'a ::len word" and amount::"int" and sz::"int" and w::"int"
+  shows "NO_MATCH cvc_a (undefined x amount sz w)
+    \<Longrightarrow>
+   (int (size x) \<le> amount) = True \<longrightarrow> amount < 2^LENGTH('a::len) \<longrightarrow> int LENGTH('a) = sz \<longrightarrow>
+   push_bit_lift x amount = (0::'a::len word)"
+  by (metis linorder_not_le nat_int not_less_iff_gr_or_eq push_bit_lift_def push_bit_word_beyond word_size)
 
 (*
 (define-rule bv-lshr-by-const-0
@@ -280,15 +274,15 @@ lemma [rewrite_bv_shl_by_const_2]:
   (bvlshr x (@bv 0 sz))
   x)
 
-TEST: NO
+Note: LENGTH('a) = sz not needed
 *)
 
 named_theorems rewrite_bv_lshr_by_const_0 \<open>automatically_generated\<close>
 
 lemma [rewrite_bv_lshr_by_const_0]:
   fixes x::"'a ::len word"  and sz::"int"
-  shows "LENGTH('b) = sz \<longrightarrow>
-   drop_bit (unat (Word.Word 0::'b::len word)) x = x"
+  shows "drop_bit_lift x 0 = x"
+  unfolding drop_bit_lift_def
   by force
 
 
@@ -1512,22 +1506,6 @@ lemma [rewrite_bv_ule_zero]:
     (extract u 0 (bvmul xs z ys))
     (@bv 0 exponent)))
 
-
-     assumptions:
-       is_pow2 (4::int) = True
-       (2::int) = int (floorlog (nat (4::int)) (2::nat))
-       1 = (4::int) - int (floorlog (nat (4::int)) (2::nat)) - 1
-     prop: 
-       (x::4 word) * (4::4 word) = word_cat (smt_extract (nat 1) (nat 0) x) 0 
-
-   ''bv-mult-pow2-1''
-         xs    ListVar []
-         ys    ListVar []
-         z     x::4 word
-         size  4::int
-         n     4::int
-         exponent 2::int
-         u     1
 *)
 named_theorems rewrite_bv_mult_pow2_1 \<open>manually generated\<close>
 
@@ -1537,18 +1515,19 @@ lemma [rewrite_bv_mult_pow2_1]:
     and z :: "'b::len word"
     and exponent size u :: int
     and n ::int
-  shows "NO_MATCH (cvc_a) (undefined n_w xs ys z size n exponent u) 
+  shows "NO_MATCH (cvc_a) (undefined xs ys z size n exponent u) 
     \<Longrightarrow> is_pow2 n
     \<Longrightarrow> (exponent = (floorlog (nat n) 2))
     \<Longrightarrow> (u = ((size - (floorlog (nat n) 2)) - 1))
-    \<Longrightarrow> LENGTH('a) = nat exponent
-    \<Longrightarrow> LENGTH('b) = nat size
+    \<Longrightarrow> int LENGTH('a) = exponent
+    \<Longrightarrow> int LENGTH('b) = size
     \<Longrightarrow> LENGTH('c) = nat u + 1
-    \<Longrightarrow> n_w = (Word.Word n::'b::len word)
+    \<Longrightarrow> n_w = Word.Word n
     \<Longrightarrow>
-(cvc_list_left (*) xs (z *  (Word.Word n::'b::len word)))
+(cvc_list_left (*) xs (z * (n_w::'b::len word)))
    = (word_cat (smt_extract (nat u) (nat (0::int)) (cvc_list_left (*) xs (cvc_list_right (*) z ys))::'c::len word) (0::'a::len word))"
   sorry
+
 
 
 (*

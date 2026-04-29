@@ -182,6 +182,9 @@ check_smt ("cvc5_proof")
   "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/BV_Rewrites_Simplification/bv-ule-zero.alethe"
 
 (*bv-zero-ule*)
+check_smt ("cvc5_proof")
+  "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/BV_Rewrites_Simplification/bv-ule-max.smt2"
+  "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/BV_Rewrites_Simplification/bv-ule-max.alethe"
 
 (*bv-sle-self*)
 
@@ -196,6 +199,9 @@ check_smt ("cvc5_proof")
   "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/BV_Rewrites_Simplification/bv-not-ult.alethe"
 
 (*bv-mult-pow2-1*)
+check_smt ("cvc5_proof")
+  "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/BV_Rewrites_Simplification/bv-mult-pow2-1.smt2"
+  "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/BV_Rewrites_Simplification/bv-mult-pow2-1.alethe"
 
 (*bv-mult-pow2-2*)
 
@@ -223,6 +229,9 @@ check_smt ("cvc5_proof")
   "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/BV_Rewrites_Simplification/bv-lshr-zero.alethe"
 
 (*bv-ashr-zero*)
+check_smt ("cvc5_proof")
+  "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/BV_Rewrites_Simplification/bv-ashr-zero.smt2"
+  "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/BV_Rewrites_Simplification/bv-ashr-zero.alethe"
 
 (*bv-ugt-urem*)
 

@@ -5,18 +5,28 @@ theory SMT_Word_Translation_Examples
 begin
 
 (*None of the goals should contain any nats after encoding unless explicitly stated.*)
-
+(*TODO: why is the logic AUFBVLIRAFS*)
 declare[[smt_expert_debug_alethe_files="smt_normalize"]]
 declare[[smt_expert_debug_alethe_level=3]]
 declare[[smt_nat_as_int=true,smt_trace]]
 
 section \<open>Bit-vector lengths\<close>
 
+text \<open>LENGTH is evaluated during normalization if it is a concrete value.\<close>
+
+lemma "LENGTH(64) = 64"
+  apply (test_smt_translate 
+\<open>
+(set-logic AUFLIRA)
+(assert (! (not (= 64 64)) :named a0))
+\<close>)  
+  by (smt (cvc5))
+
 
 section \<open>Bit-vector numerals\<close>
 
+text \<open>Words are normally encoded as Bit-vectors.\<close>
 
-(* Normal Words are normally encoded as Bit-vectors :) *)
 lemma "(169 :: 8 word) = 169"
   apply (test_smt_translate 
 \<open>
@@ -25,8 +35,8 @@ lemma "(169 :: 8 word) = 169"
 \<close>)  
   by (smt (cvc5))
 
+text \<open>Overflows should be normalized before generating the SMT-LIB problem.\<close>
 
-(* Overflows should be normalized before generating the SMT-LIB problem.*)
 lemma "(1705 :: 8 word) = 169"
   apply (test_smt_translate 
 \<open>
@@ -35,8 +45,8 @@ lemma "(1705 :: 8 word) = 169"
 \<close>)  
   by (smt (cvc5))
 
+text \<open>Unary minus is translated into bvneg\<close>
 
-(* - is translated into bvneg *)
 lemma "(- 169 :: 8 word) = 87"
   apply (test_smt_translate 
 \<open>
@@ -45,7 +55,8 @@ lemma "(- 169 :: 8 word) = 87"
 \<close>)
   by (smt (cvc5))
 
-(* -- is translated to bvneg bvneg (this used to be broken)*)
+text \<open>-- is translated to bvneg bvneg (this used to be broken)\<close>
+
 lemma "-(- 2 :: 8 word) = 2"
   apply (test_smt_translate
 \<open>
@@ -57,7 +68,8 @@ lemma "-(- 2 :: 8 word) = 2"
 
 section \<open>Ordering\<close>
 
-(* \<le> is translated into bvule *)
+text \<open>\<le> is translated into bvule.\<close>
+
 lemma "(42 :: 8 word) \<le> 43"
   apply (test_smt_translate 
 \<open>
@@ -66,7 +78,8 @@ lemma "(42 :: 8 word) \<le> 43"
 \<close>)
   by (smt (cvc5))
 
-(* < is translated into bvult *)
+text \<open>< is translated into bvult.\<close>
+
 lemma "(42 :: 8 word) < 43"
   apply (test_smt_translate 
 \<open>
@@ -75,7 +88,8 @@ lemma "(42 :: 8 word) < 43"
 \<close>)
   by (smt (cvc5))
 
-(* \<le>s is translated into bvsle *)
+text \<open>\<le>s is translated into bvsle.\<close>
+
 lemma "(42 :: 8 word) \<le>s 44"
   apply (test_smt_translate 
 \<open>
@@ -84,7 +98,8 @@ lemma "(42 :: 8 word) \<le>s 44"
 \<close>)
   by (smt (cvc5))
 
-(* <s is translated into bvslt *)
+text \<open><s is translated into bvslt.\<close>
+
 lemma "(42 :: 8 word) <s 44"
   apply (test_smt_translate 
 \<open>
@@ -93,9 +108,113 @@ lemma "(42 :: 8 word) <s 44"
 \<close>)
   by (smt (cvc5))
 
+
+section \<open>Bitwise operators\<close>
+
+context
+  includes bit_operations_syntax
+begin
+
+text \<open>NOT is translated into bvnot.\<close>
+
+lemma "(NOT (- 42 :: 32 word)) = 41"
+  apply (test_smt_translate 
+\<open>
+(set-logic AUFBVLIRAFS)
+(assert (! (not (= (bvnot (bvneg (_ bv42 32))) (_ bv41 32))) :named a0))
+\<close>)
+  by (smt (cvc5))
+
+text \<open>AND is translated into bvand.\<close>
+
+lemma "((41::32 word) AND (42 :: 32 word)) = 40"
+  apply (test_smt_translate 
+\<open>
+(set-logic AUFBVLIRAFS)
+(assert (! (not (= (bvand (_ bv41 32) (_ bv42 32)) (_ bv40 32))) :named a0))
+\<close>)
+  by (smt (cvc5))
+
+text \<open>OR is translated into bvor.\<close>
+
+lemma "((41::32 word) OR (42 :: 32 word)) = 43"
+  apply (test_smt_translate 
+\<open>
+(set-logic AUFBVLIRAFS)
+(assert (! (not (= (bvor (_ bv41 32) (_ bv42 32)) (_ bv43 32))) :named a0))
+\<close>)
+  by (smt (cvc5))
+
+text \<open>XOR is translated into bvxor.\<close>
+
+lemma "((41::32 word) XOR (42 :: 32 word)) = 3"
+  apply (test_smt_translate 
+\<open>
+(set-logic AUFBVLIRAFS)
+(assert (! (not (= (bvxor (_ bv41 32) (_ bv42 32)) (_ bv3 32))) :named a0))
+\<close>)
+  by (smt (cvc5))
+
+end
+
 section \<open>Basic operators\<close>
 
-(* + is translated into bvadd *)
+text \<open>push_bit is translated into bvshl. If the amount of the shift is a constant it is directly
+transformed into a bit-vector. \<close>
+
+lemma "push_bit 3 (1705 :: 32 word) = 13640"
+  apply (test_smt_translate 
+\<open>
+(set-logic AUFBVLIRAFS)
+(assert (! (not (= (bvshl (_ bv1705 32) (_ bv3 32)) (_ bv13640 32))) :named a0))
+(assert (! (<= 0 3) :named a1))
+\<close>)
+  by (smt (cvc5))
+
+lemma "push_bit (Suc 0) (1705 :: 32 word) = 3410"
+  apply (test_smt_translate 
+\<open>
+(set-logic AUFBVLIRAFS)
+(assert (! (not (= (bvshl (_ bv1705 32) ((_ int_to_bv 32) (ite (<= 0 (+ 0 1)) (+ 0 1) 0))) (_ bv3410 32))) :named a0))
+(assert (! (<= 0 (ite (<= 0 (+ 0 1)) (+ 0 1) 0)) :named a1))
+\<close>)
+  by (smt (cvc5))
+
+lemma "push_bit x (1705 :: 32 word) = 13640"
+  apply (test_smt_translate 
+\<open>
+(set-logic AUFBVLIRAFS)
+(declare-fun lift_x$ () Int)
+(assert (! (and (<= 0 lift_x$) (not (= (bvshl (_ bv1705 32) ((_ int_to_bv 32) lift_x$)) (_ bv13640 32)))) :named a0))
+(assert (! (and (<= 0 lift_x$) (<= 0 lift_x$)) :named a1))
+\<close>)
+  by (smt (cvc5))
+
+
+text \<open>drop_bit is translated into bvshr\<close>
+
+lemma "drop_bit 3 (1705 :: 32 word) = 213"
+  apply (test_smt_translate 
+\<open>
+(set-logic AUFBVLIRAFS)
+(assert (! (not (= (bvlshr (_ bv1705 32) (_ bv3 32)) (_ bv213 32))) :named a0))
+(assert (! (<= 0 3) :named a1))
+\<close>)
+  by (smt (cvc5))
+
+text \<open>take_bit is translated into a combination of left and right shifts\<close>
+
+lemma "take_bit 3 (1705 :: 32 word) = 1"
+  apply (test_smt_translate 
+\<open>
+(set-logic AUFBVLIRAFS)
+(assert (! (not (= (bvsub (_ bv1705 32) (bvshl (bvlshr (_ bv1705 32) (_ bv3 32)) (_ bv3 32))) (_ bv1 32))) :named a0))
+(assert (! (<= 0 3) :named a1))
+\<close>)
+  by (smt (cvc5))
+
+text \<open>+ is translated into bvadd.\<close>
+
 lemma "1 + 3 = (4::5 word)"
   apply (test_smt_translate 
 \<open>
@@ -105,11 +224,21 @@ lemma "1 + 3 = (4::5 word)"
   by (smt (cvc5))
 
 
-
 section \<open>Casts\<close>
 
-(* Word.Word is translated into int_to_bv *)
+text \<open>Word.Word and word_of_int are translated into int_to_bv.\<close>
+
 lemma "Word.Word 8 = (8::5 word)"
+  apply (test_smt_translate 
+\<open>
+(set-logic AUFBVLIRAFS)
+(assert (! (not (= ((_ int_to_bv 5) 8) (_ bv8 5))) :named a0))
+\<close>)
+  by (smt (cvc5))
+
+text \<open>of_int is translated into int_to_bv as well if it returns a bit-vector.\<close>
+
+lemma "of_int 8 = (8::5 word)"
   apply (test_smt_translate 
 \<open>
 (set-logic AUFBVLIRAFS)
@@ -119,12 +248,10 @@ lemma "Word.Word 8 = (8::5 word)"
 
 
 
+section \<open>Other operators\<close>
 
-(*
-smt_extract is not really used but just in case:
+text \<open>smt_extract is not used by the users but internally very important so just in case\<close>
 
-TODO: Problem is that only one lemma gets added to the table in the first place
-*)
 lemma "(smt_extract 2 0 (4::3 word) :: 3 word) = (4::3 word)"
   apply (test_smt_translate 
 \<open>
@@ -132,8 +259,51 @@ lemma "(smt_extract 2 0 (4::3 word) :: 3 word) = (4::3 word)"
 (assert (! (not (= ((_ extract 2 0) (_ bv4 3)) (_ bv4 3))) :named a0))
 (assert (! (<= 0 0) :named a1))
 (assert (! (<= 0 2) :named a2))
-\<close>) supply[[smt_trace]]
+\<close>)
   by (smt (cvc5))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+lemma eee: "k < size (x::'a::len word) \<Longrightarrow>  bit (x::'a word) k \<equiv> (smt_extract k k x = (1:: 1 word))"
+  sorry
+
+
+ML \<open>
+
+val simplify_norm_table = [
+  ("Bit_Operations.semiring_bits_class.bit",(NONE,([@{thm eee}],SOME[] )))
+
+]
+
+
+val _ = fold SMT_Normalize.add_simplify_ops_tab (simplify_norm_table)
+    |> Theory.setup o  Context.theory_map
+\<close>
+
+
+
 
 
 (*
@@ -155,70 +325,7 @@ lemma "bit (1705 :: 16 word) 3"
 
 
 
-context
-  includes bit_operations_syntax
-begin
 
-(*
-NOT is translated into bvnot
-*)
-lemma "(NOT (- 42 :: 32 word)) = 41"
-  apply (test_smt_translate 
-\<open>
-(set-logic AUFBVLIRAFS)
-(assert (! (not (= (bvnot (bvneg (_ bv42 32))) (_ bv41 32))) :named a0))
-\<close>)
-  by (smt (cvc5))
-
-(*
-AND is translated into bvand
-*)
-lemma "((41::32 word) AND (42 :: 32 word)) = 40"
-  apply (test_smt_translate 
-\<open>
-(set-logic AUFBVLIRAFS)
-(assert (! (not (= (bvand (_ bv41 32) (_ bv42 32)) (_ bv40 32))) :named a0))
-\<close>)
-  by (smt (cvc5))
-
-(*
-OR is translated into bvor
-*)
-lemma "((41::32 word) OR (42 :: 32 word)) = 43"
-  apply (test_smt_translate 
-\<open>
-(set-logic AUFBVLIRAFS)
-(assert (! (not (= (bvor (_ bv41 32) (_ bv42 32)) (_ bv43 32))) :named a0))
-\<close>)
-  by (smt (cvc5))
-
-(*
-XOR is translated into bvor
-*)
-lemma "((41::32 word) XOR (42 :: 32 word)) = 3"
-  apply (test_smt_translate 
-\<open>
-(set-logic AUFBVLIRAFS)
-(assert (! (not (= (bvxor (_ bv41 32) (_ bv42 32)) (_ bv3 32))) :named a0))
-\<close>)
-  by (smt (cvc5))
-
-(*
-push_bit is translated into bvshl
-For a nat constant, the constant is transformed into a word
-For a word variable with a nat cast the cast is removed  \<Longrightarrow> TODO
-Otherwise, we add a cast
-*)
-lemma "push_bit 3 (1705 :: 32 word) = 13640"
-  apply (test_smt_translate 
-\<open>
-(set-logic AUFBVLIRAFS)
-(assert (! (not (= (bvshl (_ bv1705 32) (_ bv3 32)) (_ bv13640 32))) :named a0))
-(assert (! (<= 0 3) :named a1))
-\<close>)
-  by (smt (cvc5))
-
-(*
 
 
 This goal is translated into the assertion:

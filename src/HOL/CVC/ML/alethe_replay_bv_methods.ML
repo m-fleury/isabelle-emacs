@@ -665,7 +665,7 @@ SMT_Replay_Methods.prove ctxt t (fn _ =>(
      THEN' (REPEAT_DETERM_N' 11 ( (simplify_tac ctxt  @{thms arith_simps nat_mono nat_0 nat_1})
         THEN' (Code_Simp.dynamic_tac ctxt)
         THEN' K(print_tac ctxt "resolving assumptions") )))
-    THEN' K(print_tac ctxt "before final step")*) 
+    THEN' K(print_tac ctxt "before final step")
     THEN' (EqSubst.eqsubst_tac ctxt [0] @{thms bitwise_slicing_smt_extract_identity})
     THEN' (Code_Simp.dynamic_tac ctxt)
     (*THEN' K(print_tac ctxt "afterfinal step") *)

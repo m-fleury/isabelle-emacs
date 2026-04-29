@@ -432,9 +432,17 @@ local
     Const(n,T) =>
       (case AList.lookup (op =) tab n of
         SOME (cond,thms) =>
+        let
+          val _ = debug_msg ctxt high (fn () => \<^print>("found entry for ", t1))
+        in
           (case cond of
-            NONE => Conv.try_conv (transform thms)
-          | SOME cond_fun => if cond_fun t then Conv.try_conv (transform thms) else Conv.all_conv)                                                                         
+            NONE =>
+             Conv.try_conv (transform thms)
+          | SOME cond_fun =>
+            let
+              val _ = debug_msg ctxt high (fn () => \<^print>("found condition: ", cond_fun t))            
+            in if cond_fun t then Conv.try_conv (transform thms) else Conv.all_conv end)
+        end                                                                       
       | NONE => Conv.all_conv)
   | _ => Conv.all_conv) ct)
  end

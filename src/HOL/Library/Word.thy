@@ -4747,36 +4747,30 @@ lemma slice_lift:
   apply(subst take_bit_word_eq_self)
   by simp_all
 
-
 (*
-Lifting from operators that should be natively translated into SMT-LIB that take in natural numbers
-or return them to operators that work only on integers.
+The following are formalizations of the resp. SMT-LIB definitions. They can be mapped 1-1.
 *)
 
+definition smtlib_bvshl :: \<open>'a::len word  \<Rightarrow> 'a::len word \<Rightarrow> 'a::len word\<close> where "smtlib_bvshl s t = (word_of_int (unat s)) * 2^(unat t)"
+definition smtlib_bvshr :: \<open>'a::len word  \<Rightarrow> 'a::len word \<Rightarrow> 'a::len word\<close> where "smtlib_bvshr s t = (word_of_int (unat s)) div 2^(unat t)"
 
-definition push_bit_lift :: \<open>'a::len word  \<Rightarrow> int \<Rightarrow> 'a::len word\<close> where
-  "push_bit_lift w k = (if k > LENGTH('a) \<or> k < 0 then 0 else push_bit (nat k) w)"
+(*
+Eventually, we want to evaluate the k \<ge> LENGTH('a) and word_of_nat
+*)
+lemma push_bit_lift_eq:
+ "push_bit k (w::'a::len word) \<equiv> (if (k \<ge> LENGTH('a::len)) then 0 else smtlib_bvshl w (word_of_nat k))"
+  unfolding smtlib_bvshl_def
+  apply (simp add: atomize_eq)
+  by (metis le_unat_uoi less_exp nat_le_linear of_nat_inverse push_bit_eq_mult)
 
-lemma push_bit_lift:
- "push_bit k (w::'a::len word) \<equiv> push_bit_lift w k"
-  unfolding push_bit_lift_def
-  by (simp add: atomize_eq)
-  
-definition drop_bit_lift :: \<open>'a::len word  \<Rightarrow> 'a::len word \<Rightarrow> 'a::len word\<close> where
-  "drop_bit_lift w k = drop_bit (unat k) w"
+
+definition drop_bit_lift :: \<open>'a::len word  \<Rightarrow> int \<Rightarrow> 'a::len word\<close> where
+  "drop_bit_lift w k = (if k > LENGTH('a) \<or> k < 0 then 0 else drop_bit (nat k) w)"
 
 lemma drop_bit_lift:
- "drop_bit k (w::'a::len word) \<equiv> (if k > LENGTH('a) then 0 else drop_bit_lift w (Word.Word k))"
+ "drop_bit k (w::'a::len word) \<equiv> drop_bit_lift w (int k)"
   unfolding drop_bit_lift_def
-  apply (simp add: atomize_eq)
-  apply (cases "k > LENGTH('a)")
-   apply simp_all
-  apply (simp add: unsigned_of_nat take_bit_nat_eq_self_iff)
-  by (metis dual_order.strict_trans less_exp nat_neq_iff take_bit_nat_eq_self_iff)
-
-lemma [nat_normalized_input]:
-  "drop_bit_lift x y = drop_bit (unat y) x"
-  unfolding drop_bit_lift_def by simp
+  by (simp add: atomize_eq)
 
 lemma take_bit_lift:
   "take_bit k w \<equiv> w - push_bit k (drop_bit k w)"
@@ -4876,7 +4870,7 @@ lemmas [simplify_translation] = len_bit0 len_bit1 len_num1 take_bit_numeral_nume
 of_int_numeral
 
 ML_file \<open>Tools/smt_word.ML\<close>
-
+lemma test: "word_of_nat 3 \<equiv> (3::32 word)" sorry
 
 
 ML \<open>
@@ -4884,7 +4878,7 @@ val nat_native_ops_tab =
 [
   ("Bit_Operations.semiring_bit_operations_class.take_bit",@{thms take_bit_lift}),
   ("Bit_Operations.semiring_bit_operations_class.drop_bit",@{thms drop_bit_lift}),
-  ("Bit_Operations.semiring_bit_operations_class.push_bit", @{thms push_bit_lift}),
+  ("Bit_Operations.semiring_bit_operations_class.push_bit", @{thms push_bit_lift_eq}),
   ("Word.word_rotr", @{thms word_rotr_lift}),
   ("Word.word_rotl", @{thms word_rotl_lift}),
   ("Word.smt_extract", @{thms smt_extract_lift})
@@ -4909,7 +4903,8 @@ fun is_overflow_bv_const (Const ("Num.numeral_class.numeral", Type("fun",[_,T]))
 val simplify_norm_table = [
   ("Type_Length.len0_class.len_of", (NONE, ( @{thms },SOME @{thms smt_word_len_evaluate}))),
   ("Word.slice",(SOME (K true), ([],SOME @{thms slice_lift}))) ,
-  ("Num.numeral_class.numeral",(SOME (fn x => is_overflow_bv_const x), (@{thms word_numeral_lift},SOME @{thms drop_bit_int_code})))
+  ("Num.numeral_class.numeral",(SOME (fn x => is_overflow_bv_const x), (@{thms word_numeral_lift},SOME @{thms drop_bit_int_code}))),
+  ("Word.word_of_nat",(SOME (K true), ([],SOME @{thms test})))
 
 ]
 
@@ -4920,10 +4915,10 @@ val _ = fold SMT_Normalize.add_simplify_ops_tab (simplify_norm_table)
     |> Theory.setup o Context.theory_map
 \<close>
 
-declare [[smt_nat_as_int]]
+declare [[smt_nat_as_int,smt_expert_debug_alethe_files="smt_normalize",smt_expert_debug_alethe_level=3]]
 lemmas [smt_word_len_evaluate] = semiring_numeral_class.numeral_times_numeral
 
-lemma "push_bit (4::nat) (3::8 word) \<noteq> 0"
+lemma "push_bit 3 (4::32 word) = 32"
   supply[[smt_trace]]
   apply (smt (cvc5))
 
