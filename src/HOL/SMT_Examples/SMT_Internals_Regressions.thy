@@ -2170,6 +2170,10 @@ lemma bool_simplify_7:
   shows "((a \<longrightarrow> b) \<and> a) = (a \<and> b)"
   by (ctxt_tactic "bool_simplify")
 
+lemma bool_simplify_8: (*associativity of \<and> on the LHS.*)
+  shows "((a \<longrightarrow> b \<longrightarrow> c \<longrightarrow> d)) = (a \<and> b \<and> c \<longrightarrow> d)"
+  by (ctxt_tactic "bool_simplify")
+
 (* Rule 78: ac_simp *)
 
 lemma ac_simp_1: "(b \<and> b) = b"
