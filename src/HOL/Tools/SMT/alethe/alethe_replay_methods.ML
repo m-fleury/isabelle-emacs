@@ -928,7 +928,7 @@ local
 
   fun and_neg_rule_prove ctxt _ =
      match_tac ctxt @{thms alethe_and_neg}
-     THEN' K (unfold_tac ctxt @{thms de_Morgan_conj not_not})
+     THEN' K (unfold_tac ctxt @{thms de_Morgan_conj})
      THEN' TRY' (assume_tac ctxt)
 
   fun prover tac = prove_abstract SMT_Replay_Methods.abstract_prop tac

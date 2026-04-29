@@ -243,19 +243,10 @@ lemma alethe_if_weak_cong':
 
 lemma alethe_or_neg:
    \<open>(A \<Longrightarrow> B) \<Longrightarrow> B \<or> \<not>A\<close>
-   \<open>(\<not>A \<Longrightarrow> B) \<Longrightarrow> B \<or> A\<close>
   by auto
 
-lemma alethe_not_or:
-  \<open>B \<Longrightarrow> (\<not>B \<or> A) \<Longrightarrow> A\<close>
-  \<open>(B \<or> A) \<Longrightarrow> (\<not>\<not>B \<or> A)\<close>
-  apply (cases A)
-  by simp_all
-
-(* TODO: We had \<not>(\<not>A \<longrightarrow> B) \<or> A \<or> B here before too *)
-lemma alethe_implies_pos: \<open>\<not>(A \<longrightarrow> B) \<or> \<not>A \<or> B\<close> 
+lemma alethe_implies_pos: \<open>\<not>(A \<longrightarrow> B) \<or> \<not>A \<or> B\<close>
   by auto
-
 
 lemma alethe_subst_bool: \<open>P \<Longrightarrow> f True \<Longrightarrow> f P\<close>
   by auto
@@ -274,11 +265,6 @@ lemma alethe_and_pos0:
 lemma alethe_farkas:
   \<open>(a \<Longrightarrow> A) \<Longrightarrow> \<not>a \<or> A\<close>
   \<open>(\<not>a \<Longrightarrow> A) \<Longrightarrow> a \<or> A\<close>
-  by blast+
-
-lemma alethe_and_pos2:
-  \<open>(a \<Longrightarrow> \<not>(b \<and> c) \<or> A) \<Longrightarrow> \<not>(a \<and> b \<and> c) \<or> A\<close>
-  \<open>(a \<Longrightarrow> b \<Longrightarrow> A) \<Longrightarrow> \<not>(a \<and> b) \<or> A\<close>
   by blast+
 
 lemma alethe_or_pos:
@@ -333,9 +319,6 @@ lemma alethe_shuffle_and4:
   \<open>A \<Longrightarrow>  (a = (a \<and> A))\<close>
   apply (cases a)
   by simp_all
-
-
-
 
 lemma alethe_shuffle_or_split:
   "(a \<longrightarrow> (b \<or> B)) \<Longrightarrow> (\<not>a \<Longrightarrow> A = (b \<or> B)) \<Longrightarrow> (a \<or> A) = (b \<or> B)"
@@ -1377,64 +1360,5 @@ lemma [cvc5_holes_simp]:
 
 declare[[smt_cvc_alethe = true]]
 
-ML \<open>
-fun term_contains v (t $ u) = 
-      t = v orelse v = u orelse term_contains v t orelse term_contains v u
-  | term_contains v (s as Abs (_, _, xs)) =
-      v = s orelse term_contains v xs
-  | term_contains v t = v = t
-
-fun print_conv (str : string) ct = (@{print} (str, ct, Thm.term_of ct); Conv.all_conv ct)
-
-fun find_independant_terms dest thms (v, ctxt) t =
-  let
-    val disjs = 
-      dest (Thm.term_of t)
-      |> filter_out (term_contains (Thm.term_of v))
-      |> map (Thm.cterm_of ctxt)
-    fun move_term_to_the_beginning (ct :: cts) =
-        (Conv.rewrs_conv
-       (map (Drule.infer_instantiate' ctxt [NONE, SOME ct]) thms)
-        then_conv move_term_to_the_beginning cts)
-     | move_term_to_the_beginning [] = Conv.all_conv
-  in
-    move_term_to_the_beginning disjs t
-  end\<close>
-
-ML \<open>
-fun miniscope_term ctxt t = 
-  (case t |> @{print} |> Thm.term_of  of
-    \<^Const_>\<open>HOL.All _\<close> $ _ =>
-      (Conv.arg_conv (Conv.abs_conv (find_independant_terms HOLogic.disjuncts 
-      @{thms disj_left_commute[THEN eq_reflection] disj_commute[THEN eq_reflection]}) ctxt)
-      then_conv Conv.try_conv (Conv.rewr_conv @{lemma \<open>\<And>P1 Q1. \<forall>x::'d1. (P1::bool) \<or> (Q1::'d1 \<Rightarrow> bool) x \<equiv> P1 \<or> (\<forall>x::'d1. Q1 x)\<close> by auto})
-      then_conv Conv.fun_conv (miniscope_term ctxt)
-      then_conv Conv.arg_conv (miniscope_term ctxt)) t
-   | \<^Const_>\<open>HOL.Ex _\<close> $ _ =>
-      (Conv.arg_conv (Conv.abs_conv (find_independant_terms HOLogic.conjuncts 
-      @{thms conj_left_commute[THEN eq_reflection] conj_commute[THEN eq_reflection]}) ctxt)
-      then_conv Conv.try_conv (Conv.rewr_conv @{lemma \<open>\<And>P1 Q1. \<exists>x::'d1. (P1::bool) \<and> (Q1::'d1 \<Rightarrow> bool) x \<equiv> P1 \<and> (\<exists>x::'d1. Q1 x)\<close> by auto})
-      then_conv Conv.fun_conv (miniscope_term ctxt)
-      then_conv Conv.arg_conv (miniscope_term ctxt)) t
-  | _ $ _ => (Conv.fun_conv (miniscope_term ctxt) then_conv Conv.arg_conv (miniscope_term ctxt)) t
-  | Abs _ => Conv.abs_conv (fn (_, ctxt) => miniscope_term ctxt) ctxt t
-  | _ => Conv.all_conv t)
-
-fun miniscope ctxt =
-  HOLogic.Trueprop_conv (Conv.fun_conv (Conv.arg_conv (miniscope_term ctxt)))
-\<close>
-thm all_simps(4)[THEN eq_reflection]
-ML \<open>
-miniscope @{context} @{cterm \<open>Trueprop (\<not>(\<forall>x. P x \<or> (\<forall>y. Q y \<or> QQ) \<or> R x) \<or> (\<forall>x. P x \<or> (\<forall>y. Q y \<or> QQ) \<or> R x))\<close>}
-\<close>
-ML \<open>
-miniscope @{context} @{cterm \<open>Trueprop (\<not>(\<forall>x. P x \<or> (\<exists>y. Q y \<and> QQ) \<or> R x) \<or> (\<forall>x. P x \<or> (\<forall>y. Q y \<or> QQ) \<or> R x))\<close>}
-\<close>
-
-
-lemma \<open>(a \<or> b x \<or> c \<or> d x) = (b x \<or> c \<or> d x \<or> a) \<close>
-  unfolding disj_left_commute[of _ a] disj_commute[of _ a]
-  thm disj_left_commute[of a]
-  oops
 
 end

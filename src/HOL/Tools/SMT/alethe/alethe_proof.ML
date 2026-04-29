@@ -352,6 +352,10 @@ fun split_context_assignment _ [] (fixed : (string * term) list) substituted sub
 
 fun split_context_ass cx context_assignments = split_context_assignment cx context_assignments [] [] []
 
+fun has_local_rebound (SMTLIB.S [SMTLIB.Sym "=", SMTLIB.S [SMTLIB.Sym x, t], SMTLIB.Sym y] :: xs) lnames rnames =
+      member (op=) lnames y orelse member (op=) rnames x orelse has_local_rebound xs (x :: lnames) (y :: rnames)
+  | has_local_rebound (_ :: xs) lnames rnames = has_local_rebound xs lnames rnames
+  | has_local_rebound [] lnames rnames = false
 
 fun skolems_introduced_by_rule [] = [] |
     skolems_introduced_by_rule bds = fold
@@ -420,6 +424,7 @@ fun postprocess_proof compress ctxt step cx =
         val (shadowing_vars, rebound_lhs_vars) =
           substituted_vars @ fixed_vars
           |> filter_split (not_already_bound cx)
+          |> (fn (shadow, rebound) => (Library.distinct (op =) shadow, Library.duplicates (op =) shadow @ rebound))
         val _ = debug_msg ctxt high (fn () => \<^print> ("... (new variables, already bound variables)", (shadowing_vars, rebound_lhs_vars)))
       
         fun assign_unused_name t i = 
@@ -428,9 +433,15 @@ fun postprocess_proof compress ctxt step cx =
          in 
            if SMTLIB_Proof.lookup_binding cx new_name = None then new_name else assign_unused_name t (i+1)
          end
-        val new_variable_names = fold (fn t => curry (op ::) (t, assign_unused_name t 0)) (map fst rebound_lhs_vars) []
-        val _ = debug_msg ctxt high (fn () => \<^print> ("... mapping between new variables introduced in the anchor and their original names"))
-      in ((shadowing_vars, rebound_lhs_vars, substitute_terms), new_variable_names) end
+        (*We try to limit the number of renamings that happen here. Hence we only rename if there a variable
+        appear multiple time in the same anchor with different names. Renaming would make debugging easier,
+        but is not necessary.
+
+        Also, avoiding renaming is required for rare rules (because we do not know which arguments we need to rename).*)
+        val start_idx = (if has_local_rebound context_assignments [] [] then 1 else 0)
+        val new_variable_names = fold (fn t => curry (op ::) (t, assign_unused_name t start_idx)) (map fst rebound_lhs_vars) []
+        val _ = debug_msg ctxt high (fn () => \<^print> ("... mapping between new variables introduced in the anchor and their original names", new_variable_names))
+      in ((shadowing_vars, map (apfst (fn t => assign_unused_name t start_idx)) rebound_lhs_vars, substitute_terms), new_variable_names) end
   
     (* Functions for rewriting terms and the context *)
     fun synctactic_var_subst old_name new_name (u $ v) =
@@ -439,7 +450,7 @@ fun postprocess_proof compress ctxt step cx =
         Abs (if String.isPrefix old_name v then new_name else v, T,
           synctactic_var_subst old_name new_name u)
       | synctactic_var_subst old_name new_name (Free (v, T)) =
-        if String.isPrefix old_name v then Free (new_name, T) else Free (v, T)
+        if old_name = v orelse String.isPrefix (old_name ^ "_") v then Free (new_name, T) else Free (v, T)
       | synctactic_var_subst _ _ t = t
     fun syntactic_rew_in_lhs_subst old_name new_name (Const(\<^const_name>\<open>HOL.eq\<close>, T) $ t1 $ t2) =
           Const(\<^const_name>\<open>HOL.eq\<close>, T) $ synctactic_var_subst old_name new_name t1 $ t2
@@ -492,35 +503,36 @@ fun postprocess_proof compress ctxt step cx =
         val _ = debug_msg ctxt middle (fn () => \<^print> ("... transformed conclusion", normalized_concl))
       
         val step = Alethe_Definition_Node {id=id,rule=rule,skolem_name=skolem_name,skolem_term=normalized_concl}
-      
+
       in
         (step, (cx', new_variable_names))
       end
-    | postprocess (Raw_Alethe_Node {id, rule, step_args, context_assignments, prems, concl, subproof,
-        prop_skeleton}) (cx, new_variable_names) =
+    | postprocess (step as Raw_Alethe_Node {id, rule, step_args, context_assignments, prems, concl, subproof,
+        prop_skeleton}) (cx, orig_new_variable_names) =
       if is_anchor_rule rule
       then
       let
-        val unsk_and_rewrite' = unsk_and_rewrite new_variable_names
-        val subproof_rewriter' = subproof_rewriter new_variable_names
+        val unsk_and_rewrite' = unsk_and_rewrite orig_new_variable_names
+        val subproof_rewriter' = subproof_rewriter orig_new_variable_names
         val _ = debug_msg ctxt low (fn () => \<^print> ("postprocessing started for anchor: ", id))
 
         (* Preprocess context arguments *)
         (*TODO Hanna: Maybe it would be okay to only change the name of the term and not of the key, I have not tried yet*)
         (*TODO Hanna: Make more elegant*)
         fun normalize_external (raw_name, Free(a,b)) =
-          if Config.get ctxt SMT_Config.check_external andalso Char.isUpper (hd ( String.explode raw_name))
+          if Config.get ctxt SMT_Config.check_external andalso Char.isUpper (hd (String.explode raw_name))
           then ("isabelle_internal_" ^ raw_name,Free("isabelle_internal_" ^ a,b)) else (raw_name,Free(a,b))
         fun normalize_external2 (raw_name,b) =
-          if Config.get ctxt SMT_Config.check_external andalso Char.isUpper (hd ( String.explode raw_name))
+          if Config.get ctxt SMT_Config.check_external andalso Char.isUpper (hd (String.explode raw_name))
           then (("isabelle_internal_" ^ raw_name),b) else ( raw_name,b)
         val ((shadowing_vars, rebound_lhs_vars, substitute_terms),new_variable_names) =
-          process_context_assignments context_assignments cx ||> (curry (op @)) new_variable_names
+          process_context_assignments context_assignments cx
+          ||> (curry (op @)) orig_new_variable_names
           |> (fn ((i,j,k),n) => ((map normalize_external i,map normalize_external j,k), map normalize_external2 n))
         (* Process conclusion *)
-        val (cx',termified_concl) = transform_concl concl id (cx, new_variable_names)
+        val (cx',termified_concl) = transform_concl concl id (cx, orig_new_variable_names)
         val (_,termified_prop_skeleton) =
-          transform_concl (prop_skeleton) id (cx, new_variable_names)
+          transform_concl (prop_skeleton) id (cx, orig_new_variable_names)
         val _ = debug_msg ctxt middle (fn () => \<^print> ("... transformed conclusion of step closing the anchor ", termified_concl))
         val alpha_conversion = rule = "bind" andalso is_alpha_renaming termified_concl
     
@@ -550,7 +562,7 @@ fun postprocess_proof compress ctxt step cx =
         val (termified_context_ass, _) =
          fold_map node_of (rm_types context_assignments) subproof_cx 
          |>> map fst
-        val normalized_context_ass = map unsk_and_rewrite' (map subproof_rewriter' termified_context_ass)
+        val normalized_context_ass = map (unsk_and_rewrite' o subproof_rewriter' o subproof_rewriter new_variable_names) termified_context_ass
         val _ = debug_msg ctxt middle (fn () => \<^print> ("... transformed context assignments of anchor ", normalized_context_ass))
     
         (* Add rule-specific arguments *)
@@ -588,20 +600,20 @@ fun postprocess_proof compress ctxt step cx =
             ((map (fn (a,b) => (a, fastype_of b)) (shadowing_vars @ rebound_lhs_vars)), [], assms_from_subproof, new_subproof)
             tactic_args termified_prop_skeleton
       in
-        (step, (cx', new_variable_names))
+        (step, (cx', orig_new_variable_names))
       end
     else (*Non anchor steps*)
       let
         val _ = debug_msg ctxt low (fn () => \<^print> ("postprocessing started for rule: ", id))
 
         (* Process conclusion *)
-        val (cx',termified_concl) = transform_concl concl id (cx, new_variable_names)
-        val (_,termified_prop_skeleton) = transform_concl prop_skeleton id (cx, new_variable_names)
+        val (cx',termified_concl) = transform_concl concl id (cx, orig_new_variable_names)
+        val (_,termified_prop_skeleton) = transform_concl prop_skeleton id (cx, orig_new_variable_names)
 
         val _ = debug_msg ctxt middle (fn () => \<^print> ("... transform conclusion ", termified_concl))
 
         (* Process step arguments *)
-        val normalized_step_args = transform_step_args rule step_args (cx, new_variable_names)
+        val normalized_step_args = transform_step_args rule step_args (cx, orig_new_variable_names)
       
         (* add arguments *)
         val tactic_args =
@@ -664,7 +676,7 @@ fun postprocess_proof compress ctxt step cx =
               val (termified_inst, _) = fold_map termify_term raw_insts cx
               val insts = Symtab.empty
                 |> fold (fn (x, t) => fn insts => Symtab.update_new (desymbolize x, t) insts) termified_inst
-                |> Symtab.map (K (unsk_and_rewrite new_variable_names))    
+                |> Symtab.map (K (unsk_and_rewrite orig_new_variable_names))    
                 handle (Symtab.DUP _) => raise throw_alethe_ex ("forall inst, tried to add same name twice")
           
             in SOME (Insts insts) end
@@ -702,7 +714,7 @@ fun postprocess_proof compress ctxt step cx =
              tactic_args
              termified_prop_skeleton
          in
-           (step, (cx', new_variable_names))
+           (step, (cx', orig_new_variable_names))
          end
       
       in
