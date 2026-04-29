@@ -352,6 +352,10 @@ fun split_context_assignment _ [] (fixed : (string * term) list) substituted sub
 
 fun split_context_ass cx context_assignments = split_context_assignment cx context_assignments [] [] []
 
+fun has_local_rebound (SMTLIB.S [SMTLIB.Sym "=", SMTLIB.S [SMTLIB.Sym x, t], SMTLIB.Sym y] :: xs) lnames rnames =
+      member (op=) lnames y orelse member (op=) rnames x orelse has_local_rebound xs (x :: lnames) (y :: rnames)
+  | has_local_rebound (_ :: xs) lnames rnames = has_local_rebound xs lnames rnames
+  | has_local_rebound [] lnames rnames = false
 
 fun skolems_introduced_by_rule [] = [] |
     skolems_introduced_by_rule bds = fold
@@ -429,9 +433,15 @@ fun postprocess_proof compress ctxt step cx =
          in 
            if SMTLIB_Proof.lookup_binding cx new_name = None then new_name else assign_unused_name t (i+1)
          end
-        val new_variable_names = fold (fn t => curry (op ::) (t, assign_unused_name t 0)) (map fst rebound_lhs_vars) []
+        (*We try to limit the number of renamings that happen here. Hence we only rename if there a variable
+        appear multiple time in the same anchor with different names. Renaming would make debugging easier,
+        but is not necessary.
+
+        Also, avoiding renaming is required for rare rules (because we do not know which arguments we need to rename).*)
+        val start_idx = (if has_local_rebound context_assignments [] [] then 1 else 0)
+        val new_variable_names = fold (fn t => curry (op ::) (t, assign_unused_name t start_idx)) (map fst rebound_lhs_vars) []
         val _ = debug_msg ctxt high (fn () => \<^print> ("... mapping between new variables introduced in the anchor and their original names", new_variable_names))
-      in ((shadowing_vars, map (apfst (fn t => assign_unused_name t 0)) rebound_lhs_vars, substitute_terms), new_variable_names) end
+      in ((shadowing_vars, map (apfst (fn t => assign_unused_name t start_idx)) rebound_lhs_vars, substitute_terms), new_variable_names) end
   
     (* Functions for rewriting terms and the context *)
     fun synctactic_var_subst old_name new_name (u $ v) =
