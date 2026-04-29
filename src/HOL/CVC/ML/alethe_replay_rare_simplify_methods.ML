@@ -300,17 +300,14 @@ in
        raise (SMT_Failure.SMT (SMT_Failure.Replay("rare-rewrite",ERROR "could not find lemma for rare rewrite ")))
     (*try_simp ctxt t*))
 
-  fun true_tac ctxt _ _ t = 
-    SMT_Replay_Methods.prove ctxt t (fn ctxt =>
-      resolve_tac ctxt @{thms TrueI})
 
-  fun evaluate ctxt thms _  = try_evaluate ctxt
+  fun evaluate ctxt _ _  = try_evaluate ctxt
 end
 
 val rules = [
    ("rare_rewrite", rare_rewrite),
-   ("evaluate",evaluate),
-   ("true", true_tac)]
+   ("evaluate",evaluate)
+]
 
 val _ = Theory.setup (Context.theory_map (
    fold (uncurry Alethe_Replay_Methods.declare_alethe_rule) rules))

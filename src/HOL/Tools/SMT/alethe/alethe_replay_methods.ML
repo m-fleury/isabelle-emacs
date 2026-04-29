@@ -111,6 +111,7 @@ sig
   val xor2: alethe_tac
   val not_xor1: alethe_tac
   val not_xor2: alethe_tac
+  val true_rule: alethe_tac
   val false_rule: alethe_tac
   val forall_inst: alethe_tac_args
   val implies_rules: alethe_tac
@@ -283,6 +284,7 @@ fun string_of_alethe_rule Bind = "Bind"
   | string_of_alethe_rule Resolution = "Resolution"
   | string_of_alethe_rule Eq_Congruent = "eq_congruent"
   | string_of_alethe_rule Trans = "trans"
+  | string_of_alethe_rule True = "true"
   | string_of_alethe_rule False = "false"
   | string_of_alethe_rule And = "and"
   | string_of_alethe_rule And_Pos = "and_pos"
@@ -811,10 +813,13 @@ fun normalized_input ctxt prems t args =
     ))
 end
 
-val false_rule_thm = @{lemma \<open>\<not>False\<close> by blast}
-
-fun false_rule ctxt _ t = SMT_Replay_Methods.match_instantiate ctxt t false_rule_thm
-
+local
+  val true_rule_thm = @{lemma \<open>True\<close> by blast}
+  val false_rule_thm = @{lemma \<open>\<not>False\<close> by blast}
+in
+  fun true_rule ctxt _ t = SMT_Replay_Methods.match_instantiate ctxt t true_rule_thm
+  fun false_rule ctxt _ t = SMT_Replay_Methods.match_instantiate ctxt t false_rule_thm
+end
 
 (* Transitivity *)
 
