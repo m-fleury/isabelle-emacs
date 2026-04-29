@@ -440,7 +440,7 @@ fun postprocess_proof compress ctxt step cx =
         Abs (if String.isPrefix old_name v then new_name else v, T,
           synctactic_var_subst old_name new_name u)
       | synctactic_var_subst old_name new_name (Free (v, T)) =
-        if String.isPrefix old_name v then Free (new_name, T) else Free (v, T)
+        if old_name = v orelse String.isPrefix (old_name ^ "_") v then Free (new_name, T) else Free (v, T)
       | synctactic_var_subst _ _ t = t
     fun syntactic_rew_in_lhs_subst old_name new_name (Const(\<^const_name>\<open>HOL.eq\<close>, T) $ t1 $ t2) =
           Const(\<^const_name>\<open>HOL.eq\<close>, T) $ synctactic_var_subst old_name new_name t1 $ t2
