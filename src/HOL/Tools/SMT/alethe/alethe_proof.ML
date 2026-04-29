@@ -493,17 +493,17 @@ fun postprocess_proof compress ctxt step cx =
         val _ = debug_msg ctxt middle (fn () => \<^print> ("... transformed conclusion", normalized_concl))
       
         val step = Alethe_Definition_Node {id=id,rule=rule,skolem_name=skolem_name,skolem_term=normalized_concl}
-      
+
       in
         (step, (cx', new_variable_names))
       end
-    | postprocess (Raw_Alethe_Node {id, rule, step_args, context_assignments, prems, concl, subproof,
-        prop_skeleton}) (cx, new_variable_names) =
+    | postprocess (step as Raw_Alethe_Node {id, rule, step_args, context_assignments, prems, concl, subproof,
+        prop_skeleton}) (cx, orig_new_variable_names) =
       if is_anchor_rule rule
       then
       let
-        val unsk_and_rewrite' = unsk_and_rewrite new_variable_names
-        val subproof_rewriter' = subproof_rewriter new_variable_names
+        val unsk_and_rewrite' = unsk_and_rewrite orig_new_variable_names
+        val subproof_rewriter' = subproof_rewriter orig_new_variable_names
         val _ = debug_msg ctxt low (fn () => \<^print> ("postprocessing started for anchor: ", id))
 
         (* Preprocess context arguments *)
@@ -517,12 +517,12 @@ fun postprocess_proof compress ctxt step cx =
           then (("isabelle_internal_" ^ raw_name),b) else ( raw_name,b)
         val ((shadowing_vars, rebound_lhs_vars, substitute_terms),new_variable_names) =
           process_context_assignments context_assignments cx
-          ||> (curry (op @)) new_variable_names
+          ||> (curry (op @)) orig_new_variable_names
           |> (fn ((i,j,k),n) => ((map normalize_external i,map normalize_external j,k), map normalize_external2 n))
         (* Process conclusion *)
-        val (cx',termified_concl) = transform_concl concl id (cx, new_variable_names)
+        val (cx',termified_concl) = transform_concl concl id (cx, orig_new_variable_names)
         val (_,termified_prop_skeleton) =
-          transform_concl (prop_skeleton) id (cx, new_variable_names)
+          transform_concl (prop_skeleton) id (cx, orig_new_variable_names)
         val _ = debug_msg ctxt middle (fn () => \<^print> ("... transformed conclusion of step closing the anchor ", termified_concl))
         val alpha_conversion = rule = "bind" andalso is_alpha_renaming termified_concl
     
@@ -590,20 +590,20 @@ fun postprocess_proof compress ctxt step cx =
             ((map (fn (a,b) => (a, fastype_of b)) (shadowing_vars @ rebound_lhs_vars)), [], assms_from_subproof, new_subproof)
             tactic_args termified_prop_skeleton
       in
-        (step, (cx', new_variable_names))
+        (step, (cx', orig_new_variable_names))
       end
     else (*Non anchor steps*)
       let
         val _ = debug_msg ctxt low (fn () => \<^print> ("postprocessing started for rule: ", id))
 
         (* Process conclusion *)
-        val (cx',termified_concl) = transform_concl concl id (cx, new_variable_names)
-        val (_,termified_prop_skeleton) = transform_concl prop_skeleton id (cx, new_variable_names)
+        val (cx',termified_concl) = transform_concl concl id (cx, orig_new_variable_names)
+        val (_,termified_prop_skeleton) = transform_concl prop_skeleton id (cx, orig_new_variable_names)
 
         val _ = debug_msg ctxt middle (fn () => \<^print> ("... transform conclusion ", termified_concl))
 
         (* Process step arguments *)
-        val normalized_step_args = transform_step_args rule step_args (cx, new_variable_names)
+        val normalized_step_args = transform_step_args rule step_args (cx, orig_new_variable_names)
       
         (* add arguments *)
         val tactic_args =
@@ -666,7 +666,7 @@ fun postprocess_proof compress ctxt step cx =
               val (termified_inst, _) = fold_map termify_term raw_insts cx
               val insts = Symtab.empty
                 |> fold (fn (x, t) => fn insts => Symtab.update_new (desymbolize x, t) insts) termified_inst
-                |> Symtab.map (K (unsk_and_rewrite new_variable_names))    
+                |> Symtab.map (K (unsk_and_rewrite orig_new_variable_names))    
                 handle (Symtab.DUP _) => raise throw_alethe_ex ("forall inst, tried to add same name twice")
           
             in SOME (Insts insts) end
@@ -704,7 +704,7 @@ fun postprocess_proof compress ctxt step cx =
              tactic_args
              termified_prop_skeleton
          in
-           (step, (cx', new_variable_names))
+           (step, (cx', orig_new_variable_names))
          end
       
       in
