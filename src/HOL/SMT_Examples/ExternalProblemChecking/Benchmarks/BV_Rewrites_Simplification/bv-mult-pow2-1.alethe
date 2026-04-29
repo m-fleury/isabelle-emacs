@@ -1,0 +1,7 @@
+unsat
+(step t58 (cl (! (= (! (int.ispow2 2) :named @p_1) (! true :named @p_2)) :named @p_0)) :rule trust :args ("trust"))
+(step t60 (cl (! (= 1 (! (int.log2 2) :named @p_4)) :named @p_3)) :rule trust :args ("trust"))
+(step t62 (cl (! (= 8 (! (- (! (- 10 @p_4) :named @p_7) 1) :named @p_6)) :named @p_5)) :rule trust :args ("trust"))
+(step t63 (cl (! (= (! (bvmul x0 (! (@bv 2 10) :named @p_10)) :named @p_9) (! (concat (! ((_ extract 8 0) x0) :named @p_12) (! (@bv 0 1) :named @p_13)) :named @p_11)) :named @p_8)) :rule rare_rewrite :premises (t58 t60 t62) :args ("bv-mult-pow2-1" (! rare-list :named @p_14) @p_14 x0 10 2 1 8))
+(step slice_end (cl) :rule trust :premises (t63) :args ("trust"))
+

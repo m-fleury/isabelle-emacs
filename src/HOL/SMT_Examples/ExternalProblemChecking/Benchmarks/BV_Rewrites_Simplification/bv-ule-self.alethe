@@ -1,0 +1,4 @@
+unsat
+(step t78 (cl (! (= (! (bvule (! (ite (! (bvult (! ((_ zero_extend 3) (! (ite (! (bvult (! (bvadd (! ((_ zero_extend 6) (! (ite (! (bvsgt (! ((_ zero_extend 2) (_ bv8911 14)) :named @p_11) v0) :named @p_10) (_ bv1 1) (_ bv0 1)) :named @p_9)) :named @p_8) (! (select (! (store a2 v0 (! ((_ extract 13 7) v0) :named @p_14)) :named @p_13) @p_11) :named @p_12)) :named @p_7) @p_12) :named @p_6) (_ bv1 1) (_ bv0 1)) :named @p_5)) :named @p_4) (! (select a1 v0) :named @p_15)) :named @p_3) (_ bv1 1) (_ bv0 1)) :named @p_2) @p_2) :named @p_1) (! true :named @p_16)) :named @p_0)) :rule rare_rewrite :args ("bv-ule-self" @p_2))
+(step slice_end (cl) :rule trust :premises (t78) :args ("trust"))
+

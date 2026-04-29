@@ -1,0 +1,4 @@
+unsat
+(step t10 (cl (! (= (! (bvashr (! (@bv 0 5) :named @p_2) x) :named @p_1) @p_2) :named @p_0)) :rule rare_rewrite :args ("bv-ashr-zero" x 5))
+(step slice_end (cl) :rule trust :premises (t10) :args ("trust"))
+
