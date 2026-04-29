@@ -1360,5 +1360,4 @@ lemma [cvc5_holes_simp]:
 
 declare[[smt_cvc_alethe = true]]
 
-
 end

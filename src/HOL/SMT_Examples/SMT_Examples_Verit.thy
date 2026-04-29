@@ -1026,43 +1026,45 @@ lemma
   using assms by (smt (verit)) (*qnt_cnf (From: Universal_Turing_Machine/StrongCopyTM.thy)*)
 end
 
-typedecl i \<comment>\<open>Possible worlds\<close> 
-typedecl e \<comment>\<open>Individuals/entities\<close> type_synonym \<sigma> = "i\<Rightarrow>bool" 
+(*From Notes_On_Goedels_Ontological_Argument, but transformed into a locale, to make it easier
+to move this test within the file*)
+locale test =
+  fixes x :: "'i" and y :: "'e" and
+  existsAt::"'e\<Rightarrow>'i\<Rightarrow>bool" and
+  R::"'i\<Rightarrow>'i\<Rightarrow>bool" and
+  Mess :: \<open>('e \<Rightarrow> 'i \<Rightarrow> bool) \<Rightarrow> 'e \<Rightarrow> 'i \<Rightarrow> bool\<close>
+begin
 
-consts existsAt::"e\<Rightarrow>\<sigma>" ("_\<^bold>@_") 
-consts R::"i\<Rightarrow>i\<Rightarrow>bool" ("_\<^bold>r_") \<comment>\<open>Accessibility relation between worlds\<close>
+notation (input) existsAt  ("_\<^bold>@_") 
+notation (input) R ("_\<^bold>r_")
 
-type_synonym \<tau> = "e\<Rightarrow>\<sigma>" \<comment>\<open>Modal properties\<close>
-
-abbreviation (input) Mexiact::"(e\<Rightarrow>\<sigma>)\<Rightarrow>\<sigma>" ("\<^bold>\<exists>\<^sup>E") where "\<^bold>\<exists>\<^sup>E\<Phi> \<equiv> \<lambda>w.\<exists>x. x\<^bold>@w \<and> \<Phi> x w"
+abbreviation (input) Mexiact::"('e\<Rightarrow>'i\<Rightarrow>bool)\<Rightarrow>'i\<Rightarrow>bool" ("\<^bold>\<exists>\<^sup>E") where "\<^bold>\<exists>\<^sup>E\<Phi> \<equiv> \<lambda>w.\<exists>x. x\<^bold>@w \<and> \<Phi> x w"
 abbreviation (input)Mexiactb (binder "\<^bold>\<exists>\<^sup>E" [8]9) where "\<^bold>\<exists>\<^sup>Ex. \<phi>(x) \<equiv> \<^bold>\<exists>\<^sup>E\<phi>"
 
-abbreviation (input) Mbot::\<sigma> ("\<^bold>\<bottom>") where "\<^bold>\<bottom> \<equiv> \<lambda>w. False"
-abbreviation (input) Mtop::\<sigma> ("\<^bold>\<top>") where "\<^bold>\<top> \<equiv> \<lambda>w. True"
-abbreviation (input) Mneg::"\<sigma>\<Rightarrow>\<sigma>" ("\<^bold>\<not>_" [52]53) where "\<^bold>\<not>\<phi> \<equiv> \<lambda>w. \<not>(\<phi> w)"
-abbreviation (input) Mand::"\<sigma>\<Rightarrow>\<sigma>\<Rightarrow>\<sigma>" (infixl "\<^bold>\<and>" 50) where "\<phi>\<^bold>\<and>\<psi> \<equiv> \<lambda>w. \<phi> w \<and> \<psi> w" 
-abbreviation (input) Mor::"\<sigma>\<Rightarrow>\<sigma>\<Rightarrow>\<sigma>" (infixl "\<^bold>\<or>" 49) where "\<phi>\<^bold>\<or>\<psi> \<equiv> \<lambda>w. \<phi> w \<or> \<psi> w "
-abbreviation (input) Mimp::"\<sigma>\<Rightarrow>\<sigma>\<Rightarrow>\<sigma>" (infixr "\<^bold>\<supset>" 48) where "\<phi>\<^bold>\<supset>\<psi> \<equiv> \<lambda>w. \<phi> w \<longrightarrow> \<psi> w" 
-abbreviation (input) Mequiv::"\<sigma>\<Rightarrow>\<sigma>\<Rightarrow>\<sigma>" (infixl "\<^bold>\<leftrightarrow>" 47) where "\<phi>\<^bold>\<leftrightarrow>\<psi> \<equiv> \<lambda>w. \<phi> w \<longleftrightarrow> \<psi> w"
-abbreviation (input) Mbox::"\<sigma>\<Rightarrow>\<sigma>" ("\<^bold>\<box>_" [54]55) where "\<^bold>\<box>\<phi> \<equiv> \<lambda>w.\<forall>v. w \<^bold>r v \<longrightarrow> \<phi> v"
-abbreviation (input) Mdia::"\<sigma>\<Rightarrow>\<sigma>" ("\<^bold>\<diamond>_" [54]55) where "\<^bold>\<diamond>\<phi> \<equiv> \<lambda>w.\<exists>v. w \<^bold>r v \<and> \<phi> v"
-abbreviation (input) Mprimeq::"'a\<Rightarrow>'a\<Rightarrow>\<sigma>" ("_\<^bold>=_") where "x\<^bold>=y \<equiv> \<lambda>w. x=y"
-abbreviation (input) Mprimneg::"'a\<Rightarrow>'a\<Rightarrow>\<sigma>" ("_\<^bold>\<noteq>_") where "x\<^bold>\<noteq>y \<equiv> \<lambda>w. x\<noteq>y"
-abbreviation (input) Mnegpred::"\<tau>\<Rightarrow>\<tau>" ("\<^bold>~_") where "\<^bold>~\<Phi> \<equiv> \<lambda>x.\<lambda>w. \<not>\<Phi> x w"
-abbreviation (input) Mconpred::"\<tau>\<Rightarrow>\<tau>\<Rightarrow>\<tau>" (infixl "\<^bold>." 50) where "\<Phi>\<^bold>.\<Psi> \<equiv> \<lambda>x.\<lambda>w. \<Phi> x w \<and> \<Psi> x w"
-abbreviation (input) Mexclor::"\<sigma>\<Rightarrow>\<sigma>\<Rightarrow>\<sigma>" (infixl "\<^bold>\<or>\<^sup>e" 49) where "\<phi>\<^bold>\<or>\<^sup>e\<psi> \<equiv> (\<phi> \<^bold>\<or> \<psi>) \<^bold>\<and> \<^bold>\<not>(\<phi> \<^bold>\<and> \<psi>)" 
-abbreviation (input) Mvalid::"\<sigma>\<Rightarrow>bool" ("\<lfloor>_\<rfloor>\<^sub>g") where "\<lfloor>\<psi>\<rfloor>\<^sub>g \<equiv> \<forall>w. \<psi> w"
+abbreviation (input) Mbot::\<open>('i\<Rightarrow>bool)\<close> ("\<^bold>\<bottom>") where "\<^bold>\<bottom> \<equiv> \<lambda>w. False"
+abbreviation (input) Mtop::\<open>('i\<Rightarrow>bool)\<close> ("\<^bold>\<top>") where "\<^bold>\<top> \<equiv> \<lambda>w. True"
+abbreviation (input) Mneg::"(('i\<Rightarrow>bool))\<Rightarrow>('i\<Rightarrow>bool)" ("\<^bold>\<not>_" [52]53) where "\<^bold>\<not>\<phi> \<equiv> \<lambda>w. \<not>(\<phi> w)"
+abbreviation (input) Mand::"(('i\<Rightarrow>bool))\<Rightarrow>('i\<Rightarrow>bool)\<Rightarrow>('i\<Rightarrow>bool)" (infixl "\<^bold>\<and>" 50) where "\<phi>\<^bold>\<and>\<psi> \<equiv> \<lambda>w. \<phi> w \<and> \<psi> w" 
+abbreviation (input) Mor::"('i\<Rightarrow>bool)\<Rightarrow>('i\<Rightarrow>bool)\<Rightarrow>('i\<Rightarrow>bool)" (infixl "\<^bold>\<or>" 49) where "\<phi>\<^bold>\<or>\<psi> \<equiv> \<lambda>w. \<phi> w \<or> \<psi> w "
+abbreviation (input) Mimp::"('i\<Rightarrow>bool)\<Rightarrow>('i\<Rightarrow>bool)\<Rightarrow>('i\<Rightarrow>bool)" (infixr "\<^bold>\<supset>" 48) where "\<phi>\<^bold>\<supset>\<psi> \<equiv> \<lambda>w. \<phi> w \<longrightarrow> \<psi> w" 
+abbreviation (input) Mequiv::"('i\<Rightarrow>bool)\<Rightarrow>('i\<Rightarrow>bool)\<Rightarrow>('i\<Rightarrow>bool)" (infixl "\<^bold>\<leftrightarrow>" 47) where "\<phi>\<^bold>\<leftrightarrow>\<psi> \<equiv> \<lambda>w. \<phi> w \<longleftrightarrow> \<psi> w"
+abbreviation (input) Mbox::"('i\<Rightarrow>bool)\<Rightarrow>('i\<Rightarrow>bool)" ("\<^bold>\<box>_" [54]55) where "\<^bold>\<box>\<phi> \<equiv> \<lambda>w.\<forall>v. w \<^bold>r v \<longrightarrow> \<phi> v"
+abbreviation (input) Mdia::"('i\<Rightarrow>bool)\<Rightarrow>('i\<Rightarrow>bool)" ("\<^bold>\<diamond>_" [54]55) where "\<^bold>\<diamond>\<phi> \<equiv> \<lambda>w.\<exists>v. w \<^bold>r v \<and> \<phi> v"
+abbreviation (input) Mnegpred::"('e\<Rightarrow>('i\<Rightarrow>bool))\<Rightarrow>('e\<Rightarrow>('i\<Rightarrow>bool))" ("\<^bold>~_") where "\<^bold>~\<Phi> \<equiv> \<lambda>x.\<lambda>w. \<not>\<Phi> x w"
+abbreviation (input) Mconpred::"('e\<Rightarrow>('i\<Rightarrow>bool))\<Rightarrow>('e\<Rightarrow>('i\<Rightarrow>bool))\<Rightarrow>('e\<Rightarrow>('i\<Rightarrow>bool))" (infixl "\<^bold>." 50) where "\<Phi>\<^bold>.\<Psi> \<equiv> \<lambda>x.\<lambda>w. \<Phi> x w \<and> \<Psi> x w"
+abbreviation (input) Mexclor::"('i\<Rightarrow>bool)\<Rightarrow>('i\<Rightarrow>bool)\<Rightarrow>('i\<Rightarrow>bool)" (infixl "\<^bold>\<or>\<^sup>e" 49) where "\<phi>\<^bold>\<or>\<^sup>e\<psi> \<equiv> (\<phi> \<^bold>\<or> \<psi>) \<^bold>\<and> \<^bold>\<not>(\<phi> \<^bold>\<and> \<psi>)" 
+abbreviation (input) Mvalid::"('i\<Rightarrow>bool)\<Rightarrow>bool" ("\<lfloor>_\<rfloor>\<^sub>g") where "\<lfloor>\<psi>\<rfloor>\<^sub>g \<equiv> \<forall>w. \<psi> w"
 
+notation (input) Mess ("_Ess_") 
 lemma
-  fixes P :: \<open>(e\<Rightarrow>i\<Rightarrow>bool)\<Rightarrow>i\<Rightarrow>bool\<close> and
-        E :: \<open>e \<Rightarrow> i \<Rightarrow> bool\<close> and
-        Mess :: \<open>(e \<Rightarrow> i \<Rightarrow> bool) \<Rightarrow> e \<Rightarrow> i \<Rightarrow> bool\<close> ("_Ess._") 
+  fixes P :: \<open>('e\<Rightarrow>'i\<Rightarrow>bool)\<Rightarrow>'i\<Rightarrow>bool\<close> and
+        E :: \<open>'e \<Rightarrow> 'i \<Rightarrow> bool\<close>
   assumes "\<lfloor> P E \<rfloor>\<^sub>g"
-         "\<forall>(\<phi>::e \<Rightarrow> i \<Rightarrow> bool) \<psi>::e \<Rightarrow> i \<Rightarrow> bool. \<lfloor>P \<phi> \<^bold>\<and> \<^bold>\<box>(\<lambda>v::i. \<forall>x::e. (\<phi> x \<^bold>\<supset> \<psi> x) v) \<^bold>\<supset> P \<psi>\<rfloor>\<^sub>g"
-         "\<forall>x::e. \<lfloor>\<lambda>xa::i. E x xa = (\<forall>xb::e \<Rightarrow> i \<Rightarrow> bool. ((xb Ess. x) \<^bold>\<supset> \<^bold>\<box>Mexiactb xb) xa)\<rfloor>\<^sub>g"
-         "\<not> \<lfloor>P (\<lambda>x::e. ((\<lambda>y::e. \<^bold>\<bottom>) Ess. x) \<^bold>\<supset> (\<^bold>\<box>(\<lambda>v::i. \<exists>x::e. (x\<^bold>@v) \<and> False)))\<rfloor>\<^sub>g"
+         "\<forall>(\<phi>::'e \<Rightarrow> 'i \<Rightarrow> bool) \<psi>::'e \<Rightarrow> 'i \<Rightarrow> bool. \<lfloor>P \<phi> \<^bold>\<and> \<^bold>\<box>(\<lambda>v::'i. \<forall>x::'e. (\<phi> x \<^bold>\<supset> \<psi> x) v) \<^bold>\<supset> P \<psi>\<rfloor>\<^sub>g"
+         "\<forall>x::'e. \<lfloor>\<lambda>xa::'i. E x xa = (\<forall>xb::'e \<Rightarrow> 'i \<Rightarrow> bool. ((xb Ess x) \<^bold>\<supset> \<^bold>\<box>Mexiactb xb) xa)\<rfloor>\<^sub>g"
+         "\<not> \<lfloor>P (\<lambda>x::'e. ((\<lambda>y::'e. \<^bold>\<bottom>) Ess x) \<^bold>\<supset> (\<^bold>\<box>(\<lambda>v::'i. \<exists>x::'e. (x\<^bold>@v) \<and> False)))\<rfloor>\<^sub>g"
   shows "False"
-  using assms supply [[smt_trace, show_types]] by (smt (verit)) (*bool_simplify From: Notes_On_Goedels_Ontological_Argument/GoedelVariantHOML1AndersonQuant.thy*)
+  using assms by (smt (verit)) (*bool_simplify From: Notes_On_Goedels_Ontological_Argument/GoedelVariantHOML1AndersonQuant.thy*)
 end
 
 end

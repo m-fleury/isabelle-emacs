@@ -1737,7 +1737,7 @@ local
 in
 fun rewrite_bool_simplify ctxt _ t =
   SMT_Replay_Methods.prove ctxt t (fn _ =>
-   (chain_rewrite_thms ctxt @{thms alethe_bool_simplify}))
+   (chain_rewrite_thms ctxt @{thms alethe_bool_simplify conj_assoc}))
 
 fun rewrite_and_simplify ctxt _ t =
   SMT_Replay_Methods.prove ctxt t (fn _ =>
