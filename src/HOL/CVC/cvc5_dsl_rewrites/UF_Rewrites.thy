@@ -21,12 +21,11 @@ lemma [rewrite_eq_symm]:
   shows "NO_MATCH cvc_a (undefined t s) \<Longrightarrow> (t = s) = (s = t)"
   by auto
 
-
 named_theorems rewrite_eq_cond_deq \<open>automatically_generated\<close>
 
 lemma [rewrite_eq_cond_deq]:
   fixes t::"'a::type" and s::"'a::type" and r::"'a::type"
-  shows "NO_MATCH cvc_a (undefined t s r) \<Longrightarrow> ((t = s) = False) \<Longrightarrow> ((t = s) = (t = r)) = ((\<not>(t = s)) \<and> (\<not>(t = r)))"
+  shows "NO_MATCH cvc_a (undefined t s r) \<Longrightarrow> ((s = r) = False) \<Longrightarrow> ((t = s) = (t = r)) = ((\<not>(t = s)) \<and> (\<not>(t = r)))"
   by auto
 
 
@@ -37,12 +36,11 @@ lemma [rewrite_eq_ite_lift]:
   shows "NO_MATCH cvc_a (undefined C t s r) \<Longrightarrow> ((if C then t else s) = r) = (if C then (t = r) else (s = r))"
   by auto
 
-
 named_theorems rewrite_distinct_binary_elim \<open>automatically_generated\<close>
 
 lemma [rewrite_distinct_binary_elim]:
   fixes t::"'a::type" and s::"'a::type"
-  shows "NO_MATCH cvc_a (undefined t s) \<Longrightarrow> (t \<noteq> s) = (t \<noteq> s)"
+  shows "NO_MATCH cvc_a (undefined t s) \<Longrightarrow> (t \<noteq> s) = (\<not> (t = s))"
   by auto
 
 end
