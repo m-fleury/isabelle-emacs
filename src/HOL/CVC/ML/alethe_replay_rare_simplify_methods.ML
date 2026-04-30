@@ -86,17 +86,17 @@ fun try_simp_tac thms ctxt  =
 
 fun try_simp ctxt t thms = SMT_Replay_Methods.prove ctxt t (fn ctxt => try_simp_tac thms ctxt)
 
-fun try_match_tac thms ctxt  =
+fun try_match_tac prems thms ctxt  =
      (K (HEADGOAL (match_tac ctxt thms)))
      THEN' debug_msg_tac' ctxt high "try_match after applying lemma"
      THEN' TRY' (K (unfold_tac ctxt @{thms NO_MATCH_def}))
      THEN' debug_msg_tac' ctxt high "try_match after applying lemma"
-
+     THEN' TRY'  (Method.insert_tac ctxt prems)
      THEN' (K (ALLGOALS (assume_tac ctxt)))
 
      THEN' (try_simp_tac [] ctxt)
 
-fun try_match ctxt t thms = SMT_Replay_Methods.prove ctxt t (fn ctxt => try_match_tac thms ctxt)
+fun try_match ctxt prems t thms = SMT_Replay_Methods.prove ctxt t (fn ctxt => try_match_tac prems thms ctxt)
 
 
 (* Rare rewrite reconstruction *)
@@ -182,17 +182,17 @@ fun dsl_tac_initialize rewrite_name args ctxt t prems =
       val is_simple = List.exists (fn x => x = rewrite_name) simple_rare_rewrites_names 
   in
     if rare_mode = 2 (*Use only simplify*)
-    then try_simp ctxt t []
+    then try_simp ctxt t prems
     else if rare_mode = 3 (*Use only simplify but add all lemmas to the simpset*)
-    then try_simp ctxt t all_rare_rewrite_lemmas
+    then try_simp ctxt t (prems @ all_rare_rewrite_lemmas)
     else if rare_mode = 4 andalso is_simple (*Use lemma for complex cases & and simplify for easy ones *)
-    then try_simp ctxt t []
+    then try_simp ctxt t prems
     else if rare_mode = 5 andalso is_simple (*Use lemma for complex cases & and simplify for easy ones and add all simple lemmas to the simpset (see below but mainly those without lists in them that are not * rules) *)
-    then try_simp ctxt t simple_rare_rewrite_lemmas
+    then try_simp ctxt t (prems @ simple_rare_rewrite_lemmas)
     else if rare_mode = 6 (*Use only match (and assume_tac for premises)*)
-    then try_match ctxt t simple_rare_rewrite_lemmas
+    then try_match ctxt prems t (simple_rare_rewrite_lemmas)
     else if rare_mode = 7 andalso not is_simple (*7: use lemma for complex case & match for simple case *)
-    then try_match ctxt t simple_rare_rewrite_lemmas
+    then try_match ctxt prems t simple_rare_rewrite_lemmas
     else
       (case rewrite_name of (*cheating: hardcoding some common rules, saving around 3ms each time TODO: Should be measured again*)
         "bool_double_not_elim" => SMT_Replay_Methods.prove ctxt t (fn _ =>
@@ -212,7 +212,7 @@ fun dsl_tac_initialize rewrite_name args ctxt t prems =
                let
                 val _ = debug_msg ctxt high (fn () => @{print} ("undeclared RARE rule: " ^ rewrite_name ^ ". Use cvc5_rare \"full_name\"."))
                in raise RARE_REPLAY("could not find lemma for rare rewrite" ^ rewrite_name) end
-              else try_simp ctxt t []   
+              else try_simp ctxt t prems   
            | (SOME rewrite_lemmas) => (*lemma found and we are supposed to use it*)
               let
                 val _ = debug_msg ctxt middle (fn () => @{print} ("Lemmas corresponding to the current rewrite rule",rewrite_lemmas));
@@ -259,7 +259,7 @@ fun dsl_tac_initialize rewrite_name args ctxt t prems =
                    (if rare_mode = 1 orelse (List.exists (fn x => x = rare_mode) [4,5,7])
                    then (let val _ = @{print}("lemma,goal",(nth inst_lemmas_without_true 0,Thm.cterm_of ctxt t)) in 
                    (debug_msg_tac'' ctxt high "could not apply lemma" THEN' (K no_tac) (* This won't work: raise RARE_REPLAY("Lemmas could not be used to discharge rewrite rule."*)) end)
-                   else ((*K (print_tac ctxt "lemmas could not be used, continue to simplify") THEN'*) try_simp_tac [] ctxt THEN' K (print_tac ctxt "after simplification")))
+                   else ((*K (print_tac ctxt "lemmas could not be used, continue to simplify") THEN'*) try_simp_tac prems ctxt THEN' K (print_tac ctxt "after simplification")))
                   )
                   THEN_ALL_NEW (
                     debug_msg_tac'' ctxt high "trying to discharge assumption of RARE lemma"
@@ -276,7 +276,7 @@ fun dsl_tac_initialize rewrite_name args ctxt t prems =
                then (if (List.exists (fn x => x = rare_mode) [0,1,4,5,7,8]) 
                 then try_lemma_i 0
                 else raise ERROR("Rule could not be used") )
-               else (if rare_mode = 0 then try_simp ctxt t [] else raise ERROR("Rule could not be instantiated") )
+               else (if rare_mode = 0 then try_simp ctxt t prems else raise ERROR("Rule could not be instantiated") )
              end))
 end
 
