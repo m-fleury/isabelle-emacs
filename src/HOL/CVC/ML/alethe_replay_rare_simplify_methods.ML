@@ -251,9 +251,8 @@ fun dsl_tac_initialize rewrite_name args ctxt t prems =
                             ORELSE' (EqSubst.eqsubst_tac ctxt [0] [nth inst_lemmas_without_true 0] )
                         else (EqSubst.eqsubst_tac ctxt [0] [nth inst_lemmas_without_true 0] (*TODO: Use lemma i*))
                     (*THEN' K (print_tac ctxt "after applying lemma")*)
-
-                     THEN' debug_msg_tac'' ctxt high "applied lemma"
-                     THEN' REPEAT' (resolve_tac ctxt prems)
+                     THEN' (TRY' (resolve_tac ctxt prems))
+                     THEN' debug_msg_tac'' ctxt high "resolved premise if there was one"
                      THEN' TRY' (resolve_tac ctxt [@{thm refl}])))
                   ORELSE' (*TODO: This is wrong but I don't get how to change it. I want a UNLESS changed*)
                    (if rare_mode = 1 orelse (List.exists (fn x => x = rare_mode) [4,5,7])
