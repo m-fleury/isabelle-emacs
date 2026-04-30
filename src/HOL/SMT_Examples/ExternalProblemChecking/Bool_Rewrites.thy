@@ -1,4 +1,4 @@
-(*  Title:      HOL/SMT_Examples/SMT_Examples_CVC.thy
+(*  Title:      HOL/SMT_Examples/SMT_Examples/ExternalProblemChecking/Bool_Rewrites.thy
     Author:     Hanna Lachnitt, Stanford University
     Author:     Mathias Fleury, University of Freiburg
 
@@ -7,10 +7,12 @@ Note that we don't have examples for every rule, some of them might not be used 
 *)
 
 theory Bool_Rewrites
-  imports HOL.SMT_CVC HOL.Real
+  imports HOL.SMT_CVC HOL.Real (*TODO: Why do I need to import Reals to have strings parse correctly?!*)
 begin
 
-declare[[smt_trace=true,smt_verbose=true]]
+declare[[rare_rec_mode=7]]
+
+declare[[smt_trace=false,smt_verbose=false]]
 
 check_smt_dir ("cvc5_proof") "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/Bool_Rewrites/"
 
@@ -18,7 +20,6 @@ declare[[smt_trace=true,smt_verbose=true]]
 
 declare[[smt_expert_debug_alethe_level=3]]
 declare[[smt_expert_debug_alethe_files="alethe_replay_rare"]]
-declare[[rare_rec_mode=1]]
 
 
 (*(define-rule bool-double-not-elim ((t Bool)) (not (not t)) t))*)
@@ -201,6 +202,9 @@ check_smt ("cvc5_proof")
   "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/Bool_Rewrites/ite-else-false.alethe"
 
 (*(define-rule ite-then-false ((c Bool) (x Bool)) (ite c false x) (and (not c) x))*)
+check_smt ("cvc5_proof")
+  "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/Bool_Rewrites/ite-then-false.smt2"
+  "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/Bool_Rewrites/ite-then-false.alethe"
 
 (*(define-rule ite-else-true ((c Bool) (x Bool)) (ite c x true) (or (not c) x))*)
 check_smt ("cvc5_proof")

@@ -1,4 +1,4 @@
-(*  Title:      HOL/SMT_Examples/SMT_Examples_CVC.thy
+(*  Title:      HOL/SMT_Examples/SMT_Examples/ExternalProblemChecking/Builtin_Rewrites.thy
     Author:     Hanna Lachnitt, Stanford University
     Author:     Mathias Fleury, University of Freiburg
 *)
