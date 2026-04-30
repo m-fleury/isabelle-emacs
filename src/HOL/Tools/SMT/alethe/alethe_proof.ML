@@ -441,7 +441,7 @@ fun postprocess_proof compress ctxt step cx =
         val start_idx = (if has_local_rebound context_assignments [] [] then 1 else 0)
         val new_variable_names = fold (fn t => curry (op ::) (t, assign_unused_name t start_idx)) (map fst rebound_lhs_vars) []
         val _ = debug_msg ctxt high (fn () => \<^print> ("... mapping between new variables introduced in the anchor and their original names", new_variable_names))
-      in ((shadowing_vars, map (apfst (fn t => assign_unused_name t start_idx)) rebound_lhs_vars, substitute_terms), new_variable_names) end
+      in ((shadowing_vars, rebound_lhs_vars, substitute_terms), new_variable_names) end
   
     (* Functions for rewriting terms and the context *)
     fun synctactic_var_subst old_name new_name (u $ v) =
@@ -507,7 +507,7 @@ fun postprocess_proof compress ctxt step cx =
       in
         (step, (cx', new_variable_names))
       end
-    | postprocess (step as Raw_Alethe_Node {id, rule, step_args, context_assignments, prems, concl, subproof,
+    | postprocess (Raw_Alethe_Node {id, rule, step_args, context_assignments, prems, concl, subproof,
         prop_skeleton}) (cx, orig_new_variable_names) =
       if is_anchor_rule rule
       then
@@ -524,15 +524,15 @@ fun postprocess_proof compress ctxt step cx =
           then ("isabelle_internal_" ^ raw_name,Free("isabelle_internal_" ^ a,b)) else (raw_name,Free(a,b))
         fun normalize_external2 (raw_name,b) =
           if Config.get ctxt SMT_Config.check_external andalso Char.isUpper (hd (String.explode raw_name))
-          then (("isabelle_internal_" ^ raw_name),b) else ( raw_name,b)
+          then (b,("isabelle_internal_" ^ raw_name)) else (b,raw_name)
         val ((shadowing_vars, rebound_lhs_vars, substitute_terms),new_variable_names) =
           process_context_assignments context_assignments cx
           ||> (curry (op @)) orig_new_variable_names
           |> (fn ((i,j,k),n) => ((map normalize_external i,map normalize_external j,k), map normalize_external2 n))
         (* Process conclusion *)
-        val (cx',termified_concl) = transform_concl concl id (cx, orig_new_variable_names)
+        val (cx',termified_concl) = transform_concl concl id (cx, new_variable_names |> @{print})
         val (_,termified_prop_skeleton) =
-          transform_concl (prop_skeleton) id (cx, orig_new_variable_names)
+          transform_concl (prop_skeleton) id (cx, new_variable_names)
         val _ = debug_msg ctxt middle (fn () => \<^print> ("... transformed conclusion of step closing the anchor ", termified_concl))
         val alpha_conversion = rule = "bind" andalso is_alpha_renaming termified_concl
     
@@ -600,7 +600,7 @@ fun postprocess_proof compress ctxt step cx =
             ((map (fn (a,b) => (a, fastype_of b)) (shadowing_vars @ rebound_lhs_vars)), [], assms_from_subproof, new_subproof)
             tactic_args termified_prop_skeleton
       in
-        (step, (cx', orig_new_variable_names))
+        (step, (cx', new_variable_names))
       end
     else (*Non anchor steps*)
       let
@@ -665,7 +665,7 @@ fun postprocess_proof compress ctxt step cx =
           
               (*TODO Hanna: clean-up*)
               fun normalize_external2 (raw_name,b) =
-                if Config.get ctxt SMT_Config.check_external andalso Char.isUpper (hd ( String.explode raw_name))
+                if Config.get ctxt SMT_Config.check_external andalso Char.isUpper (hd (String.explode raw_name))
                 then (("isabelle_internal_" ^ raw_name),b) else ( raw_name,b)
           
               fun insts_of_forall_inst (SMTLIB.S [_, SMTLIB.Sym x, a]) = (x, a) |
