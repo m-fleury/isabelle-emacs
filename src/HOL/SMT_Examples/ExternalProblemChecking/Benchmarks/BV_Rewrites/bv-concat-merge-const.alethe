@@ -1,5 +1,0 @@
-unsat
-(step t220 (cl (= 2 (+ 1 1))) :rule trust :args ("trust"))
-(step t290 (cl (= (concat ((_ extract 13 0) x) (@bv 0 1) (@bv 0 1)) (concat ((_ extract 13 0) x) (@bv (+ (* 0 (int.pow2 1)) (mod 0 (int.pow2 1))) 2)))) :rule rare_rewrite :premises (t220) :args ("bv-concat-merge-const" (rare-list ((_ extract 13 0) x)) 0 1 0 1 2 rare-list))
-(step slice_end (cl) :rule trust :premises (t290) :args ("trust"))
-

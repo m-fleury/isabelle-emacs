@@ -1,4 +1,0 @@
-unsat
-(step t3112 (cl (= ((_ zero_extend 0) rst__AT10) rst__AT10)) :rule rare_rewrite :args ("bv-zero-extend-eliminate-0" rst__AT10))
-(step slice_end (cl) :rule trust :premises (t3112) :args ("trust"))
-

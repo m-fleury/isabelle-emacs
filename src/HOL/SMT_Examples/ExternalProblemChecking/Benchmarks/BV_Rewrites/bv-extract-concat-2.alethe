@@ -1,8 +1,0 @@
-unsat
-(step t181 (cl (= (>= 15 (@bvsize ((_ extract 15 1) x))) true)) :rule trust :args ("trust"))
-(step t183 (cl (= 0 (- 15 (@bvsize ((_ extract 15 1) x))))) :rule trust :args ("trust"))
-(step t201 (cl (= (< 1 (@bvsize ((_ extract 15 1) x))) true)) :rule trust :args ("trust"))
-(step t203 (cl (= 14 (- (@bvsize ((_ extract 15 1) x)) 1))) :rule trust :args ("trust"))
-(step t204 (cl (= ((_ extract 15 1) (concat ((_ extract 15 15) x) ((_ extract 15 1) x))) (concat ((_ extract 0 0) ((_ extract 15 15) x)) ((_ extract 14 1) ((_ extract 15 1) x))))) :rule rare_rewrite :premises (t201 t181 t183 t203) :args ("bv-extract-concat-2" ((_ extract 15 1) x) rare-list ((_ extract 15 15) x) 1 15 0 14))
-(step slice_end (cl) :rule trust :premises (t204) :args ("trust"))
-
