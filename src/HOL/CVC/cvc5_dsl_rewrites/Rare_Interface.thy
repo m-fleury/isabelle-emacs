@@ -205,7 +205,6 @@ named_theorems rare_cvc5_rewrites_all \<open>Rewrites only produced by the cvc5 
 
 cvc5_rare "cvc5_Rewrites.rewrite_ite_eq"
 cvc5_rare "cvc5_Rewrites.rewrite_or_not_refl"
-cvc5_rare "cvc5_Rewrites.rewrite_distinct_binary_elim"
 cvc5_rare "cvc5_Rewrites.rewrite_bool_not_eq_false"
 (*MOD_ELIM \<longrightarrow> No support for mod yet *)
 (*IS_INT_ELIM \<longrightarrow> Rare_Interface_Real.thy *)
@@ -215,7 +214,6 @@ cvc5_rare "cvc5_Rewrites.rewrite_bool_not_eq_false"
 
 lemmas [rare_cvc5_rewrites_simple] =
 "cvc5_Rewrites.rewrite_ite_eq"
-"cvc5_Rewrites.rewrite_distinct_binary_elim"
  "cvc5_Rewrites.rewrite_bool_not_eq_false"
 lemmas [rare_cvc5_rewrites_complex] =
 "cvc5_Rewrites.rewrite_or_not_refl"

@@ -29,15 +29,6 @@ lemma [rewrite_or_not_refl]:
     done
   done
 
-named_theorems rewrite_distinct_binary_elim \<open>added in postprocessing\<close>
-(* (define-rule distinct-binary-elim ((t1 Bool) (t2 Bool)) (distinct t1 t2) (not (= t1 t2)))*)
-
-lemma [rewrite_distinct_binary_elim]:
-  fixes t1::"bool" and t2::"bool"
-  shows "NO_MATCH cvc_a (undefined t1 t2) \<Longrightarrow> 
-  \<not>(t1 = t2) = (\<not>(t1 = t2))"
-  by simp
-
 named_theorems rewrite_bool_not_eq_false \<open>added in postprocessing\<close>
 (*(define-rule bool-not-eq-false ((t Bool)) (not (= t t)) false)*)
 
