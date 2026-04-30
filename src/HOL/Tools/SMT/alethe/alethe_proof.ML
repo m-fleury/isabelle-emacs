@@ -352,10 +352,10 @@ fun split_context_assignment _ [] (fixed : (string * term) list) substituted sub
 
 fun split_context_ass cx context_assignments = split_context_assignment cx context_assignments [] [] []
 
-fun has_local_rebound (SMTLIB.S [SMTLIB.Sym "=", SMTLIB.S [SMTLIB.Sym x, t], SMTLIB.Sym y] :: xs) lnames rnames =
+fun has_local_rebound (SMTLIB.S [SMTLIB.Sym "=", SMTLIB.S [SMTLIB.Sym x, _], SMTLIB.Sym y] :: xs) lnames rnames =
       member (op=) lnames y orelse member (op=) rnames x orelse has_local_rebound xs (x :: lnames) (y :: rnames)
   | has_local_rebound (_ :: xs) lnames rnames = has_local_rebound xs lnames rnames
-  | has_local_rebound [] lnames rnames = false
+  | has_local_rebound [] _ _ = false
 
 fun skolems_introduced_by_rule [] = [] |
     skolems_introduced_by_rule bds = fold
