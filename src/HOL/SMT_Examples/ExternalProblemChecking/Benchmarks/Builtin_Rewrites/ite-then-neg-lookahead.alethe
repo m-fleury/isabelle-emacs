@@ -1,0 +1,4 @@
+unsat
+(assume nst3.0 (not (= (ite a (ite (not a) x y) z) (ite a y z))))
+(step st3 (cl (= (ite a (ite (not a) x y) z) (ite a y z))) :rule rare_rewrite :args ("ite-then-neg-lookahead" a x y z))
+(step t.end (cl) :rule resolution :premises (nst3.0 st3))

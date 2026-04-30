@@ -1,7 +1,6 @@
-(set-logic QF_AUF)
+(set-logic QF_UF)
 (declare-sort Index 0)
 (declare-sort Element 0)
-(declare-fun v0 () (Array Index Element))
 (declare-fun v1 () Index)
 (declare-fun v2 () Element)
 (declare-fun v3 () Element)

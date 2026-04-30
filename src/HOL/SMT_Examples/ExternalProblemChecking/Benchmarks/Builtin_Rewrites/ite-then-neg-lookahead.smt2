@@ -1,0 +1,10 @@
+;handcrafted dfrom ite-else-neg-lookahead
+(set-logic QF_UF)
+(declare-sort U 0)
+(declare-fun y () U)
+(declare-fun x () U)
+(declare-fun z () U)
+(declare-fun a () Bool)
+(assert (not (= (ite a (ite (not a) x y) z) (ite a y z))))
+(check-sat)
+(exit)
