@@ -441,7 +441,7 @@ fun postprocess_proof compress ctxt step cx =
         val start_idx = (if has_local_rebound context_assignments [] [] then 1 else 0)
         val new_variable_names = fold (fn t => curry (op ::) (t, assign_unused_name t start_idx)) (map fst rebound_lhs_vars) []
         val _ = debug_msg ctxt high (fn () => \<^print> ("... mapping between new variables introduced in the anchor and their original names", new_variable_names))
-      in ((shadowing_vars, rebound_lhs_vars, substitute_terms), new_variable_names) end
+      in ((shadowing_vars, map (apfst (fn t => assign_unused_name t start_idx)) rebound_lhs_vars, substitute_terms), new_variable_names) end
   
     (* Functions for rewriting terms and the context *)
     fun synctactic_var_subst old_name new_name (u $ v) =
