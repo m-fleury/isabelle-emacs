@@ -153,7 +153,7 @@ fun include_args f ctxt prems _ _ goal args = f ctxt prems goal args
 fun include_step_and_tactic_args f ctxt prems step_args _ goal args = f ctxt prems step_args goal args
 
 
-fun choose _ And = ignore_args and_rule
+fun choose _ And = include_args and_rule
   | choose _ And_Neg = ignore_args and_neg_rule
   | choose _ And_Pos = include_args and_pos
   | choose _ And_Simplify = ignore_args rewrite_and_simplify

@@ -125,7 +125,7 @@ fun include_context_ass f ctxt prems _ context_ass t _ = f ctxt prems context_as
 fun include_args f ctxt prems _ _ t args = f ctxt prems t args
 fun include_context_ass_and_args f ctxt prems _ context_ass goal args = f ctxt prems context_ass goal args
 
-fun choose And = ignore_args and_rule
+fun choose And = include_args and_rule
   | choose And_Neg = ignore_args and_neg_rule
   | choose And_Pos = include_args and_pos
   | choose And_Simplify = ignore_args rewrite_and_simplify

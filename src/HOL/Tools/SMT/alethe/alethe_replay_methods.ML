@@ -77,7 +77,7 @@ sig
   type alethe_tac = Proof.context -> thm list -> term -> thm
 
   val bind: alethe_tac_context_args
-  val and_rule: alethe_tac
+  val and_rule: alethe_tac_args
   val and_neg_rule: alethe_tac
   val and_pos: alethe_tac_args
   val rewrite_and_simplify: alethe_tac
@@ -912,14 +912,17 @@ local
     (REPEAT_DETERM_N' k (match_tac ctxt @{thms disjI2}))
     THEN' FIRST' [(match_tac ctxt @{thms disjI1}) THEN' (assume_tac ctxt), (assume_tac ctxt)]
 
+  fun and_dest_prove ctxt k =
+    REPEAT_DETERM_N' k (dmatch_tac ctxt @{thms conjunct2})
+    THEN' FIRST' [(dmatch_tac ctxt @{thms conjunct1}) THEN' (assume_tac ctxt), (assume_tac ctxt)]
+
   fun or_pos_prove ctxt _ =
      match_tac ctxt @{thms alethe_farkas(1)}
      THEN' assume_tac ctxt
 
-  fun and_rule_prove ctxt prems =
+  fun and_rule_prove k ctxt prems =
      Method.insert_tac ctxt prems
-     THEN' REPEAT' (eresolve_tac ctxt @{thms conjE} THEN' TRY' (assume_tac ctxt))
-     THEN' TRY' (assume_tac ctxt)
+     THEN' and_dest_prove ctxt k
 
   fun and_neg_rule_prove ctxt _ =
      match_tac ctxt @{thms alethe_and_neg}
@@ -930,7 +933,8 @@ local
 
 in
 
-val and_rule = prover and_rule_prove
+fun and_rule ctxt prems t (SOME (Index k)) = (prover (and_rule_prove k)) ctxt prems t
+  | and_rule ctxt _ t _ = SMT_Replay_Methods.prove ctxt t (fn _ => K no_tac)
 
 val not_and_rule = prover not_and_rule_prove
 
@@ -958,8 +962,7 @@ fun or_neg_rule ctxt _ t (SOME (Index k)) =
 fun and_pos ctxt _ t (SOME (Index k)) =
     SMT_Replay_Methods.prove ctxt t (fn _ =>
     resolve_tac ctxt [@{lemma "(A \<Longrightarrow> B) \<Longrightarrow> (\<not>A \<or> B)" by blast}]
-    THEN' REPEAT_DETERM_N' k (dmatch_tac ctxt @{thms conjunct2})
-    THEN' FIRST' [(dmatch_tac ctxt @{thms conjunct1}) THEN' (assume_tac ctxt), (assume_tac ctxt)])
+    THEN' (and_dest_prove ctxt k))
   | and_pos ctxt _ t _ = SMT_Replay_Methods.prove ctxt t (fn _ =>
     REPEAT_CHANGED (resolve_tac ctxt @{thms alethe_and_pos})
     THEN' TRY' (assume_tac ctxt))
