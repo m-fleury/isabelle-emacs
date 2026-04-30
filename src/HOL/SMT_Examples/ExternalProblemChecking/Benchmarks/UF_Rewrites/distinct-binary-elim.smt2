@@ -1,6 +1,7 @@
-(set-logic QF_BV)
-(declare-fun x () (_ BitVec 4))
-(declare-fun y () (_ BitVec 4))
-(assert (not (= (distinct (@bv 0 4) y) (not (= (@bv 0 4) y)))))
+;Originally on BV
+(set-logic AUFLIA)
+(declare-fun x () Int)
+(declare-fun y () Int)
+(assert (not (= (distinct 0 y) (not (= 0 y)))))
 (check-sat)
 (exit)
