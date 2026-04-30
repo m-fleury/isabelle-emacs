@@ -1086,7 +1086,41 @@ lemma
                  \<phi> (\<lambda>w::'a. nonEmpty (\<lambda>X::'a \<Rightarrow> bool. S X \<and> X w)) x \<noteq> nonEmpty (\<lambda>X::'a \<Rightarrow> bool. S X \<and> X x))"
 shows "False"
   using assms supply [[smt_trace]] by (smt (verit)) (*qnt_cnf From: Topological_Semantics/conditions_relativized_infinitary.thy*)
+end
 
+locale _ =
+  fixes order :: "'energy \<Rightarrow> 'energy \<Rightarrow> bool"  (infix \<open>e\<le>\<close> 80) and
+        energies :: "'energy set"
+begin
+
+abbreviation "incomparable P \<equiv> \<lambda>x y. \<not> P x y \<and> \<not> P y x"
+
+definition possible_pareto:: "('position \<Rightarrow> 'energy set) set" where 
+  "possible_pareto \<equiv> {F. \<forall>g. F g \<subseteq> {e. e\<in>energies} 
+                          \<and> (\<forall>e e'. (e \<in> F g \<and> e' \<in> F g \<and> e \<noteq> e') 
+                             \<longrightarrow> (\<not> e e\<le> e' \<and> \<not> e' e\<le> e))}"
+
+lemma
+  assumes "\<forall>(A::('position \<Rightarrow> 'energy set) set) P::('position \<Rightarrow> 'energy set) \<Rightarrow> bool.
+          (\<forall>x::'position \<Rightarrow> 'energy set. x \<in> A \<longrightarrow> P x) = (A \<subseteq> Collect P)"
+       "\<forall>(A::'energy set) P::'energy \<Rightarrow> bool. (\<forall>x::'energy. x \<in> A \<longrightarrow> P x) = (A \<subseteq> Collect P)"
+       "(P::('position \<Rightarrow> 'energy set) set) \<subseteq> possible_pareto"
+       "\<forall>(a::'position \<Rightarrow> 'energy set) P::('position \<Rightarrow> 'energy set) \<Rightarrow> bool. (a \<in> Collect P) = P a"
+       "\<forall>(a::'energy) P::'energy \<Rightarrow> bool. (a \<in> Collect P) = P a"
+       "possible_pareto =
+       {F::'position \<Rightarrow> 'energy set.
+        \<forall>g::'position.
+           F g \<subseteq> {e::'energy. e \<in> (energies::'energy set)} \<and>
+           (\<forall>(e::'energy) e'::'energy. e \<in> F g \<and> e' \<in> F g \<and> e \<noteq> e' \<longrightarrow> incomparable (e\<le>) e e')}"
+       "(\<lambda>g::'position.
+           {e::'energy \<in> {e::'energy. \<exists>F::'position \<Rightarrow> 'energy set. F \<in> (P::('position \<Rightarrow> 'energy set) set) \<and> e \<in> F g}.
+            \<forall>x::'energy. x \<in> {e::'energy. \<exists>F::'position \<Rightarrow> 'energy set. F \<in> P \<and> e \<in> F g} \<and> e \<noteq> x \<longrightarrow> \<not> x e\<le> e})
+       \<notin> {F::'position \<Rightarrow> 'energy set.
+           \<forall>g::'position.
+              F g \<subseteq> {e::'energy. e \<in> (energies::'energy set)} \<and>
+              (\<forall>(e::'energy) e'::'energy. e \<in> F g \<and> e' \<in> F g \<and> e \<noteq> e' \<longrightarrow> incomparable (e\<le>) e e')}"
+  shows "False"
+  using assms supply[[smt_trace]] by (smt (verit, ccfv_threshold)) (*qnt_cnf From: Galois_Energy_Games/Decidability.thy*)
 end
 
 end
