@@ -1067,4 +1067,26 @@ lemma
   using assms by (smt (verit)) (*bool_simplify From: Notes_On_Goedels_Ontological_Argument/GoedelVariantHOML1AndersonQuant.thy*)
 end
 
+experiment 
+begin
+
+abbreviation "nonEmpty S \<equiv> \<exists>x. S x"
+
+lemma
+  fixes \<phi> :: \<open>('a \<Rightarrow> bool) \<Rightarrow> 'a \<Rightarrow> bool\<close>
+  assumes "(\<forall>S::('a \<Rightarrow> bool) \<Rightarrow> bool.
+           let U::'a \<Rightarrow> bool = \<lambda>w::'a. nonEmpty (\<lambda>X::'a \<Rightarrow> bool. S X \<and> X w)
+           in \<forall>x::'a.
+                 \<not> U x \<and> nonEmpty (\<lambda>X::'a \<Rightarrow> bool. nonEmpty (\<lambda>x::'a \<Rightarrow> bool. S x \<and> (\<phi>::('a \<Rightarrow> bool) \<Rightarrow> 'a \<Rightarrow> bool) x = X) \<and> X x) \<longrightarrow>
+                 \<phi> (\<lambda>w::'a. nonEmpty (\<lambda>X::'a \<Rightarrow> bool. S X \<and> X w)) x) \<noteq>
+       (\<forall>S::('a \<Rightarrow> bool) \<Rightarrow> bool.
+           let U::'a \<Rightarrow> bool = \<lambda>w::'a. nonEmpty (\<lambda>X::'a \<Rightarrow> bool. S X \<and> X w)
+           in \<forall>x::'a.
+                 \<not> U x \<and> nonEmpty (\<lambda>X::'a \<Rightarrow> bool. nonEmpty (\<lambda>x::'a \<Rightarrow> bool. S x \<and> (\<lambda>p::'a. \<phi> x p \<noteq> x p) = X) \<and> X x) \<longrightarrow>
+                 \<phi> (\<lambda>w::'a. nonEmpty (\<lambda>X::'a \<Rightarrow> bool. S X \<and> X w)) x \<noteq> nonEmpty (\<lambda>X::'a \<Rightarrow> bool. S X \<and> X x))"
+shows "False"
+  using assms supply [[smt_trace]] by (smt (verit)) (*qnt_cnf From: Topological_Semantics/conditions_relativized_infinitary.thy*)
+
+end
+
 end
