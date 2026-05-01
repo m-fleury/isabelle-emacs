@@ -505,7 +505,7 @@ fun abstract_for_code_eval ctxt u =
                  \<^const_name>\<open>z3mod\<close>,
                  \<^const_name>\<open>Num.numeral_class.numeral\<close>,
                  "SMT_Word.is_pow2",
-                 "Word.smt_extract",
+                 "Word.smtlib_extract",
                  "Log_Nat.floorlog",
                  "Archimedean_Field.floor_ceiling"
                 ]

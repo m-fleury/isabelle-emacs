@@ -3,7 +3,7 @@ theory BV_Rewrites_Simplification
 begin
 
 declare[[show_types,show_sorts]]
-
+declare[[smt_expert_debug_alethe_level=0]]
 
 (*
 (define-rule bv-ite-equal-children ((c (_ BitVec 1)) (x ?BitVec)) (bvite c x x) x)
@@ -212,8 +212,8 @@ named_theorems rewrite_bv_shl_by_const_0 \<open>automatically_generated\<close>
 
 lemma [rewrite_bv_shl_by_const_0]:
   fixes x::"'a::len word" and sz::"int"
-  shows "NO_MATCH cvc_a (undefined x sz) \<Longrightarrow> push_bit_lift x 0 = x"
-  unfolding push_bit_lift_def by simp
+  shows "NO_MATCH cvc_a (undefined x sz) \<Longrightarrow> smtlib_bvshl x 0 = x"
+  unfolding smtlib_bvshl_def by simp
 
 
 (*
@@ -229,25 +229,70 @@ named_theorems rewrite_bv_shl_by_const_1 \<open>automatically_generated\<close>
 
 lemma [rewrite_bv_shl_by_const_1]:
   fixes x::"'a::len word" and amount::"int" and sz::"int" and en::"int"
-  shows "NO_MATCH cvc_a (undefined x amount sz en)
+  shows "NO_MATCH cvc_a (undefined x amount sz en w_amount)
+    \<Longrightarrow> LENGTH('b) = (nat amount)
+    \<Longrightarrow> LENGTH('a) = LENGTH('c) + LENGTH('b)
+    \<Longrightarrow> LENGTH('c) = (nat en) + 1
+    \<Longrightarrow> w_amount = Word.Word amount
+
     \<Longrightarrow> (amount < int(size x)) = True
     \<Longrightarrow> en = (int (size x)) - (1 + amount)
-    \<Longrightarrow> LENGTH('b) = (nat amount) \<Longrightarrow> LENGTH('a) = LENGTH('c) + LENGTH('b) \<Longrightarrow> LENGTH('c) = (nat en) + 1
     \<Longrightarrow>
-   (push_bit_lift x amount::'a::len word)=
+   (smtlib_bvshl x w_amount::'a::len word)=
    word_cat
     (smt_extract (nat en) (nat (0::int)) x::'c::len word)
     (0::'b::len word)"
-  unfolding push_bit_lift_def
+  unfolding smtlib_bvshl_def
   apply (cases "0 \<le> amount")
-  apply simp_all
-  apply (subst word_unat_eq_iff)
-  apply (simp only: unsigned_push_bit_eq unat_word_cat)
-  apply (subst unat_smt_extract)
-     apply simp_all
-  by (simp add: add.commute push_bit_take_bit)
-
-
+  subgoal
+    apply (subst nat_0)
+    apply (subst word_uint_eq_iff)
+    apply (subst uint_word_cat)
+    subgoal .
+    unfolding push_bit_eq_mult
+    apply (subst uint_smt_extract)
+    subgoal by simp
+    subgoal by simp
+    subgoal by simp
+    unfolding drop_bit_eq_div take_bit_eq_mod
+    apply (subst uint_word_ariths)
+    apply (subst uint_2p)
+    subgoal
+      by (metis Word_eq_word_of_int add.commute add_lessD1 cvc_arith_rewrite_defs(5) exp_eq_zero_iff int_nat_eq n_less_equal_power_2 nat_less_iff
+          of_int_of_nat_eq of_nat_inverse word_le_0_iff word_size)
+    apply simp
+  proof-
+    assume a0: "LENGTH('b) = nat amount"
+    and a1: "LENGTH('a) = Suc (nat (int (size x) - (1 + amount)) + nat amount)"
+    and a2: "LENGTH('c) = Suc (nat (int (size x) - (1 + amount)))"
+    and a3: "w_amount = word_of_int amount"
+    and a4: "amount < int (size x)"
+    and a5: "en = int (size x) - (1 + amount)"
+    and a6: "0 \<le> amount"
+    have t0: "(nat (int (size x) - (1 + amount)) + nat amount) = size x - 1"
+      by (metis a1 diff_Suc_1 word_size)
+    have t1: "((2::int) * (2::int) ^ (size x - 1)) = (2::int) ^ size x"
+      by (metis Suc_diff_1 power_Suc word_size_gt_0)
+    have " nat (int (size x) - (1 + amount)) + 1   = size x - amount"
+      using a4 by simp
+    then have t2: "((2::int) * (2::int) ^ nat (int (size x) - (1 + amount))) = (2::int) ^ nat (int (size x) - amount)"
+      by (metis Suc_eq_plus1_left add.commute int_eq_iff power_Suc)
+    have t3: "unat (word_of_int amount::'a::len word) = nat amount"
+      by (metis a1 a6 add.commute cvc_arith_rewrite_defs(5) int_nat_eq le_unat_uoi less_add_Suc1 n_less_equal_power_2 nle_le
+          of_int_of_nat_eq of_nat_inverse)
+    have t4: "uint x * ((2::int) ^ nat amount mod (2::int) ^ size x) mod (2::int) ^ size x
+= uint x * ((2::int) ^ nat amount) mod (2::int) ^ size x"
+      using mod_mult_right_eq by blast
+    show "
+   uint x * (2::int) ^ unat (word_of_int amount::'a word) mod
+    ((2::int) * (2::int) ^ (nat (int (size x) - (1 + amount)) + nat amount)) =
+    uint x mod ((2::int) * (2::int) ^ nat (int (size x) - (1 + amount))) * (2::int) ^ nat amount"
+      apply (simp only: t0 t1 t2 t3 t4)
+      by (metis \<open>int (nat (int (size (x::'a::len word)) - (1 + (amount::int))) + 1) = int (size x) - amount\<close> a6
+          diff_ge_0_iff_ge int_eq_iff mult_exp_mod_exp_eq nat_diff_distrib nat_le_eq_zle)
+  qed
+  subgoal by simp
+  done    
 (*
 (define-cond-rule bv-shl-by-const-2
   ((x ?BitVec) (amount Int) (sz Int) (w Int))
@@ -264,9 +309,19 @@ lemma [rewrite_bv_shl_by_const_2]:
   fixes x::"'a ::len word" and amount::"int" and sz::"int" and w::"int"
   shows "NO_MATCH cvc_a (undefined x amount sz w)
     \<Longrightarrow>
-   (int (size x) \<le> amount) = True \<longrightarrow> amount < 2^LENGTH('a::len) \<longrightarrow> int LENGTH('a) = sz \<longrightarrow>
-   push_bit_lift x amount = (0::'a::len word)"
-  by (metis linorder_not_le nat_int not_less_iff_gr_or_eq push_bit_lift_def push_bit_word_beyond word_size)
+   (int (size x) \<le> amount) = True \<Longrightarrow>
+   amount < 2^LENGTH('a::len) \<Longrightarrow>
+   int LENGTH('a) = sz \<Longrightarrow>
+    Word.Word amount = w_amoung \<Longrightarrow> int LENGTH('a) = w \<Longrightarrow>
+   smtlib_bvshl x w_amount = (0::'a::len word)"
+  unfolding smtlib_bvshl_def
+  apply (subst word_power_nonzero)
+     apply simp_all
+     prefer 4
+  
+using push_bit_lift
+ linorder_not_le nat_int not_less_iff_gr_or_eq push_bit_word_beyond word_size
+  sorry
 
 (*
 (define-rule bv-lshr-by-const-0
@@ -281,8 +336,8 @@ named_theorems rewrite_bv_lshr_by_const_0 \<open>automatically_generated\<close>
 
 lemma [rewrite_bv_lshr_by_const_0]:
   fixes x::"'a ::len word"  and sz::"int"
-  shows "drop_bit_lift x 0 = x"
-  unfolding drop_bit_lift_def
+  shows "smtlib_bvlshr x 0 = x"
+  unfolding smtlib_bvlshr_def
   by force
 
 
@@ -294,8 +349,6 @@ lemma [rewrite_bv_lshr_by_const_0]:
   (bvlshr x (@bv amount sz))
   (concat (@bv 0 amount) (extract nm1 amount x)))
 
-TEST: NO
-TEST: PROOF
 *)
 
 lemma rewrite_bv_lshr_by_const_1_original:
@@ -340,18 +393,18 @@ qed
 
 named_theorems rewrite_bv_lshr_by_const_1 \<open>automatically_generated\<close>
 
-(*    Goal: "rare_rewrite"
-       assumptions:
-         ((20::int) < int (size (vptr::32 word))) = True
-         (31::int) = int (size (vptr::32 word)) - 1
+(*    assumptions:
+         ((3::int) < int (size (1705::16 word))) = True
+         (15::int) = int (size (1705::16 word)) - 1
        arguments:
          ''bv-lshr-by-const-1''
-         vptr::32 word
-         20::int
-         32::int
-         31::int
+         1705::16 word
+         3::int
+         16::int
+         15::int
        proposition:
-         drop_bit_lift (vptr::32 word) (20::32 word) = word_cat 0 (smt_extract (nat (31::int)) (nat (20::int)) vptr) *)
+         smtlib_bvlshr (1705::16 word) (3::16 word) = word_cat 0 (smtlib_extract (15::int) (3::int) (1705::16 word)) 
+ *)
 (*
 (define-cond-rule bv-lshr-by-const-1
   ((x ?BitVec) (amount Int) (sz Int) (nm1 Int))
@@ -360,17 +413,22 @@ named_theorems rewrite_bv_lshr_by_const_1 \<open>automatically_generated\<close>
   (bvlshr x (@bv amount sz))
   (concat (@bv 0 amount) (extract nm1 amount x)))
 *)
+
 lemma [rewrite_bv_lshr_by_const_1]:
   fixes x::"'a ::len word" and amount::"int" and sz::"int" and nm1::"int" 
-  shows "NO_MATCH cvc_a (undefined x amount sz nm1)  \<Longrightarrow>
-   LENGTH('a) = LENGTH('b) + LENGTH('c) \<Longrightarrow> 
-   amount < int (size x) \<Longrightarrow> 
+  shows "NO_MATCH cvc_a (undefined x amount sz nm1) \<Longrightarrow>
+
+   LENGTH('a) = LENGTH('b) + LENGTH('c) \<Longrightarrow>
    LENGTH('c) = nat nm1 + 1 - nat amount \<Longrightarrow>
+   unat w = amount \<Longrightarrow>
+   LENGTH('a) > 0 \<Longrightarrow>
+
+   amount < int (size x) \<Longrightarrow> 
    nm1 = int (size x) - 1 \<Longrightarrow>
-  unat w = amount \<Longrightarrow> LENGTH('a) > 0 \<Longrightarrow>
-   (drop_bit_lift x w::'a::len word) =
+
+   (smtlib_bvlshr x w::'a::len word) =
    word_cat (0::'b::len word)
-    (smt_extract (nat nm1) (nat amount) x::'c::len word)"
+    (smtlib_extract nm1 amount x::'c::len word)"
   using rewrite_bv_lshr_by_const_1_original[of cvc_a x amount sz nm1, where ?'b="'b", where ?'c="'c"]
   unfolding drop_bit_lift
   apply (cases "LENGTH('a::len) < nat amount")
@@ -378,8 +436,7 @@ lemma [rewrite_bv_lshr_by_const_1]:
     apply (simp add: word_size)
   apply (cases " 0 \<le> amount")
    apply simp_all
-  apply (metis word_of_int_uint)
-  by fastforce
+  sorry
 
 (*
 (define-cond-rule bv-lshr-by-const-2

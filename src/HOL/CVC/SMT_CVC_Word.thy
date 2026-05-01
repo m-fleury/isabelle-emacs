@@ -3,6 +3,21 @@ theory SMT_CVC_Word \<comment> \<open>More Setup for CVC that should be in HOL-W
 begin                  
 declare[[show_types,show_sorts]]
 
+
+lemma [alethe_poly_simp_rel]:
+  fixes x1::"'a::len word" and x2 y1 y2 cx cy
+  shows "cx * (x1-x2) = 1 \<Longrightarrow> cy * (y1-y2) = 1 \<Longrightarrow> odd cx \<Longrightarrow> odd cy \<Longrightarrow> ((cx * (x1 - x2)) = (cy * (y1 - y2))) \<longrightarrow> ((x1 = x2) = (y1 = y2))"
+  by auto
+(*
+SMT: Goal: "poly_simp_rel"
+       assumptions:
+         (65535::16 word) * ((if (16::int) \<le> (3::int) then 0 else smtlib_bvlshr 1 (word_of_int (3::int))) - 0) =
+         1 * (0 - (if (16::int) \<le> (3::int) then 0 else smtlib_bvlshr 1 (word_of_int (3::int))))
+       proposition:
+         ((if (16::int) \<le> (3::int) then 0 else smtlib_bvlshr 1 (word_of_int (3::int))) = 0) = (0 = (if (16::int) \<le> (3::int) then 0 else smtlib_bvlshr 1 (word_of_int (3::int)))) 
+*)
+
+
 (*Evaluation Steps*)
 
 (*This evaluation should be high in success instead of fast on average*)
@@ -65,27 +80,28 @@ lemmas [cvc_evaluate_bv]
   = evaluate_casts bit_operations 
     bv_mult
     evaluate_concat evaluate_power 
-    push_bit_lift_def
+    push_bit_lift drop_bit_lift
 
 
-lemma shiftl_lift:
-  "(x << i) \<equiv> push_bit i x"
-  unfolding shiftl_def by simp
+lemma bit_lift:
+  "bit (x::'a::len word) i \<equiv> (if i < LENGTH('a) then smtlib_extract (int i) (int i) x = (1::1 word) else False)"
+  unfolding atomize_eq
+  sorry
 
-lemma shiftr_lift:
-  "(x >> i) \<equiv> drop_bit i x"
-  unfolding shiftr_def by simp
-
-
+ML\<open>
+val x = @{term "bit (3::4 word) 9"}
+\<close>
 ML \<open>
 val nat_native_ops_tab =
 [
-("Bit_Shifts_Infix_Syntax.semiring_bit_operations_class.shiftl", @{thms shiftl_lift push_bit_lift}),
-("Bit_Shifts_Infix_Syntax.semiring_bit_operations_class.shiftr", @{thms shiftr_lift drop_bit_lift})
+("Bit_Shifts_Infix_Syntax.semiring_bit_operations_class.shiftl", @{thms eq_reflection[OF shiftl_def] push_bit_lift}),
+("Bit_Shifts_Infix_Syntax.semiring_bit_operations_class.shiftr", @{thms eq_reflection[OF shiftr_def] drop_bit_lift})
 
 ]
+fun bit_should_lift (_ $ (w $ i)) = Word_Lib.has_concrete_bw w andalso can HOLogic.dest_numeral i(*TODO: Also check if concrete value*)
+  | bit_should_lift _ = false
 val simplify_norm_table = [
-  ("Bit_Operations.semiring_bits_class.bit",(NONE,(@{thms push_bit_lift},NONE)))
+  ("Bit_Operations.semiring_bits_class.bit",(SOME bit_should_lift,(@{thms bit_lift},NONE))) (*TODO: Add condition*)
 
 ]
 
@@ -253,9 +269,6 @@ lemmas [alethe_aci_simp] =
 
 
 lemmas [cvc5_normalized_input] = Word_of_int
-
-
-
 
 
 end

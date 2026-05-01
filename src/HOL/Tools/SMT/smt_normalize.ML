@@ -409,7 +409,8 @@ local
     end
 
   (*TODO: Delete some of the unnecessary try_convs*)
-  fun unfold_extension_conv_simp tab ctxt ct =
+  fun unfold_extension_conv_simp tab ctxt =
+(fn ct => 
     let
       val t = Thm.term_of ct
       val t1 = Term.head_of t
@@ -428,7 +429,7 @@ local
             (Conv.try_conv (rewr_conv rw_thms))
             then_conv (Conv.try_conv (simp_rewr simp_thms ctxt))
  in
-  ((case t1 of
+  (case t1 of
     Const(n,T) =>
       (case AList.lookup (op =) tab n of
         SOME (cond,thms) =>
@@ -444,12 +445,12 @@ local
             in if cond_fun t then Conv.try_conv (transform thms) else Conv.all_conv end)
         end                                                                       
       | NONE => Conv.all_conv)
-  | _ => Conv.all_conv) ct)
- end
+  | _ => Conv.all_conv) ct
+ end)
 
 in
-fun simplify_norm_extension_conv ctxt ct =
- (Conv.top_conv ((fn ctxt' => ( unfold_extension_conv_simp (simplify_norm_table ctxt') ctxt'))) ctxt) ct
+fun simplify_norm_extension_conv ctxt =
+ (Conv.top_conv (unfold_extension_conv_simp (simplify_norm_table ctxt)) ctxt)
 
 
 fun simplify_norm ctxt =

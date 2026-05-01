@@ -11,7 +11,7 @@ begin
 
 declare[[smt_trace=true,smt_verbose=true]]
 
-declare[[smt_expert_debug_alethe_level=3]]
+declare[[smt_expert_debug_alethe_level=1]]
 declare[[smt_expert_debug_alethe_files="alethe_replay_rare"]]
 declare[[rare_rec_mode=1]]
 

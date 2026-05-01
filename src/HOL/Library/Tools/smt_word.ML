@@ -262,47 +262,14 @@ fun take_bit m n T ts =
 
  fun mk_extract c i j ts = Term.list_comb (Const c, HOLogic.mk_number @{typ nat} i :: HOLogic.mk_number @{typ nat} j :: ts)
                                                       
- fun extract m n (U as (Type(_,[_,Type(_,[_,Type(_,[Tx,T])])]))) [i,j,x] =
-(
-  (case (try (snd o HOLogic.dest_number o remove_cast) i, (*Interesting HOLogic.dest_nat instead of this does not work*)
-         try (snd o HOLogic.dest_number o remove_cast) j,
-         try dest_wordT Tx,
-         try dest_wordT T) of
-   (SOME i', SOME j', SOME Tx', SOME T') =>
-    let
-      val k = i' - j' + 1
-      val U' = @{typ "nat"} --> @{typ "nat"} --> Tx --> T
-    in
-     if j' <= i' andalso k = T' andalso i' < Tx'
-     then (SOME (index2 n i' j', 1, [x], mk_extract (m, U') (i'|> @{print}) j'))
-     else NONE
-    end |
-   _ => NONE)) |
+ fun extract m n U [i,j,x] =
+  (case (try HOLogic.dest_number i,try HOLogic.dest_number j) of
+    (SOME (_,i'),SOME (_,j')) => SOME (index2 n i' j', 1, [x], mk_extract (m,U) i' j')
+    | _ => NONE
+    )
+ |
  extract _ _ _ _ = NONE
 
- fun extract_lift m n (U as (Type(_,[_,Type(_,[_,Type(_,[Tx,T])])]))) [i,j,x] =
-(
-  (case (try (snd o HOLogic.dest_number o remove_cast) i, (*Interesting HOLogic.dest_nat instead of this does not work*)
-         try (snd o HOLogic.dest_number o remove_cast) j,
-         try dest_wordT Tx,
-         try dest_wordT T) of
-   (SOME i', SOME j', SOME Tx', SOME T') =>
-    let
-      val _ = print_info "extract_lift" m n U
-      val _ = debug_msg (fn () => \<^print> ("[i,j,x]",[i,j,x]))
-      val _ = debug_msg (fn () => \<^print> ("[i',j',Tx',T']",[i',j',Tx',T']))
-
-      val k = i' - j' + 1
-      val U' = @{typ "int"} --> @{typ "int"} --> Tx --> T
-      val _ = debug_msg (fn () => \<^print> ("k",k))
-
-    in
-     if j' <= i' andalso k = T' andalso i' < Tx'
-     then (SOME (index2 n i' j', 1, [x], mk_extract (m, U') (i'|> @{print}) j'))
-     else NONE
-    end |
-   _ => NONE)) |
- extract_lift _ _ _ _ = NONE
 
 
 fun bit m n T ts =
@@ -493,125 +460,6 @@ Das erste und zweite Returnvalue scheint nicht zu zaehlen und es ist egal was ma
 Der dritte ist whrs die Terme die rekursive in strings uebersetzt werden sollen
 Das vierte ist ein Term
 *)
-(*
-  fun bit m n T [w,i:term] =
-    let
-      val _ = @{print}("bit m",m)
-      val _ = @{print}("bit n",n)
-      val _ = @{print}("bit T",T)
-      val _ = @{print}("bit w",w)
-      val _ = @{print}("bit i",i)
-
-      (*Build up right T for mk_extract*)
-      val (wT, _) = Term.dest_funT T
-      val _ = @{print}("bit wT",wT)
-
-      val T' = wT --> \<^typ>\<open>nat\<close> -->  \<^typ>\<open>1 word\<close>
-      val _ = @{print}("T'",T')
-      val T'' = \<^typ>\<open>1 word\<close> --> \<^typ>\<open>1 word\<close> --> \<^typ>\<open>HOL.bool\<close> 
-
-
-      val bit_word = Const("Word.smt_bit_word",T') $ w $ i
-
-
-(*("bit m", "Bit_Operations.semiring_bits_class.bit") (line 203 of "/home/lachnitt/Sources/isabelle-git/isabelle-emacs/src/HOL/Library/Tools/smt_word.ML") 
-("bit n", "=") (line 204 of "/home/lachnitt/Sources/isabelle-git/isabelle-emacs/src/HOL/Library/Tools/smt_word.ML") 
-("bit T", "6 word \<Rightarrow> nat \<Rightarrow> bool") (line 205 of "/home/lachnitt/Sources/isabelle-git/isabelle-emacs/src/HOL/Library/Tools/smt_word.ML") 
-("bit w",
- Const ("Num.numeral_class.numeral", "num \<Rightarrow> 6 word") $
-   (Const ("Num.num.Bit0", "num \<Rightarrow> num") $
-     (Const ("Num.num.Bit0", "num \<Rightarrow> num") $
-       Const ("Num.num.One", "num")))) (line 206 of "/home/lachnitt/Sources/isabelle-git/isabelle-emacs/src/HOL/Library/Tools/smt_word.ML") 
-("bit i",
- Const ("Int.nat", "int \<Rightarrow> nat") $
-   (Const ("Num.numeral_class.numeral", "num \<Rightarrow> int") $
-     (Const ("Num.num.Bit0", "num \<Rightarrow> num") $
-       Const ("Num.num.One", "num")))) (line 207 of "/home/lachnitt/Sources/isabelle-git/isabelle-emacs/src/HOL/Library/Tools/smt_word.ML") 
-("bit wT", "6 word") (line 211 of "/home/lachnitt/Sources/isabelle-git/isabelle-emacs/src/HOL/Library/Tools/smt_word.ML") 
-("T'", "6 word \<Rightarrow> nat \<Rightarrow> 1 word") (line 214 of "/home/lachnitt/Sources/isabelle-git/isabelle-emacs/src/HOL/Library/Tools/smt_word.ML") 
-("bit mk",
- Const ("Bit_Operations.semiring_bits_class.bit", "6 word \<Rightarrow> nat \<Rightarrow> bool") $
-   (Const ("Num.numeral_class.numeral", "num \<Rightarrow> 6 word") $
-     (Const ("Num.num.Bit0", "num \<Rightarrow> num") $ (Const ("Num.num.Bit0", "num \<Rightarrow> num") $ Const ("Num.num.One", "num")))) $
-   (Const ("Num.numeral_class.numeral", "num \<Rightarrow> nat") $
-     (Const ("Num.num.Bit0", "num \<Rightarrow> num") $
-       (Const ("Num.num.Bit1", "num \<Rightarrow> num") $
-         (Const ("Num.num.Bit0", "num \<Rightarrow> num") $
-           (Const ("Num.num.Bit0", "num \<Rightarrow> num") $
-             (Const ("Num.num.Bit0", "... ... ...") $
-               (Const ("Num.num.Bit0", "...") $
-                 Const ("...", ...))))))))) *)
-(*("ts!!!!",
- [Const ("HOL.eq", "1 word \<Rightarrow> 1 word \<Rightarrow> bool") $ Const ("Groups.one_class.one", "1 word") $
-    (Const ("HOL.If", "bool \<Rightarrow> 1 word \<Rightarrow> 1 word \<Rightarrow> 1 word") $
-      (Const ("smt_extract", "nat \<Rightarrow> nat \<Rightarrow> 6 word \<Rightarrow> bool") $
-        (Const ("Int.nat", "int \<Rightarrow> nat") $
-          (Const ("Num.numeral_class.numeral", "num \<Rightarrow> int") $
-            (Const ("Num.num.Bit0", "num \<Rightarrow> num") $ Const ("Num.num.One", "num")))) $
-        (Const ("Int.nat", "int \<Rightarrow> nat") $
-          (Const ("Num.numeral_class.numeral", "num \<Rightarrow> int") $
-            (Const ("Num.num.Bit0", "num ... num") $ Const ("Num.num.One", "num")))) $
-        (Const ("Num.numeral_class.numeral", "num \<Rightarrow> 6 word") $
-          (Const ("Num.num.Bit0", "num \<Rightarrow> num") $
-            (Const ("Num.num.Bit0", "... ... ...") $ Const ("Num.num.One", "..."))))) $
-      Const ("Groups.one_class.one", "1 word") $
-      Const ("Groups.zero_class.zero",
-             "1 word"))])*)
-
-            val test_term = @{term "HOL.eq::1 word => 1 word => bool"}
-                          $ @{term "Groups.one_class.one::1 word"}
-                          $ (Const("Word.smt_bit_word",  wT --> @{typ "nat"} --> @{typ "1 word"})
-                            $ w $ i)
-            fun test_f (m, T) ts = (@{print}("ts!!!!", map (Thm.cterm_of @{context}) ts); 
-               @{term "HOL.eq::1 word => 1 word => bool"}
-                          $ @{term "Groups.one_class.one::1 word"}
-                          $ (Const("Word.smt_bit_word",  wT --> @{typ "nat"} --> @{typ "1 word"})
-                            $ w $ i))
-
-            val _ = @{print}("test_term",test_term)
-(* Const ("HOL.eq", "1 word \<Rightarrow> 1 word \<Rightarrow> bool") $ Const ("Groups.one_class.one", "1 word") $
-   (Const ("HOL.If", "bool \<Rightarrow> 1 word \<Rightarrow> 1 word \<Rightarrow> 1 word") $
-     (Const ("Bit_Operations.semiring_bits_class.bit", "'a::semiring_bits \<Rightarrow> nat \<Rightarrow> bool") $ Free ("w", "'a::semiring_bits") $ Free ("i", "nat")) $
-     Const ("Groups.one_class.one", "1 word") $
-     Const ("Groups.zero_class.zero", "1 word")))*)
-    in  
-   (case (try (snd o HOLogic.dest_number o remove_cast) i) of
-   (SOME i') => 
-          SOME ("EXTRABIT", 2, [test_term], test_f (m, T))|
-       _ => NONE)
-    end
-  | bit m n T xs = (@{print} (m,n,T,xs); NONE)
-*)
-
- fun bit_word m n T (ts as [w,i:term]) =
-    let
-      val _ = @{print}("bit word m",m)
-      val _ = @{print}("bit n",n)
-      val _ = @{print}("bit T",T)
-      val _ = @{print}("bit w",w)
-      val _ = @{print}("bit i",i)
-
-      (*Build up right T for mk_extract*)
-      val (wT, _) = Term.dest_funT T
-      val T' = \<^typ>\<open>nat\<close> --> wT --> \<^typ>\<open>1 word\<close>
-      val _ = @{print}("bit wT",wT)
-      val _ = @{print}("T",T)
-
-      val i_as_nat = (HOLogic.dest_number o remove_cast) i |> snd |> HOLogic.mk_number @{typ nat}
-      val _ = @{print}("i_as_nat",i_as_nat)
-
-    in  
-       (case (try (snd o HOLogic.dest_number o remove_cast) i, try dest_wordT wT) of
-        (SOME lb, SOME i') =>
-          let
-            val res_str = "(_ " ^ n ^ " " ^ Int.toString lb ^ " " ^ Int.toString lb ^ ")"
-            val T1 = mk_wordT (i'- lb)
-            val _ = @{print}("T1",T1)
-          in
-          SOME (res_str, 2, [], fn _ => (Const (\<^const_name>\<open>slice\<close>, @{typ nat} --> fastype_of w  --> @{typ "1 word"}) $ i $ (Const (\<^const_name>\<open>take_bit\<close>,  @{typ nat} --> fastype_of w --> fastype_of w ) $ i $ w)) )
-          end
-      | _ => NONE)
-    end
 
 
   fun mk_extend c ts = Term.list_comb (Const c, ts)
@@ -825,7 +673,7 @@ val setup_builtins =
 
   fold (add_word_fun shift_lift2) [
     (\<^term>\<open>smtlib_bvshl :: 'a::len word \<Rightarrow> _ \<Rightarrow> _ \<close>, "bvshl"),
-    (\<^term>\<open>smtlib_bvshr :: 'a::len word \<Rightarrow> _ \<Rightarrow> _ \<close>, "bvshr")
+    (\<^term>\<open>smtlib_bvlshr :: 'a::len word \<Rightarrow> _ \<Rightarrow> _ \<close>, "bvlshr")
    ] #>
 
 
@@ -879,9 +727,7 @@ val setup_builtins =
     (\<^term>\<open>bit :: 'a::len word \<Rightarrow> _ \<Rightarrow> _\<close>, "bit")
    ] #>
   add_word_fun extract
-    (\<^term>\<open>smt_extract :: _ \<Rightarrow> _ \<Rightarrow> 'a::len word \<Rightarrow> _\<close>, "extract") #>
-  add_word_fun extract_lift
-    (\<^term>\<open>smt_extract_lift :: _ \<Rightarrow> _ \<Rightarrow> 'a::len word \<Rightarrow> _\<close>, "extract") #>
+    (\<^term>\<open>smtlib_extract :: _ \<Rightarrow> _ \<Rightarrow> 'a::len word \<Rightarrow> _\<close>, "extract") #>
   add_word_fun len_of_lift
     (\<^term>\<open>len_of_lift :: 'a::len0 itself \<Rightarrow> int\<close>, "") #>
   fold (add_word_fun power) [
@@ -942,47 +788,27 @@ fun mk_scast i u =
     val TU = Word_Lib.mk_wordT (i + j)
   in Const (\<^const_name>\<open>Word.signed\<close>, T --> TU) $ u end;
 
-fun mk_extract i j u =
+fun mk_extract I J u =
  let
-  val I = Const (\<^const_name>\<open>nat\<close>, @{typ int} --> @{typ nat}) $ HOLogic.mk_number \<^typ>\<open>int\<close> i
-  val J = Const (\<^const_name>\<open>nat\<close>, @{typ int} --> @{typ nat}) $ HOLogic.mk_number \<^typ>\<open>int\<close> j
- (* val _ = @{print}("I is",Thm.cterm_of @{context} I)
-  val _ = @{print}("J is",Thm.cterm_of @{context} J)
-  val _ = @{print}("u is", u)
-
-  val _ = @{print}("u is",Thm.cterm_of @{context} u)*)
+   val i = HOLogic.mk_number \<^typ>\<open>int\<close> I
+   val j = HOLogic.mk_number \<^typ>\<open>int\<close> J
 
   val T = fastype_of u
-  (*val _ = @{print}("T is",T)*)
-
-  val TU = i - j + 1 |> Word_Lib.mk_wordT
-  (*val _ = @{print}("TU is",TU)*)
-
-  val res = Const (\<^const_name>\<open>smt_extract\<close>, @{typ nat} --> @{typ nat} --> T --> TU) $ I $ J $ u
-  (*val _ = @{print}("res is",res)
-
-  val _ = @{print}("res is",res |> Thm.cterm_of @{context})*)
-
+  val TU = I - J + 1 |> Word_Lib.mk_wordT
+  val res = Const (\<^const_name>\<open>smtlib_extract\<close>, @{typ int} --> @{typ int} --> T --> TU) $ i $ j $ u
+ 
  in
    res
  end
-
 fun mk_extract_from_terms i j u =
  let
   val I = HOLogic.dest_number i |> snd
   val J = HOLogic.dest_number j |> snd
-  val i' = Const (\<^const_name>\<open>nat\<close>, @{typ int} --> @{typ nat}) $ i
-  (*val _ = @{print}("i' is",Thm.cterm_of @{context} i')*)
-
-  val j' =  Const (\<^const_name>\<open>nat\<close>, @{typ int} --> @{typ nat}) $ j
-  (*val _ = @{print}("j' is",Thm.cterm_of @{context} j')*)
-
+ 
   val T = fastype_of u
   val TU = I - J + 1 |> Word_Lib.mk_wordT
-  val res = Const (\<^const_name>\<open>smt_extract\<close>, @{typ nat} --> @{typ nat} --> T --> TU) $ i' $ j' $ u
-  (*val _ = @{print}("re2s is",res)
-  val _ = @{print}("res2 is",res |> Thm.cterm_of @{context})*)
-
+  val res = Const (\<^const_name>\<open>smtlib_extract\<close>, @{typ int} --> @{typ int} --> T --> TU) $ i $ j $ u
+ 
  in
    res
  end
@@ -1044,7 +870,7 @@ fun
     let
       val T1 = fastype_of t1
     in
-      SOME (Const (\<^const_name>\<open>smtlib_bvshr\<close>, T1 --> T1 --> T1) $ t1 $ t2)
+      SOME (Const (\<^const_name>\<open>smtlib_bvlshr\<close>, T1 --> T1 --> T1) $ t1 $ t2)
    end
   | bv_term_parser (SMTLIB.Sym "bvadd", t) =
       let val (xs, a) = split_last t
@@ -1097,7 +923,7 @@ fun
      (*SOME (Const (\<^const_name>\<open>signed_take_bit\<close>,\<^typ>\<open>Nat.nat\<close>--> fastype_of t2 --> dummyT) $ (Const ( \<^const_name>\<open>nat\<close>, \<^typ>\<open>Int.int\<close> --> \<^typ>\<open>Nat.nat\<close>) $ t1) $ t2)*)
      SOME (Const (\<^const_name>\<open>Word.signed_cast\<close>, fastype_of t2 --> dummyT) $ t2)
    end
-  | bv_term_parser (SMTLIB.S [SMTLIB.Sym "_",SMTLIB.Sym "extract", SMTLIB.Num i, SMTLIB.Num j],[t])
+  | bv_term_parser (SMTLIB.S [SMTLIB.Sym "_",SMTLIB.Sym "extract", SMTLIB.Num i,SMTLIB.Num j],[t])
        = SOME (mk_extract i j t)
   | bv_term_parser (SMTLIB.Sym "extract",[ i, j ,t])
        = SOME (mk_extract_from_terms i j t)

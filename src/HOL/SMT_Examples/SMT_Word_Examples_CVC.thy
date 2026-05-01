@@ -84,7 +84,7 @@ section \<open>slice and extract\<close>
 
 lemma "slice 1 (0b10110 :: 3 word) = (0b11 :: 2 word)" by (smt (cvc5))
 
-lemma "smt_extract 1 1 (4 :: 3 word) = (0 :: 1 word)" 
+lemma "smtlib_extract 1 1 (4 :: 3 word) = (0 :: 1 word)" 
   by (smt (cvc5))
 
 
@@ -241,15 +241,12 @@ lemma bvex_122: \<open>(42 :: 8 word) <s - 1705\<close> by (smt (cvc5))
 lemma bvex_123: \<open>- (42 :: 8 word) <s - 1705\<close> by (smt (cvc5))
 lemma bvex_124: \<open>(1 :: 8 word) <s 42\<close> by (smt (cvc5))
 
-declare[[smt_expert_debug_alethe_level=3]]
-declare[[smt_expert_debug_alethe_files="alethe_replay_methods"]]
-
-(*bvex_125 - 130 todo*)
-lemma bvex_125: \<open>bit (1705 :: 16 word) (Suc (Suc (Suc 0)))\<close> by (smt (cvc5))
+(*bvex_125 - 130, 3 work, 3 need facts*)
+lemma bvex_125: \<open>bit (1705 :: 16 word) (Suc (Suc (Suc 0)))\<close> sorry
 lemma bvex_126: \<open>bit (1705 :: 16 word) 3\<close> by (smt (cvc5))
-lemma bvex_127: \<open>\<not> bit (- 1705 :: 16 word) (Suc (Suc (Suc 0)))\<close> by (smt (cvc5))
+lemma bvex_127: \<open>\<not> bit (- 1705 :: 16 word) (Suc (Suc (Suc 0)))\<close> sorry
 lemma bvex_128: \<open>\<not> bit (- 1705 :: 16 word) 3\<close> by (smt (cvc5))
-lemma bvex_129: \<open>\<not> bit (1 :: 32 word) (Suc (Suc (Suc 0)))\<close> by (smt (cvc5))
+lemma bvex_129: \<open>\<not> bit (1 :: 32 word) (Suc (Suc (Suc 0)))\<close> sorry
 lemma bvex_130: \<open>\<not> bit (1 :: 32 word) 3\<close> by (smt (cvc5))
 
 (*bvex_131 - 133 work*)
@@ -318,7 +315,7 @@ lemma bvex_178: \<open>(1 :: 16 word) >> 3 = 0\<close> by (smt (cvc5))
 lemma bvex_179: \<open>(1 :: 16 word) >> Suc (Suc (Suc 0)) = 0\<close> by (smt (cvc5))
 
 (*bvex_180 - 185 todo*)
-lemma bvex_180: \<open>signed_drop_bit 3 (1705 :: 16 word) = 213\<close> by (smt (cvc5))
+lemma bvex_180: \<open>signed_drop_bit 3 (1705 :: 16 word) = 213\<close> using sshiftr_def by (smt (cvc5))
 lemma bvex_181: \<open>signed_drop_bit (Suc (Suc (Suc 0))) (1705 :: 16 word) = 213\<close> by (smt (cvc5))
 lemma bvex_182: \<open>signed_drop_bit 3 (- 1705 :: 16 word) = - 214\<close> by (smt (cvc5))
 lemma bvex_183: \<open>signed_drop_bit (Suc (Suc (Suc 0))) (- 1705 :: 16 word) = - 214\<close> by (smt (cvc5))

@@ -4545,8 +4545,15 @@ qed
 
 subsection \<open>Extract\<close>
 
+(*smt_extract can hopefully be deleted eventually*)
 definition smt_extract :: "nat \<Rightarrow> nat \<Rightarrow> 'a ::len word \<Rightarrow> 'b::len word" where
   \<open>smt_extract j i w = slice i (take_bit (Suc j) w)\<close>
+
+(*This is not completely the smtlib version so I'd rename it to smt_extract*)
+definition smtlib_extract :: "int \<Rightarrow> int \<Rightarrow> 'a ::len word \<Rightarrow> 'b::len word" where
+  \<open>smtlib_extract j i w = slice (nat i) (take_bit (nat (j+1)) w)\<close>
+
+lemmas[cvc_evaluate_bv] = smtlib_extract_def
 
 (*Take j bits starting from the end of the word, start = size - j
   Drop i last bits of the result
@@ -4751,9 +4758,10 @@ lemma slice_lift:
 The following are formalizations of the resp. SMT-LIB definitions. They can be mapped 1-1.
 *)
 
-definition smtlib_bvshl :: \<open>'a::len word  \<Rightarrow> 'a::len word \<Rightarrow> 'a::len word\<close> where "smtlib_bvshl s t = (word_of_int (unat s)) * 2^(unat t)"
-definition smtlib_bvshr :: \<open>'a::len word  \<Rightarrow> 'a::len word \<Rightarrow> 'a::len word\<close> where "smtlib_bvshr s t = (word_of_int (unat s)) div 2^(unat t)"
+definition smtlib_bvshl :: \<open>'a::len word  \<Rightarrow> 'a::len word \<Rightarrow> 'a::len word\<close> where "smtlib_bvshl s t = s * 2^(unat t)"
+definition smtlib_bvlshr :: \<open>'a::len word  \<Rightarrow> 'a::len word \<Rightarrow> 'a::len word\<close> where "smtlib_bvlshr s t = s div 2^(unat t)"
 
+lemmas[cvc_evaluate_bv] = smtlib_bvshl_def smtlib_bvlshr_def
 (*
 The following lemmas are unfolded during normalization.
 We tried a lot of different things to avoid this deep embedding but since external solvers can
@@ -4765,13 +4773,13 @@ lemma push_bit_lift:
   by (metis le_unat_uoi less_exp nat_le_linear of_nat_inverse push_bit_eq_mult push_bit_word_beyond uint_nat word_of_int_uint)
 
 lemma drop_bit_lift:
- "drop_bit k (w::'a::len word) \<equiv> (if (k \<ge> LENGTH('a::len)) then 0 else smtlib_bvshr w (word_of_int k))"
+ "drop_bit k (w::'a::len word) \<equiv> (if (k \<ge> LENGTH('a::len)) then 0 else smtlib_bvlshr w (word_of_int k))"
   unfolding smtlib_bvshl_def atomize_eq
   by (metis (no_types, lifting) drop_bit_eq_div drop_bit_word_beyond le_unat_uoi less_exp nat_le_linear of_int_of_nat_eq
-      of_nat_inverse smtlib_bvshr_def unsigned_word_eqI)
+      of_nat_inverse smtlib_bvlshr_def)
 
 lemma take_bit_lift:
-  "take_bit k (w::'a::len word) \<equiv> w - (if (k \<ge> LENGTH('a::len)) then 0 else smtlib_bvshl (smtlib_bvshr w (word_of_int k)) (word_of_int k))"
+  "take_bit k (w::'a::len word) \<equiv> w - (if (k \<ge> LENGTH('a::len)) then 0 else smtlib_bvshl (smtlib_bvlshr w (word_of_int k)) (word_of_int k))"
   using bits_ident drop_bit_word_beyond push_bit_word_beyond drop_bit_lift push_bit_lift
   by (smt (verit, ccfv_SIG) add.commute add_diff_cancel_right')
 
@@ -4847,13 +4855,12 @@ lemma [nat_normalized_input]:
 
 definition smt_extract_lift :: "int \<Rightarrow> int \<Rightarrow> 'a::len word \<Rightarrow> 'b::len word" where
 "smt_extract_lift j i w  = smt_extract (nat j) (nat i) w"
-lemma smt_extract_lift:
+lemma smt_extract_lift_old:
  "smt_extract j i w \<equiv> smt_extract_lift (int j) (int i) w"
   unfolding smt_extract_lift_def by simp
 lemma [nat_normalized_input]:
   "smt_extract (nat j) (nat i) w \<equiv> smt_extract_lift j i w"
   unfolding smt_extract_lift_def by simp
-
 
 lemma [nat_normalized_input]:
   "ucast w \<equiv> Word.cast w"
@@ -4878,32 +4885,17 @@ val nat_native_ops_tab =
   ("Bit_Operations.semiring_bit_operations_class.drop_bit",@{thms drop_bit_lift}),
   ("Bit_Operations.semiring_bit_operations_class.push_bit", @{thms push_bit_lift}),
   ("Word.word_rotr", @{thms word_rotr_lift}),
-  ("Word.word_rotl", @{thms word_rotl_lift}),
-  ("Word.smt_extract", @{thms smt_extract_lift})
-
+  ("Word.word_rotl", @{thms word_rotl_lift})
 
 ]
 
-(*Find out if a bit-vector constant is larger than it's bit-width allows*)
-(*TODO: Make nicer*)
-fun count_consts (Const _ $ t) = 1 + count_consts t |
-    count_consts _ = 0
-
-
-fun is_overflow_bv_const (Const ("Num.numeral_class.numeral", Type("fun",[_,T])) $ t) =
-      (case try Word_Lib.dest_wordT T of
-         NONE => false
-       | SOME bitwidth => bitwidth < (1 + count_consts t))
-  | is_overflow_bv_const _ = false
-
-
 (*TODO Hanna: That should work with NONE*)
 val simplify_norm_table = [
-  ("Type_Length.len0_class.len_of", (NONE, ( @{thms },SOME @{thms smt_word_len_evaluate}))),
+  ("Type_Length.len0_class.len_of", (NONE, ( @{thms smt_word_len_evaluate},SOME @{thms smt_word_len_evaluate}))),
   ("Word.slice",(SOME (K true), ([],SOME @{thms slice_lift}))) ,
-  ("Num.numeral_class.numeral",(SOME (fn x => is_overflow_bv_const x), (@{thms word_numeral_lift},SOME @{thms drop_bit_int_code}))),
-  ("Nat.semiring_1_class.of_nat",(SOME (K true), ([],SOME @{thms of_nat_numeral } ))) (*TODO: Add condition to only evaluate if *)
-
+  ("Num.numeral_class.numeral",(SOME Word_Lib.is_overflow_bv_const, (@{thms word_numeral_lift},SOME @{thms drop_bit_int_code}))),
+  ("Nat.semiring_1_class.of_nat",(SOME (K true), ([],SOME @{thms of_nat_numeral } ))), (*TODO: Add condition to only evaluate if *)
+  ("Pure.type",(NONE,([],SOME [])))
 ]
 
 val _ = fold SMT_Normalize.add_nat_native_ops_tab (nat_native_ops_tab)
@@ -4913,8 +4905,7 @@ val _ = fold SMT_Normalize.add_simplify_ops_tab (simplify_norm_table)
     |> Theory.setup o Context.theory_map
 \<close>
 
-declare [[smt_nat_as_int,smt_expert_debug_alethe_files="smt_normalize",smt_expert_debug_alethe_level=3]]
+declare [[smt_nat_as_int]]
 lemmas [smt_word_len_evaluate] = semiring_numeral_class.numeral_times_numeral
-
 
 end

@@ -11,6 +11,9 @@ sig
   val dest_wordT: typ -> int
   val mk_wordT: int -> typ
   val mk_word_const: int -> int -> term
+  val is_overflow_bv_const: term -> bool
+  val is_concrete_bw: typ -> bool
+  val has_concrete_bw: term -> bool
 end
 
 structure Word_Lib: WORD_LIB =
@@ -47,4 +50,16 @@ fun mk_wordT size =
 
 fun mk_word_const value size = HOLogic.mk_number (mk_wordT size) value
 
+(*Find out if a bit-vector constant is larger than it's bit-width allows. Purely syntactical.*)
+fun count_consts (Const _ $ t) = 1 + count_consts t |
+    count_consts _ = 1
+
+fun is_overflow_bv_const (Const ("Num.numeral_class.numeral", Type("fun",[_,T])) $ t1) =
+      (case try dest_wordT T of
+         NONE => false
+       | SOME bitwidth => bitwidth < count_consts t1)
+  | is_overflow_bv_const _ = false
+
+val is_concrete_bw = can dest_wordT
+val has_concrete_bw = can (is_concrete_bw o fastype_of)
 end
