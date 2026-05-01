@@ -1,0 +1,4 @@
+unsat
+(step t879 (cl (= (ite (f s) (not (f s)) (not (g s))) (ite (f s) false (not (g s))))) :rule rare_rewrite :args ("ite-then-lookahead-not-self" (f s) (not (g s))))
+(step slice_end (cl) :rule trust :premises (t879) :args ("trust"))
+

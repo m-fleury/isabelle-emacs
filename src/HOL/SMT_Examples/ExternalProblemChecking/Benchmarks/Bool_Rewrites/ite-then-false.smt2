@@ -1,5 +1,0 @@
-(set-logic QF_UFNIA)
-(declare-fun m () Int)
-(declare-fun z71 (Int) Bool)
-(check-sat)
-(exit)

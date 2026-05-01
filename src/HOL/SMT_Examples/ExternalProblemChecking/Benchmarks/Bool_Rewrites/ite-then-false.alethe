@@ -1,4 +1,0 @@
-unsat
-(step t1477.t3 (cl (= (ite (! (= (! true :named @p_1) @p_1) :named @p_0) (! false :named @p_2) (z71 (- m 1))) (and (! (not @p_0) :named @p_3) (z71 (- m 1))))) :rule rare_rewrite :args ("ite-then-false" @p_0 (z71 (- m 1))))
-(step slice_end (cl) :rule trust :args ("trust"))
-
