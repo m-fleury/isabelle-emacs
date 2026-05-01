@@ -1,0 +1,6 @@
+(set-logic QF_AUFBV)
+(declare-fun v0 () (_ BitVec 16))
+(declare-fun a1 () (Array (_ BitVec 16) (_ BitVec 4)))
+(declare-fun a2 () (Array (_ BitVec 16) (_ BitVec 7)))
+(check-sat)
+(exit)

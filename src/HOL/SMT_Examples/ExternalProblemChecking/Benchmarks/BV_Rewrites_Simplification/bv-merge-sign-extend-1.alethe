@@ -1,0 +1,5 @@
+unsat
+(step t11654 (cl (= 7 (+ 5 2))) :rule trust :args ("trust"))
+(step t11655 (cl (= ((_ sign_extend 5) ((_ sign_extend 2) (concat (@bv 0 8) (ite (= in__AT0 (@bv 1 1)) (@bv 136 8) (@bv 0 8))))) ((_ sign_extend 7) (concat (@bv 0 8) (ite (= in__AT0 (@bv 1 1)) (@bv 136 8) (@bv 0 8)))))) :rule rare_rewrite :premises (t11654) :args ("bv-merge-sign-extend-1" (concat (@bv 0 8) (ite (= in__AT0 (@bv 1 1)) (@bv 136 8) (@bv 0 8))) 5 2 7))
+(step slice_end (cl) :rule trust :premises (t11655) :args ("trust"))
+

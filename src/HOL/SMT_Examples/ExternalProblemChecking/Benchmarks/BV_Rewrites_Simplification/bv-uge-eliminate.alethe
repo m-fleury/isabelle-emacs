@@ -1,0 +1,4 @@
+unsat
+(step t120 (cl (= (bvuge s t) (bvule t s))) :rule rare_rewrite :args ("bv-uge-eliminate" s t))
+(step slice_end (cl) :rule trust :premises (t120) :args ("trust"))
+

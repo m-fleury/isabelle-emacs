@@ -1,0 +1,7 @@
+unsat
+(step t5327 (cl (= 7 (@bvsize (@bv 0 7)))) :rule trust :args ("trust"))
+(step t5329 (cl (= 7 (- (@bvsize (concat (@bv 1 1) (@bv 0 7))) 1))) :rule trust :args ("trust"))
+(step t5331 (cl (= 6 (- (@bvsize (@bv 0 7)) 1))) :rule trust :args ("trust"))
+(step t5332 (cl (= (bvand (concat (@bv 1 1) (@bv 0 7)) b d) (concat (bvand ((_ extract 7 7) (bvand b d)) (@bv 1 1)) (bvand ((_ extract 6 0) (bvand b d)) (@bv 0 7))))) :rule rare_rewrite :premises (t5327 t5329 t5331) :args ("bv-and-concat-pullup" rare-list (rare-list b d) (@bv 0 7) (@bv 1 1) rare-list 7 7 6))
+(step slice_end (cl) :rule trust :premises (t5332) :args ("trust"))
+

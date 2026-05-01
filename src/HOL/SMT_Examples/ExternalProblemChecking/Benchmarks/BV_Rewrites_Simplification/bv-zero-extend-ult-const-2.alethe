@@ -1,0 +1,6 @@
+unsat
+(step t592 (cl (= 15 (- (@bvsize T2_10993) 1))) :rule trust :args ("trust"))
+(step t595 (cl (= (@bv 16 32) ((_ zero_extend 16) ((_ extract 15 0) (@bv 16 32))))) :rule trust :args ("trust"))
+(step t596 (cl (= (bvult (@bv 16 32) ((_ zero_extend 16) T2_10993)) (bvult ((_ extract 15 0) (@bv 16 32)) T2_10993))) :rule rare_rewrite :premises (t592 t595) :args ("bv-zero-extend-ult-const-2" T2_10993 16 16 32 15))
+(step slice_end (cl) :rule trust :premises (t596) :args ("trust"))
+

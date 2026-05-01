@@ -1,0 +1,4 @@
+unsat
+(step t2 (cl (! (= (! (bvite c y y) :named @p_1) y) :named @p_0)) :rule rare_rewrite :args ("bv-ite-equal-children" c y))
+(step slice_end (cl) :rule trust :premises (t2) :args ("trust"))
+

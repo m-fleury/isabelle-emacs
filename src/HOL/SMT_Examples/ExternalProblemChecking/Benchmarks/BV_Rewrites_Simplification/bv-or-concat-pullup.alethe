@@ -1,0 +1,7 @@
+unsat
+(step t17404 (cl (= 1 (@bvsize ((_ extract 0 0) (bvlshr x12 (concat (@bv 0 27) ((_ extract 4 0) x11))))))) :rule trust :args ("trust"))
+(step t17406 (cl (= 31 (- (@bvsize (concat (@bv 0 31) ((_ extract 0 0) (bvlshr x12 (concat (@bv 0 27) ((_ extract 4 0) x11)))))) 1))) :rule trust :args ("trust"))
+(step t17408 (cl (= 0 (- (@bvsize ((_ extract 0 0) (bvlshr x12 (concat (@bv 0 27) ((_ extract 4 0) x11))))) 1))) :rule trust :args ("trust"))
+(step t17409 (cl (= (bvor (concat (@bv 0 31) ((_ extract 0 0) (bvlshr x12 (concat (@bv 0 27) ((_ extract 4 0) x11))))) (concat ((_ extract 30 5) x14) (bvnot ((_ extract 4 4) x14)) ((_ extract 3 0) x14) (@bv 0 1))) (concat (bvor ((_ extract 31 1) (concat ((_ extract 30 5) x14) (bvnot ((_ extract 4 4) x14)) ((_ extract 3 0) x14) (@bv 0 1))) (@bv 0 31)) (bvor ((_ extract 0 0) (concat ((_ extract 30 5) x14) (bvnot ((_ extract 4 4) x14)) ((_ extract 3 0) x14) (@bv 0 1))) ((_ extract 0 0) (bvlshr x12 (concat (@bv 0 27) ((_ extract 4 0) x11)))))))) :rule rare_rewrite :premises (t17404 t17406 t17408) :args ("bv-or-concat-pullup" rare-list (rare-list (concat ((_ extract 30 5) x14) (bvnot ((_ extract 4 4) x14)) ((_ extract 3 0) x14) (@bv 0 1))) ((_ extract 0 0) (bvlshr x12 (concat (@bv 0 27) ((_ extract 4 0) x11)))) (@bv 0 31) rare-list 31 1 0))
+(step slice_end (cl) :rule trust :premises (t17409) :args ("trust"))
+

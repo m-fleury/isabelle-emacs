@@ -1,0 +1,7 @@
+unsat
+(step t16942 (cl (= 7 (- (@bvsize internal_name_79) 1))) :rule trust :args ("trust"))
+(step t26056 (cl (= (bvule (bvnot (bvshl (bvnot (@bv 0 32)) (@bv (- (@bvsize internal_name_79) 1) 32))) (@bv 127 32)) true)) :rule trust :args ("trust"))
+(step t26057 (cl (= (bvule (@bv 127 32) (bvnot (bvshl (@bv 1 32) (@bv (- (@bvsize internal_name_79) 1) 32)))) true)) :rule trust :args ("trust"))
+(step t26058 (cl (= (bvult (@bv 127 32) ((_ sign_extend 24) internal_name_79)) (= ((_ extract 7 7) internal_name_79) (@bv 1 1)))) :rule rare_rewrite :premises (t26056 t26057 t16942) :args ("bv-sign-extend-ult-const-4" internal_name_79 24 127 32 7))
+(step slice_end (cl) :rule trust :premises (t26058) :args ("trust"))
+

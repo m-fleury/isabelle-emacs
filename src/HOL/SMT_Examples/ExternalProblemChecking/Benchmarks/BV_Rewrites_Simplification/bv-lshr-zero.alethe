@@ -1,0 +1,4 @@
+unsat
+(step t13 (cl (= (bvlshr (@bv 0 32) s) (@bv 0 32))) :rule rare_rewrite :args ("bv-lshr-zero" s 32))
+(step slice_end (cl) :rule trust :premises (t13) :args ("trust"))
+

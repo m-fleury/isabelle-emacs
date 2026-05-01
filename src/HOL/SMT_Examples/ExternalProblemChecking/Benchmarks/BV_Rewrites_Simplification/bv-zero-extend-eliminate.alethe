@@ -1,0 +1,4 @@
+unsat
+(step t12337 (cl (= ((_ zero_extend 27) x2831) (concat (@bv 0 27) x2831))) :rule rare_rewrite :args ("bv-zero-extend-eliminate" x2831 27))
+(step slice_end (cl) :rule trust :premises (t12337) :args ("trust"))
+

@@ -1,0 +1,4 @@
+unsat
+(step t30 (cl (= (not (bvult (@bv 65535 16) T2_697)) (bvule T2_697 (@bv 65535 16)))) :rule rare_rewrite :args ("bv-not-ult" (@bv 65535 16) T2_697))
+(step slice_end (cl) :rule trust :premises (t30) :args ("trust"))
+

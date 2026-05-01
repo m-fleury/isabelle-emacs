@@ -1,0 +1,5 @@
+unsat
+(step t191 (cl (= (mod 0 (@bvsize t)) 0)) :rule trust :args ("trust"))
+(step t192 (cl (= ((_ rotate_left 0) t) t)) :rule rare_rewrite :premises (t191) :args ("bv-rotate-left-eliminate-2" t 0))
+(step slice_end (cl) :rule trust :premises (t192) :args ("trust"))
+

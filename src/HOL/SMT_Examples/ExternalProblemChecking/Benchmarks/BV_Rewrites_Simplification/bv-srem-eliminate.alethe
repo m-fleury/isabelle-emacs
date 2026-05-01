@@ -1,0 +1,5 @@
+unsat
+(step t58 (cl (= 4 (- (@bvsize s) 1))) :rule trust :args ("trust"))
+(step t72 (cl (= (bvsrem s t) (ite (= ((_ extract 4 4) s) (@bv 1 1)) (bvneg (bvurem (ite (= ((_ extract 4 4) s) (@bv 1 1)) (bvneg s) s) (ite (= ((_ extract 4 4) t) (@bv 1 1)) (bvneg t) t))) (bvurem (ite (= ((_ extract 4 4) s) (@bv 1 1)) (bvneg s) s) (ite (= ((_ extract 4 4) t) (@bv 1 1)) (bvneg t) t))))) :rule rare_rewrite :premises (t58) :args ("bv-srem-eliminate" s t 4))
+(step slice_end (cl) :rule trust :premises (t72) :args ("trust"))
+

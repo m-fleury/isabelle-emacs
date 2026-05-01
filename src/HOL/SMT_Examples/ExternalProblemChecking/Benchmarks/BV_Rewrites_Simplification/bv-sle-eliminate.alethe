@@ -1,0 +1,4 @@
+unsat
+(step t17 (cl (= (bvsle x11 (_ bv31 32)) (not (bvslt (_ bv31 32) x11)))) :rule rare_rewrite :args ("bv-sle-eliminate" x11 (_ bv31 32)))
+(step slice_end (cl) :rule trust :premises (t17) :args ("trust"))
+

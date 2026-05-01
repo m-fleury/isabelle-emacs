@@ -1,0 +1,4 @@
+unsat
+(step t1216 (cl (= (bvslt (ite (= (_ bv1 1) ((_ extract 31 31) T4_132)) (bvneg (bvudiv (_ bv0 32) (ite (= (_ bv1 1) ((_ extract 31 31) T4_132)) (bvneg T4_132) T4_132))) (bvudiv (_ bv0 32) (ite (= (_ bv1 1) ((_ extract 31 31) T4_132)) (bvneg T4_132) T4_132))) (ite (= (_ bv1 1) ((_ extract 31 31) T4_132)) (bvneg (bvudiv (_ bv0 32) (ite (= (_ bv1 1) ((_ extract 31 31) T4_132)) (bvneg T4_132) T4_132))) (bvudiv (_ bv0 32) (ite (= (_ bv1 1) ((_ extract 31 31) T4_132)) (bvneg T4_132) T4_132)))) false)) :rule rare_rewrite :args ("bv-lt-self" (ite (= (_ bv1 1) ((_ extract 31 31) T4_132)) (bvneg (bvudiv (_ bv0 32) (ite (= (_ bv1 1) ((_ extract 31 31) T4_132)) (bvneg T4_132) T4_132))) (bvudiv (_ bv0 32) (ite (= (_ bv1 1) ((_ extract 31 31) T4_132)) (bvneg T4_132) T4_132)))))
+(step slice_end (cl) :rule trust :premises (t1216) :args ("trust"))
+
