@@ -4755,27 +4755,26 @@ definition smtlib_bvshl :: \<open>'a::len word  \<Rightarrow> 'a::len word \<Rig
 definition smtlib_bvshr :: \<open>'a::len word  \<Rightarrow> 'a::len word \<Rightarrow> 'a::len word\<close> where "smtlib_bvshr s t = (word_of_int (unat s)) div 2^(unat t)"
 
 (*
-Eventually, we want to evaluate the k \<ge> LENGTH('a) and word_of_nat
+The following lemmas are unfolded during normalization.
+We tried a lot of different things to avoid this deep embedding but since external solvers can
+generate bv terms freely in their proofs it is hard to make proof reconstruction work without this.
 *)
-lemma push_bit_lift_eq:
- "push_bit k (w::'a::len word) \<equiv> (if (k \<ge> LENGTH('a::len)) then 0 else smtlib_bvshl w (word_of_nat k))"
-  unfolding smtlib_bvshl_def
-  apply (simp add: atomize_eq)
-  by (metis le_unat_uoi less_exp nat_le_linear of_nat_inverse push_bit_eq_mult)
-
-
-definition drop_bit_lift :: \<open>'a::len word  \<Rightarrow> int \<Rightarrow> 'a::len word\<close> where
-  "drop_bit_lift w k = (if k > LENGTH('a) \<or> k < 0 then 0 else drop_bit (nat k) w)"
+lemma push_bit_lift:
+ "push_bit k (w::'a::len word) \<equiv> (if (k \<ge> LENGTH('a::len)) then 0 else smtlib_bvshl w (word_of_int k))"
+  unfolding smtlib_bvshl_def atomize_eq
+  by (metis le_unat_uoi less_exp nat_le_linear of_nat_inverse push_bit_eq_mult push_bit_word_beyond uint_nat word_of_int_uint)
 
 lemma drop_bit_lift:
- "drop_bit k (w::'a::len word) \<equiv> drop_bit_lift w (int k)"
-  unfolding drop_bit_lift_def
-  by (simp add: atomize_eq)
+ "drop_bit k (w::'a::len word) \<equiv> (if (k \<ge> LENGTH('a::len)) then 0 else smtlib_bvshr w (word_of_int k))"
+  unfolding smtlib_bvshl_def atomize_eq
+  by (metis (no_types, lifting) drop_bit_eq_div drop_bit_word_beyond le_unat_uoi less_exp nat_le_linear of_int_of_nat_eq
+      of_nat_inverse smtlib_bvshr_def unsigned_word_eqI)
 
 lemma take_bit_lift:
-  "take_bit k w \<equiv> w - push_bit k (drop_bit k w)"
-  using bits_ident
-  by (smt (verit, best) add_diff_cancel_left')
+  "take_bit k (w::'a::len word) \<equiv> w - (if (k \<ge> LENGTH('a::len)) then 0 else smtlib_bvshl (smtlib_bvshr w (word_of_int k)) (word_of_int k))"
+  using bits_ident drop_bit_word_beyond push_bit_word_beyond drop_bit_lift push_bit_lift
+  by (smt (verit, ccfv_SIG) add.commute add_diff_cancel_right')
+
 
 definition signed_drop_bit_lift :: \<open>'a::len word  \<Rightarrow> 'a::len word \<Rightarrow> 'a::len word\<close> where
   "signed_drop_bit_lift w k = signed_drop_bit (unat k) w"
@@ -4870,7 +4869,6 @@ lemmas [simplify_translation] = len_bit0 len_bit1 len_num1 take_bit_numeral_nume
 of_int_numeral
 
 ML_file \<open>Tools/smt_word.ML\<close>
-lemma test: "word_of_nat 3 \<equiv> (3::32 word)" sorry
 
 
 ML \<open>
@@ -4878,7 +4876,7 @@ val nat_native_ops_tab =
 [
   ("Bit_Operations.semiring_bit_operations_class.take_bit",@{thms take_bit_lift}),
   ("Bit_Operations.semiring_bit_operations_class.drop_bit",@{thms drop_bit_lift}),
-  ("Bit_Operations.semiring_bit_operations_class.push_bit", @{thms push_bit_lift_eq}),
+  ("Bit_Operations.semiring_bit_operations_class.push_bit", @{thms push_bit_lift}),
   ("Word.word_rotr", @{thms word_rotr_lift}),
   ("Word.word_rotl", @{thms word_rotl_lift}),
   ("Word.smt_extract", @{thms smt_extract_lift})
@@ -4904,7 +4902,7 @@ val simplify_norm_table = [
   ("Type_Length.len0_class.len_of", (NONE, ( @{thms },SOME @{thms smt_word_len_evaluate}))),
   ("Word.slice",(SOME (K true), ([],SOME @{thms slice_lift}))) ,
   ("Num.numeral_class.numeral",(SOME (fn x => is_overflow_bv_const x), (@{thms word_numeral_lift},SOME @{thms drop_bit_int_code}))),
-  ("Word.word_of_nat",(SOME (K true), ([],SOME @{thms test})))
+  ("Nat.semiring_1_class.of_nat",(SOME (K true), ([],SOME @{thms of_nat_numeral } ))) (*TODO: Add condition to only evaluate if *)
 
 ]
 
@@ -4918,8 +4916,5 @@ val _ = fold SMT_Normalize.add_simplify_ops_tab (simplify_norm_table)
 declare [[smt_nat_as_int,smt_expert_debug_alethe_files="smt_normalize",smt_expert_debug_alethe_level=3]]
 lemmas [smt_word_len_evaluate] = semiring_numeral_class.numeral_times_numeral
 
-lemma "push_bit 3 (4::32 word) = 32"
-  supply[[smt_trace]]
-  apply (smt (cvc5))
 
 end

@@ -825,7 +825,7 @@ val setup_builtins =
 
   fold (add_word_fun shift_lift2) [
     (\<^term>\<open>smtlib_bvshl :: 'a::len word \<Rightarrow> _ \<Rightarrow> _ \<close>, "bvshl"),
-    (\<^term>\<open>drop_bit_lift :: 'a::len word  \<Rightarrow> _ \<Rightarrow> _\<close>, "bvmult")
+    (\<^term>\<open>smtlib_bvshr :: 'a::len word \<Rightarrow> _ \<Rightarrow> _ \<close>, "bvshr")
    ] #>
 
 
@@ -867,6 +867,8 @@ val setup_builtins =
    ] #>
   fold (add_word_fun word_of_int) [
     (\<^term>\<open>of_int :: Int.int => 'a::len word\<close>, "int_to_bv"),
+    (\<^term>\<open>of_nat :: Nat.nat => 'a::len word\<close>, "int_to_bv"),(*TODO: This should be done as embedding.*)
+
     (\<^term>\<open>Word.Word :: Int.int \<Rightarrow> 'a::len word\<close>, "int_to_bv")
   ] #>
   fold (add_word_fun take_bit) [
@@ -1035,16 +1037,14 @@ fun
   | bv_term_parser (SMTLIB.Sym "bvshl", [t1, t2]) = 
     let     
       val T1 = fastype_of t1
-      val t2_nat = HOLogic.dest_number t2 |> snd |> HOLogic.mk_number @{typ int}
     in
-      SOME (Const (\<^const_name>\<open>smtlib_bvshl\<close>, T1 --> @{typ int} --> T1) $ t1 $ t2_nat)
+      SOME (Const (\<^const_name>\<open>smtlib_bvshl\<close>, T1 --> T1 --> T1) $ t1 $ t2)
    end
   | bv_term_parser (SMTLIB.Sym "bvlshr", [t1, t2]) = 
     let
       val T1 = fastype_of t1
-      val t2_nat = HOLogic.dest_number t2 |> snd |> HOLogic.mk_number @{typ int}
     in
-      SOME (Const (\<^const_name>\<open>drop_bit_lift\<close>, T1 --> @{typ int} --> T1) $ t1 $ t2_nat)
+      SOME (Const (\<^const_name>\<open>smtlib_bvshr\<close>, T1 --> T1 --> T1) $ t1 $ t2)
    end
   | bv_term_parser (SMTLIB.Sym "bvadd", t) =
       let val (xs, a) = split_last t
