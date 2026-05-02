@@ -1929,7 +1929,7 @@ fun poly_simp_rel ctxt [thm] t =
          Bv case:
          You need to show odd cx, odd cy, cx * (x1 - x2) = 1 and cy * (x1 - x2) = 1 
          *)
-         THEN' REPEAT' (SOLVED' (partial_simplify_tac ctxt (@{thms poly_simp_rel} @ @{thms arith_simps})))
+         THEN' REPEAT' (SOLVED' (partial_simplify_tac ctxt (@{thms alethe_poly_simp_rel_simps} @ @{thms arith_simps} @ (Named_Theorems.get ctxt @{named_theorems alethe_poly_simp_rel_bv_simps}))))
          THEN' debug_msg_tac' ctxt high "poly_simp_rel after first try of resolving premises"
 
          THEN' REPEAT' 
