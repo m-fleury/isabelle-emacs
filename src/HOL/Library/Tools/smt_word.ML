@@ -661,7 +661,7 @@ val setup_builtins =
 
 
   fold (add_word_fun shift_lift) [
-    (\<^term>\<open>signed_drop_bit_lift :: 'a::len word \<Rightarrow> 'a::len word \<Rightarrow> _\<close>, "bvashr")
+    (\<^term>\<open>smtlib_bvashr :: 'a::len word \<Rightarrow> 'a::len word \<Rightarrow> _\<close>, "bvashr")
    ] #>
 
 
@@ -871,6 +871,12 @@ fun
       val T1 = fastype_of t1
     in
       SOME (Const (\<^const_name>\<open>smtlib_bvlshr\<close>, T1 --> T1 --> T1) $ t1 $ t2)
+   end
+  | bv_term_parser (SMTLIB.Sym "bvashr", [t1, t2]) = 
+    let
+      val T1 = fastype_of t1
+    in
+      SOME (Const (\<^const_name>\<open>smtlib_bvashr\<close>, T1 --> T1 --> T1) $ t1 $ t2)
    end
   | bv_term_parser (SMTLIB.Sym "bvadd", t) =
       let val (xs, a) = split_last t

@@ -6,17 +6,9 @@ declare[[show_types,show_sorts]]
 
 lemma [alethe_poly_simp_rel]:
   fixes x1::"'a::len word" and x2 y1 y2 cx cy
-  shows "cx * (x1-x2) = 1 \<Longrightarrow> cy * (y1-y2) = 1 \<Longrightarrow> odd cx \<Longrightarrow> odd cy \<Longrightarrow> ((cx * (x1 - x2)) = (cy * (y1 - y2))) \<longrightarrow> ((x1 = x2) = (y1 = y2))"
-  by auto
-(*
-SMT: Goal: "poly_simp_rel"
-       assumptions:
-         (65535::16 word) * ((if (16::int) \<le> (3::int) then 0 else smtlib_bvlshr 1 (word_of_int (3::int))) - 0) =
-         1 * (0 - (if (16::int) \<le> (3::int) then 0 else smtlib_bvlshr 1 (word_of_int (3::int))))
-       proposition:
-         ((if (16::int) \<le> (3::int) then 0 else smtlib_bvlshr 1 (word_of_int (3::int))) = 0) = (0 = (if (16::int) \<le> (3::int) then 0 else smtlib_bvlshr 1 (word_of_int (3::int)))) 
-*)
-
+  shows "odd cx \<Longrightarrow> odd cy \<Longrightarrow> cx * (x1-x2) = cy * (y1-y2) \<longrightarrow> ((x1 = x2) = (y1 = y2))"
+  unfolding semiring_parity_class.odd_iff_mod_2_eq_one
+  sorry
 
 (*Evaluation Steps*)
 

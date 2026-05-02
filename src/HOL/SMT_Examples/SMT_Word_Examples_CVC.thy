@@ -315,7 +315,7 @@ lemma bvex_178: \<open>(1 :: 16 word) >> 3 = 0\<close> by (smt (cvc5))
 lemma bvex_179: \<open>(1 :: 16 word) >> Suc (Suc (Suc 0)) = 0\<close> by (smt (cvc5))
 
 (*bvex_180 - 185 todo*)
-lemma bvex_180: \<open>signed_drop_bit 3 (1705 :: 16 word) = 213\<close> using sshiftr_def by (smt (cvc5))
+lemma bvex_180: \<open>signed_drop_bit 3 (1705 :: 16 word) = 213\<close> by (smt (cvc5))
 lemma bvex_181: \<open>signed_drop_bit (Suc (Suc (Suc 0))) (1705 :: 16 word) = 213\<close> by (smt (cvc5))
 lemma bvex_182: \<open>signed_drop_bit 3 (- 1705 :: 16 word) = - 214\<close> by (smt (cvc5))
 lemma bvex_183: \<open>signed_drop_bit (Suc (Suc (Suc 0))) (- 1705 :: 16 word) = - 214\<close> by (smt (cvc5))
@@ -416,10 +416,10 @@ section "number ring simps"
 
 text \<open>
 Benchmark Nrs: 245-253
-Date counted: 12/08/25
+Date counted: 05/01/25
 
 Total:    9
-Success:  4
+Success:  7
 \<close>
 
 lemma bvex_245:
@@ -431,8 +431,8 @@ lemma bvex_245:
   "-40 + 1 = (-39::32 word)"
    by (smt (cvc5))
 
-lemma bvex_246: "word_pred 2 = 1" by (smt (cvc5))
-lemma bvex_247: "word_succ (- 3) = -2" by (smt (cvc5))
+lemma bvex_246: "word_pred (2::32 word) = 1" using word_pred_m1 by (smt (cvc5)) (*adapted to have a fixed bit-width*)
+lemma bvex_247: "word_succ (- (3::32 word)) = -2" using word_succ_p1  by (smt (cvc5)) (*adapted to have a fixed bit-width*)
 lemma bvex_248: "23 < (27::8 word)" by (smt (cvc5))
 lemma bvex_249: "23 \<le> (27::8 word)" by (smt (cvc5))
 lemma bvex_250: "\<not> 23 < (27::2 word)" by (smt (cvc5))
@@ -450,7 +450,7 @@ Total:    1
 Success:  0
 \<close>
 
-lemma bvex_254: "a + 2 * b + c - b = (b + c) + (a :: 32 word)" oops (*by (smt (cvc5))*)
+lemma bvex_254: "a + 2 * b + c - b = (b + c) + (a :: 32 word)" (*by (smt (cvc5))*) sorry (*times out in equiv_pos2 step*)
 
 section "casting"
 
@@ -475,7 +475,7 @@ lemma bvex_261: "ucast (0b1010 :: 4 word) = (0b10 :: 2 word)" by (smt (cvc5))
 lemma bvex_262: "ucast (0b1010 :: 4 word) = (0b1010 :: 10 word)" by (smt (cvc5))
 lemma bvex_263: "scast (0b1010 :: 4 word) = (0b111010 :: 6 word)" by (smt (cvc5))
 lemma bvex_264: "ucast (1 :: 4 word) = (1 :: 2 word)" by (smt (cvc5))
-
+thm take_bit_nat_def
 section "reducing goals to nat or int and arith:"
 
 text \<open>

@@ -4755,11 +4755,14 @@ lemma slice_lift:
   by simp_all
 
 (*
-The following are formalizations of the resp. SMT-LIB definitions. They can be mapped 1-1.
+The following are formalizations of the resp. SMT-LIB definitions. They are mapped to the respective
+operator.
 *)
 
 definition smtlib_bvshl :: \<open>'a::len word  \<Rightarrow> 'a::len word \<Rightarrow> 'a::len word\<close> where "smtlib_bvshl s t = s * 2^(unat t)"
 definition smtlib_bvlshr :: \<open>'a::len word  \<Rightarrow> 'a::len word \<Rightarrow> 'a::len word\<close> where "smtlib_bvlshr s t = s div 2^(unat t)"
+definition smtlib_bvashr :: \<open>'a::len word  \<Rightarrow> 'a::len word \<Rightarrow> 'a::len word\<close>
+  where "smtlib_bvashr s t = (if (smtlib_extract (LENGTH('a)-1) (LENGTH('a)-1) s = (0::1 word)) then smtlib_bvlshr s t else not (smtlib_bvlshr (not s) t))"
 
 lemmas[cvc_evaluate_bv] = smtlib_bvshl_def smtlib_bvlshr_def
 (*
@@ -4782,23 +4785,49 @@ lemma take_bit_lift:
   "take_bit k (w::'a::len word) \<equiv> w - (if (k \<ge> LENGTH('a::len)) then 0 else smtlib_bvshl (smtlib_bvlshr w (word_of_int k)) (word_of_int k))"
   using bits_ident drop_bit_word_beyond push_bit_word_beyond drop_bit_lift push_bit_lift
   by (smt (verit, ccfv_SIG) add.commute add_diff_cancel_right')
+declare[[show_types,show_sorts]]
 
 
-definition signed_drop_bit_lift :: \<open>'a::len word  \<Rightarrow> 'a::len word \<Rightarrow> 'a::len word\<close> where
-  "signed_drop_bit_lift w k = signed_drop_bit (unat k) w"
+                                                                                                                                                   
+lemma smtlib_extract_msb_eq:                                                                                                                     
+  fixes w :: "'a::len word"
+  shows "(smtlib_extract (int (LENGTH('a) - 1)) (int (LENGTH('a) - 1)) w :: 1 word) = (if bit w (LENGTH('a) - 1) then 1 else 0)"                                                                                              
+  unfolding smtlib_extract_def
+  by (rule bit_word_eqI) (auto simp: bit_simps) 
 
-lemma signed_drop_bit_lift:
- "signed_drop_bit k (w::'a::len word) \<equiv> (if k \<ge> LENGTH('a) then (if bit w (LENGTH('a) - Suc 0) then - 1 else 0) else signed_drop_bit_lift w (Word.Word k))"
-  using signed_drop_bit_beyond
-  unfolding signed_drop_bit_lift_def
-  apply (simp add: atomize_eq)
-  apply (cases "bit w (LENGTH('a) - Suc 0) ")
-  apply simp_all
-  apply (case_tac[!] "k \<ge> LENGTH('a)")
-   apply simp_all
-  apply (simp add: signed_drop_bit_beyond)
-    apply (simp add: unsigned_of_nat take_bit_nat_eq_self_iff)
-  oops (*TODO*)
+lemma signed_drop_bit_lift:                                                                                                                      
+   "signed_drop_bit k (w::'a::len word) \<equiv>
+    (if k \<ge> LENGTH('a)                                                                                                                         
+     then (if bit w (LENGTH('a) - Suc 0) then - 1 else 0)
+     else smtlib_bvashr w (word_of_int k))"
+  apply (simp only: atomize_eq, cases "k \<ge> LENGTH('a)")
+  subgoal
+    by (simp add: signed_drop_bit_beyond)
+proof-
+  assume a0: "\<not> LENGTH('a) \<le> k"
+  then have unat_k: "unat (word_of_int (int k) :: 'a word) = k"
+    by (metis less_exp linorder_le_cases of_int_of_nat_eq of_nat_inverse order_le_less_trans)
+  show "signed_drop_bit k w = (if LENGTH('a) \<le> k then if bit w (LENGTH('a) - Suc 0) then - 1 else 0 else smtlib_bvashr w (word_of_int (int k)))"
+    unfolding smtlib_bvashr_def smtlib_bvlshr_def
+    apply (subst smtlib_extract_msb_eq) 
+    apply (cases "bit w (LENGTH('a) -1)")
+    subgoal
+     apply (simp only: unat_k a0)
+     apply simp
+     apply (rule bit_word_eqI)
+     apply (simp add: bit_signed_drop_bit_iff)
+      by (metis (no_types, opaque_lifting) add.commute bit_drop_bit_eq bit_not_iff drop_bit_eq_div le_diff_conv linorder_not_le o_apply possible_bit_word)
+    subgoal
+     apply (simp only: unat_k a0)
+      apply simp
+      apply (rule bit_word_eqI)
+         apply (simp add: bit_signed_drop_bit_iff)
+      by (metis bit_iff_odd diff_diff_left diff_is_0_eq div_exp_eq exp_eq_zero_iff not_bit_length word_exp_length_eq_0)
+    done
+qed
+
+ 
+      
 
 definition set_bit_lift :: \<open>int \<Rightarrow> 'a::len word \<Rightarrow> 'a::len word\<close> where
   "set_bit_lift x = set_bit (nat x)"
@@ -4884,6 +4913,7 @@ val nat_native_ops_tab =
   ("Bit_Operations.semiring_bit_operations_class.take_bit",@{thms take_bit_lift}),
   ("Bit_Operations.semiring_bit_operations_class.drop_bit",@{thms drop_bit_lift}),
   ("Bit_Operations.semiring_bit_operations_class.push_bit", @{thms push_bit_lift}),
+  ("Word.signed_drop_bit", @{thms signed_drop_bit_lift}),
   ("Word.word_rotr", @{thms word_rotr_lift}),
   ("Word.word_rotl", @{thms word_rotl_lift})
 
@@ -4907,5 +4937,7 @@ val _ = fold SMT_Normalize.add_simplify_ops_tab (simplify_norm_table)
 
 declare [[smt_nat_as_int]]
 lemmas [smt_word_len_evaluate] = semiring_numeral_class.numeral_times_numeral
+lemma bvex_180: \<open>signed_drop_bit 3 (1705 :: 16 word) = 213\<close> by (smt (cvc5))
+
 
 end
