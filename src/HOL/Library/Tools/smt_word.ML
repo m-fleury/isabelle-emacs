@@ -115,57 +115,9 @@ local
 
   (*shifts*)
 
-  fun mk_shift c [t,u] =
-    (case try HOLogic.dest_number u of
-      NONE => Const c $ u $ t |
-      SOME _ => Const c $ mk_nat (snd (HOLogic.dest_number u)) $ t)
-  | mk_shift c ts = raise TERM ("bad arguments", Const c :: ts)
-
-  fun mk_shift_numeral c [u, t] = Const c $ mk_nat (HOLogic.dest_numeral u) $ t
-    | mk_shift_numeral c ts = raise TERM ("bad arguments", Const c :: ts)
-
-  fun shift m n T [t1,t2] =
-    let
-      val _ = print_binary_info "shift" m n T t1 t2
-      val U = Term.domain_type (Term.range_type T)
-      val T1' = @{typ "nat"} --> U |> @{print}
-      val T' = U --> U --> U
-      val cast = Const("Word.word_of_int",T1')
-    in
-      (case (can dest_wordT U, try (snd o HOLogic.dest_number) t1) of
-        (true, SOME i) => (*first arg is constant nat*)
-          SOME (n, 2, [t2, HOLogic.mk_number U i], mk_shift (m, T)) 
-(*Add unsigned and then check whether unsigned has already been added*)
-      | (true, NONE) => (SOME (n, 2, [t2,cast $ t1], mk_shift (m, T')))
-          
-      | _ => NONE
-      )
-    end
-     | shift _ _ _ _ = NONE
-
-
-  fun shift_lift m n T [t1,t2] =
-    let
-      val _ = print_binary_info "shift lift" m n T t1 t2
-
-      val U = Term.domain_type (Term.range_type T)
-      val T1 = fastype_of t1
-        handle (TERM _) => @{typ "int"} (*TODO*)
-
-      val T1' = @{typ "int"} --> U (*|> @{print}*)
-      val T' = U --> U --> U
-      val cast = Const("Int.ring_1_class.of_int",T1')
-    in
-      (SOME (n, 2, [t1,t2], (fn ts => Term.list_comb (Const (m,T),ts))))
-    end
-     | shift_lift _ _ _ _ = NONE
-
-
-
   fun shift_lift2 m n T [t1,t2] =
     let
       val _ = print_binary_info "shift lift2" m n T t1 t2
-      val U = Term.domain_type (Term.range_type T)
 
       val T1 = fastype_of t1
         handle (TERM _) => @{typ "int"} (*TODO*)
@@ -221,17 +173,6 @@ local
   slice _ _ _ _ = (@{print}("In slice1");NONE)
 
 
-(* (bit n w) should be translated to (= (extract n n w) #b1) *)
-(*
-
-SOME (_, 2, [n,w], (fn [n',w'] \<Rightarrow> Const ("=") $ (Const ("extract") $ n' n' w') (Word 1))
-
-Erstes Argument egal
-Zweites: zwei, weil 2 arguments
-
-
-
-*)
 fun take_bit m n T ts =
     let
      
@@ -330,56 +271,6 @@ fun bit m n T ts =
 
     in  SOME ("", 1, [new_ts pos_simplified suc_simplified ], mk_bit) end
 
-(*
-      val U = Term.domain_type (Term.range_type T)
-      fun mk_bit [w',n'] = Const ("HOL.eq", @{typ "1 word \<Rightarrow> 1 word \<Rightarrow> bool"})
-      $ (Const ("smt_extract", @{typ "nat"} -->  @{typ "nat"} --> fastype_of w' --> @{typ "1 word"}  ) $ n' $ n' $ w') $
-     Const ("Groups.one_class.one", @{typ "1 word"})
-in SOME (n, 2, [nth ts 0, nth ts 1], mk_bit) end
-*)
-
-
-
-
-
-(*
-Idee: 
-Erst fuege 
-
-(= #b1
-
-hinzu
-
-und mache einen dummy operator bit_word oder so und dann fuege den wieder zur Tabelle hinzu
-
-
-Gucke = an um zu sehen wie das hinzugefuegt wurde
-
-
-fun add_builtin_fun' cs (t, n) =
-  let
-    val c as (m, T) = Term.dest_Const t
-    fun app U ts = Term.list_comb (Const (m, U), ts)
-    fun bfun _ U ts = SOME (n, length (Term.binder_types T), ts, app U)
-  in add_builtin_fun cs (c, bfun) end
-
- (SMT_Builtin.add_builtin_fun' smtlibC)(\<^Const>\<open>HOL.eq \<^typ>\<open>'a\<close>\<close>, "=")
-
-
-t = \<^Const>\<open>HOL.eq \<^typ>\<open>'a\<close>\<close>
-n = "="
-
-val c as (m, T) = Term.dest_Const \<^Const>\<open>HOL.eq \<^typ>\<open>'a\<close>\<close>
-m = HOL.eq
-T = \<^typ>\<open>'a\<close>
-c = (HOL.eq, \<^typ>\<open>'a\<close>)
-
-
-Don't hardcode #b1 as string! Make word and then let Isabelle deal with it same way it deals with 
-the two ways of equality above
-
-Wir bauen den neuen Term auf, vielleicht wollen wir die 
-*)
 
 fun mk_bit c n ts = Const c $ hd ts $ mk_nat n
 
@@ -387,80 +278,6 @@ fun mk_bit c n ts = Const c $ hd ts $ mk_nat n
   fun add_word_fun' f (t, n) =
     let val (m, _) = Term.dest_Const t
     in SMT_Builtin.add_builtin_fun' smtlibC (t, (f m n)) end
-
-(* (\<^Const>\<open>True\<close>, "true")*)
-
-  fun bit2 m n T [w,i:term] =
-    let
-      val _ = @{print}("bit m",m)
-      val _ = @{print}("bit n",n)
-      val _ = @{print}("bit T",T)
-      val _ = @{print}("bit w",w)
-      val _ = @{print}("bit i",i)
-
-      (*Build up right T for mk_extract*)
-      val (wT, _) = Term.dest_funT T
-      val T' = wT --> \<^typ>\<open>nat\<close> -->  \<^typ>\<open>1 word\<close>
-      val _ = @{print}("bit wT",wT)
-      val _ = @{print}("T",T)
-
-      val _ = @{print}("bit mk",mk_bit (m, T) 66 [w])
-
-    in  
-       (case (try (snd o HOLogic.dest_number o remove_cast) i, try dest_wordT wT) of
-        (SOME lb, SOME i') =>
-          let
-            (*val res_str = "= #b1 ((_ " ^ n ^ " " ^ Int.toString lb ^ " " ^ Int.toString lb ^ ")"*)
-            val res_str = ""
-            val _ = @{print}("res",res_str)
-            val bit_word = Const("Word.smt_bit_word",T') $ w $ i
-            val _ = @{print}("bit_word",bit_word)
-          in
-          SOME (res_str, 2, [\<^term>\<open>(1::1 word) = Word.smt_bit_word w i\<close>], mk_bit (m, T) lb)
-          end
-      | _ => NONE)
-    end
-
- fun mk_extract2 c i j ts = Term.list_comb (Const c, mk_nat i :: mk_nat j :: ts)
-
-(*
-
-  fun add_word_fun f (t, n) =
-    let val (m, _) = Term.dest_Const t
-    in SMT_Builtin.add_builtin_fun smtlibC (Term.dest_Const t, K (f m n)) end
-
-t den wir uebersetzen aus dem Problem. bit bekommt gar nicht den Term nur Name (m), Typ des Terms(T)
-und argumente
-
- K (f m n): Wenn f als funktion in die Tabelle hinzufuegt wird kommt nach n ein anderes 
-Argument, dass unsere bit funktion nicht haben soll weil es whrs nichts bringt. Deshalb kommt
-bei bit nach m n direkt T.
-
-n has no use here, is useful if we have the same function (e.g. shift) for several bit-vector 
-translations 
-
-In der Tablle steht dann
-
-("Bit_Operations.semiring_bits_class.bit","6 word \<Rightarrow> nat \<Rightarrow> bool") und eine Funktion die bei 
-eingabe von Argumenten einen neuen Term ausgibt
-
-Term T ist ein argument weil der erste Eintrag in der Tabelle genereller sein koennte als der 
-konkrete Term. Zum Beispiel Tabelle hat Eintrag fuer = 'a \<Rightarrow> 'a \<Rightarrow> Bool aber konkreter Term 
-arbeitet auf ints.
-
-
-Funktion f gibt
- (string * int * term list * (term list -> term)) option
-wenn Uebersetzung nicht funktionert gibt sie NONE sonst SOME
-
-Das erste und zweite Returnvalue scheint nicht zu zaehlen und es ist egal was man reinmacht. 
-
-          SOME (n, 2, [hd (tl ts), HOLogic.mk_number U i], mk_shift (m, T))
-
-Der dritte ist whrs die Terme die rekursive in strings uebersetzt werden sollen
-Das vierte ist ein Term
-*)
-
 
   fun mk_extend c ts = Term.list_comb (Const c, ts)
 
@@ -658,22 +475,10 @@ val setup_builtins =
     (\<^term>\<open>and :: 'a::len word \<Rightarrow> _\<close>, "bvand"),
     (\<^term>\<open>or :: 'a::len word \<Rightarrow> _\<close>, "bvor"),
     (\<^term>\<open>xor :: 'a::len word \<Rightarrow> _\<close>, "bvxor") ] #>
-
-
-  fold (add_word_fun shift_lift) [
-    (\<^term>\<open>smtlib_bvashr :: 'a::len word \<Rightarrow> 'a::len word \<Rightarrow> _\<close>, "bvashr")
-   ] #>
-
-
-
-
-
-
-
-
   fold (add_word_fun shift_lift2) [
     (\<^term>\<open>smtlib_bvshl :: 'a::len word \<Rightarrow> _ \<Rightarrow> _ \<close>, "bvshl"),
-    (\<^term>\<open>smtlib_bvlshr :: 'a::len word \<Rightarrow> _ \<Rightarrow> _ \<close>, "bvlshr")
+    (\<^term>\<open>smtlib_bvlshr :: 'a::len word \<Rightarrow> _ \<Rightarrow> _ \<close>, "bvlshr"),
+    (\<^term>\<open>smtlib_bvashr :: 'a::len word \<Rightarrow> _ \<Rightarrow> _\<close>, "bvashr")
    ] #>
 
 
@@ -734,15 +539,7 @@ val setup_builtins =
     (\<^term>\<open>pow_2_word :: _ \<Rightarrow> _ \<Rightarrow> _\<close>, "^")
    ]
 
-(*
-TODO: 
 
-add_len_of
-    (\<^term>\<open>len_of :: 'a :: len0 itself => nat\<close>, "IDDD") #>
-
- add_of_nat
-    (\<^term>\<open>of_nat :: nat \<Rightarrow> int\<close>, "of_nat") #>
-*)
 val add_word_shift' = add_word_fun shift'
 
 end

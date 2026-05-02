@@ -75,10 +75,6 @@ lemmas [cvc_evaluate_bv]
     push_bit_lift drop_bit_lift
 
 
-lemma bit_lift:
-  "bit (x::'a::len word) i \<equiv> (if i < LENGTH('a) then smtlib_extract (int i) (int i) x = (1::1 word) else False)"
-  unfolding atomize_eq
-  sorry
 
 ML\<open>
 val x = @{term "bit (3::4 word) 9"}
@@ -159,14 +155,9 @@ fun  (*cvc_term_parser (SMTLIB.Sym "rare-list", []) = (@{print}("rare-list");
     SOME(Const( \<^const_name>\<open>ListVar\<close>, Type(\<^type_name>\<open>List.list\<close>,[new_type])  --> Type(\<^type_name>\<open>cvc_ListVar\<close>,[new_type]))
       $ (HOLogic.mk_list new_type new_ts))
     end)
-  |*) cvc_term_parser (SMTLIB.Sym "emptyString", []) = SOME (Free ("''''", \<^typ>\<open>String.string\<close>))
-  | cvc_term_parser _ = NONE
-  (*| cvc_term_parser xs = (case SMT_String.string_term_parser xs of
-    SOME x => SOME x |
-    NONE =>
-      case SMT_Set.set_term_parser xs of
-        SOME y => SOME y |
-        NONE => SMT_Array.array_term_parser xs)*)
+  |*)
+  cvc_term_parser _ = NONE
+  
 
 
  

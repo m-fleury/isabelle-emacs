@@ -948,6 +948,16 @@ end
     in
       SOME (Const (\<^const_name>\<open>SMT_Word.smt_repeat\<close>,\<^typ>\<open>Nat.nat\<close>--> T2 --> dummyT) $ (Const (\<^const_name>\<open>nat\<close>, \<^typ>\<open>Int.int\<close> --> \<^typ>\<open>Nat.nat\<close>) $ t1) $ t2)
     end
+  | bv_term_parser (SMTLIB.S [SMTLIB.Sym "_", SMTLIB.Sym "repeat", SMTLIB.Num i], [t2]) =
+
+    let
+      val T2 = fastype_of t2
+      val bw = Word_Lib.dest_wordT T2
+      val i' = HOLogic.mk_number @{typ "nat"} i |> @{print}
+      val T = Word_Lib.mk_wordT(i * bw)
+    in
+      SOME (Const (\<^const_name>\<open>SMT_Word.smt_repeat\<close>,\<^typ>\<open>Nat.nat\<close>--> T2 --> T) $ i' $ t2|> @{print})
+    end
   | bv_term_parser (SMTLIB.Sym "rotate_left", [t1, t2]) =
     let
       val T2 = fastype_of t2
@@ -994,13 +1004,7 @@ end
       SOME (HOLogic.mk_binop \<^const_name>\<open>Rings.divide\<close> (mk_unary \<^const_name>\<open>unsigned\<close> t1, mk_unary \<^const_name>\<open>unsigned\<close> t2))
  | bv_term_parser (SMTLIB.Sym "bvudiv", [t1,t2]) =
       SOME (HOLogic.mk_binop \<^const_name>\<open>smt_udiv\<close> (t1, t2)) (*TODO: What about the case whre t2 is 0? SMTLIB semantics says it should be mask *)
- 
-  | bv_term_parser (SMTLIB.Sym "bvashr", [t1, t2]) = 
-    let
-      val T1 = fastype_of t1
-    in
-      SOME (Const (\<^const_name>\<open>signed_drop_bit\<close>, \<^typ>\<open>Nat.nat\<close> --> T1 --> T1) $ (Const ( \<^const_name>\<open>unsigned\<close>, T1 --> \<^typ>\<open>Nat.nat\<close> ) $ t2) $ t1)
-   end
+
   | bv_term_parser (SMTLIB.S[SMTLIB.Sym "_", SMTLIB.Sym "@bit_of",SMTLIB.Num num], [t1]) = 
     let
       val T1 = fastype_of t1
@@ -1225,5 +1229,10 @@ lemma [cvc_list_both_transfer_op]:
  = foldr xor xs (foldr xor ys (Word.Word 0) )"
   using cvc_list_both_transfer[of xor 0 xs ys] cvc_ListOp_neutral
   by simp
+declare[[smt_expert_debug_alethe_level=2]]
+declare[[smt_expert_debug_alethe_files="all"]]
+
+declare[[smt_trace]]
+lemma bvex_281: "bit (0b0010 :: 4 word) 1" by (smt (cvc5))
 
 end

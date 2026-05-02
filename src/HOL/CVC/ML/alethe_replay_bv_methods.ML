@@ -678,6 +678,17 @@ SMT_Replay_Methods.prove ctxt t (fn _ =>(
 ))
 (* smt_extract (nat (7::int)) (nat 0) (27::8 word) XOR smt_extract (nat (7::int)) (nat 0) (lift_shiftla v0__ 1)*)
 
+fun bv_repeat_elim ctxt _  _ t = 
+SMT_Replay_Methods.prove ctxt t (fn _ =>(
+     K(print_tac ctxt "here") THEN'
+     K (unfold_tac ctxt @{thms smt_repeat_def}) THEN'
+     K(print_tac ctxt "here2") THEN'
+     (split_tac ctxt @{thms if_split}) THEN'
+     K(print_tac ctxt "here3") 
+
+))
+
+
 
 val bv_rules = [
   ("bv_bitblast_step_var", bv_bitblast_step_var) ,
@@ -697,7 +708,8 @@ val bv_rules = [
   ("bv_bitblast_step_bvule", bv_bitblast_step_bvule),
   ("bv_poly_norm", bv_poly_norm),
   ("bv_aci_simp",bv_aci_simp),
-  ("bv_bitwise_slicing",bv_bitwise_slicing)]
+  ("bv_bitwise_slicing",bv_bitwise_slicing),
+  ("bv_repeat_elim",bv_repeat_elim)]
 
 
 val _ = Theory.setup (Context.theory_map (
