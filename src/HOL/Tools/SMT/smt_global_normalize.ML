@@ -312,18 +312,16 @@ local
   in
   fun mk_forall ground all_fun Ts = mk_forall' ground all_fun Ts 0 [] end 
 
- (* f, [x1, ..., xn] \<mapsto> f x1' ... xn'
+ (* [T1, ..., Tn], [x1, ..., xn] \<mapsto> [x1', ..., xn']
    where
-    xi' = (nat xi), if f_T[i] has type nat
+    xi' = (nat xi), if Ti is nat
     xi' = xi, otherwise
   *)
-  local
-    fun mk_f_xs'_h f _ [] = []
-     |  mk_f_xs'_h f (f_Ti::f_Ts) (xi::xs) =
-       (if isNat f_Ti then nat_cast $ xi else xi) :: mk_f_xs'_h f f_Ts xs
-  in
-    fun mk_f_xs' f f_Ts xs  = let val ys = mk_f_xs'_h f f_Ts xs in list_comb (f, ys) end
-  end
+  fun mk_f_xs'_h _ [] = []
+    | mk_f_xs'_h (Ti::Ts) (xi::xs) =
+        (if isNat Ti then nat_cast $ xi else xi) :: mk_f_xs'_h Ts xs
+
+  fun mk_f_xs' f f_Ts xs = list_comb (f, mk_f_xs'_h f_Ts xs)
 
   fun mk_hol_all xi'_name T' H = HOLogic.mk_all(xi'_name,intify_type T',H)
   fun mk_lambda xi'_name T' H = absfree (xi'_name, T') H
@@ -348,10 +346,6 @@ local
 
     val retNat = isNat f_T
     val f'_T = fastype_of f' |> strip_type |> fst
-
-    fun mk_f_xs'_h _ [] = []
-     |  mk_f_xs'_h (xs_Ti::xs_Ts) (xi::xs) =
-       (if isNat xs_Ti then nat_cast $ xi else xi) :: mk_f_xs'_h xs_Ts xs
 
     val f_xs' = list_comb(f, mk_f_xs'_h xs_T xs)
 
@@ -385,10 +379,6 @@ local
     val (xs_T,f_T) = fastype_of f |> strip_type
 
     val retNat = isNat f_T
-    fun mk_f_xs'_h _ [] = []
-     |  mk_f_xs'_h (xs_Ti::xs_Ts) (xi::xs) =
-       (if isNat xs_Ti then nat_cast $ xi else xi) :: mk_f_xs'_h xs_Ts xs
-
     val f_xs = list_comb(f,mk_f_xs'_h xs_T xs)
     val f_xs = if retNat then int_cast $ f_xs else f_xs (*TODO*)
   in f_xs end
@@ -487,7 +477,6 @@ und nat_int solved das andere goal
         )
       )
       THEN(debug_msg_tac ctxt' high "should be solved by now")
-THEN TRY (HEADGOAL (Skip_Proof.cheat_tac ctxt ))
       )
    val _ = debug_msg ctxt high (fn () => \<^print> ("x' exists: ",x'_ex))
 
@@ -638,7 +627,6 @@ let
   fun mk_and [x] = x |
       mk_and (x::xs) = (@{thm HOL.conjI} OF [x]) OF ([mk_and xs])
   val ge_conds = mk_and ge_conds
- (* val _ = @{print}("ge_cond with and in between them",ge_conds)*)
 
   val trans_lemma =   @{lemma "A \<Longrightarrow> ( (Trueprop B) \<equiv> Trueprop C) \<Longrightarrow> ((Trueprop B) \<equiv> Trueprop(A \<and> C))" by simp}
        
@@ -677,7 +665,6 @@ in
    Const (quant_name, T) $ (Abs (bv_name, T2, _)) => 
    let
     val _ = debug_msg ctxt high (fn () => \<^print> ("current is quantifier: ",quant_name))
-    (*val _ = @{print}("quant",quant_name)*)
 
     val bound_is_nat = (T2 = @{typ nat})
     val ct_thm = Conv.all_conv ct
@@ -727,7 +714,6 @@ in
 
      val nat_0_le = Drule.infer_instantiate' ctxt [SOME transformed_bound_var_ct] @{thm nat_0_le} |> atomize_eq_thm ctxt
      val nat_0_le' = Thm.implies_elim nat_0_le (Thm.assume (Thm.apply @{cterm Trueprop} bound_var_ge_cond))
-     (*val _ = @{print}("nat_0_le'",nat_0_le')*)                                                 
      val (bv_ge_cond_thms,ctxt2) = Assumption.add_assumes [Thm.apply @{cterm Trueprop} bound_var_ge_cond] ctxt
      val _ = debug_msg ctxt high (fn () => \<^print> ("bv_ge_cond_thms",bv_ge_cond_thms))
 
@@ -752,9 +738,7 @@ in
      val _ = debug_msg ctxt high (fn () => \<^print> ("body_unfold_nat_int_bound_var''",body_unfold_nat_int_bound_var''))
 
      val lambda_unfold_nat_int_bound_var = Thm.abstract_rule bv_name transformed_bound_var_ct body_unfold_nat_int_bound_var''
-     (*val _ = @{print}("lambda_unfold_nat_int_bound_var",lambda_unfold_nat_int_bound_var)*)
      val qnt_unfold_nat_int_bound_var = Thm.combination (Conv.all_conv quant) lambda_unfold_nat_int_bound_var
-     (*val _ = @{print}("qnt_unfold_nat_int_bound_var",qnt_unfold_nat_int_bound_var)*)
 
      val qnt_original_unfold_nat_int_bound_var = Thm.transitive qnt_transform qnt_unfold_nat_int_bound_var
      val _ = debug_msg ctxt high (fn () => \<^print> ("qnt_original_unfold_nat_int_bound_var",qnt_original_unfold_nat_int_bound_var))
@@ -932,7 +916,7 @@ let
   val _ = debug_msg ctxt low (fn () => \<^print> ("---------------------------------------------------"))
   val _ = debug_msg ctxt low (fn () => \<^print> ("---------------------------------------------------"))
 
-  val _ = debug_msg ctxt middle (fn () => \<^print> ("ithms before conversion ",ithms))
+  val _ = debug_msg ctxt low (fn () => \<^print> ("ithms before conversion ",ithms))
   val (i,thms) = split_list ithms
 
   val (ctxt',thms',mapping,_) = fold unfold_test thms (ctxt,[],[],Termtab.empty)
