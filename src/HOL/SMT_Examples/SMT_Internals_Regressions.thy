@@ -2176,7 +2176,11 @@ lemma bool_simplify_7:
   by (ctxt_tactic "bool_simplify")
 
 lemma bool_simplify_8: (*associativity of \<and> on the LHS.*)
-  shows "((a \<longrightarrow> b \<longrightarrow> c \<longrightarrow> d)) = (a \<and> b \<and> c \<longrightarrow> d)"
+  shows "(a \<longrightarrow> b \<longrightarrow> c \<longrightarrow> d) = (a \<and> b \<and> c \<longrightarrow> d)"
+  by (ctxt_tactic "bool_simplify")
+
+lemma bool_simplify_9:
+  shows \<open>(a \<longrightarrow> b \<longrightarrow> c \<longrightarrow> d) = ((a \<and> b) \<longrightarrow> c \<longrightarrow> d)\<close>
   by (ctxt_tactic "bool_simplify")
 
 (* Rule 78: ac_simp *)
@@ -2790,6 +2794,60 @@ lemma nary_elim_2:
   "(t1 = t2) = (t1 = t2)"
   by (ctxt_tactic "nary_elim")
 
+(* Rule 96: bfun_elim *)
+(*TODO Pascal: Try and improve tactic to solve these *)
+
+lemma bfun_elim_1:
+  assumes   "\<forall>v0 v1 v2.
+            fun_app_b (fun_app_c (fun_app_d (follow delta) v0) v1) v2 =
+            (\<exists>v3 v4 v5 v6 v7 v8 v9 v10 v11.
+                v0 = fun_app_bg (sCons_j v8) v11 \<and>
+                v1 = fun_app_bi (sCons_k v7) v4 \<and>
+                v2 = sCons_d (fun_app_ag (fun_app_t pair_d v9) v10) v6 \<and>
+                v3 = shd_c v4 \<and>
+                v5 = fun_app_m fst_a (shd_a v6) \<and>
+                member (fun_app_w (fun_app_p pair_b v7) (fun_app_ad (fun_app_r pair_c v8) v3)) (fun_app_dy (fun_app_dz (fun_app_ea delta v9) v10) v5) \<and>
+                fun_app_b (fun_app_c (fun_app_d (follow delta) v11) v4) v6)"
+  shows "\<forall>v0 v1 v2.
+            fun_app_b (fun_app_c (fun_app_d (follow delta) v0) v1) v2 =
+            (\<exists>v3 v4 v5 v6 v7 v9 v10 v11.
+                v0 = fun_app_bg (sCons_j False) v11 \<and>
+                v1 = fun_app_bi (sCons_k v7) v4 \<and>
+                v2 = sCons_d (fun_app_ag (fun_app_t pair_d v9) v10) v6 \<and>
+                v3 = shd_c v4 \<and>
+                v5 = fun_app_m fst_a (shd_a v6) \<and>
+                member (fun_app_w (fun_app_p pair_b v7) (fun_app_ad (fun_app_r pair_c False) v3)) (fun_app_dy (fun_app_dz (fun_app_ea delta v9) v10) v5) \<and>
+                fun_app_b (fun_app_c (fun_app_d (follow delta) v11) v4) v6 \<or>
+                v0 = fun_app_bg (sCons_j True) v11 \<and>
+                v1 = fun_app_bi (sCons_k v7) v4 \<and>
+                v2 = sCons_d (fun_app_ag (fun_app_t pair_d v9) v10) v6 \<and>
+                v3 = shd_c v4 \<and>
+                v5 = fun_app_m fst_a (shd_a v6) \<and>
+                member (fun_app_w (fun_app_p pair_b v7) (fun_app_ad (fun_app_r pair_c True) v3)) (fun_app_dy (fun_app_dz (fun_app_ea delta v9) v10) v5) \<and>
+                fun_app_b (fun_app_c (fun_app_d (follow delta) v11) v4) v6)"
+  sorry
+  (*using assms by (ctxt_tactic "bfun_elim")*)
+
+lemma bfun_elim_2:
+  assumes \<open>True\<close>
+  shows \<open>True\<close>
+  using assms by (ctxt_tactic "bfun_elim")
+
+lemma bfun_elim_3:
+  assumes \<open>True\<close>
+  shows \<open>True\<close>
+  using assms by (ctxt_tactic "bfun_elim")
+
+lemma bfun_elim_4:
+  assumes \<open>True\<close>
+  shows \<open>True\<close>
+  using assms by (ctxt_tactic "bfun_elim")
+
+lemma bfun_elim_5:
+  assumes \<open>True\<close>
+  shows \<open>True\<close>
+  using assms by (ctxt_tactic "bfun_elim")
+
 (* Rule 97: ite_intro *)
 (* Note: This rule is veriT only *)
 lemma ite_intro_1: "(If p a b) = ((If p a b) \<and> (If p (a = (If p a b)) (b = (If p a b))))"
@@ -3331,58 +3389,5 @@ Rule Nr   Name            Nr Tests  Nr Success
 Total                     462       461
 
 *)
-
-(* TODO (Pascal) Remove this block after experimenting *)
-(* Benchmarking shallow term sequences *)
-experiment
-begin
-
-ML \<open>
-fun genVar i = Free ("A"^ (Int.toString i), @{typ bool})
-
-fun makeConj c 0 = genVar c
-    | makeConj c n = HOLogic.mk_conj ((genVar c), (makeConj (c+1) (n-1))) 
-
-fun makeDisj c 0 = genVar c
-    | makeDisj c n = HOLogic.mk_disj ((genVar c), (makeDisj (c+1) (n-1))) 
-
-fun makeNeg t = (Const ("HOL.Not", @{typ "bool \<Rightarrow> bool"})) $ t
-
-fun buildAndPosTerm n i = HOLogic.mk_disj (makeNeg (makeConj 0 n), (genVar i))
-fun buildOrNegTerm n i = HOLogic.mk_disj ((makeDisj 0 n), makeNeg (genVar i))
-
-datatype rule_choice = And_pos | Or_neg | Not_or;
-
-fun measure_time_arg rule ctxt (n, i) =
-  let fun buildTerms And_pos = (NONE, (@{term Trueprop} $ (buildAndPosTerm n i)))
-        | buildTerms Or_neg  = (NONE, (@{term Trueprop} $ (buildOrNegTerm n i)))
-        | buildTerms Not_or  = (SOME (makeNeg (makeDisj 0 n)), (HOLogic.mk_Trueprop (makeNeg (genVar i))))
-      fun selectRule And_pos = Alethe_Replay_Methods.and_pos
-        | selectRule Or_neg  = Alethe_Replay_Methods.or_neg_rule
-        | selectRule Not_or  = Alethe_Replay_Methods.not_or_rule
-  in
-    let val (t_prem, t_concl) = buildTerms rule
-        val f = selectRule rule
-        val (prems, ctxt') = case t_prem of
-           NONE => ([], ctxt)
-           | SOME t => Assumption.add_assumes [(Thm.cterm_of ctxt) t |> HOLogic.mk_judgment] ctxt
-        val start = Timing.start()
-        val _ = f ctxt' prems t_concl (SOME (Index i))
-        val total = Time.toMilliseconds (#elapsed (Timing.result start))
-    in
-      total
-    end
-  end
-
-fun measure_times_arg rule benchmark =
-  let val ctxt = @{context}
-      val f = measure_time_arg rule
-  in
-    map (f ctxt) benchmark
-  end
-
-val result = measure_times_arg And_pos [(1000,1000)]
-\<close>
-end
 
 end
