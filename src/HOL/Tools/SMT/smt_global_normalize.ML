@@ -34,20 +34,19 @@ fun intify_type \<^typ>\<open>nat\<close> = \<^typ>\<open>int\<close>
   | intify_type T = T
 
 val isNat = (curry (op =)) @{typ nat}
-fun all_pure_const T = Const ("Pure.all", (T --> @{typ "prop"}) --> @{typ "prop"});
+fun all_pure_const T = Const (\<^const_name>\<open>Pure.all\<close>, (T --> \<^typ>\<open>prop\<close>) --> \<^typ>\<open>prop\<close>);
 val nat_cast = @{term "nat::int => nat"}
 val int_cast = @{term "int::nat => int"}
 val conj = @{term conj}
 fun mkLeTerm t = (@{term "Orderings.ord_class.less_eq::int \<Rightarrow> int \<Rightarrow> bool"} $ @{term "0::int"} $ t)
 
-fun split B = (SOME (@{thm conjunct1} OF [B]), @{thm conjunct2} OF [B])
-  handle (THM _) => (NONE,B)
-
-fun split_lift_cond B = 
+fun split_lift_cond B =
 let
-  val (ge_cond,lift_def) = split B
+  val (ge_cond, lift_def) =
+    (SOME (@{thm conjunct1} OF [B]), @{thm conjunct2} OF [B])
+      handle THM _ => (NONE, B)
   val lift_def = lift_def RS @{thm eq_reflection}
-in (lift_def,ge_cond) end
+in (lift_def, ge_cond) end
 
 fun atomize_eq_thm ctxt = (Conv.top_rewrs_conv [@{thm atomize_eq[symmetric]}] ctxt) |> Conv.fconv_rule
 fun custom_all_conv ctxt subst = (fn r => (subst,ctxt,[],Conv.all_conv r)) : custom_conv
@@ -65,7 +64,6 @@ fun obtain_new_var tac n facts ctxt =
         NONE => raise THM ("Obtain.result: tactic failed", 0, facts)
       | SOME th =>
           Obtain.check_result thesis_ctxt thesis (Raw_Simplifier.norm_hhf thesis_ctxt (Goal.conclude th)));
-  val _ = debug_msg ctxt middle (fn () => \<^print> ("n ",n))
 
     val closed_rule = Thm.forall_intr (Thm.cterm_of ctxt (Free thesis_var)) rule;
     val ((_, [rule']), ctxt') = Variable.import false [closed_rule] ctxt;
@@ -101,17 +99,11 @@ let
   val _ = debug_msg ctxt middle (fn () => \<^print> ("New variable is defined by", x'_def))
 
   val x'_ex_thm = Goal.prove ctxt [] [] (\<^make_judgment> x'_def)
-    (fn {context = ctxt', ...} => 
-      (debug_msg_tac ctxt' high "needs to be shown to obtain new variable") THEN
-      (HEADGOAL (resolve_tac ctxt' [@{thm alethe_nat_embedding}])
-      THEN(debug_msg_tac ctxt' high "should be solved by now"))
-
-    )
+    (fn {context = ctxt', ...} =>
+      HEADGOAL (resolve_tac ctxt' [@{thm alethe_nat_embedding}]))
   val _ = debug_msg ctxt high (fn () => \<^print> ("thm that x' exists: ",x'_ex_thm))
 
-  fun tactic_to_obtain ctxt = (debug_msg_tac ctxt high "extract new variable")
-    THEN  HEADGOAL (eresolve_tac ctxt @{thms exE})
-    THEN (debug_msg_tac ctxt high "should be solved by now")
+  fun tactic_to_obtain ctxt = HEADGOAL (eresolve_tac ctxt @{thms exE})
 
   val (x'_thm, ctxt1) = obtain_new_var tactic_to_obtain x'_name [x'_ex_thm] ctxt
   val _ = debug_msg ctxt1 high (fn () => \<^print> ("obtained a new lifted variable",x'_thm))
@@ -303,33 +295,16 @@ und nat_int solved das andere goal
   val _ = debug_msg ctxt middle (fn () => \<^print> ("exI_inst", exI_inst))
 
   val x'_ex = Goal.prove ctxt [] [] (\<^make_judgment> x'_def)
-    (fn {context = ctxt', ...} => 
-          (debug_msg_tac ctxt' high "needs to be shown to obtain new variablejj") THEN
-     (
-        (HEADGOAL (resolve_tac ctxt' [exI_inst])
-      THEN(debug_msg_tac ctxt' high "s1w4")
-
-        THEN TRY( REPEAT (HEADGOAL (resolve_tac ctxt' [@{thm allI}]) ORELSE HEADGOAL (resolve_tac ctxt' [@{thm exI}])))
-      THEN(debug_msg_tac ctxt' high "s1w5")
+    (fn {context = ctxt', ...} =>
+        HEADGOAL (resolve_tac ctxt' [exI_inst])
+        THEN TRY (REPEAT (HEADGOAL (resolve_tac ctxt' [@{thm allI}]) ORELSE HEADGOAL (resolve_tac ctxt' [@{thm exI}])))
         THEN TRY (HEADGOAL (resolve_tac ctxt' [@{thm conjI}]))
-      THEN(debug_msg_tac ctxt' high "s1w5")
-
         THEN TRY (unfold_tac ctxt' [@{thm of_nat_0_le_iff},@{thm simp_thms(6)},@{thm simp_thms(22)},@{thm simp_thms(35)}])
-      THEN(debug_msg_tac ctxt' high "s1w6")
         THEN TRY (HEADGOAL (resolve_tac ctxt' [@{thm refl}]))
-
-        THEN TRY (HEADGOAL (resolve_tac ctxt' [@{thm nat_int[symmetric]}]))
-      THEN(debug_msg_tac ctxt' high "s1w7")
-      
-        )
-      )
-      THEN(debug_msg_tac ctxt' high "should be solved by now")
-      )
+        THEN TRY (HEADGOAL (resolve_tac ctxt' [@{thm nat_int[symmetric]}])))
    val _ = debug_msg ctxt high (fn () => \<^print> ("x' exists: ",x'_ex))
 
-   fun tactic_to_obtain ctxt = (debug_msg_tac ctxt high "extract new variable")
-     THEN  HEADGOAL (eresolve_tac ctxt @{thms exE})
-     THEN (debug_msg_tac ctxt high "should be solved by now") (*THEN HEADGOAL (Skip_Proof.cheat_tac ctxt)*)
+   fun tactic_to_obtain ctxt = HEADGOAL (eresolve_tac ctxt @{thms exE})
    val (x'_thm, ctxt1) = obtain_new_var (tactic_to_obtain) f'_name [x'_ex] ctxt
    val _ = debug_msg ctxt1 high (fn () => \<^print> ("obtained a new lifted variable",x'_thm))
 
@@ -344,13 +319,9 @@ und nat_int solved das andere goal
        f ?x1'' ... ?xn'' = (f' ?x1' ... ?xn')
      where ?xi'' = nat ?xi' if ?xi is a nat otherwise ?xi *)
   val goal = (mk_forall (HOLogic.mk_Trueprop o (mk_f_def_ground f (Thm.term_of x'))) mk_prop_all ts'_T)
-  val goal_thm = Goal.prove ctxt1 [] [] goal (fn {context: Proof.context, ...}  => 
-      debug_msg_tac context middle "Obtain new function variable"
-      THEN (unfold_tac context [@{thm atomize_all}])
-      THEN HEADGOAL (resolve_tac context [x'_thm_def])
-      
-      THEN (debug_msg_tac context middle "Obtain new function variable")
-)
+  val goal_thm = Goal.prove ctxt1 [] [] goal (fn {context: Proof.context, ...}  =>
+      unfold_tac context [@{thm atomize_all}]
+      THEN HEADGOAL (resolve_tac context [x'_thm_def]))
      
    val _ = debug_msg ctxt1 high (fn () => \<^print> ("Showed goal from obtain thm:",goal_thm))
     val _ = debug_msg ctxt1 high (fn () => \<^print> ("retNat",retNat))
@@ -430,9 +401,7 @@ fun transform_function ctxt subst t f f_name ts f_T f'_T =
       in (ctxt, subst,conds,(f'_def,t'_ge_0)) end
     )
 
-    val _ = debug_msg ctxt1 middle (fn () => \<^print> ("ts ",ts))
     val ts_trans = map (fn @{term "nat"} $ t => t | t => t) ts
-    val _ = debug_msg ctxt1 middle (fn () => \<^print> ("ts_trans ",ts_trans))
     val ct_ts_trans = map (SOME o Thm.cterm_of ctxt1) ts_trans
 
     val f'_def_concrete = (*instantiate_fun*) Drule.infer_instantiate' ctxt1 ct_ts_trans f'_def |> atomize_eq_thm ctxt
@@ -458,7 +427,6 @@ in
      val T = fastype_of f
      val (f_name,f_T) = (if is_Const f then dest_Const f else dest_Free f)
        handle (TERM x) => (@{print}("x",x);raise (SMT_GLOBAL_NORMALIZE "Term name cannot be obtained"))
-     val f'_name =  "lift_" ^ (Long_Name.base_name f_name)
      val f'_T = intify_type T
    in
       transform_function ctxt subst t f f_name ts f_T f'_T
@@ -467,7 +435,7 @@ in
 end
 
 
-fun add_conds ctxt ge_conds thm =
+fun add_conds _ ge_conds thm =
 if length ge_conds = 0 then thm else
 let
   fun mk_and [x] = x |
@@ -488,7 +456,7 @@ bottom_list gets a term list cts and fills up tab, cond, ctxt and a theorem list
 It first gets a theorem using bottom for the first argument. Then, it traverses the
 rest of the arguments 
 *)
-fun bottom_list ccv' tab ge_conds ctxt [] ths = (tab,ctxt,ge_conds,ths) | 
+fun bottom_list _ tab ge_conds ctxt [] ths = (tab,ctxt,ge_conds,ths) | 
   bottom_list ccv' tab ge_conds ctxt (ct::cts) ths =
   let
     val (tab2,ctxt2,ge_conds2,tthm) = bottom ccv' tab ge_conds ctxt ct
@@ -498,7 +466,7 @@ and
 bottom (ccv':
       (cterm * (thm * thm option)) Termtab.table ->
         Proof.context -> cterm -> (cterm * (thm * thm option)) Termtab.table * Proof.context * thm list * thm)
-   tab cond ctxt ct = 
+   tab _ ctxt ct = 
 let
   val (ct1,cts) = Drule.strip_comb ct   
   val _ = debug_msg ctxt high (fn () => \<^print> ("(current term,current children)",(ct1,cts)))
@@ -592,11 +560,8 @@ in
      val _ = debug_msg ctxt high (fn () => \<^print> ("qnt_original_unfold_nat_int_bound_var",qnt_original_unfold_nat_int_bound_var))
      val (_,[_,u1]) = Drule.strip_comb (Thm.lhs_of body_unfold_nat_int_bound_var'')
      val (_,[_,u2]) = Drule.strip_comb (Thm.rhs_of body_unfold_nat_int_bound_var'')
-     val _ = debug_msg ctxt high (fn () => \<^print> ("u1,u2",u1,u2))
      val u3 = Thm.apply @{cterm "Pure.eq::prop \<Rightarrow> _"} ( Thm.apply @{cterm Trueprop} u1)
-     val _ = debug_msg ctxt high (fn () => \<^print> ("u3",u3))
      val u3' = Thm.apply u3 ( Thm.apply @{cterm Trueprop} u2)
-     val _ = debug_msg ctxt high (fn () => \<^print> ("u3'",u3'))
 
     in (u2,qnt_original_unfold_nat_int_bound_var,nat_0_le',bound_var_ge_cond,bound_var_ge_cond) end
     else (qnt_transform_body,ct_thm,ct_thm,ct,ct))
@@ -613,8 +578,6 @@ in
     val _ = debug_msg ctxt1 high (fn () => \<^print> ("ge_cond of body",ge_conds))
     (* Unfold any nat(int t) in the body FIXME: This should be done on the fly eventually and not in this additional traversal*)
     val try0 = fold (fn x => fn thm => Thm.implies_intr x thm) (map Thm.cprop_of ge_conds) thm
-(*TODO: stopped here*)
-    val _ = debug_msg ctxt1 high (fn () => \<^print> ("try",try0))
 
 
 
@@ -632,12 +595,9 @@ in
         val temp2 = Drule.infer_instantiate' ctxt
           [NONE,SOME (Thm.lhs_of thm),SOME (Thm.rhs_of thm)]
           quant2
-    val _ = debug_msg ctxt1 high (fn () => \<^print> ("temp2",temp2))
 
         val temp3 = temp2 OF [ge_conds]
-    val _ = debug_msg ctxt1 high (fn () => \<^print> ("temp3",temp3))
         val temp4 = Thm.implies_elim temp3 thm
-    val _ = debug_msg ctxt1 high (fn () => \<^print> ("temp4",temp4))
 
       in temp4 end
     val _ = debug_msg ctxt1 high (fn () => \<^print> ("added conditions to theorem",thm_with_cond))
@@ -654,23 +614,19 @@ in
      val _ = debug_msg ctxt high (fn () => \<^print> ("thm_unfolded_nat_int",thm_unfolded_nat_int))
 
      val _ = debug_msg ctxt high (fn () => \<^print> ("ge_cond_bound_var",ge_cond_bound_var))
-     val (bv_ge_cond_thms,ctxt2) = Assumption.add_assumes [Thm.apply @{cterm Trueprop} bound_var_ge_cond] ctxt |> @{print}
+     val (bv_ge_cond_thms,ctxt2) = Assumption.add_assumes [Thm.apply @{cterm Trueprop} bound_var_ge_cond] ctxt
 
 
      val thm_unfolded_nat_int' = Conv.top_rewrs_conv [nat_0_le] ctxt2 (Thm.rhs_of thm_unfolded_nat_int) (*TODO: This doesn't work*)
      val thm_unfolded_nat_int = Thm.transitive thm_unfolded_nat_int thm_unfolded_nat_int'
-     val _ = debug_msg ctxt high (fn () => \<^print> ("tthm",thm_unfolded_nat_int))
 
      val thm_unfolded_nat_int = Thm.implies_intr (Thm.apply @{cterm Trueprop} ge_cond_bound_var) thm_unfolded_nat_int
-     val _ = debug_msg ctxt high (fn () => \<^print> ("ct'_atom2",thm_unfolded_nat_int))
      val [newb1,newb2] = Thm.cconcl_of thm_unfolded_nat_int |> Drule.strip_comb |> snd
-     val _ = debug_msg ctxt high (fn () => \<^print> ("newb",(newb1,newb2)))
 
-     val lemma = 
+     val lemma =
       if is_all then @{lemma "(a \<Longrightarrow> (B \<equiv> C)) \<Longrightarrow> (a \<longrightarrow> B \<equiv> a \<longrightarrow>C)" by simp}
       else @{lemma "(a \<Longrightarrow> (B \<equiv> C)) \<Longrightarrow> (a \<and> B \<equiv> a \<and> C)" by linarith}
      val lemma_inst =  Drule.infer_instantiate' ctxt [SOME ge_cond_bound_var,SOME newb1, SOME newb2] lemma |> atomize_eq_thm ctxt
-     val _ = debug_msg ctxt high (fn () => \<^print> ("lemma_inst",lemma_inst))
 
      val thm_unfolded_nat_int = Thm.implies_elim lemma_inst thm_unfolded_nat_int
      val _ = debug_msg ctxt high (fn () => \<^print> ("Re-introduce implication",thm_unfolded_nat_int))
@@ -690,12 +646,12 @@ in
  in (tab1,ctxt1,[],thm23') end
 
  |
-(Abs (bv_name, T, t2)) => (*TODO: lambda case*)
+(Abs (bv_name, _, _)) => (*TODO: lambda case*)
   let
    
     val ((bound_var, body), ctxt) = Variable.dest_abs_cterm ct1 ctxt;
 
-    val (tab1,ctxt1,ge_conds,[thm]) = bottom_list ccv' tab [] ctxt [body] []
+    val (tab1,ctxt1,_,[thm]) = bottom_list ccv' tab [] ctxt [body] []
     val thm23 = Thm.abstract_rule bv_name bound_var thm
     (*TODO: Add/pass conditions *)
  in (tab1,ctxt1,[],thm23) end |
@@ -728,10 +684,10 @@ _ =>
  end
 
 
-type test2 = ((int * SMT_Util.role) * thm) list
-type test = Proof.context * thm list * (Termtab.key * cterm) list * (cterm * (thm * thm option)) Termtab.table
+type unfold_state =
+  Proof.context * thm list * (Termtab.key * cterm) list * (cterm * (thm * thm option)) Termtab.table
 
-fun unfold_test cthm ((ctxt,thms,mapping,tab) :test)  =
+fun unfold_test cthm ((ctxt,thms,mapping,tab) :unfold_state)  =
  let
    val _ = debug_msg ctxt low (fn () => \<^print> ("---------------------------------------------------"))
 
@@ -747,14 +703,13 @@ fun unfold_test cthm ((ctxt,thms,mapping,tab) :test)  =
 
    val thms'' = add_conds ctxt1 ge_conds thm 
    val _ = debug_msg ctxt low (fn () => \<^print> ("added greater equal conditions",thms''))
-   val _ = debug_msg ctxt low (fn () => \<^print> ("cthm",cthm))
 
    val thms''' = Conv.fconv_rule (Conv.rewr_conv thms'') cthm
 
    (*This is used for counterexample generation only*)
    val keys = Termtab.keys tab
    val curr_mapping = ListPair.zip (keys, keys |> map (fst o the o Termtab.lookup tab))
-in ((ctxt1,thms'''::thms,curr_mapping @ mapping,tab):test) end
+in ((ctxt1,thms'''::thms,curr_mapping @ mapping,tab):unfold_state) end
 
 fun global_normalize ctxt ithms =
 let
