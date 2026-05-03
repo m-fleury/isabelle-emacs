@@ -25,7 +25,6 @@ open SMT_Config
 fun debug_msg ctxt = alethe_debug_msg ctxt "smt_global_normalize"
 fun debug_msg_tac ctxt = alethe_debug_msg_tac ctxt "smt_global_normalize"
 
-
 type subst_tab = (cterm * (thm * thm option)) Termtab.table
 type custom_conv = cterm -> (cterm * (thm * thm option)) Termtab.table * Proof.context * thm list * thm
 
@@ -55,7 +54,7 @@ fun custom_rewr_cond_conv ctxt subst thm cond = (fn r => (subst,ctxt,cond,Conv.r
 
 (*Mostly copied from Obtain.result except for call to Variable.focus_cterm (we want to name the new
 variable ourselves *)
-fun obtain_new_var tac n facts ctxt =
+fun obtain_new_var tac binding_name facts ctxt =
   let
     val ((thesis_var, thesis), thesis_ctxt) = Obtain.obtain_thesis ctxt;
     val st = Goal.init (Thm.cterm_of ctxt thesis);
@@ -69,12 +68,11 @@ fun obtain_new_var tac n facts ctxt =
     val ((_, [rule']), ctxt') = Variable.import false [closed_rule] ctxt;
     val obtain_rule =
       Thm.forall_elim (Thm.cterm_of ctxt (Logic.varify_global (Free thesis_var))) rule';
-    val ((params, stmt), fix_ctxt) = Variable.focus_cterm (SOME [(Binding.name n)]) (Thm.cprem_of obtain_rule 1) ctxt';
+    val ((params, stmt), fix_ctxt) = Variable.focus_cterm (SOME [Binding.name binding_name]) (Thm.cprem_of obtain_rule 1) ctxt';
     val (prems, ctxt'') =
       Assumption.add_assms (Obtain.obtain_export fix_ctxt obtain_rule (map #2 params))
         (Drule.strip_imp_prems stmt) fix_ctxt;
   in ((params, prems), ctxt'') end;
-
 
 (*
   For each variable x::nat we want to obtain (x'::int) and the following theorem:
@@ -118,27 +116,24 @@ let
   val _ = debug_msg ctxt middle (fn () => \<^print> ("(x'_def,x'_ge_0) ",(x'_def,x'_ge_0)))
 in (ctxt1,x',(x'_def,x'_ge_0)) end
 
-
-
 fun transform_variable ctxt subst (x as Free (x_name,@{typ nat})) =
 (case Termtab.lookup subst x of
   NONE =>
   let
-    val _ = debug_msg ctxt low (fn () => \<^print> ("current term is free variable t of type nat" 
+    val _ = debug_msg ctxt low (fn () => \<^print> ("current term is free variable t of type nat"
       ^ " that has not been encountered yet: ",x))
     val (ctxt1,c_x',(x'_def,x'_ge_0)) = mk_lift_variable ctxt x_name
     val subst1 = Termtab.update (x,(c_x',(x'_def,x'_ge_0))) subst
     val conds = x'_ge_0 |> the_list
   in custom_rewr_cond_conv ctxt1 subst1 x'_def conds end
- |(SOME (_,(x'_def,x'_ge_0))) => 
+ |(SOME (_,(x'_def,x'_ge_0))) =>
   let
-    val _ = debug_msg ctxt middle (fn () => \<^print> ("current term is free variable t of type nat" 
+    val _ = debug_msg ctxt middle (fn () => \<^print> ("current term is free variable t of type nat"
       ^ " that has already been encountered: ",x))
     val conds = x'_ge_0 |> the_list
   in custom_rewr_cond_conv ctxt subst x'_def conds end
 )
 | transform_variable ctxt subst _ = custom_all_conv ctxt subst
-
 
 local
 
@@ -161,7 +156,7 @@ local
       all_fun xi'_name T (mk_forall' ground all_fun Ts (k+1) (xi'::US))
     end
   in
-  fun mk_forall ground all_fun Ts = mk_forall' ground all_fun Ts 0 [] end 
+  fun mk_forall ground all_fun Ts = mk_forall' ground all_fun Ts 0 [] end
 
  (* [T1, ..., Tn], [x1, ..., xn] \<mapsto> [x1', ..., xn']
    where
@@ -176,12 +171,6 @@ local
   fun mk_hol_all xi'_name T' H = HOLogic.mk_all(xi'_name,intify_type T',H)
   fun mk_lambda xi'_name T' H = absfree (xi'_name, T') H
   fun mk_prop_all xi'_name T' H = all_pure_const T' $ absfree (xi'_name,T') H
-
-
-
-
-
-
 
   (* f, f', [x1, ..., xn] to one of the following
        f x1' ... xn' = (nat (f' x1 ... xn)) \<and> (f' x1 ... xn) \<ge> 0, if retNat
@@ -202,18 +191,15 @@ local
 
     val nat_f'_xs = (if retNat then nat_cast $ f'_xs else f'_xs)
     val eq_term = HOLogic.mk_eq (f_xs',nat_f'_xs)
-    val less_eq = Const ("Orderings.ord_class.less_eq", @{typ "int \<Rightarrow> int \<Rightarrow> bool"})
     val res =
       if retNat
-      then HOLogic.mk_conj (less_eq $ @{term "0::int"} $ f'_xs,eq_term)
+      then HOLogic.mk_conj (mkLeTerm f'_xs, eq_term)
       else eq_term
 
   in res end
- 
-
 
 (*\<lambda>w::nat. (int (f w))  (other)*)
-  fun other f _ xs  = 
+  fun other f _ xs  =
   let
     val (xs_T,f_T) = fastype_of f |> strip_type
 
@@ -221,8 +207,6 @@ local
     val f_xs = list_comb(f,mk_f_xs'_h xs_T xs)
     val f_xs = if retNat then int_cast $ f_xs else f_xs (*TODO*)
   in f_xs end
-
-
 
 in
 fun mk_new_fun ctxt f f_name =
@@ -258,39 +242,6 @@ let
   val _ = debug_msg ctxt middle (fn () => \<^print> ("ts_T",ts_T))
 
   val _ = debug_msg ctxt middle (fn () => \<^print> ("other",other_term))
-
-  (*  needs to be shown to obtain new variablejj
-   1.  \<exists>lift_f::int \<Rightarrow> int \<Rightarrow> int. \<forall>(lb0::int) lb1::int. f (nat lb0) (nat lb1) = lift_f lb0 lb1
-
-    exI "P x \<Longrightarrow> \<exists>x::'a. P x"
-
-    Also P = (\<lambda>lift_f. \<forall>lb0::int. 0 \<le> lift_f lb0 \<and> f lb0 = nat (lift_f lb0))
-
-    ("exI_inst",
- "\<forall>(lb0::int) lb1::int. (f::nat \<Rightarrow> nat \<Rightarrow> int) (nat lb0) (nat lb1) = (?x::int \<Rightarrow> int \<Rightarrow> int) lb0 lb1 \<Longrightarrow>
-  \<exists>x::int \<Rightarrow> int \<Rightarrow> int.
-     \<forall>(lb0::int) lb1::int.
-        f (nat lb0) (nat lb1) =
-        x lb0
-         lb1")
-
-Goal ist dann \<forall>(lb0::int) lb1::int. f (nat lb0) (nat lb1) = (?x::int \<Rightarrow> int \<Rightarrow> int) lb0 lb1
-
-
-    dann fuer x = \<lambda>(lb0::int) lb1. (f w)  (other)
-
-    ("exI_inst",
- "\<forall>lb0::int. 0 \<le> (int (f lb0)) \<and> (f::int \<Rightarrow> nat) lb0 = nat ((int (f lb0)) ) \<Longrightarrow>
-  \<exists>x::int \<Rightarrow> int.
-     \<forall>lb0::int.
-        0 \<le> x lb0 \<and> f lb0 = nat (x lb0)")
-
-of_nat_0_le_iff gives 
-0 \<le> int (f lb0)
-und nat_int solved das andere goal
-   *)
-
-
   val exI_inst = Drule.infer_instantiate' ctxt [SOME (Thm.cterm_of ctxt lambda_term),SOME (Thm.cterm_of ctxt other_term)] @{thm exI}
   val _ = debug_msg ctxt middle (fn () => \<^print> ("exI_inst", exI_inst))
 
@@ -322,11 +273,10 @@ und nat_int solved das andere goal
   val goal_thm = Goal.prove ctxt1 [] [] goal (fn {context: Proof.context, ...}  =>
       unfold_tac context [@{thm atomize_all}]
       THEN HEADGOAL (resolve_tac context [x'_thm_def]))
-     
+
    val _ = debug_msg ctxt1 high (fn () => \<^print> ("Showed goal from obtain thm:",goal_thm))
     val _ = debug_msg ctxt1 high (fn () => \<^print> ("retNat",retNat))
     val _ = debug_msg ctxt1 high (fn () => \<^print> ("f_T",f_T))
-
 
   val (x'_def,x'_ge_0) = if retNat then split_lift_cond goal_thm else (goal_thm,NONE)
   val _ = debug_msg ctxt middle (fn () => \<^print> ("(x'_def,x'_ge_0) ",(x'_def,x'_ge_0)))
@@ -334,20 +284,19 @@ und nat_int solved das andere goal
 in (ctxt1,x',(x'_def,x'_ge_0)) end
 end
 
-
-fun transform_function ctxt subst t f f_name ts f_T f'_T = 
+fun transform_function ctxt subst t f f_name ts f_T f'_T =
   if f = @{term "Nat.semiring_1_class.of_nat::nat \<Rightarrow> int"} then
   let
     val _ = debug_msg ctxt high (fn () => \<^print> ("current term is a cast from nat to int. If its child is a cast from nat to int we know that we can delete the casts",t))
     val _ = debug_msg ctxt high (fn () => \<^print> ("current children ts",ts))
     val t1 = hd ts
-  in 
+  in
    case t1 of
      Const (\<^const_name>\<open>Int.nat\<close>, @{typ "int \<Rightarrow> nat"}) $ t2 =>
       (case t2 of
-        Const ("Groups.zero_class.zero",@{typ "int"}) => custom_rewr_conv ctxt subst @{thm SMT.H1'(1)}
-      | Const ("Groups.one_class.one",@{typ "int"}) => custom_rewr_conv ctxt subst @{thm SMT.H1'(2)}
-      | (Const ("Num.numeral_class.numeral", @{typ "num \<Rightarrow> int"}) $ u1) => (fn r => (subst,ctxt,[],Conv.top_sweep_rewrs_conv [Drule.infer_instantiate' ctxt [SOME (Thm.cterm_of ctxt u1)] @{thm alethe_nat_embedding2}] ctxt r))
+        Const (\<^const_name>\<open>Groups.zero_class.zero\<close>, @{typ int}) => custom_rewr_conv ctxt subst @{thm SMT.H1'(1)}
+      | Const (\<^const_name>\<open>Groups.one_class.one\<close>, @{typ int}) => custom_rewr_conv ctxt subst @{thm SMT.H1'(2)}
+      | (Const (\<^const_name>\<open>Num.numeral_class.numeral\<close>, @{typ "num \<Rightarrow> int"}) $ u1) => (fn r => (subst,ctxt,[],Conv.top_sweep_rewrs_conv [Drule.infer_instantiate' ctxt [SOME (Thm.cterm_of ctxt u1)] @{thm alethe_nat_embedding2}] ctxt r))
       | _ =>
         let
          val _ = debug_msg ctxt high (fn () => \<^print> (" (t1 |> strip_comb |> fst)", (t1 |> strip_comb |> fst)))
@@ -358,7 +307,7 @@ fun transform_function ctxt subst t f f_name ts f_T f'_T =
          in
            case t_thms of
              NONE => custom_rewr_conv ctxt subst @{thm int_nat_eq [THEN eq_reflection]} (*We can only add an if-then-else lemma*)
-           | SOME t_thms => 
+           | SOME t_thms =>
              let
                val _ = debug_msg ctxt high (fn () => \<^print> ("Found ge thm for x in int(nat x)",t_thms))
                val int_nat_thm = @{thm H_nat_embedding'} OF [t_thms]
@@ -381,19 +330,19 @@ fun transform_function ctxt subst t f f_name ts f_T f'_T =
   else
   let
     val (_,_) = f_T |> Term.strip_type
-    val  (ctxt1,subst1,_,(f'_def,t'_ge_0)) = 
+    val  (ctxt1,subst1,_,(f'_def,t'_ge_0)) =
     (case Termtab.lookup subst f of
       NONE =>
       let
         val _ = debug_msg ctxt low (fn () => \<^print> ("current term is a function f that has not been encountered yet ",t))
         val (ctxt1,c_f',(f'_def,t'_ge_0)) = mk_new_fun ctxt f f_name
-   
+
         val subst = Termtab.update (f,(c_f',(f'_def,t'_ge_0))) subst
 
         val conds = t'_ge_0 |> the_list
 
       in (ctxt1,subst,conds,(f'_def,t'_ge_0)) end |
-      SOME (c_f',(f'_def,t'_ge_0)) => 
+      SOME (c_f',(f'_def,t'_ge_0)) =>
       let
         val _ = debug_msg ctxt low (fn () => \<^print> ("current term is a function f that has been encountered before ",t))
         val conds = t'_ge_0 |> the_list
@@ -410,8 +359,6 @@ fun transform_function ctxt subst t f f_name ts f_T f'_T =
     val _ = debug_msg ctxt1 middle (fn () => \<^print> ("Instantiated t'_ge_0_concrete ",t'_ge_0_concrete))
 
       in ((fn r => (subst1,ctxt1,t'_ge_0_concrete,(Conv.top_rewrs_conv [f'_def_concrete] ctxt) r))) end
-
-
 
 fun transform_non_quant_term ctxt (subst:subst_tab) ct =
 let
@@ -434,7 +381,6 @@ in
 ) ct
 end
 
-
 fun add_conds _ ge_conds thm =
 if length ge_conds = 0 then thm else
 let
@@ -443,40 +389,36 @@ let
   val ge_conds = mk_and ge_conds
 
   val trans_lemma =   @{lemma "A \<Longrightarrow> ( (Trueprop B) \<equiv> Trueprop C) \<Longrightarrow> ((Trueprop B) \<equiv> Trueprop(A \<and> C))" by simp}
-       
+
 in trans_lemma OF [ge_conds] OF [thm] end
-
-
-
-
 
 (*
 
 bottom_list gets a term list cts and fills up tab, cond, ctxt and a theorem list.
 It first gets a theorem using bottom for the first argument. Then, it traverses the
-rest of the arguments 
+rest of the arguments
 *)
-fun bottom_list _ tab ge_conds ctxt [] ths = (tab,ctxt,ge_conds,ths) | 
+fun bottom_list _ tab ge_conds ctxt [] ths = (tab,ctxt,ge_conds,ths) |
   bottom_list ccv' tab ge_conds ctxt (ct::cts) ths =
   let
     val (tab2,ctxt2,ge_conds2,tthm) = bottom ccv' tab ge_conds ctxt ct
   in bottom_list ccv' tab2 (ge_conds @ ge_conds2) ctxt2 cts (tthm::ths)  end
-and 
+and
 
 bottom (ccv':
       (cterm * (thm * thm option)) Termtab.table ->
         Proof.context -> cterm -> (cterm * (thm * thm option)) Termtab.table * Proof.context * thm list * thm)
-   tab _ ctxt ct = 
+   tab _ ctxt ct =
 let
-  val (ct1,cts) = Drule.strip_comb ct   
+  val (ct1,cts) = Drule.strip_comb ct
   val _ = debug_msg ctxt high (fn () => \<^print> ("(current term,current children)",(ct1,cts)))
   val t = Thm.term_of ct1
   val _ = debug_msg ctxt high (fn () => \<^print> ("(current term)",t))
   val ct1_nr_args = Term.fastype_of t |> strip_type |> fst |> length
-  val _ = if length cts < ct1_nr_args then raise (SMT_GLOBAL_NORMALIZE "partially applied function") else () 
+  val _ = if length cts < ct1_nr_args then raise (SMT_GLOBAL_NORMALIZE "partially applied function") else ()
 in
- (case Thm.term_of ct of 
-   Const (quant_name, T) $ (Abs (bv_name, T2, _)) => 
+ (case Thm.term_of ct of
+   Const (quant_name, T) $ (Abs (bv_name, T2, _)) =>
    let
     val _ = debug_msg ctxt high (fn () => \<^print> ("current is quantifier: ",quant_name))
 
@@ -525,7 +467,7 @@ in
     val (ct'_atom3,qnt_original_unfold_nat_int_bound_var,nat_0_le,ge_cond_bound_var,bound_var_ge_cond) =
     (if bound_is_nat then
     let
-     val (_,[bound_var_ge_cond,consequent]) = Drule.strip_comb qnt_transform_body   
+     val (_,[bound_var_ge_cond,consequent]) = Drule.strip_comb qnt_transform_body
      val _ = debug_msg ctxt high (fn () => \<^print> ("bound_var_ge_cond,consequent",bound_var_ge_cond,consequent))
 
      val nat_0_le = Drule.infer_instantiate' ctxt [SOME transformed_bound_var_ct] @{thm nat_0_le} |> atomize_eq_thm ctxt
@@ -568,7 +510,7 @@ in
     val _ = debug_msg ctxt high (fn () => \<^print> ("ct'_atom3",ct'_atom3))
 
     (*Recursive Call*)
-    (* 
+    (*
       In nat case: Transform body "P (x::int)" and obtain theorem "P x \<equiv> P' x"
       Otherwise: Transform body "P x" and obtain thm: "P x \<equiv> P' x" *)
     val (tab1,ctxt1,ge_conds,[thm]) = bottom_list ccv' tab [] ctxt [ct'_atom3] []
@@ -579,8 +521,6 @@ in
     (* Unfold any nat(int t) in the body FIXME: This should be done on the fly eventually and not in this additional traversal*)
     val try0 = fold (fn x => fn thm => Thm.implies_intr x thm) (map Thm.cprop_of ge_conds) thm
 
-
-
     (*Add any conditions due to lifted variables "P x \<equiv> cond \<and> P' x" *)
     val thm_with_cond =
       if length ge_conds = 0 then thm else
@@ -589,7 +529,7 @@ in
            mk_and (x::xs) = (@{thm HOL.conjI} OF [x]) OF ([mk_and xs])
         val ge_conds = mk_and ge_conds
 
-        val quant2 = 
+        val quant2 =
           if is_all then @{lemma "A \<Longrightarrow> ( B \<equiv>  C) \<Longrightarrow> ( B \<equiv> (A \<and> C))" by simp}
           else @{lemma "A \<Longrightarrow> ( B \<equiv>  C) \<Longrightarrow> ( B \<equiv> (A \<longrightarrow> C))" by simp}
         val temp2 = Drule.infer_instantiate' ctxt
@@ -616,7 +556,6 @@ in
      val _ = debug_msg ctxt high (fn () => \<^print> ("ge_cond_bound_var",ge_cond_bound_var))
      val (bv_ge_cond_thms,ctxt2) = Assumption.add_assumes [Thm.apply @{cterm Trueprop} bound_var_ge_cond] ctxt
 
-
      val thm_unfolded_nat_int' = Conv.top_rewrs_conv [nat_0_le] ctxt2 (Thm.rhs_of thm_unfolded_nat_int) (*TODO: This doesn't work*)
      val thm_unfolded_nat_int = Thm.transitive thm_unfolded_nat_int thm_unfolded_nat_int'
 
@@ -642,20 +581,19 @@ in
     val _ = debug_msg ctxt1 high (fn () => \<^print> ("Body of quantified term was transformed to:",thm23'))
     val _ = debug_msg ctxt high (fn () => \<^print> ("Transformed current: ",thm23'))
 
-
  in (tab1,ctxt1,[],thm23') end
 
  |
 (Abs (bv_name, _, _)) => (*TODO: lambda case*)
   let
-   
+
     val ((bound_var, body), ctxt) = Variable.dest_abs_cterm ct1 ctxt;
 
     val (tab1,ctxt1,_,[thm]) = bottom_list ccv' tab [] ctxt [body] []
     val thm23 = Thm.abstract_rule bv_name bound_var thm
     (*TODO: Add/pass conditions *)
  in (tab1,ctxt1,[],thm23) end |
-_ => 
+_ =>
   if length cts = 0
   then
     let
@@ -679,10 +617,9 @@ _ =>
       val _ = debug_msg ctxt middle (fn () => \<^print> ("Transformed current term with children (old,new): ",(Thm.lhs_of thm,Thm.rhs_of thm)))
 
    in (tab2,ctxt2,args_ge_cond @ curr_ge_cond,thm) end
- 
+
 )
  end
-
 
 type unfold_state =
   Proof.context * thm list * (Termtab.key * cterm) list * (cterm * (thm * thm option)) Termtab.table
@@ -697,11 +634,10 @@ fun unfold_test cthm ((ctxt,thms,mapping,tab) :unfold_state)  =
    (*FIXME: This should be done on the fly*)
    val _ = debug_msg ctxt low (fn () => \<^print> ("current transformed thm",thm))
 
-
    val ge_conds = distinct (fn (a,b) => Thm.prop_of a = Thm.prop_of b) ge_conds (*TODO: Solve earlier*)
    val _ = debug_msg ctxt low (fn () => \<^print> ("obtained greater equal conditions",ge_conds))
 
-   val thms'' = add_conds ctxt1 ge_conds thm 
+   val thms'' = add_conds ctxt1 ge_conds thm
    val _ = debug_msg ctxt low (fn () => \<^print> ("added greater equal conditions",thms''))
 
    val thms''' = Conv.fconv_rule (Conv.rewr_conv thms'') cthm
@@ -725,9 +661,5 @@ let
 in
  (ctxt',ithms',mapping)
 end
-
-
-
-
 
 end
