@@ -1,10 +1,11 @@
 section \<open>Regression test for the extended embedding of natural numbers into integers\<close>
 
 theory SMT_Global_Normalize_Examples
-  imports "HOL.SMT" Main (*HOL.SMT_CVC HOL.String*)
+  imports Main
 begin
 
-(*None of the goals should contain any nats after encoding unless explicitly stated.*)
+text \<open>None of the following SMT-LIB problems should contain any natural numbers unless explicitly
+stated.  \<close>
 
 declare[[smt_expert_debug_alethe_files="all"]]
 declare[[smt_expert_debug_alethe_level=3]]

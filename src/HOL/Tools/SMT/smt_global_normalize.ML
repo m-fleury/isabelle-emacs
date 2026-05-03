@@ -24,8 +24,29 @@ exception SMT_GLOBAL_NORMALIZE of string
 open SMT_Config
 fun debug_msg ctxt = alethe_debug_msg ctxt "smt_global_normalize"
 
-type subst_tab = (cterm * (thm * thm option)) Termtab.table
-type custom_conv = cterm -> (cterm * (thm * thm option)) Termtab.table * Proof.context * thm list * thm
+
+(*Bidirectional substitution table.
+  - forward: original term \<mapsto> (lifted cterm, lifting thm, optional \<ge> 0 thm)
+  - backwards: lifted term \<mapsto> original term*)
+type subst_tab = (cterm * (thm * thm option)) Termtab.table * term Termtab.table
+
+val empty_subst_tab : subst_tab = (Termtab.empty, Termtab.empty)
+
+fun subst_lookup ((forward, _) : subst_tab) k = Termtab.lookup forward k
+
+fun subst_update k (v as (lifted_c, _)) ((forward, inverse) : subst_tab) =
+  (Termtab.update (k, v) forward,
+   Termtab.update (Thm.term_of lifted_c, k) inverse) : subst_tab
+
+fun subst_lookup_cond_by_lifted ((forward, inverse) : subst_tab) head =
+  case Termtab.lookup inverse head of
+    NONE => NONE
+  | SOME k =>
+      (case Termtab.lookup forward k of
+        SOME (_, (_, SOME c)) => SOME c
+      | _ => NONE)
+
+type custom_conv = cterm -> subst_tab * Proof.context * thm list * thm
 
 fun intify_type \<^typ>\<open>nat\<close> = \<^typ>\<open>int\<close>
   | intify_type (Type (a, Ts)) = Type (a, map intify_type Ts)
@@ -87,9 +108,7 @@ fun obtain_new_var tac binding_name facts ctxt =
 *)
 fun mk_lift_variable ctxt x_name =
 let
-
-  (*TODO: Check if name is already used first! Not sure if it matters because Isabelle renames, try out*)
-  val x'_name =  "lift_" ^ (Long_Name.base_name x_name)
+  val x'_name = "lift_" ^ Long_Name.base_name x_name
   val t = (Free (x_name,@{typ nat}))
   val t' = (Free (x'_name,@{typ int}))
   val _ = debug_msg ctxt middle (fn () => \<^print> ("(variable, lifted variable)",(t,t')))
@@ -123,13 +142,13 @@ let
 in (ctxt1,x',(x'_def,x'_ge_0)) end
 
 fun transform_variable ctxt subst (x as Free (x_name,@{typ nat})) =
-(case Termtab.lookup subst x of
+(case subst_lookup subst x of
   NONE =>
   let
     val _ = debug_msg ctxt low (fn () => \<^print> ("current term is free variable t of type nat"
       ^ " that has not been encountered yet: ",x))
     val (ctxt1,c_x',(x'_def,x'_ge_0)) = mk_lift_variable ctxt x_name
-    val subst1 = Termtab.update (x,(c_x',(x'_def,x'_ge_0))) subst
+    val subst1 = subst_update x (c_x',(x'_def,x'_ge_0)) subst
     val conds = x'_ge_0 |> the_list
   in custom_rewr_cond_conv ctxt1 subst1 x'_def conds end
  |(SOME (_,(x'_def,x'_ge_0))) =>
@@ -155,7 +174,6 @@ local
     fun mk_forall' ground _ [] _ US = ground (rev US) |
     mk_forall' ground all_fun (T::Ts) k US =
     let
-      (*TODO: Check if name is already used first!*)
       val xi'_name = "lb" ^ Int.toString(k)
       val xi' = Free(xi'_name,T)
     in
@@ -211,14 +229,13 @@ local
 
     val retNat = isNat f_T
     val f_xs = list_comb(f,mk_f_xs'_h xs_T xs)
-    val f_xs = if retNat then int_cast $ f_xs else f_xs (*TODO*)
+    val f_xs = if retNat then int_cast $ f_xs else f_xs
   in f_xs end
 
 in
 fun mk_new_fun ctxt f f_name =
 let
-  (*TODO: Check if name is already used first! Not sure if it matters because Isabelle renames, try out*)
-  val f'_name =  "lift_" ^ (Long_Name.base_name f_name)
+  val f'_name = "lift_" ^ Long_Name.base_name f_name
   val t_T = fastype_of f
   val (ts_T,f_T) = t_T |> strip_type
   val retNat = isNat f_T
@@ -306,10 +323,7 @@ fun transform_function ctxt subst t f f_name ts f_T f'_T =
       | _ =>
         let
           val _ = debug_msg ctxt high (fn () => \<^print> (" (t1 |> strip_comb |> fst)", (t1 |> strip_comb |> fst)))
-          fun search_for_value [] = NONE | (*TODO: Restructure table so that both old and new name form the key*)
-              search_for_value ((_,(a,(_,c)))::xs) = if (Thm.term_of a = (t2 |> strip_comb |> fst)) then c else search_for_value xs
-          val t_thms = search_for_value (Termtab.dest subst)
-          val _ = debug_msg ctxt high (fn () => \<^print> ("(Termtab.dest subst) ",(Termtab.dest subst) ))
+          val t_thms = subst_lookup_cond_by_lifted subst (t2 |> strip_comb |> fst)
         in
           case t_thms of
             NONE => custom_rewr_conv ctxt subst @{thm int_nat_eq [THEN eq_reflection]} (*We can only add an if-then-else lemma*)
@@ -337,13 +351,13 @@ fun transform_function ctxt subst t f f_name ts f_T f'_T =
   let
     val (_,_) = f_T |> Term.strip_type
     val  (ctxt1,subst1,_,(f'_def,t'_ge_0)) =
-    (case Termtab.lookup subst f of
+    (case subst_lookup subst f of
       NONE =>
       let
         val _ = debug_msg ctxt low (fn () => \<^print> ("current term is a function f that has not been encountered yet ",t))
         val (ctxt1,c_f',(f'_def,t'_ge_0)) = mk_new_fun ctxt f f_name
 
-        val subst = Termtab.update (f,(c_f',(f'_def,t'_ge_0))) subst
+        val subst = subst_update f (c_f',(f'_def,t'_ge_0)) subst
 
         val conds = t'_ge_0 |> the_list
 
@@ -407,9 +421,7 @@ fun bottom_list _ tab ge_conds ctxt [] ths = (tab,ctxt,ge_conds,ths) |
   in bottom_list ccv' tab2 (ge_conds @ ge_conds2) ctxt2 cts (tthm::ths)  end
 and
 
-bottom (ccv':
-      (cterm * (thm * thm option)) Termtab.table ->
-        Proof.context -> cterm -> (cterm * (thm * thm option)) Termtab.table * Proof.context * thm list * thm)
+bottom (ccv': subst_tab -> Proof.context -> cterm -> subst_tab * Proof.context * thm list * thm)
    tab _ ctxt ct =
 let
   val (ct1,cts) = Drule.strip_comb ct
@@ -635,7 +647,7 @@ _ =>
  end
 
 type unfold_state =
-  Proof.context * thm list * (cterm * (thm * thm option)) Termtab.table
+  Proof.context * thm list * subst_tab
 
 fun lift_nat_thm cthm ((ctxt,thms,tab) :unfold_state)  =
  let
@@ -660,7 +672,7 @@ let
   val _ = debug_msg ctxt low (fn () => \<^print> ("ithms before global conversion ",ithms))
 
   val (i,thms) = split_list ithms
-  val (ctxt',thms',_) = fold lift_nat_thm thms (ctxt,[],Termtab.empty)
+  val (ctxt',thms',_) = fold lift_nat_thm thms (ctxt,[],empty_subst_tab)
   val ithms' = ListPair.zip (i,rev thms')
 
   val _ = debug_msg ctxt low (fn () => \<^print> ("ithms after global conversion ",ithms'))
