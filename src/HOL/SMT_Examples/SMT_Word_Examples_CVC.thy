@@ -141,40 +141,11 @@ From AFP Word_Lib Examples.thy
 These are now part of our monthly metrics that is why I numbered them
 
 Total: 336
-Date counted: 12/08/25
-
-
-Section           Total      Success
-------------------------------------------------
-nat                 30        0
-int                 69        0
-basic words         141       53
-modulus             3         2
-signed              1         0
-number ring simps   9         4
-ring operations     1         0
-casting             11        0
-reduction to arith  1         0
-bit operations      55        24
-signed division     2         0
-comparision         1         1
-bool lists          3         0
-bitwise expansion   5         0
-symbol shifts       2         0
-combined integer-bv 2         0
-misc                1         0
-------------------------------------------------
-total               337       84
-
-
-Total: 336
 Date counted: 01/07/26
 
 
 Section           Total      Success
 ------------------------------------------------
-nat                 30        0
-int                 69        0
 basic words         141       77
 modulus             3         2
 signed              1         0
@@ -190,6 +161,8 @@ bitwise expansion   5         0
 symbol shifts       2         0
 combined integer-bv 2         0
 misc                1         0
+nat                 30        0
+int                 69        0
 ------------------------------------------------
 total               337       105
 \<close>
@@ -198,13 +171,6 @@ section \<open>basic word 32 word\<close>
 
 text \<open>
 I instantiated any lemmas using symbolic bit-widths with 32.
-
-Benchmark Nrs: 100-240
-Date counted: 12/08/25
-
-Total:    141
-Success:  53
-
 
 Benchmark Nrs: 100-240
 Date counted: 01/07/26

@@ -127,6 +127,6 @@ lemma bv_repeat_elim:
        (smtlib_extract (15::int) (15::int) (1705::16 word)::1 word) :: 2 word)"
   by (ctxt_tactic "bv_repeat_elim")
 
-thm word_repeat_word_cat
+thm bv_reconstruction_length
          
 end

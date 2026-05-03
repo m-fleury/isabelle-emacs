@@ -196,7 +196,6 @@ lemma word_repeat_word_cat:
   assumes \<open>LENGTH('b::len) = Suc i * size n\<close> \<open>i > 0\<close>
     \<open>LENGTH('c::len) = i * size n\<close>
   shows \<open>(word_repeat (Suc i) n :: 'b word) = word_cat (n :: 'a word) (word_repeat i n :: 'c word)\<close>
-  supply [[show_sorts,show_types]]
   apply (subst word_repeat_alt_def)
   subgoal using assms by auto
   subgoal by auto
@@ -210,8 +209,42 @@ lemma word_repeat_word_cat:
     subgoal using assms by (auto simp: algebra_simps word_size)
     done
 
+
+lemma word_repeat_word_cat2:
+  fixes n :: "'a :: len word"
+  assumes \<open>LENGTH('b::len) = i * LENGTH('a)\<close> \<open>i > 1\<close>
+    \<open>LENGTH('c::len) = (i-1) * LENGTH('a)\<close>
+  shows \<open>(word_repeat i n :: 'b word) = word_cat (n :: 'a word) (word_repeat (i-1) n :: 'c word)\<close>
+  supply [[show_sorts,show_types]]
+  apply (cases i)
+  subgoal
+    using assms(2) by force
+  using assms(1,2,3) word_repeat_word_cat
+  by (metis diff_Suc_1 word_size zero_less_diff)
+
+
+lemma word_repeat_word_cat3:
+  fixes n :: "'a :: len word"
+  assumes \<open>LENGTH('b::len) = (numeral i) * LENGTH('a)\<close> \<open>numeral i > 1\<close>
+    \<open>LENGTH('c::len) = (numeral i-1) * LENGTH('a)\<close>
+  shows \<open>(word_repeat (numeral i) n :: 'b word) = word_cat (n :: 'a word) (word_repeat (numeral i-1) n :: 'c word)\<close>
+  sorry
+
+
 definition smt_repeat :: "nat \<Rightarrow> 'a::len word \<Rightarrow> 'b::len word" where
   \<open>smt_repeat i x = (if i = 0 then (ucast x::'b::len word) else word_repeat i x)\<close>
+
+lemma smt_repeat_zero:                                                                                           
+  "smt_repeat 0 x = ucast x"                                                                                            
+  unfolding smt_repeat_def by simp
+                                                                                                                       
+lemma smt_repeat_numeral:                                                                                               
+  "smt_repeat (numeral n) x = word_repeat (numeral n) x"
+  unfolding smt_repeat_def by simp                                                                                      
+                  
+lemma smt_repeat_Suc:                                                                                                   
+  "smt_repeat (Suc i) x = word_repeat (Suc i) x"
+  unfolding smt_repeat_def by simp       
 
 lemma smt_repeat_zeros: "n = LENGTH('a) \<Longrightarrow> n > 0 \<Longrightarrow> (smt_repeat n (0::1 word)::'a::len word) = 0"
   unfolding smt_repeat_def
@@ -243,6 +276,7 @@ next
   done
 qed
 
+ 
 definition smt_comp :: "'a::len word \<Rightarrow> 'a::len word \<Rightarrow> 1 word" where
   \<open>smt_comp x y = (if (x = y) then 1 else 0)\<close>
 
@@ -1233,6 +1267,5 @@ declare[[smt_expert_debug_alethe_level=2]]
 declare[[smt_expert_debug_alethe_files="all"]]
 
 declare[[smt_trace]]
-lemma bvex_281: "bit (0b0010 :: 4 word) 1" by (smt (cvc5))
 
 end

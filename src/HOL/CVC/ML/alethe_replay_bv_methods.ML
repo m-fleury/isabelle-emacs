@@ -46,6 +46,23 @@ val simplify_tac = Alethe_Replay_Methods.simplify_tac
 val REPEAT_CHANGED = Alethe_Replay_Methods.REPEAT_CHANGED
 val replay_error = Alethe_Replay_Methods.replay_error
 
+(*TODO: this might be replaced with a single call to simplify eventually*)
+fun resolve_common_bv_cond ctxt =
+let
+  val arith_thms = (Named_Theorems.get ctxt @{named_theorems smt_arith_simplify})
+    @ (Named_Theorems.get ctxt @{named_theorems arith_simp_cvc5})
+
+in
+REPEAT_CHANGED (
+  REPEAT_CHANGED (
+    (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems smt_word_len_evaluate} @ @{thms word_size}))
+    THEN' (simplify_tac ctxt arith_thms)
+    THEN' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems arith_simp_cvc5}))
+    THEN' (simplify_tac ctxt ((Named_Theorems.get ctxt @{named_theorems bv_reconstruction_lists})))
+    )
+  THEN' TRY' (Code_Simp.dynamic_tac ctxt)
+)
+end
 
 (* Bitblasting *)
 (* Note: These reconstructions will become much shorter. For debugging reasons and as this is ongoing
@@ -69,23 +86,7 @@ local
   in  SMT_Replay_Methods.prove ctxt t (fn _ =>(
       (debug_msg_tac' ctxt high ("bv bitblast reconstruction debug 1"))
       THEN' K (HEADGOAL (EqSubst.eqsubst_tac ctxt [1] [word_var_rbl_list_lemma_inst]))
-      THEN' REPEAT_CHANGED (
-
-        REPEAT_CHANGED (
-
-        (*THEN' K (print_tac ctxt ("bv bitblast reconstruction debug 2 "))*)
-         (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems bv_reconstruction_length}))
-        (*THEN' K (print_tac ctxt ("bv bitblast reconstruction debug 3"))*)
-        THEN' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems smt_arith_simplify}))
-        (*THEN' K (print_tac ctxt ("bv bitblast reconstruction debug 4"))*)
-        THEN' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems arith_simp_cvc5}))
-        (*THEN' K (print_tac ctxt ("bv bitblast reconstruction debug 5"))*)
-        THEN' (simplify_tac ctxt ((Named_Theorems.get ctxt @{named_theorems bv_reconstruction_lists})))
-        THEN' (debug_msg_tac' ctxt high ("bv bitblast reconstruction debug 6"))
-      )
-       THEN' TRY' (Code_Simp.dynamic_tac ctxt)
-      THEN' (debug_msg_tac' ctxt high ("bv bitblast reconstruction debug 7"))
-      )
+      
       ))
   end
 in
@@ -117,7 +118,7 @@ local
 
        REPEAT_CHANGED (
        TRY' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems bv_reconstruction_const_test}))
-       THEN' (TRY' (simplify_tac ctxt ((Named_Theorems.get ctxt @{named_theorems bv_reconstruction_length}))))
+       THEN' (TRY' (simplify_tac ctxt ((Named_Theorems.get ctxt @{named_theorems smt_word_len_evaluate}))))
        THEN' (TRY' (simplify_tac ctxt ((Named_Theorems.get ctxt @{named_theorems bv_reconstruction_lists}))))
        THEN' (TRY' (simplify_tac ctxt ((Named_Theorems.get ctxt @{named_theorems bv_reconstruction_list_funs}))))
        THEN' (TRY' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems smt_arith_simplify})))
@@ -159,7 +160,7 @@ local
       THEN' K (HEADGOAL (EqSubst.eqsubst_tac ctxt [1] [bitwise_op_lemma_inst]))
       THEN' (debug_msg_tac' ctxt high ("bitwise operation bitblast reconstruction debug 2"))
       THEN' REPEAT_CHANGED (
-            (TRY' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems bv_reconstruction_length})))
+            (TRY' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems smt_word_len_evaluate})))
       THEN' (TRY' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems smt_arith_simplify})))
       THEN' (TRY' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems arith_simp_cvc5})))
       THEN' (TRY' (simplify_tac ctxt ((Named_Theorems.get ctxt @{named_theorems bv_reconstruction_lists}))))
@@ -200,7 +201,7 @@ local
       THEN' K (HEADGOAL (EqSubst.eqsubst_tac ctxt [1] [bitwise_op_lemma_inst]))
       THEN' (debug_msg_tac' ctxt high ("bitwise operation bvnot bitblast reconstruction debug 2"))
       THEN' REPEAT_CHANGED (
-            (TRY' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems bv_reconstruction_length})))
+            (TRY' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems smt_word_len_evaluate})))
       THEN' (TRY' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems smt_arith_simplify})))
       THEN' (TRY' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems arith_simp_cvc5})))
       THEN' (TRY' (simplify_tac ctxt ((Named_Theorems.get ctxt @{named_theorems bv_reconstruction_lists}))))
@@ -243,7 +244,7 @@ local
       THEN' (debug_msg_tac' ctxt high ("bvadd bitblast reconstruction debug 2"))
       THEN' REPEAT_CHANGED (
            (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems word_plus_rbl_bvadd_fun}))
-      THEN' (TRY' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems bv_reconstruction_length})))
+      THEN' (TRY' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems smt_word_len_evaluate})))
       THEN' (TRY' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems smt_arith_simplify})))
       THEN' (TRY' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems arith_simp_cvc5})))
       THEN' (TRY' (simplify_tac ctxt ((Named_Theorems.get ctxt @{named_theorems bv_reconstruction_lists}))))
@@ -286,7 +287,7 @@ local
       THEN' (TRY' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems word_minus_rbl_bvneg_fun})))
       THEN' (TRY' (simplify_tac ctxt @{thms xor_simps}))
       THEN' (TRY' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems word_minus_rbl_bvneg_fun})))
-      THEN' (TRY' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems bv_reconstruction_length})))
+      THEN' (TRY' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems smt_word_len_evaluate})))
       THEN' (TRY' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems smt_arith_simplify})))
       THEN' (TRY' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems arith_simp_cvc5})))
       THEN' (TRY' (simplify_tac ctxt ((Named_Theorems.get ctxt @{named_theorems bv_reconstruction_lists}))))
@@ -324,7 +325,7 @@ local
       THEN' REPEAT_CHANGED (
             (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems word_mult_rbl_bvmult_fun}))
       THEN' (TRY' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems word_plus_rbl_bvadd_fun})))
-      THEN' (TRY' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems bv_reconstruction_length})))
+      THEN' (TRY' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems smt_word_len_evaluate})))
       THEN' (TRY' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems smt_arith_simplify})))
       THEN' (TRY' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems arith_simp_cvc5})))
       THEN' (TRY' (simplify_tac ctxt ((Named_Theorems.get ctxt @{named_theorems bv_reconstruction_lists}))))
@@ -335,7 +336,7 @@ local
 THEN' REPEAT_CHANGED (
             (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems word_mult_rbl_bvmult_fun}))
       THEN' (TRY' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems word_plus_rbl_bvadd_fun2})))
-      THEN' (TRY' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems bv_reconstruction_length})))
+      THEN' (TRY' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems smt_word_len_evaluate})))
       THEN' (TRY' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems smt_arith_simplify})))
       THEN' (TRY' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems arith_simp_cvc5})))
       THEN' (TRY' (simplify_tac ctxt ((Named_Theorems.get ctxt @{named_theorems bv_reconstruction_lists}))))
@@ -402,7 +403,7 @@ local
 
 
       THEN' REPEAT_CHANGED (
-            (TRY' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems bv_reconstruction_length})))
+            (TRY' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems smt_word_len_evaluate})))
       THEN' (TRY' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems smt_arith_simplify})))
       THEN' (TRY' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems arith_simp_cvc5})))
       THEN' (TRY' (simplify_tac ctxt ((Named_Theorems.get ctxt @{named_theorems bv_reconstruction_lists}))))
@@ -445,7 +446,7 @@ local
       THEN' K (HEADGOAL (EqSubst.eqsubst_tac ctxt [1] [word_equal_rbl_bvequal_lemma_inst]))
       THEN' REPEAT_CHANGED (
             (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems rbl_bvequal_fun}))
-      THEN' (TRY' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems bv_reconstruction_length})))
+      THEN' (TRY' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems smt_word_len_evaluate})))
       THEN' (TRY' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems smt_arith_simplify})))
       THEN' (TRY' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems arith_simp_cvc5})))
       THEN' (TRY' (simplify_tac ctxt ((Named_Theorems.get ctxt @{named_theorems bv_reconstruction_lists}))))
@@ -491,7 +492,7 @@ local
       THEN' (debug_msg_tac' ctxt high ("concat bitblast reconstruction debug 2 "))
       THEN' REPEAT_CHANGED (
           TRY'(K (HEADGOAL (simplify_tac ctxt ((Named_Theorems.get ctxt @{named_theorems bv_reconstruction_lists})))))
-      THEN' TRY' (K (HEADGOAL (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems bv_reconstruction_length}))))
+      THEN' TRY' (K (HEADGOAL (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems smt_word_len_evaluate}))))
       THEN' TRY' (K (HEADGOAL (simplify_tac ctxt @{thms Num.numeral_2_eq_2 Nat.One_nat_def eval_nat_numeral})))
       THEN' TRY' (K (HEADGOAL (simplify_tac ctxt @{thms arith_simps alethe_minus_simplify})))
       THEN' TRY' (K (HEADGOAL (simplify_tac ctxt arith_simps2)))
@@ -527,7 +528,7 @@ local
       (*THEN' K (print_tac ctxt ("bvult bitblast reconstruction debug 2"))*)
       THEN' REPEAT_CHANGED (
             (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems rbl_bvult_fun}))
-      THEN' (TRY' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems bv_reconstruction_length})))
+      THEN' (TRY' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems smt_word_len_evaluate})))
       THEN' (TRY' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems smt_arith_simplify})))
       THEN' (TRY' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems arith_simp_cvc5})))
       THEN' (TRY' (simplify_tac ctxt ((Named_Theorems.get ctxt @{named_theorems bv_reconstruction_lists}))))
@@ -678,16 +679,47 @@ SMT_Replay_Methods.prove ctxt t (fn _ =>(
 ))
 (* smt_extract (nat (7::int)) (nat 0) (27::8 word) XOR smt_extract (nat (7::int)) (nat 0) (lift_shiftla v0__ 1)*)
 
-fun bv_repeat_elim ctxt _  _ t = 
+fun bv_repeat_elim ctxt _  _ t =
+let
+     fun extract (\<^const>\<open>Trueprop\<close> $ u) = extract u
+        | extract (Const (\<^const_name>\<open>HOL.eq\<close>, _) $ (Const (\<^const_name>\<open>smt_repeat\<close>, _) $ times $ _)
+                            $ (Const (\<^const_name>\<open>word_cat\<close>, _) $ _ $ inner)) =                           
+            (times,fastype_of inner)
+        | extract u =
+            replay_error ctxt "bv_repeat_elim: RHS not word_cat n _"
+              Alethe_Replay_Methods.Unsupported [] [] u      
+  val (repeat_t,rhs_T) = extract t
+  val rhs_bw = Word_Lib.dest_wordT rhs_T |> string_of_int
+  val (_,repeats) = HOLogic.dest_number repeat_t |> @{print}
+  val thm = @{thm word_repeat_word_cat2 }
+  val thm_inst = Rule_Insts.where_rule ctxt
+               [((("'c", 0), Position.none), rhs_bw)]
+               [] thm    
+
+
+in 
+(*TODO: THis is not done yet, the RANGE step seems to solve more than 3 subgoals. *)
 SMT_Replay_Methods.prove ctxt t (fn _ =>(
-     K(print_tac ctxt "here") THEN'
-     K (unfold_tac ctxt @{thms smt_repeat_def}) THEN'
+     K (unfold_tac ctxt @{thms smt_repeat_zero smt_repeat_numeral smt_repeat_Suc}) THEN'
      K(print_tac ctxt "here2") THEN'
-     (split_tac ctxt @{thms if_split}) THEN'
-     K(print_tac ctxt "here3") 
+
+     REPEAT_DETERM_N' repeats
+     (
+      (EqSubst.eqsubst_tac ctxt [0] [thm_inst]) THEN'
+     K(print_tac ctxt "here3") THEN'
+      K (RANGE (replicate 3 (resolve_common_bv_cond ctxt)) 1)
+     THEN' K(print_tac ctxt "here4") )
+ THEN' K(print_tac ctxt "here5") 
+ THEN' TRY' (resolve_tac ctxt @{thms refl})
+
+(*These are the assumptions to be discharged:
+\<open>LENGTH('b::len) = i * size n\<close>
+\<open>i > 1\<close>
+\<open>LENGTH('c::len) = (i-1) * size n\<close>*)
+
 
 ))
-
+end
 
 
 val bv_rules = [
