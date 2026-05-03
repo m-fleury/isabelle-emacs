@@ -12,7 +12,7 @@ Similarly, for any function whose signature contains nats it introduces a new sy
 
 signature SMT_GLOBAL_NORMALIZE =
 sig
-  val global_normalize: Proof.context -> ((int * SMT_Util.role) * thm) list -> Proof.context * ((int * SMT_Util.role) * thm) list * (term * cterm) list
+  val global_normalize: Proof.context -> ((int * SMT_Util.role) * thm) list -> Proof.context * ((int * SMT_Util.role) * thm) list
   exception SMT_GLOBAL_NORMALIZE of string
 end
 
@@ -58,7 +58,7 @@ fun custom_rewr_conv ctxt subst thm = (fn r => (subst,ctxt,[],Conv.rewr_conv thm
 fun custom_rewr_cond_conv ctxt subst thm cond = (fn r => (subst,ctxt,cond,Conv.rewr_conv thm r)) : custom_conv
 
 (*Mostly copied from Obtain.result except for call to Variable.focus_cterm (we want to name the new
-variable ourselves *)
+variable ourselves) *)
 fun obtain_new_var tac binding_name facts ctxt =
   let
     val ((thesis_var, thesis), thesis_ctxt) = Obtain.obtain_thesis ctxt;
@@ -635,44 +635,41 @@ _ =>
  end
 
 type unfold_state =
-  Proof.context * thm list * (Termtab.key * cterm) list * (cterm * (thm * thm option)) Termtab.table
+  Proof.context * thm list * (cterm * (thm * thm option)) Termtab.table
 
-fun unfold_test cthm ((ctxt,thms,mapping,tab) :unfold_state)  =
+fun lift_nat_thm cthm ((ctxt,thms,tab) :unfold_state)  =
  let
    val _ = debug_msg ctxt low (fn () => \<^print> ("---------------------------------------------------"))
-
    val _ = debug_msg ctxt low (fn () => \<^print> ("current original thm",(Thm.cprop_of cthm)))
+
    val (tab,ctxt1,ge_conds,thm) =
     (bottom (fn tab => fn ctxt2 => transform_non_quant_term ctxt2 tab) tab [] ctxt) (Thm.cprop_of cthm)
    (*FIXME: This should be done on the fly*)
-   val _ = debug_msg ctxt low (fn () => \<^print> ("current transformed thm",thm))
 
    val ge_conds = distinct (fn (a,b) => Thm.prop_of a = Thm.prop_of b) ge_conds (*TODO: Solve earlier*)
-   val _ = debug_msg ctxt low (fn () => \<^print> ("obtained greater equal conditions",ge_conds))
-
    val thms'' = add_conds ctxt1 ge_conds thm
-   val _ = debug_msg ctxt low (fn () => \<^print> ("added greater equal conditions",thms''))
-
    val thms''' = Conv.fconv_rule (Conv.rewr_conv thms'') cthm
 
-   (*This is used for counterexample generation only*)
-   val keys = Termtab.keys tab
-   val curr_mapping = ListPair.zip (keys, keys |> map (fst o the o Termtab.lookup tab))
-in ((ctxt1,thms'''::thms,curr_mapping @ mapping,tab):unfold_state) end
+in ((ctxt1,thms'''::thms,tab):unfold_state) end
 
 fun global_normalize ctxt ithms =
 let
   val _ = debug_msg ctxt low (fn () => \<^print> ("---------------------------------------------------"))
   val _ = debug_msg ctxt low (fn () => \<^print> ("---------------------------------------------------"))
   val _ = debug_msg ctxt low (fn () => \<^print> ("---------------------------------------------------"))
+  val _ = debug_msg ctxt low (fn () => \<^print> ("ithms before global conversion ",ithms))
 
-  val _ = debug_msg ctxt low (fn () => \<^print> ("ithms before conversion ",ithms))
   val (i,thms) = split_list ithms
-
-  val (ctxt',thms',mapping,_) = fold unfold_test thms (ctxt,[],[],Termtab.empty)
+  val (ctxt',thms',_) = fold lift_nat_thm thms (ctxt,[],Termtab.empty)
   val ithms' = ListPair.zip (i,rev thms')
+
+  val _ = debug_msg ctxt low (fn () => \<^print> ("ithms after global conversion ",ithms'))
+  val _ = debug_msg ctxt low (fn () => \<^print> ("---------------------------------------------------"))
+  val _ = debug_msg ctxt low (fn () => \<^print> ("---------------------------------------------------"))
+  val _ = debug_msg ctxt low (fn () => \<^print> ("---------------------------------------------------"))
+
 in
- (ctxt',ithms',mapping)
+ (ctxt',ithms')
 end
 
 end
