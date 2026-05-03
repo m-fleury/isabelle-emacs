@@ -2,146 +2,11 @@
     Author:     Hanna Lachnitt, Stanford University
     Author:     Mathias Fleury, University Freiburg
 
-   
-   TODO: Make recursions pretty so that the functions can be folded.
-
-We assume that the int has been pushed in as far as possible
-
-E.g.,
-  "(x::nat) = (x::nat)" 
-gets transformed into:
-  "int (x::nat) \<noteq> int x"
-
-E.g.,
-  "(f::nat \<Rightarrow> int) (3::nat) = (5::int)"
-gets transformed into:
-  "(f::nat \<Rightarrow> int) (nat (3::int)) = (5::int)"
-
-E.g.,
-  "(foo::nat \<Rightarrow> nat) 0 = 1" 
-gets transfomed into:
-  int (foo (nat 0)) \<noteq> 1
-
-
-\<forall>x ::nat. (f::nat \<Rightarrow> int) x = f (3::nat)
-
-After preprocessing Nr. 1: 
-  \<forall>x ::nat. (f (nat (3::int))) = ((f::nat \<Rightarrow> int) x)
-
-Then,
-
-  \<forall>x ::nat. (f (nat (3::int))) = ((f::nat \<Rightarrow> int) x)
-
-Preprocessing Nr. 2: 
-  \<forall>x ::int. x \<ge> 0 \<and> (f (nat (3::int))) = ((f::nat \<Rightarrow> int) (nat x))
-
-
-
-
-3::int \<Rightarrow> 3::int
-(nat (3::int)) \<Rightarrow> (nat (3::int))
-
-f (nat (3::int)) \<Rightarrow> 
-Obtain f' where \<forall>lb0. (f'::int \<Rightarrow> int) lb0 = f (nat lb0) 
-
-x \<Longrightarrow> is a bound var \<Longrightarrow> we need to know its type
-
-
-
-
-  \<forall>x ::nat. ((f::nat => nat) a) = ((f::nat \<Rightarrow> nat) x)
-
-Table Bound vars
-
-   Bound 0    nat      x'::int      x' = int x, x = nat x', x' \<ge> 0        
-
-Table lifted mappings
-   f'         f         \<forall>lb0. (f'::int \<Rightarrow> int) lb0 = int (f (nat lb0)), \<forall>lb0. (f lb0) = (nat (f' (int lb0))) , \<forall>lb0. f' lb0 \<ge> 0
-   a'         a         a' = int (a), a = nat a', a' \<ge> 0
-
-Go top down, left to right:
-return (bounds table, mapping table, conversion)
-- Meet quantifier \<Rightarrow> Add entry to Bounds Table
-- Go into LHS of equality
-- Go into f => Add entry to Mappings Table \<Longrightarrow>  return conversions in the table associated to them
-- Go into a \<Rightarrow>  Add entry to Mappings Table \<Longrightarrow> return conversions in the table associated to them
-- Return to f a
-  Instantiate theorems
-  Apply conversion returned from f to conversion returned for a (TODO: Look this up)
-  ==> return resulting conversion (f a) = (nat (f' (int (nat a')))) 
-  (f a) = (nat (f' (int a))) (using second lemma f' in table) 
-        = (nat (f' a'))  (using first lemma for a')
-- Go into RHS of equality ((f::nat \<Rightarrow> nat) x)
-- Hit f \<Rightarrow> already in table
-- Hit x \<Rightarrow> find in bounds table \<Rightarrow> return conversion x = x
-- 
-
-
-
-
-
-
-((f::nat => nat) a) =
-
-
-
-  \<forall>x ::int. (a' \<ge> 0) \<Longrightarrow> (f' a' \<ge> 0) \<and> (f' x \<ge> 0) \<Longrightarrow>  (f' a') = ((f'::int \<Rightarrow> int) x)
-
-
-
-
-
-
-
-
-
-Recurse term bottom up, maintaining a list of conditions cond.
-The current term should always have the form nat t, where t only contains
-integers and no natural numbers after transformation.
-
-1. For a numerical constants c, if c's type is nat return (nat (c::int)).
-   This should have already happened though (as explained above)...
-   Otherwise, don't change.
-
-2. For variables x, if x's type is nat, obtain new variable lift_x = int x.
-   Return (nat lift_x). Add lift_x \<ge> 0 to cond. 
-   Otherwise, don't change.
-
-3a. If current term has form (nat t) return it unchanged.
-
-3b. For any occurence of int, if the child is a (nat t):
-    int (nat t) simplify to t
-
-4. For any other function f:
-   - If argument t_i has type nat, we know that it has to be of form (nat t_i').
-     Have f t_1 ... t_i ... t_n = f t_1 ... (nat t_i') ... t_n
-     Obtain new function lift_f:
-       \<forall>u1...un. lift_f u1 ... ui ... un = f u1 ... (nat ui) ... un
-     Return lift_f t_1 ... t_i' ... t_n'
-   - If return type is of type nat
-     Obtain new function lift_f:
-       \<forall>u1...un. lift_f u1 ... ui ... un = (int (f u1 ... ui ... un))
-     Return (nat (lift_f t_1' ... t_i' ... t_n')). Add (lift_f t_1' ... t_i' ... t_n') \<ge> 0 to cond.
-   - If both:
-     Obtain new function lift_f:
-       \<forall>u1...un. lift_f u1 ... ui ... un = (int (f u1 ... (nat ui) ... un))
-   -  Otherwise, don't change
-5. For quantifier:
-   Add all conditions
-  
-
-
-
-For each function f
-
-Obtain new function variable
- 1. \<And>lb0::nat. prime_nat lb0 = lift_prime_nat (int lb0)
-variables:
-    lift_prime_nat :: int \<Rightarrow> bool 
-
-
-
-
+Currently, the only global normalization that gets applied is the lifting from natural numbers into
+integers. The function assumes that the int cast has been pushed into the term as much as possible
+by previous normalization. It traverses the term bottom up and adds a new integer variable for any
+natural number variable along with a constraint that that variable needs to be greater than 0.
+Similarly, for any function whose signature contains nats it introduces a new symbol and conditions.
 
 *)
 
@@ -164,22 +29,16 @@ fun debug_msg_tac ctxt = alethe_debug_msg_tac ctxt "smt_global_normalize"
 type subst_tab = (cterm * (thm * thm option)) Termtab.table
 type custom_conv = cterm -> (cterm * (thm * thm option)) Termtab.table * Proof.context * thm list * thm
 
-(*TODO: Find existing function to do this*)
-fun intify_type_name name = (if name = "Nat.nat" then "Int.int" else name)
-fun intify_type (Type (str,Ts)) = (Type (intify_type_name str,map intify_type Ts)) |
-    intify_type (T as (TFree (_,_))) = T |
-    intify_type (T as (TVar (idN,_))) =  (@{print}("TODO when does this case occur?",idN);T)
+fun intify_type \<^typ>\<open>nat\<close> = \<^typ>\<open>int\<close>
+  | intify_type (Type (a, Ts)) = Type (a, map intify_type Ts)
+  | intify_type T = T
 
-val intT = @{typ int}
-val natT = @{typ nat}
 val isNat = (curry (op =)) @{typ nat}
-
 fun all_pure_const T = Const ("Pure.all", (T --> @{typ "prop"}) --> @{typ "prop"});
 val nat_cast = @{term "nat::int => nat"}
 val int_cast = @{term "int::nat => int"}
 val conj = @{term conj}
-
-fun mkLeTerm t = (@{term "Orderings.ord_class.less_eq::int \<Rightarrow> int \<Rightarrow> bool"} $ @{term "0::int"} $ t )
+fun mkLeTerm t = (@{term "Orderings.ord_class.less_eq::int \<Rightarrow> int \<Rightarrow> bool"} $ @{term "0::int"} $ t)
 
 fun split B = (SOME (@{thm conjunct1} OF [B]), @{thm conjunct2} OF [B])
   handle (THM _) => (NONE,B)
@@ -229,12 +88,12 @@ let
 
   (*TODO: Check if name is already used first! Not sure if it matters because Isabelle renames, try out*)
   val x'_name =  "lift_" ^ (Long_Name.base_name x_name)
-  val t = (Free (x_name,natT))
-  val t' = (Free (x'_name,intT))
+  val t = (Free (x_name,@{typ nat}))
+  val t' = (Free (x'_name,@{typ int}))
   val _ = debug_msg ctxt middle (fn () => \<^print> ("(variable, lifted variable)",(t,t')))
 
   (*Show that lifted variable exists*)
-  val x'_def = HOLogic.mk_exists (x'_name,intT,
+  val x'_def = HOLogic.mk_exists (x'_name,@{typ int},
                conj
              $ mkLeTerm t'
              $ (@{term "HOL.eq :: nat => nat \<Rightarrow> bool"} $ t $ (nat_cast $ t'))
@@ -258,8 +117,8 @@ let
   val _ = debug_msg ctxt1 high (fn () => \<^print> ("obtained a new lifted variable",x'_thm))
 
   val (x', x'_thm_def) = x'_thm |> apfst (snd o the_single) |> apsnd the_single
-     handle List.Empty => raise (SMT_GLOBAL_NORMALIZE "Could not obtain all lifted variables") 
-     handle Match => raise (SMT_GLOBAL_NORMALIZE "Could not obtain all lifted variables")
+     handle List.Empty => raise (SMT_GLOBAL_NORMALIZE "Could not obtain all lifted variables")
+          | Match      => raise (SMT_GLOBAL_NORMALIZE "Could not obtain all lifted variables")
 
   val _ = debug_msg ctxt1 high (fn () => \<^print> ("Obtained new variable ",x'," defined by ",x'_thm_def))
 
@@ -279,7 +138,7 @@ fun transform_variable ctxt subst (x as Free (x_name,@{typ nat})) =
     val subst1 = Termtab.update (x,(c_x',(x'_def,x'_ge_0))) subst
     val conds = x'_ge_0 |> the_list
   in custom_rewr_cond_conv ctxt1 subst1 x'_def conds end
- |(SOME (c_x',(x'_def,x'_ge_0))) => 
+ |(SOME (_,(x'_def,x'_ge_0))) => 
   let
     val _ = debug_msg ctxt middle (fn () => \<^print> ("current term is free variable t of type nat" 
       ^ " that has already been encountered: ",x))
@@ -319,9 +178,8 @@ local
   *)
   fun mk_f_xs'_h _ [] = []
     | mk_f_xs'_h (Ti::Ts) (xi::xs) =
-        (if isNat Ti then nat_cast $ xi else xi) :: mk_f_xs'_h Ts xs
-
-  fun mk_f_xs' f f_Ts xs = list_comb (f, mk_f_xs'_h f_Ts xs)
+        (if isNat Ti then nat_cast $ xi else xi) :: mk_f_xs'_h Ts xs |
+      mk_f_xs'_h _ _ = raise Fail ("should never happen")
 
   fun mk_hol_all xi'_name T' H = HOLogic.mk_all(xi'_name,intify_type T',H)
   fun mk_lambda xi'_name T' H = absfree (xi'_name, T') H
@@ -345,7 +203,6 @@ local
     val (xs_T,f_T) = fastype_of f |> strip_type (*original types*)
 
     val retNat = isNat f_T
-    val f'_T = fastype_of f' |> strip_type |> fst
 
     val f_xs' = list_comb(f, mk_f_xs'_h xs_T xs)
 
@@ -363,18 +220,8 @@ local
  
 
 
-  fun mk_f_xs'_total f t' ts_T f'_name f' = 
-  let
-     val forall_term = mk_forall (mk_f_def_ground f t') mk_hol_all ts_T
-
-
-    val lambda = absfree (f'_name, fastype_of f') forall_term
-  in lambda
- end
- 
-
 (*\<lambda>w::nat. (int (f w))  (other)*)
-  fun other f f' xs  = 
+  fun other f _ xs  = 
   let
     val (xs_T,f_T) = fastype_of f |> strip_type
 
@@ -395,7 +242,7 @@ let
   val retNat = isNat f_T
 
   val t'_T = intify_type t_T
-  val (ts'_T,f'_T) = t'_T |> strip_type
+  val (ts'_T,_) = t'_T |> strip_type
   val f' = (Free (f'_name,t'_T)) (*Note, even if original is const, the new variable needs to be free!*)
   val _ = debug_msg ctxt middle (fn () => \<^print> ("(variable, lifted variable)",(f,f')))
 
@@ -487,8 +334,8 @@ und nat_int solved das andere goal
    val _ = debug_msg ctxt1 high (fn () => \<^print> ("obtained a new lifted variable",x'_thm))
 
    val (x', x'_thm_def) = x'_thm |> apfst (snd o the_single) |> apsnd the_single
-     handle List.Empty => raise (SMT_GLOBAL_NORMALIZE "Could not obtain all lifted variables") 
-     handle Match => raise (SMT_GLOBAL_NORMALIZE "Could not obtain all lifted variables")
+     handle List.Empty => raise (SMT_GLOBAL_NORMALIZE "Could not obtain all lifted variables")
+          | Match      => raise (SMT_GLOBAL_NORMALIZE "Could not obtain all lifted variables")
 
    val _ = debug_msg ctxt1 high (fn () => \<^print> ("Obtained new variable ",x'," defined by ",x'_thm_def))
 
@@ -525,7 +372,7 @@ fun transform_function ctxt subst t f f_name ts f_T f'_T =
     val t1 = hd ts
   in 
    case t1 of
-     Const ("Int.nat", @{typ "int \<Rightarrow> nat"}) $ t2 =>
+     Const (\<^const_name>\<open>Int.nat\<close>, @{typ "int \<Rightarrow> nat"}) $ t2 =>
       (case t2 of
         Const ("Groups.zero_class.zero",@{typ "int"}) => custom_rewr_conv ctxt subst @{thm SMT.H1'(1)}
       | Const ("Groups.one_class.one",@{typ "int"}) => custom_rewr_conv ctxt subst @{thm SMT.H1'(2)}
@@ -534,7 +381,7 @@ fun transform_function ctxt subst t f f_name ts f_T f'_T =
         let
          val _ = debug_msg ctxt high (fn () => \<^print> (" (t1 |> strip_comb |> fst)", (t1 |> strip_comb |> fst)))
          fun search_for_value [] = NONE | (*TODO: Restructure table so that both old and new name form the key*)
-           search_for_value ((_,(a,(b,c)))::xs) = if (Thm.term_of a = (t2 |> strip_comb |> fst)) then c else search_for_value xs
+           search_for_value ((_,(a,(_,c)))::xs) = if (Thm.term_of a = (t2 |> strip_comb |> fst)) then c else search_for_value xs
          val t_thms = search_for_value (Termtab.dest subst)
          val _ = debug_msg ctxt high (fn () => \<^print> ("(Termtab.dest subst) ",(Termtab.dest subst) ))
          in
@@ -550,7 +397,7 @@ fun transform_function ctxt subst t f f_name ts f_T f'_T =
        )
     | _ => custom_all_conv ctxt subst
    end
-  else if f_name = "Int.nat" then
+  else if f_name = \<^const_name>\<open>Int.nat\<close> then
   let
     val _ = debug_msg ctxt high (fn () => \<^print> ("current term is a cast from int to nat if its child is a cast from nat to int, resolve it",t))
     val nat_int_thm' = Drule.infer_instantiate' ctxt [SOME (Thm.cterm_of ctxt t)] (atomize_eq_thm ctxt @{thm nat_int})
@@ -562,8 +409,8 @@ fun transform_function ctxt subst t f f_name ts f_T f'_T =
   in custom_all_conv ctxt subst end
   else
   let
-    val (ts_T,_) = f_T |> Term.strip_type
-    val  (ctxt1,subst1,c_f',(f'_def,t'_ge_0)) = 
+    val (_,_) = f_T |> Term.strip_type
+    val  (ctxt1,subst1,_,(f'_def,t'_ge_0)) = 
     (case Termtab.lookup subst f of
       NONE =>
       let
@@ -614,9 +461,8 @@ in
      val f'_name =  "lift_" ^ (Long_Name.base_name f_name)
      val f'_T = intify_type T
    in
-      transform_function ctxt subst t f f_name ts f_T f'_T 
+      transform_function ctxt subst t f f_name ts f_T f'_T
    end
-| _ => custom_all_conv ctxt subst
 ) ct
 end
 
@@ -673,10 +519,12 @@ in
     val _ = debug_msg ctxt high (fn () => \<^print> ("body",body))
     val _ = debug_msg ctxt high (fn () => \<^print> ("bound_var",bound_var))
 
-    val is_all = (quant_name = "HOL.All")
-    val is_ex = (quant_name = "HOL.Ex")
+    val is_all = (quant_name = \<^const_name>\<open>HOL.All\<close>)
+    val is_ex = (quant_name = \<^const_name>\<open>HOL.Ex\<close>)
     val quant = Thm.cterm_of ctxt (Const(quant_name,intify_type T))
-    val _ = if (is_all orelse is_ex) orelse not bound_is_nat then () else raise (SMT_GLOBAL_NORMALIZE "Unsupported Quantifier")
+    val _ = if bound_is_nat andalso not (is_all orelse is_ex)
+            then raise (SMT_GLOBAL_NORMALIZE "Unsupported Quantifier")
+            else ()
 
     (* "(\<forall>(x::nat) . P x) \<equiv> (\<forall>(x::int). x \<ge> 0 \<longrightarrow> P (nat x))"*)
     val qnt_transform_thm =
@@ -879,8 +727,6 @@ _ =>
 )
  end
 
-
-fun all_conv2 tab ctxt ct = (tab,ctxt,[],Thm.reflexive ct);
 
 type test2 = ((int * SMT_Util.role) * thm) list
 type test = Proof.context * thm list * (Termtab.key * cterm) list * (cterm * (thm * thm option)) Termtab.table
