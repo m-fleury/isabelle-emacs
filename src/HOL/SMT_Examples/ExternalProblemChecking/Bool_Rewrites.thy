@@ -10,7 +10,7 @@ theory Bool_Rewrites
   imports HOL.SMT_CVC HOL.Real (*TODO: Why do I need to import Reals to have strings parse correctly?!*)
 begin
 
-declare[[rare_rec_mode=7]]
+declare[[rare_rec_mode=1]]
 
 declare[[smt_trace=false,smt_verbose=false]]
 
@@ -165,6 +165,9 @@ check_smt ("cvc5_proof")
   "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/Bool_Rewrites/bool-xor-true.alethe"
 
 (*(define-rule bool-xor-comm ((x Bool) (y Bool)) (xor x y) (xor y x))*)
+check_smt ("cvc5_proof")
+  "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/Bool_Rewrites/bool-xor-comm.smt2"
+  "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/Bool_Rewrites/bool-xor-comm.alethe"
 
 (*(define-rule bool-xor-elim ((x Bool) (y Bool)) (xor x y) (= (not x) y))*)
 check_smt ("cvc5_proof")

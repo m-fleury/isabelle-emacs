@@ -1,0 +1,12 @@
+unsat
+(assume nt28.0 (not (not (forall ((q49 Bool) (q55 Bool)) (= (= q49 q55) (= v7 (= (not v7) (not (forall ((BOUND_VARIABLE_8548 Bool)) (= BOUND_VARIABLE_8548 (= (not v7) BOUND_VARIABLE_8548)))))))))))
+(assume nt28.1 (not (= (= true false) (= v7 (= (not v7) (not (forall ((BOUND_VARIABLE_8548 Bool)) (= BOUND_VARIABLE_8548 (= (not v7) BOUND_VARIABLE_8548)))))))))
+(anchor :step t28)
+(assume t28.a0 (forall ((q49 Bool) (q55 Bool)) (= (= q49 q55) (= v7 (= (not v7) (not (forall ((BOUND_VARIABLE_8548 Bool)) (= BOUND_VARIABLE_8548 (= (not v7) BOUND_VARIABLE_8548)))))))))
+(anchor :step t28.t4 :args ((q49 Bool) (q55 Bool) (:= (q49 Bool) q49) (:= (q55 Bool) q55)))
+(step st28.t4.t0 (cl (= (xor (xor (xor v7 (not (forall ((q49 Bool)) (= q49 (= q49 (not v7)))))) v7) (= q49 q55)) (xor  (= q49 q55) (xor (xor v7 (not (forall ((q49 Bool)) (= q49 (= q49 (not v7)))))) v7)))) :rule rare_rewrite :args ("bool-xor-comm"  (xor (xor v7 (not (forall ((q49 Bool)) (= q49 (= q49 (not v7)))))) v7)  (= q49 q55)))
+(step t28.t4.t8 (cl (= (xor (xor (xor v7 (not (forall ((q49 Bool)) (= q49 (= q49 (not v7)))))) v7) (= q49 q55)) (= (= (= (not v7) (not (forall ((q49 Bool)) (= q49 (= q49 (not v7)))))) v7) (= q49 q55)))) :rule trust)
+(step t28.t4 (cl (= (forall ((q49 Bool) (q55 Bool)) (xor (xor (xor v7 (not (forall ((q49 Bool)) (= q49 (= q49 (not v7)))))) v7) (= q49 q55))) (forall ((q49 Bool) (q55 Bool)) (= (= (= (not v7) (not (forall ((q49 Bool)) (= q49 (= q49 (not v7)))))) v7) (= q49 q55))))) :rule bind)
+(step t28.t13 (cl (= (= true false) (= v7 (= (not v7) (not (forall ((BOUND_VARIABLE_8548 Bool)) (= BOUND_VARIABLE_8548 (= (not v7) BOUND_VARIABLE_8548)))))))) :rule trust)
+(step t28 (cl (not (forall ((q49 Bool) (q55 Bool)) (= (= q49 q55) (= v7 (= (not v7) (not (forall ((BOUND_VARIABLE_8548 Bool)) (= BOUND_VARIABLE_8548 (= (not v7) BOUND_VARIABLE_8548))))))))) (= (= true false) (= v7 (= (not v7) (not (forall ((BOUND_VARIABLE_8548 Bool)) (= BOUND_VARIABLE_8548 (= (not v7) BOUND_VARIABLE_8548)))))))) :rule subproof :discharge (t28.a0))
+(step t.end (cl) :rule resolution :premises (nt28.0 nt28.1 t28))
