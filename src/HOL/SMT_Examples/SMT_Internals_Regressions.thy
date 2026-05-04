@@ -2796,7 +2796,7 @@ lemma nary_elim_2:
 
 (* Rule 96: bfun_elim *)
 (*TODO Pascal: Try and improve tactic to solve these *)
-
+(* Note: This rule is veriT only *)
 lemma bfun_elim_1:
   assumes   "\<forall>v0 v1 v2.
             fun_app_b (fun_app_c (fun_app_d (follow delta) v0) v1) v2 =
@@ -2825,27 +2825,6 @@ lemma bfun_elim_1:
                 v5 = fun_app_m fst_a (shd_a v6) \<and>
                 member (fun_app_w (fun_app_p pair_b v7) (fun_app_ad (fun_app_r pair_c True) v3)) (fun_app_dy (fun_app_dz (fun_app_ea delta v9) v10) v5) \<and>
                 fun_app_b (fun_app_c (fun_app_d (follow delta) v11) v4) v6)"
-  sorry
-  (*using assms by (ctxt_tactic "bfun_elim")*)
-
-lemma bfun_elim_2:
-  assumes \<open>True\<close>
-  shows \<open>True\<close>
-  using assms by (ctxt_tactic "bfun_elim")
-
-lemma bfun_elim_3:
-  assumes \<open>True\<close>
-  shows \<open>True\<close>
-  using assms by (ctxt_tactic "bfun_elim")
-
-lemma bfun_elim_4:
-  assumes \<open>True\<close>
-  shows \<open>True\<close>
-  using assms by (ctxt_tactic "bfun_elim")
-
-lemma bfun_elim_5:
-  assumes \<open>True\<close>
-  shows \<open>True\<close>
   using assms by (ctxt_tactic "bfun_elim")
 
 (* Rule 97: ite_intro *)

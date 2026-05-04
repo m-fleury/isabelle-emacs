@@ -28,11 +28,10 @@ check_smt "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/not_or/177
 check_smt "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/not_or/1776309187381950718.smt2" "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/not_or/1776309187381950718.alethe" 
 
 (* bfun_elim *)
-declare [[smt_trace]]
-check_smt "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/bfun_elim_verit/prob_00190_007175__15921318.smt2" "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/bfun_elim_verit/prob_00190_007175__15921318.alethe" 
-check_smt "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/bfun_elim_verit/prob_00262_010473__20210062.smt2" "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/bfun_elim_verit/prob_00262_010473__20210062.alethe" 
-check_smt "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/bfun_elim_verit/prob_00262_010473__20324706.smt2" "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/bfun_elim_verit/prob_00262_010473__20324706.alethe" 
-check_smt "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/bfun_elim_verit/prob_00284_011539__22022436.smt2" "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/bfun_elim_verit/prob_00284_011539__22022436.alethe" 
-check_smt "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/bfun_elim_verit/prob_00284_011539__22121740.smt2" "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/bfun_elim_verit/prob_00284_011539__22121740.alethe" 
+check_smt ("verit") "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/bfun_elim_verit/prob_00190_007175__15921318.smt2" "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/bfun_elim_verit/prob_00190_007175__15921318.alethe" 
+check_smt ("verit") "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/bfun_elim_verit/prob_00262_010473__20210062.smt2" "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/bfun_elim_verit/prob_00262_010473__20210062.alethe" 
+check_smt ("verit") "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/bfun_elim_verit/prob_00262_010473__20324706.smt2" "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/bfun_elim_verit/prob_00262_010473__20324706.alethe" 
+check_smt ("verit") "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/bfun_elim_verit/prob_00284_011539__22022436.smt2" "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/bfun_elim_verit/prob_00284_011539__22022436.alethe" 
+check_smt ("verit") "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/bfun_elim_verit/prob_00284_011539__22121740.smt2" "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/bfun_elim_verit/prob_00284_011539__22121740.alethe" 
 
 end
