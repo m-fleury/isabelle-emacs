@@ -127,6 +127,28 @@ lemma bv_repeat_elim:
        (smtlib_extract (15::int) (15::int) (1705::16 word)::1 word) :: 2 word)"
   by (ctxt_tactic "bv_repeat_elim")
 
-thm bv_reconstruction_length
-         
+lemma cong:
+  assumes
+    "smtlib_extract (15::int) (15::int) (1705::16 word) = 0"
+    "smtlib_extract (15::int) (15::int) (1705::16 word) = 0"
+    "smtlib_extract (15::int) (15::int) (1705::16 word) = 0"
+  shows
+  "word_cat (smtlib_extract (15::int) (15::int) (1705::16 word))
+    (word_cat (smtlib_extract (15::int) (15::int) (1705::16 word)) (smtlib_extract (15::int) (15::int) (1705::16 word))) =
+  word_cat 0 (word_cat 0 0)"   
+  by (ctxt_tactic "cong")
+
+declare[[smt_expert_debug_alethe_level=3]]
+declare[[smt_expert_debug_alethe_files="alethe_replay_bv_methods"]]
+
+lemma bv_bitblast_step_var1:
+"(vptr::32 word) =
+         of_bl
+          (rev [bit vptr 0, bit vptr 1, bit vptr (2::nat), bit vptr (3::nat), bit vptr (4::nat), bit vptr (5::nat), bit vptr (6::nat),
+                bit vptr (7::nat), bit vptr (8::nat), bit vptr (9::nat), bit vptr (10::nat), bit vptr (11::nat), bit vptr (12::nat),
+                bit vptr (13::nat), bit vptr (14::nat), bit vptr (15::nat), bit vptr (16::nat), bit vptr (17::nat), bit vptr (18::nat),
+                bit vptr (19::nat), bit vptr (20::nat), bit vptr (21::nat), bit vptr (22::nat), bit vptr (23::nat), bit vptr (24::nat),
+                bit vptr (25::nat), bit vptr (26::nat), bit vptr (27::nat), bit vptr (28::nat), bit vptr (29::nat), bit vptr (30::nat),
+                bit vptr (31::nat)]) "
+  by (ctxt_tactic "bv_bitblast_step_var")
 end

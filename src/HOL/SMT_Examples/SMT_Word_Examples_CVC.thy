@@ -140,31 +140,6 @@ From AFP Word_Lib Examples.thy
 
 These are now part of our monthly metrics that is why I numbered them
 
-Total: 336
-Date counted: 01/07/26
-
-
-Section           Total      Success
-------------------------------------------------
-basic words         141       77
-modulus             3         2
-signed              1         0
-number ring simps   9         4
-ring operations     1         0
-casting             11        0
-reduction to arith  1         0
-bit operations      55        28
-signed division     2         0
-comparision         1         1
-bool lists          3         0
-bitwise expansion   5         0
-symbol shifts       2         0
-combined integer-bv 2         0
-misc                1         0
-nat                 30        0
-int                 69        0
-------------------------------------------------
-total               337       105
 \<close>
 
 section \<open>basic word 32 word\<close>
@@ -173,10 +148,10 @@ text \<open>
 I instantiated any lemmas using symbolic bit-widths with 32.
 
 Benchmark Nrs: 100-240
-Date counted: 01/07/26
+Date counted: 05/03/26
 
 Total:    141
-Success:  77
+Success:  88
 
 \<close>
 
@@ -208,7 +183,7 @@ lemma bvex_123: \<open>- (42 :: 8 word) <s - 1705\<close> by (smt (cvc5))
 lemma bvex_124: \<open>(1 :: 8 word) <s 42\<close> by (smt (cvc5))
 
 (*bvex_125 - 130, 3 work, 3 need facts*)
-lemma bvex_125: \<open>bit (1705 :: 16 word) (Suc (Suc (Suc 0)))\<close> sorry
+lemma bvex_125: \<open>bit (1705 :: 16 word) (Suc (Suc (Suc 0)))\<close> apply (smt(cvc5))
 lemma bvex_126: \<open>bit (1705 :: 16 word) 3\<close> by (smt (cvc5))
 lemma bvex_127: \<open>\<not> bit (- 1705 :: 16 word) (Suc (Suc (Suc 0)))\<close> sorry
 lemma bvex_128: \<open>\<not> bit (- 1705 :: 16 word) 3\<close> by (smt (cvc5))
@@ -416,7 +391,7 @@ Total:    1
 Success:  0
 \<close>
 
-lemma bvex_254: "a + 2 * b + c - b = (b + c) + (a :: 32 word)" (*by (smt (cvc5))*) sorry (*times out in equiv_pos2 step*)
+lemma bvex_254a: "a + 2 * b + c - b = (b + c) + (a :: 32 word)" (*by (smt (cvc5))*) sorry (*times out in equiv_pos2 step*)
 
 section "casting"
 
@@ -494,9 +469,11 @@ lemma bvex_284: "\<not> bit (1 :: 3 word) 2" by (smt (cvc5))
 lemma bvex_285: "bit (0b11000 :: 10 word) n = (n = 4 \<or> n = 3)" by (smt (cvc5))
  (* by (auto simp add: bit_numeral_rec bit_1_iff split: nat.splits)*)
 
-lemma bvex_286: "set_bit 55 7 True = (183::32 word)" by (smt (cvc5))
-lemma bvex_287: "set_bit 0b0010 7 True = (0b10000010::32 word)" by (smt (cvc5))
-lemma bvex_288: "set_bit 0b0010 1 False = (0::32 word)" by (smt (cvc5))
+
+(*These originally use a set_bit from the AFP Word_Lib. I replaced them by lemmas using the set_bit included in the Isabelle repo*)
+lemma bvex_286: "set_bit 55 7 = (7::32 word)" by (smt (cvc5))
+lemma bvex_287: "set_bit 0b0010 7 = (0b00000111::32 word)" by (smt (cvc5))
+lemma bvex_288: "set_bit 0b0010 1 = (5::32 word)" by (smt (cvc5))
 lemma bvex_289: "set_bit 1 3 True = (0b1001::32 word)" by (smt (cvc5))
 lemma bvex_290: "set_bit 1 0 False = (0::32 word)" by (smt (cvc5))
 lemma bvex_291: "set_bit 0 3 True = (0b1000::32 word)" by (smt (cvc5))

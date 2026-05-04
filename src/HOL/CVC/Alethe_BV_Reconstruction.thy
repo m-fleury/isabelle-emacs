@@ -60,8 +60,6 @@ lemma [bv_reconstruction_list_funs]:
 "map2 f (x#xs) (y#ys) = (f x y) # map2 f xs ys"
   by auto
 
-(*lemmas [bv_reconstruction_length] = len_num0 len_num1 len_bit0 len_bit1*)
-
 
 (* ---------------------------------------------------------------------------------------------- *)
 (* -------------------------------------- Bitblast variable ------------------------------------- *)
@@ -71,6 +69,8 @@ lemma of_bl_rev_map_bits[word_var_rbl_list]:
   shows "(a :: 'a :: len word) = of_bl (rev (map (bit a) [0..<LENGTH('a)]))"
   using to_bl_unfold
   by (metis word_bl.Rep_inverse')
+
+lemmas[bv_reconstruction_lists] = upt_Suc upt_0 upt_zero_numeral_unfold pred_numeral_simps BitM.simps
 
 
 (* ---------------------------------------------------------------------------------------------- *)

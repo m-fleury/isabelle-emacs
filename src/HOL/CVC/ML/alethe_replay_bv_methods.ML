@@ -64,11 +64,29 @@ REPEAT_CHANGED (
 )
 end
 
+
+fun resolve_bitblast ctxt =
+REPEAT_CHANGED (
+       TRY' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems bv_reconstruction_const_test}))
+       THEN' (TRY' (simplify_tac ctxt ((Named_Theorems.get ctxt @{named_theorems smt_word_len_evaluate}))))
+       THEN' (TRY' (simplify_tac ctxt ((Named_Theorems.get ctxt @{named_theorems bv_reconstruction_lists}))))
+       THEN' (TRY' (simplify_tac ctxt ((Named_Theorems.get ctxt @{named_theorems bv_reconstruction_list_funs}))))
+       THEN' (TRY' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems smt_arith_simplify})))
+       THEN' (TRY' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems arith_simp_cvc5})))
+       THEN' (TRY' (simplify_tac ctxt (@{thms monoid_mult_class.power_Suc0_right power_0})))
+       THEN'     (debug_msg_tac' ctxt high ("bv bitblast reconstruction debug inside"))
+)
+
+
 (* Bitblasting *)
 (* Note: These reconstructions will become much shorter. For debugging reasons and as this is ongoing
    work they are not yet optimized.*)
 
 (* Bitblasting a variable *)
+(* The expected form of a step is:
+ (x::8 word) = of_bl (rev [lsb vptr, bit vptr 1, bit vptr (2::nat), bit vptr (3::nat), bit vptr (4::nat),
+                           bit vptr (5::nat), bit vptr (6::nat), bit vptr (7::nat)])
+*)
 local
   fun prove_bitblast_step_var ctxt _ [] t =
   let         
@@ -84,11 +102,13 @@ local
         Drule.infer_instantiate' ctxt (map (SOME o Thm.cterm_of ctxt) [bit_blasted_var]) word_var_rbl_list_lemma
 
   in  SMT_Replay_Methods.prove ctxt t (fn _ =>(
-      (debug_msg_tac' ctxt high ("bv bitblast reconstruction debug 1"))
-      THEN' K (HEADGOAL (EqSubst.eqsubst_tac ctxt [1] [word_var_rbl_list_lemma_inst]))
-      
-      ))
+       (EqSubst.eqsubst_tac ctxt [1] [word_var_rbl_list_lemma_inst]
+       THEN' (resolve_tac ctxt @{thms Reversed_Bit_Lists.abl_cong})
+       THEN' (resolve_tac ctxt @{thms arg_cong[of _ _ rev]})
+       THEN' (resolve_bitblast ctxt)
+      )))
   end
+  | prove_bitblast_step_var _ _ _ _ = error "" 
 in
   val bv_bitblast_step_var = prove_bitblast_step_var
 end

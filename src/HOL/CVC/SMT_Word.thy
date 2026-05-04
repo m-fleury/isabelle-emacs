@@ -223,12 +223,6 @@ lemma word_repeat_word_cat2:
   by (metis diff_Suc_1 word_size zero_less_diff)
 
 
-lemma word_repeat_word_cat3:
-  fixes n :: "'a :: len word"
-  assumes \<open>LENGTH('b::len) = (numeral i) * LENGTH('a)\<close> \<open>numeral i > 1\<close>
-    \<open>LENGTH('c::len) = (numeral i-1) * LENGTH('a)\<close>
-  shows \<open>(word_repeat (numeral i) n :: 'b word) = word_cat (n :: 'a word) (word_repeat (numeral i-1) n :: 'c word)\<close>
-  sorry
 
 
 definition smt_repeat :: "nat \<Rightarrow> 'a::len word \<Rightarrow> 'b::len word" where
