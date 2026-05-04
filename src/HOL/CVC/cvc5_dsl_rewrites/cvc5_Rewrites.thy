@@ -29,7 +29,7 @@ lemma [rewrite_or_not_refl]:
     done
   done
 
-named_theorems rewrite_bool_not_eq_false \<open>added in postprocessing\<close>
+named_theorems rewrite_distinct_binary_elim \<open>added in postprocessing\<close>
 (*(define-rule bool-not-eq-false ((t Bool)) (not (= t t)) false)*)
 
 lemma [rewrite_distinct_binary_elim]:
