@@ -1,12 +1,12 @@
-(*  Title:      HOL/Tools/SMT/verit_strategies.ML
+(*  Title:      HOL/Tools/SMT/alethe/alethe_strategies.ML
     Author:     Mathias Fleury, ENS Rennes, MPI, JKU, Freiburg University
+    Author:     Hanna Lachnitt, Stanford University
 
-VeriT proofs: parsing and abstract syntax tree.
+Alethe strategies: option portfolio to call solvers with
 
-TODO Hanna: Rename
 *)
 
-signature VERIT_STRATEGIES =
+signature ALETHE_STRATEGIES =
 sig
   (*Strategy related*)
   val smt_solver_strategy : string Config.T
@@ -30,10 +30,8 @@ sig
   val cvc5_tac_stgy: string -> Proof.context -> thm list -> int -> tactic
 end;
 
-structure Verit_Strategies: VERIT_STRATEGIES =
+structure Alethe_Strategies: ALETHE_STRATEGIES =
 struct
-
-open SMTLIB_Proof
 
 val verit_strategy_default_name = "default"; (*FUDGE*)
 val verit_strategy_del_insts_name = "del_insts"; (*FUDGE*)

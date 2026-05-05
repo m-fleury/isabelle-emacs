@@ -33,7 +33,6 @@ open SMT_Config
 fun debug_msg ctxt = alethe_debug_msg ctxt "smt_normalize"
 fun print_conv prefix ctxt msg x =
 let
-  (*TODO Hanna: This is always printed and should not be*)
   val _ = debug_msg ctxt high (fn () => \<^print> (prefix ^ " " ^ msg,x))
 in Conv.all_conv x end
 
@@ -510,7 +509,6 @@ local
   val unfold_nat_let_conv = Conv.rewr_conv @{lemma "Let (n::nat) f \<equiv> f n" by (rule Let_def)}
   val drop_nat_int_conv = Conv.rewr_conv (Thm.symmetric nat_int_thm)
   val int_nat_thm = (mk_meta_eq @{thm SMT.H1(1)})
-  val trace = true
 
   val print_nat_to_int_conv = print_conv "nat_to_int_conv"
   val print_nat_conv = print_conv "nat_conv"
@@ -547,15 +545,7 @@ local
         let val (cv, cu) = Thm.dest_abs_global ct
         in add_apps f (Thm.term_of cv :: vs) cu end
     | _ => I)
-
-  val int_thm = @{lemma "(0::int) <= int (n::nat)" by simp}
-  val nat_int_thms = [@{lemma
-    "\<forall>n::nat. (0::int) <= int n"
-      by simp_all}]
-(*"\<forall>n::nat. nat (int n) = n"
-    "\<forall>i::int. int (nat i) = (if 0 <= i then i else 0)"*)
-  val var = Term.dest_Var (Thm.term_of (funpow 3 Thm.dest_arg (Thm.cprop_of int_thm))) 
-in
+ in
 
 fun nat_as_int_conv ctxt = SMT_Util.if_exists_conv is_nat_const (nat_to_int_conv ctxt)
 
