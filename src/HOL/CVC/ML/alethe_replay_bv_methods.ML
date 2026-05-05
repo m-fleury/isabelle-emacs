@@ -398,6 +398,7 @@ local
 
     val rbl_extract_lemma_inst =
         Drule.infer_instantiate' ctxt (map (SOME o Thm.cterm_of ctxt) [snd indices, fst indices, find_bbT_var]) rbl_extract_lemma
+       val _ = debug_msg ctxt high (fn () => \<^print> ("rbl_extract_lemma_inst ",rbl_extract_lemma_inst))
 
   in  SMT_Replay_Methods.prove ctxt t (fn _ =>(
 
@@ -406,7 +407,8 @@ local
 
        K (HEADGOAL (EqSubst.eqsubst_tac ctxt [1] [rbl_extract_lemma_inst]))
       THEN' (debug_msg_tac' ctxt high ("bv bitblast extract reconstruction debug 2"))
-        THEN' TRY' (Code_Simp.dynamic_tac ctxt)
+        THEN' (resolve_bitblast ctxt)
+      THEN' (debug_msg_tac' ctxt high ("bv bitblast extract reconstruction debug enf"))
 
       (*First goal is of the form nat (c1::int) \<le> nat (c2::int)*)
       THEN' (TRY' (simplify_tac ctxt 

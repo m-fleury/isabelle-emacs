@@ -151,4 +151,19 @@ lemma bv_bitblast_step_var1:
                 bit vptr (25::nat), bit vptr (26::nat), bit vptr (27::nat), bit vptr (28::nat), bit vptr (29::nat), bit vptr (30::nat),
                 bit vptr (31::nat)]) "
   by (ctxt_tactic "bv_bitblast_step_var")
+declare[[ML_print_depth=1000]]
+lemma bv_bitblast_step_extract1:
+"smtlib_extract (31::int) (24::int)
+          (of_bl
+            (rev [bit (vptr::32 word) 0, bit vptr 1, bit vptr (2::nat), bit vptr (3::nat), bit vptr (4::nat), bit vptr (5::nat), bit vptr (6::nat),
+                  bit vptr (7::nat), bit vptr (8::nat), bit vptr (9::nat), bit vptr (10::nat), bit vptr (11::nat), bit vptr (12::nat),
+                  bit vptr (13::nat), bit vptr (14::nat), bit vptr (15::nat), bit vptr (16::nat), bit vptr (17::nat), bit vptr (18::nat),
+                  bit vptr (19::nat), bit vptr (20::nat), bit vptr (21::nat), bit vptr (22::nat), bit vptr (23::nat), bit vptr (24::nat),
+                  bit vptr (25::nat), bit vptr (26::nat), bit vptr (27::nat), bit vptr (28::nat), bit vptr (29::nat), bit vptr (30::nat),
+                  bit vptr (31::nat)])::32 word) =
+         (of_bl
+          (rev [bit vptr (24::nat), bit vptr (25::nat), bit vptr (26::nat), bit vptr (27::nat), bit vptr (28::nat), bit vptr (29::nat),
+                bit vptr (30::nat), bit vptr (31::nat)])::8 word)"
+  by (ctxt_tactic "bv_bitblast_step_extract")
+
 end

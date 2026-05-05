@@ -930,60 +930,98 @@ definition rbl_extract :: "nat \<Rightarrow> nat \<Rightarrow> bool list \<Right
  [rbl_extract_fun]: "rbl_extract j i xs
    = rev (drop i (takefill False (length xs) (take (Suc j) (rev xs))))"
 
-lemma slice_take_bit_rbl:
-"LENGTH('a) = length xs \<Longrightarrow> Suc i < LENGTH('b) \<Longrightarrow> j \<le> i
-\<Longrightarrow> (slice j (take_bit (Suc i) (of_bl xs::'a::len word)) ::'b::len word)
-= of_bl (take (length xs - j) (rev (takefill False LENGTH('a::len) (rev (drop (length xs - Suc i) xs)))))"
-  using of_bl_drop_eq_take_bit slice_take word_rev_tf
-  by (metis (no_types, opaque_lifting) diff_diff_cancel length_rev nat_le_linear rev_rev_ident rev_take take_all
-      take_bit_word_beyond_length_eq)
+lemma rev_takefill:
+  "rev (takefill c l xs) = replicate (l - length xs) c @ drop (length xs - l) (rev xs)"
+  unfolding takefill_alt rev_append rev_take rev_replicate by simp
 
-(* "  smt_extract (nat (7::int)) (nat 1)
-          (of_bl
-            (rev [lsb (x::8 word), x !! 1, x !! (2::nat), x !! (3::nat), x !! (4::nat), x !! (5::nat), x !! (6::nat), x !! (7::nat)])) =
-         of_bl (rev [x !! 1, x !! (2::nat), x !! (3::nat), x !! (4::nat), x !! (5::nat), x !! (6::nat), x !! (7::nat)]) 
-"
-
-*)
-value "rbl_extract 3 1 [True,False,False]" (*[True, False]*)
-value "rbl_extract 1 1 [True,False,False]" (*[False, False]*)
-value "rbl_extract 1 2 [True,False,False]" (*[False]*)
-value "smt_extract 3 1 (4::3 word)::2 word" (*[True, False]*)
-value "smt_extract 1 1 (4::3 word)::2 word" (*[False, False]*)
-value "smt_extract 1 2 (4::3 word)::1 word" (*[False]*)
-lemma temp:  "(\<forall>n::nat. bit x n = bit y n) \<Longrightarrow> ((x::'a::len word) = (y::'a word))"sorry
-
-lemma smt_extract_rbl_extract[rbl_extract]:
-"- i + j + 1 = LENGTH('b) \<Longrightarrow> length xs = LENGTH('a) \<Longrightarrow>  LENGTH('b) < LENGTH('a) \<Longrightarrow>i \<le> j \<Longrightarrow> Suc j \<le> LENGTH('a) \<Longrightarrow> i \<ge>0 \<Longrightarrow> j \<ge> 0 \<Longrightarrow>
- Word.smt_extract j i (of_bl xs::'a::len word)
-= (of_bl (rbl_extract j i xs) :: 'b::len word)"
-  unfolding Word.smt_extract_def
+lemma of_bl_rbl_extract:
+"Suc j \<le> length xs \<Longrightarrow> i \<le> j \<Longrightarrow> of_bl (rbl_extract j i xs) = of_bl (take (Suc j - i) (drop (length xs - Suc j) xs))  "
   unfolding rbl_extract_def
-  apply (simp add: rev_drop)
-  apply (simp add: slice_take)
-  apply (rule  temp)
-  apply (simp add: bit_of_bl_iff)
-  apply (simp add: rev_take)
-  apply (rule allI)
-  subgoal for k
-    apply (cases "i + k < LENGTH('a)")
-    apply simp_all
-  apply (subst nth_takefill)
-     apply simp_all
-    apply (cases "i + k < Suc j ")
-     apply simp_all
-    apply (cases " k < LENGTH('a) - i")
-     apply simp_all
-    by (metis add.commute bit_of_bl_iff bit_take_bit_iff less_diff_conv nth_rev_to_bl)
-  done
+  by (simp add: rev_drop rev_takefill rev_take of_bl_rep_False)
+
+(*"smtlib_extract (31::int) (24::int)
+          (of_bl
+            (rev [bit (vptr::32 word) 0, bit vptr 1, bit vptr (2::nat), bit vptr (3::nat), bit vptr (4::nat), bit vptr (5::nat), bit vptr (6::nat),
+                  bit vptr (7::nat), bit vptr (8::nat), bit vptr (9::nat), bit vptr (10::nat), bit vptr (11::nat), bit vptr (12::nat),
+                  bit vptr (13::nat), bit vptr (14::nat), bit vptr (15::nat), bit vptr (16::nat), bit vptr (17::nat), bit vptr (18::nat),
+                  bit vptr (19::nat), bit vptr (20::nat), bit vptr (21::nat), bit vptr (22::nat), bit vptr (23::nat), bit vptr (24::nat),
+                  bit vptr (25::nat), bit vptr (26::nat), bit vptr (27::nat), bit vptr (28::nat), bit vptr (29::nat), bit vptr (30::nat),
+                  bit vptr (31::nat)])) =
+         of_bl
+          (rev [bit vptr (24::nat), bit vptr (25::nat), bit vptr (26::nat), bit vptr (27::nat), bit vptr (28::nat), bit vptr (29::nat),
+                bit vptr (30::nat), bit vptr (31::nat)])"*)
+
+lemma smt_extract_of_bl:
+  fixes i::int 
+  shows "- i + j + 1 = int LENGTH('b) \<Longrightarrow>
+    length xs = LENGTH('a) \<Longrightarrow>
+    LENGTH('b) < LENGTH('a) \<Longrightarrow>
+    i \<le> j \<Longrightarrow>
+    j + 1 \<le> int LENGTH('a) \<Longrightarrow>
+    0 \<le> i \<Longrightarrow> 0 \<le> j \<Longrightarrow> (smtlib_extract j i (of_bl xs::'a::len word)::'b::len word) = of_bl (take (Suc (nat j) - nat i) (drop (length xs - Suc (nat j)) xs))"
+proof-
+  assume a0: "- i + j + 1 = int LENGTH('b)"
+    "length xs = LENGTH('a)"
+    "LENGTH('b) < LENGTH('a)"
+    "i \<le> j"
+    "j + 1 \<le> int LENGTH('a)"
+    "0 \<le> i" "0 \<le> j"
+  obtain k where k_def: "k = LENGTH('a) - LENGTH('b) - i" by blast
+  have t0: "LENGTH('a::len) - nat (i::int) \<le> LENGTH('a::len)" by simp
+  have t1: "length (xs::bool list) - nat (k::int) = nat ((j::int) + 1)"
+    using a0(1,2,3,5) k_def by fastforce
+  have t2: " (min (LENGTH('a::len) - nat i) (nat k)) = nat k"
+    using a0(6) k_def by auto
+  have t3: "(LENGTH('a) - nat i - nat (int (LENGTH('a) - LENGTH('b)) - i)) = LENGTH('b)"
+    using a0(1,5,6) by force
+  have "(to_bl (of_bl (drop (nat k) (rev xs))::'a::len word)) = rev (takefill False LENGTH('a) (rev (drop (nat k) (rev xs))))"
+    by (simp add: word_rev_tf)
  
 
 
-(* smt_extract 7 1
-          (of_bl
-            (rev [lsb x, x1,x2,x3,x4,x5,x6,x7])) =
-         of_bl (rev [x1,x2,x3,x4,x5,x6,x7]) 
-*)
+  have "(smtlib_extract j i (of_bl xs::'a::len word)::'b::len word) = of_bl (take (LENGTH('a) - nat i) (to_bl (take_bit (nat (j + 1)) (of_bl xs ::'a::len word))))"
+    by (simp add: slice_take smtlib_extract_def)
+  moreover have "(length (xs::bool list) - nat (k::int)) = (nat (j + 1))" using a0 unfolding k_def a0(2) by simp
+  ultimately have "(smtlib_extract j i (of_bl xs::'a::len word)::'b::len word) = of_bl (take (LENGTH('a) - nat i) (to_bl (of_bl (drop (nat k) xs)::'a::len word)))"
+    using of_bl_drop_eq_take_bit[symmetric, of "xs" "nat k",where 'a='a] by simp
+  also have "... = of_bl (take (LENGTH('a) - nat i) (rev (takefill False LENGTH('a) (rev (drop (nat k) xs)))))"
+    unfolding word_rev_tf by simp
+  also have "... =  of_bl
+     (take (LENGTH('a) - nat i)
+       (replicate (LENGTH('a) - length (rev (drop (nat k) xs))) False @
+        drop (length (rev (drop (nat k) xs)) - LENGTH('a)) (drop (nat k) xs)))"
+    unfolding rev_takefill by simp
+  also have "... =  of_bl
+     (take (LENGTH('a) - nat i)
+       (replicate (LENGTH('a) - length (rev (drop (nat k) xs))) False @ (drop (nat k) xs)))"
+    by (simp add: a0(2) drop_0)
+  also have "... =  of_bl (take (LENGTH('a) - nat i) (replicate (nat k) False @ (drop (nat k) xs)))"
+    by (metis t1 a0(2,7) add.commute diff_diff_cancel diff_is_0_eq' int_eq_iff
+        length_drop length_rev nat.simps(3) nat_le_linear of_nat_Suc)
+  also have "... =  of_bl ((take (LENGTH('a) - nat i) (replicate (nat k) False) @ (take (LENGTH('a) - nat i - nat k) (drop (nat k) xs))))"
+    by simp
+  also have "... =  of_bl ((take (LENGTH('a) - nat i) (replicate (nat k) False) @ (take (LENGTH('b)) (drop (nat k) xs))))"
+    unfolding k_def
+    using t3 by presburger
+  also have "... =  of_bl ((take (LENGTH('b)) (drop (nat k) xs)))"
+    by (metis of_bl_rep_False take_replicate)
+  finally show "(smtlib_extract j i (of_bl xs::'a::len word)::'b::len word) = of_bl (take (Suc (nat j) - nat i) (drop (length xs - Suc (nat j)) xs))"
+    by (metis (no_types, opaque_lifting) Suc_as_int a0(2,7) add.commute drop_drop int_eq_iff k_def length_drop rev_drop rev_rev_ident t1 t3
+        take_rev)
+qed
+
+lemma [rbl_extract]:
+  fixes i::int
+  shows "- i + j + 1 = int LENGTH('b) \<Longrightarrow>
+    length xs = LENGTH('a) \<Longrightarrow>
+    LENGTH('b) < LENGTH('a) \<Longrightarrow>
+    i \<le> j \<Longrightarrow>
+    j + 1 \<le> int LENGTH('a) \<Longrightarrow>
+    0 \<le> i \<Longrightarrow> 0 \<le> j \<Longrightarrow> 
+(smtlib_extract j i (of_bl xs::'a::len word)::'b::len word) = of_bl (rbl_extract (nat j) (nat i) xs)"
+  unfolding rbl_extract_def
+  apply (simp add: smt_extract_of_bl)
+  by (smt (z3) of_bl_rbl_extract rbl_extract_def)
 (* ---------------------------------------------------------------------------------------------- *)
 (* -------------------------------------- Bitblast concat---------------------------------------- *)
 (* ---------------------------------------------------------------------------------------------- *)
