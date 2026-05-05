@@ -4747,12 +4747,48 @@ lemma Word_of_int:
   "Word.Word x \<equiv> of_int x"
   by simp
 
-lemma slice_lift:
-  fixes x::"'a::len word"
-  shows "slice n x \<equiv> smt_extract (LENGTH('a)) n x"
-  unfolding smt_extract_def
-  apply(subst take_bit_word_eq_self)
-  by simp_all
+lemma word_odd_mult_eq_zero:
+  fixes c a :: "'a::len word"
+  assumes "odd c"
+  shows "(c * a = 0) = (a = 0)"
+proof
+  assume a0: "c * a = 0"
+  then have "odd (unat c)"
+    by (metis unat_0 even_of_nat assms add.right_neutral word_arith_nat_add)
+  then have "coprime ((2::nat) ^ LENGTH('a)) (unat c)"
+    by simp
+  moreover have "2 ^ LENGTH('a) dvd unat c * unat a"
+  proof-
+    have "(unat c * unat a) mod 2 ^ LENGTH('a) = 0"
+      by (metis a0 unat_0 unat_word_ariths(2))
+    then show ?thesis
+      by (simp add: mod_eq_0_iff_dvd)
+  qed
+  ultimately have "2 ^ LENGTH('a) dvd unat a"
+    by (metis coprime_dvd_mult_right_iff)
+  then show "a = 0"
+    using unsigned_less nat_dvd_not_less unat_eq_zero by blast
+next
+  assume "a = 0"
+  thus "c * a = 0" by simp
+qed
+
+lemma [alethe_poly_simp_rel]:
+  fixes x1::"'a::len word" and x2 y1 y2 cx cy
+  shows "odd cx \<Longrightarrow> odd cy \<Longrightarrow> cx * (x1-x2) = cy * (y1-y2) \<longrightarrow> ((x1 = x2) = (y1 = y2))"
+proof
+  assume cx_odd: "odd cx"
+  and cy_odd: "odd cy"
+  and eq: "cx * (x1 - x2) = cy * (y1 - y2)"
+  have "(x1 = x2) = (x1 - x2 = 0)" by simp
+  also have "\<dots> = (cx * (x1 - x2) = 0)"
+    using cx_odd by (simp add: word_odd_mult_eq_zero)
+  also have "\<dots> = (cy * (y1 - y2) = 0)" using eq by simp
+  also have "\<dots> = (y1 - y2 = 0)"
+    using cy_odd by (simp add: word_odd_mult_eq_zero)
+  also have "\<dots> = (y1 = y2)" by simp
+  finally show "(x1 = x2) = (y1 = y2)" .
+qed
 
 (*
 The following are formalizations of the resp. SMT-LIB definitions. They are mapped to the respective
@@ -4773,7 +4809,10 @@ generate bv terms freely in their proofs it is hard to make proof reconstruction
 lemma push_bit_lift:
  "push_bit k (w::'a::len word) \<equiv> (if (k \<ge> LENGTH('a::len)) then 0 else smtlib_bvshl w (word_of_int k))"
   unfolding smtlib_bvshl_def atomize_eq
-  by (metis le_unat_uoi less_exp nat_le_linear of_nat_inverse push_bit_eq_mult push_bit_word_beyond uint_nat word_of_int_uint)
+  apply (split if_split,rule conjI)
+  subgoal by simp
+  by (metis le_unat_uoi less_exp nat_le_linear of_int_of_nat_eq of_nat_inverse push_bit_eq_mult)
+
 
 lemma drop_bit_lift:
  "drop_bit k (w::'a::len word) \<equiv> (if (k \<ge> LENGTH('a::len)) then 0 else smtlib_bvlshr w (word_of_int k))"
@@ -4844,6 +4883,12 @@ lemma bit_lift:
     apply (auto dest: bit_imp_le_length)
     done     
 
+lemma slice_lift:
+  fixes x::"'a::len word"
+  shows "slice n x \<equiv> smt_extract (LENGTH('a)) n x"
+  unfolding smt_extract_def
+  apply(subst take_bit_word_eq_self)
+  by simp_all
       
 
 definition set_bit_lift :: \<open>int \<Rightarrow> 'a::len word \<Rightarrow> 'a::len word\<close> where

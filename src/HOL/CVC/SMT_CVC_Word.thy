@@ -1,14 +1,6 @@
 theory SMT_CVC_Word \<comment> \<open>More Setup for CVC that should be in HOL-Word eventually\<close>
   imports SMT_Word "SMT_CVC" "BV_Rewrites" "BV_Rewrites_Simplification" SMT_Native_Output
-begin                  
-declare[[show_types,show_sorts]]
-
-
-lemma [alethe_poly_simp_rel]:
-  fixes x1::"'a::len word" and x2 y1 y2 cx cy
-  shows "odd cx \<Longrightarrow> odd cy \<Longrightarrow> cx * (x1-x2) = cy * (y1-y2) \<longrightarrow> ((x1 = x2) = (y1 = y2))"
-  unfolding semiring_parity_class.odd_iff_mod_2_eq_one
-  sorry
+begin
 
 (*Evaluation Steps*)
 
@@ -33,11 +25,11 @@ lemma "(smt_extract 1 2 (4::7 word)::2 word) = 0"
 
 
 lemma evaluate_extract1:
- "(smt_extract j i (w::'a::len word)::'b::len word) = 
+ "(smt_extract j i (w::'a::len word)::'b::len word) =
     (if 0 < i then ucast (drop_bit i (take_bit (Suc j) w))
      else push_bit i (ucast (take_bit (Suc j) w)))"
   (*code generation*)
-  unfolding smt_extract_def slice_def 
+  unfolding smt_extract_def slice_def
   unfolding slice1_def
   apply (cases "0 < i")
    apply simp_all
@@ -47,7 +39,7 @@ value "(3::int) mod 4"
 
 thm Word.modulo_word_def
 thm modulo_integer_def
- 
+
 
 
 
@@ -65,13 +57,13 @@ lemma evaluate_extract3:
 lemmas evaluate_extract = evaluate_extract2 evaluate_extract3
 
 lemmas evaluate_power = power_0 power_Suc
-lemmas evaluate_casts = unsigned_numeral of_nat_numeral 
+lemmas evaluate_casts = unsigned_numeral of_nat_numeral
 lemmas bv_mult = word_mult_def (*Is this the best way?*)
 
 lemmas [cvc_evaluate_bv]
-  = evaluate_casts bit_operations 
+  = evaluate_casts bit_operations
     bv_mult
-    evaluate_concat evaluate_power 
+    evaluate_concat evaluate_power
     push_bit_lift drop_bit_lift
 
 
@@ -144,7 +136,7 @@ fun  (*cvc_term_parser (SMTLIB.Sym "rare-list", []) = (@{print}("rare-list");
       fun remove_duplicates [] = []
         | remove_duplicates (x::xs) = x::remove_duplicates(List.filter (fn y => y <> x) xs)
 
-      val types_eq = map fastype_of ts |> remove_duplicates |> length 
+      val types_eq = map fastype_of ts |> remove_duplicates |> length
       val new_ts =
          if types_eq > 0
          then ts
@@ -157,17 +149,17 @@ fun  (*cvc_term_parser (SMTLIB.Sym "rare-list", []) = (@{print}("rare-list");
     end)
   |*)
   cvc_term_parser _ = NONE
-  
 
 
- 
+
+
  fun cvc_type_parser (SMTLIB.Sym "?", _) = SOME dummyT | (*RARE specific*)
      cvc_type_parser (SMTLIB.Sym "?BitVec", []) = SOME (Type (\<^type_name>\<open>word\<close>, [dummyT])) | (*RARE specific*)
 cvc_type_parser _ = NONE (*|
   cvc_type_parser xs =
   (case SMT_String.string_type_parser xs of
     SOME x => SOME x |
-    NONE => 
+    NONE =>
       case SMT_Set.set_type_parser xs of
         SOME y => SOME y |
         NONE => SMT_Array.array_type_parser xs)*)
@@ -229,7 +221,7 @@ cvc5_rare "BV_Rewrites_Simplification.rewrite_bv_xor_concat_pullup"
 
 
 (*
-Problem, power is translated differently depending on type of 
+Problem, power is translated differently depending on type of
 first argument
 
 if nat/int & first arg is 2 \<Rightarrow> natively to ints.pow2
