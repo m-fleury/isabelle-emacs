@@ -2119,6 +2119,21 @@ lemma implies_simplify_8: "(a \<longrightarrow> \<not>a) = (\<not>a)"
 lemma implies_simplify_9: "((False \<longrightarrow> a) \<longrightarrow> (\<not>a)) = (\<not>a)"
   by (ctxt_tactic "implies_simplify")
 
+lemma implies_simplify_10: "(False \<longrightarrow> False) = True" 
+  by (ctxt_tactic "implies_simplify")
+
+lemma implies_simplify_11: "(False \<longrightarrow> True) = True"
+  by (ctxt_tactic "implies_simplify")
+
+lemma implies_simplify_12: "(True \<longrightarrow> False) = False"
+  by (ctxt_tactic "implies_simplify")
+
+lemma implies_simplify_13: "(True \<longrightarrow> True) = True"
+  by (ctxt_tactic "implies_simplify")
+
+lemma implies_simplify_14: "(False \<longrightarrow> \<not>False) = True" 
+  by (ctxt_tactic "implies_simplify")
+
 (* Rule 76: equiv_simplify *)
 
 lemma equiv_simplify_1: "(\<not>b = (\<not>b)) = True"

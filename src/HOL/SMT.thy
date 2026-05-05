@@ -484,6 +484,8 @@ lemma alethe_implies_simplify:
   \<open>(\<not>a \<longrightarrow> a) \<longleftrightarrow> a\<close>
   \<open>(a \<longrightarrow> \<not>a) \<longleftrightarrow> \<not>a\<close>
   \<open>((a \<longrightarrow> b) \<longrightarrow> b) \<longleftrightarrow> a \<or> b\<close> (*Why is this necessary*)
+  \<open>(\<not>True) \<longleftrightarrow> False\<close> (* Because of non determinism *)
+  \<open>(\<not>False) \<longleftrightarrow> True\<close>
   by auto
 
 lemma alethe_equiv_simplify:
