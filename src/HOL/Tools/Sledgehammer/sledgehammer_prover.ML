@@ -257,8 +257,8 @@ fun bunches_of_metis_methods ctxt needs_full_types needs_lam_defs =
   end
 
 fun bunches_of_smt_methods ctxt =
-  [map (SMT_Method o SMT_cvc) (Verit_Strategies.all_cvc5_stgies (Context.Proof ctxt)),
-   map (SMT_Method o SMT_Verit) (Verit_Strategies.all_veriT_stgies (Context.Proof ctxt)),
+  [map (SMT_Method o SMT_cvc) (Alethe_Strategies.all_cvc5_stgies (Context.Proof ctxt)),
+   map (SMT_Method o SMT_Verit) (Alethe_Strategies.all_veriT_stgies (Context.Proof ctxt)),
    single (SMT_Method SMT_Z3)]
   |> flat
   |> single
@@ -296,8 +296,8 @@ fun bunches_of_proof_methods_by_solver_name ctxt needs_full_types needs_lam_defs
  "presburger" => [[Presburger_Method]] |
  "argo" => [[Argo_Method]] |
  "order" => [[Order_Method]] |
- "cvc5" => ([map (SMT_Method o SMT_cvc) (Verit_Strategies.all_cvc5_stgies (Context.Proof ctxt))]) |
- "verit" => ([map (SMT_Method o SMT_Verit) (Verit_Strategies.all_veriT_stgies (Context.Proof ctxt))]) |
+ "cvc5" => ([map (SMT_Method o SMT_cvc) (Alethe_Strategies.all_cvc5_stgies (Context.Proof ctxt))]) |
+ "verit" => ([map (SMT_Method o SMT_Verit) (Alethe_Strategies.all_veriT_stgies (Context.Proof ctxt))]) |
  "z3" => [[SMT_Method SMT_Z3]] |
  _ => raise Fail "Invalid solver name given to Sledgehammer by preplay_provers argument")
 
