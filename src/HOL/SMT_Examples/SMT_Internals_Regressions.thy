@@ -2572,6 +2572,14 @@ lemma eq_simplify_4:
   shows "\<not>((3::int) = 3) = False"
   by (ctxt_tactic "eq_simplify")
 
+lemma eq_simplify_5:
+  shows "((0:: int) = -1) = False"
+  by (ctxt_tactic "eq_simplify")
+
+lemma eq_simplify_6:
+  shows "(-1 = (0:: int)) = False"
+  by (ctxt_tactic "eq_simplify")
+
 (* Rule 85: div_simplify *)
 
 lemma div_simplify_1:

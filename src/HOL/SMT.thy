@@ -501,8 +501,7 @@ lemma alethe_equiv_simplify:
   by auto
 
 lemmas alethe_eq_simplify =
-  semiring_char_0_class.eq_numeral_simps eq_refl zero_neq_one num.simps
-  neg_equal_zero equal_neg_zero one_neq_zero neg_equal_iff_equal
+  eq_refl num.simps neg_equal_zero equal_neg_zero neg_equal_iff_equal Num.rel_simps
 
 lemma alethe_minus_simplify:
   \<open>(a :: 'a :: cancel_comm_monoid_add) - a = 0\<close>
