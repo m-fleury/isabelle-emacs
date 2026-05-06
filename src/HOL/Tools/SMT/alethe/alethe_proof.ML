@@ -39,6 +39,7 @@ sig
   val not_not_rule : string
   val or_rule : string
   val refl_rule : string
+  val cong_rule : string
   val simp_arith_rule : string
   val subproof_rule : string
   val th_resolution_rule: string
@@ -98,6 +99,7 @@ val la_generic_rule = "la_generic"
 val not_not_rule = "not_not"
 val or_rule = "or"
 val refl_rule = "refl"
+val cong_rule = "cong"
 val simp_arith_rule = "simp_arith"
 val subproof_rule = "subproof"
 val th_resolution_rule = "th_resolution"
