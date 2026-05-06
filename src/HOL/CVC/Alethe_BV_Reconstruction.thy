@@ -97,83 +97,36 @@ fun bvadd :: "bool list \<Rightarrow> bool list \<Rightarrow> bool list \<Righta
 [word_plus_rbl_bvadd_fun]: "bvadd [] [] _ _ = []" |
 [word_plus_rbl_bvadd_fun]: "bvadd (x#xs) (y#ys) xs' ys' = (((x \<noteq> y) \<noteq> bvadd_carry xs' ys')) # bvadd xs ys (x#xs') (y#ys')"
 
-fun bvadd3 :: "bool list \<Rightarrow> bool list \<Rightarrow> bool \<Rightarrow> bool list" where
-"bvadd3 [] [] _ = []" |
-"bvadd3 (x#xs) (y#ys) carry = (((x \<noteq> y) \<noteq> carry)) # bvadd3 xs ys ((x \<and> y) \<or> ((x \<noteq> y) \<and> carry))"
 
-fun bvadd_carry4 :: "bool list \<Rightarrow> bool list \<Rightarrow> nat \<Rightarrow>  bool" where
- "bvadd_carry4 xs ys 0 = False" |
- "bvadd_carry4 xs ys (Suc i) = ((xs ! i \<and> ys ! i) \<or> ((xs ! i \<noteq> ys ! i) \<and> bvadd_carry4 xs ys i))"
-
-lemma
-"bvadd_carry4 xs ys (Suc i) = (if \<not>xs!i then (ys ! i \<and> bvadd_carry4 xs ys i) else ys ! i \<or> (\<not>ys ! i \<and> bvadd_carry4 xs ys i))"
-  by simp
-
-fun bvadd4 :: "bool list \<Rightarrow> bool list \<Rightarrow> nat \<Rightarrow> bool" where
- "bvadd4 xs ys i = ((xs ! i \<noteq> ys ! i) \<noteq> bvadd_carry4 xs ys i)"
-
-
-lemma temp_bvadd_carry4:
-"(\<forall>k. k < i \<longrightarrow> ys ! k = False) \<longrightarrow> i < length xs \<longrightarrow> bvadd_carry4 xs ys i = False"
-  apply (induction i)
-   apply simp
-  by simp
-
-
-
-
-
-
-lemma bvadd3_0:
-  shows "bvadd3 (x0#xs) (y0#ys) False ! 0 = (x0 \<noteq> y0)"
-  by simp
-
-lemma bvadd_bvadd3: "length xs = length ys \<Longrightarrow> bvadd xs ys [] [] = bvadd3 xs ys False"
-proof-
-  assume "length xs = length ys"
-  moreover have  "length xs = length ys \<Longrightarrow> length xs' = length ys' \<Longrightarrow>
-        bvadd xs ys xs' ys' = bvadd3 xs ys (bvadd_carry xs' ys')" for xs' ys'
-  apply (induction xs arbitrary:  ys xs' ys')
-   apply simp
-  subgoal for x xs ys xs' ys'
-  apply (cases ys)
-    by simp_all
-  done
-  ultimately show ?thesis
-    by simp
-qed
-
-lemma h1:
-  "\<And>bina binb. bvadd3 (rev (bin_to_bl n bina)) (rev (bin_to_bl n binb)) carry =
-    rev (bin_to_bl n (bina + binb + of_bool carry))"
-  apply (unfold bin_to_bl_def)
-  apply (induct n arbitrary: carry)
-   apply simp
-  apply clarsimp
+lemma bvadd_bin:
+"length xs' = length ys' \<Longrightarrow>
+bvadd (rev (bin_to_bl n bina)) (rev (bin_to_bl n binb)) xs' ys' =
+rev (bin_to_bl n (bina + binb + (if bvadd_carry xs' ys' then 1 else 0)))"
+  unfolding bin_to_bl_def
+  apply (induct n arbitrary: bina binb xs' ys')
+  subgoal by simp
+  apply simp
   apply (case_tac bina rule: bin_exhaust)
   apply (case_tac binb rule: bin_exhaust)
-  apply (case_tac b)
-   apply (case_tac [!] "ba")
-  unfolding bin_to_bl_aux_alt
-     apply (auto simp: rbl_succ xor_simps)
-      apply (simp_all add: ac_simps div_add1_eq)
-done
-
-lemma word_add_bvadd3:
-  "to_bl v = vbl \<Longrightarrow> to_bl w = wbl \<Longrightarrow>
-    to_bl (v + w) = rev (bvadd3 (rev vbl) (rev wbl) False)"
-  apply transfer
-  subgoal for v vbl w wbl
-    using h1[of "LENGTH('a)" v w False]
-    apply simp
+   apply (case_tac [!] ba)
+    unfolding bin_to_bl_aux_alt
+       apply (auto simp: rbl_succ)
+          apply (simp_all add: ac_simps div_add1_eq)
     done
-  done
+  
+lemma word_add_bvadd_bin:
+  "to_bl v = vbl \<Longrightarrow> to_bl w = wbl \<Longrightarrow>
+    to_bl (v + w) = rev (bvadd (rev vbl) (rev wbl) [] [])"
+  apply transfer
+  using bvadd_bin[of "[]" "[]"]
+  by auto
+
 
 lemma word_add_bvadd[word_plus_rbl_bvadd]:
 "length xs = LENGTH('a) \<Longrightarrow> length xs = length ys \<Longrightarrow> 
   (of_bl (rev xs)::'a::len word) + (of_bl (rev ys))
  = (of_bl (rev (bvadd xs ys [] [])) :: 'a::len word)" for i j xs
-  by (metis bvadd_bvadd3 rev_rev_ident takefill_same word_add_bvadd3 word_bl.Rep_inverse' word_rev_tf)
+  by (metis word_add_bvadd_bin rev_rev_ident takefill_same word_bl.Rep_inverse' word_rev_tf)
 
 (* ---------------------------------------------------------------------------------------------- *)
 (* -------------------------------------- Bitblast bvneg ---------------------------------------- *)
@@ -233,6 +186,7 @@ lemma word_neg_bvneg[word_minus_rbl_bvneg]:
 "length xs = LENGTH('a) \<Longrightarrow>
 -(of_bl (rev xs)::'a::len word) = (of_bl (rev (bvneg xs [])) :: 'a::len word)" for i j xs
   by (metis bvneg_bvneg3 rev_rev_ident takefill_same to_bl_use_of_bl word_neg_bvneg3 word_rev_tf)
+
 
 
 
@@ -1022,6 +976,9 @@ lemma [rbl_extract]:
   unfolding rbl_extract_def
   apply (simp add: smt_extract_of_bl)
   by (smt (z3) of_bl_rbl_extract rbl_extract_def)
+
+lemmas [bv_reconstruction_const_test] = int_ops
+
 (* ---------------------------------------------------------------------------------------------- *)
 (* -------------------------------------- Bitblast concat---------------------------------------- *)
 (* ---------------------------------------------------------------------------------------------- *)
