@@ -1102,6 +1102,44 @@ lemma \<open>\<not> (\<forall>veriT_vr13 veriT_vr14 veriT_vr15.
 
 end
 
+lemma \<open>\<not> (\<forall>veriT_vr207 veriT_vr208.
+                (stfx_rel veriT_vr207 veriT_vr208 \<longrightarrow>
+                 fst veriT_vr207 \<in> {uu. is_open\<^sub>Y uu \<and> f x \<in> uu} \<and>
+                 fst veriT_vr208 \<in> {uu. is_open\<^sub>Y uu \<and> f x \<in> uu} \<and>
+                 snd veriT_vr207 \<in> \<O>\<^sub>Y (fst veriT_vr207) \<and>
+                 snd veriT_vr208 \<in> \<O>\<^sub>Y (fst veriT_vr208) \<and>
+                 (\<exists>veriT_vr209. veriT_vr209 \<in> {uu. is_open\<^sub>Y uu \<and> f x \<in> uu} \<and> veriT_vr209 \<subseteq> fst veriT_vr207 \<inter> fst veriT_vr208 \<and> \<rho>\<^sub>Y (fst veriT_vr207) veriT_vr209 (snd veriT_vr207) = \<rho>\<^sub>Y (fst veriT_vr208) veriT_vr209 (snd veriT_vr208))) \<and>
+                (fst veriT_vr207 \<in> {uu. is_open\<^sub>Y uu \<and> f x \<in> uu} \<and>
+                 fst veriT_vr208 \<in> {uu. is_open\<^sub>Y uu \<and> f x \<in> uu} \<and>
+                 snd veriT_vr207 \<in> \<O>\<^sub>Y (fst veriT_vr207) \<and>
+                 snd veriT_vr208 \<in> \<O>\<^sub>Y (fst veriT_vr208) \<and>
+                 \<not> (\<forall>veriT_vr210. \<not> (veriT_vr210 \<in> {uu. is_open\<^sub>Y uu \<and> f x \<in> uu} \<and> veriT_vr210 \<subseteq> fst veriT_vr207 \<inter> fst veriT_vr208 \<and> \<rho>\<^sub>Y (fst veriT_vr207) veriT_vr210 (snd veriT_vr207) = \<rho>\<^sub>Y (fst veriT_vr208) veriT_vr210 (snd veriT_vr208))) \<longrightarrow>
+                 stfx_rel veriT_vr207 veriT_vr208)) \<or>
+         (\<forall>veriT_vr207 veriT_vr208. \<not> stfx_rel veriT_vr207 veriT_vr208 \<or> fst veriT_vr208 \<in> {uu. is_open\<^sub>Y uu \<and> f x \<in> uu}) \<close>
+  by (ctxt_tactic "qnt_cnf")
+end
+
+experiment
+begin
+abbreviation
+ "fishburn (a::_::linorder) b v ab ==
+  ((ab \<le> a \<longrightarrow> v \<le> ab) \<and> (a < ab \<and> ab < b \<longrightarrow> ab = v) \<and> (b \<le> ab \<longrightarrow> ab \<le> v))"
+
+abbreviation fishburn2 :: "('a::linorder) \<Rightarrow> 'a \<Rightarrow> 'a \<Rightarrow> 'a \<Rightarrow> bool" (\<open>(_ \<le>/ _/ '(mod _,_'))\<close> [51,51,0,0])
+  where "fishburn2 ab v a b \<equiv> fishburn a b v ab"
+
+abbreviation
+ "knuth (a::_::linorder) b x y ==
+  ((y \<le> a \<longrightarrow> x \<le> a) \<and> (a < y \<and> y < b \<longrightarrow> y = x) \<and> (b \<le> y \<longrightarrow> b \<le> x))"
+
+abbreviation knuth2 :: "('a::linorder) \<Rightarrow> 'a \<Rightarrow> 'a \<Rightarrow> 'a \<Rightarrow> bool" (\<open>(_ \<cong>/ _/ '(mod _,_'))\<close> [51,51,0,0])
+  where "knuth2 x y a b \<equiv> knuth a b x y"
+
+lemma \<open>\<not> (\<forall>(veriT_vr28::'a::{linorder}) (veriT_vr29::'a) (veriT_vr30::'a) veriT_vr31::'a. veriT_vr28 \<le> veriT_vr30 (mod veriT_vr29,veriT_vr31) \<longrightarrow> veriT_vr30 \<cong> veriT_vr28 (mod veriT_vr29,veriT_vr31)) \<or>
+         (\<forall>(veriT_vr28::'a) (veriT_vr30::'a) veriT_vr31::'a. \<not> veriT_vr30 \<le> veriT_vr28 \<or> veriT_vr28 < veriT_vr31 \<or> \<not> veriT_vr28 \<le> veriT_vr30 \<or> \<not> veriT_vr31 \<le> veriT_vr28 \<or> veriT_vr31 \<le> veriT_vr30) \<close>
+  by (ctxt_tactic "qnt_cnf")
+end
+
 (* Rule 30: and *)
 
 lemma and_1:
