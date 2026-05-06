@@ -861,9 +861,7 @@ section \<open>cvc5 only examples\<close>
 
 declare[[smt_expert_debug_alethe_files="smt_global_normalize"]]
 declare[[smt_expert_debug_alethe_level=3]]
-lemma "(2::nat) ^ 3 = 8"
-  apply (smt (cvc5))
-  oops
+
 (*("current term",
  Const ("SMT.pow_2", "int \<Rightarrow> int") $
    (Const ("Num.numeral_class.numeral", "num \<Rightarrow> int") $

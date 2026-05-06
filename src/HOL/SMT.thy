@@ -1023,10 +1023,7 @@ definition alethe_Box :: \<open>bool \<Rightarrow> bool\<close> where
   \<open>alethe_Box P = P\<close>
 
 lemma alethe_Box:
-  \<open>~~(\<not>P) \<equiv> ~~(\<not>alethe_Box P)\<close>
-  \<open>~(\<not>P) \<equiv> ~(\<not>alethe_Box P)\<close>
-  \<open>(\<not>P) \<equiv> (\<not>alethe_Box P)\<close>
-  \<open>P  \<equiv> alethe_Box P\<close>
+  \<open>P \<equiv> alethe_Box P\<close>
   unfolding alethe_Box_def
   by auto
 

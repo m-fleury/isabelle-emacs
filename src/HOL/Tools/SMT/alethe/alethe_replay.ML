@@ -44,15 +44,25 @@ val is_input_rule = curry (op =) Alethe_Proof.input_rule
 
 fun add_box_symbols ctxt t ct =
   let
-    fun add_box_symbols @{term True} = 
+    fun add_alethe_Box_after_all_negations_conv ctxt ct =
           (case Thm.term_of ct of
             @{term Not} $ _ => 
-              Conv.try_conv (Conv.arg_conv (Conv.top_conv (K (Conv.rewrs_conv @{thms alethe_Box})) ctxt))
+              Conv.try_conv (Conv.arg_conv (add_alethe_Box_after_all_negations_conv ctxt) )
           | _ => 
-              Conv.try_conv (Conv.top_conv (K (Conv.rewrs_conv @{thms alethe_Box})) ctxt))
-      | add_box_symbols (u $ v) =
-          Conv.fun_conv (add_box_symbols u) then_conv Conv.arg_conv (add_box_symbols v)
-      | add_box_symbols _ = Conv.all_conv
+              Conv.try_conv (Conv.top_conv (K (Conv.rewrs_conv @{thms alethe_Box})) ctxt)) ct
+
+    fun add_box_symbols @{term True} ct = 
+          (case Thm.term_of ct of
+            @{term Not} $ _ => 
+              Conv.try_conv (Conv.arg_conv (add_alethe_Box_after_all_negations_conv ctxt))
+          | _ => 
+              Conv.try_conv (Conv.top_conv (K (Conv.rewrs_conv @{thms alethe_Box})) ctxt)) ct
+      | add_box_symbols (u $ v) ct = 
+          (Conv.fun_conv (add_box_symbols u)
+           then_conv Conv.arg_conv (add_box_symbols v)) ct
+
+      | add_box_symbols _ ct = Conv.all_conv ct
+
   in
     (*some terms coming from veriT are not beta-reduced.*)
     ct

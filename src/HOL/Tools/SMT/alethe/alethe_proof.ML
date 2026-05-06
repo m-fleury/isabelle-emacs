@@ -530,7 +530,7 @@ fun postprocess_proof compress ctxt step cx =
           ||> (curry (op @)) orig_new_variable_names
           |> (fn ((i,j,k),n) => ((map normalize_external i,map normalize_external j,k), map normalize_external2 n))
         (* Process conclusion *)
-        val (cx',termified_concl) = transform_concl concl id (cx, new_variable_names |> @{print})
+        val (cx',termified_concl) = transform_concl concl id (cx, new_variable_names)
         val (_,termified_prop_skeleton) =
           transform_concl (prop_skeleton) id (cx, new_variable_names)
         val _ = debug_msg ctxt middle (fn () => \<^print> ("... transformed conclusion of step closing the anchor ", termified_concl))
