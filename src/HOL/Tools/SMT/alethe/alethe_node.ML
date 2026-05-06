@@ -18,7 +18,6 @@ sig
 
   val mk_step : string -> string -> string list -> term -> term -> alethe_step
 
-
   (* Pass information added during pre-processing to reconstruction *)
   datatype tactic_args =
     Insts of term Symtab.table | (*only used for forall_inst*)
@@ -29,7 +28,6 @@ sig
     Farkas_Coefficients of (int * int) list
 
   val transform_tactic_args : (term -> term) -> tactic_args option -> tactic_args option
-  (*val tactic_args_parser : tactic_args parser*)
 
   datatype alethe_replay_node = Alethe_Replay_Node of {
     id: string,
@@ -40,18 +38,17 @@ sig
     prop_skeleton: term,
     concl: term,
     subproof: (string * typ) list * term list * term list * alethe_replay_node list,
-    args: tactic_args option }
+    args: tactic_args option}
   | Alethe_Definition_Node of {
     id: string,
     rule: string,
     skolem_name : string,
-    skolem_term : term }
-
+    skolem_term : term}
 
   val mk_replay_node: string -> string -> term list -> term list -> string list -> term ->
-   (string * typ) list * term list * term list * alethe_replay_node list -> tactic_args option -> term
-   -> alethe_replay_node
-        
+    (string * typ) list * term list * term list * alethe_replay_node list -> tactic_args option ->
+    term -> alethe_replay_node
+
   datatype raw_alethe_node = Raw_Alethe_Node of {
     id: string,
     rule: string,
@@ -65,16 +62,10 @@ sig
     id: string,
     rule: string,
     skolem_name : string,
-    skolem_term : SMTLIB.tree
-  }
+    skolem_term : SMTLIB.tree}
 
-  val mk_raw_node : string ->
-      string ->
-        SMTLIB.tree list ->
-          SMTLIB.tree list ->
-            string list ->
-                SMTLIB.tree ->
-                  raw_alethe_node list -> SMTLIB.tree -> raw_alethe_node
+  val mk_raw_node : string -> string -> SMTLIB.tree list -> SMTLIB.tree list -> string list ->
+    SMTLIB.tree -> raw_alethe_node list -> SMTLIB.tree -> raw_alethe_node
 
   val mk_raw_definition_node : string -> string -> string -> SMTLIB.tree -> raw_alethe_node
 
@@ -83,69 +74,56 @@ end;
 structure Alethe_Node: ALETHE_NODE =
 struct
 
-open SMTLIB_Proof
-
 datatype raw_alethe_node = Raw_Alethe_Node of {
-    id: string,
-    rule: string,
-    step_args: SMTLIB.tree list,
-    context_assignments: SMTLIB.tree list,
-    prems: string list,
-    concl: SMTLIB.tree,
-    prop_skeleton: SMTLIB.tree,
-    subproof: raw_alethe_node list}
-  | Raw_Definition_Node of {
-    id: string,
-    rule: string,
-    skolem_name : string,
-    skolem_term : SMTLIB.tree
-  }
+  id: string,
+  rule: string,
+  step_args: SMTLIB.tree list,
+  context_assignments: SMTLIB.tree list,
+  prems: string list,
+  concl: SMTLIB.tree,
+  prop_skeleton: SMTLIB.tree,
+  subproof: raw_alethe_node list}
+| Raw_Definition_Node of {
+  id: string,
+  rule: string,
+  skolem_name : string,
+  skolem_term : SMTLIB.tree}
 
 fun mk_raw_node id rule step_args context_ass prems concl subproof prop_skeleton =
   Raw_Alethe_Node {id = id, rule = rule, step_args = step_args,
     context_assignments = context_ass, prems = prems,
     concl = concl, subproof = subproof, prop_skeleton = prop_skeleton}
 
-fun mk_raw_definition_node id rule skolem_name skolem_term = Raw_Definition_Node {id=id, rule=rule, skolem_name=skolem_name, skolem_term=skolem_term}
+fun mk_raw_definition_node id rule skolem_name skolem_term =
+  Raw_Definition_Node {id = id, rule = rule, skolem_name = skolem_name, skolem_term = skolem_term}
 
-
-  datatype alethe_step = Alethe_Step of {
-    id: string,
-    rule: string,
-    prems: string list,
-    prop_skeleton: term,
-    concl: term}
-
-(* Sometimes we want to communicate additional information that is gained during parsing or
-preprocessing to the reconstruction tactic. *)
 datatype tactic_args =
   Insts of term Symtab.table | (*only used for forall_inst*)
   Sko_Def_Prems of string list * string list | (*only used for sko_forall and sko_exists*)
-  Solver_Name of string |  (*used for refl and cong*)
+  Solver_Name of string | (*used for refl and cong*)
   Index of int | (*used for and, not_or, and_pos and or_neg*)
   CommOp of term | (*only used for shuffle*)
   Farkas_Coefficients of (int * int) list
 
-fun transform_tactic_args _ NONE = NONE |
-  transform_tactic_args f (SOME (Insts insts)) = SOME (Insts (Symtab.map (K f) insts)) |
-  transform_tactic_args _ x = x
-                                             
-datatype alethe_replay_node =
- Alethe_Replay_Node of {
+fun transform_tactic_args _ NONE = NONE
+  | transform_tactic_args f (SOME (Insts insts)) = SOME (Insts (Symtab.map (K f) insts))
+  | transform_tactic_args _ x = x
+
+datatype alethe_replay_node = Alethe_Replay_Node of {
   id: string,
   rule: string,
   step_args: term list,
   context_assignments: term list,
   prems: string list,
-  concl: term,
   prop_skeleton: term,
+  concl: term,
   subproof: (string * typ) list * term list * term list * alethe_replay_node list,
-  args: tactic_args option } |
- Alethe_Definition_Node of {
+  args: tactic_args option}
+| Alethe_Definition_Node of {
   id: string,
   rule: string,
   skolem_name : string,
-  skolem_term : term }
+  skolem_term : term}
 
 datatype alethe_step = Alethe_Step of {
   id: string,
