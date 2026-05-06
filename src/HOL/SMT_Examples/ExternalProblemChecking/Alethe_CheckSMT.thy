@@ -35,9 +35,10 @@ check_smt ("verit") "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/
 check_smt ("verit") "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/Alethe_Proof_Rules/bfun_elim_verit/prob_00284_011539__22121740.smt2" "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/bfun_elim_verit/prob_00284_011539__22121740.alethe" 
 *)
 
-(* declare [[smt_trace, smt_verbose]] *)
+declare [[smt_trace]]
+(* declare [[smt_verbose]] *)
 (* declare [[smt_debug_arith_verit = true]] *)
-(* check_smt ("verit") "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/Alethe_Proof_Rules/verit/errors/la_generic/prob_01149_046867__19617226.smt2" "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/Alethe_Proof_Rules/verit/errors/la_generic/prob_01149_046867__19617226.alethe" *) 
+check_smt ("verit") "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/Alethe_Proof_Rules/verit/errors/bind/prob_00125_005409__32891652.smt2" "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/Alethe_Proof_Rules/verit/errors/bind/prob_00125_005409__32891652.alethe" 
 
 
 end
