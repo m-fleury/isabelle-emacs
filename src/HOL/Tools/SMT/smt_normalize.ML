@@ -741,6 +741,8 @@ fun normalize ctxt wthms =
   |> monomorph ctxt
   |> debug ctxt "monomorph"
   |> unfold_monomorph ctxt
+  |> simplify_norm ctxt
+
   |> debug ctxt "unfold_monomorph"
   |> apply_extra_norms ctxt
   |> debug ctxt "apply_extra_norms"
