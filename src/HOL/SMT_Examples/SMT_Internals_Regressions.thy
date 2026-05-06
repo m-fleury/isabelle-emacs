@@ -909,8 +909,8 @@ lemma \<open>\<not> (\<forall>veriT_vr7 veriT_vr8 veriT_vr9 :: 'a.
 
 lemma
   fixes Cons :: \<open>'a :: {zero} \<Rightarrow> 'alist \<Rightarrow> 'alist\<close> (infix \<open>#\<close> 70) and Nil :: 'alist
-  shows \<open>(\<forall>veriT_vr18. 0 = veriT_vr18 \<or> (\<forall>veriT_vr19. poly Nil \<noteq> poly (veriT_vr18 # veriT_vr19))) \<or>
-    \<not> (\<forall>veriT_vr18 veriT_vr19. poly Nil \<noteq> poly (veriT_vr18 # veriT_vr19) \<or> 0 = veriT_vr18 \<and> poly Nil = poly veriT_vr19)\<close>
+  shows \<open>\<not> (\<forall>veriT_vr18 veriT_vr19. poly Nil \<noteq> poly (veriT_vr18 # veriT_vr19) \<or> 0 = veriT_vr18 \<and> poly Nil = poly veriT_vr19)
+    \<or> (\<forall>veriT_vr18. 0 = veriT_vr18 \<or> (\<forall>veriT_vr19. poly Nil \<noteq> poly (veriT_vr18 # veriT_vr19)))\<close>
   supply [[show_types]] by (ctxt_tactic "qnt_cnf")
 
 lemma
