@@ -840,6 +840,7 @@ fun trans ctxt thms t =
             if t2 aconv t3 then thm1 RSN (1, thm2 RSN (2, @{thm trans}))
             else if t2 aconv t4 then thm1 RSN ((1, ((thm2 RS sym)) RSN (2, @{thm trans})))
             else if t1 aconv t4 then thm2 RSN (1, thm1 RSN (2, @{thm trans}))
+            else if t1 aconv t3 then (thm2 RS sym) RSN (1, thm1 RSN (2, @{thm trans}))
             else raise Fail "invalid trans theorem"
           | _ => trans_bool_thm OF [thm1, thm2])
       | combine_thms (thm1 :: thm2 :: thms) =
