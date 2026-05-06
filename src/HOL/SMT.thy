@@ -1144,9 +1144,9 @@ options.
 \<close>
 
 declare [[cvc4_options = ""]]
-declare [[cvc5_options = "--full-saturate-quant --proof-alethe-define-skolems --proof-elim-subtypes"]]
+declare [[cvc5_options = "--proof-alethe-define-skolems --proof-elim-subtypes --enum-inst"]]
 declare [[cvc5_proof_options = "--proof-format-mode=alethe --proof-granularity=dsl-rewrite
-                          --full-saturate-quant --proof-mode=full-proof-strict"]]
+                          --proof-mode=full-proof-strict --enum-inst"]]
 declare [[verit_options = "--proof-with-sharing"]]
 declare [[z3_options = ""]]
 
