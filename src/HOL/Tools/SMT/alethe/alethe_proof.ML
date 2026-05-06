@@ -459,7 +459,7 @@ fun postprocess_proof compress ctxt step cx =
       | syntactic_rew_in_lhs_subst _ _ t = t
     fun subproof_rewriter new_variable_names = fold (fn (t, t') => syntactic_rew_in_lhs_subst t t') new_variable_names
     fun add_bound_variables_to_cx ts cx = fold update_binding ts cx
-    fun unsk_and_rewrite new_variable_names = SMTLIB_Isar.unskolemize_names ctxt o (subproof_rewriter new_variable_names)
+    fun unsk_and_rewrite new_variable_names = SMTLIB_Isar.unskolemize_names ctxt o subproof_rewriter new_variable_names
   
     (* Function to termify conclusion *)
     fun transform_concl concl id (cx, new_variable_names) =
@@ -481,7 +481,7 @@ fun postprocess_proof compress ctxt step cx =
         (*Note: strings are not yet loaded so the arguments of rules like "rare_rewrite" have to be binarized.
           Import HOL.String in your theory and they will be shown as strings*)
         val (termified_step_args,_) = fold_map node_of_term step_args cx
-        val normalized_step_args = map (unsk_and_rewrite new_variable_names) (map (subproof_rewriter new_variable_names) termified_step_args)
+        val normalized_step_args = map (unsk_and_rewrite new_variable_names o subproof_rewriter new_variable_names) termified_step_args
         val _ = debug_msg ctxt middle (fn () => \<^print> ("Termified and normalized steps args:", normalized_step_args))
       in normalized_step_args end
   
@@ -521,10 +521,10 @@ fun postprocess_proof compress ctxt step cx =
         (*TODO Hanna: Make more elegant*)
         fun normalize_external (raw_name, Free(a,b)) =
           if Config.get ctxt SMT_Config.check_external andalso Char.isUpper (hd (String.explode raw_name))
-          then ("isabelle_internal_" ^ raw_name,Free("isabelle_internal_" ^ a,b)) else (raw_name,Free(a,b))
+          then (raw_name,Free("isabelle_internal_" ^ a,b)) else (raw_name,Free(a,b))
         fun normalize_external2 (raw_name,b) =
           if Config.get ctxt SMT_Config.check_external andalso Char.isUpper (hd (String.explode raw_name))
-          then (b,("isabelle_internal_" ^ raw_name)) else (b,raw_name)
+          then (raw_name, "isabelle_internal_" ^ b) else (raw_name, b)
         val ((shadowing_vars, rebound_lhs_vars, substitute_terms),new_variable_names) =
           process_context_assignments context_assignments cx
           ||> (curry (op @)) orig_new_variable_names
