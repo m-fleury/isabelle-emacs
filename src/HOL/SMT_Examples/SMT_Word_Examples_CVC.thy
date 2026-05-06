@@ -12,9 +12,10 @@ begin
 
 
 declare[[smt_trace = true, smt_verbose=true]]
-declare[[smt_expert_debug_alethe_level=2]]
-declare[[smt_expert_debug_alethe_files="alethe_replay_methods"]]
+declare[[smt_expert_debug_alethe_level=0]]
+declare[[smt_expert_debug_alethe_files="smt_normalize"]]
 declare[[smt_nat_as_int]]
+
 
 section \<open>Bitvector numbers\<close>
 
@@ -29,8 +30,8 @@ lemma "11 - 27 = (-16::8 word)" by (smt (cvc5))
 lemma "- (- 11) = (11::5 word)" by (smt (cvc5))
 lemma "-40 + 1 = (-39::7 word)" by (smt (cvc5))
 
-lemma "a + 2 * b + c - b = (b + c) + (a :: 32 word)" supply [[smt_trace]] by (smt (cvc5))
-lemma "x = (5 :: 4 word) \<Longrightarrow> 4 * x = 4" supply [[smt_trace]] by (smt (cvc5))
+lemma "a + 2 * b + c - b = (b + c) + (a :: 32 word)" supply [[smt_trace=false]] by (smt (cvc5))
+lemma "x = (5 :: 4 word) \<Longrightarrow> 4 * x = 4" supply [[smt_trace=false]] by (smt (cvc5))
 
 section \<open>Conversions\<close>
 
@@ -256,12 +257,12 @@ lemma bvex_178: \<open>(1 :: 16 word) >> 3 = 0\<close> by (smt (cvc5))
 lemma bvex_179: \<open>(1 :: 16 word) >> Suc (Suc (Suc 0)) = 0\<close> by (smt (cvc5))
 
 (*bvex_180 - 185 todo*)
-lemma bvex_180: \<open>signed_drop_bit 3 (1705 :: 16 word) = 213\<close> by (smt (cvc5))
-lemma bvex_181: \<open>signed_drop_bit (Suc (Suc (Suc 0))) (1705 :: 16 word) = 213\<close> by (smt (cvc5))
-lemma bvex_182: \<open>signed_drop_bit 3 (- 1705 :: 16 word) = - 214\<close> by (smt (cvc5))
-lemma bvex_183: \<open>signed_drop_bit (Suc (Suc (Suc 0))) (- 1705 :: 16 word) = - 214\<close> by (smt (cvc5))
-lemma bvex_184: \<open>signed_drop_bit 3 (1 :: 16 word) = 0\<close> by (smt (cvc5))
-lemma bvex_185: \<open>signed_drop_bit (Suc (Suc (Suc 0))) (1 :: 16 word) = 0\<close> by (smt (cvc5))
+lemma bvex_180: \<open>signed_drop_bit 3 (1705 :: 16 word) = 213\<close> by (smt (cvc5)) (*error in cong*)
+lemma bvex_181: \<open>signed_drop_bit (Suc (Suc (Suc 0))) (1705 :: 16 word) = 213\<close> by (smt (cvc5))(*error in cong*)
+lemma bvex_182: \<open>signed_drop_bit 3 (- 1705 :: 16 word) = - 214\<close> by (smt (cvc5))(*error in cong*)
+lemma bvex_183: \<open>signed_drop_bit (Suc (Suc (Suc 0))) (- 1705 :: 16 word) = - 214\<close> by (smt (cvc5))(*error in cong*)
+lemma bvex_184: \<open>signed_drop_bit 3 (1 :: 16 word) = 0\<close> by (smt (cvc5))(*error in cong*)
+lemma bvex_185: \<open>signed_drop_bit (Suc (Suc (Suc 0))) (1 :: 16 word) = 0\<close> by (smt (cvc5))(*error in cong*)
 
 (*bvex_186 - 191 todo*)
 lemma bvex_186: \<open>(1705 :: 16 word) >>> 3 = 213\<close> by (smt (cvc5))
@@ -271,7 +272,7 @@ lemma bvex_189: \<open>(- 1705 :: 16 word) >>> Suc (Suc (Suc 0)) = - 214\<close>
 lemma bvex_190: \<open>(1 :: 16 word) >>> 3 = 0\<close> by (smt (cvc5))
 lemma bvex_191: \<open>(1 :: 16 word) >>> Suc (Suc (Suc 0)) = 0\<close> by (smt (cvc5))
 
-(*bvex_192 - 200 done*)
+(*bvex_192 - 200 work*)
 lemma bvex_192: \<open>take_bit 3 (1705 :: 16 word) = 1\<close> by (smt (cvc5))
 lemma bvex_193: \<open>take_bit (Suc (Suc (Suc 0))) (1705 :: 16 word) = 1\<close> by (smt (cvc5))(* by (simp flip: add_2_eq_Suc)*)
 lemma bvex_194: \<open>take_bit 3 (- 1705 :: 16 word) = 7\<close> by (smt (cvc5))

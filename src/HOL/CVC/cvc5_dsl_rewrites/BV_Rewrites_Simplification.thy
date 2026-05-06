@@ -336,7 +336,8 @@ named_theorems rewrite_bv_lshr_by_const_0 \<open>automatically_generated\<close>
 
 lemma [rewrite_bv_lshr_by_const_0]:
   fixes x::"'a ::len word"  and sz::"int"
-  shows "smtlib_bvlshr x 0 = x"
+  shows "NO_MATCH cvc_a (undefined x sz)
+    \<Longrightarrow> smtlib_bvlshr x 0 = x"
   unfolding smtlib_bvlshr_def
   by force
 
@@ -350,6 +351,7 @@ lemma [rewrite_bv_lshr_by_const_0]:
   (concat (@bv 0 amount) (extract nm1 amount x)))
 
 *)
+named_theorems rewrite_bv_lshr_by_const_1 \<open>automatically_generated\<close>
 
 lemma rewrite_bv_lshr_by_const_1_original:
   fixes x::"'a ::len word" and amount::"int" and sz::"int" and nm1::"int" 
@@ -391,7 +393,6 @@ proof-
     by (metis word_unat.Rep_inverse)
 qed
 
-named_theorems rewrite_bv_lshr_by_const_1 \<open>automatically_generated\<close>
 
 (*    assumptions:
          ((3::int) < int (size (1705::16 word))) = True

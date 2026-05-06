@@ -151,7 +151,7 @@ lemma bv_bitblast_step_var1:
                 bit vptr (25::nat), bit vptr (26::nat), bit vptr (27::nat), bit vptr (28::nat), bit vptr (29::nat), bit vptr (30::nat),
                 bit vptr (31::nat)]) "
   by (ctxt_tactic "bv_bitblast_step_var")
-declare[[ML_print_depth=1000]]
+
 lemma bv_bitblast_step_extract1:
 "smtlib_extract (31::int) (24::int)
           (of_bl
@@ -165,5 +165,21 @@ lemma bv_bitblast_step_extract1:
           (rev [bit vptr (24::nat), bit vptr (25::nat), bit vptr (26::nat), bit vptr (27::nat), bit vptr (28::nat), bit vptr (29::nat),
                 bit vptr (30::nat), bit vptr (31::nat)])::8 word)"
   by (ctxt_tactic "bv_bitblast_step_extract")
+
+
+lemma bv_bitblast_step_bvadd1:
+"
+of_bl (rev [True, True, False, False]) +
+of_bl (rev [True, lsb (smtlib_extract (3::int) 1 (x::4 word)::1 word), bit (smtlib_extract (3::int) 1 x::1 word) 1, bit (smtlib_extract (3::int) 1 x::1 word) (2::nat)])
+=
+of_bl (rev [(True \<noteq> True) \<noteq> False, (True \<noteq> lsb (smtlib_extract (3::int) 1 x::1 word)) \<noteq> (True \<and> True \<or> True \<noteq> True \<and> False),
+            (False \<noteq> bit (smtlib_extract (3::int) 1 x::1 word) 1) \<noteq>
+            (True \<and> lsb (smtlib_extract (3::int) 1 x::1 word) \<or> True \<noteq> lsb (smtlib_extract (3::int) 1 x::1 word) \<and> (True \<and> True \<or> True \<noteq> True \<and> False)),
+            (False \<noteq> bit (smtlib_extract (3::int) 1 x::1 word) (2::nat)) \<noteq>
+            (False \<and> bit (smtlib_extract (3::int) 1 x::1 word) 1 \<or>
+             False \<noteq> bit (smtlib_extract (3::int) 1 x::1 word) 1 \<and>
+            (True \<and> lsb (smtlib_extract (3::int) 1 x::1 word) \<or>
+             True \<noteq> lsb (smtlib_extract (3::int) 1 x::1 word) \<and> (True \<and> True \<or> True \<noteq> True \<and> False)))])"
+  by (ctxt_tactic "bv_bitblast_step_bvadd")
 
 end

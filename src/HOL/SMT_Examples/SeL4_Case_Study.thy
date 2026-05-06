@@ -19,33 +19,13 @@ Or I might have missed copying over an assumption.
 *)
 
 
-lemma shiftl_lift:
-  "(x << i) \<equiv> push_bit i x"
-  unfolding shiftl_def by simp
-thm drop_bit_lift_def
-lemma shiftr_lift:
-  "(x >> i) \<equiv> drop_bit i x"
-  unfolding shiftr_def by simp
-
-
-ML \<open>
-val nat_native_ops_tab =
-[
-("Bit_Shifts_Infix_Syntax.semiring_bit_operations_class.shiftl", @{thms shiftl_lift push_bit_lift}),
-("Bit_Shifts_Infix_Syntax.semiring_bit_operations_class.shiftr", @{thms shiftr_lift drop_bit_lift})
-
-]
-val ops_tab = fold SMT_Normalize.add_nat_native_ops_tab nat_native_ops_tab
-val _ = Theory.setup (Context.theory_map (ops_tab))
-
-\<close>
 (*options*)
 
-declare[[smt_expert_debug_alethe_level=3]]
+declare[[smt_expert_debug_alethe_level=0]]
 declare[[smt_expert_debug_alethe_files="alethe_replay_bv_methods"]]
 
 declare[[ML_print_depth=1000]]
-declare[[smt_verbose=false,smt_trace=true,smt_timeout=10]]
+declare[[smt_verbose=false,smt_trace=true,smt_timeout=25,smt_reconstruction_step_timeout=25]]
 
 
 context semiring_bits
@@ -131,12 +111,13 @@ definition valid_pde_mapping_offset' :: "machine_word \<Rightarrow> bool" where
 
 (*Quick additions to reconstruction, if successful should be ported to "earlier" in the code base*)
 
+(*
 lemmas [bv_reconstruction_const_test] = arith_simps word_0_bl of_bl_False rev.simps of_bl_True append_Nil append_Cons bin_to_bl_aux_Bit0_minus_simp bin_to_bl_aux_Bit1_minus_simp bin_to_bl_aux_zero_minus_simp bin_to_bl_aux.Z bin_last_numeral_simps
 drop_bit_int_code int_shiftr_numeral and_one_eq int_and_1
 lemmas [bv_reconstruction_length] = smt_word_len_evaluate
 lemmas [rbl_bvult_fun] = le_Suc_numeral pred_numeral_simps
 lemmas[nat_normalized_input] = Word_eq_word_of_int
-
+*)
 
 (*
 Benchmark Nr: 1
@@ -145,11 +126,17 @@ Origin:
 Description:
   No custom functions & no casts between bit-widths. Is aligned uses power 2.
 *)
+thm word_plus_rbl_bvadd_fun
 lemma pde_shifting:
   "\<lbrakk>is_aligned (vptr::word32) 24; x \<le> 0xF\<rbrakk> \<Longrightarrow> x + (vptr >> 20) < 0x1000"
   using is_aligned_iff_take_bit_eq_0
-  supply[[smt_trace=false]]
+  supply[[smt_trace=true,smt_verbose=true]]
+  apply (smt(cvc5))
   sorry
+
+lemma "bit x 0 \<Longrightarrow> \<not>bit ((3::4 word) + (x:: 4 word)) 0"
+  apply (smt (cvc5))
+
 (*
   apply (rule order_less_le_trans)
    apply (subst upper_bits_unset_is_l2p_32 [where n=12, symmetric])
@@ -194,12 +181,14 @@ Description:
   Few custom functions (no datatypes) & casts between bit-widths.
   I found the case distinction interesting and want to see what the SMT solver does.
 *)
-lemma asid_low_high_bits:
+lemma asid_low_high_bits: (*TODO: Encode unsigned properly*)
   "\<lbrakk> x && mask asid_low_bits = y && mask asid_low_bits;
     ucast (asid_high_bits_of x) = (ucast (asid_high_bits_of y)::word32);
     x \<le> 2 ^ asid_bits - 1; y \<le> 2 ^ asid_bits - 1 \<rbrakk>
   \<Longrightarrow> x = y"
-  sorry
+  using asid_low_bits_def asid_high_bits_of_def asid_bits_def bin_nth_mask
+    apply (smt(cvc5))
+
 (*
   apply (rule word_eqI)
   apply (simp add: upper_bits_unset_is_l2p_32 [symmetric] bang_eq nth_ucast word_size)
@@ -230,7 +219,9 @@ Note: the same statement appears in l4v/proof/invariant-abstract/ARM/ArchTcbAcc_
 lemma aligned_offset_ignore:
     "\<And>(l::word32) (p::word32) sz. l<4 \<Longrightarrow> p && mask 2 = 0 \<Longrightarrow>
        p+l && ~~ mask (pageBitsForSize sz) = p && ~~ mask (pageBitsForSize sz)"
-  sorry
+  unfolding pageBitsForSize_def 
+  using vmpage_size.simps
+  
 (*
   proof -
     fix l p sz
@@ -288,7 +279,6 @@ definition pageBits :: "nat" where "pageBits \<equiv> 12"
 lemma vptr_shiftr_le_2pu:
   "(vptr :: word32)  >> 20 < 2 ^ pageBits"
 
-  sledgehammer[provers=cvc5_proof]
 
 
 
