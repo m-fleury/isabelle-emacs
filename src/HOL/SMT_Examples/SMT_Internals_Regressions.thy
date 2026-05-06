@@ -585,7 +585,7 @@ declare[[smt_debug_arith_verit]]
 declare[[show_types=false,show_hyps=false]]
 declare[[ML_print_depth=1000]]
 
-lemma la_generic_bug_1:
+lemma la_generic_1:
 "
 \<not> - 1 * ((x8::int) + - 1 * y8 + x1 + - 1 * y1) \<le> - 1 * 1 \<or>
 \<not> x8 + - 1 * y8 + - 1 * x2 + y2 + x1 + - 1 * y1 + - 1 * x0 + y0 \<le> 0 \<or>
@@ -597,7 +597,7 @@ lemma la_generic_bug_1:
   by (ctxt_tactic "la_generic" "[(1,1),(1,1),(1,1),(1,1)]")
 
 
-lemma la_generic_bug_1h1:
+lemma la_generic_2:
   fixes x8::int
   shows 
 "
@@ -607,6 +607,11 @@ lemma la_generic_bug_1h1:
 0 < 0 "
   by (ctxt_tactic "la_generic" "[(1,1),(1,1),(1,1),(1,1)]")
 
+(* The original problem had t1,t2 :: real, but int also had the same issue *)
+lemma la_generic_3:
+  fixes t1::int and t2::int
+  shows "(t1 \<noteq> -1) \<or> (t2 \<noteq> (-t2)) \<or> ((-t2) \<noteq> (-t1))"
+  by (ctxt_tactic "la_generic" "[(-2,1),(1,1),(2,1)]")
 
 (* Rule 12: lia_generic *)
 
