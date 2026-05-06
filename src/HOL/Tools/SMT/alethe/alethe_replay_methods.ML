@@ -197,6 +197,7 @@ sig
   val simplify_tac: Proof.context -> thm list -> int -> tactic
   val replay_error: Proof.context -> string -> alethe_rule -> thm list -> term list -> term -> 'a
 
+  val sort_disj_and_equality_in_term: Proof.context -> conv
 end;
 
 
@@ -1238,48 +1239,214 @@ end
 (* Quantifiers *)
 
 local
-  val rm_unused = @{lemma \<open>(\<forall>x. P) = P\<close> \<open>(\<exists>x. P) = P\<close> by blast+}
+  (**)
+  fun term_contains v (t $ u) = 
+        t = v orelse v = u orelse term_contains v t orelse term_contains v u
+    | term_contains v (s as Abs (_, _, xs)) =
+        v = s orelse term_contains v xs
+    | term_contains v t = v = t
+  
+  fun print_conv (str : string) ct = ((*@{print} (str, ct, Thm.term_of ct);*) Conv.all_conv ct)
 
-  (*We follow here the approach from carcara: CNF transformation, then distribution of forall 
-  quantifiers.*)
-  fun qnt_cnf_tac ctxt =
-   (debug_msg_tac' ctxt high "qnt_cnf start") THEN'
-    SOLVED' (
-       REPEAT' (resolve_tac ctxt 
-        @{lemma \<open>(A \<Longrightarrow> a) \<Longrightarrow> a \<or> \<not>A\<close>
-           \<open>(a \<Longrightarrow> A) \<Longrightarrow> \<not>a \<or>A\<close> by auto})
-      THEN' simplify_tac ctxt (@{thms if_bool_eq_conj disj_comms
-         ex_simps all_conj_distrib} @ 
-        [@{lemma
-          \<open>\<And>P Q R. (\<forall>x y. P x y \<and> Q x y \<or> R x y) = ((\<forall>x y. P x y \<or> R x y) \<and> (\<forall>x y. Q x y \<or> R x y))\<close>
-          by blast+}] @ 
-        (*not_not is repeated as last theorem:*)
-        (curry List.take @{thms nnf_simps} (length @{thms nnf_simps} - 1)))
-      THEN' TRY' (CNF.cnf_rewrite_tac ctxt)
-      (*split the forall in smaller conjunctions*)
-      THEN' TRY' (simplify_tac ctxt @{thms all_conj_distrib})
-      THEN' REPEAT' (eresolve_tac ctxt @{thms conjE})
-      THEN' TRY' (simplify_tac ctxt []) (*cheap attempt*)
-      THEN' (debug_msg_tac' ctxt high "qnt_cnf after resolving with qnt_cnf_basic")
-      (*try again to split*)
-      THEN' TRY' (simplify_tac ctxt (@{thms ac_simps} @ 
-        (*not_not is repeated as last theorem:*)
-        (curry List.take @{thms nnf_simps} (length @{thms nnf_simps} - 1))))
-      THEN' (debug_msg_tac' ctxt high "qnt_cnf after resolving simplifying")
-      THEN' TRY' (Metis_Tactic.metis_tac [] ATP_Problem_Generate.combsN ctxt []))
-    ORELSE' TRY' (Metis_Tactic.metis_tac [] ATP_Problem_Generate.combsN ctxt [])
+  fun repeat_rewrite_bottom_up1 ctxt thms1 ctrm =
+      if fastype_of (ctrm |> Thm.term_of) <> @{typ bool} then Conv.all_conv ctrm
+      else
+      (case ctrm |> Thm.term_of of
+        _ $ _ =>
+          (Conv.fun_conv (repeat_rewrite_bottom_up1 ctxt thms1)
+          then_conv Conv.try_conv (Conv.arg_conv (Conv.rewrs_conv thms1))
+          then_conv Conv.try_conv (Conv.rewrs_conv thms1)) ctrm
+      | Abs _ => Conv.try_conv (Conv.abs_conv (fn (_, ctxt) => repeat_rewrite_bottom_up1 ctxt thms1) ctxt) ctrm
+      | _ => Conv.try_conv (Conv.rewrs_conv (thms1)) ctrm)
 
-  val all_comm = @{lemma "(\<forall>x y. P x y) \<equiv> (\<forall>y x. P x y)" by (subst all_comm)}
+  fun repeat_until_fixpoint_conv ctxt conv =
+    Conv.repeat_conv (Conv.changed_conv (Conv.top_sweep_conv conv ctxt))
+  fun repeat_until_fixpoint_conv2 ctxt thms =
+    Conv.repeat_conv (Conv.changed_conv (Conv.top_sweep_rewrs_conv thms ctxt))
+  fun find_independant_terms dest thms (v, ctxt) t =
+    let
+      val disjs = 
+        dest (Thm.term_of t)
+        |> filter_out (term_contains (Thm.term_of v))
+        |> map (Thm.cterm_of ctxt)
+      fun move_term_to_the_beginning (ct :: cts) =
+          print_conv "before moving out"
+          then_conv repeat_until_fixpoint_conv2 ctxt (map (Drule.infer_instantiate' ctxt [NONE, SOME ct]) thms |> @{print})
+          then_conv print_conv "after moving 1 out" then_conv move_term_to_the_beginning cts
+
+       | move_term_to_the_beginning [] = Conv.all_conv
+    in
+      t
+      |> (move_term_to_the_beginning disjs then_conv print_conv "after moving out")
+    end
+  (*for miniscoping we go over the term recursively and if we detect a conjuction/disjunction with a term
+   does not depend en the variables, we move it to the front and and the rewrite the entire thing
+   with rewr_conv outside of the quantifier.*)
+  fun miniscope_term ctxt t = 
+    (case t |> Thm.term_of  of
+      \<^Const_>\<open>HOL.All _\<close> $ _ =>
+        (*Conv.try_conv*) (Conv.arg_conv (Conv.abs_conv (find_independant_terms HOLogic.disjuncts 
+        @{thms disj_left_commute[THEN eq_reflection] disj_commute[THEN eq_reflection]}) ctxt)
+        then_conv Conv.try_conv 
+           (repeat_until_fixpoint_conv ctxt
+             (K (Conv.rewr_conv @{lemma \<open>\<And>P1 Q1. \<forall>x::'d1. (P1::bool) \<or> (Q1::'d1 \<Rightarrow> bool) x \<equiv> P1 \<or> (\<forall>x::'d1. Q1 x)\<close> by auto})))
+        then_conv Conv.fun_conv (miniscope_term ctxt)
+        then_conv Conv.arg_conv (miniscope_term ctxt)) t
+     | \<^Const_>\<open>HOL.Ex _\<close> $ _ =>
+        Conv.try_conv (Conv.arg_conv (Conv.abs_conv (find_independant_terms HOLogic.conjuncts 
+        @{thms conj_left_commute[THEN eq_reflection] conj_commute[THEN eq_reflection]}) ctxt)
+        then_conv Conv.try_conv 
+           (repeat_until_fixpoint_conv ctxt
+             (K (Conv.rewr_conv @{lemma \<open>\<And>P1 Q1. \<exists>x::'d1. (P1::bool) \<and> (Q1::'d1 \<Rightarrow> bool) x \<equiv> P1 \<and> (\<exists>x::'d1. Q1 x)\<close> by auto})))
+        then_conv Conv.fun_conv (miniscope_term ctxt)
+        then_conv Conv.arg_conv (miniscope_term ctxt)) t
+    | _ $ _ => Conv.try_conv (Conv.fun_conv (miniscope_term ctxt) then_conv Conv.arg_conv (miniscope_term ctxt)) t
+    | Abs _ => Conv.try_conv (Conv.abs_conv (fn (_, ctxt) => miniscope_term ctxt) ctxt) t
+    | _ => Conv.all_conv t)
+
+  fun imp_conv_all_premises ctxt f t =
+    (case Thm.term_of t of
+      (\<^Const_>\<open>Pure.imp\<close> $ _) $ _ => 
+        t
+        |> (Conv.fun_conv (imp_conv_all_premises ctxt f) then_conv Conv.arg_conv (imp_conv_all_premises ctxt f))
+    | (\<^Const_>\<open>Pure.all _\<close> $ _) => (Conv.arg_conv (Conv.abs_conv (fn (_, ctxt) => imp_conv_all_premises ctxt f) ctxt)) t
+    | (\<^Const_>\<open>Trueprop\<close> $ _) => HOLogic.Trueprop_conv (imp_conv_all_premises ctxt f) t
+    | _ => f ctxt t)
+
+  fun miniscope ctxt =
+    (*HOLogic.Trueprop_conv (Conv.arg_conv (miniscope_term ctxt) then_conv Conv.fun_conv (Conv.arg_conv (miniscope_term ctxt)))*)
+    imp_conv_all_premises ctxt (miniscope_term)
+
+  fun imp_conv_only_concl ctxt f t =
+    (case Thm.term_of t of
+      (\<^Const_>\<open>Pure.imp\<close> $ _) $ _ => Conv.arg_conv (imp_conv_only_concl ctxt f) t
+    | (\<^Const_>\<open>Pure.all _\<close> $ _) => (Conv.arg_conv (Conv.abs_conv (fn (_, ctxt) => imp_conv_only_concl ctxt f) ctxt)) t
+    | (\<^Const_>\<open>Trueprop\<close> $ _) => HOLogic.Trueprop_conv (imp_conv_only_concl ctxt f) t
+    | _ => f ctxt t)
+
+  fun miniscope_conclusion ctxt = (imp_conv_only_concl ctxt miniscope_term) 
+
+  val all_comm = @{lemma "\<And>P Q. (\<forall>x y. P x y) \<equiv> (\<forall>y x. P x y)" by (subst all_comm)}
   fun plunge_down ctxt str ctrm =
-   case Thm.term_of ctrm of
+   (case Thm.term_of ctrm of
      _ $ Abs (v, _, _) => 
-       if String.isPrefix v str
-       then
-         ctrm
-         |> (Conv.try_conv (Conv.rewr_conv all_comm)
-             then_conv Conv.arg_conv (Conv.abs_conv (fn (_, ctxt) => plunge_down ctxt str) ctxt))
-       else Conv.arg_conv (Conv.abs_conv (fn (_, ctxt) => plunge_down ctxt str) ctxt) ctrm
-   | _ => Conv.all_conv ctrm
+       ctrm
+       |> (if String.isPrefix v str
+          then Conv.try_conv (Conv.rewr_conv all_comm)
+             then_conv Conv.arg_conv (Conv.abs_conv (fn (_, ctxt) => plunge_down ctxt str) ctxt)
+          else Conv.arg_conv (Conv.abs_conv (fn (_, ctxt) => plunge_down ctxt str) ctxt))
+   | _ => Conv.all_conv ctrm)
+
+  fun match_coefficients _ [] ctrm = Conv.all_conv ctrm
+    | match_coefficients ctxt (x :: xs) ctrm =
+       (case Thm.term_of ctrm of
+         _ $ Abs (v, _, _) => 
+           ctrm
+           |> 
+             (if x = v
+             then Conv.arg_conv (Conv.abs_conv (fn (_, ctxt) => match_coefficients ctxt xs) ctxt)
+             else plunge_down ctxt v then_conv match_coefficients ctxt (x :: xs))
+       | _ => Conv.all_conv ctrm)
+
+   fun extract_outmost_forall_quantified_names_q (Const(\<^const_name>\<open>HOL.All\<close>, _) $ Abs (name, _, t)) =
+         name :: (extract_outmost_forall_quantified_names_q t)
+     | extract_outmost_forall_quantified_names_q _ = []
+
+  fun match_names_between_left_and_right ctxt cterm =
+    let val vars =
+        cterm
+        |> Thm.term_of
+        |> HOLogic.dest_Trueprop
+        |> HOLogic.dest_disj
+        |> hd
+        |> HOLogic.dest_not
+        |> extract_outmost_forall_quantified_names_q
+    in
+      HOLogic.Trueprop_conv (Conv.arg_conv (match_coefficients ctxt vars)) cterm
+    end
+  val rm_unused = @{lemma \<open>(\<forall>x. P) = P\<close> \<open>(\<exists>x. P) = P\<close> by blast+}
+  val cnf_conclusion_tac =
+    Subgoal.FOCUS (fn {context = ctxt', concl, ...} =>
+    let
+      val cnf = CNF.make_cnf_thm ctxt' (concl |> HOLogic.dest_judgment |> Thm.term_of)
+    in
+      HEADGOAL (resolve_tac ctxt' [@{thm iffD2} OF [cnf]])
+    end)
+
+fun sort_disj ctxt t =
+  let 
+    val disjs = 
+      HOLogic.disjuncts t 
+      |> sort Term_Ord.term_ord
+    fun commute_last last =
+       repeat_rewrite_bottom_up1 ctxt
+         (((map (Drule.infer_instantiate' ctxt [NONE, SOME (Thm.cterm_of ctxt last)])
+         @{thms disj_left_commute[THEN eq_reflection] disj_commute[THEN eq_reflection]})))
+    fun reorder_disj [] = Conv.all_conv
+      | reorder_disj (last :: []) =
+       commute_last last
+       then_conv print_conv "after moving to final last"
+      | reorder_disj (last :: others) =
+       commute_last last
+       then_conv print_conv "after moving to last"
+       then_conv Conv.try_conv (Conv.arg_conv (reorder_disj others))
+  in
+    reorder_disj disjs
+    then_conv repeat_until_fixpoint_conv2 ctxt 
+      @{thms disj_absorb[THEN eq_reflection] disj_left_absorb[THEN eq_reflection]}
+  end
+
+  fun sort_eq_conv t1 t2 =
+    (case Term_Ord.term_ord (t1, t2) of
+      LESS => Conv.rewr_conv @{thm eq_commute[THEN eq_reflection]}
+    | _ => Conv.all_conv)
+  
+
+  (*The core of qnt_cnf:
+    1. we match the name of the quantifiers left and right (the being a subset of the other). This
+    is not necessary but makes the tactic call later more robust and faster.
+    2. we transform \<not>P \<or> Q in P \<Longrightarrow> Q
+    2a. fast path: if there are no quantifiers in Q, we rely on the simplifier to do unit
+    propagation and derive false. This is much faster and avoids the exponential blow-up
+    that appears otherwise (we saw trivial goals taking ~10s just because of the size of the term).
+    3. we miniscope P and transform it into CNF (including replacement of implication that
+    CNF.cnf_rewrite_tac does not do) and split the conjunctions.
+    4. we check if we have an assumption.
+    5. if not we sort the term.
+    4. finally we check again if we have an assumption.
+    5. if not solved, we call metis.
+
+
+  Some historical notes: 
+    a. In Isabelle2025 and earlier we simply called blast/metis/meson and hoped for the best.
+
+    b. last tactic: initially we used blast or metis at the end. Both failed (especially the latter
+       means that metis is incomplete).
+       
+       We switched to fast, but this failed because it would 
+       timeout in some theories because of intro rule. As there is no way to empty the context
+       (unlike the simplifier), this was not a solution.
+
+       So we tried the simplifier... which failed
+       at reordering within terms in practice: it worked on some example, but only if the CNF could
+       be undone (reintroducing implications in order to use cong rules). Also it simplified some
+       real examples to true if the variable was renamed.
+
+       Therefore, we switched to doing the proof by hand.
+       
+       Sorting with conversion is extremely stupid, but well...
+
+    c. We tried a lot of things to make the unfolding/conversion stuff faster, we never managed, 
+       including rewriting ourselves and using the fact that we know in what order we should do
+       it.
+  *)
+
+  fun simplify_tac_no_simps ctxt thms =
+    ctxt
+    |> empty_simpset
+    |> put_simpset HOL_basic_ss
+    |> (fn ctxt => ctxt addsimps thms)
+    |> Simplifier.asm_full_simp_tac
 
 
   fun reorder_prefix_to _ [] ctrm = Conv.all_conv ctrm
@@ -1308,7 +1475,94 @@ local
     in
       CONVERSION (HOLogic.Trueprop_conv (Conv.arg_conv (reorder_prefix_to ctxt strs)))
     end
+
+  (*unit propagation is sufficient (at least it is, when the conclusion is a single disjunction*)
+  fun try_early_simp_solve {context, concl, prems, ...} =
+    let
+      val vars =
+        concl
+        |> Thm.term_of
+        |> HOLogic.dest_Trueprop
+        |> extract_outmost_forall_quantified_names_q
+
+      fun simplify_tac_with_cong cong simprocs ctxt thms =
+        ctxt
+        |> empty_simpset
+        |> put_simpset HOL_basic_ss
+        |> (fn ctxt => ctxt addsimps @{thms simp_thms} addsimps thms)
+        |> Simplifier.add_cong cong
+        |> (fn ctxt => ctxt addsimprocs simprocs)
+        |> Simplifier.asm_full_simp_tac
+
+      in
+        if null vars 
+        then HEADGOAL 
+         (resolve_tac context @{thms ccontr}
+          THEN' Method.insert_tac context prems
+          THEN' eqsubst_all context @{thms de_Morgan_disj alethe_Box_def not_not}
+          THEN' REPEAT' (eresolve_tac context @{thms conjE})
+          THEN' simplify_tac_with_cong @{thm if_weak_cong} [] context @{thms conj_assoc eq_commute})
+        else all_tac
+      end
 in
+
+fun sort_disj_and_equality_in_term ctxt ctrm =
+  ctrm
+  |> (case (Thm.term_of ctrm) of
+       _ $ Abs (_, _, _) => 
+         Conv.arg_conv (Conv.abs_conv (fn (_, ctxt) => sort_disj_and_equality_in_term ctxt) ctxt)
+    | t as (@{term \<open>HOL.disj\<close>} $ _) $ _ => 
+        Conv.try_conv (Conv.fun_conv (sort_disj_and_equality_in_term ctxt)) 
+        then_conv Conv.arg_conv (sort_disj_and_equality_in_term ctxt)
+        then_conv sort_disj ctxt t
+    | (@{term \<open>HOL.eq\<close>} $ t1) $ t2 =>
+        Conv.fun_conv (sort_disj_and_equality_in_term ctxt) 
+        then_conv Conv.arg_conv (sort_disj_and_equality_in_term ctxt)
+        then_conv sort_eq_conv t1 t2
+    | _ $ _ => 
+        Conv.arg_conv (sort_disj_and_equality_in_term ctxt) then_conv
+        Conv.fun_conv (sort_disj_and_equality_in_term ctxt)
+    | _ => Conv.all_conv)
+
+fun qnt_cnf_tac ctxt =
+  (debug_msg_tac' ctxt high "qnt_cnf start") THEN'
+  (*step 1*)
+  CONVERSION (match_names_between_left_and_right ctxt)
+  THEN' REPEAT' (resolve_tac ctxt [@{lemma \<open>\<And>P Q. (\<And>x. \<not>P x \<or> Q x) \<Longrightarrow> \<not>(\<forall>x. P x) \<or> (\<forall>y. Q y)\<close> by blast}])
+  (*step 2*)
+  THEN'  (*alethe_Box to make sure we don't conjE too much later*)
+   (resolve_tac ctxt 
+    @{lemma 
+       \<open>\<And>a b A B. (alethe_Box (\<not>a \<and> \<not>b) \<Longrightarrow> A \<and> B) \<Longrightarrow> \<not>\<not>(a \<or> b) \<or> A \<and> B\<close>
+       \<open>\<And>a A. (a \<Longrightarrow> A) \<Longrightarrow> \<not>a \<or> A\<close> by (auto simp: alethe_Box_def)})
+  (*step 2a*)
+  THEN' TRY' (SOLVED' (Subgoal.FOCUS (try_early_simp_solve) ctxt))
+  (*step 3*)
+  THEN' TRY' (eqsubst_all ctxt 
+    @{thms nnf_simps(4)[THEN eq_reflection] if_bool_eq_conj[THEN eq_reflection]
+     imp_conv_disj[THEN eq_reflection] de_Morgan_conj[THEN eq_reflection] not_not[THEN eq_reflection]
+    disj_assoc[THEN eq_reflection]})
+  THEN' REPEAT' (eresolve_tac ctxt @{thms conjE})
+  THEN' TRY' (CONVERSION (Conv.try_conv (Conv.top_sweep_rewrs_conv @{thms alethe_Box_def[THEN eq_reflection]} ctxt)))
+  THEN' TRY' (DETERM' (CNF.cnf_rewrite_tac ctxt))
+  THEN' TRY' (eqsubst_all ctxt (@{thms all_conj_distrib[THEN eq_reflection]}))
+  THEN' REPEAT' (eresolve_tac ctxt @{thms conjE})
+  THEN' TRY' (DETERM' (CONVERSION (miniscope ctxt)))
+  THEN' TRY' (simplify_tac_no_simps ctxt (@{thms disj_assoc}))
+  THEN' TRY' (CNF.cnf_rewrite_tac ctxt)
+  THEN' TRY' (cnf_conclusion_tac ctxt) (*there is no method in CNF for that*)
+  THEN' TRY' (eqsubst_all ctxt (@{thms all_conj_distrib[THEN eq_reflection]}))
+  THEN' TRY' (CONVERSION (miniscope_conclusion ctxt))
+  (*step 4*)
+  THEN' TRY' (assume_tac ctxt)
+  THEN' TRY' (CONVERSION (sort_disj_and_equality_in_term ctxt))
+  THEN' TRY' (assume_tac ctxt)
+  THEN' TRY' (REPEAT' (eresolve_tac ctxt @{thms conjE}))
+  THEN' TRY' (REPEAT' (resolve_tac ctxt @{thms conjI}))
+  THEN' TRY' (assume_tac ctxt)
+  (*step 5*)
+  THEN' TRY' (Metis_Tactic.metis_tac [] ATP_Problem_Generate.combsN ctxt [])
+    
 fun qnt_rm_unused ctxt _ t = SMT_Replay_Methods.prove ctxt t (fn _ =>
   K (unfold_tac ctxt rm_unused)
   THEN' (debug_msg_tac' ctxt high "qnt_rm_unused")
@@ -1424,6 +1678,25 @@ end
 
 fun qnt_join ctxt _ t = SMT_Replay_Methods.prove ctxt t Classical.fast_tac
 
+(*qnt_cnf is one of the most complicated rules to reconstruct:
+
+  1) no tactic works: metis is incomplete even if it should be in the fragment;
+  blast sometimes fails.
+
+  2) the description of the rule is incorrect: not all --> operators are replaced and not all parts
+  of the formula are transformed into CNF.
+
+  3) as the tactic does not transform the entire formula as CNF and it is not documented how deep
+  this goes, we cannot assume that we get only one disjunction (we really saw having one conjunction
+  in the conclusion)
+
+In the old version we had a mix of metis/blast. We then improved the reconstruction but lost some
+of the problems. Therefore, we try to be faithful and make the reconstruction as simple as possible
+for the tactics we use, see the comments in qnt_cnf_tac.
+
+In essence, we follow the approach from carcara: CNF transformation, then distribution of forall 
+quantifiers.
+*)
 fun qnt_cnf ctxt _ t = SMT_Replay_Methods.prove ctxt t qnt_cnf_tac
 
 fun qnt_simplify ctxt _ t = SMT_Replay_Methods.prove ctxt t (fn _ =>

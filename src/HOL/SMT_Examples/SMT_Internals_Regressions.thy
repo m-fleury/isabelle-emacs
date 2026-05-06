@@ -785,12 +785,14 @@ lemma eq_congruent_pred_2: "\<not> (a = a) \<or> \<not>(a = b) \<or> (P a a = P 
 
 (* Rule 29: qnt_cnf *)
 
-lemma qnt_cnf_1: "\<not> (\<forall>x1. \<not>((x1 = 1) \<or> (x1 = 2))) \<or> (\<forall>x1. (\<not>(x1 = 1) \<and> \<not>(x1 = 2)))"
+lemma qnt_cnf_1: "\<not> (\<forall>x1::'a. \<not>((x1 = 1) \<or> (x1 = 2))) \<or> (\<forall>x1::'a::{numeral}. (\<not>(x1 = 1) \<and> \<not>(x1 = 2)))"
  by (ctxt_tactic "qnt_cnf")
 
 lemma qnt_cnf_2: \<open>\<not> (\<forall>veriT_vr1::'a. \<not> (P::bool \<Rightarrow> 'a \<Rightarrow> bool) False veriT_vr1 \<and> P True veriT_vr1) \<or>
          (\<forall>veriT_vr1::'a. P True veriT_vr1) \<close>
  by (ctxt_tactic "qnt_cnf")
+
+thm alethe_Box_def[THEN eq_reflection]
 
 lemma qnt_cnf_3:
   fixes trans
@@ -942,6 +944,158 @@ lemma
          Sum veriT_vr80 veriT_vr81 veriT_vr82 veriT_vr83 veriT_vr87 veriT_vr88)\<close>
   by (ctxt_tactic "qnt_cnf")
 
+locale _ =
+  fixes order :: "'energy \<Rightarrow> 'energy \<Rightarrow> bool"  (infix \<open>e\<le>\<close> 80) and
+        energies :: "'energy set"
+begin
+
+abbreviation "incomparable P \<equiv> \<lambda>x y. \<not> P x y \<and> \<not> P y x"
+
+lemma
+  fixes P :: \<open>('position \<Rightarrow> 'energy set) set\<close> and veriT_vr29
+  defines \<open>Delta \<equiv> \<lambda>veriT_vr29. {uua::'energy. \<exists>F::'position \<Rightarrow> 'energy set. F \<in> P \<and> uua \<in> F veriT_vr29}\<close>
+  shows \<open> \<not> (\<forall>(veriT_vr29::'position) veriT_vr30::'energy.
+                (veriT_vr30 \<in> Delta veriT_vr29 \<and>
+                 (\<forall>x::'energy. x \<in> Delta veriT_vr29 \<and> veriT_vr30 \<noteq> x \<longrightarrow> \<not> x e\<le> veriT_vr30) \<longrightarrow>
+                 veriT_vr30 \<in> Delta veriT_vr29 \<and>
+                 (\<forall>veriT_vr31::'energy. veriT_vr31 \<in> Delta veriT_vr29 \<and> veriT_vr30 \<noteq> veriT_vr31 \<longrightarrow> \<not> veriT_vr31 e\<le> veriT_vr30)) \<and>
+                (veriT_vr30 \<in> Delta veriT_vr29 \<and>
+                 (\<forall>veriT_vr32::'energy. veriT_vr32 \<in> Delta veriT_vr29 \<and> veriT_vr30 \<noteq> veriT_vr32 \<longrightarrow> \<not> veriT_vr32 e\<le> veriT_vr30) \<longrightarrow>
+                 veriT_vr30 \<in> Delta veriT_vr29 \<and> (\<forall>x::'energy. x \<in> Delta veriT_vr29 \<and> veriT_vr30 \<noteq> x \<longrightarrow> \<not> x e\<le> veriT_vr30))) \<or>
+         (\<forall>(veriT_vr29::'position) (veriT_vr30::'energy) veriT_vr31::'energy.
+             \<not> (veriT_vr30 \<in> Delta veriT_vr29 \<and> (\<forall>x::'energy. x \<in> Delta veriT_vr29 \<and> veriT_vr30 \<noteq> x \<longrightarrow> \<not> x e\<le> veriT_vr30)) \<or>
+             veriT_vr31 \<notin> Delta veriT_vr29 \<or> veriT_vr30 = veriT_vr31 \<or> \<not> veriT_vr31 e\<le> veriT_vr30)\<close>
+  by (ctxt_tactic "qnt_cnf")
+
+lemma
+  fixes P :: \<open>('position \<Rightarrow> 'energy set) set\<close> and veriT_vr29
+  defines \<open>Delta \<equiv> \<lambda>veriT_vr29. {uua::'energy. \<exists>F::'position \<Rightarrow> 'energy set. F \<in> P \<and> uua \<in> F veriT_vr29}\<close>
+  shows \<open> \<not> (\<forall>(veriT_vr29::'position) veriT_vr30::'energy.
+                (alethe_Box (veriT_vr30 \<in> Delta veriT_vr29) \<and>
+                 (\<forall>x::'energy. alethe_Box (x \<in> Delta veriT_vr29) \<and> \<not>alethe_Box (veriT_vr30 = x) \<longrightarrow> \<not> alethe_Box (x e\<le> veriT_vr30)) \<longrightarrow>
+                 veriT_vr30 \<in> Delta veriT_vr29 \<and>
+                 (\<forall>veriT_vr31::'energy. alethe_Box (veriT_vr31 \<in> Delta veriT_vr29) \<and> \<not>alethe_Box (veriT_vr30 = veriT_vr31) \<longrightarrow> \<not> alethe_Box (veriT_vr31 e\<le> veriT_vr30))) \<and>
+                (veriT_vr30 \<in> Delta veriT_vr29 \<and>
+                 (\<forall>veriT_vr32::'energy. alethe_Box (veriT_vr32 \<in> Delta veriT_vr29) \<and> \<not>alethe_Box (veriT_vr30 = veriT_vr32) \<longrightarrow> \<not> alethe_Box (veriT_vr32 e\<le> veriT_vr30)) \<longrightarrow>
+                 alethe_Box (veriT_vr30 \<in> Delta veriT_vr29) \<and> (\<forall>x::'energy. alethe_Box (x \<in> Delta veriT_vr29) \<and> \<not>alethe_Box (veriT_vr30 = x) \<longrightarrow> \<not> alethe_Box (x e\<le> veriT_vr30)))) \<or>
+         (\<forall>(veriT_vr29::'position) (veriT_vr30::'energy) veriT_vr31::'energy.
+             \<not> (alethe_Box (veriT_vr30 \<in> Delta veriT_vr29) \<and> (\<forall>x::'energy. alethe_Box (x \<in> Delta veriT_vr29) \<and> \<not>alethe_Box (veriT_vr30 = x) \<longrightarrow> \<not> alethe_Box (x e\<le> veriT_vr30))) \<or>
+             \<not>alethe_Box (veriT_vr31 \<in> Delta veriT_vr29) \<or> alethe_Box (veriT_vr30 = veriT_vr31) \<or> \<not> alethe_Box (veriT_vr31 e\<le> veriT_vr30))\<close>
+  by (ctxt_tactic "qnt_cnf")
+
+context
+  fixes P :: \<open>('position \<Rightarrow> 'energy set) set\<close> and veriT_vr29 :: 'position
+begin
+
+abbreviation  \<open>Delta \<equiv> \<lambda>veriT_vr29. {uua::'energy. \<exists>F::'position \<Rightarrow> 'energy set. F \<in> P \<and> uua \<in> F veriT_vr29}\<close>
+lemma
+  shows \<open> \<not> (\<forall>(veriT_vr29::'position) veriT_vr30::'energy.
+                (alethe_Box (veriT_vr30 \<in> Delta veriT_vr29) \<and>
+                 (\<forall>x::'energy. alethe_Box (x \<in> Delta veriT_vr29) \<and> \<not>alethe_Box (veriT_vr30 = x) \<longrightarrow> \<not> alethe_Box (x e\<le> veriT_vr30)) \<longrightarrow>
+                 veriT_vr30 \<in> Delta veriT_vr29 \<and>
+                 (\<forall>veriT_vr31::'energy. alethe_Box (veriT_vr31 \<in> Delta veriT_vr29) \<and> \<not>alethe_Box (veriT_vr30 = veriT_vr31) \<longrightarrow> \<not> alethe_Box (veriT_vr31 e\<le> veriT_vr30))) \<and>
+                (veriT_vr30 \<in> Delta veriT_vr29 \<and>
+                 (\<forall>veriT_vr32::'energy. alethe_Box (veriT_vr32 \<in> Delta veriT_vr29) \<and> \<not>alethe_Box (veriT_vr30 = veriT_vr32) \<longrightarrow> \<not> alethe_Box (veriT_vr32 e\<le> veriT_vr30)) \<longrightarrow>
+                 alethe_Box (veriT_vr30 \<in> Delta veriT_vr29) \<and> (\<forall>x::'energy. alethe_Box (x \<in> Delta veriT_vr29) \<and> \<not>alethe_Box (veriT_vr30 = x) \<longrightarrow> \<not> alethe_Box (x e\<le> veriT_vr30)))) \<or>
+         (\<forall>(veriT_vr29::'position) (veriT_vr30::'energy) veriT_vr31::'energy.
+             \<not> (alethe_Box (veriT_vr30 \<in> Delta veriT_vr29) \<and> (\<forall>x::'energy. alethe_Box (x \<in> Delta veriT_vr29) \<and> \<not>alethe_Box (veriT_vr30 = x) \<longrightarrow> \<not> alethe_Box (x e\<le> veriT_vr30))) \<or>
+             \<not>alethe_Box (veriT_vr31 \<in> Delta veriT_vr29) \<or> alethe_Box (veriT_vr30 = veriT_vr31) \<or> \<not> alethe_Box (veriT_vr31 e\<le> veriT_vr30))\<close>
+  by (ctxt_tactic "qnt_cnf")
+
+lemma \<open>  \<not> (\<forall>(veriT_vr34::('a \<Rightarrow> bool) \<Rightarrow> bool) veriT_vr35::'a.
+                (\<nexists>x::'a \<Rightarrow> bool. veriT_vr34 x \<and> x veriT_vr35) \<and>
+                \<not> (\<forall>veriT_vr36::'a \<Rightarrow> bool.
+                       \<not> (\<not> (\<forall>veriT_vr37::'a \<Rightarrow> bool. \<not> (veriT_vr34 veriT_vr37 \<and> veriT_vr36 = (\<phi>::('a \<Rightarrow> bool) \<Rightarrow> 'a \<Rightarrow> bool) veriT_vr37)) \<and> veriT_vr36 veriT_vr35)) \<longrightarrow>
+                \<phi> (\<lambda>uua::'a. \<exists>x::'a \<Rightarrow> bool. veriT_vr34 x \<and> x uua) veriT_vr35) \<or>
+         (\<forall>(veriT_vr34::('a \<Rightarrow> bool) \<Rightarrow> bool) (veriT_vr35::'a) (veriT_vr36::'a \<Rightarrow> bool) veriT_vr37::'a \<Rightarrow> bool.
+             (\<exists>x::'a \<Rightarrow> bool. veriT_vr34 x \<and> x veriT_vr35) \<or>
+             \<not> veriT_vr34 veriT_vr37 \<or> veriT_vr36 \<noteq> \<phi> veriT_vr37 \<or> \<not> veriT_vr36 veriT_vr35 \<or> \<phi> (\<lambda>uua::'a. \<exists>x::'a \<Rightarrow> bool. veriT_vr34 x \<and> x uua) veriT_vr35)  \<close>
+  by (ctxt_tactic "qnt_cnf")
+
+
+lemma \<open>\<not> (\<forall>veriT_vr13 veriT_vr14 veriT_vr15.
+           inv_tm_skip_first_arg_len_eq_1 veriT_vr13 (veriT_vr14, veriT_vr15) =
+           (if 0 = veriT_vr14 then inv_tm_skip_first_arg_len_eq_1_s0 veriT_vr13 veriT_vr15
+            else 5 = veriT_vr14 \<and> inv_tm_skip_first_arg_len_eq_1_s5 veriT_vr13 veriT_vr15)) \<or>
+    (\<forall>veriT_vr13 veriT_vr14 veriT_vr15.
+        \<not> inv_tm_skip_first_arg_len_eq_1 veriT_vr13 (veriT_vr14, veriT_vr15) \<or>
+        0 \<noteq> veriT_vr14 \<or> inv_tm_skip_first_arg_len_eq_1_s0 veriT_vr13 veriT_vr15) \<close>
+  by (ctxt_tactic "qnt_cnf")
+
+lemma \<open>\<not> (\<forall>veriT_vr13 veriT_vr14 veriT_vr15.
+           inv_tm_skip_first_arg_len_eq_1 veriT_vr13 (veriT_vr14, veriT_vr15) =
+           (if 0 = veriT_vr14 then inv_tm_skip_first_arg_len_eq_1_s0 veriT_vr13 veriT_vr15
+            else if 1 = veriT_vr14 then inv_tm_skip_first_arg_len_eq_1_s1 veriT_vr13 veriT_vr15
+                 else if 2 = veriT_vr14 then inv_tm_skip_first_arg_len_eq_1_s2 veriT_vr13 veriT_vr15
+                      else 5 = veriT_vr14 \<and> inv_tm_skip_first_arg_len_eq_1_s5 veriT_vr13 veriT_vr15)) \<or>
+    (\<forall>veriT_vr13 veriT_vr14 veriT_vr15.
+        \<not> inv_tm_skip_first_arg_len_eq_1 veriT_vr13 (veriT_vr14, veriT_vr15) \<or>
+        0 \<noteq> veriT_vr14 \<or> inv_tm_skip_first_arg_len_eq_1_s0 veriT_vr13 veriT_vr15) \<close>
+  by (ctxt_tactic "qnt_cnf")
+
+
+lemma \<open>\<not> (\<forall>veriT_vr13 veriT_vr14 veriT_vr15.
+           inv_tm_skip_first_arg_len_eq_1 veriT_vr13 (veriT_vr14, veriT_vr15) =
+           (if 0 = veriT_vr14 then inv_tm_skip_first_arg_len_eq_1_s0 veriT_vr13 veriT_vr15
+            else if 1 = veriT_vr14 then inv_tm_skip_first_arg_len_eq_1_s1 veriT_vr13 veriT_vr15
+                 else if 2 = veriT_vr14 then inv_tm_skip_first_arg_len_eq_1_s2 veriT_vr13 veriT_vr15
+                      else if 3 = veriT_vr14 then inv_tm_skip_first_arg_len_eq_1_s3 veriT_vr13 veriT_vr15
+                           else 5 = veriT_vr14 \<and> inv_tm_skip_first_arg_len_eq_1_s5 veriT_vr13 veriT_vr15)) \<or>
+    (\<forall>veriT_vr13 veriT_vr14 veriT_vr15.
+        \<not> inv_tm_skip_first_arg_len_eq_1 veriT_vr13 (veriT_vr14, veriT_vr15) \<or>
+        0 \<noteq> veriT_vr14 \<or> inv_tm_skip_first_arg_len_eq_1_s0 veriT_vr13 veriT_vr15) \<close>
+  by (ctxt_tactic "qnt_cnf")
+
+lemma \<open>\<not> (\<forall>veriT_vr13 veriT_vr14 veriT_vr15.
+           inv_tm_skip_first_arg_len_eq_1 veriT_vr13 (veriT_vr14, veriT_vr15) =
+           (if 0 = veriT_vr14 then inv_tm_skip_first_arg_len_eq_1_s0 veriT_vr13 veriT_vr15
+            else if 1 = veriT_vr14 then inv_tm_skip_first_arg_len_eq_1_s1 veriT_vr13 veriT_vr15
+                 else if 2 = veriT_vr14 then inv_tm_skip_first_arg_len_eq_1_s2 veriT_vr13 veriT_vr15
+                      else if 3 = veriT_vr14 then inv_tm_skip_first_arg_len_eq_1_s3 veriT_vr13 veriT_vr15
+                           else if 4 = veriT_vr14 then inv_tm_skip_first_arg_len_eq_1_s4 veriT_vr13 veriT_vr15
+                                else 5 = veriT_vr14 \<and> inv_tm_skip_first_arg_len_eq_1_s5 veriT_vr13 veriT_vr15)) \<or>
+    (\<forall>veriT_vr13 veriT_vr14 veriT_vr15.
+        \<not> inv_tm_skip_first_arg_len_eq_1 veriT_vr13 (veriT_vr14, veriT_vr15) \<or>
+        0 \<noteq> veriT_vr14 \<or> inv_tm_skip_first_arg_len_eq_1_s0 veriT_vr13 veriT_vr15) \<close>
+  by (ctxt_tactic "qnt_cnf")
+
+typedef\<^marker>\<open>tag important\<close> 'a topology = "{L::('a set) \<Rightarrow> bool. True}"
+  morphisms "openin" "topology"
+  sorry
+
+definition topspace :: "'a topology \<Rightarrow> 'a set"
+  where \<open>topspace = undefined\<close>
+
+definition openin :: \<open>'a topology \<Rightarrow> 'a set \<Rightarrow> bool\<close>
+  where \<open>openin = undefined\<close>
+
+lemma openin_Int[intro]: "openin U S \<Longrightarrow> openin U T \<Longrightarrow> openin U (S \<inter> T)"
+  sorry
+
+lemma \<open>\<not> (\<forall>veriT_vr79::'a.
+                veriT_vr79 \<in> topspace (X::'a topology) \<longrightarrow>
+                veriT_vr79 \<in> topspace X \<and>
+                (\<forall>veriT_vr80::'a. veriT_vr80 \<in> topspace X \<longrightarrow> (f::'a \<Rightarrow> 'b) veriT_vr80 \<in> topspace (Y::'b topology)) \<and>
+                (\<forall>veriT_vr81::'b set.
+                    openin Y veriT_vr81 \<and> f veriT_vr79 \<in> veriT_vr81 \<longrightarrow>
+                    (\<exists>veriT_vr82::'a set. openin X veriT_vr82 \<and> veriT_vr79 \<in> veriT_vr82 \<and> (\<forall>veriT_vr83::'a. veriT_vr83 \<in> veriT_vr82 \<longrightarrow> f veriT_vr83 \<in> veriT_vr81)))) \<or>
+         (\<forall>(veriT_vr79::'a) veriT_vr80::'a. veriT_vr79 \<notin> topspace X \<or> veriT_vr80 \<notin> topspace X \<or> f veriT_vr80 \<in> topspace Y) 
+    \<close>
+  by (ctxt_tactic "qnt_cnf")
+
+lemma \<open>\<not> (\<forall>veriT_vr13 veriT_vr14 veriT_vr15.
+                inv_tm_skip_first_arg_len_eq_1 veriT_vr13 (veriT_vr14, veriT_vr15) =
+                (if 0 = veriT_vr14 then inv_tm_skip_first_arg_len_eq_1_s0 veriT_vr13 veriT_vr15
+                 else if 1 = veriT_vr14 then inv_tm_skip_first_arg_len_eq_1_s1 veriT_vr13 veriT_vr15
+                      else if 2 = veriT_vr14 then inv_tm_skip_first_arg_len_eq_1_s2 veriT_vr13 veriT_vr15
+                           else if 3 = veriT_vr14 then inv_tm_skip_first_arg_len_eq_1_s3 veriT_vr13 veriT_vr15
+                                else if 4 = veriT_vr14 then inv_tm_skip_first_arg_len_eq_1_s4 veriT_vr13 veriT_vr15
+                                     else 5 = veriT_vr14 \<and> inv_tm_skip_first_arg_len_eq_1_s5 veriT_vr13 veriT_vr15)) \<or>
+         (\<forall>veriT_vr13 veriT_vr14 veriT_vr15.
+             \<not> inv_tm_skip_first_arg_len_eq_1 veriT_vr13 (veriT_vr14, veriT_vr15) \<or> 0 \<noteq> veriT_vr14 \<or> inv_tm_skip_first_arg_len_eq_1_s0 veriT_vr13 veriT_vr15)\<close>
+  by (ctxt_tactic "qnt_cnf")
+
+end
 
 (* Rule 30: and *)
 
@@ -3036,6 +3190,7 @@ lemma poly_simp_rel2:
          ( (arg2 + (2::int) * x + - 1 * mul2_sum) <  1)"
   using assms
   by (ctxt_tactic "poly_simp_rel")
+end
 
 (*onepoint**)
 experiment
