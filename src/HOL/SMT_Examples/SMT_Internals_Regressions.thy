@@ -1140,6 +1140,19 @@ lemma \<open>\<not> (\<forall>(veriT_vr28::'a::{linorder}) (veriT_vr29::'a) (ver
          (\<forall>(veriT_vr28::'a) (veriT_vr30::'a) veriT_vr31::'a. \<not> veriT_vr30 \<le> veriT_vr28 \<or> veriT_vr28 < veriT_vr31 \<or> \<not> veriT_vr28 \<le> veriT_vr30 \<or> \<not> veriT_vr31 \<le> veriT_vr28 \<or> veriT_vr31 \<le> veriT_vr30) \<close>
   supply [[simp_trace=false,simp_trace_depth_limit=5]]  by (ctxt_tactic "qnt_cnf")
 
+lemma \<open>\<not> (\<forall>(veriT_vr2::'a::{one, zero} set) veriT_vr3.
+                ((veriT_vr3 \<in> U \<longrightarrow> veriT_vr3 \<in> topspace X \<and> 0 \<in> veriT_vr2) \<and> (veriT_vr3 \<notin> U \<longrightarrow> veriT_vr3 \<in> topspace X \<and> 1 \<in> veriT_vr2)) =
+                ((veriT_vr3 \<in> U \<longrightarrow> veriT_vr3 \<in> topspace X \<and> 0 \<in> veriT_vr2) \<and> (veriT_vr3 \<notin> U \<longrightarrow> veriT_vr3 \<in> topspace X \<and> 1 \<in> veriT_vr2))) \<or>
+         (\<forall>(veriT_vr2::'a::{one, zero} set) veriT_vr3.
+             veriT_vr3 \<in> U \<or>
+             veriT_vr3 \<notin> topspace X \<or>
+             1 \<notin> veriT_vr2 \<or> (veriT_vr3 \<in> U \<longrightarrow> veriT_vr3 \<in> topspace X \<and> 0 \<in> veriT_vr2) \<and> (veriT_vr3 \<notin> U \<longrightarrow> veriT_vr3 \<in> topspace X \<and> 1 \<in> veriT_vr2)) \<close>
+  by (ctxt_tactic "qnt_cnf")
+
+lemma \<open> \<not> (\<forall>(veriT_vr24:: 'a set) veriT_vr25. (veriT_vr24 \<subseteq> veriT_vr25) = (veriT_vr24 = veriT_vr25 \<inter> veriT_vr24)) \<or>
+         (\<forall>(veriT_vr24:: 'a set) veriT_vr25. veriT_vr24 \<noteq> veriT_vr25 \<inter> veriT_vr24 \<or> veriT_vr24 \<subseteq> veriT_vr25) \<close>
+  by (ctxt_tactic "qnt_cnf")
+
 (* Rule 30: and *)
 
 lemma and_1:
