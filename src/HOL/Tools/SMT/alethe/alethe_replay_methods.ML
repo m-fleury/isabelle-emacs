@@ -1502,7 +1502,10 @@ fun sort_disj ctxt t =
       CONVERSION (HOLogic.Trueprop_conv (Conv.arg_conv (reorder_prefix_to ctxt strs)))
     end
 
-  (*unit propagation is sufficient (at least it is, when the conclusion is a single disjunction*)
+  (*unit propagation is sufficient (at least it is, when the conclusion is a single disjunction.
+
+  We rewrite assumptions entirely so a = b, should only be used when replacing "a=b" by True. 
+  Also because veriT, we try a=b and b=a.*)
   fun try_early_simp_solve {context, concl, prems, ...} =
     let
       val vars =
@@ -1518,19 +1521,38 @@ fun sort_disj ctxt t =
         |> (fn ctxt => ctxt addsimps @{thms simp_thms} addsimps thms)
         |> (fn ctxt => ctxt addsimprocs simprocs)
         |> Simplifier.asm_full_simp_tac
+
+
+      fun try_OF thm1 thm2 =
+          (thm1 OF [thm2])
+          |> single
+        handle THM _ => []
       fun only_rewrite {context, prems=nprems, ...} =
-        Method.insert_tac context [List.last nprems]
-        THEN' simplify_tac_with_cong [] context
-          ((take (length nprems - 1) nprems) @ @{thms conj_assoc eq_commute if_True if_False})
-        |> HEADGOAL
+        let val rewr_prems = ((take (length nprems - 1) nprems)
+         @ flat (map (try_OF @{lemma \<open>\<And>a b. a = b \<equiv> True \<Longrightarrow> b = a \<equiv> True\<close> by (auto simp: eq_commute)})
+           ((take (length nprems - 1) nprems))))
+        in
+          Method.insert_tac context [List.last nprems]
+          THEN' simplify_tac_with_cong [] context
+            (rewr_prems @ @{thms conj_assoc eq_commute if_True if_False})
+          |> TRY'
+          |> HEADGOAL
+        end
     in
         if null vars 
-        then HEADGOAL (
+        then HEADGOAL (TRY' (
          resolve_tac context @{thms ccontr}
-         THEN' DETERM' (eqsubst_all context @{thms de_Morgan_disj alethe_Box_def not_not})
-         THEN' REPEAT' (eresolve_tac context @{thms conjE})
+         THEN' (eqsubst_all context @{thms de_Morgan_disj[THEN eq_reflection]
+           alethe_Box_def[THEN eq_reflection] not_not[THEN eq_reflection]})
+         THEN' REPEAT' (eresolve_tac context [@{lemma \<open>P \<and> Q \<Longrightarrow> (P \<equiv> True \<Longrightarrow> Q \<equiv> True \<Longrightarrow> R) \<Longrightarrow> R\<close> by blast}])
+         THEN' REPEAT' (eresolve_tac context
+             @{lemma \<open>\<not>P \<equiv> True \<Longrightarrow> (P \<equiv> False \<Longrightarrow> R) \<Longrightarrow> R\<close>
+             \<open>\<And>P Q R. (P \<and> Q) \<equiv> True \<Longrightarrow> (P \<equiv> True \<Longrightarrow> Q \<equiv> True \<Longrightarrow> R) \<Longrightarrow> R\<close>by blast+}
+             )
          THEN' Method.insert_tac context prems
-         THEN' Subgoal.FOCUS (only_rewrite) context)
+         THEN' (eqsubst_all context @{thms de_Morgan_disj[THEN eq_reflection]
+           alethe_Box_def[THEN eq_reflection] not_not[THEN eq_reflection]})
+         THEN' Subgoal.FOCUS (only_rewrite) context))
        else all_tac
       end
 in
