@@ -1121,24 +1121,24 @@ end
 
 experiment
 begin
-abbreviation
+abbreviation (input)
  "fishburn (a::_::linorder) b v ab ==
   ((ab \<le> a \<longrightarrow> v \<le> ab) \<and> (a < ab \<and> ab < b \<longrightarrow> ab = v) \<and> (b \<le> ab \<longrightarrow> ab \<le> v))"
 
-abbreviation fishburn2 :: "('a::linorder) \<Rightarrow> 'a \<Rightarrow> 'a \<Rightarrow> 'a \<Rightarrow> bool" (\<open>(_ \<le>/ _/ '(mod _,_'))\<close> [51,51,0,0])
+abbreviation  (input)fishburn2 :: "('a::linorder) \<Rightarrow> 'a \<Rightarrow> 'a \<Rightarrow> 'a \<Rightarrow> bool" (\<open>(_ \<le>/ _/ '(mod _,_'))\<close> [51,51,0,0])
   where "fishburn2 ab v a b \<equiv> fishburn a b v ab"
 
-abbreviation
+abbreviation (input)
  "knuth (a::_::linorder) b x y ==
   ((y \<le> a \<longrightarrow> x \<le> a) \<and> (a < y \<and> y < b \<longrightarrow> y = x) \<and> (b \<le> y \<longrightarrow> b \<le> x))"
 
-abbreviation knuth2 :: "('a::linorder) \<Rightarrow> 'a \<Rightarrow> 'a \<Rightarrow> 'a \<Rightarrow> bool" (\<open>(_ \<cong>/ _/ '(mod _,_'))\<close> [51,51,0,0])
+abbreviation (input) knuth2 :: "('a::linorder) \<Rightarrow> 'a \<Rightarrow> 'a \<Rightarrow> 'a \<Rightarrow> bool" (\<open>(_ \<cong>/ _/ '(mod _,_'))\<close> [51,51,0,0])
   where "knuth2 x y a b \<equiv> knuth a b x y"
+
 
 lemma \<open>\<not> (\<forall>(veriT_vr28::'a::{linorder}) (veriT_vr29::'a) (veriT_vr30::'a) veriT_vr31::'a. veriT_vr28 \<le> veriT_vr30 (mod veriT_vr29,veriT_vr31) \<longrightarrow> veriT_vr30 \<cong> veriT_vr28 (mod veriT_vr29,veriT_vr31)) \<or>
          (\<forall>(veriT_vr28::'a) (veriT_vr30::'a) veriT_vr31::'a. \<not> veriT_vr30 \<le> veriT_vr28 \<or> veriT_vr28 < veriT_vr31 \<or> \<not> veriT_vr28 \<le> veriT_vr30 \<or> \<not> veriT_vr31 \<le> veriT_vr28 \<or> veriT_vr31 \<le> veriT_vr30) \<close>
-  by (ctxt_tactic "qnt_cnf")
-end
+  supply [[simp_trace=false,simp_trace_depth_limit=5]]  by (ctxt_tactic "qnt_cnf")
 
 (* Rule 30: and *)
 
@@ -2018,7 +2018,41 @@ lemma equiv_pos2_4: "\<not>((\<not>a) = b) \<or> \<not>\<not>a \<or> b"
 
 lemma equiv_pos2_5: "\<not>(a = (\<not>b)) \<or> \<not>a \<or> \<not>b"
   by (ctxt_tactic "equiv_pos2")
+end
 
+experiment
+  fixes P :: \<open>nat \<Rightarrow> nat \<Rightarrow> bool\<close> and Q :: \<open>nat \<Rightarrow> bool\<close>
+begin
+ML \<open>
+fun generate_term n =
+  if n = 0 then @{term \<open>0::nat\<close>}
+  else @{term \<open>Suc\<close>} $ generate_term (n-1)
+
+fun disj m n =
+  if m = 0 then @{term Q} $  generate_term n
+  else @{term \<open>HOL.disj\<close>} $ disj (m-1) n $ disj (m-1) n
+
+val n = 100
+val m = 10
+val t1 = disj m n
+val t2 = @{term Q} $ generate_term n
+
+val ct = 
+  @{term \<open>Trueprop\<close>} $ (
+  @{term \<open>HOL.disj\<close>} $
+    (@{term \<open>Not\<close>} $ (@{term \<open>HOL.eq :: bool \<Rightarrow> bool \<Rightarrow> bool\<close>} $ t1 $ t2)) $
+      
+    (@{term \<open>HOL.disj\<close>} $ (@{term \<open>Not\<close>} $ t1) $ t2))
+  |> Envir.beta_norm
+
+\<close>
+
+ML \<open>
+(Alethe_Replay_Methods.equiv_pos2 @{context} [] ct) 
+|> Thm.one_prem
+\<close>
+
+end
 (* Rule 61: equiv_neg1 *)
 
 lemma equiv_neg1_1: "(a = b) \<or> \<not>a \<or> \<not>b"
@@ -3233,7 +3267,6 @@ lemma poly_simp_rel2:
          ( (arg2 + (2::int) * x + - 1 * mul2_sum) <  1)"
   using assms
   by (ctxt_tactic "poly_simp_rel")
-end
 
 (*onepoint**)
 experiment
