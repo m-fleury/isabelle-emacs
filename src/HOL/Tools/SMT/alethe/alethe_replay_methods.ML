@@ -1353,8 +1353,11 @@ local
          name :: (extract_outmost_forall_quantified_names_q t)
      | extract_outmost_forall_quantified_names_q _ = []
 
+  (*even though not allowed in the standard, some quantifiers from the right might be missing
+  in the left.*)
   fun match_names_between_left_and_right ctxt cterm =
-    let val vars =
+    let
+      val lvars =
         cterm
         |> Thm.term_of
         |> HOLogic.dest_Trueprop
@@ -1362,8 +1365,27 @@ local
         |> hd
         |> HOLogic.dest_not
         |> extract_outmost_forall_quantified_names_q
+      val rvars =
+        cterm
+        |> Thm.term_of
+        |> HOLogic.dest_Trueprop
+        |> HOLogic.dest_disj
+        |> (hd o tl)
+        |> extract_outmost_forall_quantified_names_q
+      val lhs_only_var =
+        lvars
+        |> filter_out (member (op =) rvars)
+      val shared_lvars =
+        lvars
+        |> filter (member (op =) rvars)
+      fun plunge_down_lhs_only [] = Conv.all_conv
+        | plunge_down_lhs_only (str :: xs) = plunge_down ctxt str then_conv plunge_down_lhs_only xs
     in
-      HOLogic.Trueprop_conv (Conv.arg_conv (match_coefficients ctxt vars)) cterm
+      (print_conv "start plunging_down" then_conv
+        HOLogic.Trueprop_conv (Conv.fun_conv (Conv.arg_conv (Conv.arg_conv (print_conv "plugingdownin" then_conv (if null lhs_only_var then Conv.all_conv
+       else plunge_down_lhs_only lhs_only_var)))))
+      then_conv print_conv "after plunging_down" then_conv
+      HOLogic.Trueprop_conv (Conv.arg_conv (match_coefficients ctxt shared_lvars))) cterm
     end
   val rm_unused = @{lemma \<open>(\<forall>x. P) = P\<close> \<open>(\<exists>x. P) = P\<close> by blast+}
   val cnf_conclusion_tac =
@@ -1414,8 +1436,8 @@ fun sort_disj ctxt t =
     CNF.cnf_rewrite_tac does not do) and split the conjunctions.
     4. we check if we have an assumption.
     5. if not we sort the term.
-    4. finally we check again if we have an assumption.
-    5. if not solved, we call metis.
+    6. finally we check again if we have an assumption.
+    7. if not solved, we call metis.
 
 
   Some historical notes: 
@@ -1440,6 +1462,9 @@ fun sort_disj ctxt t =
     c. We tried a lot of things to make the unfolding/conversion stuff faster, we never managed, 
        including rewriting ourselves and using the fact that we know in what order we should do
        it.
+
+    d. The motivation from the fast path comes from avoiding the exponential blow which we
+       observed several times.
   *)
 
   fun simplify_tac_no_simps ctxt thms =
@@ -1486,24 +1511,27 @@ fun sort_disj ctxt t =
         |> HOLogic.dest_Trueprop
         |> extract_outmost_forall_quantified_names_q
 
-      fun simplify_tac_with_cong cong simprocs ctxt thms =
+      fun simplify_tac_with_cong simprocs ctxt thms =
         ctxt
         |> empty_simpset
         |> put_simpset HOL_basic_ss
         |> (fn ctxt => ctxt addsimps @{thms simp_thms} addsimps thms)
-        |> Simplifier.add_cong cong
         |> (fn ctxt => ctxt addsimprocs simprocs)
         |> Simplifier.asm_full_simp_tac
-
-      in
+      fun only_rewrite {context, prems=nprems, ...} =
+        Method.insert_tac context [List.last nprems]
+        THEN' simplify_tac_with_cong [] context
+          ((take (length nprems - 1) nprems) @ @{thms conj_assoc eq_commute if_True if_False})
+        |> HEADGOAL
+    in
         if null vars 
-        then HEADGOAL 
-         (resolve_tac context @{thms ccontr}
-          THEN' Method.insert_tac context prems
-          THEN' eqsubst_all context @{thms de_Morgan_disj alethe_Box_def not_not}
-          THEN' REPEAT' (eresolve_tac context @{thms conjE})
-          THEN' simplify_tac_with_cong @{thm if_weak_cong} [] context @{thms conj_assoc eq_commute})
-        else all_tac
+        then HEADGOAL (
+         resolve_tac context @{thms ccontr}
+         THEN' DETERM' (eqsubst_all context @{thms de_Morgan_disj alethe_Box_def not_not})
+         THEN' REPEAT' (eresolve_tac context @{thms conjE})
+         THEN' Method.insert_tac context prems
+         THEN' Subgoal.FOCUS (only_rewrite) context)
+       else all_tac
       end
 in
 
