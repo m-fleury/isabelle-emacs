@@ -91,11 +91,19 @@ lemma rbl_const[bv_reconstruction_const]:
 
 fun bvadd_carry :: "bool list \<Rightarrow> bool list \<Rightarrow> bool" where
 [word_plus_rbl_bvadd_fun]: "bvadd_carry [] [] = False" |
+                           "bvadd_carry _ [] = undefined" |
+                           "bvadd_carry [] _ = undefined" |
 [word_plus_rbl_bvadd_fun]: "bvadd_carry (x#xs) (y#ys) = ((x \<and> y) \<or> ((x \<noteq> y) \<and> bvadd_carry xs ys))"
 
 fun bvadd :: "bool list \<Rightarrow> bool list \<Rightarrow> bool list \<Rightarrow> bool list \<Rightarrow> bool list" where
 [word_plus_rbl_bvadd_fun]: "bvadd [] [] _ _ = []" |
+                           "bvadd _ [] _ _ = undefined" |
+                           "bvadd [] _ _ _ = undefined" |
 [word_plus_rbl_bvadd_fun]: "bvadd (x#xs) (y#ys) xs' ys' = (((x \<noteq> y) \<noteq> bvadd_carry xs' ys')) # bvadd xs ys (x#xs') (y#ys')"
+
+lemma length_bvadd:
+"length xs = length ys \<Longrightarrow> length (bvadd xs ys xs' ys') = length xs"
+  by (induction xs ys arbitrary: xs' ys' rule: list_induct2) simp_all
 
 lemma bvadd_bin:
 "length xs' = length ys' \<Longrightarrow>
@@ -110,13 +118,25 @@ next
     apply (simp only: bin_to_bl_aux.simps)
     apply (case_tac bina rule: bin_exhaust)
     apply (case_tac binb rule: bin_exhaust)
-    apply (case_tac [!] ba)
-    unfolding bin_to_bl_aux_alt
-       apply (auto simp: rbl_succ)
-    apply (simp_all add: div_add1_eq add.commute)
+    subgoal for _ ba _ bb
+      unfolding bin_to_bl_aux_alt
+      apply (case_tac [!] bb)
+       apply (cases "bvadd_carry xs' ys'")
+      subgoal
+        apply (cases ba)
+        apply (simp only: bin_to_bl_def zero_neq_one_class.of_bool_eq semiring_parity_class.odd_add bin_last_numeral_simps dvd_triv_left if_True simp_thms bvadd.simps append.right_neutral div_mult_self2 divmod_trivial)
+          apply (simp add: add.commute)
+         apply (metis arith_mult_dist_lemma(1) bin_rest_numeral_simps(6) one_eq_numeral_iff zdiv_mult_self zero_neq_numeral)
+         apply (simp add: add.commute rbl_succ)
+      done
+    subgoal
+      by (simp_all add: add.commute rbl_succ)
+    subgoal
+    apply (cases "bvadd_carry xs' ys'")
+     by (simp_all add: add.commute rbl_succ)
     done
+  done
 qed
-thm rbl_succ
 
 lemma word_add_bvadd_bin:
   "to_bl v = vbl \<Longrightarrow> to_bl w = wbl \<Longrightarrow>
@@ -193,67 +213,103 @@ carry_mult :: "bool list \<Rightarrow> bool list \<Rightarrow> nat \<Rightarrow>
 (if j < i then (res_mult xs ys i j \<and> sh xs ys i (Suc j)
  \<or> ((res_mult xs ys i j \<noteq> sh xs ys i (Suc j)) \<and> carry_mult xs ys i (Suc j))) else False)"
 
+
+(*
+Helpful function:
+Get the carry bit at a specific position instead of on-the-fly calculation as in bvadd
+or calculating it based on the length of the input lists as in bvadd_carry.
+
+It's like a halfway point between res_mult and bvadd.
+*)
+
+fun bvadd_carry_idx :: "bool list \<Rightarrow> bool list \<Rightarrow> nat \<Rightarrow> bool" where
+    "bvadd_carry_idx _ _ 0 = False"
+  | "bvadd_carry_idx xs ys (Suc i) =
+       ((xs!i \<and> ys!i) \<or> ((xs!i \<noteq> ys!i) \<and> bvadd_carry_idx xs ys i))"
+
+lemma bvadd_carry_bvadd_carry_idx:
+    "i \<le> length xs \<Longrightarrow> length xs = length ys \<Longrightarrow>
+     bvadd_carry (rev (take i xs)) (rev (take i ys)) = bvadd_carry_idx xs ys i"
+  apply (induction i)
+   apply simp
+  by (simp add: take_Suc_conv_app_nth)
+
+lemma bvadd_nth_acc:
+"length xs = length ys \<Longrightarrow> length xs' = length ys' \<Longrightarrow> i < length xs \<Longrightarrow>
+ bvadd xs ys xs' ys' ! i = ((xs!i \<noteq> ys!i) \<noteq> bvadd_carry (rev (take i xs) @ xs') (rev (take i ys) @ ys'))"
+proof (induction i arbitrary: xs ys xs' ys')
+  fix xs ys xs' ys'::"bool list"
+  assume IB: "length xs = length ys" "length xs' = length ys'" "0 < length xs"
+  obtain a as where xs_def: "xs = a # as" using IB by (cases xs) auto
+  obtain b bs where ys_def: "ys = b # bs" using IB by (cases ys) auto
+  show "bvadd xs ys xs' ys' ! 0 = ((xs ! 0 \<noteq> ys ! 0) \<noteq> bvadd_carry (rev (take 0 xs) @ xs') (rev (take 0 ys) @ ys'))"
+    by (simp add: xs_def ys_def)
+next
+    case (Suc i)
+    obtain a as where xeq: "xs = a # as" using Suc by (cases xs) auto
+    obtain b bs where yeq: "ys = b # bs" using Suc xeq by (cases ys) auto
+    have lens: "length as = length bs" "length (a#xs') = length (b#ys')" "i < length as"
+      using Suc.prems xeq yeq by auto
+    have ih: "bvadd as bs (a#xs') (b#ys') ! i =
+              ((as!i \<noteq> bs!i) \<noteq>
+               bvadd_carry (rev (take i as) @ a#xs') (rev (take i bs) @ b#ys'))"
+      using Suc.IH[OF lens] by simp
+    have ta: "rev (take (Suc i) xs) @ xs' = rev (take i as) @ a # xs'"
+      using xeq lens(3) by (simp add: take_Suc_conv_app_nth)
+    have tb: "rev (take (Suc i) ys) @ ys' = rev (take i bs) @ b # ys'"
+      using yeq lens(3) lens(1) by (simp add: take_Suc_conv_app_nth)
+    show ?case using ih ta tb xeq yeq by simp
+  qed
+
+
+
 (*These helper functions make reasoning about res_mult easier*)
 fun sh_j where "sh_j xs ys j = (map (\<lambda>i. sh xs ys i j) [0..<length xs])"
 
 fun res_j where "res_j xs ys j = (map (\<lambda>i. res_mult xs ys i j) [0..<length xs])"
-
-fun bvadd_carry_idx :: "bool list \<Rightarrow> bool list \<Rightarrow> nat \<Rightarrow> bool" where
-    "bvadd_carry_idx _ _ 0 = False"                                                                                                                    
-  | "bvadd_carry_idx xs ys (Suc i) =
-       ((xs!i \<and> ys!i) \<or> ((xs!i \<noteq> ys!i) \<and> bvadd_carry_idx xs ys i))"                                                               
 
 lemma sh_j_pos_j:
   assumes "j < length ys" "length xs = length ys" "ys ! j"
   shows "sh_j xs ys j = replicate j False @ take (length xs - j) xs"
   unfolding sh_j.simps
   apply (rule nth_equalityI)
-   apply (simp add: assms(1) less_or_eq_imp_le)
-   using assms by (auto simp: sh_def nth_append)
+  subgoal using assms by simp
+  by (auto simp: assms sh_def nth_append)
 
-lemma of_bl_helper:
+lemma of_bl_sh_j_helper:
   assumes  "length xs = LENGTH('a)" "j < length ys" "length xs = length ys" "ys ! j"
   shows "(of_bl (rev (take (length xs - j) xs)) * 2^j::'a::len word) = of_bl (rev xs) * 2^j"
- proof -
-      have split: "rev xs = rev (drop (length xs - j) xs) @ rev (take (length xs - j) xs)"
-        by (simp flip: rev_append)
-      have "(of_bl (rev xs) - of_bl (rev (take (length xs - j) xs)) :: 'a::len word) * 2^j
-            = of_bl (rev (drop (length xs - j) xs)) * 2^(length xs)"
-           proof -                                                                                                                                        
-          let ?m = "length xs - j"                                                                                                                     
-          have len_take: "length (rev (take ?m xs)) = ?m"                                                                                              
-            using assms by simp                                                                                                                        
-          have val: "(of_bl (rev xs) :: 'a::len word)                                                                                                  
-                   = of_bl (rev (drop ?m xs)) * 2^?m + of_bl (rev (take ?m xs))"
-            by (subst split) (simp add: of_bl_append len_take)                                                                                         
-          have m_j: "?m + j = length xs"
-            using assms by simp                                                                                                                        
-          have "(of_bl (rev xs) - of_bl (rev (take ?m xs)) :: 'a::len word) * 2^j                                                                      
-                = (of_bl (rev (drop ?m xs)) * 2^?m) * 2^j"
-            using val by simp                                                                                                                          
-          also have "\<dots> = of_bl (rev (drop ?m xs)) * 2^(?m + j)"
-            by (simp add: power_add mult.assoc)                                                                                                        
-          also have "\<dots> = of_bl (rev (drop ?m xs)) * 2^(length xs)"                                                                               
-            using m_j by simp
-          finally show ?thesis .                                                                                                                       
-      qed
-      also have "\<dots> = 0"
-        using assms by simp
-      finally have " (of_bl (rev (xs::bool list)) - of_bl (rev (take (length xs - (j::nat)) xs))) * (2::'a::len word) ^ j = 0"
-        by simp
-      then show ?thesis
-        by (metis diff_eq_diff_eq diff_self left_diff_distrib)
-    qed
+proof -
+  let ?m = "length xs - j"
+  have "rev xs = (rev (drop ?m xs)) @ (rev (take ?m xs))"
+    by (metis append_take_drop_id rev_append)
+  then have "(of_bl (rev xs) :: 'a::len word) = of_bl ((rev (drop ?m xs)) @ (rev (take ?m xs)))"
+    by simp
+  moreover have "length (rev (take ?m xs)) = ?m"
+    using assms by simp
+  ultimately have "(of_bl (rev xs) :: 'a::len word) = of_bl (rev (drop ?m xs)) * 2^?m + of_bl (rev (take ?m xs))"
+    by (simp add: of_bl_append)
+  then have "(of_bl (rev xs) :: 'a::len word) * 2 ^j = of_bl (rev (drop ?m xs)) * 2^?m * 2 ^j  + of_bl (rev (take ?m xs)) * 2 ^j "
+    by (simp add: distrib_left mult.commute)
+  moreover have "(2::'a::len word)^?m * 2^j = 2 ^ (length xs)"
+    using assms
+    by (metis le_add_diff_inverse less_or_eq_imp_le mult.commute power_add)
+  moreover have "(2::'a::len word)^(length xs) = 0" using assms by simp
+  ultimately have "(of_bl (rev xs) :: 'a::len word) * 2 ^j = of_bl (rev (drop ?m xs)) * 0 + of_bl (rev (take ?m xs)) * 2 ^j "
+    by (simp add: ab_semigroup_mult_class.mult_ac(1))
+  then show ?thesis
+    by simp
+qed
 
-(*This was written by AI (based on my earlier proof attempts) and needs to be rewritten.*)
 lemma of_bl_sh_j:
   assumes "length xs = LENGTH('a)" "length xs = length ys" "j < length ys"
   shows "(of_bl (rev (sh_j xs ys j))::'a::len word) = of_bl (rev xs) * 2^j * of_bool (ys!j)"
 proof (cases "ys!j")
   assume a0: "\<not> ys ! j"
   then have "sh_j xs ys j = replicate (length xs) False"
-    using assms by (auto simp: sh_def list_eq_iff_nth_eq)
-  thus ?thesis using a0 by simp
+    unfolding sh_j.simps sh_def
+    by (simp add: map_replicate_const assms)
+  then show ?thesis using a0 by simp
 next
   assume a0: "ys ! j"
   have "sh_j xs ys j = replicate j False @ take (length xs - j) xs"
@@ -263,140 +319,96 @@ next
   also have "\<dots> = of_bl (rev (take (length xs - j) xs)) * 2^j"
     by (simp add: of_bl_append)
   also have "\<dots> = of_bl (rev xs) * 2^j"
-    using of_bl_helper assms a0 by blast
+    using of_bl_sh_j_helper assms a0 by blast
   finally show ?thesis using a0 by simp
-  qed
+qed
 
-                                                                                                                                                   
+
   lemma temp_bvadd_carry_idx:
-    assumes "\<forall>k < i. ys!k = False"                                                                                                             
-    shows "bvadd_carry_idx xs ys i = False"                                                                                                            
+    assumes "\<forall>k < i. ys!k = False"
+    shows "bvadd_carry_idx xs ys i = False"
     using assms by (induct i) auto
-                                                                                                                                                       
-  lemma length_bvadd:
-    "length xs = length ys \<Longrightarrow> length (bvadd xs ys xs' ys') = length xs"
-    by (induction xs ys arbitrary: xs' ys' rule: list_induct2) auto                                                                                    
-                                                                                                                                                       
-  lemma bvadd_carry_at:                                                                                                                                
-    "i \<le> length xs \<Longrightarrow> length xs = length ys \<Longrightarrow>                                                                       
-     bvadd_carry (rev (take i xs)) (rev (take i ys)) = bvadd_carry_idx xs ys i"                                                                        
-  proof (induction i)
-    case 0 show ?case by simp                                                                                                                          
-  next          
-    case (Suc i)                                                                                                                                       
-    have tx: "rev (take (Suc i) xs) = xs!i # rev (take i xs)"
-      using Suc by (simp add: take_Suc_conv_app_nth)                                                                                                   
-    have ty: "rev (take (Suc i) ys) = ys!i # rev (take i ys)"
-      using Suc by (simp add: take_Suc_conv_app_nth)                                                                                                   
-    show ?case using Suc by (simp add: tx ty)
-  qed                                                                                                                                                  
-                
-  lemma bvadd_nth_acc:                                                                                                                                 
-    "length xs = length ys \<Longrightarrow> length xs' = length ys' \<Longrightarrow> i < length xs \<Longrightarrow>
-     bvadd xs ys xs' ys' ! i =                                                                                                                         
-     ((xs!i \<noteq> ys!i) \<noteq>
-      bvadd_carry (rev (take i xs) @ xs') (rev (take i ys) @ ys'))"                                                                                    
-  proof (induction i arbitrary: xs ys xs' ys')                                                                                                         
-    case 0                                                                                                                                             
-    obtain a as where xeq: "xs = a # as" using 0 by (cases xs) auto                                                                                    
-    obtain b bs where yeq: "ys = b # bs" using 0 xeq by (cases ys) auto                                                                                
-    show ?case by (simp add: xeq yeq)                                                                                                                  
-  next                                                                                                                                                 
-    case (Suc i)                                                                                                                                       
-    obtain a as where xeq: "xs = a # as" using Suc by (cases xs) auto
-    obtain b bs where yeq: "ys = b # bs" using Suc xeq by (cases ys) auto                                                                              
-    have lens: "length as = length bs" "length (a#xs') = length (b#ys')" "i < length as"                                                               
-      using Suc.prems xeq yeq by auto                                                                                                                  
-    have ih: "bvadd as bs (a#xs') (b#ys') ! i =                                                                                                        
-              ((as!i \<noteq> bs!i) \<noteq>
-               bvadd_carry (rev (take i as) @ a#xs') (rev (take i bs) @ b#ys'))"                                                                       
-      using Suc.IH[OF lens] by simp                                                                                                                    
-    have ta: "rev (take (Suc i) xs) @ xs' = rev (take i as) @ a # xs'"                                                                                 
-      using xeq lens(3) by (simp add: take_Suc_conv_app_nth)                                                                                           
-    have tb: "rev (take (Suc i) ys) @ ys' = rev (take i bs) @ b # ys'"                                                                                 
-      using yeq lens(3) lens(1) by (simp add: take_Suc_conv_app_nth)                                                                                   
-    show ?case using ih ta tb xeq yeq by simp                                                                                                          
-  qed                                                                                                                                                  
-                
-  lemma bvadd_nth:                                                                                                                                     
+
+
+  lemma bvadd_nth:
     assumes "length xs = length ys" "i < length xs"
     shows "bvadd xs ys [] [] ! i = ((xs!i \<noteq> ys!i) \<noteq> bvadd_carry_idx xs ys i)"
     using bvadd_nth_acc[OF assms(1) _ assms(2), of "[]" "[]"]
-          bvadd_carry_at[of i xs ys] assms                                                                                                             
+          bvadd_carry_bvadd_carry_idx[of i xs ys] assms
     by simp
-                                                                                                                                                       
-  lemma carry_mult_eq:                                                                                                                                 
+
+  lemma carry_mult_eq:
     assumes "Suc j < length xs" "length xs = length ys"
-    shows "i \<le> length xs \<Longrightarrow>                                                                                                         
+    shows "i \<le> length xs \<Longrightarrow>
            carry_mult xs ys i (Suc j) =
-           bvadd_carry_idx (res_j xs ys j) (sh_j xs ys (Suc j)) i"                                                                                     
+           bvadd_carry_idx (res_j xs ys j) (sh_j xs ys (Suc j)) i"
   proof (induction i)
-    case 0                                                                                                                                             
-    show ?case by (simp add: carry_mult.simps(2))                                                                                                      
+    case 0
+    show ?case by (simp add: carry_mult.simps(2))
   next
-    case (Suc i)                                                                                                                                       
-    show ?case  
+    case (Suc i)
+    show ?case
     proof (cases "j < i")
       case True
       have res_idx: "res_j xs ys j ! i = res_mult xs ys i j"
-        using Suc.prems assms by simp                                                                                                                  
+        using Suc.prems assms by simp
       have sh_idx: "sh_j xs ys (Suc j) ! i = sh xs ys i (Suc j)"
-        using Suc.prems assms by simp                                                                                                                  
+        using Suc.prems assms by simp
       have ih: "carry_mult xs ys i (Suc j) =
-                bvadd_carry_idx (res_j xs ys j) (sh_j xs ys (Suc j)) i"                                                                                
-        using Suc.IH Suc.prems by simp                                                                                                                 
+                bvadd_carry_idx (res_j xs ys j) (sh_j xs ys (Suc j)) i"
+        using Suc.IH Suc.prems by simp
       show ?thesis
-        using True ih res_idx sh_idx by (simp add: carry_mult.simps(3))                                                                                
-    next                                                                                                                                               
+        using True ih res_idx sh_idx by (simp add: carry_mult.simps(3))
+    next
       case False
-      have all_zero: "\<forall>k < Suc i. sh_j xs ys (Suc j) ! k = False"                                                                              
-      proof (intro allI impI)                                                                                                                          
+      have all_zero: "\<forall>k < Suc i. sh_j xs ys (Suc j) ! k = False"
+      proof (intro allI impI)
         fix k assume "k < Suc i"
-        with False have "k \<le> j" by simp                                                                                                            
+        with False have "k \<le> j" by simp
         hence "\<not> Suc j \<le> k" by simp
-        thus "sh_j xs ys (Suc j) ! k = False"                                                                                                          
+        thus "sh_j xs ys (Suc j) ! k = False"
           using \<open>k < Suc i\<close> Suc.prems assms by (simp add: sh_def)
-      qed                                                                                                                                              
+      qed
       hence rhs_false:
-        "bvadd_carry_idx (res_j xs ys j) (sh_j xs ys (Suc j)) (Suc i) = False"                                                                         
-        by (rule temp_bvadd_carry_idx)                                                                                                                 
+        "bvadd_carry_idx (res_j xs ys j) (sh_j xs ys (Suc j)) (Suc i) = False"
+        by (rule temp_bvadd_carry_idx)
       show ?thesis using False rhs_false by (simp add: carry_mult.simps(3))
-    qed                                                                                                                                                
-  qed           
-                                                                                                                                                       
+    qed
+  qed
+
   lemma res_j_Suc:
     assumes "length xs = length ys" "Suc j < length xs"
-    shows "res_j xs ys (Suc j) = bvadd (res_j xs ys j) (sh_j xs ys (Suc j)) [] []"                                                                     
-  proof (rule nth_equalityI)                                                                                                                           
+    shows "res_j xs ys (Suc j) = bvadd (res_j xs ys j) (sh_j xs ys (Suc j)) [] []"
+  proof (rule nth_equalityI)
     show "length (res_j xs ys (Suc j)) =
-          length (bvadd (res_j xs ys j) (sh_j xs ys (Suc j)) [] [])"                                                                                   
-      using assms by (simp add: length_bvadd)                                                                                                          
+          length (bvadd (res_j xs ys j) (sh_j xs ys (Suc j)) [] [])"
+      using assms by (simp add: length_bvadd)
   next
-    fix i assume "i < length (res_j xs ys (Suc j))"                                                                                                    
-    hence ilen: "i < length xs" by simp                                                                                                                
+    fix i assume "i < length (res_j xs ys (Suc j))"
+    hence ilen: "i < length xs" by simp
     have len_eq: "length (res_j xs ys j) = length (sh_j xs ys (Suc j))" by simp
-    have lhs: "res_j xs ys (Suc j) ! i = res_mult xs ys i (Suc j)"                                                                                     
+    have lhs: "res_j xs ys (Suc j) ! i = res_mult xs ys i (Suc j)"
       using ilen by simp
     have rhs: "bvadd (res_j xs ys j) (sh_j xs ys (Suc j)) [] [] ! i =
                ((res_mult xs ys i j \<noteq> sh xs ys i (Suc j)) \<noteq>
-                bvadd_carry_idx (res_j xs ys j) (sh_j xs ys (Suc j)) i)"                                                                               
+                bvadd_carry_idx (res_j xs ys j) (sh_j xs ys (Suc j)) i)"
       using bvadd_nth[OF len_eq, of i] ilen by simp
     show "res_j xs ys (Suc j) ! i =
           bvadd (res_j xs ys j) (sh_j xs ys (Suc j)) [] [] ! i"
-    proof (cases i)                                                                                                                                    
-      case 0    
+    proof (cases i)
+      case 0
       show ?thesis apply (subst rhs lhs) using 0 sh_def apply (simp add: sh_def)
         by (metis res_mult.elims(3) lhs res_mult.elims(2) res_j.elims nat.distinct(1))
-    next                                                                                                                                               
+    next
       case (Suc i')
       have c: "carry_mult xs ys (Suc i') (Suc j) =
                bvadd_carry_idx (res_j xs ys j) (sh_j xs ys (Suc j)) (Suc i')"
         using carry_mult_eq[] ilen Suc
-        using assms(1,2) order.strict_implies_order by blast                                                                                  
+        using assms(1,2) order.strict_implies_order by blast
       show ?thesis using lhs rhs c Suc by simp
-    qed                                                                                                                                                
-  qed                                                                                                                                                  
-                
+    qed
+  qed
+
 
 
 
@@ -406,74 +418,74 @@ next
            (of_bl (rev (res_j xs ys j))::'a::len word) =
            (\<Sum>k\<le>j. of_bl (rev xs) * 2^k * of_bool (ys!k))"
     proof (induction j)
-      case 0                                                                                                                                            
+      case 0
       have rj0: "res_j xs ys 0 = sh_j xs ys 0"
-        by (rule nth_equalityI) (auto simp: res_mult.simps(1))                                                                                          
+        by (rule nth_equalityI) (auto simp: res_mult.simps(1))
       have len_ys: "0 < length ys" using "0.prems" assms by simp
-      have "(of_bl (rev (res_j xs ys 0))::'a::len word)                                                                                                 
+      have "(of_bl (rev (res_j xs ys 0))::'a::len word)
           = of_bl (rev xs) * 2^0 * of_bool (ys!0)"
-        using rj0 of_bl_sh_j[OF assms(1) assms(2) len_ys] by simp                                                                                       
+        using rj0 of_bl_sh_j[OF assms(1) assms(2) len_ys] by simp
       thus ?case by simp
   next
     case (Suc j)
     have step: "res_j xs ys (Suc j) = bvadd (res_j xs ys j) (sh_j xs ys (Suc j)) [] []"
       using res_j_Suc[OF assms(2)] Suc.prems by simp
-    have len_rj: "length (res_j xs ys j) = LENGTH('a)" using assms by simp                                                                             
-    have len_sh: "length (sh_j xs ys (Suc j)) = LENGTH('a)" using assms by simp                                                                        
-    have "(of_bl (rev (res_j xs ys (Suc j)))::'a::len word) =                                                                                          
-          of_bl (rev (res_j xs ys j)) + of_bl (rev (sh_j xs ys (Suc j)))"                                                                              
+    have len_rj: "length (res_j xs ys j) = LENGTH('a)" using assms by simp
+    have len_sh: "length (sh_j xs ys (Suc j)) = LENGTH('a)" using assms by simp
+    have "(of_bl (rev (res_j xs ys (Suc j)))::'a::len word) =
+          of_bl (rev (res_j xs ys j)) + of_bl (rev (sh_j xs ys (Suc j)))"
       using step word_add_bvadd[OF len_rj] len_sh
-      using len_rj by presburger                                                                                        
+      using len_rj by presburger
     also have "\<dots> = (\<Sum>k\<le>j. of_bl (rev xs) * 2^k * of_bool (ys!k))
-                  + of_bl (rev xs) * 2^Suc j * of_bool (ys!Suc j)"                                                                                     
-      using Suc.IH Suc.prems of_bl_sh_j[OF assms(1,2), of "Suc j"] assms by simp                                                                       
-    also have "\<dots> = (\<Sum>k\<le>Suc j. of_bl (rev xs) * 2^k * of_bool (ys!k))"                                                                   
-      by simp                                                                                                                                          
-    finally show ?case .                                                                                                                               
-  qed                        
+                  + of_bl (rev xs) * 2^Suc j * of_bool (ys!Suc j)"
+      using Suc.IH Suc.prems of_bl_sh_j[OF assms(1,2), of "Suc j"] assms by simp
+    also have "\<dots> = (\<Sum>k\<le>Suc j. of_bl (rev xs) * 2^k * of_bool (ys!k))"
+      by simp
+    finally show ?case .
+  qed
 
-   lemma sum_shifts_eq_mult:                                                                                                                           
+   lemma sum_shifts_eq_mult:
       fixes a :: "'a::len word"
       assumes "length ys = LENGTH('a)"
-      shows "(\<Sum>k<LENGTH('a). a * 2^k * of_bool (ys!k)) = a * of_bl (rev ys)"                                                                       
+      shows "(\<Sum>k<LENGTH('a). a * 2^k * of_bool (ys!k)) = a * of_bl (rev ys)"
     proof -
-      have "(of_bl (rev ys)::'a::len word) = horner_sum of_bool 2 ys"                                                                                   
-        by (rule of_bl_rev_eq)                                                                                                                          
+      have "(of_bl (rev ys)::'a::len word) = horner_sum of_bool 2 ys"
+        by (rule of_bl_rev_eq)
       also have "\<dots> = (\<Sum>k = 0..<length ys. of_bool (ys!k) * 2^k)"
-        by (rule horner_sum_eq_sum)                                                                                                                     
+        by (rule horner_sum_eq_sum)
       also have "\<dots> = (\<Sum>k<LENGTH('a). of_bool (ys!k) * 2^k)"
-        using assms by (simp add: atLeast0LessThan)                                                                                                     
+        using assms by (simp add: atLeast0LessThan)
       finally have horner:
-        "(of_bl (rev ys)::'a::len word) = (\<Sum>k<LENGTH('a). of_bool (ys!k) * 2^k)" .                                                                 
+        "(of_bl (rev ys)::'a::len word) = (\<Sum>k<LENGTH('a). of_bool (ys!k) * 2^k)" .
       have "a * of_bl (rev ys) = (\<Sum>k<LENGTH('a). a * (of_bool (ys!k) * 2^k))"
         apply (simp add: horner sum_distrib_left)
-        by (metis (no_types) finite_lessThan sum_distrib_left sum_of_bool_mult_eq)                                                                                                      
-      also have "\<dots> = (\<Sum>k<LENGTH('a). a * 2^k * of_bool (ys!k))"                                                                              
+        by (metis (no_types) finite_lessThan sum_distrib_left sum_of_bool_mult_eq)
+      also have "\<dots> = (\<Sum>k<LENGTH('a). a * 2^k * of_bool (ys!k))"
         apply (simp add: mult.assoc mult.commute)
         by (metis (no_types) finite_lessThan sum_distrib_left sum_of_bool_mult_eq)
-      finally show ?thesis by simp                                                                                                                      
-    qed                                                                                                                                                 
-          
-lemma word_mult_bvmult [word_mult_rbl_bvmult]:                                                                                                       
-    assumes "length xs = LENGTH('a)" "length xs = length ys" "0 < length xs"                                                                           
-    shows "(of_bl (rev xs)::'a::len word) * of_bl (rev ys)                                                                                             
-         = of_bl (rev (map (\<lambda>i. res_mult xs ys i (length xs - 1)) [0..<length xs]))"                                                           
-  proof -                                                                                                                                              
-    have nm1: "length xs - 1 < length xs" using assms by simp                                                                                          
-    have unfold_resj: "map (\<lambda>i. res_mult xs ys i (length xs - 1)) [0..<length xs]                                                              
-                     = res_j xs ys (length xs - 1)"                                                                                                    
-      by simp                                                                                                                                          
-    have idx: "{..length xs - 1} = {..<length xs}"                                                                                                     
-      using assms by auto                                                                                                                              
+      finally show ?thesis by simp
+    qed
+
+lemma word_mult_bvmult [word_mult_rbl_bvmult]:
+    assumes "length xs = LENGTH('a)" "length xs = length ys" "0 < length xs"
+    shows "(of_bl (rev xs)::'a::len word) * of_bl (rev ys)
+         = of_bl (rev (map (\<lambda>i. res_mult xs ys i (length xs - 1)) [0..<length xs]))"
+  proof -
+    have nm1: "length xs - 1 < length xs" using assms by simp
+    have unfold_resj: "map (\<lambda>i. res_mult xs ys i (length xs - 1)) [0..<length xs]
+                     = res_j xs ys (length xs - 1)"
+      by simp
+    have idx: "{..length xs - 1} = {..<length xs}"
+      using assms by auto
     have "(of_bl (rev (map (\<lambda>i. res_mult xs ys i (length xs - 1)) [0..<length xs]))::'a::len word)
-          = (\<Sum>k\<le>length xs - 1. of_bl (rev xs) * 2^k * of_bool (ys!k))"                                                                        
-      using of_bl_res_j[OF assms(1,2) nm1] unfold_resj by simp                                                                                         
-    also have "\<dots> = (\<Sum>k<LENGTH('a). of_bl (rev xs) * 2^k * of_bool (ys!k))"                                                                  
-      using idx assms by simp                                                                                                                          
-    also have "\<dots> = of_bl (rev xs) * of_bl (rev ys)"                                                                                              
-      using sum_shifts_eq_mult[of ys "of_bl (rev xs)"] assms by auto                                                                                 
-    finally show ?thesis by simp                                                                                                                       
-  qed                                                             
+          = (\<Sum>k\<le>length xs - 1. of_bl (rev xs) * 2^k * of_bool (ys!k))"
+      using of_bl_res_j[OF assms(1,2) nm1] unfold_resj by simp
+    also have "\<dots> = (\<Sum>k<LENGTH('a). of_bl (rev xs) * 2^k * of_bool (ys!k))"
+      using idx assms by simp
+    also have "\<dots> = of_bl (rev xs) * of_bl (rev ys)"
+      using sum_shifts_eq_mult[of ys "of_bl (rev xs)"] assms by auto
+    finally show ?thesis by simp
+  qed
 
 
 
