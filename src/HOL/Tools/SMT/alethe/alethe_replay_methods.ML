@@ -1590,7 +1590,7 @@ fun qnt_cnf_tac ctxt =
   THEN' TRY' (REPEAT' (resolve_tac ctxt @{thms conjI}))
   THEN' TRY' (assume_tac ctxt)
   (*step 5*)
-  THEN' TRY' (Metis_Tactic.metis_tac [] ATP_Problem_Generate.combsN ctxt [])
+  THEN' TRY' (REPEAT' (Metis_Tactic.metis_tac [] ATP_Problem_Generate.combsN ctxt []))
     
 fun qnt_rm_unused ctxt _ t = SMT_Replay_Methods.prove ctxt t (fn _ =>
   K (unfold_tac ctxt rm_unused)
