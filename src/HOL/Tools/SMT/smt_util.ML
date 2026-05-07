@@ -172,6 +172,7 @@ fun mk_symb_list T ts =
 
 fun dest_symb_list (Const (\<^const_name>\<open>Symb_Nil\<close>, _)) = []
   | dest_symb_list (Const (\<^const_name>\<open>Symb_Cons\<close>, _) $ t $ u) = t :: dest_symb_list u
+  | dest_symb_list t = raise TERM ("not a symbol list", [t])
 
 
 (* patterns and instantiations *)
