@@ -50,13 +50,13 @@ lemma [bv_reconstruction_lists]:
 lemmas [bv_reconstruction_lists] = List.upt.simps(1) List.append.simps append_Cons append_Nil
                                    List.list.map List.rev.simps List.list.size(3-4)
                                    list.sel
-lemmas[bv_reconstruction_lists] = upt_Suc upt_0 upt_zero_numeral_unfold pred_numeral_simps BitM.simps
+lemmas[bv_reconstruction_lists] = upt_Suc upt_0 (*upt_zero_numeral_unfold pred_numeral_simps BitM.simps*)
 
 lemmas [bv_reconstruction_const_test] = to_bl_numeral bin_to_bl_def Reversed_Bit_Lists.bin_to_bl_aux.Suc
 Num.Suc_eq_numeral bin_to_bl_aux.Z not_is_unit_0 bin_last_numeral_simps
 Reversed_Bit_Lists.to_bl_0 List.replicate.replicate_Suc List.replicate.replicate_0
 
-lemmas [bv_reconstruction_list_funs] = drop.drop_Nil drop_Suc_Cons drop_0 List.rev.simps
+lemmas [bv_reconstruction_list_funs] = drop.drop_Nil drop_Suc_Cons drop_0
 takefill_Suc_Cons[of False] takefill.Z[of False] takefill_Suc_Nil[of False] take_Suc_Cons take_0 of_bl_False
 nth_Cons_0 nth_Cons_Suc
 
