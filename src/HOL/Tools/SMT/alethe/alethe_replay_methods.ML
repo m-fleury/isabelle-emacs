@@ -913,11 +913,11 @@ local
 
   fun or_intro_prove ctxt k = 
     (REPEAT_DETERM_N' k (match_tac ctxt @{thms disjI2}))
-    THEN' FIRST' [(match_tac ctxt @{thms disjI1}) THEN' (assume_tac ctxt), (assume_tac ctxt)]
+    THEN' (SOLVED' (match_tac ctxt @{thms disjI1} THEN' assume_tac ctxt) ORELSE' (assume_tac ctxt))
 
   fun and_dest_prove ctxt k =
     REPEAT_DETERM_N' k (dmatch_tac ctxt @{thms conjunct2})
-    THEN' FIRST' [(dmatch_tac ctxt @{thms conjunct1}) THEN' (assume_tac ctxt), (assume_tac ctxt)]
+    THEN' (SOLVED' (dmatch_tac ctxt @{thms conjunct1} THEN' assume_tac ctxt) ORELSE' (assume_tac ctxt))
 
   fun or_pos_prove ctxt _ =
      match_tac ctxt @{thms alethe_farkas(1)}
@@ -959,7 +959,7 @@ fun not_or_rule ctxt prems t (SOME (Index k)) =
   | not_or_rule ctxt _ t _ = SMT_Replay_Methods.prove ctxt t (fn _ => fn _ => no_tac)
 
 fun or_neg_rule ctxt _ t (SOME (Index k)) =
-  SMT_Replay_Methods.prove ctxt t (fn _ => (resolve_tac ctxt @{thms alethe_or_neg}) THEN' (or_intro_prove ctxt k))
+  SMT_Replay_Methods.prove ctxt t (fn _ => match_tac ctxt @{thms alethe_or_neg} THEN' or_intro_prove ctxt k)
   | or_neg_rule ctxt _ t _ = SMT_Replay_Methods.prove ctxt t (fn _ => K no_tac)
 
 fun and_pos ctxt _ t (SOME (Index k)) =
@@ -1273,7 +1273,7 @@ local
         |> map (Thm.cterm_of ctxt)
       fun move_term_to_the_beginning (ct :: cts) =
           print_conv "before moving out"
-          then_conv repeat_until_fixpoint_conv2 ctxt (map (Drule.infer_instantiate' ctxt [NONE, SOME ct]) thms |> @{print})
+          then_conv repeat_until_fixpoint_conv2 ctxt (map (Drule.infer_instantiate' ctxt [NONE, SOME ct]) thms)
           then_conv print_conv "after moving 1 out" then_conv move_term_to_the_beginning cts
 
        | move_term_to_the_beginning [] = Conv.all_conv
