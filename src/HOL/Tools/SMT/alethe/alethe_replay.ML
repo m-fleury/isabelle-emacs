@@ -47,14 +47,14 @@ fun add_box_symbols ctxt t ct =
             @{term Not} $ _ => 
               Conv.try_conv (Conv.arg_conv (add_alethe_Box_after_all_negations_conv ctxt) )
           | _ => 
-              Conv.try_conv (Conv.top_conv (K (Conv.rewrs_conv @{thms alethe_Box})) ctxt)) ct
+              Conv.try_conv (Conv.top_conv (K (Conv.rewr_conv @{thm alethe_Box})) ctxt)) ct
 
     fun add_box_symbols @{term True} ct = 
           (case Thm.term_of ct of
             @{term Not} $ _ => 
               Conv.try_conv (Conv.arg_conv (add_alethe_Box_after_all_negations_conv ctxt))
           | _ => 
-              Conv.try_conv (Conv.top_conv (K (Conv.rewrs_conv @{thms alethe_Box})) ctxt)) ct
+              Conv.try_conv (Conv.top_conv (K (Conv.rewr_conv @{thm alethe_Box})) ctxt)) ct
       | add_box_symbols (u $ v) ct = 
           (Conv.fun_conv (add_box_symbols u)
            then_conv Conv.arg_conv (add_box_symbols v)) ct
@@ -455,6 +455,10 @@ fun replay solver method_for outer_ctxt
            else (*everything that is not cvc5 is veriT*)
               SMT_Replay.spying (SMT_Config.spy_verit ctxt) ctxt
                                 (fn () => SMT_Replay.print_stats (Symtab.dest stats)) "$ISABELLE_SMT_VERIT_SPY"
+    (*Statistics*)
+    val _ = print_runtime_statistics len
+    val _ = SMT_Config.statistics_msg ctxt5
+      (Pretty.string_of o SMT_Replay.pretty_statistics "cvc" total) stats
 
   in
     if SMT_Config.check_smt_is_slicing ctxt
