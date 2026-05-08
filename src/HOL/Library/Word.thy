@@ -4999,6 +4999,5 @@ val _ = fold SMT_Normalize.add_simplify_ops_tab (simplify_norm_table)
 \<close>
 
 declare [[smt_nat_as_int]]
-lemmas [smt_word_len_evaluate] = semiring_numeral_class.numeral_times_numeral
 
 end
