@@ -138,10 +138,43 @@ lemma cong:
   word_cat 0 (word_cat 0 0)"   
   by (ctxt_tactic "cong")
 
+
+
+
+
+
+
+(*Bitblasting*)
+
 declare[[smt_expert_debug_alethe_level=3]]
 declare[[smt_expert_debug_alethe_files="alethe_replay_bv_methods"]]
 
-lemma bv_bitblast_step_var1:
+
+(*Constants*)
+
+lemma bv_bitblast_step_const_1:
+"(0::32 word) = of_bl (rev [False, False, False, False, False, False, False, False, False, False, False,
+False, False, False, False, False, False, False, False, False, False, False, False, False, False, False,
+False, False, False, False, False, False])"
+  by (ctxt_tactic "bv_bitblast_step_const")
+
+lemma bv_bitblast_step_const_2:
+"(3::4 word) = of_bl (rev [True, True, False, False])"
+  by (ctxt_tactic "bv_bitblast_step_const")
+
+lemma bv_bitblast_step_const_3:
+"(1::1 word) = of_bl (rev [True])"
+  by (ctxt_tactic "bv_bitblast_step_const")
+
+
+(*Variables*)
+
+lemma bv_bitblast_step_var_1:
+"(smtlib_extract (3::int) 1 (x::4 word)::3 word) = of_bl (rev [bit (smtlib_extract (3::int) 1 x:: 3 word) 0,
+ bit (smtlib_extract (3::int) 1 x :: 3 word) 1, bit (smtlib_extract (3::int) 1 x :: 3 word) 2])"
+  by (ctxt_tactic "bv_bitblast_step_var")
+
+lemma bv_bitblast_step_var_2:
 "(vptr::32 word) =
          of_bl
           (rev [bit vptr 0, bit vptr 1, bit vptr (2::nat), bit vptr (3::nat), bit vptr (4::nat), bit vptr (5::nat), bit vptr (6::nat),
@@ -169,7 +202,7 @@ lemma bv_bitblast_step_extract1:
 
 lemma bv_bitblast_step_bvadd1:
 "
-of_bl (rev [True, True, False, False]) +
+(of_bl (rev [True, True, False, False])::4 word) +
 of_bl (rev [True, lsb (smtlib_extract (3::int) 1 (x::4 word)::1 word), bit (smtlib_extract (3::int) 1 x::1 word) 1, bit (smtlib_extract (3::int) 1 x::1 word) (2::nat)])
 =
 of_bl (rev [(True \<noteq> True) \<noteq> False, (True \<noteq> lsb (smtlib_extract (3::int) 1 x::1 word)) \<noteq> (True \<and> True \<or> True \<noteq> True \<and> False),
@@ -181,5 +214,24 @@ of_bl (rev [(True \<noteq> True) \<noteq> False, (True \<noteq> lsb (smtlib_extr
             (True \<and> lsb (smtlib_extract (3::int) 1 x::1 word) \<or>
              True \<noteq> lsb (smtlib_extract (3::int) 1 x::1 word) \<and> (True \<and> True \<or> True \<noteq> True \<and> False)))])"
   by (ctxt_tactic "bv_bitblast_step_bvadd")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 end
