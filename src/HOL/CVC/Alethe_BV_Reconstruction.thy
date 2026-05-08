@@ -228,15 +228,18 @@ fun bvadd_carry_idx :: "bool list \<Rightarrow> bool list \<Rightarrow> nat \<Ri
        ((xs!i \<and> ys!i) \<or> ((xs!i \<noteq> ys!i) \<and> bvadd_carry_idx xs ys i))"
 
 lemma bvadd_carry_bvadd_carry_idx:
-    "i \<le> length xs \<Longrightarrow> length xs = length ys \<Longrightarrow>
-     bvadd_carry (rev (take i xs)) (rev (take i ys)) = bvadd_carry_idx xs ys i"
+  assumes "i \<le> length xs" "length xs = length ys"
+  shows "bvadd_carry (rev (take i xs)) (rev (take i ys)) = bvadd_carry_idx xs ys i"
+  using assms
   apply (induction i)
    apply simp
   by (simp add: take_Suc_conv_app_nth)
 
-lemma bvadd_nth_acc:
-"length xs = length ys \<Longrightarrow> length xs' = length ys' \<Longrightarrow> i < length xs \<Longrightarrow>
- bvadd xs ys xs' ys' ! i = ((xs!i \<noteq> ys!i) \<noteq> bvadd_carry (rev (take i xs) @ xs') (rev (take i ys) @ ys'))"
+
+lemma bvadd_in_progress_nth:
+  assumes "length xs = length ys" "length xs' = length ys'" " i < length xs"
+  shows "bvadd xs ys xs' ys' ! i = ((xs!i \<noteq> ys!i) \<noteq> bvadd_carry (rev (take i xs) @ xs') (rev (take i ys) @ ys'))"
+  using assms
 proof (induction i arbitrary: xs ys xs' ys')
   fix xs ys xs' ys'::"bool list"
   assume IB: "length xs = length ys" "length xs' = length ys'" "0 < length xs"
@@ -261,20 +264,32 @@ next
     show ?case using ih ta tb xeq yeq by simp
   qed
 
+lemma bvadd_nth:
+  assumes "length xs = length ys" "i < length xs"
+  shows "bvadd xs ys [] [] ! i = ((xs!i \<noteq> ys!i) \<noteq> bvadd_carry_idx xs ys i)"
+  using bvadd_in_progress_nth bvadd_carry_bvadd_carry_idx assms
+  by simp
 
 
-(*These helper functions make reasoning about res_mult easier*)
+(*These helper functions make inductive reasoning about res_mult easier*)
 fun sh_j where "sh_j xs ys j = (map (\<lambda>i. sh xs ys i j) [0..<length xs])"
-
 fun res_j where "res_j xs ys j = (map (\<lambda>i. res_mult xs ys i j) [0..<length xs])"
 
-lemma sh_j_pos_j:
+lemma sh_j_nth:
   assumes "j < length ys" "length xs = length ys" "ys ! j"
   shows "sh_j xs ys j = replicate j False @ take (length xs - j) xs"
   unfolding sh_j.simps
   apply (rule nth_equalityI)
   subgoal using assms by simp
   by (auto simp: assms sh_def nth_append)
+
+lemma sh_j_false: 
+  assumes "j \<ge> i" "i < length xs"
+  shows  "\<forall>k < Suc i. sh_j xs ys (Suc j) ! k = False"
+  apply (rule allI,rule impI)
+  unfolding sh_j.simps sh_def
+  using assms
+  by simp
 
 lemma of_bl_sh_j_helper:
   assumes  "length xs = LENGTH('a)" "j < length ys" "length xs = length ys" "ys ! j"
@@ -313,7 +328,7 @@ proof (cases "ys!j")
 next
   assume a0: "ys ! j"
   have "sh_j xs ys j = replicate j False @ take (length xs - j) xs"
-    using sh_j_pos_j assms a0 by blast
+    using sh_j_nth assms a0 by blast
   then have "(of_bl (rev (sh_j xs ys j))::'a::len word) = of_bl (rev (take (length xs - j) xs) @ replicate j False)"
     by auto
   also have "\<dots> = of_bl (rev (take (length xs - j) xs)) * 2^j"
@@ -324,57 +339,62 @@ next
 qed
 
 
-  lemma temp_bvadd_carry_idx:
-    assumes "\<forall>k < i. ys!k = False"
-    shows "bvadd_carry_idx xs ys i = False"
-    using assms by (induct i) auto
-
-
-  lemma bvadd_nth:
-    assumes "length xs = length ys" "i < length xs"
-    shows "bvadd xs ys [] [] ! i = ((xs!i \<noteq> ys!i) \<noteq> bvadd_carry_idx xs ys i)"
-    using bvadd_nth_acc[OF assms(1) _ assms(2), of "[]" "[]"]
-          bvadd_carry_bvadd_carry_idx[of i xs ys] assms
+lemma sh_false_all_carry_false:
+  shows  "\<not>(Suc j \<le> i) \<Longrightarrow> (\<forall>k < i. (sh_j xs ys (Suc j)) ! k = False) \<Longrightarrow> bvadd_carry_idx (res_j xs ys j) (sh_j xs ys (Suc j)) i= False"
+  apply (induction i)
+  by simp_all
+  
+lemma carry_mult_eq:
+  assumes "Suc j < length xs" "length xs = length ys" "i \<le> length xs"
+  shows "carry_mult xs ys i (Suc j) =
+    bvadd_carry_idx (res_j xs ys j) (sh_j xs ys (Suc j)) i"
+  using assms(3)
+proof (induction i)
+  assume IB: "0 \<le> length xs"
+  then show "carry_mult xs ys 0 (Suc j) = bvadd_carry_idx (res_j xs ys j) (sh_j xs ys (Suc j)) 0"
     by simp
-
-  lemma carry_mult_eq:
-    assumes "Suc j < length xs" "length xs = length ys"
-    shows "i \<le> length xs \<Longrightarrow>
-           carry_mult xs ys i (Suc j) =
-           bvadd_carry_idx (res_j xs ys j) (sh_j xs ys (Suc j)) i"
-  proof (induction i)
-    case 0
-    show ?case by (simp add: carry_mult.simps(2))
-  next
-    case (Suc i)
-    show ?case
-    proof (cases "j < i")
-      case True
-      have res_idx: "res_j xs ys j ! i = res_mult xs ys i j"
-        using Suc.prems assms by simp
-      have sh_idx: "sh_j xs ys (Suc j) ! i = sh xs ys i (Suc j)"
-        using Suc.prems assms by simp
-      have ih: "carry_mult xs ys i (Suc j) =
-                bvadd_carry_idx (res_j xs ys j) (sh_j xs ys (Suc j)) i"
-        using Suc.IH Suc.prems by simp
-      show ?thesis
-        using True ih res_idx sh_idx by (simp add: carry_mult.simps(3))
-    next
-      case False
-      have all_zero: "\<forall>k < Suc i. sh_j xs ys (Suc j) ! k = False"
-      proof (intro allI impI)
-        fix k assume "k < Suc i"
-        with False have "k \<le> j" by simp
-        hence "\<not> Suc j \<le> k" by simp
-        thus "sh_j xs ys (Suc j) ! k = False"
-          using \<open>k < Suc i\<close> Suc.prems assms by (simp add: sh_def)
-      qed
-      hence rhs_false:
-        "bvadd_carry_idx (res_j xs ys j) (sh_j xs ys (Suc j)) (Suc i) = False"
-        by (rule temp_bvadd_carry_idx)
-      show ?thesis using False rhs_false by (simp add: carry_mult.simps(3))
-    qed
+next
+  fix i::nat
+  assume IH: "(i \<le> length xs \<Longrightarrow> carry_mult xs ys i (Suc j) = bvadd_carry_idx (res_j xs ys j) (sh_j xs ys (Suc j)) i)"
+  and a0: "Suc i \<le> length xs"
+  then have IH': "carry_mult xs ys i (Suc j) = bvadd_carry_idx (res_j xs ys j) (sh_j xs ys (Suc j)) i"
+    using IH by simp
+  have t0: "carry_mult xs ys (Suc i) (Suc j) = (if j < i then (res_mult xs ys i j \<and> sh xs ys i (Suc j)) \<or> (res_mult xs ys i j \<noteq> sh xs ys i (Suc j) \<and> carry_mult xs ys i (Suc j))
+     else False)"
+    by simp
+  have t1: "((res_j xs ys j ! i \<and> sh_j xs ys (Suc j) ! i) \<or> (res_j xs ys j ! i \<noteq> sh_j xs ys (Suc j) ! i \<and> bvadd_carry_idx (res_j xs ys j) (sh_j xs ys (Suc j)) i))
+      = bvadd_carry_idx (res_j xs ys j) (sh_j xs ys (Suc j)) (Suc i)"
+    by force
+     
+  have "j < i \<Longrightarrow> carry_mult xs ys (Suc i) (Suc j) = bvadd_carry_idx (res_j xs ys j) (sh_j xs ys (Suc j)) (Suc i)"
+  proof-
+    assume a1: "j < i"
+    then have "carry_mult xs ys (Suc i) (Suc j) = ((res_mult xs ys i j \<and> sh xs ys i (Suc j)) \<or> (res_mult xs ys i j \<noteq> sh xs ys i (Suc j) \<and> carry_mult xs ys i (Suc j)))"
+      using t0 by force
+    moreover have "res_mult xs ys i j = res_j xs ys j ! i" using a0 by simp
+    moreover have "sh xs ys i (Suc j) = sh_j xs ys (Suc j) ! i" using a0 by simp
+    moreover have "carry_mult xs ys i (Suc j) = bvadd_carry_idx (res_j xs ys j) (sh_j xs ys (Suc j)) i" using IH a0 by auto
+    ultimately have "carry_mult xs ys (Suc i) (Suc j) = 
+        ((res_j xs ys j ! i \<and> sh_j xs ys (Suc j) ! i) \<or> (res_j xs ys j ! i \<noteq> sh_j xs ys (Suc j) ! i) \<and> bvadd_carry_idx (res_j xs ys j) (sh_j xs ys (Suc j)) i)" by simp
+    then show ?thesis using t1 by simp
   qed
+
+  moreover have "j \<ge> i \<Longrightarrow> carry_mult xs ys (Suc i) (Suc j) = bvadd_carry_idx (res_j xs ys j) (sh_j xs ys (Suc j)) (Suc i)"
+  proof-
+    assume a1: "j \<ge> i"
+    have t2: "\<forall>k < Suc i. sh_j xs ys (Suc j) ! k = False"
+      using sh_j_false a0 a1 IH carry_mult.elims(2) by fastforce
+
+    have "carry_mult xs ys (Suc i) (Suc j) = False"
+      using t0 a1 by force
+    moreover have "bvadd_carry_idx (res_j xs ys j) (sh_j xs ys (Suc j)) i = False"
+      using sh_false_all_carry_false a1 t2 by auto
+    ultimately show ?thesis
+      using t1 t2 by blast
+  qed
+
+  ultimately show "carry_mult xs ys (Suc i) (Suc j) = bvadd_carry_idx (res_j xs ys j) (sh_j xs ys (Suc j)) (Suc i)" by fastforce
+qed
 
   lemma res_j_Suc:
     assumes "length xs = length ys" "Suc j < length xs"
