@@ -152,45 +152,6 @@ lemma word_add_bvadd[word_plus_rbl_bvadd]:
  = (of_bl (rev (bvadd xs ys [] [])) :: 'a::len word)" for i j xs
   by (metis word_add_bvadd_bin rev_rev_ident takefill_same word_bl.Rep_inverse' word_rev_tf)
 
-(* ---------------------------------------------------------------------------------------------- *)
-(* -------------------------------------- Bitblast bvneg ---------------------------------------- *)
-(* ---------------------------------------------------------------------------------------------- *)
-
-fun bvneg_carry :: "bool list \<Rightarrow> bool" where
-[word_minus_rbl_bvneg_fun]: "bvneg_carry [] = True" |
-[word_minus_rbl_bvneg_fun]: "bvneg_carry (x#xs) = ((\<not>x \<and> False) \<or> ((\<not>x \<noteq> False) \<and> bvneg_carry xs))"
-
-fun bvneg :: "bool list \<Rightarrow> bool list \<Rightarrow> bool list" where
-[word_minus_rbl_bvneg_fun]: "bvneg [] _ = []" |
-[word_minus_rbl_bvneg_fun]: "bvneg (x#xs) xs' = ((\<not>x \<noteq> False) \<noteq> bvneg_carry xs') # bvneg xs (x#xs')"
-
-lemma bvneg_bin:
-    "bvneg (rev (bin_to_bl n bina)) xs' =
-     rev (bin_to_bl n (-bina - 1 + (if bvneg_carry xs' then 1 else 0)))"
-    apply (induct n arbitrary: bina xs')
-  subgoal by simp
-  apply clarsimp
-    apply (case_tac bina rule: bin_exhaust)
-     unfolding bin_to_bl_aux_alt
-     apply (auto simp: rbl_succ)
-        apply (simp_all add: ac_simps div_add1_eq)
-        apply (metis is_num_normalize(8) mult_2 mult_2_right nonzero_mult_div_cancel_left zero_neq_numeral)
-  apply (metis bin_rest_NOT mult_2 mult_2_right nonzero_mult_div_cancel_left not_int_def zero_neq_numeral)
-  using bin_rest_NOT not_int_def
-  apply (metis ab_group_add_class.ab_diff_conv_add_uminus add.commute axxdiv2 comm_monoid_add_class.add_0 mult_2_right)
-  by (simp add: minus_diff_commute)
-
-lemma word_neg_bvneg_bin:
-    "to_bl v = vbl \<Longrightarrow> to_bl (-v) = rev (bvneg (rev vbl) [])"
-  apply transfer
-  using bvneg_bin by auto
-
-lemma word_neg_bvneg[word_minus_rbl_bvneg]:
-"length xs = LENGTH('a) \<Longrightarrow>
--(of_bl (rev xs)::'a::len word) = (of_bl (rev (bvneg xs [])) :: 'a::len word)" for i j xs
-      by (metis rev_rev_ident takefill_same to_bl_use_of_bl word_neg_bvneg_bin word_rev_tf)
-
-
 
 
 (* ---------------------------------------------------------------------------------------------- *)
@@ -275,6 +236,11 @@ lemma bvadd_nth:
 fun sh_j where "sh_j xs ys j = (map (\<lambda>i. sh xs ys i j) [0..<length xs])"
 fun res_j where "res_j xs ys j = (map (\<lambda>i. res_mult xs ys i j) [0..<length xs])"
 
+lemma sh_j_length: "length (sh_j xs ys j) = length xs" by simp
+lemma sh_j_length_gt0: "length (xs) > 0 \<Longrightarrow> length (sh_j xs ys j) > 0" by simp
+lemma res_j_length: "length (res_j xs ys j) = length xs" by simp
+lemma res_j_length_gt0: "length (xs) > 0 \<Longrightarrow> length (res_j xs ys j) > 0" by simp
+
 lemma sh_j_nth:
   assumes "j < length ys" "length xs = length ys" "ys ! j"
   shows "sh_j xs ys j = replicate j False @ take (length xs - j) xs"
@@ -338,13 +304,12 @@ next
   finally show ?thesis using a0 by simp
 qed
 
-
 lemma sh_false_all_carry_false:
   shows  "\<not>(Suc j \<le> i) \<Longrightarrow> (\<forall>k < i. (sh_j xs ys (Suc j)) ! k = False) \<Longrightarrow> bvadd_carry_idx (res_j xs ys j) (sh_j xs ys (Suc j)) i= False"
   apply (induction i)
   by simp_all
   
-lemma carry_mult_eq:
+lemma carry_mult_bvadd_carry_idx_eq:
   assumes "Suc j < length xs" "length xs = length ys" "i \<le> length xs"
   shows "carry_mult xs ys i (Suc j) =
     bvadd_carry_idx (res_j xs ys j) (sh_j xs ys (Suc j)) i"
@@ -396,38 +361,80 @@ next
   ultimately show "carry_mult xs ys (Suc i) (Suc j) = bvadd_carry_idx (res_j xs ys j) (sh_j xs ys (Suc j)) (Suc i)" by fastforce
 qed
 
-  lemma res_j_Suc:
-    assumes "length xs = length ys" "Suc j < length xs"
-    shows "res_j xs ys (Suc j) = bvadd (res_j xs ys j) (sh_j xs ys (Suc j)) [] []"
-  proof (rule nth_equalityI)
-    show "length (res_j xs ys (Suc j)) =
-          length (bvadd (res_j xs ys j) (sh_j xs ys (Suc j)) [] [])"
-      using assms by (simp add: length_bvadd)
+lemma res_j_0th:
+"0 < length xs \<Longrightarrow> res_j xs ys (Suc j) ! 0 = bvadd (res_j xs ys j) (sh_j xs ys (Suc j)) [] [] ! 0"
+proof-
+  assume a0: "0 < length xs" 
+  obtain x xs' where res_Cons: "x # xs' = (res_j xs ys j)"
+    by (metis a0 res_j_length_gt0 length_greater_0_conv list.exhaust)
+  obtain y ys' where sh_Cons: "y # ys' = (sh_j xs ys (Suc j))"
+    by (metis a0 sh_j_length_gt0 length_greater_0_conv list.exhaust)
+
+  have "(res_j xs ys j) ! 0 = x" using res_Cons by auto
+  then have "res_mult xs ys 0 j = x" using res_j.simps a0 res_Cons by simp
+  moreover have "j = 0 \<Longrightarrow> res_mult xs ys 0 j = sh xs ys 0 0" by simp
+  moreover have "j > 0 \<Longrightarrow> res_mult xs ys 0 j = sh xs ys 0 0" using gr0_conv_Suc by force
+  ultimately have "x = sh xs ys 0 0" by blast
+  then have x_def: "x = (xs ! 0 \<and> ys ! 0)" unfolding sh_def by simp
+
+  have "sh_j xs ys (Suc j) ! 0 = sh xs ys 0 (Suc j)" using a0 by force
+  then have "sh_j xs ys (Suc j) ! 0 = False" by (simp add: sh_def)
+  then have y_def: "y = False" by (metis sh_Cons nth_Cons_0)
+
+  have "res_j xs ys (Suc j) ! 0 = res_mult xs ys 0 (Suc j)"
+    using res_j.simps a0 by simp
+  also have "... = sh xs ys 0 0" by simp
+  also have "... = (xs ! 0 \<and> ys ! 0)" using sh_def by simp
+  also have "... = x" using x_def by simp
+  also have "... = (x \<noteq> y)" using y_def by simp
+  also have "... = ((x \<noteq> y) \<noteq> bvadd_carry [] [])" using y_def by simp
+  also have "... = bvadd (x # xs') (y # ys') [] [] ! 0" by simp
+  finally show "res_j xs ys (Suc j) ! 0  = bvadd (res_j xs ys j) (sh_j xs ys (Suc j)) [] [] ! 0"
+    using res_Cons sh_Cons by presburger
+qed
+
+lemma res_j_bvadd_eq:
+  assumes "length xs = length ys" "Suc j < length xs"
+  shows "res_j xs ys (Suc j) = bvadd (res_j xs ys j) (sh_j xs ys (Suc j)) [] []"
+proof (rule nth_equalityI)
+  show "length (res_j xs ys (Suc j)) = length (bvadd (res_j xs ys j) (sh_j xs ys (Suc j)) [] [])"
+    using assms by (simp add: length_bvadd)
+next
+  fix i::nat
+  assume a0: "i < length (res_j xs ys (Suc j))"
+  have t0: "(res_j xs ys j) \<noteq> []" 
+     using a0 by fastforce
+  have t1: "(sh_j xs ys (Suc j)) \<noteq> []"
+     using a0 by fastforce
+
+
+
+  show "res_j xs ys (Suc j) ! i = bvadd (res_j xs ys j) (sh_j xs ys (Suc j)) [] [] ! i"
+  proof (cases i)
+    assume "(i::nat) = 0"
+    then show "res_j xs ys (Suc j) ! i = bvadd (res_j xs ys j) (sh_j xs ys (Suc j)) [] [] ! i"
+      using res_j_0th t0 by force
   next
-    fix i assume "i < length (res_j xs ys (Suc j))"
-    hence ilen: "i < length xs" by simp
-    have len_eq: "length (res_j xs ys j) = length (sh_j xs ys (Suc j))" by simp
-    have lhs: "res_j xs ys (Suc j) ! i = res_mult xs ys i (Suc j)"
-      using ilen by simp
-    have rhs: "bvadd (res_j xs ys j) (sh_j xs ys (Suc j)) [] [] ! i =
-               ((res_mult xs ys i j \<noteq> sh xs ys i (Suc j)) \<noteq>
-                bvadd_carry_idx (res_j xs ys j) (sh_j xs ys (Suc j)) i)"
-      using bvadd_nth[OF len_eq, of i] ilen by simp
-    show "res_j xs ys (Suc j) ! i =
-          bvadd (res_j xs ys j) (sh_j xs ys (Suc j)) [] [] ! i"
-    proof (cases i)
-      case 0
-      show ?thesis apply (subst rhs lhs) using 0 sh_def apply (simp add: sh_def)
-        by (metis res_mult.elims(3) lhs res_mult.elims(2) res_j.elims nat.distinct(1))
-    next
-      case (Suc i')
-      have c: "carry_mult xs ys (Suc i') (Suc j) =
-               bvadd_carry_idx (res_j xs ys j) (sh_j xs ys (Suc j)) (Suc i')"
-        using carry_mult_eq[] ilen Suc
-        using assms(1,2) order.strict_implies_order by blast
-      show ?thesis using lhs rhs c Suc by simp
-    qed
+    fix i'
+    assume a1: "i = Suc i'" (*TODO: i' might not be needed, do length instead*)
+    then have "res_j xs ys (Suc j) ! i = (((res_mult xs ys (Suc i') j) \<noteq> (sh xs ys (Suc i') (Suc j))) \<noteq> carry_mult xs ys (Suc i') (Suc j))"
+      using a0 by simp
+    moreover have "carry_mult xs ys (Suc i') (Suc j) = bvadd_carry_idx (res_j xs ys j) (sh_j xs ys (Suc j)) (Suc i')"
+      using carry_mult_bvadd_carry_idx_eq assms
+      by (metis a0 a1 less_or_eq_imp_le res_j_length)
+    ultimately have "res_j xs ys (Suc j) ! i = (((res_mult xs ys (Suc i') j) \<noteq> (sh xs ys (Suc i') (Suc j))) \<noteq> bvadd_carry_idx (res_j xs ys j) (sh_j xs ys (Suc j)) (Suc i'))"
+      by blast
+    then have "res_j xs ys (Suc j) ! i = (((res_mult xs ys (Suc i') j) \<noteq> (sh xs ys (Suc i') (Suc j))) \<noteq> bvadd_carry (rev (take (Suc i') (res_j xs ys j))) (rev (take (Suc i') (sh_j xs ys (Suc j)))))"
+      using bvadd_carry_bvadd_carry_idx
+      by (metis a0 a1 leD linorder_le_cases res_j_length sh_j_length)
+   then have "res_j xs ys (Suc j) ! i = (((res_mult xs ys i j) \<noteq> (sh xs ys i (Suc j))) \<noteq> bvadd_carry (rev (take i (res_j xs ys j))) (rev (take i (sh_j xs ys (Suc j)))))"
+     using a1 by simp
+    then show "res_j xs ys (Suc j) ! i = bvadd (res_j xs ys j) (sh_j xs ys (Suc j)) [] [] ! i"
+      using bvadd.simps(4)[of _ _ _ _ "[]" "[]"] sorry
   qed
+qed
+
+
 
 
 
@@ -449,7 +456,7 @@ qed
   next
     case (Suc j)
     have step: "res_j xs ys (Suc j) = bvadd (res_j xs ys j) (sh_j xs ys (Suc j)) [] []"
-      using res_j_Suc[OF assms(2)] Suc.prems by simp
+      using res_j_bvadd_eq[OF assms(2)] Suc.prems by simp
     have len_rj: "length (res_j xs ys j) = LENGTH('a)" using assms by simp
     have len_sh: "length (sh_j xs ys (Suc j)) = LENGTH('a)" using assms by simp
     have "(of_bl (rev (res_j xs ys (Suc j)))::'a::len word) =
@@ -508,6 +515,45 @@ lemma word_mult_bvmult [word_mult_rbl_bvmult]:
   qed
 
 
+
+
+(* ---------------------------------------------------------------------------------------------- *)
+(* -------------------------------------- Bitblast bvneg ---------------------------------------- *)
+(* ---------------------------------------------------------------------------------------------- *)
+
+fun bvneg_carry :: "bool list \<Rightarrow> bool" where
+[word_minus_rbl_bvneg_fun]: "bvneg_carry [] = True" |
+[word_minus_rbl_bvneg_fun]: "bvneg_carry (x#xs) = ((\<not>x \<and> False) \<or> ((\<not>x \<noteq> False) \<and> bvneg_carry xs))"
+
+fun bvneg :: "bool list \<Rightarrow> bool list \<Rightarrow> bool list" where
+[word_minus_rbl_bvneg_fun]: "bvneg [] _ = []" |
+[word_minus_rbl_bvneg_fun]: "bvneg (x#xs) xs' = ((\<not>x \<noteq> False) \<noteq> bvneg_carry xs') # bvneg xs (x#xs')"
+
+lemma bvneg_bin:
+    "bvneg (rev (bin_to_bl n bina)) xs' =
+     rev (bin_to_bl n (-bina - 1 + (if bvneg_carry xs' then 1 else 0)))"
+    apply (induct n arbitrary: bina xs')
+  subgoal by simp
+  apply clarsimp
+    apply (case_tac bina rule: bin_exhaust)
+     unfolding bin_to_bl_aux_alt
+     apply (auto simp: rbl_succ)
+        apply (simp_all add: ac_simps div_add1_eq)
+        apply (metis is_num_normalize(8) mult_2 mult_2_right nonzero_mult_div_cancel_left zero_neq_numeral)
+  apply (metis bin_rest_NOT mult_2 mult_2_right nonzero_mult_div_cancel_left not_int_def zero_neq_numeral)
+  using bin_rest_NOT not_int_def
+  apply (metis ab_group_add_class.ab_diff_conv_add_uminus add.commute axxdiv2 comm_monoid_add_class.add_0 mult_2_right)
+  by (simp add: minus_diff_commute)
+
+lemma word_neg_bvneg_bin:
+    "to_bl v = vbl \<Longrightarrow> to_bl (-v) = rev (bvneg (rev vbl) [])"
+  apply transfer
+  using bvneg_bin by auto
+
+lemma word_neg_bvneg[word_minus_rbl_bvneg]:
+"length xs = LENGTH('a) \<Longrightarrow>
+-(of_bl (rev xs)::'a::len word) = (of_bl (rev (bvneg xs [])) :: 'a::len word)" for i j xs
+      by (metis rev_rev_ident takefill_same to_bl_use_of_bl word_neg_bvneg_bin word_rev_tf)
 
 
 (* ---------------------------------------------------------------------------------------------- *)
