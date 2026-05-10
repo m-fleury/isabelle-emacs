@@ -447,6 +447,7 @@ fun replay solver method_for outer_ctxt
     val thm_with_defs =
       Symtab.lookup proofs id |> the |> snd
       |> singleton (Proof_Context.export ctxt5 outer_ctxt)
+    val total = Time.toMilliseconds (#elapsed (Timing.result start))
     val _ = debug_msg ctxt middle (fn () => \<^print> ("Last step (id " ^ id ^ ")", thm_with_defs))
    
     val _ = if solver = "cvc5_prover" then
