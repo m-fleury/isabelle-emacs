@@ -23,7 +23,7 @@ fun filter_split _ [] = ([], [])
   | filter_split f (a :: xs) =
      (if f a then apfst (curry op :: a) else apsnd (curry op :: a)) (filter_split f xs)
 
-(**Util**)
+(** Util **)
 
 fun subst_only_free pairs =
   let
@@ -62,7 +62,7 @@ fun add_box_symbols ctxt t ct =
       | add_box_symbols _ ct = Conv.all_conv ct
 
   in
-    (*some terms coming from veriT are not beta-reduced.*)
+    (* Some terms coming from veriT are not beta-reduced. *)
     ct
     |> (Thm.beta_conversion true then_conv HOLogic.Trueprop_conv (add_box_symbols (HOLogic.dest_Trueprop t)))
   end
@@ -125,9 +125,9 @@ fun replay_thm solver method_for rewrite_rules ll_defs ctxt assumed unchanged_pr
                then SOME (Solver_Name solver)
                else args
 
-    (*The Alethe proof format distinguishes between the propositional structure (cl ...) and the
-    disjunction purely from the theory solver. Using that structure reduces the size of the terms
-    on some big cvc5 proof, improving performance.*)
+    (* The Alethe proof format distinguishes between the propositional structure (cl ...) and the
+       disjunction purely from the theory solver. Using that structure reduces the size of the terms
+       on some big cvc5 proof, improving performance. *)
     val needs_boxes = Alethe_Proof.keep_proposition_structure rule andalso
       SMT_Config.alethe_use_prop_skeleton ctxt
 
@@ -154,7 +154,7 @@ fun replay_theorem_step solver method_for rewrite_rules all_assms ll_defs assume
     val _ = debug_msg ctxt low (fn () => \<^print> ("Replaying theorem step", id))
     val _ = debug_msg ctxt middle (fn () => \<^print> ("(conclusion, propositional skeleton)", (concl, prop_skeleton)))
 
-    (*Add symbol names from the step's conclusion to context*)
+    (* Add symbol names from the step's conclusion to context *)
     val ctxt = Variable.variant_fixes [] ctxt
       |> (fn (_, ctxt) => fold Variable.declare_term [SMTLIB_Isar.unskolemize_names ctxt concl] ctxt)
 
@@ -225,8 +225,8 @@ fun replay_theorem_step solver method_for rewrite_rules all_assms ll_defs assume
       |> map_filter id_to_thm
       |> map (apsnd export_thm)
     val skolem_rule_prems_as_thms_with_context_assms =
-      (if Alethe_Proof.is_skolemization rule (*Choice terms only appear in sko_forall and exists*)
-       then prems_skolem_def |> map_filter (Symtab.lookup globally_known_facts) (*skolem definitions are always in the outermost context*)
+      (if Alethe_Proof.is_skolemization rule (* Choice terms only appear in sko_forall and exists *)
+       then prems_skolem_def |> map_filter (Symtab.lookup globally_known_facts) (* Skolem definitions are always in the outermost context *)
        else [])
     val step_args = map subst_transform step_args
     val args =
@@ -245,7 +245,7 @@ fun replay_theorem_step solver method_for rewrite_rules all_assms ll_defs assume
     val missing_assumptions =
        if SMT_Config.alethe_no_provided_assms ctxt andalso
          (rule = Alethe_Proof.local_input_rule orelse rule = Alethe_Proof.normalized_input_rule orelse rule = Alethe_Proof.input_rule)
-       then all_assms (*For external problems we don't know which assumptions are used since the assertions might not have names, add all*)
+       then all_assms (* For external problems we don't know which assumptions are used since the assertions might not have names, add all *)
        else []
     val all_local_assumptions =
        if Alethe_Replay_Methods.requires_subproof_assms prems rule then updated_local_assumptions else []
@@ -322,12 +322,12 @@ fun prove_ll_def_from_assms assms ll_defs rewrite_rules stats ctxt term =
   let
     val rewrite = let val thy = Proof_Context.theory_of (empty_simpset ctxt) in
         Raw_Simplifier.rewrite_term thy rewrite_rules []
-        #> not (null ll_defs) ? SMTLIB_Isar.unlift_term ll_defs (*unfold lambda defs*)
+        #> not (null ll_defs) ? SMTLIB_Isar.unlift_term ll_defs (* Unfold lambda defs *)
       end
     val replay = Timing.timing (SMT_Replay_Methods.prove ctxt (rewrite term))
     val ({elapsed, ...}, thm) =
       SMT_Config.with_time_limit ctxt "assumption" SMT_Config.reconstruction_step_timeout replay
-         (fn _ => Method.insert_tac ctxt assms THEN' Classical.fast_tac ctxt) (*We do not know why fast_tac is used here, maybe just to be on the safe side.*)
+         (fn _ => Method.insert_tac ctxt assms THEN' Classical.fast_tac ctxt) (* We do not know why fast_tac is used here, maybe just to be on the safe side. *)
     val stats' = Symtab.cons_list (Alethe_Proof.input_rule, Time.toNanoseconds elapsed) stats
   in
     (thm, stats')
@@ -351,7 +351,7 @@ fun replay solver method_for outer_ctxt
        else ()
     val _ = debug_msg ctxt low (fn () => \<^print> ("Replaying proof"))
 
-    (* Rewriting Util *)
+    (* Rewriting util *)
     val rewrite_rules =
       filter_out (fn thm => Term.could_unify (Thm.prop_of @{thm alethe_eq_true_simplify},
           Thm.prop_of thm))
@@ -359,14 +359,14 @@ fun replay solver method_for outer_ctxt
     val num_ll_defs = length ll_defs
     val index_of_id = Integer.add (~ num_ll_defs)
 
-    (* Parse Proof *)
+    (* Parse proof *)
     val start0 = Timing.start ()
     val (parsed_proof_steps, ctxt_after_parsing) =
       Alethe_Proof.parse_replay typs terms raw_proof_steps ctxt
     val parsing_time = Time.toNanoseconds (#elapsed (Timing.result start0))
     val _ = debug_msg ctxt middle (fn () => \<^print> ("Finished parsing proof steps"))
 
-    (*Prepare for Replay*)
+    (* Prepare for replay *)
     val start = Timing.start ()
 
     (* Find used and non lambda lifting definition assumptions *)
@@ -387,7 +387,7 @@ fun replay solver method_for outer_ctxt
           else NONE end) used_assert_ids
     val _ = debug_msg ctxt high (fn () => \<^print> ("These are genuine assumptions of the proof",real_assms))
 
-    (* Process Lambda Lifting Definitions *)
+    (* Process lambda lifting definitions *)
     fun normalize_tac ctxt = let val thy = Proof_Context.theory_of (empty_simpset ctxt) in
       Raw_Simplifier.rewrite_term thy rewrite_rules [] end
     val used_lldefs =
@@ -396,19 +396,19 @@ fun replay solver method_for outer_ctxt
         used_assert_ids
     val _ = debug_msg ctxt high (fn () => \<^print> ("These assumptions were lambda lifting definitions that were actually used: ",used_lldefs))
 
-    (* Add Assumptions to Context *)
+    (* Add assumptions to context *)
     val add_assert = SMT_Replay.add_asserted Symtab.update Symtab.empty (fn x => x)
       (fn r => r = Alethe_Proof.input_rule)
     val ((_, _), (ctxt_with_asserts, assumed)) =
       add_assert outer_ctxt rewrite_rules (map (apfst fst) assms)
         real_assms ctxt_after_parsing
     val ctxt_with_asserts = ctxt_with_asserts
-      |> put_simpset (SMT_Replay.make_simpset ctxt_with_asserts []) (*Note: We had this commented out for a while, if something breaks this could be a good candidate to comment out again*)
+      |> put_simpset (SMT_Replay.make_simpset ctxt_with_asserts []) (* Note: we had this commented out for a while, if something breaks this could be a good candidate to comment out again *)
       |> Config.put SAT.solver (Config.get ctxt_after_parsing SMT_Config.sat_solver)
 
     (* Note: this proves and then adds the used lambda lifting definitions to the set of assumptions and could theoretically
        also update existing assumptions. It is not clear if the latter is needed, but erring on the side
-       of caution we leave this code intact.*)
+       of caution we leave this code intact. *)
     val (assumed, stats) = fold (fn ((ll_def_id, ll_def_term)) => fn (assumed, stats) =>
       let
         val (thm, stats) = prove_ll_def_from_assms (map snd assms) ll_defs rewrite_rules stats ctxt ll_def_term
@@ -419,20 +419,20 @@ fun replay solver method_for outer_ctxt
       used_lldefs (assumed, Symtab.cons_list ("parsing", parsing_time) Symtab.empty)
     val _ = debug_msg ctxt middle (fn () => \<^print> ("Finished replaying the assumptions"))
 
-    (* Linearize Step Ids *)
+    (* Linearize step ids *)
     val len = Alethe_Proof.number_of_steps parsed_proof_steps
     fun steps_with_depth _ [] = []
       | steps_with_depth i (p :: ps) =
         let val i' = i + Alethe_Proof.number_of_steps [p] in (i', p) :: steps_with_depth i' ps end
     val actual_steps = steps_with_depth 0 parsed_proof_steps
 
-    (*Set-up Statistics*)
+    (* Set-up statistics *)
     val print_runtime_statistics = SMT_Replay.intermediate_statistics ctxt_with_asserts start len
     fun blockwise f (i, x) (next, y) =
       (if i > next then print_runtime_statistics i else ();
        (if i > next then i + 10 else next, f x y))
 
-    (*Replay Steps*)
+    (* Replay steps *)
     val global_transformation : term Termtab.table = Termtab.empty
     val (_, (proofs, stats, ctxt5, _, _)) =
       fold (blockwise (replay_step solver method_for rewrite_rules (map snd assms) ll_defs assumed [] [])) actual_steps
@@ -450,10 +450,10 @@ fun replay solver method_for outer_ctxt
     val _ = if solver = "cvc5_prover" then
               SMT_Replay.spying (SMT_Config.spy_cvc ctxt) ctxt
                 (fn () => SMT_Replay.print_stats (Symtab.dest stats)) "$ISABELLE_SMT_CVC_SPY"
-           else (*everything that is not cvc5 is veriT*)
+           else (* Everything that is not cvc5 is veriT *)
               SMT_Replay.spying (SMT_Config.spy_verit ctxt) ctxt
                                 (fn () => SMT_Replay.print_stats (Symtab.dest stats)) "$ISABELLE_SMT_VERIT_SPY"
-    (*Statistics*)
+    (* Statistics *)
     val _ = print_runtime_statistics len
     val _ = SMT_Config.statistics_msg ctxt5
       (Pretty.string_of o SMT_Replay.pretty_statistics "cvc" total) stats
