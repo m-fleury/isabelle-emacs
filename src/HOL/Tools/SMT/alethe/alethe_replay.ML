@@ -7,7 +7,7 @@ Proof parsing and replay for alethe.
 
 signature ALETHE_REPLAY =
 sig
-  val replay: string -> (string -> Proof.context -> thm list -> term list -> term list -> term -> tactic_args option -> thm) -> 
+  val replay: string -> (string -> Proof.context -> thm list -> term list -> term list -> term -> tactic_args option -> thm) ->
      Proof.context -> SMT_Translate.replay_data -> string list -> thm
 end;
 
@@ -44,18 +44,18 @@ fun add_box_symbols ctxt t ct =
   let
     fun add_alethe_Box_after_all_negations_conv ctxt ct =
           (case Thm.term_of ct of
-            @{term Not} $ _ => 
+            @{term Not} $ _ =>
               Conv.try_conv (Conv.arg_conv (add_alethe_Box_after_all_negations_conv ctxt) )
-          | _ => 
+          | _ =>
               Conv.try_conv (Conv.top_conv (K (Conv.rewr_conv @{thm alethe_Box})) ctxt)) ct
 
-    fun add_box_symbols @{term True} ct = 
+    fun add_box_symbols @{term True} ct =
           (case Thm.term_of ct of
-            @{term Not} $ _ => 
+            @{term Not} $ _ =>
               Conv.try_conv (Conv.arg_conv (add_alethe_Box_after_all_negations_conv ctxt))
-          | _ => 
+          | _ =>
               Conv.try_conv (Conv.top_conv (K (Conv.rewr_conv @{thm alethe_Box})) ctxt)) ct
-      | add_box_symbols (u $ v) ct = 
+      | add_box_symbols (u $ v) ct =
           (Conv.fun_conv (add_box_symbols u)
            then_conv Conv.arg_conv (add_box_symbols v)) ct
 
@@ -69,7 +69,7 @@ fun add_box_symbols ctxt t ct =
 
 (** Replaying **)
 
-fun apply_replay_method f unchanged_prems (prems, prems_as_thms_with_context_assms) step_args 
+fun apply_replay_method f unchanged_prems (prems, prems_as_thms_with_context_assms) step_args
     context_assignments ((prop_skeleton, concl), ctxt) tactic_args keep_proposition_structure =
   let
     val prems1 = unchanged_prems @ map (SMT_Replay.varify ctxt) prems
@@ -79,8 +79,8 @@ fun apply_replay_method f unchanged_prems (prems, prems_as_thms_with_context_ass
          else map snd)
 
     val concl =
-      if keep_proposition_structure 
-      then 
+      if keep_proposition_structure
+      then
         (add_box_symbols ctxt prop_skeleton (Thm.cterm_of ctxt concl)
         |> Thm.prop_of
         |> (fn _ $ s => s))
@@ -125,14 +125,14 @@ fun replay_thm solver method_for rewrite_rules ll_defs ctxt assumed unchanged_pr
                then SOME (Solver_Name solver)
                else args
 
-    (*The Alethe proof format distinguishes between the propositional structure (cl ...) and the 
+    (*The Alethe proof format distinguishes between the propositional structure (cl ...) and the
     disjunction purely from the theory solver. Using that structure reduces the size of the terms
     on some big cvc5 proof, improving performance.*)
     val needs_boxes = Alethe_Proof.keep_proposition_structure rule andalso
       SMT_Config.alethe_use_prop_skeleton ctxt
 
   in
- 
+
       apply_replay_method (method_for rule) unchanged_prems
         (prems, prems_as_thms_with_context_assms)
         (map rewrite step_args)
@@ -147,7 +147,7 @@ fun replay_thm solver method_for rewrite_rules ll_defs ctxt assumed unchanged_pr
 
 
 fun replay_theorem_step solver method_for rewrite_rules all_assms ll_defs assumed (inputs : thm list) (all_local_assumptions : thm list)
-  (step as Alethe_Node.Alethe_Replay_Node {id, rule, prems, step_args, context_assignments, 
+  (step as Alethe_Node.Alethe_Replay_Node {id, rule, prems, step_args, context_assignments,
      subproof = (fixes, assms, input, subproof), concl, args, prop_skeleton, ...})
   (globally_known_facts, stats, ctxt, concl_transformation, global_transformation) =
   let
@@ -162,11 +162,11 @@ fun replay_theorem_step solver method_for rewrite_rules all_assms ll_defs assume
        ||> fold Variable.declare_term (map Free fixes)
     val _ = debug_cond_msg ctxt (fixes <> []) middle (fn () => \<^print> ("Obtained new variables from the subproof and added their names to a subcontext",(fixes,names)))
 
-    val export_vars = concl_transformation @ 
+    val export_vars = concl_transformation @
        (ListPair.zip (map Free fixes, map Free (ListPair.zip (names, map snd fixes))))
     val _ = debug_cond_msg ctxt (export_vars <> []) high (fn () => \<^print> ("Current mapping from variable names to the possibly new names that Isabelle chose",export_vars))
- 
-    (* Rewriting and transforming util *)       
+
+    (* Rewriting and transforming util *)
     val remove_lambdas =
       let val thy = Proof_Context.theory_of (empty_simpset ctxt) in
         Raw_Simplifier.rewrite_term thy (if (Alethe_Proof.keep_raw_lifting rule) andalso not (null rewrite_rules) then tl rewrite_rules else rewrite_rules) []
@@ -198,17 +198,17 @@ fun replay_theorem_step solver method_for rewrite_rules all_assms ll_defs assume
     (* Build up new sub-context sub_ctxt2 using (context) assumptions *)
     val (assms_as_thm, sub_ctxt2) = mk_thms sub_ctxt rewritten_assms
     val (input_as_thm, sub_ctxt2) = mk_thms sub_ctxt2 rewritten_input
-    val (context_assignments_as_thm, sub_ctxt2) = mk_thms sub_ctxt2 rewritten_context_assignments 
+    val (context_assignments_as_thm, sub_ctxt2) = mk_thms sub_ctxt2 rewritten_context_assignments
     val updated_local_assumptions = all_local_assumptions @ assms_as_thm @ context_assignments_as_thm
     val _ = debug_cond_msg ctxt (not (null rewritten_assms)) high (fn () => \<^print> ("Transformed assumptions, i.e. top-level assumes (before,after)",(assms,assms_as_thm)))
     val _ = debug_cond_msg ctxt (not (null rewritten_input)) high (fn () => \<^print> ("Transformed input, i.e. assumes in subproofs (before,after)",(input,input_as_thm)))
     val _ = debug_cond_msg ctxt (not (null rewritten_context_assignments)) high (fn () => \<^print> ("Transformed context assignments (before,after)",(context_assignments,context_assignments_as_thm)))
     val _ = debug_cond_msg ctxt (not (null updated_local_assumptions)) low (fn () => \<^print> ("All assumptions holding after the current step", updated_local_assumptions))
- 
+
     (* Processing subproof *)
     val _ = debug_cond_msg ctxt (not (null subproof)) low (fn () => \<^print> ("Interrupting the replay of the current step " ^ id ^ " to replay its subproof"))
     val replay = replay_theorem_step solver method_for rewrite_rules all_assms ll_defs assumed (input_as_thm @ inputs) updated_local_assumptions
-    val (locally_known_facts, stats, _, _, sub_global_rew) =                                       
+    val (locally_known_facts, stats, _, _, sub_global_rew) =
        fold replay subproof (globally_known_facts, stats, sub_ctxt2, export_vars, global_transformation)
     val _ = debug_cond_msg ctxt (not (null subproof)) high (fn () => \<^print> ("Filled table with mapping from names (id or for skolems var_def) to " ^
       "theorems with all steps the current step can access",Symtab.keys locally_known_facts ))
@@ -224,7 +224,7 @@ fun replay_theorem_step solver method_for rewrite_rules all_assms ll_defs assume
       non_skolem_prems
       |> map_filter id_to_thm
       |> map (apsnd export_thm)
-    val skolem_rule_prems_as_thms_with_context_assms = 
+    val skolem_rule_prems_as_thms_with_context_assms =
       (if Alethe_Proof.is_skolemization rule (*Choice terms only appear in sko_forall and exists*)
        then prems_skolem_def |> map_filter (Symtab.lookup globally_known_facts) (*skolem definitions are always in the outermost context*)
        else [])
@@ -234,7 +234,7 @@ fun replay_theorem_step solver method_for rewrite_rules all_assms ll_defs assume
         SOME (Alethe_Node.Insts tab) => SOME (Alethe_Node.Insts (Symtab.map (K subst_transform) tab)) |
         _ => args)
     val context_assignments = map subst_transform context_assignments
-    val  _ = debug_cond_msg ctxt (length non_skolem_prems <> length prems_as_thms_with_context_assms) low (fn () => 
+    val  _ = debug_cond_msg ctxt (length non_skolem_prems <> length prems_as_thms_with_context_assms) low (fn () =>
       \<^print> ("Warning, there were premises that are not accessible to the current step (i.e., that are not in the context). This should not happen. These were ignored."))
     val _ = debug_cond_msg ctxt (not (null prems)) middle (fn () =>
       \<^print> ("Export premises that are not skolem definitions, to the current context." ^
@@ -339,7 +339,7 @@ fun replay_step solver method_for rewrite_rules all_assms ll_defs assumed inputs
   | replay_step _ _ rewrite_rules _ ll_defs _ _ _
     (step as Alethe_Node.Alethe_Definition_Node {...}) state =
      replay_definition_step rewrite_rules ll_defs step state
- 
+
 
 fun replay solver method_for outer_ctxt
     ({ctxt = ctxt, typs, terms, rewrite_rules, assms, ll_defs, ...} : SMT_Translate.replay_data)
@@ -353,7 +353,7 @@ fun replay solver method_for outer_ctxt
 
     (* Rewriting Util *)
     val rewrite_rules =
-      filter_out (fn thm => Term.could_unify (Thm.prop_of @{thm alethe_eq_true_simplify}, 
+      filter_out (fn thm => Term.could_unify (Thm.prop_of @{thm alethe_eq_true_simplify},
           Thm.prop_of thm))
         rewrite_rules
     val num_ll_defs = length ll_defs
@@ -446,7 +446,7 @@ fun replay solver method_for outer_ctxt
       |> singleton (Proof_Context.export ctxt5 outer_ctxt)
     val total = Time.toMilliseconds (#elapsed (Timing.result start))
     val _ = debug_msg ctxt middle (fn () => \<^print> ("Last step (id " ^ id ^ ")", thm_with_defs))
-   
+
     val _ = if solver = "cvc5_prover" then
               SMT_Replay.spying (SMT_Config.spy_cvc ctxt) ctxt
                 (fn () => SMT_Replay.print_stats (Symtab.dest stats)) "$ISABELLE_SMT_CVC_SPY"
