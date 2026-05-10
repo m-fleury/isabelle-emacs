@@ -318,7 +318,7 @@ fun replay_definition_step rewrite_rules ll_defs
  | replay_definition_step _ _ _ _  = raise (Fail "unreachable code to silence the compiler")
 
 
-fun replay_assumed assms ll_defs rewrite_rules stats ctxt term =
+fun prove_ll_def_from_assms assms ll_defs rewrite_rules stats ctxt term =
   let
     val rewrite = let val thy = Proof_Context.theory_of (empty_simpset ctxt) in
         Raw_Simplifier.rewrite_term thy rewrite_rules []
@@ -406,15 +406,16 @@ fun replay solver method_for outer_ctxt
       |> put_simpset (SMT_Replay.make_simpset ctxt_with_asserts []) (*Note: We had this commented out for a while, if something breaks this could be a good candidate to comment out again*)
       |> Config.put SAT.solver (Config.get ctxt_after_parsing SMT_Config.sat_solver)
 
-
-    (* Replay Assumption *)
-    val (assumed, stats) = fold (fn ((id, thm)) => fn (assumed, stats) =>
+    (* Note: this proves and then adds the used lambda lifting definitions to the set of assumptions and could theoretically
+       also update existing assumptions. It is not clear if the latter is needed, but airing on the side
+       of caution we leave this code intact.*)
+    val (assumed, stats) = fold (fn ((ll_def_id, ll_def_term)) => fn (assumed, stats) =>
       let
-        val (thm, stats) = replay_assumed (map snd assms) ll_defs rewrite_rules stats ctxt thm
-        val name = SMTLIB_Interface.assert_name_of_role_and_index SMT_Util.Axiom id
+        val (thm, stats) = prove_ll_def_from_assms (map snd assms) ll_defs rewrite_rules stats ctxt ll_def_term
+        val name = SMTLIB_Interface.assert_name_of_role_and_index SMT_Util.Axiom ll_def_id
       in
-        (Symtab.update (name, (@{term "Trueprop True"}, thm)) assumed, stats) (*Das Replay hat das Theorem veraendert? (vllt wegen monomorphisierung?)*)
-      end) (*TODO Hanna: Look at a few examples to see what it does, not sure if needed*)
+        (Symtab.update (name, (@{term "Trueprop True"}, thm)) assumed, stats)
+      end)
       used_lldefs (assumed, Symtab.cons_list ("parsing", parsing_time) Symtab.empty)
     val _ = debug_msg ctxt middle (fn () => \<^print> ("Finished replaying the assumptions"))
 
