@@ -252,7 +252,7 @@ fun replay_theorem_step solver method_for rewrite_rules all_assms ll_defs assume
     val local_inputs =
        if Alethe_Replay_Methods.requires_local_input prems rule then input_as_thm @ inputs else []
     val _ = debug_cond_msg ctxt (not (null missing_assumptions)) low (fn () => \<^print> ("Assumptions could not be mapped to the current input rule by name" ^
-      "(possibily because you are checking an external proof), so all assumptions were added",missing_assumptions))
+      "(possibly because you are checking an external proof), so all assumptions were added",missing_assumptions))
     val _ = debug_cond_msg ctxt (not (null all_local_assumptions)) middle (fn () => \<^print> ("Added mapping from context_assignment as premises to steps (refl,sko_forall,sko_ex,cong)",all_local_assumptions))
     val _ = debug_cond_msg ctxt (not (null local_inputs)) middle (fn () => \<^print> ("Added the assumptions of the current subproof rule as premises",local_inputs))
 
@@ -327,7 +327,7 @@ fun prove_ll_def_from_assms assms ll_defs rewrite_rules stats ctxt term =
     val replay = Timing.timing (SMT_Replay_Methods.prove ctxt (rewrite term))
     val ({elapsed, ...}, thm) =
       SMT_Config.with_time_limit ctxt "assumption" SMT_Config.reconstruction_step_timeout replay
-         (fn _ => Method.insert_tac ctxt assms THEN' Classical.fast_tac ctxt) (*We do not now why fast_tac is used here, maybe just to be on the safe side.*)
+         (fn _ => Method.insert_tac ctxt assms THEN' Classical.fast_tac ctxt) (*We do not know why fast_tac is used here, maybe just to be on the safe side.*)
     val stats' = Symtab.cons_list (Alethe_Proof.input_rule, Time.toNanoseconds elapsed) stats
   in
     (thm, stats')
@@ -407,7 +407,7 @@ fun replay solver method_for outer_ctxt
       |> Config.put SAT.solver (Config.get ctxt_after_parsing SMT_Config.sat_solver)
 
     (* Note: this proves and then adds the used lambda lifting definitions to the set of assumptions and could theoretically
-       also update existing assumptions. It is not clear if the latter is needed, but airing on the side
+       also update existing assumptions. It is not clear if the latter is needed, but erring on the side
        of caution we leave this code intact.*)
     val (assumed, stats) = fold (fn ((ll_def_id, ll_def_term)) => fn (assumed, stats) =>
       let
@@ -419,7 +419,7 @@ fun replay solver method_for outer_ctxt
       used_lldefs (assumed, Symtab.cons_list ("parsing", parsing_time) Symtab.empty)
     val _ = debug_msg ctxt middle (fn () => \<^print> ("Finished replaying the assumptions"))
 
-    (* Lineralize Step Ids *)
+    (* Linearize Step Ids *)
     val len = Alethe_Proof.number_of_steps parsed_proof_steps
     fun steps_with_depth _ [] = []
       | steps_with_depth i (p :: ps) =
