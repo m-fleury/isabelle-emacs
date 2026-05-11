@@ -1688,9 +1688,10 @@ local
         |> Thm.term_of o Object_Logic.dest_judgment ctxt
         |> HOLogic.dest_eq
     in
+       (*on external variable, names can change from BOUND to bOUND.*)
        onepoint_combine_quant ctxt 
-         (extract_quantified_names_q t1 |> fst)
-         (extract_quantified_names_q t2 |> fst)
+         (extract_quantified_names_q t1 |> fst |> map Symbol.to_ascii_upper)
+         (extract_quantified_names_q t2 |> fst |> map Symbol.to_ascii_upper)
          insts
     end
 in
