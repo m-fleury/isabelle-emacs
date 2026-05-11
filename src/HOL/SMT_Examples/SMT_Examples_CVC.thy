@@ -1012,4 +1012,137 @@ lemma
     shows False
   using assms supply [[smt_trace=false]] by (smt (cvc5,quant_saturate))
 
+
+experiment
+begin
+
+datatype tableau = Stuff
+datatype ('i, 'a) mapping = Stuff 'i 'a
+type_synonym var = nat
+datatype 'a atom = Atom 'a
+type_synonym 'i bound_index = "var \<Rightarrow> 'i"
+type_synonym ('i,'a) bounds_index = "(var, ('i \<times> 'a))mapping"
+
+
+datatype ('i,'a) state = State
+  (\<T>: "tableau")
+  (\<B>\<^sub>i\<^sub>l: "('i,'a) bounds_index")
+  (\<B>\<^sub>i\<^sub>u: "('i,'a) bounds_index")
+  (\<V>: "(var, 'a) mapping")
+  (\<U>: bool)
+  (\<U>\<^sub>c: "'i list option")
+
+type_synonym ('i,'a) i_atom = "'i \<times> 'a atom"
+
+type_synonym 'a bounds = "var \<rightharpoonup> 'a"
+type_synonym 'a valuation = "var \<Rightarrow> 'a"
+
+datatype ('i,'a) Direction = Direction
+  (lt: "'a::linorder \<Rightarrow> 'a \<Rightarrow> bool")
+  (LBI: "('i,'a) state \<Rightarrow> ('i,'a) bounds_index")
+  (UBI: "('i,'a) state \<Rightarrow> ('i,'a) bounds_index")
+  (LB: "('i,'a) state \<Rightarrow> 'a bounds")
+  (UB: "('i,'a) state \<Rightarrow> 'a bounds")
+  (LI: "('i,'a) state \<Rightarrow> 'i bound_index")
+  (UI: "('i,'a) state \<Rightarrow> 'i bound_index")
+  (UBI_upd: "(('i,'a) bounds_index \<Rightarrow> ('i,'a) bounds_index) \<Rightarrow> ('i,'a) state \<Rightarrow> ('i,'a) state")
+  (LE: "var \<Rightarrow> 'a \<Rightarrow> 'a atom")
+  (GE: "var \<Rightarrow> 'a \<Rightarrow> 'a atom")
+  (le_rat: "rat \<Rightarrow> rat \<Rightarrow> bool")
+
+fun i_satisfies_atom_set :: "'i set \<times> 'a::linorder valuation \<Rightarrow> ('i,'a) i_atom set \<Rightarrow> bool" (infixl \<open>\<Turnstile>\<^sub>i\<^sub>a\<^sub>s\<close> 100) where
+  "(I,v) \<Turnstile>\<^sub>i\<^sub>a\<^sub>s as \<longleftrightarrow> undefined"
+
+fun atoms_imply_bounds_index :: "('i,'a) i_atom set \<Rightarrow> ('a bounds \<times> 'a bounds) \<times> ('i bound_index \<times> 'i bound_index)
+  \<Rightarrow> bool" (infixl \<open>\<Turnstile>\<^sub>i\<close> 100) where
+  "as \<Turnstile>\<^sub>i bi \<longleftrightarrow> undefined"
+lemma
+  assumes
+    " \<forall>(x1::'a \<Rightarrow> 'a \<Rightarrow> bool) (x2::('i, 'a) state \<Rightarrow> (nat, 'i \<times> 'a) mapping) (x3::('i, 'a) state \<Rightarrow> (nat, 'i \<times> 'a) mapping) (x4::('i, 'a) state \<Rightarrow> nat \<Rightarrow> 'a option)
+          (x5::('i, 'a) state \<Rightarrow> nat \<Rightarrow> 'a option) (x6::('i, 'a) state \<Rightarrow> nat \<Rightarrow> 'i) (x7::('i, 'a) state \<Rightarrow> nat \<Rightarrow> 'i)
+          (x8::((nat, 'i \<times> 'a) mapping \<Rightarrow> (nat, 'i \<times> 'a) mapping) \<Rightarrow> ('i, 'a) state \<Rightarrow> ('i, 'a) state) (x9::nat \<Rightarrow> 'a \<Rightarrow> 'a atom) (x10::nat \<Rightarrow> 'a \<Rightarrow> 'a atom)
+          x11::rat \<Rightarrow> rat \<Rightarrow> bool. lt (Direction x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11) = x1"
+       "\<forall>(x1::'a \<Rightarrow> 'a \<Rightarrow> bool) (x2::('i, 'a) state \<Rightarrow> (nat, 'i \<times> 'a) mapping) (x3::('i, 'a) state \<Rightarrow> (nat, 'i \<times> 'a) mapping) (x4::('i, 'a) state \<Rightarrow> nat \<Rightarrow> 'a option)
+          (x5::('i, 'a) state \<Rightarrow> nat \<Rightarrow> 'a option) (x6::('i, 'a) state \<Rightarrow> nat \<Rightarrow> 'i) (x7::('i, 'a) state \<Rightarrow> nat \<Rightarrow> 'i)
+          (x8::((nat, 'i \<times> 'a) mapping \<Rightarrow> (nat, 'i \<times> 'a) mapping) \<Rightarrow> ('i, 'a) state \<Rightarrow> ('i, 'a) state) (x9::nat \<Rightarrow> 'a \<Rightarrow> 'a atom) (x10::nat \<Rightarrow> 'a \<Rightarrow> 'a atom)
+          x11::rat \<Rightarrow> rat \<Rightarrow> bool. GE (Direction x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11) = x10"
+      " \<forall>(x1::'a \<Rightarrow> 'a \<Rightarrow> bool) (x2::('i, 'a) state \<Rightarrow> (nat, 'i \<times> 'a) mapping) (x3::('i, 'a) state \<Rightarrow> (nat, 'i \<times> 'a) mapping) (x4::('i, 'a) state \<Rightarrow> nat \<Rightarrow> 'a option)
+          (x5::('i, 'a) state \<Rightarrow> nat \<Rightarrow> 'a option) (x6::('i, 'a) state \<Rightarrow> nat \<Rightarrow> 'i) (x7::('i, 'a) state \<Rightarrow> nat \<Rightarrow> 'i)
+          (x8::((nat, 'i \<times> 'a) mapping \<Rightarrow> (nat, 'i \<times> 'a) mapping) \<Rightarrow> ('i, 'a) state \<Rightarrow> ('i, 'a) state) (x9::nat \<Rightarrow> 'a \<Rightarrow> 'a atom) (x10::nat \<Rightarrow> 'a \<Rightarrow> 'a atom)
+          x11::rat \<Rightarrow> rat \<Rightarrow> bool. LBI (Direction x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11) = x2"
+      " \<forall>(x1::'a \<Rightarrow> 'a \<Rightarrow> bool) (x2::('i, 'a) state \<Rightarrow> (nat, 'i \<times> 'a) mapping) (x3::('i, 'a) state \<Rightarrow> (nat, 'i \<times> 'a) mapping) (x4::('i, 'a) state \<Rightarrow> nat \<Rightarrow> 'a option)
+          (x5::('i, 'a) state \<Rightarrow> nat \<Rightarrow> 'a option) (x6::('i, 'a) state \<Rightarrow> nat \<Rightarrow> 'i) (x7::('i, 'a) state \<Rightarrow> nat \<Rightarrow> 'i)
+          (x8::((nat, 'i \<times> 'a) mapping \<Rightarrow> (nat, 'i \<times> 'a) mapping) \<Rightarrow> ('i, 'a) state \<Rightarrow> ('i, 'a) state) (x9::nat \<Rightarrow> 'a \<Rightarrow> 'a atom) (x10::nat \<Rightarrow> 'a \<Rightarrow> 'a atom)
+          x11::rat \<Rightarrow> rat \<Rightarrow> bool. UBI (Direction x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11) = x3"
+      " \<forall>(x1::'a \<Rightarrow> 'a \<Rightarrow> bool) (x2::('i, 'a) state \<Rightarrow> (nat, 'i \<times> 'a) mapping) (x3::('i, 'a) state \<Rightarrow> (nat, 'i \<times> 'a) mapping) (x4::('i, 'a) state \<Rightarrow> nat \<Rightarrow> 'a option)
+          (x5::('i, 'a) state \<Rightarrow> nat \<Rightarrow> 'a option) (x6::('i, 'a) state \<Rightarrow> nat \<Rightarrow> 'i) (x7::('i, 'a) state \<Rightarrow> nat \<Rightarrow> 'i)
+          (x8::((nat, 'i \<times> 'a) mapping \<Rightarrow> (nat, 'i \<times> 'a) mapping) \<Rightarrow> ('i, 'a) state \<Rightarrow> ('i, 'a) state) (x9::nat \<Rightarrow> 'a \<Rightarrow> 'a atom) (x10::nat \<Rightarrow> 'a \<Rightarrow> 'a atom)
+          x11::rat \<Rightarrow> rat \<Rightarrow> bool. LB (Direction x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11) = x4"
+      " \<forall>(x1::'a \<Rightarrow> 'a \<Rightarrow> bool) (x2::('i, 'a) state \<Rightarrow> (nat, 'i \<times> 'a) mapping) (x3::('i, 'a) state \<Rightarrow> (nat, 'i \<times> 'a) mapping) (x4::('i, 'a) state \<Rightarrow> nat \<Rightarrow> 'a option)
+          (x5::('i, 'a) state \<Rightarrow> nat \<Rightarrow> 'a option) (x6::('i, 'a) state \<Rightarrow> nat \<Rightarrow> 'i) (x7::('i, 'a) state \<Rightarrow> nat \<Rightarrow> 'i)
+          (x8::((nat, 'i \<times> 'a) mapping \<Rightarrow> (nat, 'i \<times> 'a) mapping) \<Rightarrow> ('i, 'a) state \<Rightarrow> ('i, 'a) state) (x9::nat \<Rightarrow> 'a \<Rightarrow> 'a atom) (x10::nat \<Rightarrow> 'a \<Rightarrow> 'a atom)
+          x11::rat \<Rightarrow> rat \<Rightarrow> bool. UB (Direction x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11) = x5"
+       "\<forall>(x1::'a \<Rightarrow> 'a \<Rightarrow> bool) (x2::('i, 'a) state \<Rightarrow> (nat, 'i \<times> 'a) mapping) (x3::('i, 'a) state \<Rightarrow> (nat, 'i \<times> 'a) mapping) (x4::('i, 'a) state \<Rightarrow> nat \<Rightarrow> 'a option)
+          (x5::('i, 'a) state \<Rightarrow> nat \<Rightarrow> 'a option) (x6::('i, 'a) state \<Rightarrow> nat \<Rightarrow> 'i) (x7::('i, 'a) state \<Rightarrow> nat \<Rightarrow> 'i)
+          (x8::((nat, 'i \<times> 'a) mapping \<Rightarrow> (nat, 'i \<times> 'a) mapping) \<Rightarrow> ('i, 'a) state \<Rightarrow> ('i, 'a) state) (x9::nat \<Rightarrow> 'a \<Rightarrow> 'a atom) (x10::nat \<Rightarrow> 'a \<Rightarrow> 'a atom)
+          x11::rat \<Rightarrow> rat \<Rightarrow> bool. LI (Direction x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11) = x6"
+       "\<forall>(x1::'a \<Rightarrow> 'a \<Rightarrow> bool) (x2::('i, 'a) state \<Rightarrow> (nat, 'i \<times> 'a) mapping) (x3::('i, 'a) state \<Rightarrow> (nat, 'i \<times> 'a) mapping) (x4::('i, 'a) state \<Rightarrow> nat \<Rightarrow> 'a option)
+          (x5::('i, 'a) state \<Rightarrow> nat \<Rightarrow> 'a option) (x6::('i, 'a) state \<Rightarrow> nat \<Rightarrow> 'i) (x7::('i, 'a) state \<Rightarrow> nat \<Rightarrow> 'i)
+          (x8::((nat, 'i \<times> 'a) mapping \<Rightarrow> (nat, 'i \<times> 'a) mapping) \<Rightarrow> ('i, 'a) state \<Rightarrow> ('i, 'a) state) (x9::nat \<Rightarrow> 'a \<Rightarrow> 'a atom) (x10::nat \<Rightarrow> 'a \<Rightarrow> 'a atom)
+          x11::rat \<Rightarrow> rat \<Rightarrow> bool. UI (Direction x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11) = x7"
+       "\<forall>(x1::'a \<Rightarrow> 'a \<Rightarrow> bool) (x2::('i, 'a) state \<Rightarrow> (nat, 'i \<times> 'a) mapping) (x3::('i, 'a) state \<Rightarrow> (nat, 'i \<times> 'a) mapping) (x4::('i, 'a) state \<Rightarrow> nat \<Rightarrow> 'a option)
+          (x5::('i, 'a) state \<Rightarrow> nat \<Rightarrow> 'a option) (x6::('i, 'a) state \<Rightarrow> nat \<Rightarrow> 'i) (x7::('i, 'a) state \<Rightarrow> nat \<Rightarrow> 'i)
+          (x8::((nat, 'i \<times> 'a) mapping \<Rightarrow> (nat, 'i \<times> 'a) mapping) \<Rightarrow> ('i, 'a) state \<Rightarrow> ('i, 'a) state) (x9::nat \<Rightarrow> 'a \<Rightarrow> 'a atom) (x10::nat \<Rightarrow> 'a \<Rightarrow> 'a atom)
+          x11::rat \<Rightarrow> rat \<Rightarrow> bool. UBI_upd (Direction x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11) = x8"
+      " \<forall>(x1::'a \<Rightarrow> 'a \<Rightarrow> bool) (x2::('i, 'a) state \<Rightarrow> (nat, 'i \<times> 'a) mapping) (x3::('i, 'a) state \<Rightarrow> (nat, 'i \<times> 'a) mapping) (x4::('i, 'a) state \<Rightarrow> nat \<Rightarrow> 'a option)
+          (x5::('i, 'a) state \<Rightarrow> nat \<Rightarrow> 'a option) (x6::('i, 'a) state \<Rightarrow> nat \<Rightarrow> 'i) (x7::('i, 'a) state \<Rightarrow> nat \<Rightarrow> 'i)
+          (x8::((nat, 'i \<times> 'a) mapping \<Rightarrow> (nat, 'i \<times> 'a) mapping) \<Rightarrow> ('i, 'a) state \<Rightarrow> ('i, 'a) state) (x9::nat \<Rightarrow> 'a \<Rightarrow> 'a atom) (x10::nat \<Rightarrow> 'a \<Rightarrow> 'a atom)
+          x11::rat \<Rightarrow> rat \<Rightarrow> bool. LE (Direction x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11) = x9"
+       "Negative = Direction (\<lambda>(x::'a) y::'a. y < x) \<B>\<^sub>i\<^sub>u \<B>\<^sub>i\<^sub>l \<B>\<^sub>u \<B>\<^sub>l \<I>\<^sub>u \<I>\<^sub>l \<B>\<^sub>i\<^sub>l_update Geq Leq (\<lambda>(x::rat) y::rat. y \<le> x)"
+       "Positive = Direction (<) \<B>\<^sub>i\<^sub>l \<B>\<^sub>i\<^sub>u \<B>\<^sub>l \<B>\<^sub>u \<I>\<^sub>l \<I>\<^sub>u \<B>\<^sub>i\<^sub>u_update Leq Geq (\<le>)"
+      " \<forall>(as::('i \<times> 'a atom) set) (as'::('i \<times> 'a atom) set) bi::((nat \<Rightarrow> 'a option) \<times> (nat \<Rightarrow> 'a option)) \<times> (nat \<Rightarrow> 'i) \<times> (nat \<Rightarrow> 'i).
+          as \<subseteq> as' \<and> as \<Turnstile>\<^sub>i bi \<longrightarrow> as' \<Turnstile>\<^sub>i bi"
+       "(ats::('i \<times> 'a atom) set) \<subseteq> (A::('i \<times> 'a atom) set)"
+      " \<forall>(bs::('i \<times> 'a atom) set) s'::('i, 'a) state.
+          bs \<Turnstile>\<^sub>i \<B>\<I> s' =
+          (Q::('i \<times> 'a atom) set
+              \<Rightarrow> ('a \<Rightarrow> 'a \<Rightarrow> bool)
+                 \<Rightarrow> (('i, 'a) state \<Rightarrow> (nat, 'i \<times> 'a) mapping)
+                    \<Rightarrow> (('i, 'a) state \<Rightarrow> (nat, 'i \<times> 'a) mapping)
+                       \<Rightarrow> (('i, 'a) state \<Rightarrow> nat \<Rightarrow> 'a option)
+                          \<Rightarrow> (('i, 'a) state \<Rightarrow> nat \<Rightarrow> 'a option)
+                             \<Rightarrow> (((nat, 'i \<times> 'a) mapping \<Rightarrow> (nat, 'i \<times> 'a) mapping) \<Rightarrow> ('i, 'a) state \<Rightarrow> ('i, 'a) state)
+                                \<Rightarrow> (('i, 'a) state \<Rightarrow> nat \<Rightarrow> 'i)
+                                   \<Rightarrow> (('i, 'a) state \<Rightarrow> nat \<Rightarrow> 'i) \<Rightarrow> (nat \<Rightarrow> 'a \<Rightarrow> 'a atom) \<Rightarrow> (nat \<Rightarrow> 'a \<Rightarrow> 'a atom) \<Rightarrow> ('i, 'a) state \<Rightarrow> bool)
+           bs (<) \<B>\<^sub>i\<^sub>u \<B>\<^sub>i\<^sub>l \<B>\<^sub>u \<B>\<^sub>l \<B>\<^sub>i\<^sub>u_update \<I>\<^sub>u \<I>\<^sub>l Leq Geq s'"
+       "\<forall>s'::('i, 'a) state.
+          (A::('i \<times> 'a atom) set) \<Turnstile>\<^sub>i \<B>\<I> s' =
+          (Q::('i \<times> 'a atom) set
+              \<Rightarrow> ('a \<Rightarrow> 'a \<Rightarrow> bool)
+                 \<Rightarrow> (('i, 'a) state \<Rightarrow> (nat, 'i \<times> 'a) mapping)
+                    \<Rightarrow> (('i, 'a) state \<Rightarrow> (nat, 'i \<times> 'a) mapping)
+                       \<Rightarrow> (('i, 'a) state \<Rightarrow> nat \<Rightarrow> 'a option)
+                          \<Rightarrow> (('i, 'a) state \<Rightarrow> nat \<Rightarrow> 'a option)
+                             \<Rightarrow> (((nat, 'i \<times> 'a) mapping \<Rightarrow> (nat, 'i \<times> 'a) mapping) \<Rightarrow> ('i, 'a) state \<Rightarrow> ('i, 'a) state)
+                                \<Rightarrow> (('i, 'a) state \<Rightarrow> nat \<Rightarrow> 'i)
+                                   \<Rightarrow> (('i, 'a) state \<Rightarrow> nat \<Rightarrow> 'i) \<Rightarrow> (nat \<Rightarrow> 'a \<Rightarrow> 'a atom) \<Rightarrow> (nat \<Rightarrow> 'a \<Rightarrow> 'a atom) \<Rightarrow> ('i, 'a) state \<Rightarrow> bool)
+           A (\<lambda>(x::'a) y::'a. y < x) \<B>\<^sub>i\<^sub>l \<B>\<^sub>i\<^sub>u \<B>\<^sub>l \<B>\<^sub>u \<B>\<^sub>i\<^sub>l_update \<I>\<^sub>l \<I>\<^sub>u Geq Leq s'"
+       "\<forall>(I::'i set) v::nat \<Rightarrow> 'a.
+          (I, v) \<Turnstile>\<^sub>i\<^sub>a\<^sub>s (ats::('i \<times> 'a atom) set) \<longrightarrow>
+          (\<forall>(x::nat) c::'a. \<B>\<^sub>l (s::('i, 'a) state) x = Some c \<and> \<I>\<^sub>l s x \<in> I \<longrightarrow> c < v x \<or> c = v x) \<and>
+          (\<forall>(x::nat) c::'a. \<B>\<^sub>u s x = Some c \<and> \<I>\<^sub>u s x \<in> I \<longrightarrow> v x < c \<or> v x = c)"
+       "\<forall>(I::'i set) v::nat \<Rightarrow> 'a.
+          (I, v) \<Turnstile>\<^sub>i\<^sub>a\<^sub>s (ats::('i \<times> 'a atom) set) \<longrightarrow>
+          (\<forall>(x::nat) c::'a. \<B>\<^sub>u (s::('i, 'a) state) x = Some c \<and> \<I>\<^sub>u s x \<in> I \<longrightarrow> v x < c \<or> c = v x) \<and>
+          (\<forall>(x::nat) c::'a. \<B>\<^sub>l s x = Some c \<and> \<I>\<^sub>l s x \<in> I \<longrightarrow> c < v x \<or> v x = c)"
+       "\<forall>v::'i set \<times> (nat \<Rightarrow> 'a). v \<Turnstile>\<^sub>i\<^sub>a\<^sub>s (A::('i \<times> 'a atom) set) \<longrightarrow> v \<Turnstile>\<^sub>i\<^sub>a\<^sub>s (ats::('i \<times> 'a atom) set)"
+       "\<not> ((dir::('i, 'a) Direction) = Positive \<or> dir = Negative \<longrightarrow>
+           (\<forall>(I::'i set) v::nat \<Rightarrow> 'a.
+               (I, v) \<Turnstile>\<^sub>i\<^sub>a\<^sub>s (A::('i \<times> 'a::linorder atom) set) \<longrightarrow>
+               (\<forall>(x::nat) c::'a. LB dir (s::('i, 'a) state) x = Some c \<and> LI dir s x \<in> I \<longrightarrow> lt dir c (v x) \<or> c = v x) \<and>
+               (\<forall>(x::nat) c::'a. UB dir s x = Some c \<and> UI dir s x \<in> I \<longrightarrow> lt dir (v x) c \<or> v x = c))) "
+     shows False
+  using assms supply [[smt_trace]] by (smt (cvc5)) 
+
+end
 end

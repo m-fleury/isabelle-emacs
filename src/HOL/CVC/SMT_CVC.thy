@@ -148,5 +148,4 @@ val _ = Outer_Syntax.local_theory \<^command_keyword>\<open>check_smt_slice\<clo
   end))
 \<close>
 
-
 end
