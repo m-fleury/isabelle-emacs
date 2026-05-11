@@ -1642,11 +1642,12 @@ local
                                    | t$u' => substf t $ substf u'
                                    | _ => u)
         in  substf  end;
+  val to_lower = String.implode o (map Char.toUpper) o String.explode
   fun resolve_and_instantiate_onepoint n1 (i, j: term) insts {context, params, ...} =
     let
        val i = 
          (case i of
-           Var ((n2, _), _) => if n1 = n2 then j else i
+           Var ((n2, _), _) => if n1 = to_lower n2 then j else i
          | _ => i) (*veriT: j or i; cvc5: only j*)
          |> Term.subst_free insts
          |> subst_var_untyped (map (fn (x, t) => (Var ((x, 0), @{typ dummy}), Thm.term_of t)) params)
@@ -1690,8 +1691,8 @@ local
     in
        (*on external variable, names can change from BOUND to bOUND.*)
        onepoint_combine_quant ctxt 
-         (extract_quantified_names_q t1 |> fst |> map Symbol.to_ascii_upper)
-         (extract_quantified_names_q t2 |> fst |> map Symbol.to_ascii_upper)
+         (extract_quantified_names_q t1 |> fst |> map to_lower)
+         (extract_quantified_names_q t2 |> fst |> map to_lower)
          insts
     end
 in

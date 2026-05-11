@@ -30,6 +30,7 @@ declare [[verit_compress_proofs=false]]
 declare[[ rare_rec_mode=0 ]]
 (*declare [[unify_trace_failure]]*)
 
+
 section \<open>Propositional and first-order logic\<close>
 
 lemma "True" supply [[smt_trace]] by (smt (cvc5_proof)) (*success*)
@@ -996,5 +997,19 @@ lemma
   supply [[smt_trace=false,smt_statistics]]
   using assms
   by (smt (cvc5,fmf))
+lemma
+  assumes 
+      "\<forall>(a::'a \<Rightarrow> 'b) (b::'a \<Rightarrow> 'b) A::('a \<Rightarrow> 'b) set. (a \<in> insert b A) = (a = b \<or> a \<in> A)"
+      "\<forall>(a::'a) (b::'a) A::'a set. (a \<in> insert b A) = (a = b \<or> a \<in> A)"
+      "\<forall>(a::'b) (b::'b) A::'b set. (a \<in> insert b A) = (a = b \<or> a \<in> A)"
+      "\<forall>(a::'a) P::'a \<Rightarrow> bool. (a \<in> Collect P) = P a"
+      "\<forall>(a::'b) P::'b \<Rightarrow> bool. (a \<in> Collect P) = P a"
+      "\<forall>(a::'a \<Rightarrow> 'b) P::('a \<Rightarrow> 'b) \<Rightarrow> bool. (a \<in> Collect P) = P a"
+      "(f0::'a \<Rightarrow> 'b) \<in> {f::'a \<Rightarrow> 'b. \<forall>a::'a. if a \<in> (A'::'a set) then f a \<in> (B::'a \<Rightarrow> 'b set) a else f a = (f0::'a \<Rightarrow> 'b) a}"
+      "(f::'a \<Rightarrow> 'b) \<in> {f'::'a \<Rightarrow> 'b. \<forall>a'::'a. if (a::'a) = a' then f' a \<in> (B::'a \<Rightarrow> 'b set) a else f' a' = (f0::'a \<Rightarrow> 'b) a'}"
+      "(a::'a) \<notin> (A'::'a set)"
+      "(f::'a \<Rightarrow> 'b) \<notin> {f::'a \<Rightarrow> 'b. \<forall>aa::'a. if aa \<in> insert (a::'a) (A'::'a set) then f aa \<in> (B::'a \<Rightarrow> 'b set) aa else f aa = (f0::'a \<Rightarrow> 'b) aa} "
+    shows False
+  using assms supply [[smt_trace=false]] by (smt (cvc5,quant_saturate))
 
 end
