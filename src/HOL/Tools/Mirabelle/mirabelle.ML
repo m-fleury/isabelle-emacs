@@ -235,9 +235,11 @@ val _ =
                   else NONE
                 end;
 
-              local 
-                val targets = (split_lines o File.read) (Path.explode mirabelle_goals_from_file)
-                  handle IO.Io _ => raise Fail "Could not read file with target positions"
+              local
+                val targets =
+                if mirabelle_goals_from_file = "" then []
+                else (split_lines o File.read) (Path.explode mirabelle_goals_from_file)
+                handle IO.Io _ => raise Fail "Could not read file with target positions"
                 fun map_one_target delim x = (apsnd tl) (chop (find_index (fn y => y = delim) x) x)
                 val targets2 = targets  |> List.filter (fn x =>  size x > 0) |> map (map_one_target " " o raw_explode) |> map (apfst implode)
                 val targets3 = targets2 |> map (apsnd (apply2 implode o map_one_target ":"))
