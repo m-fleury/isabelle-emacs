@@ -96,6 +96,9 @@ check_smt ("cvc5_proof")
   "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/BV_Rewrites_Simplification/bv-lshr-by-const-2.alethe"
 
 (*bv-ashr-by-const-0*)
+check_smt ("cvc5_proof")
+  "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/BV_Rewrites_Simplification/bv-ashr-by-const-0.smt2"
+  "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/BV_Rewrites_Simplification/bv-ashr-by-const-0.alethe"
 
 (*bv-ashr-by-const-1*)
 check_smt ("cvc5_proof")
@@ -103,6 +106,9 @@ check_smt ("cvc5_proof")
   "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/BV_Rewrites_Simplification/bv-ashr-by-const-1.alethe"
 
 (*bv-ashr-by-const-2*)
+check_smt ("cvc5_proof")
+  "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/BV_Rewrites_Simplification/bv-ashr-by-const-2.smt2"
+  "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/BV_Rewrites_Simplification/bv-ashr-by-const-2.alethe"
 
 (*bv-and-concat-pullup*)
 check_smt ("cvc5_proof")

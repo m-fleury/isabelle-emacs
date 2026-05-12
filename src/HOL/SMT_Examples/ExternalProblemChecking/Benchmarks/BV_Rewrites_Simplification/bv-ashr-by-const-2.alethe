@@ -1,0 +1,6 @@
+unsat
+(step t1 (cl (= (>= 5 (@bvsize x)) true)) :rule trust :args ("trust"))
+(step t2 (cl (= 4 (- (@bvsize x) 1))) :rule trust :args ("trust"))
+(step t3 (cl (= 5 (@bvsize x))) :rule trust :args ("trust"))
+(step t10 (cl (= (bvashr x (@bv 5 5)) ((_ repeat 5) ((_ extract 4 4) x)))) :rule rare_rewrite :premises (t1 t2 t3) :args ("bv-ashr-by-const-2" x 5 5 4 5))
+(step slice_end (cl) :rule trust :premises (t10) :args ("trust"))
