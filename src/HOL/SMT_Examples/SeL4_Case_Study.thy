@@ -21,8 +21,8 @@ Or I might have missed copying over an assumption.
 
 (*options*)
 
-declare[[smt_expert_debug_alethe_level=0]]
-declare[[smt_expert_debug_alethe_files="alethe_replay_bv_methods"]]
+declare[[smt_expert_debug_alethe_level=3]]
+declare[[smt_expert_debug_alethe_files="alethe_replay_rare"]]
 
 declare[[ML_print_depth=1000]]
 declare[[smt_verbose=false,smt_trace=true,smt_timeout=25,smt_reconstruction_step_timeout=25]]
@@ -111,13 +111,7 @@ definition valid_pde_mapping_offset' :: "machine_word \<Rightarrow> bool" where
 
 (*Quick additions to reconstruction, if successful should be ported to "earlier" in the code base*)
 
-(*
-lemmas [bv_reconstruction_const_test] = arith_simps word_0_bl of_bl_False rev.simps of_bl_True append_Nil append_Cons bin_to_bl_aux_Bit0_minus_simp bin_to_bl_aux_Bit1_minus_simp bin_to_bl_aux_zero_minus_simp bin_to_bl_aux.Z bin_last_numeral_simps
-drop_bit_int_code int_shiftr_numeral and_one_eq int_and_1
-lemmas [bv_reconstruction_length] = smt_word_len_evaluate
-lemmas [rbl_bvult_fun] = le_Suc_numeral pred_numeral_simps
-lemmas[nat_normalized_input] = Word_eq_word_of_int
-*)
+
 
 (*
 Benchmark Nr: 1
@@ -126,14 +120,24 @@ Origin:
 Description:
   No custom functions & no casts between bit-widths. Is aligned uses power 2.
 *)
+lemma h1: "LENGTH(12) = nat (12::int)" sorry
+lemmas [cvc_evaluate_bv] = Word_eq_word_of_int bv_reconstruction_length bit_operations word_size h1
+
 thm word_plus_rbl_bvadd_fun
-lemma pde_shifting:
-  "\<lbrakk>is_aligned (vptr::word32) 24; x \<le> 0xF\<rbrakk> \<Longrightarrow> x + (vptr >> 20) < 0x1000"
+ lemma pde_shifting_small:
+    "\<lbrakk>is_aligned (vptr::16 word) 12; x \<le> 0xF\<rbrakk> \<Longrightarrow> x + (vptr >> 8) < 0x100"
   using is_aligned_iff_take_bit_eq_0
   supply[[smt_trace=true,smt_verbose=true]]
   apply (smt(cvc5))
-  sorry
 
+(*
+lemma pde_shifting:
+  "\<lbrakk>is_aligned (vptr::word32) 24; x \<le> 0xF\<rbrakk> \<Longrightarrow> x + (vptr >> 20) < 0x1000"
+  using is_aligned_iff_take_bit_eq_0
+  supply[[smt_trace=false,smt_verbose=false]]
+  apply (smt(cvc5))
+  sorry
+*)
 lemma "bit x 0 \<Longrightarrow> \<not>bit ((3::4 word) + (x:: 4 word)) 0"
   apply (smt (cvc5))
 
@@ -221,7 +225,7 @@ lemma aligned_offset_ignore:
        p+l && ~~ mask (pageBitsForSize sz) = p && ~~ mask (pageBitsForSize sz)"
   unfolding pageBitsForSize_def 
   using vmpage_size.simps
-  
+  apply (smt (cvc5))
 (*
   proof -
     fix l p sz
