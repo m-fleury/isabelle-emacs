@@ -52,7 +52,7 @@ sig
    Miniscope_Distribute | Miniscope_Split | Miniscope_ITE |
    AC_Simp | ACI_Simp |
    (*Extended rules*)
-   Symm | Not_Symm | Reordering | Shuffle | Contraction |
+   Symm | Not_Symm | Reordering | Shuffle | Contraction | 
    And_Intro |
    (*Other Rules*)
    Other_Rule of string |
@@ -250,7 +250,7 @@ datatype alethe_rule =
    Bool_Simplify | Or_Simplify | Not_Simplify | And_Simplify | Equiv_Simplify |
    Implies_Simplify | Connective_Def | Minus_Simplify | Unary_Minus_Simplify | Comp_Simplify |
    Eq_Simplify | ITE_Simplify | Sum_Simplify | Prod_Simplify | Div_Simplify | RARE_Rewrite | Evaluate |
-   Qnt_Simplify | Not_Not | Tautological_Clause | Distinct_Elim |
+   Qnt_Simplify | Not_Not | Tautological_Clause | Distinct_Elim | 
    AC_Simp | ACI_Simp |
    (*Extended rules*)
    Symm | Not_Symm | Reordering | Shuffle | Contraction |
@@ -381,7 +381,7 @@ fun debug_rule_tac' ctxt verbosity rule str = debug_msg_tac' ctxt verbosity ("Re
 it will be needed.*)
 type alethe_rule_ext = {rules: (string * alethe_tac_step_args) list}
 
-fun mk_alethe_rule_ext rules : alethe_rule_ext =
+fun mk_alethe_rule_ext rules : alethe_rule_ext = 
    {rules=rules}
 
 val empty_data = mk_alethe_rule_ext []
@@ -450,7 +450,7 @@ fun eqsubst_all ctxt thms =
 fun get_solver_name (SOME (Solver_Name name)) = name
   | get_solver_name _ = "unknown solver name"
 
-(*TODO Hanna:
+(*TODO Hanna: 
 - Put first two steps + addsimps @{thms simp_thms} in ref object
 unsyncronized.ref src/Implementation/ML.thy
 parallel könnte probleme geben
@@ -566,7 +566,7 @@ fun forall_inst ctxt _ t (SOME (Insts insts)) =
             |> SMT_Replay_Methods.dest_prop
             |> extract_forall_quantified_names_q
           val insts = quants
-            |> map (Symtab.lookup insts o fst)
+            |> map (Symtab.lookup insts o fst) 
             |> drop_suffix is_none
 
           fun instantiate_with inst prem =
@@ -678,8 +678,8 @@ fun skolem_tac extractor thm1 thms1 ctxt prems context_ass (decl:string list * s
     *)
     fun fold_definition [] _ = []
       | fold_definition ((v, NONE) :: xs) acc = (v, NONE) :: fold_definition xs acc
-      | fold_definition ((v, SOME thm) :: xs) acc =
-        let
+      | fold_definition ((v, SOME thm) :: xs) acc = 
+        let 
           val acc' = (thm COMP @{thm eq_commute[THEN iffD1]}) :: acc
           val simp_ctxt =
            ctxt
@@ -760,7 +760,7 @@ fun theory_resolution2 ctxt prems t =
 end
 
 (*Modulo implicit reordering. Needed for veriT when checking external problems + proofs.*)
-fun is_same_assms_eq_ac (Abs (_, _,  u)) (Abs (_, _, u')) =
+fun is_same_assms_eq_ac (Abs (_, _,  u)) (Abs (_, _, u')) = 
      is_same_assms_eq_ac u u' (*the name cannot be relevant due to implicit eta-contraction*)
   | is_same_assms_eq_ac (Free (var, _)) (Free (var', _)) =
     (var = var')
@@ -777,7 +777,7 @@ fun is_same_assms_eq_ac (Abs (_, _,  u)) (Abs (_, _, u')) =
 
 fun pretty tag lines = map Pretty.str lines |> Pretty.big_list tag |> Pretty.string_of
 
-fun normalized_input ctxt prems t args =
+fun normalized_input ctxt prems t args = 
   let
     (* External problems only: Retrieve correct assertion for this assume *)
     val all_assms = SMT_Config.alethe_no_provided_assms ctxt
@@ -892,7 +892,7 @@ in
 
 fun ACI_rule ctxt thms t =
   SMT_Replay_Methods.prove ctxt t (fn _ =>
-    Method.insert_tac ctxt thms
+    Method.insert_tac ctxt thms 
     THEN' debug_msg_tac' ctxt high "aci_simp before commute"
     THEN' REPEAT_ALL_NEW (partial_simplify_tac ctxt @{thms eq_commute}
     THEN' debug_msg_tac' ctxt high "aci_simp before simplification"
@@ -911,7 +911,7 @@ local
      THEN' K (unfold_tac ctxt @{thms de_Morgan_conj})
      THEN_ALL_NEW TRY' (assume_tac ctxt)
 
-  fun or_intro_prove ctxt k =
+  fun or_intro_prove ctxt k = 
     (REPEAT_DETERM_N' k (match_tac ctxt @{thms disjI2}))
     THEN' (SOLVED' (match_tac ctxt @{thms disjI1} THEN' assume_tac ctxt) ORELSE' (assume_tac ctxt))
 
@@ -945,7 +945,7 @@ val or_pos_rule = prover or_pos_prove
 
 val and_neg_rule = prover and_neg_rule_prove
 
-fun not_or_rule ctxt prems t (SOME (Index k)) =
+fun not_or_rule ctxt prems t (SOME (Index k)) = 
   SMT_Replay_Methods.prove ctxt t (fn _ =>
     let
       val ct_prem = Thm.cterm_of ctxt (HOLogic.dest_not (HOLogic.dest_Trueprop (Thm.prop_of (hd prems))))
@@ -1229,7 +1229,7 @@ fun ite_intro ctxt _ t =
       |> Simplifier.full_simp_tac
     val use_cong = true
   in
-    SMT_Replay_Methods.prove ctxt t (fn _ =>
+    SMT_Replay_Methods.prove ctxt t (fn _ => 
       simplify_ite ctxt @{thms alethe_ite_intro(1-4)} (not use_cong)
       THEN' TRY' (simplify_ite ctxt @{thms alethe_ite_intro(1-6)} (not use_cong))
       THEN' TRY' (simplify_ite ctxt @{thms if_cancel} use_cong)
@@ -1242,12 +1242,12 @@ end
 
 local
   (**)
-  fun term_contains v (t $ u) =
+  fun term_contains v (t $ u) = 
         t = v orelse v = u orelse term_contains v t orelse term_contains v u
     | term_contains v (s as Abs (_, _, xs)) =
         v = s orelse term_contains v xs
     | term_contains v t = v = t
-
+  
   fun print_conv (str : string) ct = ((*@{print} (str, ct, Thm.term_of ct);*) Conv.all_conv ct)
 
   fun repeat_rewrite_bottom_up1 ctxt thms1 ctrm =
@@ -1267,7 +1267,7 @@ local
     Conv.repeat_conv (Conv.changed_conv (Conv.top_sweep_rewrs_conv thms ctxt))
   fun find_independant_terms dest thms (v, ctxt) t =
     let
-      val disjs =
+      val disjs = 
         dest (Thm.term_of t)
         |> filter_out (term_contains (Thm.term_of v))
         |> map (Thm.cterm_of ctxt)
@@ -1284,20 +1284,20 @@ local
   (*for miniscoping we go over the term recursively and if we detect a conjuction/disjunction with a term
    does not depend en the variables, we move it to the front and and the rewrite the entire thing
    with rewr_conv outside of the quantifier.*)
-  fun miniscope_term ctxt t =
+  fun miniscope_term ctxt t = 
     (case t |> Thm.term_of  of
       \<^Const_>\<open>HOL.All _\<close> $ _ =>
-        (*Conv.try_conv*) (Conv.arg_conv (Conv.abs_conv (find_independant_terms HOLogic.disjuncts
+        (*Conv.try_conv*) (Conv.arg_conv (Conv.abs_conv (find_independant_terms HOLogic.disjuncts 
         @{thms disj_left_commute[THEN eq_reflection] disj_commute[THEN eq_reflection]}) ctxt)
-        then_conv Conv.try_conv
+        then_conv Conv.try_conv 
            (repeat_until_fixpoint_conv ctxt
              (K (Conv.rewr_conv @{lemma \<open>\<And>P1 Q1. \<forall>x::'d1. (P1::bool) \<or> (Q1::'d1 \<Rightarrow> bool) x \<equiv> P1 \<or> (\<forall>x::'d1. Q1 x)\<close> by auto})))
         then_conv Conv.fun_conv (miniscope_term ctxt)
         then_conv Conv.arg_conv (miniscope_term ctxt)) t
      | \<^Const_>\<open>HOL.Ex _\<close> $ _ =>
-        Conv.try_conv (Conv.arg_conv (Conv.abs_conv (find_independant_terms HOLogic.conjuncts
+        Conv.try_conv (Conv.arg_conv (Conv.abs_conv (find_independant_terms HOLogic.conjuncts 
         @{thms conj_left_commute[THEN eq_reflection] conj_commute[THEN eq_reflection]}) ctxt)
-        then_conv Conv.try_conv
+        then_conv Conv.try_conv 
            (repeat_until_fixpoint_conv ctxt
              (K (Conv.rewr_conv @{lemma \<open>\<And>P1 Q1. \<exists>x::'d1. (P1::bool) \<and> (Q1::'d1 \<Rightarrow> bool) x \<equiv> P1 \<and> (\<exists>x::'d1. Q1 x)\<close> by auto})))
         then_conv Conv.fun_conv (miniscope_term ctxt)
@@ -1308,7 +1308,7 @@ local
 
   fun imp_conv_all_premises ctxt f t =
     (case Thm.term_of t of
-      (\<^Const_>\<open>Pure.imp\<close> $ _) $ _ =>
+      (\<^Const_>\<open>Pure.imp\<close> $ _) $ _ => 
         t
         |> (Conv.fun_conv (imp_conv_all_premises ctxt f) then_conv Conv.arg_conv (imp_conv_all_premises ctxt f))
     | (\<^Const_>\<open>Pure.all _\<close> $ _) => (Conv.arg_conv (Conv.abs_conv (fn (_, ctxt) => imp_conv_all_premises ctxt f) ctxt)) t
@@ -1326,12 +1326,12 @@ local
     | (\<^Const_>\<open>Trueprop\<close> $ _) => HOLogic.Trueprop_conv (imp_conv_only_concl ctxt f) t
     | _ => f ctxt t)
 
-  fun miniscope_conclusion ctxt = (imp_conv_only_concl ctxt miniscope_term)
+  fun miniscope_conclusion ctxt = (imp_conv_only_concl ctxt miniscope_term) 
 
   val all_comm = @{lemma "\<And>P Q. (\<forall>x y. P x y) \<equiv> (\<forall>y x. P x y)" by (subst all_comm)}
   fun plunge_down ctxt str ctrm =
    (case Thm.term_of ctrm of
-     _ $ Abs (v, _, _) =>
+     _ $ Abs (v, _, _) => 
        ctrm
        |> (if String.isPrefix v str
           then Conv.try_conv (Conv.rewr_conv all_comm)
@@ -1342,9 +1342,9 @@ local
   fun match_coefficients _ [] ctrm = Conv.all_conv ctrm
     | match_coefficients ctxt (x :: xs) ctrm =
        (case Thm.term_of ctrm of
-         _ $ Abs (v, _, _) =>
+         _ $ Abs (v, _, _) => 
            ctrm
-           |>
+           |> 
              (if x = v
              then Conv.arg_conv (Conv.abs_conv (fn (_, ctxt) => match_coefficients ctxt xs) ctxt)
              else plunge_down ctxt v then_conv match_coefficients ctxt (x :: xs))
@@ -1398,9 +1398,9 @@ local
     end)
 
 fun sort_disj ctxt t =
-  let
-    val disjs =
-      HOLogic.disjuncts t
+  let 
+    val disjs = 
+      HOLogic.disjuncts t 
       |> sort Term_Ord.term_ord
     fun commute_last last =
        repeat_rewrite_bottom_up1 ctxt
@@ -1416,7 +1416,7 @@ fun sort_disj ctxt t =
        then_conv Conv.try_conv (Conv.arg_conv (reorder_disj others))
   in
     reorder_disj disjs
-    then_conv repeat_until_fixpoint_conv2 ctxt
+    then_conv repeat_until_fixpoint_conv2 ctxt 
       @{thms disj_absorb[THEN eq_reflection] disj_left_absorb[THEN eq_reflection]}
   end
 
@@ -1424,7 +1424,7 @@ fun sort_disj ctxt t =
     (case Term_Ord.term_ord (t1, t2) of
       LESS => Conv.rewr_conv @{thm eq_commute[THEN eq_reflection]}
     | _ => Conv.all_conv)
-
+  
 
   (*The core of qnt_cnf:
     1. we match the name of the quantifiers left and right (the being a subset of the other). This
@@ -1441,13 +1441,13 @@ fun sort_disj ctxt t =
     7. if not solved, we call metis.
 
 
-  Some historical notes:
+  Some historical notes: 
     a. In Isabelle2025 and earlier we simply called blast/metis/meson and hoped for the best.
 
     b. last tactic: initially we used blast or metis at the end. Both failed (especially the latter
        means that metis is incomplete).
-
-       We switched to fast, but this failed because it would
+       
+       We switched to fast, but this failed because it would 
        timeout in some theories because of intro rule. As there is no way to empty the context
        (unlike the simplifier), this was not a solution.
 
@@ -1457,10 +1457,10 @@ fun sort_disj ctxt t =
        real examples to true if the variable was renamed.
 
        Therefore, we switched to doing the proof by hand.
-
+       
        Sorting with conversion is extremely stupid, but well...
 
-    c. We tried a lot of things to make the unfolding/conversion stuff faster, we never managed,
+    c. We tried a lot of things to make the unfolding/conversion stuff faster, we never managed, 
        including rewriting ourselves and using the fact that we know in what order we should do
        it.
 
@@ -1479,11 +1479,11 @@ fun sort_disj ctxt t =
   fun reorder_prefix_to _ [] ctrm = Conv.all_conv ctrm
    | reorder_prefix_to ctxt (str :: xs) ctrm =
      (case (Thm.term_of ctrm) of
-       _ $ Abs (v, _, _) =>
+       _ $ Abs (v, _, _) => 
          if String.isPrefix v str
          then
            Conv.arg_conv (Conv.abs_conv (fn (_, ctxt) => reorder_prefix_to ctxt xs) ctxt) ctrm
-         else
+         else 
            (plunge_down ctxt v then_conv reorder_prefix_to ctxt (str :: xs)) ctrm
      | _ => Conv.all_conv ctrm)
 
@@ -1492,7 +1492,7 @@ fun sort_disj ctxt t =
     | extract_all_forall_exists_quantified_names_q (Const(\<^const_name>\<open>HOL.All\<close>, _) $ Abs (name, _, t)) =
         name :: (extract_all_forall_exists_quantified_names_q t)
     | extract_all_forall_exists_quantified_names_q _ = []
-  fun reorder_quantifer ctxt prop =
+  fun reorder_quantifer ctxt prop = 
     let val strs =
       prop
       |> HOLogic.dest_Trueprop
@@ -1505,7 +1505,7 @@ fun sort_disj ctxt t =
 
   (*unit propagation is sufficient (at least it is, when the conclusion is a single disjunction.
 
-  We rewrite assumptions entirely so a = b, should only be used when replacing "a=b" by True.
+  We rewrite assumptions entirely so a = b, should only be used when replacing "a=b" by True. 
   Also because veriT, we try a=b and b=a.*)
   fun try_early_simp_solve {context, concl, prems, ...} =
     let
@@ -1540,7 +1540,7 @@ fun sort_disj ctxt t =
           |> HEADGOAL
         end
     in
-        if null vars
+        if null vars 
         then HEADGOAL (TRY' (
          resolve_tac context @{thms ccontr}
          THEN' (eqsubst_all context @{thms de_Morgan_disj[THEN eq_reflection]
@@ -1561,17 +1561,17 @@ in
 fun sort_disj_and_equality_in_term ctxt ctrm =
   ctrm
   |> (case (Thm.term_of ctrm) of
-       _ $ Abs (_, _, _) =>
+       _ $ Abs (_, _, _) => 
          Conv.arg_conv (Conv.abs_conv (fn (_, ctxt) => sort_disj_and_equality_in_term ctxt) ctxt)
-    | t as (@{term \<open>HOL.disj\<close>} $ _) $ _ =>
-        Conv.try_conv (Conv.fun_conv (sort_disj_and_equality_in_term ctxt))
+    | t as (@{term \<open>HOL.disj\<close>} $ _) $ _ => 
+        Conv.try_conv (Conv.fun_conv (sort_disj_and_equality_in_term ctxt)) 
         then_conv Conv.arg_conv (sort_disj_and_equality_in_term ctxt)
         then_conv sort_disj ctxt t
     | (@{term \<open>HOL.eq\<close>} $ t1) $ t2 =>
-        Conv.fun_conv (sort_disj_and_equality_in_term ctxt)
+        Conv.fun_conv (sort_disj_and_equality_in_term ctxt) 
         then_conv Conv.arg_conv (sort_disj_and_equality_in_term ctxt)
         then_conv sort_eq_conv t1 t2
-    | _ $ _ =>
+    | _ $ _ => 
         Conv.arg_conv (sort_disj_and_equality_in_term ctxt) then_conv
         Conv.fun_conv (sort_disj_and_equality_in_term ctxt)
     | _ => Conv.all_conv)
@@ -1583,14 +1583,14 @@ fun qnt_cnf_tac ctxt =
   THEN' REPEAT' (resolve_tac ctxt [@{lemma \<open>\<And>P Q. (\<And>x. \<not>P x \<or> Q x) \<Longrightarrow> \<not>(\<forall>x. P x) \<or> (\<forall>y. Q y)\<close> by blast}])
   (*step 2*)
   THEN'  (*alethe_Box to make sure we don't conjE too much later*)
-   (resolve_tac ctxt
-    @{lemma
+   (resolve_tac ctxt 
+    @{lemma 
        \<open>\<And>a b A B. (alethe_Box (\<not>a \<and> \<not>b) \<Longrightarrow> A \<and> B) \<Longrightarrow> \<not>\<not>(a \<or> b) \<or> A \<and> B\<close>
        \<open>\<And>a A. (a \<Longrightarrow> A) \<Longrightarrow> \<not>a \<or> A\<close> by (auto simp: alethe_Box_def)})
   (*step 2a*)
   THEN' TRY' (SOLVED' (Subgoal.FOCUS (try_early_simp_solve) ctxt))
   (*step 3*)
-  THEN' TRY' (eqsubst_all ctxt
+  THEN' TRY' (eqsubst_all ctxt 
     @{thms nnf_simps(4)[THEN eq_reflection] if_bool_eq_conj[THEN eq_reflection]
      imp_conv_disj[THEN eq_reflection] de_Morgan_conj[THEN eq_reflection] not_not[THEN eq_reflection]
     disj_assoc[THEN eq_reflection]})
@@ -1614,7 +1614,7 @@ fun qnt_cnf_tac ctxt =
   THEN' TRY' (assume_tac ctxt)
   (*step 5*)
   THEN' TRY' (REPEAT' (Metis_Tactic.metis_tac [] ATP_Problem_Generate.combsN ctxt []))
-
+    
 fun qnt_rm_unused ctxt _ t = SMT_Replay_Methods.prove ctxt t (fn _ =>
   K (unfold_tac ctxt rm_unused)
   THEN' (debug_msg_tac' ctxt high "qnt_rm_unused")
@@ -1642,12 +1642,11 @@ local
                                    | t$u' => substf t $ substf u'
                                    | _ => u)
         in  substf  end;
-  val to_lower = String.implode o (map Char.toUpper) o String.explode
   fun resolve_and_instantiate_onepoint n1 (i, j: term) insts {context, params, ...} =
     let
-       val i =
+       val i = 
          (case i of
-           Var ((n2, _), _) => if n1 = to_lower n2 then j else i
+           Var ((n2, _), _) => if n1 = n2 then j else i
          | _ => i) (*veriT: j or i; cvc5: only j*)
          |> Term.subst_free insts
          |> subst_var_untyped (map (fn (x, t) => (Var ((x, 0), @{typ dummy}), Thm.term_of t)) params)
@@ -1670,8 +1669,8 @@ local
       THEN' onepoint_combine_quant ctxt bounds1 [] insts (past_ints @ [i])
     | onepoint_combine_quant _ _ _ _ _ = K all_tac
 
-  fun extract_implications
-     (Const (\<^const_name>\<open>Pure.imp\<close>,_) $
+  fun extract_implications 
+     (Const (\<^const_name>\<open>Pure.imp\<close>,_) $ 
        (Const (\<^const_name>\<open>Trueprop\<close>,_) $ (Const (\<^const_name>\<open>HOL.eq\<close>,_) $ u $ v)) $
        t) = (u, v) :: extract_implications t
     | extract_implications _ = []
@@ -1683,27 +1682,26 @@ local
   fun onepoint_quants ctxt prems t =
     let
       val insts = extract_instantiations prems
-      val (t1, t2) =
+      val (t1, t2) = 
         t
         |> Thm.cterm_of ctxt
         |> Thm.term_of o Object_Logic.dest_judgment ctxt
         |> HOLogic.dest_eq
     in
-       (*on external variable, names can change from BOUND to bOUND.*)
-       onepoint_combine_quant ctxt
-         (extract_quantified_names_q t1 |> fst |> map to_lower)
-         (extract_quantified_names_q t2 |> fst |> map to_lower)
+       onepoint_combine_quant ctxt 
+         (extract_quantified_names_q t1 |> fst)
+         (extract_quantified_names_q t2 |> fst)
          insts
     end
 in
 fun onepoint ctxt [prem] t = SMT_Replay_Methods.prove ctxt t (fn _ =>
   onepoint_quants ctxt prem t []
   THEN' REPEAT' (resolve_tac ctxt @{thms refl})
-  THEN_ALL_NEW
+  THEN_ALL_NEW 
     (*cheap version: hope that nothing got reorder and simp will solve the goal. Otherwise,
     try to move all equalities out of the quantifiers rewrite them with @{thm alethe_rewrite_in_imp}
     and only afterwards try metis.*)
-    ((SOLVED' (
+    ((SOLVED' ( 
       (ctxt
       |> empty_simpset
       |> put_simpset HOL_basic_ss
@@ -1714,10 +1712,10 @@ fun onepoint ctxt [prem] t = SMT_Replay_Methods.prove ctxt t (fn _ =>
       |> (fn ctxt => ctxt
            addsimprocs [@{simproc defined_All}, @{simproc defined_Ex}])
       |> Simplifier.asm_full_simp_tac)))
-    ORELSE'
+    ORELSE' 
       (*
       This part becomes really messy:
-        - veriT can still reorder equalities, so we need something stronger
+        - veriT can still reorder equalities, so we need something stronger 
         than just reordering the implication as done above.
         - simp can destroy the structure
         - metis is not always able to solve the goal, even if it falls within
@@ -1748,7 +1746,7 @@ In the old version we had a mix of metis/blast. We then improved the reconstruct
 of the problems. Therefore, we try to be faithful and make the reconstruction as simple as possible
 for the tactics we use, see the comments in qnt_cnf_tac.
 
-In essence, we follow the approach from carcara: CNF transformation, then distribution of forall
+In essence, we follow the approach from carcara: CNF transformation, then distribution of forall 
 quantifiers.
 *)
 fun qnt_cnf ctxt _ t = SMT_Replay_Methods.prove ctxt t qnt_cnf_tac
@@ -1775,7 +1773,7 @@ over the term, identify which terms needs to be rewritten, and we rewrite it.
 For congruence we do two different things:
 
   1. usually, we simply go over the term in a conversion and check if there is a lemma that can be
-  used for rewriting. Complexity here comes from the fact that we need to be careful with lambda /
+  used for rewriting. Complexity here comes from the fact that we need to be careful with lambda / 
   non-reduced terms.
 
   We experimented with various versions and found that we need to avoid iterating over the entire
@@ -1786,7 +1784,7 @@ For congruence we do two different things:
 
 
   2. otherwise, we look for things (%x. f x) = (%x. g x), a = b |> (%x. f x) a = (%x. g x) b. For
-  eq_congruent_pred we don't have an issue because we simply avoid unfolding the lambda terms and
+  eq_congruent_pred we don't have an issue because we simply avoid unfolding the lambda terms and 
   keep them as constants. This does not work for cong, because we cannot refold the terms in the
   assumptions.
 
@@ -1842,12 +1840,12 @@ local
   fun cong_cong_conv rews t ty ctxt =
     (case t of
       f $ arg =>
-        Conv.try_conv
+        Conv.try_conv 
           (Conv.fun_conv (only_replace rews f else_conv cong_cong_conv rews f ty ctxt)
           then_conv
             (if fastype_of arg = ty
              then
-               Conv.arg_conv (only_replace rews arg)
+               Conv.arg_conv (only_replace rews arg) 
                else_conv Conv.arg_conv (cong_cong_conv rews arg ty ctxt)
              else Conv.try_conv (Conv.arg_conv (only_replace rews arg))))
     | _ => Conv.all_conv)
@@ -1862,7 +1860,7 @@ local
   fun compose_fun ctxt tm ((_, SOME arg1) :: args) =
         compose_fun ctxt (@{thm alethe_arg_cong} OF [tm, arg1]) args
     | compose_fun ctxt tm ((arg1, NONE) :: args) =
-        compose_fun ctxt (Drule.infer_instantiate' ctxt (map (SOME o Thm.cterm_of ctxt) [arg1])
+        compose_fun ctxt (Drule.infer_instantiate' ctxt (map (SOME o Thm.cterm_of ctxt) [arg1]) 
           (@{thm alethe_arg_cong0} OF [tm])) args
     | compose_fun _ tm _ = tm
 
@@ -1870,7 +1868,7 @@ local
     let
       val orig_t' =
         orig_t
-        |> HOLogic.dest_Trueprop
+        |> HOLogic.dest_Trueprop 
         |> HOLogic.dest_eq
         |> fst
 
@@ -1880,7 +1878,7 @@ local
             Thm.cconcl_of) o `(fn x => x)))
      in
        orig_t'
-       |> extract_lambda_function_and_arguments
+       |> extract_lambda_function_and_arguments 
        |> map Envir.beta_eta_contract
        |> map (`(fn x => x))
        |> map (apsnd (AList.lookup (fn (a, t) => a = fst t) rews))
@@ -1897,7 +1895,7 @@ local
     let
       val t' = t
         |> Thm.term_of
-        |> HOLogic.dest_Trueprop
+        |> HOLogic.dest_Trueprop 
         |> HOLogic.dest_eq
         |> snd
         |> Envir.beta_eta_contract
@@ -1909,11 +1907,11 @@ local
         |> filter_out (fn ((a, b), _) => a = b)
         |> map (apsnd (fn x => @{thm eq_reflection} OF [x]))
     in
-      (case rews of
+      (case rews of 
         [] => Conv.all_conv t
       | _ =>
           t
-          |> HOLogic.Trueprop_conv (HOLogic.eq_conv
+          |> HOLogic.Trueprop_conv (HOLogic.eq_conv 
                (cong_cong_conv rews t' (fastype_of t') ctxt)
                Conv.all_conv))
     end
@@ -1929,12 +1927,12 @@ fun eq_congruent_pred ctxt _ t =
 val eq_congruent = eq_congruent_pred
 
 
-fun equality_ordered_cong ctxt prems t _ =
+fun equality_ordered_cong ctxt prems t _ = 
    SMT_Replay_Methods.prove ctxt t (fn _ =>
      (CONVERSION (Thm.beta_conversion true then_conv cong_conv ctxt prems)
-     THEN'
+     THEN' 
        (resolve_tac ctxt @{thms refl}
-       ORELSE'
+       ORELSE' 
          (throwing_CONVERSION (Thm.eta_conversion then_conv cong_conv_lambda t ctxt prems)
          THEN' resolve_tac ctxt @{thms refl}))))
 
@@ -2120,7 +2118,7 @@ in
 fun sum_simplify ctxt _ t =
   SMT_Replay_Methods.prove ctxt t (fn _ =>
     simplify_arith ctxt @{thms alethe_sum_simplify arith_special}
-    )
+    ) 
 
 fun prod_simplify ctxt _ t =
   SMT_Replay_Methods.prove ctxt t (fn _ =>
@@ -2161,7 +2159,7 @@ fun lia_generic ctxt _ t =
 fun la_disequality ctxt _ t =
   SMT_Replay_Methods.match_instantiate ctxt t @{thm alethe_la_disequality}
 
-fun la_mult_extract (Const ("HOL.Trueprop", _) $ (Const ("HOL.implies", _)
+fun la_mult_extract (Const ("HOL.Trueprop", _) $ (Const ("HOL.implies", _) 
  $ (Const ("HOL.conj",_) $ (_ $ _ $ factor) $ (rel $ l $ r))
  $ _)) = (rel,(factor,l,r))
 
@@ -2175,7 +2173,7 @@ let
   val _ = @{print}("lemma",infer_instantiate' ctxt [SOME (Thm.cterm_of ctxt factor),NONE,NONE] @{thm alethe_la_mult_pos_less} )
   val _ = @{print}("lemma",infer_instantiate' ctxt [SOME (Thm.cterm_of ctxt factor),SOME (Thm.cterm_of ctxt l),SOME (Thm.cterm_of ctxt r)] @{thm alethe_la_mult_pos_less} )
 *)
-in
+in 
  (* SMT_Replay_Methods.prove ctxt t (fn _ => match_tac ctxt [infer_instantiate' ctxt [SOME (Thm.cterm_of ctxt factor),NONE,NONE] @{thm alethe_la_mult_pos_less} ]))*)
   SMT_Replay_Methods.prove ctxt t (fn _ =>
 (*K (print_tac ctxt "la_mult")
@@ -2201,7 +2199,7 @@ THEN' Simplifier.full_simp_tac ctxt
 )
 end
 
-fun poly_simp ctxt _ =
+fun poly_simp ctxt _ = 
   let
     fun simplify_tac ctxt thms =
       ctxt
@@ -2254,14 +2252,14 @@ fun poly_simp_rel ctxt [thm] t =
          For one of the cases you only need to prove the latter two.
 
          Bv case:
-         You need to show odd cx, odd cy, cx * (x1 - x2) = 1 and cy * (x1 - x2) = 1
+         You need to show odd cx, odd cy, cx * (x1 - x2) = 1 and cy * (x1 - x2) = 1 
          *)
          THEN' REPEAT' (SOLVED' (partial_simplify_tac ctxt (@{thms alethe_poly_simp_rel_simps} @ @{thms arith_simps} @ (Named_Theorems.get ctxt @{named_theorems alethe_poly_simp_rel_bv_simps}))))
          THEN' debug_msg_tac' ctxt high "poly_simp_rel after first try of resolving premises"
 
-         THEN' REPEAT'
+         THEN' REPEAT' 
             (TRY' (resolve_tac ctxt [lemma])
-             THEN' TRY' (resolve_tac ctxt @{thms conjI})
+             THEN' TRY' (resolve_tac ctxt @{thms conjI}) 
              THEN' resolve_tac ctxt poly_simp_rel_assms_thms
              )
          THEN' debug_msg_tac' ctxt high "poly_simp_rel after resolving premises"
@@ -2289,7 +2287,7 @@ end
 (* Shuffling Clauses and Arguments of Nary Commutative Operators *)
 
 fun reordering (ctxt : Proof.context) [thm] t =
-    if Term.size_of_term t > 100
+    if Term.size_of_term t > 100 
     then
       prove_abstract SMT_Replay_Methods.abstract_bool_shallow (fn ctxt => fn [thm] => (
         Method.insert_tac ctxt [thm]
@@ -2299,7 +2297,7 @@ fun reordering (ctxt : Proof.context) [thm] t =
         THEN' CHANGED_PROP o REPEAT_ALL_NEW (ematch_tac ctxt @{thms disjE})
         THEN' REPEAT'(ematch_tac ctxt @{thms notE} THEN' TRY' (assume_tac ctxt))
         )) ctxt [thm] t
-    else
+    else 
       SMT_Replay_Methods.prove ctxt t (fn _ => (
         Method.insert_tac ctxt [thm]
         THEN' match_tac ctxt @{thms ccontr}
@@ -2321,9 +2319,9 @@ fun simplify_shuffle_tac ctxt thms =
   |> Simplifier.asm_full_simp_tac
 
 
-in
+in 
 
-fun shuffle ctxt _ _ t (SOME (CommOp @{term "HOL.conj"})) =
+fun shuffle ctxt _ _ t (SOME (CommOp @{term "HOL.conj"})) = 
       (prove_abstract (SMT_Replay_Methods.abstract_shuffle @{term "HOL.conj"}) (fn ctxt => fn _ =>
         simplify_shuffle_tac ctxt @{thms Lattices.conj.commute Lattices.conj.left_commute conj_assoc}) ctxt [] t)
   | shuffle ctxt _ _ t  (SOME (CommOp @{term "HOL.disj"})) =
@@ -2333,7 +2331,7 @@ fun shuffle ctxt _ _ t (SOME (CommOp @{term "HOL.conj"})) =
       replay_error ctxt "Unsupported commutative operator in shuffle rule" Unsupported thms [] t
 end
 
-fun contraction ctxt [prem] t =
+fun contraction ctxt [prem] t = 
   if Term.size_of_term t < 100
   then
     SMT_Replay_Methods.prove ctxt t (fn _ => (
@@ -2354,7 +2352,7 @@ fun contraction ctxt [prem] t =
 | contraction ctxt thms t = replay_error ctxt "Unsupported commutative operator in contraction rule" Unsupported thms [] t
 
 
-fun miniscope_distribute ctxt _ t =
+fun miniscope_distribute ctxt _ t = 
  SMT_Replay_Methods.prove ctxt t (fn _ => (
     debug_rule_tac' ctxt high Miniscope_Distribute "start" THEN'
     REPEAT_CHANGED
@@ -2365,7 +2363,7 @@ fun miniscope_distribute ctxt _ t =
     THEN' debug_rule_tac' ctxt high Miniscope_Distribute "after repeating application of lemma"
     THEN' TRY' (resolve_tac ctxt @{thms refl})))
 
-fun miniscope_split ctxt _ t =
+fun miniscope_split ctxt _ t = 
  SMT_Replay_Methods.prove ctxt t (fn _ => (
     debug_rule_tac' ctxt high Miniscope_Split "start" THEN'
     REPEAT_CHANGED
@@ -2383,7 +2381,7 @@ fun miniscope_ITE ctxt _ t =
     eqsubst_all ctxt @{thms alethe_miniscope_ITE}
     THEN' TRY' (resolve_tac ctxt @{thms refl})))
 
-fun and_intro ctxt thms t =
+fun and_intro ctxt thms t = 
   SMT_Replay_Methods.prove ctxt t (fn _ =>
   Method.insert_tac ctxt thms
   THEN' REPEAT'
@@ -2399,7 +2397,7 @@ fun hole ctxt prems t = SMT_Replay_Methods.prove ctxt t (fn _ =>
    ORELSE' Clasimp.force_tac (ctxt addsimps Named_Theorems.get ctxt @{named_theorems cvc5_holes_simp})
 )
 
-fun trust ctxt _ t =
+fun trust ctxt _ t = 
   SMT_Replay_Methods.prove ctxt t (fn _ => (
     Skip_Proof.cheat_tac ctxt))
 end;

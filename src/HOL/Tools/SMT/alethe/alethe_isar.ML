@@ -2,7 +2,7 @@
     Author:     Mathias Fleury, TU Muenchen
     Author:     Jasmin Blanchette, TU Muenchen
 
-ALETHE proofs as generic ATP proofs for Isar proof reconstruction.
+Alethe proofs as generic ATP proofs for Isar proof reconstruction.
 *)
 
 signature ALETHE_ISAR =

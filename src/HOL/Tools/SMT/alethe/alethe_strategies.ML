@@ -51,26 +51,75 @@ val verit_strategy_ccfv_insts = ["--index-sorts", "--index-fresh-sorts", "--trig
   "--index-SAT-triggers", "--inst-sorts-threshold=100000", "--ematch-exp=10000000",
   "--ccfv-index=100000", "--ccfv-index-full=1000"]
 
-(*these are the strategies used by default for sledgehammer. We did not try to find good one
-and they mostly are useful to improve our mirabelle tests. The main motivation was that we observed
-several proofs where cvc5 would find a proof for sledgehammer in one of the slice but none in the
-smt tactic.
+(*TODO:
+We obtained these strategies by asking cvc5 what strategies it would use in the SMT-COMP
+for some Isabelle generated problems from the 17 provers paper using the options --portfolio-dry-run --use-portfolio.
+Then, using Mirabelle we extracted of goals that could not be solved by internal proof methods
+(i.e., timeout or call to the smt method) and evaluated the strategies. The focus is on having a
+good portfolio, not several strategies that are fast on the same goals.
 
-It is not clear if we should keep that or not.
+Note: we always use --enum-inst at the moment because otherwise cvc5 will answer unknown to often.
+Note: --full-saturate-quant is an alias of --enum-inst, which the cvc5 devs prefer we use.
+TODO: We will give them better names once we know which ones to use.
 
-Die die SMT methode benutzt
- ./build/bin/cvc5 --portfolio-dry-run --use-portfolio 
 *)
 val cvc5_stgy_default_name = "best"
 val cvc5_stgy_default_insts = []
+val cvc5_stgy_no_simp_name ="no_simp"
+val cvc5_stgy_no_simp = ["--simplification=none"]
+val cvc5_stgy_no_ematching_name ="no_ematching"
+val cvc5_stgy_no_ematching = ["--no-e-matching"]
+val cvc5_stgy_no_ematching_enum_inst_sum_name ="no_ematching_enum_inst_sum"
+val cvc5_stgy_no_ematching_enum_inst_sum = ["--no-e-matching","--enum-inst-sum"]
+val cvc5_stgy_trigger_relevance_name = "trigger_relev"
+val cvc5_stgy_trigger_relevance = ["--relevant-triggers"]
+val cvc5_stgy_trigger_max_name = "trigger_max"
+val cvc5_stgy_trigger_max = ["--trigger-sel=max"]
+val cvc5_stgy_trigger_multi_name = "trigger_multi"
+val cvc5_stgy_trigger_multi = ["--multi-trigger-when-single"]
+val cvc5_stgy_trigger_multi_prio_name = "trigger_multi_prio"
+val cvc5_stgy_trigger_multi_prio = ["--multi-trigger-when-single","--multi-trigger-priority"]
+val cvc5_stgy_trigger_cache_name = "trigger_cache"
+val cvc5_stgy_trigger_cache = ["--multi-trigger-cache"]
+val cvc5_stgy_trigger_linear_name = "trigger_linear"
+val cvc5_stgy_trigger_linear = ["--no-multi-trigger-linear"]
+val cvc5_stgy_pre_skolem_quant_name= "pre_skolem_quant"
+val cvc5_stgy_pre_skolem_quant = ["--pre-skolem-quant=on"]
+val cvc5_stgy_inst_when_full_name= "inst_when_full"
+val cvc5_stgy_inst_when_full = ["--inst-when=full"]
+val cvc5_stgy_no_cbqi_name= "no_cbqi"
+val cvc5_stgy_no_cbqi = ["--no-e-matching","--no-cbqi"]
+val cvc5_stgy_quant_ind_name= "quant_ind"
+val cvc5_stgy_quant_ind = ["--quant-ind"]
+val cvc5_stgy_dec_internal_no_simp_name ="dec_internal_no_simp"
+val cvc5_stgy_dec_internal_no_simp = ["--decision=internal", "--simplification=none", "--no-inst-no-entail", "--no-cbqi"]
+val cvc5_stgy_dec_internal_enum_inst_sum_name ="dec_internal_enum_inst_sum"
+val cvc5_stgy_dec_internal_enum_inst_sum = ["--decision=internal", "--enum-inst", "--enum-inst-sum"]
+val cvc5_stgy_term_db_relevant_name= "term_db_relevant"
+val cvc5_stgy_term_db_relevant = ["--term-db-mode=relevant"]
+val cvc5_stgy_term_enum_inst_interleave_name= "interleave"
+val cvc5_stgy_term_enum_inst_interleave = ["--enum-inst-interleave"]
+val cvc5_stgy_term_prereg_lazy_name= "prereg_lazy"
+val cvc5_stgy_term_prereg_lazy = ["--preregister-mode=lazy"]
+val cvc5_stgy_term_fmf_name= "finite_mode_find"
+val cvc5_stgy_term_fmf = ["--finite-model-find"]
+val cvc5_stgy_term_no_fmf_mbqi_name= "no_fmf_mbqi"
+val cvc5_stgy_term_no_fmf_mbqi = ["--fmf-mbqi=none"]
+val cvc5_stgy_term_fmf_dec_internal_name= "finite_mode_find_dec_internal"
+val cvc5_stgy_term_dec_internal_fmf = ["--finite-model-find", "--decision=internal"]
+val cvc5_stgy_term_fmf_macro_quant_name= "finite_mode_find_macro_quant"
+val cvc5_stgy_term_fmf_macro_quant = ["--finite-model-find", "--macros-quant", "--macros-quant-mode=all"]
+val cvc5_stgy_term_fmf_e_matching_name= "finite_mode_find_e_matching"
+val cvc5_stgy_term_fmf_e_matching = ["--finite-model-find", "--e-matching"]
+val cvc5_stgy_mbqi_name= "mbqi"
+val cvc5_stgy_mbqi = ["--mbqi"]
+
+
 val cvc5_stgy_trigger_last_name = "trigger_last"
 val cvc5_stgy_trigger_last = ["--full-saturate-quant", "--inst-when=full-last-call", "--inst-no-entail", "--term-db-mode=relevant", "--multi-trigger-linear"]
 val cvc5_stgy_quant_name = "quant_saturate"
 val cvc5_stgy_quant = ["--decision=internal", "--simplification=none", "--full-saturate-quant"]
-val cvc5_stgy_trigger_max_name = "trigger_max"
-val cvc5_stgy_trigger_max = ["--trigger-sel=max", "--full-saturate-quant"]
-val cvc5_stgy_trigger_relevance_name = "trigger_relev"
-val cvc5_stgy_trigger_relevance = ["--relevant-triggers", "--full-saturate-quant"]
+
 val cvc5_stgy_term_relevance_name = "term_relev"
 val cvc5_stgy_term_relevance = ["--term-db-mode=relevant", "--full-saturate-quant"]
 val cvc5_stgy_no_ematch_name ="noematch"
@@ -99,7 +148,30 @@ val empty_data = mk_verit_strategy verit_strategy_best_name
    ((cvc5_name, cvc5_stgy_trigger_relevance_name), cvc5_stgy_trigger_relevance),
    ((cvc5_name, cvc5_stgy_term_relevance_name), cvc5_stgy_term_relevance),
    ((cvc5_name, cvc5_stgy_no_ematch_name), cvc5_stgy_no_ematch),
-   ((cvc5_name, cvc5_stgy_fmf_name), cvc5_stgy_fmf_insts)
+   ((cvc5_name, cvc5_stgy_fmf_name), cvc5_stgy_fmf_insts),
+   ((cvc5_name, cvc5_stgy_no_simp_name), cvc5_stgy_no_simp)
+,
+   ((cvc5_name, cvc5_stgy_no_ematching_name), cvc5_stgy_no_ematching),
+   ((cvc5_name, cvc5_stgy_no_ematching_enum_inst_sum_name), cvc5_stgy_no_ematching_enum_inst_sum),
+   ((cvc5_name, cvc5_stgy_trigger_multi_name), cvc5_stgy_trigger_multi),
+   ((cvc5_name, cvc5_stgy_trigger_multi_prio_name), cvc5_stgy_trigger_multi_prio),
+   ((cvc5_name, cvc5_stgy_trigger_cache_name), cvc5_stgy_trigger_cache),
+   ((cvc5_name, cvc5_stgy_trigger_linear_name), cvc5_stgy_trigger_linear),
+   ((cvc5_name, cvc5_stgy_pre_skolem_quant_name), cvc5_stgy_pre_skolem_quant),
+   ((cvc5_name, cvc5_stgy_inst_when_full_name), cvc5_stgy_inst_when_full),
+   ((cvc5_name, cvc5_stgy_no_cbqi_name), cvc5_stgy_no_cbqi),
+   ((cvc5_name, cvc5_stgy_quant_ind_name), cvc5_stgy_quant_ind),
+   ((cvc5_name, cvc5_stgy_dec_internal_no_simp_name), cvc5_stgy_dec_internal_no_simp),
+   ((cvc5_name, cvc5_stgy_dec_internal_enum_inst_sum_name), cvc5_stgy_dec_internal_enum_inst_sum),
+   ((cvc5_name, cvc5_stgy_term_db_relevant_name), cvc5_stgy_term_db_relevant),
+   ((cvc5_name, cvc5_stgy_term_enum_inst_interleave_name), cvc5_stgy_term_enum_inst_interleave),
+   ((cvc5_name, cvc5_stgy_term_prereg_lazy_name), cvc5_stgy_term_prereg_lazy),
+   ((cvc5_name, cvc5_stgy_term_fmf_name), cvc5_stgy_term_fmf),
+   ((cvc5_name, cvc5_stgy_term_no_fmf_mbqi_name), cvc5_stgy_term_no_fmf_mbqi),
+   ((cvc5_name, cvc5_stgy_term_fmf_dec_internal_name), cvc5_stgy_term_dec_internal_fmf),
+   ((cvc5_name, cvc5_stgy_term_fmf_macro_quant_name), cvc5_stgy_term_fmf_macro_quant),
+   ((cvc5_name, cvc5_stgy_term_fmf_e_matching_name), cvc5_stgy_term_fmf_e_matching),
+   ((cvc5_name, cvc5_stgy_mbqi_name), cvc5_stgy_mbqi)
 ]
 
 fun merge_data ({strategies=strategies1,...}:verit_strategy,

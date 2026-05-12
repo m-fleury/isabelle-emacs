@@ -46,7 +46,7 @@ val all_rare_rules = Data.get #> Symtab.dest
 fun rare_add name_thy context =
   Data.map (Symtab.update name_thy) context
 
-fun rare_rm name context = 
+fun rare_rm name context =
   Data.map (Symtab.delete name) context
 
 

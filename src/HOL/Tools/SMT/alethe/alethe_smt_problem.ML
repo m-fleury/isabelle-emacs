@@ -34,7 +34,7 @@ fun parse_raw_problem_steps (commands : SMTLIB.tree list) (cx : name_bindings) (
       | command_kind "define-fun" = FUN_DEF
       | command_kind "declare-fun" = FUN_DECL
       | command_kind kind = raise ALETHE_PROBLEM_PARSE ("kind of command unrec: " ^ @{make_string} kind)
-    
+
     fun split_commands [] = NONE
       | split_commands ((step as SMTLIB.S (SMTLIB.Sym kind :: _)) :: remaining_steps) =
           SOME (command_kind kind, step, remaining_steps)
@@ -51,7 +51,7 @@ fun parse_raw_problem_steps (commands : SMTLIB.tree list) (cx : name_bindings) (
 
   in
     case split_commands commands of
-     SOME (ASSERT, p, l) => 
+     SOME (ASSERT, p, l) =>
           let
             val (id, term) = (case p of
                 SMTLIB.S [SMTLIB.Sym "assert", SMTLIB.S [SMTLIB.Sym "!", term, SMTLIB.Key "named", SMTLIB.Sym id]] => (id, term)

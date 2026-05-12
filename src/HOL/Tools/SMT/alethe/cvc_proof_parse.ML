@@ -41,7 +41,7 @@ fun cvc_matching_assms ctxt rewrite_rules ll_defs th th' =
           (empty_simpset ctxt |> Simplifier.add_simps rewrite_rules (*@ @{thms eq_True} still useful?*))) rewrite_rules []
 
 
-    val normalize = 
+    val normalize =
        Object_Logic.dest_judgment ctxt o (Thm.cprop_of)
        #> Thm.eta_long_conversion
        #> Thm.prop_of
@@ -96,7 +96,7 @@ fun parse_proof_alethe
       let
         val th = Thm.prop_of th
       in
-          Alethe_Node.Alethe_Step 
+          Alethe_Node.Alethe_Step
            {id = SMTLIB_Interface.assert_name_of_role_and_index role (id_of_index i),
             rule = input_rule, prems = [], concl = th, prop_skeleton = th}
           |> single
