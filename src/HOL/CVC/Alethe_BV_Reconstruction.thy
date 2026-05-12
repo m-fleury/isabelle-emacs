@@ -746,9 +746,21 @@ lemma [rbl_extract]:
     j + 1 \<le> int LENGTH('a) \<Longrightarrow>
     0 \<le> i \<Longrightarrow> 0 \<le> j \<Longrightarrow>
 (smtlib_extract j i (of_bl xs::'a::len word)::'b::len word) = of_bl (rbl_extract (nat j) (nat i) xs)"
-  unfolding rbl_extract_def
-  apply (simp add: smt_extract_of_bl)
-  by (smt (z3) of_bl_rbl_extract rbl_extract_def)
+proof-
+  assume a0: "- i + j + 1 = int LENGTH('b)"
+    "length xs = LENGTH('a)"
+    "LENGTH('b) < LENGTH('a)"
+    "i \<le> j"
+    "j + 1 \<le> int LENGTH('a)"
+    "0 \<le> i" " 0 \<le> j"
+  then have "Suc (nat j) \<le> length xs"
+    by linarith
+  moreover have "nat i \<le> nat j"
+    using a0 by linarith
+  ultimately show ?thesis
+    using smt_extract_of_bl of_bl_rbl_extract
+    by (metis a0)
+qed
 
 lemmas [bv_reconstruction_const_test] = int_ops
 
