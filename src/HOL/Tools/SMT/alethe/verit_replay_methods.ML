@@ -1,4 +1,4 @@
-(*  Title:      HOL/Tools/SMT/verit_replay_methods.ML
+(*  Title:      HOL/Tools/SMT/alethe/verit_replay_methods.ML
     Author:     Mathias Fleury, MPII, JKU
     Author:     Hanna Lachnitt, Stanford University
 

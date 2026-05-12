@@ -1,4 +1,4 @@
-(*  Title:      HOL/Tools/SMT/alethe_proof.ML
+(*  Title:      HOL/Tools/SMT/alethe/alethe_proof.ML
     Author:     Mathias Fleury, ENS Rennes
     Author:     Sascha Boehme, TU Muenchen
     Author:     Hanna Lachnitt, Stanford University

@@ -1,4 +1,4 @@
-(*  Title:      HOL/Tools/SMT/verit_replay.ML
+(*  Title:      HOL/Tools/SMT/alethe/verit_replay.ML
     Author:     Mathias Fleury, MPII
 
 VeriT proof parsing and replay.

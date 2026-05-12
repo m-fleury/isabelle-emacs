@@ -1,4 +1,4 @@
-(*  Title:      HOL/Tools/SMT/cvc5_replay_methods.ML
+(*  Title:      HOL/Tools/SMT/alethe/cvc5_replay_methods.ML
     Author:     Mathias Fleury, JKU, Uni Freiburg
     Author:     Hanna Lachnitt, Stanford University
 

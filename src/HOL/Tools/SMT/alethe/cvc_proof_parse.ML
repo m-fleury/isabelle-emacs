@@ -1,4 +1,4 @@
-(*  Title:      HOL/Tools/SMT/cvc_proof_parse.ML
+(*  Title:      HOL/Tools/SMT/alethe/cvc_proof_parse.ML
     Author:     Jasmin Blanchette, TU Muenchen
 
 CVC4 and cvc5 proof (actually, unsat core) parsing.

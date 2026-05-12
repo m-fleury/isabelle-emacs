@@ -1,4 +1,4 @@
-(*  Title:      HOL/Tools/SMT/alethe_proof.ML
+(*  Title:      HOL/Tools/SMT/alethe/alethe_smt_problem.ML
     Author:     Mathias Fleury, University of Freiburg
     Author:     Hanna Lachnitt, Stanford University
 

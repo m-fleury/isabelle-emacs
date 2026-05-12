@@ -1,4 +1,4 @@
-(*  Title:      HOL/Tools/SMT/alethe_isar.ML
+(*  Title:      HOL/Tools/SMT/alethe/alethe_isar.ML
     Author:     Mathias Fleury, TU Muenchen
     Author:     Jasmin Blanchette, TU Muenchen
 

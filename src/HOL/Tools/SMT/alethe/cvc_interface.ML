@@ -1,4 +1,4 @@
-(*  Title:      HOL/Tools/SMT/cvc_interface.ML
+(*  Title:      HOL/Tools/SMT/alethe/cvc_interface.ML
     Author:     Jasmin Blanchette, TU Muenchen
 
 Interface to CVC4 and cvc5 based on an extended version of SMT-LIB.
