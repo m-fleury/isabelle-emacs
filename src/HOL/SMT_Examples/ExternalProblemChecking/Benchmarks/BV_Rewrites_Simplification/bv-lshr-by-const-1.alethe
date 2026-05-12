@@ -1,0 +1,5 @@
+unsat
+(step t241 (cl (= (< 1 (@bvsize x)) true)) :rule trust :args ("trust"))
+(step t243 (cl (= 31 (- (@bvsize x) 1))) :rule trust :args ("trust"))
+(step t244 (cl (= (bvlshr x (@bv 1 32)) (concat (@bv 0 1) ((_ extract 31 1) x)))) :rule rare_rewrite :premises (t241 t243) :args ("bv-lshr-by-const-1" x 1 32 31))
+(step slice_end (cl) :rule trust :premises (t244) :args ("trust"))

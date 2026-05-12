@@ -230,69 +230,88 @@ named_theorems rewrite_bv_shl_by_const_1 \<open>automatically_generated\<close>
 lemma [rewrite_bv_shl_by_const_1]:
   fixes x::"'a::len word" and amount::"int" and sz::"int" and en::"int"
   shows "NO_MATCH cvc_a (undefined x amount sz en w_amount)
-    \<Longrightarrow> LENGTH('b) = (nat amount)
+    \<Longrightarrow> LENGTH('b) = nat amount
     \<Longrightarrow> LENGTH('a) = LENGTH('c) + LENGTH('b)
-    \<Longrightarrow> LENGTH('c) = (nat en) + 1
+    \<Longrightarrow> LENGTH('c) = nat en + 1
     \<Longrightarrow> w_amount = Word.Word amount
-
-    \<Longrightarrow> (amount < int(size x)) = True
-    \<Longrightarrow> en = (int (size x)) - (1 + amount)
+    \<Longrightarrow> (amount < int (size x)) = True
+    \<Longrightarrow> en = int (size x) - (1 + amount)
     \<Longrightarrow>
-   (smtlib_bvshl x w_amount::'a::len word)=
+   (smtlib_bvshl x w_amount::'a::len word) =
    word_cat
-    (smt_extract (nat en) (nat (0::int)) x::'c::len word)
+    (smtlib_extract en 0 x::'c::len word)
     (0::'b::len word)"
-  unfolding smtlib_bvshl_def
-  apply (cases "0 \<le> amount")
-  subgoal
-    apply (subst nat_0)
-    apply (subst word_uint_eq_iff)
-    apply (subst uint_word_cat)
-    subgoal .
-    unfolding push_bit_eq_mult
-    apply (subst uint_smt_extract)
-    subgoal by simp
-    subgoal by simp
-    subgoal by simp
-    unfolding drop_bit_eq_div take_bit_eq_mod
-    apply (subst uint_word_ariths)
-    apply (subst uint_2p)
-    subgoal
-      by (metis Word_eq_word_of_int add.commute add_lessD1 cvc_arith_rewrite_defs(5) exp_eq_zero_iff int_nat_eq n_less_equal_power_2 nat_less_iff
-          of_int_of_nat_eq of_nat_inverse word_le_0_iff word_size)
-    apply simp
-  proof-
-    assume a0: "LENGTH('b) = nat amount"
-    and a1: "LENGTH('a) = Suc (nat (int (size x) - (1 + amount)) + nat amount)"
-    and a2: "LENGTH('c) = Suc (nat (int (size x) - (1 + amount)))"
-    and a3: "w_amount = word_of_int amount"
-    and a4: "amount < int (size x)"
-    and a5: "en = int (size x) - (1 + amount)"
-    and a6: "0 \<le> amount"
-    have t0: "(nat (int (size x) - (1 + amount)) + nat amount) = size x - 1"
-      by (metis a1 diff_Suc_1 word_size)
-    have t1: "((2::int) * (2::int) ^ (size x - 1)) = (2::int) ^ size x"
-      by (metis Suc_diff_1 power_Suc word_size_gt_0)
-    have " nat (int (size x) - (1 + amount)) + 1   = size x - amount"
-      using a4 by simp
-    then have t2: "((2::int) * (2::int) ^ nat (int (size x) - (1 + amount))) = (2::int) ^ nat (int (size x) - amount)"
-      by (metis Suc_eq_plus1_left add.commute int_eq_iff power_Suc)
-    have t3: "unat (word_of_int amount::'a::len word) = nat amount"
-      by (metis a1 a6 add.commute cvc_arith_rewrite_defs(5) int_nat_eq le_unat_uoi less_add_Suc1 n_less_equal_power_2 nle_le
-          of_int_of_nat_eq of_nat_inverse)
-    have t4: "uint x * ((2::int) ^ nat amount mod (2::int) ^ size x) mod (2::int) ^ size x
-= uint x * ((2::int) ^ nat amount) mod (2::int) ^ size x"
-      using mod_mult_right_eq by blast
-    show "
-   uint x * (2::int) ^ unat (word_of_int amount::'a word) mod
-    ((2::int) * (2::int) ^ (nat (int (size x) - (1 + amount)) + nat amount)) =
-    uint x mod ((2::int) * (2::int) ^ nat (int (size x) - (1 + amount))) * (2::int) ^ nat amount"
-      apply (simp only: t0 t1 t2 t3 t4)
-      by (metis \<open>int (nat (int (size (x::'a::len word)) - (1 + (amount::int))) + 1) = int (size x) - amount\<close> a6
-          diff_ge_0_iff_ge int_eq_iff mult_exp_mod_exp_eq nat_diff_distrib nat_le_eq_zle)
+proof -
+  assume lb: "LENGTH('b) = nat amount"
+     and la: "LENGTH('a) = LENGTH('c) + LENGTH('b)"
+     and lc: "LENGTH('c) = nat en + 1"
+     and wa: "w_amount = Word.Word amount"
+     and ax: "(amount < int (size x)) = True"
+     and en_eq: "en = int (size x) - (1 + amount)"
+  have ax': "amount < int LENGTH('a)" using ax by (simp add: word_size)
+  have pos_b: "0 < LENGTH('b)" by (rule len_gt_0)
+  have pos_nat: "0 < nat amount" using pos_b lb by linarith
+  have nn: "0 \<le> amount" using pos_nat by simp
+  have ub: "amount < 2 ^ LENGTH('a)"
+  proof -
+    have "int LENGTH('a) < int (2 ^ LENGTH('a))"
+      using less_exp[of "LENGTH('a)"] of_nat_less_iff by blast
+    thus ?thesis using ax' la by auto
   qed
-  subgoal by simp
-  done    
+  have wa': "w_amount = word_of_int amount" using wa by simp
+  have unat_eq: "unat (w_amount :: 'a word) = nat amount"
+    using wa' nn ub
+    by (simp add: unat_eq_of_nat)
+  have lhs: "smtlib_bvshl x w_amount = push_bit (nat amount) x"
+    unfolding smtlib_bvshl_def by (simp add: unat_eq push_bit_eq_mult)
+  show "smtlib_bvshl x w_amount =
+        word_cat (smtlib_extract en 0 x :: 'c word) (0 :: 'b word)"
+    unfolding lhs
+  proof (rule bit_word_eqI)
+    fix n :: nat assume n_lt: "n < LENGTH('a)"
+    show "bit (push_bit (nat amount) x) n =
+          bit (word_cat (smtlib_extract en 0 x :: 'c word) (0 :: 'b word) :: 'a word) n"
+    proof (cases "n < LENGTH('b)")
+      case True
+      hence "\<not> bit (push_bit (nat amount) x) n"
+        using lb by (simp add: bit_push_bit_iff)
+      moreover from True n_lt have
+        "\<not> bit (word_cat (smtlib_extract en 0 x :: 'c word) (0 :: 'b word) :: 'a word) n"
+        by (simp add: bit_word_cat_iff)
+      ultimately show ?thesis by simp
+    next
+      case False
+      hence n_ge: "LENGTH('b) \<le> n" by linarith
+      let ?k = "n - LENGTH('b)"
+      have k_lt_c: "?k < LENGTH('c)" using n_lt n_ge la by linarith
+      have k_lt_en1: "?k < nat en + 1" using k_lt_c lc by simp
+      have "bit (push_bit (nat amount) x) n = bit x ?k"
+        using n_ge n_lt lb by (simp add: bit_push_bit_iff)
+      moreover
+      have "bit (word_cat (smtlib_extract en 0 x :: 'c word) (0 :: 'b word) :: 'a word) n
+            = bit (smtlib_extract en 0 x :: 'c word) ?k"
+        using False n_lt by (simp add: bit_word_cat_iff)
+      moreover
+      have "bit (smtlib_extract en 0 x :: 'c word) ?k = bit x ?k"
+        unfolding smtlib_extract_def
+        using k_lt_c k_lt_en1 la pos_b
+        by (metis One_nat_def Suc_nat_eq_nat_zadd1[of "en::int"]
+            Suc_pred[of "nat (en::int) + Suc 0"] add.commute[of "en::int" "1"]
+            add.commute[of "1" "amount::int"]
+            add_cancel_left_right[of "(n::nat) - LENGTH('f::len0)" "0"]
+            add_diff_cancel_right'[of "nat (en::int)" "Suc 0"] ax
+            bit_take_bit_iff[of "Suc (nat (en::int))" "x::'a::len word"
+              "(n::nat) - LENGTH('f::len0)"]
+            diff_ge_0_iff_ge[of "int (size (x::'a::len word))" "1 + (amount::int)"]
+            en_eq lc len_gt_0 nat_code(2)
+            nth_slice[of "0" "take_bit (Suc (nat (en::int))) (x::'a::len word)"
+              "(n::nat) - LENGTH('f::len0)"]
+            zless_imp_add1_zle[of "amount::int"
+              "int (size (x::'a::len word))"])
+      ultimately show ?thesis by simp
+    qed
+  qed
+qed
 (*
 (define-cond-rule bv-shl-by-const-2
   ((x ?BitVec) (amount Int) (sz Int) (w Int))
@@ -312,16 +331,22 @@ lemma [rewrite_bv_shl_by_const_2]:
    (int (size x) \<le> amount) = True \<Longrightarrow>
    amount < 2^LENGTH('a::len) \<Longrightarrow>
    int LENGTH('a) = sz \<Longrightarrow>
-    Word.Word amount = w_amoung \<Longrightarrow> int LENGTH('a) = w \<Longrightarrow>
+    Word.Word amount = w_amount \<Longrightarrow> int LENGTH('a) = w \<Longrightarrow>
    smtlib_bvshl x w_amount = (0::'a::len word)"
-  unfolding smtlib_bvshl_def
-  apply (subst word_power_nonzero)
-     apply simp_all
-     prefer 4
-  
-using push_bit_lift
- linorder_not_le nat_int not_less_iff_gr_or_eq push_bit_word_beyond word_size
-  sorry
+proof -
+  assume a1: "(int (size x) \<le> amount) = True"
+     and a2: "amount < 2^LENGTH('a::len)"
+     and a4: "Word.Word amount = w_amount"
+  from a1 have a1': "int LENGTH('a) \<le> amount" by (simp add: word_size)
+  have nn: "0 \<le> amount" using a1' by (meson of_nat_0_le_iff order_trans)
+  have unat_eq: "unat (w_amount::'a::len word) = nat amount"
+    using a4[symmetric] a2 nn
+    by (simp add: unat_eq_of_nat)
+  have len_le: "LENGTH('a) \<le> nat amount" using a1' nn by linarith
+  show "smtlib_bvshl x w_amount = (0::'a::len word)"
+    unfolding smtlib_bvshl_def
+    by (simp add: push_bit_eq_mult [symmetric] unat_eq push_bit_word_beyond len_le)
+qed
 
 (*
 (define-rule bv-lshr-by-const-0
@@ -394,18 +419,6 @@ proof-
 qed
 
 
-(*    assumptions:
-         ((3::int) < int (size (1705::16 word))) = True
-         (15::int) = int (size (1705::16 word)) - 1
-       arguments:
-         ''bv-lshr-by-const-1''
-         1705::16 word
-         3::int
-         16::int
-         15::int
-       proposition:
-         smtlib_bvlshr (1705::16 word) (3::16 word) = word_cat 0 (smtlib_extract (15::int) (3::int) (1705::16 word)) 
- *)
 (*
 (define-cond-rule bv-lshr-by-const-1
   ((x ?BitVec) (amount Int) (sz Int) (nm1 Int))
@@ -416,37 +429,118 @@ qed
 *)
 
 lemma [rewrite_bv_lshr_by_const_1]:
-  fixes x::"'a ::len word" and amount::"int" and sz::"int" and nm1::"int" 
-  shows "NO_MATCH cvc_a (undefined x amount sz nm1) \<Longrightarrow>
-
-   LENGTH('a) = LENGTH('b) + LENGTH('c) \<Longrightarrow>
-   LENGTH('c) = nat nm1 + 1 - nat amount \<Longrightarrow>
-   unat w = amount \<Longrightarrow>
-   LENGTH('a) > 0 \<Longrightarrow>
-
-   amount < int (size x) \<Longrightarrow> 
-   nm1 = int (size x) - 1 \<Longrightarrow>
-
-   (smtlib_bvlshr x w::'a::len word) =
-   word_cat (0::'b::len word)
+  fixes x::"'a::len word" and amount::"int" and sz::"int" and nm1::"int"
+  shows "NO_MATCH cvc_a (undefined x amount sz nm1 w_amount)
+    \<Longrightarrow> LENGTH('b) = nat amount
+    \<Longrightarrow> LENGTH('a) = LENGTH('b) + LENGTH('c)
+    \<Longrightarrow> LENGTH('c) = nat nm1 + 1 - nat amount
+    \<Longrightarrow> w_amount = Word.Word amount
+    \<Longrightarrow> (amount < int (size x)) = True
+    \<Longrightarrow> nm1 = int (size x) - 1
+    \<Longrightarrow>
+   (smtlib_bvlshr x w_amount::'a::len word) =
+   word_cat
+    (0::'b::len word)
     (smtlib_extract nm1 amount x::'c::len word)"
-  using rewrite_bv_lshr_by_const_1_original[of cvc_a x amount sz nm1, where ?'b="'b", where ?'c="'c"]
-  unfolding drop_bit_lift
-  apply (cases "LENGTH('a::len) < nat amount")
-  apply (simp add: word_size)
-    apply (simp add: word_size)
-  apply (cases " 0 \<le> amount")
-   apply simp_all
-  sorry
+proof -                                                     
+  assume lb: "LENGTH('b) = nat amount"
+     and la: "LENGTH('a) = LENGTH('b) + LENGTH('c)"
+     and lc: "LENGTH('c) = nat nm1 + 1 - nat amount"
+     and wa: "w_amount = Word.Word amount"
+     and ax: "(amount < int (size x)) = True"
+     and nm: "nm1 = int (size x) - 1"
+  have ax': "amount < int LENGTH('a)" using ax by (simp add: word_size)
+  have pos_b: "0 < LENGTH('b)" by (rule len_gt_0)
+  have pos_nat: "0 < nat amount" using pos_b lb by linarith
+  have nn: "0 \<le> amount" using pos_nat by simp
+  have ub: "amount < 2 ^ LENGTH('a)"
+  proof -
+    have "int LENGTH('a) < int (2 ^ LENGTH('a))"
+      using less_exp[of "LENGTH('a)"] of_nat_less_iff by blast
+    thus ?thesis using ax'
+      using of_nat_less_two_power order_less_trans by blast              
+  qed                                               
+  have wa': "w_amount = word_of_int amount" using wa by simp
+  have unat_eq: "unat (w_amount :: 'a word) = nat amount"
+    using wa' nn ub by (simp add: unat_eq_nat_uint uint_word_of_int)
+  have nat_nm: "nat nm1 + 1 = LENGTH('a)"
+    using nm 
+    by (metis Nat.le_imp_diff_is_add add.commute diff_is_0_eq' la lb lc
+        len_not_eq_0 nle_le)
+  have lc_eq: "LENGTH('c) = LENGTH('a) - nat amount"
+    using lc nat_nm by simp
+  have lhs: "smtlib_bvlshr x w_amount = drop_bit (nat amount) x"
+    unfolding smtlib_bvlshr_def by (simp add: unat_eq flip: drop_bit_eq_div)
+  show "smtlib_bvlshr x w_amount =
+        word_cat (0::'b word) (smtlib_extract nm1 amount x :: 'c word)"
+    unfolding lhs
+  proof (rule bit_word_eqI)
+    fix n :: nat assume n_lt: "n < LENGTH('a)"
+    show "bit (drop_bit (nat amount) x) n =
+          bit (word_cat (0::'b word) (smtlib_extract nm1 amount x :: 'c word) :: 'a word) n"
+    proof (cases "n < LENGTH('c)")
+      case True
+      hence k_lt: "nat amount + n < LENGTH('a)" using lc_eq by linarith
+      have "bit (drop_bit (nat amount) x) n = bit x (nat amount + n)"
+        by (simp add: bit_drop_bit_eq)
+      moreover
+      have "bit (word_cat (0::'b word) (smtlib_extract nm1 amount x :: 'c word) :: 'a word) n
+            = bit (smtlib_extract nm1 amount x :: 'c word) n"
+        using True n_lt
+        by (simp add: bit_ucast_iff)
+      moreover
+      have "bit (smtlib_extract nm1 amount x :: 'c word) n = bit x (nat amount + n)"
+        unfolding smtlib_extract_def
+        using True k_lt nat_nm lc_eq
+        by (metis add.commute diff_add_cancel nat_int.Rep_inverse nm nth_slice
+            size_word.rep_eq take_bit_length_eq)
+      ultimately show ?thesis by simp
+    next
+      case False
+      hence n_ge: "LENGTH('c) \<le> n" by linarith
+      hence k_ge: "LENGTH('a) \<le> nat amount + n" using lc_eq by linarith
+      have "\<not> bit (drop_bit (nat amount) x) n"
+        using k_ge by (auto simp: bit_drop_bit_eq dest: bit_imp_le_length)
+      moreover from False n_lt have
+        "\<not> bit (word_cat (0::'b word) (smtlib_extract nm1 amount x :: 'c word) :: 'a word) n"
+        by (simp add: bit_word_ucast_iff)
+      ultimately show ?thesis by simp
+    qed
+  qed
+qed                
 
 (*
 (define-cond-rule bv-lshr-by-const-2
   ((x ?BitVec) (amount Int) (sz Int))
   (>= amount (@bvsize x))
   (bvlshr x (@bv amount sz))
-  (@bv 0 sz))
+  (@bv 0 sz))                                      
 *)
+named_theorems rewrite_bv_lshr_by_const_2 \<open>automatically_generated\<close>
 
+lemma [rewrite_bv_lshr_by_const_2]:
+  fixes x::"'a::len word" and amount::"int" and sz::"int"
+  shows "NO_MATCH cvc_a (undefined x amount sz w_amount)
+    \<Longrightarrow>
+   (int (size x) \<le> amount) = True \<Longrightarrow>
+   amount < 2 ^ LENGTH('a::len) \<Longrightarrow>
+   int LENGTH('a) = sz \<Longrightarrow>
+   Word.Word amount = w_amount \<Longrightarrow>
+   smtlib_bvlshr x w_amount = (0::'a::len word)"
+proof -
+  assume ax: "(int (size x) \<le> amount) = True"
+     and ub: "amount < 2 ^ LENGTH('a::len)"
+     and wa: "Word.Word amount = w_amount"
+  from ax have ax': "int LENGTH('a) \<le> amount" by (simp add: word_size)
+  have nn: "0 \<le> amount" using ax' by (meson of_nat_0_le_iff order_trans)
+  have wa': "w_amount = word_of_int amount" using wa[symmetric] by simp
+  have unat_eq: "unat (w_amount :: 'a word) = nat amount"
+    using wa' nn ub by (simp add: unat_eq_nat_uint uint_word_of_int)
+  have len_le: "LENGTH('a) \<le> nat amount" using ax' nn by linarith
+  show "smtlib_bvlshr x w_amount = (0::'a::len word)"
+    unfolding smtlib_bvlshr_def
+    by (simp add: unat_eq drop_bit_word_beyond len_le flip: drop_bit_eq_div)
+qed
 
 (*
 (define-rule bv-ashr-by-const-0
@@ -491,7 +585,7 @@ lemma [rewrite_bv_lshr_by_const_1]:
   (bvand xs (concat ys z y) ws)
   (concat
     (bvand (extract nxm1 ny (bvand xs ws)) (concat ys z))
-    (bvand (extract nym1 0 (bvand xs ws)) y)
+    (bvand (extract nym1 0 (bvand xs ws)) src/HOL/CVC/SMT_CVC_Word.thyy)
   ))
 *)
 

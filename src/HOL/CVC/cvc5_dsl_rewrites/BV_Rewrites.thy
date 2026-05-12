@@ -261,54 +261,6 @@ lemma [rewrite_bv_extract_whole]:
   apply (simp add: size_word.rep_eq slice_id smt_extract_def take_bit_word_eq_self)
   by (simp add: size_word.rep_eq slice_id smt_extract_def take_bit_word_eq_self)
 
-named_theorems rewrite_bv_ugt_eliminate \<open>automatically_generated\<close>
-
-lemma [rewrite_bv_ugt_eliminate]:
-  fixes x::"'a ::len word" and y::"'a ::len word"
-  shows "(y < x) = (y < x)"
-  by auto
-
-named_theorems rewrite_bv_uge_eliminate \<open>automatically_generated\<close>
-
-lemma [rewrite_bv_uge_eliminate]:
-  fixes x::"'a ::len word" and y::"'a ::len word"
-  shows "(y \<le> x) = (y \<le> x)"
-  by auto
-
-named_theorems rewrite_bv_sgt_eliminate \<open>automatically_generated\<close>
-
-lemma [rewrite_bv_sgt_eliminate]:
-  fixes x::"'a ::len word" and y::"'a ::len word"
-  shows "(y <s x) = (y <s x)"
-  by auto
-
-named_theorems rewrite_bv_sge_eliminate \<open>automatically_generated\<close>
-
-lemma [rewrite_bv_sge_eliminate]:
-  fixes x::"'a ::len word" and y::"'a ::len word"
-  shows "(y \<le>s x) = (y \<le>s x)"
-  by auto
-
-named_theorems rewrite_bv_slt_eliminate \<open>automatically_generated\<close>
-
-lemma [rewrite_bv_slt_eliminate]:
-  fixes x::"'a ::len word" and y::"'a ::len word"
-  shows "(x <s y) =
-   (x +
-    push_bit (unat (Word.Word (int (size x) - (1::int))::'a::len word))
-     (Word.Word (1::int)::'a::len word)
-    < y +
-      push_bit (unat (Word.Word (int (size x) - (1::int))::'a::len word))
-       (Word.Word (1::int)::'a::len word))"
-  apply transfer
-  apply (simp add: signed_take_bit_eq_take_bit_shift)
-  apply (cases \<open>LENGTH('a)\<close>)
-  apply simp
-  apply (simp add: iff_conv_conj_imp)
-  apply (rule conjI impI)+
-   apply (metis add.commute add_lessD1 n_less_equal_power_2 nat_int of_nat_take_bit plus_1_eq_Suc take_bit_nat_eq_self)
-  by (metis add.commute add_lessD1 n_less_equal_power_2 nat_int of_nat_take_bit plus_1_eq_Suc take_bit_nat_eq_self)
-
 named_theorems rewrite_bv_sle_eliminate \<open>automatically_generated\<close>
 
 lemma [rewrite_bv_sle_eliminate]:

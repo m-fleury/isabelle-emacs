@@ -1,4 +1,4 @@
-(*  Title:      HOL/SMT_Examples/SMT_Examples_CVC.thy
+(*  Title:      HOL/SMT_Examples/BV_Rewrites_Simplification.thy
     Author:     Hanna Lachnitt, Stanford University
     Author:     Mathias Fleury, University of Freiburg
 
@@ -81,6 +81,9 @@ check_smt ("cvc5_proof")
   "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/BV_Rewrites_Simplification/bv-shl-by-const-2.alethe"
 
 (*bv-lshr-by-const-0*)
+check_smt ("cvc5_proof")
+  "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/BV_Rewrites_Simplification/bv-lshr-by-const-0.smt2"
+  "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/BV_Rewrites_Simplification/bv-lshr-by-const-0.alethe"
 
 (*bv-lshr-by-const-1*)
 check_smt ("cvc5_proof")
