@@ -896,7 +896,6 @@ lemma
   using assms by (smt (verit, del_insts))
 end
 
-ML \<open>@{term \<open>a \<noteq> b\<close>}\<close>
 axiomatization g :: "'a \<Rightarrow> nat"
 axiomatization where
   g1: "g (Some x) = g [x]" and

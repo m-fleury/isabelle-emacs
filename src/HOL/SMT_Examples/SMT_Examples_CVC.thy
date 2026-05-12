@@ -1142,7 +1142,7 @@ lemma
                (\<forall>(x::nat) c::'a. LB dir (s::('i, 'a) state) x = Some c \<and> LI dir s x \<in> I \<longrightarrow> lt dir c (v x) \<or> c = v x) \<and>
                (\<forall>(x::nat) c::'a. UB dir s x = Some c \<and> UI dir s x \<in> I \<longrightarrow> lt dir (v x) c \<or> v x = c))) "
      shows False
-  using assms supply [[smt_trace]] by (smt (cvc5)) 
+  using assms supply [[smt_trace=false]] by (smt (cvc5)) 
 
 end
 end
