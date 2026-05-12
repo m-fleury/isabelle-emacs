@@ -36,12 +36,12 @@ sig
    (*If-then-else:*)
    ITE_Pos1 | ITE_Pos2 | ITE_Neg1 | ITE_Neg2 | Not_ITE1 | Not_ITE2 | ITE_Intro | ITE1 | ITE2 |
    (*Equality:*)
-   Eq_Congruent | Eq_Reflexive | Eq_Transitive | Eq_Congruent_Pred | Trans |  Refl |  Cong |
+   Eq_Congruent | Eq_Reflexive | Eq_Transitive | Eq_Congruent_Pred | Trans | Refl | Cong |
    (*xor:*)
-   Xor_Pos1 | Xor_Pos2 | Xor_Neg1 | Xor_Neg2 | Xor1 | Xor2 | Not_Xor1  | Not_Xor2 |
+   Xor_Pos1 | Xor_Pos2 | Xor_Neg1 | Xor_Neg2 | Xor1 | Xor2 | Not_Xor1 | Not_Xor2 |
    (*Arithmetic:*)
-   LA_Disequality | LA_Generic | LA_Tautology |  LIA_Generic | LA_Totality | LA_RW_Eq |
-   NLA_Generic |  LA_Mult_Pos | LA_Mult_Neg | Poly_Simp | Poly_Simp_Rel |
+   LA_Disequality | LA_Generic | LA_Tautology | LIA_Generic | LA_Totality | LA_RW_Eq |
+   NLA_Generic | LA_Mult_Pos | LA_Mult_Neg | Poly_Simp | Poly_Simp_Rel |
    (*Resolution:*)
    Theory_Resolution | Resolution |
    (*Simplification Rules*)
@@ -184,7 +184,7 @@ sig
   val weakening: alethe_tac
 
   (*Extension to declare new alethe rules*)
-  val declare_alethe_rule:  string -> alethe_tac_step_args -> Context.generic -> Context.generic
+  val declare_alethe_rule: string -> alethe_tac_step_args -> Context.generic -> Context.generic
   val rm_alethe_rule: string -> Context.generic -> Context.generic
   val get_alethe_tac: string -> Context.generic -> alethe_tac_step_args option
   val print_alethe_tac: Context.generic -> Pretty.T
@@ -217,7 +217,7 @@ type alethe_tac_step_args_and_arg = Proof.context -> thm list -> term list -> te
 type alethe_tac = Proof.context -> thm list -> term -> thm
 
 datatype alethe_rule =
-   (*normalized_input: a repeated (normalized) assumption of  assumption of in a subproof*)
+   (*normalized_input: a repeated (normalized) assumption of assumption of in a subproof*)
    Normalized_Input | Local_Input |
    (*Used to introduce skolem constants*)
    Definition |
@@ -238,12 +238,12 @@ datatype alethe_rule =
    (*If-then-else:*)
    ITE_Pos1 | ITE_Pos2 | ITE_Neg1 | ITE_Neg2 | Not_ITE1 | Not_ITE2 | ITE_Intro | ITE1 | ITE2 |
    (*Equality:*)
-   Eq_Congruent | Eq_Reflexive | Eq_Transitive | Eq_Congruent_Pred | Trans |  Refl |  Cong |
+   Eq_Congruent | Eq_Reflexive | Eq_Transitive | Eq_Congruent_Pred | Trans | Refl | Cong |
    (*xor:*)
-   Xor_Pos1 | Xor_Pos2 | Xor_Neg1 | Xor_Neg2 | Xor1 | Xor2 | Not_Xor1  | Not_Xor2 |
+   Xor_Pos1 | Xor_Pos2 | Xor_Neg1 | Xor_Neg2 | Xor1 | Xor2 | Not_Xor1 | Not_Xor2 |
    (*Arithmetic:*)
-   LA_Disequality | LA_Generic | LA_Tautology |  LIA_Generic | LA_Totality | LA_RW_Eq |
-   NLA_Generic |  LA_Mult_Pos | LA_Mult_Neg | Poly_Simp | Poly_Simp_Rel |
+   LA_Disequality | LA_Generic | LA_Tautology | LIA_Generic | LA_Totality | LA_RW_Eq |
+   NLA_Generic | LA_Mult_Pos | LA_Mult_Neg | Poly_Simp | Poly_Simp_Rel |
    (*Resolution:*)
    Theory_Resolution | Resolution |
    (*Simplification Rules*)
@@ -516,7 +516,7 @@ fun extract_quantified_names_q (_ $ Abs (name, _, t)) =
   | extract_quantified_names_q t = ([], t)
 
 fun extract_forall_quantified_names_q (Const(\<^const_name>\<open>HOL.All\<close>, _) $ Abs (name, ty, t)) =
-   (name,  ty) :: (extract_forall_quantified_names_q t)
+   (name, ty) :: (extract_forall_quantified_names_q t)
   | extract_forall_quantified_names_q _ = []
 
 fun extract_all_forall_exists_quantified_names_q (Const(\<^const_name>\<open>HOL.Ex\<close>, _) $ Abs (name, _, t)) =
@@ -705,12 +705,12 @@ has finished in case they are somehow useful after all. The info should be in de
 fun sko_forall ctxt prems context_ass t (SOME (Sko_Def_Prems decl)) =
   skolem_tac extract_all_forall_exists_quantified_names_q @{thm alethe_sko_forall_indirect}
     @{thms alethe_sko_forall_indirect2 alethe_sko_ex_indirect2} ctxt prems context_ass decl t
-  |  sko_forall ctxt thms _ t _ = replay_error ctxt "invalid application" Sko_Forall thms [] t
+  | sko_forall ctxt thms _ t _ = replay_error ctxt "invalid application" Sko_Forall thms [] t
 
 fun sko_ex ctxt prems context_ass t (SOME (Sko_Def_Prems decl)) =
   skolem_tac extract_all_forall_exists_quantified_names_q @{thm alethe_sko_ex_indirect}
     @{thms alethe_sko_ex_indirect2 alethe_sko_forall_indirect2} ctxt prems context_ass decl t
-  |  sko_ex ctxt thms _ t _ = replay_error ctxt "invalid application" Sko_Ex thms [] t
+  | sko_ex ctxt thms _ t _ = replay_error ctxt "invalid application" Sko_Ex thms [] t
 
 end
 
@@ -760,7 +760,7 @@ fun theory_resolution2 ctxt prems t =
 end
 
 (*Modulo implicit reordering. Needed for veriT when checking external problems + proofs.*)
-fun is_same_assms_eq_ac (Abs (_, _,  u)) (Abs (_, _, u')) =
+fun is_same_assms_eq_ac (Abs (_, _, u)) (Abs (_, _, u')) =
      is_same_assms_eq_ac u u' (*the name cannot be relevant due to implicit eta-contraction*)
   | is_same_assms_eq_ac (Free (var, _)) (Free (var', _)) =
     (var = var')
@@ -773,7 +773,7 @@ fun is_same_assms_eq_ac (Abs (_, _,  u)) (Abs (_, _, u')) =
     (is_same_assms_eq_ac u v' andalso is_same_assms_eq_ac v u')
   | is_same_assms_eq_ac (u $ v) (u' $ v') =
     (is_same_assms_eq_ac u u' andalso is_same_assms_eq_ac v v')
-  | is_same_assms_eq_ac _ _  = (false)
+  | is_same_assms_eq_ac _ _ = (false)
 
 fun pretty tag lines = map Pretty.str lines |> Pretty.big_list tag |> Pretty.string_of
 
@@ -808,7 +808,7 @@ fun normalized_input ctxt prems t args =
     (SMT_Replay_Methods.prove ctxt t (fn _ =>
       Method.insert_tac ctxt prems
       THEN' debug_msg_tac' ctxt high "normalized input after inserting premises"
-      THEN' TRY' (K (unfold_tac ctxt (@{thms SMT.trigger_def} @  Named_Theorems.get ctxt \<^named_theorems>\<open>nat_normalized_input\<close>)))
+      THEN' TRY' (K (unfold_tac ctxt (@{thms SMT.trigger_def} @ Named_Theorems.get ctxt \<^named_theorems>\<open>nat_normalized_input\<close>)))
       THEN' debug_msg_tac' ctxt high "normalized input after unfolding triggers and nat_normalized_input"
       THEN' TRY' (partial_simplify_tac ctxt (@{thms eq_commute} @ Named_Theorems.get ctxt \<^named_theorems>\<open>cvc5_normalized_input\<close>))
       THEN' debug_msg_tac' ctxt high "normalized input after simplifying eq_commute and cvc5_normalized_input"
@@ -870,7 +870,7 @@ fun strict_trans ctxt [] t =
           | trans_steps [prem] = prem
           | trans_steps (prem1::prem2::prems) = (@{thm trans} OF [prem1, prem2])::prems |> trans_steps
      in
-       SMT_Replay_Methods.prove ctxt t (fn _ =>  match_tac ctxt (trans_steps prems |> single))
+       SMT_Replay_Methods.prove ctxt t (fn _ => match_tac ctxt (trans_steps prems |> single))
      end
 
 fun AC_rule ctxt thms t =
@@ -982,7 +982,7 @@ in
 
 val not_equiv1 = prove_equiv @{lemma \<open>\<not>(A \<longleftrightarrow> B) \<Longrightarrow> A \<or> B\<close> by blast}
 val not_equiv2 = prove_equiv @{lemma \<open>\<not>(A \<longleftrightarrow> B) \<Longrightarrow> \<not>A \<or> \<not>B\<close> by blast}
-val equiv1  = prove_equiv @{lemma \<open>(A \<longleftrightarrow> B) \<Longrightarrow> \<not>A \<or> B\<close> by blast}
+val equiv1 = prove_equiv @{lemma \<open>(A \<longleftrightarrow> B) \<Longrightarrow> \<not>A \<or> B\<close> by blast}
 val equiv2 = prove_equiv @{lemma \<open>(A \<longleftrightarrow> B) \<Longrightarrow> A \<or> \<not>B\<close> by blast}
 val not_implies1 = prove_equiv @{lemma \<open>\<not>(A \<longrightarrow> B) \<Longrightarrow> A\<close> by blast}
 val not_implies2 = prove_equiv @{lemma \<open>\<not>(A \<longrightarrow>B) \<Longrightarrow> \<not>B\<close> by blast}
@@ -1073,7 +1073,7 @@ local
   fun implies_pos_neg_term ctxt thm (\<^term>\<open>Trueprop\<close> $
          (\<^term>\<open>HOL.disj\<close> $ (\<^term>\<open>HOL.implies\<close> $ a $ b) $ _)) =
          Drule.infer_instantiate' ctxt (map (SOME o Thm.cterm_of ctxt) [a, b]) thm
-     | implies_pos_neg_term ctxt thm  t =
+     | implies_pos_neg_term ctxt thm t =
         replay_error ctxt "invalid application in Implies" Unsupported [thm] [] t
 
   fun prove_implies_pos_neg thm ctxt _ t =
@@ -1117,7 +1117,7 @@ fun implies_pos ctxt _ t = SMT_Replay_Methods.prove ctxt t (fn _ =>
   resolve_tac ctxt @{thms alethe_implies_pos})
 
 val implies_neg1_thm = @{lemma \<open>(a \<longrightarrow> b) \<or> a\<close> by blast}
-val implies_neg1  = prove_implies_pos_neg implies_neg1_thm
+val implies_neg1 = prove_implies_pos_neg implies_neg1_thm
 
 val implies_neg2_thm = @{lemma \<open>(a \<longrightarrow> b) \<or> \<not>b\<close> by blast}
 val implies_neg2 = prove_implies_pos_neg implies_neg2_thm
@@ -1285,7 +1285,7 @@ local
    does not depend en the variables, we move it to the front and and the rewrite the entire thing
    with rewr_conv outside of the quantifier.*)
   fun miniscope_term ctxt t =
-    (case t |> Thm.term_of  of
+    (case t |> Thm.term_of of
       \<^Const_>\<open>HOL.All _\<close> $ _ =>
         (*Conv.try_conv*) (Conv.arg_conv (Conv.abs_conv (find_independant_terms HOLogic.disjuncts
         @{thms disj_left_commute[THEN eq_reflection] disj_commute[THEN eq_reflection]}) ctxt)
@@ -1582,7 +1582,7 @@ fun qnt_cnf_tac ctxt =
   CONVERSION (match_names_between_left_and_right ctxt)
   THEN' REPEAT' (resolve_tac ctxt [@{lemma \<open>\<And>P Q. (\<And>x. \<not>P x \<or> Q x) \<Longrightarrow> \<not>(\<forall>x. P x) \<or> (\<forall>y. Q y)\<close> by blast}])
   (*step 2*)
-  THEN'  (*alethe_Box to make sure we don't conjE too much later*)
+  THEN' (*alethe_Box to make sure we don't conjE too much later*)
    (resolve_tac ctxt
     @{lemma
        \<open>\<And>a b A B. (alethe_Box (\<not>a \<and> \<not>b) \<Longrightarrow> A \<and> B) \<Longrightarrow> \<not>\<not>(a \<or> b) \<or> A \<and> B\<close>
@@ -1641,7 +1641,7 @@ local
                 | NONE => (case u of Abs(a,T,t) => Abs(a, T, substf t)
                                    | t$u' => substf t $ substf u'
                                    | _ => u)
-        in  substf  end;
+        in substf end;
   val to_lower = String.implode o (map Char.toUpper) o String.explode
   fun resolve_and_instantiate_onepoint n1 (i, j: term) insts {context, params, ...} =
     let
@@ -1760,7 +1760,7 @@ end
 
 (* Equality *)
 
-fun eq_transitive ctxt _ t = SMT_Replay_Methods.prove ctxt t (fn  _ =>
+fun eq_transitive ctxt _ t = SMT_Replay_Methods.prove ctxt t (fn _ =>
   REPEAT_CHANGED (resolve_tac ctxt [@{thm disj_not1} RSN (1, @{thm iffD2}) OF @{thms impI}])
   THEN' REPEAT' (resolve_tac ctxt @{thms impI})
   THEN' REPEAT' (eresolve_tac ctxt @{thms conjI})
@@ -2069,7 +2069,7 @@ ORELSE'
     K (unfold_tac ctxt @{thms not_ex not_not not_all})
       (*THEN' K (print_tac ctxt "after step 0")*)
 
-     THEN'  REPEAT' (match_tac ctxt @{thms alethe_connective_def_forall})
+     THEN' REPEAT' (match_tac ctxt @{thms alethe_connective_def_forall})
     (*  THEN' K (print_tac ctxt "after step 2")*)
 
       THEN' K (unfold_tac ctxt @{thms not_not })
@@ -2275,7 +2275,7 @@ local
   fun prove_symm symm_thm ctxt [thm] t = SMT_Replay_Methods.prove ctxt t (fn _ =>
         Method.insert_tac ctxt [symm_thm OF [thm]]
         THEN' TRY' (assume_tac ctxt))
-    | prove_symm _  ctxt thms t = replay_error ctxt "invalid application in some symm rule" Unsupported thms [] t
+    | prove_symm _ ctxt thms t = replay_error ctxt "invalid application in some symm rule" Unsupported thms [] t
 in
   val symm_thm =
   @{lemma \<open>(B = A) \<Longrightarrow> A = B\<close> by blast }
@@ -2326,7 +2326,7 @@ in
 fun shuffle ctxt _ _ t (SOME (CommOp @{term "HOL.conj"})) =
       (prove_abstract (SMT_Replay_Methods.abstract_shuffle @{term "HOL.conj"}) (fn ctxt => fn _ =>
         simplify_shuffle_tac ctxt @{thms Lattices.conj.commute Lattices.conj.left_commute conj_assoc}) ctxt [] t)
-  | shuffle ctxt _ _ t  (SOME (CommOp @{term "HOL.disj"})) =
+  | shuffle ctxt _ _ t (SOME (CommOp @{term "HOL.disj"})) =
       (prove_abstract (SMT_Replay_Methods.abstract_shuffle @{term "HOL.disj"}) (fn ctxt => fn _ =>
         simplify_shuffle_tac ctxt @{thms Lattices.disj.commute Lattices.disj.left_commute disj_assoc}) ctxt [] t)
   | shuffle ctxt thms _ t _ =

@@ -45,7 +45,7 @@ fun parse_raw_problem_steps (commands : SMTLIB.tree list) (cx : name_bindings) (
            the size of the generated terms and therefore the reconstruction time*)
          let val (l, cx) = (fst oo SMTLIB_Proof.extract_and_update_name_bindings) def cx
          in
-           (mk_raw_node (id ^ Alethe_Proof.skolem_def) Alethe_Proof.skolem_def [(SMTLIB.S [SMTLIB.Sym id, typ, l])]  [] []
+           (mk_raw_node (id ^ Alethe_Proof.skolem_def) Alethe_Proof.skolem_def [(SMTLIB.S [SMTLIB.Sym id, typ, l])] [] []
               (SMTLIB.S [SMTLIB.Sym "=", SMTLIB.Sym id, def]) [] (SMTLIB.S []), cx)
          end
 
@@ -56,9 +56,9 @@ fun parse_raw_problem_steps (commands : SMTLIB.tree list) (cx : name_bindings) (
             val (id, term) = (case p of
                 SMTLIB.S [SMTLIB.Sym "assert", SMTLIB.S [SMTLIB.Sym "!", term, SMTLIB.Key "named", SMTLIB.Sym id]] => (id, term)
               | SMTLIB.S [SMTLIB.Sym "assert", term] => (Int.toString assms_nbr, term)
-              |  xs => (@{print}("xs",xs);raise ERROR "unknown SMTLIB command"))
+              | xs => (@{print}("xs",xs);raise ERROR "unknown SMTLIB command"))
             val ((t, cx), _) = SMTLIB_Proof.extract_and_update_name_bindings term cx
-            val s = mk_raw_node id Alethe_Proof.input_rule [] []  [] t [] (SMTLIB.S [])
+            val s = mk_raw_node id Alethe_Proof.input_rule [] [] [] t [] (SMTLIB.S [])
             val (rp, rl, cx) = parse_raw_problem_steps l cx (assms_nbr + 1)
        in (s :: rp, rl, cx) end
       | SOME (FUN_DEF, p, l) =>
@@ -71,7 +71,7 @@ fun parse_raw_problem_steps (commands : SMTLIB.tree list) (cx : name_bindings) (
             val (s, cx) = parse_fun_decl p cx
             val (rp, rl, cx) = parse_raw_problem_steps l cx assms_nbr
           in (s :: rp, rl, cx) end
-      |  NONE => ([],[], cx)
+      | NONE => ([],[], cx)
       | x => let val _ = @{print}("x",x) in raise ERROR "" end
     (*  | SOME (FUN_DEF, p, l) => (parse_fun_def p cx,assms_nbr)
       | SOME (FUN_DECL, p, l) => (parse_fun_decl p cx,assms_nbr)

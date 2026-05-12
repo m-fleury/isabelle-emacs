@@ -142,7 +142,7 @@ fun qnt_simplify ctxt _ t = SMT_Replay_Methods.prove ctxt t (fn _ =>
       K (Clasimp.auto_tac ctxt))
 
 
-(* Mapping rules to tactics and hide away not needed arguments  *)
+(* Mapping rules to tactics and hide away not needed arguments *)
 
 (*arguments are: ctxt thms/prems step_args context_assignment t/goal args*)
 fun ignore_args       f ctxt prems _ _ goal _ = f ctxt prems goal

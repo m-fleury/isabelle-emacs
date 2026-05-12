@@ -142,7 +142,7 @@ fun replay_thm solver method_for rewrite_rules ll_defs ctxt assumed unchanged_pr
         needs_boxes
       |> Simplifier.simplify (empty_simpset ctxt addsimps (@{thm alethe_Box_def2} :: rewrite_rules))
   end
- | replay_thm _ _ _ _ _ _ _ _ _ _ _ _ _ _ _  = raise (Fail "unreachable code to silence the compiler")
+ | replay_thm _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ = raise (Fail "unreachable code to silence the compiler")
 
 
 
@@ -234,7 +234,7 @@ fun replay_theorem_step solver method_for rewrite_rules all_assms ll_defs assume
         SOME (Alethe_Node.Insts tab) => SOME (Alethe_Node.Insts (Symtab.map (K subst_transform) tab)) |
         _ => args)
     val context_assignments = map subst_transform context_assignments
-    val  _ = debug_cond_msg ctxt (length non_skolem_prems <> length prems_as_thms_with_context_assms) low (fn () =>
+    val _ = debug_cond_msg ctxt (length non_skolem_prems <> length prems_as_thms_with_context_assms) low (fn () =>
       \<^print> ("Warning, there were premises that are not accessible to the current step (i.e., that are not in the context). This should not happen. These were ignored."))
     val _ = debug_cond_msg ctxt (not (null prems)) middle (fn () =>
       \<^print> ("Export premises that are not skolem definitions, to the current context." ^
@@ -277,7 +277,7 @@ fun replay_theorem_step solver method_for rewrite_rules all_assms ll_defs assume
     val _ = debug_msg ctxt low (fn () => \<^print> ("Add resulting theorem to globally known facts", (id,(prop_skeleton,thm))))
 
   in (globally_known_facts, stats', ctxt, concl_transformation, sub_global_rew) end
- | replay_theorem_step _ _ _ _ _ _ _ _ _ _  = raise (Fail "unreachable code to silence the compiler")
+ | replay_theorem_step _ _ _ _ _ _ _ _ _ _ = raise (Fail "unreachable code to silence the compiler")
 
 
 fun replay_definition_step rewrite_rules ll_defs
@@ -315,7 +315,7 @@ fun replay_definition_step rewrite_rules ll_defs
     val total = Time.toNanoseconds (#elapsed (Timing.result start0))
     val stats = Symtab.cons_list ("choice", total) stats
   in (proofs, stats, ctxt, concl_transformation, global_transformation) end
- | replay_definition_step _ _ _ _  = raise (Fail "unreachable code to silence the compiler")
+ | replay_definition_step _ _ _ _ = raise (Fail "unreachable code to silence the compiler")
 
 
 fun prove_ll_def_from_assms assms ll_defs rewrite_rules stats ctxt term =
@@ -392,7 +392,7 @@ fun replay solver method_for outer_ctxt
       Raw_Simplifier.rewrite_term thy rewrite_rules [] end
     val used_lldefs =
       map_filter (fn id => let val i = index_of_id id in if i < 0 andalso not (ll_defs = [])
-          then SOME (id, normalize_tac ctxt (nth ll_defs id))  else NONE end)
+          then SOME (id, normalize_tac ctxt (nth ll_defs id)) else NONE end)
         used_assert_ids
     val _ = debug_msg ctxt high (fn () => \<^print> ("These assumptions were lambda lifting definitions that were actually used: ",used_lldefs))
 

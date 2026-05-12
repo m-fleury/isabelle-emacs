@@ -148,7 +148,7 @@ fun node_of_term p cx = (term_of p cx)
 
 datatype step_kind = ASSUME | ANCHOR | NO_STEP | NORMAL_STEP | SKOLEM
 
-fun parse_fun_def (SMTLIB.S [SMTLIB.Sym "define-fun", SMTLIB.Sym id,  _, _,
+fun parse_fun_def (SMTLIB.S [SMTLIB.Sym "define-fun", SMTLIB.Sym id, _, _,
       SMTLIB.S (SMTLIB.Sym "!" :: t :: [SMTLIB.Key "named", SMTLIB.Sym name])]) cx =
       let
         val (l, cx) = (fst oo SMTLIB_Proof.extract_and_update_name_bindings) t cx
@@ -158,7 +158,7 @@ fun parse_fun_def (SMTLIB.S [SMTLIB.Sym "define-fun", SMTLIB.Sym id,  _, _,
       in
         (mk_raw_definition_node (id ^ skolem_def) skolem_def id l, cx)
       end
-  | parse_fun_def (SMTLIB.S [SMTLIB.Sym "define-fun", SMTLIB.Sym id,  _, _, SMTLIB.S l]) cx =
+  | parse_fun_def (SMTLIB.S [SMTLIB.Sym "define-fun", SMTLIB.Sym id, _, _, SMTLIB.S l]) cx =
       let
         val (l, cx) = (fst oo SMTLIB_Proof.extract_and_update_name_bindings) (SMTLIB.S l) cx
       in
@@ -240,9 +240,9 @@ fun parse_raw_proof_steps (curr_anchor_id : string option) (smtlib_lines : SMTLI
           then ([], smtlib_lines, cx)
           else
             let
-              val (step', (_, cx)) =  (step, cx)
+              val (step', (_, cx)) = (step, cx)
                 |> parse_normal_step
-                |>>  (to_raw_node NORMAL_STEP [])
+                |>> (to_raw_node NORMAL_STEP [])
               val (rp, rl, cx) = parse_raw_proof_steps curr_anchor_id rest cx
             in (step' :: rp, rl, cx) end
       | (ASSUME, step, rest) =>
@@ -296,7 +296,7 @@ fun preprocess compress step =
 
     fun preprocess (x as Raw_Definition_Node _) (cx : ('a list, 'b) context, remap_prems) = ([x], (cx, remap_prems))
       | preprocess (Raw_Alethe_Node {id, rule, step_args, context_assignments, prems, concl, subproof, prop_skeleton, ...})
-          (cx : ('a list, 'b) context, remap_prems)  =
+          (cx : ('a list, 'b) context, remap_prems) =
         let
           val ctxt = #ctxt cx
           val _ = debug_msg ctxt high (fn () => \<^print> ("preprocessing started for rule: ", id))
@@ -632,7 +632,7 @@ fun postprocess_proof compress ctxt step cx =
                 let
                   fun mult10 x = if x = 0 then 1 else 10 * mult10 (x div 10)
                   val offset = mult10 num2
-                  val res_num = ( (  (offset) * num1)) + num2
+                  val res_num = ( ( (offset) * num1)) + num2
                 in
                   (res_num,offset)
                 end
@@ -767,7 +767,7 @@ fun combine_proof_steps ((Alethe_Replay_Node step1 : alethe_replay_node) :: (Ale
 val linearize_proof =
   let
     fun map_node_concl f (Alethe_Step {id, rule, prems, concl, prop_skeleton}) =
-       mk_step id rule prems (f concl)  prop_skeleton
+       mk_step id rule prems (f concl) prop_skeleton
     fun linearize (Alethe_Replay_Node {id = id, rule = rule, step_args = _, context_assignments = _, prems = prems,
         concl = concl,
         subproof = (_, assms, inputs, subproof), args = args, prop_skeleton = prop_skeleton2}) =
@@ -921,10 +921,10 @@ local
             then List.take (xs,len_xs - 2)
             else ("("::xs)
           end
-         | xs => xs)   (*Made optional for now because not all tools support it: raise throw_alethe_ex ("proof does not start with opening parenthesis"))*)
+         | xs => xs) (*Made optional for now because not all tools support it: raise throw_alethe_ex ("proof does not start with opening parenthesis"))*)
         |> filter_out (fn x => x = "")
         |> map single
-        |> map (fn x =>  SMTLIB.parse x)
+        |> map (fn x => SMTLIB.parse x)
         |> map remove_all_qm
         |> map remove_pattern
       val _ = debug_msg ctxt high (fn () => \<^print> ("Removed questionmarks and patterns from proof"))
