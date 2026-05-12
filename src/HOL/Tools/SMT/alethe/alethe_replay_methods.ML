@@ -642,7 +642,7 @@ local
      end
    | rewrite_all_skolems ctxt_eq thm_indirect ctxt ((_,NONE) :: thms) =
        rewrite_all_skolems ctxt_eq thm_indirect ctxt thms
-   | rewrite_all_skolems _ _ _ [] = K (all_tac)
+   | rewrite_all_skolems _ _ _ [] = K all_tac
 
    fun extract_var_name (thm :: thms) =
        let val name = Thm.concl_of thm
@@ -773,7 +773,7 @@ fun is_same_assms_eq_ac (Abs (_, _, u)) (Abs (_, _, u')) =
     (is_same_assms_eq_ac u v' andalso is_same_assms_eq_ac v u')
   | is_same_assms_eq_ac (u $ v) (u' $ v') =
     (is_same_assms_eq_ac u u' andalso is_same_assms_eq_ac v v')
-  | is_same_assms_eq_ac _ _ = (false)
+  | is_same_assms_eq_ac _ _ = false
 
 fun pretty tag lines = map Pretty.str lines |> Pretty.big_list tag |> Pretty.string_of
 
@@ -1259,7 +1259,7 @@ local
           then_conv Conv.try_conv (Conv.arg_conv (Conv.rewrs_conv thms1))
           then_conv Conv.try_conv (Conv.rewrs_conv thms1)) ctrm
       | Abs _ => Conv.try_conv (Conv.abs_conv (fn (_, ctxt) => repeat_rewrite_bottom_up1 ctxt thms1) ctxt) ctrm
-      | _ => Conv.try_conv (Conv.rewrs_conv (thms1)) ctrm)
+      | _ => Conv.try_conv (Conv.rewrs_conv thms1) ctrm)
 
   fun repeat_until_fixpoint_conv ctxt conv =
     Conv.repeat_conv (Conv.changed_conv (Conv.top_sweep_conv conv ctxt))
@@ -1317,7 +1317,7 @@ local
 
   fun miniscope ctxt =
     (*HOLogic.Trueprop_conv (Conv.arg_conv (miniscope_term ctxt) then_conv Conv.fun_conv (Conv.arg_conv (miniscope_term ctxt)))*)
-    imp_conv_all_premises ctxt (miniscope_term)
+    imp_conv_all_premises ctxt miniscope_term
 
   fun imp_conv_only_concl ctxt f t =
     (case Thm.term_of t of
@@ -1404,8 +1404,8 @@ fun sort_disj ctxt t =
       |> sort Term_Ord.term_ord
     fun commute_last last =
        repeat_rewrite_bottom_up1 ctxt
-         (((map (Drule.infer_instantiate' ctxt [NONE, SOME (Thm.cterm_of ctxt last)])
-         @{thms disj_left_commute[THEN eq_reflection] disj_commute[THEN eq_reflection]})))
+         (map (Drule.infer_instantiate' ctxt [NONE, SOME (Thm.cterm_of ctxt last)])
+         @{thms disj_left_commute[THEN eq_reflection] disj_commute[THEN eq_reflection]})
     fun reorder_disj [] = Conv.all_conv
       | reorder_disj (last :: []) =
        commute_last last
@@ -1553,7 +1553,7 @@ fun sort_disj ctxt t =
          THEN' Method.insert_tac context prems
          THEN' (eqsubst_all context @{thms de_Morgan_disj[THEN eq_reflection]
            alethe_Box_def[THEN eq_reflection] not_not[THEN eq_reflection]})
-         THEN' Subgoal.FOCUS (only_rewrite) context))
+         THEN' Subgoal.FOCUS only_rewrite context))
        else all_tac
       end
 in
@@ -1588,7 +1588,7 @@ fun qnt_cnf_tac ctxt =
        \<open>\<And>a b A B. (alethe_Box (\<not>a \<and> \<not>b) \<Longrightarrow> A \<and> B) \<Longrightarrow> \<not>\<not>(a \<or> b) \<or> A \<and> B\<close>
        \<open>\<And>a A. (a \<Longrightarrow> A) \<Longrightarrow> \<not>a \<or> A\<close> by (auto simp: alethe_Box_def)})
   (*step 2a*)
-  THEN' TRY' (SOLVED' (Subgoal.FOCUS (try_early_simp_solve) ctxt))
+  THEN' TRY' (SOLVED' (Subgoal.FOCUS try_early_simp_solve ctxt))
   (*step 3*)
   THEN' TRY' (eqsubst_all ctxt
     @{thms nnf_simps(4)[THEN eq_reflection] if_bool_eq_conj[THEN eq_reflection]
@@ -1971,7 +1971,7 @@ fun subproof ctxt [prem] t =
      SMT_Replay_Methods.prove ctxt t (fn _ =>
       SOLVED' (REPEAT' (resolve_tac ctxt @{thms alethe_and_neg(2)})
         THEN' TRY' (resolve_tac ctxt [prem])
-        THEN' REPEAT' (eq_assume_tac))
+        THEN' REPEAT' eq_assume_tac)
       ORELSE' SOLVED' (
         REPEAT' (resolve_tac ctxt [@{thm disj_not1} RSN (1, @{thm iffD2}) OF [@{thm impI}],
            @{thm disj_not1[of \<open>\<not>_\<close>, unfolded not_not]} RSN (1, @{thm iffD2}) OF [@{thm impI}]])
@@ -1979,8 +1979,8 @@ fun subproof ctxt [prem] t =
         THEN_ALL_NEW (eq_assume_tac
           ORELSE'
             SOLVED' ((partial_simplify_tac ctxt @{thms eq_commute ac_simps}
-            THEN' TRY' (eq_assume_tac))))
-          THEN' TRY' (eq_assume_tac))
+            THEN' TRY' eq_assume_tac)))
+          THEN' TRY' eq_assume_tac)
       ORELSE' TRY' (Method.insert_tac ctxt [prem]
         THEN' TRY' (partial_simplify_tac ctxt @{thms eq_commute ac_simps})
         THEN' TRY' (Blast.blast_tac ctxt)))

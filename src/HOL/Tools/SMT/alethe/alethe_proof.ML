@@ -534,7 +534,7 @@ fun postprocess_proof compress ctxt step cx =
         (* Process conclusion *)
         val (cx',termified_concl) = transform_concl concl id (cx, new_variable_names)
         val (_,termified_prop_skeleton) =
-          transform_concl (prop_skeleton) id (cx, new_variable_names)
+          transform_concl prop_skeleton id (cx, new_variable_names)
         val _ = debug_msg ctxt middle (fn () => \<^print> ("... transformed conclusion of step closing the anchor ", termified_concl))
         val alpha_conversion = rule = "bind" andalso is_alpha_renaming termified_concl
 
@@ -632,7 +632,7 @@ fun postprocess_proof compress ctxt step cx =
                 let
                   fun mult10 x = if x = 0 then 1 else 10 * mult10 (x div 10)
                   val offset = mult10 num2
-                  val res_num = ( ( (offset) * num1)) + num2
+                  val res_num = (offset * num1) + num2
                 in
                   (res_num,offset)
                 end
@@ -788,7 +788,7 @@ val linearize_proof =
             if rule = input_rule then
               find_input_steps_and_inline (map (inline_assumption concl id') steps)
             else
-              mk_step (id') rule prems concl prop_skeleton :: find_input_steps_and_inline steps
+              mk_step id' rule prems concl prop_skeleton :: find_input_steps_and_inline steps
 
         val subproof = subproof
           |> flat o map linearize

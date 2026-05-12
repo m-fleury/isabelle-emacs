@@ -142,7 +142,7 @@ fun replay_thm solver method_for rewrite_rules ll_defs ctxt assumed unchanged_pr
         needs_boxes
       |> Simplifier.simplify (empty_simpset ctxt addsimps (@{thm alethe_Box_def2} :: rewrite_rules))
   end
- | replay_thm _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ = raise (Fail "unreachable code to silence the compiler")
+ | replay_thm _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ = raise Fail "unreachable code to silence the compiler"
 
 
 
@@ -264,7 +264,7 @@ fun replay_theorem_step solver method_for rewrite_rules all_assms ll_defs assume
 
     val ({elapsed, ...}, thm) =
       SMT_Config.with_time_limit ctxt (rule ^ "," ^ id) SMT_Config.reconstruction_step_timeout replay step
-      handle (ERROR exn) => Exn.reraise (ERROR (" in step " ^ id ^ " " ^ exn))
+      handle ERROR exn => Exn.reraise (ERROR (" in step " ^ id ^ " " ^ exn))
 
     val _ = (SMT_Config.verbose_msg ctxt (K ("Successfully checked step " ^ id)) ())
 
@@ -277,7 +277,7 @@ fun replay_theorem_step solver method_for rewrite_rules all_assms ll_defs assume
     val _ = debug_msg ctxt low (fn () => \<^print> ("Add resulting theorem to globally known facts", (id,(prop_skeleton,thm))))
 
   in (globally_known_facts, stats', ctxt, concl_transformation, sub_global_rew) end
- | replay_theorem_step _ _ _ _ _ _ _ _ _ _ = raise (Fail "unreachable code to silence the compiler")
+ | replay_theorem_step _ _ _ _ _ _ _ _ _ _ = raise Fail "unreachable code to silence the compiler"
 
 
 fun replay_definition_step rewrite_rules ll_defs
@@ -287,7 +287,7 @@ fun replay_definition_step rewrite_rules ll_defs
 
     val global_transformer = subst_only_free global_transformation
     val rewrite = let val thy = Proof_Context.theory_of ctxt in
-        Raw_Simplifier.rewrite_term thy (rewrite_rules) []
+        Raw_Simplifier.rewrite_term thy rewrite_rules []
         #> not (null ll_defs) ? SMTLIB_Isar.unlift_term ll_defs
       end
     val start0 = Timing.start ()
@@ -315,7 +315,7 @@ fun replay_definition_step rewrite_rules ll_defs
     val total = Time.toNanoseconds (#elapsed (Timing.result start0))
     val stats = Symtab.cons_list ("choice", total) stats
   in (proofs, stats, ctxt, concl_transformation, global_transformation) end
- | replay_definition_step _ _ _ _ = raise (Fail "unreachable code to silence the compiler")
+ | replay_definition_step _ _ _ _ = raise Fail "unreachable code to silence the compiler"
 
 
 fun prove_ll_def_from_assms assms ll_defs rewrite_rules stats ctxt term =
@@ -409,7 +409,7 @@ fun replay solver method_for outer_ctxt
     (* Note: this proves and then adds the used lambda lifting definitions to the set of assumptions and could theoretically
        also update existing assumptions. It is not clear if the latter is needed, but erring on the side
        of caution we leave this code intact. *)
-    val (assumed, stats) = fold (fn ((ll_def_id, ll_def_term)) => fn (assumed, stats) =>
+    val (assumed, stats) = fold (fn (ll_def_id, ll_def_term) => fn (assumed, stats) =>
       let
         val (thm, stats) = prove_ll_def_from_assms (map snd assms) ll_defs rewrite_rules stats ctxt ll_def_term
         val name = SMTLIB_Interface.assert_name_of_role_and_index SMT_Util.Axiom ll_def_id
