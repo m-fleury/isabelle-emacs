@@ -1,5 +1,5 @@
 (*  Title:      HOL/Tools/SMT/alethe/alethe_node.ML
-    Author:     Mathias Fleury, ENS Rennes
+    Author:     Mathias Fleury, University of Freiburg
     Author:     Sascha Boehme, TU Muenchen
     Author:     Hanna Lachnitt, Stanford University
 

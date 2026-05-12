@@ -1,5 +1,5 @@
 (*  Title:      HOL/Tools/SMT/alethe/alethe_proof.ML
-    Author:     Mathias Fleury, ENS Rennes
+    Author:     Mathias Fleury, ENS Rennes, University of Freiburg
     Author:     Sascha Boehme, TU Muenchen
     Author:     Hanna Lachnitt, Stanford University
 

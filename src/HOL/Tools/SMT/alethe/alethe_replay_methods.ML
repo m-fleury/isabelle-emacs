@@ -1,5 +1,5 @@
 (*  Title:      HOL/Tools/SMT/alethe/alethe_replay_methods.ML
-    Author:     Mathias Fleury, MPII, JKU, University Freiburg
+    Author:     Mathias Fleury, MPII, JKU, University of Freiburg
     Author:     Hanna Lachnitt, Stanford University
 
 Proof method for replaying Alethe proofs.

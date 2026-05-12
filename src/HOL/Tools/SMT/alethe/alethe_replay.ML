@@ -1,5 +1,5 @@
 (*  Title:      HOL/Tools/SMT/alethe/alethe_replay.ML
-    Author:     Mathias Fleury, JKU
+    Author:     Mathias Fleury, JKU, University of Freiburg
     Author:     Hanna Lachnitt, Stanford University
 
 Proof parsing and replay for alethe.

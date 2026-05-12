@@ -1,5 +1,5 @@
 (*  Title:      HOL/Tools/SMT/alethe/alethe_strategies.ML
-    Author:     Mathias Fleury, ENS Rennes, MPI, JKU, Freiburg University
+    Author:     Mathias Fleury, ENS Rennes, MPI, JKU, University of Freiburg
     Author:     Hanna Lachnitt, Stanford University
 
 Alethe strategies: option portfolio to call solvers with

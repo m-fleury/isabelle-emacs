@@ -1,5 +1,5 @@
 (*  Title:      HOL/Tools/SMT/alethe/cvc5_rare.ML
-    Author:     Mathias Fleury, Uni Freiburg
+    Author:     Mathias Fleury, University of Freiburg
     Author:     Hanna Lachnitt, Stanford University
 
 Declaration of the rare rules used for the reconstruction

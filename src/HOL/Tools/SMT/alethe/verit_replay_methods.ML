@@ -1,5 +1,5 @@
 (*  Title:      HOL/Tools/SMT/alethe/verit_replay_methods.ML
-    Author:     Mathias Fleury, MPII, JKU
+    Author:     Mathias Fleury, MPII, JKU, University of Freiburg
     Author:     Hanna Lachnitt, Stanford University
 
 Proof method for replaying veriT proofs.
