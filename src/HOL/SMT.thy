@@ -1350,12 +1350,7 @@ lemma [z3_rule]:  (* for def-axiom *)
 hide_type (open) symb_list pattern
 hide_const (open) Symb_Nil Symb_Cons trigger pat nopat fun_app z3div z3mod
 
-subsection \<open>Rules for cvc5 holes\<close>
 
-lemma [cvc5_holes_simp]:
-  fixes a :: int
-  shows \<open>\<not>a dvd c \<Longrightarrow> a * b \<noteq> c\<close>
-  by auto
 
 declare[[smt_cvc_alethe = true]]
 
