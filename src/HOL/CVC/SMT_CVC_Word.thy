@@ -1,5 +1,5 @@
 theory SMT_CVC_Word \<comment> \<open>More Setup for CVC that should be in HOL-Word eventually\<close>
-  imports SMT_Word "SMT_CVC" "BV_Rewrites" "BV_Rewrites_Simplification" SMT_Native_Output
+  imports SMT_Word "SMT_CVC" "BV_Rewrites" "BV_Rewrites_Simplification" "BV_Rewrites_Elimination" SMT_Native_Output
 begin
 
 (*Evaluation Steps*)
@@ -8,8 +8,11 @@ begin
 
 lemmas bit_operations = drop_bit_eq_div take_bit_eq_mod push_bit_eq_mult
                         numeral_mod_numeral divmod_cancel
+lemmas [bv_reconstruction_length] = smt_word_len_evaluate
+  lemmas [cvc_evaluate] = Word_eq_word_of_int
 
 lemmas [cvc_evaluate_bv] = bv_reconstruction_length bit_operations word_size
+lemmas [bv_reconstruction_const_test] = upt_zero_numeral_unfold pred_numeral_simps
 
 
 
@@ -67,6 +70,20 @@ lemmas [cvc_evaluate_bv]
     push_bit_lift drop_bit_lift
 
 
+
+lemma drop_numeral_Cons [bv_reconstruction_list_funs]:
+"drop (numeral n) (x # xs) = drop (pred_numeral n) xs"
+  by (simp add: numeral_eq_Suc)
+
+lemma take_numeral_Cons [bv_reconstruction_list_funs]:
+"take (numeral n) (x # xs) = x # take (pred_numeral n) xs"
+  by (simp add: numeral_eq_Suc)
+
+lemma takefill_numeral_Cons [bv_reconstruction_list_funs]:
+"takefill c (numeral n) (x # xs) = x # takefill c (pred_numeral n) xs"
+  by (simp add: numeral_eq_Suc takefill_Suc_Cons)
+
+lemmas [arith_simp_cvc5] = nat_numeral pred_numeral_simps                                                                                                 
 
 ML\<open>
 val x = @{term "bit (3::4 word) 9"}
@@ -173,17 +190,19 @@ val _ = Theory.setup (Context.theory_map (
   SMTLIB_Proof.add_type_parser cvc_type_parser))
 \<close>
 
+cvc5_rare "BV_Rewrites_Elimination.rewrite_bv_ule_eliminate"
+cvc5_rare "BV_Rewrites_Elimination.rewrite_bv_ugt_eliminate"
+cvc5_rare "BV_Rewrites_Elimination.rewrite_bv_uge_eliminate"
+cvc5_rare "BV_Rewrites_Elimination.rewrite_bv_sgt_eliminate"
+cvc5_rare "BV_Rewrites_Elimination.rewrite_bv_sge_eliminate"
+cvc5_rare "BV_Rewrites_Elimination.rewrite_bv_slt_eliminate"
+
 cvc5_rare "BV_Rewrites.rewrite_bv_extract_whole"
-cvc5_rare "BV_Rewrites.rewrite_bv_ugt_eliminate"
-cvc5_rare "BV_Rewrites.rewrite_bv_uge_eliminate"
-cvc5_rare "BV_Rewrites.rewrite_bv_sgt_eliminate"
-cvc5_rare "BV_Rewrites.rewrite_bv_sge_eliminate"
-cvc5_rare "BV_Rewrites.rewrite_bv_slt_eliminate"
+
 cvc5_rare "BV_Rewrites.rewrite_bv_sle_eliminate"
 cvc5_rare "BV_Rewrites.rewrite_bv_redor_eliminate"
 cvc5_rare "BV_Rewrites.rewrite_bv_redand_eliminate"
 cvc5_rare "BV_Rewrites.rewrite_bv_sub_eliminate"
-cvc5_rare "BV_Rewrites.rewrite_bv_ule_eliminate"
 cvc5_rare "BV_Rewrites.rewrite_bv_comp_eliminate"
 cvc5_rare "BV_Rewrites.rewrite_bv_repeat_eliminate_1"
 cvc5_rare "BV_Rewrites.rewrite_bv_repeat_eliminate_2"
@@ -213,6 +232,8 @@ cvc5_rare "BV_Rewrites_Simplification.rewrite_bv_shl_by_const_1"
 cvc5_rare "BV_Rewrites_Simplification.rewrite_bv_shl_by_const_2"
 cvc5_rare "BV_Rewrites_Simplification.rewrite_bv_lshr_by_const_0"
 cvc5_rare "BV_Rewrites_Simplification.rewrite_bv_lshr_by_const_1"
+cvc5_rare "BV_Rewrites_Simplification.rewrite_bv_lshr_by_const_2"
+
 cvc5_rare "BV_Rewrites_Simplification.rewrite_bv_xor_ones"
 cvc5_rare "BV_Rewrites_Simplification.rewrite_bv_mult_pow2_1"
 cvc5_rare "BV_Rewrites_Simplification.rewrite_bv_ule_zero"
