@@ -1,8 +1,8 @@
-(*  Title:      HOL/Tools/SMT/alethe_replay_bv_methods.ML
+(*  Title:      HOL/CVC/ML/alethe_replay_bv_methods.ML
     Author:     Mathias Fleury, MPII, JKU, University Freiburg
-    Author:     Hanna Lachnitt, Stanford
+    Author:     Hanna Lachnitt, Stanford University
 
-Proof method for replaying Alethe proofs for bitvector steps.
+Proof method for replaying Alethe proofs for bit-vector steps.
 *)
 
 signature ALETHE_REPLAY_BV_METHODS =
@@ -95,11 +95,15 @@ let
   val len_eval_thms  = (Named_Theorems.get ctxt @{named_theorems smt_word_len_evaluate})
   val rec_list_thms  = (Named_Theorems.get ctxt @{named_theorems bv_reconstruction_lists})
   val rec_list_funs_thms  = (Named_Theorems.get ctxt @{named_theorems bv_reconstruction_list_funs})
-  val arith_thms = (Named_Theorems.get ctxt @{named_theorems smt_arith_simplify})
+  val arith_thms = (Named_Theorems.get ctxt @{named_theorems arith_simp_cvc5})
+  val arith2_thms = (Named_Theorems.get ctxt @{named_theorems smt_arith_simplify})
+
   val more_thms = @{thms monoid_mult_class.power_Suc0_right power_0}
 
 in
-  TRY' (simplify_tac ctxt (const_test_thms @ len_eval_thms @ rec_list_thms @ rec_list_funs_thms @ arith_thms @ more_thms) )
+  SOLVED' (simplify_tac ctxt (const_test_thms @ len_eval_thms @ rec_list_thms @ rec_list_funs_thms @ arith_thms @ arith2_thms @  more_thms) )
+  ORELSE' TRY' (Code_Simp.dynamic_tac ctxt)
+
 end
 
 fun resolve_bitblast_and_wrapper ctxt =
@@ -175,30 +179,25 @@ local
     fun find_bbT_vars (_ $ (_ $ (_ $ (_ $ x) $ (_ $ y)) $ _)) = (x,y) |
         find_bbT_vars _ = error ("Bitblasting step (bitwise operation) has the wrong form!")
     val bit_blasted_vars = find_bbT_vars t
-
+    val _ = @{print}("bit_blasted_Vars",bit_blasted_vars)
     (*instantiate with bitblasted variable*)
     val bitwise_op_lemma =
         nth (Named_Theorems.get ctxt bitwise_op_lemma) 0
         handle Subscript =>  error ("Could not find lemma for bitblasting step (bitwise operation)")
     val bitwise_op_lemma_inst =
         Drule.infer_instantiate' ctxt (map (SOME o Thm.cterm_of ctxt) [fst bit_blasted_vars,snd bit_blasted_vars]) bitwise_op_lemma
+    val _ = @{print}("bitwise_op_lemma_inst",bitwise_op_lemma_inst)
 
    in  SMT_Replay_Methods.prove ctxt t (fn _ =>(
       (debug_msg_tac' ctxt high ("bitwise operation bitblast reconstruction debug 1"))
       THEN' K (HEADGOAL (EqSubst.eqsubst_tac ctxt [1] [bitwise_op_lemma_inst]))
+
       THEN' (debug_msg_tac' ctxt high ("bitwise operation bitblast reconstruction debug 2"))
-      THEN' REPEAT_CHANGED (
-            (TRY' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems smt_word_len_evaluate})))
-      THEN' (TRY' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems smt_arith_simplify})))
-      THEN' (TRY' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems arith_simp_cvc5})))
-      THEN' (TRY' (simplify_tac ctxt ((Named_Theorems.get ctxt @{named_theorems bv_reconstruction_lists}))))
-      THEN' (TRY' (simplify_tac ctxt @{thms alethe_and_simplify1}))
-      THEN' (TRY' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems bv_reconstruction_list_funs})))
+            THEN' REPEAT_DETERM_N' 2 (resolve_bitblast_one ctxt)
+
       THEN' (debug_msg_tac' ctxt high ("bitwise operation bitblast reconstruction debug 3"))
       )
-      THEN' (TRY' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems bv_reconstruction_list_funs})))
-      THEN' (TRY' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems rbl_bvult_fun})))
-      ))
+)
   end
 in
   val bv_bitblast_step_bvand = prove_bitblast_step_bitwise_op @{named_theorems word_and_rbl_bvand}
@@ -396,37 +395,15 @@ local
 
        K (HEADGOAL (EqSubst.eqsubst_tac ctxt [1] [rbl_extract_lemma_inst]))
       THEN' (debug_msg_tac' ctxt high ("bv bitblast extract reconstruction debug 2"))
-        THEN' (resolve_bitblast ctxt)
+      THEN' REPEAT_DETERM_N' 7 (resolve_bitblast_one ctxt)
       THEN' (debug_msg_tac' ctxt high ("bv bitblast extract reconstruction debug enf"))
 
-      (*First goal is of the form nat (c1::int) \<le> nat (c2::int)*)
-      THEN' (TRY' (simplify_tac ctxt 
-         (@{thms nat_numeral nat_1 le0 Suc_inject Suc_le_mono Suc_less_eq length_rev} @ (Named_Theorems.get ctxt @{named_theorems smt_arith_simplify}))))
-      THEN' (debug_msg_tac' ctxt high ("resolved indices constraint"))
+      THEN' (TRY' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems rbl_extract_fun}))
+      THEN' (debug_msg_tac' ctxt high ("bitblast extract bitblast reconstruction debug 3"))
+       THEN' (resolve_bitblast_and_wrapper ctxt)
+      THEN' (debug_msg_tac' ctxt high ("bitblast extract bitblast reconstruction debug 4"))
 
-      (*Second goal has the form Suc c1 < length xs *)
-      THEN' (TRY' (simplify_tac ctxt @{thms length_rev append.left_neutral list.size numeral_nat Suc_inject Suc_le_mono Suc_less_eq}))
-      THEN' (debug_msg_tac' ctxt high ("resolved Suc c1 < length xs constraint"))
- THEN' (TRY' (simplify_tac ctxt 
-         (@{thms nat_numeral Suc_inject Suc_le_mono Suc_less_eq length_rev} @ (Named_Theorems.get ctxt @{named_theorems smt_arith_simplify}))))
- THEN' (TRY' (simplify_tac ctxt 
-         (@{thms nat_numeral numeral_eq_Suc numeral_nat pred_numeral_simps})))
-
-
-      THEN' REPEAT_CHANGED (
-            (TRY' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems smt_word_len_evaluate})))
-      THEN' (TRY' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems smt_arith_simplify})))
-      THEN' (TRY' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems arith_simp_cvc5})))
-      THEN' (TRY' (simplify_tac ctxt ((Named_Theorems.get ctxt @{named_theorems bv_reconstruction_lists}))))
-      THEN' (TRY' (simplify_tac ctxt @{thms alethe_and_simplify1}))
-      THEN' (TRY' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems bv_reconstruction_list_funs})))
-      THEN' (debug_msg_tac' ctxt high ("bitwise operation bitblast reconstruction debug 3"))
-      )
-      THEN' (TRY' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems bv_reconstruction_list_funs})))
-      THEN' (TRY' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems rbl_bvult_fun})))
-        THEN' TRY' (Code_Simp.dynamic_tac ctxt)
-
-      )
+      ))
 )
   end
 in
@@ -444,6 +421,7 @@ local
     fun find_bbT_vars (_ $ (_ $ (_ $ (_ $ (_ $ x)) $ (_ $ (_ $ y))) $ _)) = (x,y) |
         find_bbT_vars _ = error ("Bitblasting step (bvequal) has the wrong form!")
     val bit_blasted_vars = find_bbT_vars t
+    val _ = debug_msg ctxt high (fn () => \<^print> ("bit_blasted_vars ",apfst (Thm.cterm_of ctxt) bit_blasted_vars))
 
     (*instantiate with bitblasted variable*)
     val word_equal_rbl_bvequal_lemma =
@@ -451,21 +429,17 @@ local
     val word_equal_rbl_bvequal_lemma_inst =
         Drule.infer_instantiate' ctxt (map (SOME o Thm.cterm_of ctxt) [fst bit_blasted_vars,snd bit_blasted_vars]) word_equal_rbl_bvequal_lemma
 
-   in  SMT_Replay_Methods.prove ctxt t (fn _ =>(
-      Method.insert_tac ctxt [word_equal_rbl_bvequal_lemma_inst]
 
-      THEN' K (HEADGOAL (EqSubst.eqsubst_tac ctxt [1] [word_equal_rbl_bvequal_lemma_inst]))
-      THEN' REPEAT_CHANGED (
-            (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems rbl_bvequal_fun}))
-      THEN' (TRY' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems smt_word_len_evaluate})))
-      THEN' (TRY' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems smt_arith_simplify})))
-      THEN' (TRY' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems arith_simp_cvc5})))
-      THEN' (TRY' (simplify_tac ctxt ((Named_Theorems.get ctxt @{named_theorems bv_reconstruction_lists}))))
-      THEN' (TRY' (simplify_tac ctxt @{thms alethe_and_simplify1}))
-      THEN' (TRY' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems bv_reconstruction_list_funs})))
-      )
-      THEN' (TRY' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems bv_reconstruction_list_funs})))
-      THEN' (TRY' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems rbl_bvult_fun})))
+   in  SMT_Replay_Methods.prove ctxt t (fn _ =>(
+
+      K (HEADGOAL (EqSubst.eqsubst_tac ctxt [1] [word_equal_rbl_bvequal_lemma_inst]))
+      THEN' (debug_msg_tac' ctxt high ("bvadd bvequal reconstruction debug 2"))
+      THEN' REPEAT_DETERM_N' 3 (resolve_bitblast_one ctxt)
+      THEN' (TRY' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems rbl_bvequal_fun})))
+
+      THEN' (debug_msg_tac' ctxt high ("bvadd bvequal reconstruction debug 2b"))
+      THEN' REPEAT_DETERM_N' 1 (resolve_bitblast_one ctxt)
+
       ))
   end
 in
