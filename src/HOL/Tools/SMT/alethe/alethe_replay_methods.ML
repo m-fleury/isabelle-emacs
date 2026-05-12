@@ -1854,10 +1854,6 @@ local
 
   exception no_lambda
 
-  fun extract_lambda_function_and_arguments (x $ arg) =
-        extract_lambda_function_and_arguments x @ [arg]
-    | extract_lambda_function_and_arguments (x as Abs _) = [x]
-    | extract_lambda_function_and_arguments _ = raise no_lambda
 
   fun compose_fun ctxt tm ((_, SOME arg1) :: args) =
         compose_fun ctxt (@{thm alethe_arg_cong} OF [tm, arg1]) args
@@ -1866,24 +1862,32 @@ local
           (@{thm alethe_arg_cong0} OF [tm])) args
     | compose_fun _ tm _ = tm
 
+  fun extract_lambda_and_args (lambda, function) (s $ t) (u $ v) =
+    (if lambda = s $ t orelse function = u $ v then [(Envir.beta_eta_contract (s$t), u$v)]
+    else extract_lambda_and_args (lambda, function) s u @ [(t,v)])
+    | extract_lambda_and_args _ s u = [(s, u)]
+
+  (*You have to be careful with non-beta-eta-reduced term, which happens especially when
+   the lambda takes 2 arguments to distinguish between the arguments and the function with
+   one argument. Therefore, we iterate on both sides to recognize the
+   terms.*)
   fun cong_conv_lambda orig_t ctxt prems t =
     let
-      val orig_t' =
+      val (lhs, rhs) =
         orig_t
         |> HOLogic.dest_Trueprop
         |> HOLogic.dest_eq
-        |> fst
 
-      val rews = prems
+      val rews as ((lambda, function), thm) :: _ = prems
        |> map_filter (try (apfst (apfst Envir.beta_eta_contract o apsnd Envir.beta_eta_contract o
-              HOLogic.dest_eq o Thm.term_of o Object_Logic.dest_judgment ctxt o
+              HOLogic.dest_eq o HOLogic.dest_Trueprop o Envir.beta_eta_contract o Thm.term_of o 
             Thm.cconcl_of) o `(fn x => x)))
      in
-       orig_t'
-       |> extract_lambda_function_and_arguments
-       |> map Envir.beta_eta_contract
+       extract_lambda_and_args (lambda, function) lhs rhs
+       |> map (apfst Envir.beta_eta_contract)
        |> map (`(fn x => x))
-       |> map (apsnd (AList.lookup (fn (a, t) => a = fst t) rews))
+       |> map (apsnd (AList.lookup (fn (a, t) => fst a = fst t orelse snd a = snd t) rews))
+       |> map (apfst fst)
        |> (fn (_, SOME tm) :: xs =>
             Conv.rewr_conv (compose_fun ctxt tm xs
             |> Conv.fconv_rule (Thm.eta_conversion)
@@ -1903,8 +1907,8 @@ local
         |> Envir.beta_eta_contract
 
       val rews = prems
-        |> map_filter (try (apfst (apfst Envir.beta_eta_contract o apsnd Envir.beta_eta_contract o
-            HOLogic.dest_eq o Thm.term_of o Object_Logic.dest_judgment ctxt o Thm.cconcl_of) o
+        |> map_filter (try (apfst (
+            HOLogic.dest_eq o HOLogic.dest_Trueprop o Envir.beta_eta_contract o Thm.term_of o Thm.cconcl_of) o
             `(fn x => x)))
         |> filter_out (fn ((a, b), _) => a = b)
         |> map (apsnd (fn x => @{thm eq_reflection} OF [x]))
