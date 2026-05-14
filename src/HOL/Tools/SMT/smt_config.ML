@@ -51,7 +51,7 @@ sig
   val sat_solver: string Config.T
   val check_external: bool Config.T
   val slice_only_no_full_proof_attr: bool Config.T
-  val compress_verit_proofs: Proof.context -> bool (*TODO Hanna: Rename to alethe *)
+  val compress_alethe_proofs: Proof.context -> bool
   val alethe_use_prop_skeleton: Proof.context -> bool
 
   (*tools*)
@@ -289,7 +289,7 @@ fun check_smt_is_slicing ctxt  = Config.get ctxt slice_only_no_full_proof_attr
 fun spy_cvc ctxt  = Config.get ctxt spy_cvc_attr
 fun spy_verit ctxt  = Config.get ctxt spy_verit_attr
 fun spy_Z3 ctxt  = Config.get ctxt spy_z3
-fun compress_verit_proofs ctxt = Config.get ctxt trace_verit_compression
+fun compress_alethe_proofs ctxt = Config.get ctxt trace_verit_compression
 fun alethe_use_prop_skeleton ctxt = Config.get ctxt trace_alethe_use_prop_skeleton
 
 fun use_alethe_proof_from_cvc ctxt = Config.get ctxt cvc_experimental_alethe
@@ -309,8 +309,6 @@ fun with_time_limit ctxt error_msg timeout_config f x =
 
 fun with_timeout ctxt error_msg = with_time_limit ctxt error_msg timeout
     handle Timeout.TIMEOUT _ => raise SMT_Failure.SMT (SMT_Failure.Time_Out error_msg);
-
-fun with_timeout ctxt error_msg = with_time_limit ctxt error_msg timeout;
 
 
 (* certificates *)
