@@ -474,7 +474,7 @@ in
      In nat case: Add (x::int)\<ge>0  to hypothesis, transform "P (int (nat x))" to "P x"
      Otherwise: "P x"
     *)
-    val (ct'_atom3,qnt_original_unfold_nat_int_bound_var,nat_0_le,ge_cond_bound_var,bound_var_ge_cond) =
+    val (body_to_transform,qnt_original_unfold_nat_int_bound_var,nat_0_le,ge_cond_bound_var,bound_var_ge_cond) =
     (if bound_is_nat then
     let
      val (bound_var_ge_cond, consequent) =
@@ -498,16 +498,16 @@ in
      val body_unfold_nat_int_bound_var' = Thm.implies_intr (Thm.apply @{cterm Trueprop} bound_var_ge_cond) body_unfold_nat_int_bound_var
      val _ = debug_msg ctxt high (fn () => \<^print> ("body_unfold_nat_int_bound_var'",body_unfold_nat_int_bound_var'))
 
-     val (newb1, newb2) =
+     val (body_with_casts, body_clean) =
        case Thm.cconcl_of body_unfold_nat_int_bound_var' |> Drule.strip_comb |> snd of
          [a, b] => (a, b)
        | _ => raise (SMT_GLOBAL_NORMALIZE "expected binary head in body conclusion")
-     val newb1 = newb1 |> Drule.strip_comb |> snd |> tl |> the_single (*" P (int (nat x) *)
-     val newb2 = newb2 |> Drule.strip_comb |> snd |> tl |> the_single (*" P x *)
+     val body_with_casts = body_with_casts |> Drule.strip_comb |> snd |> tl |> the_single (*" P (int (nat x) *)
+     val body_clean = body_clean |> Drule.strip_comb |> snd |> tl |> the_single (*" P x *)
      val lemma =
        if is_all then @{lemma "(a \<Longrightarrow> (a \<longrightarrow> B \<equiv> a \<longrightarrow> C)) \<Longrightarrow> (a \<longrightarrow> B \<equiv> a \<longrightarrow>C)" by simp}
        else @{lemma "(a \<Longrightarrow> (a \<and> B \<equiv> a \<and> C)) \<Longrightarrow> (a \<and> B \<equiv> a \<and> C)" by linarith}
-     val lemma_inst = Drule.infer_instantiate' ctxt [SOME bound_var_ge_cond,SOME newb1,SOME newb2] lemma |> atomize_eq_thm ctxt
+     val lemma_inst = Drule.infer_instantiate' ctxt [SOME bound_var_ge_cond,SOME body_with_casts,SOME body_clean] lemma |> atomize_eq_thm ctxt
      val body_unfold_nat_int_bound_var'' = Thm.implies_elim lemma_inst body_unfold_nat_int_bound_var' (* FIXME: This should be done on the fly eventually and not in this additional traversal*)
      val _ = debug_msg ctxt high (fn () => \<^print> ("body_unfold_nat_int_bound_var''",body_unfold_nat_int_bound_var''))
 
@@ -523,13 +523,13 @@ in
 
     in (simplified_body,qnt_original_unfold_nat_int_bound_var,nat_0_le',bound_var_ge_cond,bound_var_ge_cond) end
     else (qnt_transform_body,ct_thm,ct_thm,ct,ct))
-    val _ = debug_msg ctxt high (fn () => \<^print> ("ct'_atom3",ct'_atom3))
+    val _ = debug_msg ctxt high (fn () => \<^print> ("body_to_transform",body_to_transform))
 
     (*Recursive Call*)
     (*
       In nat case: Transform body "P (x::int)" and obtain theorem "P x \<equiv> P' x"
       Otherwise: Transform body "P x" and obtain thm: "P x \<equiv> P' x" *)
-    val (tab1,ctxt1,ge_conds,thms) = bottom_list ccv' tab [] ctxt [ct'_atom3] []
+    val (tab1,ctxt1,ge_conds,thms) = bottom_list ccv' tab [] ctxt [body_to_transform] []
     val thm = the_single thms
     val _ = debug_msg ctxt1 high (fn () => \<^print> ("Body of quantified term was transformed to:",thm))
 
@@ -545,14 +545,11 @@ in
         val quant2 =
           if is_all then @{lemma "A \<Longrightarrow> ( B \<equiv>  C) \<Longrightarrow> ( B \<equiv> (A \<and> C))" by simp}
           else @{lemma "A \<Longrightarrow> ( B \<equiv>  C) \<Longrightarrow> ( B \<equiv> (A \<longrightarrow> C))" by simp}
-        val temp2 = Drule.infer_instantiate' ctxt
+        val quant2_inst = Drule.infer_instantiate' ctxt
           [NONE,SOME (Thm.lhs_of thm),SOME (Thm.rhs_of thm)]
           quant2
-
-        val temp3 = temp2 OF [ge_conds]
-        val temp4 = Thm.implies_elim temp3 thm
-
-      in temp4 end
+        val quant2_with_cond = quant2_inst OF [ge_conds]
+      in Thm.implies_elim quant2_with_cond thm end
     val _ = debug_msg ctxt1 high (fn () => \<^print> ("added conditions to theorem",thm_with_cond))
 
     (*This here should eventually be done during transformation.
@@ -570,7 +567,7 @@ in
      val thm_unfolded_nat_int = Thm.transitive thm_with_cond thm_unfolded_nat_int'
 
      val thm_unfolded_nat_int = Thm.implies_intr (Thm.apply @{cterm Trueprop} ge_cond_bound_var) thm_unfolded_nat_int
-     val (newb1, newb2) =
+     val (eq_lhs, eq_rhs) =
        case Thm.cconcl_of thm_unfolded_nat_int |> Drule.strip_comb |> snd of
          [a, b] => (a, b)
        | _ => raise (SMT_GLOBAL_NORMALIZE "expected binary head when unfolding nat-int")
@@ -578,23 +575,23 @@ in
      val lemma =
       if is_all then @{lemma "(a \<Longrightarrow> (B \<equiv> C)) \<Longrightarrow> (a \<longrightarrow> B \<equiv> a \<longrightarrow>C)" by simp}
       else @{lemma "(a \<Longrightarrow> (B \<equiv> C)) \<Longrightarrow> (a \<and> B \<equiv> a \<and> C)" by linarith}
-     val lemma_inst =  Drule.infer_instantiate' ctxt [SOME ge_cond_bound_var,SOME newb1, SOME newb2] lemma |> atomize_eq_thm ctxt
+     val lemma_inst =  Drule.infer_instantiate' ctxt [SOME ge_cond_bound_var,SOME eq_lhs, SOME eq_rhs] lemma |> atomize_eq_thm ctxt
 
      val thm_unfolded_nat_int = Thm.implies_elim lemma_inst thm_unfolded_nat_int
      val _ = debug_msg ctxt high (fn () => \<^print> ("Re-introduce implication",thm_unfolded_nat_int))
     in thm_unfolded_nat_int end else thm_with_cond
 
     (* "\<lambda>x::int. P x \<equiv> \<lambda>x. P' x" *)
-    val thm23 = Thm.abstract_rule bv_name transformed_bound_var_ct thm_unfolded_nat_int
+    val lambda_eq = Thm.abstract_rule bv_name transformed_bound_var_ct thm_unfolded_nat_int
     (* "\<forall>x::int. P x \<equiv> \<forall>x. P' x" *)
-    val thm23' = Thm.combination (Conv.all_conv quant) thm23
+    val quant_eq = Thm.combination (Conv.all_conv quant) lambda_eq
 
     (* "\<forall>x::nat. P (int x) \<equiv> \<forall>x::int. P' x" *)
-    val thm23' = Thm.transitive qnt_original_unfold_nat_int_bound_var thm23'
-    val _ = debug_msg ctxt1 high (fn () => \<^print> ("Body of quantified term was transformed to:",thm23'))
-    val _ = debug_msg ctxt high (fn () => \<^print> ("Transformed current: ",thm23'))
+    val result = Thm.transitive qnt_original_unfold_nat_int_bound_var quant_eq
+    val _ = debug_msg ctxt1 high (fn () => \<^print> ("Body of quantified term was transformed to:",result))
+    val _ = debug_msg ctxt high (fn () => \<^print> ("Transformed current: ",result))
 
- in (tab1,ctxt1,[],thm23') end
+ in (tab1,ctxt1,[],result) end
 
  |
 (Abs (bv_name, _, _)) => (*TODO: lambda case*)
@@ -604,9 +601,9 @@ in
 
     val (tab1,ctxt1,_,thms) = bottom_list ccv' tab [] ctxt [body] []
     val thm = the_single thms
-    val thm23 = Thm.abstract_rule bv_name bound_var thm
+    val lambda_eq = Thm.abstract_rule bv_name bound_var thm
     (*TODO: Add/pass conditions *)
- in (tab1,ctxt1,[],thm23) end |
+ in (tab1,ctxt1,[],lambda_eq) end |
 _ =>
   if null cts
   then
