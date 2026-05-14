@@ -88,7 +88,7 @@ datatype order = First_Order | Higher_Order
 
 (* role *)
 
- datatype role = Conjecture | Hypothesis | Axiom
+datatype role = Conjecture | Hypothesis | Axiom
 
 
 (* class dictionaries *)
@@ -131,7 +131,7 @@ fun dict_get d cs =
 val dest_funT =
   let
     fun dest Ts 0 T = (rev Ts, T)
-      | dest Ts i (Type ("fun", [T, U])) = dest (T::Ts) (i-1) U
+      | dest Ts i (Type ("fun", [T, U])) = dest (T :: Ts) (i - 1) U
       | dest _ _ T = raise TYPE ("not a function type", [T], [])
   in dest [] end
 
