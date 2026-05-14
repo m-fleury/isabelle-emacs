@@ -633,7 +633,7 @@ local
      let
        val rewrite_sk_thms =
          map_filter (try (fn tm => tm OF [thm])) thm_indirect
-       val multiple_rew = if SMT_Config.compress_verit_proofs ctxt then REPEAT_CHANGED else I
+       val multiple_rew = if SMT_Config.compress_alethe_proofs ctxt then REPEAT_CHANGED else I
      in
        multiple_rew (EqSubst.eqsubst_tac ctxt [0] rewrite_sk_thms
          THEN' SOLVED' (K (HEADGOAL (partial_simplify_tac ctxt (ctxt_eq @ @{thms eq_commute}))))

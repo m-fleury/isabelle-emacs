@@ -905,7 +905,7 @@ local
     let
       val _ = debug_msg ctxt middle (fn () => \<^print> ("In import_proof_and_post_process"))
 
-      val compress = SMT_Config.compress_verit_proofs ctxt
+      val compress = SMT_Config.compress_alethe_proofs ctxt
 
       val smtlib_lines_without_qm =
         lines
