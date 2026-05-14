@@ -114,7 +114,7 @@ fun verit_rule_of "bind" = Bind
      else if r = Alethe_Proof.th_resolution_rule then Theory_Resolution
      else if r = Alethe_Proof.equiv_pos2_rule then Equiv_pos2
      else if r = Alethe_Proof.and_pos_rule then And_Pos
-     else (@{print} ("Unsupport rule", r); Unsupported)
+     else (@{print} ("Unsupported rule", r); Unsupported)
 
 fun unsupported rule ctxt prems _ _ t _ = SMT_Replay_Methods.replay_error ctxt "Unsupported verit rule"
   rule prems [] t

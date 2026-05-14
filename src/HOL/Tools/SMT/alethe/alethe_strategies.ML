@@ -54,11 +54,11 @@ val verit_strategy_ccfv_insts = ["--index-sorts", "--index-fresh-sorts", "--trig
 (*TODO:
 We obtained these strategies by asking cvc5 what strategies it would use in the SMT-COMP
 for some Isabelle generated problems from the 17 provers paper using the options --portfolio-dry-run --use-portfolio.
-Then, using Mirabelle we extracted of goals that could not be solved by internal proof methods
+Then, using Mirabelle we extracted goals that could not be solved by internal proof methods
 (i.e., timeout or call to the smt method) and evaluated the strategies. The focus is on having a
 good portfolio, not several strategies that are fast on the same goals.
 
-Note: we always use --enum-inst at the moment because otherwise cvc5 will answer unknown to often.
+Note: we always use --enum-inst at the moment because otherwise cvc5 will answer unknown too often.
 Note: --full-saturate-quant is an alias of --enum-inst, which the cvc5 devs prefer we use.
 TODO: We will give them better names once we know which ones to use.
 

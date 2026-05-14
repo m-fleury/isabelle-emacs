@@ -58,7 +58,7 @@ fun rare_check_and_add (short, long) context =
   end
 
 val _ = Outer_Syntax.command \<^command_keyword>\<open>cvc5_rare\<close>
-         "Declare a string of a named_theorems as a rare rules"
+         "Declare a string of a named_theorems as a rare rule"
     (Parse.string >> (fn long => fn lthy =>
   let
     val short = Long_Name.base_name long

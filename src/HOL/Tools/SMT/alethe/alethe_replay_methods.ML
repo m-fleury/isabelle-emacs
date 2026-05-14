@@ -27,7 +27,7 @@ sig
    False | True |
    (*Conjunction:*)
    And | Not_And | And_Pos | And_Neg |
-   (*Disjunction""*)
+   (*Disjunction:*)
    Or | Or_Pos | Not_Or | Or_Neg |
    (*Implication:*)
    Implies | Implies_Neg1 | Implies_Neg2 | Implies_Pos | Not_Implies1 | Not_Implies2 |
@@ -217,7 +217,7 @@ type alethe_tac_step_args_and_arg = Proof.context -> thm list -> term list -> te
 type alethe_tac = Proof.context -> thm list -> term -> thm
 
 datatype alethe_rule =
-   (*normalized_input: a repeated (normalized) assumption of assumption of in a subproof*)
+   (*normalized_input: a repeated (normalized) assumption or an assumption in a subproof*)
    Normalized_Input | Local_Input |
    (*Used to introduce skolem constants*)
    Definition |
@@ -229,7 +229,7 @@ datatype alethe_rule =
    False | True |
    (*Conjunction:*)
    And | Not_And | And_Pos | And_Neg |
-   (*Disjunction""*)
+   (*Disjunction:*)
    Or | Or_Pos | Not_Or | Or_Neg |
    (*Implication:*)
    Implies | Implies_Neg1 | Implies_Neg2 | Implies_Pos | Not_Implies1 | Not_Implies2 |
@@ -1265,7 +1265,7 @@ local
     Conv.repeat_conv (Conv.changed_conv (Conv.top_sweep_conv conv ctxt))
   fun repeat_until_fixpoint_conv2 ctxt thms =
     Conv.repeat_conv (Conv.changed_conv (Conv.top_sweep_rewrs_conv thms ctxt))
-  fun find_independant_terms dest thms (v, ctxt) t =
+  fun find_independent_terms dest thms (v, ctxt) t =
     let
       val disjs =
         dest (Thm.term_of t)
@@ -1281,13 +1281,13 @@ local
       t
       |> (move_term_to_the_beginning disjs then_conv print_conv "after moving out")
     end
-  (*for miniscoping we go over the term recursively and if we detect a conjuction/disjunction with a term
-   does not depend en the variables, we move it to the front and and the rewrite the entire thing
+  (*for miniscoping we go over the term recursively and if we detect a conjunction/disjunction with a term
+   that does not depend on the variables, we move it to the front and rewrite the entire thing
    with rewr_conv outside of the quantifier.*)
   fun miniscope_term ctxt t =
     (case t |> Thm.term_of of
       \<^Const_>\<open>HOL.All _\<close> $ _ =>
-        (*Conv.try_conv*) (Conv.arg_conv (Conv.abs_conv (find_independant_terms HOLogic.disjuncts
+        (*Conv.try_conv*) (Conv.arg_conv (Conv.abs_conv (find_independent_terms HOLogic.disjuncts
         @{thms disj_left_commute[THEN eq_reflection] disj_commute[THEN eq_reflection]}) ctxt)
         then_conv Conv.try_conv
            (repeat_until_fixpoint_conv ctxt
@@ -1295,7 +1295,7 @@ local
         then_conv Conv.fun_conv (miniscope_term ctxt)
         then_conv Conv.arg_conv (miniscope_term ctxt)) t
      | \<^Const_>\<open>HOL.Ex _\<close> $ _ =>
-        Conv.try_conv (Conv.arg_conv (Conv.abs_conv (find_independant_terms HOLogic.conjuncts
+        Conv.try_conv (Conv.arg_conv (Conv.abs_conv (find_independent_terms HOLogic.conjuncts
         @{thms conj_left_commute[THEN eq_reflection] conj_commute[THEN eq_reflection]}) ctxt)
         then_conv Conv.try_conv
            (repeat_until_fixpoint_conv ctxt
@@ -1642,12 +1642,12 @@ local
                                    | t$u' => substf t $ substf u'
                                    | _ => u)
         in substf end;
-  val to_lower = String.implode o (map Char.toUpper) o String.explode
+  val to_upper = String.implode o (map Char.toUpper) o String.explode
   fun resolve_and_instantiate_onepoint n1 (i, j: term) insts {context, params, ...} =
     let
        val i =
          (case i of
-           Var ((n2, _), _) => if n1 = to_lower n2 then j else i
+           Var ((n2, _), _) => if n1 = to_upper n2 then j else i
          | _ => i) (*veriT: j or i; cvc5: only j*)
          |> Term.subst_free insts
          |> subst_var_untyped (map (fn (x, t) => (Var ((x, 0), @{typ dummy}), Thm.term_of t)) params)
@@ -1691,8 +1691,8 @@ local
     in
        (*on external variable, names can change from BOUND to bOUND.*)
        onepoint_combine_quant ctxt
-         (extract_quantified_names_q t1 |> fst |> map to_lower)
-         (extract_quantified_names_q t2 |> fst |> map to_lower)
+         (extract_quantified_names_q t1 |> fst |> map to_upper)
+         (extract_quantified_names_q t2 |> fst |> map to_upper)
          insts
     end
 in
@@ -2033,7 +2033,7 @@ fun rewrite_and_simplify ctxt _ t =
      @{thms alethe_and_simplify}))
 
 (*
-Currently the tatic does not support steps like
+Currently the tactic does not support steps like
   (P False \<or> P True \<or> \<not> P False) = True
 hence the fast at the end.
 *)

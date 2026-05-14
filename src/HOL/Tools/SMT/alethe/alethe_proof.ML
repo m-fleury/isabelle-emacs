@@ -44,7 +44,7 @@ sig
   val subproof_rule : string
   val th_resolution_rule: string
 
-  (*Some arbitrary additional identifers for rules for internal use*)
+  (*Some arbitrary additional identifiers for rules for internal use*)
   val input_rule: string
   val normalized_input_rule: string (*top-level assume*)
   val local_input_rule : string (*assume in subproof*)
@@ -276,7 +276,7 @@ fun parse_raw_proof_steps (curr_anchor_id : string option) (smtlib_lines : SMTLI
 
 (* The preprocessing takes care of:
      1. unfolding the shared terms
-     2. extract the declarations of skolems to make sure that there are not unfolded
+     2. extract the declarations of skolems to make sure that they are not unfolded
      3. ignore unexpected arguments (both step args and context assignments)
      4. compressing of or steps if compression is activated
 *)
@@ -393,7 +393,7 @@ fun is_alpha_renaming t =
     means y = x. To remove ambiguity, we use the fact that y is a free variable and replace the term
     by:
       xy \<leadsto> y |- xy = x.
-    This is now does not have an ambiguity and we can safely move the "xy \<leadsto> y" to the proof
+    This now does not have an ambiguity and we can safely move the "xy \<leadsto> y" to the proof
     assumptions.
 *)
 local
@@ -435,8 +435,8 @@ fun postprocess_proof compress ctxt step cx =
          in
            if SMTLIB_Proof.lookup_binding cx new_name = None then new_name else assign_unused_name t (i+1)
          end
-        (*We try to limit the number of renamings that happen here. Hence we only rename if there a variable
-        appear multiple time in the same anchor with different names. Renaming would make debugging easier,
+        (*We try to limit the number of renamings that happen here. Hence we only rename if there is a variable
+        appearing multiple times in the same anchor with different names. Renaming would make debugging easier,
         but is not necessary.
 
         Also, avoiding renaming is required for rare rules (because we do not know which arguments we need to rename).*)
@@ -446,16 +446,16 @@ fun postprocess_proof compress ctxt step cx =
       in ((shadowing_vars, map (apfst (fn t => assign_unused_name t start_idx)) rebound_lhs_vars, substitute_terms), new_variable_names) end
 
     (* Functions for rewriting terms and the context *)
-    fun synctactic_var_subst old_name new_name (u $ v) =
-        (synctactic_var_subst old_name new_name u $ synctactic_var_subst old_name new_name v)
-      | synctactic_var_subst old_name new_name (Abs (v, T, u)) =
+    fun syntactic_var_subst old_name new_name (u $ v) =
+        (syntactic_var_subst old_name new_name u $ syntactic_var_subst old_name new_name v)
+      | syntactic_var_subst old_name new_name (Abs (v, T, u)) =
         Abs (if String.isPrefix old_name v then new_name else v, T,
-          synctactic_var_subst old_name new_name u)
-      | synctactic_var_subst old_name new_name (Free (v, T)) =
+          syntactic_var_subst old_name new_name u)
+      | syntactic_var_subst old_name new_name (Free (v, T)) =
         if old_name = v orelse String.isPrefix (old_name ^ "_") v then Free (new_name, T) else Free (v, T)
-      | synctactic_var_subst _ _ t = t
+      | syntactic_var_subst _ _ t = t
     fun syntactic_rew_in_lhs_subst old_name new_name (Const(\<^const_name>\<open>HOL.eq\<close>, T) $ t1 $ t2) =
-          Const(\<^const_name>\<open>HOL.eq\<close>, T) $ synctactic_var_subst old_name new_name t1 $ t2
+          Const(\<^const_name>\<open>HOL.eq\<close>, T) $ syntactic_var_subst old_name new_name t1 $ t2
       | syntactic_rew_in_lhs_subst old_name new_name (Const(\<^const_name>\<open>Trueprop\<close>, T) $ t1) =
           Const(\<^const_name>\<open>Trueprop\<close>, T) $ (syntactic_rew_in_lhs_subst old_name new_name t1)
       | syntactic_rew_in_lhs_subst _ _ t = t
