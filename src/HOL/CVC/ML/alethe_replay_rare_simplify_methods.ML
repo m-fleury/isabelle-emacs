@@ -256,7 +256,7 @@ fun dsl_tac_initialize rewrite_name args ctxt t prems =
                      THEN' TRY' (resolve_tac ctxt [@{thm refl}])))
                   ORELSE' (*TODO: This is wrong but I don't get how to change it. I want a UNLESS changed*)
                    (if rare_mode = 1 orelse (List.exists (fn x => x = rare_mode) [4,5,7])
-                   then (let val _ = @{print}("lemma,goal",(nth inst_lemmas_without_true 0,Thm.cterm_of ctxt t)) in 
+                   then (let val _ = debug_msg ctxt middle (fn () =>  @{print}("lemma,goal",(nth inst_lemmas_without_true 0,Thm.cterm_of ctxt t)));in
                    (debug_msg_tac'' ctxt high "could not apply lemma" THEN' (K no_tac) (* This won't work: raise RARE_REPLAY("Lemmas could not be used to discharge rewrite rule."*)) end)
                    else ((*K (print_tac ctxt "lemmas could not be used, continue to simplify") THEN'*) try_simp_tac prems ctxt THEN' K (print_tac ctxt "after simplification")))
                   )
