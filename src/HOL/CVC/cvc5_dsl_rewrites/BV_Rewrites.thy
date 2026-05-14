@@ -1,10 +1,516 @@
 theory BV_Rewrites
   imports BV_Rewrites_Lemmas 
 begin
-
+declare[[show_types,show_sorts]]
 (* This is a theory automatically created from a RARE file! All that remains to do is to prove
 any lemma whose provided proof fails and to to import this file in SMT.thy (if you want to use it
 for proof reconstruction).*)
+
+
+
+(*
+(define-cond-rule bv-concat-extract-merge
+  ((xs ?BitVec :list)
+   (s ?BitVec)
+   (ys ?BitVec :list)
+   (i Int) (j Int) (j1 Int) (k Int)
+  )
+  (= j1 (+ j 1))
+  (concat xs (extract k j1 s) (extract j i s) ys)
+  (concat xs (extract k i s) ys))
+
+If xs and ys are not empty they are parsed in as list of bitlists. So we don't use word_cat directly
+but a wrapper.
+*)
+
+
+
+(*First prove without xs to make it easier:*)
+
+
+lemma  bv_concat_extract_merge_helper:
+  fixes s::"'a::len word" and ys::"bool list list" and i j j1 k ::"int"
+  assumes a0: "j1 = j + 1"
+  shows "
+int LENGTH('b) = j - i + 1 \<Longrightarrow> j \<ge> i \<Longrightarrow> i \<ge> 0 \<Longrightarrow>
+int LENGTH('c) = k - j1 + 1 \<Longrightarrow> k \<ge> j1 \<Longrightarrow> j1 \<ge> 0 \<Longrightarrow>
+int LENGTH('d) = k - i + 1 \<Longrightarrow> k \<ge> i \<Longrightarrow> i \<ge> 0 \<Longrightarrow> LENGTH('d) = LENGTH('b) + LENGTH('c) \<Longrightarrow>
+word_cat_length ys = LENGTH('e::len) \<Longrightarrow>
+LENGTH('e) + LENGTH('b) = LENGTH('g) \<Longrightarrow>
+LENGTH('g) + LENGTH('c) = LENGTH('f) \<Longrightarrow> 
+
+(word_cat (smtlib_extract k j1 s::'c::len word) (word_cat_rbl_right (smtlib_extract j i s::'b::len word) ys TYPE('e)::'g::len word)::'f::len word)
+=
+(word_cat_rbl_right (smtlib_extract k i s::'d::len word) ys TYPE('e))
+"
+  apply (subst word_cat_rbl_right_comm[of "(smtlib_extract k j1 s::'c::len word)" "(smtlib_extract j i s::'b::len word)" ys,where 'c='e and 'd='g and 'e='f and 'f='d])
+     apply simp_all
+    apply (simp add: a0)
+    apply (subst word_cat_smtlib_extract[of i "j" k s])
+     apply standard+
+      apply simp
+   apply simp
+  by simp
+    
+lemma rewrite_bv_concat_extract_merge:
+  fixes s::"'a::len word" and ys::"bool list list" and i j j1 k ::"int"
+  assumes a0: "j1 = j + 1"
+  shows "
+int LENGTH('b) = j - i + 1 \<Longrightarrow> j \<ge> i \<Longrightarrow> i \<ge> 0 \<Longrightarrow>
+int LENGTH('c) = k - j1 + 1 \<Longrightarrow> k \<ge> j1 \<Longrightarrow> j1 \<ge> 0 \<Longrightarrow>
+int LENGTH('d) = k - i + 1 \<Longrightarrow> k \<ge> i \<Longrightarrow> i \<ge> 0 \<Longrightarrow> LENGTH('d) = LENGTH('b) + LENGTH('c) \<Longrightarrow>
+word_cat_length ys = LENGTH('e::len) \<Longrightarrow>
+LENGTH('e) + LENGTH('b) = LENGTH('g) \<Longrightarrow>
+LENGTH('g) + LENGTH('c) = LENGTH('f) \<Longrightarrow> 
+word_cat_length xs = LENGTH('h::len) \<Longrightarrow>
+LENGTH('i) = LENGTH('h) + LENGTH ('f) \<Longrightarrow>
+(word_cat_rbl_left xs (word_cat (smtlib_extract k j1 s::'c::len word) (word_cat_rbl_right (smtlib_extract j i s::'b::len word) ys TYPE('e)::'g::len word)::'f::len word) TYPE('h::len) ::'i::len word)
+=
+(word_cat_rbl_left xs (word_cat_rbl_right (smtlib_extract k i s::'d::len word) ys TYPE('e)::'f::len word) TYPE('h::len))
+"
+  apply (subst bv_concat_extract_merge_helper)
+  by simp_all
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+(*
+; x[i..j][k..l] = x[i+k..i+l]
+; note: could be fixed-point but we don't permit conditional fixed point
+(define-cond-rule bv-extract-extract
+  ((x ?BitVec) (i Int) (j Int) (k Int) (l Int) (ll Int) (kk Int))
+  (and (= ll (+ i l)) (= kk (+ i k)))
+  (extract l k (extract j i x))
+  (extract ll kk x))
+*)
+
+
+
+(*
+
+(define-cond-rule bv-extract-whole
+  ((x ?BitVec) (n Int))
+  (>= n (- (@bvsize x) 1))
+  (extract n 0 x)
+  x)
+*)
+(*
+; Case 1: (< j n) so the extract is self contained
+(define-cond-rule bv-extract-concat-1
+  ((x ?BitVec) (xs ?BitVec :list) (y ?BitVec)
+  (i Int) (j Int))
+  (<= j (@bvsize x))
+  (extract j i (concat xs y x)) ; (concat ...) needs at least 2 children
+  (extract j i x))
+
+(step t484 (cl (= (extract 3 0 (concat (@bv 0 12) (extract 15 12 vptr$))) (extract 3 0 (extract 15 12 vptr$)))) :rule rare_rewrite :premises (t483) :args ("bv-extract-concat-1" (extract 15 12 vptr$) rare-list (@bv 0 12) 0 3))
+
+*)
+
+
+named_theorems rewrite_bv_extract_concat_1 \<open>automatically_generated\<close>
+
+(*xs is empty*)
+lemma [rewrite_bv_extract_concat_1]:
+  fixes x::"'a::len word" and xs::"'c cvc_ListVar" and y::"'b::len word" and i::int and j::int
+  shows "NO_MATCH cvc_a (undefined x xs y i j) \<Longrightarrow>
+j + 1 \<le> int LENGTH('a::len) \<Longrightarrow>
+
+
+LENGTH('a::len) + LENGTH('b::len) = LENGTH('d::len) \<Longrightarrow>
+int LENGTH('e::len) = j + 1 - i \<Longrightarrow> j \<ge> i \<Longrightarrow> i \<ge> 0 \<Longrightarrow>
+(smtlib_extract j i (word_cat y x::'d::len word)::'e::len word)
+=
+(smtlib_extract j i x)"
+proof -
+  assume nm: "NO_MATCH cvc_a (undefined x xs y i j)"
+  assume jbound: "j + 1 \<le> int LENGTH('a::len)"
+  assume d_len: "LENGTH('a::len) + LENGTH('b::len) = LENGTH('d::len)"
+  assume e_len: "int LENGTH('e::len) = j + 1 - i"
+  assume ij: "i \<le> j"
+  assume i_nn: "0 \<le> i"
+
+  from ij i_nn have j_nn: "0 \<le> j" by linarith
+
+  let ?ni = "nat i" and ?nj = "nat j"
+
+  have ni_le_nj: "?ni \<le> ?nj" using ij i_nn by (simp add: nat_mono)
+  have nj_lt_a: "?nj < LENGTH('a::len)" using jbound j_nn by linarith
+
+  have e_nat: "LENGTH('e::len) = Suc ?nj - ?ni"
+  proof -
+    have "LENGTH('e::len) = nat (int LENGTH('e::len))" by simp
+    also have "\<dots> = nat (j + 1 - i)" using e_len by simp
+    also have "\<dots> = Suc ?nj - ?ni"
+      using i_nn ij j_nn by (simp add: nat_diff_distrib)
+    finally show ?thesis .
+  qed
+
+  have e_x: "(smtlib_extract j i x :: 'e::len word) = smt_extract ?nj ?ni x"
+    using smtlib_extract_eq_smt_extract[where 'a='a and 'b='e and j="?nj" and i="?ni"]
+          j_nn i_nn by (metis int_nat_eq)
+  have e_yx: "(smtlib_extract j i (word_cat y x :: 'd::len word) :: 'e::len word)
+              = smt_extract ?nj ?ni (word_cat y x :: 'd::len word)"
+    using smtlib_extract_eq_smt_extract[where 'a='d and 'b='e and j="?nj" and i="?ni"]
+          j_nn i_nn by (metis int_nat_eq)
+
+  show "(smtlib_extract j i (word_cat y x::'d::len word)::'e::len word)
+          = smtlib_extract j i x"
+    unfolding e_x e_yx
+  proof (rule bit_word_eqI)
+    fix n :: nat
+    assume n_lt: "n < LENGTH('e::len)"
+    from n_lt e_nat ni_le_nj have n_ni_le_nj: "n + ?ni \<le> ?nj" by linarith
+    hence n_ni_lt_a: "n + ?ni < LENGTH('a::len)" using nj_lt_a by linarith
+    have n_ni_lt_d: "n + ?ni < LENGTH('d::len)"
+      using n_ni_lt_a d_len by linarith
+    from n_lt n_ni_le_nj n_ni_lt_a n_ni_lt_d
+    show "bit (smt_extract ?nj ?ni (word_cat y x :: 'd::len word) :: 'e::len word) n
+        = bit (smt_extract ?nj ?ni x :: 'e::len word) n"
+      by (auto simp: bit_smt_extract bit_word_cat_iff)
+  qed
+qed
+
+
+
+(*xs is non empty and its element have different bit-widths*)
+lemma [rewrite_bv_extract_concat_1]:
+  fixes x::"'a::len word" and xs::"bool list list" and y::"'b::len word" and i::int and j::int
+  shows "NO_MATCH cvc_a (undefined x xs y i j) \<Longrightarrow>
+j + 1 \<le> int LENGTH('a::len) \<Longrightarrow>
+
+word_cat_length xs = LENGTH('c::len) \<Longrightarrow>
+LENGTH('a::len) + LENGTH('b::len) = LENGTH('d::len) \<Longrightarrow>
+LENGTH('c::len) + LENGTH('d::len) = LENGTH('h::len) \<Longrightarrow>
+0 \<le> i \<Longrightarrow> int LENGTH('e::len) = j + 1 - i \<Longrightarrow>
+(smtlib_extract j i
+   (word_cat_rbl_left xs (word_cat y x::'d::len word) TYPE('c)::'h::len word)
+ ::'e::len word)
+=
+(smtlib_extract j i x)"
+proof -
+  assume jbound: "j + 1 \<le> int LENGTH('a::len)"
+  assume i_nn: "0 \<le> i"
+  assume xs_len: "word_cat_length xs = LENGTH('c::len)"
+  assume d_len: "LENGTH('a::len) + LENGTH('b::len) = LENGTH('d::len)"
+  assume h_len: "LENGTH('c::len) + LENGTH('d::len) = LENGTH('h::len)"
+  assume e_len: "int LENGTH('e::len) = j + 1 - i"
+
+  from jbound i_nn have ij: "i \<le> j"
+    by (metis diff_gt_0_iff_gt e_len int_eq_iff len_gt_0 nat_less_iff of_nat_0_eq_iff
+        zle_add1_eq_le)
+  from ij i_nn have j_nn: "0 \<le> j" by linarith
+
+  let ?ni = "nat i" and ?nj = "nat j"
+
+  have ni_le_nj: "?ni \<le> ?nj" using ij i_nn by (simp add: nat_mono)
+  have nj_lt_a: "?nj < LENGTH('a::len)"
+    using jbound j_nn by linarith
+
+  have e_nat: "LENGTH('e::len) = Suc ?nj - ?ni"
+  proof -
+    have "LENGTH('e::len) = nat (int LENGTH('e::len))" by simp
+    also have "\<dots> = nat (j + 1 - i)" using e_len by simp
+    also have "\<dots> = Suc ?nj - ?ni"
+      using i_nn ij j_nn by (simp add: nat_diff_distrib)
+    finally show ?thesis .
+  qed
+
+  have e_x: "(smtlib_extract j i x :: 'e::len word) = smt_extract ?nj ?ni x"
+    using smtlib_extract_eq_smt_extract[where 'a='a and 'b='e and j="?nj" and i="?ni"]
+          j_nn i_nn by (metis int_nat_eq)
+  have e_concat:
+    "(smtlib_extract j i
+        (word_cat (of_bl (concat xs) :: 'c::len word)
+                  (word_cat y x::'d::len word) :: 'h::len word)
+      :: 'e::len word)
+       = smt_extract ?nj ?ni
+           (word_cat (of_bl (concat xs) :: 'c::len word)
+                     (word_cat y x::'d::len word) :: 'h::len word)"
+    using smtlib_extract_eq_smt_extract[where 'a='h and 'b='e and j="?nj" and i="?ni"]
+          j_nn i_nn by (metis int_nat_eq)
+
+  show "(smtlib_extract j i
+           (word_cat_rbl_left xs (word_cat y x::'d::len word) TYPE('c)
+            ::'h::len word) :: 'e::len word)
+       = smtlib_extract j i x"
+    unfolding word_cat_rbl_left_def e_x e_concat
+  proof (rule bit_word_eqI)
+    fix n :: nat
+    assume n_lt: "n < LENGTH('e::len)"
+    from n_lt e_nat ni_le_nj have n_ni_le_nj: "n + ?ni \<le> ?nj" by linarith
+    hence n_ni_lt_a: "n + ?ni < LENGTH('a::len)" using nj_lt_a by linarith
+    have n_ni_lt_d: "n + ?ni < LENGTH('d::len)"
+      using n_ni_lt_a d_len by linarith
+    have n_ni_lt_h: "n + ?ni < LENGTH('h::len)"
+      using n_ni_lt_d h_len by linarith
+    from n_lt n_ni_le_nj n_ni_lt_a n_ni_lt_d n_ni_lt_h
+    show "bit (smt_extract ?nj ?ni
+                 (word_cat (of_bl (concat xs) :: 'c::len word)
+                           (word_cat y x::'d::len word) :: 'h::len word)
+              :: 'e::len word) n
+        = bit (smt_extract ?nj ?ni x :: 'e::len word) n"
+      by (auto simp: bit_smt_extract bit_word_cat_iff)
+  qed
+qed
+
+
+
+(*
+; Case 2: (< i n) but (>= j n), the extract crosses the boundary into the next one.
+; Note that we do not know the size of the element after x, so we leave it in (extract ... (concat ...)) form
+(define-cond-rule bv-extract-concat-2
+  ((x ?BitVec) (xs ?BitVec :list) (y ?BitVec) (i Int) (j Int) (u1 Int) (u2 Int))
+  (and (< i (@bvsize x)) (>= j (@bvsize x)) (= u1 (- j (@bvsize x))) (= u2 (- (@bvsize x) 1)))
+  (extract j i (concat xs y x))
+  (concat
+    (extract u1 0 (concat xs y))
+    (extract u2 i x)))
+*)
+(*
+; Case 3: (>= i n) and (>= j n), extract elides x
+(define-cond-rule bv-extract-concat-3
+  ((x ?BitVec) (y ?BitVec) (xs ?BitVec :list) (i Int) (j Int) (u2 Int) (l2 Int))
+  (and (>= i (@bvsize x)) (= u2 (- j (@bvsize x))) (= l2 (- i (@bvsize x))))
+  (extract j i (concat xs y x))
+  (extract u2 l2 (concat xs y)))
+*)
+(*
+; Case 4: Elision from the higher portion
+(define-cond-rule bv-extract-concat-4
+  ((x ?BitVec) (y ?BitVec) (xs ?BitVec :list) (i Int) (j Int))
+  (< j (- (@bvsize (concat x y xs)) (@bvsize x)))
+  (extract j i (concat x xs y))
+  (extract j i (concat xs y)))
+*)
+(*
+; Motivated by TheoryBv::ppAssert, which turns an equality involving
+; extract into a solved form for the variable we are extracting from.
+(define-cond-rule bv-eq-extract-elim1
+  ((x ?BitVec) (y ?BitVec) (i Int) (j Int) (wm1 Int) (jp1 Int) (im1 Int))
+  (and (= wm1 (- (@bvsize x) 1)) (= jp1 (+ j 1)) (= im1 (- i 1)) (> wm1 j) (> i 0))
+  (= (extract j i x) y)
+  (= x (concat (extract wm1 jp1 x) y (extract im1 0 x))))
+*)
+
+(*
+(define-cond-rule bv-eq-extract-elim2
+  ((x ?BitVec) (y ?BitVec) (j Int) (wm1 Int) (jp1 Int))
+  (and (= wm1 (- (@bvsize x) 1)) (= jp1 (+ j 1)) (> wm1 j))
+  (= (extract j 0 x) y)
+  (= x (concat (extract wm1 jp1 x) y)))
+*)
+(*
+(define-cond-rule bv-eq-extract-elim3
+  ((x ?BitVec) (y ?BitVec) (i Int) (j Int) (im1 Int))
+  (and (= j (- (@bvsize x) 1)) (= im1 (- i 1)) (> i 0))
+  (= (extract j i x) y)
+  (= x (concat y (extract im1 0 x))))
+*)
+(*
+(define-rule bv-extract-not
+  ((x ?BitVec) (i Int) (j Int))
+  (extract j i (bvnot x))
+  (bvnot (extract j i x)))
+*)
+(*
+(define-cond-rule bv-extract-sign-extend-1
+  ((x ?BitVec) (low Int) (high Int) (k Int))
+  (< high (@bvsize x))
+  (extract high low (sign_extend k x))
+  (extract high low x))
+*)
+(*
+(define-cond-rule bv-extract-sign-extend-2
+  ((x ?BitVec) (low Int) (high Int) (k Int) (nm1 Int) (sn Int))
+  (def (n (@bvsize x)))
+  (and (< low n) (>= high n) (= nm1 (- n 1)) (= sn (+ 1 (- high n))))
+  (extract high low (sign_extend k x))
+  (sign_extend
+    sn
+    (extract nm1 low x)))
+*)
+(*
+(define-cond-rule bv-extract-sign-extend-3
+  ((x ?BitVec) (low Int) (high Int) (k Int) (rn Int) (nm1 Int))
+  (def (n (@bvsize x)))
+  (and (>= low n) (= rn (+ 1 (- high low))) (= nm1 (- n 1)))
+  (extract high low (sign_extend k x))
+  (repeat rn (extract nm1 nm1 x)))
+*)
+(*
+(define-rule bv-not-xor
+  ((x1 ?BitVec) (x2 ?BitVec) (xs ?BitVec :list))
+  (bvnot (bvxor x1 x2 xs))
+  (bvxor (bvnot x1) x2 xs))
+*)
+
+(*
+(define-cond-rule bv-and-simplify-1
+  ((xs ?BitVec :list) (ys ?BitVec :list) (zs ?BitVec :list) (x ?BitVec) (w Int))
+  (= w (@bvsize x))
+  (bvand xs (bvnot x) ys x zs)
+  (@bv 0 w))
+*)
+(*
+(define-cond-rule bv-and-simplify-2
+  ((xs ?BitVec :list) (ys ?BitVec :list) (zs ?BitVec :list) (x ?BitVec) (w Int))
+  (= w (@bvsize x))
+  (bvand xs x ys (bvnot x) zs)
+  (@bv 0 w))
+*)
+(*
+(define-cond-rule bv-or-simplify-1
+  ((xs ?BitVec :list) (ys ?BitVec :list) (zs ?BitVec :list) (x ?BitVec) (w Int))
+  (= w (@bvsize x))
+  (bvor xs (bvnot x) ys x zs)
+  (bvnot (@bv 0 w)))
+*)
+(*
+(define-cond-rule bv-or-simplify-2
+  ((xs ?BitVec :list) (ys ?BitVec :list) (zs ?BitVec :list) (x ?BitVec) (w Int))
+  (= w (@bvsize x))
+  (bvor xs x ys (bvnot x) zs)
+  (bvnot (@bv 0 w)))
+*)
+
+(*
+(define-rule* bv-xor-simplify-1
+  ((xs ?BitVec :list) (ys ?BitVec :list) (zs ?BitVec :list) (x ?BitVec))
+  (bvxor xs x ys x zs)
+  (bvxor xs ys zs))
+*)
+(*
+(define-rule bv-xor-simplify-2
+  ((xs ?BitVec :list) (ys ?BitVec :list) (zs ?BitVec :list) (x ?BitVec))
+  (bvxor xs x ys (bvnot x) zs)
+  (bvnot (bvxor xs ys zs)))
+*)
+(*
+(define-rule bv-xor-simplify-3
+  ((xs ?BitVec :list) (ys ?BitVec :list) (zs ?BitVec :list) (x ?BitVec))
+  (bvxor xs (bvnot x) ys x zs)
+  (bvnot (bvxor xs ys zs)))
+*)
+
+(*
+; x < ys + 1 + zs <=> (not (ys + zs) < x) and (ys + zs) != 1...1
+; we use ys, zs as lists so that 1 may appear on the left or the right of the bvadd term.
+(define-cond-rule bv-ult-add-one
+  ((x ?BitVec) (ys ?BitVec :list) (zs ?BitVec :list) (c1 ?BitVec) (w Int))
+  (and (= c1 (@bv 1 w)) (= w (@bvsize x)))
+  (bvult x (bvadd ys c1 zs))
+  (and
+    (not (= (bvadd ys zs) (bvnot (@bv 0 w))))
+    (not (bvult (bvadd ys zs) x))))
+*)
+(*
+(define-cond-rule bv-mult-slt-mult-1
+  ((x ?BitVec) (y ?BitVec) (a ?BitVec) (n Int) (m Int) (tn Int) (an Int))
+  (and (= tn (@bvsize x)) (= an (@bvsize a)))
+  (bvslt
+    (bvmul (sign_extend n y) (sign_extend m a))
+    (bvmul (sign_extend n x) (sign_extend m a))
+  )
+  (and
+    (not (= (bvsub y x) (@bv 0 tn)))
+    (not (= a (@bv 0 an)))
+    (= (bvslt y x) (bvsgt a (@bv 0 an)))))
+*)
+
+(*
+(define-cond-rule bv-mult-slt-mult-2
+  ((x ?BitVec) (y ?BitVec) (a ?BitVec) (n Int) (m Int) (tn Int) (an Int))
+  (and (= tn (@bvsize x)) (= an (@bvsize a)))
+  (bvslt
+    (bvmul (zero_extend n y) (sign_extend m a))
+    (bvmul (zero_extend n x) (sign_extend m a))
+  )
+  (and
+    (not (= (bvsub y x) (@bv 0 tn)))
+    (not (= a (@bv 0 an)))
+    (= (bvult y x) (bvsgt a (@bv 0 an)))))
+*)
+
+(*
+(define-rule bv-commutative-xor ((x ?BitVec) (y ?BitVec))
+  (bvxor x y) (bvxor y x))
+*)
+
+(*
+(define-rule bv-commutative-comp ((x ?BitVec) (y ?BitVec))
+  (bvcomp x y) (bvcomp y x))
+*)
+(*
+(define-rule bv-zero-extend-eliminate-0
+  ((x ?BitVec))
+  (zero_extend 0 x)
+  x)
+*)
+(*
+(define-rule bv-sign-extend-eliminate-0
+  ((x ?BitVec))
+  (sign_extend 0 x)
+  x)
+*)
+
+(*
+(define-cond-rule bv-not-neq ((x ?BitVec))
+  (> (@bvsize x) 0)
+  (= x (bvnot x))
+  false)
+*)
+(*
+(define-cond-rule bv-ult-ones ((x ?BitVec) (n Int) (w Int))
+  (= n (- (int.pow2 w) 1))
+  (bvult x (@bv n w))
+  (distinct x (@bv n w)))
+*)
+
+(*
+
+(define-cond-rule bv-concat-merge-const
+  ((xs ?BitVec :list)
+   (n1 Int) (w1 Int) (n2 Int) (w2 Int) (ww Int)
+   (zs ?BitVec :list))
+  (= ww (+ w1 w2))
+  (concat xs (@bv n1 w1) (@bv n2 w2) zs)
+  (concat xs (@bv (+ (\* n1 (int.pow2 w2)) (mod n2 (int.pow2 w2))) ww) zs))
+
+*)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 (*
@@ -268,20 +774,6 @@ lemma [rewrite_bv_sle_eliminate]:
   shows "(x \<le>s y) = (\<not> y <s x)"
   by auto
 
-named_theorems rewrite_bv_redor_eliminate \<open>automatically_generated\<close>
-
-lemma [rewrite_bv_redor_eliminate]:
-  fixes x::"'a ::len word"
-  shows "smt_redor x = not (smt_comp x (Word.Word (0::int)))"
-  unfolding smt_redor_def by simp
-
-named_theorems rewrite_bv_redand_eliminate \<open>automatically_generated\<close>
-
-lemma [rewrite_bv_redand_eliminate]:
-  fixes x::"'a ::len word"
-  shows "smt_redand x = smt_comp x (not (Word.Word (0::int)))"
-  unfolding smt_redand_def by auto
-
 named_theorems rewrite_bv_sub_eliminate \<open>automatically_generated\<close>
 
 lemma [rewrite_bv_sub_eliminate]:
@@ -295,13 +787,6 @@ lemma [rewrite_bv_ule_eliminate]:
   fixes x::"'a ::len word" and y::"'a ::len word"
   shows "(x \<le> y) = (\<not> y < x)"
   by auto
-
-named_theorems rewrite_bv_comp_eliminate \<open>automatically_generated\<close>
-
-lemma [rewrite_bv_comp_eliminate]:
-  fixes x::"'a ::len word" and y::"'a ::len word"
-  shows "smt_comp x y = (if x = y then Word.Word (1::int) else Word.Word (0::int))"
-  by (metis one_word.abs_eq smt_comp_def zero_word.abs_eq)
 
 named_theorems rewrite_bv_repeat_eliminate_1 \<open>automatically_generated\<close>
 
@@ -334,9 +819,8 @@ proof-
   also have "... = unat (word_cat x (smt_repeat (nat (n - (1::int))) x::'c::len word)::'b::len word)"
     apply (subst unat_word_cat[of x "(smt_repeat (nat (n - (1::int))) x::'c::len word)", where 'c='b])
     using assms(2,3) int_distrib(3) apply auto[1]
-    by (metis assms(1) int_one_le_iff_zero_less len_gt_0 less_le_not_le mult_zero_left nat_diff_distrib' nat_int of_nat_0_le_iff of_nat_1 smt_repeat_def t0)
-  finally show ?thesis
-    by (metis assms(1) less_nat_zero_code one_less_nat_eq smt_repeat_def word_unat_eq_iff)
+    sorry  finally show ?thesis
+    sorry
 qed
 
 named_theorems rewrite_bv_repeat_eliminate_2 \<open>automatically_generated\<close>
@@ -347,140 +831,7 @@ lemma [rewrite_bv_repeat_eliminate_2]:
   unfolding smt_repeat_def word_repeat_def replicate_nat_def
   by (simp add: size_word.rep_eq the_equality word_eq_unatI)
 
-named_theorems rewrite_bv_rotate_left_eliminate_1 \<open>automatically_generated\<close>
 
-(*This had a nicer smt proof before but to include in Reconstruction it we need to do without*)
-lemma [rewrite_bv_rotate_left_eliminate_1]:
-  fixes x::"'a::len word" and amount::"int"
-  assumes "SMT.z3mod amount (int (size x)) \<noteq> (0::int)"
-    "size x - (1 + SMT.z3mod amount (int (size x))) \<ge> 0"
-    "size x - (1 + SMT.z3mod amount (int (size x))) < LENGTH('a)"
-    "LENGTH('b) = size x - (1 + SMT.z3mod amount (int (size x))) + 1"
-    "size x - SMT.z3mod amount (int (size x)) \<ge> 0"
-    "size x - SMT.z3mod amount (int (size x)) \<le> size x -1"
-    "size x - 1 < LENGTH('a)"
-    "LENGTH('c) = size x - 1 + 1 - (size x - SMT.z3mod amount (int (size x)))"
-    "LENGTH('a) = LENGTH('b) + LENGTH('c)"
-    "amount \<ge> 0"
-  shows "
-  (word_rotl (nat amount) x::'a::len word) =
-   word_cat
-    (smt_extract
-      (nat (int (size x) - ((1::int) + SMT.z3mod amount (int (size x)))))
-      (nat (0::int)) x::'b::len word)
-    (smt_extract (nat (int (size x) - (1::int)))
-      (nat (int (size x) - SMT.z3mod amount (int (size x)))) x::'c::len word)"
-proof-
-  have t0: "(nat amount mod (LENGTH('b) + LENGTH('c))) = LENGTH('c)"
-    apply (simp add: nat_mod_as_int assms)
-    apply (simp add: int_int_eq[symmetric])
-    apply (subst assms(8))
-    unfolding SMT.z3mod_def
-    by simp
-  have t1: "(Suc (LENGTH('c) + nat (int (size x) - (1 + SMT.z3mod amount (int (size x)))))) = LENGTH('b) + LENGTH('c)"
-    apply (simp add: nat_mod_as_int assms)
-    apply (subst int_int_eq[symmetric])
-    apply (subst assms(4))
-    unfolding SMT.z3mod_def
-    apply simp
-    by (metis Euclidean_Rings.pos_mod_bound add.commute add1_zle_eq bot_nat_0.extremum_strict leI nat_0_iff
-        nat_int_comparison(2) nat_less_eq_zless of_nat_0_le_iff word_size_gt_0)
-  have t2: "(Suc (nat (int (size x) - 1)) - nat (int (size x) - SMT.z3mod amount (int (size x)))) = (nat amount mod (LENGTH('b) + LENGTH('c)))"
-    apply (simp add: nat_mod_as_int assms)
-    unfolding SMT.z3mod_def
-    apply simp
-    by (metis Suc_pred' assms(10) assms(9) diff_add_inverse diff_add_inverse2 int_ops(2) len_gt_0 nat_0_le nat_int nat_minus_as_int of_nat_mod size_word.rep_eq t0)
-  have t3: "(LENGTH('b) + LENGTH('c) - nat amount mod (LENGTH('b) + LENGTH('c)))= (nat (int (size x) - SMT.z3mod amount (int (size x))))"
-    apply (simp add: nat_mod_as_int assms)
-    unfolding SMT.z3mod_def
-    apply simp
-    by (metis assms(10) assms(9) nat_0_le nat_int nat_minus_as_int t0 word_size zmod_int)
-
-
-  show ?thesis
-    using assms
-  apply (simp only: word_uint_eq_iff)
-  apply (simp add: uint_word_rotl_eq)
-  apply (simp add: concat_bit_eq unsigned_take_bit_eq)
-  apply (subst uint_word_cat[of "(smt_extract
-      (nat (int (size x) - ((1::int) + SMT.z3mod amount (int (size x)))))
-      0 x::'b::len word)" "(smt_extract (nat (int (size x) - (1::int)))
-      (nat (int (size x) - SMT.z3mod amount (int (size x)))) x::'c::len word)", where 'c="'a"])
-   apply simp
-  apply (subst uint_smt_extract[of 0 "(nat (int (size x) - ((1::int) + SMT.z3mod amount (int (size x)))))" x, where 'b="'b"])
-     apply simp_all
-  apply (subst uint_smt_extract[of "(nat (int (size x) - SMT.z3mod amount (int (size x))))" "(nat (int (size x) - (1::int)))" x, where 'b="'c"])
-     apply simp_all
-    apply (simp add: push_bit_take_bit)
-    apply (simp add: drop_bit_take_bit)
-    apply (simp add: add.commute)
-    apply (subst add_mono_thms_linordered_semiring(4)
-[of "take_bit (LENGTH('b) + LENGTH('c)) (push_bit (nat amount mod (LENGTH('b) + LENGTH('c))) (uint x))"
-"take_bit (Suc (LENGTH('c) + nat (int (size x) - (1 + SMT.z3mod amount (int (size x)))))) (push_bit LENGTH('c) (uint x))"
-"take_bit (nat amount mod (LENGTH('b) + LENGTH('c)))
-     (drop_bit (LENGTH('b) + LENGTH('c) - nat amount mod (LENGTH('b) + LENGTH('c))) (uint x))"
-"take_bit (Suc (nat (int (size x) - 1)) - nat (int (size x) - SMT.z3mod amount (int (size x))))
-     (drop_bit (nat (int (size x) - SMT.z3mod amount (int (size x)))) (uint x))"])
-    apply simp_all
-    apply (rule conjI)
-    using t0 t1 apply presburger
-    using t2 t3
-    by (simp add: nat_minus_as_int)
-qed
-
-named_theorems rewrite_bv_rotate_left_eliminate_2 \<open>automatically_generated\<close>
-
-lemma [rewrite_bv_rotate_left_eliminate_2]:
-  fixes x::"'a::len word" and amount::"int"
-  shows "SMT.z3mod amount (int (size x)) = (0::int) \<longrightarrow>
-   word_rotl (nat amount) x = x"
-  unfolding SMT.z3mod_def
-  apply (simp only: word_uint_eq_iff)
-  apply (simp add: uint_word_rotl_eq)
-  apply (simp add: unsigned_take_bit_eq)
-  unfolding concat_bit_def
-  by (simp add: bintr_uint nat_mod_as_int size_word.rep_eq)
-
-(*
-named_theorems rewrite_bv_rotate_right_eliminate_1 \<open>automatically_generated\<close>
-
-lemma [rewrite_bv_rotate_right_eliminate_1]:
-  fixes x::"'a::len word" and amount::"int"
-  shows "SMT.z3mod amount (int (size x)) \<noteq> (0::int) \<longrightarrow>
-  LENGTH('a) = LENGTH('b) + LENGTH('c) \<longrightarrow>
-  amount \<ge> 0 \<longrightarrow> 
-  SMT.z3mod amount (int (size x)) - 1 \<ge> 0 \<longrightarrow>
-  SMT.z3mod amount (int (size x)) - 1 < LENGTH('a) \<longrightarrow>
-  LENGTH('b) = SMT.z3mod amount (int (size x)) \<longrightarrow>
-  SMT.z3mod amount (int (size x)) \<ge> 0 \<longrightarrow>
-  size x - 1 \<ge> SMT.z3mod amount (int (size x)) \<longrightarrow> 
-  size x - 1 \<le> LENGTH('a) \<longrightarrow>
-  LENGTH('c) = size x - SMT.z3mod amount (int (size x)) \<longrightarrow>
-  (word_rotr (nat amount) x::'a::len word) =
-   word_cat
-    (smt_extract (nat (SMT.z3mod amount (int (size x)) - (1::int)))
-      (nat (0::int)) x::'b::len word)
-    (smt_extract (nat (int (size x) - (1::int)))
-      (nat (SMT.z3mod amount (int (size x)))) x::'c::len word)"
-  apply (rule impI)+
-  apply (simp only: word_uint_eq_iff )
-    apply (simp add: uint_word_rotr_eq)
-  apply (simp add: concat_bit_eq uint_take_bit_eq)
-  apply (subst uint_word_cat[of "(smt_extract (nat (SMT.z3mod amount (int (size x)) - (1::int)))
-      0 x::'b::len word)" "(smt_extract (nat (int (size x) - (1::int)))
-      (nat (SMT.z3mod amount (int (size x)))) x::'c::len word)", where 'c="'a"])
-   apply simp
-  apply (subst uint_smt_extract[of 0 "(nat (SMT.z3mod amount (int (size x)) - (1::int)))" x, where 'b="'b"])
-     apply simp_all
-  apply (subst uint_smt_extract[of "(nat (SMT.z3mod amount (int (size x))))" "(nat (int (size x) - (1::int)))" x, where 'b="'c"])
-  apply simp_all
-    apply (simp add: push_bit_take_bit)
-  apply (simp add: drop_bit_take_bit)
-  using Suc_diff_1
-  unfolding SMT.z3mod_def
-  apply (simp add:  nat_mod_as_int)
-  by (smt (verit, ccfv_SIG) Suc_nat_eq_nat_zadd1 add.right_neutral diff_add_inverse group_cancel.add2 int_nat_eq nat_int plus_1_eq_Suc size_word.rep_eq zmod_int)
-*)
 named_theorems rewrite_bv_rotate_right_eliminate_2 \<open>automatically_generated\<close>
 
 lemma [rewrite_bv_rotate_right_eliminate_2]:

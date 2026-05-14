@@ -4553,6 +4553,9 @@ definition smt_extract :: "nat \<Rightarrow> nat \<Rightarrow> 'a ::len word \<R
 definition smtlib_extract :: "int \<Rightarrow> int \<Rightarrow> 'a ::len word \<Rightarrow> 'b::len word" where
   \<open>smtlib_extract j i w = slice (nat i) (take_bit (nat (j+1)) w)\<close>
 
+definition word_extract :: \<open>int \<Rightarrow> int \<Rightarrow> 'a :: len word \<Rightarrow> 'b :: len word\<close> where
+ \<open>word_extract j i w = (THE x :: 'b::len word. int LENGTH('b) = j - i + 1  \<and> j \<ge> i \<and> i \<ge> 0 \<and> x = smtlib_extract j i w)\<close>
+
 lemmas[cvc_evaluate_bv] = smtlib_extract_def
 
 (*Take j bits starting from the end of the word, start = size - j
@@ -4626,6 +4629,14 @@ lemma sint_smt_extract:
   apply (subst sint_uint)
   by (simp add: uint_smt_extract)
 
+
+lemma word_extract_smtlib_extract:
+  fixes x::"'a::len word"
+  shows "int LENGTH('b) = j - i + 1  \<and> j \<ge> i \<and> i \<ge> 0 \<Longrightarrow>
+(word_extract j i w::'b::len word) = smtlib_extract j i w "
+  unfolding word_extract_def
+  by simp
+  
 end
 
 

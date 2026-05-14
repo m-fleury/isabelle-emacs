@@ -18,7 +18,7 @@ open Word_Lib
 
 
 (*This will be deleted eventually*)
-val trace = true
+val trace = false
 fun debug_msg (x : unit -> 'a) =
  if trace then ignore(x ()) else ()
 
@@ -125,9 +125,7 @@ local
 
       val cast = Const("Int.ring_1_class.of_int", @{typ "int"} --> T1)
       val T2 = fastype_of t2
-      val _ = @{print}("T2",T2)
-      val _ = @{print}("cast",cast)
-
+   
       (*Make word out of t2*)
       val t2 = 
       (case try HOLogic.dest_number t2 of
@@ -162,15 +160,14 @@ local
           try dest_wordT Tx) of
     (SOME j, SOME k, SOME i') => 
      let
-     val _ = @{print}("In slice9",(j,k,i'))
       val i = i' - 1
      in
       if i >= j andalso k = i' - j (*i > k is implicit*)
-      then ( @{print}("In slice9");SOME (index2 n i j, 1, tl ts, mk_extract (m, T) j))
+      then (SOME (index2 n i j, 1, tl ts, mk_extract (m, T) j))
       else NONE
      end
     | _ => NONE) |
-  slice _ _ _ _ = (@{print}("In slice1");NONE)
+  slice _ _ _ _ = (NONE)
 
 
 fun take_bit m n T ts =
@@ -195,7 +192,6 @@ fun take_bit m n T ts =
 
             val new_term = minus $ word $
  (push $ offset' $ (drop $ offset' $ word))
-            val _ = @{print}("new args",new_term)
           in
           SOME (str, 1, [new_term], mk_take_bit (m, T)) end
       | _ => NONE)   (* FIXME: also support non-numerical shifts *)
@@ -215,16 +211,9 @@ fun take_bit m n T ts =
 
 fun bit m n T ts =
     let
-      val _ = @{print}("m",m)
-      val _ = @{print}("n",n)
-      val _ = @{print}("T",T)
-      val _ = @{print}("ts",ts)
-
-
+  
       val word = hd ts
       val pos = hd (tl ts) (* |> (fn (Const ("Int.nat", _) $ x) => x | x => x) *)
-      val _ = @{print}("word",word)
-      val _ = @{print}("pos",pos)
 
       val suc_simplified =  
       (case (try (snd o HOLogic.dest_number o remove_cast) pos) of
@@ -264,9 +253,8 @@ fun bit m n T ts =
           @{term "1::1 word"}
     
 
-      val _ = @{print}("new_ts pos",new_ts pos_simplified suc_simplified)
 
-      fun mk_bit ts = (@{print}("mk_bit ts",ts);hd ts)
+      fun mk_bit ts = (hd ts)
 
 
     in  SOME ("", 1, [new_ts pos_simplified suc_simplified ], mk_bit) end
@@ -302,34 +290,26 @@ Wird zweimal uebersetzt wie alles...
 *)
   fun power m n T ts =
     let
-      val _ = @{print}("m",m)
-      val _ = @{print}("n",n)
-      val _ = @{print}("T",T)
-      val _ = @{print}("ts",ts)
 
       val (U1, U2) = Term.dest_funT T
-      val _ = @{print}("U1",U1)
-      val _ = @{print}("U2",U2)
+
       val bitwidth = U1  |> Term.dest_Type |> snd |> hd |> dest_binT
-      val _ = @{print}("bitwidth",bitwidth)
       val wordT = mk_wordT bitwidth
       val one = Const("Groups.one_class.one",wordT)
       (*val shift_amount = Const ("Word.Word", @{typ "int"} --> wordT) $ (nth ts 1)*)
       val t1 = nth ts 1
       val (t2 $ t3) = t1
-      val _ = @{print}("t1",t1)
       val shift_amount =
         (case is_numeral t3 of
           NONE => @{term "unsigned"} $ t3 |
           SOME _ => Const ("Num.numeral_class.numeral", @{typ "num"} --> wordT) $ t3)
-      val _ = @{print}("shift_amount",shift_amount)
 
 
      (* val _ = @{print}("HOLogic.dest_number (remove_cast (nth ts 1))",HOLogic.dest_number (remove_cast (nth ts 1)))
 *)
     in
   
-         (@{print}("worked");SOME ("bvshl", 2, [one,shift_amount], (fn _ =>  mk_extend (m,T) ts) ))
+         (SOME ("bvshl", 2, [one,shift_amount], (fn _ =>  mk_extend (m,T) ts) ))
     end
 
 
@@ -417,28 +397,24 @@ Wird zweimal uebersetzt wie alles...
 
   fun of_nat t m n T ts =
     let 
-      val _ = @{print} ts
       fun mk_num T x = 
         let
-          val _ = @{print} ("of_nat -->", x, t) 
           val _ = HOLogic.mk_number HOLogic.natT (dest_binT T)  |> @{print}  
         in HOLogic.mk_number HOLogic.natT (dest_binT T) end
     in
-     (case (head_of (hd ts)) |> @{print} of
+     (case (head_of (hd ts)) of
          Const (_, Type (\<^type_name>\<open>itself\<close>, [T])) =>
            SOME ("LENGTHXXXXX", 0, [], (mk_num T))
        | _ => NONE)
     end
   fun add_of_nat (a as t,n) = 
-    let val (m, _) = Term.dest_Const (@{print}(t))
-      val _ = @{print} ("of_nat ", t)
+    let val (m, _) = Term.dest_Const t
       val n = HOLogic.dest_number t |> snd |> K true
                handle TERM _ => false
 
     in 
       if n then SMT_Builtin.add_builtin_fun smtlibC (Term.dest_Const (head_of t), fn x => (@{print} x; 
-         fn x => fn y => @{print} (of_nat t m n x y))) |>
-        @{print}
+         fn x => fn y =>(of_nat t m n x y))) 
        else  SMT_Builtin.add_builtin_fun smtlibC (Term.dest_Const (head_of t),  K (K (K (NONE))))
    end
 in
@@ -711,14 +687,12 @@ fun
       mk_zero_extend i t
   | bv_term_parser (SMTLIB.S [SMTLIB.Sym "_", SMTLIB.Sym "sign_extend", SMTLIB.Num i], [t]) =
   let
-     val _ = @{print}("sign_extend t",t)
 
   in
       SOME (mk_scast i t) end
   | bv_term_parser (SMTLIB.Sym "sign_extend", [t1, t2]) =
     let
-     val _ = @{print}("sign_extend t1",t1)
-     val _ = @{print}("sign_extend t2",t2)
+    
      (*("sign_extend t1", Free ("n", "int")) (line 368 of "/home/lachnitt/Sources/isabelle-git/isabelle-emacs/src/HOL/Library/Tools/smt_word.ML") 
      ("sign_extend t2", Free ("x", "_ word"))*)
      (*If type of t2 is known I could calculate type of t1, otherwise I would just ignore t1? Maybe better don't use signed*)

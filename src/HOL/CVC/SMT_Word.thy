@@ -111,7 +111,7 @@ lemma smt_extract_bit: "k < size (x::'a::len word) \<Longrightarrow> (smt_extrac
   apply (simp add: bang_eq)
   unfolding smt_extract_def
   apply (simp_all add: nth_slice bit_take_bit_iff)
-  sorry
+  using bit_1_iff by fastforce
 
 lemma bit_smt_extract2: "k < size (x::'a::len word) \<Longrightarrow> bit x k = ((smt_extract k k x) = (1::1 word))" 
   using smt_extract_bit
@@ -225,8 +225,8 @@ lemma word_repeat_word_cat2:
 
 
 
-definition smt_repeat :: "nat \<Rightarrow> 'a::len word \<Rightarrow> 'b::len word" where
-  \<open>smt_repeat i x = (if i = 0 then (ucast x::'b::len word) else word_repeat i x)\<close>
+definition smt_repeat :: "int \<Rightarrow> 'a::len word \<Rightarrow> 'b::len word" where
+  \<open>smt_repeat i x = (if i = 0 then (ucast x::'b::len word) else word_repeat (nat i) x)\<close>
 
 lemma smt_repeat_zero:                                                                                           
   "smt_repeat 0 x = ucast x"                                                                                            
@@ -238,7 +238,8 @@ lemma smt_repeat_numeral:
                   
 lemma smt_repeat_Suc:                                                                                                   
   "smt_repeat (Suc i) x = word_repeat (Suc i) x"
-  unfolding smt_repeat_def by simp       
+  unfolding smt_repeat_def
+  by (metis nat_int.Rep_inverse semiring_char_0_class.of_nat_neq_0)   
 
 lemma smt_repeat_zeros: "n = LENGTH('a) \<Longrightarrow> n > 0 \<Longrightarrow> (smt_repeat n (0::1 word)::'a::len word) = 0"
   unfolding smt_repeat_def
@@ -974,17 +975,17 @@ end
     let
       val T2 = fastype_of t2
     in
-      SOME (Const (\<^const_name>\<open>SMT_Word.smt_repeat\<close>,\<^typ>\<open>Nat.nat\<close>--> T2 --> dummyT) $ (Const (\<^const_name>\<open>nat\<close>, \<^typ>\<open>Int.int\<close> --> \<^typ>\<open>Nat.nat\<close>) $ t1) $ t2)
+      SOME (Const (\<^const_name>\<open>SMT_Word.smt_repeat\<close>,\<^typ>\<open>Int.int\<close>--> T2 --> dummyT) $ t1 $ t2)
     end
   | bv_term_parser (SMTLIB.S [SMTLIB.Sym "_", SMTLIB.Sym "repeat", SMTLIB.Num i], [t2]) =
 
     let
       val T2 = fastype_of t2
       val bw = Word_Lib.dest_wordT T2
-      val i' = HOLogic.mk_number @{typ "nat"} i |> @{print}
+      val i' = HOLogic.mk_number @{typ "int"} i |> @{print}
       val T = Word_Lib.mk_wordT(i * bw)
     in
-      SOME (Const (\<^const_name>\<open>SMT_Word.smt_repeat\<close>,\<^typ>\<open>Nat.nat\<close>--> T2 --> T) $ i' $ t2|> @{print})
+      SOME (Const (\<^const_name>\<open>SMT_Word.smt_repeat\<close>,\<^typ>\<open>Int.int\<close>--> T2 --> T) $ i' $ t2|> @{print})
     end
   | bv_term_parser (SMTLIB.Sym "rotate_left", [t1, t2]) =
     let
@@ -1155,14 +1156,13 @@ ML \<open>
  fun mk_extract c i j ts = Term.list_comb (Const c, HOLogic.mk_number @{typ nat} i :: mk_nat j :: ts)
                                                       
  fun extract m n (U as (Type(_,[_,Type(_,[_,Type(_,[Tx,T])])]))) [i,j,x] =
-(@{print}("i",i);
+(
   (case (try (snd o HOLogic.dest_number o remove_cast) i, (*Interesting HOLogic.dest_nat instead of this does not work*)
          try (snd o HOLogic.dest_number o remove_cast) j,
          try dest_wordT Tx,
          try dest_wordT T) of
    (SOME i', SOME j', SOME Tx', SOME T') =>
     let
-val _ = @{print}("did go in here!")
       val k = i' - j' + 1
       val U' = @{typ "nat"} --> @{typ "nat"} --> Tx --> T
     in
@@ -1171,7 +1171,7 @@ val _ = @{print}("did go in here!")
      else NONE
     end |
    _ => NONE)) |
- extract _ _ _ _ = (@{print}("did go ther"); NONE)
+ extract _ _ _ _ = ( NONE)
 
 val setup_builtins =
   add_word_fun extract
@@ -1257,9 +1257,67 @@ lemma [cvc_list_both_transfer_op]:
  = foldr xor xs (foldr xor ys (Word.Word 0) )"
   using cvc_list_both_transfer[of xor 0 xs ys] cvc_ListOp_neutral
   by simp
-declare[[smt_expert_debug_alethe_level=2]]
+declare[[smt_expert_debug_alethe_level=0]]
 declare[[smt_expert_debug_alethe_files="all"]]
 
-declare[[smt_trace]]
+declare[[smt_trace=false]]
+
+
+
+definition word_cat_rbl_right :: "'a::len word \<Rightarrow> bool list list \<Rightarrow> 'c::len itself \<Rightarrow> 'b::len word" where
+"word_cat_rbl_right x ys _ = (word_cat x (of_bl (concat ys) :: 'c word) :: 'b word)"
+
+definition word_cat_rbl_left :: "bool list list \<Rightarrow> 'a::len word \<Rightarrow> 'c::len itself \<Rightarrow> 'b::len word" where
+"word_cat_rbl_left xs y _ = (word_cat (of_bl (concat xs) :: 'c word) y :: 'b word)"
+
+fun word_cat_length :: "bool list list \<Rightarrow> int" where
+  "word_cat_length [] = 0"
+| "word_cat_length (x#xs) = length x + word_cat_length xs"
+
+lemma word_cat_rbl_right_eq:
+"word_cat_rbl_right x ys TYPE('c::len) = (word_cat x (of_bl (concat ys) :: 'c::len word) :: 'b::len word)"
+  by (simp add: word_cat_rbl_right_def)
+
+
+lemma word_cat_rbl_right_comm:
+    fixes x :: "'a::len word" and y :: "'b::len word" and zs :: "bool list list"
+    assumes d: "LENGTH('b) + LENGTH('c) = LENGTH('d)"
+        and e: "LENGTH('a) + LENGTH('d) = LENGTH('e)"
+        and f: "LENGTH('a) + LENGTH('b) = LENGTH('f)"
+      shows
+      "(word_cat x (word_cat_rbl_right y zs TYPE('c::len) :: 'd::len word) :: 'e::len word) =
+       (word_cat_rbl_right (word_cat x y :: 'f::len word) zs TYPE('c) :: 'e::len word)"
+  proof (rule bit_word_eqI)
+    fix n :: nat
+    assume n_lt: "n < LENGTH('e::len)"
+    show "bit (word_cat x (word_cat_rbl_right y zs TYPE('c) :: 'd::len word) :: 'e::len word) n =
+          bit (word_cat_rbl_right (word_cat x y :: 'f::len word) zs TYPE('c) :: 'e::len word) n"
+    proof (cases "n < LENGTH('c::len)")
+      case True
+      then show ?thesis
+        using n_lt d
+        by (simp add: word_cat_rbl_right_def bit_word_cat_iff)
+    next
+      case c_le: False
+      show ?thesis
+      proof (cases "n < LENGTH('d::len)")
+        case True
+        with c_le n_lt d
+        show ?thesis
+          apply (simp add: word_cat_rbl_right_def bit_word_cat_iff)
+          apply (cases "n - LENGTH('c) < LENGTH('b)")
+           apply simp_all
+          using f by auto
+      next
+        case False
+        with c_le n_lt d e f
+        show ?thesis
+          apply (simp add: word_cat_rbl_right_def bit_word_cat_iff)
+          apply (cases "n - LENGTH('c) < LENGTH('b)")
+           apply simp_all
+          by (metis add.commute add.left_commute diff_is_0_eq len_gt_0 less_diff_conv2 linorder_linear)
+      qed
+    qed
+  qed
 
 end

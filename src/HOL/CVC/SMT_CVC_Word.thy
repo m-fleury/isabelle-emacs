@@ -198,6 +198,8 @@ cvc5_rare "BV_Rewrites_Elimination.rewrite_bv_sge_eliminate"
 cvc5_rare "BV_Rewrites_Elimination.rewrite_bv_slt_eliminate"
 
 cvc5_rare "BV_Rewrites.rewrite_bv_extract_whole"
+cvc5_rare "BV_Rewrites.rewrite_bv_extract_concat_1"
+
 
 cvc5_rare "BV_Rewrites.rewrite_bv_sle_eliminate"
 cvc5_rare "BV_Rewrites.rewrite_bv_redor_eliminate"
@@ -233,6 +235,10 @@ cvc5_rare "BV_Rewrites_Simplification.rewrite_bv_shl_by_const_2"
 cvc5_rare "BV_Rewrites_Simplification.rewrite_bv_lshr_by_const_0"
 cvc5_rare "BV_Rewrites_Simplification.rewrite_bv_lshr_by_const_1"
 cvc5_rare "BV_Rewrites_Simplification.rewrite_bv_lshr_by_const_2"
+cvc5_rare "BV_Rewrites_Simplification.rewrite_bv_ashr_by_const_0"
+cvc5_rare "BV_Rewrites_Simplification.rewrite_bv_ashr_by_const_1"
+cvc5_rare "BV_Rewrites_Simplification.rewrite_bv_ashr_by_const_2"
+cvc5_rare "BV_Rewrites_Simplification.rewrite_bv_and_concat_pullup"
 
 cvc5_rare "BV_Rewrites_Simplification.rewrite_bv_xor_ones"
 cvc5_rare "BV_Rewrites_Simplification.rewrite_bv_mult_pow2_1"

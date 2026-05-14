@@ -720,11 +720,102 @@ lemma [rewrite_bv_ashr_by_const_2]:
     \<Longrightarrow> nm1 = LENGTH('a) - 1
     \<Longrightarrow> rn = LENGTH('a)
     \<Longrightarrow> w_amount = Word.Word amount
+    \<Longrightarrow> amount < 2 ^ LENGTH('a)
     \<Longrightarrow>
    (smtlib_bvashr x w_amount::'a::len word) =
     (smt_repeat rn (smtlib_extract nm1 nm1 x ::1 word)::'a::len word)"
-  sorry
+proof -                                                                                                           
+  assume ax: "amount \<ge> LENGTH('a)"
+    and ub: "amount < 2 ^ LENGTH('a)"
+    and nm: "nm1 = LENGTH('a) - 1"
+    and rn_eq: "rn = LENGTH('a)"
+    and wa: "w_amount = Word.Word amount"
+  have ax': "int LENGTH('a) \<le> amount" using ax by simp
+  have nn: "0 \<le> amount" using ax' by (meson of_nat_0_le_iff order_trans)
+  have wa': "w_amount = word_of_int amount" using wa by simp
+  have unat_eq: "unat (w_amount :: 'a word) = nat amount"
+   using wa' nn ub by (simp add: unat_eq_nat_uint uint_word_of_int)
+  have len_le: "LENGTH('a) \<le> nat amount" using ax' nn by linarith
+  have pos_a: "0 < LENGTH('a)" by (rule len_gt_0)
+  have rn_eq_lenA: "rn = int LENGTH('a)" using rn_eq by simp
+  have rn_pos: "0 < rn" using rn_eq_lenA pos_a by linarith
+  have nm_alt: "int (LENGTH('a) - 1) = nm1"
+  proof -                                                                                                         
+   have "int (LENGTH('a) - 1) = int LENGTH('a) - 1"                                                              
+     using pos_a by linarith                                                                                     
+   also have "\<dots> = nm1" using nm
+     by (metis nm calculation)
+   finally show ?thesis .
+ qed
+
+ let ?top = "smtlib_extract nm1 nm1 x :: 1 word"
+ have top_eq: "?top = (if bit x (LENGTH('a) - 1) then 1 else 0)"
+   using smtlib_extract_msb_eq[of x] nm_alt by metis
+
+ have rep_zero: "(smt_repeat rn (0::1 word) :: 'a word) = 0"
+   using smt_repeat_zeros rn_eq_lenA rn_pos by simp
+ have rep_ones_mask:                                                                                             
+   "(smt_repeat rn (1::1 word) :: 'a word) = mask (Suc LENGTH('a))"                                              
+   using smt_repeat_ones_mask rn_eq_lenA rn_pos by simp                                      
+ have mask_eq_minus1: "(mask (Suc LENGTH('a)) :: 'a word) = -1"                                                  
+   by (rule bit_word_eqI) (auto simp: bit_simps)                                                                 
+                                                                                                                 
+ show "smtlib_bvashr x w_amount = (smt_repeat rn ?top :: 'a word)"                                               
+ proof (cases "bit x (LENGTH('a) - 1)")                                                                          
+   case True                                                                                                     
+   have top1: "?top = 1" using top_eq True by simp                                                               
+   have rep_rhs: "(smt_repeat rn ?top :: 'a word) = -1"                                                          
+     using top1 rep_ones_mask mask_eq_minus1 by simp                                                             
+   have msb_one:                                                                                                 
+     "(smtlib_extract (int (LENGTH('a) - 1)) (int (LENGTH('a) - 1)) x :: 1 word) = 1"                            
+     using smtlib_extract_msb_eq[of x] True by simp                                                              
+   have lhs_ashr: "smtlib_bvashr x w_amount = not (smtlib_bvlshr (not x) w_amount)"                              
+     unfolding smtlib_bvashr_def using msb_one by simp                                                           
+   have inner_zero: "smtlib_bvlshr (not x) w_amount = 0"                                                         
+     unfolding smtlib_bvlshr_def                                                                                 
+     by (simp add: unat_eq drop_bit_word_beyond len_le flip: drop_bit_eq_div)  
+   then show ?thesis
+     by (simp add: lhs_ashr mask_eq_minus1 rep_ones_mask top1)
+ next
+   case False
+   have top0: "?top = 0" using top_eq False by simp
+   have msb_zero:
+     "(smtlib_extract (int (LENGTH('a) - 1)) (int (LENGTH('a) - 1)) x :: 1 word) = 0"
+     using smtlib_extract_msb_eq[of x] False by simp
+   have lhs_ashr: "smtlib_bvashr x w_amount = smtlib_bvlshr x w_amount"
+     unfolding smtlib_bvashr_def using msb_zero by simp
+   have lhs_zero: "smtlib_bvlshr x w_amount = 0"
+     unfolding smtlib_bvlshr_def
+     by (simp add: unat_eq drop_bit_word_beyond len_le flip: drop_bit_eq_div)
+   then show ?thesis
+     by (simp add: lhs_ashr rep_zero top0)
+ qed
+qed
+
+
 (*
+(define-cond-rule bv-and-concat-pullup
+  ((xs ?BitVec :list) (ws ?BitVec :list) (y ?BitVec)
+   (z ?BitVec) (ys ?BitVec :list)
+   (nxm1 Int) (ny Int) (nym1 Int))
+  (def
+    (nx (@bvsize (concat z y ys)))
+  )
+  (and (= ny (@bvsizeet.minus x x)
+  (@set.empty_of_typ y)) (= nxm1 (- nx 1)) (= nym1 (- (@bvsize y) 1)))
+  (bvand xs (concat ys z y) ws)
+  (concat
+    (bvand (extract nxm1 ny (bvand xs ws)) (concat ys z))
+    (bvand (extract nym1 0 (bvand xs ws)) y)
+  ))
+
+I have a test for xs = [] , |ws| = 2, ys = []
+I have a test for |xs| = 1,  ws = [], |ys| = 1
+*)
+
+(*rewrite_bv_ashr_by_const_2
+ys empty, \<not>(xs = [] \<and> ys = [])
+
 (define-cond-rule bv-and-concat-pullup
   ((xs ?BitVec :list) (ws ?BitVec :list) (y ?BitVec)
    (z ?BitVec) (ys ?BitVec :list)
@@ -733,12 +824,186 @@ lemma [rewrite_bv_ashr_by_const_2]:
     (nx (@bvsize (bvand xs ws)))
   )
   (and (= ny (@bvsize y)) (= nxm1 (- nx 1)) (= nym1 (- (@bvsize y) 1)))
-  (bvand xs (concat ys z y) ws)
+  (bvand xs (concat z y) ws)
   (concat
-    (bvand (extract nxm1 ny (bvand xs ws)) (concat ys z))
-    (bvand (extract nym1 0 (bvand xs ws)) src/HOL/CVC/SMT_CVC_Word.thyy)
+    (bvand (extract nxm1 ny (bvand xs ws)) z)
+    (bvand (extract nym1 0 (bvand xs ws)) y)
   ))
+
 *)
+named_theorems rewrite_bv_and_concat_pullup \<open>automatically_generated\<close>
+
+lemma foldr_word_and_pullout:
+  fixes a b :: "'a::len word"
+  shows "foldr (and::'a word \<Rightarrow> _ \<Rightarrow> _) xs (and a b) = and a (foldr and xs b)"
+  by (induction xs) (simp_all add: word_bw_lcs)
+
+lemma rewrite_bv_and_concat_pullup_lemma1:
+  fixes t1::"'a::len word" and y::"'b::len word" and z::"'c::len word"
+  assumes LEN: "LENGTH('a) = LENGTH('b) + LENGTH('c)"
+  shows
+    "(and (word_cat z y::'a::len word) t1::'a word)
+   = (word_cat
+        (and (smt_extract (LENGTH('a) - 1) (LENGTH('b)) t1::'c::len word) z::'c::len word)
+        (and (smt_extract (LENGTH('b) - 1) (nat 0) t1::'b::len word) y::'b::len word)
+      ::'a word)"
+proof (rule bit_word_eqI)
+  fix n :: nat
+  assume nlt: "n < LENGTH('a)"
+  show "bit (and (word_cat z y::'a word) t1) n
+      = bit (word_cat
+              (and (smt_extract (LENGTH('a) - 1) LENGTH('b) t1::'c word) z::'c word)
+              (and (smt_extract (LENGTH('b) - 1) (nat 0) t1::'b word) y::'b word)
+            ::'a word) n"
+  proof (cases "n < LENGTH('b)")
+    case True
+    have ext_lo: "bit (smt_extract (LENGTH('b) - 1) 0 t1::'b word) n = bit t1 n"
+      using True by (simp add: bit_smt_extract)
+    show ?thesis
+      using True nlt ext_lo
+      by (metis bit_and_iff bit_word_cat_iff nat_code(2))
+  next
+    case False
+    hence nge: "LENGTH('b) \<le> n" by simp
+    have plus_back: "n - LENGTH('b) + LENGTH('b) = n" using nge by simp
+    have lt_lc: "n - LENGTH('b) < LENGTH('c)" using nge nlt LEN by linarith
+    have lt_sucla: "n - LENGTH('b) + LENGTH('b) < Suc (LENGTH('a) - 1)"
+      using plus_back nlt by linarith
+    have ext_hi:
+      "bit (smt_extract (LENGTH('a) - 1) LENGTH('b) t1::'c word) (n - LENGTH('b)) = bit t1 n"
+      using lt_sucla lt_lc plus_back by (simp add: bit_smt_extract)
+    show ?thesis
+      using nge nlt ext_hi
+      by (metis nlt nge ext_hi bit_word_cat_iff False bit_and_iff)
+  qed
+qed
+
+lemma rewrite_bv_and_concat_pullup_empty [rewrite_bv_and_concat_pullup]:
+  fixes z::"'a::len word" and y::"'b::len word"
+    and xs::"('c::len word) cvc_ListVar" and ws::"('c::len word) cvc_ListVar"
+    and nxm1::int  and ys::"('d::len word) cvc_ListVar" and ny::int and nym1::int
+  shows
+"NO_MATCH cvc_a (undefined xs ws y z ys nxm1 ny nym1)
+ \<Longrightarrow> xs \<noteq> ListVar []
+ \<Longrightarrow> ws \<noteq> ListVar []
+ \<Longrightarrow> ny = int LENGTH('b)
+ \<Longrightarrow> nxm1 = int LENGTH('c) - 1
+ \<Longrightarrow> nym1 = int LENGTH('b) - 1
+ \<Longrightarrow> LENGTH('b) + LENGTH('a) = LENGTH('c)
+ \<Longrightarrow> (cvc_list_left and xs (cvc_list_right and (word_cat z y::'c::len word) ws)::'c word)
+  = (word_cat
+       (and (smtlib_extract nxm1 ny (cvc_list_both' and xs ws::'c::len word)::'a::len word) z::'a word)
+       (and (smtlib_extract nym1 0 (cvc_list_both' and xs ws::'c::len word)::'b::len word) y::'b word)
+     ::'c word)"
+proof -
+  assume "NO_MATCH cvc_a (undefined xs ws y z ys nxm1 ny nym1)"
+  assume xs_ne: "xs \<noteq> ListVar []"
+  assume ws_ne: "ws \<noteq> ListVar []"
+  assume ny_eq: "ny = int LENGTH('b)"
+  assume nxm1_eq: "nxm1 = int LENGTH('c) - 1"
+  assume nym1_eq: "nym1 = int LENGTH('b) - 1"
+  assume LEN: "LENGTH('b) + LENGTH('a) = LENGTH('c)"
+
+  obtain xs' where xs_def: "xs = ListVar xs'" and xs'_ne: "xs' \<noteq> []"
+    using xs_ne by (cases xs) auto
+  obtain ws' where ws_def: "ws = ListVar ws'" and ws'_ne: "ws' \<noteq> []"
+    using ws_ne by (cases ws) auto
+
+  define T :: "'c word"
+    where "T = foldr and xs' (foldr and (butlast ws') (last ws'))"
+
+  have both_eq: "(cvc_list_both' and xs ws::'c word) = T"
+    unfolding T_def using cvc_list_both_transfer'[OF ws'_ne xs'_ne] xs_def ws_def by metis
+
+  have ext_hi:
+    "(smtlib_extract nxm1 ny T::'a word) = (smt_extract (LENGTH('c) - 1) LENGTH('b) T::'a word)"
+    using nxm1_eq ny_eq len_gt_0[where 'a='c]
+    by (simp add: smtlib_extract_def smt_extract_def Suc_diff_1 nat_diff_distrib)
+  have ext_lo:
+    "(smtlib_extract nym1 0 T::'b word) = (smt_extract (LENGTH('b) - 1) (nat 0) T::'b word)"
+    using nym1_eq len_gt_0[where 'a='b]
+    by (simp add: smtlib_extract_def smt_extract_def Suc_diff_1 nat_diff_distrib)
+
+  have lhs_simp:
+    "(cvc_list_left and xs (cvc_list_right and (word_cat z y::'c word) ws)::'c word)
+   = and (word_cat z y::'c word) T"
+  proof -
+    have R: "cvc_list_right and (word_cat z y::'c word) ws
+           = foldr and (word_cat z y # butlast ws') (last ws')"
+      using cvc_list_right_transfer_2[OF ws'_ne, of "and" "word_cat z y"] ws_def by metis
+    have R': "cvc_list_right and (word_cat z y::'c word) ws
+            = and (word_cat z y) (foldr and (butlast ws') (last ws'))"
+      using R by simp
+    have L: "cvc_list_left and xs (cvc_list_right and (word_cat z y::'c word) ws)
+          = foldr and xs' (cvc_list_right and (word_cat z y::'c word) ws)"
+      using cvc_list_left_transfer xs_def by metis
+    show ?thesis
+      unfolding L R' T_def
+      by (metis R' L foldr_word_and_pullout)
+  qed
+
+  have lemma1_inst:
+    "and (word_cat z y::'c word) T
+   = (word_cat
+       (and (smt_extract (LENGTH('c) - 1) LENGTH('b) T::'a word) z::'a word)
+       (and (smt_extract (LENGTH('b) - 1) (nat 0) T::'b word) y::'b word)
+     ::'c word)"
+    by (rule rewrite_bv_and_concat_pullup_lemma1[OF LEN[symmetric]])
+
+  show "(cvc_list_left and xs (cvc_list_right and (word_cat z y::'c word) ws)::'c word)
+      = (word_cat
+           (and (smtlib_extract nxm1 ny (cvc_list_both' and xs ws::'c word)::'a word) z::'a word)
+           (and (smtlib_extract nym1 0 (cvc_list_both' and xs ws::'c word)::'b word) y::'b word)
+         ::'c word)"
+    unfolding both_eq ext_hi ext_lo lhs_simp
+    by (rule lemma1_inst)
+qed
+(*
+xs empty, ys empty, length ws > 1:
+
+(define-cond-rule bv-and-concat-pullup_v1
+  ((xs ?BitVec :list) (ws ?BitVec :list) (y ?BitVec)
+   (z ?BitVec) (ys ?BitVec :list)
+   (nxm1 Int) (ny Int) (nym1 Int))
+  (def
+    (nx (@bvsize (bvand [] ws)))
+  )
+  (and (= ny (@bvsize y)) (= nxm1 (- nx 1)) (= nym1 (- (@bvsize y) 1)))
+  (bvand (concat z y) ws)
+  (concat
+    (bvand (extract nxm1 ny (bvand ws)) z)
+    (bvand (extract nym1 0 (bvand ws)))
+  ))
+
+*)
+
+
+
+
+
+
+
+
+
+(* Goal: "rare_rewrite"
+       assumptions:
+         (7::int) = int (size 0)
+         (7::int) = int (size (word_cat 1 0)) - 1
+         (6::int) = int (size 0) - 1
+       arguments:
+         ''bv-and-concat-pullup''
+         ListVar []
+         ListVar [b::8 word, d::8 word]
+         0
+         1
+         ListVar []
+         7::int
+         7::int
+         6::int
+       proposition:
+         and (and (word_cat 1 0) (b::8 word)) (d::8 word) =
+         word_cat (and (smtlib_extract (7::int) (7::int) (and b d)) 1) (and (smtlib_extract (6::int) 0 (and b d)) 0) *)
+
 
 (*
 (define-cond-rule bv-or-concat-pullup
@@ -772,33 +1037,6 @@ lemma [rewrite_bv_ashr_by_const_2]:
   ))
 *)
 named_theorems rewrite_bv_xor_concat_pullup \<open>automatically_generated\<close>
-
-fun word_cat_rbl_left :: "bool list list \<Rightarrow> 'a ::len word \<Rightarrow> 'b::len  word" where
-  "word_cat_rbl_left xs y = word_cat (of_bl (concat xs)::'b:: len word) y"
-
-lemma bit_foldr_xor:
-"bit (foldr xor xs y) n = foldr (\<noteq>) (map (\<lambda>x. bit x n) xs) (bit y n)"
-  apply (induction xs)
-   apply simp_all
-  by (simp add: bit_xor_iff)
-
-fun is_singleton_ListVar:: "'a cvc_ListVar \<Rightarrow> bool" where
- "is_singleton_ListVar (ListVar xs) = (length xs = 1)"
-fun is_empty_ListVar:: "'a cvc_ListVar \<Rightarrow> bool" where
- "is_empty_ListVar (ListVar xs) = (length xs = 0)"
-
-fun word_cat_helper::"('a::len word) cvc_ListVar \<Rightarrow> 'a::len word" where
-"word_cat_helper (ListVar [x]) = x"
-
-fun word_cat_helper_left::"('a::len word) cvc_ListVar \<Rightarrow> 'b::len word \<Rightarrow> 'c::len word" where
-"word_cat_helper_left (ListVar [x]) y = (word_cat x y)"
-
-fun word_cat_helper_empty_left::"('a::len word) cvc_ListVar \<Rightarrow> 'b::len word \<Rightarrow> 'b::len word" where
-"word_cat_helper_empty_left (ListVar []) y = y"
-
-lemmas [cvc_evaluate_bv] = word_cat_helper_def (*is_singleton_ListVar.simps is_empty_ListVar.simps*)
-
-lemmas word_cat_helper_def = word_cat_helper_left.simps word_cat_helper_empty_left.simps
 
 lemma helper:
 "n \<le> size y \<Longrightarrow> bit (xor xs (word_cat x y)) n = bit (xor xs y) n"
@@ -921,6 +1159,7 @@ lemma rewrite_bv_xor_concat_pullup_lemma0:
     apply (simp add: bit_xor_iff bit_word_cat_iff bit_smt_extract)
     apply (cases "n < LENGTH('c)")
     sorry
+  done
 
 lemma rewrite_bv_xor_concat_pullup_lemma1:
   fixes t1::"('a::len word)"
@@ -935,10 +1174,8 @@ lemma rewrite_bv_xor_concat_pullup_lemma1:
     (xor (smt_extract ( LENGTH('a) - 1) (LENGTH('b)) (t1 ::'a::len word)::'c::len word) (z::'c::len word) ::'c::len word)
     (xor (smt_extract (LENGTH('b) - 1)  (nat 0)      (t1 ::'a::len word)::'b::len word) (y::'b::len word) ::'b::len word)
     ::'a word)
-"
-  using rewrite_bv_xor_concat_pullup_lemma0 
-  by (metis add.commute)
-  
+" 
+  sorry  
 (*
 (define-cond-rule bv-xor-concat-pullup
   ((xs ?BitVec :list) (ws ?BitVec :list) (y ?BitVec)
