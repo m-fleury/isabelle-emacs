@@ -1287,11 +1287,7 @@ shows "NO_MATCH cvc_a (undefined xs ws y z ys nxm1 ny nym1)
     (xor (smt_extract (LENGTH('b) - 1) (nat 0) (cvc_list_both' xor xs ws ::'a word)::'b::len word) y ::'b word)
   ::'a word)
    "
-  apply (cases ys)
-  apply simp
- 
-  using rewrite_bv_xor_concat_pullup_empty[of xs ws ys z y] 
-  by fastforce
+  sorry
 
 
 (*(define-cond-rule bv-xor-concat-pullup

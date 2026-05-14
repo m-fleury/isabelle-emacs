@@ -1,0 +1,4 @@
+unsat
+(assume nst1.0 (not (= (ite c x y) (and (or (not c) x) (or c y)))))
+(step st1 (cl (= (ite c x y) (and (or (not c) x) (or c y)))) :rule rare_rewrite :args ("ite-expand" c x y))
+(step t.end (cl) :rule resolution :premises (nst1.0 st1))

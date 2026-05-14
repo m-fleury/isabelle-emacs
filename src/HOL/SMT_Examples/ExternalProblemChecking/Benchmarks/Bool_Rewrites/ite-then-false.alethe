@@ -1,0 +1,4 @@
+unsat
+(assume nst1.0 (not (= (ite c false x) (and (not c) x))))
+(step st1 (cl (= (ite c false x) (and (not c) x))) :rule rare_rewrite :args ("ite-then-false" c x))
+(step t.end (cl) :rule resolution :premises (nst1.0 st1))

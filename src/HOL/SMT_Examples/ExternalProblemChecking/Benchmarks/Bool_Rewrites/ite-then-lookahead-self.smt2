@@ -1,0 +1,6 @@
+(set-logic QF_UF)
+(declare-fun c () Bool)
+(declare-fun x () Bool)
+(assert (not (= (ite c c x) (ite c true x))))
+(check-sat)
+(exit)

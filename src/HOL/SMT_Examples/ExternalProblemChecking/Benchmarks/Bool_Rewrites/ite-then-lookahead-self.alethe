@@ -1,0 +1,4 @@
+unsat
+(assume nst1.0 (not (= (ite c c x) (ite c true x))))
+(step st1 (cl (= (ite c c x) (ite c true x))) :rule rare_rewrite :args ("ite-then-lookahead-self" c x))
+(step t.end (cl) :rule resolution :premises (nst1.0 st1))

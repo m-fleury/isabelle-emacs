@@ -49,20 +49,25 @@ fun cvc_term_parser (SMTLIB.Sym "rare-list", []) = (
        $ Const( \<^const_name>\<open>List.Nil\<close>, dummyT)))
   | cvc_term_parser (SMTLIB.Sym "rare-list", ts) =(
     let
-      (*Figure out if types are different, this should only be the case if they have different
+      (*OLD: Figure out if types are different, this should only be the case if they have different
         bitwidths*)
-      fun remove_duplicates [] = []
+      (*fun remove_duplicates [] = []
         | remove_duplicates (x::xs) = x::remove_duplicates(List.filter (fn y => y <> x) xs)
-
       val types_eq = map fastype_of ts |> remove_duplicates |> length 
+      *)
+
+      val _ = @{print}("testing for this",ts)
+      val _ = @{print}("testing for this",map fastype_of ts |> map Term.dest_Type)
+
+      val has_bv = (hd ts |> fastype_of |> Term.dest_Type |> fst) = "Word.Word"
       val new_ts =
-         (if types_eq > 0
+         (if has_bv
          then ts
          else (map (fn t => Const("to_bl", fastype_of t -->  \<^typ>\<open>bool list \<close>) $ t) ts))
-      val new_type = if types_eq > 0 then fastype_of (hd ts) else \<^typ>\<open>Nat.nat\<close>
+      val new_type = if has_bv then fastype_of (hd ts) else \<^typ>\<open>Nat.nat\<close>
 
     in
-    if types_eq > 0
+    if has_bv
     then
       SOME(Const( \<^const_name>\<open>ListVar\<close>, Type(\<^type_name>\<open>List.list\<close>,[new_type])  --> Type(\<^type_name>\<open>cvc_ListVar\<close>,[new_type]))
       $ (HOLogic.mk_list new_type new_ts))
