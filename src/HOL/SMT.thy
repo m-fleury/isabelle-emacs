@@ -1090,10 +1090,6 @@ ML_file \<open>Tools/SMT/alethe/cvc5_replay.ML\<close>
 
 ML_file \<open>Tools/SMT/smt_systems.ML\<close>
 
-ML \<open>
-val _ = @{print}
-( (SMT_Builtin.print_builtins @{context}))
-\<close>
 
 subsection \<open>Configuration\<close>
 
