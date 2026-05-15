@@ -115,7 +115,7 @@ fun run ctxt name cmd input =
           with_trace ctxt ("Using cached certificate from " ^
             Path.print (Cache_IO.cache_path_of certs) ^ " ...") I output))
 
-(* Z3 and cvc returns 1 if "get-proof" or "get-model" fails.
+(* Z3 and cvc return 1 if "get-proof" or "get-model" fails.
 veriT returns 255 in that case and 14 for timeouts. *)
 fun normal_return_codes "z3" = [0, 1]
   | normal_return_codes "verit" = [0, 14, 255]
@@ -328,7 +328,7 @@ fun apply_solver_and_replay ctxt thms0 =
       (if Config.get ctxt (SMT_Config.nat_as_int)
       then SMT_Global_Normalize.global_normalize ctxt norm_thms
       else (ctxt, norm_thms))
-      handle (SMT_Global_Normalize.SMT_GLOBAL_NORMALIZE _) => (ctxt, norm_thms)            
+      handle (SMT_Global_Normalize.SMT_GLOBAL_NORMALIZE _) => (ctxt, norm_thms)
     val _ = debug_msg ctxt low (fn () => \<^print> ("set of theorems after nat embedding normalization:", norm_thms))
 
     val (output, replay_data) =
@@ -347,7 +347,7 @@ fun test_translation_only ctxt comp_str thms0 =
     val norm_thms = SMT_Normalize.normalize ctxt thms
     val _ = debug_msg ctxt low (fn () => \<^print> ("set of theorems after normalization:", norm_thms))
 
-    (*We might end up not needing beta seperately*)
+    (*We might end up not needing beta separately*)
     val (ctxt_nats, norm_thms) =
       (if Config.get ctxt (SMT_Config.nat_as_int) then SMT_Global_Normalize.global_normalize ctxt norm_thms else (ctxt, norm_thms))
       handle (SMT_Global_Normalize.SMT_GLOBAL_NORMALIZE _) => (ctxt, norm_thms)

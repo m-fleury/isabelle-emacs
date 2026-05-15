@@ -7,7 +7,7 @@ Parsing and generating SMT-LIB 2.
 signature SMTLIB =
 sig
   exception PARSE of int * string
-  datatype tree = 
+  datatype tree =
     Num of int |
     BVNum of int * int |
     Dec of int * int |
@@ -29,7 +29,7 @@ struct
 
 exception PARSE of int * string
 
-datatype tree = 
+datatype tree =
   Num of int |
   BVNum of int * int |
   Dec of int * int |
@@ -45,11 +45,11 @@ datatype unfinished = None | String of string | Symbol of string
 fun !!! l text scan =
   let
     fun err (syms, msg) = (raise PARSE (l,
-      "SMTLIB term parser: " ^ text ^ " in token starting with: " ^  implode syms ^ 
+      "SMTLIB term parser: " ^ text ^ " in token starting with: " ^  implode syms ^
       (case msg of NONE => "" | SOME m => "\n" ^ m ())));
   in (Scan.error (Scan.!! err scan)) end;
- 
-fun read_while pred l = 
+
+fun read_while pred l =
   !!! l "empty token"
   (Scan.permissive (
     (!!! l "unexpected character" (Scan.one pred)) ::: (Scan.finite Symbol.stopper (Scan.many pred))
@@ -79,7 +79,7 @@ fun read_radix_int' radix cs =
           else if lower_a <= ord c andalso ord c < limit_lower_alphabetic then
             scan ((radix * num + (ord c - lower_a + 10), (i+1)), cs)
           else if upper_A <= ord c andalso ord c < limit_upper_alphabetic then
-            scan ((radix * num + (ord c - upper_A + 10), (i+1)), cs) 
+            scan ((radix * num + (ord c - upper_A + 10), (i+1)), cs)
           else ((num, i), c :: cs);
 
      val (scanned as (n, _)) = scan ((0, 0), cs)
@@ -88,12 +88,12 @@ fun read_radix_int' radix cs =
 
 (* numerals and decimals *)
 
-fun read_int' l cs = (!!! l "Expected numeral but could not find it." (read_radix_int' 10 >> fst)) cs 
+fun read_int' l cs = (!!! l "Expected numeral but could not find it." (read_radix_int' 10 >> fst)) cs
 
 fun read_num' l sign =
  ((read_int' l >> sign) :--
  (fn n => (
-    ((Scan.permissive ($$ ".")) |-- read_int' l >> (Dec o pair n)) || 
+    ((Scan.permissive ($$ ".")) |-- read_int' l >> (Dec o pair n)) ||
     ((Scan.permissive ($$ "/")) |-- read_int' l >> (fn m => S[Sym "/", (Dec (n, 0)), (Dec (m, 0))])) ||
     (pair (Num n))
     )
@@ -115,7 +115,7 @@ fun read_hex l
 
 (* symbols *)
 
-val symbol_chars = raw_explode "~!@$%^&*_+=<>.?/-" 
+val symbol_chars = raw_explode "~!@$%^&*_+=<>.?/-"
 
 fun is_sym c =
   Symbol.is_ascii_letter c orelse
@@ -183,7 +183,7 @@ and quoted r f g l s cs ts tss =
   (case r cs of
     NONE => (f (s ^ implode cs), ts :: tss)
   | SOME (s', cs') => (read l cs' None ((g (s ^ s') :: ts) :: tss)))
-  
+
 
 
 (* overall parser *)

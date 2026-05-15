@@ -103,7 +103,7 @@ end
 
 
 fun print_smtlib_theories solver (l as {fixedSizeBitVectors, real, set}) =
-  if solver_support_theories solver l then 
+  if solver_support_theories solver l then
     "AUF" ^ (if fixedSizeBitVectors then "BV" else "") ^ "LI"
     ^ (if real then "R" else "") ^ "A" ^ (if set then "FS" else "")
   else raise (Fail ("Solver " ^ solver ^ " does not support a theory that has been set:\n"
@@ -131,7 +131,7 @@ fun print_smtlib_logic ALL _ = print_set_logic "ALL"
  | print_smtlib_logic NO_LOGIC _ = ""
  | print_smtlib_logic (SL {fixedSizeBitVectors=true, set=false, ...}) "z3" = ""
  | print_smtlib_logic (SL {real=true, set=false, ...}) "z3" = ""
- | print_smtlib_logic (SL l) solver = print_smtlib_theories solver l |> print_set_logic 
+ | print_smtlib_logic (SL l) solver = print_smtlib_theories solver l |> print_set_logic
 
 fun merge_smtlib_logic NO_LOGIC _ = NO_LOGIC
   | merge_smtlib_logic _ NO_LOGIC = NO_LOGIC
@@ -566,7 +566,7 @@ fun add_config (cs, cfg) = Configs.map (SMT_Util.dict_update (cs, cfg))
 fun get_config ctxt : config list =
   let
     val cs = SMT_Config.solver_class_of ctxt
-    val cfgs = 
+    val cfgs =
       map (SMT_Util.dict_get (Configs.get (Context.Proof ctxt))) cs
       |> filter is_some
       |> map ((fn f => f ctxt) o the)
@@ -584,7 +584,7 @@ fun translate ctxt prover smt_options comments (ithms : ((int * SMT_Util.role) *
     val order = map #order (get_config ctxt)
     val logics = map #logic (get_config ctxt)
     fun logic prover ts = print_smtlib_logic (Library.foldr1 (uncurry merge_smtlib_logic) (map (fn f => f prover ts) logics)) prover
-    val fp_kinds = map #fp_kinds (get_config ctxt) |> foldr1 (op @)               
+    val fp_kinds = map #fp_kinds (get_config ctxt) |> foldr1 (op @)
     (*There is a single serialize function anyway*)
     val serialize = map #serialize (get_config ctxt) |> hd
     val first_order = is_some (List.find (curry (op =) SMT_Util.First_Order) order)

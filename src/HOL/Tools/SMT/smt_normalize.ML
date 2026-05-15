@@ -377,7 +377,7 @@ structure Simplify_Ops = Generic_Data
   fun merge data = AList.merge (op =) (fn _ => true) data
 )
 fun get_simplify_ops_tab ctxt = (Simplify_Ops.get (Context.Proof ctxt) : simplify_ops list)
-fun add_simplify_ops_tab tabs context = 
+fun add_simplify_ops_tab tabs context =
  Simplify_Ops.map (K (AList.update (op =) tabs (Simplify_Ops.get context))) context
 
 (*Dynamic tables with default values*)
@@ -409,7 +409,7 @@ local
 
   (*TODO: Delete some of the unnecessary try_convs*)
   fun unfold_extension_conv_simp tab ctxt =
-(fn ct => 
+(fn ct =>
     let
       val t = Thm.term_of ct
       val t1 = Term.head_of t
@@ -440,9 +440,9 @@ local
              Conv.try_conv (transform thms)
           | SOME cond_fun =>
             let
-              val _ = debug_msg ctxt high (fn () => \<^print>("found condition: ", cond_fun t))            
+              val _ = debug_msg ctxt high (fn () => \<^print>("found condition: ", cond_fun t))
             in if cond_fun t then Conv.try_conv (transform thms) else Conv.all_conv end)
-        end                                                                       
+        end
       | NONE => Conv.all_conv)
   | _ => Conv.all_conv) ct
  end)
@@ -469,7 +469,7 @@ fun extensions ctxt = (*todo: better name for all of these*)
 fun unfold_cvc5_extension_conv ctxt =
  (unfold_extension_conv cvc5_extension_table ctxt)
 
-fun unfold_cvc5_extension ctxt = 
+fun unfold_cvc5_extension ctxt =
  (if SMT_Config.solver_of ctxt = "cvc5_proof" then map (apsnd (Conv.fconv_rule (unfold_cvc5_extension_conv ctxt))) else (fn x => x))
 
 end
@@ -632,7 +632,7 @@ fun unfold_conv ctxt =
   print_conv_unfold ctxt "get_unfold_conv ctxt" then_conv
   Thm.beta_conversion true then_conv
   print_conv_unfold ctxt "Thm.beta_conversion"
-            
+
 fun unfold_polymorph ctxt = map (apsnd (Conv.fconv_rule (unfold_conv ctxt)))
 fun unfold_monomorph ctxt =
   map (apsnd (Conv.fconv_rule (normalize_numerals_conv ctxt)))
@@ -711,7 +711,7 @@ fun normalize ctxt wthms =
 
   |> unfold_cvc5_extension ctxt
   |> debug ctxt "unfold_cvc5_extension" (*TODO: Is this needed? Why does this appear as a conv and here?*)
-  
+
   |> extensions ctxt
   |> debug ctxt "nat_native_extension and simplify extensions"
   |> gen_normalize ctxt

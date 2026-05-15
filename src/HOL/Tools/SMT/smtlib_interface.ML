@@ -193,7 +193,7 @@ fun serialize (sdtyp : BNF_Util.fp_kind * dtype_decls -> Buffer.T -> Buffer.T) s
         (SMTLIB.str_of (named_sterm (assert_name_of_role_and_index role i) (tree_of_sterm 0 t)))))
         (map_index I ts)
     |> Buffer.add "(check-sat)\n"
-    |> Buffer.add (if unsat_core then "(get-unsat-core)\n" else 
+    |> Buffer.add (if unsat_core then "(get-unsat-core)\n" else
        if models then "(get-model)\n" else "(get-proof)\n")
     |> Buffer.content
   end

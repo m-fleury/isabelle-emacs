@@ -43,7 +43,7 @@ fun mk_rassoc' n = mk_rassoc (mk_binary n)
 fun mk_lassoc f t ts = fold (fn u1 => fn u2 => f u2 u1) ts t
 
 fun mk_lassoc' n = mk_lassoc (mk_binary n)
-      
+
 fun mk_binary_pred n S t1 t2 =
   let
     val T1 = fastype_of t1
