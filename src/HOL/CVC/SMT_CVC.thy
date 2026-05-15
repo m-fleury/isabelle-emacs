@@ -56,18 +56,16 @@ fun cvc_term_parser (SMTLIB.Sym "rare-list", []) = (
       val types_eq = map fastype_of ts |> remove_duplicates |> length 
       *)
 
-      val _ = @{print}("testing for this",ts)
-      val _ = @{print}("testing for this",map fastype_of ts |> map Term.dest_Type)
+      val has_bv = ((hd ts |> fastype_of |> Term.dest_Type |> fst|> @{print}) = "Word.Word")
 
-      val has_bv = (hd ts |> fastype_of |> Term.dest_Type |> fst) = "Word.Word"
       val new_ts =
-         (if has_bv
+         (if not has_bv
          then ts
          else (map (fn t => Const("to_bl", fastype_of t -->  \<^typ>\<open>bool list \<close>) $ t) ts))
-      val new_type = if has_bv then fastype_of (hd ts) else \<^typ>\<open>Nat.nat\<close>
+      val new_type = if not has_bv then fastype_of (hd ts) else \<^typ>\<open>Nat.nat\<close>
 
     in
-    if has_bv
+    if not has_bv
     then
       SOME(Const( \<^const_name>\<open>ListVar\<close>, Type(\<^type_name>\<open>List.list\<close>,[new_type])  --> Type(\<^type_name>\<open>cvc_ListVar\<close>,[new_type]))
       $ (HOLogic.mk_list new_type new_ts))
