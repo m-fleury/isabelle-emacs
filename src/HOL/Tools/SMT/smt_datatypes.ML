@@ -102,7 +102,7 @@ fun get_decls fps T n Ts ctxt =
           (* TODO/FIXME: The "bool" check is there to work around a CVC4 bug
              (http://church.cims.nyu.edu/bugzilla3/show_bug.cgi?id=597). It should be removed once
              the bug is fixed. *)
-          if forall (forall (forall (is_homogenously_nested_co_recursive))) ctrXs_Tsss andalso
+          if forall (forall (forall is_homogenously_nested_co_recursive)) ctrXs_Tsss andalso
              forall (forall (forall (curry (op <>) \<^typ>\<open>bool\<close>)))
                (map (map (map substAs)) ctrXs_Tsss) then
             get_ctr_sugar_decl ctr_sugar T Ts ctxt |>> map (pair fp)

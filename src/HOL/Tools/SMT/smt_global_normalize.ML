@@ -54,7 +54,7 @@ fun intify_type \<^typ>\<open>nat\<close> = \<^typ>\<open>int\<close>
   | intify_type (Type (a, Ts)) = Type (a, map intify_type Ts)
   | intify_type T = T
 
-val isNat = (curry (op =)) @{typ nat}
+val isNat = curry (op =) @{typ nat}
 fun all_pure_const T = Const (\<^const_name>\<open>Pure.all\<close>, (T --> \<^typ>\<open>prop\<close>) --> \<^typ>\<open>prop\<close>);
 val nat_cast = @{term "nat::int => nat"}
 val int_cast = @{term "int::nat => int"}
@@ -82,7 +82,7 @@ fun merge_conds (conds1, conds2) =
       if exists (fn c => Thm.prop_of c = Thm.prop_of thm) acc then acc else acc @ [thm])
     conds2 conds1
 
-fun atomize_eq_thm ctxt = (Conv.top_rewrs_conv [@{thm atomize_eq[symmetric]}] ctxt) |> Conv.fconv_rule
+fun atomize_eq_thm ctxt = Conv.top_rewrs_conv [@{thm atomize_eq[symmetric]}] ctxt |> Conv.fconv_rule
 fun custom_all_conv ctxt subst = (fn r => (subst,ctxt,[],Conv.all_conv r)) : custom_conv
 fun custom_rewr_conv ctxt subst thm = (fn r => (subst,ctxt,[],Conv.rewr_conv thm r)) : custom_conv
 fun custom_rewr_cond_conv ctxt subst thm cond = (fn r => (subst,ctxt,cond,Conv.rewr_conv thm r)) : custom_conv
@@ -122,8 +122,8 @@ fun dest_obtained_var obtained =
 fun mk_lift_variable ctxt x_name =
 let
   val x'_name = "lift_" ^ Long_Name.base_name x_name
-  val t = (Free (x_name,@{typ nat}))
-  val t' = (Free (x'_name,@{typ int}))
+  val t = Free (x_name,@{typ nat})
+  val t' = Free (x'_name,@{typ int})
 
   (*Show that lifted variable exists: \<exists> x'::int. x' \<ge> 0 \<and> x = nat x' *)
   val x'_def =
@@ -174,7 +174,7 @@ local
     fun mk_forall' ground _ [] _ US = ground (rev US) |
     mk_forall' ground all_fun (T::Ts) k US =
     let
-      val xi'_name = "lb" ^ Int.toString(k)
+      val xi'_name = "lb" ^ Int.toString k
       val xi' = Free(xi'_name,T)
     in
       all_fun xi'_name T (mk_forall' ground all_fun Ts (k+1) (xi'::US))
@@ -211,7 +211,7 @@ local
 
     val f'_xs = list_comb (f',xs) (*f' t_1 ... t_n*)
 
-    val nat_f'_xs = (if retNat then nat_cast $ f'_xs else f'_xs)
+    val nat_f'_xs = if retNat then nat_cast $ f'_xs else f'_xs
     val eq_term = HOLogic.mk_eq (f_xs',nat_f'_xs)
     val res =
       if retNat
@@ -240,7 +240,7 @@ let
 
   val t'_T = intify_type t_T
   val (ts'_T,_) = t'_T |> strip_type
-  val f' = (Free (f'_name,t'_T)) (*Note, even if original is const, the new variable needs to be free!*)
+  val f' = Free (f'_name,t'_T) (*Note, even if original is const, the new variable needs to be free!*)
   val _ = debug_msg ctxt middle (fn () => \<^print> ("(variable, lifted variable)",(f,f')))
 
   (*
@@ -277,7 +277,7 @@ let
   val _ = debug_msg ctxt high (fn () => \<^print> ("x' exists: ",x'_ex))
 
   fun tactic_to_obtain ctxt = HEADGOAL (eresolve_tac ctxt @{thms exE})
-  val (x'_thm, ctxt1) = obtain_new_var (tactic_to_obtain) f'_name [x'_ex] ctxt
+  val (x'_thm, ctxt1) = obtain_new_var tactic_to_obtain f'_name [x'_ex] ctxt
   val _ = debug_msg ctxt1 high (fn () => \<^print> ("obtained a new lifted variable",x'_thm))
 
   val (x', x'_thm_def) = dest_obtained_var x'_thm
@@ -288,7 +288,7 @@ let
        f ?x1'' ... ?xn'' = (nat (f' ?x1' ... ?xn')) \<and> (f' ?x1' ... ?xn') \<ge> 0
        f ?x1'' ... ?xn'' = (f' ?x1' ... ?xn')
      where ?xi'' = nat ?xi' if ?xi is a nat otherwise ?xi *)
-  val goal = (mk_forall (HOLogic.mk_Trueprop o (mk_f_def_ground f (Thm.term_of x'))) mk_prop_all ts'_T)
+  val goal = mk_forall (HOLogic.mk_Trueprop o (mk_f_def_ground f (Thm.term_of x'))) mk_prop_all ts'_T
   val goal_thm = Goal.prove ctxt1 [] [] goal (fn {context: Proof.context, ...}  =>
       unfold_tac context [@{thm atomize_all}]
       THEN HEADGOAL (resolve_tac context [x'_thm_def]))

@@ -53,11 +53,11 @@ local
     in Thm.instantiate (TVars.empty, Vars.make1 (dest_Var (Thm.term_of cv), ct)) thm end
 in
 
-fun instantiate_elim thm = (
+fun instantiate_elim thm =
   (case Thm.concl_of thm of
     \<^Const_>\<open>Trueprop for \<open>Var (_, \<^Type>\<open>bool\<close>)\<close>\<close> => inst Thm.dest_arg cfalse thm
   | Var _ => inst I cpfalse thm
-  | _ => thm))
+  | _ => thm)
 
 end
 
@@ -388,7 +388,7 @@ val cvc5_extension_table =
 fun nat_native_ops_table ctxt =
   [(\<^const_name>\<open>power\<close>, Named_Theorems.get ctxt \<^named_theorems>\<open>pow_2_word\<close>)] (*TODO Hanna: This should be added later*)
   @ (get_nat_native_ops_tab ctxt)
-fun simplify_norm_table ctxt = (get_simplify_ops_tab ctxt)
+fun simplify_norm_table ctxt = get_simplify_ops_tab ctxt
 
 local
   (*Check if top-level operator is in list of operators to unfold*)
@@ -467,7 +467,7 @@ fun extensions ctxt = (*todo: better name for all of these*)
 
 
 fun unfold_cvc5_extension_conv ctxt =
- (unfold_extension_conv (cvc5_extension_table) ctxt)
+ (unfold_extension_conv cvc5_extension_table ctxt)
 
 fun unfold_cvc5_extension ctxt = 
  (if SMT_Config.solver_of ctxt = "cvc5_proof" then map (apsnd (Conv.fconv_rule (unfold_cvc5_extension_conv ctxt))) else (fn x => x))
@@ -508,7 +508,7 @@ local
 
   val unfold_nat_let_conv = Conv.rewr_conv @{lemma "Let (n::nat) f \<equiv> f n" by (rule Let_def)}
   val drop_nat_int_conv = Conv.rewr_conv (Thm.symmetric nat_int_thm)
-  val int_nat_thm = (mk_meta_eq @{thm SMT.H1(1)})
+  val int_nat_thm = mk_meta_eq @{thm SMT.H1(1)}
 
   val print_nat_to_int_conv = print_conv "nat_to_int_conv"
   val print_nat_conv = print_conv "nat_conv"
