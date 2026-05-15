@@ -1,0 +1,4 @@
+unsat
+(step t10 (cl (= (bvult T4_10657 (@bv 0 32)) false)) :rule rare_rewrite :args ("bv-ult-zero-2" T4_10657 32))
+(step slice_end (cl) :rule trust :premises (t10) :args ("trust"))
+
