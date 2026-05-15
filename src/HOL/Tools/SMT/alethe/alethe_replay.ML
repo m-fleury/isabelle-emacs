@@ -180,9 +180,6 @@ fun replay_theorem_step solver method_for rewrite_rules all_assms ll_defs assume
 
     fun is_refl thm = Thm.concl_of thm |> (fn (_ $ t) => t | _ => raise TERM ("",[])) |> HOLogic.dest_eq |> (op =) handle TERM _=> false
     fun mk_thms sctxt t = (Assumption.add_assumes (map (Thm.cterm_of sctxt) t) sctxt |>> filter_out is_refl)
-      handle (TYPE (msg,types,terms)) => if Config.get ctxt SMT_Config.rec_evaluation
-        then (raise SMT_Failure.SMT (SMT_Failure.Replay(rule,(ERROR (msg |> (YXML.parse_body #> XML.content_of))))))
-        else Exn.reraise (TYPE (msg,types,terms))
 
     fun is_mapping (\<^term>\<open>Trueprop\<close> $ (Const(\<^const_name>\<open>HOL.eq\<close>, _) $ _ $ _ )) = true |
         is_mapping _ = false
