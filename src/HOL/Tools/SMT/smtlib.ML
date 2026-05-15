@@ -72,18 +72,18 @@ fun read_radix_int' radix cs =
     val limit_lower_alphabetic = lower_a + dec_radix
     val limit_upper_alphabetic = upper_A + dec_radix
 
-    fun scan ((num,i), []) = ((num,i), [])
-      | scan ((num,i), c :: cs) =
+    fun scan ((num, i), []) = ((num, i), [])
+      | scan ((num, i), c :: cs) =
           if zero <= ord c andalso ord c < limit then
-            scan ((radix * num + (ord c - zero),(i+1)), cs)
+            scan ((radix * num + (ord c - zero), (i+1)), cs)
           else if lower_a <= ord c andalso ord c < limit_lower_alphabetic then
-            scan ((radix * num + (ord c - lower_a + 10),(i+1)), cs)
+            scan ((radix * num + (ord c - lower_a + 10), (i+1)), cs)
           else if upper_A <= ord c andalso ord c < limit_upper_alphabetic then
-            scan ((radix * num + (ord c - upper_A + 10),(i+1)), cs) 
-          else ((num,i), c :: cs);
+            scan ((radix * num + (ord c - upper_A + 10), (i+1)), cs) 
+          else ((num, i), c :: cs);
 
-     val (scanned as (n,_)) = scan ((0,0), cs)
-  in (if n = (0,0) then Scan.fail cs else scanned) end;
+     val (scanned as (n, _)) = scan ((0, 0), cs)
+  in (if n = (0, 0) then Scan.fail cs else scanned) end;
 
 
 (* numerals and decimals *)
@@ -94,7 +94,7 @@ fun read_num' l sign =
  ((read_int' l >> sign) :--
  (fn n => (
     ((Scan.permissive ($$ ".")) |-- read_int' l >> (Dec o pair n)) || 
-    ((Scan.permissive ($$ "/")) |-- read_int' l >> (fn m => S[Sym "/", (Dec (n, 0)),(Dec (m,0))])) ||
+    ((Scan.permissive ($$ "/")) |-- read_int' l >> (fn m => S[Sym "/", (Dec (n, 0)), (Dec (m, 0))])) ||
     (pair (Num n))
     )
   )

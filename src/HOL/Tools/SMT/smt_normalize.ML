@@ -33,7 +33,7 @@ open SMT_Config
 fun debug_msg ctxt = alethe_debug_msg ctxt "smt_normalize"
 fun print_conv prefix ctxt msg x =
 let
-  val _ = debug_msg ctxt high (fn () => \<^print> (prefix ^ " " ^ msg,x))
+  val _ = debug_msg ctxt high (fn () => \<^print> (prefix ^ " " ^ msg, x))
 in Conv.all_conv x end
 
 fun drop_fact_warning ctxt =
@@ -400,7 +400,7 @@ local
       fun rewr_conv thms = Conv.every_conv (map (fn thm => Conv.top_rewrs_conv [thm] ctxt) thms)
     in
       (case t1 of
-        Const(n,_) =>
+        Const(n, _) =>
           (case AList.lookup (op =) tab n of (* add another thm set to Simplifier?*)
               SOME thms => rewr_conv thms
             | NONE => Conv.all_conv)
@@ -423,15 +423,15 @@ local
           rewr_conv (thm::thms) = (Conv.try_conv (Conv.top_rewrs_conv [thm] ctxt))
           then_conv rewr_conv thms
 
-      fun transform (rw_thms,NONE) = Conv.try_conv (rewr_conv rw_thms) (*only rewrite*)
-        | transform (rw_thms,SOME simp_thms) =
+      fun transform (rw_thms, NONE) = Conv.try_conv (rewr_conv rw_thms) (*only rewrite*)
+        | transform (rw_thms, SOME simp_thms) =
             (Conv.try_conv (rewr_conv rw_thms))
             then_conv (Conv.try_conv (simp_rewr simp_thms ctxt))
  in
   (case t1 of
-    Const(n,_) =>
+    Const(n, _) =>
       (case AList.lookup (op =) tab n of
-        SOME (cond,thms) =>
+        SOME (cond, thms) =>
         let
           val _ = debug_msg ctxt high (fn () => \<^print>("found entry for ", t1))
         in
@@ -699,7 +699,7 @@ end
 
 fun debug ctxt msg x =
 let
-  val _ = debug_msg ctxt high (fn () => \<^print> ("normalize " ^ msg,x))
+  val _ = debug_msg ctxt high (fn () => \<^print> ("normalize " ^ msg, x))
 in x end
 
 fun normalize ctxt wthms =

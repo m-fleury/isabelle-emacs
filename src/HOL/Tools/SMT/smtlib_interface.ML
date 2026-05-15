@@ -98,7 +98,7 @@ fun del_logic pf = Logics.map (Ord_List.remove fst_int_ord pf)
 
 fun choose_logic ctxt prover ts =
   let
-    fun choose [] = SMT_Translate.SL {fixedSizeBitVectors=false,real=true,set=false}
+    fun choose [] = SMT_Translate.SL {fixedSizeBitVectors=false, real=true, set=false}
       | choose ((_, f) :: fs) = (case f prover ts ctxt of SOME s => s | NONE => choose fs)
   in
     choose (Logics.get (Context.Proof ctxt))

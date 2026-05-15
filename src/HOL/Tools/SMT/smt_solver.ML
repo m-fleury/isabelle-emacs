@@ -319,17 +319,17 @@ fun apply_solver_and_replay ctxt thms0 =
   let
     val thms = map (pair SMT_Util.Axiom o check_topsort ctxt) thms0
     val (name, {command, smt_options, replay, ...}) = name_and_info_of ctxt
-    val _ = debug_msg ctxt low (fn () => \<^print> ("set of theorems before normalization:",thms0))
+    val _ = debug_msg ctxt low (fn () => \<^print> ("set of theorems before normalization:", thms0))
 
     val norm_thms = SMT_Normalize.normalize ctxt thms
-    val _ = debug_msg ctxt low (fn () => \<^print> ("set of theorems after normalization:",norm_thms))
+    val _ = debug_msg ctxt low (fn () => \<^print> ("set of theorems after normalization:", norm_thms))
 
-    val (ctxt_nats,norm_thms) =
+    val (ctxt_nats, norm_thms) =
       (if Config.get ctxt (SMT_Config.nat_as_int)
       then SMT_Global_Normalize.global_normalize ctxt norm_thms
-      else (ctxt,norm_thms))
-      handle (SMT_Global_Normalize.SMT_GLOBAL_NORMALIZE _) => (ctxt,norm_thms)            
-    val _ = debug_msg ctxt low (fn () => \<^print> ("set of theorems after nat embedding normalization:",norm_thms))
+      else (ctxt, norm_thms))
+      handle (SMT_Global_Normalize.SMT_GLOBAL_NORMALIZE _) => (ctxt, norm_thms)            
+    val _ = debug_msg ctxt low (fn () => \<^print> ("set of theorems after nat embedding normalization:", norm_thms))
 
     val (output, replay_data) =
       invoke NONE name command [] smt_options norm_thms ctxt_nats
@@ -342,16 +342,16 @@ fun test_translation_only ctxt comp_str thms0 =
   let
     val thms = map (pair SMT_Util.Axiom ) thms0
     val (name, {smt_options, ...}) = name_and_info_of ctxt
-    val _ = debug_msg ctxt low (fn () => \<^print> ("set of theorems before normalization:",thms0))
+    val _ = debug_msg ctxt low (fn () => \<^print> ("set of theorems before normalization:", thms0))
 
     val norm_thms = SMT_Normalize.normalize ctxt thms
-    val _ = debug_msg ctxt low (fn () => \<^print> ("set of theorems after normalization:",norm_thms))
+    val _ = debug_msg ctxt low (fn () => \<^print> ("set of theorems after normalization:", norm_thms))
 
     (*We might end up not needing beta seperately*)
-    val (ctxt_nats,norm_thms) =
-      (if Config.get ctxt (SMT_Config.nat_as_int) then SMT_Global_Normalize.global_normalize ctxt norm_thms else (ctxt,norm_thms))
-      handle (SMT_Global_Normalize.SMT_GLOBAL_NORMALIZE _) => (ctxt,norm_thms)
-    val _ = debug_msg ctxt low (fn () => \<^print> ("set of theorems after nat embedding normalization:",norm_thms))
+    val (ctxt_nats, norm_thms) =
+      (if Config.get ctxt (SMT_Config.nat_as_int) then SMT_Global_Normalize.global_normalize ctxt norm_thms else (ctxt, norm_thms))
+      handle (SMT_Global_Normalize.SMT_GLOBAL_NORMALIZE _) => (ctxt, norm_thms)
+    val _ = debug_msg ctxt low (fn () => \<^print> ("set of theorems after nat embedding normalization:", norm_thms))
 
   in
     check_translation name smt_options norm_thms comp_str ctxt_nats
@@ -431,7 +431,7 @@ fun test_smtlib_translation_tac' ctxt comp_str rules =
 
     test_equal_output comp_str (rules @ prems) ctxt') ctxt)
   THEN' (eresolve_tac ctxt [@{lemma "P ==> (\<not>P \<Longrightarrow> False)" by simp}])
-  THEN' (fn i => TRY (resolve_tac ctxt [@{lemma "A = B ==> \<not>(A \<noteq> B)" by simp},@{lemma "A ==> \<not>\<not>A" by simp}] i))
+  THEN' (fn i => TRY (resolve_tac ctxt [@{lemma "A = B ==> \<not>(A \<noteq> B)" by simp}, @{lemma "A ==> \<not>\<not>A" by simp}] i))
   THEN' K (print_tac ctxt "end testing (should be the same as start testing") (*x = x*)
 
 end

@@ -58,18 +58,18 @@ fun mk_chain _ [] = [] |
     mk_chain f (t1::t2::ts) = (f t1 t2) :: (mk_chain f ts) |
     mk_chain _ _ = raise Match
 
-fun mk_chainable f [t1,t2] = (f t1 t2) |
+fun mk_chainable f [t1, t2] = (f t1 t2) |
   mk_chainable f (t1::t2::ts) = mk_rassoc (curry HOLogic.mk_conj) (f t1 t2) (mk_chain f ts) |
   mk_chainable _ _ = raise Match
 
 
 fun pairwise _ [] = [] |
-  pairwise f (t1::tss) = (map (fn u => f (t1,u)) tss) @ pairwise f tss
+  pairwise f (t1::tss) = (map (fn u => f (t1, u)) tss) @ pairwise f tss
 
-fun pairwise' f [x,y] = SOME (f (x,y)) |
+fun pairwise' f [x, y] = SOME (f (x, y)) |
   pairwise' f (xs as _::_::_) =
     let
-      val (hd_pt,tl_pt) = pairwise f xs |> (fn x::xs => (x,xs) | [] => raise Match)
+      val (hd_pt, tl_pt) = pairwise f xs |> (fn x::xs => (x, xs) | [] => raise Match)
     in
       SOME (mk_rassoc' \<^const_name>\<open>HOL.conj\<close> hd_pt tl_pt)
     end |

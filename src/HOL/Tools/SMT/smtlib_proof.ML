@@ -233,16 +233,16 @@ fun normalize_external ctxt raw_name =
     else raw_name
   else raw_name
 
-fun normalize_external2 ctxt (raw_name,(a,b)) =
+fun normalize_external2 ctxt (raw_name, (a, b)) =
  if Config.get ctxt SMT_Config.check_external then
    if (Char.isUpper (hd ( String.explode raw_name)))
-     then ("isabelle_internal_" ^ raw_name,("isabelle_internal_" ^ raw_name,b))
+     then ("isabelle_internal_" ^ raw_name, ("isabelle_internal_" ^ raw_name, b))
    else if (raw_name = "?")
      then raise SMTLIB_PARSE ("Benchmark uses unsupported variable name", SMTLIB.Sym raw_name)
    else if (String.isSuffix raw_name "?" andalso Char.isUpper (hd (tl ( String.explode raw_name))))
-     then ("isabelle_internal_" ^ raw_name,("isabelle_internal_" ^ raw_name,b))
-   else (raw_name,(a,b))
- else (raw_name,(a,b))
+     then ("isabelle_internal_" ^ raw_name, ("isabelle_internal_" ^ raw_name, b))
+   else (raw_name, (a, b))
+ else (raw_name, (a, b))
 
 fun parse_term t ts cx =
   (case apply_parsers (get_term_parsers (ctxt_of cx)) (t, ts) of

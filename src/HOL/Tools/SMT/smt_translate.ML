@@ -75,34 +75,34 @@ datatype sterm =
 type smtlib_theories = {
   fixedSizeBitVectors : bool,
   real : bool,
-  (*int : bool,*)
+  (*int : bool, *)
   set : bool
 }
 
 val solver_supports = [
-  ("cvc5", ({fixedSizeBitVectors=true,real=true,set=true}:smtlib_theories)),
-  ("cvc5_proof", ({fixedSizeBitVectors=true,real=true,set=true}:smtlib_theories)),
-  ("verit", ({fixedSizeBitVectors=false,real=true,set=false}:smtlib_theories)),
-  ("z3", ({fixedSizeBitVectors=true,real=true,set=false}:smtlib_theories))
+  ("cvc5", ({fixedSizeBitVectors=true, real=true, set=true}:smtlib_theories)),
+  ("cvc5_proof", ({fixedSizeBitVectors=true, real=true, set=true}:smtlib_theories)),
+  ("verit", ({fixedSizeBitVectors=false, real=true, set=false}:smtlib_theories)),
+  ("z3", ({fixedSizeBitVectors=true, real=true, set=false}:smtlib_theories))
 ]
 
 fun get_supported_theories solver =
  (case List.find (fn x => fst x = solver) solver_supports of
-      SOME (_,supported) => supported |
+      SOME (_, supported) => supported |
       NONE => raise (Fail ("Could not find which logics are supported for solver " ^ solver
         ^ " in " ^ @{make_string} solver_supports ^ ". Please add that information or set specific SMTLIB-theories instead of using "
         ^ "ALL_SUPPORTED as smt-lib logic")))
 
 fun solver_support_theories solver
-  ({fixedSizeBitVectors=l1_bv,real=l1_real,set=l1_set}:smtlib_theories) =
+  ({fixedSizeBitVectors=l1_bv, real=l1_real, set=l1_set}:smtlib_theories) =
 let
-  val {fixedSizeBitVectors=l2_bv,real=l2_real,set=l2_set} = get_supported_theories solver
+  val {fixedSizeBitVectors=l2_bv, real=l2_real, set=l2_set} = get_supported_theories solver
 in
   (not l1_bv orelse l2_bv) andalso (not l1_real orelse l2_real) andalso (not l1_set orelse l2_set)
 end
 
 
-fun print_smtlib_theories solver (l as {fixedSizeBitVectors,real,set}) =
+fun print_smtlib_theories solver (l as {fixedSizeBitVectors, real, set}) =
   if solver_support_theories solver l then 
     "AUF" ^ (if fixedSizeBitVectors then "BV" else "") ^ "LI"
     ^ (if real then "R" else "") ^ "A" ^ (if set then "FS" else "")
@@ -112,8 +112,8 @@ fun print_smtlib_theories solver (l as {fixedSizeBitVectors,real,set}) =
     ^ (if set then "set\n" else "")
     ^ "\n"))
 
-fun merge_smtlib_theory ({fixedSizeBitVectors=l1_bv,real=l1_real,set=l1_set}:smtlib_theories)
-                        ({fixedSizeBitVectors=l2_bv,real=l2_real,set=l2_set}:smtlib_theories)
+fun merge_smtlib_theory ({fixedSizeBitVectors=l1_bv, real=l1_real, set=l1_set}:smtlib_theories)
+                        ({fixedSizeBitVectors=l2_bv, real=l2_real, set=l2_set}:smtlib_theories)
   =
   ({fixedSizeBitVectors = l1_bv orelse l2_bv,
     real = l1_real orelse l2_real,
@@ -129,8 +129,8 @@ fun print_smtlib_logic ALL _ = print_set_logic "ALL"
   | print_smtlib_logic ALL_SUPPORTED solver =
       get_supported_theories solver |> print_smtlib_theories solver
  | print_smtlib_logic NO_LOGIC _ = ""
- | print_smtlib_logic (SL {fixedSizeBitVectors=true,set=false,...}) "z3" = ""
- | print_smtlib_logic (SL {real=true,set=false,...}) "z3" = ""
+ | print_smtlib_logic (SL {fixedSizeBitVectors=true, set=false, ...}) "z3" = ""
+ | print_smtlib_logic (SL {real=true, set=false, ...}) "z3" = ""
  | print_smtlib_logic (SL l) solver = print_smtlib_theories solver l |> print_set_logic 
 
 fun merge_smtlib_logic NO_LOGIC _ = NO_LOGIC
@@ -203,7 +203,7 @@ fun sign_of logic dtyps (_, typs, terms) = {
   logic = logic,
   sorts = Typtab.fold (fn (_, (n, true)) => cons n | _ => I) typs [],
   dtyps = dtyps,
-  funcs = Termtab.fold (fn (_, (n, SOME ss)) => cons (n,ss) | _ => I) terms []}
+  funcs = Termtab.fold (fn (_, (n, SOME ss)) => cons (n, ss) | _ => I) terms []}
 
 fun replay_data_of ctxt ll_defs rules assms (_, typs, terms) =
   let
@@ -579,7 +579,7 @@ fun get_config ctxt : config list =
 
 fun translate ctxt prover smt_options comments (ithms : ((int * SMT_Util.role) * thm) list) =
   let
-    val _ = debug_msg ctxt low (fn () => \<^print> ("start translating problem ",ithms))
+    val _ = debug_msg ctxt low (fn () => \<^print> ("start translating problem ", ithms))
 
     val order = map #order (get_config ctxt)
     val logics = map #logic (get_config ctxt)
@@ -593,12 +593,12 @@ fun translate ctxt prover smt_options comments (ithms : ((int * SMT_Util.role) *
       ((Termtab.empty, [], tr_context, ctxt), ts)
 
     val ts1 = map (SMT_Util.map_prod snd (Envir.beta_eta_contract o SMT_Util.prop_of)) ithms
-    val _ = debug_msg ctxt high (fn () => \<^print> ("ts1 ",ts1))
+    val _ = debug_msg ctxt high (fn () => \<^print> ("ts1 ", ts1))
 
     val ((funcs, dtyps, tr_context, ctxt1), ts2) =
       ((empty_tr_context, ctxt), ts1)
       |-> (if null fp_kinds then no_dtyps else collect_co_datatypes fp_kinds)
-    val _ = debug_msg ctxt high (fn () => \<^print> ("ts2 ",ts2))
+    val _ = debug_msg ctxt high (fn () => \<^print> ("ts2 ", ts2))
 
     fun is_binder (Const (\<^const_name>\<open>Let\<close>, _) $ _) = true
       | is_binder t = Lambda_Lifting.is_quantifier t
@@ -625,20 +625,20 @@ fun translate ctxt prover smt_options comments (ithms : ((int * SMT_Util.role) *
         in
           (ctxt', (ts'', ll_defs))
         end)
-    val _ = debug_msg ctxt high (fn () => \<^print> ("ts3 ",ts3))
-    val _ = debug_msg ctxt high (fn () => \<^print> ("lambda lifting defs (ll_defs) ",ll_defs))
+    val _ = debug_msg ctxt high (fn () => \<^print> ("ts3 ", ts3))
+    val _ = debug_msg ctxt high (fn () => \<^print> ("lambda lifting defs (ll_defs) ", ll_defs))
 
     val ((rewrite_rules, builtin), ts4) = folify ctxt2 ts3
       |>> first_order ? apfst (cons fun_app_eq)
-    val _ = debug_msg ctxt high (fn () => \<^print> ("ts4 ",ts4))
-    val _ = debug_msg ctxt high (fn () => \<^print> ("rewrite_rules ",rewrite_rules))
+    val _ = debug_msg ctxt high (fn () => \<^print> ("ts4 ", ts4))
+    val _ = debug_msg ctxt high (fn () => \<^print> ("rewrite_rules ", rewrite_rules))
 
   in
     (ts4, tr_context)
     |-> intermediate (logic prover o map snd) dtyps (builtin SMT_Builtin.dest_builtin) ctxt2
     |>> uncurry (serialize smt_options comments)
 
-    |> (fn x => let val _ = debug_msg ctxt high (fn () => \<^print> ("problem string is:",(fst x))) in x end)
+    |> (fn x => let val _ = debug_msg ctxt high (fn () => \<^print> ("problem string is:", (fst x))) in x end)
     ||> replay_data_of ctxt2 ll_defs rewrite_rules ithms
   end
 
