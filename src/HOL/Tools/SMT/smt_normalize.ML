@@ -400,7 +400,7 @@ local
       fun rewr_conv thms = Conv.every_conv (map (fn thm => Conv.top_rewrs_conv [thm] ctxt) thms)
     in
       (case t1 of
-        Const(n,T) =>
+        Const(n,_) =>
           (case AList.lookup (op =) tab n of (* add another thm set to Simplifier?*)
               SOME thms => rewr_conv thms
             | NONE => Conv.all_conv)
@@ -429,7 +429,7 @@ local
             then_conv (Conv.try_conv (simp_rewr simp_thms ctxt))
  in
   (case t1 of
-    Const(n,T) =>
+    Const(n,_) =>
       (case AList.lookup (op =) tab n of
         SOME (cond,thms) =>
         let
@@ -529,32 +529,13 @@ local
      then_conv Conv.top_sweep_conv (int_ops_conv nat_to_int_conv) ctxt
      then_conv print_nat_conv ctxt "recursive call to nat_to_int_conv") ct
 
-  fun add_int_of_nat vs ct cu (q, cts) =
-    (case Thm.term_of ct of
-      \<^Const>\<open>of_nat \<^Type>\<open>int\<close>\<close> =>
-        if Term.exists_subterm (member (op aconv) vs) (Thm.term_of cu) then (true, cts)
-        else (q, insert (op aconvc) cu cts)
-    | _ => (q, cts))
-
-  fun add_apps f vs ct = 
-    (case Thm.term_of ct of
-      _ $ _ =>
-        let val (cu1, cu2) = Thm.dest_comb ct
-        in f vs cu1 cu2 #> add_apps f vs cu1 #> add_apps f vs cu2 end
-    | Abs _ =>
-        let val (cv, cu) = Thm.dest_abs_global ct
-        in add_apps f (Thm.term_of cv :: vs) cu end
-    | _ => I)
  in
 
 fun nat_as_int_conv ctxt = SMT_Util.if_exists_conv is_nat_const (nat_to_int_conv ctxt)
 
 fun add_int_of_nat_constraints thms =
-  let val (q, cts) = fold (add_apps add_int_of_nat [] o Thm.cprop_of) thms (false, [])
-  in
     (*if q then*) (thms, []) (*I think this is not needed anymore but will not delete completely until I am certain of it*)
     (*else (thms, map (fn ct => (Thm.instantiate (TVars.empty, Vars.make1 (var, ct)) int_thm)) cts)*)
-  end
 
 val setup_nat_as_int =
   SMT_Builtin.add_builtin_typ_ext (\<^typ>\<open>nat\<close>,
@@ -603,7 +584,6 @@ structure Extra_Normalize = Generic_Data
 (
   type T = extra_normalize list
   val empty = [("smt_nat_as_int", (SMT_Config.nat_as_int, nat_as_int_conv, add_int_of_nat_constraints))]
-  val extend = I
   fun merge data = AList.merge (op =) (fn _ => true) data
 )
 

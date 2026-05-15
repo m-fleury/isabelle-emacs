@@ -233,7 +233,7 @@ fun collect_co_datatypes fp_kinds (tr_context, ctxt) ts =
 
     fun add_typ' T proper =
       (case SMT_Builtin.dest_builtin_typ ctxt' T of
-        SOME (n, Ts) => pair n (* FIXME HO: Consider Ts *)
+        SOME (n, _) => pair n (* FIXME HO: Consider type list *)
       | NONE => add_typ T proper)
 
     fun tr_select sel =

@@ -182,30 +182,6 @@ fun invoke memoize_fun_call name command cmd_options smt_options ithms ctxt =
 
   in (output_lines, replay_data) end
 
-fun invoke_counterexample memoize_fun_call name command cmd_options smt_options ithms ctxt =
-  let
-    val _ = @{print}("name",name)
-
-    val options = cmd_options @ ["--produce-models"]
-    val comments = [implode_space options]
-
-    val (input, replay_data as {ctxt = ctxt', ...}) =
-      ithms
-      |> tap (trace_assms ctxt)
-      |> SMT_Translate.translate ctxt name smt_options comments
-      ||> tap trace_replay_data
-    val cmd = Bash.script (Bash.strings (command () @ options))
-    val _ = @{print}("name",name)
-    val run_cmd = run_solver ctxt' name cmd
-
-    val output_lines =
-      (case memoize_fun_call of
-        NONE => run_cmd input
-      | SOME memoize => split_lines (memoize (cat_lines o run_cmd) input))
-
-  in (output_lines, replay_data) end
-
-
 fun check_translation name smt_options ithms comparision_str ctxt =
   let
 
@@ -444,11 +420,6 @@ val smt_tac' = tac (SOME oo apply_solver_and_replay)
 
 fun test_equal_output comp_str thms2 ctxt2 =
  (if (test_translation_only ctxt2 comp_str thms2) then all_tac else no_tac)
-local
-
-  fun resolve ctxt (SOME thm) = resolve_tac ctxt [thm] 1
-    | resolve _ NONE = no_tac
-in
 fun test_smtlib_translation_tac' ctxt comp_str rules =
 
   CONVERSION (SMT_Normalize.atomize_conv ctxt)
@@ -463,7 +434,6 @@ fun test_smtlib_translation_tac' ctxt comp_str rules =
   THEN' (fn i => TRY (resolve_tac ctxt [@{lemma "A = B ==> \<not>(A \<noteq> B)" by simp},@{lemma "A ==> \<not>\<not>A" by simp}] i))
   THEN' K (print_tac ctxt "end testing (should be the same as start testing") (*x = x*)
 
-end
 end
 
 end;

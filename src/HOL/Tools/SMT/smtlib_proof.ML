@@ -253,7 +253,6 @@ fun parse_term t ts cx =
         let
           val ctxt = #ctxt cx
           val name' = normalize_external ctxt name
-          val eq_type = @{typ \<open>_::equal\<close>};
         in
           (case lookup_fun cx name' of
             SOME u => (Term.list_comb (u, ts), cx)
@@ -346,11 +345,11 @@ fun extract_name_bindings t (tab, exp_tab) =
       | SMTLIB.S [SMTLIB.Sym "exists", SMTLIB.S _, body] => extract body (tab, new)
       | SMTLIB.S [SMTLIB.Sym "choice", SMTLIB.S _, body] => extract body (tab, new)
       | SMTLIB.S [SMTLIB.Sym "let",  SMTLIB.S lets, body] => (
-          let val bindings = map (fn SMTLIB.S (var :: bindings) => bindings) lets in
+          let val bindings = map (fn SMTLIB.S (_ :: bindings) => bindings) lets in
             fold (fn bdgs => fn st => fold extract bdgs st) bindings (tab, new)
             |> extract body
           end)
-      | SMTLIB.S [SMTLIB.Sym "let", SMTLIB.S [_, bindings], body] =>
+      | SMTLIB.S [SMTLIB.Sym "let", SMTLIB.S [_, _], _] =>
           raise (Fail "unsupported let construction in name extraction")
       | SMTLIB.S (SMTLIB.Sym "!" :: t :: [SMTLIB.Key _, SMTLIB.Sym name]) =>
           extract t (tab, new)
