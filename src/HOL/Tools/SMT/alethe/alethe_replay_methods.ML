@@ -2138,7 +2138,7 @@ fun div_simplify ctxt _ t =
 
 end
 
-fun rare_rewrite ctxt prems t = (@{print}("t",t);
+fun rare_rewrite ctxt prems t = (
   SMT_Replay_Methods.prove ctxt t (fn _ =>
      Method.insert_tac ctxt prems
     THEN' K (print_tac ctxt "use cvc5 extension for better success rate")
