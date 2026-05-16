@@ -738,6 +738,12 @@ lemma cong_3:
   using assms
   by (ctxt_tactic "cong")
 
+lemma cong_4:
+  assumes "x = False"
+  shows "((\<lambda>a b. a = b) x) = ((\<lambda>a b. a = b) False)"
+  using assms
+  by (ctxt_tactic "cong")
+
 (* Rule 25: eq_reflexive *)
 
 lemma eq_reflexive_1: "a = a"
