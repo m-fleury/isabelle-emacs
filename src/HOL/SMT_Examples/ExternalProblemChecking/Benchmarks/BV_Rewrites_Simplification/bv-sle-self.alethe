@@ -1,0 +1,3 @@
+unsat
+(step t11 (cl (= (bvsle T4_10661 T4_10661) true)) :rule rare_rewrite :args ("bv-sle-self" T4_10661))
+(step slice_end (cl) :rule trust :premises (t11) :args ("trust"))

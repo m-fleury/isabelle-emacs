@@ -1,0 +1,3 @@
+unsat
+(step t3 (cl (= (bvurem x x) (@bv 0 5))) :rule rare_rewrite :premises (t2) :args ("bv-urem-self" x 5))
+(step tend (cl) :rule trust)

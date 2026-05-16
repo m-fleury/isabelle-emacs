@@ -1,0 +1,9 @@
+unsat
+(step t11 (cl (= (int.ispow2 8) true)) :rule evaluate)
+(step t12 (cl (= (> 8 1) true)) :rule evaluate)
+(step t13 (cl (= (- 5 (int.log2 8)) 2)) :rule evaluate)
+(step t14 (cl (= 2 (- 5 (int.log2 8)))) :rule symm :premises (t13))
+(step t15 (cl (= (- (int.log2 8) 1) 2)) :rule evaluate)
+(step t16 (cl (= 2 (- (int.log2 8) 1))) :rule symm :premises (t15))
+(step t17 (cl (= (bvurem x (@bv 8 5)) (concat (@bv 0 2) (extract 2 0 x)))) :rule rare_rewrite :premises (t11 t12 t14 t16) :args ("bv-urem-pow2-not-one" x 8 5 2 2))
+(step tend (cl) :rule trust)

@@ -1291,7 +1291,17 @@ named_theorems rewrite_bv_xor_concat_pullup \<open>automatically_generated\<clos
   (= w (@bvsize x))
   (bvxor x x) 
   (@bv 0 w))
+
+Note: Constraint LENGTH('a) = w is not needed so omitted
 *)
+
+named_theorems rewrite_bv_xor_duplicate \<open>automatically_generated\<close>
+
+lemma [rewrite_bv_xor_duplicate]:
+  fixes x::"'a ::len word" and w::int
+  shows "NO_MATCH cvc_a (undefined x w) \<Longrightarrow>
+ semiring_bit_operations_class.xor x x = 0"
+  by auto
 
 
 (*
@@ -1308,12 +1318,6 @@ Simplified (without commutativity):
 
 
 *)
-
-lemma rewrite_bv_xor_ones_lemma: "foldr xor xs (not a) = not (foldr xor xs a)"
-  apply (induction xs)
-  by simp_all
-
-
 
 named_theorems rewrite_bv_xor_ones \<open>automatically_generated\<close>
 
@@ -1335,7 +1339,6 @@ lemma [rewrite_bv_xor_ones]:
   done
       
       
-      
 
 (*
 (define-rule bv-xor-not ((x ?BitVec) (y ?BitVec))
@@ -1343,10 +1346,25 @@ lemma [rewrite_bv_xor_ones]:
 *)
 
 
+named_theorems rewrite_bv_xor_not \<open>automatically_generated\<close>
+
+lemma [rewrite_bv_xor_not]:
+  fixes x::"'a ::len word" and y::"'a ::len word"
+  shows "NO_MATCH cvc_a (undefined x y) \<Longrightarrow> semiring_bit_operations_class.xor (not x) (not y) =
+   semiring_bit_operations_class.xor x y"
+  by auto
+
 (*
 (define-rule bv-not-idemp ((x ?BitVec))
   (bvnot (bvnot x)) x)
 *)
+
+named_theorems rewrite_bv_not_idemp \<open>automatically_generated\<close>
+
+lemma [rewrite_bv_not_idemp]:
+  fixes x::"'a ::len word"
+  shows "NO_MATCH cvc_a (undefined x) \<Longrightarrow> not (not x) = x"
+  by auto
 
 
 (*
@@ -1354,30 +1372,67 @@ lemma [rewrite_bv_xor_ones]:
   ((x ?BitVec) (n Int))
   (bvult (@bv 0 n) x)
   (not (= x (@bv 0 n))))
+
+Note: Constraint LENGTH('a) = w is not needed so omitted
 *)
 
+named_theorems rewrite_bv_ult_zero_1 \<open>automatically_generated\<close>
+
+lemma [rewrite_bv_ult_zero_1]:
+  fixes x::"'a ::len word" and n::"int"
+  shows "NO_MATCH cvc_a (undefined x n) \<Longrightarrow> (0 < x) = (x \<noteq> 0)"
+  using word_neq_0_conv by auto
 
 (*
 (define-rule bv-ult-zero-2
   ((x ?BitVec) (n Int))
   (bvult x (@bv 0 n))
   false)
+
+Note: Constraint LENGTH('a) = w is not needed so omitted
+
 *)
 
+named_theorems rewrite_bv_ult_zero_2 \<open>automatically_generated\<close>
+
+lemma [rewrite_bv_ult_zero_2]:
+  fixes x::"'a ::len word" and n::"int"
+  shows "NO_MATCH cvc_a (undefined x n) \<Longrightarrow> (x < 0) = False"
+  by auto
 
 (*
 (define-rule bv-ult-self ((x ?BitVec)) (bvult x x) false)
 *)
 
+named_theorems rewrite_bv_ult_self \<open>automatically_generated\<close>
+
+lemma [rewrite_bv_ult_self]:
+  fixes x::"'a ::len word"
+  shows "NO_MATCH cvc_a (undefined x) \<Longrightarrow> (x < x) = False"
+  by auto
 
 (*
 (define-rule bv-lt-self ((x ?BitVec)) (bvslt x x) false)
 *)
 
+named_theorems rewrite_bv_lt_self \<open>automatically_generated\<close>
+
+lemma [rewrite_bv_lt_self]:
+  fixes x::"'a ::len word"
+  shows "NO_MATCH cvc_a (undefined x) \<Longrightarrow> (x <s x) = False"
+  by auto
 
 (*
 (define-rule bv-ule-self ((x ?BitVec)) (bvule x x) true)
 *)
+
+
+named_theorems rewrite_bv_ule_self \<open>automatically_generated\<close>
+
+lemma [rewrite_bv_ule_self]:
+  fixes x::"'a ::len word"
+  shows "NO_MATCH cvc_a (undefined x) \<Longrightarrow> (x \<le> x) = True"
+  by auto
 
 
 (*
@@ -1385,15 +1440,16 @@ lemma [rewrite_bv_xor_ones]:
   ((x ?BitVec) (n Int))
   (bvule x (@bv 0 n))
   (= x (@bv 0 n)))
-*)
 
+Note: Constraint LENGTH('a) = w is not needed so omitted
+
+*)
 
 named_theorems rewrite_bv_ule_zero \<open>automatically_generated\<close>
 
 lemma [rewrite_bv_ule_zero]:
   fixes x::"'a ::len word" and n::"int"
   shows "NO_MATCH cvc_a (undefined x n) 
-    \<Longrightarrow> LENGTH('a) = n
     \<Longrightarrow> (x \<le> 0) = (x = 0)"
   by auto
 
@@ -1402,7 +1458,18 @@ lemma [rewrite_bv_ule_zero]:
   ((x ?BitVec) (n Int))
   (bvule (@bv 0 n) x)
   true)
+
+Note: Constraint LENGTH('a) = w is not needed so omitted
+
 *)
+
+named_theorems rewrite_bv_zero_ule \<open>automatically_generated\<close>
+
+lemma [rewrite_bv_zero_ule]:
+  fixes x::"'a ::len word" and n::"int"
+  shows "NO_MATCH cvc_a (undefined x n) 
+    \<Longrightarrow> (0  \<le> x) = True"
+  by auto
 
 
 (*
@@ -1410,6 +1477,12 @@ lemma [rewrite_bv_ule_zero]:
 *)
 
 
+named_theorems rewrite_bv_sle_self \<open>automatically_generated\<close>
+
+lemma [rewrite_bv_sle_self]:
+  fixes x::"'a ::len word"
+  shows "NO_MATCH cvc_a (undefined x) \<Longrightarrow> (x \<le>s x) = True"
+  by auto
 
 (*
 (define-cond-rule bv-ule-max ((x ?BitVec) (n Int) (w Int))
@@ -1417,6 +1490,19 @@ lemma [rewrite_bv_ule_zero]:
   (bvule x (@bv n w)) true)
 *)
 
+named_theorems rewrite_bv_ule_max \<open>automatically_generated\<close>
+
+lemma [rewrite_bv_ule_max]:
+  fixes x::"'a ::len word" and n::int and w::int
+  shows
+ "NO_MATCH cvc_a (undefined x n w) \<Longrightarrow>
+
+  w = int (size x) \<Longrightarrow>
+  n = int ((2::nat) ^ nat (int (size x))) - 1 \<Longrightarrow>
+
+  n_w = Word.Word n \<Longrightarrow>
+  (x \<le> n_w) = True"
+  by (simp add: word_size)
 
 (*
 (define-rule bv-not-ult ((x ?BitVec) (y ?BitVec))
@@ -1424,6 +1510,13 @@ lemma [rewrite_bv_ule_zero]:
   (bvule y x))
 *)
 
+
+named_theorems rewrite_bv_not_ult \<open>automatically_generated\<close>
+
+lemma [rewrite_bv_not_ult]:
+  fixes x::"'a ::len word" and y::"'a ::len word"
+  shows "NO_MATCH cvc_a (undefined x y) \<Longrightarrow> (\<not> x < y) = (y \<le> x)"
+  by auto
 
 
 (*
@@ -1438,24 +1531,121 @@ lemma [rewrite_bv_ule_zero]:
 *)
 named_theorems rewrite_bv_mult_pow2_1 \<open>manually generated\<close>
 
-
 lemma [rewrite_bv_mult_pow2_1]:
   fixes xs ys :: "'b::len word cvc_ListVar"
     and z :: "'b::len word"
-    and exponent size u :: int
-    and n ::int
-  shows "NO_MATCH (cvc_a) (undefined xs ys z size n exponent u) 
-    \<Longrightarrow> is_pow2 n
-    \<Longrightarrow> (exponent = (floorlog (nat n) 2))
-    \<Longrightarrow> (u = ((size - (floorlog (nat n) 2)) - 1))
-    \<Longrightarrow> int LENGTH('a) = exponent
-    \<Longrightarrow> int LENGTH('b) = size
-    \<Longrightarrow> LENGTH('c) = nat u + 1
-    \<Longrightarrow> n_w = Word.Word n
+    and exponent size u n :: int
+  shows "NO_MATCH (cvc_a) (undefined xs ys z size n exponent u)
+
+    \<Longrightarrow> is_pow2 n = True
+    \<Longrightarrow> exponent = int (floorlog 2 (nat n) - 1)
+    \<Longrightarrow> u = size - int (floorlog 2 (nat n) - 1) - 1
+
+    \<Longrightarrow> (n_w::'b::len word) = Word.Word n
+    \<Longrightarrow> LENGTH('a) + LENGTH('c) = LENGTH('b)
+    \<Longrightarrow> LENGTH('c) = u + 1 \<Longrightarrow> u \<ge> 0
+    \<Longrightarrow> exponent = int (LENGTH('a))
     \<Longrightarrow>
-(cvc_list_left (*) xs (z * (n_w::'b::len word)))
-   = (word_cat (smt_extract (nat u) (nat (0::int)) (cvc_list_left (*) xs (cvc_list_right (*) z ys))::'c::len word) (0::'a::len word))"
-  sorry
+(cvc_list_left (*) xs (z * (cvc_list_right (*) n_w ys ::'b::len word)))
+   = (word_cat (smtlib_extract u 0 (cvc_list_left (*) xs (cvc_list_right (*) z ys))::'c::len word) (0::'a::len word))"
+proof -
+  assume pow: "is_pow2 n = True"
+     and exp_eq: "exponent = int (floorlog 2 (nat n) - 1)"
+     and u_eq: "u = size - int (floorlog 2 (nat n) - 1) - 1"
+     and nw_eq: "(n_w::'b::len word) = Word.Word n"
+     and la: "LENGTH('a) + LENGTH('c) = LENGTH('b)"
+     and lc: "LENGTH('c) = u + 1" and uge0: "u \<ge>0"
+     and ea: "exponent = int (LENGTH('a))"
+
+  from pow have n_pos: "0 < n"
+    unfolding is_pow2_def by auto
+
+  define k where k_def: "k = LENGTH('a)"
+  have fl_eq: "floorlog 2 (nat n) - 1 = k"
+    using exp_eq ea k_def by simp
+ 
+  have n_is_pow: "n = 2 ^ k"
+    using pow unfolding is_pow2_def using k_def word_size
+    by (metis fl_eq is_pow2_imp_eq_2_pow pow)
+
+  have nw_pow: "n_w = (2 :: 'b word) ^ k"
+  proof -
+    have "n_w = word_of_int (2 ^ k)" using nw_eq n_is_pow by simp
+    thus ?thesis by (simp add: word_of_int_2p)
+  qed
+
+  let ?w = "cvc_list_left (*) xs (cvc_list_right (*) z ys) :: 'b word"
+
+  have lhs_collapse:
+    "cvc_list_left (*) xs (z * cvc_list_right (*) n_w ys :: 'b word) = ?w * n_w"
+  proof -
+    obtain xs' where xs_eq: "xs = ListVar xs'" by (cases xs)
+    obtain ys' where ys_eq: "ys = ListVar ys'" by (cases ys)
+    show ?thesis
+    proof (cases "ys' = []")
+      case True
+      have step: "cvc_bin_op_fold (*) xs' (z * n_w :: 'b word)
+                 = cvc_bin_op_fold (*) xs' z * n_w"
+        by (induct xs') (simp_all add: ac_simps)
+      show ?thesis
+        unfolding xs_eq ys_eq cvc_list_left_def cvc_list_right_def
+        using True step by simp
+    next
+      case False
+      define Y where "Y = cvc_nary_op_fold ((*) :: 'b word \<Rightarrow> 'b word \<Rightarrow> 'b word) ys'"
+      have step: "cvc_bin_op_fold (*) xs' (z * (n_w * Y))
+                 = cvc_bin_op_fold (*) xs' (z * Y) * n_w"
+        by (induct xs') (simp_all add: ac_simps)
+      show ?thesis
+        unfolding xs_eq ys_eq cvc_list_left_def cvc_list_right_def Y_def
+        using False step
+        using False local.step Y_def by simp
+    qed
+  qed
+
+  have shifted: "?w * n_w = push_bit k ?w"
+    unfolding nw_pow by (simp add: push_bit_eq_mult)
+
+  have u_nonneg: "0 \<le> u" using lc len_gt_0[where 'a='c] by linarith
+  have lc_nat: "LENGTH('c) = nat u + 1" using lc u_nonneg by (simp add: nat_add_distrib)
+
+  have cat_eq:
+    "push_bit k ?w = word_cat (smtlib_extract u 0 ?w :: 'c word) (0 :: 'a word)"
+  proof (rule bit_word_eqI)
+    fix m :: nat assume m_lt: "m < LENGTH('b)"
+    show "bit (push_bit k ?w) m =
+          bit (word_cat (smtlib_extract u 0 ?w :: 'c word) (0 :: 'a word) :: 'b word) m"
+    proof (cases "m < LENGTH('a)")
+      case True
+      hence "\<not> bit (push_bit k ?w) m"
+        using k_def by (simp add: bit_push_bit_iff)
+      moreover have "\<not> bit (word_cat (smtlib_extract u 0 ?w :: 'c word) (0 :: 'a word) :: 'b word) m"
+        using True m_lt by (simp add: bit_word_cat_iff)
+      ultimately show ?thesis by simp
+    next
+      case False
+      hence m_ge: "LENGTH('a) \<le> m" by linarith
+      let ?j = "m - LENGTH('a)"
+      have j_lt_c: "?j < LENGTH('c)" using m_lt m_ge la by linarith
+      have j_lt_u1: "?j < nat (u + 1)" using j_lt_c lc uge0
+        by (simp add: nat_add_distrib)
+      have "bit (push_bit k ?w) m = bit ?w ?j"
+        using m_ge m_lt k_def by (simp add: bit_push_bit_iff)
+      moreover have "bit (word_cat (smtlib_extract u 0 ?w :: 'c word) (0 :: 'a word) :: 'b word) m
+                    = bit (smtlib_extract u 0 ?w :: 'c word) ?j"
+        using False m_lt by (simp add: bit_word_cat_iff)
+      moreover have "bit (smtlib_extract u 0 ?w :: 'c word) ?j = bit ?w ?j"
+        unfolding smtlib_extract_def
+        using j_lt_c j_lt_u1 la
+        by (simp add: bit_slice_iff bit_take_bit_iff)
+      ultimately show ?thesis by simp
+    qed
+  qed
+
+  show "cvc_list_left (*) xs (z * cvc_list_right (*) n_w ys :: 'b word)
+      = word_cat (smtlib_extract u 0 (cvc_list_left (*) xs (cvc_list_right (*) z ys)) :: 'c word) (0 :: 'a word)"
+    using lhs_collapse shifted cat_eq by simp
+qed
 
 
 
@@ -1469,6 +1659,26 @@ lemma [rewrite_bv_mult_pow2_1]:
     (extract u 0 (bvneg (bvmul xs z ys)))
     (@bv 0 exponent)))
 *)
+named_theorems rewrite_bv_mult_pow2_2 \<open>manually generated\<close>
+
+lemma [rewrite_bv_mult_pow2_2]:
+  fixes xs ys :: "'b::len word cvc_ListVar"
+    and z :: "'b::len word"
+    and exponent size u n :: int
+  shows "NO_MATCH (cvc_a) (undefined xs ys z size n exponent u)
+
+    \<Longrightarrow> is_pow2 n = True
+    \<Longrightarrow> exponent = (size - (floorlog 2 (nat n))) - 1
+    \<Longrightarrow> u = size - e - 1
+
+    \<Longrightarrow> (n_w::'b::len word) = Word.Word n
+    \<Longrightarrow> LENGTH('a) + LENGTH('c) = LENGTH('b)
+    \<Longrightarrow> LENGTH('c) = u + 1 \<Longrightarrow> u \<ge> 0
+    \<Longrightarrow> exponent = int (LENGTH('a))
+    \<Longrightarrow>
+(cvc_list_left (*) xs (z * (cvc_list_right (*) n_w ys ::'b::len word)))
+   = (word_cat (smtlib_extract u 0 (cvc_list_left (*) xs (cvc_list_right (*) z ys))::'c::len word) (0::'a::len word))"
+  sorry
 
 
 (*
@@ -1519,7 +1729,20 @@ lemma [rewrite_bv_mult_pow2_1]:
   ((x ?BitVec) (n Int))
   (bvudiv x (@bv 0 n))
   (bvnot (@bv 0 n)))
+
+Note: Constraint LENGTH('a) = n is not needed so omitted
+
 *)
+
+named_theorems rewrite_bv_udiv_zero \<open>automatically_generated\<close>
+
+(*This is an example where Isabelle and SMTLIB semantics are completely different*)
+
+lemma [rewrite_bv_udiv_zero]:
+  fixes x::"'a ::len word" and n::int
+  shows  "NO_MATCH (cvc_a) (undefined x n)
+ \<Longrightarrow> x div 0 = 0"
+  by simp
 
 
 (*

@@ -1,0 +1,4 @@
+unsat
+(step t2 (cl (= 4 (@bvsize y))) :rule symm :premises (t1))
+(step t3 (cl (= (bvugt (bvurem y x) x) (and (= x (@bv 0 4)) (bvugt y (@bv 0 4))))) :rule rare_rewrite :premises (t2) :args ("bv-ugt-urem" y x 4))
+(step tend (cl) :rule trust)

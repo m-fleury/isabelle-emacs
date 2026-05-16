@@ -761,8 +761,10 @@ named_theorems rewrite_bv_extract_whole \<open>automatically_generated\<close>
 
 lemma [rewrite_bv_extract_whole]:
   fixes x::"'a::len word" and n::"int"
-  shows "int (size x) - (1::int) \<le> n \<longrightarrow>
-   smt_extract (nat n) (nat (0::int)) x = x"
+  shows "NO_MATCH cvc_a (undefined x n) \<Longrightarrow>
+int (size x) - (1::int) \<le> n \<Longrightarrow>
+   smtlib_extract n 0 x = x"
+  unfolding smtlib_extract_def
   apply (cases "n = int (size x)")
   apply (simp add: size_word.rep_eq slice_id smt_extract_def take_bit_word_eq_self)
   by (simp add: size_word.rep_eq slice_id smt_extract_def take_bit_word_eq_self)
@@ -1059,19 +1061,6 @@ lemma [rewrite_bv_and_one]:
   shows "y = not (Word.Word 0) \<longrightarrow> and x y = x"
   by auto
 
-named_theorems rewrite_bv_or_one \<open>automatically_generated\<close>
-
-lemma [rewrite_bv_or_one]:
-  fixes x::"'a ::len word" and y::"'a ::len word"
-  shows "y = not (Word.Word 0) \<longrightarrow> or x y = not (Word.Word 0)"
-  by auto
-
-named_theorems rewrite_bv_xor_duplicate \<open>automatically_generated\<close>
-
-lemma [rewrite_bv_xor_duplicate]:
-  fixes x::"'a ::len word"
-  shows "semiring_bit_operations_class.xor x x = Word.Word (0::int)"
-  by auto
 
 
 named_theorems rewrite_bv_xor_zero \<open>automatically_generated\<close>
@@ -1095,84 +1084,7 @@ lemma [rewrite_bv_bitwise_not_or]:
   shows "or x (not x) = not (Word.Word (0::int))"
   by auto
 
-named_theorems rewrite_bv_xor_not \<open>automatically_generated\<close>
 
-lemma [rewrite_bv_xor_not]:
-  fixes x::"'a ::len word" and y::"'a ::len word"
-  shows "semiring_bit_operations_class.xor (not x) (not y) =
-   semiring_bit_operations_class.xor x y"
-  by auto
-
-named_theorems rewrite_bv_not_idemp \<open>automatically_generated\<close>
-
-lemma [rewrite_bv_not_idemp]:
-  fixes x::"'a ::len word"
-  shows "not (not x) = x"
-  by auto
-
-named_theorems rewrite_bv_ult_zero_1 \<open>automatically_generated\<close>
-
-lemma [rewrite_bv_ult_zero_1]:
-  fixes x::"'a ::len word"
-  shows "(Word.Word (0::int) < x) = (Word.Word (0::int) \<noteq> x)"
-  using word_neq_0_conv by auto
-
-named_theorems rewrite_bv_ult_zero_2 \<open>automatically_generated\<close>
-
-lemma [rewrite_bv_ult_zero_2]:
-  fixes x::"'a ::len word"
-  shows "(x < Word.Word (0::int)) = False"
-  by auto
-
-named_theorems rewrite_bv_ult_self \<open>automatically_generated\<close>
-
-lemma [rewrite_bv_ult_self]:
-  fixes x::"'a ::len word"
-  shows "(x < x) = False"
-  by auto
-
-named_theorems rewrite_bv_lt_self \<open>automatically_generated\<close>
-
-lemma [rewrite_bv_lt_self]:
-  fixes x::"'a ::len word"
-  shows "(x <s x) = False"
-  by auto
-
-named_theorems rewrite_bv_ule_self \<open>automatically_generated\<close>
-
-lemma [rewrite_bv_ule_self]:
-  fixes x::"'a ::len word"
-  shows "(x \<le> x) = True"
-  by auto
-
-
-named_theorems rewrite_bv_zero_ule \<open>automatically_generated\<close>
-
-lemma [rewrite_bv_zero_ule]:
-  fixes x::"'a ::len word"
-  shows "(Word.Word (0::int) \<le> x) = True"
-  by auto
-
-named_theorems rewrite_bv_sle_self \<open>automatically_generated\<close>
-
-lemma [rewrite_bv_sle_self]:
-  fixes x::"'a ::len word"
-  shows "(x \<le>s x) = True"
-  by auto
-
-named_theorems rewrite_bv_ule_max \<open>automatically_generated\<close>
-
-lemma [rewrite_bv_ule_max]:
-  fixes x::"'a ::len word" and y::"'a ::len word"
-  shows "y = not (Word.Word (0::int)) \<longrightarrow> (x \<le> y) = True"
-  by auto
-
-named_theorems rewrite_bv_not_ult \<open>automatically_generated\<close>
-
-lemma [rewrite_bv_not_ult]:
-  fixes x::"'a ::len word" and y::"'a ::len word"
-  shows "(\<not> x < y) = (y \<le> x)"
-  by auto
 
 named_theorems rewrite_bv_not_ule \<open>automatically_generated\<close>
 

@@ -1,0 +1,3 @@
+unsat
+(step t215 (cl (= (bvudiv (ite (= (@bv 1 1) (extract 2 2 (bvmul (int_to_bv 3 a) (int_to_bv 3 a)))) (bvneg (bvmul (int_to_bv 3 a) (int_to_bv 3 a))) (bvmul (int_to_bv 3 a) (int_to_bv 3 a))) (@bv 1 3)) (ite (= (@bv 1 1) (extract 2 2 (bvmul (int_to_bv 3 a) (int_to_bv 3 a)))) (bvneg (bvmul (int_to_bv 3 a) (int_to_bv 3 a))) (bvmul (int_to_bv 3 a) (int_to_bv 3 a))))) :rule rare_rewrite :args ("bv-udiv-one" (ite (= (@bv 1 1) (extract 2 2 (bvmul (int_to_bv 3 a) (int_to_bv 3 a)))) (bvneg (bvmul (int_to_bv 3 a) (int_to_bv 3 a))) (bvmul (int_to_bv 3 a) (int_to_bv 3 a))) 3))
+(step tend (cl) :rule trust)

@@ -1,0 +1,5 @@
+unsat
+(step t9 (cl (= (> 5 0) true)) :rule evaluate)
+(step t11 (cl (= 10 (+ 5 5))) :rule symm :premises (t10))
+(step t12 (cl (= (sign_extend 5 (zero_extend 5 x)) (zero_extend 10 x))) :rule rare_rewrite :premises (t9 t11) :args ("bv-merge-sign-extend-2" x 5 5 10))
+(step tend (cl) :rule trust)

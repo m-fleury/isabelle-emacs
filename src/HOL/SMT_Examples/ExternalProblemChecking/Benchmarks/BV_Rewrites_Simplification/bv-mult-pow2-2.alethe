@@ -1,0 +1,6 @@
+unsat
+(step t27.t13 (cl (= (int.ispow2 (- (int.pow2 32) 4294967294)) true)) :rule evaluate)
+(step t27.t15 (cl (= 1 (int.log2 (- (int.pow2 32) 4294967294)))) :rule trust)
+(step t27.t17 (cl (= 30 (- (- 32 (int.log2 (- (int.pow2 32) 4294967294))) 1))) :rule trust)
+(step t27.t18 (cl (= (bvmul t (@bv 4294967294 32)) (concat (extract 30 0 (bvneg t)) (@bv 0 1)))) :rule rare_rewrite :premises (t27.t13 t27.t15 t27.t17) :args ("bv-mult-pow2-2" rare-list rare-list t 32 4294967294 1 30))
+(step tend (cl) :rule trust)
