@@ -7,7 +7,6 @@ SMT setup for words.
 
 signature SMT_WORD =
 sig
-  val add_word_shift': term * string -> Context.generic -> Context.generic
   val mk_bv_from_int_base: term -> term -> term
 end
 
@@ -18,7 +17,7 @@ open Word_Lib
 
 
 (*This will be deleted eventually*)
-val trace = false
+val trace = true
 fun debug_msg (x : unit -> 'a) =
  if trace then ignore(x ()) else ()
 
@@ -64,97 +63,75 @@ fun smtlib_logic "z3" ts _ =
     else NONE
 
 
-(* SMT-LIB builtins *)
+(* Utils *)
 
-local
-  val smtlibC = SMTLIB_Interface.bvsmtlibC
-  val wordT = \<^typ>\<open>'a::len word\<close>
-  fun index1 s i = "(_ " ^ s ^ " " ^ string_of_int i ^ ")"
-  fun index2 s i j = "(_ " ^ s ^ " " ^ string_of_int i ^ " " ^ string_of_int j ^ ")"
-  val mk_nat = HOLogic.mk_number \<^typ>\<open>nat\<close>
+val smtlibC = SMTLIB_Interface.bvsmtlibC
+val wordT = \<^typ>\<open>'a::len word\<close>
+fun index1 s i = "(_ " ^ s ^ " " ^ string_of_int i ^ ")"
+fun index2 s i j = "(_ " ^ s ^ " " ^ string_of_int i ^ " " ^ string_of_int j ^ ")"
+val mk_nat = HOLogic.mk_number \<^typ>\<open>nat\<close>
 
-  fun word_typ (Type (\<^type_name>\<open>word\<close>, [T]))= Option.map (rpair [] o index1 "BitVec") (try dest_binT T) |
+fun remove_cast (Const ("Int.nat", _) $ x) = x |
+    remove_cast x = x
+
+fun if_fixed pred m n T ts =
+  let
+    val (Us, U) = Term.strip_type T
+  in 
+    if pred (U, Us) then SOME (n, length Us, ts, Term.list_comb o pair (Const (m, T))) else NONE
+  end
+
+fun if_concrete_bw_all_args m = if_fixed (forall (can dest_wordT) o (op ::)) m
+fun if_fixed_args m = if_fixed (forall (can dest_wordT) o snd) m
+
+
+fun add_word_fun f (t, n) =
+  let
+    val m = dest_Const_name t
+  in
+    SMT_Builtin.add_builtin_fun smtlibC (Term.dest_Const t, K (f m n))
+  end
+
+(*
+Translation. The translation functions are unfortunatley applied several times. So if a translation
+is not faithful this leads to problems. E.g., even if we know that an argument always has the form
+(word_of_int t2') the first time this is called. But if we change the term on subsequent calls we do not know this.
+*)
+
+
+
+(** Translate bv constants and types **)
+
+fun word_typ (Type (\<^type_name>\<open>word\<close>, [T])) = Option.map (rpair [] o index1 "BitVec") (try dest_binT T) |
     word_typ (Type (_, [T])) = Option.map (rpair [] o index1 "BitVec") (try dest_binT T) |
     word_typ _ = NONE
 
-  fun remove_cast (Const ("Int.nat", _) $ x) = x |
-      remove_cast x = x
+(*
+CVC4 and cvc5 do not support "_bvk T" when k does not fit in the BV of size T, so remove the bits that
+will be ignored according to the SMT-LIB. This is only important if nat to int lifting is not used.
 
-  (*CVC4 does not support "_bvk T" when k does not fit in the BV of size T, so remove the bits that
-   will be ignored according to the SMT-LIB*)
-  fun word_num (Type (\<^type_name>\<open>word\<close>, [T])) k =
-  let
-    val size = try dest_binT T
-    fun max_int size = Integer.pow size 2
-  in
-    (case size of
-      NONE => NONE
-    | SOME size => SOME (index1 ("bv" ^ string_of_int (Int.rem(k, max_int size))) size))
+*)
+
+fun word_num (Type (\<^type_name>\<open>word\<close>, [T])) k =
+let
+  val size = try dest_binT T
+  fun max_int size = Integer.pow size 2
+in
+  (case size of
+    NONE => NONE
+  | SOME size => SOME (index1 ("bv" ^ string_of_int (Int.rem(k, max_int size))) size))
   end
-  | word_num _ _ = NONE
-
-  fun if_fixed pred m n T ts =
-    let val (Us, U) = Term.strip_type T
-    in
-      if pred (U, Us) then SOME (n, length Us, ts, Term.list_comb o pair (Const (m, T))) else NONE
-    end
-
-  fun add_word_fun f (t, n) =
-    let val m = dest_Const_name t
-    in SMT_Builtin.add_builtin_fun smtlibC (Term.dest_Const t, K (f m n)) end
-
-  (* 1-1 translation*)
-
-  fun if_fixed_all m = if_fixed (forall (can dest_wordT) o (op ::)) m
-  fun if_fixed_args m = if_fixed (forall (can dest_wordT) o snd) m
-
-
-  fun add_word_fun f (t, n) =
-    let val m = dest_Const_name t
-    in SMT_Builtin.add_builtin_fun smtlibC (Term.dest_Const t, K (f m n)) end
-
-  (*shifts*)
-
-  fun shift_lift2 m n T [t1,t2] =
-    let
-      val _ = print_binary_info "shift lift2" m n T t1 t2
-
-      val T1 = fastype_of t1
-        handle (TERM _) => @{typ "int"} (*TODO*)
-
-
-      val cast = Const("Int.ring_1_class.of_int", @{typ "int"} --> T1)
-      val T2 = fastype_of t2
-   
-      (*Make word out of t2*)
-      val t2 = 
-      (case try HOLogic.dest_number t2 of
-        NONE =>
-          (if T2 = @{typ "int"} then cast $ t2 else t2)
-      | SOME(_,t2_num) => HOLogic.mk_number T1 t2_num)
-    in
-      (SOME (n, 2, [t1,t2], (fn ts => Term.list_comb (Const (m,T),ts))))
-    end
-     | shift_lift2 _ _ _ _ = NONE
+| word_num _ _ = NONE
 
 
 
-  fun mk_shift' c [t, u] = Const c $ t $ mk_nat (snd (HOLogic.dest_number u))
-    | mk_shift' c ts = raise TERM ("bad arguments", Const c :: ts)
+(*shifts*)
 
-  fun shift' m n T ts =
-    let val U = Term.domain_type T
-    in
-      (case (can dest_wordT U, try (snd o HOLogic.dest_number o hd o tl) ts) of
-        (true, SOME i) =>
 
-          SOME (n, 2, [hd ts, HOLogic.mk_number U i], mk_shift' (m, T))
-      | _ => NONE)   (* FIXME: also support non-numerical shifts *)
-    end
 
-  fun mk_extract c i ts = Term.list_comb (Const c, mk_nat i :: ts)
+fun mk_extract c i ts = Term.list_comb (Const c, mk_nat i :: ts)
 
-  fun slice m n (T as (Type(_,[_,Type(_,[Tx,U])]))) ts =
+fun slice m n (T as (Type(_,[_,Type(_,[Tx,U])]))) ts =
    (case (try (snd o HOLogic.dest_number o remove_cast o hd) ts,
           try dest_wordT U,
           try dest_wordT Tx) of
@@ -170,11 +147,10 @@ local
   slice _ _ _ _ = (NONE)
 
 
-fun take_bit m n T ts =
+fun take_bit m _ T ts =
     let
      
       val ts = ts |> map (fn (Const ("Int.nat", _) $ x) => x | x => x) 
-      val offset = hd ts
       val word= hd (tl ts)
       val U = Term.domain_type (Term.range_type T)
 
@@ -188,7 +164,7 @@ fun take_bit m n T ts =
 
             val drop=  Const(\<^const_name>\<open>drop_bit\<close>, @{typ "nat"} --> U --> U)
             val push=  Const(\<^const_name>\<open>push_bit\<close>, @{typ "nat"} --> U --> U)
-            fun mk_take_bit c ts = hd ts
+            fun mk_take_bit _ ts = hd ts
 
             val new_term = minus $ word $
  (push $ offset' $ (drop $ offset' $ word))
@@ -220,12 +196,6 @@ fun bit m n T ts =
         (SOME i') => (HOLogic.mk_number @{typ "nat"} (i'+1))|
         NONE => (Const(\<^const_name>\<open>Nat.Suc\<close>,@{typ "nat"} --> @{typ "nat"}) $ pos))
  
-    val suc_simplified2 =  
-      (case (try (snd o HOLogic.dest_number o remove_cast) pos) of
-        (SOME i') => (HOLogic.mk_number @{typ "nat"} (i'+2))|
-        NONE => (Const(\<^const_name>\<open>Nat.Suc\<close>,@{typ "nat"} --> @{typ "nat"}) $ pos))
- 
-
 
  val pos_simplified =  
       (case (try (snd o HOLogic.dest_number o remove_cast) pos) of
@@ -233,13 +203,7 @@ fun bit m n T ts =
         NONE => (Const(\<^const_name>\<open>Nat.Suc\<close>,@{typ "nat"} --> @{typ "nat"}) $ pos))
 
 
-      fun cond2 i i_suc =
-      Const(\<^const_name>\<open>slice\<close>, @{typ "nat"} --> fastype_of (word) --> @{typ "1 word"})
-        $ i
-        $ (Const (\<^const_name>\<open>take_bit\<close>,@{typ "nat"} --> fastype_of word --> fastype_of word)
-          $ i_suc
-          $ word)
-
+    
           fun cond i i_suc =
       (Const("smt_extract", @{typ "nat"} --> @{typ "nat"} --> fastype_of (word) --> @{typ "1 word"})
         $ i $ i
@@ -260,13 +224,6 @@ fun bit m n T ts =
     in  SOME ("", 1, [new_ts pos_simplified suc_simplified ], mk_bit) end
 
 
-fun mk_bit c n ts = Const c $ hd ts $ mk_nat n
-
-(*fun K x = fn _ => x;*)
-  fun add_word_fun' f (t, n) =
-    let val (m, _) = Term.dest_Const t
-    in SMT_Builtin.add_builtin_fun' smtlibC (t, (f m n)) end
-
   fun mk_extend c ts = Term.list_comb (Const c, ts)
 
   fun extend m n T ts =
@@ -280,8 +237,6 @@ fun mk_bit c n ts = Const c $ hd ts $ mk_nat n
     end
   fun mk_extend (m,T) ts = Term.list_comb (Const (m,T),ts)
 
-  fun remove_cast (@{term "nat"} $ t) = t|
-      remove_cast t = t
 
   fun is_numeral x = try HOLogic.dest_numeral x
 
@@ -417,7 +372,6 @@ Wird zweimal uebersetzt wie alles...
          fn x => fn y =>(of_nat t m n x y))) 
        else  SMT_Builtin.add_builtin_fun smtlibC (Term.dest_Const (head_of t),  K (K (K (NONE))))
    end
-in
 
 fun concat op_name smt_name (typ as (Type(_,[T1,Type(_,[T2,T])]))) terms =
  (case (try dest_wordT T1, try dest_wordT T2, try dest_wordT T) of
@@ -439,10 +393,9 @@ val _ = Theory.setup (Context.theory_map (setup_bit_ops_table))
 
 val setup_builtins =
   SMT_Builtin.add_builtin_typ SMTLIB_Interface.bvsmtlibC (wordT, word_typ, word_num) #>
-(*Isabelle typ, typ uebersetzung, term uebersetzung*)
   SMT_Builtin.add_builtin_typ SMTLIB_Interface.bvsmtlibC
     (\<^typ>\<open>Num.num \<Rightarrow> 'a::len word\<close>, word_typ, word_num) #>
-  fold (add_word_fun if_fixed_all) [
+  fold (add_word_fun if_concrete_bw_all_args) [
     (\<^term>\<open>uminus :: 'a::len word \<Rightarrow> _\<close>, "bvneg"),
     (\<^term>\<open>plus :: 'a::len word \<Rightarrow> _\<close>, "bvadd"),
     (\<^term>\<open>minus :: 'a::len word \<Rightarrow> _\<close>, "bvsub"),
@@ -451,24 +404,14 @@ val setup_builtins =
     (\<^term>\<open>and :: 'a::len word \<Rightarrow> _\<close>, "bvand"),
     (\<^term>\<open>or :: 'a::len word \<Rightarrow> _\<close>, "bvor"),
     (\<^term>\<open>xor :: 'a::len word \<Rightarrow> _\<close>, "bvxor") ] #>
-  fold (add_word_fun shift_lift2) [
+  (*If lifting nats to ints is not active*)
+
+  (*If lifting nat to int is active*)
+  fold (add_word_fun if_concrete_bw_all_args) [
     (\<^term>\<open>smtlib_bvshl :: 'a::len word \<Rightarrow> _ \<Rightarrow> _ \<close>, "bvshl"),
     (\<^term>\<open>smtlib_bvlshr :: 'a::len word \<Rightarrow> _ \<Rightarrow> _ \<close>, "bvlshr"),
     (\<^term>\<open>smtlib_bvashr :: 'a::len word \<Rightarrow> _ \<Rightarrow> _\<close>, "bvashr")
    ] #>
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -516,9 +459,7 @@ val setup_builtins =
    ]
 
 
-val add_word_shift' = add_word_fun shift'
 
-end
 
 
 (* Proof Reconstruction *)
@@ -586,14 +527,9 @@ fun mk_extract_from_terms i j u =
    res
  end
 
-fun mk_bv_from_int_base int base = 
+fun mk_bv_from_int_base int base =
  let
-  (* val _ = @{print}("int",int)
-  val _ = @{print}("base",base)*)
-
         val ty = Word_Lib.mk_wordT (snd (HOLogic.dest_number base))
-        fun cut_bv [] = 3
-        val int = int
         val num = snd (HOLogic.dest_number int)
          handle TERM ("dest_number", [t ]) => (@{print}("t",t); raise Alethe_Proof.ALETHE_PROOF_PARSE "Could not parse bit-vector value")
       in
@@ -612,11 +548,24 @@ fun
   | bv_term_parser (SMTLIB.Sym "bvand", (t::ts)) =
       SOME (mk_lassoc' \<^const_name>\<open>semiring_bit_operations_class.and\<close> t ts)
   | bv_term_parser (SMTLIB.Sym "bv", [int, base]) = SOME (mk_bv_from_int_base int base)
-  | bv_term_parser (SMTLIB.Sym "_", [Free(n,_),base]) =
-    (case try (unprefix "bv") n of
+  | bv_term_parser (SMTLIB.S [SMTLIB.Sym "_",SMTLIB.Sym n, SMTLIB.Num base],[]) =
+    (case try (unprefix "bv") (n|> @{print}) of
         NONE => NONE
       | SOME t => 
          (case Int.fromString t of
+         NONE => NONE
+         |SOME t' => 
+         let
+          val int = HOLogic.mk_number @{typ int} t'
+         in
+           SOME (mk_bv_from_int_base int (HOLogic.mk_number @{typ int} base))
+         end)
+     )
+  | bv_term_parser (SMTLIB.Sym "_", [Free(n,_),base]) =
+    (case try (unprefix "bv") (n|> @{print}) of
+        NONE => NONE
+      | SOME t => 
+         (case (Int.fromString t|> @{print}) of
          NONE => NONE
          |SOME t' => 
          let
@@ -699,6 +648,16 @@ fun
    in
      (*SOME (Const (\<^const_name>\<open>signed_take_bit\<close>,\<^typ>\<open>Nat.nat\<close>--> fastype_of t2 --> dummyT) $ (Const ( \<^const_name>\<open>nat\<close>, \<^typ>\<open>Int.int\<close> --> \<^typ>\<open>Nat.nat\<close>) $ t1) $ t2)*)
      SOME (Const (\<^const_name>\<open>Word.signed_cast\<close>, fastype_of t2 --> dummyT) $ t2)
+   end
+  | bv_term_parser (SMTLIB.Sym "zero_extend", [t1, t2]) =
+    let
+    
+     (*("sign_extend t1", Free ("n", "int")) (line 368 of "/home/lachnitt/Sources/isabelle-git/isabelle-emacs/src/HOL/Library/Tools/smt_word.ML") 
+     ("sign_extend t2", Free ("x", "_ word"))*)
+     (*If type of t2 is known I could calculate type of t1, otherwise I would just ignore t1? Maybe better don't use signed*)
+   in
+     (*SOME (Const (\<^const_name>\<open>signed_take_bit\<close>,\<^typ>\<open>Nat.nat\<close>--> fastype_of t2 --> dummyT) $ (Const ( \<^const_name>\<open>nat\<close>, \<^typ>\<open>Int.int\<close> --> \<^typ>\<open>Nat.nat\<close>) $ t1) $ t2)*)
+     SOME (Const (\<^const_name>\<open>Word.unsigned\<close>, fastype_of t2 --> dummyT) $ t2)
    end
   | bv_term_parser (SMTLIB.S [SMTLIB.Sym "_",SMTLIB.Sym "extract", SMTLIB.Num i,SMTLIB.Num j],[t])
        = SOME (mk_extract i j t)
