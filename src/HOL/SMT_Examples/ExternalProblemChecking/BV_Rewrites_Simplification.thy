@@ -216,7 +216,6 @@ check_smt ("cvc5_proof")
   "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/BV_Rewrites_Simplification/bv-sle-self.alethe"
 
 (*bv-ule-max*)
-(*TODO: Premises not resolved*)
 check_smt ("cvc5_proof")
   "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/BV_Rewrites_Simplification/bv-ule-max.smt2"
   "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/BV_Rewrites_Simplification/bv-ule-max.alethe"
@@ -267,6 +266,9 @@ check_smt ("cvc5_proof")
   "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/BV_Rewrites_Simplification/bv-urem-pow2-not-one.alethe"
 
 (*bv-urem-one*)
+check_smt ("cvc5_proof")
+  "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/BV_Rewrites_Simplification/bv-urem-one.smt2"
+  "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/BV_Rewrites_Simplification/bv-urem-one.alethe"
 
 (*bv-urem-self*)
 check_smt ("cvc5_proof")
@@ -314,6 +316,9 @@ check_smt ("cvc5_proof")
   "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/BV_Rewrites_Simplification/bv-merge-sign-extend-2.alethe"
 
 (*bv-sign-extend-eq-const-1*)
+check_smt ("cvc5_proof")
+  "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/BV_Rewrites_Simplification/bv-sign-extend-eq_const_1.smt2"
+  "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/BV_Rewrites_Simplification/bv-sign-extend-eq_const_1.alethe"
 
 (*bv-sign-extend-eq-const-2*)
 

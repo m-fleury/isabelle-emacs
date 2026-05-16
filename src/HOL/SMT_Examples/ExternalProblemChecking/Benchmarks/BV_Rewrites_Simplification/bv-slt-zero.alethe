@@ -1,0 +1,4 @@
+unsat
+(step t2 (cl (= 4 (- 5 1))) :rule trust)
+(step t3 (cl (= (bvslt x (@bv 0 5)) (= ((_ extract 4 4) x) (@bv 1 1)))) :rule rare_rewrite :premises (t2) :args ("bv-slt-zero" x 5 4))
+(step tend (cl) :rule trust)
