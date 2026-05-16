@@ -140,8 +140,9 @@ fun rewrite_lemma_inst ctxt lemma [] [] = lemma
 fun instantitate_lemma ctxt args lemma =
 let
   fun get_types lemma = map snd (rev (Term.add_vars (Thm.full_prop_of lemma) []))
-  val args_types_from_lemma = rev (get_types lemma) (*TODO: get rid of revs if possible*)
-  val args_terms =  rev (Const ("Groups.zero_class.zero",@{typ int}) :: args) (*The extra term is for the dummy argument we need to add the expected order to the arguments*)
+  val args_terms = rev (Const ("Groups.zero_class.zero",@{typ int}) :: args) (*The extra term is for the dummy argument we need to add the expected order to the arguments*)
+  val all_types = rev (get_types lemma)
+  val args_types_from_lemma = drop (length all_types - length args_terms) all_types
   val _ = debug_msg ctxt high (fn () => @{print} ("Argument types extracted from lemma",args_types_from_lemma));
   val _ = debug_msg ctxt high (fn () => @{print} ("Arguments ",args_terms));
 in rewrite_lemma_inst ctxt lemma args_terms args_types_from_lemma end
@@ -262,6 +263,7 @@ fun dsl_tac_initialize rewrite_name args ctxt t prems =
                   )
                   THEN_ALL_NEW (
                     debug_msg_tac'' ctxt high "trying to discharge assumption of RARE lemma"
+                    THEN' TRY' (resolve_tac ctxt prems THEN' debug_msg_tac'' ctxt high "discharged via alethe premise")
                     THEN' TRY' (simplify_tac ctxt cvc_evaluate_thms THEN' debug_msg_tac'' ctxt high "simplifed goal with cvc_evaluate")
                     THEN' TRY'
                     (simplify_tac ctxt cvc_evaluate_thms
