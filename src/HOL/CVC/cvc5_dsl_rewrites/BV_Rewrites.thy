@@ -1116,23 +1116,6 @@ lemma [rewrite_bv_udiv_pow2_2p]:
   shows "v = 1 \<longrightarrow> x div Word.Word v = x"
   by auto
 
-named_theorems rewrite_bv_udiv_zero \<open>automatically_generated\<close>
-
-
-(*This is an example where Isabelle and SMTLIB semantics are completely different*)
-
-lemma [rewrite_bv_udiv_zero]:
-  fixes x::"'a ::len word"
-  shows "x div Word.Word (0::int) =  (Word.Word (0::int))"
-  by simp
-
-named_theorems rewrite_bv_udiv_one \<open>automatically_generated\<close>
-
-lemma [rewrite_bv_udiv_one]:
-  fixes x::"'a ::len word"
-  shows "x div Word.Word (1::int) = x"
-  by auto
-
 named_theorems rewrite_bv_urem_pow2_2 \<open>automatically_generated\<close>
 
 lemma [rewrite_bv_urem_pow2_2]:
@@ -1145,98 +1128,7 @@ lemma [rewrite_bv_urem_pow2_2]:
   apply simp
   sorry
 
-named_theorems rewrite_bv_urem_one \<open>automatically_generated\<close>
 
-lemma [rewrite_bv_urem_one]:
-  fixes x::"'a ::len word"
-  shows "smt_urem x (Word.Word (1::int)) = Word.Word (0::int)"
-  unfolding smt_urem_def
-  apply simp
-  by (simp add: unsigned_eq_0_iff)
-
-named_theorems rewrite_bv_urem_self \<open>automatically_generated\<close>
-
-lemma [rewrite_bv_urem_self]:
-  fixes x::"'a ::len word"
-  shows "x> 0 \<longrightarrow> smt_urem x x = Word.Word (0::int)"
-  unfolding smt_urem_def
-  apply simp
-  using unat_eq_zero by auto
-
-named_theorems rewrite_bv_shl_zero \<open>automatically_generated\<close>
-
-lemma [rewrite_bv_shl_zero]:
-  fixes n::"int" and a::"'a ::len word"
-  shows "push_bit (unat a) (Word.Word (0::int)) = Word.Word (0::int)"
-  by auto
-
-named_theorems rewrite_bv_lshr_zero \<open>automatically_generated\<close>
-
-lemma [rewrite_bv_lshr_zero]:
-  fixes n::"int" and a::"'a ::len word"
-  shows "drop_bit (unat a) (Word.Word (0::int)) = Word.Word (0::int)"
-  by auto
-
-
-named_theorems rewrite_bv_ugt_urem \<open>automatically_generated\<close>
-
-lemma [rewrite_bv_ugt_urem]:
-  fixes y::"'a ::len word" and x::"'a ::len word"
-  shows "(x < smt_urem y x) =
-   (Word.Word (0::int) < y \<and> x = Word.Word (0::int))"
-  unfolding smt_urem_def
-  apply simp
-  by (metis not_less_iff_gr_or_eq unat_gt_0 word_arith_nat_mod word_gt_a_gt_0 word_mod_by_0 word_mod_less_divisor)
-
-named_theorems rewrite_bv_ult_one \<open>automatically_generated\<close>
-
-lemma [rewrite_bv_ult_one]:
-  fixes x::"'a ::len word"
-  shows "(x < Word.Word (1::int)) = (x = Word.Word (0::int))"
-  by auto
-
-named_theorems rewrite_bv_slt_zero \<open>automatically_generated\<close>
-
-lemma [rewrite_bv_slt_zero]:
-  fixes x::"'a ::len word"
-  shows "LENGTH('a) > 1 \<longrightarrow> (x <s (Word.Word (0::int)::'a::len word)) =
-   (smt_extract (nat (int (size x) - (1::int)))
-     (nat (int (size x) - (1::int))) x =
-    (Word.Word (1::int)::1 word))"
-proof
-  assume "(1::nat) < LENGTH('a)"
-  have "sint (smt_extract (nat (int (size x) - (1::int))) (nat (int (size x) - (1::int))) x::1 word)
-      = sint (smt_extract (size x - 1) (size x - 1) x::1 word)"
-    by (simp add: nat_minus_as_int)
-  then have "sint (smt_extract (nat (int (size x) - (1::int))) (nat (int (size x) - (1::int))) x::1 word)
-      = signed_take_bit (LENGTH(1) - Suc (0::nat)) (drop_bit (size x - (1::nat)) (take_bit (Suc (size x - (1::nat))) (uint x)))"
-    using sint_smt_extract[of "size x - 1" "size x - 1" x, where 'b="1"]
-    by (metis Suc_pred' add_diff_cancel_left' le_refl len_num1 lessI word_size_gt_0)
-  then have "sint (smt_extract (nat (int (size x) - (1::int))) (nat (int (size x) - (1::int))) x::1 word)
-      = signed_take_bit 0 (drop_bit (size x - (1::nat)) (take_bit (Suc (size x - (1::nat))) (uint x)))"
-    using One_nat_def diff_self_eq_0 len_num1 by presburger
-  moreover have "sint (1::1 word) = -1"
-    by simp
-
-
-   have t3: "(size x - (size x - Suc (0::nat))) = 1"
-    by (metis One_nat_def Suc_diff_1 add_implies_diff plus_1_eq_Suc word_size_gt_0)
-
-  have "(sint x < (0::int))
-      = (signed_take_bit 0 (drop_bit (size x - (1::nat)) (take_bit (Suc (size x - (1::nat))) (uint x))) = -1)"
-    apply simp
-    apply (simp add: drop_bit_take_bit)
-    unfolding drop_bit_eq_div take_bit_eq_mod
-    apply (simp add: sint_uint)
-    apply (simp add: t3 bit_iff_odd)
-    apply (simp add: word_size)
-    by (simp add: odd_iff_mod_2_eq_one)
-
-   then show "(x <s Word.Word (0::int)) =
-    (smt_extract (nat (int (size x) - (1::int))) (nat (int (size x) - (1::int))) x = (Word.Word (1::int)::1 word))"
-    apply (simp add: word_sless_alt)
-  by (metis \<open>(sint (x::'a::len word) < (0::int)) = (signed_take_bit (0::nat) (drop_bit (size x - (1::nat)) (take_bit (Suc (size x - (1::nat))) (uint x))) = - (1::int))\<close> calculation len_num1 signed_1 word_eq_iff_signed)
-qed
 
 named_theorems rewrite_bv_zero_ult \<open>automatically_generated\<close>
 

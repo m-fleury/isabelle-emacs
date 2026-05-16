@@ -1,18 +1,22 @@
-(*  Title:      HOL/SMT_Examples/SMT_Examples_CVC.thy
+(*  Title:      HOL/SMT_Examples/SMT_Examples/ExternalProblemChecking/Arith_Rewrites.thy
     Author:     Hanna Lachnitt, Stanford University
     Author:     Mathias Fleury, University of Freiburg
-
-
-   41 rules in total
-   18 rules with test
-   23 without test
 *)
 
 theory Arith_Rewrites
-  imports HOL.SMT_CVC
+  imports HOL.SMT_CVC HOL.Real
 begin
 
+declare[[rare_rec_mode=1]]
+
 declare[[smt_trace=false,smt_verbose=false]]
+
+check_smt_dir ("cvc5_proof") "~~/src/HOL/SMT_Examples/ExternalProblemChecking/Benchmarks/Bool_Rewrites/"
+
+declare[[smt_trace=true,smt_verbose=true]]
+
+declare[[smt_expert_debug_alethe_level=3]]
+declare[[smt_expert_debug_alethe_files="alethe_replay_rare"]]
 
 (*(define-rule arith-div-total-zero-real ((t ?)) (/_total t 0/1) 0/1)*)
 check_smt ("cvc5_proof")

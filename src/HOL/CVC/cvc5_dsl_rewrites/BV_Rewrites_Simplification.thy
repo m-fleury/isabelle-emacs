@@ -1667,18 +1667,133 @@ lemma [rewrite_bv_mult_pow2_2]:
     and exponent size u n :: int
   shows "NO_MATCH (cvc_a) (undefined xs ys z size n exponent u)
 
-    \<Longrightarrow> is_pow2 n = True
-    \<Longrightarrow> exponent = (size - (floorlog 2 (nat n))) - 1
-    \<Longrightarrow> u = size - e - 1
+    \<Longrightarrow> is_pow2 (2 ^ nat size - n) = True
+    \<Longrightarrow> exponent = int (floorlog 2 (nat (2 ^ nat size - n)) - 1)
+    \<Longrightarrow> u = size - int (floorlog 2 (nat (2 ^ nat size - n)) - 1) - 1
 
     \<Longrightarrow> (n_w::'b::len word) = Word.Word n
     \<Longrightarrow> LENGTH('a) + LENGTH('c) = LENGTH('b)
-    \<Longrightarrow> LENGTH('c) = u + 1 \<Longrightarrow> u \<ge> 0
+    \<Longrightarrow> int LENGTH('c) = u + 1 \<Longrightarrow> u \<ge> 0
     \<Longrightarrow> exponent = int (LENGTH('a))
     \<Longrightarrow>
 (cvc_list_left (*) xs (z * (cvc_list_right (*) n_w ys ::'b::len word)))
-   = (word_cat (smtlib_extract u 0 (cvc_list_left (*) xs (cvc_list_right (*) z ys))::'c::len word) (0::'a::len word))"
-  sorry
+   = (word_cat
+        (smtlib_extract u 0 (- (cvc_list_left (*) xs (cvc_list_right (*) z ys)))::'c::len word)
+        (0::'a::len word))"
+proof -
+  assume pow: "is_pow2 (2 ^ nat size - n) = True"
+     and exp_eq: "exponent = int (floorlog 2 (nat (2 ^ nat size - n)) - 1)"
+     and u_eq: "u = size - int (floorlog 2 (nat (2 ^ nat size - n)) - 1) - 1"
+     and nw_eq: "(n_w::'b::len word) = Word.Word n"
+     and la: "LENGTH('a) + LENGTH('c) = LENGTH('b)"
+     and lc: "int LENGTH('c) = u + 1" and uge0: "u \<ge> 0"
+     and ea: "exponent = int (LENGTH('a))"
+
+  define k where k_def: "k = LENGTH('a)"
+  have fl_eq: "floorlog 2 (nat (2 ^ nat size - n)) - 1 = k"
+    using exp_eq ea k_def by simp
+
+  have ns_pow: "(2::int) ^ nat size - n = 2 ^ k"
+    by (metis fl_eq is_pow2_imp_eq_2_pow pow)
+
+  have len_b_int: "int LENGTH('b) = size"
+    using la lc u_eq ea exp_eq by linarith
+  have len_b: "LENGTH('b) = nat size"
+    using len_b_int by simp
+
+  have n_alt: "n = (2::int) ^ nat size - 2 ^ k"
+    using ns_pow by simp
+
+  have nw_pow: "n_w = - ((2 :: 'b word) ^ k)"
+  proof -
+    have "n_w = of_int ((2::int) ^ nat size - 2 ^ k)"
+      using nw_eq n_alt by simp
+    also have "\<dots> = (of_int ((2::int) ^ nat size) :: 'b word) - of_int (2 ^ k)"
+      by simp
+    also have "(of_int ((2::int) ^ nat size) :: 'b word) = (2 :: 'b word) ^ nat size"
+      by simp
+    also have "(2 :: 'b word) ^ nat size = 0"
+      using len_b by simp
+    also have "(of_int ((2::int) ^ k) :: 'b word) = (2 :: 'b word) ^ k"
+      by simp
+    finally show ?thesis by simp
+  qed
+
+  let ?w = "cvc_list_left (*) xs (cvc_list_right (*) z ys) :: 'b word"
+
+  have lhs_collapse:
+    "cvc_list_left (*) xs (z * cvc_list_right (*) n_w ys :: 'b word) = ?w * n_w"
+  proof -
+    obtain xs' where xs_eq: "xs = ListVar xs'" by (cases xs)
+    obtain ys' where ys_eq: "ys = ListVar ys'" by (cases ys)
+    show ?thesis
+    proof (cases "ys' = []")
+      case True
+      have step: "cvc_bin_op_fold (*) xs' (z * n_w :: 'b word)
+                 = cvc_bin_op_fold (*) xs' z * n_w"
+        by (induct xs') (simp_all add: ac_simps)
+      show ?thesis
+        unfolding xs_eq ys_eq cvc_list_left_def cvc_list_right_def
+        using True step by simp
+    next
+      case False
+      define Y where "Y = cvc_nary_op_fold ((*) :: 'b word \<Rightarrow> 'b word \<Rightarrow> 'b word) ys'"
+      have step: "cvc_bin_op_fold (*) xs' (z * (n_w * Y))
+                 = cvc_bin_op_fold (*) xs' (z * Y) * n_w"
+        by (induct xs') (simp_all add: ac_simps)
+      show ?thesis
+        unfolding xs_eq ys_eq cvc_list_left_def cvc_list_right_def Y_def
+        using False step
+        by (simp add: Y_def)
+    qed
+  qed
+
+  have neg_shifted: "?w * n_w = push_bit k (- ?w)"
+  proof -
+    have "?w * n_w = ?w * (- ((2 :: 'b word) ^ k))" using nw_pow by simp
+    also have "\<dots> = - (?w * (2 :: 'b word) ^ k)" by simp
+    also have "\<dots> = - push_bit k ?w" by (simp add: push_bit_eq_mult)
+    also have "\<dots> = push_bit k (- ?w)" by (simp add: push_bit_minus)
+    finally show ?thesis .
+  qed
+
+  have cat_eq:
+    "push_bit k (- ?w) = word_cat (smtlib_extract u 0 (- ?w) :: 'c word) (0 :: 'a word)"
+  proof (rule bit_word_eqI)
+    fix m :: nat assume m_lt: "m < LENGTH('b)"
+    show "bit (push_bit k (- ?w)) m =
+          bit (word_cat (smtlib_extract u 0 (- ?w) :: 'c word) (0 :: 'a word) :: 'b word) m"
+    proof (cases "m < LENGTH('a)")
+      case True
+      hence "\<not> bit (push_bit k (- ?w)) m"
+        using k_def by (simp add: bit_push_bit_iff)
+      moreover have "\<not> bit (word_cat (smtlib_extract u 0 (- ?w) :: 'c word) (0 :: 'a word) :: 'b word) m"
+        using True m_lt by (simp add: bit_word_cat_iff)
+      ultimately show ?thesis by simp
+    next
+      case False
+      hence m_ge: "LENGTH('a) \<le> m" by linarith
+      let ?j = "m - LENGTH('a)"
+      have j_lt_c: "?j < LENGTH('c)" using m_lt m_ge la by linarith
+      have j_lt_u1: "?j < nat (u + 1)" using j_lt_c lc uge0
+        by (simp add: nat_add_distrib)
+      have "bit (push_bit k (- ?w)) m = bit (- ?w) ?j"
+        using m_ge m_lt k_def by (simp add: bit_push_bit_iff)
+      moreover have "bit (word_cat (smtlib_extract u 0 (- ?w) :: 'c word) (0 :: 'a word) :: 'b word) m
+                    = bit (smtlib_extract u 0 (- ?w) :: 'c word) ?j"
+        using False m_lt by (simp add: bit_word_cat_iff)
+      moreover have "bit (smtlib_extract u 0 (- ?w) :: 'c word) ?j = bit (- ?w) ?j"
+        unfolding smtlib_extract_def
+        using j_lt_c j_lt_u1 la
+        by (simp add: bit_slice_iff bit_take_bit_iff)
+      ultimately show ?thesis by simp
+    qed
+  qed
+
+  show "cvc_list_left (*) xs (z * cvc_list_right (*) n_w ys :: 'b word)
+      = word_cat (smtlib_extract u 0 (- (cvc_list_left (*) xs (cvc_list_right (*) z ys))) :: 'c word) (0 :: 'a word)"
+    using lhs_collapse neg_shifted cat_eq by simp
+qed
 
 
 (*
@@ -1691,6 +1806,106 @@ lemma [rewrite_bv_mult_pow2_2]:
     (extract u 0 (bvneg z))
     (@bv 0 exponent)))
 *)
+named_theorems rewrite_bv_mult_pow2_2b \<open>automatically_generated\<close>
+
+lemma [rewrite_bv_mult_pow2_2b]:
+  fixes z::"'a::len word" and size n exponent u::int
+  shows "NO_MATCH (cvc_a) (undefined z size n exponent u)
+    \<Longrightarrow>
+is_pow2 (int ((2::nat) ^ nat size) - n) = True \<Longrightarrow>
+         exponent = int (floorlog (2::nat) (nat (int ((2::nat) ^ nat size) - n)) - 1) \<Longrightarrow>
+        u = size - int (floorlog (2::nat) (nat (int ((2::nat) ^ nat size) - n)) - 1) - 1 \<Longrightarrow>
+  n_w = Word.Word n \<Longrightarrow>
+  LENGTH('b) = u + 1 \<Longrightarrow> u \<ge> 0 \<Longrightarrow>
+  LENGTH('c) = exponent \<Longrightarrow>
+  LENGTH('a) = size \<Longrightarrow>
+  LENGTH('a) = LENGTH('b) + LENGTH('c) \<Longrightarrow>
+  (z * n_w) = (word_cat (smtlib_extract u 0 (-z)::'b::len word) (0::'c::len word))
+"
+proof -
+  assume pow: "is_pow2 (int ((2::nat) ^ nat size) - n) = True"
+     and exp_eq: "exponent = int (floorlog (2::nat) (nat (int ((2::nat) ^ nat size) - n)) - 1)"
+     and u_eq: "u = size - int (floorlog (2::nat) (nat (int ((2::nat) ^ nat size) - n)) - 1) - 1"
+     and nw_eq: "n_w = Word.Word n"
+     and lb: "LENGTH('b) = u + 1"
+     and uge0: "u \<ge> 0"
+     and lc: "LENGTH('c) = exponent"
+     and la: "LENGTH('a) = size"
+     and labc: "LENGTH('a) = LENGTH('b) + LENGTH('c)"
+
+  define k where k_def: "k = LENGTH('c)"
+  have fl_eq: "floorlog (2::nat) (nat (int ((2::nat) ^ nat size) - n)) - 1 = k"
+    using exp_eq lc k_def by simp
+
+  have ns_pow: "int ((2::nat) ^ nat size) - n = 2 ^ k"
+    using is_pow2_imp_eq_2_pow fl_eq pow by blast
+
+  have len_a: "LENGTH('a) = nat size"
+    using la by simp
+
+  have n_alt: "n = int ((2::nat) ^ nat size) - 2 ^ k"
+    using ns_pow by simp
+
+  have nw_pow: "n_w = - ((2 :: 'a word) ^ k)"
+  proof -
+    have "n_w = of_int (int ((2::nat) ^ nat size) - 2 ^ k)"
+      using nw_eq n_alt by simp
+    also have "\<dots> = (of_int (int ((2::nat) ^ nat size)) :: 'a word) - of_int (2 ^ k)"
+      by simp
+    also have "(of_int (int ((2::nat) ^ nat size)) :: 'a word) = (2 :: 'a word) ^ nat size"
+      by simp
+    also have "(2 :: 'a word) ^ nat size = 0"
+      using len_a by simp
+    also have "(of_int ((2::int) ^ k) :: 'a word) = (2 :: 'a word) ^ k"
+      by simp
+    finally show ?thesis by simp
+  qed
+
+  have neg_shifted: "z * n_w = push_bit k (- z)"
+  proof -
+    have "z * n_w = z * (- ((2 :: 'a word) ^ k))" using nw_pow by simp
+    also have "\<dots> = - (z * (2 :: 'a word) ^ k)" by simp
+    also have "\<dots> = - push_bit k z" by (simp add: push_bit_eq_mult)
+    also have "\<dots> = push_bit k (- z)" by (simp add: push_bit_minus)
+    finally show ?thesis .
+  qed
+
+  have cat_eq:
+    "push_bit k (- z) = word_cat (smtlib_extract u 0 (- z) :: 'b word) (0 :: 'c word)"
+  proof (rule bit_word_eqI)
+    fix m :: nat assume m_lt: "m < LENGTH('a)"
+    show "bit (push_bit k (- z)) m =
+          bit (word_cat (smtlib_extract u 0 (- z) :: 'b word) (0 :: 'c word) :: 'a word) m"
+    proof (cases "m < LENGTH('c)")
+      case True
+      hence "\<not> bit (push_bit k (- z)) m"
+        using k_def by (simp add: bit_push_bit_iff)
+      moreover have "\<not> bit (word_cat (smtlib_extract u 0 (- z) :: 'b word) (0 :: 'c word) :: 'a word) m"
+        using True m_lt by (simp add: bit_word_cat_iff)
+      ultimately show ?thesis by simp
+    next
+      case False
+      hence m_ge: "LENGTH('c) \<le> m" by linarith
+      let ?j = "m - LENGTH('c)"
+      have j_lt_b: "?j < LENGTH('b)" using m_lt m_ge labc by linarith
+      have j_lt_u1: "?j < nat (u + 1)" using j_lt_b lb uge0
+        by (simp add: nat_add_distrib)
+      have "bit (push_bit k (- z)) m = bit (- z) ?j"
+        using m_ge m_lt k_def by (simp add: bit_push_bit_iff)
+      moreover have "bit (word_cat (smtlib_extract u 0 (- z) :: 'b word) (0 :: 'c word) :: 'a word) m
+                    = bit (smtlib_extract u 0 (- z) :: 'b word) ?j"
+        using False m_lt by (simp add: bit_word_cat_iff)
+      moreover have "bit (smtlib_extract u 0 (- z) :: 'b word) ?j = bit (- z) ?j"
+        unfolding smtlib_extract_def
+        using j_lt_b j_lt_u1 labc
+        by (simp add: bit_slice_iff bit_take_bit_iff)
+      ultimately show ?thesis by simp
+    qed
+  qed
+
+  show "(z * n_w) = (word_cat (smtlib_extract u 0 (-z)::'b::len word) (0::'c::len word))"
+    using neg_shifted cat_eq by simp
+qed
 
 (*
 (define-cond-rule bv-extract-mult-leading-bit
@@ -1711,8 +1926,476 @@ lemma [rewrite_bv_mult_pow2_2]:
     (concat (@bv y1i y1in) y2)))
   (@bv 0 w))
 *)
+named_theorems rewrite_bv_extract_mult_leading_bit \<open>automatically_generated\<close>
 
+lemma [rewrite_bv_extract_mult_leading_bit]:
+  fixes high low x1i x1in ::int and x2::"'a::len word" and y1i y1in ::int and y2::"'b::len word"
+    and w::int
+  shows "NO_MATCH (cvc_a) (undefined high low x1i x1in x2 y1i y1in y2 w)
+    \<Longrightarrow>
+    (x1in + int (size x2)) > 64 \<Longrightarrow>
+    ((2 * (x1in + int (size x2))) -
+      ((if x1i = 0 then x1in else x1in - (1 + int (floorlog (2::nat) (nat x1i) - 1)))
+     + (if y1i = 0 then y1in else y1in - (1 + int (floorlog (2::nat) (nat y1i) - 1))))) \<le> low \<Longrightarrow>
+    w = 1 + (high - low) \<Longrightarrow>
+LENGTH('e) = LENGTH('c) + LENGTH('a) \<Longrightarrow> LENGTH('e) = LENGTH('d) + LENGTH('b) \<Longrightarrow>
+    (x1i_w::'c::len word) = Word.Word x1i \<Longrightarrow> LENGTH('c) = x1in \<Longrightarrow>
+    (y1i_w::'d::len word) = Word.Word y1i \<Longrightarrow> LENGTH('d) = y1in \<Longrightarrow>
+    LENGTH('f) = w \<Longrightarrow> high \<ge> low \<Longrightarrow> low \<ge> 0 \<Longrightarrow>
+    0 \<le> x1i \<Longrightarrow> 0 \<le> y1i \<Longrightarrow>
+    (smtlib_extract high low ((word_cat x1i_w x2::'e::len word) * (word_cat y1i_w y2))::'f::len word)
+    = 0"
+  unfolding smtlib_extract_def
+  apply simp
+  apply (rule bit_word_eqI)
+  apply (simp add: nth_slice semiring_bit_operations_class.bit_take_bit_iff bit_word_cat_iff)
+  apply (rule impI)
+  apply (cases " x1i = 0")
+   apply simp_all
+   apply (case_tac [!] "y1i = 0")
+     apply simp_all
+proof goal_cases
+  case (1 n)
+  then have ba: "x1in + (2 * int (size x2) - y1in) \<le> low"
+    and lcd_lab: "LENGTH('d) + LENGTH('b) = LENGTH('c) + LENGTH('a)"
+    and le_eq: "LENGTH('e) = LENGTH('c) + LENGTH('a)"
+    and lc: "int LENGTH('c) = x1in"
+    and ld: "int LENGTH('d) = y1in"
+    and l_pos: "0 \<le> low"
+    by auto
 
+  have le_a: "LENGTH('a) \<le> LENGTH('e)" using le_eq by simp
+  have le_b: "LENGTH('b) \<le> LENGTH('e)" using lcd_lab le_eq by simp
+
+  have ab_le_low: "LENGTH('a) + LENGTH('b) \<le> nat low"
+  proof -
+    have "int LENGTH('c) + 2 * int LENGTH('a) - int LENGTH('d) \<le> low"
+      using ba lc ld by (simp add: word_size)
+    moreover have "int (LENGTH('a) + LENGTH('b))
+                 = int LENGTH('c) + 2 * int LENGTH('a) - int LENGTH('d)"
+      using lcd_lab by linarith
+    ultimately have "int (LENGTH('a) + LENGTH('b)) \<le> low" by linarith
+    thus ?thesis using l_pos by linarith
+  qed
+
+  have unat_x_eq: "unat (ucast x2 :: 'e word) = unat x2"
+    using le_a by (simp add: is_up.rep_eq source_size target_size unat_ucast_upcast)
+  have unat_y_eq: "unat (ucast y2 :: 'e word) = unat y2"
+    using le_b by (simp add: is_up.rep_eq source_size target_size unat_ucast_upcast)
+
+  have prod_lt: "unat x2 * unat y2 < 2 ^ nat low"
+  proof -
+    have "unat x2 * unat y2 < 2 ^ LENGTH('a) * 2 ^ LENGTH('b)"
+      apply (intro mult_strict_mono) by simp_all
+    also have "\<dots> = 2 ^ (LENGTH('a) + LENGTH('b))"
+      by (simp add: power_add)
+    also have "\<dots> \<le> (2 ^ nat low :: nat)"
+      using ab_le_low by simp
+    finally show ?thesis .
+  qed
+
+  have unat_prod: "unat ((ucast x2 :: 'e word) * ucast y2) < 2 ^ nat low"
+  proof -
+    have "unat ((ucast x2 :: 'e word) * ucast y2)
+        = (unat x2 * unat y2) mod 2 ^ LENGTH('e)"
+      using unat_x_eq unat_y_eq
+      by (simp add: unat_word_ariths(2))
+    also have "\<dots> \<le> unat x2 * unat y2" by simp
+    finally show ?thesis using prod_lt by linarith
+  qed
+
+  show "\<not> bit ((ucast x2 :: 'e word) * ucast y2) (n + nat low)"
+  proof -
+    have lt: "unat ((ucast x2 :: 'e word) * ucast y2) < 2 ^ (n + nat low)"
+      using unat_prod
+      by (meson less_le_trans nat_zero_less_power_iff one_le_numeral
+                power_increasing le_add_same_cancel2 zero_le)
+    hence "(unat ((ucast x2 :: 'e word) * ucast y2)) div 2 ^ (n + nat low) = 0"
+      by simp
+    hence not_bit_unat: "\<not> bit (unat ((ucast x2 :: 'e word) * ucast y2)) (n + nat low)"
+      by (simp add: bit_iff_odd_drop_bit drop_bit_eq_div)
+    show ?thesis
+      using bit_unsigned_iff not_bit_unat possible_bit_nat by blast
+    qed
+next
+  case (2 n)
+  then have ba: "x1in + (2 * int (size x2) - (y1in - (1 + int (floorlog 2 (nat y1i) - Suc 0)))) \<le> low"
+    and lcd_lab: "LENGTH('d) + LENGTH('b) = LENGTH('c) + LENGTH('a)"
+    and le_eq: "LENGTH('e) = LENGTH('c) + LENGTH('a)"
+    and lc: "int LENGTH('c) = x1in"
+    and ld: "int LENGTH('d) = y1in"
+    and l_pos: "0 \<le> low"
+    and y_pos: "0 \<le> y1i"
+    and y_ne: "y1i \<noteq> 0"
+    by auto
+
+  have le_a: "LENGTH('a) \<le> LENGTH('e)" using le_eq by simp
+  have le_b: "LENGTH('b) \<le> LENGTH('e)" using lcd_lab le_eq by simp
+  have le_db: "LENGTH('e) = LENGTH('d) + LENGTH('b)" using le_eq lcd_lab by simp
+
+  have ny_gt: "0 < nat y1i" using y_pos y_ne by linarith
+  have fy_pos: "0 < floorlog 2 (nat y1i)"
+    using ny_gt by (simp add: floorlog_def)
+  have fy_int: "int (floorlog 2 (nat y1i) - Suc 0) = int (floorlog 2 (nat y1i)) - 1"
+    using fy_pos by simp
+  have y_lt: "nat y1i < 2 ^ floorlog 2 (nat y1i)"
+    using floorlog_bounds[of "nat y1i" 2] ny_gt by simp
+
+  have unat_y1iw_lt: "unat (word_of_int y1i :: 'd word) < 2 ^ floorlog 2 (nat y1i)"
+  proof -
+    have "unat (word_of_int y1i :: 'd word) = nat (y1i mod 2 ^ LENGTH('d))"
+      by (simp add: uint_word_of_int unat_eq_nat_uint)
+    also have "\<dots> \<le> nat y1i"
+      using y_pos
+      using nat_le_eq_zle zmod_le_nonneg_dividend by presburger
+    finally show ?thesis using y_lt by linarith
+  qed
+
+  have unat_x_eq: "unat (ucast x2 :: 'e word) = unat x2"
+    using le_a by (simp add: is_up.rep_eq source_size target_size unat_ucast_upcast)
+
+  have unat_wc_lt: "unat (word_cat (word_of_int y1i :: 'd word) y2 :: 'e word)
+                  < 2 ^ (floorlog 2 (nat y1i) + LENGTH('b))"
+  proof -
+    have wc_eq: "unat (word_cat (word_of_int y1i :: 'd word) y2 :: 'e word)
+               = unat (word_of_int y1i :: 'd word) * 2 ^ LENGTH('b) + unat y2"
+      using le_db
+      by (simp add: push_bit_eq_mult unat_word_cat)
+    have y2_lt: "unat y2 < 2 ^ LENGTH('b)" by simp
+    have y1iw_le: "unat (word_of_int y1i :: 'd word) + 1 \<le> 2 ^ floorlog 2 (nat y1i)"
+      using unat_y1iw_lt by simp
+    have "unat (word_of_int y1i :: 'd word) * 2 ^ LENGTH('b) + unat y2
+        < unat (word_of_int y1i :: 'd word) * 2 ^ LENGTH('b) + 2 ^ LENGTH('b)"
+      using y2_lt by simp
+    also have "\<dots> = (unat (word_of_int y1i :: 'd word) + 1) * 2 ^ LENGTH('b)"
+      by simp
+    also have "\<dots> \<le> 2 ^ floorlog 2 (nat y1i) * 2 ^ LENGTH('b)"
+      using y1iw_le by (intro mult_right_mono) auto
+    finally show ?thesis using wc_eq by (simp add: power_add)
+  qed
+
+  have ab_fy_le_low: "LENGTH('a) + LENGTH('b) + floorlog 2 (nat y1i) \<le> nat low"
+  proof -
+    have "x1in + 2 * int (size x2) - y1in + int (floorlog 2 (nat y1i)) \<le> low"
+      using ba fy_int by linarith
+    hence "int LENGTH('c) + 2 * int LENGTH('a) - int LENGTH('d) + int (floorlog 2 (nat y1i)) \<le> low"
+      using lc ld by (simp add: word_size)
+    moreover have "int (LENGTH('a) + LENGTH('b) + floorlog 2 (nat y1i))
+                 = int LENGTH('c) + 2 * int LENGTH('a) - int LENGTH('d) + int (floorlog 2 (nat y1i))"
+      using lcd_lab by linarith
+    ultimately have "int (LENGTH('a) + LENGTH('b) + floorlog 2 (nat y1i)) \<le> low" by linarith
+    thus ?thesis using l_pos by linarith
+  qed
+
+  have prod_lt: "unat x2 * unat (word_cat (word_of_int y1i :: 'd word) y2 :: 'e word) < 2 ^ nat low"
+  proof -
+    have "unat x2 * unat (word_cat (word_of_int y1i :: 'd word) y2 :: 'e word)
+        < 2 ^ LENGTH('a) * 2 ^ (floorlog 2 (nat y1i) + LENGTH('b))"
+      by (simp add: mult_strict_mono' unat_wc_lt)
+    also have "\<dots> = 2 ^ (LENGTH('a) + LENGTH('b) + floorlog 2 (nat y1i))"
+      by (simp add: power_add add.commute add.left_commute)
+    also have "\<dots> \<le> (2 :: nat) ^ nat low"
+      using ab_fy_le_low by simp
+    finally show ?thesis .
+  qed
+
+  have unat_prod: "unat ((ucast x2 :: 'e word) * (word_cat (word_of_int y1i :: 'd word) y2 :: 'e word))
+                  < 2 ^ nat low"
+  proof -
+    have "unat ((ucast x2 :: 'e word) * (word_cat (word_of_int y1i :: 'd word) y2 :: 'e word))
+        = (unat (ucast x2 :: 'e word) * unat (word_cat (word_of_int y1i :: 'd word) y2 :: 'e word))
+          mod 2 ^ LENGTH('e)"
+      by (simp add: unat_word_ariths(2))
+    also have "\<dots> \<le> unat (ucast x2 :: 'e word) * unat (word_cat (word_of_int y1i :: 'd word) y2 :: 'e word)"
+      by simp
+    also have "\<dots> = unat x2 * unat (word_cat (word_of_int y1i :: 'd word) y2 :: 'e word)"
+      using unat_x_eq by simp
+    finally show ?thesis using prod_lt by linarith
+  qed
+
+  show "\<not> bit ((ucast x2 :: 'e word) * (word_cat (word_of_int y1i :: 'd word) y2)) (n + nat low)"
+  proof -
+    have lt: "unat ((ucast x2 :: 'e word) * (word_cat (word_of_int y1i :: 'd word) y2))
+            < 2 ^ (n + nat low)"
+      using unat_prod
+      by (meson less_le_trans nat_zero_less_power_iff one_le_numeral
+                power_increasing le_add_same_cancel2 zero_le)
+    hence "(unat ((ucast x2 :: 'e word) * (word_cat (word_of_int y1i :: 'd word) y2)))
+            div 2 ^ (n + nat low) = 0"
+      by simp
+    hence not_bit_unat: "\<not> bit (unat ((ucast x2 :: 'e word)
+                                       * (word_cat (word_of_int y1i :: 'd word) y2))) (n + nat low)"
+      by (simp add: bit_iff_odd_drop_bit drop_bit_eq_div)
+    show ?thesis
+      using bit_unsigned_iff not_bit_unat possible_bit_nat by blast
+  qed
+next
+  case (3 n)
+  then have ba: "x1in + (2 * int (size x2) + (1 + (int (floorlog 2 (nat x1i) - Suc 0) - y1in))) \<le> low"
+    and lcd_lab: "LENGTH('d) + LENGTH('b) = LENGTH('c) + LENGTH('a)"
+    and le_eq: "LENGTH('e) = LENGTH('c) + LENGTH('a)"
+    and lc: "int LENGTH('c) = x1in"
+    and ld: "int LENGTH('d) = y1in"
+    and l_pos: "0 \<le> low"
+    and x_pos: "0 \<le> x1i"
+    and x_ne: "x1i \<noteq> 0"
+    by auto
+
+  have le_a: "LENGTH('a) \<le> LENGTH('e)" using le_eq by simp
+  have le_b: "LENGTH('b) \<le> LENGTH('e)" using lcd_lab le_eq by simp
+  have le_ca: "LENGTH('e) = LENGTH('c) + LENGTH('a)" using le_eq .
+
+  have nx_gt: "0 < nat x1i" using x_pos x_ne by linarith
+  have fx_pos: "0 < floorlog 2 (nat x1i)"
+    using nx_gt by (simp add: floorlog_def)
+  have fx_int: "int (floorlog 2 (nat x1i) - Suc 0) = int (floorlog 2 (nat x1i)) - 1"
+    using fx_pos by simp
+  have x_lt: "nat x1i < 2 ^ floorlog 2 (nat x1i)"
+    using floorlog_bounds[of "nat x1i" 2] nx_gt by simp
+
+  have unat_x1iw_lt: "unat (word_of_int x1i :: 'c word) < 2 ^ floorlog 2 (nat x1i)"
+  proof -
+    have "unat (word_of_int x1i :: 'c word) = nat (x1i mod 2 ^ LENGTH('c))"
+      by (simp add: int_word_uint unat_eq_nat_uint)
+    also have "\<dots> \<le> nat x1i"
+      using x_pos
+      using nat_mono zmod_le_nonneg_dividend by presburger
+
+    finally show ?thesis using x_lt by linarith
+  qed
+
+  have unat_y_eq: "unat (ucast y2 :: 'e word) = unat y2"
+    using le_b by (simp add: is_up.rep_eq source_size target_size unat_ucast_upcast)
+
+  have unat_wc_lt: "unat (word_cat (word_of_int x1i :: 'c word) x2 :: 'e word)
+                  < 2 ^ (floorlog 2 (nat x1i) + LENGTH('a))"
+  proof -
+    have wc_eq: "unat (word_cat (word_of_int x1i :: 'c word) x2 :: 'e word)
+               = unat (word_of_int x1i :: 'c word) * 2 ^ LENGTH('a) + unat x2"
+      using le_ca
+      by (simp add: push_bit_eq_mult unat_word_cat)
+    have x2_lt: "unat x2 < 2 ^ LENGTH('a)" by simp
+    have x1iw_le: "unat (word_of_int x1i :: 'c word) + 1 \<le> 2 ^ floorlog 2 (nat x1i)"
+      using unat_x1iw_lt by simp
+    have "unat (word_of_int x1i :: 'c word) * 2 ^ LENGTH('a) + unat x2
+        < unat (word_of_int x1i :: 'c word) * 2 ^ LENGTH('a) + 2 ^ LENGTH('a)"
+      using x2_lt by simp
+    also have "\<dots> = (unat (word_of_int x1i :: 'c word) + 1) * 2 ^ LENGTH('a)"
+      by simp
+    also have "\<dots> \<le> 2 ^ floorlog 2 (nat x1i) * 2 ^ LENGTH('a)"
+      using x1iw_le by (intro mult_right_mono) auto
+    finally show ?thesis using wc_eq by (simp add: power_add)
+  qed
+
+  have ab_fx_le_low: "LENGTH('a) + LENGTH('b) + floorlog 2 (nat x1i) \<le> nat low"
+  proof -
+    have "x1in + 2 * int (size x2) - y1in + int (floorlog 2 (nat x1i)) \<le> low"
+      using ba fx_int by linarith
+    hence "int LENGTH('c) + 2 * int LENGTH('a) - int LENGTH('d) + int (floorlog 2 (nat x1i)) \<le> low"
+      using lc ld by (simp add: word_size)
+    moreover have "int (LENGTH('a) + LENGTH('b) + floorlog 2 (nat x1i))
+                 = int LENGTH('c) + 2 * int LENGTH('a) - int LENGTH('d) + int (floorlog 2 (nat x1i))"
+      using lcd_lab by linarith
+    ultimately have "int (LENGTH('a) + LENGTH('b) + floorlog 2 (nat x1i)) \<le> low" by linarith
+    thus ?thesis using l_pos by linarith
+  qed
+
+  have prod_lt: "unat (word_cat (word_of_int x1i :: 'c word) x2 :: 'e word) * unat y2 < 2 ^ nat low"
+  proof -
+    have "unat (word_cat (word_of_int x1i :: 'c word) x2 :: 'e word) * unat y2
+        < 2 ^ (floorlog 2 (nat x1i) + LENGTH('a)) * 2 ^ LENGTH('b)"
+      using unat_wc_lt
+      using mult_strict_mono' by blast
+    also have "\<dots> = 2 ^ (LENGTH('a) + LENGTH('b) + floorlog 2 (nat x1i))"
+      by (simp add: power_add add.commute add.left_commute)
+    also have "\<dots> \<le> (2 :: nat) ^ nat low"
+      using ab_fx_le_low by simp
+    finally show ?thesis .
+  qed
+
+  have unat_prod: "unat ((word_cat (word_of_int x1i :: 'c word) x2 :: 'e word) * (ucast y2 :: 'e word))
+                  < 2 ^ nat low"
+  proof -
+    have "unat ((word_cat (word_of_int x1i :: 'c word) x2 :: 'e word) * (ucast y2 :: 'e word))
+        = (unat (word_cat (word_of_int x1i :: 'c word) x2 :: 'e word) * unat (ucast y2 :: 'e word))
+          mod 2 ^ LENGTH('e)"
+      by (simp add: unat_word_ariths(2))
+    also have "\<dots> \<le> unat (word_cat (word_of_int x1i :: 'c word) x2 :: 'e word) * unat (ucast y2 :: 'e word)"
+      by simp
+    also have "\<dots> = unat (word_cat (word_of_int x1i :: 'c word) x2 :: 'e word) * unat y2"
+      using unat_y_eq by simp
+    finally show ?thesis using prod_lt by linarith
+  qed
+
+  show "\<not> bit ((word_cat (word_of_int x1i :: 'c word) x2 :: 'e word) * ucast y2) (n + nat low)"
+  proof -
+    have lt: "unat ((word_cat (word_of_int x1i :: 'c word) x2 :: 'e word) * ucast y2)
+            < 2 ^ (n + nat low)"
+      using unat_prod
+      by (meson less_le_trans nat_zero_less_power_iff one_le_numeral
+                power_increasing le_add_same_cancel2 zero_le)
+    hence "(unat ((word_cat (word_of_int x1i :: 'c word) x2 :: 'e word) * ucast y2))
+            div 2 ^ (n + nat low) = 0"
+      by simp
+    hence not_bit_unat: "\<not> bit (unat ((word_cat (word_of_int x1i :: 'c word) x2 :: 'e word)
+                                       * ucast y2)) (n + nat low)"
+      by (simp add: bit_iff_odd_drop_bit drop_bit_eq_div)
+    show ?thesis
+      using bit_unsigned_iff not_bit_unat possible_bit_nat by blast
+  qed
+next
+  case (4 n)
+  then have ba: "x1in + (2 * int (size x2)
+                          + ((2::int) + (int (floorlog 2 (nat x1i) - Suc 0)
+                                       + (int (floorlog 2 (nat y1i) - Suc 0) - y1in)))) \<le> low"
+    and lcd_lab: "LENGTH('d) + LENGTH('b) = LENGTH('c) + LENGTH('a)"
+    and le_eq: "LENGTH('e) = LENGTH('c) + LENGTH('a)"
+    and lc: "int LENGTH('c) = x1in"
+    and ld: "int LENGTH('d) = y1in"
+    and l_pos: "0 \<le> low"
+    and x_pos: "0 \<le> x1i" and x_ne: "x1i \<noteq> 0"
+    and y_pos: "0 \<le> y1i" and y_ne: "y1i \<noteq> 0"
+    by auto
+
+  have le_a: "LENGTH('a) \<le> LENGTH('e)" using le_eq by simp
+  have le_b: "LENGTH('b) \<le> LENGTH('e)" using lcd_lab le_eq by simp
+  have le_db: "LENGTH('e) = LENGTH('d) + LENGTH('b)" using le_eq lcd_lab by simp
+  have le_ca: "LENGTH('e) = LENGTH('c) + LENGTH('a)" using le_eq .
+
+  have nx_gt: "0 < nat x1i" using x_pos x_ne by linarith
+  have ny_gt: "0 < nat y1i" using y_pos y_ne by linarith
+  have fx_pos: "0 < floorlog 2 (nat x1i)" using nx_gt by (simp add: floorlog_def)
+  have fy_pos: "0 < floorlog 2 (nat y1i)" using ny_gt by (simp add: floorlog_def)
+  have fx_int: "int (floorlog 2 (nat x1i) - Suc 0) = int (floorlog 2 (nat x1i)) - 1"
+    using fx_pos by simp
+  have fy_int: "int (floorlog 2 (nat y1i) - Suc 0) = int (floorlog 2 (nat y1i)) - 1"
+    using fy_pos by simp
+  have x_lt: "nat x1i < 2 ^ floorlog 2 (nat x1i)"
+    using floorlog_bounds[of "nat x1i" 2] nx_gt by simp
+  have y_lt: "nat y1i < 2 ^ floorlog 2 (nat y1i)"
+    using floorlog_bounds[of "nat y1i" 2] ny_gt by simp
+
+  have unat_x1iw_lt: "unat (word_of_int x1i :: 'c word) < 2 ^ floorlog 2 (nat x1i)"
+  proof -
+    have "unat (word_of_int x1i :: 'c word) = nat (x1i mod 2 ^ LENGTH('c))"
+      by (simp add: uint_word_of_int unat_eq_nat_uint)
+    also have "\<dots> \<le> nat x1i" using x_pos
+      by (metis x_pos nat_mono zmod_le_nonneg_dividend)
+    finally show ?thesis using x_lt by linarith
+  qed
+  have unat_y1iw_lt: "unat (word_of_int y1i :: 'd word) < 2 ^ floorlog 2 (nat y1i)"
+  proof -
+    have "unat (word_of_int y1i :: 'd word) = nat (y1i mod 2 ^ LENGTH('d))"
+      by (metis uint_word_of_int unat_eq_nat_uint)
+      also have "\<dots> \<le> nat y1i" using y_pos
+        by (metis y_pos zmod_le_nonneg_dividend nat_mono)
+    finally show ?thesis using y_lt by linarith
+  qed
+
+  have unat_wcx_lt: "unat (word_cat (word_of_int x1i :: 'c word) x2 :: 'e word)
+                   < 2 ^ (floorlog 2 (nat x1i) + LENGTH('a))"
+  proof -
+    have wc_eq: "unat (word_cat (word_of_int x1i :: 'c word) x2 :: 'e word)
+               = unat (word_of_int x1i :: 'c word) * 2 ^ LENGTH('a) + unat x2"
+      using le_ca
+      by (metis le_eq push_bit_eq_mult unat_word_cat)
+    have x2_lt: "unat x2 < 2 ^ LENGTH('a)" by simp
+    have x1iw_le: "unat (word_of_int x1i :: 'c word) + 1 \<le> 2 ^ floorlog 2 (nat x1i)"
+      using unat_x1iw_lt by simp
+    have "unat (word_of_int x1i :: 'c word) * 2 ^ LENGTH('a) + unat x2
+        < unat (word_of_int x1i :: 'c word) * 2 ^ LENGTH('a) + 2 ^ LENGTH('a)"
+      using x2_lt by simp
+    also have "\<dots> = (unat (word_of_int x1i :: 'c word) + 1) * 2 ^ LENGTH('a)"
+      by simp
+    also have "\<dots> \<le> 2 ^ floorlog 2 (nat x1i) * 2 ^ LENGTH('a)"
+      using x1iw_le by (intro mult_right_mono) auto
+    finally show ?thesis using wc_eq by (simp add: power_add)
+  qed
+  have unat_wcy_lt: "unat (word_cat (word_of_int y1i :: 'd word) y2 :: 'e word)
+                   < 2 ^ (floorlog 2 (nat y1i) + LENGTH('b))"
+  proof -
+    have wc_eq: "unat (word_cat (word_of_int y1i :: 'd word) y2 :: 'e word)
+               = unat (word_of_int y1i :: 'd word) * 2 ^ LENGTH('b) + unat y2"
+      using le_db
+      by (metis le_db push_bit_eq_mult unat_word_cat)
+    have y2_lt: "unat y2 < 2 ^ LENGTH('b)" by simp
+    have y1iw_le: "unat (word_of_int y1i :: 'd word) + 1 \<le> 2 ^ floorlog 2 (nat y1i)"
+      using unat_y1iw_lt by simp
+    have "unat (word_of_int y1i :: 'd word) * 2 ^ LENGTH('b) + unat y2
+        < unat (word_of_int y1i :: 'd word) * 2 ^ LENGTH('b) + 2 ^ LENGTH('b)"
+      using y2_lt by simp
+    also have "\<dots> = (unat (word_of_int y1i :: 'd word) + 1) * 2 ^ LENGTH('b)"
+      by simp
+    also have "\<dots> \<le> 2 ^ floorlog 2 (nat y1i) * 2 ^ LENGTH('b)"
+      using y1iw_le by (intro mult_right_mono) auto
+    finally show ?thesis using wc_eq by (simp add: power_add)
+  qed
+
+  have abf_le_low: "LENGTH('a) + LENGTH('b) + floorlog 2 (nat x1i) + floorlog 2 (nat y1i) \<le> nat low"
+  proof -
+    have "x1in + 2 * int (size x2) - y1in
+            + int (floorlog 2 (nat x1i)) + int (floorlog 2 (nat y1i)) \<le> low"
+      using ba fx_int fy_int by linarith
+    hence "int LENGTH('c) + 2 * int LENGTH('a) - int LENGTH('d)
+              + int (floorlog 2 (nat x1i)) + int (floorlog 2 (nat y1i)) \<le> low"
+      using lc ld by (simp add: word_size)
+    moreover have "int (LENGTH('a) + LENGTH('b) + floorlog 2 (nat x1i) + floorlog 2 (nat y1i))
+                 = int LENGTH('c) + 2 * int LENGTH('a) - int LENGTH('d)
+                     + int (floorlog 2 (nat x1i)) + int (floorlog 2 (nat y1i))"
+      using lcd_lab by linarith
+    ultimately have "int (LENGTH('a) + LENGTH('b) + floorlog 2 (nat x1i) + floorlog 2 (nat y1i)) \<le> low"
+      by linarith
+    thus ?thesis using l_pos by linarith
+  qed
+
+  have prod_lt: "unat (word_cat (word_of_int x1i :: 'c word) x2 :: 'e word)
+              * unat (word_cat (word_of_int y1i :: 'd word) y2 :: 'e word) < 2 ^ nat low"
+  proof -
+    have "unat (word_cat (word_of_int x1i :: 'c word) x2 :: 'e word)
+        * unat (word_cat (word_of_int y1i :: 'd word) y2 :: 'e word)
+        < 2 ^ (floorlog 2 (nat x1i) + LENGTH('a)) * 2 ^ (floorlog 2 (nat y1i) + LENGTH('b))"
+      using unat_wcx_lt unat_wcy_lt by (intro mult_strict_mono) auto
+    also have "\<dots> = 2 ^ (LENGTH('a) + LENGTH('b) + floorlog 2 (nat x1i) + floorlog 2 (nat y1i))"
+      by (simp add: power_add add.commute add.left_commute)
+    also have "\<dots> \<le> (2 :: nat) ^ nat low"
+      using abf_le_low by simp
+    finally show ?thesis .
+  qed
+
+  have unat_prod: "unat ((word_cat (word_of_int x1i :: 'c word) x2 :: 'e word)
+                       * (word_cat (word_of_int y1i :: 'd word) y2 :: 'e word)) < 2 ^ nat low"
+  proof -
+    have "unat ((word_cat (word_of_int x1i :: 'c word) x2 :: 'e word)
+              * (word_cat (word_of_int y1i :: 'd word) y2 :: 'e word))
+        = (unat (word_cat (word_of_int x1i :: 'c word) x2 :: 'e word)
+         * unat (word_cat (word_of_int y1i :: 'd word) y2 :: 'e word)) mod 2 ^ LENGTH('e)"
+      by (simp add: unat_word_ariths(2))
+    also have "\<dots> \<le> unat (word_cat (word_of_int x1i :: 'c word) x2 :: 'e word)
+                * unat (word_cat (word_of_int y1i :: 'd word) y2 :: 'e word)" by simp
+    finally show ?thesis using prod_lt by linarith
+  qed
+
+  show "\<not> bit ((word_cat (word_of_int x1i :: 'c word) x2 :: 'e word)
+              * (word_cat (word_of_int y1i :: 'd word) y2 :: 'e word)) (n + nat low)"
+  proof -
+    have lt: "unat ((word_cat (word_of_int x1i :: 'c word) x2 :: 'e word)
+                  * (word_cat (word_of_int y1i :: 'd word) y2 :: 'e word))
+            < 2 ^ (n + nat low)"
+      using unat_prod
+      by (meson less_le_trans nat_zero_less_power_iff one_le_numeral
+                power_increasing le_add_same_cancel2 zero_le)
+    hence "(unat ((word_cat (word_of_int x1i :: 'c word) x2 :: 'e word)
+                * (word_cat (word_of_int y1i :: 'd word) y2 :: 'e word)))
+            div 2 ^ (n + nat low) = 0"
+      by simp
+    hence not_bit_unat: "\<not> bit (unat ((word_cat (word_of_int x1i :: 'c word) x2 :: 'e word)
+                                     * (word_cat (word_of_int y1i :: 'd word) y2 :: 'e word)))
+                          (n + nat low)"
+      by (simp add: bit_iff_odd_drop_bit drop_bit_eq_div)
+    show ?thesis
+      using bit_unsigned_iff not_bit_unat possible_bit_nat by blast
+  qed
+qed
 
 (*
 (define-cond-rule bv-udiv-pow2-not-one
@@ -1740,7 +2423,7 @@ named_theorems rewrite_bv_udiv_zero \<open>automatically_generated\<close>
 
 lemma [rewrite_bv_udiv_zero]:
   fixes x::"'a ::len word" and n::int
-  shows  "NO_MATCH (cvc_a) (undefined x n)
+  shows "NO_MATCH (cvc_a) (undefined x n)
  \<Longrightarrow> x div 0 = 0"
   by simp
 
@@ -1749,7 +2432,18 @@ lemma [rewrite_bv_udiv_zero]:
 (define-rule bv-udiv-one ((x ?BitVec) (n Int))
   (bvudiv x (@bv 1 n))
   x)
+
+Note: Constraint LENGTH('a) = n is not needed so omitted
+
 *)
+
+
+named_theorems rewrite_bv_udiv_one \<open>automatically_generated\<close>
+
+lemma [rewrite_bv_udiv_one]:
+  fixes x::"'a ::len word" and n::int
+  shows "NO_MATCH (cvc_a) (undefined x n) \<Longrightarrow> smt_udiv x 1 = x"
+  unfolding smt_udiv_def by simp
 
 
 (*
@@ -1768,8 +2462,20 @@ lemma [rewrite_bv_udiv_zero]:
   ((x ?BitVec) (n Int))
   (bvurem x (@bv 1 n))
   (@bv 0 n))
+
+Note: Constraint LENGTH('a) = n is not needed so omitted
+
 *)
 
+
+named_theorems rewrite_bv_urem_one \<open>automatically_generated\<close>
+
+lemma [rewrite_bv_urem_one]:
+ fixes x::"'a ::len word" and n::int
+  shows "NO_MATCH (cvc_a) (undefined x n) \<Longrightarrow> smt_urem x 1 = 0"
+  unfolding smt_urem_def
+  apply simp
+  by (simp add: unsigned_eq_0_iff)
 
 (*
 (define-cond-rule bv-urem-self
@@ -1779,21 +2485,49 @@ lemma [rewrite_bv_udiv_zero]:
   (@bv 0 w))
 *)
 
+named_theorems rewrite_bv_urem_self \<open>automatically_generated\<close>
+
+lemma [rewrite_bv_urem_self]:
+  fixes x::"'a ::len word" and n::int
+  shows "NO_MATCH (cvc_a) (undefined x n) \<Longrightarrow> w = size x \<Longrightarrow> smt_urem x x = 0"
+  unfolding smt_urem_def
+  using unat_eq_zero by auto
+
 
 (*
 (define-rule bv-shl-zero
   ((a ?BitVec) (n Int))
   (bvshl (@bv 0 n) a)
   (@bv 0 n))
+
+Note: Constraint LENGTH('a) = n is not needed so omitted
+
 *)
 
+
+named_theorems rewrite_bv_shl_zero \<open>automatically_generated\<close>
+
+lemma [rewrite_bv_shl_zero]:
+  fixes n::"int" and a::"'a ::len word"
+  shows "NO_MATCH (cvc_a) (undefined a n) \<Longrightarrow> smtlib_bvshl 0 a = 0"
+  unfolding smtlib_bvshl_def by simp
 
 (*
 (define-rule bv-lshr-zero
   ((a ?BitVec) (n Int))
   (bvlshr (@bv 0 n) a)
   (@bv 0 n))
+
+Note: Constraint LENGTH('a) = n is not needed so omitted
 *)
+
+named_theorems rewrite_bv_lshr_zero \<open>automatically_generated\<close>
+
+lemma [rewrite_bv_lshr_zero]:
+  fixes n::"int" and a::"'a ::len word"
+  shows "NO_MATCH (cvc_a) (undefined a n) \<Longrightarrow> smtlib_bvlshr 0 a = 0"
+  unfolding smtlib_bvlshr_def by simp
+
 
 
 (*
@@ -1801,6 +2535,9 @@ lemma [rewrite_bv_udiv_zero]:
   ((a ?BitVec) (n Int))
   (bvashr (@bv 0 n) a)
   (@bv 0 n))
+
+Note: Constraint LENGTH('a) = n is not needed so omitted
+
 *)
 
 named_theorems rewrite_bv_ashr_zero \<open>automatically_generated\<close>
@@ -1808,8 +2545,9 @@ named_theorems rewrite_bv_ashr_zero \<open>automatically_generated\<close>
 lemma [rewrite_bv_ashr_zero]:
   fixes n::"int" and a::"'a ::len word"
   shows "NO_MATCH cvc_a (undefined a n) 
-    \<Longrightarrow> signed_drop_bit (unat a) 0 = 0"
-  by auto
+    \<Longrightarrow> smtlib_bvashr 0 a = 0"
+  unfolding smtlib_bvashr_def smtlib_bvlshr_def
+  by (meson div_of_0_id nth_0 smtlib_extract_msb_eq)
 
 (*
 (define-cond-rule bv-ugt-urem
@@ -1824,6 +2562,17 @@ lemma [rewrite_bv_ashr_zero]:
 
 
 
+named_theorems rewrite_bv_ugt_urem \<open>automatically_generated\<close>
+
+lemma [rewrite_bv_ugt_urem]:
+  fixes y::"'a ::len word" and x::"'a ::len word" and w::int
+  shows "NO_MATCH cvc_a (undefined y x w) 
+    \<Longrightarrow> w = int (size y) \<Longrightarrow> (x < smt_urem y x) =
+   (x = 0 \<and> 0 < y)"
+  unfolding smt_urem_def
+  apply simp
+  by (metis not_less_iff_gr_or_eq unat_gt_0 word_arith_nat_mod word_gt_a_gt_0 word_mod_by_0 word_mod_less_divisor)
+
 (*
 (define-rule bv-ult-one
   ((x ?BitVec) (n Int))
@@ -1831,6 +2580,14 @@ lemma [rewrite_bv_ashr_zero]:
   (= x (@bv 0 n)))
 *)
 
+
+named_theorems rewrite_bv_ult_one \<open>automatically_generated\<close>
+
+lemma [rewrite_bv_ult_one]:
+  fixes x::"'a ::len word" and n::int
+  shows "NO_MATCH cvc_a (undefined x n) 
+    \<Longrightarrow> (x < 1) = (x = 0)"
+  by auto
 
 (*
 (define-cond-rule bv-slt-zero
@@ -1841,6 +2598,48 @@ lemma [rewrite_bv_ashr_zero]:
 *)
 
 
+named_theorems rewrite_bv_slt_zero \<open>automatically_generated\<close>
+
+lemma [rewrite_bv_slt_zero]:
+  fixes x::"'a ::len word"
+  shows "LENGTH('a) > 1 \<longrightarrow> (x <s (Word.Word (0::int)::'a::len word)) =
+   (smt_extract (nat (int (size x) - (1::int)))
+     (nat (int (size x) - (1::int))) x =
+    (Word.Word (1::int)::1 word))"
+proof
+  assume "(1::nat) < LENGTH('a)"
+  have "sint (smt_extract (nat (int (size x) - (1::int))) (nat (int (size x) - (1::int))) x::1 word)
+      = sint (smt_extract (size x - 1) (size x - 1) x::1 word)"
+    by (simp add: nat_minus_as_int)
+  then have "sint (smt_extract (nat (int (size x) - (1::int))) (nat (int (size x) - (1::int))) x::1 word)
+      = signed_take_bit (LENGTH(1) - Suc (0::nat)) (drop_bit (size x - (1::nat)) (take_bit (Suc (size x - (1::nat))) (uint x)))"
+    using sint_smt_extract[of "size x - 1" "size x - 1" x, where 'b="1"]
+    by (metis Suc_pred' add_diff_cancel_left' le_refl len_num1 lessI word_size_gt_0)
+  then have "sint (smt_extract (nat (int (size x) - (1::int))) (nat (int (size x) - (1::int))) x::1 word)
+      = signed_take_bit 0 (drop_bit (size x - (1::nat)) (take_bit (Suc (size x - (1::nat))) (uint x)))"
+    using One_nat_def diff_self_eq_0 len_num1 by presburger
+  moreover have "sint (1::1 word) = -1"
+    by simp
+
+
+   have t3: "(size x - (size x - Suc (0::nat))) = 1"
+    by (metis One_nat_def Suc_diff_1 add_implies_diff plus_1_eq_Suc word_size_gt_0)
+
+  have "(sint x < (0::int))
+      = (signed_take_bit 0 (drop_bit (size x - (1::nat)) (take_bit (Suc (size x - (1::nat))) (uint x))) = -1)"
+    apply simp
+    apply (simp add: drop_bit_take_bit)
+    unfolding drop_bit_eq_div take_bit_eq_mod
+    apply (simp add: sint_uint)
+    apply (simp add: t3 bit_iff_odd)
+    apply (simp add: word_size)
+    by (simp add: odd_iff_mod_2_eq_one)
+
+   then show "(x <s Word.Word (0::int)) =
+    (smt_extract (nat (int (size x) - (1::int))) (nat (int (size x) - (1::int))) x = (Word.Word (1::int)::1 word))"
+    apply (simp add: word_sless_alt)
+  by (metis \<open>(sint (x::'a::len word) < (0::int)) = (signed_take_bit (0::nat) (drop_bit (size x - (1::nat)) (take_bit (Suc (size x - (1::nat))) (uint x))) = - (1::int))\<close> calculation len_num1 signed_1 word_eq_iff_signed)
+qed
 
 (*
 (define-cond-rule bv-merge-sign-extend-1

@@ -4,7 +4,6 @@ theory SMT_CVC \<comment> \<open>More Setup for CVC that should be in HOL eventu
 begin
 
 
-
 named_theorems rare_simplify_temp \<open>Theorems to reconstruct bitvector theorems concerning list
                                   functions, e.g. take.\<close>
 

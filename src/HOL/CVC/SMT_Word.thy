@@ -420,6 +420,74 @@ definition is_pow2 :: "int \<Rightarrow> bool" where
 
 lemmas cvc_evaluate_bv = is_pow2_def
 
+lemma is_pow2_imp_eq_2_pow:
+  fixes n :: int
+  assumes "is_pow2 n"
+  shows "n = 2 ^ (floorlog 2 (nat n) - 1)"
+proof -
+  from assms have n_pos: "0 < n" and and_zero: "and n (n - 1) = 0"
+    unfolding is_pow2_def by auto
+  have nn_pos: "0 < nat n" using n_pos by simp
+  have base: "(1::nat) < 2" by simp
+
+  define k where "k = floorlog 2 (nat n) - 1"
+
+  have fl_pos: "0 < floorlog 2 (nat n)"
+    using nn_pos
+    by (metis base bot_nat_0.not_eq_extremum floorlog_bounds less_one power_0)
+  hence fl_succ: "floorlog 2 (nat n) = Suc k" by (simp add: k_def)
+
+  from floorlog_bounds[OF nn_pos base]
+  have lo_nat: "(2::nat) ^ k \<le> nat n"
+   and hi_nat: "nat n < (2::nat) ^ Suc k"
+    using fl_succ by auto
+
+  from lo_nat n_pos have lo: "(2::int) ^ k \<le> n"
+    by simp
+  from hi_nat n_pos have hi: "n < (2::int) ^ Suc k"
+    using nat_less_numeral_power_cancel_iff by blast
+  define r where "r = n - 2 ^ k"
+  have r_nn: "0 \<le> r" using lo r_def by simp
+  have r_lt: "r < 2 ^ k" using hi r_def by simp
+  have n_eq: "n = 2 ^ k + r" using r_def by simp
+
+  have two_k_nz: "(2::int) ^ k \<noteq> 0" by simp
+
+  have "r = 0"
+  proof (rule ccontr)
+    assume "r \<noteq> 0"
+    with r_nn have r_pos: "0 < r" by simp
+
+    have bit_n: "bit n k"
+    proof -
+      have "n div 2 ^ k = (2 ^ k + r) div 2 ^ k" using n_eq by simp
+      also have "\<dots> = r div 2 ^ k + 1"
+        by (rule div_add_self1[OF two_k_nz])
+      also have "r div 2 ^ k = 0" using r_nn r_lt by simp
+      finally have "n div 2 ^ k = 1" by simp
+      thus ?thesis by (simp add: bit_iff_odd_drop_bit drop_bit_eq_div)
+    qed
+
+    have bit_nm1: "bit (n - 1) k"
+    proof -
+      have "n - 1 = 2 ^ k + (r - 1)" using n_eq by simp
+      moreover have "0 \<le> r - 1" using r_pos by simp
+      moreover have "r - 1 < 2 ^ k" using r_lt by simp
+      ultimately have "(n - 1) div 2 ^ k = 1"
+        by (simp add: div_pos_geq)
+      thus ?thesis by (simp add: bit_iff_odd_drop_bit drop_bit_eq_div)
+    qed
+
+    have "bit (and n (n - 1)) k"
+      using bit_n bit_nm1 by (simp add: bit_and_iff)
+    with and_zero show False by simp
+  qed
+
+  with n_eq show "n = 2 ^ (floorlog 2 (nat n) - 1)"
+    using k_def by simp
+qed
+
+
 definition smt_udiv :: "'a::len word \<Rightarrow> 'a::len word \<Rightarrow> 'a::len word" where
 "smt_udiv s t =
 (if (unat t) = 0 then (mask (size s)) else s div t)
@@ -1319,5 +1387,24 @@ lemma word_cat_rbl_right_comm:
       qed
     qed
   qed
+
+
+lemma foldr_word_and_pullout:
+  fixes a b :: "'a::len word"
+  shows "foldr (and::'a word \<Rightarrow> _ \<Rightarrow> _) xs (and a b) = and a (foldr and xs b)"
+  by (induction xs) (simp_all add: word_bw_lcs)
+
+lemma cvc_nary_op_fold_butlast:
+  "xs \<noteq> [] \<Longrightarrow> cvc_nary_op_fold op xs = foldr op (butlast xs) (last xs)"
+proof (induction xs)
+  case Nil then show ?case by simp
+next
+  case (Cons a xs)
+  then show ?case
+    by (cases xs) (simp_all add: Cons.IH)
+qed
+lemma rewrite_bv_xor_ones_lemma: "foldr xor xs (not a) = not (foldr xor xs a)"
+  apply (induction xs)
+  by simp_all
 
 end

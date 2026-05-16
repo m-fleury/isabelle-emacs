@@ -1,0 +1,5 @@
+(set-logic QF_AUFBVLIA)
+(declare-fun x2 () (_ BitVec 1))
+(declare-fun y2 () (_ BitVec 1))
+(check-sat)
+(exit)

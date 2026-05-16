@@ -1,0 +1,7 @@
+unsat
+(step t1.c1 (cl (= (int.ispow2 4) true)) :rule trust)
+(step t1.c2 (cl (= (> 4 1) true)) :rule trust)
+(step t1.c3 (cl (= 2 (int.log2 4))) :rule trust)
+(step t1.c4 (cl (= 7 (- 8 1))) :rule trust)
+(step t1.main (cl (= (bvudiv x (@bv 4 8)) (concat (@bv 0 2) (extract 7 2 x)))) :rule rare_rewrite :premises (t1.c1 t1.c2 t1.c3 t1.c4) :args ("bv-udiv-pow2-not-one" x 4 8 2 7))
+(step tend (cl) :rule trust :premises (t1.main) :args ("trust"))
