@@ -340,7 +340,7 @@ fun apply_solver_and_replay ctxt thms0 =
 
 fun test_translation_only ctxt comp_str thms0 =
   let
-    val thms = map (pair SMT_Util.Axiom ) thms0
+    val thms = map (pair SMT_Util.Axiom) thms0
     val (name, {smt_options, ...}) = name_and_info_of ctxt
     val _ = debug_msg ctxt low (fn () => \<^print> ("set of theorems before normalization:", thms0))
 
