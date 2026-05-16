@@ -100,6 +100,22 @@ LENGTH('i) = LENGTH('h) + LENGTH ('f) \<Longrightarrow>
 
 
 
+named_theorems rewrite_bv_extract_concat_1 \<open>automatically_generated\<close>
+
+(*xs is empty*)
+lemma [rewrite_bv_extract_concat_1]:
+  fixes x::"'a::len word" and i j k l ll kk ::int
+  shows "NO_MATCH cvc_a (undefined x i j k l ll kk) \<Longrightarrow>
+ll = i + l \<Longrightarrow> kk = i + k \<Longrightarrow>
+LENGTH('b) = ll + 1 - kk \<Longrightarrow> ll \<ge> kk \<Longrightarrow> kk \<ge> 0 \<Longrightarrow>
+LENGTH('c) = j + 1 - i \<Longrightarrow> j \<ge> i \<Longrightarrow> i \<ge> 0 \<Longrightarrow>
+LENGTH('b) = l + 1 - k \<Longrightarrow> l \<ge> k \<Longrightarrow> k \<ge> 0 \<Longrightarrow>
+(smtlib_extract l k (smtlib_extract j i x::'c::len word)) = (smtlib_extract ll kk x::'b::len word)
+"
+  unfolding smtlib_extract_def
+  apply simp
+  sorry
+
 (*
 
 (define-cond-rule bv-extract-whole
@@ -1136,27 +1152,6 @@ lemma [rewrite_bv_zero_ult]:
   fixes x::"'a ::len word"
   shows "(Word.Word 0 < x) = (x \<noteq> Word.Word 0)"
   using word_neq_0_conv by auto
-
-named_theorems rewrite_bv_merge_sign_extend_1 \<open>automatically_generated\<close>
-
-lemma [rewrite_bv_merge_sign_extend_1]:
-  fixes x::"'a::len word" and i::"int" and j::"int"
-  shows "LENGTH('b) = LENGTH('a) + j \<longrightarrow> LENGTH('c) = LENGTH('b) + i \<longrightarrow> LENGTH('c) = LENGTH('a) + (i + j) \<longrightarrow>
-i \<ge> 0 \<longrightarrow> j \<ge> 0 \<longrightarrow> 
- (Word.signed_cast (Word.signed_cast x::'b::len word)::'c::len word) = Word.signed_cast x"
-  using scast_up_scast_id[of x]
-  by (simp add: is_up.rep_eq scast_up_scast)
-
-named_theorems rewrite_bv_merge_sign_extend_2 \<open>automatically_generated\<close>
-
-lemma [rewrite_bv_merge_sign_extend_2]:
-  fixes x::"'a::len word" and i::"int" and j::"int"
-  shows "(1::int) < j \<longrightarrow> LENGTH('c) = LENGTH('b) + i \<longrightarrow> i \<ge> 0 \<longrightarrow>
-    j \<ge> 0 \<longrightarrow> LENGTH('b) = LENGTH('a) + j \<longrightarrow> LENGTH('c) = LENGTH('a) + (i + j) \<longrightarrow> 
-   (Word.signed_cast (Word.cast x::'b::len word)::'c::len word) = Word.cast x"
-  apply (rule impI)+
-  apply transfer
-  by (simp add: signed_take_bit_take_bit)
 
 named_theorems rewrite_bv_merge_sign_extend_3 \<open>automatically_generated\<close>
 
