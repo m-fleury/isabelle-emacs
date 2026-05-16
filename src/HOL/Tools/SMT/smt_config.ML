@@ -51,6 +51,7 @@ sig
   val slice_only_no_full_proof_attr: bool Config.T
   val compress_alethe_proofs: Proof.context -> bool
   val alethe_use_prop_skeleton: Proof.context -> bool
+  val cvc5_word_experimental: bool Config.T
 
   (*tools*)
   val get_timeout: Proof.context -> Time.time option
@@ -241,6 +242,7 @@ val sat_solver = Attrib.setup_config_string \<^binding>\<open>smt_sat_solver\<cl
 val check_external = Attrib.setup_config_bool \<^binding>\<open>smt_check_external\<close> (K false);
 val cvc_experimental_alethe = Attrib.setup_config_bool \<^binding>\<open>smt_cvc_alethe\<close> (K false);
 val alethe_no_assumption = Attrib.setup_config_bool \<^binding>\<open>smt_alethe_no_assumption\<close> (K false);
+val cvc5_word_experimental = Attrib.setup_config_bool \<^binding>\<open>smt_cvc5_word_experimental\<close> (K false);
 
 
 (* diagnostics *)
