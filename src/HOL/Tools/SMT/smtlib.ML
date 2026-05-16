@@ -113,6 +113,10 @@ fun read_bin l = !!! l "Could not parse binary number" (read_radix_int' 2 >> BVN
 fun read_hex l
   = !!! l "Could not parse hex number" (read_radix_int' 16 >> apsnd (curry (op *) 4) >> BVNum)
 
+(* bitvector constants with concrete bv of the form (_ bv128 8) *)
+
+fun scan_indexed_bv l = Scan.catch ((read_int' l --| ($$ " ") -- read_int' l >> BVNum))
+
 (* symbols *)
 
 val symbol_chars = raw_explode "~!@$%^&*_+=<>.?/-"
@@ -155,6 +159,10 @@ fun read _ [] rest tss = (rest, tss)
       token read_hex l cs ts tss
   | read l ("#" :: "b" :: cs) None (ts :: tss) =
       token read_bin l cs ts tss
+  | read l (cs' as "_" :: " " :: "b" :: "v" :: cs) None (ts :: tss) =
+      (case try (scan_indexed_bv l) cs of
+        SOME (t, cs'') => read l cs'' None ((t :: ts) :: tss)
+      | NONE => read l cs' None (ts :: tss))
   | read l (":" :: cs) None (ts :: tss) =
       token (read_sym Key) l cs ts tss
   | read l ("\"" :: cs) None (ts :: tss) =

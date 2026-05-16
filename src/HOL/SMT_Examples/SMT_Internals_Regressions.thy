@@ -100,11 +100,10 @@ val _ = expect_parsing_error "notclosedopen\""
 
 val _ = check_tree "#b0" (SMTLIB.BVNum (0,1)) true
 val _ = check_tree "#b00100000101" (SMTLIB.BVNum (261,11)) true
-(*
-Decided to solve this differently after all:
-val _ = check_tree "(_ bv8 32)" (SMTLIB.BVNum (8,32)) true
-val _ = check_tree "(_ bv16 4)" (SMTLIB.BVNum (16,4)) true
-*)
+
+val _ = check_tree "(_ bv8 32)" (SMTLIB.S [SMTLIB.BVNum (8,32)]) true
+val _ = check_tree "(_ bv16 4)" (SMTLIB.S [SMTLIB.BVNum (16,4)]) true
+
 
 (*S*)
 val _ = check_tree "()" (SMTLIB.S []) true
