@@ -1,5 +1,5 @@
 theory SMT_CVC_Real
-  imports "cvc5_dsl_rewrites/Rare_Interface_Real" "HOL.Real"
+  imports "cvc5_rare_rewrites/Rare_Interface_Real" "HOL.Real"
 begin
 
 
