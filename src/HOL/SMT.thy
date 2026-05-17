@@ -621,27 +621,28 @@ lemmas [arith_mult_poly_norm_cvc5] =
          add_uminus_conv_diff mult.left_neutral semiring_class.distrib_right
          add_diff_cancel_left' ring_distribs mult_minus_left minus_diff_eq
 
-lemmas [arith_simp_cvc5] = 
+lemmas [arith_simp_cvc5] =
          Groups.monoid_mult_class.mult_1_right Nat.mult_Suc_right
          Nat.mult_0_right Nat.add_Suc_right Groups.monoid_add_class.add.right_neutral
-         Num.numeral_2_eq_2 Nat.One_nat_def Num.numeral_2_eq_2 Nat.One_nat_def
+         Num.numeral_2_eq_2 Nat.One_nat_def
          Nat.Suc_less_eq Nat.zero_less_Suc minus_nat.diff_0 Nat.diff_Suc_Suc Nat.le0
          prod.case numeral_plus_one divmod_step_def order.refl le_zero_eq
-         le_numeral_simps less_numeral_simps mult.right_neutral divides_aux_eq
+         mult.right_neutral divides_aux_eq
          mult_nonneg_nonneg dvd_imp_mod_0 dvd_add zero_less_one mod_mult_self4 numeral_mod_numeral
          divmod_trivial prod.sel mult.left_neutral div_pos_pos_trivial arith_simps div_add div_mult_self1
-         add_le_cancel_left add_le_same_cancel2 not_one_le_zero le_numeral_simps add_le_same_cancel1
-         zero_neq_one zero_le_one le_num_simps add_Suc mod_div_trivial nat.distinct mult_minus_right
-         add.inverse_inverse distrib_left_numeral mult_num_simps numeral_times_numeral add_num_simps
-         divmod_steps rel_simps if_True if_False numeral_div_numeral divmod_cancel prod.case
-         add_num_simps one_plus_numeral fst_conv arith_simps sub_num_simps dbl_inc_simps
-         dbl_simps mult_1 add_le_cancel_right left_diff_distrib_numeral add_uminus_conv_diff zero_neq_one
-         zero_le_one One_nat_def add_Suc mod_div_trivial nat.distinct of_int_1 numerals numeral_One
-         of_int_numeral add_uminus_conv_diff zle_diff1_eq add_less_same_cancel2 minus_add_distrib
-         add_uminus_conv_diff mult.left_neutral semiring_class.distrib_right
+         add_le_cancel_left add_le_same_cancel2 not_one_le_zero add_le_same_cancel1
+         zero_neq_one zero_le_one add_Suc mod_div_trivial nat.distinct mult_minus_right
+         add.inverse_inverse distrib_left_numeral
+         divmod_steps rel_simps if_True if_False numeral_div_numeral divmod_cancel
+         one_plus_numeral fst_conv
+         mult_1 add_le_cancel_right left_diff_distrib_numeral add_uminus_conv_diff
+         of_int_1 numerals numeral_One
+         of_int_numeral zle_diff1_eq add_less_same_cancel2 minus_add_distrib
+         semiring_class.distrib_right
          add_diff_cancel_left' add_diff_eq ring_distribs mult_minus_left minus_diff_eq
          mod_mult_self2_is_0
          less_irrefl
+         ab_semigroup_mult_class.mult.commute
 
 lemma [arith_simp_cvc5,arith_mult_poly_norm_cvc5]:
   \<open>\<not> (a' :: 'a :: linorder) < b' \<longleftrightarrow> b' \<le> a'\<close>
@@ -665,8 +666,8 @@ lemma [arith_simp_cvc5,arith_mult_poly_norm_cvc5]:
   by auto
 
 lemmas [arith_simp_cvc5,arith_mult_poly_norm_cvc5] = divide_eq_eq_numeral1
-  uminus_add_conv_diff divide_less_eq_numeral1 left_diff_distrib_numeral
-  diff_gt_0_iff_gt times_divide_eq_left divide_eq_eq_numeral1
+  uminus_add_conv_diff divide_less_eq_numeral1
+  diff_gt_0_iff_gt times_divide_eq_left
 
 lemmas [smt_arith_simplify] =
     arith_simp_cvc5
@@ -1346,6 +1347,14 @@ lemma [z3_rule]:  (* for def-axiom *)
 hide_type (open) symb_list pattern
 hide_const (open) Symb_Nil Symb_Cons trigger pat nopat fun_app z3div z3mod
 
+
+
+
+named_theorems rare_simplify_temp \<open>Theorems to reconstruct bitvector theorems concerning list
+                                  functions, e.g. take.\<close>
+
+named_theorems cvc_evaluate \<open>Theorems to reconstruct evaluate steps in cvc5 proofs\<close>
+named_theorems cvc_evaluate_bv \<open>Theorems to reconstruct bit-vector evaluate steps in cvc5 proofs\<close>
 
 
 declare[[smt_cvc_alethe = true]]
