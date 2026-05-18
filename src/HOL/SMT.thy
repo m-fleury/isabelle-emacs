@@ -6,7 +6,7 @@
 section \<open>Bindings to Satisfiability Modulo Theories (SMT) solvers based on SMT-LIB 2\<close>
 
 theory SMT
-  imports Numeral_Simprocs List "cvc5_rare_rewrites/Rare_Interface"
+  imports Numeral_Simprocs List "Tools/SMT/alethe/rare_rewrites/Rare_Interface"
   keywords
     "smt_status" :: diag
 begin
