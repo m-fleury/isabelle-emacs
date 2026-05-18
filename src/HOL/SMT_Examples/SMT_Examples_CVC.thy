@@ -1144,5 +1144,27 @@ lemma
      shows False
   using assms supply [[smt_trace=false]] by (smt (cvc5)) 
 
+abbreviation BoundsIndicesMap (\<open>\<B>\<^sub>i\<close>) where  "\<B>\<^sub>i s \<equiv> (\<B>\<^sub>i\<^sub>l s, \<B>\<^sub>i\<^sub>u s)"
+
+lemma
+  fixes  normalized_tableau :: "tableau \<Rightarrow> bool" (\<open>\<triangle>\<close>) and
+         tableau_valuated :: \<open>_\<close> (\<open>\<nabla>\<close>) and
+         bounds_consistent :: "('i,'a::linorder) state \<Rightarrow> bool" (\<open>\<diamond>\<close>) and
+         gt_state :: "('i,'a) state \<Rightarrow> ('i,'a) state \<Rightarrow> bool" (infixl \<open>\<succ>\<^sub>x\<close> 100) and
+         curr_val_satisfies_no_lhs :: \<open>_\<close> (\<open>\<Turnstile>\<^sub>n\<^sub>o\<^sub>l\<^sub>h\<^sub>s\<close>)
+  assumes "\<forall>c p. (case p of (x, xa) \<Rightarrow> c x xa) \<and> (\<forall>x y. p = (x, y) \<and> c x y \<longrightarrow> False) \<longrightarrow> False"
+          "\<forall>c p. (case p of (x, xa) \<Rightarrow> c x xa) \<and> (\<forall>x y. p = (x, y) \<and> c x y \<longrightarrow> False) \<longrightarrow> False"
+          "\<forall>a P. (a \<in> Collect P) = P a"
+          "\<forall>a P. (a \<in> Collect P) = P a"
+          "\<forall>x1 x2 y1 y2. ((x1, x2) = (y1, y2)) = (x1 = y1 \<and> x2 = y2)"
+          "\<forall>x1 x2 y1 y2. ((x1, x2) = (y1, y2)) = (x1 = y1 \<and> x2 = y2)"
+          "\<forall>x y R. (x, y) \<in> R\<^sup>+ \<longrightarrow> (\<exists>z. (x, z) \<in> R\<^sup>* \<and> (z, y) \<in> R)"
+          "\<forall>x y R. (x, y) \<in> R\<^sup>+ \<longrightarrow> (\<exists>z. (x, z) \<in> R\<^sup>* \<and> (z, y) \<in> R)"
+          "(s, s') \<in> {(s, s'). \<triangle> (\<T> s) \<and> \<diamond> s \<and> \<Turnstile>\<^sub>n\<^sub>o\<^sub>l\<^sub>h\<^sub>s s \<and> \<nabla> s \<and> s \<succ>\<^sub>x s' \<and> \<B>\<^sub>i s' = \<B>\<^sub>i s \<and> \<U>\<^sub>c s' = \<U>\<^sub>c s}\<^sup>+"
+          "\<forall>s. \<triangle> (\<T> s) \<and> \<diamond> s \<and> \<Turnstile>\<^sub>n\<^sub>o\<^sub>l\<^sub>h\<^sub>s s \<and> \<nabla> s \<and> s \<succ>\<^sub>x s' \<and> \<B>\<^sub>i s' = \<B>\<^sub>i s \<and> \<U>\<^sub>c s' = \<U>\<^sub>c s \<longrightarrow> \<triangle> (\<T> s')"
+          "\<not> \<triangle> (\<T> s')"
+  shows False
+  using assms by (smt (cvc5, noematch) case_prodE mem_Collect_eq prod.inject tranclD2)
+
 end
 end
