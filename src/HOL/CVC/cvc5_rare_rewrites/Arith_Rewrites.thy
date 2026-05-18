@@ -1,75 +1,10 @@
 theory Arith_Rewrites
-  imports "Dsl_Nary_Ops" "Arith_Rewrites_Lemmas"
+  imports "Arith_Rewrites_Lemmas"
 begin
 
 (* Thank you for using IsaRARE. This is a theory automatically created from a RARE file!
 All that remains to do is to prove any lemma whose provided proof fails.
 If you want to use the lemmas for proof reconstruction you'll also need to import this file in Rare_Interface.thy*)
-
-
-
-named_theorems rewrite_arith_int_div_total \<open>automatically_generated\<close>
-
-lemma [rewrite_arith_int_div_total]:
-  fixes t::"int" and s::"int"
-  shows "NO_MATCH cvc_a (undefined t s) \<Longrightarrow> \<not>(s = 0) \<Longrightarrow> SMT.z3div t s = SMT.z3div t s"
-  by (simp add: SMT.z3div_def)
-
-
-named_theorems rewrite_arith_int_div_total_one \<open>automatically_generated\<close>
-
-lemma [rewrite_arith_int_div_total_one]:
-  fixes t::"int"
-  shows "NO_MATCH cvc_a (undefined t) \<Longrightarrow> SMT.z3div t (1::int) = t"
-  by (simp add: SMT.z3div_def)
-
-
-named_theorems rewrite_arith_int_div_total_zero \<open>automatically_generated\<close>
-
-lemma [rewrite_arith_int_div_total_zero]:
-  fixes t::"int"
-  shows "NO_MATCH cvc_a (undefined t) \<Longrightarrow> SMT.z3div t (0::int) = 0"
-  by (simp add: SMT.z3div_def)
-
-
-named_theorems rewrite_arith_int_div_total_neg \<open>automatically_generated\<close>
-
-lemma [rewrite_arith_int_div_total_neg]:
-  fixes t::"int" and s::"int"
-  shows "NO_MATCH cvc_a (undefined t s) \<Longrightarrow> s < 0 \<Longrightarrow> SMT.z3div t s = - (SMT.z3div t (-s))"
-  by (simp add: SMT.z3div_def)
-
-
-named_theorems rewrite_arith_int_mod_total \<open>automatically_generated\<close>
-
-lemma [rewrite_arith_int_mod_total]:
-  fixes t::"int" and s::"int"
-  shows "NO_MATCH cvc_a (undefined t s) \<Longrightarrow> \<not> s = 0 \<Longrightarrow> SMT.z3mod t s = SMT.z3mod t s"
-  by simp
-
-
-named_theorems rewrite_arith_int_mod_total_one \<open>automatically_generated\<close>
-
-lemma [rewrite_arith_int_mod_total_one]:
-  fixes t::"int"
-  shows "NO_MATCH cvc_a (undefined t) \<Longrightarrow> SMT.z3mod t 1 = 0"
-  by (simp add: SMT.z3mod_def)
-
-
-named_theorems rewrite_arith_int_mod_total_zero \<open>automatically_generated\<close>
-
-lemma [rewrite_arith_int_mod_total_zero]:
-  fixes t::"int"
-  shows "NO_MATCH cvc_a (undefined t) \<Longrightarrow> SMT.z3mod t 0 = t"
-  by (simp add: SMT.z3mod_def)
-
-
-named_theorems rewrite_arith_int_mod_total_neg \<open>automatically_generated\<close>
-
-lemma [rewrite_arith_int_mod_total_neg]:
-  fixes t::"int" and s::"int"
-  shows "NO_MATCH cvc_a (undefined t s) \<Longrightarrow> s < 0 \<Longrightarrow> SMT.z3mod t s = SMT.z3mod t (-s)"
-  by (simp add: SMT.z3mod_def)
 
 
 named_theorems rewrite_arith_elim_gt \<open>automatically_generated\<close>
@@ -178,39 +113,6 @@ lemma [rewrite_arith_eq_elim_int]:
   fixes t::"int" and s::"int"
   shows "NO_MATCH cvc_a (undefined t s)
  \<Longrightarrow> ((t = s) = (t \<ge> s \<and> t \<le> s))"
-  by auto
-
-
-named_theorems rewrite_arith_mod_over_mod \<open>automatically_generated\<close>
-
-lemma [rewrite_arith_mod_over_mod]:
-  fixes c::int and ts::"int cvc_ListVar" and r::int and ss::"int cvc_ListVar" 
-  shows "NO_MATCH cvc_a (undefined c ts r ss)
- \<Longrightarrow> \<not>(c=0) 
- \<Longrightarrow> SMT.z3mod (cvc_list_left (+) ts (cvc_list_right (+) (SMT.z3mod r c) ss)) c
-= SMT.z3mod (cvc_list_left (+) ts (cvc_list_right (+) r ss)) c"
-  apply (cases ts)
-  apply (cases ss)
-  subgoal for ts' ss'
-    unfolding SMT.z3mod_def
-     apply simp_all
-    apply (simp add: cvc_list_left_transfer cvc_list_right_transfer_op(3))
-     apply (induction ts' arbitrary: ts)
-     apply simp_all
-     apply (induction ss' arbitrary: ss)
-     apply simp_all
-     apply (meson mod_add_left_eq)
-    by (metis (no_types, lifting) mod_add_right_eq)
-  done
-
-
-named_theorems rewrite_arith_divisible_elim \<open>automatically_generated\<close>
-
-lemma [rewrite_arith_divisible_elim]:
-  fixes n::"int" and t::"int"
-  shows "NO_MATCH cvc_a (undefined n t)
- \<Longrightarrow> \<not>(n = 0) \<Longrightarrow> ((n dvd t) = (SMT.z3mod t n = 0))"
-  apply (simp add: SMT.z3mod_def)
   by auto
 
 

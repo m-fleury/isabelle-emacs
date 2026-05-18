@@ -5,7 +5,7 @@
 section \<open>Archimedean Fields, Floor and Ceiling Functions\<close>
 
 theory Archimedean_Field
-imports 
+imports
     Predicate_Compile
     Quickcheck_Narrowing
     Mirabelle
@@ -16,7 +16,6 @@ imports
     Conditionally_Complete_Lattices
     Binomial
     GCD
-    "CVC/SMT_CVC"
 begin
 
 lemma cInf_abs_ge:

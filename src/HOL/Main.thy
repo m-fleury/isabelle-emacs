@@ -17,15 +17,10 @@ theory Main
     Conditionally_Complete_Lattices
     Binomial
     GCD
-    "CVC/SMT_CVC"
-    (*added because we need it for reconstructing integer cvc proofs*)
-    Real
-    "CVC/SMT_CVC_Real"
-
+    SMT_CVC_Real
 begin
 
 
-no_notation floor (\<open>(\<open>open_block notation=\<open>mixfix floor\<close>\<close>\<lfloor>_\<rfloor>)\<close>)
 
 subsection \<open>Namespace cleanup\<close>
 

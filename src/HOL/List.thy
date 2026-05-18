@@ -5,7 +5,7 @@
 section \<open>The datatype of finite lists\<close>
 
 theory List
-imports Sledgehammer Lifting_Set
+  imports Lifting_Set Numeral_Simprocs Set_Interval
 begin
 
 datatype (set: 'a) list =
@@ -1302,7 +1302,7 @@ lemma rev_induct2:
  \<Longrightarrow> P xs ys"
 proof (induct xs arbitrary: ys rule: rev_induct)
   case Nil
-  then show ?case using rev_induct[of "P []"] by presburger
+  then show ?case using rev_induct[of "P []"] by simp
 next
   case (snoc x xs)
   hence "P xs ys'" for ys' by simp
@@ -3877,9 +3877,44 @@ lemma set_update_distinct: "\<lbrakk> distinct xs;  n < length xs \<rbrakk> \<Lo
   set(xs[n := x]) = insert x (set xs - {xs!n})"
 by(auto simp: set_eq_iff in_set_conv_nth nth_list_update nth_eq_iff_index_eq)
 
+(*TODO: AI proof, this could be done nicer*)
 lemma distinct_swap[simp]: "\<lbrakk> i < size xs; j < size xs\<rbrakk> \<Longrightarrow>
   distinct(xs[i := xs!j, j := xs!i]) = distinct xs"
-  by (smt (verit, del_insts) distinct_conv_nth length_list_update nth_list_update)
+proof -
+  assume i: "i < size xs" and j: "j < size xs"
+  let ?f = "\<lambda>k. if k = i then j else if k = j then i else k"
+  let ?ys = "xs[i := xs!j, j := xs!i]"
+  have nth_swap: "?ys ! k = xs ! ?f k" if "k < length xs" for k
+    using i j that by (auto simp: nth_list_update)
+  have f_bnd: "?f k < length xs" if "k < length xs" for k
+    using i j that by auto
+  have f_invol: "?f (?f k) = k" for k by auto
+  have f_inj: "(?f a = ?f b) \<longleftrightarrow> (a = b)" for a b
+    by (auto split: if_splits)
+  show ?thesis unfolding distinct_conv_nth length_list_update
+  proof safe
+    fix a b
+    assume H: "\<forall>a<length xs. \<forall>b<length xs. a \<noteq> b \<longrightarrow> ?ys ! a \<noteq> ?ys ! b"
+       and ab: "a < length xs" "b < length xs" "a \<noteq> b" "xs ! a = xs ! b"
+    have a': "?f a < length xs" and b': "?f b < length xs"
+      using f_bnd ab(1,2) by auto
+    have neq: "?f a \<noteq> ?f b" using f_inj ab(3) by simp
+    have "?ys ! ?f a = xs ! a" "?ys ! ?f b = xs ! b"
+      using nth_swap[OF a'] nth_swap[OF b'] f_invol by simp_all
+   then have "?ys ! ?f a = ?ys ! ?f b" using ab(4) by simp
+    with a' b' neq H show False by blast
+  next
+    fix a b
+    assume H: "\<forall>a<length xs. \<forall>b<length xs. a \<noteq> b \<longrightarrow> xs ! a \<noteq> xs ! b"
+       and ab: "a < length xs" "b < length xs" "a \<noteq> b" "?ys ! a = ?ys ! b"
+    have a': "?f a < length xs" and b': "?f b < length xs"
+      using f_bnd ab(1,2) by auto
+    have neq: "?f a \<noteq> ?f b" using f_inj ab(3) by simp
+    from ab(4) nth_swap[OF ab(1)] nth_swap[OF ab(2)]
+      have "xs ! ?f a = xs ! ?f b" by simp
+    with a' b' neq H show False by blast
+  qed
+qed
 
 lemma set_swap[simp]:
   "\<lbrakk> i < size xs; j < size xs \<rbrakk> \<Longrightarrow> set(xs[i := xs!j, j := xs!i]) = set xs"
@@ -5240,7 +5275,20 @@ lemma rotate_append: "rotate (length l) (l @ q) = q @ l"
 
 lemma nth_rotate:
   \<open>rotate m xs ! n = xs ! ((m + n) mod length xs)\<close> if \<open>n < length xs\<close>
-  by (smt (verit) add.commute hd_rotate_conv_nth length_rotate not_less0 list.size(3) mod_less rotate_rotate that)
+proof -
+  from that have ne: "xs \<noteq> []" by auto
+  have "rotate m xs ! n = rotate m xs ! (n mod length (rotate m xs))"
+    using that by (simp add: length_rotate)
+  also have "\<dots> = hd (rotate n (rotate m xs))"
+    using ne by (simp add: hd_rotate_conv_nth)
+  also have "\<dots> = hd (rotate (n + m) xs)"
+    by (simp add: rotate_rotate)
+  also have "\<dots> = xs ! ((n + m) mod length xs)"
+    using ne by (simp add: hd_rotate_conv_nth)
+  also have "\<dots> = xs ! ((m + n) mod length xs)"
+    by (simp add: add.commute)
+  finally show ?thesis .
+qed
 
 lemma nth_rotate1:
   \<open>rotate1 xs ! n = xs ! (Suc n mod length xs)\<close> if \<open>n < length xs\<close>
@@ -6258,7 +6306,7 @@ lemma sorted_sort_id: "sorted xs \<Longrightarrow> sort xs = xs"
 
 lemma sort_replicate [simp]: "sort (replicate n x) = replicate n x"
   using sorted_replicate sorted_sort_id
-  by presburger
+  by simp
 
 lemma insort_key_remove1:
   assumes "a \<in> set xs" and "sorted (map f xs)" and "hd (filter (\<lambda>x. f a = f x) xs) = a"
@@ -6778,7 +6826,7 @@ by (rule sorted_distinct_set_unique) simp_all
 
 lemma sorted_list_of_set_lessThan_Suc [simp]:
   "sorted_list_of_set {..<Suc k} = sorted_list_of_set {..<k} @ [k]"
-  using le0 lessThan_atLeast0 sorted_list_of_set_range upt_Suc_append by presburger
+  using le0 lessThan_atLeast0 sorted_list_of_set_range upt_Suc_append by simp
 
 lemma sorted_list_of_set_atMost_Suc [simp]:
   "sorted_list_of_set {..Suc k} = sorted_list_of_set {..k} @ [Suc k]"
@@ -7383,7 +7431,7 @@ proof-
     by blast
   hence "((u@v)!i, (w@z)!i) \<in> r"
     unfolding nth_append using less_le_trans[OF \<open>i < length w\<close> assms(2)] \<open>(u!i,w!i) \<in> r\<close>
-    by presburger
+    by simp
   moreover have "i < min (length (u@v)) (length (w@z))"
     using assms(2) \<open>i < length w\<close> by simp
   moreover have "take i (u@v) = take i (w@z)"

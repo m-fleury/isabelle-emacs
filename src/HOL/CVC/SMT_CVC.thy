@@ -10,7 +10,6 @@ named_theorems word_cat_helper_def \<open>test\<close>
 
 (*Term rewrites*)
 
-ML_file \<open>ML/alethe_replay_rare_simplify_methods.ML\<close>
 
 ML \<open>
 fun cvc_term_parser (SMTLIB.Sym "rare-list", []) = (

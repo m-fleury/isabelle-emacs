@@ -6,10 +6,9 @@
 section \<open>Bindings to Satisfiability Modulo Theories (SMT) solvers based on SMT-LIB 2\<close>
 
 theory SMT
-  imports Numeral_Simprocs
+  imports Numeral_Simprocs List "cvc5_rare_rewrites/Rare_Interface"
   keywords
-    "smt_status" :: diag and
-    "cvc5_rare" :: thy_decl
+    "smt_status" :: diag
 begin
 
 subsection \<open>A skolemization tactic and proof method\<close>
@@ -1033,6 +1032,15 @@ lemma alethe_Box_def2:
   unfolding alethe_Box_def
   by auto
 
+named_theorems rare_simplify_temp \<open>Theorems to reconstruct bitvector theorems concerning list
+                                  functions, e.g. take.\<close>
+
+named_theorems cvc_evaluate \<open>Theorems to reconstruct evaluate steps in cvc5 proofs\<close>
+named_theorems cvc_evaluate_bv \<open>Theorems to reconstruct bit-vector evaluate steps in cvc5 proofs\<close>
+
+lemmas cvc_arith_rewrite_defs = SMT.z3div_def linorder_not_le alethe_comp_simplify1
+add1_zle_eq
+
 subsection \<open>Setup\<close>
 
 ML_file \<open>Tools/SMT/smt_util.ML\<close>
@@ -1080,7 +1088,6 @@ ML_file \<open>Tools/SMT/z3/z3_new_replay.ML\<close>
 ML_file \<open>Tools/SMT/vampire_interface.ML\<close>
 (*veriT and cvc5 replay*)
 ML_file \<open>Tools/SMT/alethe/alethe_replay_methods.ML\<close>
-ML_file \<open>Tools/SMT/alethe/cvc5_rare.ML\<close>
 ML_file \<open>Tools/SMT/alethe/cvc5_replay_methods.ML\<close>
 ML_file \<open>Tools/SMT/alethe/verit_replay_methods.ML\<close>
 ML_file \<open>Tools/SMT/alethe/alethe_strategies.ML\<close>
@@ -1090,6 +1097,7 @@ ML_file \<open>Tools/SMT/alethe/cvc5_replay.ML\<close>
 
 
 ML_file \<open>Tools/SMT/smt_systems.ML\<close>
+ML_file \<open>CVC/ML/alethe_replay_rare_simplify_methods.ML\<close>
 
 
 subsection \<open>Configuration\<close>
@@ -1346,15 +1354,6 @@ lemma [z3_rule]:  (* for def-axiom *)
 
 hide_type (open) symb_list pattern
 hide_const (open) Symb_Nil Symb_Cons trigger pat nopat fun_app z3div z3mod
-
-
-
-
-named_theorems rare_simplify_temp \<open>Theorems to reconstruct bitvector theorems concerning list
-                                  functions, e.g. take.\<close>
-
-named_theorems cvc_evaluate \<open>Theorems to reconstruct evaluate steps in cvc5 proofs\<close>
-named_theorems cvc_evaluate_bv \<open>Theorems to reconstruct bit-vector evaluate steps in cvc5 proofs\<close>
 
 
 declare[[smt_cvc_alethe = true]]

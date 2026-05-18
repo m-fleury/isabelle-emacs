@@ -389,6 +389,4 @@ lemmas cvc_rewrites_fold = append.right_neutral append_Nil
  append.assoc append.right_neutral fold_append_concat_rev foldr_conv_fold
  append_eq_append_conv concat_append append.left_neutral append_Nil2
 
-lemmas cvc_arith_rewrite_defs = SMT.z3div_def linorder_not_le alethe_comp_simplify1
-add1_zle_eq
 end

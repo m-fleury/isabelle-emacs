@@ -3,7 +3,7 @@
 section \<open>Sum and product over lists\<close>
 
 theory Groups_List
-imports List
+imports Sledgehammer
 begin
 
 locale monoid_list = monoid
