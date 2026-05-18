@@ -70,4 +70,34 @@ fun parse_proof
        fact_helper_ts prem_ids conjecture_id fact_helper_ids' steps}
   end
 
+(*alethe proofs can contain rare_rewrites. The arguments may use rare-list to express lists.*)
+fun alethe_term_parser (SMTLIB.Sym "rare-list", []) = (
+   (*If there are no elements in the list we cannot know the type at this point*)
+    SOME(Const( \<^const_name>\<open>ListVar\<close> ,dummyT --> dummyT)
+       $ Const( \<^const_name>\<open>List.Nil\<close>, dummyT)))
+| alethe_term_parser (SMTLIB.Sym "rare-list", ts) =(
+    let
+
+      val has_bv = ((hd ts |> fastype_of |> Term.dest_Type |> fst) = "Word.Word")
+
+      val new_ts =
+         (if not has_bv
+         then ts
+         else (map (fn t => Const("to_bl", fastype_of t -->  \<^typ>\<open>bool list \<close>) $ t) ts))
+      val new_type = if not has_bv then fastype_of (hd ts) else \<^typ>\<open>Nat.nat\<close>
+
+    in
+    if not has_bv
+    then
+      SOME(Const( \<^const_name>\<open>ListVar\<close>, Type(\<^type_name>\<open>List.list\<close>,[new_type])  --> Type(\<^type_name>\<open>cvc_ListVar\<close>,[new_type]))
+      $ (HOLogic.mk_list new_type new_ts))
+    else
+      SOME (HOLogic.mk_list new_type new_ts)
+    end)
+  | alethe_term_parser _ = NONE
+
+
+val _ = Theory.setup (Context.theory_map (
+  SMTLIB_Proof.add_term_parser alethe_term_parser)
+)
 end;

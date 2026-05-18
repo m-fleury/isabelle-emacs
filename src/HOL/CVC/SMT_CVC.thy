@@ -6,42 +6,10 @@ begin
 (*lemmas [cvc_evaluate] = arith_simp_cvc5*)
 
 
-named_theorems word_cat_helper_def \<open>test\<close>
 
 (*Term rewrites*)
 
-
 ML \<open>
-fun cvc_term_parser (SMTLIB.Sym "rare-list", []) = (
-   (*If there are no elements in the list we cannot know the type at this point*)
-    SOME(Const( \<^const_name>\<open>ListVar\<close> ,dummyT --> dummyT)
-       $ Const( \<^const_name>\<open>List.Nil\<close>, dummyT)))
-  | cvc_term_parser (SMTLIB.Sym "rare-list", ts) =(
-    let
-      (*OLD: Figure out if types are different, this should only be the case if they have different
-        bitwidths*)
-      (*fun remove_duplicates [] = []
-        | remove_duplicates (x::xs) = x::remove_duplicates(List.filter (fn y => y <> x) xs)
-      val types_eq = map fastype_of ts |> remove_duplicates |> length 
-      *)
-
-      val has_bv = ((hd ts |> fastype_of |> Term.dest_Type |> fst|> @{print}) = "Word.Word")
-
-      val new_ts =
-         (if not has_bv
-         then ts
-         else (map (fn t => Const("to_bl", fastype_of t -->  \<^typ>\<open>bool list \<close>) $ t) ts))
-      val new_type = if not has_bv then fastype_of (hd ts) else \<^typ>\<open>Nat.nat\<close>
-
-    in
-    if not has_bv
-    then
-      SOME(Const( \<^const_name>\<open>ListVar\<close>, Type(\<^type_name>\<open>List.list\<close>,[new_type])  --> Type(\<^type_name>\<open>cvc_ListVar\<close>,[new_type]))
-      $ (HOLogic.mk_list new_type new_ts))
-    else
-      SOME (HOLogic.mk_list new_type new_ts)
-    end)
-  | cvc_term_parser _ = NONE
 
  fun power _ _ [t1] =
     let
@@ -54,9 +22,8 @@ val setup_builtins =
     (("int.pow2", Term.dest_Const (\<^Const>\<open>SMT.pow_2\<close>) |> snd), power)
 
 val _ = Theory.setup (Context.theory_map (
-  setup_builtins #>
-  SMTLIB_Proof.add_term_parser cvc_term_parser)
-)
+  setup_builtins 
+))
 \<close>
 
 (*check that int.pow2 is properly registered*)
