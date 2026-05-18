@@ -745,7 +745,7 @@ lemma cong_4:
   by (ctxt_tactic "cong")
 
 lemma cong_5:
-  assumes A1: "(\<lambda>a. f a x) = (\<lambda>a. f a y)" and "s = t"
+  assumes "(\<lambda>a. f a x) = (\<lambda>a. f a y)" and "s = t"
   shows "(\<lambda>a. f a x) s = (\<lambda>a. f a y) t"
   using assms
   by (ctxt_tactic "cong")
