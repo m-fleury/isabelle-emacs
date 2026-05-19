@@ -923,6 +923,13 @@ lemma int_nat_embedding_preproc_ex:
  "(\<exists>(x::nat). P x) \<equiv> (\<exists>(x::int). x \<ge> 0 \<and> P (nat x))"
   using ex_nat by auto
 
+definition lift_The :: "(int \<Rightarrow> bool) \<Rightarrow> int" where
+  "lift_The Q = int (The (\<lambda>n::nat. Q (int n)))"
+
+lemma int_nat_embedding_preproc_the:
+ "(The (P::nat \<Rightarrow> bool)) \<equiv> nat (lift_The (\<lambda>z::int. 0 \<le> z \<and> P (nat z)))"
+  by (simp add: lift_The_def)
+
 
 lemma alethe_nat_embedding_all_new:
 "(\<forall>x . (\<exists>x'. (((x::nat) = nat (x'::int) \<and> 0 \<le> x' ) \<and> P x = P' x')))
@@ -958,6 +965,11 @@ lemma H_nat_embedding: \<open>x \<ge> 0 \<Longrightarrow> int (nat x) = x\<close
 
 lemma H_nat_embedding': \<open>x \<ge> 0 \<Longrightarrow> int (nat x) \<equiv> x\<close>
   by simp
+
+lemma H_nat_eq:
+  fixes a b :: int
+  shows \<open>0 \<le> a \<Longrightarrow> 0 \<le> b \<Longrightarrow> nat a = nat b \<equiv> a = b\<close>
+  by (simp add: nat_eq_iff)
 
 lemma temp:
 "A \<Longrightarrow> ( B \<equiv>  C) \<Longrightarrow> ( B \<equiv> (A \<and> C))"
@@ -1094,7 +1106,6 @@ ML_file \<open>Tools/SMT/alethe/alethe_strategies.ML\<close>
 ML_file \<open>Tools/SMT/alethe/alethe_replay.ML\<close>
 ML_file \<open>Tools/SMT/alethe/verit_replay.ML\<close>
 ML_file \<open>Tools/SMT/alethe/cvc5_replay.ML\<close>
-
 
 ML_file \<open>Tools/SMT/smt_systems.ML\<close>
 ML_file \<open>CVC/ML/alethe_replay_rare_simplify_methods.ML\<close>
