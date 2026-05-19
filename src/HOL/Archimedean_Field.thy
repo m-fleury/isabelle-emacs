@@ -16,6 +16,7 @@ imports
     Conditionally_Complete_Lattices
     Binomial
     GCD
+    "CVC/SMT_CVC"
 begin
 
 lemma cInf_abs_ge:

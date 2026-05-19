@@ -1,5 +1,5 @@
 theory SMT_CVC \<comment> \<open>More Setup for CVC that should be in HOL eventually\<close>
-  imports HOL.SMT 
+  imports HOL.SMT "Tools/SMT/alethe/rare_rewrites/Rare_Interface"
   keywords "smt_status" "check_smt_dir" "check_smt" "check_smt_slice" :: diag
 begin
 
@@ -8,7 +8,25 @@ begin
 
 
 (*Term rewrites*)
+ML \<open>
 
+
+(*alethe proofs can contain rare_rewrites. The arguments may use rare-list to express lists.*)
+fun alethe_term_parser (SMTLIB.Sym "rare-list", []) = (
+   (*If there are no elements in the list we cannot know the type at this point*)
+    SOME(Const(\<^const_name>\<open>ListVar\<close> ,dummyT --> dummyT) $ Const(\<^const_name>\<open>List.Nil\<close>, dummyT)))
+| alethe_term_parser (SMTLIB.Sym "rare-list", ts) = (
+  let
+    val new_type = fastype_of (hd ts)
+  in
+    SOME(Const(\<^const_name>\<open>ListVar\<close>, Type(\<^type_name>\<open>List.list\<close>,[new_type]) --> Type(\<^type_name>\<open>cvc_ListVar\<close>,[new_type]))
+    $ (HOLogic.mk_list new_type ts))
+  end)
+| alethe_term_parser _ = NONE
+
+val _ = Theory.setup (Context.theory_map (
+  SMTLIB_Proof.add_term_parser alethe_term_parser)
+)\<close>
 ML \<open>
 
  fun power _ _ [t1] =
@@ -25,6 +43,7 @@ val _ = Theory.setup (Context.theory_map (
   setup_builtins 
 ))
 \<close>
+ML_file \<open>ML/alethe_replay_rare_simplify_methods.ML\<close>
 
 (*check that int.pow2 is properly registered*)
 ML \<open>

@@ -5,7 +5,7 @@
 section \<open>The datatype of finite lists\<close>
 
 theory List
-  imports Lifting_Set Numeral_Simprocs Set_Interval
+  imports Lifting_Set Numeral_Simprocs Set_Interval Sledgehammer
 begin
 
 datatype (set: 'a) list =
