@@ -1044,6 +1044,9 @@ lemma alethe_Box_def2:
   unfolding alethe_Box_def
   by auto
 
+definition alethe_id :: \<open>'a \<Rightarrow> 'a\<close> where
+  \<open>alethe_id x = x\<close>
+
 named_theorems rare_simplify_temp \<open>Theorems to reconstruct bitvector theorems concerning list
                                   functions, e.g. take.\<close>
 
