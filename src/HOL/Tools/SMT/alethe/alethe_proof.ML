@@ -616,7 +616,7 @@ fun postprocess_proof compress ctxt step cx =
 
         (* Process step arguments *)
         val normalized_step_args = (if rule = "la_generic" then []
-          else transform_step_args rule (step_args|> @{print}) (cx, orig_new_variable_names))
+          else transform_step_args rule step_args (cx, orig_new_variable_names))
 
         (* add arguments *)
         val tactic_args =
