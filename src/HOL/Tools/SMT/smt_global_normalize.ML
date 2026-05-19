@@ -347,27 +347,74 @@ fun transform_function ctxt subst t f f_name ts f_T f'_T =
   in custom_all_conv ctxt subst end
   else
   let
-    val (ctxt1, subst1, (f'_def, t'_ge_0)) =
-    (case subst_lookup subst f of
-      NONE =>
-      let
-        val _ = debug_msg ctxt low (fn () => \<^print> ("current term is a function f that has not been encountered yet ", t))
-        val (ctxt1, c_f', def) = mk_new_fun ctxt f f_name
-      in (ctxt1, subst_update f (c_f', def) subst, def) end
-    | SOME (_, def) =>
-      let
-        val _ = debug_msg ctxt low (fn () => \<^print> ("current term is a function f that has been encountered before ", t))
-      in (ctxt, subst, def) end)
+    (*Special case for HOL.eq :: nat \<Rightarrow> nat \<Rightarrow> bool. After the children of (HOL.eq a b) have been
+      lifted, both arguments end up as `nat <lifted>`. Without this case, the generic branch below
+      would mint a fresh `lift_eq :: int \<Rightarrow> int \<Rightarrow> bool` per such equation, even though
+      `nat x = nat y \<equiv> x = y` holds whenever `0 \<le> x` and `0 \<le> y`. We obtain the side-conditions
+      either from `subst` (for lifted functions/variables) or as a hypothesis-carrying assume thm
+      for quantifier-bound int variables (the matching `\<forall>`-level `Thm.implies_intr` discharges it).*)
+    fun nat_eq_special () =
+      if f_name <> \<^const_name>\<open>HOL.eq\<close> orelse f_T <> \<^typ>\<open>nat \<Rightarrow> nat \<Rightarrow> bool\<close> then NONE
+      else
+        let
+          fun inner_of (Const (\<^const_name>\<open>Int.nat\<close>, _) $ u) = SOME u
+            | inner_of _ = NONE
+          fun ge0_for u =
+            let val (head, args) = strip_comb u in
+              case subst_lookup_cond_by_lifted subst head of
+                SOME ge_thm =>
+                  let val cargs = map (SOME o Thm.cterm_of ctxt) args in
+                    SOME (Drule.infer_instantiate' ctxt cargs ge_thm)
+                  end
+              | NONE =>
+                  (case head of
+                    Free (_, \<^typ>\<open>int\<close>) =>
+                      if null args
+                      then SOME (Thm.assume
+                        (Thm.cterm_of ctxt (HOLogic.mk_Trueprop (mk_zero_le_int head))))
+                      else NONE
+                  | _ => NONE)
+            end
+        in
+          case ts of
+            [t1, t2] =>
+              (case (Option.mapPartial ge0_for (inner_of t1),
+                     Option.mapPartial ge0_for (inner_of t2)) of
+                (SOME ge1, SOME ge2) => SOME (@{thm H_nat_eq} OF [ge1, ge2])
+              | _ => NONE)
+          | _ => NONE
+        end
+  in
+    case nat_eq_special () of
+      SOME rew_thm =>
+        let
+          val _ = debug_msg ctxt low (fn () =>
+            \<^print> ("HOL.eq at nat \<Rightarrow> nat \<Rightarrow> bool: rewriting via H_nat_eq", t, rew_thm))
+        in custom_rewr_conv ctxt subst rew_thm end
+    | NONE =>
+        let
+          val (ctxt1, subst1, (f'_def, t'_ge_0)) =
+          (case subst_lookup subst f of
+            NONE =>
+            let
+              val _ = debug_msg ctxt low (fn () => \<^print> ("current term is a function f that has not been encountered yet ", t))
+              val (ctxt1, c_f', def) = mk_new_fun ctxt f f_name
+            in (ctxt1, subst_update f (c_f', def) subst, def) end
+          | SOME (_, def) =>
+            let
+              val _ = debug_msg ctxt low (fn () => \<^print> ("current term is a function f that has been encountered before ", t))
+            in (ctxt, subst, def) end)
 
-    val ts_trans = map (fn @{term "nat"} $ t => t | t => t) ts
-    val ct_ts_trans = map (SOME o Thm.cterm_of ctxt1) ts_trans
+          val ts_trans = map (fn @{term "nat"} $ t => t | t => t) ts
+          val ct_ts_trans = map (SOME o Thm.cterm_of ctxt1) ts_trans
 
-    val f'_def_concrete = Drule.infer_instantiate' ctxt1 ct_ts_trans f'_def |> atomize_eq_thm ctxt
-    val t'_ge_0_concrete = case t'_ge_0 of NONE => [] | (SOME ii) => [ (Drule.infer_instantiate' ctxt1 ct_ts_trans) ii]
-    val _ = debug_msg ctxt1 middle (fn () => \<^print> ("Instantiated f'_def ", f'_def_concrete))
-    val _ = debug_msg ctxt1 middle (fn () => \<^print> ("Instantiated t'_ge_0_concrete ", t'_ge_0_concrete))
+          val f'_def_concrete = Drule.infer_instantiate' ctxt1 ct_ts_trans f'_def |> atomize_eq_thm ctxt
+          val t'_ge_0_concrete = case t'_ge_0 of NONE => [] | (SOME ii) => [ (Drule.infer_instantiate' ctxt1 ct_ts_trans) ii]
+          val _ = debug_msg ctxt1 middle (fn () => \<^print> ("Instantiated f'_def ", f'_def_concrete))
+          val _ = debug_msg ctxt1 middle (fn () => \<^print> ("Instantiated t'_ge_0_concrete ", t'_ge_0_concrete))
 
-      in ((fn r => (subst1, ctxt1, t'_ge_0_concrete, (Conv.top_rewrs_conv [f'_def_concrete] ctxt) r))) end
+        in ((fn r => (subst1, ctxt1, t'_ge_0_concrete, (Conv.top_rewrs_conv [f'_def_concrete] ctxt) r))) end
+  end
 
 fun transform_non_quant_term ctxt (subst:subst_tab) ct =
 let
@@ -440,14 +487,23 @@ in
 
     val is_all = (quant_name = \<^const_name>\<open>HOL.All\<close>)
     val is_ex = (quant_name = \<^const_name>\<open>HOL.Ex\<close>)
-    val quant = Thm.cterm_of ctxt (Const(quant_name, intify_type T))
-    val _ = if bound_is_nat andalso not (is_all orelse is_ex)
+    val is_the = (quant_name = \<^const_name>\<open>HOL.The\<close>)
+    val _ = if bound_is_nat andalso not (is_all orelse is_ex orelse is_the)
             then raise (SMT_GLOBAL_NORMALIZE "Unsupported Quantifier")
             else ()
+    (*For All/Ex on nat, the outer head changes to the same quantifier on int. For The on nat, the
+      outer head becomes \<open>nat (lift_The _)\<close>: \<open>quant\<close> holds \<open>lift_The\<close> and \<open>outer_wrap\<close> the
+      \<open>nat\<close> cast that wraps the lifted application. Reconstruction at the end combines them.*)
+    val quant =
+      if bound_is_nat andalso is_the
+      then Thm.cterm_of ctxt (Const(\<^const_name>\<open>SMT.lift_The\<close>, \<^typ>\<open>(int \<Rightarrow> bool) \<Rightarrow> int\<close>))
+      else Thm.cterm_of ctxt (Const(quant_name, intify_type T))
+    val outer_wrap = if bound_is_nat andalso is_the then SOME (Thm.cterm_of ctxt nat_cast) else NONE
 
     val qnt_transform_thm =
       if is_all then @{thm int_nat_embedding_preproc_all}  (* "(\<forall>(x::nat) . P x) \<equiv> (\<forall>(x::int). x \<ge> 0 \<longrightarrow> P (nat x))" *)
-      else @{thm int_nat_embedding_preproc_ex} (*"(\<exists>(x::nat). P x) \<equiv> (\<exists>(x::int). x \<ge> 0 \<and> P (nat x))"*)
+      else if is_ex then @{thm int_nat_embedding_preproc_ex} (*"(\<exists>(x::nat). P x) \<equiv> (\<exists>(x::int). x \<ge> 0 \<and> P (nat x))"*)
+      else @{thm int_nat_embedding_preproc_the} (*"The (P::nat \<Rightarrow> bool) \<equiv> nat (lift_The (\<lambda>z::int. 0 \<le> z \<and> P (nat z)))"*)
 
     (*
      In nat case: "\<forall>x::nat. P (int x) \<equiv> \<forall>x\<ge>0. P (int (nat x))"
@@ -457,10 +513,18 @@ in
      if bound_is_nat then (Drule.infer_instantiate' ctxt [SOME (hd cts)] qnt_transform_thm)
      else Conv.all_conv ct
     val qnt_transform_rhs = Thm.rhs_of qnt_transform
-    val qnt_transform_lambda =
-      case (if bound_is_nat then Drule.strip_comb qnt_transform_rhs else (ct1, cts)) of
-        (_, [lambda]) => lambda
+    (*For The we have to strip two layers (\<open>nat\<close> and \<open>lift_The\<close>) before reaching the lambda.*)
+    fun strip_one_app ct =
+      case Drule.strip_comb ct of
+        (_, [arg]) => arg
       | _ => raise (SMT_GLOBAL_NORMALIZE "expected unary application in quantifier rewrite")
+    val qnt_transform_lambda =
+      if not bound_is_nat then
+        (case (ct1, cts) of
+          (_, [lambda]) => lambda
+        | _ => raise (SMT_GLOBAL_NORMALIZE "expected unary application in quantifier rewrite"))
+      else if is_the then strip_one_app (strip_one_app qnt_transform_rhs)
+      else strip_one_app qnt_transform_rhs
     val _ = debug_msg ctxt high (fn () => \<^print> ("Applied lemma transforming quantifier", qnt_transform_lambda))
 
     (*
@@ -513,6 +577,12 @@ in
 
      val lambda_unfold_nat_int_bound_var = Thm.abstract_rule bv_name transformed_bound_var_ct body_unfold_nat_int_bound_var''
      val qnt_unfold_nat_int_bound_var = Thm.combination (Conv.all_conv quant) lambda_unfold_nat_int_bound_var
+     (*For The the RHS of qnt_transform is \<open>nat (lift_The _)\<close>; wrap with the outer cast so the
+       transitive below chains.*)
+     val qnt_unfold_nat_int_bound_var =
+       case outer_wrap of
+         NONE => qnt_unfold_nat_int_bound_var
+       | SOME wrap_ct => Thm.combination (Conv.all_conv wrap_ct) qnt_unfold_nat_int_bound_var
 
      val qnt_original_unfold_nat_int_bound_var = Thm.transitive qnt_transform qnt_unfold_nat_int_bound_var
      val _ = debug_msg ctxt high (fn () => \<^print> ("qnt_original_unfold_nat_int_bound_var", qnt_original_unfold_nat_int_bound_var))
@@ -583,8 +653,13 @@ in
 
     (* "\<lambda>x::int. P x \<equiv> \<lambda>x. P' x" *)
     val lambda_eq = Thm.abstract_rule bv_name transformed_bound_var_ct thm_unfolded_nat_int
-    (* "\<forall>x::int. P x \<equiv> \<forall>x. P' x" *)
+    (* All/Ex: "\<forall>x::int. P x \<equiv> \<forall>x. P' x"; The: "lift_The (\<lambda>...) \<equiv> lift_The (\<lambda>...)" *)
     val quant_eq = Thm.combination (Conv.all_conv quant) lambda_eq
+    (* For The, wrap the equation with the outer \<open>nat\<close> cast. *)
+    val quant_eq =
+      case outer_wrap of
+        NONE => quant_eq
+      | SOME wrap_ct => Thm.combination (Conv.all_conv wrap_ct) quant_eq
 
     (* "\<forall>x::nat. P (int x) \<equiv> \<forall>x::int. P' x" *)
     val result = Thm.transitive qnt_original_unfold_nat_int_bound_var quant_eq
