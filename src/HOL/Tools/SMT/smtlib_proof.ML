@@ -349,8 +349,6 @@ fun extract_name_bindings t (tab, exp_tab) =
             fold (fn bdgs => fn st => fold extract bdgs st) bindings (tab, new)
             |> extract body
           end)
-      | SMTLIB.S [SMTLIB.Sym "let", SMTLIB.S [_, _], _] =>
-          raise (Fail "unsupported let construction in name extraction")
       | SMTLIB.S (SMTLIB.Sym "!" :: t :: [SMTLIB.Key _, SMTLIB.Sym name]) =>
           extract t (tab, new)
           |>> Symtab.update (name, remove_name_bindings t)
