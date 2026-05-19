@@ -1,0 +1,6 @@
+(set-logic ALL)
+(declare-fun y () (_ BitVec 16))
+(declare-fun z () (_ BitVec 32))
+(declare-fun P ((_ BitVec 16)) Bool)
+(check-sat)
+(exit)

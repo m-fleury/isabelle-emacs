@@ -1,0 +1,5 @@
+(set-logic ALL)
+(declare-fun __ () (_ BitVec 3))
+(declare-fun ___ () (_ BitVec 3))
+(check-sat)
+(exit)

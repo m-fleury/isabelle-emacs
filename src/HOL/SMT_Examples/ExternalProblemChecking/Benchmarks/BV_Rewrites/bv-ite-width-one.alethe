@@ -1,0 +1,4 @@
+unsat
+(step t2952 (cl (! (= (! (ite (! (= (! (ite (! (bvslt (! (@bv 1 1) :named @p_5) (! (ite (! (= (! (@bv 0 4) :named @p_8) (! (concat (! (bvnot (! (concat (! ((_ extract 3 3) v0) :named @p_12) @p_5 (! ((_ extract 1 1) v0) :named @p_13)) :named @p_11)) :named @p_10) (! (ite (! (bvslt (! (@bv 4 4) :named @p_16) v4) :named @p_15) @p_5 (! (@bv 0 1) :named @p_17)) :named @p_14)) :named @p_9)) :named @p_7) @p_17 @p_5) :named @p_6)) :named @p_4) @p_5 @p_17) :named @p_3) @p_5) :named @p_2) @p_5 @p_17) :named @p_1) @p_3) :named @p_0)) :rule rare_rewrite :args ("bv-ite-width-one" @p_3))
+(step slice_end (cl) :rule trust :premises (t2952) :args ("trust"))
+

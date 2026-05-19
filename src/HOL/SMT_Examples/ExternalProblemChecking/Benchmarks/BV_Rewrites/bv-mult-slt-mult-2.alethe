@@ -1,0 +1,6 @@
+unsat
+(step t61 (cl (! (= 5 (! (@bvsize x) :named @p_1)) :named @p_0)) :rule trust :args ("trust"))
+(step t63 (cl (! (= 3 (! (@bvsize a) :named @p_3)) :named @p_2)) :rule trust :args ("trust"))
+(step t64 (cl (! (= (! (bvslt (! (bvmul (! ((_ zero_extend 5) (! (bvadd x t) :named @p_8)) :named @p_7) (! ((_ sign_extend 7) a) :named @p_9)) :named @p_6) (! (bvmul (! ((_ zero_extend 5) x) :named @p_11) @p_9) :named @p_10)) :named @p_5) (! (and (! (not (! (= (! (bvsub @p_8 x) :named @p_15) (! (@bv 0 5) :named @p_16)) :named @p_14)) :named @p_13) (! (not (! (= a (! (@bv 0 3) :named @p_19)) :named @p_18)) :named @p_17) (! (= (! (bvult @p_8 x) :named @p_21) (! (bvsgt a @p_19) :named @p_22)) :named @p_20)) :named @p_12)) :named @p_4)) :rule rare_rewrite :premises (t61 t63) :args ("bv-mult-slt-mult-2" x @p_8 a 5 7 5 3))
+(step slice_end (cl) :rule trust :premises (t64) :args ("trust"))
+

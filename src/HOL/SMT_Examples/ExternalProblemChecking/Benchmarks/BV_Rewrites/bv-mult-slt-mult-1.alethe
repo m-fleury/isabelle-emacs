@@ -1,0 +1,9 @@
+unsat
+(anchor :step t2 :args ((t (_ BitVec 32)) (c (_ BitVec 32)) (:= (t (_ BitVec 32)) t) (:= (c (_ BitVec 32)) c)))
+(step t2.t30 (cl (= 32 (@bvsize t))) :rule trust :args ("trust"))
+(step t2.t32 (cl (= 32 (@bvsize c))) :rule trust :args ("trust"))
+(step t2.t33 (cl (= (bvslt (bvmul ((_ sign_extend 32) (bvadd t (! (@bv 1 32) :named @p_0))) ((_ sign_extend 32) c)) (bvmul ((_ sign_extend 32) t) ((_ sign_extend 32) c))) (and (not (= (bvsub (bvadd t @p_0) t) (! (@bv 0 32) :named @p_1))) (not (= c @p_1)) (= (bvslt (bvadd t @p_0) t) (bvsgt c @p_1))))) :rule rare_rewrite :premises (t2.t30 t2.t32) :args ("bv-mult-slt-mult-1" t (bvadd t @p_0) c 32 32 32 32))
+(step t2.t54 (cl (= (bvslt (bvmul ((_ sign_extend 32) c) ((_ sign_extend 32) (bvadd t (_ bv1 32)))) (bvmul ((_ sign_extend 32) c) ((_ sign_extend 32) t))) (and (not (= c (_ bv0 32))) (= (bvslt (bvadd t (_ bv1 32)) t) (bvslt (_ bv0 32) c))))) :rule trust :premises (t2.t33) :args ("trust"))
+(step t2 (cl (! (= (! (forall ((t (_ BitVec 32)) (c (_ BitVec 32))) (bvslt (bvmul ((_ sign_extend 32) c) ((_ sign_extend 32) (bvadd t (_ bv1 32)))) (bvmul ((_ sign_extend 32) c) ((_ sign_extend 32) t)))) :named @p_3) (! (forall ((t (_ BitVec 32)) (c (_ BitVec 32))) (and (not (= c (_ bv0 32))) (= (bvslt (bvadd t (_ bv1 32)) t) (bvslt (_ bv0 32) c)))) :named @p_4)) :named @p_2)) :rule bind)
+(step slice_end (cl) :rule trust :premises (t2) :args ("trust"))
+

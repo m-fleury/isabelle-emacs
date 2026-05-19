@@ -1,0 +1,4 @@
+unsat
+(step t10 (cl (! (= (! (bvcomp (! (@bv 1 1) :named @p_2) b) :named @p_1) (! (bvcomp b @p_2) :named @p_3)) :named @p_0)) :rule rare_rewrite :args ("bv-commutative-comp" @p_2 b))
+(step slice_end (cl) :rule trust :premises (t10) :args ("trust"))
+

@@ -1,0 +1,5 @@
+unsat
+(step t12 (cl (! (= 16 (! (+ 15 1) :named @p_1)) :named @p_0)) :rule trust :args ("trust"))
+(step t13 (cl (! (= (! (concat (! ((_ extract 31 16) z) :named @p_4) (! ((_ extract 15 0) z) :named @p_5)) :named @p_3) (! ((_ extract 31 0) z) :named @p_6)) :named @p_2)) :rule rare_rewrite :premises (t12) :args ("bv-concat-extract-merge" (! rare-list :named @p_7) z @p_7 0 15 16 31))
+(step slice_end (cl) :rule trust :premises (t13) :args ("trust"))
+

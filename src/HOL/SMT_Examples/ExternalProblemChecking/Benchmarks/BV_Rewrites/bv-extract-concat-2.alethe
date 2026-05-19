@@ -1,0 +1,8 @@
+unsat
+(step t83 (cl (! (= (! (< 0 (! (@bvsize (! (@bv 1 1) :named @p_3)) :named @p_2)) :named @p_1) (! true :named @p_4)) :named @p_0)) :rule trust :args ("trust"))
+(step t84 (cl (! (= (! (>= 1 @p_2) :named @p_6) @p_4) :named @p_5)) :rule trust :args ("trust"))
+(step t86 (cl (! (= 0 (! (- 1 @p_2) :named @p_8)) :named @p_7)) :rule trust :args ("trust"))
+(step t88 (cl (! (= 0 (! (- @p_2 1) :named @p_10)) :named @p_9)) :rule trust :args ("trust"))
+(step t89 (cl (! (= (! ((_ extract 1 0) (! (concat (! ((_ extract 2 2) c) :named @p_14) (! (@bv 0 1) :named @p_15) @p_3) :named @p_13)) :named @p_12) (! (concat (! ((_ extract 0 0) (! (concat @p_14 @p_15) :named @p_18)) :named @p_17) (! ((_ extract 0 0) @p_3) :named @p_19)) :named @p_16)) :named @p_11)) :rule rare_rewrite :premises (t83 t84 t86 t88) :args ("bv-extract-concat-2" @p_3 (! (rare-list @p_14) :named @p_20) @p_15 0 1 0 0))
+(step slice_end (cl) :rule trust :premises (t89) :args ("trust"))
+

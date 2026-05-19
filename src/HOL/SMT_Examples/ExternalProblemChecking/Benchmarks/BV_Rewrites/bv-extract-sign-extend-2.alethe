@@ -1,0 +1,8 @@
+unsat
+(step t377 (cl (! (= 0 (! (- (! (@bvsize (! (ite (! (= (! (bvnot (! (bvand v1 v2) :named @p_6)) :named @p_5) (! (concat (! (@bv 0 3) :named @p_8) (! (bvcomp (! (concat (! (@bv 4 3) :named @p_11) (! (ite (! (bvult (! (@bv 8 4) :named @p_14) v1) :named @p_13) (! (@bv 0 1) :named @p_15) (! (@bv 1 1) :named @p_16)) :named @p_12)) :named @p_10) (! ((_ sign_extend 3) @p_12) :named @p_17)) :named @p_9)) :named @p_7)) :named @p_4) @p_15 @p_16) :named @p_3)) :named @p_2) 1) :named @p_1)) :named @p_0)) :rule trust :args ("trust"))
+(step t405 (cl (! (= (! (< 0 @p_2) :named @p_19) (! true :named @p_20)) :named @p_18)) :rule trust :args ("trust"))
+(step t406 (cl (! (= (! (>= 1 @p_2) :named @p_22) @p_20) :named @p_21)) :rule trust :args ("trust"))
+(step t408 (cl (! (= 1 (! (+ 1 (! (- 1 @p_2) :named @p_25)) :named @p_24)) :named @p_23)) :rule trust :args ("trust"))
+(step t409 (cl (! (= (! ((_ extract 1 0) (! ((_ sign_extend 3) @p_3) :named @p_28)) :named @p_27) (! ((_ sign_extend 1) (! ((_ extract 0 0) @p_3) :named @p_30)) :named @p_29)) :named @p_26)) :rule rare_rewrite :premises (t405 t406 t377 t408) :args ("bv-extract-sign-extend-2" @p_3 0 1 3 0 1))
+(step slice_end (cl) :rule trust :premises (t409) :args ("trust"))
+

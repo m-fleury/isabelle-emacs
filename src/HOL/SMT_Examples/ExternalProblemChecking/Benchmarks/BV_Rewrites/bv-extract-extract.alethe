@@ -1,0 +1,6 @@
+unsat
+(step t10 (cl (! (= 4 (! (+ 1 3) :named @p_1)) :named @p_0)) :rule trust :args ("trust"))
+(step t12 (cl (! (= 2 (! (+ 1 1) :named @p_3)) :named @p_2)) :rule trust :args ("trust"))
+(step t13 (cl (! (= (! ((_ extract 3 1) (! ((_ extract 7 1) x) :named @p_6)) :named @p_5) (! ((_ extract 4 2) x) :named @p_7)) :named @p_4)) :rule rare_rewrite :premises (t10 t12) :args ("bv-extract-extract" x 1 7 1 3 4 2))
+(step slice_end (cl) :rule trust :premises (t13) :args ("trust"))
+

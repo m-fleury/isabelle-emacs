@@ -1,0 +1,4 @@
+unsat
+(step t158 (cl (! (= (! ((_ extract 3 1) (! (bvnot (! (concat (! ((_ extract 3 3) v0) :named @p_4) (! (@bv 1 1) :named @p_5) (! ((_ extract 1 1) v0) :named @p_6) @p_5) :named @p_3)) :named @p_2)) :named @p_1) (! (bvnot (! ((_ extract 3 1) @p_3) :named @p_8)) :named @p_7)) :named @p_0)) :rule rare_rewrite :args ("bv-extract-not" @p_3 1 3))
+(step slice_end (cl) :rule trust :premises (t158) :args ("trust"))
+

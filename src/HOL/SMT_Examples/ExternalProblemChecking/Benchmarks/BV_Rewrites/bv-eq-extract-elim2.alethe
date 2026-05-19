@@ -1,0 +1,7 @@
+unsat
+(step t80 (cl (! (= 15 (! (- (! (@bvsize x) :named @p_2) 1) :named @p_1)) :named @p_0)) :rule trust :args ("trust"))
+(step t82 (cl (! (= 2 (! (+ 1 1) :named @p_4)) :named @p_3)) :rule trust :args ("trust"))
+(step t83 (cl (! (= (! (> 15 1) :named @p_6) (! true :named @p_7)) :named @p_5)) :rule trust :args ("trust"))
+(step t84 (cl (! (= (! (= (! ((_ extract 1 0) x) :named @p_10) (! (@bv 1 2) :named @p_11)) :named @p_9) (! (= x (! (concat (! ((_ extract 15 2) x) :named @p_14) @p_11) :named @p_13)) :named @p_12)) :named @p_8)) :rule rare_rewrite :premises (t80 t82 t83) :args ("bv-eq-extract-elim2" x @p_11 1 15 2))
+(step slice_end (cl) :rule trust :premises (t84) :args ("trust"))
+

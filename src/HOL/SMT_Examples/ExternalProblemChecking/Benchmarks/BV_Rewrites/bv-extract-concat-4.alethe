@@ -1,0 +1,5 @@
+unsat
+(step t10219 (cl (! (= (! (< 2 (! (- (! (@bvsize (! (concat (! (bvnot (! ((_ extract 3 3) (! (bvmul v4 (! (bvlshr v4 (! ((_ sign_extend 3) (! (ite (! (bvslt v2 (! (@bv 11 4) :named @p_12)) :named @p_11) (! (@bv 0 1) :named @p_13) (! (@bv 1 1) :named @p_14)) :named @p_10)) :named @p_9)) :named @p_8)) :named @p_7)) :named @p_6)) :named @p_5) (! ((_ extract 0 0) @p_7) :named @p_15) (! ((_ extract 2 2) @p_7) :named @p_16) (! (bvnot (! ((_ extract 1 1) @p_7) :named @p_18)) :named @p_17)) :named @p_4)) :named @p_3) (! (@bvsize @p_5) :named @p_19)) :named @p_2)) :named @p_1) (! true :named @p_20)) :named @p_0)) :rule trust :args ("trust"))
+(step t10220 (cl (! (= (! ((_ extract 2 0) (! (concat @p_5 @p_16 @p_17 @p_15) :named @p_23)) :named @p_22) (! ((_ extract 2 0) (! (concat @p_16 @p_17 @p_15) :named @p_25)) :named @p_24)) :named @p_21)) :rule rare_rewrite :premises (t10219) :args ("bv-extract-concat-4" @p_5 @p_15 (! (rare-list @p_16 @p_17) :named @p_26) 0 2))
+(step slice_end (cl) :rule trust :premises (t10220) :args ("trust"))
+

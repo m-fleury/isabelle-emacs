@@ -1,0 +1,5 @@
+unsat
+(step t146 (cl (! (= 5 (! (+ 4 1) :named @p_1)) :named @p_0)) :rule trust :args ("trust"))
+(step t147 (cl (! (= (! (concat (! (@bv 0 4) :named @p_4) (! (@bv 0 1) :named @p_5) __) :named @p_3) (! (concat (! (@bv (! (+ (! (* 0 (! (int.pow2 1) :named @p_10)) :named @p_9) (! (mod 0 @p_10) :named @p_11)) :named @p_8) 5) :named @p_7) __) :named @p_6)) :named @p_2)) :rule rare_rewrite :premises (t146) :args ("bv-concat-merge-const" (! rare-list :named @p_12) 0 4 0 1 5 (! (rare-list __) :named @p_13)))
+(step slice_end (cl) :rule trust :premises (t147) :args ("trust"))
+

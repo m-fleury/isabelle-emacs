@@ -1,0 +1,5 @@
+unsat
+(step t145 (cl (! (= (! (<= 1 (! (@bvsize x) :named @p_2)) :named @p_1) (! true :named @p_3)) :named @p_0)) :rule trust :args ("trust"))
+(step t146 (cl (! (= (! ((_ extract 1 1) (! (concat (! (@bv 0 1) :named @p_7) x) :named @p_6)) :named @p_5) (! ((_ extract 1 1) x) :named @p_8)) :named @p_4)) :rule rare_rewrite :premises (t145) :args ("bv-extract-concat-1" x (! rare-list :named @p_9) @p_7 1 1))
+(step slice_end (cl) :rule trust :premises (t146) :args ("trust"))
+

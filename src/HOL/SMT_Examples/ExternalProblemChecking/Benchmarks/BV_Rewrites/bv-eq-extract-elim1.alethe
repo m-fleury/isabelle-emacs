@@ -1,0 +1,9 @@
+unsat
+(step t22 (cl (! (= 2 (! (- (! (@bvsize c) :named @p_2) 1) :named @p_1)) :named @p_0)) :rule trust :args ("trust"))
+(step t24 (cl (! (= 2 (! (+ 1 1) :named @p_4)) :named @p_3)) :rule trust :args ("trust"))
+(step t26 (cl (! (= 0 (! (- 1 1) :named @p_6)) :named @p_5)) :rule trust :args ("trust"))
+(step t27 (cl (! (= (! (> 2 1) :named @p_8) (! true :named @p_9)) :named @p_7)) :rule trust :args ("trust"))
+(step t28 (cl (! (= (! (> 1 0) :named @p_11) @p_9) :named @p_10)) :rule trust :args ("trust"))
+(step t29 (cl (! (= (! (= (! ((_ extract 1 1) c) :named @p_14) (! (@bv 0 1) :named @p_15)) :named @p_13) (! (= c (! (concat (! ((_ extract 2 2) c) :named @p_18) @p_15 (! ((_ extract 0 0) c) :named @p_19)) :named @p_17)) :named @p_16)) :named @p_12)) :rule rare_rewrite :premises (t22 t24 t26 t27 t28) :args ("bv-eq-extract-elim1" c @p_15 1 1 2 2 0))
+(step slice_end (cl) :rule trust :premises (t29) :args ("trust"))
+

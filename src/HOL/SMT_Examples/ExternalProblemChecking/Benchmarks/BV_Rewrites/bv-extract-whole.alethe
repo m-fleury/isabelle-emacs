@@ -1,0 +1,5 @@
+unsat
+(step t19 (cl (! (= (! (>= 31 (! (- (! (@bvsize z) :named @p_3) 1) :named @p_2)) :named @p_1) (! true :named @p_4)) :named @p_0)) :rule trust :args ("trust"))
+(step t20 (cl (! (= (! ((_ extract 31 0) z) :named @p_6) z) :named @p_5)) :rule rare_rewrite :premises (t19) :args ("bv-extract-whole" z 31))
+(step slice_end (cl) :rule trust :premises (t20) :args ("trust"))
+
