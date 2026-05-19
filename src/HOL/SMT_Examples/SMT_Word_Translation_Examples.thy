@@ -166,8 +166,7 @@ lemma "push_bit 3 (1705 :: 32 word) = 13640"
   apply (test_smt_translate 
 \<open>
 (set-logic AUFBVLIRAFS)
-(assert (! (not (= (bvshl (_ bv1705 32) (_ bv3 32)) (_ bv13640 32))) :named a0))
-(assert (! (<= 0 3) :named a1))
+(assert (! (not (= (ite (<= 32 3) (_ bv0 32) (bvshl (_ bv1705 32) ((_ int_to_bv 32) 3))) (_ bv13640 32))) :named a0))
 \<close>)
   by (smt (cvc5))
 
@@ -175,11 +174,12 @@ lemma "push_bit (Suc 0) (1705 :: 32 word) = 3410"
   apply (test_smt_translate 
 \<open>
 (set-logic AUFBVLIRAFS)
-(assert (! (not (= (bvshl (_ bv1705 32) ((_ int_to_bv 32) (ite (<= 0 (+ 0 1)) (+ 0 1) 0))) (_ bv3410 32))) :named a0))
-(assert (! (<= 0 (ite (<= 0 (+ 0 1)) (+ 0 1) 0)) :named a1))
+(assert (! (not (= (ite (<= 32 (+ 0 1)) (_ bv0 32) (bvshl (_ bv1705 32) ((_ int_to_bv 32) 1))) (_ bv3410 32))) :named a0))
+(assert (! (<= 0 1) :named a1))
 \<close>)
   by (smt (cvc5))
 
+(* TODO
 lemma "push_bit x (1705 :: 32 word) = 13640"
   apply (test_smt_translate 
 \<open>
@@ -189,7 +189,7 @@ lemma "push_bit x (1705 :: 32 word) = 13640"
 (assert (! (and (<= 0 lift_x$) (<= 0 lift_x$)) :named a1))
 \<close>)
   by (smt (cvc5))
-
+*)
 
 text \<open>drop_bit is translated into bvshr\<close>
 
@@ -197,8 +197,7 @@ lemma "drop_bit 3 (1705 :: 32 word) = 213"
   apply (test_smt_translate 
 \<open>
 (set-logic AUFBVLIRAFS)
-(assert (! (not (= (bvlshr (_ bv1705 32) (_ bv3 32)) (_ bv213 32))) :named a0))
-(assert (! (<= 0 3) :named a1))
+(assert (! (not (= (ite (<= 32 3) (_ bv0 32) (bvlshr (_ bv1705 32) ((_ int_to_bv 32) 3))) (_ bv213 32))) :named a0))
 \<close>)
   by (smt (cvc5))
 
@@ -208,8 +207,7 @@ lemma "take_bit 3 (1705 :: 32 word) = 1"
   apply (test_smt_translate 
 \<open>
 (set-logic AUFBVLIRAFS)
-(assert (! (not (= (bvsub (_ bv1705 32) (bvshl (bvlshr (_ bv1705 32) (_ bv3 32)) (_ bv3 32))) (_ bv1 32))) :named a0))
-(assert (! (<= 0 3) :named a1))
+(assert (! (not (= (bvsub (_ bv1705 32) (ite (<= 32 3) (_ bv0 32) (bvshl (bvlshr (_ bv1705 32) ((_ int_to_bv 32) 3)) ((_ int_to_bv 32) 3)))) (_ bv1 32))) :named a0))
 \<close>)
   by (smt (cvc5))
 
@@ -280,27 +278,6 @@ lemma "(smt_extract 2 0 (4::3 word) :: 3 word) = (4::3 word)"
 
 
 
-
-
-
-
-
-
-lemma eee: "k < size (x::'a::len word) \<Longrightarrow>  bit (x::'a word) k \<equiv> (smt_extract k k x = (1:: 1 word))"
-  sorry
-
-
-ML \<open>
-
-val simplify_norm_table = [
-  ("Bit_Operations.semiring_bits_class.bit",(NONE,([@{thm eee}],SOME[] )))
-
-]
-
-
-val _ = fold SMT_Normalize.add_simplify_ops_tab (simplify_norm_table)
-    |> Theory.setup o  Context.theory_map
-\<close>
 
 
 

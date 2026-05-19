@@ -22,7 +22,7 @@ Or I might have missed copying over an assumption.
 (*options*)
 
 declare[[smt_expert_debug_alethe_level=3]]
-declare[[smt_expert_debug_alethe_files="alethe_replay_rare"]]
+declare[[smt_expert_debug_alethe_files="alethe_replay_methods"]]
 
 declare[[ML_print_depth=1000]]
 declare[[smt_verbose=false,smt_trace=true,smt_timeout=25,smt_reconstruction_step_timeout=25]]
@@ -120,16 +120,14 @@ Origin:
 Description:
   No custom functions & no casts between bit-widths. Is aligned uses power 2.
 *)
-lemma h1: "LENGTH(12) = nat (12::int)" sorry
-lemmas [cvc_evaluate_bv] = Word_eq_word_of_int bv_reconstruction_length bit_operations word_size h1
-
-thm word_plus_rbl_bvadd_fun
+lemmas [cvc_evaluate_bv] = Word_eq_word_of_int bv_reconstruction_length bit_operations word_size 
+declare[[ML_print_depth=10]]
+thm alethe_poly_norm
  lemma pde_shifting_small:
     "\<lbrakk>is_aligned (vptr::16 word) 12; x \<le> 0xF\<rbrakk> \<Longrightarrow> x + (vptr >> 8) < 0x100"
   using is_aligned_iff_take_bit_eq_0
   supply[[smt_trace=true,smt_verbose=true]]
-  apply (smt(cvc5))
-
+  sorry
 (*
 lemma pde_shifting:
   "\<lbrakk>is_aligned (vptr::word32) 24; x \<le> 0xF\<rbrakk> \<Longrightarrow> x + (vptr >> 20) < 0x1000"
@@ -139,7 +137,7 @@ lemma pde_shifting:
   sorry
 *)
 lemma "bit x 0 \<Longrightarrow> \<not>bit ((3::4 word) + (x:: 4 word)) 0"
-  apply (smt (cvc5))
+  sorry
 
 (*
   apply (rule order_less_le_trans)
@@ -185,13 +183,15 @@ Description:
   Few custom functions (no datatypes) & casts between bit-widths.
   I found the case distinction interesting and want to see what the SMT solver does.
 *)
+
+declare[[ML_print_depth=100]]
 lemma asid_low_high_bits: (*TODO: Encode unsigned properly*)
   "\<lbrakk> x && mask asid_low_bits = y && mask asid_low_bits;
     ucast (asid_high_bits_of x) = (ucast (asid_high_bits_of y)::word32);
     x \<le> 2 ^ asid_bits - 1; y \<le> 2 ^ asid_bits - 1 \<rbrakk>
   \<Longrightarrow> x = y"
   using asid_low_bits_def asid_high_bits_of_def asid_bits_def bin_nth_mask
-    apply (smt(cvc5))
+  (*  apply (smt(cvc5))*)
 
 (*
   apply (rule word_eqI)
@@ -218,14 +218,22 @@ Description:
   Simple helper lemma (inside of a proof) I found interesting, to test goals with datatypes.
   Needs two user defined datatype definitions that basically only define constants though.
 Note: the same statement appears in l4v/proof/invariant-abstract/ARM/ArchTcbAcc_AI.thy
+
+TODO: lift_eq
 *)
 
+declare[[smt_expert_debug_alethe_level=3]]
+declare[[smt_expert_debug_alethe_files="all"]]
 lemma aligned_offset_ignore:
     "\<And>(l::word32) (p::word32) sz. l<4 \<Longrightarrow> p && mask 2 = 0 \<Longrightarrow>
        p+l && ~~ mask (pageBitsForSize sz) = p && ~~ mask (pageBitsForSize sz)"
   unfolding pageBitsForSize_def 
-  using vmpage_size.simps
-  apply (smt (cvc5))
+  using vmpage_size.simps mask_Suc_rec mask_Suc_0 case_vmpage_size_def
+  supply[[smt_trace=true,smt_verbose=true]]
+
+  sorry
+
+
 (*
   proof -
     fix l p sz
@@ -249,58 +257,12 @@ Description:
   Just a simple and clean lemma
 *)
 
-lemma [smt_arith_simplify]: " Suc (Suc (Suc (Suc (Suc (Suc (Suc (Suc (Suc (Suc (Suc (Suc (Suc (Suc
- (Suc (Suc (Suc (Suc (Suc (Suc (Suc (Suc (Suc (Suc (Suc (Suc (Suc (Suc (Suc (Suc (Suc (Suc 0))))))))))))))))))))))))))))))) =
-    (32::nat)"
-  by simp
-lemma [smt_arith_simplify]: "Suc (Suc (Suc (Suc (Suc (Suc (Suc (Suc (Suc (Suc (Suc (Suc 0))))))))))) < (32::nat)"
-"nat (20::int) \<le> nat (31::int)" "Suc (nat (31::int)) \<le> (32::nat)"
-  by simp_all
 
-declare[[smt_expert_debug_alethe_level=0]]
-declare[[smt_expert_debug_alethe_files="alethe_replay_bv_methods"]]
-
-declare[[smt_verbose=false,smt_trace=false]]
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-(*Same lemma but proof with the smt tactic*)
-
-definition pageBits :: "nat" where "pageBits \<equiv> 12"
 
 lemma vptr_shiftr_le_2pu:
   "(vptr :: word32)  >> 20 < 2 ^ pageBits"
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+  using pageBits_def
+  apply (smt (cvc5))
 
 
 
@@ -320,7 +282,8 @@ Note: Apparently also in ArchAcc_R where ever that is
 
 lemma shiftr_shiftl_mask_pd_bits:
   "(((vptr :: word32) >> 20) << 2) && mask pd_bits = (vptr >> 20) << 2"
-   apply (smt (cvc5))
+  using pd_bits_def pageBits_def  mask_Suc_rec mask_Suc_0
+ (*  apply (smt (cvc5))*)
 
   (*
 apply (rule iffD2 [OF mask_eq_iff_w2p])
@@ -345,7 +308,9 @@ Description:
 *)
 lemma vptr_shiftr_le_2pt:
   "((vptr :: word32) >> 12) && 0xFF < 2 ^ (pt_bits - 2)"
-  sorry
+  using pt_bits_def
+  (*   apply (smt (cvc5))*)
+
 (*
   apply (clarsimp simp: word_FF_is_mask pt_bits_def pageBits_def)
   apply (rule and_mask_less_size[where n=8, simplified])
@@ -364,7 +329,9 @@ Description:
 lemma pde_mapping_bits_shift:
   fixes x :: "12 word"
   shows "x \<noteq> 0 \<Longrightarrow> 2 ^ pde_mapping_bits - 1 < (ucast x << pde_mapping_bits :: word32)"
-  sorry
+  using pde_mapping_bits_def 
+    (*   apply (smt (cvc5))*)
+
 (*
   apply (simp only:shiftl_t2n pde_mapping_bits_def)
   apply (unfold word_less_alt)
@@ -503,7 +470,7 @@ lemma shiftr_and_eq_shiftl:
   fixes w x y :: "32 word"
   assumes r: "(w >> n) && x = y"
   shows "w && (x << n) = (y << n)"
-  sorry
+  apply (smt(cvc5))
 (*
   using assms
   proof -

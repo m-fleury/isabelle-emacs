@@ -129,13 +129,14 @@ lemma bv_repeat_elim:
 
 lemma cong:
   assumes
-    "smtlib_extract (15::int) (15::int) (1705::16 word) = 0"
-    "smtlib_extract (15::int) (15::int) (1705::16 word) = 0"
-    "smtlib_extract (15::int) (15::int) (1705::16 word) = 0"
+    "smtlib_extract (15::int) (15::int) (1705::16 word) = (0::1 word)"
+    "smtlib_extract (15::int) (15::int) (1705::16 word) = (0::1 word)"
+    "smtlib_extract (15::int) (15::int) (1705::16 word) = (0::1 word)"
   shows
-  "word_cat (smtlib_extract (15::int) (15::int) (1705::16 word))
-    (word_cat (smtlib_extract (15::int) (15::int) (1705::16 word)) (smtlib_extract (15::int) (15::int) (1705::16 word))) =
-  word_cat 0 (word_cat 0 0)"   
+  "word_cat (smtlib_extract (15::int) (15::int) (1705::16 word)::1 word)
+    (word_cat (smtlib_extract (15::int) (15::int) (1705::16 word)::1 word) (smtlib_extract (15::int) (15::int) (1705::16 word)::1 word)::1 word) =
+  (word_cat (0::1 word) (word_cat (0::1 word) (0::1 word) :: 1 word)::1 word)"   
+  using assms
   by (ctxt_tactic "cong")
 
 
@@ -150,7 +151,7 @@ declare[[smt_expert_debug_alethe_level=3]]
 declare[[smt_expert_debug_alethe_files="alethe_replay_bv_methods"]]
 
 
-(*Constants*)
+(**Constants**)
 
 lemma bv_bitblast_step_const_1:
 "(0::32 word) = of_bl (rev [False, False, False, False, False, False, False, False, False, False, False,
@@ -167,7 +168,7 @@ lemma bv_bitblast_step_const_3:
   by (ctxt_tactic "bv_bitblast_step_const")
 
 
-(*Variables*)
+(**Variables**)
 
 lemma bv_bitblast_step_var_1:
 "(smtlib_extract (3::int) 1 (x::4 word)::3 word) = of_bl (rev [bit (smtlib_extract (3::int) 1 x:: 3 word) 0,
@@ -185,6 +186,9 @@ lemma bv_bitblast_step_var_2:
                 bit vptr (31::nat)]) "
   by (ctxt_tactic "bv_bitblast_step_var")
 
+(**Operators**)
+
+
 lemma bv_bitblast_step_extract1:
 "smtlib_extract (31::int) (24::int)
           (of_bl
@@ -199,6 +203,15 @@ lemma bv_bitblast_step_extract1:
                 bit vptr (30::nat), bit vptr (31::nat)])::8 word)"
   by (ctxt_tactic "bv_bitblast_step_extract")
 
+lemma
+"(smtlib_extract (15::int) (12::int)
+          (of_bl
+            (rev [bit (vptr::16 word) 0, bit vptr 1, bit vptr (2::nat), bit vptr (3::nat), bit vptr (4::nat), bit vptr (5::nat), bit vptr (6::nat),
+                  bit vptr (7::nat), bit vptr (8::nat), bit vptr (9::nat), bit vptr (10::nat), bit vptr (11::nat), bit vptr (12::nat),
+                  bit vptr (13::nat), bit vptr (14::nat), bit vptr (15::nat)])::16 word) ::4 word) =
+         of_bl (rev [bit vptr (12::nat),
+                  bit vptr (13::nat), bit vptr (14::nat), bit vptr (15::nat)]) "
+  by (ctxt_tactic "bv_bitblast_step_extract")
 
 lemma bv_bitblast_step_bvadd1:
 "
@@ -215,11 +228,102 @@ of_bl (rev [(True \<noteq> True) \<noteq> False, (True \<noteq> lsb (smtlib_extr
              True \<noteq> lsb (smtlib_extract (3::int) 1 x::1 word) \<and> (True \<and> True \<or> True \<noteq> True \<and> False)))])"
   by (ctxt_tactic "bv_bitblast_step_bvadd")
 
+lemma bv_bitblast_step_bvult1:
+"((of_bl
+(rev [
+bit (vptr::32 word) (20::nat), bit vptr (21::nat), bit vptr (22::nat), bit vptr (23::nat), bit vptr (24::nat),
+                  bit vptr (25::nat), bit vptr (26::nat), bit vptr (27::nat), bit vptr (28::nat), bit vptr (29::nat), bit vptr (30::nat),
+                  bit vptr (31::nat), False, False, False, False, False, False, False, False,
+                 False, False, False, False, False, False, False, False, False, False, False, False])::32 word)
+          < of_bl
+             (rev [False, False, False, False, False, False, False, False, False, False, False, False, True, False, False, False, False, False, False, False, False, False,
+                   False, False, False, False, False, False, False, False, False, False])) =
+         (False = False \<and>
+          (False = False \<and>
+           (False = False \<and>
+            (False = False \<and>
+             (False = False \<and>
+              (False = False \<and>
+               (False = False \<and>
+                (False = False \<and>
+                 (False = False \<and>
+                  (False = False \<and>
+                   (False = False \<and>
+                    (False = False \<and>
+                     (False = False \<and>
+                      (False = False \<and>
+                       (False = False \<and>
+                        (False = False \<and>
+                         (False = False \<and>
+                          (False = False \<and>
+                           (False = False \<and>
+                            (False = True \<and>
+                             (bit vptr (31::nat) = False \<and>
+                              (bit vptr (30::nat) = False \<and>
+                               (bit vptr (29::nat) = False \<and>
+                                (bit vptr (28::nat) = False \<and>
+                                 (bit vptr (27::nat) = False \<and>
+                                  (bit vptr (26::nat) = False \<and>
+                                   (bit vptr (25::nat) = False \<and>
+                                    (bit vptr (24::nat) = False \<and>
+                                     (bit vptr (23::nat) = False \<and>
+                                      (bit vptr (22::nat) = False \<and> (bit vptr (21::nat) = False \<and> \<not> bit vptr (20::nat) \<and> False \<or> \<not> bit vptr (21::nat) \<and> False) \<or>
+                                       \<not> bit vptr (22::nat) \<and> False) \<or>
+                                      \<not> bit vptr (23::nat) \<and> False) \<or>
+                                     \<not> bit vptr (24::nat) \<and> False) \<or>
+                                    \<not> bit vptr (25::nat) \<and> False) \<or>
+                                   \<not> bit vptr (26::nat) \<and> False) \<or>
+                                  \<not> bit vptr (27::nat) \<and> False) \<or>
+                                 \<not> bit vptr (28::nat) \<and> False) \<or>
+                                \<not> bit vptr (29::nat) \<and> False) \<or>
+                               \<not> bit vptr (30::nat) \<and> False) \<or>
+                              \<not> bit vptr (31::nat) \<and> False) \<or>
+                             \<not> False \<and> True) \<or>
+                            \<not> False \<and> False) \<or>
+                           \<not> False \<and> False) \<or>
+                          \<not> False \<and> False) \<or>
+                         \<not> False \<and> False) \<or>
+                        \<not> False \<and> False) \<or>
+                       \<not> False \<and> False) \<or>
+                      \<not> False \<and> False) \<or>
+                     \<not> False \<and> False) \<or>
+                    \<not> False \<and> False) \<or>
+                   \<not> False \<and> False) \<or>
+                  \<not> False \<and> False) \<or>
+                 \<not> False \<and> False) \<or>
+                \<not> False \<and> False) \<or>
+               \<not> False \<and> False) \<or>
+              \<not> False \<and> False) \<or>
+             \<not> False \<and> False) \<or>
+            \<not> False \<and> False) \<or>
+           \<not> False \<and> False) \<or>
+          \<not> False \<and> False) "
+  by (ctxt_tactic "bv_bitblast_step_bvult")
+
+
+lemma bv_bitblast_step_word_cat1:
+"(word_cat
+            (of_bl
+              (rev [bit (vptr::32 word) (20::nat),bit vptr (21::nat), bit vptr (22::nat), bit vptr (23::nat), bit vptr (24::nat),
+                  bit vptr (25::nat), bit vptr (26::nat), bit vptr (27::nat), bit vptr (28::nat), bit vptr (29::nat), bit vptr (30::nat),
+                  bit vptr (31::nat)])::12 word)
+            (of_bl (rev [False, False])::2 word)) =
+        (of_bl
+          (rev [False, False, bit vptr (20::nat), bit vptr (21::nat), bit vptr (22::nat), bit vptr (23::nat), bit vptr (24::nat),
+                  bit vptr (25::nat), bit vptr (26::nat), bit vptr (27::nat), bit vptr (28::nat), bit vptr (29::nat), bit vptr (30::nat),
+                  bit vptr (31::nat), False, False, False, False, False, False, False, False, False, False, False, False, False, False,
+                False, False, False, False])::14 word) "
+
+  by (ctxt_tactic "bv_bitblast_step_concat")
 
 
 
+(*Other (non-bitblast rules)*)
 
-
+lemma poly_simp_1:
+"(65535::16 word) * ((v0::16 word) - (if (16::int) \<le> (v1::int) then 0 else smtlib_bvshl (smtlib_bvlshr v0 (word_of_int v1)) (word_of_int v1)) - 0) =
+1 * (0 - (v0 - (if (16::int) \<le> v1 then 0 else smtlib_bvshl (smtlib_bvlshr v0 (word_of_int v1)) (word_of_int v1))))"
+  by (ctxt_tactic "poly_simp")
 
 
 
