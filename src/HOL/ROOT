@@ -6,7 +6,7 @@ session HOL (main) = Pure +
   "
   options [quick_and_dirty,strict_facts]
   sessions Tools
-  directories "CVC" "CVC/cvc5_rare_rewrites"
+  directories "CVC" "CVC/cvc5_rare_rewrites" "Tools/SMT/alethe/rare_rewrites"
   theories
     Main (global)
     Complex_Main (global)

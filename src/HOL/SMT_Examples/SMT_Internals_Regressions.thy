@@ -744,6 +744,12 @@ lemma cong_4:
   using assms
   by (ctxt_tactic "cong")
 
+lemma cong_5:
+  assumes "(\<lambda>a. f a x) = (\<lambda>a. f a y)" and "s = t"
+  shows "(\<lambda>a. f a x) s = (\<lambda>a. f a y) t"
+  using assms
+  by (ctxt_tactic "cong")
+
 (* Rule 25: eq_reflexive *)
 
 lemma eq_reflexive_1: "a = a"
