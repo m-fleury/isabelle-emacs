@@ -74,7 +74,7 @@ fun parse_proof
 fun alethe_term_parser (SMTLIB.Sym "rare-list", []) = (
    (*If there are no elements in the list we cannot know the type at this point*)
     SOME(Const(\<^const_name>\<open>ListVar\<close> ,dummyT --> dummyT) $ Const(\<^const_name>\<open>List.Nil\<close>, dummyT)))
-| alethe_term_parser (SMTLIB.Sym "rare-list", ts) =(
+| alethe_term_parser (SMTLIB.Sym "rare-list", ts) = (
   let
     val new_type = fastype_of (hd ts)
   in

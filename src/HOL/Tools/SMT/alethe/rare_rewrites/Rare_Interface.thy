@@ -4,7 +4,7 @@ theory Rare_Interface
     "cvc5_rare" :: thy_decl
 begin
 
-ML_file \<open>../../Tools/SMT/alethe/cvc5_rare.ML\<close>
+ML_file \<open>cvc5_rare.ML\<close>
 
 named_theorems rare_rewrites_simple \<open>RARE rewrites that don't contain lists or are star rules \<close>
 named_theorems rare_rewrites_complex \<open>RARE rewrites that contain lists or are star rules \<close>
