@@ -615,7 +615,8 @@ fun postprocess_proof compress ctxt step cx =
         val _ = debug_msg ctxt middle (fn () => \<^print> ("... transform conclusion ", termified_concl))
 
         (* Process step arguments *)
-        val normalized_step_args = transform_step_args rule step_args (cx, orig_new_variable_names)
+        val normalized_step_args = (if rule = "la_generic" then []
+          else transform_step_args rule (step_args|> @{print}) (cx, orig_new_variable_names))
 
         (* add arguments *)
         val tactic_args =
