@@ -322,9 +322,14 @@ fun prove_ll_def_from_assms assms ll_defs rewrite_rules stats ctxt term =
         #> not (null ll_defs) ? SMTLIB_Isar.unlift_term ll_defs (* Unfold lambda defs *)
       end
     val replay = Timing.timing (SMT_Replay_Methods.prove ctxt (rewrite term))
+    val replay_ll_assumption_tac = 
+      Method.insert_tac ctxt assms THEN' K (unfold_tac ctxt @{thms alethe_id_def}) 
+      THEN' (assume_tac ctxt
+         ORELSE' (Alethe_Replay_Methods.REPEAT' (resolve_tac ctxt @{thms allI})
+           THEN' Alethe_Replay_Methods.REPEAT' (resolve_tac ctxt @{thms refl})))
     val ({elapsed, ...}, thm) =
       SMT_Config.with_time_limit ctxt "assumption" SMT_Config.reconstruction_step_timeout replay
-         (fn _ => Method.insert_tac ctxt assms THEN' Classical.fast_tac ctxt) (* We do not know why fast_tac is used here, maybe just to be on the safe side. *)
+         (fn _ => replay_ll_assumption_tac)
     val stats' = Symtab.cons_list (Alethe_Proof.input_rule, Time.toNanoseconds elapsed) stats
   in
     (thm, stats')
