@@ -6,7 +6,7 @@
 section \<open>Bindings to Satisfiability Modulo Theories (SMT) solvers based on SMT-LIB 2\<close>
 
 theory SMT
-  imports Numeral_Simprocs List "Tools/SMT/alethe/rare_rewrites/Rare_Interface"
+  imports Numeral_Simprocs
   keywords
     "smt_status" :: diag
 begin
@@ -1108,8 +1108,6 @@ ML_file \<open>Tools/SMT/alethe/verit_replay.ML\<close>
 ML_file \<open>Tools/SMT/alethe/cvc5_replay.ML\<close>
 
 ML_file \<open>Tools/SMT/smt_systems.ML\<close>
-ML_file \<open>CVC/ML/alethe_replay_rare_simplify_methods.ML\<close>
-
 (*
 Alle theory files in diesem Dir:
 src/HOL/Tools/SMT/alethe/rare_rewrites/
