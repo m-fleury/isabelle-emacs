@@ -3687,9 +3687,9 @@ proof -
     ultimately show "bit ?clo i = bit c_w i" by simp
   qed
 
-  have unat_clo: "unat ?clo = unat c_w mod 2 ^ LENGTH('a)"
-  proof (rule nat_eq_iff[THEN iffD2])
-    show "int (unat ?clo) = int (unat c_w mod 2 ^ LENGTH('a))"
+
+
+    have  "int (unat ?clo) = int (unat c_w mod 2 ^ LENGTH('a))"
     proof -
       have "uint ?clo = take_bit LENGTH('a) (uint c_w)"
       proof (rule bit_eqI)
@@ -3700,7 +3700,8 @@ proof -
           have "bit (uint ?clo) i = bit ?clo i"
             using True by (simp add: bit_uint_iff)
           also have "\<dots> = bit c_w i" using True clo_bit by simp
-          also have "\<dots> = bit (uint c_w) i" by (simp add: bit_uint_iff)
+          also have "\<dots> = bit (uint c_w) i"
+            using test_bit_def' by auto
           also have "\<dots> = bit (take_bit LENGTH('a) (uint c_w)) i"
             using True by (simp add: bit_take_bit_iff)
           finally show ?thesis .
@@ -3712,16 +3713,22 @@ proof -
           ultimately show ?thesis by simp
         qed
       qed
+
+
+  then have unat_clo: "unat ?clo = unat c_w mod 2 ^ LENGTH('a)"
+    using nat_eq_iff[THEN iffD2]
+    by (metis unat_eq_nat_uint unat_ucast unsigned_ucast_eq)
+   
       thus ?thesis
         by (metis nat_int of_nat_mod of_nat_numeral of_nat_power
                   take_bit_eq_mod unat_eq_nat_uint)
     qed
-  qed
 
   have pow_pos: "(0 :: 'b word) < (2 :: 'b word) ^ (LENGTH('a) - 1)"
   proof -
     have "(2 :: 'b word) ^ (LENGTH('a) - 1) \<noteq> 0" using msb_lt_b by simp
-    thus ?thesis by (simp add: word_neq_0_conv)
+    thus ?thesis
+      by (simp add: word_gt_0)
   qed
   have uint_pow: "uint ((2 :: 'b word) ^ (LENGTH('a) - 1)) = 2 ^ (LENGTH('a) - 1)"
     using pow_pos uint_2p by blast
@@ -3737,7 +3744,7 @@ proof -
     have "uint (- ((2 :: 'b word) ^ (LENGTH('a) - 1)))
         = - uint ((2 :: 'b word) ^ (LENGTH('a) - 1)) mod 2 ^ LENGTH('b)"
       by (rule uint_word_ariths(4))
-    also have "\<dots> = - (2 :: int) ^ (LENGTH('a) - 1) mod 2 ^ LENGTH('b)"
+    also have "\<dots> = - ((2 :: int) ^ (LENGTH('a) - 1)) mod 2 ^ LENGTH('b)"
       using uint_pow by simp
     also have "\<dots> = 2 ^ LENGTH('b) - 2 ^ (LENGTH('a) - 1)"
       using pow_pos_int pow_lt_b_int by (simp add: zmod_zminus1_eq_if)
@@ -3765,7 +3772,8 @@ proof -
     using cond pow_n_eq negpow_eq word_le_nat_alt by metis
 
   have la_eq: "LENGTH('a) = Suc ?MSB" by simp
-  have pow_la_eq: "(2::nat) ^ LENGTH('a) = 2 * 2 ^ ?MSB" by (simp add: la_eq)
+  have pow_la_eq: "(2::nat) ^ LENGTH('a) = 2 * 2 ^ ?MSB"
+    by (metis la_eq power_Suc)
   have pow_la_le_b: "(2::nat) ^ LENGTH('a) \<le> 2 ^ LENGTH('b)" using la_le_lb by simp
   have two_msb_le_b: "2 * (2::nat) ^ ?MSB \<le> 2 ^ LENGTH('b)" using pow_la_le_b pow_la_eq by simp
 
@@ -3800,8 +3808,11 @@ proof -
   have unat_clo_low: "unat c_w \<le> 2 ^ (LENGTH('a) - 1) \<Longrightarrow> unat ?clo = unat c_w"
   proof -
     assume cw_low: "unat c_w \<le> 2 ^ (LENGTH('a) - 1)"
-    have "unat c_w < (2::nat) ^ LENGTH('a)" using cw_low pow_la_eq by simp
-    thus ?thesis using unat_clo by simp
+    have "unat c_w < (2::nat) ^ LENGTH('a)" using cw_low pow_la_eq
+      by (simp add: order_le_less_trans)
+    thus ?thesis
+      using \<open>int (unat (smtlib_extract (nm1::int) 0 (c_w::'b::len word))) = int (unat c_w mod (2::nat) ^ LENGTH('a::len))\<close> mod_less
+        nat_int.Rep_eqD by presburger
   qed
 
   have unat_clo_high: "(2::nat) ^ LENGTH('b) - 2 ^ (LENGTH('a) - 1) \<le> unat c_w
@@ -3845,7 +3856,9 @@ proof -
     also have "\<dots> = (unat c_w - ?delta) mod 2 ^ LENGTH('a)"
       by (rule mod_mult_self1)
     also have "\<dots> = unat c_w - ?delta" using diff_lt_la by simp
-    finally show ?thesis using unat_clo by simp
+    finally show ?thesis
+      by (metis \<open>int (unat (smtlib_extract (nm1::int) 0 (c_w::'b::len word))) = int (unat c_w mod (2::nat) ^ LENGTH('a::len))\<close>
+          nat_int)
   qed
 
   show "((Word.signed_cast x::'b::len word) < c_w) = (x < ?clo)"
@@ -3867,7 +3880,7 @@ proof -
     next
       assume cw_high: "(2::nat) ^ LENGTH('b) - 2 ^ (LENGTH('a) - 1) \<le> unat c_w"
       have msb_le_high: "(2::nat) ^ ?MSB \<le> 2 ^ LENGTH('b) - 2 ^ (LENGTH('a) - 1)"
-        using two_msb_le_b by linarith
+        using two_msb_le_b by auto
       have lhs_lt: "unat x < unat c_w"
         using ux_lt_msb msb_le_high cw_high by linarith
       have is_lt: "(Word.signed_cast x :: 'b word) < c_w"
@@ -3876,7 +3889,7 @@ proof -
       have clo_ge_msb: "(2::nat) ^ ?MSB \<le> unat ?clo"
       proof -
         have "?delta + (2::nat) ^ ?MSB \<le> 2 ^ LENGTH('b) - 2 ^ (LENGTH('a) - 1)"
-          using pow_la_eq pow_la_le_b by linarith
+          using pow_la_eq pow_la_le_b by auto
         hence "?delta + (2::nat) ^ ?MSB \<le> unat c_w" using cw_high by linarith
         thus ?thesis using unat_clo_eq by linarith
       qed
@@ -3900,7 +3913,7 @@ proof -
         finally show ?thesis using unat_S_eq by simp
       qed
       have cw_lt: "unat c_w \<le> 2 ^ LENGTH('b) - 2 ^ (LENGTH('a) - 1)"
-        using cw_low two_msb_le_b pow_la_eq by linarith
+        using cw_low two_msb_le_b pow_la_eq by auto
       have not_lt: "\<not> (Word.signed_cast x :: 'b word) < c_w"
         using unat_S_ge cw_lt word_less_nat_alt[of "Word.signed_cast x :: 'b word" c_w]
         by linarith
@@ -3908,7 +3921,7 @@ proof -
       have not_rhs: "\<not> x < ?clo"
       proof -
         have "unat c_w \<le> unat x"
-          using cw_low ux_ge by linarith
+          using cw_low ux_ge by auto
         thus ?thesis using unat_clo_eq word_less_nat_alt[of x ?clo] by linarith
       qed
       show ?thesis using not_lt not_rhs by simp
@@ -3922,7 +3935,8 @@ proof -
         have "?delta \<le> unat c_w"
         proof -
           have "?delta \<le> (2::nat) ^ LENGTH('b) - 2 ^ (LENGTH('a) - 1)"
-            using pow_la_le_b by linarith
+            using pow_la_le_b
+            by (simp add: diff_le_mono2)
           thus ?thesis using cw_high by simp
         qed
         thus ?thesis by linarith
@@ -4184,9 +4198,7 @@ proof -
     ultimately show "bit ?clo i = bit c_w i" by simp
   qed
 
-  have unat_clo: "unat ?clo = unat c_w mod 2 ^ LENGTH('a)"
-  proof (rule nat_eq_iff[THEN iffD2])
-    show "int (unat ?clo) = int (unat c_w mod 2 ^ LENGTH('a))"
+  have "int (unat ?clo) = int (unat c_w mod 2 ^ LENGTH('a))"
     proof -
       have "uint ?clo = take_bit LENGTH('a) (uint c_w)"
       proof (rule bit_eqI)
@@ -4197,7 +4209,8 @@ proof -
           have "bit (uint ?clo) i = bit ?clo i"
             using True by (simp add: bit_uint_iff)
           also have "\<dots> = bit c_w i" using True clo_bit by simp
-          also have "\<dots> = bit (uint c_w) i" by (simp add: bit_uint_iff)
+          also have "\<dots> = bit (uint c_w) i"
+            by (metis word_test_bit_def)
           also have "\<dots> = bit (take_bit LENGTH('a) (uint c_w)) i"
             using True by (simp add: bit_take_bit_iff)
           finally show ?thesis .
@@ -4210,15 +4223,17 @@ proof -
         qed
       qed
       thus ?thesis
-        by (metis nat_int of_nat_mod of_nat_numeral of_nat_power
-                  take_bit_eq_mod unat_eq_nat_uint)
+        by (metis Typedef_Morphisms.unat_of_nat Word.of_nat_unat unat_eq_nat_uint unsigned_ucast_eq)
     qed
-  qed
+
+  then have unat_clo: "unat ?clo = unat c_w mod 2 ^ LENGTH('a)"
+  using nat_eq_iff[THEN iffD2] by force
 
   have pow_pos: "(0 :: 'b word) < (2 :: 'b word) ^ (LENGTH('a) - 1)"
   proof -
     have "(2 :: 'b word) ^ (LENGTH('a) - 1) \<noteq> 0" using msb_lt_b by simp
-    thus ?thesis by (simp add: word_neq_0_conv)
+    thus ?thesis
+      by (simp add: word_gt_0)
   qed
   have uint_pow: "uint ((2 :: 'b word) ^ (LENGTH('a) - 1)) = 2 ^ (LENGTH('a) - 1)"
     using pow_pos uint_2p by blast
@@ -4234,7 +4249,7 @@ proof -
     have "uint (- ((2 :: 'b word) ^ (LENGTH('a) - 1)))
         = - uint ((2 :: 'b word) ^ (LENGTH('a) - 1)) mod 2 ^ LENGTH('b)"
       by (rule uint_word_ariths(4))
-    also have "\<dots> = - (2 :: int) ^ (LENGTH('a) - 1) mod 2 ^ LENGTH('b)"
+    also have "\<dots> = - ((2 :: int) ^ (LENGTH('a) - 1)) mod 2 ^ LENGTH('b)"
       using uint_pow by simp
     also have "\<dots> = 2 ^ LENGTH('b) - 2 ^ (LENGTH('a) - 1)"
       using pow_pos_int pow_lt_b_int by (simp add: zmod_zminus1_eq_if)
@@ -4257,14 +4272,14 @@ proof -
     finally show ?thesis .
   qed
 
-  have not_pow_eq: "unat (NOT ((2 :: 'b word) ^ (LENGTH('a) - 1)))
+  have not_pow_eq: "unat (not ((2 :: 'b word) ^ (LENGTH('a) - 1)))
                  = 2 ^ LENGTH('b) - 2 ^ (LENGTH('a) - 1) - 1"
   proof -
     have pow_nz: "(2 :: 'b word) ^ (LENGTH('a) - 1) \<noteq> 0" using msb_lt_b by simp
     have neg_nz: "- ((2 :: 'b word) ^ (LENGTH('a) - 1)) \<noteq> 0" using pow_nz by simp
-    have not_minus: "NOT ((2 :: 'b word) ^ (LENGTH('a) - 1)) = - ((2 :: 'b word) ^ (LENGTH('a) - 1)) - 1"
+    have not_minus: "not ((2 :: 'b word) ^ (LENGTH('a) - 1)) = - ((2 :: 'b word) ^ (LENGTH('a) - 1)) - 1"
       by (simp add: not_eq_complement)
-    have "unat (NOT ((2 :: 'b word) ^ (LENGTH('a) - 1)))
+    have "unat (not ((2 :: 'b word) ^ (LENGTH('a) - 1)))
         = unat (- ((2 :: 'b word) ^ (LENGTH('a) - 1)) - 1)" using not_minus by simp
     also have "\<dots> = unat (- ((2 :: 'b word) ^ (LENGTH('a) - 1))) - 1"
       using neg_nz by (rule unat_minus_one)
@@ -4277,7 +4292,8 @@ proof -
     using cond pow_n_eq not_pow_eq word_less_nat_alt word_le_nat_alt by metis
 
   have la_eq: "LENGTH('a) = Suc ?MSB" by simp
-  have pow_la_eq: "(2::nat) ^ LENGTH('a) = 2 * 2 ^ ?MSB" by (simp add: la_eq)
+  have pow_la_eq: "(2::nat) ^ LENGTH('a) = 2 * 2 ^ ?MSB"
+    by (metis la_eq power_Suc)
   have pow_la_le_b: "(2::nat) ^ LENGTH('a) \<le> 2 ^ LENGTH('b)" using la_le_lb by simp
   have two_msb_le_b: "2 * (2::nat) ^ ?MSB \<le> 2 ^ LENGTH('b)" using pow_la_le_b pow_la_eq by simp
   have two_msb_lt_b: "2 * (2::nat) ^ ?MSB < 2 ^ LENGTH('b)"
@@ -4344,7 +4360,8 @@ proof -
     have cw_ge_delta: "?delta \<le> unat c_w"
     proof -
       have "?delta + 1 \<le> (2::nat) ^ LENGTH('b) - 2 ^ (LENGTH('a) - 1)"
-        using pow_la_eq pow_la_le_b two_msb_lt_b by linarith
+        using pow_la_eq pow_la_le_b two_msb_lt_b 
+        by (smt (verit, del_insts) mult_is_0 power_split)
       hence "?delta \<le> (2::nat) ^ LENGTH('b) - 2 ^ (LENGTH('a) - 1) - 1" by linarith
       thus ?thesis using cw_high by linarith
     qed
@@ -4387,7 +4404,7 @@ proof -
       have cw_ge_msb: "(2::nat) ^ ?MSB \<le> unat c_w"
       proof -
         have "(2::nat) ^ ?MSB + 1 \<le> (2::nat) ^ LENGTH('b) - 2 ^ (LENGTH('a) - 1) - 1 + 1"
-          using pow_la_eq two_msb_lt_b by linarith
+          using pow_la_eq two_msb_lt_b by auto
         thus ?thesis using cw_high by linarith
       qed
       have not_lhs: "\<not> c_w < (Word.signed_cast x :: 'b word)"
@@ -4397,7 +4414,7 @@ proof -
       have clo_ge_msb_m1: "(2::nat) ^ ?MSB - 1 \<le> unat ?clo"
       proof -
         have "?delta + (2::nat) ^ ?MSB - 1 \<le> 2 ^ LENGTH('b) - 2 ^ (LENGTH('a) - 1) - 1"
-          using pow_la_eq pow_la_le_b two_msb_lt_b by linarith
+          using pow_la_eq pow_la_le_b two_msb_lt_b by auto
         hence "?delta + (2::nat) ^ ?MSB - 1 \<le> unat c_w" using cw_high by linarith
         thus ?thesis using unat_clo_eq by linarith
       qed
@@ -4421,14 +4438,14 @@ proof -
         finally show ?thesis using unat_S_eq by simp
       qed
       have cw_lt_high: "unat c_w < 2 ^ LENGTH('b) - 2 ^ (LENGTH('a) - 1)"
-        using cw_low pow_la_eq two_msb_lt_b by linarith
+        using cw_low pow_la_eq two_msb_lt_b by auto
       have is_lhs: "c_w < (Word.signed_cast x :: 'b word)"
         using unat_S_ge cw_lt_high word_less_nat_alt[of c_w "Word.signed_cast x :: 'b word"]
         by linarith
       have unat_clo_eq: "unat ?clo = unat c_w" using cw_low unat_clo_low by simp
       have is_rhs: "?clo < x"
       proof -
-        have "unat ?clo < unat x" using unat_clo_eq cw_low ux_ge by linarith
+        have "unat ?clo < unat x" using unat_clo_eq cw_low ux_ge by auto
         thus ?thesis using word_less_nat_alt[of ?clo x] by simp
       qed
       show ?thesis using is_lhs is_rhs by simp
@@ -4438,7 +4455,8 @@ proof -
       have cw_ge_delta: "?delta \<le> unat c_w"
       proof -
         have "?delta + 1 \<le> 2 ^ LENGTH('b) - 2 ^ (LENGTH('a) - 1)"
-          using pow_la_eq pow_la_le_b two_msb_lt_b by linarith
+          using pow_la_eq pow_la_le_b two_msb_lt_b
+          using ux_lt by auto
         hence "?delta \<le> 2 ^ LENGTH('b) - 2 ^ (LENGTH('a) - 1) - 1" by linarith
         thus ?thesis using cw_high by linarith
       qed

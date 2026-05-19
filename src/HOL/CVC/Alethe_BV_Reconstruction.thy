@@ -555,7 +555,7 @@ fun bvult :: "bool list \<Rightarrow> bool list \<Rightarrow> bool" where
  [rbl_bvult_fun]: "bvult [] [] = False" |
  [rbl_bvult_fun]: "bvult [] x = undefined" |
  [rbl_bvult_fun]: "bvult y [] = undefined" |
- [rbl_bvult_fun]: "bvult (x#xs) (y#ys) = (((x \<longleftrightarrow> y) \<and> bvult xs ys) \<or> (\<not> x \<and> y))"
+ [rbl_bvult_fun]: "bvult (x#xs) (y#ys) = (((x = y) \<and> bvult xs ys) \<or> (\<not> x \<and> y))"
 
 lemma word_less_rbl_bvult_aux:
   assumes "a < 2^k" "Suc k \<le> LENGTH('a)"
@@ -582,59 +582,88 @@ proof-
     by simp
 qed
 
-lemma word_less_rbl_bvult2[word_less_rbl_bvult]:
- "length xs = length ys \<Longrightarrow>
- length xs \<le> LENGTH('a) \<Longrightarrow>
- (of_bl xs::'a::len word) < (of_bl ys) = bvult xs (ys::bool list)"
-  sorry
 
-(*proof (induction xs arbitrary: ys)
-  fix ys
-  show "length [] = length ys \<Longrightarrow> length [] \<le> LENGTH('a) \<Longrightarrow> (of_bl [] < of_bl ys) = bvult [] ys"
-    by simp
+
+lemma word_less_of_bl_eq_bvult[word_less_rbl_bvult]:
+  fixes xs ys :: "bool list"
+  shows "length xs = length ys \<Longrightarrow> length xs \<le> LENGTH('a::len) \<Longrightarrow>
+         ((of_bl xs::'a::len word) < of_bl ys) = bvult xs ys"
+proof (induction xs arbitrary: ys)
+  case Nil
+  hence "ys = []" by simp
+  thus ?case by simp
 next
-  fix x::bool and xss ys::"bool list"
-  assume IH: "(\<And>yss::bool list. length xss = length yss \<Longrightarrow>
-                                 length xss \<le> LENGTH('a) \<Longrightarrow>
-                                 ((of_bl xss::'a::len word) < of_bl yss) = bvult xss yss)"
-     and a0: "length (x # xss) = length (ys::bool list)"
-     and a1: "length (x # xss) \<le> LENGTH('a)"
-  then obtain y yss where t0: "ys = y # yss"
-    by (metis Suc_length_conv a0)
+  case (Cons x xss)
+  from Cons.prems(1) obtain y yss where ys_eq: "ys = y # yss"
+    by (metis Suc_length_conv length_Cons)
+  with Cons.prems have len_eq: "length xss = length yss"
+                  and len_Sle: "Suc (length xss) \<le> LENGTH('a)" by auto
+  hence len_le: "length xss \<le> LENGTH('a)"
+    and  len_xss_lt: "length xss < LENGTH('a)" by auto
+  have a_bound: "(of_bl xss::'a word) < 2 ^ length xss"
+    using len_xss_lt by (metis of_bl_length_less)
+  have b_bound: "(of_bl yss::'a word) < 2 ^ length yss"
+    using len_xss_lt len_eq by (metis of_bl_length_less)
+  have aux: "(2::'a word) ^ length xss \<le> 2 ^ length xss + of_bl xss"
+    using word_less_rbl_bvult_aux[OF a_bound len_Sle] .
+  have aux': "(2::'a word) ^ length yss \<le> 2 ^ length yss + of_bl yss"
+    using word_less_rbl_bvult_aux[OF b_bound] len_Sle len_eq by simp
+  have IH': "((of_bl xss::'a word) < of_bl yss) = bvult xss yss"
+    using Cons.IH[OF len_eq len_le] .
 
-  have t1: "of_bl xss < (2::'a word) ^ length yss + of_bl yss"
-  proof-
-    have "Suc (length xss) = length ys"
-      using a0 by fastforce
-    moreover have "length ys \<le> LENGTH('a)"
-      using a0 a1 by force
-    moreover have "length yss = length xss"
-      using t0 a0 by force
-    ultimately have "(2::'a::len word) ^ length xss \<le> (2::'a::len word) ^ length yss + of_bl yss"
-      by (simp add: word_less_rbl_bvult_aux less_eq_Suc_le of_bl_length_less)
-    then show ?thesis
-      using a1 dual_order.strict_trans1 of_bl_length_less by fastforce
+  show ?case
+    unfolding ys_eq
+  proof (cases x)
+    case x_true: True
+    show "(of_bl (x # xss) < of_bl (y # yss)) = bvult (x # xss) (y # yss)"
+    proof (cases y)
+      case y_true: True
+      have aux2: "(2::'a word) ^ length xss \<le> 2 ^ length xss + of_bl yss"
+        using aux' len_eq by simp
+      have "((of_bl (True # xss)::'a word) < of_bl (True # yss))
+          = ((of_bl xss::'a word) < of_bl yss)"
+        using plus_le_left_cancel_nowrap[OF aux aux2] len_eq
+        by (simp add: of_bl_True)
+      thus ?thesis using IH' x_true y_true by simp
+    next
+      case y_false: False
+      have b_bound': "(of_bl yss::'a word) < 2 ^ length xss"
+        using b_bound len_eq by simp
+      have "(of_bl yss::'a word) < 2 ^ length xss + of_bl xss"
+        using b_bound' aux by (rule order.strict_trans1)
+      hence "\<not> ((of_bl (True # xss)::'a word) < of_bl (False # yss))"
+        by (simp add: of_bl_True of_bl_False)
+      thus ?thesis using x_true y_false by simp
+    qed
+  next
+    case x_false: False
+    show ?thesis
+    proof (cases y)
+      case y_true: True
+      have a_bound': "(of_bl xss::'a word) < 2 ^ length yss"
+        using a_bound len_eq by simp
+      have "(of_bl xss::'a word) < 2 ^ length yss + of_bl yss"
+        using a_bound' aux' by (rule order.strict_trans1)
+      hence "(of_bl (False # xss)::'a word) < of_bl (True # yss)"
+        by (simp add: of_bl_True of_bl_False)
+      thus ?thesis using x_false y_true by simp
+    next
+      case y_false: False
+      have "((of_bl (False # xss)::'a word) < of_bl (False # yss))
+          = ((of_bl xss::'a word) < of_bl yss)"
+        by (simp add: of_bl_False)
+      thus ?thesis using IH' x_false y_false by simp
+    qed
   qed
+qed
+*)
 
-  have IH': "bvult xss yss = ((of_bl xss::'a::len word) < of_bl yss)"
-    using IH[of yss] a0 a1 t0
-    by (metis Suc_inject length_Cons less_eq_Suc_le linorder_linear linorder_not_less)
-  have "((of_bl (x # xss)::'a::len word) < of_bl (y#yss)) = bvult (x # xss) (y#yss)"
-    apply (cases x)
-     apply (case_tac [!] y)
-       apply (simp_all add: IH')
-      subgoal
-        using word_plus_strict_mono_right[of "of_bl xss" "of_bl yss" "(2::'a word) ^ length xss"]
-        by (metis Suc_inject Suc_le_lessD a0 a1 word_less_rbl_bvult_aux length_Cons of_bl_length plus_le_left_cancel_nowrap t0)
-      subgoal
-        sorry
-      subgoal
-        using t1 by blast
-      done
-  then show "((of_bl (x # xss)::'a::len word) < of_bl ys) = bvult (x # xss) ys"
-    using t0 by auto
-qed *)
-
+lemma word_less_rbl_bvult2:
+  fixes xs ys :: "bool list"
+  shows "length xs = length ys \<Longrightarrow>
+         length xs \<le> LENGTH('a::len) \<Longrightarrow>
+         ((of_bl xs::'a word) < of_bl ys) = bvult xs ys"
+  sorry
 
 (* ---------------------------------------------------------------------------------------------- *)
 (* -------------------------------------- Bitblast bvule ---------------------------------------- *)

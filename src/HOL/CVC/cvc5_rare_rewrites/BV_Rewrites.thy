@@ -100,21 +100,103 @@ LENGTH('i) = LENGTH('h) + LENGTH ('f) \<Longrightarrow>
 
 
 
-named_theorems rewrite_bv_extract_concat_1 \<open>automatically_generated\<close>
+named_theorems rewrite_bv_extract_extract \<open>automatically_generated\<close>
 
-(*xs is empty*)
-lemma [rewrite_bv_extract_concat_1]:
+lemma [rewrite_bv_extract_extract]:
   fixes x::"'a::len word" and i j k l ll kk ::int
   shows "NO_MATCH cvc_a (undefined x i j k l ll kk) \<Longrightarrow>
 ll = i + l \<Longrightarrow> kk = i + k \<Longrightarrow>
 LENGTH('b) = ll + 1 - kk \<Longrightarrow> ll \<ge> kk \<Longrightarrow> kk \<ge> 0 \<Longrightarrow>
 LENGTH('c) = j + 1 - i \<Longrightarrow> j \<ge> i \<Longrightarrow> i \<ge> 0 \<Longrightarrow>
 LENGTH('b) = l + 1 - k \<Longrightarrow> l \<ge> k \<Longrightarrow> k \<ge> 0 \<Longrightarrow>
+l + 1 \<le> int LENGTH('c::len) \<Longrightarrow>
 (smtlib_extract l k (smtlib_extract j i x::'c::len word)) = (smtlib_extract ll kk x::'b::len word)
 "
-  unfolding smtlib_extract_def
-  apply simp
-  sorry
+proof -
+  assume ll_eq: "ll = i + l"
+  assume kk_eq: "kk = i + k"
+  assume b_eq_l: "int LENGTH('b::len) = l + 1 - k"
+  assume c_eq: "int LENGTH('c::len) = j + 1 - i"
+  assume ij: "i \<le> j"
+  assume i_nn: "0 \<le> i"
+  assume lk: "k \<le> l"
+  assume k_nn: "0 \<le> k"
+  assume l_lt_c: "l + 1 \<le> int LENGTH('c::len)"
+
+  from ij i_nn have j_nn: "0 \<le> j" by linarith
+  from lk k_nn have l_nn: "0 \<le> l" by linarith
+  from i_nn l_nn ll_eq have ll_nn: "0 \<le> ll" by linarith
+  from i_nn k_nn kk_eq have kk_nn: "0 \<le> kk" by linarith
+
+  let ?ni = "nat i" and ?nj = "nat j"
+  let ?nk = "nat k" and ?nl = "nat l"
+  let ?nll = "nat ll" and ?nkk = "nat kk"
+
+  have nll_eq: "?nll = ?ni + ?nl"
+    using ll_eq i_nn l_nn by (simp add: nat_add_distrib)
+  have nkk_eq: "?nkk = ?ni + ?nk"
+    using kk_eq i_nn k_nn by (simp add: nat_add_distrib)
+
+  have ni_le_nj: "?ni \<le> ?nj" using ij i_nn by (simp add: nat_mono)
+  have nk_le_nl: "?nk \<le> ?nl" using lk k_nn by (simp add: nat_mono)
+
+  have b_nat: "LENGTH('b::len) = Suc ?nl - ?nk"
+  proof -
+    have "LENGTH('b::len) = nat (int LENGTH('b::len))" by simp
+    also have "\<dots> = nat (l + 1 - k)" using b_eq_l by simp
+    also have "\<dots> = Suc ?nl - ?nk"
+      using k_nn lk l_nn by (simp add: nat_diff_distrib)
+    finally show ?thesis .
+  qed
+
+  have c_nat: "LENGTH('c::len) = Suc ?nj - ?ni"
+  proof -
+    have "LENGTH('c::len) = nat (int LENGTH('c::len))" by simp
+    also have "\<dots> = nat (j + 1 - i)" using c_eq by simp
+    also have "\<dots> = Suc ?nj - ?ni"
+      using i_nn ij j_nn by (simp add: nat_diff_distrib)
+    finally show ?thesis .
+  qed
+
+  have nl_ni_le_nj: "?nl + ?ni \<le> ?nj"
+  proof -
+    from l_lt_c c_eq have li_le_j: "l + i \<le> j" by simp
+    have "nat (l + i) \<le> ?nj"
+      using li_le_j j_nn by (simp add: nat_mono)
+    moreover have "nat (l + i) = ?nl + ?ni"
+      using l_nn i_nn by (simp add: nat_add_distrib)
+    ultimately show ?thesis by simp
+  qed
+
+  have e_inner: "(smtlib_extract j i x :: 'c::len word) = smt_extract ?nj ?ni x"
+    using smtlib_extract_eq_smt_extract[where 'a='a and 'b='c and j="?nj" and i="?ni"]
+          j_nn i_nn by (metis int_nat_eq)
+  have e_outer: "(smtlib_extract l k (smt_extract ?nj ?ni x :: 'c::len word) :: 'b::len word)
+                  = smt_extract ?nl ?nk (smt_extract ?nj ?ni x :: 'c::len word)"
+    using smtlib_extract_eq_smt_extract[where 'a='c and 'b='b and j="?nl" and i="?nk"]
+          l_nn k_nn by (metis int_nat_eq)
+  have e_rhs: "(smtlib_extract ll kk x :: 'b::len word) = smt_extract ?nll ?nkk x"
+    using smtlib_extract_eq_smt_extract[where 'a='a and 'b='b and j="?nll" and i="?nkk"]
+          ll_nn kk_nn by (metis int_nat_eq)
+
+  show "(smtlib_extract l k (smtlib_extract j i x::'c::len word)::'b::len word)
+        = (smtlib_extract ll kk x::'b::len word)"
+    unfolding e_inner e_outer e_rhs
+  proof (rule bit_word_eqI)
+    fix n :: nat
+    assume n_lt: "n < LENGTH('b::len)"
+    have n_nk_le_nl: "n + ?nk \<le> ?nl"
+      using n_lt b_nat nk_le_nl by linarith
+    have n_nk_ni_le_nj: "n + ?nk + ?ni \<le> ?nj"
+      using n_nk_le_nl nl_ni_le_nj by linarith
+    have n_nk_lt_c: "n + ?nk < LENGTH('c::len)"
+      using n_nk_ni_le_nj c_nat ni_le_nj by linarith
+    show "bit (smt_extract ?nl ?nk (smt_extract ?nj ?ni x :: 'c::len word) :: 'b::len word) n
+        = bit (smt_extract ?nll ?nkk x :: 'b::len word) n"
+      using n_lt n_nk_le_nl n_nk_ni_le_nj n_nk_lt_c nll_eq nkk_eq
+      sorry
+  qed
+qed
 
 (*
 
@@ -124,6 +206,16 @@ LENGTH('b) = l + 1 - k \<Longrightarrow> l \<ge> k \<Longrightarrow> k \<ge> 0 \
   (extract n 0 x)
   x)
 *)
+named_theorems rewrite_bv_extract_whole \<open>automatically_generated\<close>
+
+lemma [rewrite_bv_extract_whole]:
+  fixes x::"'a::len word" and n ::int
+  shows "NO_MATCH cvc_a (undefined x n) \<Longrightarrow>
+(int (size x) - 1 \<le> n) = True \<Longrightarrow> n \<ge> 0 \<Longrightarrow>
+(smtlib_extract n 0 x) = x"
+  unfolding smtlib_extract_def
+  by (metis (mono_tags, opaque_lifting) add_nonneg_nonneg eq_diff_eq le_nat_iff linorder_not_le nat_zero_as_int slice_id take_bit_word_beyond_length_eq word_size zero_le_one zle_diff1_eq)
+
 (*
 ; Case 1: (< j n) so the extract is self contained
 (define-cond-rule bv-extract-concat-1
@@ -313,6 +405,7 @@ qed
   (extract j i (concat x xs y))
   (extract j i (concat xs y)))
 *)
+
 (*
 ; Motivated by TheoryBv::ppAssert, which turns an equality involving
 ; extract into a solved form for the variable we are extracting from.
@@ -321,7 +414,211 @@ qed
   (and (= wm1 (- (@bvsize x) 1)) (= jp1 (+ j 1)) (= im1 (- i 1)) (> wm1 j) (> i 0))
   (= (extract j i x) y)
   (= x (concat (extract wm1 jp1 x) y (extract im1 0 x))))
+
+
+ (15::int) = int (size (x::16 word)) - 1
+         (2::int) = 1 + 1
+         (1 < (15::int)) = True
+       arguments:
+         ''bv-eq-extract-elim2''
+         x::16 word
+         1
+         1
+         15::int
+         2::int
+       proposition:
+         (smtlib_extract 1 0 (x::16 word) = 1) = (x = word_cat (smtlib_extract (15::int) (2::int) x) 1) 
+SMT: Successfully checked step t84 
 *)
+
+named_theorems rewrite_bv_eq_extract_elim1 \<open>automatically_generated\<close>
+
+lemma [rewrite_bv_eq_extract_elim1]:
+  fixes x::"'a::len word" and y::"'b::len word" and i j wm1 jp1 im1 ::int
+  shows "NO_MATCH cvc_a (undefined x y i j wm1 jp1 im1) \<Longrightarrow>
+LENGTH('b) = j + 1 - i \<Longrightarrow> j \<ge> i \<Longrightarrow>
+LENGTH('c) = im1 + 1 \<Longrightarrow>
+LENGTH('c) + LENGTH('b) = LENGTH('d) \<Longrightarrow>
+LENGTH('e) = wm1 + 1 - jp1 \<Longrightarrow>
+wm1 = int (size x) - 1 \<Longrightarrow> jp1 = j + 1 \<Longrightarrow> im1 = i - 1 \<Longrightarrow> wm1 > j \<Longrightarrow> i > 0 \<Longrightarrow>
+((smtlib_extract j i x) = y) = (x = (word_cat (smtlib_extract wm1 jp1 x::'e::len word) (word_cat y (smtlib_extract im1 0 x::'c::len word)::'d::len word)))"
+proof -
+  assume b_int: "int LENGTH('b::len) = j + 1 - i"
+     and ij: "i \<le> j"
+     and c_int: "int LENGTH('c::len) = im1 + 1"
+     and d_eq: "LENGTH('c::len) + LENGTH('b::len) = LENGTH('d::len)"
+     and e_int: "int LENGTH('e::len) = wm1 + 1 - jp1"
+     and wm1_size: "wm1 = int (size x) - 1"
+     and jp1_eq: "jp1 = j + 1"
+     and im1_eq: "im1 = i - 1"
+     and wm1_gt_j: "j < wm1"
+     and i_pos': "0 < i"
+
+  from i_pos' have i_pos: "1 \<le> i" by linarith
+  from i_pos' have i_nn: "0 \<le> i" by linarith
+  from im1_eq i_pos have im1_nn: "0 \<le> im1" by linarith
+  from ij i_pos have j_nn: "0 \<le> j" by linarith
+  from wm1_gt_j jp1_eq have wm1_jp1: "jp1 \<le> wm1" by linarith
+  from jp1_eq j_nn have jp1_nn: "0 \<le> jp1" by linarith
+  from wm1_size have a_int: "int LENGTH('a::len) = wm1 + 1" by (simp add: word_size)
+  from wm1_jp1 jp1_nn have wm1_nn: "0 \<le> wm1" by linarith
+
+  let ?ni = "nat i" and ?nj = "nat j" and ?nwm1 = "nat wm1"
+        and ?nim1 = "nat im1" and ?njp1 = "nat jp1"
+
+  have ni_le_nj: "?ni \<le> ?nj" using ij i_nn j_nn by (simp add: nat_mono)
+
+  have nim1_eq: "Suc ?nim1 = ?ni"
+    using im1_eq i_pos im1_nn by (simp add: nat_diff_distrib)
+  have njp1_eq: "?njp1 = Suc ?nj"
+    using jp1_eq j_nn by (simp add: nat_add_distrib)
+
+  have c_nat: "LENGTH('c::len) = ?ni"
+  proof -
+    have "int LENGTH('c::len) = int ?ni"
+      using c_int im1_eq i_nn by simp
+    thus ?thesis by linarith
+  qed
+
+  have b_nat: "LENGTH('b::len) = Suc ?nj - ?ni"
+  proof -
+    have "LENGTH('b::len) = nat (int LENGTH('b::len))" by simp
+    also have "\<dots> = nat (j + 1 - i)" using b_int by simp
+    also have "\<dots> = Suc ?nj - ?ni"
+      using i_nn ij j_nn by (simp add: nat_diff_distrib)
+    finally show ?thesis .
+  qed
+
+  have d_nat: "LENGTH('d::len) = Suc ?nj"
+    using d_eq c_nat b_nat ni_le_nj by linarith
+
+  have Snj_le_nwm1: "Suc ?nj \<le> ?nwm1"
+    using wm1_jp1 jp1_eq j_nn wm1_nn by linarith
+
+  have e_nat: "LENGTH('e::len) = ?nwm1 - ?nj"
+  proof -
+    have "LENGTH('e::len) = nat (int LENGTH('e::len))" by simp
+    also have "\<dots> = nat (wm1 + 1 - jp1)" using e_int by simp
+    also have "\<dots> = ?nwm1 - ?nj"
+      using jp1_nn wm1_jp1 wm1_nn jp1_eq j_nn by (simp add: nat_diff_distrib)
+    finally show ?thesis .
+  qed
+
+  have a_nat: "LENGTH('a::len) = Suc ?nwm1"
+  proof -
+    have "int LENGTH('a::len) = int (Suc ?nwm1)"
+      using a_int wm1_nn by simp
+    thus ?thesis by linarith
+  qed
+
+  have ext_b: "(smtlib_extract j i x :: 'b::len word) = smt_extract ?nj ?ni x"
+    using smtlib_extract_eq_smt_extract[where 'a='a and 'b='b and j="?nj" and i="?ni"]
+          j_nn i_nn by (metis int_nat_eq)
+
+  have ext_e: "(smtlib_extract wm1 jp1 x :: 'e::len word) = smt_extract ?nwm1 (Suc ?nj) x"
+  proof -
+    have "(smtlib_extract wm1 jp1 x :: 'e::len word) = smt_extract ?nwm1 ?njp1 x"
+      using smtlib_extract_eq_smt_extract[where 'a='a and 'b='e and j="?nwm1" and i="?njp1"]
+            wm1_nn jp1_nn by (metis int_nat_eq)
+    with njp1_eq show ?thesis by simp
+  qed
+
+  have ext_c: "(smtlib_extract im1 0 x :: 'c::len word) = smt_extract ?nim1 0 x"
+    using smtlib_extract_eq_smt_extract[where 'a='a and 'b='c and j="?nim1" and i="0::nat"]
+          im1_nn by simp
+
+  show "((smtlib_extract j i x :: 'b::len word) = y)
+        = (x = word_cat (smtlib_extract wm1 jp1 x :: 'e::len word)
+                       (word_cat y (smtlib_extract im1 0 x :: 'c::len word) :: 'd::len word))"
+    unfolding ext_b ext_e ext_c
+  proof (rule iffI)
+    assume H: "(smt_extract ?nj ?ni x :: 'b::len word) = y"
+    show "x = word_cat (smt_extract ?nwm1 (Suc ?nj) x :: 'e::len word)
+                      (word_cat y (smt_extract ?nim1 0 x :: 'c::len word) :: 'd::len word)"
+    proof (rule bit_word_eqI)
+      fix n :: nat
+      assume n_lt_a: "n < LENGTH('a::len)"
+      have n_lt_Snwm1: "n < Suc ?nwm1" using n_lt_a a_nat by simp
+      show "bit x n
+          = bit (word_cat (smt_extract ?nwm1 (Suc ?nj) x :: 'e::len word)
+                  (word_cat y (smt_extract ?nim1 0 x :: 'c::len word) :: 'd::len word)
+                 :: 'a::len word) n"
+      proof (cases "n < LENGTH('d::len)")
+        case d_in: True
+        hence n_lt_Snj: "n < Suc ?nj" using d_nat by simp
+        show ?thesis
+        proof (cases "n < LENGTH('c::len)")
+          case c_in: True
+          hence n_lt_ni: "n < ?ni" using c_nat by simp
+          have "bit (smt_extract ?nim1 0 x :: 'c::len word) n = bit x n"
+            using n_lt_ni c_nat nim1_eq by (simp add: bit_smt_extract)
+          thus ?thesis
+            using c_in d_in n_lt_a by (simp add: bit_word_cat_iff)
+        next
+          case c_out: False
+          hence ni_le_n: "?ni \<le> n" using c_nat by simp
+          have y_bit: "bit y (n - LENGTH('c::len)) = bit x n"
+          proof -
+            have nc: "n - LENGTH('c::len) = n - ?ni" using c_nat by simp
+            have lt_b: "n - ?ni < LENGTH('b::len)"
+              using n_lt_Snj b_nat ni_le_n by linarith
+            from H have "bit y (n - ?ni) = bit (smt_extract ?nj ?ni x :: 'b::len word) (n - ?ni)"
+              by simp
+            also have "\<dots> = bit x n"
+              using lt_b ni_le_n n_lt_Snj by (simp add: bit_smt_extract)
+            finally show ?thesis using nc by simp
+          qed
+          thus ?thesis
+            using c_out d_in n_lt_a by (simp add: bit_word_cat_iff)
+        qed
+      next
+        case d_out: False
+        hence Snj_le_n: "Suc ?nj \<le> n" using d_nat by simp
+        have e_bit: "bit (smt_extract ?nwm1 (Suc ?nj) x :: 'e::len word)
+                         (n - LENGTH('d::len)) = bit x n"
+        proof -
+          have nd: "n - LENGTH('d::len) = n - Suc ?nj" using d_nat by simp
+          have plus_back: "n - Suc ?nj + Suc ?nj = n" using Snj_le_n by simp
+          have lt_e: "n - Suc ?nj < LENGTH('e::len)"
+            using e_nat Snj_le_n n_lt_Snwm1 Snj_le_nwm1 by linarith
+          show ?thesis
+            using plus_back lt_e n_lt_Snwm1 nd by (simp add: bit_smt_extract)
+        qed
+        thus ?thesis
+          using d_out n_lt_a by (simp add: bit_word_cat_iff)
+      qed
+    qed
+  next
+    assume H: "x = word_cat (smt_extract ?nwm1 (Suc ?nj) x :: 'e::len word)
+                            (word_cat y (smt_extract ?nim1 0 x :: 'c::len word)
+                             :: 'd::len word)"
+    show "(smt_extract ?nj ?ni x :: 'b::len word) = y"
+    proof (rule bit_word_eqI)
+      fix n :: nat
+      assume n_lt_b: "n < LENGTH('b::len)"
+      have n_plus_ni_lt_Snj: "n + ?ni < Suc ?nj"
+        using n_lt_b b_nat ni_le_nj by linarith
+      have n_plus_ni_ge_c: "LENGTH('c::len) \<le> n + ?ni" using c_nat by simp
+      have n_plus_ni_lt_d: "n + ?ni < LENGTH('d::len)"
+        using d_nat n_plus_ni_lt_Snj by simp
+      have n_plus_ni_lt_a: "n + ?ni < LENGTH('a::len)"
+        using a_nat n_plus_ni_lt_Snj Snj_le_nwm1 by linarith
+      have "bit (smt_extract ?nj ?ni x :: 'b::len word) n = bit x (n + ?ni)"
+        using n_plus_ni_lt_Snj n_lt_b by (simp add: bit_smt_extract)
+      also from H have "\<dots> = bit (word_cat (smt_extract ?nwm1 (Suc ?nj) x :: 'e::len word)
+                            (word_cat y (smt_extract ?nim1 0 x :: 'c::len word)
+                             :: 'd::len word) :: 'a::len word) (n + ?ni)"
+        by simp
+      also have "\<dots> = bit y n"
+        using n_plus_ni_lt_d n_plus_ni_lt_a n_plus_ni_ge_c c_nat
+        by (simp add: bit_word_cat_iff)
+      finally show "bit (smt_extract ?nj ?ni x :: 'b::len word) n = bit y n" .
+    qed
+  qed
+qed
+
+
+
 
 (*
 (define-cond-rule bv-eq-extract-elim2
@@ -330,6 +627,131 @@ qed
   (= (extract j 0 x) y)
   (= x (concat (extract wm1 jp1 x) y)))
 *)
+
+named_theorems rewrite_bv_eq_extract_elim2 \<open>automatically_generated\<close>
+
+lemma [rewrite_bv_eq_extract_elim2]:
+  fixes x::"'a::len word" and y::"'b::len word" and j wm1 jp1 ::int
+  shows "NO_MATCH cvc_a (undefined x y j wm1 jp1) \<Longrightarrow>
+LENGTH('b) = j + 1 \<Longrightarrow> j \<ge> 0 \<Longrightarrow>
+LENGTH('e) = wm1 + 1 - jp1 \<Longrightarrow> wm1 \<ge> jp1 \<Longrightarrow> jp1 \<ge> 0 \<Longrightarrow> jp1 = j + 1 \<Longrightarrow>
+LENGTH('a) = LENGTH('e) + LENGTH('b) \<Longrightarrow>
+((smtlib_extract j 0 x) = y) = (x = (word_cat (smtlib_extract wm1 jp1 x::'e::len word) y))"
+proof -
+  assume b_int: "int LENGTH('b::len) = j + 1"
+     and j_nn: "0 \<le> j"
+     and e_int: "int LENGTH('e::len) = wm1 + 1 - jp1"
+     and wm1_jp1: "jp1 \<le> wm1"
+     and jp1_nn: "0 \<le> jp1"
+     and jp1_eq: "jp1 = j + 1"
+     and a_eq: "LENGTH('a::len) = LENGTH('e::len) + LENGTH('b::len)"
+
+  from wm1_jp1 jp1_nn have wm1_nn: "0 \<le> wm1" by linarith
+
+  let ?nj = "nat j" and ?nwm1 = "nat wm1" and ?njp1 = "nat jp1"
+
+  have njp1_eq: "?njp1 = Suc ?nj"
+    using jp1_eq j_nn by (simp add: nat_add_distrib)
+
+  have b_nat: "LENGTH('b::len) = Suc ?nj"
+  proof -
+    have "LENGTH('b::len) = nat (int LENGTH('b::len))" by simp
+    also have "\<dots> = nat (j + 1)" using b_int by simp
+    also have "\<dots> = Suc ?nj" using j_nn by simp
+    finally show ?thesis .
+  qed
+
+  have Snj_le_nwm1: "Suc ?nj \<le> ?nwm1"
+    using wm1_jp1 jp1_eq j_nn wm1_nn by linarith
+
+  have e_nat: "LENGTH('e::len) = ?nwm1 - ?nj"
+  proof -
+    have "LENGTH('e::len) = nat (int LENGTH('e::len))" by simp
+    also have "\<dots> = nat (wm1 + 1 - jp1)" using e_int by simp
+    also have "\<dots> = ?nwm1 - ?nj"
+      using jp1_nn wm1_jp1 wm1_nn jp1_eq j_nn by (simp add: nat_diff_distrib)
+    finally show ?thesis .
+  qed
+
+  have a_nat: "LENGTH('a::len) = Suc ?nwm1"
+    using a_eq e_nat b_nat Snj_le_nwm1 by linarith
+
+  have ext_b: "(smtlib_extract j 0 x :: 'b::len word) = smt_extract ?nj 0 x"
+    using smtlib_extract_eq_smt_extract[where 'a='a and 'b='b and j="?nj" and i="0::nat"]
+          j_nn by simp
+
+  have ext_e: "(smtlib_extract wm1 jp1 x :: 'e::len word) = smt_extract ?nwm1 (Suc ?nj) x"
+  proof -
+    have "(smtlib_extract wm1 jp1 x :: 'e::len word) = smt_extract ?nwm1 ?njp1 x"
+      using smtlib_extract_eq_smt_extract[where 'a='a and 'b='e and j="?nwm1" and i="?njp1"]
+            wm1_nn jp1_nn by (metis int_nat_eq)
+    with njp1_eq show ?thesis by simp
+  qed
+
+  show "((smtlib_extract j 0 x :: 'b::len word) = y)
+        = (x = word_cat (smtlib_extract wm1 jp1 x :: 'e::len word) y :: 'a::len word)"
+    unfolding ext_b ext_e
+  proof (rule iffI)
+    assume H: "(smt_extract ?nj 0 x :: 'b::len word) = y"
+    show "x = word_cat (smt_extract ?nwm1 (Suc ?nj) x :: 'e::len word) y :: 'a::len word"
+    proof (rule bit_word_eqI)
+      fix n :: nat
+      assume n_lt_a: "n < LENGTH('a::len)"
+      have n_lt_Snwm1: "n < Suc ?nwm1" using n_lt_a a_nat by simp
+      show "bit x n = bit (word_cat (smt_extract ?nwm1 (Suc ?nj) x :: 'e::len word) y
+                            :: 'a::len word) n"
+      proof (cases "n < LENGTH('b::len)")
+        case b_in: True
+        hence n_lt_Snj: "n < Suc ?nj" using b_nat by simp
+        have "bit y n = bit x n"
+        proof -
+          from H have "bit y n = bit (smt_extract ?nj 0 x :: 'b::len word) n"
+            by simp
+          also have "\<dots> = bit x n"
+            using n_lt_Snj b_in by (simp add: bit_smt_extract)
+          finally show ?thesis .
+        qed
+        thus ?thesis
+          using b_in n_lt_a by (simp add: bit_word_cat_iff)
+      next
+        case b_out: False
+        hence Snj_le_n: "Suc ?nj \<le> n" using b_nat by simp
+        have e_bit: "bit (smt_extract ?nwm1 (Suc ?nj) x :: 'e::len word)
+                         (n - LENGTH('b::len)) = bit x n"
+        proof -
+          have nb: "n - LENGTH('b::len) = n - Suc ?nj" using b_nat by simp
+          have plus_back: "n - Suc ?nj + Suc ?nj = n" using Snj_le_n by simp
+          have lt_e: "n - Suc ?nj < LENGTH('e::len)"
+            using e_nat Snj_le_n n_lt_Snwm1 Snj_le_nwm1 by linarith
+          show ?thesis
+            using plus_back lt_e n_lt_Snwm1 nb by (simp add: bit_smt_extract)
+        qed
+        thus ?thesis
+          using b_out n_lt_a by (simp add: bit_word_cat_iff)
+      qed
+    qed
+  next
+    assume H: "x = word_cat (smt_extract ?nwm1 (Suc ?nj) x :: 'e::len word) y :: 'a::len word"
+    show "(smt_extract ?nj 0 x :: 'b::len word) = y"
+    proof (rule bit_word_eqI)
+      fix n :: nat
+      assume n_lt_b: "n < LENGTH('b::len)"
+      have n_lt_Snj: "n < Suc ?nj" using n_lt_b b_nat by simp
+      have n_lt_a: "n < LENGTH('a::len)"
+        using a_nat n_lt_Snj Snj_le_nwm1 by linarith
+      have "bit (smt_extract ?nj 0 x :: 'b::len word) n = bit x n"
+        using n_lt_Snj n_lt_b by (simp add: bit_smt_extract)
+      also from H have "\<dots> = bit (word_cat (smt_extract ?nwm1 (Suc ?nj) x :: 'e::len word) y
+                            :: 'a::len word) n"
+        by simp
+      also have "\<dots> = bit y n"
+        using n_lt_b n_lt_a by (simp add: bit_word_cat_iff)
+      finally show "bit (smt_extract ?nj 0 x :: 'b::len word) n = bit y n" .
+    qed
+  qed
+qed
+
+
 (*
 (define-cond-rule bv-eq-extract-elim3
   ((x ?BitVec) (y ?BitVec) (i Int) (j Int) (im1 Int))
@@ -337,6 +759,122 @@ qed
   (= (extract j i x) y)
   (= x (concat y (extract im1 0 x))))
 *)
+
+named_theorems rewrite_bv_eq_extract_elim3 \<open>automatically_generated\<close>
+
+lemma [rewrite_bv_eq_extract_elim3]:
+  fixes x::"'a::len word" and y::"'b::len word" and i j im1 ::int
+  shows "NO_MATCH cvc_a (undefined x y i j im1) \<Longrightarrow>
+LENGTH('b) = j + 1 - i \<Longrightarrow> j \<ge> i \<Longrightarrow> i \<ge> 0 \<Longrightarrow>
+LENGTH('c) = im1 + 1 \<Longrightarrow> im1 \<ge> 0 \<Longrightarrow> im1 = i - 1 \<Longrightarrow>
+LENGTH('a) = LENGTH('b) + LENGTH('c) \<Longrightarrow>
+((smtlib_extract j i x) = y) = (x = (word_cat y (smtlib_extract im1 0 x::'c::len word) :: 'a::len word))"
+proof -
+  assume b_int: "int LENGTH('b::len) = j + 1 - i"
+     and ij: "i \<le> j"
+     and i_nn: "0 \<le> i"
+     and c_int: "int LENGTH('c::len) = im1 + 1"
+     and im1_nn: "0 \<le> im1"
+     and im1_eq: "im1 = i - 1"
+     and a_eq: "LENGTH('a::len) = LENGTH('b::len) + LENGTH('c::len)"
+
+  from im1_eq im1_nn have i_pos: "1 \<le> i" by linarith
+  from ij i_pos have j_nn: "0 \<le> j" by linarith
+
+  let ?ni = "nat i" and ?nj = "nat j" and ?nim1 = "nat im1"
+
+  have ni_le_nj: "?ni \<le> ?nj" using ij i_nn j_nn by (simp add: nat_mono)
+
+  have nim1_eq: "Suc ?nim1 = ?ni"
+    using im1_eq i_pos im1_nn by (simp add: nat_diff_distrib)
+
+  have c_nat: "LENGTH('c::len) = ?ni"
+  proof -
+    have "int LENGTH('c::len) = int ?ni"
+      using c_int im1_eq i_nn by simp
+    thus ?thesis by linarith
+  qed
+
+  have b_nat: "LENGTH('b::len) = Suc ?nj - ?ni"
+  proof -
+    have "LENGTH('b::len) = nat (int LENGTH('b::len))" by simp
+    also have "\<dots> = nat (j + 1 - i)" using b_int by simp
+    also have "\<dots> = Suc ?nj - ?ni"
+      using i_nn ij j_nn by (simp add: nat_diff_distrib)
+    finally show ?thesis .
+  qed
+
+  have a_nat: "LENGTH('a::len) = Suc ?nj"
+    using a_eq c_nat b_nat ni_le_nj by linarith
+
+  have ext_b: "(smtlib_extract j i x :: 'b::len word) = smt_extract ?nj ?ni x"
+    using smtlib_extract_eq_smt_extract[where 'a='a and 'b='b and j="?nj" and i="?ni"]
+          j_nn i_nn by (metis int_nat_eq)
+
+  have ext_c: "(smtlib_extract im1 0 x :: 'c::len word) = smt_extract ?nim1 0 x"
+    using smtlib_extract_eq_smt_extract[where 'a='a and 'b='c and j="?nim1" and i="0::nat"]
+          im1_nn by (metis int_nat_eq of_nat_0)
+
+  show "((smtlib_extract j i x :: 'b::len word) = y)
+        = (x = word_cat y (smtlib_extract im1 0 x :: 'c::len word) :: 'a::len word)"
+    unfolding ext_b ext_c
+  proof (rule iffI)
+    assume H: "(smt_extract ?nj ?ni x :: 'b::len word) = y"
+    show "x = word_cat y (smt_extract ?nim1 0 x :: 'c::len word) :: 'a::len word"
+    proof (rule bit_word_eqI)
+      fix n :: nat
+      assume n_lt_a: "n < LENGTH('a::len)"
+      have n_lt_Snj: "n < Suc ?nj" using n_lt_a a_nat by simp
+      show "bit x n = bit (word_cat y (smt_extract ?nim1 0 x :: 'c::len word)
+                            :: 'a::len word) n"
+      proof (cases "n < LENGTH('c::len)")
+        case c_in: True
+        hence n_lt_ni: "n < ?ni" using c_nat by simp
+        have "bit (smt_extract ?nim1 0 x :: 'c::len word) n = bit x n"
+          using n_lt_ni c_nat nim1_eq by (simp add: bit_smt_extract)
+        thus ?thesis
+          using c_in n_lt_a by (simp add: bit_word_cat_iff)
+      next
+        case c_out: False
+        hence ni_le_n: "?ni \<le> n" using c_nat by simp
+        have y_bit: "bit y (n - LENGTH('c::len)) = bit x n"
+        proof -
+          have nc: "n - LENGTH('c::len) = n - ?ni" using c_nat by simp
+          have lt_b: "n - ?ni < LENGTH('b::len)"
+            using n_lt_Snj b_nat ni_le_n by linarith
+          from H have "bit y (n - ?ni) = bit (smt_extract ?nj ?ni x :: 'b::len word) (n - ?ni)"
+            by simp
+          also have "\<dots> = bit x n"
+            using lt_b ni_le_n n_lt_Snj by (simp add: bit_smt_extract)
+          finally show ?thesis using nc by simp
+        qed
+        thus ?thesis
+          using c_out n_lt_a by (simp add: bit_word_cat_iff)
+      qed
+    qed
+  next
+    assume H: "x = word_cat y (smt_extract ?nim1 0 x :: 'c::len word) :: 'a::len word"
+    show "(smt_extract ?nj ?ni x :: 'b::len word) = y"
+    proof (rule bit_word_eqI)
+      fix n :: nat
+      assume n_lt_b: "n < LENGTH('b::len)"
+      have n_plus_ni_lt_Snj: "n + ?ni < Suc ?nj"
+        using n_lt_b b_nat ni_le_nj by linarith
+      have n_plus_ni_ge_c: "LENGTH('c::len) \<le> n + ?ni" using c_nat by simp
+      have n_plus_ni_lt_a: "n + ?ni < LENGTH('a::len)"
+        using a_nat n_plus_ni_lt_Snj by simp
+      have "bit (smt_extract ?nj ?ni x :: 'b::len word) n = bit x (n + ?ni)"
+        using n_plus_ni_lt_Snj n_lt_b by (simp add: bit_smt_extract)
+      also from H have "\<dots> = bit (word_cat y (smt_extract ?nim1 0 x :: 'c::len word)
+                            :: 'a::len word) (n + ?ni)"
+        by simp
+      also have "\<dots> = bit y n"
+        using n_plus_ni_lt_a n_plus_ni_ge_c c_nat
+        by (simp add: bit_word_cat_iff)
+      finally show "bit (smt_extract ?nj ?ni x :: 'b::len word) n = bit y n" .
+    qed
+  qed
+qed
 (*
 (define-rule bv-extract-not
   ((x ?BitVec) (i Int) (j Int))

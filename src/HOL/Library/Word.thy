@@ -16,7 +16,6 @@ lemma signed_take_bit_decr_length_iff:
     \<longleftrightarrow> take_bit LENGTH('a) k = take_bit LENGTH('a) l\<close>
   by (simp add: signed_take_bit_eq_iff_take_bit_eq)
 
-
 subsection \<open>Fundamentals\<close>
 
 subsubsection \<open>Type definition\<close>
@@ -4818,11 +4817,16 @@ We tried a lot of different things to avoid this deep embedding but since extern
 generate bv terms freely in their proofs it is hard to make proof reconstruction work without this.
 *)
 lemma push_bit_lift:
- "push_bit k (w::'a::len word) \<equiv> (if (k \<ge> LENGTH('a::len)) then 0 else smtlib_bvshl w (word_of_int k))"
+ "push_bit k (w::'a::len word) \<equiv> (if (k \<ge> LENGTH('a::len)) then 0 else smtlib_bvshl w (word_of_nat k))"
   unfolding smtlib_bvshl_def atomize_eq
   apply (split if_split,rule conjI)
   subgoal by simp
   by (metis le_unat_uoi less_exp nat_le_linear of_int_of_nat_eq of_nat_inverse push_bit_eq_mult)
+
+lemma pow2_push_bit_lift: "(2::'a::len word) ^ n \<equiv> (if n < (LENGTH('a)) then smtlib_bvshl 1 (word_of_int n::'a::len word) else 0)"
+  unfolding atomize_eq smtlib_bvshl_def unat_of_nat
+  apply simp_all
+  by (metis le_unat_uoi less_exp less_imp_le of_nat_inverse unat_of_nat)
 
 
 lemma drop_bit_lift:
@@ -4979,6 +4983,8 @@ of_int_numeral
 
 ML_file \<open>Tools/smt_word.ML\<close>
 
+declare[[smt_expert_debug_alethe_level=3]]
+declare[[smt_expert_debug_alethe_files="all"]]
 
 ML \<open>
 val nat_native_ops_tab =
@@ -4999,7 +5005,8 @@ val simplify_norm_table = [
   ("Word.slice",(SOME (K true), ([],SOME @{thms slice_lift}))) ,
   ("Num.numeral_class.numeral",(SOME Word_Lib.is_overflow_bv_const, (@{thms word_numeral_lift},SOME @{thms drop_bit_int_code}))),
   ("Nat.semiring_1_class.of_nat",(SOME (K true), ([],SOME @{thms of_nat_numeral } ))), (*TODO: Add condition to only evaluate if *)
-  ("Pure.type",(NONE,([],SOME [])))
+  ("Pure.type",(NONE,([],SOME []))),
+  ("Power.power_class.power",(NONE,([@{thm pow2_push_bit_lift}],NONE)))
 ]
 
 val _ = fold SMT_Normalize.add_nat_native_ops_tab (nat_native_ops_tab)

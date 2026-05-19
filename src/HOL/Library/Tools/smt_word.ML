@@ -453,11 +453,7 @@ val setup_builtins =
   add_word_fun extract
     (\<^term>\<open>smtlib_extract :: _ \<Rightarrow> _ \<Rightarrow> 'a::len word \<Rightarrow> _\<close>, "extract") #>
   add_word_fun len_of_lift
-    (\<^term>\<open>len_of_lift :: 'a::len0 itself \<Rightarrow> int\<close>, "") #>
-  fold (add_word_fun power) [
-    (\<^term>\<open>pow_2_word :: _ \<Rightarrow> _ \<Rightarrow> _\<close>, "^")
-   ]
-
+    (\<^term>\<open>len_of_lift :: 'a::len0 itself \<Rightarrow> int\<close>, "")
 
 
 
