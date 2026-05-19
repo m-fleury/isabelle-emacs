@@ -36,7 +36,10 @@ then error "fail to recognize int.pow2" else ()\<close>
 (*External proof checking*)
 ML_file \<open>ML/smt_parse_problem.ML\<close>
 ML_file \<open>ML/smt_check_external.ML\<close>
-                
+
+
+
+(*Das soll in AFP entry*)
 ML \<open>
 
 (*Call replay from SMT_Solver and add replay_data on your own*)
