@@ -4817,7 +4817,7 @@ We tried a lot of different things to avoid this deep embedding but since extern
 generate bv terms freely in their proofs it is hard to make proof reconstruction work without this.
 *)
 lemma push_bit_lift:
- "push_bit k (w::'a::len word) \<equiv> (if (k \<ge> LENGTH('a::len)) then 0 else smtlib_bvshl w (word_of_nat k))"
+ "push_bit k (w::'a::len word) \<equiv> (if (k \<ge> LENGTH('a::len)) then 0 else smtlib_bvshl w (word_of_int k))"
   unfolding smtlib_bvshl_def atomize_eq
   apply (split if_split,rule conjI)
   subgoal by simp
