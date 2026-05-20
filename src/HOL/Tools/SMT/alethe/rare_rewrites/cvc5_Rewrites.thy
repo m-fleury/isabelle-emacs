@@ -1,5 +1,5 @@
 theory cvc5_Rewrites
-  imports "Dsl_Nary_Ops"
+  imports "Rare_Nary_Ops"
 begin
 
 (*These rewrites are added in the internal translation from CPC proofs to Alethe in cvc5 *)

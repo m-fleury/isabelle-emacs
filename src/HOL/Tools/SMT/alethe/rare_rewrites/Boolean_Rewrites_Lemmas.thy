@@ -1,5 +1,5 @@
 theory Boolean_Rewrites_Lemmas
-  imports Dsl_Nary_Ops
+  imports Rare_Nary_Ops
 begin
 
 lemma bool_or_taut_lemma:

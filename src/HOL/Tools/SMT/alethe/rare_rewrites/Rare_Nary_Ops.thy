@@ -1,4 +1,4 @@
-theory Dsl_Nary_Ops
+theory Rare_Nary_Ops
   imports HOL.List (*Smtlib_String SMT_CVC_Util*)
 begin
 
@@ -266,7 +266,7 @@ lemma cvc_list_both_transfer':
   apply (induction yss)
      apply simp_all
      apply (metis append_butlast_last_id assms(1) cvc_bin_op2.simps cvc_list_right_def cvc_list_right_transfer cvc_nary_op_fold.elims list.inject)
-    by (metis Dsl_Nary_Ops.cvc_nary_op_fold_Cons cvc_bin_op2.simps cvc_bin_op_fold_transfer cvc_list_right_def cvc_list_right_transfer list.exhaust snoc_eq_iff_butlast)
+    by (metis cvc_nary_op_fold_Cons cvc_bin_op2.simps cvc_bin_op_fold_transfer cvc_list_right_def cvc_list_right_transfer list.exhaust snoc_eq_iff_butlast)
   done
 
 
@@ -331,11 +331,11 @@ lemma cvc_list_right_Cons: "cvc_list_right op y (ListVar (x#xs))
 
 lemma cvc_list_both_Cons_0: "cvc_list_both op neutral (ListVar (x#xs)) (ListVar [])
        = cvc_list_right op x (ListVar xs)"
-  by (metis Dsl_Nary_Ops.cvc_nary_op_fold_Cons Dsl_Nary_Ops.cvc_nary_op_fold_Nil cvc_bin_op2.simps cvc_bin_op3.simps(2) cvc_list_both_def cvc_list_right_def list.exhaust)
+  by (metis cvc_nary_op_fold_Cons Dsl_Nary_Ops.cvc_nary_op_fold_Nil cvc_bin_op2.simps cvc_bin_op3.simps(2) cvc_list_both_def cvc_list_right_def list.exhaust)
 
 lemma cvc_list_both_Cons_1: "cvc_list_both op neutral (ListVar []) (ListVar (y#ys))
        = cvc_list_right op y (ListVar ys)"
-  by (metis Dsl_Nary_Ops.cvc_bin_op_fold_Nil cvc_bin_op3.simps(2) cvc_bin_op3.simps(4) cvc_list_both_Cons_0 cvc_list_both_def)
+  by (metis cvc_bin_op_fold_Nil cvc_bin_op3.simps(2) cvc_bin_op3.simps(4) cvc_list_both_Cons_0 cvc_list_both_def)
 
 lemma cvc_list_both_Cons: "cvc_list_both op neutral (ListVar (x#xs)) (ListVar (y#ys))
        = op x (cvc_list_both op neutral (ListVar xs) (ListVar (y#ys)))"

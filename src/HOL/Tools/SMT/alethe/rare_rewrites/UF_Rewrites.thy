@@ -1,5 +1,5 @@
 theory UF_Rewrites
-  imports "Dsl_Nary_Ops" 
+  imports "Rare_Nary_Ops" 
 begin
 
 (* Thank you for using IsaRARE. This is a theory automatically created from a RARE file!

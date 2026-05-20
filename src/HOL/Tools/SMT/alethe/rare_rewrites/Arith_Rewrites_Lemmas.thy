@@ -1,5 +1,5 @@
 theory Arith_Rewrites_Lemmas
-  imports "Dsl_Nary_Ops" 
+  imports "Rare_Nary_Ops" 
 begin
 
 (*TODO: Find better proofs eventually*)

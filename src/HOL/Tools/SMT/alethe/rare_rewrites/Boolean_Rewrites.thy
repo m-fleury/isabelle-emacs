@@ -1,5 +1,5 @@
 theory Boolean_Rewrites
-  imports "Dsl_Nary_Ops" "Boolean_Rewrites_Lemmas"
+  imports "Rare_Nary_Ops" "Boolean_Rewrites_Lemmas"
    
 begin (*deleted: "../SMT_CVC_Util"*)
 
