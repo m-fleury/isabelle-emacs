@@ -1,0 +1,9 @@
+unsat
+(step t255 (cl (= (>= 16 (@bvsize T1_10)) true)) :rule evaluate)
+(step t256 (cl (= (- 31 (@bvsize T1_10)) 23)) :rule evaluate)
+(step t257 (cl (= 23 (- 31 (@bvsize T1_10)))) :rule symm :premises (t256))
+(step t258 (cl (= (- 16 (@bvsize T1_10)) 8)) :rule evaluate)
+(step t259 (cl (= 8 (- 16 (@bvsize T1_10)))) :rule symm :premises (t258))
+(step t260 (cl (= (extract 31 16 (concat (@bv 0 24) T1_10)) (extract 23 8 (@bv 0 24)))) :rule rare_rewrite :premises (t255 t257 t259) :args ("bv-extract-concat-3" T1_10 (@bv 0 24) rare-list 16 31 23 8))
+(step slice_end (cl) :rule trust :premises (t260) :args ("trust"))
+

@@ -415,20 +415,11 @@ qed
   (= (extract j i x) y)
   (= x (concat (extract wm1 jp1 x) y (extract im1 0 x))))
 
-
- (15::int) = int (size (x::16 word)) - 1
+         (2::int) = int (size (c::3 word)) - 1
          (2::int) = 1 + 1
-         (1 < (15::int)) = True
-       arguments:
-         ''bv-eq-extract-elim2''
-         x::16 word
-         1
-         1
-         15::int
-         2::int
-       proposition:
-         (smtlib_extract 1 0 (x::16 word) = 1) = (x = word_cat (smtlib_extract (15::int) (2::int) x) 1) 
-SMT: Successfully checked step t84 
+         0 = 1 - 1
+         (1 < (2::int)) = True
+         (0 < 1) = True
 *)
 
 named_theorems rewrite_bv_eq_extract_elim1 \<open>automatically_generated\<close>
@@ -440,7 +431,7 @@ LENGTH('b) = j + 1 - i \<Longrightarrow> j \<ge> i \<Longrightarrow>
 LENGTH('c) = im1 + 1 \<Longrightarrow>
 LENGTH('c) + LENGTH('b) = LENGTH('d) \<Longrightarrow>
 LENGTH('e) = wm1 + 1 - jp1 \<Longrightarrow>
-wm1 = int (size x) - 1 \<Longrightarrow> jp1 = j + 1 \<Longrightarrow> im1 = i - 1 \<Longrightarrow> wm1 > j \<Longrightarrow> i > 0 \<Longrightarrow>
+wm1 = int (size x) - 1 \<Longrightarrow> jp1 = j + 1 \<Longrightarrow> im1 = i - 1 \<Longrightarrow> (j < wm1) = True \<Longrightarrow> (0 < i) = True \<Longrightarrow>
 ((smtlib_extract j i x) = y) = (x = (word_cat (smtlib_extract wm1 jp1 x::'e::len word) (word_cat y (smtlib_extract im1 0 x::'c::len word)::'d::len word)))"
 proof -
   assume b_int: "int LENGTH('b::len) = j + 1 - i"
@@ -451,14 +442,15 @@ proof -
      and wm1_size: "wm1 = int (size x) - 1"
      and jp1_eq: "jp1 = j + 1"
      and im1_eq: "im1 = i - 1"
-     and wm1_gt_j: "j < wm1"
-     and i_pos': "0 < i"
+     and wm1_gt_j: "(j < wm1) = True"
+     and i_pos': " (0 < i) = True"
 
-  from i_pos' have i_pos: "1 \<le> i" by linarith
-  from i_pos' have i_nn: "0 \<le> i" by linarith
+  from i_pos' have i_pos: "1 \<le> i"
+    by simp
+  from i_pos' have i_nn: "0 \<le> i" by simp
   from im1_eq i_pos have im1_nn: "0 \<le> im1" by linarith
   from ij i_pos have j_nn: "0 \<le> j" by linarith
-  from wm1_gt_j jp1_eq have wm1_jp1: "jp1 \<le> wm1" by linarith
+  from wm1_gt_j jp1_eq have wm1_jp1: "jp1 \<le> wm1" by simp
   from jp1_eq j_nn have jp1_nn: "0 \<le> jp1" by linarith
   from wm1_size have a_int: "int LENGTH('a::len) = wm1 + 1" by (simp add: word_size)
   from wm1_jp1 jp1_nn have wm1_nn: "0 \<le> wm1" by linarith
@@ -625,7 +617,7 @@ qed
   ((x ?BitVec) (y ?BitVec) (j Int) (wm1 Int) (jp1 Int))
   (and (= wm1 (- (@bvsize x) 1)) (= jp1 (+ j 1)) (> wm1 j))
   (= (extract j 0 x) y)
-  (= x (concat (extract wm1 jp1 x) y)))
+
 *)
 
 named_theorems rewrite_bv_eq_extract_elim2 \<open>automatically_generated\<close>
@@ -634,8 +626,10 @@ lemma [rewrite_bv_eq_extract_elim2]:
   fixes x::"'a::len word" and y::"'b::len word" and j wm1 jp1 ::int
   shows "NO_MATCH cvc_a (undefined x y j wm1 jp1) \<Longrightarrow>
 LENGTH('b) = j + 1 \<Longrightarrow> j \<ge> 0 \<Longrightarrow>
-LENGTH('e) = wm1 + 1 - jp1 \<Longrightarrow> wm1 \<ge> jp1 \<Longrightarrow> jp1 \<ge> 0 \<Longrightarrow> jp1 = j + 1 \<Longrightarrow>
+LENGTH('e) = wm1 + 1 - jp1 \<Longrightarrow> wm1 \<ge> jp1 \<Longrightarrow> jp1 \<ge> 0 \<Longrightarrow>
 LENGTH('a) = LENGTH('e) + LENGTH('b) \<Longrightarrow>
+
+wm1 = int(size x) - 1 \<Longrightarrow> jp1 = j + 1 \<Longrightarrow> (j <  wm1)  = True \<Longrightarrow>
 ((smtlib_extract j 0 x) = y) = (x = (word_cat (smtlib_extract wm1 jp1 x::'e::len word) y))"
 proof -
   assume b_int: "int LENGTH('b::len) = j + 1"
@@ -643,8 +637,9 @@ proof -
      and e_int: "int LENGTH('e::len) = wm1 + 1 - jp1"
      and wm1_jp1: "jp1 \<le> wm1"
      and jp1_nn: "0 \<le> jp1"
-     and jp1_eq: "jp1 = j + 1"
      and a_eq: "LENGTH('a::len) = LENGTH('e::len) + LENGTH('b::len)"
+  and "wm1 = int(size x) - 1"
+     and jp1_eq: "jp1 = j + 1" and "(j <  wm1)  = True"
 
   from wm1_jp1 jp1_nn have wm1_nn: "0 \<le> wm1" by linarith
 
@@ -688,12 +683,11 @@ proof -
     with njp1_eq show ?thesis by simp
   qed
 
-  show "((smtlib_extract j 0 x :: 'b::len word) = y)
-        = (x = word_cat (smtlib_extract wm1 jp1 x :: 'e::len word) y :: 'a::len word)"
+  show "((smtlib_extract j 0 x) = y) = (x = (word_cat (smtlib_extract wm1 jp1 x::'e::len word) y))"
     unfolding ext_b ext_e
   proof (rule iffI)
-    assume H: "(smt_extract ?nj 0 x :: 'b::len word) = y"
-    show "x = word_cat (smt_extract ?nwm1 (Suc ?nj) x :: 'e::len word) y :: 'a::len word"
+    assume H: "(smt_extract (nat j) 0 x :: 'b::len word) = y"
+    show "x = (word_cat (smt_extract (nat wm1) (Suc (nat j))  x :: 'e::len word) y :: 'a::len word)"
     proof (rule bit_word_eqI)
       fix n :: nat
       assume n_lt_a: "n < LENGTH('a::len)"
@@ -731,7 +725,7 @@ proof -
       qed
     qed
   next
-    assume H: "x = word_cat (smt_extract ?nwm1 (Suc ?nj) x :: 'e::len word) y :: 'a::len word"
+    assume H: "x = word_cat (smt_extract (nat wm1) (Suc (nat j)) x :: 'e::len word) y"               
     show "(smt_extract ?nj 0 x :: 'b::len word) = y"
     proof (rule bit_word_eqI)
       fix n :: nat
@@ -758,6 +752,11 @@ qed
   (and (= j (- (@bvsize x) 1)) (= im1 (- i 1)) (> i 0))
   (= (extract j i x) y)
   (= x (concat y (extract im1 0 x))))
+
+ TODO: use assumptions:
+         (15::int) = int (size (x::16 word)) - 1
+         (14::int) = (15::int) - 1
+         (0 < (15::int)) = True
 *)
 
 named_theorems rewrite_bv_eq_extract_elim3 \<open>automatically_generated\<close>
@@ -1048,60 +1047,219 @@ qed
 *)
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 (*
-When a RARE rule is parsed in 
+
+(define-rule bv-extract-not
+  ((x ?BitVec) (i Int) (j Int))
+  (extract j i (bvnot x))
+  (bvnot (extract j i x)))
+*)
+
+named_theorems rewrite_bv_extract_not \<open>automatically_generated\<close>
+
+lemma [rewrite_bv_extract_not]:
+  fixes x::"'a::len word" and i j ::int
+  shows "NO_MATCH cvc_a (undefined x i j) \<Longrightarrow>
+LENGTH('b) = j + 1 - i \<Longrightarrow> j \<ge> i \<Longrightarrow> i \<ge> 0 \<Longrightarrow> j < int (size x) \<Longrightarrow>
+(smtlib_extract j i (not x)::'b::len word) = not (smtlib_extract j i x)"
+proof -
+  assume b_int: "int LENGTH('b::len) = j + 1 - i"
+     and ij: "i \<le> j"
+     and i_nn: "0 \<le> i"
+     and j_lt_size: "j < int (size x)"
+
+  from ij i_nn have j_nn: "0 \<le> j" by linarith
+  have j_lt_a: "j < int LENGTH('a::len)" using j_lt_size by (simp add: word_size)
+
+  let ?ni = "nat i" and ?nj = "nat j"
+
+  have ni_le_nj: "?ni \<le> ?nj" using ij i_nn by (simp add: nat_mono)
+  have nj_lt_a: "?nj < LENGTH('a::len)" using j_lt_a j_nn by linarith
+
+  have b_nat: "LENGTH('b::len) = Suc ?nj - ?ni"
+  proof -
+    have "LENGTH('b::len) = nat (int LENGTH('b::len))" by simp
+    also have "\<dots> = nat (j + 1 - i)" using b_int by simp
+    also have "\<dots> = Suc ?nj - ?ni"
+      using i_nn ij j_nn by (simp add: nat_diff_distrib)
+    finally show ?thesis .
+  qed
+
+  have ext_not: "(smtlib_extract j i (not x) :: 'b::len word) = smt_extract ?nj ?ni (not x)"
+    using smtlib_extract_eq_smt_extract[where 'a='a and 'b='b and j="?nj" and i="?ni"]
+          j_nn i_nn by (metis int_nat_eq)
+  have ext: "(smtlib_extract j i x :: 'b::len word) = smt_extract ?nj ?ni x"
+    using smtlib_extract_eq_smt_extract[where 'a='a and 'b='b and j="?nj" and i="?ni"]
+          j_nn i_nn by (metis int_nat_eq)
+
+  show "(smtlib_extract j i (not x) :: 'b::len word) = not (smtlib_extract j i x)"
+    unfolding ext_not ext
+  proof (rule bit_word_eqI)
+    fix n :: nat
+    assume n_lt_b: "n < LENGTH('b::len)"
+    have n_ni_le_nj: "n + ?ni \<le> ?nj" using n_lt_b b_nat ni_le_nj by linarith
+    have n_ni_lt_a: "n + ?ni < LENGTH('a::len)"
+      using n_ni_le_nj nj_lt_a by linarith
+    show "bit (smt_extract ?nj ?ni (not x) :: 'b::len word) n
+        = bit (not (smt_extract ?nj ?ni x :: 'b::len word)) n"
+      using n_lt_b n_ni_le_nj n_ni_lt_a
+      by (simp add: bit_smt_extract bit_not_iff)
+  qed
+qed
 
 
-(concat x ys)    is     (concat_bvs x (of_bl (concat_list (map to_bl ys))))
+(*(define-cond-rule bv-extract-sign-extend-1
+  ((x ?BitVec) (low Int) (high Int) (k Int))
+  (< high (@bvsize x))
+  (extract high low (sign_extend k x))
+  (extract high low x))
 
-
-
-During reconstruction
-
-E.g. ys=[y1,y2,y3] x=x1
-
-(concat x1 (concat y1 (concat y2 (concat y3))))
-
-
-Instantiate  (concat_bvs x (of_bl (concat_list (map to_bl ys))))
-= (concat_bvs x (of_bl (to_bl y1 @ to_bl y2 @ to_bl y3)))
-
-
-
-
-
-
-
-
-
-
-
-Make function that concatenates bv that are expressed as natural numbers
-
-nat \<Rightarrow> nat \<Rightarrow> nat
-
+Goal: "rare_rewrite"
+       assumptions:
+         ((7::int) < int (size (isabelle_internal_T1_10896::8 word))) = True
+       arguments:
+         ''bv-extract-sign-extend-1''
+         isabelle_internal_T1_10896::8 word
+         0
+         7::int
+         8::int
+       proposition:
+         smtlib_extract (7::int) 0 (Word.signed_cast (isabelle_internal_T1_10896::8 word)) =
+         smtlib_extract (7::int) 0 isabelle_internal_T1_10896 
 *)
 
 
+named_theorems rewrite_bv_extract_sign_extend_1 \<open>automatically_generated\<close>
+
+lemma [rewrite_bv_extract_sign_extend_1]:
+  fixes x::"'a::len word" and low high k ::int
+  shows "NO_MATCH cvc_a (undefined x low high k) \<Longrightarrow>
+ (high < int (size x)) = True \<Longrightarrow>
+
+int LENGTH('b) = k + int LENGTH('a) \<Longrightarrow>
+int LENGTH('c) = high + 1 - low \<Longrightarrow> high \<ge> low \<Longrightarrow> low \<ge> 0 \<Longrightarrow> k \<ge> 0 \<Longrightarrow>
+
+(smtlib_extract high low (Word.signed_cast x::'b::len word)::'c::len word) = (smtlib_extract high low x)"
+proof -
+  assume high_lt_size: "(high < int (size x)) = True"
+     and b_int: "int LENGTH('b::len) = k + int LENGTH('a::len)"
+     and c_int: "int LENGTH('c::len) = high + 1 - low"
+     and lh: "low \<le> high"
+     and low_nn: "0 \<le> low"
+     and k_nn: "0 \<le> k"
+  from high_lt_size have high_lt_a: "high < int LENGTH('a::len)"
+    by (simp add: word_size)
+  from lh low_nn have high_nn: "0 \<le> high" by linarith
+
+  let ?ni = "nat low" and ?nj = "nat high"
+
+  have ni_le_nj: "?ni \<le> ?nj" using lh low_nn by (simp add: nat_mono)
+  have nj_lt_a: "?nj < LENGTH('a::len)" using high_lt_a high_nn by linarith
+  have a_le_b: "LENGTH('a::len) \<le> LENGTH('b::len)"
+    using b_int k_nn by simp
+
+  have c_nat: "LENGTH('c::len) = Suc ?nj - ?ni"
+  proof -
+    have "LENGTH('c::len) = nat (int LENGTH('c::len))" by simp
+    also have "\<dots> = nat (high + 1 - low)" using c_int by simp
+    also have "\<dots> = Suc ?nj - ?ni"
+      using low_nn lh high_nn by (simp add: nat_diff_distrib)
+    finally show ?thesis .
+  qed
+
+  have ext_l: "(smtlib_extract high low (scast x::'b::len word) :: 'c::len word)
+               = smt_extract ?nj ?ni (scast x::'b::len word)"
+    using smtlib_extract_eq_smt_extract[where 'a='b and 'b='c and j="?nj" and i="?ni"]
+          high_nn low_nn by (metis int_nat_eq)
+  have ext_r: "(smtlib_extract high low x :: 'c::len word) = smt_extract ?nj ?ni x"
+    using smtlib_extract_eq_smt_extract[where 'a='a and 'b='c and j="?nj" and i="?ni"]
+          high_nn low_nn by (metis int_nat_eq)
+
+  show "(smtlib_extract high low (Word.signed_cast x::'b::len word) :: 'c::len word)
+         = (smtlib_extract high low x)"
+    unfolding ext_l ext_r
+  proof (rule bit_word_eqI)
+    fix n :: nat
+    assume n_lt_c: "n < LENGTH('c::len)"
+    have n_ni_le_nj: "n + ?ni \<le> ?nj" using n_lt_c c_nat ni_le_nj by linarith
+    have n_ni_lt_a: "n + ?ni < LENGTH('a::len)"
+      using n_ni_le_nj nj_lt_a by linarith
+    have n_ni_lt_b: "n + ?ni < LENGTH('b::len)"
+      using n_ni_lt_a a_le_b by linarith
+    show "bit (smtlib_extract high low (Word.signed_cast x::'b::len word) :: 'c::len word) n
+        = bit (smt_extract (nat high) (nat low)  x :: 'c::len word) n"
+      using n_lt_c n_ni_le_nj n_ni_lt_a n_ni_lt_b
+      apply (simp add: bit_smt_extract bit_word_scast_iff)
+      sledgehamme
+  qed
+qed
+
+(*
+
+       arguments:
+         ''bv-extract-sign-extend-2''
+         if not (and (v1::4 word) (v2::4 word)) =
+            word_cat 0
+             (smt_comp (word_cat (4::3 word) (if (8::4 word) < v1 then 0 else 1))
+               (scast (if (8::4 word) < v1 then 0 else 1)))
+         then 0 else 1
+         0
+         1
+         3::int
+         0
+         1
+       proposition:
+         smtlib_extract 1 0
+          (scast
+            x) =
+         scast
+          (smtlib_extract 0 0
+            x) 
+ (0 < int (size x)) = True
+ (int (size x) \<le> 1) = True
+0 = int (size x) -1
+1 =1 + (1 - int (size x))
+
+(define-cond-rule bv-extract-sign-extend-2
+  ((x ?BitVec) (low Int) (high Int) (k Int) (nm1 Int) (sn Int))
+  (def (n (@bvsize x)))
+  (and (< low n) (>= high n) (= nm1 (- n 1)) (= sn (+ 1 (- high n))))
+  (extract high low (sign_extend k x))
+  (sign_extend
+    sn
+    (extract nm1 low x)))*)
+
+
+
+named_theorems rewrite_bv_extract_sign_extend_2 \<open>automatically_generated\<close>
+
+lemma [rewrite_bv_extract_sign_extend_2]:
+  fixes x::"'a::len word" and low high k nm1 sn ::int
+  shows "NO_MATCH cvc_a (undefined x low high k nm1 sn) \<Longrightarrow>
+(low < int (size x)) = True \<Longrightarrow> (int (size x) \<le> high) = True \<Longrightarrow> nm = n - 1 \<Longrightarrow>
+sn = 1 + (high - int(size x)) \<Longrightarrow>
+
+int LENGTH('b) = k \<Longrightarrow>
+int LENGTH('c) = high + 1 - low \<Longrightarrow> high \<ge> low \<Longrightarrow> low \<ge> 0 \<Longrightarrow>
+int LENGTH('d) = nm1 + 1 -low \<Longrightarrow> nm1 \<ge> low \<Longrightarrow>
+LENGTH('d) + sn = LENGTH('c) \<Longrightarrow>
+(smtlib_extract high low (scast x::'b::len word)::'c::len word) = (scast (smtlib_extract nm1 low x::
+'d::len word))"
+  sorry
+
+(*(define-cond-rule bv-extract-sign-extend-3
+  ((x ?BitVec) (low Int) (high Int) (k Int) (rn Int) (nm1 Int))
+  (def (n (@bvsize x)))
+  (and (>= low n) (= rn (+ 1 (- high low))) (= nm1 (- n 1)))
+  (extract high low (sign_extend k x))
+  (repeat rn (extract nm1 nm1 x)))
+*)
+
+(*
+(define-rule bv-not-xor
+  ((x1 ?BitVec) (x2 ?BitVec) (xs ?BitVec :list))
+  (bvnot (bvxor x1 x2 xs))
+  (bvxor (bvnot x1) x2 xs))*)
 
 
 
@@ -1114,22 +1272,6 @@ nat \<Rightarrow> nat \<Rightarrow> nat
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-fun word_concat_left :: "nat \<Rightarrow> 'b::len word \<Rightarrow> 'c::len word" where (*TODO: Bitwidth of the result*)
-"word_concat_left n y = (THE z::'c::len word.  uint z = concat_bit (LENGTH('c)) n (unat y)) "
-
-fun word_concat_right :: "'a::len word \<Rightarrow> nat \<Rightarrow> 'c::len word" where (*TODO: Bitwidth of the result*)
-"word_concat_right x m = (THE z::'c::len word.  uint z = concat_bit (LENGTH('c)) (unat x) m) "
 
 (*(define-rule* bv-concat-flatten
   ((xs ?BitVec :list)
@@ -1140,70 +1282,6 @@ fun word_concat_right :: "'a::len word \<Rightarrow> nat \<Rightarrow> 'c::len w
   (concat xs (concat s (concat ys zs)))
 
 *)
-
-(*First fold concat_bit over list, get natural number. Then apply word_concat_right *)
-
-(*fun cvc_nary_op_fold :: "('a \<Rightarrow> 'a \<Rightarrow> 'a) \<Rightarrow> 'a list \<Rightarrow> 'a" where
- cvc_nary_op_fold_Nil: "cvc_nary_op_fold op [x] = x" |
- cvc_nary_op_fold_Cons: "cvc_nary_op_fold op (x#xs) = (op x (cvc_nary_op_fold op xs))"
-*)
-
-(*Use reversed bit list?
-
-Dann kann ich bitvectoren als (to_bl x) einparsen
-
-Die Funktion nimmt dann eine bl und ein word
-
-Erster Schritt concat zwei blists, ergebnis ist ein Wort. Dann immer eine bl ein Wort mit concat_left. Am Ende kommt ein Wort raus, das andere word wird vorne 
-drangehangen. 
-
-Geht whrs nicht wegen den Typen. Aber erst ganze Liste auf nats ausrollen?! Gibt es dann nicht probleme das Lemma bei der Rekonstruktion zu benutzen?
-
-*)
-(*fun test :: "nat list \<Rightarrow> nat"
-
-term "cvc_nary_op_fold concat_bit
-
-fun cvc_bin_op2' :: "('b \<Rightarrow> 'a \<Rightarrow> 'a) \<Rightarrow> ('b \<Rightarrow> 'b \<Rightarrow> 'a) \<Rightarrow> ('a \<Rightarrow> 'a \<Rightarrow> 'a) \<Rightarrow> 'a \<Rightarrow> 'b cvc_ListVar \<Rightarrow> 'a" where
- "cvc_bin_op2' op1 op2 op3 y (ListVar xs) = (if xs = [] then y else op3 y (cvc_nary_op_fold' op1 op2 xs))"
-
-definition cvc_list_right' where "cvc_list_right' op1 op2 op3 y lv = cvc_bin_op2' op1 op2 op3 y lv"
-
-
-
-
-
-(*"(nat \<Rightarrow> word \<Rightarrow> word) \<Rightarrow> (nat \<Rightarrow> nat \<Rightarrow> word) \<Rightarrow> (word \<Rightarrow> word \<Rightarrow> word)*)
-definition word_concat_cvc_list_right' where
- "word_concat_cvc_list_right' y lv = cvc_list_right' op1 op2 op3 y lv"
-
-
-
-lemma test:
-  fixes xs::"nat cvc_ListVar" and zs::"nat cvc_ListVar" and s::"'a::len word"
-  shows "(cvc_list_left word_concat_left xs (cvc_list_right word_concat_right (cvc_list_right word_concat_right s ys) zs))
-= (cvc_list_left word_concat_left xs (cvc_list_right word_concat_right s (cvc_list_both concat_bit ys zs)))"
-
-
-
-
-
-
-lemma test:
-  fixes xs::"nat cvc_ListVar" and zs::"nat cvc_ListVar" and s::"'a::len word"
-  assumes "\<not>(ys = (ListVar []) \<and> zs = (ListVar []))"
-  shows "(cvc_list_left word_concat_list_left xs (cvc_list_right' word_concat_list_right (0::'a::len word) s ys))
-= (cvc_list_left word_concat_list_left xs (word_cat s (cvc_list_both word_concat_list_both (0::'a::len word) ys zs)))"
-  oops
-
-
-*)
-
-
-declare[[show_types,show_sorts]]
-
-(*  "to_bl (of_bl bl::'a::len word) =*)
-
 
 
 
@@ -1224,104 +1302,11 @@ declare[[show_types,show_sorts]]
 
 
 
-value "(concat_smt [[True,False],[True,True]])::4 word" (*concat 10 11 = 1011  \<rightarrow> 11*)
-
-(*
-  (concat xs ((concat s ys) zs))
-  (concat xs (s (ys zs)))
-*)
-
-lemma "
-LENGTH('a) = size (s::'f1::len word) + size (t::'f2::len word) \<Longrightarrow>
-LENGTH('b) = LENGTH('a) + size (q::'f3::len word) \<Longrightarrow>
-LENGTH('d) = size t + size q \<Longrightarrow>
-LENGTH('b) = size s + LENGTH('d) \<Longrightarrow>
-(word_cat (word_cat s t::'a::len word) q::'b::len word) = word_cat s (word_cat t q::'d::len word)"
-  apply (simp only: word_unat_eq_iff)
-  apply (subst unat_word_cat[of "(word_cat s t::'a::len word)" q, where 'c='b] )
-  using word_size apply auto[1]
-  apply (subst unat_word_cat[of s t, where 'c='a])
-   apply (simp add: word_size)
-  apply (subst unat_word_cat[of s "(word_cat t q::'d::len word)", where 'c='b])
-   apply (simp add: word_size)
-  apply (subst unat_word_cat)
-   apply (simp add: word_size)
-  by (simp add: add.commute push_bit_add size_word.rep_eq)
-
-
-
-
-lemma test:
-  fixes xs::"(bool list) list" and ys::"(bool list) list" 
-    and zs::"(bool list) list" and s::"'a::len word"
-  assumes a0: "(c_s_ys_1::'f1::len word) = (word_cat s (concat_smt ys::'b::len word))"
-      and a1: "LENGTH('f1) = LENGTH('a) + LENGTH('b)"
-      and a2: "(c_1_zs_2::'f2::len word) = (word_cat c_s_ys_1 (concat_smt zs::'c::len word))"
-      and a3: "LENGTH('f2) = LENGTH('f1) + LENGTH('c)"
-      and a4: "(c_xs_2_3::'f3::len word) = (word_cat (concat_smt xs::'d::len word) c_1_zs_2)"
-      and a5: "LENGTH('f3) = LENGTH('d) + LENGTH('f2)"
-      and a6: "(c_ys_zs_4::'f4::len word) = (word_cat (concat_smt ys::'b::len word) (concat_smt zs::'c::len word))"
-      and a7: "LENGTH('f4) = LENGTH('b) + LENGTH('c)"
-      and a8: "(c_s_4_5::'f2::len word) = (word_cat s c_ys_zs_4)"
-      and a9: "LENGTH('f2) = LENGTH('a) + LENGTH('f4)"
-      and a10: "(c_xs_5_6::'f3::len word) = (word_cat (concat_smt xs::'d::len word) c_s_4_5)"
-      and a11: "LENGTH('f3) = LENGTH('d) + LENGTH('f2)"
-      and "xs \<noteq> []" and "ys \<noteq> []" and "zs \<noteq> []" and "list_length_0 xs" and "list_length_0 ys" and "list_length_0 zs"
-    shows "c_xs_2_3 = c_xs_5_6"
-  unfolding a4 a10
-  apply (subst  arg_cong[of c_1_zs_2 c_s_4_5 "\<lambda>k. word_cat (concat_smt xs::'d::len word) k::'f3::len word"])
-  subgoal
-    unfolding a2 a8 a0 a6
-    using word_cat_on_word_cat 
-  proof -
-    have "len_of (TYPE('f4)::'f4 itself) = len_of (TYPE('b)::'b itself) + len_of (TYPE('c)::'c itself) \<and> len_of (TYPE('f2)::'f2 itself) = len_of (TYPE('f1)::'f1 itself) + len_of (TYPE('c)::'c itself) \<and> len_of (TYPE('f1)::'f1 itself) = len_of (TYPE('a)::'a itself) + len_of (TYPE('b)::'b itself)"
-      using a1 a3 a7 by blast
-    then show "(word_cat (word_cat s (concat_smt ys::'b word)::'f1 word) (concat_smt zs::'c word)::'f2 word) = word_cat s (word_cat (concat_smt ys::'b word) (concat_smt zs::'c word)::'f4 word)"
-      by (simp add: word_cat_on_word_cat word_size)
-  qed
-  apply simp
-  done
 
 
 
 
 
-
-
-
-
-
-
-
-
-
-(*
-
-Alle Vorkommen von xs ausserhalb von concat muessten mit (foldr of_bl xs) und eigenen Variablen ersetzt werden, was nur funktioniert
-wenn sie alle diesselbe Laenge haben
-
-Fuer concat ersetzen wir Vorkommen von concat xs y mit (concat (concat_smt xs) y). concat_smt nimmt eine Liste von bl listen 
-und gibt die Concatenation als bitvector. Durch die implicit assumptions wird size  (concat (concat_smt xs) y) als summe
-gesetzt. Aber wir koennen es auch selbst hinzufuegen. Muessen wir vielleicht sogar weil beide listen leer sein koennen
-
-
-  (concat xs (concat s ys) zs)
-  (concat xs s ys zs))
-
-
-*)
-
-named_theorems rewrite_bv_extract_whole \<open>automatically_generated\<close>
-
-lemma [rewrite_bv_extract_whole]:
-  fixes x::"'a::len word" and n::"int"
-  shows "NO_MATCH cvc_a (undefined x n) \<Longrightarrow>
-int (size x) - (1::int) \<le> n \<Longrightarrow>
-   smtlib_extract n 0 x = x"
-  unfolding smtlib_extract_def
-  apply (cases "n = int (size x)")
-  apply (simp add: size_word.rep_eq slice_id smt_extract_def take_bit_word_eq_self)
-  by (simp add: size_word.rep_eq slice_id smt_extract_def take_bit_word_eq_self)
 
 named_theorems rewrite_bv_sle_eliminate \<open>automatically_generated\<close>
 

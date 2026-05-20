@@ -1,0 +1,4 @@
+unsat
+(step t1037 (cl (= (< 7 (@bvsize T1_10896)) true)) :rule evaluate)
+(step t1038 (cl (= (extract 7 0 (sign_extend 8 T1_10896)) (extract 7 0 T1_10896))) :rule rare_rewrite :premises (t1037) :args ("bv-extract-sign-extend-1" T1_10896 0 7 8))
+(step slice_end (cl) :rule trust :premises (t1038) :args ("trust"))

@@ -1,0 +1,6 @@
+unsat
+(step t97 (cl (= (>= 8 (@bvsize T1_10552)) true)) :rule evaluate)
+(step t99 (cl (= 8 (+ 1 (- 15 8)))) :rule trust)
+(step t101 (cl (= 7 (- (@bvsize T1_10552) 1))) :rule trust)
+(step t102 (cl (= (extract 15 8 (sign_extend 8 T1_10552)) (repeat 8 (extract 7 7 T1_10552)))) :rule rare_rewrite :premises (t97 t99 t101) :args ("bv-extract-sign-extend-3" T1_10552 8 15 8 8 7)) 
+(step slice_end (cl) :rule trust :premises (t1038) :args ("trust"))
