@@ -71,22 +71,19 @@ local
     | _ => I)
 
   val int_thm = @{lemma "(0::int) <= int (n::nat)" by simp}
-  val nat_int_thms = @{lemma
-    "\<forall>n::nat. (0::int) <= int n"
-    "\<forall>n::nat. nat (int n) = n"
-    "\<forall>i::int. int (nat i) = (if 0 <= i then i else 0)"
-    by simp_all}
   val var = Term.dest_Var (Thm.term_of (funpow 3 Thm.dest_arg (Thm.cprop_of int_thm)))
 in
 
 fun nat_as_int_conv ctxt = SMT_Util.if_exists_conv is_nat_const (nat_to_int_conv ctxt)
 
+(* Universal nat-int identities are intentionally not injected:
+   smt_global_normalize already records 0 \<le> _ for every lifted var,
+   so re-asserting them only yields vacuous artefacts (e.g. lift_eq). *)
 fun add_int_of_nat_constraints thms =
   let
- val (q, cts) = fold (add_apps add_int_of_nat [] o Thm.cprop_of) thms (false, [])
+ val (_, cts) = fold (add_apps add_int_of_nat [] o Thm.cprop_of) thms (false, [])
   in
-    if q then (thms, nat_int_thms)
-    else (thms, map (fn ct => Thm.instantiate (TVars.empty, Vars.add (var, ct) Vars.empty) int_thm) cts)
+    (thms, map (fn ct => Thm.instantiate (TVars.empty, Vars.add (var, ct) Vars.empty) int_thm) cts)
   end
 
   val setup_nat_as_int =
