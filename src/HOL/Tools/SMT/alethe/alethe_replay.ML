@@ -140,7 +140,7 @@ fun replay_thm solver method_for rewrite_rules ll_defs ctxt assumed unchanged_pr
         ((prop_skeleton, concl), ctxt)
         args
         needs_boxes
-      |> Simplifier.simplify (empty_simpset ctxt addsimps (@{thm alethe_Box_def2} :: rewrite_rules))
+      |> Simplifier.simplify (Simplifier.add_simps (@{thm alethe_Box_def2} :: rewrite_rules) (Simplifier.empty_simpset ctxt))
   end
  | replay_thm _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ = raise Fail "unreachable code to silence the compiler"
 
@@ -383,7 +383,7 @@ fun replay solver method_for outer_ctxt
       map_filter (fn id => let val i = index_of_id id in if i >= 0 andalso i < length assms then
             let val concl = Thm.prop_of (snd (nth assms i))
               |> Raw_Simplifier.rewrite_term (Proof_Context.theory_of
-               (empty_simpset ctxt addsimps rewrite_rules)) rewrite_rules []
+               (Simplifier.add_simps rewrite_rules (empty_simpset ctxt))) rewrite_rules []
             in SOME (SMTLIB_Interface.assert_name_of_role_and_index SMT_Util.Axiom id,
               Alethe_Proof.input_rule, concl, @{term "Trueprop True"}) end
           else NONE end) used_assert_ids

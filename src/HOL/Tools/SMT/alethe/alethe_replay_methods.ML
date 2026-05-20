@@ -205,6 +205,11 @@ end;
 structure Alethe_Replay_Methods: ALETHE_REPLAY_METHODS =
 struct
 
+(*TODO: remove, but to prepare transition to next isabelle*)
+nonfix addsimps
+nonfix addsimprocs
+(*end*)
+
 open SMT_Config
 fun debug_msg ctxt = alethe_debug_msg ctxt "alethe_replay_methods"
 fun debug_msg_tac' ctxt verbosity str = K (SMT_Config.alethe_debug_msg_tac ctxt "alethe_replay_methods" verbosity str)
@@ -450,39 +455,34 @@ fun eqsubst_all ctxt thms =
 fun get_solver_name (SOME (Solver_Name name)) = name
   | get_solver_name _ = "unknown solver name"
 
-fun print_conv (str : string) ct = (@{print} (str, ct, Thm.term_of ct); Conv.all_conv ct)
+fun print_conv (str : string) ct = ((*@{print} (str, ct, Thm.term_of ct);*) Conv.all_conv ct)
 
-(*TODO Hanna:
-- Put first two steps + addsimps @{thms simp_thms} in ref object
-unsyncronized.ref src/Implementation/ML.thy
-parallel könnte probleme geben
-- vllt datastructure (dann koennte man alle schritte sparen)
-- ist so wegen evaluate, sonst koennte man die ersten zwei schritte sparen
-Mathias hatte zwei Context in alethe_replay, eins für evaluate eins fuer alles andere.
-=> Bisher hat er keine Verbesserung nur Code komplizierter.
+(*
+We were told that emptying and filling the context back and forth could be improved.
+We tried (by saving two contexts), but did not observe any improvement.
 *)
 fun simplify_tac ctxt thms =
   ctxt
-  |> empty_simpset
-  |> put_simpset HOL_basic_ss
-  |> (fn ctxt => ctxt addsimps @{thms simp_thms} addsimps thms)
+  |> Simplifier.empty_simpset
+  |> Simplifier.put_simpset HOL_basic_ss
+  |> Simplifier.add_simps (@{thms simp_thms} @ thms)
   |> Simplifier.asm_full_simp_tac
 
 (*This is a weaker simplification form. It is weaker, but is also less likely to loop*)
 fun partial_simplify_tac ctxt thms =
   ctxt
-  |> empty_simpset
-  |> put_simpset HOL_basic_ss
-  |> (fn ctxt => ctxt addsimps @{thms simp_thms} addsimps thms)
+  |> Simplifier.empty_simpset
+  |> Simplifier.put_simpset HOL_basic_ss
+  |> Simplifier.add_simps (@{thms simp_thms} @ thms)
   |> Simplifier.full_simp_tac
 
 fun partial_simplify_tac_with_cong cong simprocs ctxt thms =
   ctxt
   |> empty_simpset
   |> put_simpset HOL_basic_ss
-  |> (fn ctxt => ctxt addsimps @{thms simp_thms} addsimps thms)
+  |> Simplifier.add_simps (@{thms simp_thms} @ thms)
   |> Simplifier.add_cong cong
-  |> (fn ctxt => ctxt addsimprocs simprocs)
+  |> fold Simplifier.add_proc simprocs
   |> Simplifier.full_simp_tac
 
 (* sko_forall requires the assumptions to be able to prove the equivalence in case of double
@@ -502,9 +502,9 @@ fun REPEAT_DETERM_N' k tac = fn i => REPEAT_DETERM_N k (tac i)
 fun DETERM' tac = fn i => DETERM (tac i)
 
 fun extract_single_premise rule ctxt thm t =
-  case thm of
-   [thm] => thm |
-   thms => replay_error ctxt "Expected only one premise" rule thms [] t
+  (case thm of
+    [thm] => thm
+  | thms => replay_error ctxt "Expected only one premise" rule thms [] t)
 
 
 (* Bind *)
@@ -529,15 +529,13 @@ fun extract_all_forall_exists_quantified_names_q (Const(\<^const_name>\<open>HOL
       extract_all_forall_exists_quantified_names_q t @ extract_all_forall_exists_quantified_names_q u
   | extract_all_forall_exists_quantified_names_q _ = []
 
-val to_upper = raw_explode #> map Symbol.to_ascii_upper #> implode;
-
 fun bind ctxt [thms] context_ass t =
   (SMT_Replay_Methods.prove ctxt t (fn _ =>
     REPEAT_DETERM_N' (length context_ass div 2) (resolve_tac ctxt bind_thms)
     THEN' (resolve_tac ctxt [thms]
       THEN_ALL_NEW TRY' (eq_assume_tac ORELSE' resolve_tac ctxt @{thms refl})))
-   handle (Fail msg) => replay_error ctxt msg Bind [thms] [] t)
- | bind ctxt thms _ t = replay_error ctxt "invalid application" Bind thms [] t
+  handle (Fail msg) => replay_error ctxt msg Bind [thms] [] t)
+  | bind ctxt thms _ t = replay_error ctxt "invalid application" Bind thms [] t
 
 
 (* Congruence/Refl *)
@@ -685,9 +683,9 @@ fun skolem_tac extractor thm1 thms1 ctxt prems context_ass (decl:string list * s
           val acc' = (thm COMP @{thm eq_commute[THEN iffD1]}) :: acc
           val simp_ctxt =
            ctxt
-           |> empty_simpset
-           |> put_simpset HOL_basic_ss
-           |> (fn ctxt => ctxt addsimps acc)
+           |> Simplifier.empty_simpset
+           |> Simplifier.put_simpset HOL_basic_ss
+           |> Simplifier.add_simps acc
         in ((v, SOME (Simplifier.full_simplify simp_ctxt thm)) :: fold_definition xs acc') end
     val defs = fold_definition (ordered_definitions ()) [] (*The skolem definitions are stored in the context*)
   in
@@ -764,12 +762,9 @@ end
 (*Modulo implicit reordering. Needed for veriT when checking external problems + proofs.*)
 fun is_same_assms_eq_ac (Abs (_, _, u)) (Abs (_, _, u')) =
      is_same_assms_eq_ac u u' (*the name cannot be relevant due to implicit eta-contraction*)
-  | is_same_assms_eq_ac (Free (var, _)) (Free (var', _)) =
-    (var = var')
-  | is_same_assms_eq_ac (Bound var) (Bound var') =
-    (var = var')
-  | is_same_assms_eq_ac (Const (var, _)) (Const (var', _)) =
-    (var = var')
+  | is_same_assms_eq_ac (Free (var, _)) (Free (var', _)) = var = var'
+  | is_same_assms_eq_ac (Bound var) (Bound var') = var = var'
+  | is_same_assms_eq_ac (Const (var, _)) (Const (var', _)) = var = var'
   | is_same_assms_eq_ac (Const (\<^const_name>\<open>HOL.eq\<close>, _) $ u $ v) (Const (\<^const_name>\<open>HOL.eq\<close>, _) $ u' $ v') =
     (is_same_assms_eq_ac u u' andalso is_same_assms_eq_ac v v') orelse
     (is_same_assms_eq_ac u v' andalso is_same_assms_eq_ac v u')
@@ -838,8 +833,8 @@ fun trans ctxt thms t =
     val prop_of = HOLogic.dest_Trueprop o Thm.full_prop_of
     fun combine_thms [thm1, thm2] =
           (case (prop_of thm1, prop_of thm2) of
-            ((Const(\<^const_name>\<open>HOL.eq\<close>, _) $ t1 $ t2),
-             (Const(\<^const_name>\<open>HOL.eq\<close>, _) $ t3 $ t4)) =>
+            (Const(\<^const_name>\<open>HOL.eq\<close>, _) $ t1 $ t2,
+             Const(\<^const_name>\<open>HOL.eq\<close>, _) $ t3 $ t4) =>
             if t2 aconv t3 then thm1 RSN (1, thm2 RSN (2, @{thm trans}))
             else if t2 aconv t4 then thm1 RSN ((1, ((thm2 RS sym)) RSN (2, @{thm trans})))
             else if t1 aconv t4 then thm2 RSN (1, thm1 RSN (2, @{thm trans}))
@@ -857,8 +852,8 @@ fun trans ctxt thms t =
 
   in
      ((case (prop_of trans_thm, t2) of
-       ((Const(\<^const_name>\<open>HOL.eq\<close>, _) $ t1 $ _),
-             (Const(\<^const_name>\<open>HOL.eq\<close>, _) $ t3 $ _)) =>
+       (Const(\<^const_name>\<open>HOL.eq\<close>, _) $ t1 $ _,
+        Const(\<^const_name>\<open>HOL.eq\<close>, _) $ t3 $ _) =>
        if t1 aconv t3 then trans_thm else trans_thm RS sym
       | _ => trans_thm (*to be on the safe side*)))
   end
@@ -909,9 +904,9 @@ end
 
 local
   fun not_and_rule_prove ctxt prems =
-     Method.insert_tac ctxt prems
-     THEN' K (unfold_tac ctxt @{thms de_Morgan_conj})
-     THEN_ALL_NEW TRY' (assume_tac ctxt)
+    Method.insert_tac ctxt prems
+    THEN' K (unfold_tac ctxt @{thms de_Morgan_conj})
+    THEN_ALL_NEW TRY' (assume_tac ctxt)
 
   fun or_intro_prove ctxt k =
     (REPEAT_DETERM_N' k (match_tac ctxt @{thms disjI2}))
@@ -922,17 +917,17 @@ local
     THEN' (SOLVED' (dmatch_tac ctxt @{thms conjunct1} THEN' assume_tac ctxt) ORELSE' (assume_tac ctxt))
 
   fun or_pos_prove ctxt _ =
-     match_tac ctxt @{thms alethe_farkas(1)}
-     THEN' assume_tac ctxt
+    match_tac ctxt @{thms alethe_farkas(1)}
+    THEN' assume_tac ctxt
 
   fun and_rule_prove k ctxt prems =
-     Method.insert_tac ctxt prems
-     THEN' and_dest_prove ctxt k
+    Method.insert_tac ctxt prems
+    THEN' and_dest_prove ctxt k
 
   fun and_neg_rule_prove ctxt _ =
-     match_tac ctxt @{thms alethe_and_neg}
-     THEN' K (unfold_tac ctxt @{thms de_Morgan_conj})
-     THEN' TRY' (assume_tac ctxt)
+    match_tac ctxt @{thms alethe_and_neg}
+    THEN' K (unfold_tac ctxt @{thms de_Morgan_conj})
+    THEN' TRY' (assume_tac ctxt)
 
   fun prover tac = prove_abstract SMT_Replay_Methods.abstract_prop tac
 
@@ -950,8 +945,14 @@ val and_neg_rule = prover and_neg_rule_prove
 fun not_or_rule ctxt prems t (SOME (Index k)) =
   SMT_Replay_Methods.prove ctxt t (fn _ =>
     let
-      val ct_prem = Thm.cterm_of ctxt (HOLogic.dest_not (HOLogic.dest_Trueprop (Thm.prop_of (hd prems))))
-      val ct_concl = Thm.cterm_of ctxt (HOLogic.dest_not (HOLogic.dest_Trueprop t))
+      val ct_prem = 
+        Thm.prop_of (hd prems)
+        |> HOLogic.dest_not o HOLogic.dest_Trueprop
+        |> Thm.cterm_of ctxt
+      val ct_concl = 
+        t
+        |> HOLogic.dest_not o HOLogic.dest_Trueprop
+        |> Thm.cterm_of ctxt
       val x = Drule.infer_instantiate' ctxt [SOME ct_prem, SOME ct_concl] @{thm contrapos_nn}
     in
       resolve_tac ctxt [x]
@@ -961,16 +962,16 @@ fun not_or_rule ctxt prems t (SOME (Index k)) =
   | not_or_rule ctxt _ t _ = SMT_Replay_Methods.prove ctxt t (fn _ => fn _ => no_tac)
 
 fun or_neg_rule ctxt _ t (SOME (Index k)) =
-  SMT_Replay_Methods.prove ctxt t (fn _ => match_tac ctxt @{thms alethe_or_neg} THEN' or_intro_prove ctxt k)
+      SMT_Replay_Methods.prove ctxt t (fn _ => match_tac ctxt @{thms alethe_or_neg} THEN' or_intro_prove ctxt k)
   | or_neg_rule ctxt _ t _ = SMT_Replay_Methods.prove ctxt t (fn _ => K no_tac)
 
 fun and_pos ctxt _ t (SOME (Index k)) =
-    SMT_Replay_Methods.prove ctxt t (fn _ =>
-    resolve_tac ctxt [@{lemma "(A \<Longrightarrow> B) \<Longrightarrow> (\<not>A \<or> B)" by blast}]
-    THEN' (and_dest_prove ctxt k))
+      SMT_Replay_Methods.prove ctxt t (fn _ =>
+      resolve_tac ctxt [@{lemma "(A \<Longrightarrow> B) \<Longrightarrow> (\<not>A \<or> B)" by blast}]
+      THEN' (and_dest_prove ctxt k))
   | and_pos ctxt _ t _ = SMT_Replay_Methods.prove ctxt t (fn _ =>
-    REPEAT_CHANGED (resolve_tac ctxt @{thms alethe_and_pos})
-    THEN' TRY' (assume_tac ctxt))
+      REPEAT_CHANGED (resolve_tac ctxt @{thms alethe_and_pos})
+      THEN' TRY' (assume_tac ctxt))
 end
 
 (* Equivalence Transformation *)
@@ -1099,16 +1100,13 @@ let
 in
   SMT_Replay_Methods.prove ctxt t (fn _ =>
   SOLVED'
-     (TRY'(
-      (resolve_tac ctxt @{thms alethe_distinct_elim_two_clauses})
+    (TRY' (
+        (resolve_tac ctxt @{thms alethe_distinct_elim_two_clauses})
       ORELSE'
-      (resolve_tac ctxt @{thms alethe_distinct_elim_0}
-      THEN' (REPEAT_DETERM_N' 2 (extract_clauses @{thms alethe_distinct_elim_2}))
-      )
-    )
-    THEN' TRY' (resolve_tac ctxt @{thms refl})
-   )
-  ORELSE' (Classical.fast_tac ctxt)
+        (resolve_tac ctxt @{thms alethe_distinct_elim_0}
+        THEN' (REPEAT_DETERM_N' 2 (extract_clauses @{thms alethe_distinct_elim_2}))))
+      THEN' TRY' (resolve_tac ctxt @{thms refl}))
+    ORELSE' (Classical.fast_tac ctxt)
   )
 end
 
@@ -1226,7 +1224,7 @@ fun ite_intro ctxt _ t =
       ctxt
       |> empty_simpset
       |> put_simpset HOL_basic_ss
-      |> (fn ctxt => ctxt addsimps thms @ @{thms simp_thms})
+      |> Simplifier.add_simps (thms @ @{thms simp_thms})
       |> cong ? (Raw_Simplifier.add_eqcong @{thm alethe_ite_if_cong})
       |> Simplifier.full_simp_tac
     val use_cong = true
@@ -1253,13 +1251,14 @@ local
   fun repeat_rewrite_bottom_up1 ctxt thms1 ctrm =
       if fastype_of (ctrm |> Thm.term_of) <> @{typ bool} then Conv.all_conv ctrm
       else
-      (case ctrm |> Thm.term_of of
-        _ $ _ =>
-          (Conv.fun_conv (repeat_rewrite_bottom_up1 ctxt thms1)
-          then_conv Conv.try_conv (Conv.arg_conv (Conv.rewrs_conv thms1))
-          then_conv Conv.try_conv (Conv.rewrs_conv thms1)) ctrm
-      | Abs _ => Conv.try_conv (Conv.abs_conv (fn (_, ctxt) => repeat_rewrite_bottom_up1 ctxt thms1) ctxt) ctrm
-      | _ => Conv.try_conv (Conv.rewrs_conv thms1) ctrm)
+        ctrm
+        |> (case ctrm |> Thm.term_of of
+              _ $ _ =>
+               Conv.fun_conv (repeat_rewrite_bottom_up1 ctxt thms1)
+               then_conv Conv.try_conv (Conv.arg_conv (Conv.rewrs_conv thms1))
+               then_conv Conv.try_conv (Conv.rewrs_conv thms1)
+           | Abs _ => Conv.try_conv (Conv.abs_conv (fn (_, ctxt) => repeat_rewrite_bottom_up1 ctxt thms1) ctxt)
+           | _ => Conv.try_conv (Conv.rewrs_conv thms1))
 
   fun repeat_until_fixpoint_conv ctxt conv =
     Conv.repeat_conv (Conv.changed_conv (Conv.top_sweep_conv conv ctxt))
@@ -1275,7 +1274,6 @@ local
           print_conv "before moving out"
           then_conv repeat_until_fixpoint_conv2 ctxt (map (Drule.infer_instantiate' ctxt [NONE, SOME ct]) thms)
           then_conv print_conv "after moving 1 out" then_conv move_term_to_the_beginning cts
-
        | move_term_to_the_beginning [] = Conv.all_conv
     in
       t
@@ -1403,17 +1401,15 @@ fun sort_disj ctxt t =
       HOLogic.disjuncts t
       |> sort Term_Ord.term_ord
     fun commute_last last =
-       repeat_rewrite_bottom_up1 ctxt
-         (map (Drule.infer_instantiate' ctxt [NONE, SOME (Thm.cterm_of ctxt last)])
-         @{thms disj_left_commute[THEN eq_reflection] disj_commute[THEN eq_reflection]})
+      repeat_rewrite_bottom_up1 ctxt
+        (map (Drule.infer_instantiate' ctxt [NONE, SOME (Thm.cterm_of ctxt last)])
+          @{thms disj_left_commute[THEN eq_reflection] disj_commute[THEN eq_reflection]})
     fun reorder_disj [] = Conv.all_conv
       | reorder_disj (last :: []) =
-       commute_last last
-       then_conv print_conv "after moving to final last"
+          commute_last last then_conv print_conv "after moving to final last"
       | reorder_disj (last :: others) =
-       commute_last last
-       then_conv print_conv "after moving to last"
-       then_conv Conv.try_conv (Conv.arg_conv (reorder_disj others))
+          commute_last last then_conv print_conv "after moving to last"
+          then_conv Conv.try_conv (Conv.arg_conv (reorder_disj others))
   in
     reorder_disj disjs
     then_conv repeat_until_fixpoint_conv2 ctxt
@@ -1470,9 +1466,9 @@ fun sort_disj ctxt t =
 
   fun simplify_tac_no_simps ctxt thms =
     ctxt
-    |> empty_simpset
-    |> put_simpset HOL_basic_ss
-    |> (fn ctxt => ctxt addsimps thms)
+    |> Simplifier.empty_simpset
+    |> Simplifier.put_simpset HOL_basic_ss
+    |> Simplifier.add_simps thms
     |> Simplifier.asm_full_simp_tac
 
 
@@ -1517,10 +1513,10 @@ fun sort_disj ctxt t =
 
       fun simplify_tac_with_cong simprocs ctxt thms =
         ctxt
-        |> empty_simpset
-        |> put_simpset HOL_basic_ss
-        |> (fn ctxt => ctxt addsimps @{thms simp_thms} addsimps thms)
-        |> (fn ctxt => ctxt addsimprocs simprocs)
+        |> Simplifier.empty_simpset
+        |> Simplifier.put_simpset HOL_basic_ss
+        |> Simplifier.add_simps (@{thms simp_thms} @ thms)
+        |> fold Simplifier.add_proc simprocs
         |> Simplifier.asm_full_simp_tac
 
 
@@ -1705,14 +1701,13 @@ fun onepoint ctxt [prem] t = SMT_Replay_Methods.prove ctxt t (fn _ =>
     and only afterwards try metis.*)
     ((SOLVED' (
       (ctxt
-      |> empty_simpset
-      |> put_simpset HOL_basic_ss
-      |> (fn ctxt => ctxt addsimps @{thms simp_thms all_simps ex_simps de_Morgan_conj
+      |> Simplifier.empty_simpset
+      |> Simplifier.put_simpset HOL_basic_ss
+      |> Simplifier.add_simps @{thms simp_thms all_simps ex_simps de_Morgan_conj
         not_all not_ex de_Morgan_disj disj_not1 triv_forall_equality eq_commute
-        alethe_onepoint_simp alethe_imp_commute})
+        alethe_onepoint_simp alethe_imp_commute}
       |> Simplifier.add_cong @{thm alethe_rewrite_in_imp}
-      |> (fn ctxt => ctxt
-           addsimprocs [@{simproc defined_All}, @{simproc defined_Ex}])
+      |> fold Simplifier.add_proc [@{simproc defined_All}, @{simproc defined_Ex}]
       |> Simplifier.asm_full_simp_tac)))
     ORELSE'
       (*
@@ -2058,17 +2053,17 @@ cover all the simplification below).
 local
   fun rewrite_only_thms ctxt thms =
     ctxt
-    |> empty_simpset
-    |> put_simpset HOL_basic_ss
-    |> (fn ctxt => ctxt addsimps thms)
+    |> Simplifier.empty_simpset
+    |> Simplifier.put_simpset HOL_basic_ss
+    |> Simplifier.add_simps thms
     |> Simplifier.full_simp_tac
 
   fun rewrite_thms ctxt thms =
     ctxt
-    |> empty_simpset
-    |> put_simpset HOL_basic_ss
+    |> Simplifier.empty_simpset
+    |> Simplifier.put_simpset HOL_basic_ss
     |> Raw_Simplifier.add_eqcong @{thm eq_reflection[OF imp_cong]}
-    |> (fn ctxt => ctxt addsimps thms addsimps @{thms simp_thms})
+    |> Simplifier.add_simps (thms @ @{thms simp_thms})
     |> Simplifier.full_simp_tac
 
   fun chain_rewrite_thms ctxt thms =
@@ -2197,10 +2192,10 @@ end
 
 fun rare_rewrite ctxt prems t = (
   SMT_Replay_Methods.prove ctxt t (fn _ =>
-     Method.insert_tac ctxt prems
+    Method.insert_tac ctxt prems
     THEN' K (print_tac ctxt "use cvc5 extension for better success rate")
     THEN' TRY' (K (Clasimp.auto_tac ctxt)
-     THEN' TRY' (Code_Simp.dynamic_tac ctxt )
+    THEN' TRY' (Code_Simp.dynamic_tac ctxt)
 )))
 
 val evaluate = rare_rewrite
@@ -2266,23 +2261,22 @@ fun poly_simp ctxt _ =
   let
     fun simplify_tac ctxt thms =
       ctxt
-      |> empty_simpset
-      |> put_simpset HOL_basic_ss
-      |> (fn ctxt => ctxt addsimps @{thms simp_thms} addsimps thms)
+      |> Simplifier.empty_simpset
+      |> Simplifier.put_simpset HOL_basic_ss
+      |> Simplifier.add_simps (@{thms simp_thms} @ thms)
       |> (Simplifier.add_cong @{thm if_weak_cong})
-      |> (fn ctxt => ctxt
-           addsimprocs [@{simproc int_div_cancel_numeral_factors}, @{simproc int_combine_numerals},
-             @{simproc divide_cancel_numeral_factor}, @{simproc divide_cancel_factor},
-             @{simproc intle_cancel_numerals}, @{simproc intless_cancel_numerals}, @{simproc inteq_cancel_numerals},
-             @{simproc field_combine_numerals},
-             @{simproc ring_le_cancel_numeral_factor},
-             @{simproc HOL.NO_MATCH}, @{simproc Numeral_Simprocs.semiring_assoc_fold},
-             @{simproc Numeral_Simprocs.field_divide_cancel_numeral_factor},
-             @{simproc Numeral_Simprocs.field_eq_cancel_numeral_factor}])
+      |> fold Simplifier.add_proc [@{simproc int_div_cancel_numeral_factors}, @{simproc int_combine_numerals},
+           @{simproc divide_cancel_numeral_factor}, @{simproc divide_cancel_factor},
+           @{simproc intle_cancel_numerals}, @{simproc intless_cancel_numerals}, @{simproc inteq_cancel_numerals},
+           @{simproc field_combine_numerals},
+           @{simproc ring_le_cancel_numeral_factor},
+           @{simproc HOL.NO_MATCH}, @{simproc Numeral_Simprocs.semiring_assoc_fold},
+           @{simproc Numeral_Simprocs.field_divide_cancel_numeral_factor},
+           @{simproc Numeral_Simprocs.field_eq_cancel_numeral_factor}]
       |> Simplifier.full_simp_tac
     fun simplify_tac_with_background_simp ctxt thms =
       ctxt
-      |> (fn ctxt => ctxt addsimps thms)
+      |> Simplifier.add_simps thms
       |> Simplifier.full_simp_tac
     val tac = (fn _ => fn _ =>
         SOLVED' (
@@ -2376,9 +2370,9 @@ local
 
 fun simplify_shuffle_tac ctxt thms =
   ctxt
-  |> empty_simpset
-  |> put_simpset HOL_basic_ss
-  |> (fn ctxt => ctxt addsimps thms addsimps [])
+  |> Simplifier.empty_simpset
+  |> Simplifier.put_simpset HOL_basic_ss
+  |> Simplifier.add_simps thms
   |> Simplifier.asm_full_simp_tac
 
 
@@ -2457,8 +2451,8 @@ fun hole ctxt prems t = SMT_Replay_Methods.prove ctxt t (fn _ =>
    THEN' SOLVED' (
      resolve_tac ctxt (Named_Theorems.get ctxt @{named_theorems cvc5_holes_pre})
      THEN_ALL_NEW assume_tac ctxt)
-   ORELSE' Clasimp.force_tac (ctxt addsimps Named_Theorems.get ctxt @{named_theorems cvc5_holes_simp})
-)
+   ORELSE' Clasimp.force_tac (Simplifier.add_simps (Named_Theorems.get ctxt @{named_theorems cvc5_holes_simp})
+       ctxt))
 
 fun trust ctxt _ t =
   SMT_Replay_Methods.prove ctxt t (fn _ => (
