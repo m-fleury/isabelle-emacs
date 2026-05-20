@@ -127,7 +127,13 @@ thm alethe_poly_norm
     "\<lbrakk>is_aligned (vptr::16 word) 12; x \<le> 0xF\<rbrakk> \<Longrightarrow> x + (vptr >> 8) < 0x100"
   using is_aligned_iff_take_bit_eq_0
   supply[[smt_trace=true,smt_verbose=true]]
-  sorry
+  apply (smt (cvc5))
+
+
+
+
+
+
 (*
 lemma pde_shifting:
   "\<lbrakk>is_aligned (vptr::word32) 24; x \<le> 0xF\<rbrakk> \<Longrightarrow> x + (vptr >> 20) < 0x1000"
@@ -185,13 +191,13 @@ Description:
 *)
 
 declare[[ML_print_depth=100]]
-lemma asid_low_high_bits: (*TODO: Encode unsigned properly*)
+lemma asid_low_high_bits:
   "\<lbrakk> x && mask asid_low_bits = y && mask asid_low_bits;
     ucast (asid_high_bits_of x) = (ucast (asid_high_bits_of y)::word32);
     x \<le> 2 ^ asid_bits - 1; y \<le> 2 ^ asid_bits - 1 \<rbrakk>
   \<Longrightarrow> x = y"
   using asid_low_bits_def asid_high_bits_of_def asid_bits_def bin_nth_mask
-  (*  apply (smt(cvc5))*)
+  apply (smt (cvc5))
 
 (*
   apply (rule word_eqI)
@@ -222,7 +228,7 @@ Note: the same statement appears in l4v/proof/invariant-abstract/ARM/ArchTcbAcc_
 TODO: lift_eq
 *)
 
-declare[[smt_expert_debug_alethe_level=3]]
+declare[[smt_expert_debug_alethe_level=0]]
 declare[[smt_expert_debug_alethe_files="all"]]
 lemma aligned_offset_ignore:
     "\<And>(l::word32) (p::word32) sz. l<4 \<Longrightarrow> p && mask 2 = 0 \<Longrightarrow>
@@ -262,7 +268,7 @@ Description:
 lemma vptr_shiftr_le_2pu:
   "(vptr :: word32)  >> 20 < 2 ^ pageBits"
   using pageBits_def
-  apply (smt (cvc5))
+  by (smt (cvc5))
 
 
 
@@ -283,7 +289,7 @@ Note: Apparently also in ArchAcc_R where ever that is
 lemma shiftr_shiftl_mask_pd_bits:
   "(((vptr :: word32) >> 20) << 2) && mask pd_bits = (vptr >> 20) << 2"
   using pd_bits_def pageBits_def  mask_Suc_rec mask_Suc_0
- (*  apply (smt (cvc5))*)
+  apply (smt (cvc5))
 
   (*
 apply (rule iffD2 [OF mask_eq_iff_w2p])
@@ -330,7 +336,7 @@ lemma pde_mapping_bits_shift:
   fixes x :: "12 word"
   shows "x \<noteq> 0 \<Longrightarrow> 2 ^ pde_mapping_bits - 1 < (ucast x << pde_mapping_bits :: word32)"
   using pde_mapping_bits_def 
-    (*   apply (smt (cvc5))*)
+       apply (smt (cvc5))
 
 (*
   apply (simp only:shiftl_t2n pde_mapping_bits_def)
@@ -467,9 +473,10 @@ Orignal Proof might not work anymore.
 
 *)
 lemma shiftr_and_eq_shiftl:
-  fixes w x y :: "32 word"
+  fixes w x y :: "32 word" and n ::nat
   assumes r: "(w >> n) && x = y"
   shows "w && (x << n) = (y << n)"
+  using assms
   apply (smt(cvc5))
 (*
   using assms
