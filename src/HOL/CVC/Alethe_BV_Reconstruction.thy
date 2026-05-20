@@ -615,7 +615,7 @@ next
     unfolding ys_eq
   proof (cases x)
     case x_true: True
-    show "(of_bl (x # xss) < of_bl (y # yss)) = bvult (x # xss) (y # yss)"
+    show "((of_bl (x # xss)::'a::len word) < of_bl (y # yss)) = bvult (x # xss) (y # yss)"
     proof (cases y)
       case y_true: True
       have aux2: "(2::'a word) ^ length xss \<le> 2 ^ length xss + of_bl yss"
@@ -630,20 +630,20 @@ next
       have b_bound': "(of_bl yss::'a word) < 2 ^ length xss"
         using b_bound len_eq by simp
       have "(of_bl yss::'a word) < 2 ^ length xss + of_bl xss"
-        using b_bound' aux by (rule order.strict_trans1)
+        using b_bound' aux by simp
       hence "\<not> ((of_bl (True # xss)::'a word) < of_bl (False # yss))"
         by (simp add: of_bl_True of_bl_False)
       thus ?thesis using x_true y_false by simp
     qed
   next
     case x_false: False
-    show ?thesis
+    show "((of_bl (x # xss)::'a::len word) < of_bl (y # yss)) = bvult (x # xss) (y # yss)"
     proof (cases y)
       case y_true: True
       have a_bound': "(of_bl xss::'a word) < 2 ^ length yss"
         using a_bound len_eq by simp
       have "(of_bl xss::'a word) < 2 ^ length yss + of_bl yss"
-        using a_bound' aux' by (rule order.strict_trans1)
+        using a_bound' aux' by simp
       hence "(of_bl (False # xss)::'a word) < of_bl (True # yss)"
         by (simp add: of_bl_True of_bl_False)
       thus ?thesis using x_false y_true by simp
@@ -656,14 +656,7 @@ next
     qed
   qed
 qed
-*)
 
-lemma word_less_rbl_bvult2:
-  fixes xs ys :: "bool list"
-  shows "length xs = length ys \<Longrightarrow>
-         length xs \<le> LENGTH('a::len) \<Longrightarrow>
-         ((of_bl xs::'a word) < of_bl ys) = bvult xs ys"
-  sorry
 
 (* ---------------------------------------------------------------------------------------------- *)
 (* -------------------------------------- Bitblast bvule ---------------------------------------- *)
