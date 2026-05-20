@@ -1,5 +1,5 @@
-theory Boolean_Rewrites
-  imports "Rare_Nary_Ops" "Boolean_Rewrites_Lemmas"
+theory Alethe_Boolean_Rewrites
+  imports "Alethe_Rare_Nary_Ops" "Alethe_Boolean_Rewrites_Lemmas"
    
 begin (*deleted: "../SMT_CVC_Util"*)
 

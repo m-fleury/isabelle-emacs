@@ -1,5 +1,5 @@
-theory Arith_Rewrites
-  imports "Arith_Rewrites_Lemmas"
+theory Alethe_Arith_Rewrites
+  imports "Alethe_Arith_Rewrites_Lemmas"
 begin
 
 (* Thank you for using IsaRARE. This is a theory automatically created from a RARE file!

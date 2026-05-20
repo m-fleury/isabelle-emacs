@@ -1,5 +1,5 @@
-theory Boolean_Rewrites_Lemmas
-  imports Rare_Nary_Ops
+theory Alethe_Boolean_Rewrites_Lemmas
+  imports Alethe_Rare_Nary_Ops
 begin
 
 lemma bool_or_taut_lemma:

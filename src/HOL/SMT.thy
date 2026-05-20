@@ -1118,10 +1118,6 @@ src/HOL/Tools/SMT/alethe/rare_rewrites/
 sollen in src/HOL/ directly. Give them common prefix Alethe_
 
 (*Umbennen*)
-Dsl_Nary_Ops.thy
-\<Rightarrow> Rare_Nary_Ops.thy
-
-
 
 SMT.thy should import List.thy?
 - Harder for people to add to List.thy

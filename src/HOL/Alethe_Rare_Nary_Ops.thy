@@ -1,4 +1,4 @@
-theory Rare_Nary_Ops
+theory Alethe_Rare_Nary_Ops
   imports HOL.List (*Smtlib_String SMT_CVC_Util*)
 begin
 
@@ -331,7 +331,7 @@ lemma cvc_list_right_Cons: "cvc_list_right op y (ListVar (x#xs))
 
 lemma cvc_list_both_Cons_0: "cvc_list_both op neutral (ListVar (x#xs)) (ListVar [])
        = cvc_list_right op x (ListVar xs)"
-  by (metis cvc_nary_op_fold_Cons Dsl_Nary_Ops.cvc_nary_op_fold_Nil cvc_bin_op2.simps cvc_bin_op3.simps(2) cvc_list_both_def cvc_list_right_def list.exhaust)
+  by (metis cvc_nary_op_fold_Cons cvc_nary_op_fold_Nil cvc_bin_op2.simps cvc_bin_op3.simps(2) cvc_list_both_def cvc_list_right_def list.exhaust)
 
 lemma cvc_list_both_Cons_1: "cvc_list_both op neutral (ListVar []) (ListVar (y#ys))
        = cvc_list_right op y (ListVar ys)"

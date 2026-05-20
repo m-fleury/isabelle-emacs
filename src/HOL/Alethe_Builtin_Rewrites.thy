@@ -1,5 +1,5 @@
-theory Builtin_Rewrites
-  imports "Rare_Nary_Ops" 
+theory Alethe_Builtin_Rewrites
+  imports "Alethe_Rare_Nary_Ops" 
 begin
 
 (* Thank you for using IsaRARE. This is a theory automatically created from a RARE file!

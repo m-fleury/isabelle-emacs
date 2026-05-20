@@ -1,5 +1,5 @@
-theory Arith_Rewrites_Lemmas
-  imports "Rare_Nary_Ops" 
+theory Alethe_Arith_Rewrites_Lemmas
+  imports "Alethe_Rare_Nary_Ops" 
 begin
 
 (*TODO: Find better proofs eventually*)

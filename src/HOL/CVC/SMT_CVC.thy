@@ -1,5 +1,5 @@
 theory SMT_CVC \<comment> \<open>More Setup for CVC that should be in HOL eventually\<close>
-  imports HOL.SMT "Tools/SMT/alethe/rare_rewrites/Rare_Interface"
+  imports HOL.SMT "HOL.Alethe_Rare_Interface"
   keywords "smt_status" "check_smt_dir" "check_smt" "check_smt_slice" :: diag
 begin
 

@@ -102,7 +102,7 @@ fun try_match ctxt prems t thms = SMT_Replay_Methods.prove ctxt t (fn ctxt => tr
 (* Rare rewrite reconstruction *)
 
 
-fun normalize_list_arg (Const (\<^const_name>\<open>Dsl_Nary_Ops.cvc_ListVar.ListVar\<close>, _) $ Const (\<^const_name>\<open>List.Nil\<close>, _)) t =
+fun normalize_list_arg (Const (\<^const_name>\<open>Alethe_Rare_Nary_Ops.cvc_ListVar.ListVar\<close>, _) $ Const (\<^const_name>\<open>List.Nil\<close>, _)) t =
   (case try hd (dest_Type t |> snd) of
     NONE => @{term "ListVar (List.Nil::dummy List.list) :: dummy cvc_ListVar"} |
     SOME (t') => 
