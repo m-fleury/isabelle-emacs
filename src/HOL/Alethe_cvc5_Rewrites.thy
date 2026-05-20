@@ -1,8 +1,16 @@
+(*  Title:      HOL/Alethe_cvc5_Rewrites.thy
+    Author:     Hanna Lachnitt, Stanford University
+*)
 theory Alethe_cvc5_Rewrites
   imports "Alethe_Rare_Nary_Ops"
 begin
 
-(*These rewrites are added in the internal translation from CPC proofs to Alethe in cvc5 *)
+(*
+Thank you for using IsaRARE. This is a theory automatically created from a RARE file!
+All that remains to do is to prove any lemma whose provided proof fails.
+If you want to use the lemmas for proof reconstruction you'll also need to import this file in
+Alethe_Rare_Interface.thy and register the rules using the cvc5_rare command.
+*)
 
 named_theorems rewrite_ite_eq \<open>cvc5 specific\<close>
 (* (define-rule ite_eq ((C bool) (t1 ?) (t2 ?)) (ite C (= (C?t1:t2) t1) (= (C?t1:t2) t2)) true)*)
