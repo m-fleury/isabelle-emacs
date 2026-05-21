@@ -83,7 +83,7 @@ higher-order functions. The following set of lemmas specifies the
 properties of such (extensional) arrays.
 \<close>
 
-lemmas array_rules = ext fun_upd_apply fun_upd_same fun_upd_other  fun_upd_upd fun_app_def
+lemmas array_rules = ext fun_upd_apply fun_upd_same fun_upd_other fun_upd_upd fun_app_def
 
 
 subsection \<open>Normalization\<close>
@@ -100,7 +100,7 @@ lemmas max_def_raw = max_def[abs_def]
 
 definition pow_2 where "pow_2 y = power (2::int) (nat y)"
 
-lemma pow_2_raw'': "power (2::nat) \<equiv>  ( \<lambda>b. nat (pow_2 (int b)))"
+lemma pow_2_raw'': "power (2::nat) \<equiv> (\<lambda>b. nat (pow_2 (int b)))"
   unfolding pow_2_def
   apply (rule eq_reflection)
   apply standard+
@@ -204,7 +204,7 @@ lemma alethe_sko_forall_indirect: \<open>x = (SOME x. \<not>P x) \<Longrightarro
   by auto
 
 lemma alethe_sko_forall_indirect2:
-    \<open>x = (SOME x. \<not>P x) \<Longrightarrow> (\<And>x :: 'a. (P x = P' x)) \<Longrightarrow>(\<forall>x. P' x) \<longleftrightarrow> P x\<close>
+    \<open>x = (SOME x. \<not>P x) \<Longrightarrow> (\<And>x :: 'a. (P x = P' x)) \<Longrightarrow> (\<forall>x. P' x) \<longleftrightarrow> P x\<close>
   using someI[of \<open>\<lambda>x. \<not>P x\<close>]
   by auto
 
@@ -303,19 +303,18 @@ lemma alethe_shuffle_and1:
   by blast
 
 lemma alethe_shuffle_and2:
-  \<open>(\<not>a \<longrightarrow> \<not>B) \<Longrightarrow> (a \<Longrightarrow> A = (b \<and> B)) \<Longrightarrow>  (a \<and> A) = (b \<and> B)\<close>
-  \<open>(\<not>a \<longrightarrow> \<not>(b \<and> B)) \<Longrightarrow> (a \<Longrightarrow> (b \<and> B)) \<Longrightarrow>  a = (b \<and> B)\<close>
+  \<open>(\<not>a \<longrightarrow> \<not>B) \<Longrightarrow> (a \<Longrightarrow> A = (b \<and> B)) \<Longrightarrow> (a \<and> A) = (b \<and> B)\<close>
+  \<open>(\<not>a \<longrightarrow> \<not>(b \<and> B)) \<Longrightarrow> (a \<Longrightarrow> (b \<and> B)) \<Longrightarrow> a = (b \<and> B)\<close>
   apply (cases a)
   by auto
 
-
 lemma alethe_shuffle_and3:
-  \<open>b=A \<Longrightarrow>  (a \<Longrightarrow> b = (a \<and> A))\<close>
+  \<open>b = A \<Longrightarrow> (a \<Longrightarrow> b = (a \<and> A))\<close>
   apply (cases a)
   by simp_all
 
 lemma alethe_shuffle_and4:
-  \<open>A \<Longrightarrow>  (a = (a \<and> A))\<close>
+  \<open>A \<Longrightarrow> (a = (a \<and> A))\<close>
   apply (cases a)
   by simp_all
 
@@ -329,35 +328,23 @@ lemma alethe_shuffle_or_resolve:
   "a \<longrightarrow> A \<Longrightarrow> a \<longrightarrow> (b \<or> A)"
   by auto
 
-
-
-
-
 lemma alethe_shuffle_or1a: "(A = B) \<Longrightarrow> (a \<or> A) = (a \<or> B)" by auto
 lemma alethe_shuffle_or1b: "\<not>B \<Longrightarrow> a = (a \<or> B)" by auto
 
+lemma alethe_shuffle_or4a: "a \<longrightarrow> (a \<or> B)" by auto
+lemma alethe_shuffle_or4b: "(a \<longrightarrow> B) \<Longrightarrow> (a \<longrightarrow> (b \<or> B))" by auto
 
-
-
-lemma alethe_shuffle_or4a:  "a \<longrightarrow> (a \<or> B)" by auto
-lemma alethe_shuffle_or4b:  "(a \<longrightarrow> B) \<Longrightarrow> (a \<longrightarrow> (b \<or> B))" by auto
-
-
-lemma alethe_shuffle_or2b: "(b \<Longrightarrow> A) \<Longrightarrow> (\<not>b \<Longrightarrow> A=B) \<Longrightarrow> A = (b \<or> B)"
+lemma alethe_shuffle_or2b: "(b \<Longrightarrow> A) \<Longrightarrow> (\<not>b \<Longrightarrow> A = B) \<Longrightarrow> A = (b \<or> B)"
   by auto
 
-lemma alethe_shuffle_or3: "(a \<Longrightarrow> A) \<Longrightarrow> (\<not>a \<Longrightarrow>A) \<Longrightarrow> (a \<or> A)"
+lemma alethe_shuffle_or3: "(a \<Longrightarrow> A) \<Longrightarrow> (\<not>a \<Longrightarrow> A) \<Longrightarrow> (a \<or> A)"
   by auto
 
-lemma alethe_shuffle_or5: "(a \<Longrightarrow> A) \<Longrightarrow> (\<not>a \<Longrightarrow>\<not>A) \<Longrightarrow> (a = A)"
+lemma alethe_shuffle_or5: "(a \<Longrightarrow> A) \<Longrightarrow> (\<not>a \<Longrightarrow> \<not>A) \<Longrightarrow> (a = A)"
   by auto
-
 
 lemma alethe_shuffle_or6: "\<not>A \<Longrightarrow> (\<not>a \<Longrightarrow> (a = A))"
   by auto
-
-
-
 
 lemma alethe_la_generic:
   \<open>(a::int) \<le> x \<or> a = x \<or> a \<ge> x\<close>
@@ -425,12 +412,10 @@ lemma alethe_connective_def_forall:
   unfolding All_def
   by (iprover intro: ext eqTrueI assms)
 
-
 lemma alethe_connective_def_forall2:
   assumes "(P = Q)"
   shows "(\<forall>x. P x) = (\<forall>x. Q x)"
   unfolding assms ..
-
 
 lemma alethe_ite_simplify:
   \<open>(If True B C) = B\<close>
@@ -441,10 +426,10 @@ lemma alethe_ite_simplify:
   \<open>(If c C (If c A B)) = (If c C B)\<close>
   \<open>(If A' True False) = A'\<close>
   \<open>(If A' False True) \<longleftrightarrow> \<not>A'\<close>
-  \<open>(If A' True B') \<longleftrightarrow> A'\<or>B'\<close>
-  \<open>(If A' B' False) \<longleftrightarrow> A'\<and>B'\<close>
-  \<open>(If A' False B') \<longleftrightarrow> \<not>A'\<and>B'\<close>
-  \<open>(If A' B' True) \<longleftrightarrow> \<not>A'\<or>B'\<close>
+  \<open>(If A' True B') \<longleftrightarrow> A' \<or> B'\<close>
+  \<open>(If A' B' False) \<longleftrightarrow> A' \<and> B'\<close>
+  \<open>(If A' False B') \<longleftrightarrow> \<not>A' \<and> B'\<close>
+  \<open>(If A' B' True) \<longleftrightarrow> \<not>A' \<or> B'\<close>
   \<open>x \<and> True \<longleftrightarrow> x\<close>
   \<open>x \<or> False \<longleftrightarrow> x\<close>
   for B C :: 'a and A' B' C' :: bool
@@ -459,7 +444,6 @@ lemma alethe_and_simplify1:
 
 lemmas alethe_and_simplify = conj_ac de_Morgan_conj disj_not1
 
-
 lemma alethe_or_simplify_1:
   \<open>False \<or> b \<longleftrightarrow> b\<close> \<open>b \<or> False \<longleftrightarrow> b\<close>
   \<open>b \<or> \<not>b\<close>
@@ -471,7 +455,6 @@ lemmas alethe_or_simplify = disj_ac
 lemma alethe_not_simplify:
   \<open>\<not> \<not>b \<longleftrightarrow> b\<close> \<open>\<not>True \<longleftrightarrow> False\<close> \<open>\<not>False \<longleftrightarrow> True\<close>
   by auto
-
 
 lemma alethe_implies_simplify:
   \<open>(\<not>a \<longrightarrow> \<not>b) \<longleftrightarrow> (b \<longrightarrow> a)\<close>
@@ -528,7 +511,7 @@ lemmas alethe_div_simplify =
    divmod_steps less_irrefl divmod_trivial divmod_cancel
    numeral_div_numeral prod.case mult.right_neutral
    divmod_step_def euclidean_size_int_def comp_def of_bool_eq
-   nat_numeral  fst_conv snd_conv if_False if_True
+   nat_numeral fst_conv snd_conv if_False if_True
    minus_numeral_div_numeral Parity.adjust_div_eq
    order_refl
    num.simps numerals eq_neg_numeral_simps eq_numeral_simps
@@ -659,7 +642,6 @@ lemma [arith_simp_cvc5,arith_mult_poly_norm_cvc5,smt_arith_simplify]:
   \<open>a div 1 = a\<close>
   \<open>\<not>(a' \<noteq> b') \<longleftrightarrow> a' = b'\<close>
   by auto
-
 
 lemma [arith_simp_cvc5,arith_mult_poly_norm_cvc5]:
   \<open>NO_MATCH 0 (b:: int) \<Longrightarrow> NO_MATCH 0 (a:: int) \<Longrightarrow> a < b \<longleftrightarrow> b - a > 0\<close>
@@ -834,7 +816,7 @@ lemma alethe_ite_intro:
 
 lemma alethe_ite_if_cong:
   fixes x y :: bool
-  assumes "b=c"
+  assumes "b = c"
     and "c \<equiv> True \<Longrightarrow> x = u"
     and "c \<equiv> False \<Longrightarrow> y = v"
   shows "(if b then x else y) \<equiv> (if c then u else v)"
@@ -907,13 +889,12 @@ lemma alethe_nat_embedding2:
   by simp
 
 lemma alethe_nat_embedding_all:
- "(\<forall>(x::nat). P x) =  (\<forall>(x::int). x \<ge> 0 \<longrightarrow> P (nat x))"
+ "(\<forall>(x::nat). P x) = (\<forall>(x::int). x \<ge> 0 \<longrightarrow> P (nat x))"
   using all_nat by simp_all
 
 lemma alethe_nat_embedding_ex:
- "(\<exists>(x::nat). P x) =  (\<exists>(x::int). x \<ge> 0 \<and> P (nat x))"
+ "(\<exists>(x::nat). P x) = (\<exists>(x::int). x \<ge> 0 \<and> P (nat x))"
   using ex_nat by simp
-
 
 lemma int_nat_embedding_preproc_all:
  "(\<forall>(x::nat) . P x) \<equiv> (\<forall>(x::int). x \<ge> 0 \<longrightarrow> P (nat x))"
@@ -930,10 +911,9 @@ lemma int_nat_embedding_preproc_the:
  "(The (P::nat \<Rightarrow> bool)) \<equiv> nat (lift_The (\<lambda>z::int. 0 \<le> z \<and> P (nat z)))"
   by (simp add: lift_The_def)
 
-
 lemma alethe_nat_embedding_all_new:
 "(\<forall>x . (\<exists>x'. (((x::nat) = nat (x'::int) \<and> 0 \<le> x' ) \<and> P x = P' x')))
-\<Longrightarrow> (\<forall>x::nat. P x) = (\<forall>x'::int. x' \<ge> 0 \<longrightarrow> P'  x')"
+\<Longrightarrow> (\<forall>x::nat. P x) = (\<forall>x'::int. x' \<ge> 0 \<longrightarrow> P' x')"
   apply simp
   apply standard+
   subgoal using eq_nat_nat_iff by blast
@@ -972,7 +952,7 @@ lemma H_nat_eq:
   by (simp add: nat_eq_iff)
 
 lemma temp:
-"A \<Longrightarrow> ( B \<equiv>  C) \<Longrightarrow> ( B \<equiv> (A \<and> C))"
+"A \<Longrightarrow> (B \<equiv> C) \<Longrightarrow> (B \<equiv> (A \<and> C))"
   by simp
 
 lemma alethe_onepoint:
@@ -983,7 +963,7 @@ lemma alethe_onepoint:
   by auto
 
 lemma alethe_onepoint_simp:
-  \<open>(\<forall>x. a = b \<and>  P x\<longrightarrow> Q x) \<longleftrightarrow> (a = b \<longrightarrow> (\<forall>x. P x \<longrightarrow> Q x))\<close>
+  \<open>(\<forall>x. a = b \<and> P x \<longrightarrow> Q x) \<longleftrightarrow> (a = b \<longrightarrow> (\<forall>x. P x \<longrightarrow> Q x))\<close>
   by auto
 
 lemma alethe_rewrite_in_imp:
@@ -1056,6 +1036,7 @@ named_theorems cvc_evaluate_bv \<open>Theorems to reconstruct bit-vector evaluat
 lemmas cvc_arith_rewrite_defs = SMT.z3div_def linorder_not_le alethe_comp_simplify1
 add1_zle_eq
 
+
 subsection \<open>Setup\<close>
 
 ML_file \<open>Tools/SMT/smt_util.ML\<close>
@@ -1084,7 +1065,6 @@ ML_file \<open>Tools/SMT/alethe/alethe_isar.ML\<close>
 ML_file \<open>Tools/SMT/alethe/alethe_proof_parse.ML\<close>
 ML_file \<open>Tools/SMT/alethe/cvc_interface.ML\<close>
 ML_file \<open>Tools/SMT/alethe/cvc_proof_parse.ML\<close>
-
 
 ML_file \<open>Tools/SMT/conj_disj_perm.ML\<close>
 ML_file \<open>Tools/SMT/smt_replay_methods.ML\<close>
@@ -1125,7 +1105,6 @@ SMT.thy should import List.thy?
 
 SMT_CVC_Real soll nur in Complex Main drinsein und nicht in Main! TODO: see what poly_simp would do.
 
-
 smt_word
 \<rightarrow> Altes, unverändertes wenn Flag nicht benutzt wird
 
@@ -1133,10 +1112,7 @@ kopiere alten code.
 
 Nach src/HOL/Library/Tools/ für ML and src/HOL/Library/ für theories
 
-
-
 *)
-
 
 
 subsection \<open>Configuration\<close>
@@ -1362,7 +1338,7 @@ lemma [z3_rule]:
   "x + y = y + x"
   by auto
 
-lemma [z3_rule]:  (* for def-axiom *)
+lemma [z3_rule]: (* for def-axiom *)
   "P = Q \<or> P \<or> Q"
   "P = Q \<or> \<not> P \<or> \<not> Q"
   "(\<not> P) = Q \<or> \<not> P \<or> Q"
@@ -1393,7 +1369,6 @@ lemma [z3_rule]:  (* for def-axiom *)
 
 hide_type (open) symb_list pattern
 hide_const (open) Symb_Nil Symb_Cons trigger pat nopat fun_app z3div z3mod
-
 
 declare[[smt_cvc_alethe = true]]
 
