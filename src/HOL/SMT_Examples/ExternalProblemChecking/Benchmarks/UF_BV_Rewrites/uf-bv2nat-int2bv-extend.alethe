@@ -1,0 +1,6 @@
+unsat
+(step t85 (cl (! (= (! (> 4 (! (@bvsize x) :named @p_2)) :named @p_1) (! true :named @p_3)) :named @p_0)) :rule trust :args ("trust"))
+(step t87 (cl (! (= 1 (! (- 4 @p_2) :named @p_5)) :named @p_4)) :rule trust :args ("trust"))
+(step t88 (cl (! (= (! ((_ int_to_bv 4) (! (ubv_to_int x) :named @p_8)) :named @p_7) (! (concat (! (@bv 0 1) :named @p_10) x) :named @p_9)) :named @p_6)) :rule rare_rewrite :premises (t85 t87) :args ("uf-bv2nat-int2bv-extend" 4 x 1))
+(step slice_end (cl) :rule trust :premises (t88) :args ("trust"))
+

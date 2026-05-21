@@ -574,6 +574,18 @@ fun
       mk_word_of_int i t
   | bv_term_parser (SMTLIB.Sym "int_to_bv", [i,t]) =
       mk_word_of_int' i t
+  | bv_term_parser (SMTLIB.Sym "ubv_to_int",[t1]) =
+    let     
+      val T1 = fastype_of t1
+    in
+      SOME (Const (\<^const_name>\<open>unsigned\<close>, T1 --> @{typ int}) $ t1)
+   end
+  | bv_term_parser (SMTLIB.Sym "sbv_to_int",[t1]) =
+    let     
+      val T1 = fastype_of t1
+    in
+      SOME (Const (\<^const_name>\<open>signed\<close>, T1 --> @{typ int}) $ t1)
+   end
   | bv_term_parser (SMTLIB.Sym "bvult", [t1, t2]) = 
       SOME (HOLogic.mk_binrel \<^const_name>\<open>Orderings.less\<close> (t1, t2))
   | bv_term_parser (SMTLIB.Sym "bvule", [t1, t2]) =

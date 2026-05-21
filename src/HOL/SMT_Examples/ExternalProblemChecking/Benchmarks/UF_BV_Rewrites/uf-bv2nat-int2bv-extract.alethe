@@ -1,0 +1,6 @@
+unsat
+(step t102 (cl (! (= (! (< 4 (! (@bvsize y) :named @p_2)) :named @p_1) (! true :named @p_3)) :named @p_0)) :rule trust :args ("trust"))
+(step t104 (cl (! (= 3 (! (- 4 1) :named @p_5)) :named @p_4)) :rule trust :args ("trust"))
+(step t105 (cl (! (= (! ((_ int_to_bv 4) (! (ubv_to_int y) :named @p_8)) :named @p_7) (! ((_ extract 3 0) y) :named @p_9)) :named @p_6)) :rule rare_rewrite :premises (t102 t104) :args ("uf-bv2nat-int2bv-extract" 4 y 3))
+(step slice_end (cl) :rule trust :premises (t105) :args ("trust"))
+

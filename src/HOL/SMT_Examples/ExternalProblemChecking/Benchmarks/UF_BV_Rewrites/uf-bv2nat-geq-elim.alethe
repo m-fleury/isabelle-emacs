@@ -1,0 +1,5 @@
+unsat
+(step t160 (cl (! (= 32 (! (@bvsize x) :named @p_1)) :named @p_0)) :rule trust :args ("trust"))
+(step t161 (cl (! (= (! (>= (! (ubv_to_int x) :named @p_4) 0) :named @p_3) (! (ite (! (>= 0 (! (int.pow2 32) :named @p_7)) :named @p_6) (! false :named @p_8) (! (ite (! (< 0 0) :named @p_10) (! true :named @p_11) (! (bvuge x (! ((_ int_to_bv 32) 0) :named @p_13)) :named @p_12)) :named @p_9)) :named @p_5)) :named @p_2)) :rule rare_rewrite :premises (t160) :args ("uf-bv2nat-geq-elim" x 0 32))
+(step slice_end (cl) :rule trust :premises (t161) :args ("trust"))
+

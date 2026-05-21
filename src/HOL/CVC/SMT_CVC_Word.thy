@@ -1,5 +1,5 @@
 theory SMT_CVC_Word \<comment> \<open>More Setup for CVC that should be in HOL-Word eventually\<close>
-  imports SMT_Word "SMT_CVC" "BV_Rewrites" "BV_Rewrites_Simplification" "BV_Rewrites_Elimination" SMT_Native_Output
+  imports SMT_Word "SMT_CVC" "Alethe_UF_BV_Rewrites" "BV_Rewrites" "BV_Rewrites_Simplification" "BV_Rewrites_Elimination" SMT_Native_Output
 begin
 
 (*Evaluation Steps*)
@@ -164,6 +164,18 @@ val _ = Theory.setup (Context.theory_map (
 val _ = Theory.setup (Context.theory_map (
   SMTLIB_Proof.add_type_parser cvc_type_parser))
 \<close>
+cvc5_rare "Alethe_UF_BV_Rewrites.rewrite_uf_bv2nat_int2bv"
+cvc5_rare "Alethe_UF_BV_Rewrites.rewrite_uf_bv2nat_int2bv_extend"
+cvc5_rare "Alethe_UF_BV_Rewrites.rewrite_uf_bv2nat_int2bv_extract"
+cvc5_rare "Alethe_UF_BV_Rewrites.rewrite_uf_int2bv_bv2nat"
+cvc5_rare "Alethe_UF_BV_Rewrites.rewrite_uf_bv2nat_geq_elim"
+cvc5_rare "Alethe_UF_BV_Rewrites.rewrite_uf_int2bv_bvult_equiv"
+cvc5_rare "Alethe_UF_BV_Rewrites.rewrite_uf_int2bv_bvule_equiv"
+cvc5_rare "Alethe_UF_BV_Rewrites.rewrite_uf_sbv_to_int_elim"
+
+
+
+
 
 cvc5_rare "BV_Rewrites_Elimination.rewrite_bv_ule_eliminate"
 cvc5_rare "BV_Rewrites_Elimination.rewrite_bv_ugt_eliminate"

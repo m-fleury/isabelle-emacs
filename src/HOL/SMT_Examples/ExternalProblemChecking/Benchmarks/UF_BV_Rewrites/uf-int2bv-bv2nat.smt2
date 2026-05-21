@@ -1,0 +1,5 @@
+(set-logic ALL)
+(declare-fun x () (_ BitVec 32))
+(declare-fun y () Int)
+(check-sat)
+(exit)

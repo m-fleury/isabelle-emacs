@@ -1,0 +1,6 @@
+unsat
+(step t59 (cl (! (= 7 (! (- (! (@bvsize x) :named @p_2) 1) :named @p_1)) :named @p_0)) :rule trust :args ("trust"))
+(step t61 (cl (! (= 256 (! (int.pow2 @p_2) :named @p_4)) :named @p_3)) :rule trust :args ("trust"))
+(step t62 (cl (! (= (! (sbv_to_int x) :named @p_6) (! (ite (! (= (! ((_ extract 7 7) x) :named @p_9) (! (@bv 0 1) :named @p_10)) :named @p_8) (! (ubv_to_int x) :named @p_11) (! (- @p_11 256) :named @p_12)) :named @p_7)) :named @p_5)) :rule rare_rewrite :premises (t59 t61) :args ("uf-sbv-to-int-elim" x 7 256))
+(step slice_end (cl) :rule trust :premises (t62) :args ("trust"))
+

@@ -1,0 +1,4 @@
+unsat
+(step t86 (cl (! (= (! (ubv_to_int (! ((_ int_to_bv 32) y) :named @p_2)) :named @p_1) (! (mod y (! (int.pow2 32) :named @p_4)) :named @p_3)) :named @p_0)) :rule rare_rewrite :args ("uf-int2bv-bv2nat" 32 y))
+(step slice_end (cl) :rule trust :premises (t86) :args ("trust"))
+
