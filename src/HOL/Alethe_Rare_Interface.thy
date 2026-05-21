@@ -1,3 +1,6 @@
+(*  Title:      HOL/Alethe_Rare_Interface.thy
+    Author:     Hanna Lachnitt, Stanford University
+*)
 theory Alethe_Rare_Interface
   imports "Alethe_Boolean_Rewrites" "Alethe_Builtin_Rewrites" "Alethe_Arith_Rewrites" "Alethe_UF_Rewrites" "Alethe_cvc5_Rewrites"
   keywords
@@ -10,13 +13,10 @@ named_theorems rare_rewrites_simple \<open>RARE rewrites that don't contain list
 named_theorems rare_rewrites_complex \<open>RARE rewrites that contain lists or are star rules \<close>
 named_theorems rare_rewrites_all \<open>All RARE rewrites\<close>
 
-
-
 (*Arithmetic*)
 named_theorems rare_arith_rewrites_simple \<open>Arithmetic RARE rewrites that don't contain lists or are star rules \<close>
 named_theorems rare_arith_rewrites_complex \<open>Arithmetic RARE rewrites that contain lists or are star rules \<close>
 named_theorems rare_arith_rewrites_all \<open>Arithmetic RARE rewrites\<close>
-
 
 (*We don't use total operators yet*)
 (*ARITH_DIV_TOTAL_ZERO_REAL*)
@@ -68,7 +68,6 @@ lemmas [rare_arith_rewrites_simple] =
 "Alethe_Arith_Rewrites.rewrite_arith_geq_norm1_int"
 "Alethe_Arith_Rewrites.rewrite_arith_eq_elim_int"
 lemmas [rare_arith_rewrites_all] = rare_rewrites_simple
-
 
 (*Booleans*)
 named_theorems rare_bool_rewrites_simple \<open>Boolean RARE rewrites that don't contain lists or are star rules \<close>
@@ -180,7 +179,6 @@ lemmas [rare_bool_rewrites_complex] =
 
 lemmas [rare_bool_rewrites_all] = rare_bool_rewrites_simple rare_bool_rewrites_complex
 
-
 (*Uninterpreted Functions*)
 named_theorems rare_UF_Rewrites_simple \<open>Uninterpreted Functions rewrites that don't contain lists or are star rules \<close>
 named_theorems rare_UF_Rewrites_complex \<open>Uninterpreted Functions that contain lists or are star rules \<close>
@@ -199,8 +197,6 @@ lemmas [rare_UF_Rewrites_simple] =
 "Alethe_UF_Rewrites.rewrite_eq_ite_lift"
 "Alethe_UF_Rewrites.rewrite_distinct_binary_elim"
 lemmas [rare_UF_Rewrites_all] = rare_UF_Rewrites_simple
-
-
 
 (*cvc5 only*)
 named_theorems rare_cvc5_Rewrites_simple \<open>Rewrites only produced by the cvc5 Alethe translation that don't contain lists or are star rules \<close>
@@ -223,12 +219,10 @@ lemmas [rare_cvc5_Rewrites_complex] =
 "Alethe_cvc5_Rewrites.rewrite_or_not_refl"
 lemmas [rare_cvc5_Rewrites_all] = rare_cvc5_Rewrites_simple rare_cvc5_Rewrites_complex
 
-
 (*All*)
 
 lemmas [rare_rewrites_simple] = rare_bool_rewrites_simple rare_arith_rewrites_simple rare_UF_Rewrites_simple rare_cvc5_Rewrites_simple
 lemmas [rare_rewrites_complex] = rare_bool_rewrites_complex rare_arith_rewrites_complex rare_UF_Rewrites_complex rare_cvc5_Rewrites_complex
 lemmas [rare_rewrites_all] = rare_rewrites_simple rare_rewrites_complex
-
 
 end

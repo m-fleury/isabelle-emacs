@@ -1,11 +1,16 @@
+(*  Title:      HOL/Alethe_Arith_Rewrites.thy
+    Author:     Hanna Lachnitt, Stanford University
+*)
 theory Alethe_Arith_Rewrites
   imports "Alethe_Arith_Rewrites_Lemmas"
 begin
 
-(* Thank you for using IsaRARE. This is a theory automatically created from a RARE file!
+(*
+Thank you for using IsaRARE. This is a theory automatically created from a RARE file!
 All that remains to do is to prove any lemma whose provided proof fails.
-If you want to use the lemmas for proof reconstruction you'll also need to import this file in Rare_Interface.thy*)
-
+If you want to use the lemmas for proof reconstruction you'll also need to import this file in
+Alethe_Rare_Interface.thy and register the rules using the cvc5_rare command.
+*)
 
 named_theorems rewrite_arith_elim_gt \<open>automatically_generated\<close>
 
@@ -14,7 +19,6 @@ lemma [rewrite_arith_elim_gt]:
   shows "NO_MATCH cvc_a (undefined t s) \<Longrightarrow> (s < t) = (\<not> t \<le> s)"
   by auto
 
-
 named_theorems rewrite_arith_elim_lt \<open>automatically_generated\<close>
 
 lemma [rewrite_arith_elim_lt]:
@@ -22,22 +26,19 @@ lemma [rewrite_arith_elim_lt]:
   shows "NO_MATCH cvc_a (undefined t s) \<Longrightarrow> (t < s) = (\<not> s \<le> t)"
   by auto
 
-
 named_theorems rewrite_arith_elim_int_gt \<open>automatically_generated\<close>
 
 lemma [rewrite_arith_elim_int_gt]:
   fixes t::"int" and s::"int"
-  shows "NO_MATCH cvc_a (undefined t s) \<Longrightarrow> (t > s) = (t \<ge> (s+1))"
+  shows "NO_MATCH cvc_a (undefined t s) \<Longrightarrow> (t > s) = (t \<ge> (s + 1))"
   by auto
-
 
 named_theorems rewrite_arith_elim_int_lt \<open>automatically_generated\<close>
 
 lemma [rewrite_arith_elim_int_lt]:
   fixes t::"int" and s::"int"
-  shows "NO_MATCH cvc_a (undefined t s) \<Longrightarrow> (t < s) = (s \<ge> (t+1))"
+  shows "NO_MATCH cvc_a (undefined t s) \<Longrightarrow> (t < s) = (s \<ge> (t + 1))"
   by auto
-
 
 named_theorems rewrite_arith_elim_leq \<open>automatically_generated\<close>
 
@@ -46,14 +47,12 @@ lemma [rewrite_arith_elim_leq]:
   shows "NO_MATCH cvc_a (undefined t s) \<Longrightarrow> (t \<le> s) = (t \<le> s)"
   by auto
 
-
 named_theorems rewrite_arith_leq_norm \<open>automatically_generated\<close>
 
 lemma [rewrite_arith_leq_norm]:
   fixes t::"int" and s::"int"
   shows "NO_MATCH cvc_a (undefined t s) \<Longrightarrow> (t \<le> s) = (\<not> s + (1::int) \<le> t)"
   by auto
-
 
 named_theorems rewrite_arith_geq_tighten \<open>automatically_generated\<close>
 
@@ -62,7 +61,6 @@ lemma [rewrite_arith_geq_tighten]:
   shows "NO_MATCH cvc_a (undefined t s) \<Longrightarrow> (\<not> s \<le> t) = (t + (1::int) \<le> s)"
   by auto
 
-
 named_theorems rewrite_arith_geq_norm1_int \<open>automatically_generated\<close>
 
 lemma [rewrite_arith_geq_norm1_int]:
@@ -70,10 +68,7 @@ lemma [rewrite_arith_geq_norm1_int]:
   shows "NO_MATCH cvc_a (undefined t s) \<Longrightarrow> (s \<le> t) = ((0::int) \<le> t - s)"
   by auto
 
-
 (*rewrite_arith_geq_norm1_real is in Extra_Rewrites*)
-
-
 
 named_theorems rewrite_arith_refl_leq \<open>automatically_generated\<close>
 
@@ -82,14 +77,12 @@ lemma [rewrite_arith_refl_leq]:
   shows "NO_MATCH cvc_a (undefined t) \<Longrightarrow> (t \<le> t) = True"
   by auto
 
-
 named_theorems rewrite_arith_refl_lt \<open>automatically_generated\<close>
 
 lemma [rewrite_arith_refl_lt]:
   fixes t::"'a::linorder"
   shows "NO_MATCH cvc_a (undefined t) \<Longrightarrow> (t < t) = False"
   by auto
-
 
 named_theorems rewrite_arith_refl_geq \<open>automatically_generated\<close>
 
@@ -98,14 +91,12 @@ lemma [rewrite_arith_refl_geq]:
   shows "NO_MATCH cvc_a (undefined t) \<Longrightarrow> (t \<le> t) = True"
   by auto
 
-
 named_theorems rewrite_arith_refl_gt \<open>automatically_generated\<close>
 
 lemma [rewrite_arith_refl_gt]:
   fixes t::"'a::linorder"
   shows "NO_MATCH cvc_a (undefined t) \<Longrightarrow> (t < t) = False"
   by auto
-
 
 named_theorems rewrite_arith_eq_elim_int \<open>automatically_generated\<close>
 
@@ -115,7 +106,6 @@ lemma [rewrite_arith_eq_elim_int]:
  \<Longrightarrow> ((t = s) = (t \<ge> s \<and> t \<le> s))"
   by auto
 
-
 named_theorems rewrite_arith_abs_eq \<open>\<close>
 
 lemma [rewrite_arith_abs_eq]:
@@ -124,12 +114,11 @@ lemma [rewrite_arith_abs_eq]:
   apply simp
   by (simp add: abs_eq_iff)
 
-
 named_theorems rewrite_arith_abs_int_gt \<open>\<close>
 
 lemma [rewrite_arith_abs_int_gt]:
   fixes x::"int" and y::"int"
-  shows "NO_MATCH cvc_a (undefined x y) \<Longrightarrow> 
+  shows "NO_MATCH cvc_a (undefined x y) \<Longrightarrow>
 (abs x > abs y) =
  (if (x \<ge> 0) then
    (if (y \<ge> 0) then (x > y) else (x > -y))
@@ -146,7 +135,6 @@ lemma [rewrite_arith_neg_neg_one]:
   shows "NO_MATCH cvc_a (undefined t) \<Longrightarrow> - (1::int) * (- (1::int) * t) = t"
   by auto
 
-
 named_theorems rewrite_arith_elim_uminus \<open>automatically_generated\<close>
 
 lemma [rewrite_arith_elim_uminus]:
@@ -154,14 +142,12 @@ lemma [rewrite_arith_elim_uminus]:
   shows "NO_MATCH cvc_a (undefined t) \<Longrightarrow> - t = - (1::int) * t"
   by auto
 
-
 named_theorems rewrite_arith_elim_minus \<open>automatically_generated\<close>
 
 lemma [rewrite_arith_elim_minus]:
   fixes t::"int" and s::"int"
   shows "NO_MATCH cvc_a (undefined t s) \<Longrightarrow> t - s = t + - (1::int) * s"
   by auto
-
 
 named_theorems rewrite_arith_plus_flatten \<open>automatically_generated\<close>
 
@@ -172,7 +158,7 @@ lemma [rewrite_arith_plus_flatten]:
   apply (cases zs)
   apply (cases ys)
   apply (cases xs)
-  subgoal for zss yss xss 
+  subgoal for zss yss xss
     apply (simp add: cvc_list_left_transfer cvc_list_right_transfer_op cvc_list_both_transfer_op)
     apply (induction zss)
     apply simp_all
@@ -183,7 +169,6 @@ lemma [rewrite_arith_plus_flatten]:
     by (simp_all add: arith_plus_flatten_lemma)
   done
 
-
 named_theorems rewrite_arith_mult_flatten \<open>automatically_generated\<close>
 
 lemma [rewrite_arith_mult_flatten]:
@@ -193,7 +178,7 @@ lemma [rewrite_arith_mult_flatten]:
   apply (cases zs)
   apply (cases ys)
   apply (cases xs)
-  subgoal for zss yss xss 
+  subgoal for zss yss xss
     apply (simp add: cvc_list_left_transfer cvc_list_right_transfer_op cvc_list_both_transfer_op)
     apply (induction zss)
     apply simp_all
@@ -204,20 +189,18 @@ lemma [rewrite_arith_mult_flatten]:
     by (simp_all add: arith_mult_flatten_lemma)
   done
 
-
 named_theorems rewrite_arith_mult_dist \<open>automatically_generated\<close>
 
 lemma [rewrite_arith_mult_dist]:
   fixes x::"int" and y::"int" and z::"int" and w::"int cvc_ListVar"
   shows "NO_MATCH cvc_a (undefined x y z w) \<Longrightarrow> x * cvc_list_right (+) (y + z) w = x * y + x * cvc_list_right (+) z w"
   apply (cases w)
-  subgoal for ws 
+  subgoal for ws
     apply (simp add: cvc_list_left_transfer cvc_list_right_transfer_op cvc_list_both_transfer_op)
     apply (induction ws)
     apply simp_all
     by (simp_all add: arith_mult_dist_lemma)
   done
-
 
 named_theorems rewrite_arith_plus_cancel1 \<open>automatically_generated\<close>
 
@@ -229,7 +212,7 @@ lemma [rewrite_arith_plus_cancel1]:
   apply (cases r)
   apply (cases s)
   apply (cases t)
-  subgoal for rs ss ts 
+  subgoal for rs ss ts
     apply (simp add: cvc_list_left_transfer cvc_list_right_transfer_op cvc_list_both_transfer_op)
     apply (induction rs)
     apply simp_all
@@ -239,7 +222,6 @@ lemma [rewrite_arith_plus_cancel1]:
     apply simp_all
     by (simp_all add: arith_plus_cancel1_lemma)
   done
-
 
 named_theorems rewrite_arith_plus_cancel2 \<open>automatically_generated\<close>
 
@@ -251,7 +233,7 @@ lemma [rewrite_arith_plus_cancel2]:
   apply (cases r)
   apply (cases s)
   apply (cases t)
-  subgoal for rs ss ts 
+  subgoal for rs ss ts
     apply (simp add: cvc_list_left_transfer cvc_list_right_transfer_op cvc_list_both_transfer_op)
     apply (induction rs)
     apply simp_all
@@ -269,7 +251,6 @@ lemma [rewrite_arith_int_gt]:
   shows "NO_MATCH cvc_a (undefined t s) \<Longrightarrow> (t > s) = (t \<ge> (s + 1))"
   by auto
 
-
 named_theorems rewrite_arith_int_lt \<open>manually added, will autogenerate later\<close>
 
 lemma [rewrite_arith_int_lt]:
@@ -277,11 +258,10 @@ lemma [rewrite_arith_int_lt]:
   shows "NO_MATCH cvc_a (undefined t s) \<Longrightarrow> (t < s) = (s \<ge> (t + 1))"
   by auto
 
-
 named_theorems rewrite_arith_max_geq1 \<open>\<close>
 
 lemma [rewrite_arith_max_geq1]:
-  fixes t::"'a::linordered_idom" and s::"'a::linordered_idom"  
+  fixes t::"'a::linordered_idom" and s::"'a::linordered_idom"
   shows "NO_MATCH cvc_a (undefined t s)
  \<Longrightarrow> (t \<le> (if (s \<le> t) then t else s)) = True"
   by auto
@@ -289,7 +269,7 @@ lemma [rewrite_arith_max_geq1]:
 named_theorems rewrite_arith_min_lt1 \<open>\<close>
 
 lemma [rewrite_arith_min_lt1]:
-  fixes t::"'a::linordered_idom" and s::"'a::linordered_idom"  
+  fixes t::"'a::linordered_idom" and s::"'a::linordered_idom"
   shows "NO_MATCH cvc_a (undefined t s)
  \<Longrightarrow> ((if (t < s) then t else s) \<le> t) = True"
   by auto
@@ -297,7 +277,7 @@ lemma [rewrite_arith_min_lt1]:
 named_theorems rewrite_arith_min_lt2 \<open>\<close>
 
 lemma [rewrite_arith_min_lt2]:
-  fixes t::"'a::linordered_idom" and s::"'a::linordered_idom"  
+  fixes t::"'a::linordered_idom" and s::"'a::linordered_idom"
   shows "NO_MATCH cvc_a (undefined t s)
  \<Longrightarrow> ((if (t < s) then t else s) \<le> s) = True"
   by auto
@@ -305,11 +285,9 @@ lemma [rewrite_arith_min_lt2]:
 named_theorems rewrite_arith_max_geq2 \<open>\<close>
 
 lemma [rewrite_arith_max_geq2]:
-  fixes t::"'a::linordered_idom" and s::"'a::linordered_idom"  
+  fixes t::"'a::linordered_idom" and s::"'a::linordered_idom"
   shows "NO_MATCH cvc_a (undefined t s)
  \<Longrightarrow> ((if (t \<ge> s) then t else s) \<ge> s) = True"
   by auto
-
-
 
 end

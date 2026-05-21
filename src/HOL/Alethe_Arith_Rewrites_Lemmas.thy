@@ -1,5 +1,8 @@
+(*  Title:      HOL/Alethe_Arith_Rewrites_Lemmas.thy
+    Author:     Hanna Lachnitt, Stanford University
+*)
 theory Alethe_Arith_Rewrites_Lemmas
-  imports "Alethe_Rare_Nary_Ops" 
+  imports "Alethe_Rare_Nary_Ops"
 begin
 
 (*TODO: Find better proofs eventually*)
@@ -33,7 +36,7 @@ lemma arith_mult_flatten_lemma:
   shows
  "a = (0::int) \<or> foldr (*) xss (w * (aa * foldr (*) yss (1::int))) = foldr (*) xss w * (aa * foldr (*) yss (1::int))"
  "a = (0::int) \<or> foldr (*) zss (1::int) = (0::int) \<or> foldr (*) xss (w * foldr (*) yss (1::int)) = foldr (*) xss w * foldr (*) yss (1::int)"
-   apply (case_tac [!] "a=0")
+   apply (case_tac [!] "a = 0")
      apply simp_all
   apply (metis (no_types, opaque_lifting) arith_mul_one_lemma foldr.simps(1) id_apply mult.assoc mult.right_neutral)
   apply (case_tac [!] "foldr (*) zss (1::int) = (0::int)")
@@ -66,6 +69,5 @@ lemma arith_plus_cancel2_lemma:
  "foldr (+) ts (- x) + foldr (+) ss (0::int) + x = foldr (+) ts (foldr (+) ss (0::int))"
   apply (induction ts)
   by simp_all
-
 
 end
