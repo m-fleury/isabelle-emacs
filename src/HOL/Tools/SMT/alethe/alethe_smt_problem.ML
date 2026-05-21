@@ -47,7 +47,8 @@ fun parse_raw_problem_steps (commands : SMTLIB.tree list) (cx : name_bindings) (
          in
            (mk_raw_node (id ^ Alethe_Proof.skolem_def) Alethe_Proof.skolem_def [(SMTLIB.S [SMTLIB.Sym id, typ, l])] [] []
               (SMTLIB.S [SMTLIB.Sym "=", SMTLIB.Sym id, def]) [] (SMTLIB.S []), cx)
-         end
+         end |
+       parse_fun_decl _ _ = raise ALETHE_PROBLEM_PARSE ("malformed func_decl")
 
   in
     case split_commands commands of
@@ -72,10 +73,6 @@ fun parse_raw_problem_steps (commands : SMTLIB.tree list) (cx : name_bindings) (
             val (rp, rl, cx) = parse_raw_problem_steps l cx assms_nbr
           in (s :: rp, rl, cx) end
       | NONE => ([],[], cx)
-      | x => let val _ = @{print}("x",x) in raise ERROR "" end
-    (*  | SOME (FUN_DEF, p, l) => (parse_fun_def p cx,assms_nbr)
-      | SOME (FUN_DECL, p, l) => (parse_fun_decl p cx,assms_nbr)
-*)
 
   end
 end;

@@ -118,6 +118,7 @@ datatype z3_node = Z3_Node of {
 fun mk_node id rule prems concl bounds =
   Z3_Node {id = id, rule = rule, prems = prems, concl = concl, bounds = bounds}
 
+(* obsolete code?
 fun string_of_node ctxt =
   let
     fun str depth (Z3_Node {id, rule, prems, concl, bounds}) =
@@ -129,6 +130,7 @@ fun string_of_node ctxt =
          Syntax.string_of_term ctxt concl] ^
         cat_lines (map (prefix "\n" o str (depth + 1)) prems))
   in str 0 end
+*)
 
 datatype z3_step = Z3_Step of {
   id: int,

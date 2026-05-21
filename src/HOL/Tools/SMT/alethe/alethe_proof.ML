@@ -523,7 +523,8 @@ fun postprocess_proof compress ctxt step cx =
         (*TODO Hanna: Make more elegant*)
         fun normalize_external (raw_name, Free(a,b)) =
           if Config.get ctxt SMT_Config.check_external andalso Char.isUpper (hd (String.explode raw_name))
-          then (raw_name,Free("isabelle_internal_" ^ a,b)) else (raw_name,Free(a,b))
+          then (raw_name,Free("isabelle_internal_" ^ a,b)) else (raw_name,Free(a,b)) |
+            normalize_external (_, _) = raise throw_alethe_ex "todo"
         fun normalize_external2 (raw_name,b) =
           if Config.get ctxt SMT_Config.check_external andalso Char.isUpper (hd (String.explode raw_name))
           then (raw_name, "isabelle_internal_" ^ b) else (raw_name, b)
@@ -745,7 +746,7 @@ fun combine_proof_steps ((Alethe_Replay_Node step1 : alethe_replay_node) :: (Ale
         _ $ (Const (\<^const_name>\<open>HOL.disj\<close>, _) $ _ $
               (Const (\<^const_name>\<open>HOL.disj\<close>, _) $ (Const (\<^const_name>\<open>HOL.Not\<close>, _) $a) $ b)) => [a,b]
       | _ => [])
-    val goal2 = (case concl2 of _ $ a => a)
+    val goal2 = (case concl2 of _ $ a => a | _ => raise throw_alethe_ex "conclusion has wrong form")
   in
     if rule1 = equiv_pos2_rule andalso rule2 = th_resolution_rule andalso member (op =) prems2 id1
       andalso member (op =) goals1 goal2
@@ -802,8 +803,10 @@ val linearize_proof =
 
   in linearize end
 
-fun rule_of (Alethe_Replay_Node {rule,...}) = rule
-fun subproof_of (Alethe_Replay_Node {subproof = (_, _, _, subproof),...}) = subproof
+fun rule_of (Alethe_Replay_Node {rule,...}) = rule |
+    rule_of _ = raise throw_alethe_ex "the current Alethe_Replay_Node has no rule"
+fun subproof_of (Alethe_Replay_Node {subproof = (_, _, _, subproof),...}) = subproof |
+    subproof_of _ = raise throw_alethe_ex "the current Alethe_Replay_Node has no subproof"
 
 
 (* Massage Skolems for Sledgehammer.

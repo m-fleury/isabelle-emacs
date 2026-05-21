@@ -345,7 +345,7 @@ fun extract_name_bindings t (tab, exp_tab) =
       | SMTLIB.S [SMTLIB.Sym "exists", SMTLIB.S _, body] => extract body (tab, new)
       | SMTLIB.S [SMTLIB.Sym "choice", SMTLIB.S _, body] => extract body (tab, new)
       | SMTLIB.S [SMTLIB.Sym "let",  SMTLIB.S lets, body] => (
-          let val bindings = map (fn SMTLIB.S (_ :: bindings) => bindings) lets in
+          let val bindings = map (fn SMTLIB.S (_ :: bindings) => bindings | _ => raise SMTLIB_PARSE("malformed let",t)) lets in
             fold (fn bdgs => fn st => fold extract bdgs st) bindings (tab, new)
             |> extract body
           end)

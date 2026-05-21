@@ -39,7 +39,7 @@ fun unlift_term ll_defs =
 fun unskolemize_names ctxt =
   Term.map_abs_vars (perhaps (try Name.dest_skolem))
   #> Term.map_aterms (perhaps (try (fn Free (s, T) =>
-    Free (s |> not (Variable.is_fixed ctxt s) ? Name.dest_skolem, T))))
+    Free (s |> not (Variable.is_fixed ctxt s) ? Name.dest_skolem, T) | _ => raise Match)))
 
 fun postprocess_step_conclusion ctxt rewrite_rules ll_defs =
   let val thy = Proof_Context.theory_of ctxt in

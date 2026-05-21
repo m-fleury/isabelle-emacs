@@ -29,6 +29,8 @@ open Alethe_Proof
 fun add_used_asserts_in_step (Alethe_Node.Alethe_Step {prems, ...}) =
   union (op =) (map_filter (try (snd o SMTLIB_Interface.role_and_index_of_assert_name)) prems)
 
+(*
+potentially obsolete code:
 fun cvc_matching_assms ctxt rewrite_rules ll_defs th th' =
   let
     val expand =
@@ -49,6 +51,7 @@ fun cvc_matching_assms ctxt rewrite_rules ll_defs th th' =
        #> Simplifier.rewrite_term (Proof_Context.theory_of
           (empty_simpset ctxt |> Simplifier.add_simps (rewrite_rules @ @{thms eq_True}))) rewrite_rules []
   in (expand th) aconv (normalize th') end
+*)
 
 fun parse_proof_unsatcore ({ll_defs, assms, ...} : SMT_Translate.replay_data) xfacts prems _ output =
   if exists (String.isPrefix "(error \"This build of CVC4 doesn't have proof support") output then

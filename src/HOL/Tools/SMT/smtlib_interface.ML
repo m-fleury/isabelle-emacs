@@ -55,7 +55,7 @@ in
 
 val setup_builtins =
   SMT_Builtin.add_builtin_typ hosmtlibC
-    (\<^typ>\<open>'a => 'b\<close>, fn Type (\<^type_name>\<open>fun\<close>, Ts) => SOME ("->", Ts), K (K NONE)) #>
+    (\<^typ>\<open>'a => 'b\<close>, fn Type (\<^type_name>\<open>fun\<close>, Ts) => SOME ("->", Ts) | _ => NONE, K (K NONE)) #>
   fold (SMT_Builtin.add_builtin_typ smtlibC) [
     (\<^typ>\<open>bool\<close>, K (SOME ("Bool", [])), K (K NONE)),
     (\<^typ>\<open>int\<close>, K (SOME ("Int", [])), int_num)] #>
