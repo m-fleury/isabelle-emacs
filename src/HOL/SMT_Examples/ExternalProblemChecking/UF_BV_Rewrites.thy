@@ -1,4 +1,4 @@
-(*  Title:      HOL/SMT_Examples/cvc5_BV_Rewrites.thy
+(*  Title:      HOL/SMT_Examples/ExternalProblemChecking/UF_BV_Rewrites.thy
     Author:     Hanna Lachnitt, Stanford University
 *)
 

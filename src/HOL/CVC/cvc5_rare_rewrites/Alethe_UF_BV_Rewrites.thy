@@ -1,30 +1,27 @@
+(*  Title:      HOL/CVC/cvc5_rare_rewrites/Alethe_UF_BV_Rewrites.thy
+    Author:     Hanna Lachnitt, Stanford University
+*)
 theory Alethe_UF_BV_Rewrites
-  imports  "HOL-Library.Word" Word_Lib.More_Word "HOL-Library.Log_Nat" "HOL.Real" "HOL-Library.Sublist" 
-HOL.SMT "Word_Lib.Signed_Division_Word" "Word_Lib.Reversed_Bit_Lists" SMT_Word
+  imports "HOL-Library.Word" Word_Lib.More_Word "HOL-Library.Log_Nat" "HOL.Real"
+    SMT_Word
 begin
-
-declare[[show_sorts]]
-
-declare[[smt_expert_debug_alethe_level=0]]
-
 
 (*
 (define-cond-rule uf-bv2nat-int2bv ((w Int) (t ?BitVec))
   (= (@bvsize t) w)
   (int_to_bv w (ubv_to_int t))
   t)
-*)
 
+Note: Premise int (size t) = w is not necessary so it is omitted
+*)
 
 named_theorems rewrite_uf_bv2nat_int2bv \<open>manually generated\<close>
 
 lemma [rewrite_uf_bv2nat_int2bv]:
-  fixes w::int and t::"'a ::len word"
+  fixes w::int and t::"'a::len word"
   shows "NO_MATCH cvc_a (undefined w t)
-  \<Longrightarrow> int (size t) = w
   \<Longrightarrow> word_of_int (unsigned t::int) = t"
   by simp
-
 
 (*
 (define-cond-rule uf-bv2nat-int2bv-extend ((w Int) (t ?BitVec) (n Int))
@@ -32,16 +29,19 @@ lemma [rewrite_uf_bv2nat_int2bv]:
   (int_to_bv w (ubv_to_int t))
   (concat (@bv 0 n) t))
 
-Note: Conditions LENGTH('c) = LENGTH('a) + LENGTH('b) and  LENGTH('b) = n are not necessary
+Note: Conditions
+ LENGTH('c) = LENGTH('a) + LENGTH('b)m
+ LENGTH('b) = n,
+ (int (size t) < w) = True
+ n = w - int (size t)
+ not necessary so they are omitted
 *)
 
 named_theorems rewrite_uf_bv2nat_int2bv_extend \<open>manually generated\<close>
 
 lemma [rewrite_uf_bv2nat_int2bv_extend]:
-  fixes w::int and t::"'a ::len word" and n::int
+  fixes w::int and t::"'a::len word" and n::int
   shows "NO_MATCH cvc_a (undefined w t n)
-  \<Longrightarrow> (int (size t) < w) = True
-  \<Longrightarrow> n = w - int (size t)
   \<Longrightarrow> word_of_int (unsigned t::int) = (word_cat (0::'b::len word) t::'c::len word)"
   by simp
 
@@ -51,16 +51,16 @@ lemma [rewrite_uf_bv2nat_int2bv_extend]:
   (int_to_bv w (ubv_to_int t))
   (extract wm1 0 t))
 
-Note: Condition wm1 \<ge> 0 and wm1 = w - 1 are not necessary
-Premise   (w < int (size t)) = True is also not necessary
+Note: Conditions wm1 \<ge> 0 and wm1 = w - 1 are not necessary so they are omitted
+Note: Premise int (size t) = w is not necessary so it is omitted
 *)
 
 named_theorems rewrite_uf_bv2nat_int2bv_extract \<open>manually generated\<close>
 
 lemma [rewrite_uf_bv2nat_int2bv_extract]:
-  fixes w::int and t::"'a ::len word" and wm1::int
+  fixes w::int and t::"'a::len word" and wm1::int
   shows "NO_MATCH cvc_a (undefined w t wm1)
-  \<Longrightarrow> LENGTH('c) = wm1 + 1 
+  \<Longrightarrow> LENGTH('c) = wm1 + 1
   \<Longrightarrow> word_of_int (unsigned t::int) = (smtlib_extract wm1 0 t ::'c::len word)"
   unfolding smtlib_extract_def
   by (metis nat_int nat_zero_as_int ucast_eq ucast_slice
@@ -87,7 +87,6 @@ lemma [rewrite_uf_int2bv_bv2nat]:
   (= w (@bvsize x))
   (>= (ubv_to_int x) n)
   (ite (>= n (int.pow2 w)) false (ite (< n 0) true (bvuge x (int_to_bv w n)))))
-
 *)
 named_theorems rewrite_uf_bv2nat_geq_elim \<open>manually generated\<close>
 
@@ -95,7 +94,7 @@ lemma [rewrite_uf_bv2nat_geq_elim]:
   fixes x::"'a::len word" and n w::int
   shows "NO_MATCH cvc_a (undefined x n w)
   \<Longrightarrow> w = int (size x)
-  \<Longrightarrow> (n \<le> (unsigned x::int)) = 
+  \<Longrightarrow> (n \<le> (unsigned x::int)) =
   (if int(2 ^ nat w) \<le> n then False else (if n < 0 then True else word_of_int n \<le> x))"
   apply (auto split: if_split)
   subgoal by (meson order_less_imp_not_less take_bit_int_greater_self_iff
@@ -139,6 +138,8 @@ lemma [rewrite_uf_int2bv_bvule_equiv]:
   (and (= wm1 (- (@bvsize t) 1)) (= n (int.pow2 (@bvsize t))))
   (sbv_to_int t)
   (ite (= (extract wm1 wm1 t) (@bv 0 1)) (ubv_to_int t) (- (ubv_to_int t) n)))
+
+Note: Condition wm1 \<ge> 0 is not necessary so it is omitted
 *)
 
 named_theorems rewrite_uf_sbv_to_int_elim \<open>manually generated\<close>
@@ -146,31 +147,26 @@ named_theorems rewrite_uf_sbv_to_int_elim \<open>manually generated\<close>
 lemma [rewrite_uf_sbv_to_int_elim]:
   fixes t::"'a::len word" and wm1 n::int
   shows "NO_MATCH cvc_a (undefined t wm1 n) \<Longrightarrow>
-  wm1 = int (size t) - 1 \<Longrightarrow> n = (int (2 ^ nat (int (size t)))) \<Longrightarrow> wm1 \<ge> 0 \<Longrightarrow>
+  wm1 = int (size t) - 1 \<Longrightarrow> n = (int (2 ^ nat (int (size t)))) \<Longrightarrow> 
   (signed t::int) = (if (smtlib_extract wm1 wm1 t) = (0::1 word) then unsigned t else (unsigned t) - n)"
 proof -
   assume "NO_MATCH cvc_a (undefined t wm1 n)"
-    and w: "wm1 = int (size t) - 1"
-    and n: "n = int (2 ^ nat (int (size t)))"
-    and "wm1 \<ge> 0"
-  have wm1_eq: "wm1 = int (LENGTH('a) - 1)"
-    using w
+    and wm1_def: "wm1 = int (size t) - 1"
+    and n_def: "n = int (2 ^ nat (int (size t)))"
+  have "wm1 = int (LENGTH('a) - 1)"
+    using wm1_def
     by (metis One_nat_def Suc_lessI Suc_n_not_le_n add_diff_cancel_right' int_Suc
         less_eq_decr_length_iff order_refl size_word.rep_eq)
-  have n_eq: "n = 2 ^ LENGTH('a)"
-    using n by (simp add: word_size nat_int)
-  have ext: "(smtlib_extract wm1 wm1 t :: 1 word) = (if bit t (LENGTH('a) - 1) then 1 else 0)"
-    unfolding wm1_eq by (rule smtlib_extract_msb_eq)
-  have sint_eq: "sint t = uint t - 2 ^ LENGTH('a) * of_bool (bit t (LENGTH('a) - 1))"
+  then have "(smtlib_extract wm1 wm1 t :: 1 word) = (if bit t (LENGTH('a) - 1) then 1 else 0)"
+    using smtlib_extract_msb_eq
+    by blast
+  moreover have "n = 2 ^ LENGTH('a)"
+    using n_def by (simp add: word_size)
+  moreover have "sint t = uint t - 2 ^ LENGTH('a) * of_bool (bit t (LENGTH('a) - 1))"
     by (simp add: sint_uint signed_take_bit_eq_take_bit_minus take_bit_int_eq_self bit_uint_iff)
-  show "(signed t::int) = (if (smtlib_extract wm1 wm1 t) = (0::1 word) then unsigned t else (unsigned t) - n)"
-  proof (cases "bit t (LENGTH('a) - 1)")
-    case True
-    then show ?thesis using ext sint_eq n_eq by simp
-  next
-    case False
-    then show ?thesis using ext sint_eq n_eq by simp
-  qed
+  ultimately show "(signed t::int) = (if (smtlib_extract wm1 wm1 t) = (0::1 word) then unsigned t else (unsigned t) - n)"
+    apply (cases "bit t (LENGTH('a) - 1)")
+    by simp_all
 qed
 
 end
