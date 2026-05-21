@@ -569,7 +569,7 @@ lemma alethe_la_mult_pos:
   \<open>c = (0 :: 'a :: linordered_idom) \<Longrightarrow> c < m \<and> (a > b) \<longrightarrow> m*a > m*b\<close>
   by simp_all
 
-lemma alethe_la_mult_neg:          
+lemma alethe_la_mult_neg:
   \<open>c = (0 :: 'a :: linordered_idom) \<Longrightarrow> m < c \<and> (a < b) \<longrightarrow> m*a > m*b\<close>
   \<open>c = (0 :: 'a :: linordered_idom) \<Longrightarrow> m < c \<and> (a \<le> b) \<longrightarrow> m*a \<ge> m*b\<close>
   \<open>c = (0 :: 'a :: linordered_idom) \<Longrightarrow> m < c \<and> (a = b) \<longrightarrow> m*a = m*b\<close>
@@ -594,13 +594,13 @@ named_theorems smt_rewrite_lemma_simplify \<open>Theorems to simplify instantiat
 (*Currently
 arith_simp_cvc5 == smt_arith_simplify
 
-arith_mult_poly_norm_cvc5 is meant to be used with field_simps, so 
+arith_mult_poly_norm_cvc5 is meant to be used with field_simps, so
 we removed some theorems that were already in them.
 *)
 named_theorems arith_simp_cvc5 \<open>Might be temp and integrated into smt_arith_simplify\<close>
 named_theorems arith_mult_poly_norm_cvc5 \<open>Extra rules for reconstruction of poly-norm.\<close>
 
-lemmas [arith_mult_poly_norm_cvc5] = 
+lemmas [arith_mult_poly_norm_cvc5] =
          Groups.monoid_mult_class.mult_1_right Nat.mult_Suc_right
          Nat.mult_0_right Nat.add_Suc_right Groups.monoid_add_class.add.right_neutral
          Num.numeral_2_eq_2 Nat.One_nat_def Num.numeral_2_eq_2 Nat.One_nat_def
@@ -911,7 +911,7 @@ lemma alethe_nat_embedding_all:
   using all_nat by simp_all
 
 lemma alethe_nat_embedding_ex:
- "(\<exists>(x::nat). P x) =  (\<exists>(x::int). x \<ge> 0 \<and> P (nat x))" 
+ "(\<exists>(x::nat). P x) =  (\<exists>(x::int). x \<ge> 0 \<and> P (nat x))"
   using ex_nat by simp
 
 
@@ -952,12 +952,12 @@ lemma alethe_nat_embedding_all3:
   using all_nat by simp
 
 lemma H1:
- "int (nat 0) = 0" 
- "int (nat 1) = 1" 
+ "int (nat 0) = 0"
+ "int (nat 1) = 1"
   by simp_all
 lemma H1':
- "int (nat 0) \<equiv> 0" 
- "int (nat 1) \<equiv> 1" 
+ "int (nat 0) \<equiv> 0"
+ "int (nat 1) \<equiv> 1"
   by simp_all
 
 lemma H_nat_embedding: \<open>x \<ge> 0 \<Longrightarrow> int (nat x) = x\<close>
@@ -1126,7 +1126,7 @@ SMT.thy should import List.thy?
 SMT_CVC_Real soll nur in Complex Main drinsein und nicht in Main! TODO: see what poly_simp would do.
 
 
-smt_word 
+smt_word
 \<rightarrow> Altes, unverändertes wenn Flag nicht benutzt wird
 
 kopiere alten code.
