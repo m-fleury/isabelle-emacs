@@ -1829,8 +1829,14 @@ local
       throwing_CONVERSION (conv_term (eq_pred_conv rews t1 ctxt))
     end
 
+  (*CVC Note: 
+    Prior to boxing lambda terms, the following places contained a beta_eta normalization:
+          1. only_replace: (Thm.term_of ctrm)
+          2. cong_conv: t'
+          3. cong_conv: rews
+    In case some normalization issue still occurs, additional considerations have to be made here*)
   fun only_replace rews t ctrm =
-    (case strict_find_rew rews t (Thm.term_of ctrm|> Envir.beta_eta_contract) of
+    (case strict_find_rew rews t (Thm.term_of ctrm) of
       SOME thm => Conv.rewr_conv thm ctrm
     | NONE => Conv.no_conv ctrm)
 
@@ -1856,11 +1862,10 @@ local
         |> HOLogic.dest_Trueprop
         |> HOLogic.dest_eq
         |> snd
-        |> Envir.beta_eta_contract
 
       val rews = prems
         |> map_filter (try (apfst (
-            HOLogic.dest_eq o HOLogic.dest_Trueprop o Envir.beta_eta_contract o Thm.term_of o Thm.cconcl_of) o
+            HOLogic.dest_eq o HOLogic.dest_Trueprop o Thm.term_of o Thm.cconcl_of) o
             `(fn x => x)))
         |> filter_out (fn ((a, b), _) => a = b)
         |> map (apsnd (fn x => @{thm eq_reflection} OF [x]))
