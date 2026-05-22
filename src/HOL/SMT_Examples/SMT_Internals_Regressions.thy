@@ -288,6 +288,8 @@ fun tactic_args_parser ctxt cs =
 
 fun get_tac n ctxt prems args = 
 let
+  val ctxt =
+    ctxt |> put_simpset (SMT_Replay.make_simpset ctxt [])
   val rule = CVC5_Replay_Methods.cvc5_rule_of n |> @{print}
   val rule_name = rule |> Alethe_Replay_Methods.string_of_alethe_rule
   val _ = @{print}("Found tactic", rule_name)
@@ -410,12 +412,12 @@ lemma local_input_4:
 
 (* Rule 3: true*)
 
-lemma true_1: "\<top>"
+lemma true_1: "True"
   by (ctxt_tactic "true")
 
 (* Rule 4: false*)
 
-lemma false_1: "\<not>\<bottom>"
+lemma false_1: "\<not>False"
   by (ctxt_tactic "false_rule")
 
 (* Rule 5: not_not*)
@@ -740,13 +742,13 @@ lemma cong_3:
 
 lemma cong_4:
   assumes "x = False"
-  shows "((\<lambda>a b. a = b) x) = ((\<lambda>a b. a = b) False)"
+  shows "alethe_id (\<lambda>a b. a = b) x = alethe_id (\<lambda>a b. a = b) False"
   using assms
   by (ctxt_tactic "cong")
 
 lemma cong_5:
-  assumes "(\<lambda>a. f a x) = (\<lambda>a. f a y)" and "s = t"
-  shows "(\<lambda>a. f a x) s = (\<lambda>a. f a y) t"
+  assumes "alethe_id (\<lambda>a. f a x) = alethe_id (\<lambda>a. f a y)" and "s = t"
+  shows "alethe_id (\<lambda>a. f a x) s = alethe_id (\<lambda>a. f a y) t"
   using assms
   by (ctxt_tactic "cong")
 
@@ -3291,6 +3293,10 @@ lemma poly_simp_rel2:
          ( (arg2 + (2::int) * x + - 1 * mul2_sum) <  1)"
   using assms
   by (ctxt_tactic "poly_simp_rel")
+
+
+lemma \<open>(lift_x::int) + (3::int) = (3::int) + lift_x\<close>
+  by (ctxt_tactic "poly_simp")
 
 (*onepoint**)
 experiment

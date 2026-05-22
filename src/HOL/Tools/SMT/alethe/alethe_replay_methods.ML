@@ -2174,7 +2174,7 @@ fun poly_simp ctxt _ =
         THEN' debug_msg_tac' ctxt high "tried to solve arith_poly_norm with custom simplify tac")
         (*if the previous does not solve, use full simplification power with the current content*)
       ORELSE'
-        (simplify_tac_with_background_simp ctxt (Named_Theorems.get ctxt @{named_theorems field_simps})
+        TRY' (simplify_tac_with_background_simp ctxt []
         THEN' debug_msg_tac' ctxt high "tried full simplifier power on current arith_poly_norm step")
       THEN' TRY' (Code_Simp.dynamic_tac ctxt)
       THEN' debug_msg_tac' ctxt high "tried code evaluation on arith_poly_norm step since nothing else worked")
