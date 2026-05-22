@@ -20,7 +20,7 @@ declare [[smt_certificates = "SMT_Examples_CVC.certs"]]
 declare [[smt_read_only_certificates = false]]
 *)
 
-declare [[smt_trace=true,smt_verbose=false,smt_debug_verit,smt_statistics]]
+declare [[smt_trace=false,smt_verbose=false,smt_debug_verit,smt_statistics]]
 declare [[smt_nat_as_int]]
 
 declare[[smt_expert_debug_alethe_level=0]]
@@ -996,7 +996,8 @@ lemma
        "Fin (0::'a::comm_monoid_add) + (x::'a::comm_monoid_add extended) = x "
   supply [[smt_trace=false,smt_statistics]]
   using assms
-  by (smt (cvc5,fmf))
+  by (smt (cvc5,no_ematching))
+
 lemma
   assumes 
       "\<forall>(a::'a \<Rightarrow> 'b) (b::'a \<Rightarrow> 'b) A::('a \<Rightarrow> 'b) set. (a \<in> insert b A) = (a = b \<or> a \<in> A)"
@@ -1010,7 +1011,7 @@ lemma
       "(a::'a) \<notin> (A'::'a set)"
       "(f::'a \<Rightarrow> 'b) \<notin> {f::'a \<Rightarrow> 'b. \<forall>aa::'a. if aa \<in> insert (a::'a) (A'::'a set) then f aa \<in> (B::'a \<Rightarrow> 'b set) aa else f aa = (f0::'a \<Rightarrow> 'b) aa} "
     shows False
-  using assms supply [[smt_trace=false]] by (smt (cvc5,quant_saturate))
+  using assms supply [[smt_trace=false]] by (smt (cvc5))
 
 
 experiment
@@ -1164,7 +1165,7 @@ lemma
           "\<forall>s. \<triangle> (\<T> s) \<and> \<diamond> s \<and> \<Turnstile>\<^sub>n\<^sub>o\<^sub>l\<^sub>h\<^sub>s s \<and> \<nabla> s \<and> s \<succ>\<^sub>x s' \<and> \<B>\<^sub>i s' = \<B>\<^sub>i s \<and> \<U>\<^sub>c s' = \<U>\<^sub>c s \<longrightarrow> \<triangle> (\<T> s')"
           "\<not> \<triangle> (\<T> s')"
   shows False
-  using assms by (smt (cvc5, noematch) case_prodE mem_Collect_eq prod.inject tranclD2)
+  using assms by (smt (cvc5, no_ematching) case_prodE mem_Collect_eq prod.inject tranclD2)
 
 end
 end
