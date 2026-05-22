@@ -120,10 +120,8 @@ fun unsupported rule ctxt prems _ _ t _ = SMT_Replay_Methods.replay_error ctxt "
   rule prems [] t
 
 fun ignore_args       f ctxt prems _ _ t _ = f ctxt prems t
-fun include_step_args f ctxt prems step_args _ t _ = f ctxt prems step_args t
 fun include_context_ass f ctxt prems _ context_ass t _ = f ctxt prems context_ass t
 fun include_args f ctxt prems _ _ t args = f ctxt prems t args
-fun include_context_ass_and_args f ctxt prems _ context_ass goal args = f ctxt prems context_ass goal args
 
 fun choose And = include_args and_rule
   | choose And_Neg = ignore_args and_neg_rule
@@ -202,8 +200,8 @@ fun choose And = include_args and_rule
   | choose Not_Symm = ignore_args not_symm
   | choose Refl = include_args refl
   | choose Resolution = ignore_args unit_res
-  | choose Sko_Ex = include_context_ass_and_args sko_ex
-  | choose Sko_Forall = include_context_ass_and_args sko_forall
+  | choose Sko_Ex = ignore_args sko_ex
+  | choose Sko_Forall = ignore_args sko_forall
   | choose Subproof = ignore_args subproof
   | choose Sum_Simplify = ignore_args sum_simplify
   | choose Tautological_Clause = ignore_args tautological_clause

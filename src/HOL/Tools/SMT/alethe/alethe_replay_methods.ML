@@ -158,8 +158,8 @@ sig
   val rare_rewrite: alethe_tac
   val evaluate: alethe_tac
   val unit_res: alethe_tac
-  val sko_ex: alethe_tac_context_args_and_arg
-  val sko_forall: alethe_tac_context_args_and_arg
+  val sko_ex: alethe_tac
+  val sko_forall: alethe_tac
   val subproof: alethe_tac
   val ordered_subproof: alethe_tac
   val sum_simplify: alethe_tac
@@ -455,7 +455,8 @@ fun eqsubst_all ctxt thms =
 fun get_solver_name (SOME (Solver_Name name)) = name
   | get_solver_name _ = "unknown solver name"
 
-fun print_conv (str : string) ct = ((*@{print} (str, ct, Thm.term_of ct);*) Conv.all_conv ct)
+(*Very useful helper function, I really don't understand why this is not defined in conversion.ML*)
+fun print_conv (str : string) ct = (ignore str; (*@{print} (str, ct, Thm.term_of ct);*) Conv.all_conv ct)
 
 (*
 We were told that emptying and filling the context back and forth could be improved.
@@ -654,7 +655,7 @@ local
        in name :: extract_var_name thms end
     | extract_var_name [] = []
 
-fun skolem_tac extractor thm1 thms1 ctxt prems context_ass (decl:string list * string list) t =
+fun skolem_tac extractor thms1 ctxt prems t =
   let
 
     val (ctxt_eq, rew, other) = extract_rewrite_rule_assumption prems
@@ -699,18 +700,13 @@ fun skolem_tac extractor thm1 thms1 ctxt prems context_ass (decl:string list * s
   end
 in
 
-(*TODO Hanna: Context assumptions are not used so could be omitted. I will wait until the rewrite
-has finished in case they are somehow useful after all. The info should be in decl already though*)
-(*TODO Pascal: decl should be used. Pascal?*)
-fun sko_forall ctxt prems context_ass t (SOME (Sko_Def_Prems decl)) =
-  skolem_tac extract_all_forall_exists_quantified_names_q @{thm alethe_sko_forall_indirect}
-    @{thms alethe_sko_forall_indirect2 alethe_sko_ex_indirect2} ctxt prems context_ass decl t
-  | sko_forall ctxt thms _ t _ = replay_error ctxt "invalid application" Sko_Forall thms [] t
+fun sko_forall ctxt prems t =
+  skolem_tac extract_all_forall_exists_quantified_names_q
+    @{thms alethe_sko_forall_indirect2 alethe_sko_ex_indirect2} ctxt prems t
 
-fun sko_ex ctxt prems context_ass t (SOME (Sko_Def_Prems decl)) =
-  skolem_tac extract_all_forall_exists_quantified_names_q @{thm alethe_sko_ex_indirect}
-    @{thms alethe_sko_ex_indirect2 alethe_sko_forall_indirect2} ctxt prems context_ass decl t
-  | sko_ex ctxt thms _ t _ = replay_error ctxt "invalid application" Sko_Ex thms [] t
+fun sko_ex ctxt prems t =
+  skolem_tac extract_all_forall_exists_quantified_names_q
+    @{thms alethe_sko_ex_indirect2 alethe_sko_forall_indirect2} ctxt prems t
 
 end
 

@@ -147,7 +147,7 @@ fun replay_thm solver method_for rewrite_rules ll_defs ctxt assumed unchanged_pr
 
 
 fun replay_theorem_step solver method_for rewrite_rules all_assms ll_defs assumed (inputs : thm list) (all_local_assumptions : thm list)
-  (step as Alethe_Node.Alethe_Replay_Node {id, rule, prems, step_args, context_assignments,
+  (step as Alethe_Node.Alethe_Replay_Node {id, rule, prems = non_skolem_prems, step_args, context_assignments,
      subproof = (fixes, assms, input, subproof), concl, args, prop_skeleton, ...})
   (globally_known_facts, stats, ctxt, concl_transformation, global_transformation) =
   let
@@ -216,7 +216,13 @@ fun replay_theorem_step solver method_for rewrite_rules all_assms ll_defs assume
     val subst_transform = (Raw_Simplifier.rewrite_term (Proof_Context.theory_of (empty_simpset ctxt)) ((if (Alethe_Proof.keep_raw_lifting rule) andalso not (null rewrite_rules) then tl rewrite_rules else rewrite_rules)) []
          o (not (null ll_defs) ? SMTLIB_Isar.unlift_term ll_defs) o subst_free_if_nonempty concl_transformation o subst_only_free global_transformation)
     val id_to_thm = (Symtab.lookup (if (null subproof) then globally_known_facts else locally_known_facts))
-    val (prems_skolem_def,non_skolem_prems) = filter_split Alethe_Proof.is_skolem_def prems
+    (*the name of the used skolem definitions is not in the premises, but in
+    the args*)
+    val prems_skolem_def =
+      (case args of
+        SOME (Alethe_Node.Sko_Def_Prems (a, b)) => a @ b
+      | _ => [])
+
     val prems_as_thms_with_context_assms =
       non_skolem_prems
       |> map_filter id_to_thm
@@ -233,9 +239,9 @@ fun replay_theorem_step solver method_for rewrite_rules all_assms ll_defs assume
     val context_assignments = map subst_transform context_assignments
     val _ = debug_cond_msg ctxt (length non_skolem_prems <> length prems_as_thms_with_context_assms) low (fn () =>
       \<^print> ("Warning, there were premises that are not accessible to the current step (i.e., that are not in the context). This should not happen. These were ignored."))
-    val _ = debug_cond_msg ctxt (not (null prems)) middle (fn () =>
+    val _ = debug_cond_msg ctxt (not (null non_skolem_prems)) middle (fn () =>
       \<^print> ("Export premises that are not skolem definitions, to the current context." ^
-        "This will automatically add context assertions and assumes to the goal.",(prems,prems_as_thms_with_context_assms)))
+        "This will automatically add context assertions and assumes to the goal.",(non_skolem_prems,prems_as_thms_with_context_assms)))
     val _ = debug_cond_msg ctxt (not (null step_args)) middle (fn () => \<^print> ("Processed step_args",step_args))
     val _ = debug_cond_msg ctxt (not (null context_assignments)) middle (fn () => \<^print> ("Processed context_assignments", context_assignments))
 
@@ -245,9 +251,9 @@ fun replay_theorem_step solver method_for rewrite_rules all_assms ll_defs assume
        then all_assms (* For external problems we don't know which assumptions are used since the assertions might not have names, add all *)
        else []
     val all_local_assumptions =
-       if Alethe_Replay_Methods.requires_subproof_assms prems rule then updated_local_assumptions else []
+       if Alethe_Replay_Methods.requires_subproof_assms non_skolem_prems rule then updated_local_assumptions else []
     val local_inputs =
-       if Alethe_Replay_Methods.requires_local_input prems rule then input_as_thm @ inputs else []
+       if Alethe_Replay_Methods.requires_local_input non_skolem_prems rule then input_as_thm @ inputs else []
     val _ = debug_cond_msg ctxt (not (null missing_assumptions)) low (fn () => \<^print> ("Assumptions could not be mapped to the current input rule by name" ^
       "(possibly because you are checking an external proof), so all assumptions were added",missing_assumptions))
     val _ = debug_cond_msg ctxt (not (null all_local_assumptions)) middle (fn () => \<^print> ("Added mapping from context_assignment as premises to steps (refl,sko_forall,sko_ex,cong)",all_local_assumptions))
