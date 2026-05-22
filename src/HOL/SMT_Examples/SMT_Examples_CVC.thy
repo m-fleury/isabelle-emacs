@@ -863,18 +863,6 @@ section \<open>cvc5 only examples\<close>
 declare[[smt_expert_debug_alethe_files="smt_global_normalize"]]
 declare[[smt_expert_debug_alethe_level=3]]
 
-(*("current term",
- Const ("SMT.pow_2", "int \<Rightarrow> int") $
-   (Const ("Num.numeral_class.numeral", "num \<Rightarrow> int") $
-     (Const ("Num.num.Bit1", "num \<Rightarrow> num") $
-       Const ("Num.num.One", "num")))) (line 359 of "/home/lachnitt/Sources/isabelle-git/isabelle-emacs/src/HOL/Tools/SMT/smt_global_normalize.ML") 
-("builtin fun", false) (line 367 of "/home/lachnitt/Sources/isabelle-git/isabelle-emacs/src/HOL/Tools/SMT/smt_global_normalize.ML") 
-("builtin fun ext", false) (line 368 of "/h*)
-lemma "(3::nat) ^ 3 = 27"
-  using power_0 power_Suc
-  (*apply (smt (cvc5)) (*finds no proof*)*)
-  oops
-
 datatype 'a extended = Fin 'a | Pinf ("\<infinity>") | Minf ("-\<infinity>")
 instantiation extended :: (plus)plus
 begin

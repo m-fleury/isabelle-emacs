@@ -152,8 +152,9 @@ local
 
   val basic_simpset =
     simpset_of (put_simpset HOL_ss \<^context>
-      |> Simplifier.add_simps @{thms field_simps times_divide_eq_right times_divide_eq_left arith_special
-        arith_simps rel_simps array_rules z3div_def z3mod_def NO_MATCH_def}
+      |> Simplifier.add_simps (@{thms times_divide_eq_right times_divide_eq_left arith_special
+        arith_simps rel_simps array_rules z3div_def z3mod_def NO_MATCH_def} @
+         Named_Theorems.get \<^context> \<^named_theorems>\<open>field_simps\<close>)
       |> fold Simplifier.add_proc [\<^simproc>\<open>numeral_divmod\<close>, fast_int_arith_simproc,
         antisym_le_simproc, antisym_less_simproc])
 
