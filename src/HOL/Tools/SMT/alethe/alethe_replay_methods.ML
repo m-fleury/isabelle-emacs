@@ -696,7 +696,7 @@ fun skolem_tac extractor thms1 ctxt prems t =
       THEN_ALL_NEW TRY' (resolve_tac ctxt @{thms refl})
        (*If the above hasn't worked try unfolding + simplifier *)
       THEN' K (unfold_tac ctxt ctxt_eq)
-      THEN' TRY' (partial_simplify_tac ctxt (@{thms eq_commute}))))
+      THEN' TRY' (partial_simplify_tac ctxt @{thms eq_commute})))
   end
 in
 
@@ -2104,7 +2104,7 @@ fun la_rw_eq ctxt _ t = SMT_Replay_Methods.match_instantiate ctxt t la_rw_eq_thm
 
 fun la_generic_prove args ctxt _ = SMT_Replay_Arith.la_farkas args ctxt
 
-fun la_generic ctxt thms t args =
+fun la_generic ctxt _ t args =
   prove_abstract (SMT_Replay_Methods.abstract_arith_shallow ctxt) (la_generic_prove args) ctxt [] t
 
 fun lia_generic ctxt _ t =
@@ -2112,12 +2112,6 @@ fun lia_generic ctxt _ t =
 
 fun la_disequality ctxt _ t =
   SMT_Replay_Methods.match_instantiate ctxt t @{thm alethe_la_disequality}
-
-fun la_mult_extract (Const ("HOL.Trueprop", _) $ (Const ("HOL.implies", _)
- $ (Const ("HOL.conj",_) $ (_ $ _ $ factor) $ (rel $ l $ r))
- $ _)) = (rel,(factor,l,r))
-
-fun to_lemma "Orderings.ord_class.less" = @{thm alethe_la_mult_pos_less}
 
 (*Oct 18: I am not done here yet but it works already*)
 fun la_mult_pos ctxt _ t =

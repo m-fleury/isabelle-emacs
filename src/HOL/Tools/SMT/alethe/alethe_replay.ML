@@ -19,10 +19,6 @@ open SMT_Config
 fun debug_msg ctxt = alethe_debug_msg ctxt "alethe_replay"
 fun debug_cond_msg ctxt cond verbosity msg = (if cond then debug_msg ctxt verbosity msg else ())
 
-fun filter_split _ [] = ([], [])
-  | filter_split f (a :: xs) =
-     (if f a then apfst (curry op :: a) else apsnd (curry op :: a)) (filter_split f xs)
-
 (** Util **)
 
 fun subst_only_free pairs =
@@ -234,8 +230,8 @@ fun replay_theorem_step solver method_for rewrite_rules all_assms ll_defs assume
     val step_args = map subst_transform step_args
     val args =
       (case args of
-        SOME (Alethe_Node.Insts tab) => SOME (Alethe_Node.Insts (Symtab.map (K subst_transform) tab)) |
-        _ => args)
+        SOME (Alethe_Node.Insts tab) => SOME (Alethe_Node.Insts (Symtab.map (K subst_transform) tab))
+      | _ => args)
     val context_assignments = map subst_transform context_assignments
     val _ = debug_cond_msg ctxt (length non_skolem_prems <> length prems_as_thms_with_context_assms) low (fn () =>
       \<^print> ("Warning, there were premises that are not accessible to the current step (i.e., that are not in the context). This should not happen. These were ignored."))
