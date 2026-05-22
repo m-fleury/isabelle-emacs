@@ -7,7 +7,34 @@ theory Alethe_Rare_Interface
     "cvc5_rare" :: thy_decl
 begin
 
+
+subsection \<open>Parse arguments\<close>
+
+ML \<open>
+(*alethe proofs can contain rare_rewrites. The arguments may use rare-list to express lists.*)
+fun alethe_term_parser (SMTLIB.Sym "rare-list", []) = (
+   (*If there are no elements in the list we cannot know the type at this point*)
+    SOME(Const("ListVar" ,dummyT --> dummyT) $ Const(\<^const_name>\<open>List.Nil\<close>, dummyT)))
+| alethe_term_parser (SMTLIB.Sym "rare-list", ts) = (
+  let
+    val new_type = fastype_of (hd ts)
+  in
+    SOME(Const(\<^const_name>\<open>ListVar\<close>, Type(\<^type_name>\<open>List.list\<close>,[new_type]) --> Type("cvc_ListVar",[new_type]))
+    $ (HOLogic.mk_list new_type ts))
+  end)
+| alethe_term_parser _ = NONE
+
+val _ = Theory.setup (Context.theory_map (
+  SMTLIB_Proof.add_term_parser alethe_term_parser)
+)\<close>
+
+subsection \<open>Replay rare_rules\<close>
+
 ML_file \<open>Tools/SMT/alethe/rare_rewrites/cvc5_rare.ML\<close>
+
+
+
+subsection \<open>Register rare_rules\<close>
 
 named_theorems rare_rewrites_simple \<open>RARE rewrites that don't contain lists or are star rules \<close>
 named_theorems rare_rewrites_complex \<open>RARE rewrites that contain lists or are star rules \<close>
@@ -224,5 +251,8 @@ lemmas [rare_cvc5_Rewrites_all] = rare_cvc5_Rewrites_simple rare_cvc5_Rewrites_c
 lemmas [rare_rewrites_simple] = rare_bool_rewrites_simple rare_arith_rewrites_simple rare_UF_Rewrites_simple rare_cvc5_Rewrites_simple
 lemmas [rare_rewrites_complex] = rare_bool_rewrites_complex rare_arith_rewrites_complex rare_UF_Rewrites_complex rare_cvc5_Rewrites_complex
 lemmas [rare_rewrites_all] = rare_rewrites_simple rare_rewrites_complex
+
+
+ML_file \<open>CVC/ML/alethe_replay_rare_simplify_methods.ML\<close>
 
 end
