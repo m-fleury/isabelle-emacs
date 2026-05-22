@@ -136,7 +136,7 @@ fun replay_thm solver method_for rewrite_rules ll_defs ctxt assumed unchanged_pr
         ((prop_skeleton, concl), ctxt)
         args
         needs_boxes
-      |> Simplifier.simplify (Simplifier.add_simps (@{thm alethe_Box_def2} :: rewrite_rules) (Simplifier.Simplifier.empty_simpset ctxt))
+      |> Simplifier.simplify (Simplifier.add_simps (@{thm alethe_Box_def2} :: rewrite_rules) (Simplifier.empty_simpset ctxt))
   end
  | replay_thm _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ = raise Fail "unreachable code to silence the compiler"
 
