@@ -161,36 +161,6 @@ val cvc5_proof: SMT_Solver.solver_config = {
   class = select_class,
   avail = make_avail "CVC5",
   command = make_command "CVC5",
-  options = cvc5_options,
-  smt_options = [(":produce-proofs", "true")],
-  good_slices = (*TODO: Mathias added these from Sledgehammer (when cvc5 is used with unsat cores without proof reconstruction
-Hanna should show this to other cvc5 guys and ask what options we should try. These might be based on SMT-COMP but could be
-outdated. We would need to test in the end
-
-Strategy die Sledgehammer nimmt, ruft jede fuer ein paar Sekunden auf.
-*)
-    (* FUDGE *)
-    [((2, false, false, 512, meshN), ["--full-saturate-quant", "--inst-when=full-last-call", "--inst-no-entail", "--term-db-mode=relevant", "--multi-trigger-linear"]),
-     ((2, false, false, 64, meshN), ["--decision=internal", "--simplification=none", "--full-saturate-quant"]),
-     ((2, false, true, 256, mepoN), ["--trigger-sel=max", "--full-saturate-quant"]),
-     ((2, false, false, 1024, meshN), ["--relevant-triggers", "--full-saturate-quant"]),
-     ((2, false, false, 32, meshN), ["--term-db-mode=relevant", "--full-saturate-quant"]),
-     ((2, false, false, 128, meshN), ["--no-e-matching", "--full-saturate-quant"]),
-     ((2, false, false, 256, meshN), ["--finite-model-find", "--decision=internal"])],
-  outcome = on_first_line (outcome_of "unsat" "sat" "unknown" "timeout"),
-  parse_proof = SOME (K CVC_Proof_Parse.parse_proof_unsatcore),
-  replay = NONE }
-
-(*
-We need different options for alethe proof production by cvc5 and the smt_options
-cannot be changed, so different configuration.
-*)
-
-val cvc5_proof: SMT_Solver.solver_config = {
-  name = "cvc5_proof",
-  class = select_class,
-  avail = make_avail "CVC5",
-  command = make_command "CVC5",
   options = cvc5_proof_options,
   smt_options = [(":produce-proofs", "true")],
   good_slices = #good_slices cvc5,

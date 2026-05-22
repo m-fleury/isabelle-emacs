@@ -18,9 +18,6 @@ theory Main
     Binomial
     GCD
     "CVC/SMT_CVC"
-    (*added because we need it for reconstructing integer cvc proofs*)
-    Real
-    "CVC/SMT_CVC_Real"
 begin
 
 
@@ -91,7 +88,6 @@ syntax
 end
 
 unbundle no lattice_syntax
-no_notation floor (\<open>(\<open>open_block notation=\<open>mixfix floor\<close>\<close>\<lfloor>_\<rfloor>)\<close>)
 
 declare[[smt_trace=false,smt_verbose=false]]
 end

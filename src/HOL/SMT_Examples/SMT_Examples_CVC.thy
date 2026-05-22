@@ -10,7 +10,7 @@ the others come from the Isabelle distribution or the AFP.
 section \<open>Examples for the cvc5-SMT binding\<close>
 
 theory SMT_Examples_CVC
-  imports Main
+  imports Complex_Main
 begin
 
 (*
@@ -20,7 +20,7 @@ declare [[smt_certificates = "SMT_Examples_CVC.certs"]]
 declare [[smt_read_only_certificates = false]]
 *)
 
-declare [[smt_trace=true,smt_verbose=false,smt_debug_verit,smt_statistics]]
+declare [[smt_trace=false,smt_verbose=false,smt_debug_verit,smt_statistics]]
 declare [[smt_nat_as_int]]
 
 declare[[smt_expert_debug_alethe_level=0]]
@@ -797,21 +797,21 @@ context
   fixes
    round_up :: "int \<Rightarrow> real \<Rightarrow> real"and
    round_down :: "int \<Rightarrow> real \<Rightarrow> real" and
-   powr :: \<open>real \<Rightarrow> real \<Rightarrow> real\<close> (infix "powr" 80)
-  assumes powr_gt_zero: \<open>\<And>a b :: real. 0 < x powr a \<longleftrightarrow> x \<noteq> 0\<close>
-   and powr_minus_divide: "\<And>a x :: real. x powr (- a) = 1/(x powr a)"
+   powr :: \<open>real \<Rightarrow> real \<Rightarrow> real\<close> (infix "powr2" 80)
+  assumes powr_gt_zero: \<open>\<And>a b :: real. 0 < x powr2 a \<longleftrightarrow> x \<noteq> 0\<close>
+   and powr_minus_divide: "\<And>a x :: real. x powr2 (- a) = 1/(x powr2 a)"
    and round_up_diff_round_down: \<open>\<And>prec (x::real). round_up prec x - round_down prec x
-    \<le> 2 powr (- real_of_int prec)\<close> 
+    \<le> 2 powr2 (- real_of_int prec)\<close> 
    and round_down_uminus_eq: \<open>\<And>prec x. round_down p (- x) = - round_up p x\<close>
    and round_up: \<open>\<And>prec x. x \<le> round_up prec x\<close>
-   and round_up_diff_round_down: \<open>\<And>prec x. round_up prec x - round_down prec x \<le> 2 powr (- real_of_int prec)\<close>
+   and round_up_diff_round_down: \<open>\<And>prec x. round_up prec x - round_down prec x \<le> 2 powr2 (- real_of_int prec)\<close>
 
 begin
 
 lemma
   assumes "x < 1 / 2" \<open>p > 0\<close>
-     \<open>1 / 2 * 2 powr real_of_int p \<le> 2 powr real_of_int p - 1\<close> 
-     \<open>x * 2 powr real_of_int p < 1 / 2 * 2 powr real_of_int p\<close>
+     \<open>1 / 2 * 2 powr2 real_of_int p \<le> 2 powr2 real_of_int p - 1\<close> 
+     \<open>x * 2 powr2 real_of_int p < 1 / 2 * 2 powr2 real_of_int p\<close>
   shows "round_up p x < 1"
   supply [[smt_trace=false,smt_statistics=true,smt_verbose=false,
 ML_print_depth=1000,show_types]]
@@ -824,8 +824,8 @@ ML_print_depth=1000,show_types]]
 
 lemma
   assumes "x < 1 / 2" \<open>p > 0\<close>
-     \<open>1 / 2 * 2 powr real_of_int p \<le> 2 powr real_of_int p - 1\<close> 
-     \<open>x * 2 powr real_of_int p < 1 / 2 * 2 powr real_of_int p\<close>
+     \<open>1 / 2 * 2 powr2 real_of_int p \<le> 2 powr2 real_of_int p - 1\<close> 
+     \<open>x * 2 powr2 real_of_int p < 1 / 2 * 2 powr2 real_of_int p\<close>
   shows "round_up p x < 1"
   supply [[smt_trace=false,smt_statistics=true,smt_verbose=false,
         ML_print_depth=1000,show_types,alethe_use_propositional_skeleton=false]]
@@ -996,7 +996,8 @@ lemma
        "Fin (0::'a::comm_monoid_add) + (x::'a::comm_monoid_add extended) = x "
   supply [[smt_trace=false,smt_statistics]]
   using assms
-  by (smt (cvc5,fmf))
+  by (smt (cvc5,no_ematching))
+
 lemma
   assumes 
       "\<forall>(a::'a \<Rightarrow> 'b) (b::'a \<Rightarrow> 'b) A::('a \<Rightarrow> 'b) set. (a \<in> insert b A) = (a = b \<or> a \<in> A)"
@@ -1010,7 +1011,7 @@ lemma
       "(a::'a) \<notin> (A'::'a set)"
       "(f::'a \<Rightarrow> 'b) \<notin> {f::'a \<Rightarrow> 'b. \<forall>aa::'a. if aa \<in> insert (a::'a) (A'::'a set) then f aa \<in> (B::'a \<Rightarrow> 'b set) aa else f aa = (f0::'a \<Rightarrow> 'b) aa} "
     shows False
-  using assms supply [[smt_trace=false]] by (smt (cvc5,quant_saturate))
+  using assms supply [[smt_trace=false]] by (smt (cvc5))
 
 
 experiment
@@ -1164,7 +1165,7 @@ lemma
           "\<forall>s. \<triangle> (\<T> s) \<and> \<diamond> s \<and> \<Turnstile>\<^sub>n\<^sub>o\<^sub>l\<^sub>h\<^sub>s s \<and> \<nabla> s \<and> s \<succ>\<^sub>x s' \<and> \<B>\<^sub>i s' = \<B>\<^sub>i s \<and> \<U>\<^sub>c s' = \<U>\<^sub>c s \<longrightarrow> \<triangle> (\<T> s')"
           "\<not> \<triangle> (\<T> s')"
   shows False
-  using assms by (smt (cvc5, noematch) case_prodE mem_Collect_eq prod.inject tranclD2)
+  using assms by (smt (cvc5, no_ematching) case_prodE mem_Collect_eq prod.inject tranclD2)
 
 end
 end

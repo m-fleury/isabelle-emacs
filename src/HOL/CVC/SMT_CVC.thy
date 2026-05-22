@@ -2,10 +2,6 @@ theory SMT_CVC \<comment> \<open>More Setup for CVC that should be in HOL eventu
   imports HOL.SMT "HOL.Alethe_Rare_Interface"
 begin
 
-(*lemmas [cvc_evaluate] = arith_simp_cvc5*)
-
-
-
 (*Term rewrites*)
 
 ML \<open>

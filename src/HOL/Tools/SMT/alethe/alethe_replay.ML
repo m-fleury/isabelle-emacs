@@ -19,10 +19,6 @@ open SMT_Config
 fun debug_msg ctxt = alethe_debug_msg ctxt "alethe_replay"
 fun debug_cond_msg ctxt cond verbosity msg = (if cond then debug_msg ctxt verbosity msg else ())
 
-fun filter_split _ [] = ([], [])
-  | filter_split f (a :: xs) =
-     (if f a then apfst (curry op :: a) else apsnd (curry op :: a)) (filter_split f xs)
-
 (** Util **)
 
 fun subst_only_free pairs =
@@ -97,7 +93,7 @@ fun replay_thm solver method_for rewrite_rules ll_defs ctxt assumed unchanged_pr
       | _ => raise Fail ("assumption " ^ @{make_string} id ^ " not found"))
   else
   let
-    val rewrite = let val thy = Proof_Context.theory_of (empty_simpset ctxt) in
+    val rewrite = let val thy = Proof_Context.theory_of (Simplifier.empty_simpset ctxt) in
         Raw_Simplifier.rewrite_term thy rewrite_rules []
         #> not (null ll_defs andalso Alethe_Proof.keep_raw_lifting rule) ? SMTLIB_Isar.unlift_term ll_defs
       end
@@ -106,7 +102,7 @@ fun replay_thm solver method_for rewrite_rules ll_defs ctxt assumed unchanged_pr
           filter (curry Term.could_unify (Thm.concl_of @{thm SMT.fun_app_def}) o Thm.concl_of) rewrite_rules
         else rewrite_rules)
 
-    val post = let val thy = Proof_Context.theory_of (empty_simpset ctxt) in
+    val post = let val thy = Proof_Context.theory_of (Simplifier.empty_simpset ctxt) in
         Raw_Simplifier.rewrite_term thy concl_rewriter []
         #> Object_Logic.atomize_term ctxt
         #> not (null ll_defs) ? SMTLIB_Isar.unlift_term ll_defs
@@ -147,7 +143,7 @@ fun replay_thm solver method_for rewrite_rules ll_defs ctxt assumed unchanged_pr
 
 
 fun replay_theorem_step solver method_for rewrite_rules all_assms ll_defs assumed (inputs : thm list) (all_local_assumptions : thm list)
-  (step as Alethe_Node.Alethe_Replay_Node {id, rule, prems, step_args, context_assignments,
+  (step as Alethe_Node.Alethe_Replay_Node {id, rule, prems = non_skolem_prems, step_args, context_assignments,
      subproof = (fixes, assms, input, subproof), concl, args, prop_skeleton, ...})
   (globally_known_facts, stats, ctxt, concl_transformation, global_transformation) =
   let
@@ -168,7 +164,7 @@ fun replay_theorem_step solver method_for rewrite_rules all_assms ll_defs assume
 
     (* Rewriting and transforming util *)
     val remove_lambdas =
-      let val thy = Proof_Context.theory_of (empty_simpset ctxt) in
+      let val thy = Proof_Context.theory_of (Simplifier.empty_simpset ctxt) in
         Raw_Simplifier.rewrite_term thy (if (Alethe_Proof.keep_raw_lifting rule) andalso not (null rewrite_rules) then tl rewrite_rules else rewrite_rules) []
         #> Object_Logic.atomize_term ctxt
         #> not (null ll_defs orelse Alethe_Proof.keep_raw_lifting rule) ? SMTLIB_Isar.unlift_term ll_defs
@@ -213,10 +209,16 @@ fun replay_theorem_step solver method_for rewrite_rules all_assms ll_defs assume
 
     (* Processing components with new context *)
     val export_thm = singleton (Proof_Context.export sub_ctxt2 ctxt)
-    val subst_transform = (Raw_Simplifier.rewrite_term (Proof_Context.theory_of (empty_simpset ctxt)) ((if (Alethe_Proof.keep_raw_lifting rule) andalso not (null rewrite_rules) then tl rewrite_rules else rewrite_rules)) []
+    val subst_transform = (Raw_Simplifier.rewrite_term (Proof_Context.theory_of (Simplifier.empty_simpset ctxt)) ((if (Alethe_Proof.keep_raw_lifting rule) andalso not (null rewrite_rules) then tl rewrite_rules else rewrite_rules)) []
          o (not (null ll_defs) ? SMTLIB_Isar.unlift_term ll_defs) o subst_free_if_nonempty concl_transformation o subst_only_free global_transformation)
     val id_to_thm = (Symtab.lookup (if (null subproof) then globally_known_facts else locally_known_facts))
-    val (prems_skolem_def,non_skolem_prems) = filter_split Alethe_Proof.is_skolem_def prems
+    (*the name of the used skolem definitions is not in the premises, but in
+    the args*)
+    val prems_skolem_def =
+      (case args of
+        SOME (Alethe_Node.Sko_Def_Prems (a, b)) => a @ b
+      | _ => [])
+
     val prems_as_thms_with_context_assms =
       non_skolem_prems
       |> map_filter id_to_thm
@@ -228,14 +230,14 @@ fun replay_theorem_step solver method_for rewrite_rules all_assms ll_defs assume
     val step_args = map subst_transform step_args
     val args =
       (case args of
-        SOME (Alethe_Node.Insts tab) => SOME (Alethe_Node.Insts (Symtab.map (K subst_transform) tab)) |
-        _ => args)
+        SOME (Alethe_Node.Insts tab) => SOME (Alethe_Node.Insts (Symtab.map (K subst_transform) tab))
+      | _ => args)
     val context_assignments = map subst_transform context_assignments
     val _ = debug_cond_msg ctxt (length non_skolem_prems <> length prems_as_thms_with_context_assms) low (fn () =>
       \<^print> ("Warning, there were premises that are not accessible to the current step (i.e., that are not in the context). This should not happen. These were ignored."))
-    val _ = debug_cond_msg ctxt (not (null prems)) middle (fn () =>
+    val _ = debug_cond_msg ctxt (not (null non_skolem_prems)) middle (fn () =>
       \<^print> ("Export premises that are not skolem definitions, to the current context." ^
-        "This will automatically add context assertions and assumes to the goal.",(prems,prems_as_thms_with_context_assms)))
+        "This will automatically add context assertions and assumes to the goal.",(non_skolem_prems,prems_as_thms_with_context_assms)))
     val _ = debug_cond_msg ctxt (not (null step_args)) middle (fn () => \<^print> ("Processed step_args",step_args))
     val _ = debug_cond_msg ctxt (not (null context_assignments)) middle (fn () => \<^print> ("Processed context_assignments", context_assignments))
 
@@ -245,9 +247,9 @@ fun replay_theorem_step solver method_for rewrite_rules all_assms ll_defs assume
        then all_assms (* For external problems we don't know which assumptions are used since the assertions might not have names, add all *)
        else []
     val all_local_assumptions =
-       if Alethe_Replay_Methods.requires_subproof_assms prems rule then updated_local_assumptions else []
+       if Alethe_Replay_Methods.requires_subproof_assms non_skolem_prems rule then updated_local_assumptions else []
     val local_inputs =
-       if Alethe_Replay_Methods.requires_local_input prems rule then input_as_thm @ inputs else []
+       if Alethe_Replay_Methods.requires_local_input non_skolem_prems rule then input_as_thm @ inputs else []
     val _ = debug_cond_msg ctxt (not (null missing_assumptions)) low (fn () => \<^print> ("Assumptions could not be mapped to the current input rule by name" ^
       "(possibly because you are checking an external proof), so all assumptions were added",missing_assumptions))
     val _ = debug_cond_msg ctxt (not (null all_local_assumptions)) middle (fn () => \<^print> ("Added mapping from context_assignment as premises to steps (refl,sko_forall,sko_ex,cong)",all_local_assumptions))
@@ -317,7 +319,7 @@ fun replay_definition_step rewrite_rules ll_defs
 
 fun prove_ll_def_from_assms assms ll_defs rewrite_rules stats ctxt term =
   let
-    val rewrite = let val thy = Proof_Context.theory_of (empty_simpset ctxt) in
+    val rewrite = let val thy = Proof_Context.theory_of (Simplifier.empty_simpset ctxt) in
         Raw_Simplifier.rewrite_term thy rewrite_rules []
         #> not (null ll_defs) ? SMTLIB_Isar.unlift_term ll_defs (* Unfold lambda defs *)
       end
@@ -383,14 +385,14 @@ fun replay solver method_for outer_ctxt
       map_filter (fn id => let val i = index_of_id id in if i >= 0 andalso i < length assms then
             let val concl = Thm.prop_of (snd (nth assms i))
               |> Raw_Simplifier.rewrite_term (Proof_Context.theory_of
-               (Simplifier.add_simps rewrite_rules (empty_simpset ctxt))) rewrite_rules []
+               (Simplifier.add_simps rewrite_rules (Simplifier.empty_simpset ctxt))) rewrite_rules []
             in SOME (SMTLIB_Interface.assert_name_of_role_and_index SMT_Util.Axiom id,
               Alethe_Proof.input_rule, concl, @{term "Trueprop True"}) end
           else NONE end) used_assert_ids
     val _ = debug_msg ctxt high (fn () => \<^print> ("These are genuine assumptions of the proof",real_assms))
 
     (* Process lambda lifting definitions *)
-    fun normalize_tac ctxt = let val thy = Proof_Context.theory_of (empty_simpset ctxt) in
+    fun normalize_tac ctxt = let val thy = Proof_Context.theory_of (Simplifier.empty_simpset ctxt) in
       Raw_Simplifier.rewrite_term thy rewrite_rules [] end
     val used_lldefs =
       map_filter (fn id => let val i = index_of_id id in if i < 0 andalso not (ll_defs = [])

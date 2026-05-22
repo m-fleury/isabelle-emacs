@@ -158,8 +158,8 @@ sig
   val rare_rewrite: alethe_tac
   val evaluate: alethe_tac
   val unit_res: alethe_tac
-  val sko_ex: alethe_tac_context_args_and_arg
-  val sko_forall: alethe_tac_context_args_and_arg
+  val sko_ex: alethe_tac
+  val sko_forall: alethe_tac
   val subproof: alethe_tac
   val ordered_subproof: alethe_tac
   val sum_simplify: alethe_tac
@@ -455,7 +455,8 @@ fun eqsubst_all ctxt thms =
 fun get_solver_name (SOME (Solver_Name name)) = name
   | get_solver_name _ = "unknown solver name"
 
-fun print_conv (str : string) ct = ((*@{print} (str, ct, Thm.term_of ct);*) Conv.all_conv ct)
+(*Very useful helper function, I really don't understand why this is not defined in conversion.ML*)
+fun print_conv (str : string) ct = (ignore str; (*@{print} (str, ct, Thm.term_of ct);*) Conv.all_conv ct)
 
 (*
 We were told that emptying and filling the context back and forth could be improved.
@@ -478,7 +479,7 @@ fun partial_simplify_tac ctxt thms =
 
 fun partial_simplify_tac_with_cong cong simprocs ctxt thms =
   ctxt
-  |> empty_simpset
+  |> Simplifier.empty_simpset
   |> put_simpset HOL_basic_ss
   |> Simplifier.add_simps (@{thms simp_thms} @ thms)
   |> Simplifier.add_cong cong
@@ -654,7 +655,7 @@ local
        in name :: extract_var_name thms end
     | extract_var_name [] = []
 
-fun skolem_tac extractor thm1 thms1 ctxt prems context_ass (decl:string list * string list) t =
+fun skolem_tac extractor thms1 ctxt prems t =
   let
 
     val (ctxt_eq, rew, other) = extract_rewrite_rule_assumption prems
@@ -695,22 +696,17 @@ fun skolem_tac extractor thm1 thms1 ctxt prems context_ass (decl:string list * s
       THEN_ALL_NEW TRY' (resolve_tac ctxt @{thms refl})
        (*If the above hasn't worked try unfolding + simplifier *)
       THEN' K (unfold_tac ctxt ctxt_eq)
-      THEN' TRY' (partial_simplify_tac ctxt (@{thms eq_commute}))))
+      THEN' TRY' (partial_simplify_tac ctxt @{thms eq_commute})))
   end
 in
 
-(*TODO Hanna: Context assumptions are not used so could be omitted. I will wait until the rewrite
-has finished in case they are somehow useful after all. The info should be in decl already though*)
-(*TODO Pascal: decl should be used. Pascal?*)
-fun sko_forall ctxt prems context_ass t (SOME (Sko_Def_Prems decl)) =
-  skolem_tac extract_all_forall_exists_quantified_names_q @{thm alethe_sko_forall_indirect}
-    @{thms alethe_sko_forall_indirect2 alethe_sko_ex_indirect2} ctxt prems context_ass decl t
-  | sko_forall ctxt thms _ t _ = replay_error ctxt "invalid application" Sko_Forall thms [] t
+fun sko_forall ctxt prems t =
+  skolem_tac extract_all_forall_exists_quantified_names_q
+    @{thms alethe_sko_forall_indirect2 alethe_sko_ex_indirect2} ctxt prems t
 
-fun sko_ex ctxt prems context_ass t (SOME (Sko_Def_Prems decl)) =
-  skolem_tac extract_all_forall_exists_quantified_names_q @{thm alethe_sko_ex_indirect}
-    @{thms alethe_sko_ex_indirect2 alethe_sko_forall_indirect2} ctxt prems context_ass decl t
-  | sko_ex ctxt thms _ t _ = replay_error ctxt "invalid application" Sko_Ex thms [] t
+fun sko_ex ctxt prems t =
+  skolem_tac extract_all_forall_exists_quantified_names_q
+    @{thms alethe_sko_ex_indirect2 alethe_sko_forall_indirect2} ctxt prems t
 
 end
 
@@ -1222,7 +1218,7 @@ fun ite_intro ctxt _ t =
   let
     fun simplify_ite ctxt thms cong =
       ctxt
-      |> empty_simpset
+      |> Simplifier.empty_simpset
       |> put_simpset HOL_basic_ss
       |> Simplifier.add_simps (thms @ @{thms simp_thms})
       |> cong ? (Raw_Simplifier.add_eqcong @{thm alethe_ite_if_cong})
@@ -2108,7 +2104,7 @@ fun la_rw_eq ctxt _ t = SMT_Replay_Methods.match_instantiate ctxt t la_rw_eq_thm
 
 fun la_generic_prove args ctxt _ = SMT_Replay_Arith.la_farkas args ctxt
 
-fun la_generic ctxt thms t args =
+fun la_generic ctxt _ t args =
   prove_abstract (SMT_Replay_Methods.abstract_arith_shallow ctxt) (la_generic_prove args) ctxt [] t
 
 fun lia_generic ctxt _ t =
@@ -2116,12 +2112,6 @@ fun lia_generic ctxt _ t =
 
 fun la_disequality ctxt _ t =
   SMT_Replay_Methods.match_instantiate ctxt t @{thm alethe_la_disequality}
-
-fun la_mult_extract (Const ("HOL.Trueprop", _) $ (Const ("HOL.implies", _)
- $ (Const ("HOL.conj",_) $ (_ $ _ $ factor) $ (rel $ l $ r))
- $ _)) = (rel,(factor,l,r))
-
-fun to_lemma "Orderings.ord_class.less" = @{thm alethe_la_mult_pos_less}
 
 (*Oct 18: I am not done here yet but it works already*)
 fun la_mult_pos ctxt _ t =
@@ -2184,7 +2174,7 @@ fun poly_simp ctxt _ =
         THEN' debug_msg_tac' ctxt high "tried to solve arith_poly_norm with custom simplify tac")
         (*if the previous does not solve, use full simplification power with the current content*)
       ORELSE'
-        (simplify_tac_with_background_simp ctxt (Named_Theorems.get ctxt @{named_theorems field_simps})
+        TRY' (simplify_tac_with_background_simp ctxt []
         THEN' debug_msg_tac' ctxt high "tried full simplifier power on current arith_poly_norm step")
       THEN' TRY' (Code_Simp.dynamic_tac ctxt)
       THEN' debug_msg_tac' ctxt high "tried code evaluation on arith_poly_norm step since nothing else worked")
@@ -2221,7 +2211,7 @@ fun poly_simp_rel ctxt [thm] t =
              )
          THEN' debug_msg_tac' ctxt high "poly_simp_rel after resolving premises"
          ))
-    | poly_simp_rel ctxt thms t = replay_error ctxt "invalid application in some poly_simp_rel rule" Unsupported thms [] t
+  | poly_simp_rel ctxt thms t = replay_error ctxt "invalid application in some poly_simp_rel rule" Unsupported thms [] t
 end
 
 (* Symm and Not_Symm*)
@@ -2312,22 +2302,18 @@ fun contraction ctxt [prem] t =
 fun miniscope_distribute ctxt _ t =
  SMT_Replay_Methods.prove ctxt t (fn _ => (
     debug_rule_tac' ctxt high Miniscope_Distribute "start" THEN'
-    REPEAT_CHANGED
-    (
+    REPEAT_CHANGED(
       K (unfold_tac ctxt @{thms alethe_miniscope_distribute})
-      THEN' TRY' (debug_rule_tac' ctxt high Miniscope_Distribute "applied lemma")
-    )
+      THEN' TRY' (debug_rule_tac' ctxt high Miniscope_Distribute "applied lemma"))
     THEN' debug_rule_tac' ctxt high Miniscope_Distribute "after repeating application of lemma"
     THEN' TRY' (resolve_tac ctxt @{thms refl})))
 
 fun miniscope_split ctxt _ t =
  SMT_Replay_Methods.prove ctxt t (fn _ => (
     debug_rule_tac' ctxt high Miniscope_Split "start" THEN'
-    REPEAT_CHANGED
-    (
+    REPEAT_CHANGED (
       K (unfold_tac ctxt @{thms alethe_miniscope_split})
-      THEN' TRY' (debug_rule_tac' ctxt high Miniscope_Split "applied lemma")
-    )
+      THEN' TRY' (debug_rule_tac' ctxt high Miniscope_Split "applied lemma"))
     THEN' debug_rule_tac' ctxt high Miniscope_Split "after repeating application of lemma"
     THEN' TRY' (resolve_tac ctxt @{thms refl})
     THEN' TRY' (blast_tac ctxt) (*variable reordering*)

@@ -148,7 +148,6 @@ fun qnt_simplify ctxt _ t = SMT_Replay_Methods.prove ctxt t (fn _ =>
 fun ignore_args       f ctxt prems _ _ goal _ = f ctxt prems goal
 fun include_step_args f ctxt prems step_args _ goal _ = f ctxt prems step_args goal
 fun include_context_ass f ctxt prems _ context_ass goal _ = f ctxt prems context_ass goal
-fun include_context_ass_and_args f ctxt prems _ context_ass goal args = f ctxt prems context_ass goal args
 fun include_args f ctxt prems _ _ goal args = f ctxt prems goal args
 fun include_step_and_tactic_args f ctxt prems step_args _ goal args = f ctxt prems step_args goal args
 
@@ -235,8 +234,8 @@ fun choose _ And = include_args and_rule
   | choose _ Qnt_Simplify = ignore_args qnt_simplify
   | choose _ Refl = include_args refl
   | choose _ Resolution = ignore_args unit_res
-  | choose _ Sko_Ex = include_context_ass_and_args sko_ex
-  | choose _ Sko_Forall = include_context_ass_and_args sko_forall
+  | choose _ Sko_Ex = ignore_args sko_ex
+  | choose _ Sko_Forall = ignore_args sko_forall
   | choose _ Subproof = ignore_args ordered_subproof
   | choose _ Sum_Simplify = ignore_args sum_simplify
   | choose _ Tautological_Clause = ignore_args tautological_clause
