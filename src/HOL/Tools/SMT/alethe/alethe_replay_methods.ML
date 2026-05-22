@@ -2211,7 +2211,7 @@ fun poly_simp_rel ctxt [thm] t =
              )
          THEN' debug_msg_tac' ctxt high "poly_simp_rel after resolving premises"
          ))
-    | poly_simp_rel ctxt thms t = replay_error ctxt "invalid application in some poly_simp_rel rule" Unsupported thms [] t
+  | poly_simp_rel ctxt thms t = replay_error ctxt "invalid application in some poly_simp_rel rule" Unsupported thms [] t
 end
 
 (* Symm and Not_Symm*)
@@ -2302,22 +2302,18 @@ fun contraction ctxt [prem] t =
 fun miniscope_distribute ctxt _ t =
  SMT_Replay_Methods.prove ctxt t (fn _ => (
     debug_rule_tac' ctxt high Miniscope_Distribute "start" THEN'
-    REPEAT_CHANGED
-    (
+    REPEAT_CHANGED(
       K (unfold_tac ctxt @{thms alethe_miniscope_distribute})
-      THEN' TRY' (debug_rule_tac' ctxt high Miniscope_Distribute "applied lemma")
-    )
+      THEN' TRY' (debug_rule_tac' ctxt high Miniscope_Distribute "applied lemma"))
     THEN' debug_rule_tac' ctxt high Miniscope_Distribute "after repeating application of lemma"
     THEN' TRY' (resolve_tac ctxt @{thms refl})))
 
 fun miniscope_split ctxt _ t =
  SMT_Replay_Methods.prove ctxt t (fn _ => (
     debug_rule_tac' ctxt high Miniscope_Split "start" THEN'
-    REPEAT_CHANGED
-    (
+    REPEAT_CHANGED (
       K (unfold_tac ctxt @{thms alethe_miniscope_split})
-      THEN' TRY' (debug_rule_tac' ctxt high Miniscope_Split "applied lemma")
-    )
+      THEN' TRY' (debug_rule_tac' ctxt high Miniscope_Split "applied lemma"))
     THEN' debug_rule_tac' ctxt high Miniscope_Split "after repeating application of lemma"
     THEN' TRY' (resolve_tac ctxt @{thms refl})
     THEN' TRY' (blast_tac ctxt) (*variable reordering*)
