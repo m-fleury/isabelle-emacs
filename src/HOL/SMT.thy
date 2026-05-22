@@ -1092,16 +1092,9 @@ ML_file \<open>Tools/SMT/alethe/cvc5_replay.ML\<close>
 
 ML_file \<open>Tools/SMT/smt_systems.ML\<close>
 (*
-Alle theory files in diesem Dir:
-src/HOL/Tools/SMT/alethe/rare_rewrites/
 
-sollen in src/HOL/ directly. Give them common prefix Alethe_
 
 (*Umbennen*)
-
-SMT.thy should import List.thy?
-- Harder for people to add to List.thy
-\<rightarrow> Make wrapper theory that imports List.thy and introduces rewrite rules. Then, include in some theory before Main
 
 SMT_CVC_Real soll nur in Complex Main drinsein und nicht in Main! TODO: see what poly_simp would do.
 
