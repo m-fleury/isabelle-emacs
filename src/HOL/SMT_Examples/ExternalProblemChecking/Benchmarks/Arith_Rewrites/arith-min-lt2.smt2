@@ -1,5 +1,0 @@
-(set-logic ALL)
-(declare-fun n () String)
-(assert (not (= (<= (ite (< (str.len n) 1) (str.len n) 1) 1) true)))
-(check-sat)
-(exit)

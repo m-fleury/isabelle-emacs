@@ -1,7 +1,0 @@
-(set-logic QF_AUFLIRA)
-(declare-fun v1 () Int)
-(declare-fun v2 () Int)
-(declare-fun v3 () Real)
-(assert (not (= (not (>= v1 0)) (>= 0 (+ v1 1)))))
-(check-sat)
-(exit)

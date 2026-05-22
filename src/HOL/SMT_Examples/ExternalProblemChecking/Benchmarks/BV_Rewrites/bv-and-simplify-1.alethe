@@ -1,5 +1,0 @@
-unsat
-(step t4 (cl (= 32 (@bvsize t))) :rule trust :args ("trust"))
-(step t5 (cl (= (bvand (bvnot t) t) (@bv 0 32))) :rule rare_rewrite :premises (t4) :args ("bv-and-simplify-1" rare-list rare-list rare-list t 32))
-(step slice_end (cl) :rule trust :premises (t5) :args ("trust"))
-

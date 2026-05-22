@@ -1,6 +1,0 @@
-(set-logic QF_BV)
-(declare-fun T2_1788 () (_ BitVec 16))
-(declare-fun T1_1788 () (_ BitVec 8))
-(declare-fun T1_1789 () (_ BitVec 8))
-(check-sat)
-(exit)

@@ -1,5 +1,0 @@
-unsat
-(step t30 (cl (= 32 (@bvsize ((_ extract 31 0) CV6539e1042670t7p24659th1)))) :rule trust :args ("trust"))
-(step t31 (cl (= (bvxor ((_ extract 31 0) CV6539e1042670t7p24659th1) ((_ extract 31 0) CV6539e1042670t7p24659th1)) (@bv 0 32))) :rule rare_rewrite :premises (t30) :args ("bv-xor-duplicate" ((_ extract 31 0) CV6539e1042670t7p24659th1) 32))
-(step slice_end (cl) :rule trust :premises (t31) :args ("trust"))
-

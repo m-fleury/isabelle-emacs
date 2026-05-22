@@ -1,4 +1,0 @@
-unsat
-(assume nst422.0 (not (= (= (f a) true) (f a))))
-(step st422 (cl (= (= (f a) true) (f a))) :rule rare_rewrite :args ("bool-eq-true" (f a)))
-(step t.end (cl) :rule resolution :premises (nst422.0 st422))

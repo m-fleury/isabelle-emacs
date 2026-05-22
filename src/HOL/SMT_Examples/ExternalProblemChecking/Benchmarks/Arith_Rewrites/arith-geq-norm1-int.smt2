@@ -1,6 +1,0 @@
-(set-logic ALL)
-(declare-fun a () (Array Int Int))
-(declare-fun i () Int)
-(assert (not (= (>= (+ 2 i) (+ 3 i)) (>= (- (+ 2 i) (+ 3 i)) 0))))
-(check-sat)
-(exit)

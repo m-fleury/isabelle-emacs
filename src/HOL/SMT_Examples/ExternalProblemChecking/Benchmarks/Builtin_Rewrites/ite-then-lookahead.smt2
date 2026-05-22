@@ -1,7 +1,0 @@
-(set-logic QF_UF)
-(declare-sort U 0)
-(declare-fun x () U)
-(declare-fun y () U)
-(declare-fun a () Bool)
-(check-sat)
-(exit)

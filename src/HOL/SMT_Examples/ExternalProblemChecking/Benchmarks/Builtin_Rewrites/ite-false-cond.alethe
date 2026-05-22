@@ -1,4 +1,0 @@
-unsat
-(assume nst93.0 (not (= (ite false (ite (= v1 v2) v2 v3) v2) v2)))
-(step st93 (cl (= (ite false (ite (= v1 v2) v2 v3) v2) v2)) :rule rare_rewrite :args ("ite-false-cond" (ite (= v1 v2) v2 v3) v2))
-(step t.end (cl) :rule resolution :premises (nst93.0 st93))

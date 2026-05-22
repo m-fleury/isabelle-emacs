@@ -1,6 +1,0 @@
-unsat
-(anchor :step t48 :args ((?v0 Nat$) (?v1 Nat$) (:= (?v0 Nat$) ?v0) (:= (?v1 Nat$) ?v1)))
-(step t48.t0 (cl (= (or (and (not (fun_app$c (less$ ?v0) ?v1)) (not (= ?v0 ?v1))) (fun_app$c (less_eq$ ?v0) ?v1)) (and (or (not (fun_app$c (less$ ?v0) ?v1)) (fun_app$c (less_eq$ ?v0) ?v1)) (or (not (= ?v0 ?v1)) (fun_app$c (less_eq$ ?v0) ?v1))))) :rule rare_rewrite :args ("bool-or-and-distrib" (not (fun_app$c (less$ ?v0) ?v1)) (not (= ?v0 ?v1)) rare-list (fun_app$c (less_eq$ ?v0) ?v1) rare-list))
-(step t48 (cl (= (forall ((?v0 Nat$) (?v1 Nat$)) (or (and (not (fun_app$c (less$ ?v0) ?v1)) (not (= ?v0 ?v1))) (fun_app$c (less_eq$ ?v0) ?v1))) (forall ((?v0 Nat$) (?v1 Nat$)) (and (or (not (fun_app$c (less$ ?v0) ?v1)) (fun_app$c (less_eq$ ?v0) ?v1)) (or (not (= ?v0 ?v1)) (fun_app$c (less_eq$ ?v0) ?v1)))))) :rule bind)
-(step slice_end (cl) :rule trust :premises (t48) :args ("trust"))
-

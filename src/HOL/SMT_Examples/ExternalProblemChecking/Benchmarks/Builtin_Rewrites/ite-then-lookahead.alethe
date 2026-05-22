@@ -1,4 +1,0 @@
-unsat
-(step t1 (cl (! (= (! (ite a (! (ite a x y) :named @p_2) (! (ite (! (not a) :named @p_4) x y) :named @p_3)) :named @p_1) (! (ite a x @p_3) :named @p_5)) :named @p_0)) :rule rare_rewrite :args ("ite-then-lookahead" a x y @p_3))
-(step slice_end (cl) :rule trust :premises (t1) :args ("trust"))
-

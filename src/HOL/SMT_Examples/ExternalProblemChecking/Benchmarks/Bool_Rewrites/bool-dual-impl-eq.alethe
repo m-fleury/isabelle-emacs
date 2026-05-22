@@ -1,4 +1,0 @@
-unsat
-(assume nst16.0 (not (= (and (=> (= (+ (+ x1 0 x2) z) (+ (+ x2 1 x1) t)) (and (= (+ x1 0 x2) (+ x2 1 x1)) (= z t))) (=> (and (= (+ x1 0 x2) (+ x2 1 x1)) (= z t)) (= (+ (+ x1 0 x2) z) (+ (+ x2 1 x1) t)))) (= (= (+ (+ x1 0 x2) z) (+ (+ x2 1 x1) t)) (and (= (+ x1 0 x2) (+ x2 1 x1)) (= z t))))))
-(step st16 (cl (= (and (=> (= (+ (+ x1 0 x2) z) (+ (+ x2 1 x1) t)) (and (= (+ x1 0 x2) (+ x2 1 x1)) (= z t))) (=> (and (= (+ x1 0 x2) (+ x2 1 x1)) (= z t)) (= (+ (+ x1 0 x2) z) (+ (+ x2 1 x1) t)))) (= (= (+ (+ x1 0 x2) z) (+ (+ x2 1 x1) t)) (and (= (+ x1 0 x2) (+ x2 1 x1)) (= z t))))) :rule rare_rewrite :args ("bool-dual-impl-eq" (= (+ (+ x1 0 x2) z) (+ (+ x2 1 x1) t)) (and (= (+ x1 0 x2) (+ x2 1 x1)) (= z t))))
-(step t.end (cl) :rule resolution :premises (nst16.0 st16))

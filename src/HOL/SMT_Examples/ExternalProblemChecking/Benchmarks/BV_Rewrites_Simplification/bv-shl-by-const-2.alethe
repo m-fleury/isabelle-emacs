@@ -1,7 +1,0 @@
-unsat
-(step t16 (cl (= (>= 4294967295 (@bvsize s)) true)) :rule trust :args ("trust"))
-(step t17 (cl (= (< 4294967295 (int.pow2 (@bvsize s))) true)) :rule trust :args ("trust"))
-(step t19 (cl (= 32 (@bvsize s))) :rule trust :args ("trust"))
-(step t20 (cl (= (bvshl s (@bv 4294967295 32)) (@bv 0 32))) :rule rare_rewrite :premises (t16 t17 t19) :args ("bv-shl-by-const-2" s 4294967295 32 32))
-(step slice_end (cl) :rule trust :premises (t20) :args ("trust"))
-

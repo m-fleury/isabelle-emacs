@@ -1,4 +1,0 @@
-unsat
-(step t821 (cl (= (bvand (_ bv127 32) (concat (_ bv0 18) T1_8774 (_ bv59 6))) (concat (bvand ((_ extract 31 14) (_ bv127 32)) (_ bv0 18)) (bvand ((_ extract 13 0) (_ bv127 32)) (concat T1_8774 (_ bv59 6)))))) :rule rare_rewrite :premises (t816 t818 t820) :args ("bv-and-concat-pullup2" (rare-list (_ bv127 32)) rare-list T1_8774 (_ bv0 18) (rare-list (_ bv59 6)) 31 14 13))
-(step slice_end (cl) :rule trust :premises (t821) :args ("trust"))
-

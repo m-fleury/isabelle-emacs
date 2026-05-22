@@ -1,8 +1,0 @@
-(set-logic AUFLIA)
-(declare-sort Element 0)
-(declare-fun v2 () Element)
-(declare-fun v3 () Element)
-(declare-fun v4 () Element)
-(assert (not (= (xor (not (= v4 (ite (= v2 v3) v4 v2))) false) (not (= v4 (ite (= v2 v3) v4 v2))))))
-(check-sat)
-(exit)

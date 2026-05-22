@@ -1,3 +1,0 @@
-unsat
-(step t1 (cl (= (=> (tptp.teaches Z Y) (tptp.taughtby X Z)) (or (not (tptp.teaches Z Y)) (tptp.taughtby X Z)))) :rule rare_rewrite :args ("bool-impl-elim" (tptp.teaches Z Y) (tptp.taughtby X Z)))
-(step t.end (cl) :rule trust :premises (t1))

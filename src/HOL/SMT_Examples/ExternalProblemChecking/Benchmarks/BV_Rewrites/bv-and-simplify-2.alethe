@@ -1,5 +1,0 @@
-unsat
-(step t2 (cl (! (= 4 (! (@bvsize y) :named @p_1)) :named @p_0)) :rule trust :args ("trust"))
-(step t3 (cl (! (= (! (bvand x y z (! (bvnot y) :named @p_4) w) :named @p_3) (! (@bv 0 4) :named @p_5)) :named @p_2)) :rule rare_rewrite :premises (t2) :args ("bv-and-simplify-2" (! (rare-list x) :named @p_6) (! (rare-list z) :named @p_7) (! (rare-list w) :named @p_8) y 4))
-(step slice_end (cl) :rule trust :premises (t3) :args ("trust"))
-
