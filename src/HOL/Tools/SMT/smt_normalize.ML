@@ -413,10 +413,12 @@ local
       val t1 = Term.head_of t
 
       fun proper_num_ss ctxt =
-        simpset_of (put_simpset HOL_ss ctxt
-        addsimps (Named_Theorems.get ctxt \<^named_theorems>\<open>simplify_translation\<close>))
+        simpset_of (Simplifier.add_simps (Named_Theorems.get ctxt \<^named_theorems>‹simplify_translation›)
+        (Simplifier.put_simpset HOL_ss ctxt))
 
-      fun simp_rewr thms ctxt = Simplifier.rewrite (Simplifier.add_cong  @{thm option.case_cong} ( (((put_simpset (proper_num_ss  ctxt)) ctxt) addsimps thms)))
+      fun simp_rewr thms ctxt = Simplifier.rewrite (Simplifier.add_cong  @{thm option.case_cong} 
+        (Simplifier.add_simps thms (Simplifier.put_simpset (proper_num_ss  ctxt) ctxt)))
+      
       fun rewr_conv [] = Conv.all_conv |
           rewr_conv (thm::thms) = (Conv.try_conv (Conv.top_rewrs_conv [thm] ctxt))
           then_conv rewr_conv thms
