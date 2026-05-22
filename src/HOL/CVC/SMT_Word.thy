@@ -849,7 +849,7 @@ lemmas [arith_simp_cvc5,arith_mult_poly_norm_cvc5] =
 
 named_theorems bv_aci_simp
 
-ML_file\<open>ML/alethe_replay_bv_methods.ML\<close>
+ML_file\<open>Tools/alethe_replay_bv_methods.ML\<close>
 ML\<open>
 
 open Word_Lib

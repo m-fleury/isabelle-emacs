@@ -39,7 +39,7 @@ val _ = Theory.setup (Context.theory_map (
   setup_builtins 
 ))
 \<close>
-ML_file \<open>ML/alethe_replay_rare_simplify_methods.ML\<close>
+ML_file \<open>Tools/alethe_replay_rare_simplify_methods.ML\<close>
 
 (*check that int.pow2 is properly registered*)
 ML \<open>

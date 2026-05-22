@@ -479,7 +479,7 @@ fun partial_simplify_tac ctxt thms =
 
 fun partial_simplify_tac_with_cong cong simprocs ctxt thms =
   ctxt
-  |> empty_simpset
+  |> Simplifier.empty_simpset
   |> put_simpset HOL_basic_ss
   |> Simplifier.add_simps (@{thms simp_thms} @ thms)
   |> Simplifier.add_cong cong
@@ -1218,7 +1218,7 @@ fun ite_intro ctxt _ t =
   let
     fun simplify_ite ctxt thms cong =
       ctxt
-      |> empty_simpset
+      |> Simplifier.empty_simpset
       |> put_simpset HOL_basic_ss
       |> Simplifier.add_simps (thms @ @{thms simp_thms})
       |> cong ? (Raw_Simplifier.add_eqcong @{thm alethe_ite_if_cong})

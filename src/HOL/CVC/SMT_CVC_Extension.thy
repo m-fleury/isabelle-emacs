@@ -5,9 +5,9 @@ begin
 
 (*Theories currently only supported by cvc5*)
 
-ML_file \<open>ML/SMT_set.ML\<close>
-ML_file \<open>ML/SMT_string.ML\<close>
-ML_file \<open>ML/SMT_array.ML\<close>
+ML_file \<open>Tools/SMT_set.ML\<close>
+ML_file \<open>Tools/SMT_string.ML\<close>
+ML_file \<open>Tools/SMT_array.ML\<close>
 
 
 cvc5_rare "Array_Rewrites.rewrite_array_read_over_write"
