@@ -767,10 +767,11 @@ proof -
    have rep_rhs: "(smt_repeat rn ?top :: 'a word) = -1"                                                          
      using top1 rep_ones_mask mask_eq_minus1 by simp                                                             
    have msb_one:                                                                                                 
-     "(smtlib_extract (int (LENGTH('a) - 1)) (int (LENGTH('a) - 1)) x :: 1 word) = 1"                            
-     using smtlib_extract_msb_eq[of x] True by simp                                                              
+     "(smtlib_extract (int LENGTH('a) - 1) (int LENGTH('a) - 1) x :: 1 word) = 1"                            
+     using smtlib_extract_msb_eq[of x] True 
+     using rn_eq_lenA rn_pos by auto
    have lhs_ashr: "smtlib_bvashr x w_amount = not (smtlib_bvlshr (not x) w_amount)"                              
-     unfolding smtlib_bvashr_def using msb_one by simp                                                           
+     unfolding smtlib_bvashr_def by (simp add: msb_one)
    have inner_zero: "smtlib_bvlshr (not x) w_amount = 0"                                                         
      unfolding smtlib_bvlshr_def                                                                                 
      by (simp add: unat_eq drop_bit_word_beyond len_le flip: drop_bit_eq_div)  
@@ -783,7 +784,8 @@ proof -
      "(smtlib_extract (int (LENGTH('a) - 1)) (int (LENGTH('a) - 1)) x :: 1 word) = 0"
      using smtlib_extract_msb_eq[of x] False by simp
    have lhs_ashr: "smtlib_bvashr x w_amount = smtlib_bvlshr x w_amount"
-     unfolding smtlib_bvashr_def using msb_zero by simp
+     unfolding smtlib_bvashr_def using msb_zero
+     using rn_eq_lenA rn_pos by auto
    have lhs_zero: "smtlib_bvlshr x w_amount = 0"
      unfolding smtlib_bvlshr_def
      by (simp add: unat_eq drop_bit_word_beyond len_le flip: drop_bit_eq_div)
@@ -2819,8 +2821,8 @@ lemma [rewrite_bv_ashr_zero]:
   shows "NO_MATCH cvc_a (undefined a n) 
     \<Longrightarrow> smtlib_bvashr 0 a = 0"
   unfolding smtlib_bvashr_def smtlib_bvlshr_def
-  by (meson div_of_0_id nth_0 smtlib_extract_msb_eq)
-
+  by (metis div_of_0_id len_gt_0 less_one linorder_not_le nth_0 of_nat_1 of_nat_diff order.refl
+      smtlib_extract_msb_eq)
 (*
 (define-cond-rule bv-ugt-urem
   ((y ?BitVec) (x ?BitVec) (w Int))

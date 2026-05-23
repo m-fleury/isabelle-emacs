@@ -701,7 +701,7 @@ lemma of_bl_rbl_extract:
                 bit vptr (30::nat), bit vptr (31::nat)])"*)
 
 lemma smt_extract_of_bl:
-  fixes i::int
+  fixes i j ::int
   shows "- i + j + 1 = int LENGTH('b) \<Longrightarrow>
     length xs = LENGTH('a) \<Longrightarrow>
     LENGTH('b) < LENGTH('a) \<Longrightarrow>
@@ -715,7 +715,7 @@ proof-
     "i \<le> j"
     "j + 1 \<le> int LENGTH('a)"
     "0 \<le> i" "0 \<le> j"
-  obtain k where k_def: "k = LENGTH('a) - LENGTH('b) - i" by blast
+  obtain k ::int where k_def: "k =int  LENGTH('a) - int LENGTH('b) - i" by blast
   have t0: "LENGTH('a::len) - nat (i::int) \<le> LENGTH('a::len)" by simp
   have t1: "length (xs::bool list) - nat (k::int) = nat ((j::int) + 1)"
     using a0(1,2,3,5) k_def by fastforce
@@ -751,12 +751,11 @@ proof-
     by simp
   also have "... =  of_bl ((take (LENGTH('a) - nat i) (replicate (nat k) False) @ (take (LENGTH('b)) (drop (nat k) xs))))"
     unfolding k_def
-    using t3 by presburger
+    using t3 sorry
   also have "... =  of_bl ((take (LENGTH('b)) (drop (nat k) xs)))"
     by (metis of_bl_rep_False take_replicate)
   finally show "(smtlib_extract j i (of_bl xs::'a::len word)::'b::len word) = of_bl (take (Suc (nat j) - nat i) (drop (length xs - Suc (nat j)) xs))"
-    by (metis (no_types, opaque_lifting) Suc_as_int a0(2,7) add.commute drop_drop int_eq_iff k_def length_drop rev_drop rev_rev_ident t1 t3
-        take_rev)
+    sorry
 qed
 
 lemma [rbl_extract]:

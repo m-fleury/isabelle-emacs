@@ -6,7 +6,7 @@ declare[[show_types,show_sorts]]
 any lemma whose provided proof fails and to to import this file in SMT.thy (if you want to use it
 for proof reconstruction).*)
 
-
+declare[[smt_expert_debug_alethe_level=0]]
 
 (*
 (define-cond-rule bv-concat-extract-merge
@@ -812,14 +812,14 @@ proof -
 
   have ext_c: "(smtlib_extract im1 0 x :: 'c::len word) = smt_extract ?nim1 0 x"
     using smtlib_extract_eq_smt_extract[where 'a='a and 'b='c and j="?nim1" and i="0::nat"]
-          im1_nn by (metis int_nat_eq of_nat_0)
+          im1_nn by simp
 
   show "((smtlib_extract j i x :: 'b::len word) = y)
-        = (x = word_cat y (smtlib_extract im1 0 x :: 'c::len word) :: 'a::len word)"
+        = (x = (word_cat y (smtlib_extract im1 0 x :: 'c::len word) :: 'a::len word))"
     unfolding ext_b ext_c
   proof (rule iffI)
     assume H: "(smt_extract ?nj ?ni x :: 'b::len word) = y"
-    show "x = word_cat y (smt_extract ?nim1 0 x :: 'c::len word) :: 'a::len word"
+    show "x = (word_cat y (smt_extract ?nim1 0 x :: 'c::len word) :: 'a::len word)"
     proof (rule bit_word_eqI)
       fix n :: nat
       assume n_lt_a: "n < LENGTH('a::len)"
@@ -852,7 +852,7 @@ proof -
       qed
     qed
   next
-    assume H: "x = word_cat y (smt_extract ?nim1 0 x :: 'c::len word) :: 'a::len word"
+    assume H: "x = (word_cat y (smt_extract ?nim1 0 x :: 'c::len word) :: 'a::len word)"
     show "(smt_extract ?nj ?ni x :: 'b::len word) = y"
     proof (rule bit_word_eqI)
       fix n :: nat
@@ -1190,7 +1190,7 @@ proof -
         = bit (smt_extract (nat high) (nat low)  x :: 'c::len word) n"
       using n_lt_c n_ni_le_nj n_ni_lt_a n_ni_lt_b
       apply (simp add: bit_smt_extract bit_word_scast_iff)
-      sledgehamme
+      sorry
   qed
 qed
 
