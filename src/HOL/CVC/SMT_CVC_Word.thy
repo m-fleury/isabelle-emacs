@@ -158,9 +158,7 @@ cvc_type_parser _ = NONE (*|
 \<close>
 
 ML \<open>
-val _ = Theory.setup (Context.theory_map (
-  SMTLIB_Proof.add_term_parser cvc_term_parser)
-)
+
 val _ = Theory.setup (Context.theory_map (
   SMTLIB_Proof.add_type_parser cvc_type_parser))
 \<close>
