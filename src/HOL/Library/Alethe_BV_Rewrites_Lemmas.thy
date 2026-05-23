@@ -1,6 +1,6 @@
-theory BV_Rewrites_Lemmas
+theory Alethe_BV_Rewrites_Lemmas
   imports  "HOL-Library.Word" Word_Lib.More_Word "HOL-Library.Log_Nat" "HOL.Real" "HOL-Library.Sublist" 
-HOL.SMT "Word_Lib.Signed_Division_Word" "Word_Lib.Reversed_Bit_Lists" SMT_Word
+HOL.SMT "Word_Lib.Signed_Division_Word" "Word_Lib.Reversed_Bit_Lists" CVC_Word
 begin
 
 lemma word_cat_smt_extract: "i \<le> j \<and> j + 1 \<le> k \<and> i \<ge> 0 \<and> k < size x 

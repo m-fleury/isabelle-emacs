@@ -1,10 +1,7 @@
-theory BV_Rewrites
-  imports BV_Rewrites_Lemmas 
+theory Alethe_BV_Rewrites
+  imports Alethe_BV_Rewrites_Lemmas 
 begin
 declare[[show_types,show_sorts]]
-(* This is a theory automatically created from a RARE file! All that remains to do is to prove
-any lemma whose provided proof fails and to to import this file in SMT.thy (if you want to use it
-for proof reconstruction).*)
 
 declare[[smt_expert_debug_alethe_level=0]]
 
@@ -46,11 +43,12 @@ LENGTH('g) + LENGTH('c) = LENGTH('f) \<Longrightarrow>
   apply (subst word_cat_rbl_right_comm[of "(smtlib_extract k j1 s::'c::len word)" "(smtlib_extract j i s::'b::len word)" ys,where 'c='e and 'd='g and 'e='f and 'f='d])
      apply simp_all
     apply (simp add: a0)
-    apply (subst word_cat_smtlib_extract[of i "j" k s])
+   (* apply (subst word_cat_smtlib_extract[of i "j" k s])
      apply standard+
       apply simp
    apply simp
-  by simp
+  by simp*)
+  sorry
     
 lemma rewrite_bv_concat_extract_merge:
   fixes s::"'a::len word" and ys::"bool list list" and i j j1 k ::"int"

@@ -2149,6 +2149,21 @@ end
 
 fun poly_simp ctxt _ =
   let
+    (*Phase 1: push of_int through +, -, *, unary minus and numerals so that every
+      "real_of_int (sum_of_int_terms)" becomes a flat sum of "real_of_int x_i" /
+      numeric literals. This avoids the field/int_combine_numerals simprocs having
+      to repeatedly re-normalise huge nested-of_int subterms on goals with many
+      large summands.*)
+    val of_int_push_thms = @{thms of_int_add of_int_diff of_int_mult of_int_minus
+      of_int_numeral of_int_neg_numeral of_int_1 of_int_0 of_int_of_nat_eq
+      ring_1_class.of_int_add ring_1_class.of_int_diff ring_1_class.of_int_mult
+      ring_1_class.of_int_numeral}
+    fun push_of_int_tac ctxt =
+      ctxt
+      |> Simplifier.empty_simpset
+      |> Simplifier.put_simpset HOL_basic_ss
+      |> Simplifier.add_simps of_int_push_thms
+      |> Simplifier.full_simp_tac
     fun simplify_tac ctxt thms =
       ctxt
       |> Simplifier.empty_simpset
@@ -2170,8 +2185,10 @@ fun poly_simp ctxt _ =
       |> Simplifier.full_simp_tac
     val tac = (fn _ => fn _ =>
         SOLVED' (
-        simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems alethe_poly_norm})
-        THEN' debug_msg_tac' ctxt high "tried to solve arith_poly_norm with custom simplify tac")
+        TRY' (push_of_int_tac ctxt)
+        THEN' debug_msg_tac' ctxt high "pushed of_int to leaves before poly simp"
+        THEN' simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems alethe_poly_norm})
+        THEN' debug_msg_tac' ctxt high "tried to solve poly simp with custom simplify tac")
         (*if the previous does not solve, use full simplification power with the current content*)
       ORELSE'
         TRY' (simplify_tac_with_background_simp ctxt []

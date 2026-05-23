@@ -1,5 +1,5 @@
-theory BV_Rewrites_Simplification
-  imports BV_Rewrites_Lemmas 
+theory Alethe_BV_Rewrites_Simplification
+  imports Alethe_BV_Rewrites_Lemmas 
 begin
 
 declare[[show_types,show_sorts]]

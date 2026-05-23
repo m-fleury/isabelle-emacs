@@ -7,7 +7,7 @@
 section \<open>Word examples for for SMT binding\<close>
 
 theory SMT_Word_Examples_CVC       
-imports "HOL-Library.Word" "HOL.SMT_CVC_Word"
+imports "HOL-Library.Word" "HOL-Library.SMT_CVC_Word"
 begin
 
 

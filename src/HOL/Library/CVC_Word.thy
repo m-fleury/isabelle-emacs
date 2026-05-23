@@ -1,6 +1,6 @@
-theory SMT_Word
-  imports "HOL-Library.Word" Word_Lib.More_Word "HOL-Library.Log_Nat" SMT_CVC
-   "Word_Lib.Reversed_Bit_Lists"  "Alethe_BV_Reconstruction" 
+theory CVC_Word
+  imports "HOL-Library.Word" Word_Lib.More_Word "HOL-Library.Log_Nat" HOL.SMT_CVC
+   "Word_Lib.Reversed_Bit_Lists"  "Alethe_Word_Reconstruction" 
 begin
 (*Erstmal diese Theory Afp abhaengig sein
 Soll zweiten bv_term_parser enthalten, der alle cvc5 bv definitionen enthaelt
@@ -853,7 +853,7 @@ ML_file\<open>Tools/alethe_replay_bv_methods.ML\<close>
 ML\<open>
 
 open Word_Lib
-open Alethe_Replay_BV_Methods
+
 
 fun mk_unary n t =
   let val T = fastype_of t
@@ -993,7 +993,7 @@ end
          $ t2' $ t1') $ @{term "1::nat"}))
      end
   | bv_term_parser (SMTLIB.Sym "int.ispow2", [t1]) =
-      SOME (Const (\<^const_name>\<open>SMT_Word.is_pow2\<close>,\<^typ>\<open>Int.int\<close> --> \<^typ>\<open>bool\<close>) $ t1)
+      SOME (Const (\<^const_name>\<open>CVC_Word.is_pow2\<close>,\<^typ>\<open>Int.int\<close> --> \<^typ>\<open>bool\<close>) $ t1)
   | bv_term_parser (SMTLIB.Sym "int.pow2", [t1]) =
     let
          val T1 = fastype_of t1
@@ -1043,7 +1043,7 @@ end
     let
       val T2 = fastype_of t2
     in
-      SOME (Const (\<^const_name>\<open>SMT_Word.smt_repeat\<close>,\<^typ>\<open>Int.int\<close>--> T2 --> dummyT) $ t1 $ t2)
+      SOME (Const (\<^const_name>\<open>CVC_Word.smt_repeat\<close>,\<^typ>\<open>Int.int\<close>--> T2 --> dummyT) $ t1 $ t2)
     end
   | bv_term_parser (SMTLIB.S [SMTLIB.Sym "_", SMTLIB.Sym "repeat", SMTLIB.Num i], [t2]) =
 
@@ -1053,7 +1053,7 @@ end
       val i' = HOLogic.mk_number @{typ "int"} i |> @{print}
       val T = Word_Lib.mk_wordT(i * bw)
     in
-      SOME (Const (\<^const_name>\<open>SMT_Word.smt_repeat\<close>,\<^typ>\<open>Int.int\<close>--> T2 --> T) $ i' $ t2|> @{print})
+      SOME (Const (\<^const_name>\<open>CVC_Word.smt_repeat\<close>,\<^typ>\<open>Int.int\<close>--> T2 --> T) $ i' $ t2|> @{print})
     end
   | bv_term_parser (SMTLIB.Sym "rotate_left", [t1, t2]) =
     let

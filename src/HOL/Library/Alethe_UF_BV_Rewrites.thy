@@ -3,7 +3,7 @@
 *)
 theory Alethe_UF_BV_Rewrites
   imports "HOL-Library.Word" Word_Lib.More_Word "HOL-Library.Log_Nat" "HOL.Real"
-    SMT_Word
+    CVC_Word
 begin
 
 (*

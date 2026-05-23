@@ -1,5 +1,5 @@
-theory Alethe_BV_Reconstruction
-  imports "Word_Lib.Reversed_Bit_Lists" SMT_CVC_Util
+theory Alethe_Word_Reconstruction
+  imports "Word_Lib.Reversed_Bit_Lists"
 begin
 
 declare[[show_sorts]]
