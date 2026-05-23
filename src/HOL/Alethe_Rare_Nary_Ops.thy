@@ -2,7 +2,7 @@
     Author:     Hanna Lachnitt, Stanford University
 *)
 theory Alethe_Rare_Nary_Ops
-  imports HOL.List (*Smtlib_String SMT_CVC_Util*)
+  imports HOL.List
 begin
 
 datatype 'a cvc_ListVar = ListVar "'a list"
