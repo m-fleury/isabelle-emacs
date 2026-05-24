@@ -5,7 +5,7 @@ imports
   Complex
   MacLaurin
   Binomial_Plus
-  "CVC/SMT_CVC_Real"
+  SMT_CVC_Real
 begin
 
 notation floor (\<open>(\<open>open_block notation=\<open>mixfix floor\<close>\<close>\<lfloor>_\<rfloor>)\<close>)

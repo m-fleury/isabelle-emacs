@@ -1,6 +1,6 @@
-theory Rare_Interface_Real
+theory Alethe_Rare_Interface_Real
   imports "HOL.Real"
-begin (*Since this needs real operators it is not included in RARE_interface*)
+begin (*Since this theory requires real operators it is not included in RARE_interface*)
 
 
 

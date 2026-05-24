@@ -1,24 +1,24 @@
 theory SMT_CVC_Real
-  imports "cvc5_rare_rewrites/Rare_Interface_Real" "HOL.Real"
+  imports Alethe_Rare_Interface_Real HOL.Real
 begin
 
 
-cvc5_rare "Rare_Interface_Real.rewrite_arith_geq_norm1_real"
-cvc5_rare "Rare_Interface_Real.rewrite_arith_eq_elim_real"
-cvc5_rare "Rare_Interface_Real.rewrite_arith_to_int_to_real"
-cvc5_rare "Rare_Interface_Real.rewrite_arith_int_eq_conflict"
-cvc5_rare "Rare_Interface_Real.rewrite_arith_int_geq_tighten"
-cvc5_rare "Rare_Interface_Real.rewrite_arith_geq_ite_lift"
-cvc5_rare "Rare_Interface_Real.rewrite_arith_leq_ite_lift"
+cvc5_rare "Alethe_Rare_Interface_Real.rewrite_arith_geq_norm1_real"
+cvc5_rare "Alethe_Rare_Interface_Real.rewrite_arith_eq_elim_real"
+cvc5_rare "Alethe_Rare_Interface_Real.rewrite_arith_to_int_to_real"
+cvc5_rare "Alethe_Rare_Interface_Real.rewrite_arith_int_eq_conflict"
+cvc5_rare "Alethe_Rare_Interface_Real.rewrite_arith_int_geq_tighten"
+cvc5_rare "Alethe_Rare_Interface_Real.rewrite_arith_geq_ite_lift"
+cvc5_rare "Alethe_Rare_Interface_Real.rewrite_arith_leq_ite_lift"
 
 lemmas [rare_arith_rewrites_simple] =
-"Rare_Interface_Real.rewrite_arith_geq_norm1_real"
-"Rare_Interface_Real.rewrite_arith_eq_elim_real"
-"Rare_Interface_Real.rewrite_arith_to_int_to_real"
-"Rare_Interface_Real.rewrite_arith_int_eq_conflict"
-"Rare_Interface_Real.rewrite_arith_int_geq_tighten"
-"Rare_Interface_Real.rewrite_arith_geq_ite_lift"
-"Rare_Interface_Real.rewrite_arith_leq_ite_lift"
+"Alethe_Rare_Interface_Real.rewrite_arith_geq_norm1_real"
+"Alethe_Rare_Interface_Real.rewrite_arith_eq_elim_real"
+"Alethe_Rare_Interface_Real.rewrite_arith_to_int_to_real"
+"Alethe_Rare_Interface_Real.rewrite_arith_int_eq_conflict"
+"Alethe_Rare_Interface_Real.rewrite_arith_int_geq_tighten"
+"Alethe_Rare_Interface_Real.rewrite_arith_geq_ite_lift"
+"Alethe_Rare_Interface_Real.rewrite_arith_leq_ite_lift"
 
 lemmas [rare_rewrites_simple] = rare_arith_rewrites_simple
 lemmas [rare_rewrites_all] = rare_arith_rewrites_simple
