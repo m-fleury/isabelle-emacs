@@ -2151,9 +2151,7 @@ fun poly_simp ctxt _ =
   let
     (*push of_int through arithmetic operators first*)
     val of_int_push_thms = @{thms of_int_add of_int_diff of_int_mult of_int_minus
-      of_int_numeral of_int_neg_numeral of_int_1 of_int_0 of_int_of_nat_eq
-      ring_1_class.of_int_add ring_1_class.of_int_diff ring_1_class.of_int_mult
-      ring_1_class.of_int_numeral}
+      of_int_numeral of_int_neg_numeral of_int_1 of_int_0 of_int_of_nat_eq}
     fun push_of_int_tac ctxt =
       ctxt
       |> Simplifier.empty_simpset
