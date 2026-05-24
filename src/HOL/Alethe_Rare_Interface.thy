@@ -41,21 +41,11 @@ named_theorems rare_rewrites_complex \<open>RARE rewrites that contain lists or 
 named_theorems rare_rewrites_all \<open>All RARE rewrites\<close>
 
 (*Arithmetic*)
+(*Some rules are defined in Alethe_Rare_Interface_Real, others are omitted when including operators
+we don't use.*)
 named_theorems rare_arith_rewrites_simple \<open>Arithmetic RARE rewrites that don't contain lists or are star rules \<close>
 named_theorems rare_arith_rewrites_complex \<open>Arithmetic RARE rewrites that contain lists or are star rules \<close>
 named_theorems rare_arith_rewrites_all \<open>Arithmetic RARE rewrites\<close>
-
-(*We don't use total operators yet*)
-(*ARITH_DIV_TOTAL_ZERO_REAL*)
-(*ARITH_DIV_TOTAL_ZERO_INTL*)
-(*ARITH_INT_DIV_TOTAL*)
-(*ARITH_INT_DIV_TOTAL_ONE*)
-(*ARITH_INT_DIV_TOTAL_ZERO*)
-(*ARITH_INT_DIV_TOTAL_NEG*)
-(*ARITH_INT_MOD_TOTAL*)
-(*ARITH_INT_MOD_TOTAL_ONE*)
-(*ARITH_INT_MOD_TOTAL_ZERO*)
-(*ARITH_INT_MOD_TOTAL_NEG*)
 
 cvc5_rare "Alethe_Arith_Rewrites.rewrite_arith_elim_gt"
 cvc5_rare "Alethe_Arith_Rewrites.rewrite_arith_elim_lt"
@@ -65,24 +55,16 @@ cvc5_rare "Alethe_Arith_Rewrites.rewrite_arith_elim_leq"
 cvc5_rare "Alethe_Arith_Rewrites.rewrite_arith_leq_norm"
 cvc5_rare "Alethe_Arith_Rewrites.rewrite_arith_geq_tighten"
 cvc5_rare "Alethe_Arith_Rewrites.rewrite_arith_geq_norm1_int"
-(*ARITH_GEQ_NORM1_REAL \<longrightarrow> Rare_Interface_Real.thy*)
-(*ARITH_EQ_ELIM_REAL \<longrightarrow> Rare_Interface_Real.thy*)
 cvc5_rare "Alethe_Arith_Rewrites.rewrite_arith_eq_elim_int"
-(*ARITH_TO_INT_ELIM_TO_REAL \<longrightarrow> Rare_Interface_Real.thy*)
-(*ARITH_MOD_OVER_MOD \<longrightarrow> No support for mod*)
-(*ARITH_MOD_OVER_MOD_MULT \<longrightarrow> No support for mod*)
-(*ARITH_INT_EQ_CONFLICT \<longrightarrow> Rare_Interface_Real.thy*)
-(*ARITH_INT_GEQ_TIGHTEN \<longrightarrow> Rare_Interface_Real.thy*)
-(*ARITH_DIVISIBLE_ELIM \<longrightarrow> TODO*)
-(*ARITH_ABS_EQ \<longrightarrow> No support for abs*)
-(*ARITH_ABS_INT_GT \<longrightarrow> No support for abs*)
-(*ARITH_ABS_REAL_GT \<longrightarrow> No support for mod*)
-(*ARITH_GEQ_ITE_LIFT \<longrightarrow> Rare_Interface_Real.thy*)
-(*ARITH_LEQ_ITE_LIFT \<longrightarrow> Rare_Interface_Real.thy*)
-(*ARITH_MIN_LT1 \<longrightarrow> No support for min*)
-(*ARITH_MIN_LT2 \<longrightarrow> No support for min*)
-(*ARITH_MIN_GEQ1 \<longrightarrow> No support for min*)
-(*ARITH_MIN_GEQ2 \<longrightarrow> No support for min*)
+cvc5_rare "Alethe_Arith_Rewrites.rewrite_arith_mod_over_mod"
+cvc5_rare "Alethe_Arith_Rewrites.rewrite_arith_divisible_elim"
+cvc5_rare "Alethe_Arith_Rewrites.rewrite_arith_geq_ite_lift"
+cvc5_rare "Alethe_Arith_Rewrites.rewrite_arith_leq_ite_lift"
+cvc5_rare "Alethe_Arith_Rewrites.rewrite_arith_min_lt1"
+cvc5_rare "Alethe_Arith_Rewrites.rewrite_arith_min_lt2"
+cvc5_rare "Alethe_Arith_Rewrites.rewrite_arith_max_geq1"
+cvc5_rare "Alethe_Arith_Rewrites.rewrite_arith_max_geq2"
+
 
 lemmas [rare_arith_rewrites_simple] =
 "Alethe_Arith_Rewrites.rewrite_arith_elim_gt"
@@ -93,8 +75,19 @@ lemmas [rare_arith_rewrites_simple] =
 "Alethe_Arith_Rewrites.rewrite_arith_leq_norm"
 "Alethe_Arith_Rewrites.rewrite_arith_geq_tighten"
 "Alethe_Arith_Rewrites.rewrite_arith_geq_norm1_int"
+"Alethe_Arith_Rewrites.rewrite_arith_divisible_elim"
+"Alethe_Arith_Rewrites.rewrite_arith_geq_ite_lift"
+"Alethe_Arith_Rewrites.rewrite_arith_geq_ite_lift"
+"Alethe_Arith_Rewrites.rewrite_arith_leq_ite_lift"
+"Alethe_Arith_Rewrites.rewrite_arith_min_lt1"
+"Alethe_Arith_Rewrites.rewrite_arith_min_lt2"
+"Alethe_Arith_Rewrites.rewrite_arith_max_geq1"
+"Alethe_Arith_Rewrites.rewrite_arith_max_geq2"
+
+lemmas [rare_arith_rewrites_complex] =
 "Alethe_Arith_Rewrites.rewrite_arith_eq_elim_int"
-lemmas [rare_arith_rewrites_all] = rare_rewrites_simple
+
+lemmas [rare_arith_rewrites_all] = rare_arith_rewrites_simple rare_arith_rewrites_complex
 
 (*Booleans*)
 named_theorems rare_bool_rewrites_simple \<open>Boolean RARE rewrites that don't contain lists or are star rules \<close>
@@ -232,7 +225,7 @@ named_theorems rare_cvc5_Rewrites_all \<open>Rewrites only produced by the cvc5 
 
 cvc5_rare "Alethe_cvc5_Rewrites.rewrite_ite_eq"
 cvc5_rare "Alethe_cvc5_Rewrites.rewrite_or_not_refl"
-cvc5_rare "Alethe_cvc5_Rewrites.rewrite_distinct_binary_elim"
+(*cvc5_rare "Alethe_cvc5_Rewrites.rewrite_distinct_binary_elim"*)
 (*MOD_ELIM \<longrightarrow> No support for mod yet *)
 (*IS_INT_ELIM \<longrightarrow> Rare_Interface_Real.thy *)
 (*ABS_ELIM_INT \<longrightarrow> No support for abs yet *)
