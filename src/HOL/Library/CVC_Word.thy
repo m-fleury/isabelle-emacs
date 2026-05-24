@@ -4,6 +4,296 @@ theory CVC_Word
 begin
 
 ML_file\<open>Tools/smt_word_cvc5.ML\<close>
+
+
+subsection \<open>Tool support\<close>
+
+(*Additional definitions*)
+
+definition smt_bit_word :: \<open>'a::len word \<Rightarrow> nat \<Rightarrow> 1 word\<close>
+  where "smt_bit_word a n = (if (bit a n) then (1::1 word) else (0::1 word))"
+
+definition pow_2_word where "pow_2_word (TYPE('a)) y \<equiv> power (2::'a::len word) (nat y)"
+
+(*Normalization*)
+
+lemma [pow_2_word]:
+  "power (2::'a::len word) w \<equiv> push_bit w (1::'a word)"
+  unfolding pow_2_word_def by simp
+
+named_theorems smt_word_len_evaluate \<open>\<close>
+
+(*Speed up for commonly used bit-widths*)
+lemma [smt_word_len_evaluate]:
+  "len_of (a::8 itself) \<equiv> 8"
+  "len_of (b::16 itself) \<equiv> 16"
+  "len_of (c::32 itself) \<equiv> 32"
+  "len_of (d::64 itself) \<equiv> 64"
+  "len_of (e::128 itself) \<equiv> 128"
+  by simp_all
+
+lemmas [smt_word_len_evaluate] = eq_reflection[OF len_bit0] eq_reflection[OF len_bit1]
+  eq_reflection[OF len_num0] eq_reflection[OF len_num1]
+
+lemma Word_of_int:
+  "Word.Word x \<equiv> of_int x"
+  by simp
+
+lemma word_odd_mult_eq_zero:
+  fixes c a :: "'a::len word"
+  assumes "odd c"
+  shows "(c * a = 0) = (a = 0)"
+proof
+  assume a0: "c * a = 0"
+  then have "odd (unat c)"
+    by (metis unat_0 even_of_nat assms add.right_neutral word_arith_nat_add)
+  then have "coprime ((2::nat) ^ LENGTH('a)) (unat c)"
+    by simp
+  moreover have "2 ^ LENGTH('a) dvd unat c * unat a"
+  proof-
+    have "(unat c * unat a) mod 2 ^ LENGTH('a) = 0"
+      by (metis a0 unat_0 unat_word_ariths(2))
+    then show ?thesis
+      by (simp add: mod_eq_0_iff_dvd)
+  qed
+  ultimately have "2 ^ LENGTH('a) dvd unat a"
+    by (metis coprime_dvd_mult_right_iff)
+  then show "a = 0"
+    using unsigned_less nat_dvd_not_less unat_eq_zero by blast
+next
+  assume "a = 0"
+  thus "c * a = 0" by simp
+qed
+
+lemma [alethe_poly_simp_rel]:
+  fixes x1::"'a::len word" and x2 y1 y2 cx cy
+  shows "odd cx \<Longrightarrow> odd cy \<Longrightarrow> cx * (x1-x2) = cy * (y1-y2) \<longrightarrow> ((x1 = x2) = (y1 = y2))"
+proof
+  assume cx_odd: "odd cx"
+  and cy_odd: "odd cy"
+  and eq: "cx * (x1 - x2) = cy * (y1 - y2)"
+  have "(x1 = x2) = (x1 - x2 = 0)" by simp
+  also have "\<dots> = (cx * (x1 - x2) = 0)"
+    using cx_odd by (simp add: word_odd_mult_eq_zero)
+  also have "\<dots> = (cy * (y1 - y2) = 0)" using eq by simp
+  also have "\<dots> = (y1 - y2 = 0)"
+    using cy_odd by (simp add: word_odd_mult_eq_zero)
+  also have "\<dots> = (y1 = y2)" by simp
+  finally show "(x1 = x2) = (y1 = y2)" .
+qed
+
+(*
+The following are formalizations of the resp. SMT-LIB definitions. They are mapped to the respective
+operator.
+*)
+
+definition smtlib_bvshl :: \<open>'a::len word  \<Rightarrow> 'a::len word \<Rightarrow> 'a::len word\<close> where "smtlib_bvshl s t = s * 2^(unat t)"
+definition smtlib_bvlshr :: \<open>'a::len word  \<Rightarrow> 'a::len word \<Rightarrow> 'a::len word\<close> where "smtlib_bvlshr s t = s div 2^(unat t)"
+definition smtlib_bvashr :: \<open>'a::len word  \<Rightarrow> 'a::len word \<Rightarrow> 'a::len word\<close>
+  where "smtlib_bvashr s t = (if (smtlib_extract (int LENGTH('a)-1) (int LENGTH('a)-1) s = (0::1 word)) then smtlib_bvlshr s t else not (smtlib_bvlshr (not s) t))"
+
+lemmas[cvc_evaluate_bv] = smtlib_bvshl_def smtlib_bvlshr_def
+(*
+The following lemmas are unfolded during normalization.
+We tried a lot of different things to avoid this deep embedding but since external solvers can
+generate bv terms freely in their proofs it is hard to make proof reconstruction work without this.
+*)
+lemma push_bit_lift:
+ "push_bit k (w::'a::len word) \<equiv> (if (k \<ge> LENGTH('a::len)) then 0 else smtlib_bvshl w (word_of_int (int k)))"
+  unfolding smtlib_bvshl_def atomize_eq
+  apply (split if_split,rule conjI)
+  subgoal by simp
+  by (metis le_unat_uoi less_exp nat_le_linear of_int_of_nat_eq of_nat_inverse push_bit_eq_mult)
+
+lemma pow2_push_bit_lift: "(2::'a::len word) ^ n \<equiv> (if n < (LENGTH('a)) then smtlib_bvshl 1 (word_of_int (int n)::'a::len word) else 0)"
+  unfolding atomize_eq smtlib_bvshl_def unat_of_nat
+  apply simp_all
+  by (metis le_unat_uoi less_exp less_imp_le of_nat_inverse unat_of_nat)
+
+
+lemma drop_bit_lift:
+ "drop_bit k (w::'a::len word) \<equiv> (if (k \<ge> LENGTH('a::len)) then 0 else smtlib_bvlshr w (word_of_int (int k)))"
+  unfolding smtlib_bvshl_def atomize_eq
+  by (metis (no_types, lifting) drop_bit_eq_div drop_bit_word_beyond le_unat_uoi less_exp nat_le_linear of_int_of_nat_eq
+      of_nat_inverse smtlib_bvlshr_def)
+
+lemma take_bit_lift:
+  "take_bit k (w::'a::len word) \<equiv> w - (if (k \<ge> LENGTH('a::len)) then 0 else smtlib_bvshl (smtlib_bvlshr w (word_of_int (int k))) (word_of_int (int k)))"
+  using bits_ident drop_bit_word_beyond push_bit_word_beyond drop_bit_lift push_bit_lift
+  by (smt (verit, ccfv_SIG) add.commute add_diff_cancel_right')
+declare[[show_types,show_sorts]]
+
+
+
+lemma smtlib_extract_msb_eq:
+  fixes w :: "'a::len word"
+  shows "(smtlib_extract (int (LENGTH('a) - 1)) (int (LENGTH('a) - 1)) w :: 1 word) = (if bit w (LENGTH('a) - 1) then 1 else 0)"
+  unfolding smtlib_extract_def
+  by (rule bit_word_eqI) (auto simp: bit_simps)
+
+lemma signed_drop_bit_lift:
+   "signed_drop_bit k (w::'a::len word) \<equiv>
+    (if k \<ge> LENGTH('a)
+     then (if bit w (LENGTH('a) - 1) then - 1 else 0)
+     else smtlib_bvashr w (word_of_int (int k)))"
+proof(rule eq_reflection, split if_split, rule conjI;rule impI)
+  assume "LENGTH('a) \<le> k"
+  then show "signed_drop_bit k w = (if bit w (LENGTH('a) - 1) then - 1 else 0)"
+    by (simp add: signed_drop_bit_beyond)
+next
+  assume a0: "\<not> LENGTH('a) \<le> k"
+  then have unat_k: "unat (word_of_int (int k) :: 'a word) = k"
+    by (metis less_exp linorder_le_cases of_int_of_nat_eq of_nat_inverse order_le_less_trans)
+  show "signed_drop_bit k w = smtlib_bvashr w (word_of_int (int k))"
+    unfolding smtlib_bvashr_def smtlib_bvlshr_def smtlib_extract_msb_eq
+    apply (simp only: a0 unat_k)
+    apply (cases "bit w (LENGTH('a) -1)")
+    subgoal
+      apply (rule bit_word_eqI)
+      apply (simp only: bit_signed_drop_bit_iff)
+      apply simp
+      (*by (metis (no_types, opaque_lifting) add.commute bit_drop_bit_eq bit_not_iff drop_bit_eq_div le_diff_conv linorder_not_le o_apply possible_bit_word)*) sorry
+    subgoal
+      apply simp sorry
+   (*  apply (simp only: unat_k a0)
+      apply simp
+      apply (rule bit_word_eqI)
+         apply (simp add: bit_signed_drop_bit_iff)
+      by (metis bit_iff_odd diff_diff_left diff_is_0_eq div_exp_eq exp_eq_zero_iff not_bit_length word_exp_length_eq_0)*)
+    done
+qed
+
+lemma smtlib_extract_eq_iff:
+ fixes w :: "'a::len word"
+ shows "(smtlib_extract (int i) (int i) w :: 1 word) = (if (bit w i) then 1 else 0)"
+    unfolding smtlib_extract_def
+    apply (rule bit_word_eqI)
+    unfolding bit_slice_iff semiring_bit_operations_class.bit_take_bit_iff
+    apply simp
+    by (metis add.commute bit_imp_le_length diff_diff_cancel less_Suc_eq_le less_or_eq_imp_le nat_int
+        of_nat_Suc)
+
+lemma bit_lift:
+    "bit (x::'a::len word) i \<equiv>
+     (if i < LENGTH('a) then smtlib_extract (int i) (int i) x = (1::1 word) else False)"
+    apply (rule eq_reflection)
+    apply (subst smtlib_extract_eq_iff)
+    apply (auto dest: bit_imp_le_length)
+    done
+
+lemma slice_lift:
+  fixes x::"'a::len word"
+  shows "slice n x \<equiv> smt_extract (LENGTH('a)) n x"
+  unfolding smt_extract_def
+  apply(subst take_bit_word_eq_self)
+  by simp_all
+
+
+definition set_bit_lift :: \<open>int \<Rightarrow> 'a::len word \<Rightarrow> 'a::len word\<close> where
+  "set_bit_lift x = set_bit (nat x)"
+lemma set_bit_lift:
+  "set_bit x \<equiv> set_bit_lift (int x)"
+  unfolding set_bit_lift_def by simp
+
+definition unset_bit_lift :: \<open>int \<Rightarrow> 'a::len word \<Rightarrow> 'a::len word\<close> where
+  "unset_bit_lift x = unset_bit (nat x)"
+lemma unset_bit_lift:
+  "unset_bit x \<equiv> unset_bit_lift (int x)"
+  unfolding unset_bit_lift_def by simp
+
+definition flip_bit_lift :: \<open>int \<Rightarrow> 'a::len word \<Rightarrow> 'a::len word\<close> where
+  "flip_bit_lift x = flip_bit (nat x)"
+
+
+
+(*TODO: support the non lifted case*)
+(*lemma take_bit_lift:
+  "take_bit n x \<equiv> (x - push_bit_lift (int n) (drop_bit_lift (int n) x))"
+  sorry
+*)
+
+
+definition len_of_lift :: "'a::len0 itself \<Rightarrow> int" where
+"len_of_lift(TYPE('a::len0)) = int(len_of(TYPE('a)))"
+lemma length_lift: "(LENGTH('a)) \<equiv> nat(len_of_lift(TYPE('a::len0)))"
+  unfolding len_of_lift_def by simp
+
+
+definition word_rotr_lift :: "int \<Rightarrow> 'a::len word \<Rightarrow> 'a::len word" where
+"word_rotr_lift j w = word_rotr (nat j) w"
+lemma word_rotr_lift:
+ "word_rotr j w \<equiv> word_rotr_lift (int j) w"
+  unfolding word_rotr_lift_def by simp
+lemma [nat_normalized_input]:
+  "word_rotr (nat j) w \<equiv> word_rotr_lift j w"
+  unfolding word_rotr_lift_def by simp
+
+
+definition word_rotl_lift :: "int \<Rightarrow> 'a::len word \<Rightarrow> 'a::len word" where
+"word_rotl_lift j w = word_rotl (nat j) w"
+lemma word_rotl_lift:
+ "word_rotl j w \<equiv> word_rotl_lift (int j) w"
+  unfolding word_rotl_lift_def by simp
+lemma [nat_normalized_input]:
+  "word_rotr (nat j) w \<equiv> word_rotr_lift j w"
+  unfolding word_rotr_lift_def by simp
+
+
+definition smt_extract_lift :: "int \<Rightarrow> int \<Rightarrow> 'a::len word \<Rightarrow> 'b::len word" where
+"smt_extract_lift j i w  = smt_extract (nat j) (nat i) w"
+lemma smt_extract_lift_old:
+ "smt_extract j i w \<equiv> smt_extract_lift (int j) (int i) w"
+  unfolding smt_extract_lift_def by simp
+lemma [nat_normalized_input]:
+  "smt_extract (nat j) (nat i) w \<equiv> smt_extract_lift j i w"
+  unfolding smt_extract_lift_def by simp
+
+lemma [nat_normalized_input]:
+  "ucast w \<equiv> Word.cast w"
+   by simp
+
+lemma word_numeral_lift:
+"(numeral (x::num)::'a::len word) \<equiv> word_of_int (take_bit LENGTH('a::len) (numeral x))"
+  using num_abs_bintr[of x]
+  by auto
+
+
+lemmas [simplify_translation] = len_bit0 len_bit1 len_num1 take_bit_numeral_numeral option.case take_bit_num_simps pred_numeral_simps option.case
+of_int_numeral
+
+ML \<open>
+val nat_native_ops_tab =
+[
+  ("Bit_Operations.semiring_bit_operations_class.take_bit",@{thms take_bit_lift}),
+  ("Bit_Operations.semiring_bit_operations_class.drop_bit",@{thms drop_bit_lift}),
+  ("Bit_Operations.semiring_bit_operations_class.push_bit", @{thms push_bit_lift}),
+  ("Word.signed_drop_bit", @{thms signed_drop_bit_lift}),
+  ("Word.word_rotr", @{thms word_rotr_lift}),
+  ("Word.word_rotl", @{thms word_rotl_lift}),
+  ("Bit_Operations.semiring_bits_class.bit", @{thms bit_lift})
+
+]
+
+(*TODO Hanna: That should work with NONE*)
+val simplify_norm_table = [
+  ("Type_Length.len0_class.len_of", (NONE, ( @{thms smt_word_len_evaluate},SOME @{thms smt_word_len_evaluate}))),
+  ("Word.slice",(SOME (K true), ([],SOME @{thms slice_lift}))) ,
+  ("Num.numeral_class.numeral",(SOME Word_Lib.is_overflow_bv_const, (@{thms word_numeral_lift},SOME @{thms drop_bit_int_code}))),
+  ("Nat.semiring_1_class.of_nat",(SOME (K true), ([],SOME @{thms of_nat_numeral } ))), (*TODO: Add condition to only evaluate if *)
+  ("Pure.type",(NONE,([],SOME []))),
+  ("Power.power_class.power",(NONE,([@{thm pow2_push_bit_lift}],NONE)))
+]
+
+val _ = fold SMT_Normalize.add_nat_native_ops_tab (nat_native_ops_tab)
+    |> Theory.setup o Context.theory_map
+
+val _ = fold SMT_Normalize.add_simplify_ops_tab (simplify_norm_table)
+    |> Theory.setup o Context.theory_map
+\<close>
+
+declare [[smt_nat_as_int]]
+
+
 declare  [[smt_cvc_alethe = true]]
 
 subsection \<open>Tool support\<close>
