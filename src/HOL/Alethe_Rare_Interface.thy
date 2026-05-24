@@ -253,6 +253,6 @@ lemmas [rare_rewrites_complex] = rare_bool_rewrites_complex rare_arith_rewrites_
 lemmas [rare_rewrites_all] = rare_rewrites_simple rare_rewrites_complex
 
 
-ML_file \<open>CVC/Tools/alethe_replay_rare_simplify_methods.ML\<close>
+ML_file \<open>Tools/SMT/alethe/rare_rewrites/alethe_replay_rare_simplify_methods.ML\<close>
 
 end
