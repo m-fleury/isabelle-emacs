@@ -2,14 +2,7 @@ theory CVC_Word
   imports "HOL-Library.Word" Word_Lib.More_Word "HOL-Library.Log_Nat" HOL.SMT_CVC
    "Word_Lib.Reversed_Bit_Lists"  "Alethe_Word_Reconstruction" 
 begin
-(*Erstmal diese Theory Afp abhaengig sein
-Soll zweiten bv_term_parser enthalten, der alle cvc5 bv definitionen enthaelt
 
-BV_Rewrite muss hiervon erben
-
-SMT.thy  
-
-*)
 
 declare  [[smt_cvc_alethe = true]]
 
@@ -849,7 +842,7 @@ lemmas [arith_simp_cvc5,arith_mult_poly_norm_cvc5] =
 
 named_theorems bv_aci_simp
 
-ML_file\<open>Tools/alethe_replay_bv_methods.ML\<close>
+ML_file\<open>Tools/CVC_Word/alethe_replay_bv_methods.ML\<close>
 ML\<open>
 
 open Word_Lib
