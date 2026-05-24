@@ -22,7 +22,7 @@ sig
 
   val add_nat_native_ops_tab : (string * thm list) -> Context.generic -> Context.generic
   val add_simplify_ops_tab : (string * ((term -> bool) option * (thm list * thm list option))) -> Context.generic -> Context.generic
-
+  val gen_normalize : Proof.context -> ('a * thm) list -> ('a * thm) list
 end;
 
 structure SMT_Normalize: SMT_NORMALIZE =

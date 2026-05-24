@@ -328,7 +328,8 @@ fun apply_solver_and_replay ctxt thms0 =
       (if Config.get ctxt (SMT_Config.nat_as_int)
       then SMT_Global_Normalize.global_normalize ctxt norm_thms
       else (ctxt, norm_thms))
-      handle (SMT_Global_Normalize.SMT_GLOBAL_NORMALIZE _) => (ctxt, norm_thms)
+      ||> SMT_Normalize.gen_normalize ctxt
+      handle SMT_Global_Normalize.SMT_GLOBAL_NORMALIZE _ => (ctxt, norm_thms)
     val _ = debug_msg ctxt low (fn () => \<^print> ("set of theorems after nat embedding normalization:", norm_thms))
 
     val (output, replay_data) =
