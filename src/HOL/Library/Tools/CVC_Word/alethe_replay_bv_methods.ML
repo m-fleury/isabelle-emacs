@@ -7,10 +7,6 @@ Proof method for replaying Alethe proofs for bit-vector steps.
 
 signature ALETHE_REPLAY_BV_METHODS =
 sig
-  val xor_pos1: Alethe_Replay_Methods.alethe_tac
-  val xor_pos2: Alethe_Replay_Methods.alethe_tac
-  val xor_neg1: Alethe_Replay_Methods.alethe_tac
-  val xor_neg2: Alethe_Replay_Methods.alethe_tac
 
   val bv_bitblast_step_var: Alethe_Replay_Methods.alethe_tac_step_args
   val bv_bitblast_step_const: Alethe_Replay_Methods.alethe_tac_step_args
@@ -522,51 +518,6 @@ in
   val bv_bitblast_step_bvult = prove_bitblast_step_bvult
   val bv_bitblast_step_bvule = prove_bitblast_step_bvult (*TODO*)
 end
-
-local
-  fun xor_neg_term ctxt thm (\<^term>\<open>Trueprop\<close> $
-         (\<^term>\<open>HOL.disj\<close> $ (\<^term>\<open>SMT_CVC_Util.xor\<close> $ a $ b) $ _)) =
-         Drule.infer_instantiate' ctxt (map (SOME o Thm.cterm_of ctxt) [a, b]) thm
-     | xor_neg_term ctxt thm  t =
-        replay_error ctxt "invalid application in xor neg" Alethe_Replay_Methods.Unsupported [thm] [] t
-
-
-(*TODO: Might be able to get rid of this with better instantiation *)
-  fun xor_pos_term ctxt thm (\<^term>\<open>Trueprop\<close> $
-         (\<^term>\<open>HOL.disj\<close> $ (\<^term>\<open>HOL.Not\<close> $ (\<^term>\<open>SMT_CVC_Util.xor\<close> $ a $ b)) $ _)) =
-         Drule.infer_instantiate' ctxt (map (SOME o Thm.cterm_of ctxt) [a, b]) thm
-     | xor_pos_term ctxt thm t =(@{print}("thm",thm);@{print}("t",t);
-        replay_error ctxt "invalid application in xor pos" Alethe_Replay_Methods.Unsupported [thm] [] t)
-
-  fun prove_xor_pos_neg xor_pos_neg_term thm ctxt _ t =
-    let
-    val _ = (SMT_Config.verit_msg ctxt) (fn () => \<^print> ("bv bitblast xor reconstruction t =",t))
-
- val thm = xor_pos_neg_term ctxt thm t
-    in
-      SMT_Replay_Methods.prove ctxt t (fn _ =>
-        Method.insert_tac ctxt [thm]
-        THEN' TRY' (assume_tac ctxt))
-    end
-in
-
-val xor_pos1  = prove_xor_pos_neg xor_pos_term @{thm xor_pos1}
-val xor_pos2  = prove_xor_pos_neg xor_pos_term @{thm xor_pos2}
-val xor_neg1  = prove_xor_pos_neg xor_neg_term @{thm xor_neg1}
-val xor_neg2  = prove_xor_pos_neg xor_neg_term @{thm xor_neg2}
-
-end
-
-fun ignore_args f ctxt thm _ t = f ctxt thm t
-
-val xor_rules = map (fn (x,y) => (x,ignore_args y)) [
-  ("xor_pos1", xor_pos1),
-  ("xor_pos2", xor_pos2),
-  ("xor_neg1", xor_neg1),
-  ("xor_neg2", xor_neg2)]
-
-val _ = Theory.setup (Context.theory_map (
-   fold (uncurry Alethe_Replay_Methods.declare_alethe_rule) xor_rules))
 
 local
   fun dest_prop (Const (\<^const_name>\<open>Trueprop\<close>, _) $ t) = t
