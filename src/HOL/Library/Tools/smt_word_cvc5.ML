@@ -5,12 +5,12 @@
 SMT setup for words.
 *)
 
-signature SMT_WORD =
+signature SMT_WORD_CVC5 =
 sig
   val mk_bv_from_int_base: term -> term -> term
 end
 
-structure SMT_Word : SMT_WORD =
+structure SMT_Word_cvc5 : SMT_WORD_CVC5 =
 struct
 
 open Word_Lib

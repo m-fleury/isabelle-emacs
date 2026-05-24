@@ -3,7 +3,7 @@ theory CVC_Word
    "Word_Lib.Reversed_Bit_Lists"  "Alethe_Word_Reconstruction" 
 begin
 
-
+ML_file\<open>Tools/smt_word_cvc5.ML\<close>
 declare  [[smt_cvc_alethe = true]]
 
 subsection \<open>Tool support\<close>
@@ -933,7 +933,7 @@ fun
         SOME (HOLogic.mk_number ty num)
       end*)
  in
-        SOME (SMT_Word.mk_bv_from_int_base int base) (* SOME (Const  (\<^const_name>\<open>Word.Word\<close>,\<^typ>\<open>Int.int\<close>--> dummyT) $ int)*) (*TODO: Use ty*)
+        SOME (SMT_Word_cvc5.mk_bv_from_int_base int base) (* SOME (Const  (\<^const_name>\<open>Word.Word\<close>,\<^typ>\<open>Int.int\<close>--> dummyT) $ int)*) (*TODO: Use ty*)
       end
 | bv_term_parser (SMTLIB.S [SMTLIB.Sym "_",SMTLIB.Sym "int2bv", SMTLIB.Num t], xs) = (*TODO*)
 (* ("bad SMT term format",
