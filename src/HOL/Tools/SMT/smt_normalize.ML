@@ -381,11 +381,8 @@ fun add_simplify_ops_tab tabs context =
  Simplify_Ops.map (K (AList.update (op =) tabs (Simplify_Ops.get context))) context
 
 (*Dynamic tables with default values*)
-val cvc5_extension_table =
-[
-]
-fun nat_native_ops_table ctxt =
-(get_nat_native_ops_tab ctxt)
+val cvc5_extension_table = []
+fun nat_native_ops_table ctxt = get_nat_native_ops_tab ctxt
 fun simplify_norm_table ctxt = get_simplify_ops_tab ctxt
 
 local
@@ -406,8 +403,7 @@ local
     end
 
   (*TODO: Delete some of the unnecessary try_convs*)
-  fun unfold_extension_conv_simp tab ctxt =
-(fn ct =>
+  fun unfold_extension_conv_simp tab ctxt ct =
     let
       val t = Thm.term_of ct
       val t1 = Term.head_of t
@@ -427,25 +423,25 @@ local
         | transform (rw_thms, SOME simp_thms) =
             (Conv.try_conv (rewr_conv rw_thms))
             then_conv (Conv.try_conv (simp_rewr simp_thms ctxt))
- in
-  (case t1 of
-    Const(n, _) =>
-      (case AList.lookup (op =) tab n of
-        SOME (cond, thms) =>
-        let
-          val _ = debug_msg ctxt high (fn () => \<^print>("found entry for ", t1))
-        in
-          (case cond of
-            NONE =>
-             Conv.try_conv (transform thms)
-          | SOME cond_fun =>
-            let
-              val _ = debug_msg ctxt high (fn () => \<^print>("found condition: ", cond_fun t))
-            in if cond_fun t then Conv.try_conv (transform thms) else Conv.all_conv end)
-        end
-      | NONE => Conv.all_conv)
-  | _ => Conv.all_conv) ct
- end)
+    in
+     (case t1 of
+       Const(n, _) =>
+         (case AList.lookup (op =) tab n of
+           SOME (cond, thms) =>
+           let
+             val _ = debug_msg ctxt high (fn () => \<^print>("found entry for ", t1))
+           in
+             (case cond of
+               NONE =>
+                Conv.try_conv (transform thms)
+             | SOME cond_fun =>
+               let
+                 val _ = debug_msg ctxt high (fn () => \<^print>("found condition: ", cond_fun t))
+               in if cond_fun t then Conv.try_conv (transform thms) else Conv.all_conv end)
+           end
+         | NONE => Conv.all_conv)
+     | _ => Conv.all_conv) ct
+    end
 
 in
 fun simplify_norm_extension_conv ctxt =
@@ -462,16 +458,14 @@ fun nat_native_extension_conv ctxt =
 
 fun extensions ctxt = (*todo: better name for all of these*)
  map (apsnd (Conv.fconv_rule (Conv.top_conv
-   (fn ctxt' => Conv.first_conv [nat_native_extension_conv ctxt']) ctxt
-)))
+   (fn ctxt' => Conv.first_conv [nat_native_extension_conv ctxt']) ctxt)))
 
 
 fun unfold_cvc5_extension_conv ctxt =
  (unfold_extension_conv cvc5_extension_table ctxt)
 
 fun unfold_cvc5_extension ctxt =
- (if SMT_Config.solver_of ctxt = "cvc5_proof" then map (apsnd (Conv.fconv_rule (unfold_cvc5_extension_conv ctxt))) else (fn x => x))
-
+  SMT_Config.solver_of ctxt = "cvc5_proof" ? map (apsnd (Conv.fconv_rule (unfold_cvc5_extension_conv ctxt)))
 end
 
 

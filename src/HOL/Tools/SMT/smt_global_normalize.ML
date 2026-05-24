@@ -120,45 +120,45 @@ fun dest_obtained_var obtained =
   For x::nat obtain new variable (x'::int) and prove theorem \<exists> x'::int. x = nat x' \<and> x' \<ge> 0
 *)
 fun mk_lift_variable ctxt x_name =
-let
-  val x'_name = "lift_" ^ Long_Name.base_name x_name
-  val t = Free (x_name, @{typ nat})
-  val t' = Free (x'_name, @{typ int})
-
-  (*Show that lifted variable exists: \<exists> x'::int. x' \<ge> 0 \<and> x = nat x' *)
-  val x'_def =
-    HOLogic.mk_exists (x'_name, @{typ int},
-      HOLogic.mk_conj
-        (mk_zero_le_int t',
-         HOLogic.mk_eq (t, nat_cast $ t')))
-  val x'_ex_thm = Goal.prove ctxt [] [] (\<^make_judgment> x'_def)
-    (fn {context = ctxt', ...} =>
-      HEADGOAL (resolve_tac ctxt' [@{thm alethe_nat_embedding}]))
-  fun tactic_to_obtain ctxt = HEADGOAL (eresolve_tac ctxt @{thms exE})
-  val (x'_thm, ctxt1) = obtain_new_var tactic_to_obtain x'_name [x'_ex_thm] ctxt
-  val (x', x'_thm_def) = dest_obtained_var x'_thm
-  val _ = debug_msg ctxt middle (fn () => \<^print> ("(variable, lifted variable, lifting thm)", (t, x', x'_thm_def)))
-
-  val (x'_def, x'_ge_0) = split_lift_cond x'_thm_def
-in (ctxt1, x', (x'_def, x'_ge_0)) end
+  let
+    val x'_name = "lift_" ^ Long_Name.base_name x_name
+    val t = Free (x_name, @{typ nat})
+    val t' = Free (x'_name, @{typ int})
+  
+    (*Show that lifted variable exists: \<exists> x'::int. x' \<ge> 0 \<and> x = nat x' *)
+    val x'_def =
+      HOLogic.mk_exists (x'_name, @{typ int},
+        HOLogic.mk_conj
+          (mk_zero_le_int t',
+           HOLogic.mk_eq (t, nat_cast $ t')))
+    val x'_ex_thm = Goal.prove ctxt [] [] (\<^make_judgment> x'_def)
+      (fn {context = ctxt', ...} =>
+        HEADGOAL (resolve_tac ctxt' [@{thm alethe_nat_embedding}]))
+    fun tactic_to_obtain ctxt = HEADGOAL (eresolve_tac ctxt @{thms exE})
+    val (x'_thm, ctxt1) = obtain_new_var tactic_to_obtain x'_name [x'_ex_thm] ctxt
+    val (x', x'_thm_def) = dest_obtained_var x'_thm
+    val _ = debug_msg ctxt middle (fn () => \<^print> ("(variable, lifted variable, lifting thm)", (t, x', x'_thm_def)))
+  
+    val (x'_def, x'_ge_0) = split_lift_cond x'_thm_def
+  in (ctxt1, x', (x'_def, x'_ge_0)) end
 
 fun transform_variable ctxt subst (x as Free (x_name, @{typ nat})) =
-  let
-    val (ctxt', subst', (x'_def, x'_ge_0)) =
-      (case subst_lookup subst x of
-        NONE =>
-        let
-          val _ = debug_msg ctxt low (fn () => \<^print> ("current term is free variable t of type nat"
-            ^ " that has not been encountered yet: ", x))
-          val (ctxt1, c_x', def) = mk_lift_variable ctxt x_name
-        in (ctxt1, subst_update x (c_x', def) subst, def) end
-      | SOME (_, def) =>
-        let
-          val _ = debug_msg ctxt high (fn () => \<^print> ("current term is free variable t of type nat"
-            ^ " that has already been encountered: ", x))
-        in (ctxt, subst, def) end)
-  in custom_rewr_cond_conv ctxt' subst' x'_def (the_list x'_ge_0) end
-| transform_variable ctxt subst _ = custom_all_conv ctxt subst
+    let
+      val (ctxt', subst', (x'_def, x'_ge_0)) =
+        (case subst_lookup subst x of
+          NONE =>
+          let
+            val _ = debug_msg ctxt low (fn () => \<^print> ("current term is free variable t of type nat"
+              ^ " that has not been encountered yet: ", x))
+            val (ctxt1, c_x', def) = mk_lift_variable ctxt x_name
+          in (ctxt1, subst_update x (c_x', def) subst, def) end
+        | SOME (_, def) =>
+          let
+            val _ = debug_msg ctxt high (fn () => \<^print> ("current term is free variable t of type nat"
+              ^ " that has already been encountered: ", x))
+          in (ctxt, subst, def) end)
+    in custom_rewr_cond_conv ctxt' subst' x'_def (the_list x'_ge_0) end
+  | transform_variable ctxt subst _ = custom_all_conv ctxt subst
 
 local
 
