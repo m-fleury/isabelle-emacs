@@ -1354,11 +1354,31 @@ lemma [rewrite_bv_sub_eliminate]:
   x)
 *)
 
+named_theorems rewrite_bv_ite_width_one \<open>automatically_generated\<close>
+
+lemma [rewrite_bv_ite_width_one]:
+  fixes x::"1 word"
+  shows "NO_MATCH cvc_a (undefined x)
+    \<Longrightarrow> (if x = (1::1 word) then (1::1 word) else (0::1 word)) = x"
+  apply (cases "x = (1:: 1 word)")
+   apply simp
+  by (metis One_nat_def Word.mask_Suc_0 and.right_neutral and_one_neq_simps(2) len_of_numeral_defs(2)
+      max_word_mask)
+
 (*
 (define-rule bv-ite-width-one-not ((x ?BitVec))
   (ite (= x (@bv 0 1)) (@bv 1 1) (@bv 0 1))
   (bvnot x))
 *)
+
+named_theorems rewrite_bv_ite_width_one_not \<open>automatically_generated\<close>
+
+lemma [rewrite_bv_ite_width_one_not]:
+  fixes x::"1 word"
+  shows "NO_MATCH cvc_a (undefined x)
+    \<Longrightarrow> (if x = (0::1 word) then (1::1 word) else (0::1 word)) = not x"
+  by (metis (no_types, lifting) One_nat_def Word.mask_Suc_0 and.right_neutral and_one_neq_simps(2) bit.compl_zero len_of_numeral_defs(2) max_word_mask
+      word_bitwise_m1_simps(1))
 
 (*
 (define-rule bv-eq-xor-solve ((x ?BitVec) (y ?BitVec) (z ?BitVec))
@@ -1366,10 +1386,27 @@ lemma [rewrite_bv_sub_eliminate]:
   true)
 *)
 
+named_theorems rewrite_bv_eq_xor_solve \<open>automatically_generated\<close>
+
+lemma [rewrite_bv_eq_xor_solve]:
+  fixes x::"'a::len word" and y::"'a::len word" and z::"'a::len word"
+  shows "NO_MATCH cvc_a (undefined x y z) \<Longrightarrow>
+    ((semiring_bit_operations_class.xor x y = z)
+      = (x = semiring_bit_operations_class.xor z y)) = True"
+  by (metis word_bw_comms(3) swap_with_xor)
+
 (*
 (define-rule bv-eq-not-solve ((x ?BitVec) (y ?BitVec))
   (= (= (bvnot x) y) (= x (bvnot y)))
   true)
 *)
+
+named_theorems rewrite_bv_eq_not_solve \<open>automatically_generated\<close>
+
+lemma [rewrite_bv_eq_not_solve]:
+  fixes x::"'a::len word" and y::"'a::len word"
+  shows "NO_MATCH cvc_a (undefined x y) \<Longrightarrow>
+    ((not x = y) = (x = not y)) = True"
+  by auto
 
 end
