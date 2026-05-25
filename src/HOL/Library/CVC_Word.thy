@@ -3,7 +3,6 @@ theory CVC_Word
    "Word_Lib.Reversed_Bit_Lists"  "Alethe_Word_Reconstruction" 
 begin
 
-ML_file\<open>Tools/smt_word_cvc5.ML\<close>
 
 
 subsection \<open>Tool support\<close>
@@ -295,6 +294,8 @@ declare [[smt_nat_as_int]]
 
 
 declare  [[smt_cvc_alethe = true]]
+
+ML_file\<open>Tools/smt_word_cvc5.ML\<close>
 
 subsection \<open>Tool support\<close>
 
