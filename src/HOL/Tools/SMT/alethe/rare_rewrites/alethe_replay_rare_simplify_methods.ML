@@ -30,11 +30,10 @@ val rare_rec_mode = Attrib.setup_config_int \<^binding>\<open>rare_rec_mode\<clo
 (*imports*)
 val TRY' = Alethe_Replay_Methods.TRY'
 val simplify_tac = Alethe_Replay_Methods.simplify_tac
+
 val low = SMT_Config.low
 val middle = SMT_Config.middle
 val high = SMT_Config.high
-
-
 fun debug_msg ctxt = SMT_Config.alethe_debug_msg ctxt "alethe_replay_rare"
 fun debug_msg_tac' ctxt verbosity str = K (SMT_Config.alethe_debug_msg_tac ctxt "alethe_replay_rare" verbosity str)
 
@@ -43,8 +42,8 @@ fun dest_prop (Const (\<^const_name>\<open>Trueprop\<close>, _) $ t) = t
 
 
 (* Evaluation of constants *)
-(* Any additional lemmas should be added to cvc_evaluate or cvc_evaluate_bv*)
 
+(* Any additional lemmas should be added to cvc_evaluate or cvc_evaluate_bv*)
 fun evaluate_tac ctxt _ =
   debug_msg_tac' ctxt high "evaluate start" THEN'
   TRY' (Code_Simp.dynamic_tac ctxt)
@@ -76,7 +75,6 @@ fun try_simp_tac thms ctxt =
 fun try_simp ctxt t thms = SMT_Replay_Methods.prove ctxt t (fn ctxt => try_simp_tac thms ctxt)
 
 (* Rare rewrite reconstruction *)
-
 
 fun normalize_list_arg (Const (\<^const_name>\<open>Alethe_Rare_Nary_Ops.cvc_ListVar.ListVar\<close>, _) $ Const (\<^const_name>\<open>List.Nil\<close>, _)) t =
   (case try hd (dest_Type t |> snd) of
@@ -123,7 +121,7 @@ fun dsl_tac_initialize rewrite_name args ctxt t prems =
         "bool_double_not_elim" => SMT_Replay_Methods.prove ctxt t (fn _ =>
           match_tac ctxt [@{thm not_not}])
        | "arith_to_int_to_real" => SMT_Replay_Methods.prove ctxt t (fn _ =>
-          match_tac ctxt (CVC5_Rare.rare_rule (Context.Proof ctxt) ("rewrite_arith_to_int_to_real2")))
+          match_tac ctxt (CVC5_Rare.rare_rule (Context.Proof ctxt) ("rewrite_arith_to_int_to_real")))
        | "eq_refl" => SMT_Replay_Methods.prove ctxt t (fn _ =>
           match_tac ctxt [@{lemma \<open>(a=a) = True\<close> by blast}])
        | "eq_symm" => SMT_Replay_Methods.prove ctxt t (fn _ =>
@@ -160,7 +158,7 @@ fun dsl_tac_initialize rewrite_name args ctxt t prems =
                 val cvc_evaluate_thms = Named_Theorems.get ctxt @{named_theorems cvc_evaluate}
                 fun debug_msg_tac'' ctxt verbosity str = debug_msg_tac' ctxt verbosity ("rare_rewrite: " ^ str)
 
-                fun try_lemma_i i =
+                fun try_lemma_i _ =
                 (fn t => (SMT_Replay_Methods.prove ctxt t (fn ctxt =>
                   TRY' (debug_msg_tac'' ctxt high "reconstruct rewrite")
                   THEN'
@@ -193,7 +191,6 @@ fun dsl_tac_initialize rewrite_name args ctxt t prems =
              end))
 end
 
-
 local
   fun pretty tag lines = map Pretty.str lines |> Pretty.big_list tag |> Pretty.string_of
 in
@@ -209,7 +206,7 @@ in
   | rare_rewrite ctxt _ args _ =
       (SMT_Config.verbose_msg ctxt (pretty ("No dsl rule found, try to simplify" ^
          List.foldr op^ "" (map ML_Syntax.print_term args))) [];
-       raise (SMT_Failure.SMT (SMT_Failure.Replay("rare-rewrite", ERROR "could not find lemma for rare rewrite "))))
+       raise (SMT_Failure.SMT (SMT_Failure.Replay("rare-rewrite", ERROR "could not find lemma for rare rewrite"))))
 
   fun evaluate ctxt _ _  = try_evaluate ctxt
 end
