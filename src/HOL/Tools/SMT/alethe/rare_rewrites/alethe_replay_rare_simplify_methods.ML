@@ -21,14 +21,8 @@ exception RARE_REPLAY of string
 0: use lemma & simplify if not possible (default)
 1: use only lemma
 2: use only simplify
-3: use only simplify but add all lemmas to the simpset
-4: use lemma for complex cases & and simplify for easy ones
-5: use lemma for complex cases & and simplify for easy ones and add all simple lemmas to the simpset (see below but mainly those without lists in them that are not * rules)
-6: use only match (and assume_tac for premises)
-7: use lemma for complex case & match for simple case
-8: use lemma but first try to resolve without instantiation
 
-complex case: lemma includes lists
+We tested many more configurations (using match, simplify but adding the lemmas to the simpset etc).
 *)
 val rare_rec_mode = Attrib.setup_config_int \<^binding>\<open>rare_rec_mode\<close> (K 0)
 
@@ -150,50 +144,10 @@ in rewrite_lemma_inst ctxt lemma args_terms args_types_from_lemma end
 fun dsl_tac_initialize rewrite_name args ctxt t prems =
   let
     val rare_mode = (Config.get ctxt rare_rec_mode)
-
     val _ = debug_msg ctxt high (fn () => @{print} ("rare_rec_mode " ^ Int.toString rare_mode))
-    val all_rare_rewrite_lemmas = (Named_Theorems.get ctxt @{named_theorems rare_rewrites_all})
-    val simple_rare_rewrite_lemmas = (Named_Theorems.get ctxt @{named_theorems rare_rewrites_simple})
-    val simple_rare_rewrites_names = [
-      "arith_elim_gt", "arith_elim_lt", "arith_elim_int_gt",
-      "arith_elim_int_lt", "arith_elim_leq", "arith_leq_norm",
-      "arith_geq_tighten", "arith_geq_norm1_int", "arith_eq_elim_int",
-      "bool_double_not_elim", "bool_not_true", "bool_not_false",
-      "bool_eq_true", "bool_eq_false", "bool_eq_nrefl",
-      "bool_impl_false1", "bool_impl_false2", "bool_impl_true1",
-      "bool_impl_true2", "bool_impl_elim", "bool_dual_impl_eq",
-      "bool_implies_de_morgan", "bool_xor_refl", "bool_xor_nrefl",
-      "bool_xor_false", "bool_xor_true", "bool_xor_comm",
-      "bool_xor_elim", "bool_not_xor_elim", "bool_not_eq_elim1",
-      "bool_not_eq_elim2", "ite_neg_branch", "ite_then_true",
-      "ite_else_false", "ite_then_false", "ite_else_true",
-      "ite_then_lookahead_self", "ite_else_lookahead_self", "ite_then_lookahead_not_self",
-      "ite_else_lookahead_not_self", "ite_expand", "bool_not_ite_elim",
-      "ite_true_cond", "ite_false_cond", "ite_not_cond",
-      "ite_eq_branch", "ite_then_lookahead", "ite_else_lookahead",
-      "ite_then_neg_lookahead", "ite_else_neg_lookahead",
-      "eq_refl", "eq_symm", "eq_cond_deq",
-      "eq_ite_lift", "distinct_binary_elim",
-      "ite_eq", "distinct_binary_elim", "bool_not_eq_false",
-      "arith_geq_norm1_real", "arith_eq_elim_real",
-      "arith_to_int_to_real", "arith_int_eq_conflict",
-      "arith_int_geq_tighten", "arith_geq_ite_lift",
-      "arith_leq_ite_lift"
-      ]
-      val is_simple = List.exists (fn x => x = rewrite_name) simple_rare_rewrites_names 
   in
     if rare_mode = 2 (*Use only simplify*)
     then try_simp ctxt t prems
-    else if rare_mode = 3 (*Use only simplify but add all lemmas to the simpset*)
-    then try_simp ctxt t (prems @ all_rare_rewrite_lemmas)
-    else if rare_mode = 4 andalso is_simple (*Use lemma for complex cases & and simplify for easy ones *)
-    then try_simp ctxt t prems
-    else if rare_mode = 5 andalso is_simple (*Use lemma for complex cases & and simplify for easy ones and add all simple lemmas to the simpset (see below but mainly those without lists in them that are not * rules) *)
-    then try_simp ctxt t (prems @ simple_rare_rewrite_lemmas)
-    else if rare_mode = 6 (*Use only match (and assume_tac for premises)*)
-    then try_match ctxt prems t (simple_rare_rewrite_lemmas)
-    else if rare_mode = 7 andalso not is_simple (*7: use lemma for complex case & match for simple case *)
-    then try_match ctxt prems t simple_rare_rewrite_lemmas
     else
       (case rewrite_name of (*cheating: hardcoding some common rules, saving around 3ms each time TODO: Should be measured again*)
         "bool_double_not_elim" => SMT_Replay_Methods.prove ctxt t (fn _ =>
@@ -246,31 +200,30 @@ fun dsl_tac_initialize rewrite_name args ctxt t prems =
                        (if rare_mode = 8
                         then  (*This would also need to work on the premises etc. kind of annoying*)
                               (CHANGED_GOAL (EqSubst.eqsubst_tac ctxt [0] rewrite_lemmas)
-                              (*THEN' K (print_tac ctxt "trying to use lemma without instantiation")*)
                               THEN' ((match_tac ctxt @{thms NO_MATCH_def NO_MATCH_cong}))
-                              (*THEN' K (print_tac ctxt "here")*))
+                         )
                             ORELSE' (EqSubst.eqsubst_tac ctxt [0] [nth inst_lemmas_without_true 0] )
                         else (EqSubst.eqsubst_tac ctxt [0] [nth inst_lemmas_without_true 0] (*TODO: Use lemma i*))
-                    (*THEN' K (print_tac ctxt "after applying lemma")*)
                      THEN' (TRY' (resolve_tac ctxt prems))
-                     THEN' debug_msg_tac'' ctxt high "resolved premise if there was one"
+                     THEN' TRY' (debug_msg_tac'' ctxt high "resolved premise if there was one")
                      THEN' TRY' (resolve_tac ctxt [@{thm refl}])))
                   ORELSE' (*TODO: This is wrong but I don't get how to change it. I want a UNLESS changed*)
-                   (if rare_mode = 1 orelse (List.exists (fn x => x = rare_mode) [4,5,7])
+                   (fn i => fn st => (if rare_mode = 1 orelse (List.exists (fn x => x = rare_mode) [4,5,7])
                    then (let val _ = debug_msg ctxt middle (fn () =>  @{print}("lemma,goal",(nth inst_lemmas_without_true 0,Thm.cterm_of ctxt t)));in
                    (debug_msg_tac'' ctxt high "could not apply lemma" THEN' (K no_tac) (* This won't work: raise RARE_REPLAY("Lemmas could not be used to discharge rewrite rule."*)) end)
-                   else ((*K (print_tac ctxt "lemmas could not be used, continue to simplify") THEN'*) try_simp_tac prems ctxt THEN' K (print_tac ctxt "after simplification")))
+                   else ((*K (print_tac ctxt "lemmas could not be used, continue to simplify") THEN'*) try_simp_tac prems ctxt
+ THEN' TRY' (K (print_tac ctxt "after simplification")))) i st)
                   )
                   THEN_ALL_NEW (
-                    debug_msg_tac'' ctxt high "trying to discharge assumption of RARE lemma"
-                    THEN' TRY' (resolve_tac ctxt prems THEN' debug_msg_tac'' ctxt high "discharged via alethe premise")
-                    THEN' TRY' (simplify_tac ctxt cvc_evaluate_thms THEN' debug_msg_tac'' ctxt high "simplifed goal with cvc_evaluate")
+                    TRY' (debug_msg_tac'' ctxt high "trying to discharge assumption of RARE lemma")
+                    THEN' TRY' (resolve_tac ctxt prems THEN' TRY' (debug_msg_tac'' ctxt high "discharged via alethe premise"))
+                    THEN' TRY' (simplify_tac ctxt cvc_evaluate_thms THEN' TRY' (debug_msg_tac'' ctxt high "simplifed goal with cvc_evaluate"))
                     THEN' TRY'
                     (simplify_tac ctxt cvc_evaluate_thms
-                    THEN' debug_msg_tac'' ctxt high "simplifed goal with cvc_evaluate and arith_mult_poly_norm_cvc5")
-                    THEN' TRY' (Code_Simp.dynamic_tac ctxt THEN' debug_msg_tac'' ctxt high "applied code evaluator") (*slowest method, so at the end*)
+                    THEN' TRY' (debug_msg_tac'' ctxt high "simplifed goal with cvc_evaluate and arith_mult_poly_norm_cvc5"))
+                    THEN' TRY' (Code_Simp.dynamic_tac ctxt THEN' TRY' (debug_msg_tac'' ctxt high "applied code evaluator")) (*slowest method, so at the end*)
                     )
-                  THEN' debug_msg_tac'' ctxt high "should be solved now"
+                  THEN' TRY' (debug_msg_tac'' ctxt high "should be solved now")
                 ))) t
              in
                if length inst_lemmas_without_true > 0
