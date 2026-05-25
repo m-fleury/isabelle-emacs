@@ -1,5 +1,6 @@
 (*  Title:      HOL/Tools/SMT/alethe/alethe_replay_methods.ML
     Author:     Mathias Fleury, MPII, JKU, University of Freiburg
+    Author:     Pascal Walter, University of Freiburg
     Author:     Hanna Lachnitt, Stanford University
 
 Proof method for replaying Alethe proofs.
@@ -776,7 +777,7 @@ fun normalized_input ctxt prems t args =
     val all_assms = SMT_Config.alethe_no_provided_assms ctxt
     val termify = Thm.prop_of #> (fn x => single (0, x)) #> SMT_Translate.eta_expand ctxt Termtab.empty #> hd #> snd
     val normalized =
-       let val thy = Proof_Context.theory_of (empty_simpset ctxt) in
+       let val thy = Proof_Context.theory_of (Simplifier.empty_simpset ctxt) in
         Raw_Simplifier.rewrite_term thy (Named_Theorems.get ctxt \<^named_theorems>\<open>cvc5_normalized_input\<close>) [] (*TODO: This is now done twice, there should at least be a check below if this is already enough*)
         #> Object_Logic.atomize_term ctxt
         #> HOLogic.mk_Trueprop

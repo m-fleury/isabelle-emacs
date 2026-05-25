@@ -167,7 +167,7 @@ local
 in
 
 fun add_simproc simproc context =
-  Simpset.map (simpset_map (Context.proof_of context) (Simplifier.add_proc simproc)) context
+  Simpset.map (Simplifier.simpset_map (Context.proof_of context) (Simplifier.add_proc simproc)) context
 
 fun make_simpset ctxt rules =
   simpset_of (put_simpset (Simpset.get (Context.Proof ctxt)) ctxt |> Simplifier.add_simps rules)
@@ -180,7 +180,7 @@ local
 
   fun rewrite_conv _ [] = Conv.all_conv
     | rewrite_conv ctxt eqs =
-        Simplifier.full_rewrite (empty_simpset ctxt |> Simplifier.add_simps eqs)
+        Simplifier.full_rewrite (Simplifier.empty_simpset ctxt |> Simplifier.add_simps eqs)
 
   val rewrite_true_rule = @{lemma "True \<equiv> \<not> False" by simp}
   val prep_rules = [@{thm Let_def}, remove_trigger, remove_fun_app, rewrite_true_rule]
