@@ -286,11 +286,14 @@ fun gen_normalize ctxt iwthms = map_filter (gen_norm1_safe ctxt) iwthms
 (* unfolding of definitions and theory-specific rewritings *)
 
 fun expand_head_conv cv ct =
-  (case Thm.term_of ct of
-    _ $ _ =>
-      Conv.fun_conv (expand_head_conv cv) then_conv
-      Conv.try_conv (Thm.beta_conversion false)
-  | _ => cv) ct
+  cv ct
+  handle CTERM _ =>
+    (case Thm.term_of ct of
+      _ $ _ =>
+        (Conv.fun_conv (expand_head_conv cv) then_conv
+         Conv.try_conv (Thm.beta_conversion false)) ct
+    | _ => raise CTERM ("expand_head_conv: no rewrite applies", [ct]))
+ 
 
 
 (** rewrite bool case expressions as if expressions **)
@@ -344,9 +347,9 @@ end
 
 (*
 The following passes might eventually be integrated into some other pass and/or merged together:
-1. It is used to lift natural number operators (especially machine word ones) to those that work on integers.
-2. It also applies the simplifier to certain subterms.
-3. It allows to apply unfold a lemma for a specific solver only.
+1. They are used to lift natural number operators (especially those also using machine words) to those that work on integers.
+2. They also apply the simplifier to specific subterms where translation would be cumbersome and the gains are remarkable.
+3. They allow to unfold a lemma for a specific solver only. This prevents us from having to make the translation itself solver dependent.
 *)
 
 (*data structures*)
@@ -387,20 +390,13 @@ fun simplify_norm_table ctxt = get_simplify_ops_tab ctxt
 
 local
   (*Check if top-level operator is in list of operators to unfold*)
-  (*TODO: It should be enough to try all the thms from the table without looking them up*)
-  fun unfold_extension_conv tab ctxt ct =
-    let
-      val t = Thm.term_of ct
-      val t1 = Term.head_of t
-      fun rewr_conv thms = Conv.every_conv (map (fn thm => Conv.top_rewrs_conv [thm] ctxt) thms)
-    in
-      (case t1 of
-        Const(n, _) =>
-          (case AList.lookup (op =) tab n of (* add another thm set to Simplifier?*)
-              SOME thms => rewr_conv thms
-            | NONE => Conv.all_conv)
-       | _ => Conv.all_conv) ct
-    end
+  fun unfold_extension_conv tab _ ct =
+    (case Term.head_of (Thm.term_of ct) of
+      Const (n, _) =>
+        (case AList.lookup (op =) tab n of
+          SOME thms => expand_head_conv (Conv.rewrs_conv thms)
+        | NONE => Conv.all_conv)
+    | _ => Conv.all_conv) ct
 
   (*TODO: Delete some of the unnecessary try_convs*)
   fun unfold_extension_conv_simp tab ctxt ct =
@@ -453,16 +449,13 @@ map (apsnd (Conv.fconv_rule (simplify_norm_extension_conv ctxt)))
 
 
 fun nat_native_extension_conv ctxt =
- (unfold_extension_conv (nat_native_ops_table ctxt) ctxt)
-
+ Conv.top_conv (unfold_extension_conv (nat_native_ops_table ctxt)) ctxt
 
 fun extensions ctxt = (*todo: better name for all of these*)
- map (apsnd (Conv.fconv_rule (Conv.top_conv
-   (fn ctxt' => Conv.first_conv [nat_native_extension_conv ctxt']) ctxt)))
-
+ map (apsnd (Conv.fconv_rule (nat_native_extension_conv ctxt)))
 
 fun unfold_cvc5_extension_conv ctxt =
- (unfold_extension_conv cvc5_extension_table ctxt)
+ Conv.top_conv (unfold_extension_conv cvc5_extension_table) ctxt
 
 fun unfold_cvc5_extension ctxt =
   SMT_Config.solver_of ctxt = "cvc5_proof" ? map (apsnd (Conv.fconv_rule (unfold_cvc5_extension_conv ctxt)))
