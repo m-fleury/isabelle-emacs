@@ -996,7 +996,124 @@ lemma [rewrite_bv_extract_sign_extend_2]:
     high + 1 \<le> int LENGTH('b) \<Longrightarrow>
     (smtlib_extract high low (scast x::'b::len word)::'c::len word)
       = (scast (smtlib_extract nm1 low x::'d::len word) :: 'c::len word)"
-  sorry
+proof -
+  assume low_lt_size: "(low < int (size x)) = True"
+     and high_ge_size: "(int (size x) \<le> high) = True"
+     and nm1_eq: "nm1 = int (size x) - 1"
+     and b_int: "int LENGTH('b::len) = k + int LENGTH('a::len)"
+     and c_int: "int LENGTH('c::len) = high + 1 - low"
+     and lh: "low \<le> high"
+     and low_nn: "0 \<le> low"
+     and k_nn: "0 \<le> k"
+     and d_int: "int LENGTH('d::len) = nm1 + 1 - low"
+     and nm1_low: "low \<le> nm1"
+     and high1_le_b: "high + 1 \<le> int LENGTH('b::len)"
+
+  from low_lt_size have low_lt_a: "low < int LENGTH('a::len)"
+    by (simp add: word_size)
+  from high_ge_size have a_le_high: "int LENGTH('a::len) \<le> high"
+    by (simp add: word_size)
+  from low_nn lh have high_nn: "0 \<le> high" by linarith
+  from low_nn nm1_low have nm1_nn: "0 \<le> nm1" by linarith
+  from nm1_eq have nm1_size: "nm1 = int LENGTH('a::len) - 1"
+    by (simp add: word_size)
+
+  let ?nlow = "nat low" and ?nhigh = "nat high" and ?nnm1 = "nat nm1"
+
+  have nlow_lt_a: "?nlow < LENGTH('a::len)" using low_lt_a low_nn by linarith
+  have a_le_b: "LENGTH('a::len) \<le> LENGTH('b::len)" using b_int k_nn by linarith
+  have nat_high1: "nat (high + 1) = Suc ?nhigh" using high_nn by linarith
+  have nat_nm11: "nat (nm1 + 1) = LENGTH('a::len)"
+    using nm1_size by linarith
+  have d_nat: "LENGTH('d::len) = LENGTH('a::len) - ?nlow"
+  proof -
+    have "int LENGTH('d::len) = int LENGTH('a::len) - low"
+      using d_int nm1_size by linarith
+    hence "LENGTH('d::len) = nat (int LENGTH('a::len) - low)" by linarith
+    also have "\<dots> = LENGTH('a::len) - ?nlow"
+      using low_nn nlow_lt_a by (simp add: nat_diff_distrib)
+    finally show ?thesis .
+  qed
+  have d_pos: "0 < LENGTH('d::len)" using d_nat nlow_lt_a by linarith
+  have d_le_a_minus_nlow: "LENGTH('d::len) \<le> LENGTH('a::len) - ?nlow" using d_nat by simp
+  have nhigh1_le_b: "Suc ?nhigh \<le> LENGTH('b::len)"
+    using high1_le_b nat_high1 by linarith
+
+  show "(smtlib_extract high low (scast x::'b::len word) :: 'c::len word)
+        = (scast (smtlib_extract nm1 low x :: 'd::len word) :: 'c::len word)"
+  proof (rule bit_word_eqI)
+    fix n :: nat
+    assume n_lt_c: "n < LENGTH('c::len)"
+    have c_nat: "LENGTH('c::len) = Suc ?nhigh - ?nlow"
+    proof -
+      have "LENGTH('c::len) = nat (int LENGTH('c::len))" by simp
+      also have "\<dots> = nat (high + 1 - low)" using c_int by simp
+      also have "\<dots> = Suc ?nhigh - ?nlow"
+        using low_nn lh high_nn by (simp add: nat_diff_distrib)
+      finally show ?thesis .
+    qed
+    have nlow_le_nhigh: "?nlow \<le> ?nhigh" using lh low_nn by (simp add: nat_mono)
+    have n_nlow_le_nhigh: "n + ?nlow \<le> ?nhigh"
+      using n_lt_c c_nat nlow_le_nhigh by linarith
+    have n_nlow_lt_high1: "n + ?nlow < nat (high + 1)"
+      using n_nlow_le_nhigh nat_high1 by linarith
+    have n_nlow_lt_b: "n + ?nlow < LENGTH('b::len)"
+      using n_nlow_le_nhigh nhigh1_le_b by linarith
+    have nlow_le_b: "?nlow \<le> LENGTH('b::len)" using n_nlow_lt_b by linarith
+    have n_lt_b_minus_nlow: "n < LENGTH('b::len) - ?nlow" using n_nlow_lt_b by linarith
+    show "bit (smtlib_extract high low (scast x::'b::len word) :: 'c::len word) n
+        = bit (scast (smtlib_extract nm1 low x :: 'd::len word) :: 'c::len word) n"
+      unfolding smtlib_extract_def
+    proof (cases "n + ?nlow < LENGTH('a::len)")
+      case in_a: True
+      hence n_lt_d: "n < LENGTH('d::len)" using d_nat by linarith
+      have lhs: "bit (slice ?nlow (take_bit (nat (high + 1)) (scast x :: 'b::len word))
+                    :: 'c::len word) n
+                 = bit x (n + ?nlow)"
+        using n_lt_c n_nlow_lt_high1 n_nlow_lt_b nlow_le_b n_lt_b_minus_nlow in_a a_le_b
+        by (auto simp: bit_slice_iff bit_take_bit_iff bit_word_scast_iff)
+      have rhs: "bit (scast (slice ?nlow (take_bit (nat (nm1 + 1)) x) :: 'd::len word)
+                    :: 'c::len word) n
+                 = bit x (n + ?nlow)"
+        using n_lt_c n_lt_d d_nat nat_nm11 nlow_lt_a in_a
+        by (auto simp: bit_slice_iff bit_take_bit_iff bit_word_scast_iff)
+      from lhs rhs show "bit (slice ?nlow (take_bit (nat (high + 1)) (scast x :: 'b::len word))
+                            :: 'c::len word) n
+                       = bit (scast (slice ?nlow (take_bit (nat (nm1 + 1)) x) :: 'd::len word)
+                            :: 'c::len word) n"
+        by simp
+    next
+      case out_a: False
+      hence a_le_n_nlow: "LENGTH('a::len) \<le> n + ?nlow" by simp
+      hence d_le_n: "LENGTH('d::len) \<le> n" using d_nat by linarith
+      have lhs_sign: "bit (slice ?nlow (take_bit (nat (high + 1)) (scast x :: 'b::len word))
+                          :: 'c::len word) n
+                      = bit x (LENGTH('a::len) - Suc 0)"
+        using n_lt_c n_nlow_lt_high1 n_nlow_lt_b nlow_le_b n_lt_b_minus_nlow
+              out_a a_le_n_nlow a_le_b
+        by (auto simp: bit_slice_iff bit_take_bit_iff bit_word_scast_iff
+                 dest: bit_imp_le_length)
+      have idx_eq: "LENGTH('d::len) - Suc 0 + ?nlow = LENGTH('a::len) - Suc 0"
+        using d_nat nlow_lt_a d_pos by linarith
+      have inner_sign:
+        "bit (slice ?nlow (take_bit (nat (nm1 + 1)) x) :: 'd::len word)
+             (LENGTH('d::len) - Suc 0)
+         = bit x (LENGTH('a::len) - Suc 0)"
+        using d_pos d_nat nat_nm11 idx_eq nlow_lt_a
+        by (auto simp: bit_slice_iff bit_take_bit_iff)
+      have rhs_sign: "bit (scast (slice ?nlow (take_bit (nat (nm1 + 1)) x) :: 'd::len word)
+                          :: 'c::len word) n
+                      = bit x (LENGTH('a::len) - Suc 0)"
+        using n_lt_c d_le_n inner_sign
+        by (auto simp: bit_word_scast_iff dest: bit_imp_le_length)
+      from lhs_sign rhs_sign show "bit (slice ?nlow (take_bit (nat (high + 1)) (scast x :: 'b::len word))
+                                      :: 'c::len word) n
+                                 = bit (scast (slice ?nlow (take_bit (nat (nm1 + 1)) x) :: 'd::len word)
+                                      :: 'c::len word) n"
+        by simp
+    qed
+  qed
+qed
 
 (*
 (define-cond-rule bv-extract-sign-extend-3
