@@ -29,7 +29,6 @@ val rare_rec_mode = Attrib.setup_config_int \<^binding>\<open>rare_rec_mode\<clo
 
 (*imports*)
 val TRY' = Alethe_Replay_Methods.TRY'
-val REPEAT' = Alethe_Replay_Methods.REPEAT'
 val simplify_tac = Alethe_Replay_Methods.simplify_tac
 val low = SMT_Config.low
 val middle = SMT_Config.middle
@@ -38,10 +37,6 @@ val high = SMT_Config.high
 
 fun debug_msg ctxt = SMT_Config.alethe_debug_msg ctxt "alethe_replay_rare"
 fun debug_msg_tac' ctxt verbosity str = K (SMT_Config.alethe_debug_msg_tac ctxt "alethe_replay_rare" verbosity str)
-
-(*Tactics for experiments*)
-fun try_auto_solo ctxt t = 
-  SMT_Replay_Methods.prove ctxt t (fn _ => TRY' (K (Clasimp.auto_tac ctxt)))
 
 fun dest_prop (Const (\<^const_name>\<open>Trueprop\<close>, _) $ t) = t
   | dest_prop t = t
@@ -80,19 +75,6 @@ fun try_simp_tac thms ctxt  =
 
 fun try_simp ctxt t thms = SMT_Replay_Methods.prove ctxt t (fn ctxt => try_simp_tac thms ctxt)
 
-fun try_match_tac prems thms ctxt  =
-     (K (HEADGOAL (match_tac ctxt thms)))
-     THEN' debug_msg_tac' ctxt high "try_match after applying lemma"
-     THEN' TRY' (K (unfold_tac ctxt @{thms NO_MATCH_def}))
-     THEN' debug_msg_tac' ctxt high "try_match after applying lemma"
-     THEN' TRY'  (Method.insert_tac ctxt prems)
-     THEN' (K (ALLGOALS (assume_tac ctxt)))
-
-     THEN' (try_simp_tac [] ctxt)
-
-fun try_match ctxt prems t thms = SMT_Replay_Methods.prove ctxt t (fn ctxt => try_match_tac prems thms ctxt)
-
-
 (* Rare rewrite reconstruction *)
 
 
@@ -105,31 +87,19 @@ fun normalize_list_arg (Const (\<^const_name>\<open>Alethe_Rare_Nary_Ops.cvc_Lis
   )
 | normalize_list_arg a _ = a
 
-fun rewrite_lemma_inst ctxt lemma [] [] = lemma
-  (*| rewrite_lemma_inst _ [] (_::_) =
+fun rewrite_lemma_inst _ lemma [] [] = lemma
+  (* For bit-vectors we need to allow too many arguments but this snippet can be useful for testing:
+  | rewrite_lemma_inst _ [] (_::_) =
               raise RARE_REPLAY("Too few arguments for RARE rewrite " ^ rewrite_name)
   | rewrite_lemma_inst _ _ [] =
               raise RARE_REPLAY("Too many arguments for RARE rewrite " ^ rewrite_name)*)
   | rewrite_lemma_inst ctxt lemma (a :: args') (t :: typs') =
   let
-    val _ = debug_msg ctxt high (fn () => @{print} ("(args',typs')",(args',typs')));
-    val _ = debug_msg ctxt high (fn () => @{print} ("lemma",lemma));
-
-    val rec_lemma = rewrite_lemma_inst ctxt lemma args' typs' (*TODO: Is it faster to instantiate with all types at once? This is good for testing though*)
-    val _ = debug_msg ctxt high (fn () => @{print} ("One instantiation further:",rec_lemma));
-    val _ = debug_msg ctxt high (fn () => @{print} ("a before:",a));
-    val _ = debug_msg ctxt high (fn () => @{print} ("t before:",t));
-
+    val rec_lemma = rewrite_lemma_inst ctxt lemma args' typs'
     val a_normalized = normalize_list_arg a t |> Thm.cterm_of ctxt |> SOME |> single
-
-    val _ = debug_msg ctxt high (fn () => @{print} ("a_normalized:",a_normalized));
     val res = Drule.infer_instantiate' ctxt a_normalized rec_lemma
-    val _ = debug_msg ctxt high (fn () => @{print} ("res:",(res)));
-
-   in res  end
-  | rewrite_lemma_inst ctxt lemma xs ys = lemma
-
-
+  in res end
+  | rewrite_lemma_inst _ lemma _ _ = lemma
       
 fun instantitate_lemma ctxt args lemma =
 let
@@ -163,7 +133,7 @@ fun dsl_tac_initialize rewrite_name args ctxt t prems =
        | _ => 
           (case (CVC5_Rare.rare_lookup (Context.Proof ctxt) ("rewrite_" ^ rewrite_name)) of
            NONE  => 
-             if rare_mode = 1 orelse (List.exists (fn x => x = rare_mode) [4,5,7,8]) then
+             if rare_mode = 1 then
                let
                 val _ = debug_msg ctxt high (fn () => @{print} ("undeclared RARE rule: " ^ rewrite_name ^ ". Use cvc5_rare \"full_name\"."))
                in raise RARE_REPLAY("could not find lemma for rare rewrite" ^ rewrite_name) end
@@ -192,27 +162,18 @@ fun dsl_tac_initialize rewrite_name args ctxt t prems =
 
                 fun try_lemma_i i = 
                 (fn t => (SMT_Replay_Methods.prove ctxt t (fn ctxt =>
-                  debug_msg_tac'' ctxt high "start"
-                  (*THEN' K (print_tac ctxt "start")*)
-                  THEN' (
-                   (
-                     CHANGED_GOAL
-                       (if rare_mode = 8
-                        then  (*This would also need to work on the premises etc. kind of annoying*)
-                              (CHANGED_GOAL (EqSubst.eqsubst_tac ctxt [0] rewrite_lemmas)
-                              THEN' ((match_tac ctxt @{thms NO_MATCH_def NO_MATCH_cong}))
-                         )
-                            ORELSE' (EqSubst.eqsubst_tac ctxt [0] [nth inst_lemmas_without_true 0] )
-                        else (EqSubst.eqsubst_tac ctxt [0] [nth inst_lemmas_without_true 0] (*TODO: Use lemma i*))
+                  TRY' (debug_msg_tac'' ctxt high "reconstruct rewrite")
+                  THEN'
+                   ((CHANGED_GOAL
+                       (EqSubst.eqsubst_tac ctxt [0] [nth inst_lemmas_without_true 0] (*for bv's we will have to find the right lemma here, for now it is fine to just use the first*))
                      THEN' (TRY' (resolve_tac ctxt prems))
                      THEN' TRY' (debug_msg_tac'' ctxt high "resolved premise if there was one")
-                     THEN' TRY' (resolve_tac ctxt [@{thm refl}])))
-                  ORELSE' (*TODO: This is wrong but I don't get how to change it. I want a UNLESS changed*)
-                   (fn i => fn st => (if rare_mode = 1 orelse (List.exists (fn x => x = rare_mode) [4,5,7])
-                   then (let val _ = debug_msg ctxt middle (fn () =>  @{print}("lemma,goal",(nth inst_lemmas_without_true 0,Thm.cterm_of ctxt t)));in
-                   (debug_msg_tac'' ctxt high "could not apply lemma" THEN' (K no_tac) (* This won't work: raise RARE_REPLAY("Lemmas could not be used to discharge rewrite rule."*)) end)
-                   else ((*K (print_tac ctxt "lemmas could not be used, continue to simplify") THEN'*) try_simp_tac prems ctxt
- THEN' TRY' (K (print_tac ctxt "after simplification")))) i st)
+                     THEN' TRY' (resolve_tac ctxt [@{thm refl}]))
+                  ORELSE'
+                   (fn i => fn st => (if rare_mode = 1
+                   then
+                    (let val _ = debug_msg ctxt middle (fn () =>  @{print}("lemma,goal",(nth inst_lemmas_without_true 0,Thm.cterm_of ctxt t)));in (K no_tac) end)
+                   else try_simp_tac prems ctxt) i st)
                   )
                   THEN_ALL_NEW (
                     TRY' (debug_msg_tac'' ctxt high "trying to discharge assumption of RARE lemma")
@@ -227,13 +188,10 @@ fun dsl_tac_initialize rewrite_name args ctxt t prems =
                 ))) t
              in
                if length inst_lemmas_without_true > 0
-               then (if (List.exists (fn x => x = rare_mode) [0,1,4,5,7,8]) 
-                then try_lemma_i 0
-                else raise ERROR("Rule could not be used") )
+               then (if rare_mode = 1 then raise ERROR("Rule could not be used") else try_lemma_i 0)
                else (if rare_mode = 0 then try_simp ctxt t prems else raise ERROR("Rule could not be instantiated") )
              end))
 end
-
 
 
 local 
@@ -251,9 +209,7 @@ in
   | rare_rewrite ctxt _ args _ =
       (SMT_Config.verbose_msg ctxt (pretty ("No dsl rule found, try to simplify" ^
          List.foldr op^ "" (map ML_Syntax.print_term args))) [];
-       raise (SMT_Failure.SMT (SMT_Failure.Replay("rare-rewrite",ERROR "could not find lemma for rare rewrite ")))
-    (*try_simp ctxt t*))
-
+       raise (SMT_Failure.SMT (SMT_Failure.Replay("rare-rewrite",ERROR "could not find lemma for rare rewrite "))))
 
   fun evaluate ctxt _ _  = try_evaluate ctxt
 end
