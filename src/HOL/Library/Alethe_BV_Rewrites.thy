@@ -124,7 +124,6 @@ proof -
   from ij i_nn have j_nn: "0 \<le> j" by linarith
   from lk k_nn have l_nn: "0 \<le> l" by linarith
   from i_nn l_nn ll_eq have ll_nn: "0 \<le> ll" by linarith
-  from i_nn k_nn kk_eq have kk_nn: "0 \<le> kk" by linarith
 
   let ?ni = "nat i" and ?nj = "nat j"
   let ?nk = "nat k" and ?nl = "nat l"
@@ -166,32 +165,29 @@ proof -
     ultimately show ?thesis by simp
   qed
 
-  have e_inner: "(smtlib_extract j i x :: 'c::len word) = smt_extract ?nj ?ni x"
-    using smtlib_extract_eq_smt_extract[where 'a='a and 'b='c and j="?nj" and i="?ni"]
-          j_nn i_nn by (metis int_nat_eq)
-  have e_outer: "(smtlib_extract l k (smt_extract ?nj ?ni x :: 'c::len word) :: 'b::len word)
-                  = smt_extract ?nl ?nk (smt_extract ?nj ?ni x :: 'c::len word)"
-    using smtlib_extract_eq_smt_extract[where 'a='c and 'b='b and j="?nl" and i="?nk"]
-          l_nn k_nn by (metis int_nat_eq)
-  have e_rhs: "(smtlib_extract ll kk x :: 'b::len word) = smt_extract ?nll ?nkk x"
-    using smtlib_extract_eq_smt_extract[where 'a='a and 'b='b and j="?nll" and i="?nkk"]
-          ll_nn kk_nn by (metis int_nat_eq)
+  have nat_j1: "nat (j + 1) = Suc ?nj" using j_nn by linarith
+  have nat_l1: "nat (l + 1) = Suc ?nl" using l_nn by linarith
+  have nat_ll1: "nat (ll + 1) = Suc ?nll" using ll_nn by linarith
 
   show "(smtlib_extract l k (smtlib_extract j i x::'c::len word)::'b::len word)
         = (smtlib_extract ll kk x::'b::len word)"
-    unfolding e_inner e_outer e_rhs
   proof (rule bit_word_eqI)
     fix n :: nat
     assume n_lt: "n < LENGTH('b::len)"
-    have n_nk_le_nl: "n + ?nk \<le> ?nl"
+    have n_nk_lt_Snl: "n + ?nk < Suc ?nl"
       using n_lt b_nat nk_le_nl by linarith
-    have n_nk_ni_le_nj: "n + ?nk + ?ni \<le> ?nj"
-      using n_nk_le_nl nl_ni_le_nj by linarith
+    have n_nk_ni_lt_Snj: "n + ?nk + ?ni < Suc ?nj"
+      using n_nk_lt_Snl nl_ni_le_nj by linarith
     have n_nk_lt_c: "n + ?nk < LENGTH('c::len)"
-      using n_nk_ni_le_nj c_nat ni_le_nj by linarith
-    show "bit (smt_extract ?nl ?nk (smt_extract ?nj ?ni x :: 'c::len word) :: 'b::len word) n
-        = bit (smt_extract ?nll ?nkk x :: 'b::len word) n"
-      using n_lt n_nk_le_nl n_nk_ni_le_nj n_nk_lt_c nll_eq nkk_eq
+      using n_nk_ni_lt_Snj c_nat ni_le_nj by linarith
+    have n_nkk_lt_Snll: "n + ?nkk < Suc ?nll"
+      using n_nk_lt_Snl nll_eq nkk_eq by linarith
+    have n_nkk_eq: "n + ?nk + ?ni = n + ?nkk"
+      using nkk_eq by simp
+    show "bit (smtlib_extract l k (smtlib_extract j i x::'c::len word)::'b::len word) n
+        = bit (smtlib_extract ll kk x::'b::len word) n"
+      unfolding smtlib_extract_def nat_j1 nat_l1 nat_ll1
+      using n_lt n_nk_lt_Snl n_nk_ni_lt_Snj n_nk_lt_c n_nkk_lt_Snll n_nkk_eq
       sorry
   qed
 qed
@@ -872,12 +868,7 @@ proof -
     qed
   qed
 qed
-(*
-(define-rule bv-extract-not
-  ((x ?BitVec) (i Int) (j Int))
-  (extract j i (bvnot x))
-  (bvnot (extract j i x)))
-*)
+
 (*
 (define-cond-rule bv-extract-sign-extend-1
   ((x ?BitVec) (low Int) (high Int) (k Int))
