@@ -143,12 +143,22 @@ proof -
     ultimately show ?thesis by simp
   qed
 
-  have nat_j1: "nat (j + 1) = Suc ?nj" using j_nn by linarith
-  have nat_l1: "nat (l + 1) = Suc ?nl" using l_nn by linarith
-  have nat_ll1: "nat (ll + 1) = Suc ?nll" using ll_nn by linarith
+  have kk_nn: "0 \<le> kk" using kk_eq i_nn k_nn by linarith
+
+  have ext_inner: "(smtlib_extract j i x :: 'c::len word) = smt_extract ?nj ?ni x"
+    using smtlib_extract_eq_smt_extract[where 'a='a and 'b='c and j="?nj" and i="?ni"]
+          j_nn i_nn by (metis int_nat_eq)
+  have ext_outer: "(smtlib_extract l k (smt_extract ?nj ?ni x::'c::len word) :: 'b::len word)
+                     = smt_extract ?nl ?nk (smt_extract ?nj ?ni x::'c::len word)"
+    using smtlib_extract_eq_smt_extract[where 'a='c and 'b='b and j="?nl" and i="?nk"]
+          l_nn k_nn by (metis int_nat_eq)
+  have ext_whole: "(smtlib_extract ll kk x :: 'b::len word) = smt_extract ?nll ?nkk x"
+    using smtlib_extract_eq_smt_extract[where 'a='a and 'b='b and j="?nll" and i="?nkk"]
+          ll_nn kk_nn by (metis int_nat_eq)
 
   show "(smtlib_extract l k (smtlib_extract j i x::'c::len word)::'b::len word)
         = (smtlib_extract ll kk x::'b::len word)"
+    unfolding ext_inner ext_outer ext_whole
   proof (rule bit_word_eqI)
     fix n :: nat
     assume n_lt: "n < LENGTH('b::len)"
@@ -162,12 +172,11 @@ proof -
       using n_nk_lt_Snl nll_eq nkk_eq by linarith
     have n_nkk_eq: "n + ?nk + ?ni = n + ?nkk"
       using nkk_eq by simp
-    show "bit (smtlib_extract l k (smtlib_extract j i x::'c::len word)::'b::len word) n
-        = bit (smtlib_extract ll kk x::'b::len word) n"
-      unfolding smtlib_extract_def nat_j1 nat_l1 nat_ll1
+    show "bit (smt_extract ?nl ?nk (smt_extract ?nj ?ni x::'c::len word) :: 'b::len word) n
+        = bit (smt_extract ?nll ?nkk x :: 'b::len word) n"
       using n_lt n_nk_lt_Snl n_nk_ni_lt_Snj n_nk_lt_c n_nkk_lt_Snll n_nkk_eq
-      sorry
-  qed
+      by (metis bit_smt_extract)
+    qed
 qed
 
 (*
@@ -931,17 +940,10 @@ proof -
     finally show ?thesis .
   qed
 
-  have ext_l: "(smtlib_extract high low (scast x::'b::len word) :: 'c::len word)
-               = smt_extract ?nj ?ni (scast x::'b::len word)"
-    using smtlib_extract_eq_smt_extract[where 'a='b and 'b='c and j="?nj" and i="?ni"]
-          high_nn low_nn by (metis int_nat_eq)
-  have ext_r: "(smtlib_extract high low x :: 'c::len word) = smt_extract ?nj ?ni x"
-    using smtlib_extract_eq_smt_extract[where 'a='a and 'b='c and j="?nj" and i="?ni"]
-          high_nn low_nn by (metis int_nat_eq)
+  have nat_high1: "nat (high + 1) = Suc ?nj" using high_nn by linarith
 
   show "(smtlib_extract high low (Word.signed_cast x::'b::len word) :: 'c::len word)
          = (smtlib_extract high low x)"
-    unfolding ext_l ext_r
   proof (rule bit_word_eqI)
     fix n :: nat
     assume n_lt_c: "n < LENGTH('c::len)"
@@ -950,11 +952,20 @@ proof -
       using n_ni_le_nj nj_lt_a by linarith
     have n_ni_lt_b: "n + ?ni < LENGTH('b::len)"
       using n_ni_lt_a a_le_b by linarith
+    have ni_le_a: "?ni \<le> LENGTH('a::len)" using n_ni_lt_a by linarith
+    have ni_le_b: "?ni \<le> LENGTH('b::len)" using n_ni_lt_b by linarith
+    have n_lt_a_minus_ni: "n < LENGTH('a::len) - ?ni"
+      using n_ni_lt_a by linarith
+    have n_lt_b_minus_ni: "n < LENGTH('b::len) - ?ni"
+      using n_ni_lt_b by linarith
+    have n_ni_lt_high1: "n + ?ni < nat (high + 1)"
+      using n_ni_le_nj nat_high1 by linarith
     show "bit (smtlib_extract high low (Word.signed_cast x::'b::len word) :: 'c::len word) n
-        = bit (smt_extract (nat high) (nat low)  x :: 'c::len word) n"
-      using n_lt_c n_ni_le_nj n_ni_lt_a n_ni_lt_b
-      apply (simp add: bit_smt_extract bit_word_scast_iff)
-      sorry
+        = bit (smtlib_extract high low x :: 'c::len word) n"
+      unfolding smtlib_extract_def
+      using n_lt_c n_ni_lt_a n_ni_lt_b ni_le_a ni_le_b
+            n_lt_a_minus_ni n_lt_b_minus_ni n_ni_lt_high1
+      by (auto simp: bit_slice_iff bit_take_bit_iff bit_word_scast_iff)
   qed
 qed
 
@@ -974,15 +985,17 @@ named_theorems rewrite_bv_extract_sign_extend_2 \<open>automatically_generated\<
 lemma [rewrite_bv_extract_sign_extend_2]:
   fixes x::"'a::len word" and low high k nm1 sn ::int
   shows "NO_MATCH cvc_a (undefined x low high k nm1 sn) \<Longrightarrow>
-(low < int (size x)) = True \<Longrightarrow> (int (size x) \<le> high) = True \<Longrightarrow> nm = n - 1 \<Longrightarrow>
-sn = 1 + (high - int(size x)) \<Longrightarrow>
-
-int LENGTH('b) = k \<Longrightarrow>
-int LENGTH('c) = high + 1 - low \<Longrightarrow> high \<ge> low \<Longrightarrow> low \<ge> 0 \<Longrightarrow>
-int LENGTH('d) = nm1 + 1 -low \<Longrightarrow> nm1 \<ge> low \<Longrightarrow>
-LENGTH('d) + sn = LENGTH('c) \<Longrightarrow>
-(smtlib_extract high low (scast x::'b::len word)::'c::len word) = (scast (smtlib_extract nm1 low x::
-'d::len word))"
+    (low < int (size x)) = True \<Longrightarrow>
+    (int (size x) \<le> high) = True \<Longrightarrow>
+    nm1 = int (size x) - 1 \<Longrightarrow>
+    sn = 1 + (high - int (size x)) \<Longrightarrow>
+    int LENGTH('b) = k + int LENGTH('a) \<Longrightarrow>
+    int LENGTH('c) = high + 1 - low \<Longrightarrow> high \<ge> low \<Longrightarrow> low \<ge> 0 \<Longrightarrow> k \<ge> 0 \<Longrightarrow>
+    int LENGTH('d) = nm1 + 1 - low \<Longrightarrow> nm1 \<ge> low \<Longrightarrow>
+    int LENGTH('d) + sn = int LENGTH('c) \<Longrightarrow>
+    high + 1 \<le> int LENGTH('b) \<Longrightarrow>
+    (smtlib_extract high low (scast x::'b::len word)::'c::len word)
+      = (scast (smtlib_extract nm1 low x::'d::len word) :: 'c::len word)"
   sorry
 
 (*
@@ -1207,11 +1220,11 @@ lemma [rewrite_bv_xor_simplify_3]:
 named_theorems rewrite_bv_ult_add_one \<open>automatically_generated\<close>
 
 lemma [rewrite_bv_ult_add_one]:
-  fixes x::"'a ::len word" and y::"'a ::len word" and n::"int"
-  shows "(x < y + (Word.Word (1::int)::'a::len word)) =
-   (\<not> y < x \<and> y \<noteq> not (Word.Word 0))"
-  apply simp
-  by (metis ab_left_minus word_Suc_le word_not_le word_not_simps(1))
+  fixes x::"'a ::len word" and y::"'a ::len word"
+  shows "NO_MATCH cvc_a (undefined x y) \<Longrightarrow>
+    (x < y + (Word.Word (1::int)::'a::len word)) =
+    (\<not> y < x \<and> y \<noteq> not (Word.Word 0))"
+  using Alethe_BV_Rewrites_Lemmas.rewrite_bv_ult_add_one by blast
 
 (*
 (define-cond-rule bv-mult-slt-mult-1
@@ -1259,6 +1272,13 @@ lemma [rewrite_bv_commutative_xor]:
   (bvcomp x y) (bvcomp y x))
 *)
 
+named_theorems rewrite_bv_commutative_comp \<open>automatically_generated\<close>
+
+lemma [rewrite_bv_commutative_comp]:
+  fixes x::"'a::len word" and y::"'a::len word"
+  shows "NO_MATCH cvc_a (undefined x y) \<Longrightarrow> smt_comp x y = smt_comp y x"
+  by (simp add: smt_comp_def eq_commute)
+
 (*
 (define-rule bv-zero-extend-eliminate-0
   ((x ?BitVec))
@@ -1270,8 +1290,8 @@ named_theorems rewrite_bv_zero_extend_eliminate_0 \<open>automatically_generated
 
 lemma [rewrite_bv_zero_extend_eliminate_0]:
   fixes x::"'a::len word"
-  shows "Word.cast x = x"
-  by auto
+  shows "NO_MATCH cvc_a (undefined x) \<Longrightarrow> (Word.cast x :: 'a::len word) = x"
+  by (simp add: ucast_id)
 
 (*
 (define-rule bv-sign-extend-eliminate-0
@@ -1284,8 +1304,8 @@ named_theorems rewrite_bv_sign_extend_eliminate_0 \<open>automatically_generated
 
 lemma [rewrite_bv_sign_extend_eliminate_0]:
   fixes x::"'a::len word"
-  shows "Word.signed_cast x = x"
-  by auto
+  shows "NO_MATCH cvc_a (undefined x) \<Longrightarrow> (Word.signed_cast x :: 'a::len word) = x"
+  by (simp add: scast_id)
 
 (*
 (define-cond-rule bv-not-neq ((x ?BitVec))
@@ -1298,8 +1318,9 @@ named_theorems rewrite_bv_not_neq \<open>automatically_generated\<close>
 
 lemma [rewrite_bv_not_neq]:
   fixes x::"'a::len word"
-  shows "(0::int) < int (size x) \<longrightarrow> (x = not x) = False"
-  by (metis lsb0)
+  shows "NO_MATCH cvc_a (undefined x) \<Longrightarrow>
+    (0::int) < int (size x) \<longrightarrow> (x = not x) = False"
+  by (metis bit_not_iff len_gt_0 possible_bit_word)
 
 (*
 (define-cond-rule bv-ult-ones ((x ?BitVec) (n Int) (w Int))
@@ -1312,8 +1333,10 @@ named_theorems rewrite_bv_ult_ones \<open>automatically_generated\<close>
 
 lemma [rewrite_bv_ult_ones]:
   fixes x::"'a::len word" and y::"'a::len word"
-  shows "y = not (Word.Word (0::int)) \<longrightarrow> (x < y) = (x \<noteq> y)"
-  using word_order.not_eq_extremum by auto
+  shows "NO_MATCH cvc_a (undefined x y) \<Longrightarrow>
+    y = not (Word.Word (0::int)) \<longrightarrow> (x < y) = (x \<noteq> y)"
+  by (metis bit.compl_zero word_order.not_eq_extremum order_less_irrefl
+            word_of_int_neg_1 zero_word_def)
 
 (* Collapse rules *)
 
@@ -1334,6 +1357,13 @@ lemma [rewrite_bv_ult_ones]:
   (bvadd x y) (bvadd y x))
 *)
 
+named_theorems rewrite_bv_commutative_add \<open>automatically_generated\<close>
+
+lemma [rewrite_bv_commutative_add]:
+  fixes x::"'a ::len word" and y::"'a ::len word"
+  shows "NO_MATCH cvc_a (undefined x y) \<Longrightarrow> x + y = y + x"
+  by (simp add: add.commute)
+
 (*
 (define-rule bv-sub-eliminate
   ((x ?BitVec) (y ?BitVec))
@@ -1345,7 +1375,7 @@ named_theorems rewrite_bv_sub_eliminate \<open>automatically_generated\<close>
 
 lemma [rewrite_bv_sub_eliminate]:
   fixes x::"'a ::len word" and y::"'a ::len word"
-  shows "x - y = x + - y"
+  shows "NO_MATCH cvc_a (undefined x y) \<Longrightarrow> x - y = x + - y"
   by auto
 
 (*
