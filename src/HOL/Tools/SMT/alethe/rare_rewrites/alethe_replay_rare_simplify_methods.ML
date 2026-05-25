@@ -64,13 +64,13 @@ fun try_evaluate ctxt t =
 
 (*The simpset is cleared after each step which might not be what we want*)
 fun try_simp_tac thms ctxt =
-     TRY' (K (HEADGOAL (simplify_tac ctxt thms)))
-     THEN' debug_msg_tac' ctxt high "try_simp after (maybe) trying out a subset of lemmas"
-     THEN' TRY' (K (HEADGOAL (simplify_tac ctxt ((Named_Theorems.get ctxt @{named_theorems cvc_evaluate})))))
-     THEN' TRY' (K (HEADGOAL (simplify_tac ctxt ((Named_Theorems.get ctxt @{named_theorems rare_simplify_temp})))))
-     THEN' TRY' (K (HEADGOAL (simplify_tac ctxt @{thms arith_simps alethe_minus_simplify})))
-     THEN' TRY' (K (HEADGOAL (simplify_tac ctxt ((Named_Theorems.get ctxt @{named_theorems arith_simp_cvc5})))))
-     THEN' TRY' (K (Clasimp.auto_tac ctxt))
+  TRY' (K (HEADGOAL (simplify_tac ctxt thms)))
+  THEN' debug_msg_tac' ctxt high "try_simp after (maybe) trying out a subset of lemmas"
+  THEN' TRY' (K (HEADGOAL (simplify_tac ctxt ((Named_Theorems.get ctxt @{named_theorems cvc_evaluate})))))
+  THEN' TRY' (K (HEADGOAL (simplify_tac ctxt ((Named_Theorems.get ctxt @{named_theorems rare_simplify_temp})))))
+  THEN' TRY' (K (HEADGOAL (simplify_tac ctxt @{thms arith_simps alethe_minus_simplify})))
+  THEN' TRY' (K (HEADGOAL (simplify_tac ctxt ((Named_Theorems.get ctxt @{named_theorems arith_simp_cvc5})))))
+  THEN' TRY' (K (Clasimp.auto_tac ctxt))
 
 fun try_simp ctxt t thms = SMT_Replay_Methods.prove ctxt t (fn ctxt => try_simp_tac thms ctxt)
 
@@ -100,14 +100,14 @@ fun rewrite_lemma_inst _ lemma [] [] = lemma
   | rewrite_lemma_inst _ lemma _ _ = lemma
 
 fun instantiate_lemma ctxt args lemma =
-let
-  fun get_types lemma = map snd (rev (Term.add_vars (Thm.full_prop_of lemma) []))
-  val args_terms = rev (Const ("Groups.zero_class.zero", @{typ int}) :: args) (*The extra term is for the dummy argument we need to add the expected order to the arguments*)
-  val all_types = rev (get_types lemma)
-  val args_types_from_lemma = drop (length all_types - length args_terms) all_types
-  val _ = debug_msg ctxt high (fn () => @{print} ("Argument types extracted from lemma", args_types_from_lemma));
-  val _ = debug_msg ctxt high (fn () => @{print} ("Arguments ", args_terms));
-in rewrite_lemma_inst ctxt lemma args_terms args_types_from_lemma end
+  let
+    fun get_types lemma = map snd (rev (Term.add_vars (Thm.full_prop_of lemma) []))
+    val args_terms = rev (Const ("Groups.zero_class.zero", @{typ int}) :: args) (*The extra term is for the dummy argument we need to add the expected order to the arguments*)
+    val all_types = rev (get_types lemma)
+    val args_types_from_lemma = drop (length all_types - length args_terms) all_types
+    val _ = debug_msg ctxt high (fn () => @{print} ("Argument types extracted from lemma", args_types_from_lemma));
+    val _ = debug_msg ctxt high (fn () => @{print} ("Arguments ", args_terms));
+  in rewrite_lemma_inst ctxt lemma args_terms args_types_from_lemma end
 
 fun dsl_tac_initialize rewrite_name args ctxt t prems =
   let
@@ -184,18 +184,18 @@ fun dsl_tac_initialize rewrite_name args ctxt t prems =
                     )
                   THEN' TRY' (debug_msg_tac'' ctxt high "should be solved now")
                 ))) t
-             in
-               if length inst_lemmas_without_true > 0
-               then (if rare_mode = 1 then raise ERROR("Rule could not be used") else try_lemma_i 0)
-               else (if rare_mode = 0 then try_simp ctxt t prems else raise ERROR("Rule could not be instantiated") )
-             end))
+              in
+                if length inst_lemmas_without_true > 0
+                then (if rare_mode = 1 then raise ERROR("Rule could not be used") else try_lemma_i 0)
+                else (if rare_mode = 0 then try_simp ctxt t prems else raise ERROR("Rule could not be instantiated") )
+              end))
 end
 
 local
   fun pretty tag lines = map Pretty.str lines |> Pretty.big_list tag |> Pretty.string_of
 in
 
-  fun rare_rewrite ctxt (th : thm list) (x:: args) t =
+  fun rare_rewrite ctxt (th : thm list) (x :: args) t =
     let
       val rewrite_name = String.map (fn #"-" => #"_" | x => x) (HOLogic.dest_string x)
     in
@@ -208,15 +208,15 @@ in
          List.foldr op^ "" (map ML_Syntax.print_term args))) [];
        raise (SMT_Failure.SMT (SMT_Failure.Replay("rare-rewrite", ERROR "could not find lemma for rare rewrite"))))
 
-  fun evaluate ctxt _ _  = try_evaluate ctxt
+  fun evaluate ctxt _ _ = try_evaluate ctxt
 end
 
 val rules = [
-   ("rare_rewrite", rare_rewrite),
-   ("evaluate", evaluate)
+  ("rare_rewrite", rare_rewrite),
+  ("evaluate", evaluate)
 ]
 
 val _ = Theory.setup (Context.theory_map (
-   fold (uncurry Alethe_Replay_Methods.declare_alethe_rule) rules))
+  fold (uncurry Alethe_Replay_Methods.declare_alethe_rule) rules))
 
 end
