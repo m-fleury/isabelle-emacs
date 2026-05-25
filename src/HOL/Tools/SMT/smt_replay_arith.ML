@@ -46,9 +46,9 @@ fun la_farkas_tac ({context = ctxt, prems, concl,  ...}: Subgoal.focus) (SOME (F
 
     fun basic_simps ctxt thms =
       ctxt
-      |> empty_simpset
+      |> Simplifier.empty_simpset
       |> put_simpset HOL_basic_ss
-      |> (fn ctxt => ctxt addsimps thms)
+      |> Simplifier.add_simps thms
       |> asm_full_simplify
 
     (*Determine if we need to return the equation: \<not>\<le> \<rightarrow> \<ge> but only \<le> exists for Isabelle*)
@@ -129,7 +129,7 @@ fun la_farkas_tac ({context = ctxt, prems, concl,  ...}: Subgoal.focus) (SOME (F
 
     fun arith_full_simps ctxt thms =
       ctxt
-       |> empty_simpset
+       |> Simplifier.empty_simpset
        |> put_simpset HOL_basic_ss
        |> Simplifier.add_simps thms
        |> Simplifier.add_simps @{thms simp_thms}
@@ -159,7 +159,7 @@ fun REPEAT' tac = fn i => REPEAT (tac i)
 
 fun rewrite_only_thms ctxt thms =
   ctxt
-  |> empty_simpset
+  |> Simplifier.empty_simpset
   |> put_simpset HOL_basic_ss
   |> Simplifier.add_simps thms
   |> Simplifier.full_simp_tac
