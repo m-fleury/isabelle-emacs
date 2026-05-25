@@ -2186,9 +2186,9 @@ fun poly_simp ctxt _ =
         (*if the previous does not solve, use full simplification power with the current content*)
       ORELSE'
         TRY' (simplify_tac_with_background_simp ctxt []
-        THEN' debug_msg_tac' ctxt high "tried full simplifier power on current arith_poly_norm step")
+        THEN' TRY' (debug_msg_tac' ctxt high "tried full simplifier power on current arith_poly_norm step"))
       THEN' TRY' (Code_Simp.dynamic_tac ctxt)
-      THEN' debug_msg_tac' ctxt high "tried code evaluation on arith_poly_norm step since nothing else worked")
+      THEN' TRY' (debug_msg_tac' ctxt high "tried code evaluation on arith_poly_norm step since nothing else worked"))
   in
     prove_abstract (SMT_Replay_Methods.abstract_for_poly_norm ctxt) tac ctxt []
   end
