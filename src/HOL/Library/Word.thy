@@ -2957,8 +2957,7 @@ lemma unat_plus_if':
     else unat a + unat b - 2 ^ LENGTH('a))\<close> for a b :: \<open>'a::len word\<close>
   apply (auto simp: not_less le_iff_add)
   using of_nat_inverse apply force
-  (*by (smt (verit, ccfv_SIG) numeral_Bit0 numerals(1) of_nat_0_le_iff of_nat_1 of_nat_add of_nat_eq_iff of_nat_power of_nat_unat uint_plus_if')*)
-  sorry
+  by (smt (verit, ccfv_SIG) numeral_Bit0 numerals(1) of_nat_0_le_iff of_nat_1 of_nat_add of_nat_eq_iff of_nat_power of_nat_unat uint_plus_if')
 
 lemma unat_sub_if_size:
   "unat (x - y) =
