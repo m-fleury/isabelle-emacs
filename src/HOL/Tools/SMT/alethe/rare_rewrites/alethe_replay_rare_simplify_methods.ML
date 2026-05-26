@@ -120,8 +120,6 @@ fun dsl_tac_initialize rewrite_name args ctxt t prems =
       (case rewrite_name of (*cheating: hardcoding some common rules, saving around 3ms each time TODO: Should be measured again*)
         "bool_double_not_elim" => SMT_Replay_Methods.prove ctxt t (fn _ =>
           match_tac ctxt [@{thm not_not}])
-       | "arith_to_int_to_real" => SMT_Replay_Methods.prove ctxt t (fn _ =>
-          match_tac ctxt (CVC5_Rare.rare_rule (Context.Proof ctxt) ("rewrite_arith_to_int_to_real")))
        | "eq_refl" => SMT_Replay_Methods.prove ctxt t (fn _ =>
           match_tac ctxt [@{lemma \<open>(a=a) = True\<close> by blast}])
        | "eq_symm" => SMT_Replay_Methods.prove ctxt t (fn _ =>
@@ -129,14 +127,14 @@ fun dsl_tac_initialize rewrite_name args ctxt t prems =
        | "distinct_false" => SMT_Replay_Methods.prove ctxt t (fn _ =>
          try_simp_tac [] ctxt)
        | _ =>
-          (case (CVC5_Rare.rare_lookup (Context.Proof ctxt) ("rewrite_" ^ rewrite_name)) of
+          (case CVC5_Rare.rare_lookup (Context.Proof ctxt) ("rewrite_" ^ rewrite_name) of
            NONE =>
              if rare_mode = 1 then
                let
                 val _ = debug_msg ctxt high (fn () => @{print} ("undeclared RARE rule: " ^ rewrite_name ^ ". Use cvc5_rare \"full_name\"."))
                in raise RARE_REPLAY("could not find lemma for rare rewrite " ^ rewrite_name) end
               else try_simp ctxt t prems
-           | (SOME rewrite_lemmas) => (*lemma found and we are supposed to use it*)
+           | SOME rewrite_lemmas => (*lemma found and we are supposed to use it*)
               let
                 val _ = debug_msg ctxt middle (fn () => @{print} ("Lemmas corresponding to the current rewrite rule", rewrite_lemmas));
 
@@ -162,27 +160,25 @@ fun dsl_tac_initialize rewrite_name args ctxt t prems =
                 (fn t => (SMT_Replay_Methods.prove ctxt t (fn ctxt =>
                   TRY' (debug_msg_tac'' ctxt high "reconstruct rewrite")
                   THEN'
-                   ((CHANGED_GOAL
-                       (EqSubst.eqsubst_tac ctxt [0] [nth inst_lemmas_without_true 0] (*for bv's we will have to find the right lemma here, for now it is fine to just use the first*))
-                     THEN' (TRY' (resolve_tac ctxt prems))
-                     THEN' TRY' (debug_msg_tac'' ctxt high "resolved premise if there was one")
-                     THEN' TRY' (resolve_tac ctxt [@{thm refl}]))
-                  ORELSE'
-                   (fn i => fn st => (if rare_mode = 1
-                   then
-                    (let val _ = debug_msg ctxt middle (fn () => @{print}("lemma,goal", (nth inst_lemmas_without_true 0, Thm.cterm_of ctxt t)));in (K no_tac) end)
-                   else try_simp_tac prems ctxt) i st)
-                  )
+                    ((CHANGED_GOAL
+                        (EqSubst.eqsubst_tac ctxt [0] [nth inst_lemmas_without_true 0] (*for bv's we will have to find the right lemma here, for now it is fine to just use the first*))
+                      THEN' (TRY' (resolve_tac ctxt prems))
+                      THEN' debug_msg_tac'' ctxt high "resolved premise if there was one"
+                      THEN' TRY' (resolve_tac ctxt [@{thm refl}]))
+                    ORELSE'
+                      (fn i => fn st => (if rare_mode = 1
+                      then
+                       (let val _ = debug_msg ctxt middle (fn () => @{print}("lemma,goal", (nth inst_lemmas_without_true 0, Thm.cterm_of ctxt t)));in (K no_tac) end)
+                      else try_simp_tac prems ctxt) i st))
                   THEN_ALL_NEW (
-                    TRY' (debug_msg_tac'' ctxt high "trying to discharge assumption of RARE lemma")
+                    debug_msg_tac'' ctxt high "trying to discharge assumption of RARE lemma"
                     THEN' TRY' (resolve_tac ctxt prems THEN' TRY' (debug_msg_tac'' ctxt high "discharged via alethe premise"))
                     THEN' TRY' (simplify_tac ctxt cvc_evaluate_thms THEN' TRY' (debug_msg_tac'' ctxt high "simplified goal with cvc_evaluate"))
                     THEN' TRY'
                     (simplify_tac ctxt cvc_evaluate_thms
-                    THEN' TRY' (debug_msg_tac'' ctxt high "simplified goal with cvc_evaluate"))
-                    THEN' TRY' (Code_Simp.dynamic_tac ctxt THEN' TRY' (debug_msg_tac'' ctxt high "applied code evaluator")) (*slowest method, so at the end*)
-                    )
-                  THEN' TRY' (debug_msg_tac'' ctxt high "should be solved now")
+                    THEN' debug_msg_tac'' ctxt high "simplified goal with cvc_evaluate")
+                    THEN' TRY' (Code_Simp.dynamic_tac ctxt THEN' TRY' (debug_msg_tac'' ctxt high "applied code evaluator")) (*slowest method, so at the end*))
+                  THEN' (debug_msg_tac'' ctxt high "should be solved now")
                 ))) t
               in
                 if length inst_lemmas_without_true > 0
@@ -194,7 +190,6 @@ end
 local
   fun pretty tag lines = map Pretty.str lines |> Pretty.big_list tag |> Pretty.string_of
 in
-
   fun rare_rewrite ctxt (th : thm list) (x :: args) t =
     let
       val rewrite_name = String.map (fn #"-" => #"_" | x => x) (HOLogic.dest_string x)
