@@ -80,10 +80,10 @@ type smtlib_theories = {
 }
 
 val solver_supports = [
-  ("cvc5", ({fixedSizeBitVectors=true, real=true, set=true}:smtlib_theories)),
-  ("cvc5_proof", ({fixedSizeBitVectors=true, real=true, set=true}:smtlib_theories)),
-  ("verit", ({fixedSizeBitVectors=false, real=true, set=false}:smtlib_theories)),
-  ("z3", ({fixedSizeBitVectors=true, real=true, set=false}:smtlib_theories))
+  ("cvc5", ({fixedSizeBitVectors=true, real=false, set=true}:smtlib_theories)),
+  ("cvc5_proof", ({fixedSizeBitVectors=true, real=false, set=true}:smtlib_theories)),
+  ("verit", ({fixedSizeBitVectors=false, real=false, set=false}:smtlib_theories)),
+  ("z3", ({fixedSizeBitVectors=true, real=false, set=false}:smtlib_theories))
 ]
 
 fun get_supported_theories solver =
