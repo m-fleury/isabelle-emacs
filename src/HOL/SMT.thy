@@ -425,6 +425,12 @@ lemma alethe_ite_simplify[no_atp]:
   \<open>(If A' B' True) \<longleftrightarrow> \<not>A' \<or> B'\<close>
   \<open>x \<and> True \<longleftrightarrow> x\<close>
   \<open>x \<or> False \<longleftrightarrow> x\<close>
+  \<open>x \<or> True \<longleftrightarrow> True\<close>
+  \<open>x \<and> False \<longleftrightarrow> False\<close>
+  \<open>True \<and> x \<longleftrightarrow> x\<close>
+  \<open>False \<or> x \<longleftrightarrow> x\<close>
+  \<open>True \<or> x \<longleftrightarrow> True\<close>
+  \<open>False \<and> x \<longleftrightarrow> False\<close>
   for B C :: 'a and A' B' C' :: bool
   by auto
 
@@ -1193,7 +1199,7 @@ The SMT method, when applied, traces important information. To
 make it entirely silent, set the following option to \<open>false\<close>.
 \<close>
 
-declare [[smt_verbose = true]]
+declare [[smt_verbose = false]]
 
 text \<open>
 For tracing the generated problem file given to the SMT solver as
