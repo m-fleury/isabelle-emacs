@@ -189,184 +189,177 @@ lemma mod_as_z3mod:
 
 subsection \<open>Extra theorems for Alethe reconstruction\<close>
 
-lemma alethe_sko_forall: \<open>(\<forall>x. P x) \<longleftrightarrow> P (SOME x. \<not>P x)\<close>
+lemma alethe_sko_forall[no_atp]: \<open>(\<forall>x. P x) \<longleftrightarrow> P (SOME x. \<not>P x)\<close>
   using someI[of \<open>\<lambda>x. \<not>P x\<close>]
   by auto
 
-lemma alethe_sko_forall': \<open>P (SOME x. \<not>P x) = A \<Longrightarrow> (\<forall>x. P x) = A\<close>
+lemma alethe_sko_forall'[no_atp]: \<open>P (SOME x. \<not>P x) = A \<Longrightarrow> (\<forall>x. P x) = A\<close>
   by (subst alethe_sko_forall)
 
 lemma alethe_sko_forall'': \<open>B = A \<Longrightarrow> (SOME x. P x) = A \<equiv> (SOME x. P x) = B\<close>
   by auto
 
-lemma alethe_sko_forall_indirect: \<open>x = (SOME x. \<not>P x) \<Longrightarrow> (\<forall>x. P x) \<longleftrightarrow> P x\<close>
+lemma alethe_sko_forall_indirect[no_atp]: \<open>x = (SOME x. \<not>P x) \<Longrightarrow> (\<forall>x. P x) \<longleftrightarrow> P x\<close>
   using someI[of \<open>\<lambda>x. \<not>P x\<close>]
   by auto
 
-lemma alethe_sko_forall_indirect2:
+lemma alethe_sko_forall_indirect2[no_atp]:
     \<open>x = (SOME x. \<not>P x) \<Longrightarrow> (\<And>x :: 'a. (P x = P' x)) \<Longrightarrow> (\<forall>x. P' x) \<longleftrightarrow> P x\<close>
   using someI[of \<open>\<lambda>x. \<not>P x\<close>]
   by auto
 
-thm alethe_sko_forall_indirect[of v0]
-
-lemma alethe_sko_ex: \<open>(\<exists>x. P x) \<longleftrightarrow> P (SOME x. P x)\<close>
+lemma alethe_sko_ex[no_atp]: \<open>(\<exists>x. P x) \<longleftrightarrow> P (SOME x. P x)\<close>
   using someI[of \<open>\<lambda>x. P x\<close>]
   by auto
 
-lemma alethe_sko_ex': \<open>P (SOME x. P x) = A \<Longrightarrow> (\<exists>x. P x) = A\<close>
+lemma alethe_sko_ex'[no_atp]: \<open>P (SOME x. P x) = A \<Longrightarrow> (\<exists>x. P x) = A\<close>
   by (subst alethe_sko_ex)
 
-lemma alethe_sko_ex_indirect: \<open>x = (SOME x. P x) \<Longrightarrow> (\<exists>x. P x) \<longleftrightarrow> P x\<close>
+lemma alethe_sko_ex_indirect[no_atp]: \<open>x = (SOME x. P x) \<Longrightarrow> (\<exists>x. P x) \<longleftrightarrow> P x\<close>
   using someI[of \<open>\<lambda>x. P x\<close>]
   by auto
 
-lemma alethe_sko_ex_indirect2: \<open>x = (SOME x. P x) \<Longrightarrow> (\<And>x. P x = P' x) \<Longrightarrow> (\<exists>x. P' x) \<longleftrightarrow> P x\<close>
+lemma alethe_sko_ex_indirect2[no_atp]: \<open>x = (SOME x. P x) \<Longrightarrow> (\<And>x. P x = P' x) \<Longrightarrow> (\<exists>x. P' x) \<longleftrightarrow> P x\<close>
   using someI[of \<open>\<lambda>x. P x\<close>]
   by auto
 
-lemma alethe_Pure_trans:
+lemma alethe_Pure_trans[no_atp]:
   \<open>P \<equiv> Q \<Longrightarrow> Q \<Longrightarrow> P\<close>
   by auto
 
-lemma alethe_if_cong:
+lemma alethe_if_cong[no_atp]:
   assumes \<open>b \<equiv> c\<close>
     and \<open>c \<Longrightarrow> x \<equiv> u\<close>
     and \<open>\<not> c \<Longrightarrow> y \<equiv> v\<close>
   shows \<open>(if b then x else y) \<equiv> (if c then u else v)\<close>
   using assms if_cong[of b c x u] by auto
 
-lemma alethe_if_weak_cong':
+lemma alethe_if_weak_cong'[no_atp]:
   \<open>b \<equiv> c \<Longrightarrow> (if b then x else y) \<equiv> (if c then x else y)\<close>
   by auto
 
-lemma alethe_or_neg:
+lemma alethe_or_neg[no_atp]:
    \<open>(A \<Longrightarrow> B) \<Longrightarrow> B \<or> \<not>A\<close>
   by auto
 
-lemma alethe_implies_pos: \<open>\<not>(A \<longrightarrow> B) \<or> \<not>A \<or> B\<close>
+lemma alethe_implies_pos[no_atp]: \<open>\<not>(A \<longrightarrow> B) \<or> \<not>A \<or> B\<close>
   by auto
 
-lemma alethe_subst_bool: \<open>P \<Longrightarrow> f True \<Longrightarrow> f P\<close>
+lemma alethe_subst_bool[no_atp]: \<open>P \<Longrightarrow> f True \<Longrightarrow> f P\<close>
   by auto
 
-lemma alethe_and_pos:
+lemma alethe_and_pos[no_atp]:
   \<open>(a \<Longrightarrow> \<not>(b \<and> c) \<or> A) \<Longrightarrow> \<not>(a \<and> b \<and> c) \<or> A\<close>
   \<open>(a \<Longrightarrow> b \<Longrightarrow> A) \<Longrightarrow> \<not>(a \<and> b) \<or> A\<close>
   by blast+
 
-lemma alethe_and_pos0:
+lemma alethe_and_pos0[no_atp]:
   \<open>(\<not>(b \<and> c) \<or> A) \<Longrightarrow> \<not>(a \<and> b \<and> c) \<or> A\<close>
   \<open>(\<not>b \<or> A) \<Longrightarrow> \<not>(a \<and> b) \<or> A\<close>
   \<open>A \<Longrightarrow> \<not>a \<or> A\<close>
   by blast+
 
-lemma alethe_farkas:
+lemma alethe_farkas[no_atp]:
   \<open>(a \<Longrightarrow> A) \<Longrightarrow> \<not>a \<or> A\<close>
   \<open>(\<not>a \<Longrightarrow> A) \<Longrightarrow> a \<or> A\<close>
   by blast+
 
-lemma alethe_or_pos:
+lemma alethe_or_pos[no_atp]:
   \<open>A \<and> A' \<Longrightarrow> (c \<and> A) \<or> (\<not>c \<and> A')\<close>
   \<open>A \<and> A' \<Longrightarrow> (\<not>c \<and> A) \<or> (c \<and> A')\<close>
   by blast+
 
-lemma alethe_distinct_elim_two_clauses:
+lemma alethe_distinct_elim_two_clauses[no_atp]:
   "((x::bool) \<noteq> y \<and> x \<noteq> z \<and> y \<noteq> z) = False"
   apply (cases "x")
    apply (cases "y")
   by simp_all
 
-lemma alethe_distinct_elim_0:
+lemma alethe_distinct_elim_0[no_atp]:
   \<open>(x \<Longrightarrow> \<not>y \<Longrightarrow> \<not>z \<Longrightarrow> ((x \<noteq> a) \<and> A) = False)
 \<Longrightarrow> (\<not>x \<Longrightarrow> y \<Longrightarrow> z \<Longrightarrow> ((x \<noteq> a) \<and> A) = False)
 \<Longrightarrow> (((x \<noteq> y) \<and> (x \<noteq> z) \<and> (x \<noteq> a) \<and> A) = False)\<close>
-  apply (cases x)
-   apply (cases y)
-    apply simp_all
-  apply (cases z)
-  by simp_all
+  by (cases x; cases y; cases z; simp)
 
-lemma alethe_distinct_elim_1:
+lemma alethe_distinct_elim_1[no_atp]:
   \<open>((x \<noteq> b) \<and> A) = False \<Longrightarrow> ((x \<noteq> a) \<and> (x \<noteq> b) \<and> A) = False\<close>
   \<open> A = False \<Longrightarrow> ((x \<noteq> a) \<and> A) = False\<close>
   \<open>(x = a) \<Longrightarrow> ((x \<noteq> a) \<and> A) = False\<close>
   by blast+
 
-lemma alethe_distinct_elim_2:
+lemma alethe_distinct_elim_2[no_atp]:
   \<open>\<not> y \<Longrightarrow> \<not> z \<Longrightarrow> y = z\<close>
   \<open>y \<Longrightarrow> z \<Longrightarrow> y = z\<close>
   by blast+
 
-lemma alethe_shuffle_and1:
+lemma alethe_shuffle_and1[no_atp]:
   \<open> A = B \<Longrightarrow> (a \<and> A) = (a \<and> B)\<close>
   by blast
 
-lemma alethe_shuffle_and2:
+lemma alethe_shuffle_and2[no_atp]:
   \<open>(\<not>a \<longrightarrow> \<not>B) \<Longrightarrow> (a \<Longrightarrow> A = (b \<and> B)) \<Longrightarrow> (a \<and> A) = (b \<and> B)\<close>
   \<open>(\<not>a \<longrightarrow> \<not>(b \<and> B)) \<Longrightarrow> (a \<Longrightarrow> (b \<and> B)) \<Longrightarrow> a = (b \<and> B)\<close>
-  apply (cases a)
-  by auto
+  by (cases a) auto
 
-lemma alethe_shuffle_and3:
+lemma alethe_shuffle_and3[no_atp]:
   \<open>b = A \<Longrightarrow> (a \<Longrightarrow> b = (a \<and> A))\<close>
   apply (cases a)
   by simp_all
 
-lemma alethe_shuffle_and4:
+lemma alethe_shuffle_and4[no_atp]:
   \<open>A \<Longrightarrow> (a = (a \<and> A))\<close>
   apply (cases a)
   by simp_all
 
-lemma alethe_shuffle_or_split:
+lemma alethe_shuffle_or_split[no_atp]:
   "(a \<longrightarrow> (b \<or> B)) \<Longrightarrow> (\<not>a \<Longrightarrow> A = (b \<or> B)) \<Longrightarrow> (a \<or> A) = (b \<or> B)"
   "(a \<longrightarrow> (b \<or> B)) \<Longrightarrow> (\<not>a \<Longrightarrow> \<not>(b \<or> B)) \<Longrightarrow> a = (b \<or> B)"
   by auto
 
-lemma alethe_shuffle_or_resolve:
+lemma alethe_shuffle_or_resolve[no_atp]:
   "a \<longrightarrow> (a \<or> A)"
   "a \<longrightarrow> A \<Longrightarrow> a \<longrightarrow> (b \<or> A)"
   by auto
 
-lemma alethe_shuffle_or1a: "(A = B) \<Longrightarrow> (a \<or> A) = (a \<or> B)" by auto
-lemma alethe_shuffle_or1b: "\<not>B \<Longrightarrow> a = (a \<or> B)" by auto
+lemma alethe_shuffle_or1a[no_atp]: "(A = B) \<Longrightarrow> (a \<or> A) = (a \<or> B)" by auto
+lemma alethe_shuffle_or1b[no_atp]: "\<not>B \<Longrightarrow> a = (a \<or> B)" by auto
 
-lemma alethe_shuffle_or4a: "a \<longrightarrow> (a \<or> B)" by auto
-lemma alethe_shuffle_or4b: "(a \<longrightarrow> B) \<Longrightarrow> (a \<longrightarrow> (b \<or> B))" by auto
+lemma alethe_shuffle_or4a[no_atp]: "a \<longrightarrow> (a \<or> B)" by auto
+lemma alethe_shuffle_or4b[no_atp]: "(a \<longrightarrow> B) \<Longrightarrow> (a \<longrightarrow> (b \<or> B))" by auto
 
-lemma alethe_shuffle_or2b: "(b \<Longrightarrow> A) \<Longrightarrow> (\<not>b \<Longrightarrow> A = B) \<Longrightarrow> A = (b \<or> B)"
+lemma alethe_shuffle_or2b[no_atp]: "(b \<Longrightarrow> A) \<Longrightarrow> (\<not>b \<Longrightarrow> A = B) \<Longrightarrow> A = (b \<or> B)"
   by auto
 
-lemma alethe_shuffle_or3: "(a \<Longrightarrow> A) \<Longrightarrow> (\<not>a \<Longrightarrow> A) \<Longrightarrow> (a \<or> A)"
+lemma alethe_shuffle_or3[no_atp]: "(a \<Longrightarrow> A) \<Longrightarrow> (\<not>a \<Longrightarrow> A) \<Longrightarrow> (a \<or> A)"
   by auto
 
-lemma alethe_shuffle_or5: "(a \<Longrightarrow> A) \<Longrightarrow> (\<not>a \<Longrightarrow> \<not>A) \<Longrightarrow> (a = A)"
+lemma alethe_shuffle_or5[no_atp]: "(a \<Longrightarrow> A) \<Longrightarrow> (\<not>a \<Longrightarrow> \<not>A) \<Longrightarrow> (a = A)"
   by auto
 
-lemma alethe_shuffle_or6: "\<not>A \<Longrightarrow> (\<not>a \<Longrightarrow> (a = A))"
+lemma alethe_shuffle_or6[no_atp]: "\<not>A \<Longrightarrow> (\<not>a \<Longrightarrow> (a = A))"
   by auto
 
-lemma alethe_la_generic:
+lemma alethe_la_generic[no_atp]:
   \<open>(a::int) \<le> x \<or> a = x \<or> a \<ge> x\<close>
   by linarith
 
-lemma alethe_bfun_elim:
+lemma alethe_bfun_elim[no_atp]:
   \<open>(if b then P True else P False) = P b\<close>
   \<open>(\<forall>b. P' b) = (P' False \<and> P' True)\<close>
   \<open>(\<exists>b. P' b) = (P' False \<or> P' True)\<close>
   by (cases b) (auto simp: all_bool_eq ex_bool_eq)
 
-lemma alethe_eq_true_simplify:
+lemma alethe_eq_true_simplify[no_atp]:
   \<open>(P = True) \<equiv> P\<close>
   by auto
 
-lemma alethe_and_neg:
+lemma alethe_and_neg[no_atp]:
   \<open>(a \<Longrightarrow> \<not>b \<or> A) \<Longrightarrow> \<not>(a \<and> b) \<or> A\<close>
   \<open>(a \<Longrightarrow> A) \<Longrightarrow> \<not>a \<or> A\<close>
   \<open>(\<not>a \<Longrightarrow> A) \<Longrightarrow> a \<or> A\<close>
   by blast+
 
-lemma alethe_forall_inst:
+lemma alethe_forall_inst[no_atp]:
   \<open>A \<longleftrightarrow> B \<Longrightarrow> \<not>A \<or> B\<close>
   \<open>\<not>A \<longleftrightarrow> B \<Longrightarrow> A \<or> B\<close>
   \<open>A \<longleftrightarrow> B \<Longrightarrow> \<not>B \<or> A\<close>
@@ -375,14 +368,14 @@ lemma alethe_forall_inst:
   \<open>\<not>A \<longrightarrow> B \<Longrightarrow> A \<or> B\<close>
   by blast+
 
-lemma alethe_eq_transitive:
+lemma alethe_eq_transitive[no_atp]:
   \<open>A = B \<Longrightarrow> B = C \<Longrightarrow> A = C\<close>
   \<open>A = B \<Longrightarrow> C = B \<Longrightarrow> A = C\<close>
   \<open>B = A \<Longrightarrow> B = C \<Longrightarrow> A = C\<close>
   \<open>B = A \<Longrightarrow> C = B \<Longrightarrow> A = C\<close>
   by auto
 
-lemma alethe_bool_simplify:
+lemma alethe_bool_simplify[no_atp]:
   \<open>\<not>(P \<longrightarrow> Q) \<longleftrightarrow> P \<and> \<not>Q\<close>
   \<open>\<not>(P \<or> Q) \<longleftrightarrow> \<not>P \<and> \<not>Q\<close>
   \<open>\<not>(P \<and> Q) \<longleftrightarrow> \<not>P \<or> \<not>Q\<close>
@@ -398,26 +391,26 @@ lemma alethe_bool_simplify:
   unfolding not_imp imp_conjL
   by auto
 
-lemma alethe_connective_def:
+lemma alethe_connective_def[no_atp]:
   \<open>(A \<noteq> B) = ((\<not>A \<and> B) \<or> (A \<and> \<not>B))\<close> \<comment> \<open>xor case\<close>
   \<open>(A = B) = ((A \<longrightarrow> B) \<and> (B \<longrightarrow> A))\<close>
   \<open>(If A B C) = ((A \<longrightarrow> B) \<and> (\<not>A \<longrightarrow> C))\<close>
   apply (case_tac [!] A)
   by simp_all
 
-lemma alethe_connective_def_forall:
+lemma alethe_connective_def_forall[no_atp]:
   assumes "\<And>x::'a. (P x = (Q x))"
   shows "(\<forall>x. P x) = (\<forall>x. Q x )"
   using assms
   unfolding All_def
   by (iprover intro: ext eqTrueI assms)
 
-lemma alethe_connective_def_forall2:
+lemma alethe_connective_def_forall2[no_atp]:
   assumes "(P = Q)"
   shows "(\<forall>x. P x) = (\<forall>x. Q x)"
   unfolding assms ..
 
-lemma alethe_ite_simplify:
+lemma alethe_ite_simplify[no_atp]:
   \<open>(If True B C) = B\<close>
   \<open>(If False B C) = C\<close>
   \<open>(If A' B B) = B\<close>
@@ -435,28 +428,28 @@ lemma alethe_ite_simplify:
   for B C :: 'a and A' B' C' :: bool
   by auto
 
-lemma alethe_and_simplify1:
+lemma alethe_and_simplify1[no_atp]:
   \<open>True \<and> b \<longleftrightarrow> b\<close> \<open>b \<and> True \<longleftrightarrow> b\<close>
   \<open>False \<and> b \<longleftrightarrow> False\<close> \<open>b \<and> False \<longleftrightarrow> False\<close>
   \<open>(c \<and> \<not>c) \<longleftrightarrow> False\<close> \<open>(\<not>c \<and> c) \<longleftrightarrow> False\<close>
   \<open>\<not>\<not>a = a\<close>
   by auto
 
-lemmas alethe_and_simplify = conj_ac de_Morgan_conj disj_not1
+lemmas alethe_and_simplify [no_atp] = conj_ac de_Morgan_conj disj_not1
 
-lemma alethe_or_simplify_1:
+lemma alethe_or_simplify_1[no_atp]:
   \<open>False \<or> b \<longleftrightarrow> b\<close> \<open>b \<or> False \<longleftrightarrow> b\<close>
   \<open>b \<or> \<not>b\<close>
   \<open>\<not>b \<or> b\<close>
   by auto
 
-lemmas alethe_or_simplify = disj_ac
+lemmas alethe_or_simplify [no_atp] = disj_ac
 
-lemma alethe_not_simplify:
+lemma alethe_not_simplify [no_atp]:
   \<open>\<not> \<not>b \<longleftrightarrow> b\<close> \<open>\<not>True \<longleftrightarrow> False\<close> \<open>\<not>False \<longleftrightarrow> True\<close>
   by auto
 
-lemma alethe_implies_simplify:
+lemma alethe_implies_simplify[no_atp]:
   \<open>(\<not>a \<longrightarrow> \<not>b) \<longleftrightarrow> (b \<longrightarrow> a)\<close>
   \<open>(False \<longrightarrow> a) \<longleftrightarrow> True\<close>
   \<open>(a \<longrightarrow> True) \<longleftrightarrow> True\<close>
@@ -470,7 +463,7 @@ lemma alethe_implies_simplify:
   \<open>(\<not>False) \<longleftrightarrow> True\<close>
   by auto
 
-lemma alethe_equiv_simplify:
+lemma alethe_equiv_simplify[no_atp]:
   \<open>((\<not>a) = (\<not>b)) \<longleftrightarrow> (a = b)\<close>
   \<open>(a = a) \<longleftrightarrow> True\<close>
   \<open>(a = (\<not>a)) \<longleftrightarrow> False\<close>
@@ -484,28 +477,25 @@ lemma alethe_equiv_simplify:
   for a b :: bool
   by auto
 
-lemmas alethe_eq_simplify =
+lemmas alethe_eq_simplify[no_atp] =
   eq_refl num.simps neg_equal_zero equal_neg_zero neg_equal_iff_equal Num.rel_simps
 
-lemma alethe_minus_simplify:
+lemma alethe_minus_simplify[no_atp]:
   \<open>(a :: 'a :: cancel_comm_monoid_add) - a = 0\<close>
   \<open>(a :: 'a :: cancel_comm_monoid_add) - 0 = a\<close>
   \<open>0 - (b :: 'b :: {group_add}) = -b\<close>
   \<open>- (- (b :: 'b :: group_add)) = b\<close>
   by auto
 
-lemma alethe_sum_simplify:
+lemma alethe_sum_simplify[no_atp]:
   \<open>(a :: 'a :: cancel_comm_monoid_add) + 0 = a\<close>
   by auto
 
-lemmas alethe_prod_simplify =
-(* already included:
-   mult_zero_class.mult_zero_right
-   mult_zero_class.mult_zero_left *)
+lemmas alethe_prod_simplify[no_atp] =
    mult_1
    mult_1_right
 
-lemmas alethe_div_simplify =
+lemmas alethe_div_simplify[no_atp] =
    divide_self div_minus_minus div_by_1
    divide_numeral_1 one_plus_numeral
    divmod_steps less_irrefl divmod_trivial divmod_cancel
@@ -521,29 +511,27 @@ lemmas alethe_div_simplify =
    mult.left_neutral numeral_div_minus_numeral
    nat_1 nat_0
 
-lemma alethe_comp_simplify1:
+lemma alethe_comp_simplify1[no_atp]:
   \<open>(a :: 'a ::order) < a \<longleftrightarrow> False\<close>
   \<open>a \<le> a\<close>
   \<open>\<not>(b' \<le> a') \<longleftrightarrow> (a' :: 'b :: linorder) < b'\<close>
   by auto
 
-lemmas alethe_comp_simplify =
+lemmas alethe_comp_simplify[no_atp] =
   alethe_comp_simplify1
   zero_less_one
   zero_le_one
   rel_simps
 
-lemma alethe_la_disequality:
+lemma alethe_la_disequality[no_atp]:
   \<open>(a :: 'a ::linorder) = b \<or> \<not>a \<le> b \<or> \<not>b \<le> a\<close>
   by auto
 
-lemma alethe_la_mult_pos_less:
+lemma alethe_la_mult_pos_less[no_atp]:
   \<open>(0 :: 'a :: linordered_idom) < m \<and> (a < b) \<longrightarrow> m*a < m*b\<close>
   by simp
 
-thm alethe_la_mult_pos_less[of "3::int" "x::int" "y::int"]
-
-lemma alethe_la_mult_pos:
+lemma alethe_la_mult_pos[no_atp]:
   \<open>c = (0 :: 'a :: linordered_idom) \<Longrightarrow> c < m \<and> (a < b) \<longrightarrow> m*a < m*b\<close>
   \<open>c = (0 :: 'a :: linordered_idom) \<Longrightarrow> c < m \<and> (a \<le> b) \<longrightarrow> m*a \<le> m*b\<close>
   \<open>c = (0 :: 'a :: linordered_idom) \<Longrightarrow> c < m \<and> (a = b) \<longrightarrow> m*a = m*b\<close>
@@ -552,7 +540,7 @@ lemma alethe_la_mult_pos:
   \<open>c = (0 :: 'a :: linordered_idom) \<Longrightarrow> c < m \<and> (a > b) \<longrightarrow> m*a > m*b\<close>
   by simp_all
 
-lemma alethe_la_mult_neg:
+lemma alethe_la_mult_neg[no_atp]:
   \<open>c = (0 :: 'a :: linordered_idom) \<Longrightarrow> m < c \<and> (a < b) \<longrightarrow> m*a > m*b\<close>
   \<open>c = (0 :: 'a :: linordered_idom) \<Longrightarrow> m < c \<and> (a \<le> b) \<longrightarrow> m*a \<ge> m*b\<close>
   \<open>c = (0 :: 'a :: linordered_idom) \<Longrightarrow> m < c \<and> (a = b) \<longrightarrow> m*a = m*b\<close>
@@ -661,16 +649,11 @@ lemma div_less_mono:
   assumes "A < B" "0 < n" and
     mod: "A mod n = 0""B mod n = 0"
   shows "(A div n) < (B div n)"
-proof -
-  show ?thesis
-    using assms(1)
-    apply (subst (asm) div_mod_decomp[of "A" n])
-    apply (subst (asm) div_mod_decomp[of "B" n])
-    unfolding mod
-    by (use assms(2,3) in \<open>auto simp: ac_simps\<close>)
-qed
+  using assms(1)
+  by (subst (asm) div_mod_decomp[of "A" n], subst (asm) div_mod_decomp[of "B" n],
+    unfold mod, use assms(2,3) in \<open>auto simp: ac_simps\<close>)
 
-lemma alethe_le_mono_div:
+lemma alethe_le_mono_div[no_atp]:
   fixes A B :: nat
   assumes "A < B" "0 < n"
   shows "(A div n) + (if B mod n = 0 then 1 else 0) \<le> (B div n)"
@@ -697,7 +680,7 @@ proof -
     by (use assms(2,3) in \<open>auto simp: ac_simps\<close>)
 qed
 
-lemma alethe_le_mono_div_int:
+lemma alethe_le_mono_div_int[no_atp]:
   \<open>A div n + (if B mod n = 0 then 1 else 0) \<le> B div n\<close>
     if \<open>A < B\<close> \<open>0 < n\<close>
     for A B n :: int
@@ -738,7 +721,7 @@ proof -
   qed
 qed
 
-lemma alethe_less_mono_div_int2:
+lemma alethe_less_mono_div_int2[no_atp]:
   fixes A B :: int
   assumes "A \<le> B" "0 < -n"
   shows "(A div n) \<ge> (B div n)"
@@ -753,11 +736,6 @@ lemma [smt_arith_multiplication]:
   "(x::nat) = y \<Longrightarrow> x div n * p = y div n * p"
   "(x'::int) = y' \<Longrightarrow> x' div n' * p' = y' div n' * p'"
   by simp_all
-
-(*lemmas [smt_arith_multiplication] =
-  arg_cong[of _ _ \<open>\<lambda>a :: nat. a div n * p\<close> for n p :: nat, THEN sym]
-  arg_cong[of _ _ \<open>\<lambda>a :: int. a div n * p\<close> for n p :: int, THEN sym]
-*)
 
 lemma [smt_arith_combine]:
   "a < b \<Longrightarrow> c < d \<Longrightarrow> a + c + 2 \<le> b + d"
@@ -790,13 +768,13 @@ lemma [smt_arith_combine]:
   "c = d \<Longrightarrow> e = f \<Longrightarrow> c + e = d + f"
   by simp
 
-lemma alethe_negate_coefficient:
+lemma alethe_negate_coefficient[no_atp]:
   \<open>a \<le> (b :: 'a :: {ordered_ab_group_add}) \<Longrightarrow> -a \<ge> -b\<close>
   \<open>a < b \<Longrightarrow> -a > -b\<close>
   \<open>a = b \<Longrightarrow> -a = -b\<close>
   by auto
 
-lemma alethe_invert_farkas_equation:
+lemma alethe_invert_farkas_equation[no_atp]:
   \<open>a \<le> (b :: 'a :: {ordered_ab_group_add}) \<Longrightarrow> -a \<ge> -b\<close>
   \<open>a < b \<Longrightarrow> -a > -b\<close>
   \<open>a = b \<Longrightarrow> b = a\<close>
@@ -804,7 +782,7 @@ lemma alethe_invert_farkas_equation:
 
 end
 
-lemma alethe_ite_intro:
+lemma alethe_ite_intro[no_atp]:
   \<open>(If p (a' = (If p a' b')) (b' = (If p a' b'))) \<longleftrightarrow> True\<close>
   \<open>(If p (a' = (If p a' b')) ((If p a' b') = b')) \<longleftrightarrow> True\<close>
   \<open>(If p ((If p a' b') = a') (b' = (If p a' b'))) \<longleftrightarrow> True\<close>
@@ -814,7 +792,7 @@ lemma alethe_ite_intro:
   \<open>A = f (if a then R else S) \<longleftrightarrow> (if a then A = f R else A = f S)\<close>
   by auto
 
-lemma alethe_ite_if_cong:
+lemma alethe_ite_if_cong[no_atp]:
   fixes x y :: bool
   assumes "b = c"
     and "c \<equiv> True \<Longrightarrow> x = u"
@@ -828,12 +806,12 @@ proof -
     by (subst H) auto
 qed
 
-lemma alethe_miniscope_distribute:
+lemma alethe_miniscope_distribute[no_atp]:
   \<open>(\<forall>X. (F1 X \<and> A X)) = ((\<forall>X. F1 X) \<and> (\<forall>X. A X))\<close>
   \<open>(\<exists>X. (F1 X \<or> A X)) = ((\<exists>X. F1 X) \<or> (\<exists>X. A X))\<close>
   by (simp_all only: all_conj_distrib ex_disj_distrib)
 
-lemma alethe_miniscope_split:
+lemma alethe_miniscope_split[no_atp]:
   \<open>((\<forall>x. F1 x) \<or> (\<forall>y. A y)) = (\<forall>x y. (F1 x \<or> A y))\<close>
   \<open>((\<forall>x. F1 x) \<or> B) = (\<forall>x. (F1 x \<or> B))\<close>
   \<open>(B \<or> (\<forall>x. F1 x)) = (\<forall>x. (B \<or> F1 x))\<close>
@@ -842,7 +820,7 @@ lemma alethe_miniscope_split:
   \<open>(B \<and> (\<exists>x. F1 x)) = (\<exists>x. (B \<and> F1 x))\<close>
   by simp_all
 
-lemma alethe_miniscope_ITE:
+lemma alethe_miniscope_ITE[no_atp]:
   \<open>(\<forall>x Y. (if C then F1 x else A Y)) = (if C then (\<forall>x. F1 x) else (\<forall>Y. A Y))\<close>
   \<open>(\<forall>x. (if C then F1 x else B)) = (if C then (\<forall>x. F1 x) else (\<forall>Y. B))\<close>
   \<open>(\<forall>Y. (if C then F2 else A Y)) = (if C then F2 else (\<forall>Y. A Y))\<close>
@@ -880,38 +858,38 @@ lemma [alethe_poly_simp_rel]:
 ((cx * (x1 - x2)) = (cy * (y1 - y2))) \<longrightarrow> ((x1 \<ge> x2) = (y1 \<ge> y2))"
   by (metis diff_ge_0_iff_ge linorder_not_le mult_less_0_iff not_less_iff_gr_or_eq zero_less_mult_iff)
 
-lemma alethe_nat_embedding:
+lemma alethe_nat_embedding[no_atp]:
  "\<exists>x. x \<ge> 0 \<and> (y::nat) = nat (x::int)"
   using int_eq_iff by blast
-declare[[show_types]]
-lemma alethe_nat_embedding2:
+
+lemma alethe_nat_embedding2[no_atp]:
  "int (nat (Num.numeral_class.numeral n)) \<equiv> numeral n"
   by simp
 
-lemma alethe_nat_embedding_all:
+lemma alethe_nat_embedding_all[no_atp]:
  "(\<forall>(x::nat). P x) = (\<forall>(x::int). x \<ge> 0 \<longrightarrow> P (nat x))"
   using all_nat by simp_all
 
-lemma alethe_nat_embedding_ex:
+lemma alethe_nat_embedding_ex[no_atp]:
  "(\<exists>(x::nat). P x) = (\<exists>(x::int). x \<ge> 0 \<and> P (nat x))"
   using ex_nat by simp
 
-lemma int_nat_embedding_preproc_all:
+lemma int_nat_embedding_preproc_all[no_atp]:
  "(\<forall>(x::nat) . P x) \<equiv> (\<forall>(x::int). x \<ge> 0 \<longrightarrow> P (nat x))"
   using all_nat by simp
 
-lemma int_nat_embedding_preproc_ex:
+lemma int_nat_embedding_preproc_ex[no_atp]:
  "(\<exists>(x::nat). P x) \<equiv> (\<exists>(x::int). x \<ge> 0 \<and> P (nat x))"
   using ex_nat by auto
-
-definition lift_The :: "(int \<Rightarrow> bool) \<Rightarrow> int" where
+context 
+begin
+qualified definition lift_The :: "(int \<Rightarrow> bool) \<Rightarrow> int" where
   "lift_The Q = int (The (\<lambda>n::nat. Q (int n)))"
-
-lemma int_nat_embedding_preproc_the:
+lemma int_nat_embedding_preproc_the[no_atp]:
  "(The (P::nat \<Rightarrow> bool)) \<equiv> nat (lift_The (\<lambda>z::int. 0 \<le> z \<and> P (nat z)))"
   by (simp add: lift_The_def)
 
-lemma alethe_nat_embedding_all_new:
+lemma alethe_nat_embedding_all_new[no_atp]:
 "(\<forall>x . (\<exists>x'. (((x::nat) = nat (x'::int) \<and> 0 \<le> x' ) \<and> P x = P' x')))
 \<Longrightarrow> (\<forall>x::nat. P x) = (\<forall>x'::int. x' \<ge> 0 \<longrightarrow> P' x')"
   apply simp
@@ -919,59 +897,55 @@ lemma alethe_nat_embedding_all_new:
   subgoal using eq_nat_nat_iff by blast
   by blast
 
-lemma alethe_nat_embedding_all2:
+lemma alethe_nat_embedding_all2[no_atp]:
  "(\<forall>(x::int) \<ge> 0. int (nat x) = x)"
   using all_nat by simp
 
-lemma alethe_nat_embedding_ex2:
+lemma alethe_nat_embedding_ex2[no_atp]:
  "(\<exists>(x::int). x \<ge> 0 \<and> int (nat x) = x)"
   using ex_nat by auto
 
-lemma alethe_nat_embedding_all3:
+lemma alethe_nat_embedding_all3[no_atp]:
  "P (int (nat x)) \<Longrightarrow> x \<ge> 0 \<Longrightarrow> P x"
   using all_nat by simp
 
-lemma H1:
- "int (nat 0) = 0"
- "int (nat 1) = 1"
-  by simp_all
-lemma H1':
+lemma smt_lift_int_nat[no_atp]:
  "int (nat 0) \<equiv> 0"
  "int (nat 1) \<equiv> 1"
   by simp_all
 
-lemma H_nat_embedding: \<open>x \<ge> 0 \<Longrightarrow> int (nat x) = x\<close>
+lemma smt_natasint_lift_nat_embedding[no_atp]:
+  \<open>x \<ge> 0 \<Longrightarrow> int (nat x) = x\<close>
   by simp
 
-lemma H_nat_embedding': \<open>x \<ge> 0 \<Longrightarrow> int (nat x) \<equiv> x\<close>
+lemma smt_natasint_lift_nat_embedding'[no_atp]:
+  \<open>x \<ge> 0 \<Longrightarrow> int (nat x) \<equiv> x\<close>
   by simp
 
-lemma H_nat_eq:
+lemma smt_natasint_lift_nat_eq[no_atp]:
   fixes a b :: int
   shows \<open>0 \<le> a \<Longrightarrow> 0 \<le> b \<Longrightarrow> nat a = nat b \<equiv> a = b\<close>
   by (simp add: nat_eq_iff)
 
-lemma temp:
-"A \<Longrightarrow> (B \<equiv> C) \<Longrightarrow> (B \<equiv> (A \<and> C))"
-  by simp
-
-lemma alethe_onepoint:
+lemma alethe_onepoint[no_atp]:
   \<open>(\<And>a. P a = Q a) \<Longrightarrow> (\<forall>a. P a) = (\<forall>a. Q a)\<close>
   \<open>(\<And>a. P' a = Q') \<Longrightarrow> (\<forall>a. P' a) = Q'\<close>
   \<open>(\<And>a. P a = Q a) \<Longrightarrow> (\<exists>a. P a) = (\<exists>a. Q a)\<close>
   \<open>(\<And>a. P' a = Q') \<Longrightarrow> (\<exists>a. P' a) = Q'\<close>
   by auto
 
-lemma alethe_onepoint_simp:
+lemma alethe_onepoint_simp[no_atp]:
   \<open>(\<forall>x. a = b \<and> P x \<longrightarrow> Q x) \<longleftrightarrow> (a = b \<longrightarrow> (\<forall>x. P x \<longrightarrow> Q x))\<close>
   by auto
 
-lemma alethe_rewrite_in_imp:
+lemma alethe_rewrite_in_imp[no_atp]:
   \<open>((a::'a) = (b::'a) \<equiv> P') \<Longrightarrow> (P' \<Longrightarrow> P = Q) \<Longrightarrow> (a = b \<longrightarrow> P) \<equiv> (P' \<longrightarrow> Q)\<close>
   by auto
 
-lemma alethe_imp_commute: \<open>(a \<longrightarrow> b \<longrightarrow> q) = (b \<longrightarrow> a \<longrightarrow> q)\<close>
+lemma alethe_imp_commute[no_atp]: \<open>(a \<longrightarrow> b \<longrightarrow> q) = (b \<longrightarrow> a \<longrightarrow> q)\<close>
   by auto
+
+end
 
 named_theorems nat_normalized_input \<open>Theorems required to replay nat operators embedded into lifted int versions\<close>
 named_theorems cvc5_normalized_input \<open>Theorems required to replay
@@ -988,44 +962,52 @@ lemmas [alethe_poly_norm] = mult_1_right mult_1_left
 
 named_theorems alethe_aci_simp \<open>Extra theorems for aci simp\<close>
 
-lemma alethe_onepoint2_all:
+lemma alethe_onepoint2_all[no_atp]:
   assumes \<open>\<And>x. x = t \<Longrightarrow> P t = Q\<close> \<open>\<And>x. P x = (x = t \<longrightarrow> P x)\<close>
   shows \<open>(\<forall>x. P x) = Q\<close>
   by (use assms in metis)+
-lemma alethe_onepoint2_ex:
+
+lemma alethe_onepoint2_ex[no_atp]:
   assumes \<open>\<And>x. x = t \<Longrightarrow> P t = Q\<close> \<open>\<And>x. P x = (x = t \<and> P x)\<close>
   shows \<open>(\<exists>x. P x) = Q\<close>
   by (use assms in metis)+
 
-lemmas alethe_poly_simp_rel_simps =
+lemmas alethe_poly_simp_rel_simps[no_atp] =
    less_divide_eq_numeral1
    less_numeral_simps alethe_div_simplify zero_less_one
    not_one_less_zero neg_0_less_iff_less
    Parity.semiring_parity_class.odd_numeral
    Parity.semiring_parity_class.odd_one
+
 named_theorems alethe_poly_simp_rel_bv_simps \<open>Extra theorems for poly simp rel for bv\<close>
 
-lemma alethe_arg_cong0: \<open>f = g \<Longrightarrow> f a = f a\<close>
+lemma alethe_arg_cong0[no_atp]: \<open>f = g \<Longrightarrow> f a = f a\<close>
   by (rule arg_cong)
 
-lemma alethe_arg_cong: \<open>f = g \<Longrightarrow> a = b \<Longrightarrow> f a = g b\<close>
+lemma alethe_arg_cong[no_atp]: \<open>f = g \<Longrightarrow> a = b \<Longrightarrow> f a = g b\<close>
   by (auto)
 
-definition alethe_Box :: \<open>bool \<Rightarrow> bool\<close> where
+context
+begin
+
+qualified definition alethe_Box :: \<open>bool \<Rightarrow> bool\<close> where
   \<open>alethe_Box P = P\<close>
 
-lemma alethe_Box:
+qualified lemma alethe_Box[no_atp]:
   \<open>P \<equiv> alethe_Box P\<close>
   unfolding alethe_Box_def
   by auto
 
-lemma alethe_Box_def2:
+qualified lemma alethe_Box_def2[no_atp]:
   \<open>alethe_Box P \<equiv> P\<close>
   unfolding alethe_Box_def
   by auto
 
-definition alethe_id :: \<open>'a \<Rightarrow> 'a\<close> where
+qualified definition alethe_id :: \<open>'a \<Rightarrow> 'a\<close> where
   \<open>alethe_id x = x\<close>
+
+end
+
 
 named_theorems rare_simplify_temp \<open>Theorems to reconstruct bitvector theorems concerning list
                                   functions, e.g. take.\<close>
@@ -1091,21 +1073,6 @@ ML_file \<open>Tools/SMT/alethe/verit_replay.ML\<close>
 ML_file \<open>Tools/SMT/alethe/cvc5_replay.ML\<close>
 
 ML_file \<open>Tools/SMT/smt_systems.ML\<close>
-(*
-
-
-(*Umbennen*)
-
-SMT_CVC_Real soll nur in Complex Main drinsein und nicht in Main! TODO: see what poly_simp would do.
-
-smt_word
-\<rightarrow> Altes, unverändertes wenn Flag nicht benutzt wird
-
-kopiere alten code.
-
-Nach src/HOL/Library/Tools/ für ML and src/HOL/Library/ für theories
-
-*)
 
 
 subsection \<open>Configuration\<close>

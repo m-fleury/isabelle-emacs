@@ -25,7 +25,7 @@ open ATP_Proof_Reconstruct
 fun unlift_term ll_defs =
   let
     val lifted = map (ATP_Util.extract_lambda_def dest_Free o ATP_Util.hol_open_form I) ll_defs
-                 |> map (apsnd (fn t => Const (\<^const_name>\<open>alethe_id\<close>, fastype_of t --> fastype_of t) $ t))
+                 |> map (apsnd (fn t => Const (\<^const_name>\<open>SMT.alethe_id\<close>, fastype_of t --> fastype_of t) $ t))
     fun un_free (t as Free (s, _)) =
        (case AList.lookup (op =) lifted s of
          SOME t => un_term t

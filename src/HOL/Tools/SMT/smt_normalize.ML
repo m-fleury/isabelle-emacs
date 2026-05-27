@@ -495,7 +495,7 @@ local
 
   val unfold_nat_let_conv = Conv.rewr_conv @{lemma "Let (n::nat) f \<equiv> f n" by (rule Let_def)}
   val drop_nat_int_conv = Conv.rewr_conv (Thm.symmetric nat_int_thm)
-  val int_nat_thm = mk_meta_eq @{thm SMT.H1(1)}
+  val int_nat_thm = @{thm SMT.smt_lift_int_nat(1)}
 
   val print_nat_to_int_conv = print_conv "nat_to_int_conv"
   val print_nat_conv = print_conv "nat_conv"

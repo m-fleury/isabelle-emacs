@@ -1540,7 +1540,7 @@ fun sort_disj ctxt t =
         then HEADGOAL (TRY' (
          resolve_tac context @{thms ccontr}
          THEN' (eqsubst_all context @{thms de_Morgan_disj[THEN eq_reflection]
-           alethe_Box_def[THEN eq_reflection] not_not[THEN eq_reflection]})
+           SMT.alethe_Box_def[THEN eq_reflection] not_not[THEN eq_reflection]})
          THEN' REPEAT' (eresolve_tac context [@{lemma \<open>P \<and> Q \<Longrightarrow> (P \<equiv> True \<Longrightarrow> Q \<equiv> True \<Longrightarrow> R) \<Longrightarrow> R\<close> by blast}])
          THEN' REPEAT' (eresolve_tac context
              @{lemma \<open>\<not>P \<equiv> True \<Longrightarrow> (P \<equiv> False \<Longrightarrow> R) \<Longrightarrow> R\<close>
@@ -1548,7 +1548,7 @@ fun sort_disj ctxt t =
              )
          THEN' Method.insert_tac context prems
          THEN' (eqsubst_all context @{thms de_Morgan_disj[THEN eq_reflection]
-           alethe_Box_def[THEN eq_reflection] not_not[THEN eq_reflection]})
+           SMT.alethe_Box_def[THEN eq_reflection] not_not[THEN eq_reflection]})
          THEN' Subgoal.FOCUS only_rewrite context))
        else all_tac
       end
@@ -1581,8 +1581,8 @@ fun qnt_cnf_tac ctxt =
   THEN' (*alethe_Box to make sure we don't conjE too much later*)
    (resolve_tac ctxt
     @{lemma
-       \<open>\<And>a b A B. (alethe_Box (\<not>a \<and> \<not>b) \<Longrightarrow> A \<and> B) \<Longrightarrow> \<not>\<not>(a \<or> b) \<or> A \<and> B\<close>
-       \<open>\<And>a A. (a \<Longrightarrow> A) \<Longrightarrow> \<not>a \<or> A\<close> by (auto simp: alethe_Box_def)})
+       \<open>\<And>a b A B. (SMT.alethe_Box (\<not>a \<and> \<not>b) \<Longrightarrow> A \<and> B) \<Longrightarrow> \<not>\<not>(a \<or> b) \<or> A \<and> B\<close>
+       \<open>\<And>a A. (a \<Longrightarrow> A) \<Longrightarrow> \<not>a \<or> A\<close> by (auto simp: SMT.alethe_Box_def)})
   (*step 2a*)
   THEN' TRY' (SOLVED' (Subgoal.FOCUS try_early_simp_solve ctxt))
   (*step 3*)
@@ -1591,7 +1591,7 @@ fun qnt_cnf_tac ctxt =
      imp_conv_disj[THEN eq_reflection] de_Morgan_conj[THEN eq_reflection] not_not[THEN eq_reflection]
     disj_assoc[THEN eq_reflection]})
   THEN' REPEAT' (eresolve_tac ctxt @{thms conjE})
-  THEN' TRY' (CONVERSION (Conv.try_conv (Conv.top_sweep_rewrs_conv @{thms alethe_Box_def[THEN eq_reflection]} ctxt)))
+  THEN' TRY' (CONVERSION (Conv.try_conv (Conv.top_sweep_rewrs_conv @{thms SMT.alethe_Box_def[THEN eq_reflection]} ctxt)))
   THEN' TRY' (DETERM' (CNF.cnf_rewrite_tac ctxt))
   THEN' TRY' (eqsubst_all ctxt (@{thms all_conj_distrib[THEN eq_reflection]}))
   THEN' REPEAT' (eresolve_tac ctxt @{thms conjE})

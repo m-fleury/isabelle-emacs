@@ -316,8 +316,8 @@ fun transform_function ctxt subst t f f_name ts f_T f'_T =
       (case t1 of
         Const (\<^const_name>\<open>Int.nat\<close>, @{typ "int \<Rightarrow> nat"}) $ t2 =>
           (case t2 of
-            Const (\<^const_name>\<open>Groups.zero_class.zero\<close>, @{typ int}) => custom_rewr_conv ctxt subst @{thm SMT.H1'(1)}
-          | Const (\<^const_name>\<open>Groups.one_class.one\<close>, @{typ int}) => custom_rewr_conv ctxt subst @{thm SMT.H1'(2)}
+            Const (\<^const_name>\<open>Groups.zero_class.zero\<close>, @{typ int}) => custom_rewr_conv ctxt subst @{thm SMT.smt_lift_int_nat(1)}
+          | Const (\<^const_name>\<open>Groups.one_class.one\<close>, @{typ int}) => custom_rewr_conv ctxt subst @{thm SMT.smt_lift_int_nat(2)}
           | (Const (\<^const_name>\<open>Num.numeral_class.numeral\<close>, @{typ "num \<Rightarrow> int"}) $ u1) => (fn r => (subst, ctxt, [], Conv.top_sweep_rewrs_conv [Drule.infer_instantiate' ctxt [SOME (Thm.cterm_of ctxt u1)] @{thm alethe_nat_embedding2}] ctxt r))
           | _ =>
             let
@@ -329,7 +329,7 @@ fun transform_function ctxt subst t f f_name ts f_T f'_T =
               | SOME t_thms =>
                 let
                   val _ = debug_msg ctxt high (fn () => \<^print> ("Found ge thm for x in int(nat x)", t_thms))
-                  val int_nat_thm = @{thm H_nat_embedding'} OF [t_thms]
+                  val int_nat_thm = @{thm smt_natasint_lift_nat_embedding'} OF [t_thms]
                   val _ = debug_msg ctxt high (fn () => \<^print> ("int_nat_thm", int_nat_thm))
                 in custom_rewr_conv ctxt subst int_nat_thm end
             end)
@@ -382,7 +382,7 @@ fun transform_function ctxt subst t f f_name ts f_T f'_T =
               [t1, t2] =>
                 (case (Option.mapPartial ge0_for (inner_of t1),
                        Option.mapPartial ge0_for (inner_of t2)) of
-                  (SOME ge1, SOME ge2) => SOME (@{thm H_nat_eq} OF [ge1, ge2])
+                  (SOME ge1, SOME ge2) => SOME (@{thm smt_natasint_lift_nat_eq} OF [ge1, ge2])
                 | _ => NONE)
             | _ => NONE
           end

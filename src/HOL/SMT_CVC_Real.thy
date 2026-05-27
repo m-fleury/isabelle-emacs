@@ -8,8 +8,12 @@ cvc5_rare "Alethe_Arith_Real_Rewrites.rewrite_arith_to_int_to_real"
 cvc5_rare "Alethe_Arith_Real_Rewrites.rewrite_arith_int_eq_conflict"
 cvc5_rare "Alethe_Arith_Real_Rewrites.rewrite_arith_int_geq_tighten"
 
-lemmas cvc_evaluate = of_rat_add of_rat_minus of_rat_diff of_rat_mult of_rat_divide of_rat_eq_iff
-of_rat_divide nonzero_of_rat_divide of_rat_neg_numeral_eq temp
+lemma alethe_push_assumption_in_goal[no_atp]:
+  "A \<Longrightarrow> (B \<equiv> C) \<Longrightarrow> (B \<equiv> (A \<and> C))"
+  by simp
+
+lemmas cvc_evaluate[no_atp] = of_rat_add of_rat_minus of_rat_diff of_rat_mult of_rat_divide of_rat_eq_iff
+  of_rat_divide nonzero_of_rat_divide of_rat_neg_numeral_eq alethe_push_assumption_in_goal
 
 lemmas [alethe_poly_norm] =
   ab_group_add_class.minus_add_distrib

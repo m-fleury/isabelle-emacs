@@ -440,3 +440,92 @@ sat
 509babd1e1e7f6eea32d2864dd2d1b747833eedd 2 0
 sat
 (error "line 10 column 10: proof is not available")
+58275629d677e0d131eb8f311c3ea39ad7a0d66a 2 0
+sat
+(error "line 9 column 10: proof is not available")
+7fcfe0dae99c3cf51b0eefa2b530adb91658d21c 2 0
+sat
+(error "line 11 column 10: proof is not available")
+bd56f54056d98b0617979d56572add7702a9d05f 2 0
+sat
+(error "line 14 column 10: proof is not available")
+4316b7af7be9717cd97dde982976dec47316d565 2 0
+sat
+(error "line 9 column 10: proof is not available")
+819557870483a5a92eb971f3df2a518c13db9729 2 0
+sat
+(error "line 10 column 10: proof is not available")
+001b33f9aa0e21295376764f31f5ed39d36f2c29 2 0
+sat
+(error "line 9 column 10: proof is not available")
+feac1ba0d1201ba98eeb2118fef14f7622e032aa 2 0
+sat
+(error "line 9 column 10: proof is not available")
+47ef9dfc375f9eae2d7938cc2b99f7dd0e5f7f0d 2 0
+sat
+(error "line 13 column 10: proof is not available")
+b2e889e9506684db3342d4004c92ef3fbd40c342 2 0
+sat
+(error "line 9 column 10: proof is not available")
+084ffa1b2c92ec3ac3b5020748bb3ac2da3688da 2 0
+sat
+(error "line 13 column 10: proof is not available")
+02035b79cc3c712ffeb783ae1f2e716b132aab4f 2 0
+sat
+(error "line 11 column 10: proof is not available")
+f85dc231b219cc6624f860d7bdcc6ce39b9fc5f9 2 0
+sat
+(error "line 11 column 10: proof is not available")
+f4c6ce7bbafac79ceddb8e725db9bc6bfdbfeaa8 2 0
+sat
+(error "line 11 column 10: proof is not available")
+3016e2cc65b234e7c82232f4ca5243b24b3b63a4 2 0
+sat
+(error "line 9 column 10: proof is not available")
+46fbe000734eb896df1ce146c9f5a3911dd5d660 2 0
+sat
+(error "line 9 column 10: proof is not available")
+4b61cd0d54a32e58cfa99947fe1ca641a2b12c08 2 0
+sat
+(error "line 9 column 10: proof is not available")
+8d1ad5147b5b50dd9bf925dbdebaa10cb525b17a 2 0
+sat
+(error "line 9 column 10: proof is not available")
+fb9c617d63f099973e4bc1f63d12f5f24899b614 2 0
+sat
+(error "line 9 column 10: proof is not available")
+a89df3dd971bfb0fe3e14bab02ace9f1397c2448 2 0
+sat
+(error "line 11 column 10: proof is not available")
+ba4ce6f09699289d19f97143521e8e99cf748f14 2 0
+sat
+(error "line 11 column 10: proof is not available")
+a61841b03cfeefbf36e7c380be07e0992bc18fc6 2 0
+sat
+(error "line 11 column 10: proof is not available")
+714757fd8c59b34a493abfbdf0d943f18cc02943 25 0
+unsat
+((set-logic <null>)
+(proof
+(let ((?x28 (bv2int$ zero$)))
+(let (($x188 (<= ?x28 0)))
+(let (($x189 (not $x188)))
+(let (($x178 (forall ((?v0 Num1_bit0_word$) )(! (not (<= (bv2int$ ?v0) 0)) :pattern ( (bv2int$ ?v0) ) :qid k!13))
+))
+(let (($x60 (forall ((?v0 Num1_bit0_word$) )(! (not (<= (bv2int$ ?v0) 0)) :qid k!13))
+))
+(let ((@x180 (refl (= (not (<= (bv2int$ ?0) 0)) (not (<= (bv2int$ ?0) 0))))))
+(let ((@x115 (refl (~ (not (<= (bv2int$ ?0) 0)) (not (<= (bv2int$ ?0) 0))))))
+(let (($x52 (forall ((?v0 Num1_bit0_word$) )(! (let ((?x50 (bv2int$ ?v0)))
+(< 0 ?x50)) :qid k!13))
+))
+(let ((@x59 (rewrite (= (< 0 (bv2int$ ?0)) (not (<= (bv2int$ ?0) 0))))))
+(let ((@x118 (mp~ (mp (asserted $x52) (quant-intro @x59 (= $x52 $x60)) $x60) (nnf-pos @x115 (~ $x60 $x60)) $x60)))
+(let ((@x183 (mp @x118 (quant-intro @x180 (= $x60 $x178)) $x178)))
+(let (($x192 (not $x178)))
+(let (($x193 (or $x192 $x189)))
+(let ((@x194 ((_ quant-inst zero$) $x193)))
+(let (($x29 (= ?x28 0)))
+(let ((@x30 (asserted $x29)))
+(unit-resolution ((_ th-lemma arith triangle-eq) (or (not $x29) $x188)) @x30 (unit-resolution @x194 @x183 $x189) false)))))))))))))))))))
+

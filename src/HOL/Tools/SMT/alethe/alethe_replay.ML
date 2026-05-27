@@ -43,14 +43,14 @@ fun add_box_symbols ctxt t ct =
             @{term Not} $ _ =>
               Conv.try_conv (Conv.arg_conv (add_alethe_Box_after_all_negations_conv ctxt) )
           | _ =>
-              Conv.try_conv (Conv.top_conv (K (Conv.rewr_conv @{thm alethe_Box})) ctxt)) ct
+              Conv.try_conv (Conv.top_conv (K (Conv.rewr_conv @{thm SMT.alethe_Box})) ctxt)) ct
 
     fun add_box_symbols @{term True} ct =
           (case Thm.term_of ct of
             @{term Not} $ _ =>
               Conv.try_conv (Conv.arg_conv (add_alethe_Box_after_all_negations_conv ctxt))
           | _ =>
-              Conv.try_conv (Conv.top_conv (K (Conv.rewr_conv @{thm alethe_Box})) ctxt)) ct
+              Conv.try_conv (Conv.top_conv (K (Conv.rewr_conv @{thm SMT.alethe_Box})) ctxt)) ct
       | add_box_symbols (u $ v) ct =
           (Conv.fun_conv (add_box_symbols u)
            then_conv Conv.arg_conv (add_box_symbols v)) ct
@@ -136,7 +136,8 @@ fun replay_thm solver method_for rewrite_rules ll_defs ctxt assumed unchanged_pr
         ((prop_skeleton, concl), ctxt)
         args
         needs_boxes
-      |> Simplifier.simplify (Simplifier.add_simps (@{thm alethe_Box_def2} :: rewrite_rules) (Simplifier.empty_simpset ctxt))
+      |> Simplifier.simplify (Simplifier.add_simps (@{thm SMT.alethe_Box_def2} :: rewrite_rules)
+          (Simplifier.empty_simpset ctxt))
   end
  | replay_thm _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ = raise Fail "unreachable code to silence the compiler"
 
@@ -325,7 +326,7 @@ fun prove_ll_def_from_assms assms ll_defs rewrite_rules stats ctxt term =
       end
     val replay = Timing.timing (SMT_Replay_Methods.prove ctxt (rewrite term))
     val replay_ll_assumption_tac = 
-      Method.insert_tac ctxt assms THEN' K (unfold_tac ctxt @{thms alethe_id_def}) 
+      Method.insert_tac ctxt assms THEN' K (unfold_tac ctxt @{thms SMT.alethe_id_def}) 
       THEN' (assume_tac ctxt
          ORELSE' (Alethe_Replay_Methods.REPEAT' (resolve_tac ctxt @{thms allI})
            THEN' Alethe_Replay_Methods.REPEAT' (resolve_tac ctxt @{thms refl})))
