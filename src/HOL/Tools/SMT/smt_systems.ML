@@ -271,10 +271,11 @@ local
     | SOME t => ["-T:" ^ string_of_int (Real.ceil (Time.toReal t))]) @
     ["-smt2"]
 
+  (*BV reconstruction does not work, so only if extensions are activated*)
   fun select_class ctxt =
     (if Config.get ctxt z3_extensions then single Z3_Interface.smtlib_z3C else []) @
     single SMTLIB_Interface.smtlibC @
-    (if Config.get ctxt SMT_Config.native_bv then single SMTLIB_Interface.bvsmtlibC else [])
+    (if Config.get ctxt SMT_Config.native_bv andalso Config.get ctxt z3_extensions then single SMTLIB_Interface.bvsmtlibC else [])
 in
 
 val z3: SMT_Solver.solver_config = {
