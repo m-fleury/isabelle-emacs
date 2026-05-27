@@ -422,3 +422,21 @@ unsat
 (let ((@x47 (trans @x43 (rewrite (= (not true) false)) (= (not (= ((_ rotate_right 2) (_ bv6 4)) (_ bv9 4))) false))))
 (mp (asserted (not (= ((_ rotate_right 2) (_ bv6 4)) (_ bv9 4)))) @x47 false)))))))
 
+44c3e24370a0e7468a0c5ae5190092562e22ce3b 2 0
+sat
+(error "line 9 column 10: proof is not available")
+b18b2e6e700e741430a3e1d87e36bf4b8cee69db 2 0
+sat
+(error "line 8 column 10: proof is not available")
+3ac4986f53b6c5cbee584cb252568af0b8f35732 2 0
+sat
+(error "line 9 column 10: proof is not available")
+985e281035c9c456e6504b78f4d15cde0b7d90d1 2 0
+sat
+(error "line 9 column 10: proof is not available")
+5f2fc7c229ddb5af19870b3dd32304a8038df6ee 2 0
+sat
+(error "line 9 column 10: proof is not available")
+509babd1e1e7f6eea32d2864dd2d1b747833eedd 2 0
+sat
+(error "line 10 column 10: proof is not available")

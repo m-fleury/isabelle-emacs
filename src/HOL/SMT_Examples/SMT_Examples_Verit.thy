@@ -1122,4 +1122,35 @@ lemma
   using assms supply[[smt_trace]] by (smt (verit, ccfv_threshold)) (*qnt_cnf From: Galois_Energy_Games/Decidability.thy*)
 end
 
+abbreviation Deutsch_zero where "Deutsch_zero ≡ unit_vec 2 0"
+abbreviation Deutsch_one where "Deutsch_one ≡ unit_vec 2 1" 
+locale test =
+  fixes
+    one_mat :: "nat ⇒ 'complex_mat :: {plus,times}" (‹1⇩m›) and
+    smult_mat :: "'complex :: {plus,times,numeral,inverse,power} ⇒ 'complex_mat ⇒ 'complex_mat" (infixl ‹⋅⇩m› 70) and
+    ket_vec :: "'complex_vec ⇒ 'complex_mat" (‹|_⟩›) and
+    tensor_mat:: "['complex_mat, 'complex_mat] ⇒ 'complex_mat" (infixl ‹⨂› 63) and
+    dim_col :: "'complex_mat ⇒ nat"and
+    dim_row :: "'complex_mat ⇒ nat" and
+     QFT:: "nat ⇒ 'complex_mat"
+begin
+lemma
+  assumes
+       "dim_col (1⇩m (2::nat)) =
+         dim_row (complex_of_real (1 / sqrt (2::'real)) ⋅⇩m (ket_vec Deutsch_zero + exp ((2::'complex) * 𝗂 * complex_of_real pi * complex_of_nat (j::nat) / (2::'complex) ^ Suc (n::nat)) ⋅⇩m |Deutsch_one⟩))"
+       "dim_col (QFT (n::nat)) = dim_row |state_basis n (jm::nat)⟩"
+       "0 < dim_col (1⇩m (2::nat))"
+       "0 < dim_col (complex_of_real (1 / sqrt (2::'real)) ⋅⇩m (ket_vec Deutsch_zero + exp ((2::'complex) * 𝗂 * complex_of_real pi * complex_of_nat (j::nat) / (2::'complex) ^ Suc (n::nat)) ⋅⇩m |Deutsch_one⟩))"
+       "0 < dim_col (QFT (n::nat))"
+       "0 < dim_col |state_basis (n::nat) (jm::nat)⟩"
+       "∀(A::'complex_mat) (B::'complex_mat) (C::'complex_mat) D::'complex_mat.
+          dim_col A = dim_row B ∧ dim_col C = dim_row D ∧ 0 < dim_col A ∧ 0 < dim_col B ∧ 0 < dim_col C ∧ 0 < dim_col D ⟶ A * B ⨂ C * D = (A ⨂ C) * (B ⨂ D)"
+       "(1⇩m (2::nat) ⨂ QFT (n::nat)) *
+        (complex_of_real (1 / sqrt (2::'real)) ⋅⇩m (ket_vec Deutsch_zero + exp ((2::'complex) * 𝗂 * complex_of_real pi * complex_of_nat (j::nat) / (2::'complex) ^ Suc n) ⋅⇩m ket_vec Deutsch_one) ⨂
+        |state_basis n (jm::nat)⟩) ≠
+       1⇩m (2::nat) * (complex_of_real (1 / sqrt (2::'real::{numeral,plus,times})) ⋅⇩m (ket_vec Deutsch_zero + exp ((2::'complex) * 𝗂 * complex_of_real pi * complex_of_nat j / (2::'complex) ^ Suc n) ⋅⇩m ket_vec Deutsch_one)) ⨂
+       QFT n * |state_basis n jm⟩" 
+     shows False
+  using assms supply [[smt_trace,show_types]] apply (smt (verit, best))
+end
 end
