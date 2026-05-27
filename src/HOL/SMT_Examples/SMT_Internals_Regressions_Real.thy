@@ -36,6 +36,8 @@ fun tactic_args_parser ctxt cs =
 
 fun get_tac n ctxt prems args = 
 let
+  val ctxt =
+    ctxt |> put_simpset (SMT_Replay.make_simpset ctxt [])
   val rule = CVC5_Replay_Methods.cvc5_rule_of n |> @{print}
   val rule_name = rule |> Alethe_Replay_Methods.string_of_alethe_rule
   val _ = @{print}("Found tactic", rule_name)
@@ -47,7 +49,9 @@ let
   val prems=prems
   val step_args=[]
   val context_args=[]
-  val args= (if rule_name = "and_pos" andalso Option.isSome args
+  (*arguments are only supported for some rules and are a little brittle*)
+  (*maybe I should have parsed tokens, at the time I wrote this I only wanted to test one specific rule*)
+  val args= (if member (op =) ["and_pos", "or_neg", "Not_Or", "and"] rule_name andalso Option.isSome args
             then SOME (Index (Option.valOf args |> Syntax.read_term ctxt |> HOLogic.dest_number |> snd))
             else if rule_name = "shuffle" andalso Option.isSome args
             then SOME (CommOp (Option.valOf args |> Syntax.read_term ctxt))
@@ -224,6 +228,13 @@ lemma poly_simp_rel5:
   shows "(2 * lift_x = 1) = (real_of_int (2 * lift_x) = real_of_int 1)"
   using assms
   by (ctxt_tactic "poly_simp_rel")
+
+(* Rule 11: la_generic *)
+lemma la_generic_4:
+  shows \<open>\<not> (114976::real) powr ((2::real) / (3::real)) < (117649::real) powr ((2::real) / (3::real)) \<or>
+         (10000::real) + (4::real) * (114976::real) powr ((2::real) / (3::real)) \<le> (10000::real) + (4::real) * (117649::real) powr ((2::real) / (3::real)) \<close>
+  supply[[smt_debug_arith_verit]] by (ctxt_tactic "la_generic" "[(1,1),(1,4)]")
+
 
 (* Rule 85: div_simplify *)
 
