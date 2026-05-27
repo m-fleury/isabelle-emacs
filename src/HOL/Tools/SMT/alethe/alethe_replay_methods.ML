@@ -1514,6 +1514,7 @@ fun sort_disj ctxt t =
         |> Simplifier.put_simpset HOL_basic_ss
         |> Simplifier.add_simps (@{thms simp_thms} @ thms)
         |> fold Simplifier.add_proc simprocs
+        |> fold Simplifier.add_cong @{thms imp_cong}
         |> Simplifier.asm_full_simp_tac
 
 
@@ -1527,6 +1528,8 @@ fun sort_disj ctxt t =
            ((take (length nprems - 1) nprems))))
         in
           Method.insert_tac context [List.last nprems]
+          (*the simplifier does not always rewrite assumptions*)
+          THEN' (eqsubst_all context rewr_prems)
           THEN' simplify_tac_with_cong [] context
             (rewr_prems @ @{thms conj_assoc eq_commute if_True if_False})
           |> TRY'
