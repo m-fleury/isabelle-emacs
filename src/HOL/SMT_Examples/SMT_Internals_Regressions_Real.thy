@@ -181,11 +181,6 @@ lemma miniscope_distribute1:
           (\<forall>y3. x1 = - 81 / 76 + 63 / 76 * y3) \<and> (\<forall>y3. 0 / 1 \<le> x1 + - 5 / 7 * y3 + 1 / 14 * y2a)) "
   by (ctxt_tactic "miniscope_distribute")
 
-lemma la_generic_4:
-  shows \<open>\<not> (114976::real) powr ((2::real) / (3::real)) < (117649::real) powr ((2::real) / (3::real)) \<or>
-         (10000::real) + (4::real) * (114976::real) powr ((2::real) / (3::real)) \<le> (10000::real) + (4::real) * (117649::real) powr ((2::real) / (3::real)) \<close>
-  by (ctxt_tactic "la_generic" "[(1,1),(1,4)]")
-
 (*Rule : poly_simp_rel*)
 
 lemma poly_simp_rel:
@@ -233,8 +228,7 @@ lemma poly_simp_rel5:
 lemma la_generic_4:
   shows \<open>\<not> (114976::real) powr ((2::real) / (3::real)) < (117649::real) powr ((2::real) / (3::real)) \<or>
          (10000::real) + (4::real) * (114976::real) powr ((2::real) / (3::real)) \<le> (10000::real) + (4::real) * (117649::real) powr ((2::real) / (3::real)) \<close>
-  supply[[smt_debug_arith_verit]] by (ctxt_tactic "la_generic" "[(1,1),(1,4)]")
-
+  by (ctxt_tactic "la_generic" "[(1,1),(1,4)]")
 
 (* Rule 85: div_simplify *)
 
