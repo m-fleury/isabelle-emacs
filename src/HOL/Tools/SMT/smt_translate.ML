@@ -129,8 +129,6 @@ fun print_smtlib_logic ALL _ = print_set_logic "ALL"
   | print_smtlib_logic ALL_SUPPORTED solver =
       get_supported_theories solver |> print_smtlib_theories solver
  | print_smtlib_logic NO_LOGIC _ = ""
- | print_smtlib_logic (SL {fixedSizeBitVectors=true, set=false, ...}) "z3" = ""
- | print_smtlib_logic (SL {real=true, set=false, ...}) "z3" = ""
  | print_smtlib_logic (SL l) solver = print_smtlib_theories solver l |> print_set_logic
 
 fun merge_smtlib_logic NO_LOGIC _ = NO_LOGIC

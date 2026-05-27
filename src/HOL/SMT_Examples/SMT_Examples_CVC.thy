@@ -1002,6 +1002,25 @@ lemma
   using assms supply [[smt_trace=false]] by (smt (cvc5))
 
 
+(*qnt_cnf that we cannot fix*)
+lemma
+  assumes
+    "\<forall>(j::nat) x::'a:: {idom}. x \<in> (S'::nat \<Rightarrow> 'a set) j \<longrightarrow> (\<exists>xa::'a_fps::{zero}. xa \<in> (I::'a_fps set) \<and> subdegree xa = j \<and> fps_nth xa j = x)"
+    "\<forall>(a::'a) P::'a \<Rightarrow> bool. (a \<in> Collect P) = P a"
+    "\<forall>(a::'a_fps) P::'a_fps \<Rightarrow> bool. (a \<in> Collect P) = P a"
+    "\<forall>P::'a_fps \<Rightarrow> bool. Ex P \<longrightarrow> P (Eps P)"
+ shows
+   "(\<forall>x::'a.
+              (\<forall>k::nat.
+                  finite ((S'::nat \<Rightarrow> 'a set) k) \<and>
+                  0 \<notin> S' k \<and> {fps_nth a (subdegree a) |a::'a_fps. a \<in> {a::'a_fps \<in> I::'a_fps set. subdegree a = k} \<union> {0}} = Idl S' k \<and> (\<forall>k\<ge>m::nat. S' k = S' m)) \<and>
+              x \<in> S' (k::nat) \<longrightarrow>
+              (\<exists>xa::'a_fps. xa \<in> {SOME y::'a_fps. y \<in> I \<and> subdegree y = k \<and> fps_nth y k = x |x::'a. x \<in> S' k} \<and> x = fps_nth xa k)) "
+  supply [[smt_trace]]
+  (*by (smt (verit, ccfv_threshold) assms)*)
+  oops
+
+
 experiment
 begin
 
