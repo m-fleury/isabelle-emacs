@@ -810,8 +810,6 @@ lemma qnt_cnf_2: \<open>\<not> (\<forall>veriT_vr1::'a. \<not> (P::bool \<Righta
          (\<forall>veriT_vr1::'a. P True veriT_vr1) \<close>
  by (ctxt_tactic "qnt_cnf")
 
-thm alethe_Box_def[THEN eq_reflection]
-
 lemma qnt_cnf_3:
   fixes trans
   shows

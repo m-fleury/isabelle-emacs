@@ -1,5 +1,5 @@
 theory SMT_Internals_Regressions_Real
-  imports Main
+  imports Complex_Main
 begin
 ML\<open>
 datatype token = None | Unfinished of string list * int | Finished of string list * string list
@@ -51,6 +51,27 @@ let
             then SOME (Index (Option.valOf args |> Syntax.read_term ctxt |> HOLogic.dest_number |> snd))
             else if rule_name = "shuffle" andalso Option.isSome args
             then SOME (CommOp (Option.valOf args |> Syntax.read_term ctxt))
+            else if rule_name = "la_generic" andalso Option.isSome args
+            (*There has to be an int parser from a string out there...*)
+            then 
+
+let
+val keyword_list = Keyword.empty_keywords |> Keyword.add_major_keywords [")","("]
+ |> Keyword.add_major_keywords ["[","]"] |> Keyword.add_major_keywords [","]
+
+(*TODO: there should be an optional in this for the last comma and can be made far nicer, had to get this working quick*)
+val x = (Option.valOf args |> Token.explode keyword_list Position.none
+        |> Parse.command_name "["  
+        |-- 
+ Scan.repeat (Parse.command_name "(" |-- Parse.int --| Parse.command_name "," -- Parse.int --| Parse.command_name ")"
+ --| ( Parse.command_name ","))
+--  (Parse.command_name "(" |-- Parse.int --| Parse.command_name "," -- Parse.int --| Parse.command_name ")")
+ --| ( Parse.command_name "]")
+) |> fst |> (fn (ys,z) => ys @ [z])
+
+in 
+SOME (Farkas_Coefficients x)
+end
             else NONE)|> @{print}
   fun rule_tac ctxt t = CVC5_Replay_Methods.choose (Context.the_generic_context ()) rule ctxt prems step_args context_args t args
   fun term_to_thm t = rule_tac ctxt t
@@ -121,7 +142,6 @@ lemma arith_poly_norm10:
   by (ctxt_tactic "poly_simp")
 
 context
-  fixes powr :: \<open>real \<Rightarrow> real \<Rightarrow> real\<close> (infix "powr" 80)
 begin
 lemma arith_poly_norm11:
   shows "(2::real) / 1 *
@@ -156,6 +176,11 @@ lemma miniscope_distribute1:
           (\<forall>y3. - 23 / 56 \<le> - 1 / 1 * x1 + 11 / 14 * y3 + 33 / 28 * y2a) \<and>
           (\<forall>y3. x1 = - 81 / 76 + 63 / 76 * y3) \<and> (\<forall>y3. 0 / 1 \<le> x1 + - 5 / 7 * y3 + 1 / 14 * y2a)) "
   by (ctxt_tactic "miniscope_distribute")
+
+lemma la_generic_4:
+  shows \<open>\<not> (114976::real) powr ((2::real) / (3::real)) < (117649::real) powr ((2::real) / (3::real)) \<or>
+         (10000::real) + (4::real) * (114976::real) powr ((2::real) / (3::real)) \<le> (10000::real) + (4::real) * (117649::real) powr ((2::real) / (3::real)) \<close>
+  by (ctxt_tactic "la_generic" "[(1,1),(1,4)]")
 
 (*Rule : poly_simp_rel*)
 
