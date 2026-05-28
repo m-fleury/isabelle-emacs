@@ -1209,14 +1209,17 @@ val not_ite2_thm =
 fun not_ite2 ctxt thm t = SMT_Replay_Methods.prove ctxt t
   (fn _ => prove_ite not_ite2_thm (extract_single_premise Not_ITE2 ctxt thm t) ctxt)
 
-(*ite_intro can introduce new terms that are in the proof exactly the sames as the old one, but are
-not internally, hence the possible reordering.
-
-FINAL TEST: after updating this in 2026, I did not find any example that needed anything
-besides the first rule. The rest is kept as legacy though, because there are very few
-case of this rule in our tests.*)
+(*ite_intro can print old terms in a different order from the old ones. Therefore, we actually
+use simp to reorder terms.*)
 fun ite_intro ctxt _ t =
   let
+    fun simplify_reorder_equality ctxt thms =
+      ctxt
+      |> Simplifier.empty_simpset
+      |> put_simpset HOL_basic_ss
+      |> Simplifier.add_simps (thms @ @{thms eq_commute})
+      |> Simplifier.full_simp_tac
+
     fun simplify_ite ctxt thms cong =
       ctxt
       |> Simplifier.empty_simpset
@@ -1225,12 +1228,15 @@ fun ite_intro ctxt _ t =
       |> cong ? (Raw_Simplifier.add_eqcong @{thm alethe_ite_if_cong})
       |> Simplifier.full_simp_tac
     val use_cong = true
+    val base_tac =
+      simplify_ite ctxt @{thms alethe_ite_intro(1-6)} (not use_cong)
+      THEN' TRY' (simplify_ite ctxt @{thms alethe_ite_intro(1-8)} (not use_cong))
+      THEN' TRY' (simplify_ite ctxt @{thms if_cancel} use_cong)
+      THEN' TRY' (simplify_ite ctxt @{thms eq_commute} use_cong)
   in
     SMT_Replay_Methods.prove ctxt t (fn _ =>
-      simplify_ite ctxt @{thms alethe_ite_intro(1-4)} (not use_cong)
-      THEN' TRY' (simplify_ite ctxt @{thms alethe_ite_intro(1-6)} (not use_cong))
-      THEN' TRY' (simplify_ite ctxt @{thms if_cancel} use_cong)
-      THEN' TRY' (simplify_ite ctxt @{thms eq_commute} use_cong))
+      SOLVED' (base_tac)
+      ORELSE' (simplify_reorder_equality ctxt [] THEN' base_tac))
   end
 end
 
@@ -1658,6 +1664,7 @@ local
   fun onepoint_combine_quant ctxt (n1 :: bounds1) (n2 :: bounds2) (i :: insts) past_ints =
       TRY' (if n1 = n2
         then resolve_tac ctxt @{thms alethe_onepoint(1,3)}
+         THEN' REPEAT' (resolve_tac ctxt @{thms alethe_onepoint_focus})
          THEN' onepoint_combine_quant ctxt bounds1 bounds2 (i :: insts) past_ints
        else Subgoal.FOCUS (resolve_and_instantiate_onepoint n1 i past_ints) ctxt
          THEN' onepoint_combine_quant ctxt bounds1 (n2 :: bounds2) insts (past_ints @ [i]))
@@ -1694,7 +1701,7 @@ local
 in
 fun onepoint ctxt [prem] t = SMT_Replay_Methods.prove ctxt t (fn _ =>
   onepoint_quants ctxt prem t []
-  THEN' REPEAT' (resolve_tac ctxt @{thms refl})
+  THEN' REPEAT' (resolve_tac ctxt (@{thms refl}))
   THEN_ALL_NEW
     (*cheap version: hope that nothing got reorder and simp will solve the goal. Otherwise,
     try to move all equalities out of the quantifiers rewrite them with @{thm alethe_rewrite_in_imp}
@@ -1703,9 +1710,9 @@ fun onepoint ctxt [prem] t = SMT_Replay_Methods.prove ctxt t (fn _ =>
       (ctxt
       |> Simplifier.empty_simpset
       |> Simplifier.put_simpset HOL_basic_ss
-      |> Simplifier.add_simps @{thms simp_thms all_simps ex_simps de_Morgan_conj
+      |> Simplifier.add_simps (@{thms simp_thms all_simps ex_simps de_Morgan_conj
         not_all not_ex de_Morgan_disj disj_not1 triv_forall_equality eq_commute
-        alethe_onepoint_simp alethe_imp_commute}
+        alethe_onepoint_simp alethe_imp_commute})
       |> Simplifier.add_cong @{thm alethe_rewrite_in_imp}
       |> fold Simplifier.add_proc [@{simproc defined_All}, @{simproc defined_Ex}]
       |> Simplifier.asm_full_simp_tac)))
@@ -1718,7 +1725,7 @@ fun onepoint ctxt [prem] t = SMT_Replay_Methods.prove ctxt t (fn _ =>
         - metis is not always able to solve the goal, even if it falls within
         the fragment of logic where it for sure should be able to.
       *)
-      REPEAT' (SOLVED' (SOLVED' (Meson.meson_tac ctxt []) (*meson sometimes does nothing*)
+        REPEAT' (SOLVED' (SOLVED' (Meson.meson_tac ctxt []) (*meson sometimes does nothing*)
         ORELSE' Metis_Tactic.metis_tac [] ATP_Problem_Generate.combsN ctxt []
         ORELSE' K (Clasimp.auto_tac ctxt)))))
 

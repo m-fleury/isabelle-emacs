@@ -3156,6 +3156,157 @@ lemma ite_intro_10:
      (if t < 0 then - t = (if t < 0 then - t else t) else t = (if t < 0 then - t else t)))\<close>
   by (ctxt_tactic "ite_intro")
 
+(*real test where the equality is reordered*)
+lemma ite_intro_11:
+  fixes infinity ("\<infinity>") and
+    is_nan :: \<open>'e_f_IEEE_float::{uminus} \<Rightarrow> bool\<close> and
+    some_nan :: "'e_f_IEEE_float" and
+    is_zero :: "'e_f_IEEE_float \<Rightarrow> bool" and
+    zero_nat one_nat :: nat and
+    zero_real :: int and
+    zero_fp :: 'e_f_IEEE_float 
+  shows \<open>
+(IEEE_fmul_add (veriT_sk0::'roundmode) (veriT_sk2::'e_f_IEEE_float) (veriT_sk4::'e_f_IEEE_float) (veriT_sk6::'e_f_IEEE_float) =
+ (if is_nan veriT_sk2 \<or> is_nan veriT_sk4 \<or> is_nan veriT_sk6 then some_nan
+  else if is_infinity veriT_sk2 \<and> is_zero veriT_sk4 \<or>
+          is_zero veriT_sk2 \<and> is_infinity veriT_sk4 \<or> is_infinity veriT_sk6 \<and> (is_infinity veriT_sk2 \<or> is_infinity veriT_sk4) \<and> (if sign veriT_sk2 = sign veriT_sk4 then zero_nat else one_nat) \<noteq> sign veriT_sk6
+       then some_nan
+       else if is_infinity veriT_sk6 \<and> zero_nat = sign veriT_sk6 \<or> (is_infinity veriT_sk2 \<or> is_infinity veriT_sk4) \<and> zero_nat = (if sign veriT_sk2 = sign veriT_sk4 then zero_nat else one_nat) then \<infinity>
+            else if is_infinity veriT_sk6 \<and> one_nat = sign veriT_sk6 \<or> (is_infinity veriT_sk2 \<or> is_infinity veriT_sk4) \<and> one_nat = (if sign veriT_sk2 = sign veriT_sk4 then zero_nat else one_nat) then - \<infinity>
+                 else if zero_real = valof veriT_sk2 * valof veriT_sk4 + valof veriT_sk6
+                      then if zero_real = valof veriT_sk2 * valof veriT_sk4 \<and> zero_real = valof veriT_sk6 \<and> (if sign veriT_sk2 = sign veriT_sk4 then zero_nat else one_nat) = sign veriT_sk6
+                           then zerosign (if sign veriT_sk2 = sign veriT_sk4 then zero_nat else one_nat) zero_fp else if roundTowardNegative = veriT_sk0 then - zero_fp else zero_fp
+                      else zerosign (if valof veriT_sk2 * valof veriT_sk4 + valof veriT_sk6 < zero_real then one_nat else zero_nat) (IEEE_round veriT_sk0 (valof veriT_sk2 * valof veriT_sk4 + valof veriT_sk6)))) =
+(IEEE_fmul_add veriT_sk0 veriT_sk2 veriT_sk4 veriT_sk6 =
+ (if is_nan veriT_sk2 \<or> is_nan veriT_sk4 \<or> is_nan veriT_sk6 then some_nan
+  else if is_infinity veriT_sk2 \<and> is_zero veriT_sk4 \<or>
+          is_zero veriT_sk2 \<and> is_infinity veriT_sk4 \<or> is_infinity veriT_sk6 \<and> (is_infinity veriT_sk2 \<or> is_infinity veriT_sk4) \<and> (if sign veriT_sk2 = sign veriT_sk4 then zero_nat else one_nat) \<noteq> sign veriT_sk6
+       then some_nan
+       else if is_infinity veriT_sk6 \<and> zero_nat = sign veriT_sk6 \<or> (is_infinity veriT_sk2 \<or> is_infinity veriT_sk4) \<and> zero_nat = (if sign veriT_sk2 = sign veriT_sk4 then zero_nat else one_nat) then \<infinity>
+            else if is_infinity veriT_sk6 \<and> one_nat = sign veriT_sk6 \<or> (is_infinity veriT_sk2 \<or> is_infinity veriT_sk4) \<and> one_nat = (if sign veriT_sk2 = sign veriT_sk4 then zero_nat else one_nat) then - \<infinity>
+                 else if zero_real = valof veriT_sk2 * valof veriT_sk4 + valof veriT_sk6
+                      then if zero_real = valof veriT_sk2 * valof veriT_sk4 \<and> zero_real = valof veriT_sk6 \<and> (if sign veriT_sk2 = sign veriT_sk4 then zero_nat else one_nat) = sign veriT_sk6
+                           then zerosign (if sign veriT_sk2 = sign veriT_sk4 then zero_nat else one_nat) zero_fp else if roundTowardNegative = veriT_sk0 then - zero_fp else zero_fp
+                      else zerosign (if valof veriT_sk2 * valof veriT_sk4 + valof veriT_sk6 < zero_real then one_nat else zero_nat) (IEEE_round veriT_sk0 (valof veriT_sk2 * valof veriT_sk4 + valof veriT_sk6))) \<and>
+ (if is_nan veriT_sk2 \<or> is_nan veriT_sk4 \<or> is_nan veriT_sk6
+  then some_nan =
+       (if is_nan veriT_sk2 \<or> is_nan veriT_sk4 \<or> is_nan veriT_sk6 then some_nan
+        else if is_infinity veriT_sk2 \<and> is_zero veriT_sk4 \<or>
+                is_zero veriT_sk2 \<and> is_infinity veriT_sk4 \<or> is_infinity veriT_sk6 \<and> (is_infinity veriT_sk2 \<or> is_infinity veriT_sk4) \<and> (if sign veriT_sk2 = sign veriT_sk4 then zero_nat else one_nat) \<noteq> sign veriT_sk6
+             then some_nan
+             else if is_infinity veriT_sk6 \<and> zero_nat = sign veriT_sk6 \<or> (is_infinity veriT_sk2 \<or> is_infinity veriT_sk4) \<and> zero_nat = (if sign veriT_sk2 = sign veriT_sk4 then zero_nat else one_nat) then \<infinity>
+                  else if is_infinity veriT_sk6 \<and> one_nat = sign veriT_sk6 \<or> (is_infinity veriT_sk2 \<or> is_infinity veriT_sk4) \<and> one_nat = (if sign veriT_sk2 = sign veriT_sk4 then zero_nat else one_nat) then - \<infinity>
+                       else if zero_real = valof veriT_sk2 * valof veriT_sk4 + valof veriT_sk6
+                            then if zero_real = valof veriT_sk2 * valof veriT_sk4 \<and> zero_real = valof veriT_sk6 \<and> (if sign veriT_sk2 = sign veriT_sk4 then zero_nat else one_nat) = sign veriT_sk6
+                                 then zerosign (if sign veriT_sk2 = sign veriT_sk4 then zero_nat else one_nat) zero_fp else if roundTowardNegative = veriT_sk0 then - zero_fp else zero_fp
+                            else zerosign (if valof veriT_sk2 * valof veriT_sk4 + valof veriT_sk6 < zero_real then one_nat else zero_nat) (IEEE_round veriT_sk0 (valof veriT_sk2 * valof veriT_sk4 + valof veriT_sk6)))
+  else (if is_nan veriT_sk2 \<or> is_nan veriT_sk4 \<or> is_nan veriT_sk6 then some_nan
+        else if is_infinity veriT_sk2 \<and> is_zero veriT_sk4 \<or>
+                is_zero veriT_sk2 \<and> is_infinity veriT_sk4 \<or> is_infinity veriT_sk6 \<and> (is_infinity veriT_sk2 \<or> is_infinity veriT_sk4) \<and> (if sign veriT_sk2 = sign veriT_sk4 then zero_nat else one_nat) \<noteq> sign veriT_sk6
+             then some_nan
+             else if is_infinity veriT_sk6 \<and> zero_nat = sign veriT_sk6 \<or> (is_infinity veriT_sk2 \<or> is_infinity veriT_sk4) \<and> zero_nat = (if sign veriT_sk2 = sign veriT_sk4 then zero_nat else one_nat) then \<infinity>
+                  else if is_infinity veriT_sk6 \<and> one_nat = sign veriT_sk6 \<or> (is_infinity veriT_sk2 \<or> is_infinity veriT_sk4) \<and> one_nat = (if sign veriT_sk2 = sign veriT_sk4 then zero_nat else one_nat) then - \<infinity>
+                       else if zero_real = valof veriT_sk2 * valof veriT_sk4 + valof veriT_sk6
+                            then if zero_real = valof veriT_sk2 * valof veriT_sk4 \<and> zero_real = valof veriT_sk6 \<and> (if sign veriT_sk2 = sign veriT_sk4 then zero_nat else one_nat) = sign veriT_sk6
+                                 then zerosign (if sign veriT_sk2 = sign veriT_sk4 then zero_nat else one_nat) zero_fp else if roundTowardNegative = veriT_sk0 then - zero_fp else zero_fp
+                            else zerosign (if valof veriT_sk2 * valof veriT_sk4 + valof veriT_sk6 < zero_real then one_nat else zero_nat)
+                                  (IEEE_round veriT_sk0 (valof veriT_sk2 * valof veriT_sk4 + valof veriT_sk6))) =
+       (if is_infinity veriT_sk2 \<and> is_zero veriT_sk4 \<or>
+           is_zero veriT_sk2 \<and> is_infinity veriT_sk4 \<or> is_infinity veriT_sk6 \<and> (is_infinity veriT_sk2 \<or> is_infinity veriT_sk4) \<and> (if sign veriT_sk2 = sign veriT_sk4 then zero_nat else one_nat) \<noteq> sign veriT_sk6
+        then some_nan
+        else if is_infinity veriT_sk6 \<and> zero_nat = sign veriT_sk6 \<or> (is_infinity veriT_sk2 \<or> is_infinity veriT_sk4) \<and> zero_nat = (if sign veriT_sk2 = sign veriT_sk4 then zero_nat else one_nat) then \<infinity>
+             else if is_infinity veriT_sk6 \<and> one_nat = sign veriT_sk6 \<or> (is_infinity veriT_sk2 \<or> is_infinity veriT_sk4) \<and> one_nat = (if sign veriT_sk2 = sign veriT_sk4 then zero_nat else one_nat) then - \<infinity>
+                  else if zero_real = valof veriT_sk2 * valof veriT_sk4 + valof veriT_sk6
+                       then if zero_real = valof veriT_sk2 * valof veriT_sk4 \<and> zero_real = valof veriT_sk6 \<and> (if sign veriT_sk2 = sign veriT_sk4 then zero_nat else one_nat) = sign veriT_sk6
+                            then zerosign (if sign veriT_sk2 = sign veriT_sk4 then zero_nat else one_nat) zero_fp else if roundTowardNegative = veriT_sk0 then - zero_fp else zero_fp
+                       else zerosign (if valof veriT_sk2 * valof veriT_sk4 + valof veriT_sk6 < zero_real then one_nat else zero_nat) (IEEE_round veriT_sk0 (valof veriT_sk2 * valof veriT_sk4 + valof veriT_sk6)))) \<and>
+ (if is_infinity veriT_sk2 \<and> is_zero veriT_sk4 \<or>
+     is_zero veriT_sk2 \<and> is_infinity veriT_sk4 \<or> is_infinity veriT_sk6 \<and> (is_infinity veriT_sk2 \<or> is_infinity veriT_sk4) \<and> sign veriT_sk6 \<noteq> (if sign veriT_sk2 = sign veriT_sk4 then zero_nat else one_nat)
+  then some_nan =
+       (if is_infinity veriT_sk2 \<and> is_zero veriT_sk4 \<or>
+           is_zero veriT_sk2 \<and> is_infinity veriT_sk4 \<or> is_infinity veriT_sk6 \<and> (is_infinity veriT_sk2 \<or> is_infinity veriT_sk4) \<and> (if sign veriT_sk2 = sign veriT_sk4 then zero_nat else one_nat) \<noteq> sign veriT_sk6
+        then some_nan
+        else if is_infinity veriT_sk6 \<and> zero_nat = sign veriT_sk6 \<or> (is_infinity veriT_sk2 \<or> is_infinity veriT_sk4) \<and> zero_nat = (if sign veriT_sk2 = sign veriT_sk4 then zero_nat else one_nat) then \<infinity>
+             else if is_infinity veriT_sk6 \<and> one_nat = sign veriT_sk6 \<or> (is_infinity veriT_sk2 \<or> is_infinity veriT_sk4) \<and> one_nat = (if sign veriT_sk2 = sign veriT_sk4 then zero_nat else one_nat) then - \<infinity>
+                  else if zero_real = valof veriT_sk2 * valof veriT_sk4 + valof veriT_sk6
+                       then if zero_real = valof veriT_sk2 * valof veriT_sk4 \<and> zero_real = valof veriT_sk6 \<and> (if sign veriT_sk2 = sign veriT_sk4 then zero_nat else one_nat) = sign veriT_sk6
+                            then zerosign (if sign veriT_sk2 = sign veriT_sk4 then zero_nat else one_nat) zero_fp else if roundTowardNegative = veriT_sk0 then - zero_fp else zero_fp
+                       else zerosign (if valof veriT_sk2 * valof veriT_sk4 + valof veriT_sk6 < zero_real then one_nat else zero_nat) (IEEE_round veriT_sk0 (valof veriT_sk2 * valof veriT_sk4 + valof veriT_sk6)))
+  else (if is_infinity veriT_sk2 \<and> is_zero veriT_sk4 \<or>
+           is_zero veriT_sk2 \<and> is_infinity veriT_sk4 \<or> is_infinity veriT_sk6 \<and> (is_infinity veriT_sk2 \<or> is_infinity veriT_sk4) \<and> (if sign veriT_sk2 = sign veriT_sk4 then zero_nat else one_nat) \<noteq> sign veriT_sk6
+        then some_nan
+        else if is_infinity veriT_sk6 \<and> zero_nat = sign veriT_sk6 \<or> (is_infinity veriT_sk2 \<or> is_infinity veriT_sk4) \<and> zero_nat = (if sign veriT_sk2 = sign veriT_sk4 then zero_nat else one_nat) then \<infinity>
+             else if is_infinity veriT_sk6 \<and> one_nat = sign veriT_sk6 \<or> (is_infinity veriT_sk2 \<or> is_infinity veriT_sk4) \<and> one_nat = (if sign veriT_sk2 = sign veriT_sk4 then zero_nat else one_nat) then - \<infinity>
+                  else if zero_real = valof veriT_sk2 * valof veriT_sk4 + valof veriT_sk6
+                       then if zero_real = valof veriT_sk2 * valof veriT_sk4 \<and> zero_real = valof veriT_sk6 \<and> (if sign veriT_sk2 = sign veriT_sk4 then zero_nat else one_nat) = sign veriT_sk6
+                            then zerosign (if sign veriT_sk2 = sign veriT_sk4 then zero_nat else one_nat) zero_fp else if roundTowardNegative = veriT_sk0 then - zero_fp else zero_fp
+                       else zerosign (if valof veriT_sk2 * valof veriT_sk4 + valof veriT_sk6 < zero_real then one_nat else zero_nat) (IEEE_round veriT_sk0 (valof veriT_sk2 * valof veriT_sk4 + valof veriT_sk6))) =
+       (if is_infinity veriT_sk6 \<and> zero_nat = sign veriT_sk6 \<or> (is_infinity veriT_sk2 \<or> is_infinity veriT_sk4) \<and> zero_nat = (if sign veriT_sk2 = sign veriT_sk4 then zero_nat else one_nat) then \<infinity>
+        else if is_infinity veriT_sk6 \<and> one_nat = sign veriT_sk6 \<or> (is_infinity veriT_sk2 \<or> is_infinity veriT_sk4) \<and> one_nat = (if sign veriT_sk2 = sign veriT_sk4 then zero_nat else one_nat) then - \<infinity>
+             else if zero_real = valof veriT_sk2 * valof veriT_sk4 + valof veriT_sk6
+                  then if zero_real = valof veriT_sk2 * valof veriT_sk4 \<and> zero_real = valof veriT_sk6 \<and> (if sign veriT_sk2 = sign veriT_sk4 then zero_nat else one_nat) = sign veriT_sk6
+                       then zerosign (if sign veriT_sk2 = sign veriT_sk4 then zero_nat else one_nat) zero_fp else if roundTowardNegative = veriT_sk0 then - zero_fp else zero_fp
+                  else zerosign (if valof veriT_sk2 * valof veriT_sk4 + valof veriT_sk6 < zero_real then one_nat else zero_nat) (IEEE_round veriT_sk0 (valof veriT_sk2 * valof veriT_sk4 + valof veriT_sk6)))) \<and>
+ (if sign veriT_sk2 = sign veriT_sk4 then zero_nat = (if sign veriT_sk2 = sign veriT_sk4 then zero_nat else one_nat) else one_nat = (if sign veriT_sk2 = sign veriT_sk4 then zero_nat else one_nat)) \<and>
+ (if is_infinity veriT_sk6 \<and> zero_nat = sign veriT_sk6 \<or> (is_infinity veriT_sk2 \<or> is_infinity veriT_sk4) \<and> zero_nat = (if sign veriT_sk2 = sign veriT_sk4 then zero_nat else one_nat)
+  then \<infinity> =
+       (if is_infinity veriT_sk6 \<and> zero_nat = sign veriT_sk6 \<or> (is_infinity veriT_sk2 \<or> is_infinity veriT_sk4) \<and> zero_nat = (if sign veriT_sk2 = sign veriT_sk4 then zero_nat else one_nat) then \<infinity>
+        else if is_infinity veriT_sk6 \<and> one_nat = sign veriT_sk6 \<or> (is_infinity veriT_sk2 \<or> is_infinity veriT_sk4) \<and> one_nat = (if sign veriT_sk2 = sign veriT_sk4 then zero_nat else one_nat) then - \<infinity>
+             else if zero_real = valof veriT_sk2 * valof veriT_sk4 + valof veriT_sk6
+                  then if zero_real = valof veriT_sk2 * valof veriT_sk4 \<and> zero_real = valof veriT_sk6 \<and> (if sign veriT_sk2 = sign veriT_sk4 then zero_nat else one_nat) = sign veriT_sk6
+                       then zerosign (if sign veriT_sk2 = sign veriT_sk4 then zero_nat else one_nat) zero_fp else if roundTowardNegative = veriT_sk0 then - zero_fp else zero_fp
+                  else zerosign (if valof veriT_sk2 * valof veriT_sk4 + valof veriT_sk6 < zero_real then one_nat else zero_nat) (IEEE_round veriT_sk0 (valof veriT_sk2 * valof veriT_sk4 + valof veriT_sk6)))
+  else (if is_infinity veriT_sk6 \<and> zero_nat = sign veriT_sk6 \<or> (is_infinity veriT_sk2 \<or> is_infinity veriT_sk4) \<and> zero_nat = (if sign veriT_sk2 = sign veriT_sk4 then zero_nat else one_nat) then \<infinity>
+        else if is_infinity veriT_sk6 \<and> one_nat = sign veriT_sk6 \<or> (is_infinity veriT_sk2 \<or> is_infinity veriT_sk4) \<and> one_nat = (if sign veriT_sk2 = sign veriT_sk4 then zero_nat else one_nat) then - \<infinity>
+             else if zero_real = valof veriT_sk2 * valof veriT_sk4 + valof veriT_sk6
+                  then if zero_real = valof veriT_sk2 * valof veriT_sk4 \<and> zero_real = valof veriT_sk6 \<and> (if sign veriT_sk2 = sign veriT_sk4 then zero_nat else one_nat) = sign veriT_sk6
+                       then zerosign (if sign veriT_sk2 = sign veriT_sk4 then zero_nat else one_nat) zero_fp else if roundTowardNegative = veriT_sk0 then - zero_fp else zero_fp
+                  else zerosign (if valof veriT_sk2 * valof veriT_sk4 + valof veriT_sk6 < zero_real then one_nat else zero_nat) (IEEE_round veriT_sk0 (valof veriT_sk2 * valof veriT_sk4 + valof veriT_sk6))) =
+       (if is_infinity veriT_sk6 \<and> one_nat = sign veriT_sk6 \<or> (is_infinity veriT_sk2 \<or> is_infinity veriT_sk4) \<and> one_nat = (if sign veriT_sk2 = sign veriT_sk4 then zero_nat else one_nat) then - \<infinity>
+        else if zero_real = valof veriT_sk2 * valof veriT_sk4 + valof veriT_sk6
+             then if zero_real = valof veriT_sk2 * valof veriT_sk4 \<and> zero_real = valof veriT_sk6 \<and> (if sign veriT_sk2 = sign veriT_sk4 then zero_nat else one_nat) = sign veriT_sk6
+                  then zerosign (if sign veriT_sk2 = sign veriT_sk4 then zero_nat else one_nat) zero_fp else if roundTowardNegative = veriT_sk0 then - zero_fp else zero_fp
+             else zerosign (if valof veriT_sk2 * valof veriT_sk4 + valof veriT_sk6 < zero_real then one_nat else zero_nat) (IEEE_round veriT_sk0 (valof veriT_sk2 * valof veriT_sk4 + valof veriT_sk6)))) \<and>
+ (if is_infinity veriT_sk6 \<and> one_nat = sign veriT_sk6 \<or> (is_infinity veriT_sk2 \<or> is_infinity veriT_sk4) \<and> one_nat = (if sign veriT_sk2 = sign veriT_sk4 then zero_nat else one_nat)
+  then - \<infinity> =
+       (if is_infinity veriT_sk6 \<and> one_nat = sign veriT_sk6 \<or> (is_infinity veriT_sk2 \<or> is_infinity veriT_sk4) \<and> one_nat = (if sign veriT_sk2 = sign veriT_sk4 then zero_nat else one_nat) then - \<infinity>
+        else if zero_real = valof veriT_sk2 * valof veriT_sk4 + valof veriT_sk6
+             then if zero_real = valof veriT_sk2 * valof veriT_sk4 \<and> zero_real = valof veriT_sk6 \<and> (if sign veriT_sk2 = sign veriT_sk4 then zero_nat else one_nat) = sign veriT_sk6
+                  then zerosign (if sign veriT_sk2 = sign veriT_sk4 then zero_nat else one_nat) zero_fp else if roundTowardNegative = veriT_sk0 then - zero_fp else zero_fp
+             else zerosign (if valof veriT_sk2 * valof veriT_sk4 + valof veriT_sk6 < zero_real then one_nat else zero_nat) (IEEE_round veriT_sk0 (valof veriT_sk2 * valof veriT_sk4 + valof veriT_sk6)))
+  else (if is_infinity veriT_sk6 \<and> one_nat = sign veriT_sk6 \<or> (is_infinity veriT_sk2 \<or> is_infinity veriT_sk4) \<and> one_nat = (if sign veriT_sk2 = sign veriT_sk4 then zero_nat else one_nat) then - \<infinity>
+        else if zero_real = valof veriT_sk2 * valof veriT_sk4 + valof veriT_sk6
+             then if zero_real = valof veriT_sk2 * valof veriT_sk4 \<and> zero_real = valof veriT_sk6 \<and> (if sign veriT_sk2 = sign veriT_sk4 then zero_nat else one_nat) = sign veriT_sk6
+                  then zerosign (if sign veriT_sk2 = sign veriT_sk4 then zero_nat else one_nat) zero_fp else if roundTowardNegative = veriT_sk0 then - zero_fp else zero_fp
+             else zerosign (if valof veriT_sk2 * valof veriT_sk4 + valof veriT_sk6 < zero_real then one_nat else zero_nat) (IEEE_round veriT_sk0 (valof veriT_sk2 * valof veriT_sk4 + valof veriT_sk6))) =
+       (if zero_real = valof veriT_sk2 * valof veriT_sk4 + valof veriT_sk6
+        then if zero_real = valof veriT_sk2 * valof veriT_sk4 \<and> zero_real = valof veriT_sk6 \<and> (if sign veriT_sk2 = sign veriT_sk4 then zero_nat else one_nat) = sign veriT_sk6
+             then zerosign (if sign veriT_sk2 = sign veriT_sk4 then zero_nat else one_nat) zero_fp else if roundTowardNegative = veriT_sk0 then - zero_fp else zero_fp
+        else zerosign (if valof veriT_sk2 * valof veriT_sk4 + valof veriT_sk6 < zero_real then one_nat else zero_nat) (IEEE_round veriT_sk0 (valof veriT_sk2 * valof veriT_sk4 + valof veriT_sk6)))) \<and>
+ (if zero_real = valof veriT_sk2 * valof veriT_sk4 + valof veriT_sk6
+  then (if zero_real = valof veriT_sk2 * valof veriT_sk4 + valof veriT_sk6
+        then if zero_real = valof veriT_sk2 * valof veriT_sk4 \<and> zero_real = valof veriT_sk6 \<and> (if sign veriT_sk2 = sign veriT_sk4 then zero_nat else one_nat) = sign veriT_sk6
+             then zerosign (if sign veriT_sk2 = sign veriT_sk4 then zero_nat else one_nat) zero_fp else if roundTowardNegative = veriT_sk0 then - zero_fp else zero_fp
+        else zerosign (if valof veriT_sk2 * valof veriT_sk4 + valof veriT_sk6 < zero_real then one_nat else zero_nat) (IEEE_round veriT_sk0 (valof veriT_sk2 * valof veriT_sk4 + valof veriT_sk6))) =
+       (if zero_real = valof veriT_sk2 * valof veriT_sk4 \<and> zero_real = valof veriT_sk6 \<and> (if sign veriT_sk2 = sign veriT_sk4 then zero_nat else one_nat) = sign veriT_sk6
+        then zerosign (if sign veriT_sk2 = sign veriT_sk4 then zero_nat else one_nat) zero_fp else if roundTowardNegative = veriT_sk0 then - zero_fp else zero_fp)
+  else (if zero_real = valof veriT_sk2 * valof veriT_sk4 + valof veriT_sk6
+        then if zero_real = valof veriT_sk2 * valof veriT_sk4 \<and> zero_real = valof veriT_sk6 \<and> (if sign veriT_sk2 = sign veriT_sk4 then zero_nat else one_nat) = sign veriT_sk6
+             then zerosign (if sign veriT_sk2 = sign veriT_sk4 then zero_nat else one_nat) zero_fp else if roundTowardNegative = veriT_sk0 then - zero_fp else zero_fp
+        else zerosign (if valof veriT_sk2 * valof veriT_sk4 + valof veriT_sk6 < zero_real then one_nat else zero_nat) (IEEE_round veriT_sk0 (valof veriT_sk2 * valof veriT_sk4 + valof veriT_sk6))) =
+       zerosign (if valof veriT_sk2 * valof veriT_sk4 + valof veriT_sk6 < zero_real then one_nat else zero_nat) (IEEE_round veriT_sk0 (valof veriT_sk2 * valof veriT_sk4 + valof veriT_sk6))) \<and>
+ (if zero_real = valof veriT_sk2 * valof veriT_sk4 \<and> zero_real = valof veriT_sk6 \<and> sign veriT_sk6 = (if sign veriT_sk2 = sign veriT_sk4 then zero_nat else one_nat)
+  then (if zero_real = valof veriT_sk2 * valof veriT_sk4 \<and> zero_real = valof veriT_sk6 \<and> (if sign veriT_sk2 = sign veriT_sk4 then zero_nat else one_nat) = sign veriT_sk6
+        then zerosign (if sign veriT_sk2 = sign veriT_sk4 then zero_nat else one_nat) zero_fp else if roundTowardNegative = veriT_sk0 then - zero_fp else zero_fp) =
+       zerosign (if sign veriT_sk2 = sign veriT_sk4 then zero_nat else one_nat) zero_fp
+  else (if zero_real = valof veriT_sk2 * valof veriT_sk4 \<and> zero_real = valof veriT_sk6 \<and> (if sign veriT_sk2 = sign veriT_sk4 then zero_nat else one_nat) = sign veriT_sk6
+        then zerosign (if sign veriT_sk2 = sign veriT_sk4 then zero_nat else one_nat) zero_fp else if roundTowardNegative = veriT_sk0 then - zero_fp else zero_fp) =
+       (if roundTowardNegative = veriT_sk0 then - zero_fp else zero_fp)) \<and>
+ (if roundTowardNegative = veriT_sk0 then - zero_fp = (if roundTowardNegative = veriT_sk0 then - zero_fp else zero_fp) else zero_fp = (if roundTowardNegative = veriT_sk0 then - zero_fp else zero_fp)) \<and>
+ (if valof veriT_sk2 * valof veriT_sk4 + valof veriT_sk6 < zero_real then one_nat = (if valof veriT_sk2 * valof veriT_sk4 + valof veriT_sk6 < zero_real then one_nat else zero_nat)
+  else zero_nat = (if valof veriT_sk2 * valof veriT_sk4 + valof veriT_sk6 < zero_real then one_nat else zero_nat))) \<close>
+  by (ctxt_tactic "ite_intro")
+
 (* Rule 104: miniscope_distribute *)
 (*Note: there isn't a solver that produces the exists case currently*)
 
@@ -3410,6 +3561,39 @@ Alethe_Replay_Methods.onepoint @{context} @{thms H} goal
 end\<close>
 
 end
+end
+
+
+
+context
+  fixes P Q :: \<open>nat \<Rightarrow> nat \<Rightarrow> bool\<close>
+  assumes a: \<open>P 0 1 = Q 0 1\<close>
+begin
+
+context
+  fixes v1 v0 :: nat
+  assumes H: \<open>v1 = 1\<close>
+begin
+lemma H2: \<open>(0 = v0 \<and> (v1 = 1 \<longrightarrow> P v0 v1)) = (0 = v0 \<and> (1 = (1::nat) \<longrightarrow> Q v0 1))\<close>
+  using a unfolding H by auto
+end
+
+
+ML \<open>
+let
+  val goal = @{term \<open>Trueprop (
+    (\<forall>(v0::nat) v1::nat. 0 \<noteq> v0 \<and> (v1 = 1 \<longrightarrow> P v0 v1)) =
+         (\<forall>v0::nat. 0 \<noteq> v0 \<and> ((1::nat) = 1 \<longrightarrow> Q v0 1)))\<close>}
+in
+Alethe_Replay_Methods.onepoint @{context} @{thms H2} goal
+|> @{print}
+|> Thm.prop_of
+|> curry (op =) goal
+|> (fn x => if not x then error "failed" else ())
+end\<close>
+
+end
+
 end
 
 (* Bind *)

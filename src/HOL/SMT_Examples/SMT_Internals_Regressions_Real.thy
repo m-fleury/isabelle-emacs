@@ -244,4 +244,7 @@ lemma div_simplify_3:
   shows "((-180::real) / -6) \<noteq> 31"
   by (ctxt_tactic "div_simplify")
 
+lemma div_simplify_3:
+  shows "(- (1::real) / 1 = 1 / 1) = False"
+  by (ctxt_tactic "evaluate")
 end

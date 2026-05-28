@@ -793,6 +793,8 @@ lemma alethe_ite_intro[no_atp]:
   \<open>(If p (a' = (If p a' b')) ((If p a' b') = b')) \<longleftrightarrow> True\<close>
   \<open>(If p ((If p a' b') = a') (b' = (If p a' b'))) \<longleftrightarrow> True\<close>
   \<open>(If p ((If p a' b') =a') ((If p a' b') = b')) \<longleftrightarrow> True\<close>
+  \<open>(If p ((If p a' b') = a') (b' = (If p a' b'))) \<longleftrightarrow> True\<close>
+  \<open>(If p (a' = (If p a' b')) ((If p a' b') = b')) \<longleftrightarrow> True\<close>
   \<open>(if a then P (if a then a' else b') else Q) \<longleftrightarrow> (if a then P a' else Q)\<close>
   \<open>(if a then P' else Q' (if a then a' else b')) \<longleftrightarrow> (if a then P' else Q' b')\<close>
   \<open>A = f (if a then R else S) \<longleftrightarrow> (if a then A = f R else A = f S)\<close>
@@ -939,6 +941,18 @@ lemma alethe_onepoint[no_atp]:
   \<open>(\<And>a. P a = Q a) \<Longrightarrow> (\<exists>a. P a) = (\<exists>a. Q a)\<close>
   \<open>(\<And>a. P' a = Q') \<Longrightarrow> (\<exists>a. P' a) = Q'\<close>
   by auto
+
+lemma alethe_onepoint_focus[no_atp]:
+  \<open>(\<And>a. R \<Longrightarrow> P a = Q a) \<Longrightarrow> (\<forall>a. R \<and> P a) = (\<forall>a. R \<and> Q a)\<close>
+  \<open>(\<And>a. R \<Longrightarrow> P a = Q a) \<Longrightarrow> (\<exists>a. R \<and> P a) = (\<exists>a. R \<and> Q a)\<close>
+  \<open>(\<And>a. R \<Longrightarrow> P a = Q a) \<Longrightarrow> (\<forall>a. P a \<and> R) = (\<forall>a. Q a \<and> R)\<close>
+  \<open>(\<And>a. R \<Longrightarrow> P a = Q a) \<Longrightarrow> (\<exists>a. P a \<and> R) = (\<exists>a. Q a \<and> R)\<close>
+  \<open>(\<And>a. R \<Longrightarrow> P a = Q') \<Longrightarrow> (\<forall>a. R \<and> P a) = (R \<and> Q')\<close>
+  \<open>(\<And>a. R \<Longrightarrow> P a = Q') \<Longrightarrow> (\<exists>a. R \<and> P a) = (R \<and> Q')\<close>
+  \<open>(\<And>a. R \<Longrightarrow> P a = Q') \<Longrightarrow> (\<forall>a. P a \<and> R) = (Q' \<and> R)\<close>
+  \<open>(\<And>a. R \<Longrightarrow> P a = Q') \<Longrightarrow> (\<exists>a. P a \<and> R) = (Q' \<and> R)\<close>
+  by metis+
+
 
 lemma alethe_onepoint_simp[no_atp]:
   \<open>(\<forall>x. a = b \<and> P x \<longrightarrow> Q x) \<longleftrightarrow> (a = b \<longrightarrow> (\<forall>x. P x \<longrightarrow> Q x))\<close>
