@@ -22,7 +22,7 @@ sig
   val dict_map_default: class * 'a -> ('a -> 'a) -> 'a dict -> 'a dict
   val dict_update: class * 'a -> 'a dict -> 'a dict
   val dict_merge: ('a * 'a -> 'a) -> 'a dict * 'a dict -> 'a dict
-  val dict_lookup: 'a dict -> class -> 'a list
+  val dict_lookup: 'a dict -> class list -> 'a list
   val dict_get: 'a dict -> class -> 'a option
 
   (*types*)
@@ -116,8 +116,10 @@ fun dict_update (e as (_, x)) = dict_map_default e (K x)
 
 fun dict_merge val_merge = sort class_ord o AList.join (op =) (K val_merge)
 
-fun dict_lookup d cs =
-  let fun match (cs', x) = if is_prefix (op =) cs' cs then SOME x else NONE
+fun dict_lookup d feature_classes =
+  let
+    val features = distinct (op =) (flat feature_classes)
+    fun match (cs', x) = if subset (op =) (cs', features) then SOME x else NONE
   in map_filter match d end
 
 fun dict_get d cs =
