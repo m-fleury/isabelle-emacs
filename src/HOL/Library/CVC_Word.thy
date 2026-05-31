@@ -120,7 +120,6 @@ lemma take_bit_lift:
   "take_bit k (w::'a::len word) \<equiv> w - (if (k \<ge> LENGTH('a::len)) then 0 else smtlib_bvshl (smtlib_bvlshr w (word_of_int (int k))) (word_of_int (int k)))"
   using bits_ident drop_bit_word_beyond push_bit_word_beyond drop_bit_lift push_bit_lift
   by (smt (verit, ccfv_SIG) add.commute add_diff_cancel_right')
-declare[[show_types,show_sorts]]
 
 
 
@@ -289,8 +288,6 @@ val _ = fold SMT_Normalize.add_nat_native_ops_tab (nat_native_ops_tab)
 val _ = fold SMT_Normalize.add_simplify_ops_tab (simplify_norm_table)
     |> Theory.setup o Context.theory_map
 \<close>
-
-declare [[smt_nat_as_int]]
 
 
 declare  [[smt_cvc_alethe = true]]
@@ -499,7 +496,6 @@ lemma word_repeat_word_cat2:
   assumes \<open>LENGTH('b::len) = i * LENGTH('a)\<close> \<open>i > 1\<close>
     \<open>LENGTH('c::len) = (i-1) * LENGTH('a)\<close>
   shows \<open>(word_repeat i n :: 'b word) = word_cat (n :: 'a word) (word_repeat (i-1) n :: 'c word)\<close>
-  supply [[show_sorts,show_types]]
   apply (cases i)
   subgoal
     using assms(2) by force
@@ -1084,43 +1080,6 @@ lemma xor_word_cat_smt_extract_step:
     done
 
 
-(*named_theorems evaluate_bv_cvc5 \<open>Lemmas to resolve evaluate rewrite steps \<close>
-named_theorems word_var_rbl_list \<open>Theorems to reconstruct bitblasting of a variable.\<close>
-
-named_theorems bv_reconstruction_const \<open>Theorems to reconstruct bitblasting of a constant.\<close>
-named_theorems bv_reconstruction_const_test \<open>Theorems to reconstruct bitblasting of a constant.\<close>
-
-named_theorems word_and_rbl_bvand \<open>Theorems to reconstruct bitblasting of a bvand term.\<close>
-named_theorems word_or_rbl_bvor \<open>Theorems to reconstruct bitblasting of a bvand term.\<close>
-named_theorems word_xor_rbl_bvxor \<open>Theorems to reconstruct bitblasting of a bvand term.\<close>
-named_theorems word_notxor_rbl_bvxnor \<open>Theorems to reconstruct bitblasting of a bvand term.\<close>
-named_theorems word_not_rbl_bvnot \<open>Theorems to reconstruct bitblasting of a bvand term.\<close>
-
-named_theorems word_plus_rbl_bvadd \<open>Theorems to reconstruct bitblasting of a bvadd term.\<close>
-named_theorems word_plus_rbl_bvadd_fun \<open>Theorems to reconstruct bitblasting of a bvadd term.\<close>
-named_theorems word_plus_rbl_bvadd_fun2 \<open>Theorems to reconstruct bitblasting of a bvadd term.\<close>
-
-named_theorems word_minus_rbl_bvneg \<open>Theorems to reconstruct bitblasting of a bvneg term.\<close>
-named_theorems word_minus_rbl_bvneg_fun \<open>Theorems to reconstruct bitblasting of a bvneg term.\<close> (*temp?*)
-
-named_theorems word_mult_rbl_bvmult \<open>Theorems to reconstruct bitblasting of a bvmult term.\<close>
-named_theorems word_mult_rbl_bvmult_fun \<open>Theorems to reconstruct bitblasting of a bvmult term.\<close>
-
-named_theorems rbl_bvult_fun \<open>Theorems to reconstruct bitblasting of a bvult term.\<close>
-named_theorems word_less_rbl_bvult \<open>Theorems to reconstruct bitblasting of a bvult term.\<close>
-
-named_theorems rbl_bvequal_fun \<open>Theorems to reconstruct bitblasting of a bvequal term.\<close>
-named_theorems word_equal_rbl_bvequal \<open>Theorems to reconstruct bitblasting of a bvequal term.\<close>
-
-named_theorems rbl_extract_fun \<open>Theorems to reconstruct bitblasting of a extract term.\<close>
-named_theorems rbl_extract \<open>Theorems to reconstruct bitblasting of a extract term.\<close>
-
-named_theorems rbl_concat \<open>Theorems to reconstruct bitblasting of a contract term.\<close>
-
-named_theorems bv_reconstruction_length \<open>Theorems evaluate LENGTH('a) for a concrete length.\<close>
-named_theorems bv_reconstruction_lists \<open>Theorems to reconstruct bitvector theorems concerning lists.\<close>
-named_theorems bv_reconstruction_list_funs \<open>Theorems to reconstruct bitvector theorems concerning list function, e.g. take.\<close>
-*)
 named_theorems rbl_xor_temp \<open>xor_def.\<close>
 (*TODO: duplicate*)
 named_theorems arith_simp_cvc5 \<open>xor_def.\<close>
@@ -1247,11 +1206,7 @@ end
 (* ("bad SMT term format",
              S [Sym "_", Sym "int2bv",
                 Num 32]*)
-let
-val _ = @{print}("FOUND2")
-in
       SOME (HOLogic.mk_number \<^typ>\<open>32 word\<close> 32)
-end
   | bv_term_parser (SMTLIB.Sym "bv2nat", [t1]) =
 let 
   (*val _ = @{print} ("t1=", t1, (fastype_of t1))
@@ -1334,10 +1289,10 @@ end
     let
       val T2 = fastype_of t2
       val bw = Word_Lib.dest_wordT T2
-      val i' = HOLogic.mk_number @{typ "int"} i |> @{print}
+      val i' = HOLogic.mk_number @{typ "int"} i
       val T = Word_Lib.mk_wordT(i * bw)
     in
-      SOME (Const (\<^const_name>\<open>CVC_Word.smt_repeat\<close>,\<^typ>\<open>Int.int\<close>--> T2 --> T) $ i' $ t2|> @{print})
+      SOME (Const (\<^const_name>\<open>CVC_Word.smt_repeat\<close>,\<^typ>\<open>Int.int\<close>--> T2 --> T) $ i' $ t2)
     end
   | bv_term_parser (SMTLIB.Sym "rotate_left", [t1, t2]) =
     let
@@ -1348,14 +1303,6 @@ end
   | bv_term_parser (SMTLIB.Sym "rotate_right", [t1,t2]) =
     let
       val T2 = fastype_of t2
-      val _ = @{print}("rotate_right t1",t1)
-      val _ = @{print}("rotate_right t2",t2)
-      val _ = @{print}("rotate_right T2",T2)
-(*("rotate_right t1", Free ("amount", "int")) (line 351 of "/home/lachnitt/Sources/isabelle-git/isabelle-emacs/src/HOL/Library/Tools/smt_word.ML") 
-("rotate_right t2", Free ("x", "_ word")) (line 352 of "/home/lachnitt/Sources/isabelle-git/isabelle-emacs/src/HOL/Library/Tools/smt_word.ML") 
-("rotate_right T2", "_ word") (line 353 of "/home/lachnitt/Sources/isabelle-git/isabelle-emacs/src/HOL/Library/Tools/smt_word.ML") 
-("bvsize t1", Free ("x", "_ word")) (line 413 of "/home/lachnitt/Sources/isabelle-git/isabelle-emacs/src/HOL/Library/Tools/smt_word.ML") *)
-
     in
       SOME (Const (\<^const_name>\<open>word_rotr\<close>,\<^typ>\<open>Nat.nat\<close>--> T2 --> T2) $ (Const ( \<^const_name>\<open>nat\<close>, \<^typ>\<open>Int.int\<close> --> \<^typ>\<open>Nat.nat\<close>) $ t1) $ t2)
     end
@@ -1399,21 +1346,8 @@ end
   | bv_term_parser (SMTLIB.Num n, _) = NONE (*(ignore (@{print} ("n=", n)); NONE)*)
   | bv_term_parser xs = (NONE)
 
-
-
-
-val temp = (Type (\<^type_name>\<open>word\<close>, [dummyT]))
-
- fun bv_type_parser (SMTLIB.Sym "?BitVec", []) = SOME (Type (\<^type_name>\<open>word\<close>, [dummyT])) (*TODO: Here it should be a 'a::len word not a word *)
-  | bv_type_parser (SMTLIB.S [SMTLIB.Sym "?BitVec"], []) = SOME (Type (\<^type_name>\<open>word\<close>, [dummyT])) (*TODO*)
-  | bv_type_parser (SMTLIB.Sym "?BitVec", []) = SOME (Type (\<^type_name>\<open>word\<close>, [dummyT])) (*TODO *)
-
 val _ = Theory.setup (Context.theory_map (
   SMTLIB_Proof.add_term_parser bv_term_parser))
-
-(*
-val _ = Theory.setup (Context.theory_map (
-  SMTLIB_Proof.add_type_parser bv_type_parser))*)
 \<close>
 
 ML \<open>
@@ -1465,25 +1399,6 @@ end
 \<close>
 
 ML \<open>
-let
-  fun smt_mk_builtin_num T i =
-   let val _ = @{print} T in
-       if Word_Lib.is_wordT T then SOME (Numeral.mk_cnumber (Thm.ctyp_of @{context} T) i)
-       else NONE
-   end
-
-val setup_builtins =
-SMT_Builtin.add_builtin_typ SMTLIB_Interface.bvsmtlibC
-  (\<^typ>\<open>'a word\<close>, K (SOME ("word", [])), K (K (NONE)))
-
-
-in
-()
-end
-\<close>
-
-
-ML \<open>
  fun smtlib_logic "z3" ts _ =
     (*if exists (Term.exists_type (Term.exists_subtype is_wordT)) ts then SOME [""] else NONE*)
     if exists (Term.exists_type (Term.exists_subtype is_wordT)) ts then SOME (SMT_Translate.NO_LOGIC) else NONE
@@ -1533,64 +1448,6 @@ val _ = Theory.setup (Context.theory_map (
   SMTLIB_Interface.add_logic (1, smtlib_logic) #>
   setup_builtins))
 \<close>
-declare[[smt_verbose = true,smt_trace]]
-
-ML\<open>
-
-val x = @{term "x + (1::nat)" }
-\<close>
-
-
-
-(*
-term " (0 :: 32 word)"
-ML \<open>@{typ "32 word"} = \<^typ>\<open>_ word\<close>\<close>
-ML \<open>@{print} (Numeral.mk_cnumber \<^ctyp>\<open>43 word\<close> 0) \<close>
-lemma "- (- 1 :: int) \<le> 2"
-  supply [[smt_trace,smt_debug_verit]]
-  by (smt (cvc5))
-
-lemma "x = (1 :: 32 word) \<Longrightarrow> x \<le> 2"
-  supply [[smt_trace,smt_debug_verit]]
-  by (smt (cvc5))
-
-lemma " (1 :: 32 word) \<le> 2"
-  supply [[smt_trace,smt_debug_verit]]
-  by (smt (cvc5) )
-
-lemma " (1 :: 32 word) \<le> 2"
-  supply [[smt_trace,smt_debug_verit,z3_extensions]]
-  by (smt (cvc5) )
-
-lemma "uint (1 :: 32 word) \<le> 2"
-  supply [[smt_trace,smt_debug_verit]]
-by (smt (cvc5) )
-
-lemma "unat (2048 :: 32 word) \<le> 4294967296"
-  supply [[smt_trace,smt_nat_as_int]]
-by (smt (cvc5) )
-
-lemma "\<not>bit (1 :: 32 word) 1"
-  using slice_def
-  supply [[smt_trace,smt_debug_verit,z3_extensions]]
-  by (smt (cvc5) )
-
-value "(11::3 word)"
-value "(3::3 word)"
-
-lemma
-  fixes x::"'a::len word"
-  assumes "n < size x"
-  shows  "bit x n =(( slice n (take_bit (Suc n) x)) = (1::1 word))"
-proof-
-  have "bit x n = (if (smt_extract n n x) = (1::1 word) then True else False)"
-    using smt_extract_bit[of n x] assms
-    by simp
-  then have "bit x n = (if ( slice n (take_bit (Suc n) x)) = (1::1 word) then True else False)"
-    unfolding smt_extract_def[of n n x] by simp
-  then show ?thesis by simp
-qed
-*)
 
 
 lemma [cvc_ListOp_neutral]:
@@ -1609,12 +1466,6 @@ lemma [cvc_list_both_transfer_op]:
  = foldr xor xs (foldr xor ys (Word.Word 0) )"
   using cvc_list_both_transfer[of xor 0 xs ys] cvc_ListOp_neutral
   by simp
-declare[[smt_expert_debug_alethe_level=0]]
-declare[[smt_expert_debug_alethe_files="all"]]
-
-declare[[smt_trace=false]]
-
-
 
 definition word_cat_rbl_right :: "'a::len word \<Rightarrow> bool list list \<Rightarrow> 'c::len itself \<Rightarrow> 'b::len word" where
 "word_cat_rbl_right x ys _ = (word_cat x (of_bl (concat ys) :: 'c word) :: 'b word)"
