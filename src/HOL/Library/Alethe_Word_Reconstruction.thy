@@ -750,12 +750,21 @@ proof-
   also have "... =  of_bl ((take (LENGTH('a) - nat i) (replicate (nat k) False) @ (take (LENGTH('a) - nat i - nat k) (drop (nat k) xs))))"
     by simp
   also have "... =  of_bl ((take (LENGTH('a) - nat i) (replicate (nat k) False) @ (take (LENGTH('b)) (drop (nat k) xs))))"
-    unfolding k_def
-    using t3 sorry
+  proof -
+    have "LENGTH('a) - nat i - nat k = LENGTH('b)"
+      using k_def a0 by linarith
+    thus ?thesis by simp
+  qed
   also have "... =  of_bl ((take (LENGTH('b)) (drop (nat k) xs)))"
     by (metis of_bl_rep_False take_replicate)
-  finally show "(smtlib_extract j i (of_bl xs::'a::len word)::'b::len word) = of_bl (take (Suc (nat j) - nat i) (drop (length xs - Suc (nat j)) xs))"
-    sorry
+  finally have fin: "(smtlib_extract j i (of_bl xs::'a::len word)::'b::len word)
+      = of_bl (take (LENGTH('b)) (drop (nat k) xs))" .
+  have len_b: "Suc (nat j) - nat i = LENGTH('b)"
+    using a0 by linarith
+  have idx: "length xs - Suc (nat j) = nat k"
+    using t1 a0 by linarith
+  show "(smtlib_extract j i (of_bl xs::'a::len word)::'b::len word) = of_bl (take (Suc (nat j) - nat i) (drop (length xs - Suc (nat j)) xs))"
+    using fin len_b idx by simp
 qed
 
 lemma [rbl_extract]:
