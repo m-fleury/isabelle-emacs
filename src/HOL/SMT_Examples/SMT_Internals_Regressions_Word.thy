@@ -1,5 +1,5 @@
 theory SMT_Internals_Regressions_Word
-  imports HOL.SMT_CVC_Word
+  imports "HOL-Library.SMT_CVC_Word"
 begin
 (* Test alethe_replay_methods.ML *)
 (* Important: The context can be different than if a step appears inside a proof! E.g., because
@@ -325,6 +325,10 @@ lemma poly_simp_1:
 1 * (0 - (v0 - (if (16::int) \<le> v1 then 0 else smtlib_bvshl (smtlib_bvlshr v0 (word_of_int v1)) (word_of_int v1))))"
   by (ctxt_tactic "poly_simp")
 
+lemma poly_simp_2:
+"(13::4 word) * (3 - (if (4::4 word) \<le> 3 then 0 else smtlib_bvshl (smtlib_bvlshr 3 (word_of_int 3)) (word_of_int 3)) - 0) =
+         3 * (0 - (3 - (if (4::4 word) \<le> 3 then 0 else smtlib_bvshl (smtlib_bvlshr 3 (word_of_int 3)) (word_of_int 3))))"
+  by (ctxt_tactic "poly_simp")
 
 
 
@@ -332,7 +336,7 @@ lemma poly_simp_1:
 
 
 
-
+                                   
 
 
 
