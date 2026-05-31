@@ -4361,9 +4361,10 @@ proof -
 
     have cw_ge_delta: "?delta \<le> unat c_w"
     proof -
+      have msb_eq: "(2::nat) ^ (LENGTH('a) - 1) = 2 ^ ?MSB" by simp
+      have msb_pos: "(1::nat) \<le> 2 ^ ?MSB" by simp
       have "?delta + 1 \<le> (2::nat) ^ LENGTH('b) - 2 ^ (LENGTH('a) - 1)"
-        using pow_la_eq pow_la_le_b two_msb_lt_b 
-        by (smt (verit, del_insts) mult_is_0 power_split)
+        using pow_la_eq two_msb_le_b msb_eq msb_pos by linarith
       hence "?delta \<le> (2::nat) ^ LENGTH('b) - 2 ^ (LENGTH('a) - 1) - 1" by linarith
       thus ?thesis using cw_high by linarith
     qed
