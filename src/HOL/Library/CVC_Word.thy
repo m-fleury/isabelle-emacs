@@ -143,22 +143,67 @@ next
   then have unat_k: "unat (word_of_int (int k) :: 'a word) = k"
     by (metis less_exp linorder_le_cases of_int_of_nat_eq of_nat_inverse order_le_less_trans)
   show "signed_drop_bit k w = smtlib_bvashr w (word_of_int (int k))"
-    unfolding smtlib_bvashr_def smtlib_bvlshr_def smtlib_extract_msb_eq
-    apply (simp only: a0 unat_k)
-    apply (cases "bit w (LENGTH('a) -1)")
-    subgoal
-      apply (rule bit_word_eqI)
-      apply (simp only: bit_signed_drop_bit_iff)
-      apply simp
-      (*by (metis (no_types, opaque_lifting) add.commute bit_drop_bit_eq bit_not_iff drop_bit_eq_div le_diff_conv linorder_not_le o_apply possible_bit_word)*) sorry
-    subgoal
-      apply simp sorry
-   (*  apply (simp only: unat_k a0)
-      apply simp
-      apply (rule bit_word_eqI)
-         apply (simp add: bit_signed_drop_bit_iff)
-      by (metis bit_iff_odd diff_diff_left diff_is_0_eq div_exp_eq exp_eq_zero_iff not_bit_length word_exp_length_eq_0)*)
-    done
+  proof -
+    have lshr: "\<And>v::'a::len word. smtlib_bvlshr v (word_of_int (int k)) = drop_bit k v"
+  by (simp add: a0 drop_bit_lift)
+      have msb_idx: "int LENGTH('a) - 1 = int (LENGTH('a) - 1)"
+      using len_gt_0[where 'a='a] by linarith
+    have msb: "(smtlib_extract (int LENGTH('a) - 1) (int LENGTH('a) - 1) w :: 1 word)
+                 = (if bit w (LENGTH('a) - 1) then 1 else 0)"
+      unfolding msb_idx by (rule smtlib_extract_msb_eq)
+    show ?thesis
+    proof (cases "bit w (LENGTH('a) - 1)")
+      case True
+      have "smtlib_bvashr w (word_of_int (int k)) = not (drop_bit k (not w))"
+        unfolding smtlib_bvashr_def using msb True lshr by simp
+      moreover have "signed_drop_bit k w = not (drop_bit k (not w))"
+      proof (rule bit_word_eqI)
+        fix n :: nat
+        assume n: "n < LENGTH('a)"
+        show "bit (signed_drop_bit k w) n = bit (not (drop_bit k (not w))) n"
+        proof (cases "LENGTH('a) - k \<le> n")
+          case ge: True
+          hence kn: "\<not> k + n < LENGTH('a)" using a0 by linarith
+          show ?thesis
+            using True n ge kn
+            by (auto simp: bit_signed_drop_bit_iff bit_not_iff bit_drop_bit_eq possible_bit_word
+                     dest: bit_imp_possible_bit)
+        next
+          case lt: False
+          hence kn: "k + n < LENGTH('a)" using a0 by linarith
+          show ?thesis
+            using n lt kn
+            by (auto simp: bit_signed_drop_bit_iff bit_not_iff bit_drop_bit_eq possible_bit_word)
+        qed
+      qed
+      ultimately show ?thesis by simp
+    next
+      case False
+      have "smtlib_bvashr w (word_of_int (int k)) = drop_bit k w"
+        unfolding smtlib_bvashr_def using msb False lshr by simp
+      moreover have "signed_drop_bit k w = drop_bit k w"
+      proof (rule bit_word_eqI)
+        fix n :: nat
+        assume n: "n < LENGTH('a)"
+        show "bit (signed_drop_bit k w) n = bit (drop_bit k w) n"
+        proof (cases "LENGTH('a) - k \<le> n")
+          case ge: True
+          hence kn: "\<not> k + n < LENGTH('a)" using a0 by linarith
+          show ?thesis
+            using False n ge kn
+            by (auto simp: bit_signed_drop_bit_iff bit_drop_bit_eq possible_bit_word
+                     dest: bit_imp_possible_bit)
+        next
+          case lt: False
+          hence kn: "k + n < LENGTH('a)" using a0 by linarith
+          show ?thesis
+            using n lt kn
+            by (auto simp: bit_signed_drop_bit_iff bit_drop_bit_eq possible_bit_word)
+        qed
+      qed
+      ultimately show ?thesis by simp
+    qed
+  qed
 qed
 
 lemma smtlib_extract_eq_iff:
@@ -181,11 +226,9 @@ lemma bit_lift:
 
 lemma slice_lift:
   fixes x::"'a::len word"
-  shows "slice n x \<equiv> smt_extract (LENGTH('a)) n x"
+  shows "slice n x \<equiv> smtlib_extract (int LENGTH('a)) (int n) x"
   unfolding smt_extract_def
-  apply(subst take_bit_word_eq_self)
-  by simp_all
-
+  by (simp add: smtlib_extract_def take_bit_word_beyond_length_eq)
 
 definition set_bit_lift :: \<open>int \<Rightarrow> 'a::len word \<Rightarrow> 'a::len word\<close> where
   "set_bit_lift x = set_bit (nat x)"
@@ -255,6 +298,8 @@ lemma word_numeral_lift:
   using num_abs_bintr[of x]
   by auto
 
+definition slice_lift :: \<open>int \<Rightarrow> 'a :: len word \<Rightarrow> 'b :: len word\<close> where
+ \<open>slice_lift j w = slice (nat j) w\<close>
 
 lemmas [simplify_translation] = len_bit0 len_bit1 len_num1 take_bit_numeral_numeral option.case take_bit_num_simps pred_numeral_simps option.case
 of_int_numeral
@@ -268,6 +313,7 @@ val nat_native_ops_tab =
   ("Word.signed_drop_bit", @{thms signed_drop_bit_lift}),
   ("Word.word_rotr", @{thms word_rotr_lift}),
   ("Word.word_rotl", @{thms word_rotl_lift}),
+  ("Word.slice", @{thms slice_lift}),
   ("Bit_Operations.semiring_bits_class.bit", @{thms bit_lift})
 
 ]
