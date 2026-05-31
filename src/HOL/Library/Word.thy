@@ -4791,5 +4791,5 @@ fun add_int_of_nat_constraints thms =
 end
 \<close>
 
-declare [[smt_nat_as_int_bv=true,smt_nat_as_int]]
+declare [[smt_nat_as_int_bv=true]]
 end
