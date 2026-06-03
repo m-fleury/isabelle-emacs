@@ -548,8 +548,10 @@ fun cong ctxt thms t args = try_provers (get_solver_name args) ctxt
 ("unfolding then reflexivity", SMT_Replay_Methods.cong_unfolding_trivial ctxt thms)] thms [] t
 
 fun refl ctxt thms t args =
-  let
-    val t_sym = (HOLogic.mk_Trueprop o HOLogic.mk_eq o swap o HOLogic.dest_eq o HOLogic.dest_Trueprop) t
+  let (*try is important for e.g. t \<Longrightarrow> t case *)
+    val t_sym = case try (HOLogic.dest_eq o HOLogic.dest_Trueprop) t of
+      SOME (lhs, rhs) => HOLogic.mk_Trueprop (HOLogic.mk_eq (rhs, lhs))
+    | NONE => t
   in
    (case get_first (fn thm => let val t' = Thm.full_prop_of thm in
       if t = t' then SOME thm
