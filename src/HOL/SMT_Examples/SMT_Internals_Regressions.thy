@@ -3594,8 +3594,6 @@ end\<close>
 
 end
 
-end
-
 (* Bind *)
 experiment
 begin
