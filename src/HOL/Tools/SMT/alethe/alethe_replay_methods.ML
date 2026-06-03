@@ -543,19 +543,24 @@ fun bind ctxt [thms] context_ass t =
 (* Congruence/Refl *)
 
 fun cong ctxt thms t args = try_provers (get_solver_name args) ctxt
-    (string_of_alethe_rule Cong) [
-  ("basic", SMT_Replay_Methods.cong_basic ctxt thms),
-  ("unfolding then reflexivity", SMT_Replay_Methods.cong_unfolding_trivial ctxt thms),
-  ("unfolding then auto", SMT_Replay_Methods.cong_unfolding_first ctxt thms),
-  ("full", SMT_Replay_Methods.cong_full ctxt thms)] thms [] t
+(string_of_alethe_rule Cong) [
+("basic", SMT_Replay_Methods.cong_basic ctxt thms),
+("unfolding then reflexivity", SMT_Replay_Methods.cong_unfolding_trivial ctxt thms)] thms [] t
 
 fun refl ctxt thms t args =
-  (case find_first (fn thm => t = Thm.full_prop_of thm) thms of
+  let
+    val t_sym = (HOLogic.mk_Trueprop o HOLogic.mk_eq o swap o HOLogic.dest_eq o HOLogic.dest_Trueprop) t
+  in
+   (case get_first (fn thm => let val t' = Thm.concl_of thm in
+      if t = t' then SOME thm
+        else if t_sym = t' then SOME (thm COMP @{thm eq_commute[THEN iffD1]})
+        else NONE end) thms of
       SOME thm => thm
     | NONE =>
         (case try (fn t => SMT_Replay_Methods.match_instantiate ctxt t @{thm refl}) t of
-          NONE => cong ctxt thms t args
+          NONE => raise Fail "Broken refl case that required cong"
         | SOME thm => thm))
+  end
 
 (* Instantiation *)
 
