@@ -551,7 +551,7 @@ fun refl ctxt thms t args =
   let
     val t_sym = (HOLogic.mk_Trueprop o HOLogic.mk_eq o swap o HOLogic.dest_eq o HOLogic.dest_Trueprop) t
   in
-   (case get_first (fn thm => let val t' = Thm.concl_of thm in
+   (case get_first (fn thm => let val t' = Thm.full_prop_of thm in
       if t = t' then SOME thm
         else if t_sym = t' then SOME (thm COMP @{thm eq_commute[THEN iffD1]})
         else NONE end) thms of
