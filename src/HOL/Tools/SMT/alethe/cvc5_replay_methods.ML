@@ -197,7 +197,10 @@ fun choose _ And = include_args and_rule
   | choose _ LIA_Generic = ignore_args lia_generic
   | choose _ LA_Mult_Pos = ignore_args la_mult_pos
   | choose _ LA_Mult_Neg = ignore_args la_mult_neg
-  | choose _ Poly_Simp = ignore_args poly_simp
+  | choose ctxt Poly_Simp =
+    (case get_alethe_tac "poly_simp" ctxt of
+      SOME a => include_step_args a
+    | NONE => ignore_args poly_simp)
   | choose _ Poly_Simp_Rel = ignore_args poly_simp_rel
   | choose _ Local_Input = include_args refl
   | choose _ Minus_Simplify = ignore_args rewrite_minus_simplify

@@ -162,6 +162,119 @@ ML \<open>
 val _ = Theory.setup (Context.theory_map (
   SMTLIB_Proof.add_type_parser cvc_type_parser))
 \<close>
+
+
+ML \<open>
+(*
+TODO: Re-write, written by AI
+
+Word-specific reconstruction for poly_simp. A word equality is not a generic ring identity: it
+  may hold only because of the ring characteristic 2 ^ LENGTH('a) = 0. The generic poly_simp
+  simplification already reduces such a goal to a pure integer goal modulo 2 ^ LENGTH('a)
+  (numerals collected, then code evaluation pushes the word arithmetic to uint ... mod 2 ^ n); all
+  that is missing for the characteristic-dependent cases is a linear-arithmetic closer, which
+  presburger provides. As a fall-back we also try transfer to int. Both routes stay clear of the
+  if-then-else blow-up that unat normalization causes for truncated subtraction.
+
+  poly_simp_word below is a copy of Alethe_Replay_Methods.poly_simp extended with one extra
+  alternative (the word_finish_tac branch) and registered via declare_alethe_rule. Word equalities
+  that are not generic ring identities first run through the unchanged simplification attempts and,
+  only when those do not close the goal, through the word route.*)
+(*tracing as in alethe_replay_methods: gated by smt_expert_debug_alethe_level / _files*)
+fun debug_msg_tac' ctxt str =
+  K (SMT_Config.alethe_debug_msg_tac ctxt "SMT_CVC_Word" SMT_Config.high str)
+
+fun word_finish_tac ctxt =
+  let
+    fun trace msg tac = debug_msg_tac' ctxt msg THEN' tac
+    val reduce_to_int_tac =
+      full_simp_tac ctxt THEN_ALL_NEW (fn i => TRY (Code_Simp.dynamic_tac ctxt i))
+    val to_int_tac = Transfer.gen_frees_tac [] ctxt THEN' Transfer.transfer_tac true ctxt
+    val mod_simp_tac = full_simp_tac (ctxt addsimps @{thms take_bit_eq_mod})
+    val presburger_tac = Cooper.tac true [] [] ctxt
+    val finish_tac =
+      SOLVED' (trace "word route: simp+code_simp then presburger" (reduce_to_int_tac THEN_ALL_NEW presburger_tac))
+      ORELSE' SOLVED' (trace "word route: transfer+mod then presburger" (to_int_tac THEN_ALL_NEW mod_simp_tac THEN_ALL_NEW presburger_tac))
+      ORELSE' SOLVED' (trace "word route: transfer then presburger" (to_int_tac THEN_ALL_NEW presburger_tac))
+      ORELSE' SOLVED' (trace "word route: presburger" presburger_tac)
+  in
+    SUBGOAL (fn (goal, i) =>
+      (case Logic.strip_assums_concl goal of
+        \<^Const_>\<open>Trueprop\<close> $ (Const (\<^const_name>\<open>HOL.eq\<close>, T) $ _ $ _) =>
+          (case Term.domain_type T of
+            Type (\<^type_name>\<open>word\<close>, _) =>
+              (debug_msg_tac' ctxt "entering word route" THEN' finish_tac) i
+          | _ => no_tac)
+      | _ => no_tac))
+  end
+
+(*copied from the (private) Alethe_Replay_Methods.prove_abstract: abstract the goal after stripping
+  the Trueprop judgment and eta-normalizing, run tac on it, and transfer the result back*)
+fun prove_abstract abstracter tac ctxt thms t =
+  let
+    val t_eta_long_eq = Thm.eta_long_conversion (Object_Logic.dest_judgment ctxt (Thm.cterm_of ctxt t))
+    val (_, t_eta_long) = Logic.dest_equals (Thm.prop_of t_eta_long_eq)
+    val thms_eta_long = map (Conv.fconv_rule Thm.eta_long_conversion) thms
+    val abstract_thm =
+      SMT_Replay_Methods.prove_abstract ctxt thms_eta_long t_eta_long tac
+        (fold_map (abstracter o SMT_Replay_Methods.dest_thm) thms_eta_long ##>>
+         abstracter (SMT_Replay_Methods.dest_prop t_eta_long))
+  in
+    @{thm alethe_Pure_trans} OF [t_eta_long_eq, abstract_thm]
+  end
+
+(*copied from Alethe_Replay_Methods.poly_simp, extended with the word_finish_tac branch*)
+fun poly_simp_word ctxt _ _ =
+  let
+    val TRY' = Alethe_Replay_Methods.TRY'
+    (*push of_int through arithmetic operators first*)
+    val of_int_push_thms = @{thms of_int_add of_int_diff of_int_mult of_int_minus
+      of_int_numeral of_int_neg_numeral of_int_1 of_int_0 of_int_of_nat_eq}
+    fun push_of_int_tac ctxt =
+      ctxt
+      |> Simplifier.empty_simpset
+      |> Simplifier.put_simpset HOL_basic_ss
+      |> Simplifier.add_simps of_int_push_thms
+      |> Simplifier.full_simp_tac
+    fun simplify_tac ctxt thms =
+      ctxt
+      |> Simplifier.empty_simpset
+      |> Simplifier.put_simpset HOL_basic_ss
+      |> Simplifier.add_simps (@{thms simp_thms} @ thms)
+      |> (Simplifier.add_cong @{thm if_weak_cong})
+      |> fold Simplifier.add_proc [@{simproc int_div_cancel_numeral_factors}, @{simproc int_combine_numerals},
+           @{simproc divide_cancel_numeral_factor}, @{simproc divide_cancel_factor},
+           @{simproc intle_cancel_numerals}, @{simproc intless_cancel_numerals}, @{simproc inteq_cancel_numerals},
+           @{simproc field_combine_numerals},
+           @{simproc ring_le_cancel_numeral_factor},
+           @{simproc HOL.NO_MATCH}, @{simproc Numeral_Simprocs.semiring_assoc_fold},
+           @{simproc Numeral_Simprocs.field_divide_cancel_numeral_factor},
+           @{simproc Numeral_Simprocs.field_eq_cancel_numeral_factor}]
+      |> Simplifier.full_simp_tac
+    fun simplify_tac_with_background_simp ctxt thms =
+      ctxt
+      |> Simplifier.add_simps thms
+      |> Simplifier.full_simp_tac
+    val tac = (fn _ => fn _ =>
+        TRY' (push_of_int_tac ctxt)
+        THEN' debug_msg_tac' ctxt "pushed of_int to leaves before poly simp"
+        THEN' TRY' (simplify_tac ctxt (Named_Theorems.get ctxt @{named_theorems alethe_poly_norm}))
+        THEN' debug_msg_tac' ctxt "tried to solve poly simp with custom simplify tac"
+        (*new: word equalities that rely on the ring characteristic 2 ^ LENGTH('a) = 0*)
+      THEN' TRY' (word_finish_tac ctxt)
+        (*if the previous does not solve, use full simplification power with the current content*)
+      THEN' TRY' (simplify_tac_with_background_simp ctxt [])
+        THEN' debug_msg_tac' ctxt "tried full simplifier power on current arith_poly_norm step"
+      THEN' TRY' (Code_Simp.dynamic_tac ctxt)
+      THEN' debug_msg_tac' ctxt "tried code evaluation on arith_poly_norm step since nothing else worked")
+  in
+    prove_abstract (SMT_Replay_Methods.abstract_for_poly_norm ctxt) tac ctxt []
+  end
+
+val _ = Theory.setup (Context.theory_map (
+  Alethe_Replay_Methods.declare_alethe_rule "poly_simp" poly_simp_word))
+\<close>
+
 cvc5_rare "Alethe_UF_BV_Rewrites.rewrite_uf_bv2nat_int2bv"
 cvc5_rare "Alethe_UF_BV_Rewrites.rewrite_uf_bv2nat_int2bv_extend"
 cvc5_rare "Alethe_UF_BV_Rewrites.rewrite_uf_bv2nat_int2bv_extract"

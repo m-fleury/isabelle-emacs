@@ -127,18 +127,6 @@ lemma bv_repeat_elim:
        (smtlib_extract (15::int) (15::int) (1705::16 word)::1 word) :: 2 word)"
   by (ctxt_tactic "bv_repeat_elim")
 
-lemma cong:
-  assumes
-    "smtlib_extract (15::int) (15::int) (1705::16 word) = (0::1 word)"
-    "smtlib_extract (15::int) (15::int) (1705::16 word) = (0::1 word)"
-    "smtlib_extract (15::int) (15::int) (1705::16 word) = (0::1 word)"
-  shows
-  "word_cat (smtlib_extract (15::int) (15::int) (1705::16 word)::1 word)
-    (word_cat (smtlib_extract (15::int) (15::int) (1705::16 word)::1 word) (smtlib_extract (15::int) (15::int) (1705::16 word)::1 word)::1 word) =
-  (word_cat (0::1 word) (word_cat (0::1 word) (0::1 word) :: 1 word)::1 word)"   
-  using assms
-  by (ctxt_tactic "cong")
-
 
 
 
@@ -325,19 +313,41 @@ lemma poly_simp_1:
 1 * (0 - (v0 - (if (16::int) \<le> v1 then 0 else smtlib_bvshl (smtlib_bvlshr v0 (word_of_int v1)) (word_of_int v1))))"
   by (ctxt_tactic "poly_simp")
 
+
 lemma poly_simp_2:
 "(13::4 word) * (3 - (if (4::4 word) \<le> 3 then 0 else smtlib_bvshl (smtlib_bvlshr 3 (word_of_int 3)) (word_of_int 3)) - 0) =
          3 * (0 - (3 - (if (4::4 word) \<le> 3 then 0 else smtlib_bvshl (smtlib_bvlshr 3 (word_of_int 3)) (word_of_int 3))))"
   by (ctxt_tactic "poly_simp")
 
 
+(*Non bv specific rules with bit-vectors*)
+lemma cong:
+  assumes
+    "smtlib_extract (15::int) (15::int) (1705::16 word) = (0::1 word)"
+    "smtlib_extract (15::int) (15::int) (1705::16 word) = (0::1 word)"
+    "smtlib_extract (15::int) (15::int) (1705::16 word) = (0::1 word)"
+  shows
+    "(word_cat (smtlib_extract (15::int) (15::int) (1705::16 word)::1 word)
+          (word_cat (smtlib_extract (15::int) (15::int) (1705::16 word)::1 word)
+            (smtlib_extract (15::int) (15::int) (1705::16 word)::1 word)::2 word) :: 3 word) =
+         word_cat (0::1 word) (word_cat (0::1 word) (0::1 word) :: 2 word)"
+  using assms
+  supply [[smt_expert_debug_alethe_files="all",smt_expert_debug_alethe_level=3]]
+  by (ctxt_tactic "cong")
 
 
 
-
-
-                                   
-
+lemma cong:
+  assumes
+    "smtlib_extract (15::int) (15::int) (1705::16 word) = (0::1 word)"
+    "smtlib_extract (15::int) (15::int) (1705::16 word) = (0::1 word)"
+    "smtlib_extract (15::int) (15::int) (1705::16 word) = (0::1 word)"
+  shows
+  "word_cat (smtlib_extract (15::int) (15::int) (1705::16 word)::1 word)
+    (word_cat (smtlib_extract (15::int) (15::int) (1705::16 word)::1 word) (smtlib_extract (15::int) (15::int) (1705::16 word)::1 word)::1 word) =
+  (word_cat (0::1 word) (word_cat (0::1 word) (0::1 word) :: 1 word)::1 word)"   
+  using assms
+  by (ctxt_tactic "cong")
 
 
 
