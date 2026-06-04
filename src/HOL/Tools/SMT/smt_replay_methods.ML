@@ -682,9 +682,13 @@ local
        in thm end)
 in  
 fun cong_unfolding_trivial ctxt thms t =
-   prove ctxt t (fn _ =>
+  let
+    fun TRY' tct = fn i => TRY (tct i)
+  in
+    prove ctxt t (fn _ =>
       EVERY' (map (fn thm => K (unfold_tac ctxt [thm])) ((map_filter reorder_for_simp thms)))
-      THEN' (fn i => TRY (resolve_tac ctxt @{thms refl} i)))
+      THEN' TRY' ((resolve_tac ctxt @{thms refl}) ORELSE' ((resolve_tac ctxt @{thms HOL.eq_commute}))))
+  end
 
 fun cong_unfolding_first ctxt thms t =
   let val ctxt =
