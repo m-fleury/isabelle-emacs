@@ -507,7 +507,9 @@ fun abstract_for_code_eval ctxt u =
                  "SMT_Word.is_pow2",
                  "Word.smtlib_extract",
                  "Log_Nat.floorlog",
-                 "Archimedean_Field.floor_ceiling"
+                 "Archimedean_Field.floor_ceiling",
+                 "Word.smtlib_bvshl",
+                 "Word.smtlib_bvlshr"
                 ]
             in 
               if List.exists (fn x => x = name) dont_abstract
