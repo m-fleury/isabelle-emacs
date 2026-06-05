@@ -135,7 +135,8 @@ sig
   val la_mult_neg: alethe_tac
   val poly_simp: alethe_tac
   val poly_simp_rel: alethe_tac
-  val refl: alethe_tac_args
+  val strict_refl: alethe_tac
+  val refl: alethe_tac
   val normalized_input: alethe_tac_args
   val not_and_rule: alethe_tac
   val not_equiv1: alethe_tac
@@ -543,11 +544,11 @@ fun bind ctxt [thms] context_ass t =
 (* Congruence/Refl *)
 
 fun cong ctxt thms t args = try_provers (get_solver_name args) ctxt
-(string_of_alethe_rule Cong) [
-("basic", SMT_Replay_Methods.cong_basic ctxt thms),
-("unfolding then reflexivity", SMT_Replay_Methods.cong_unfolding_trivial ctxt thms)] thms [] t
+  (string_of_alethe_rule Cong) [
+    ("basic", SMT_Replay_Methods.cong_basic ctxt thms),
+    ("unfolding then reflexivity", SMT_Replay_Methods.cong_unfolding_trivial ctxt thms)] thms [] t
 
-fun refl ctxt thms t args =
+fun strict_refl ctxt thms t =
   let (*try is important for e.g. t \<Longrightarrow> t case *)
     val t_sym = case try (HOLogic.dest_eq o HOLogic.dest_Trueprop) t of
       SOME (lhs, rhs) => HOLogic.mk_Trueprop (HOLogic.mk_eq (rhs, lhs))
@@ -563,6 +564,13 @@ fun refl ctxt thms t args =
           NONE => raise Fail "Broken refl case that required cong"
         | SOME thm => thm))
   end
+
+fun refl ctxt prems t =
+   (SMT_Replay_Methods.prove ctxt t (fn _ =>
+     SOLVED' (resolve_tac ctxt prems)
+     ORELSE' (K (unfold_tac ctxt prems))
+   ))
+
 
 (* Instantiation *)
 
