@@ -321,6 +321,31 @@ lemma poly_simp_2:
 
 
 (*Non bv specific rules with bit-vectors*)
+
+lemma cong0:
+  assumes
+    "0 - 0 = (0::1 word)"
+    "0 * 0 = (0::1 word)"
+  shows
+  "(word_cat (0 - 0::1 word) (0 * 0::1 word) :: 2 word) =
+   (word_cat (0    ::1 word) (0    ::1 word) :: 2 word)"
+  using assms
+  supply [[smt_expert_debug_alethe_files="all",smt_expert_debug_alethe_level=3]]
+  by (ctxt_tactic "cong")
+
+
+lemma cong1:
+  assumes
+    "0 + 0 = (0::1 word)"
+    "0 - 0 = (0::1 word)"
+    "0 * 0 = (0::1 word)"
+  shows
+    "(word_cat (0 + 0 ::1 word) (word_cat (0 - 0::1 word) (0 * 0::1 word) :: 2 word) :: 3 word) =
+     (word_cat (0     ::1 word) (word_cat (0    ::1 word) (0    ::1 word) :: 2 word))"
+  using assms
+  supply [[smt_expert_debug_alethe_files="all",smt_expert_debug_alethe_level=3]]
+  by (ctxt_tactic "cong")
+
 lemma cong:
   assumes
     "smtlib_extract (15::int) (15::int) (1705::16 word) = (0::1 word)"
