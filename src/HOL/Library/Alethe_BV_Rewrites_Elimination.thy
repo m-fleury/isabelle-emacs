@@ -30,7 +30,8 @@ named_theorems rewrite_bv_uge_eliminate \<open>automatically_generated\<close>
 
 lemma [rewrite_bv_uge_eliminate]:
   fixes x::"'a ::len word" and y::"'a ::len word"
-  shows "(y \<le> x) = (y \<le> x)"
+  shows "NO_MATCH cvc_a (undefined x y)
+    \<Longrightarrow> (y \<le> x) = (y \<le> x)"
   by auto
 
 (*
@@ -43,7 +44,8 @@ named_theorems rewrite_bv_sgt_eliminate \<open>automatically_generated\<close>
 
 lemma [rewrite_bv_sgt_eliminate]:
   fixes x::"'a ::len word" and y::"'a ::len word"
-  shows "(y <s x) = (y <s x)"
+  shows "NO_MATCH cvc_a (undefined x y)
+    \<Longrightarrow> (y <s x) = (y <s x)"
   by auto
 
 (*
@@ -56,7 +58,8 @@ named_theorems rewrite_bv_sge_eliminate \<open>automatically_generated\<close>
 
 lemma [rewrite_bv_sge_eliminate]:
   fixes x::"'a ::len word" and y::"'a ::len word"
-  shows "(y \<le>s x) = (y \<le>s x)"
+  shows "NO_MATCH cvc_a (undefined x y)
+    \<Longrightarrow> (y \<le>s x) = (y \<le>s x)"
   by auto
 
 (*
@@ -69,7 +72,8 @@ named_theorems rewrite_bv_slt_eliminate \<open>automatically_generated\<close>
 
 lemma [rewrite_bv_slt_eliminate]:
   fixes x::"'a ::len word" and y::"'a ::len word"
-  shows "(x <s y) =
+  shows "NO_MATCH cvc_a (undefined x y)
+    \<Longrightarrow> (x <s y) =
    (x +
     push_bit (unat (Word.Word (int (size x) - (1::int))::'a::len word))
      (Word.Word (1::int)::'a::len word)
@@ -82,8 +86,9 @@ lemma [rewrite_bv_slt_eliminate]:
   apply simp
   apply (simp add: iff_conv_conj_imp)
   apply (rule conjI impI)+
-   apply (metis add.commute add_lessD1 n_less_equal_power_2 nat_int of_nat_take_bit plus_1_eq_Suc take_bit_nat_eq_self)
-  by (metis add.commute add_lessD1 n_less_equal_power_2 nat_int of_nat_take_bit plus_1_eq_Suc take_bit_nat_eq_self)
+    apply (metis add.commute add_lessD1 n_less_equal_power_2 nat_int of_nat_take_bit plus_1_eq_Suc take_bit_nat_eq_self)
+  apply (metis Suc_lessD n_less_equal_power_2 nat_int take_bit_nat_eq_self take_bit_of_nat)
+  sorry
 
 (*
 (define-cond-rule bv-redor-eliminate
@@ -97,7 +102,8 @@ named_theorems rewrite_bv_redor_eliminate \<open>automatically_generated\<close>
 
 lemma [rewrite_bv_redor_eliminate]:
   fixes x::"'a ::len word"
-  shows "smt_redor x = not (smt_comp x (Word.Word (0::int)))"
+  shows "NO_MATCH cvc_a (undefined x)
+    \<Longrightarrow>smt_redor x = not (smt_comp x (Word.Word (0::int)))"
   unfolding smt_redor_def by simp
 
 (*
@@ -112,7 +118,8 @@ named_theorems rewrite_bv_redand_eliminate \<open>automatically_generated\<close
 
 lemma [rewrite_bv_redand_eliminate]:
   fixes x::"'a ::len word"
-  shows "smt_redand x = smt_comp x (not (Word.Word (0::int)))"
+  shows "NO_MATCH cvc_a (undefined x)
+    \<Longrightarrow>smt_redand x = smt_comp x (not (Word.Word (0::int)))"
   unfolding smt_redand_def by auto
 
 (*
@@ -140,7 +147,8 @@ named_theorems rewrite_bv_comp_eliminate \<open>automatically_generated\<close>
 
 lemma [rewrite_bv_comp_eliminate]:
   fixes x::"'a ::len word" and y::"'a ::len word"
-  shows "smt_comp x y = (if x = y then Word.Word (1::int) else Word.Word (0::int))"
+  shows "NO_MATCH cvc_a (undefined x y)
+    \<Longrightarrow> smt_comp x y = (if x = y then Word.Word (1::int) else Word.Word (0::int))"
   by (metis one_word.abs_eq smt_comp_def zero_word.abs_eq)
 
 
@@ -158,11 +166,10 @@ lemma [rewrite_bv_comp_eliminate]:
 
 named_theorems rewrite_bv_rotate_left_eliminate_1 \<open>automatically_generated\<close>
 
-(*lemma is somehow wrong*)
-(*
 lemma [rewrite_bv_rotate_left_eliminate_1]:
-  fixes x::"'a::len word" and amount::"int"
-  assumes "SMT.z3mod amount (int (size x)) \<noteq> (0::int)"
+  fixes x::"'a::len word" and amount u1 u2 l2::"int"
+  assumes "NO_MATCH cvc_a (undefined x amount u1 u2 l2)
+    \<Longrightarrow> SMT.z3mod amount (int (size x)) \<noteq> (0::int)"
     "size x - (1 + SMT.z3mod amount (int (size x))) \<ge> 0"
     "size x - (1 + SMT.z3mod amount (int (size x))) < LENGTH('a)"
     "LENGTH('b) = size x - (1 + SMT.z3mod amount (int (size x))) + 1"
@@ -173,106 +180,14 @@ lemma [rewrite_bv_rotate_left_eliminate_1]:
     "LENGTH('a) = LENGTH('b) + LENGTH('c)"
     "amount \<ge> 0"
   shows "
-  (word_rotl (nat amount) x::'a::len word) =
+  (word_rotl_lift amount x::'a::len word) =
    word_cat
     (smt_extract
       (nat (int (size x) - ((1::int) + SMT.z3mod amount (int (size x)))))
       (nat (0::int)) x::'b::len word)
     (smt_extract (nat (int (size x) - (1::int)))
       (nat (int (size x) - SMT.z3mod amount (int (size x)))) x::'c::len word)"
-proof -
-  let ?n = "LENGTH('a)"
-  define a where "a = LENGTH('c)"
-
-  have size_eq: "size x = ?n" by (simp add: word_size)
-
-  have z3mod_nneg: "0 \<le> SMT.z3mod amount (int (size x))"
-    by (simp add: SMT.z3mod_def)
-
-  have t0: "(0 \<le> amount mod (int LENGTH('b) + SMT.z3mod amount (int (size x))))"
-    using  a_def assms(9) len_num1 n_not_Suc_n plus_1_eq_Suc
-    unfolding SMT.z3mod_def 
-    by (simp add: assms(10) nonneg_mod_div)
-    
-  text \<open>The rotation amount, reduced modulo \<open>?n\<close>, equals \<open>LENGTH('c)\<close>.\<close>
-  have shift_mod: "nat amount mod (LENGTH('b) + LENGTH('c)) = LENGTH('c)"
-    apply (simp add: nat_mod_as_int)
-    apply (subst int_int_eq[symmetric])
-    apply (subst assms(8))
-    apply (subst assms(10))
-    apply simp
-    apply (simp add: t0)
-    apply (simp add: assms(10))
-    unfolding SMT.z3mod_def sorry
-  have shift_eq: "nat amount mod ?n = a"
-    using shift_mod assms(9) a_def by simp
-
-  have b_eq: "LENGTH('b) = ?n - a"
-    using assms(9) a_def by simp
-  have a_lt_n: "a < ?n"
-    using shift_eq[symmetric] by simp
-
-  have z3mod_nat: "nat (SMT.z3mod amount (int (size x))) = a"
-    using assms(10) size_eq shift_eq
-    by (simp add: SMT.z3mod_def nat_mod_distrib flip: zmod_int)
-
-  have a_pos: "0 < a"
-    using assms(1) z3mod_nneg z3mod_nat by (metis nat_0 order_le_imp_less_or_eq)
-
-  text \<open>Rewrite the integer-shaped indices in \<open>nat\<close> arithmetic.\<close>
-  have idx_hi: "nat (int (size x) - (1 + SMT.z3mod amount (int (size x)))) = ?n - 1 - a"
-    using z3mod_nat z3mod_nneg size_eq assms(2)
-    by (simp add: nat_diff_distrib nat_add_distrib)
-  have idx_top: "nat (int (size x) - 1) = ?n - 1"
-    using size_eq by (simp add: nat_diff_distrib)
-  have idx_lo: "nat (int (size x) - SMT.z3mod amount (int (size x))) = ?n - a"
-    using z3mod_nat z3mod_nneg size_eq assms(5)
-    by (simp add: nat_diff_distrib)
-
-  show ?thesis
-    unfolding idx_hi idx_top idx_lo
-  proof (rule bit_word_eqI)
-    fix k :: nat
-    assume k_lt: "k < ?n"
-    show "bit (word_rotl (nat amount) x) k =
-          bit (word_cat
-                 (smt_extract (?n - 1 - a) (nat 0) x :: 'b word)
-                 (smt_extract (?n - 1) (?n - a) x :: 'c word) :: 'a word) k"
-    proof (cases "k < a")
-      case True
-      with a_lt_n have add_lt: "k + (?n - a) < ?n" by linarith
-      have lhs: "bit (word_rotl (nat amount) x) k = bit x (k + (?n - a))"
-        using k_lt shift_eq add_lt by (simp add: bit_word_rotl_iff)
-      have rhs: "bit (word_cat
-                       (smt_extract (?n - 1 - a) (nat 0) x :: 'b word)
-                       (smt_extract (?n - 1) (?n - a) x :: 'c word) :: 'a word) k
-                  = bit x (k + (?n - a))"
-        using True k_lt a_lt_n a_pos b_eq a_def add_lt
-        by (auto simp: bit_word_cat_iff bit_smt_extract)
-      from lhs rhs show ?thesis by simp
-    next
-      case False
-      then have k_ge: "a \<le> k" by simp
-      with k_lt a_lt_n have k_minus_lt: "k - a < ?n - a" by linarith
-      have add_eq: "(k + (?n - a)) mod ?n = k - a"
-      proof -
-        have "k + (?n - a) = (k - a) + ?n"
-          using k_ge a_lt_n by simp
-        then show ?thesis using k_minus_lt by simp
-      qed
-      have lhs: "bit (word_rotl (nat amount) x) k = bit x (k - a)"
-        using k_lt shift_eq add_eq by (simp add: bit_word_rotl_iff)
-      have rhs: "bit (word_cat
-                       (smt_extract (?n - 1 - a) (nat 0) x :: 'b word)
-                       (smt_extract (?n - 1) (?n - a) x :: 'c word) :: 'a word) k
-                  = bit x (k - a)"
-        using False k_lt a_lt_n a_pos b_eq a_def k_minus_lt k_ge
-        by (auto simp: bit_word_cat_iff bit_smt_extract)
-      from lhs rhs show ?thesis by simp
-    qed
-  qed
-qed
-*)
+  sorry
 
 (*
 (define-cond-rule bv-rotate-left-eliminate-2
