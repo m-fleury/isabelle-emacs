@@ -652,7 +652,7 @@ lemma smt_redand_cast_1 [simp]:
 
 (*'c is 'a + 1*)
 definition smt_uaddo :: "'c::len itself \<Rightarrow> 'a::len word \<Rightarrow> 'b::len word \<Rightarrow> bool" where
-"smt_uaddo TYPE('c) x y = (smt_extract (size x - 1) (size x - 1)
+"smt_uaddo TYPE('c) x y = (smt_extract (size x) (size x)
  ((Word.word_cat (0::1 word) x) + (Word.word_cat (0::1 word) y) :: 'c::len word) = (1:: 1 word))"
 
 definition smt_saddo :: "'a::len itself \<Rightarrow> 'a::len word \<Rightarrow> 'a::len word \<Rightarrow> bool" where
