@@ -752,6 +752,16 @@ lemma cong_5:
   using assms
   by (ctxt_tactic "cong")
 
+lemma cong_6:
+assumes "P1 = Q1"  "P2 = Q2"  "P3 = Q3"
+shows   "(P1 \<and> (P2 \<and> P3)) = (Q1 \<and> (Q2 \<and> Q3))"
+  using assms
+  by (ctxt_tactic "cong")
+
+
+
+
+
 (* Rule 25: eq_reflexive *)
 
 lemma eq_reflexive_1: "a = a"
