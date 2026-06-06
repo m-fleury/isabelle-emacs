@@ -1187,7 +1187,7 @@ fun mk_scast i u =
   in Const (\<^const_name>\<open>Word.signed\<close>, T --> TU) $ u end;
 
 fun
-  (*From the FixedSizeBitVectors theory*)
+  (*All operators from the FixedSizeBitVectors theory are in smt_word_cvc5*)
   (*| bv_term_parser (SMTLIB.S [SMTLIB.Sym "_",SMTLIB.Sym "extract", SMTLIB.Num i, SMTLIB.Num j],[t])
        = SOME (mk_extract i j t)*)
 
@@ -1204,20 +1204,7 @@ fun
       SOME (Const (\<^const_name>\<open>semiring_bits_class.bit\<close>, (fastype_of t) --> HOLogic.natT --> \<^typ>\<open>HOL.bool\<close>)
       $ t $ (HOLogic.mk_nat i))
  | bv_term_parser (SMTLIB.Sym "@bvsize", [t1]) =
-  let
-   (* val _ = @{print}("t1",t1)
-    fun is_concrete_bitwidth w =
-      dest_wordT w |> HOLogic.mk_number \<^typ>\<open>nat\<close>
-      handle (TYPE _) => @{term "32"}
-
-    val T = fastype_of t1
-    val _ = @{print}("T",T)
-    val _ = @{print}("is_concrete_bitwidth T",is_concrete_bitwidth T)
-*)
-  in
-      SOME (Const ( \<^const_name>\<open>of_nat\<close>,  \<^typ>\<open>Nat.nat\<close> -->  \<^typ>\<open>Int.int\<close>) $
-(Const ( \<^const_name>\<open>size\<close>, dummyT -->  \<^typ>\<open>Nat.nat\<close>) $ t1))    (*SOME (@{term "size"} $ t1)*)
-  end
+      SOME (Const ( \<^const_name>\<open>of_nat\<close>,  \<^typ>\<open>Nat.nat\<close> -->  \<^typ>\<open>Int.int\<close>) $ (Const (\<^const_name>\<open>size\<close>, dummyT --> \<^typ>\<open>Nat.nat\<close>) $ t1))
  | bv_term_parser (SMTLIB.Sym "@bv", [int,base]) = (*TODO: Can get rid of case distinction now*)
      let
      (*There is one special case that is caught here, that is if the base is the size of another bitvector *)
@@ -1344,13 +1331,13 @@ end
     let
       val T2 = fastype_of t2
     in
-      SOME (Const (\<^const_name>\<open>word_rotl\<close>,\<^typ>\<open>Nat.nat\<close>--> T2 --> T2) $ (Const ( \<^const_name>\<open>nat\<close>,\<^typ>\<open>Int.int\<close> -->  \<^typ>\<open>Nat.nat\<close> ) $ t1) $ t2)
+      SOME (Const (\<^const_name>\<open>word_rotl_lift\<close>, \<^typ>\<open>Int.int\<close> --> T2 --> T2) $ t1 $ t2)
     end
   | bv_term_parser (SMTLIB.Sym "rotate_right", [t1,t2]) =
     let
       val T2 = fastype_of t2
     in
-      SOME (Const (\<^const_name>\<open>word_rotr\<close>,\<^typ>\<open>Nat.nat\<close>--> T2 --> T2) $ (Const ( \<^const_name>\<open>nat\<close>, \<^typ>\<open>Int.int\<close> --> \<^typ>\<open>Nat.nat\<close>) $ t1) $ t2)
+      SOME (Const (\<^const_name>\<open>word_rotr_lift\<close>, \<^typ>\<open>Int.int\<close> --> T2 --> T2) $ t1 $ t2)
     end
   | bv_term_parser (SMTLIB.Sym "bvuaddo", [t1, t2]) =
       SOME (Const (\<^const_name>\<open>smt_uaddo\<close>,Type("itself",[dummyT]) --> fastype_of t1--> fastype_of t2 --> dummyT) $ Free("itself",dummyT) $ t1 $ t2)
