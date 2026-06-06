@@ -23,10 +23,6 @@ lemma evaluate_concat[cvc_evaluate_bv]:
   by simp
 
 
-lemma "(smt_extract 1 2 (4::7 word)::2 word) = 0"
-  by (code_simp) (*Benutzt die code regeln aber als simp*)
-
-
 lemma evaluate_extract1:
  "(smt_extract j i (w::'a::len word)::'b::len word) =
     (if 0 < i then ucast (drop_bit i (take_bit (Suc j) w))
@@ -37,11 +33,6 @@ lemma evaluate_extract1:
   apply (cases "0 < i")
    apply simp_all
   by (metis diff_diff_cancel diff_is_0_eq drop_bit_word_beyond nat_le_linear)
-
-value "(3::int) mod 4"
-
-thm Word.modulo_word_def
-thm modulo_integer_def
 
 
 
@@ -85,9 +76,6 @@ lemma takefill_numeral_Cons [bv_reconstruction_list_funs]:
 
 lemmas [arith_simp_cvc5] = nat_numeral pred_numeral_simps                                                                                                 
 
-ML\<open>
-val x = @{term "bit (3::4 word) 9"}
-\<close>
 ML \<open>
 val nat_native_ops_tab =
 [
@@ -123,45 +111,6 @@ Bit_Operations.semiring_bit_operations_class.xor.left_neutral
 Bit_Operations.semiring_bit_operations_class.xor.commute
 
 
-ML \<open>
-
-fun mk_binary' n T U t1 t2 = Const (n, [T, T] ---> U) $ t1 $ t2
-
-fun mk_binary n t1 t2 =
-  let val T = fastype_of t1
-  in mk_binary' n T T t1 t2 end
-
-fun mk_rassoc f ts =
-  let val us = rev ts
-  in fold f (tl us) (hd us) end
-
-fun mk_rassoc' n = mk_rassoc (mk_binary n)
-
-fun pairwise _ [] = []
-  | pairwise f (t1::tss)
-           = (map (fn u => f (t1,u)) tss) @ pairwise f tss
-
-
-
-
-
- fun cvc_type_parser (SMTLIB.Sym "?", _) = SOME dummyT | (*RARE specific*)
-     cvc_type_parser (SMTLIB.Sym "?BitVec", []) = SOME (Type (\<^type_name>\<open>word\<close>, [dummyT])) | (*RARE specific*)
-cvc_type_parser _ = NONE (*|
-  cvc_type_parser xs =
-  (case SMT_String.string_type_parser xs of
-    SOME x => SOME x |
-    NONE =>
-      case SMT_Set.set_type_parser xs of
-        SOME y => SOME y |
-        NONE => SMT_Array.array_type_parser xs)*)
-\<close>
-
-ML \<open>
-
-val _ = Theory.setup (Context.theory_map (
-  SMTLIB_Proof.add_type_parser cvc_type_parser))
-\<close>
 
 
 ML \<open>
@@ -393,22 +342,6 @@ cvc5_rare "Alethe_BV_Rewrites_Simplification.rewrite_bv_zero_extend_eq_const_1"
 cvc5_rare "Alethe_BV_Rewrites_Simplification.rewrite_bv_zero_extend_eq_const_2"
 cvc5_rare "Alethe_BV_Rewrites_Simplification.rewrite_bv_zero_extend_ult_const_1"
 
-
-(*
-Problem, power is translated differently depending on type of
-first argument
-
-if nat/int & first arg is 2 \<Rightarrow> natively to ints.pow2
-if nat/int otherwise \<Rightarrow> uninterpreted function
-
-if word & first arg is 2 \<Rightarrow> natively to shift
-
-Otherwise, uninterpreted function
-
-\<Rightarrow> This would require checking during normalization :(
-We are already checking for a name but this makes everything more complicated
-
-*)
 
 
 lemmas [alethe_aci_simp] =
