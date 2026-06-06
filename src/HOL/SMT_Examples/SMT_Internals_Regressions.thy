@@ -758,9 +758,13 @@ shows   "(P1 \<and> (P2 \<and> P3)) = (Q1 \<and> (Q2 \<and> Q3))"
   using assms
   by (ctxt_tactic "cong")
 
-
-
-
+(*cvc5 generates odd refl steps sometimes*)
+lemma refl_1:
+  fixes v0 :: "'a :: {one}"
+  assumes \<open>v0 = 1\<close>
+  shows \<open>(v0 \<noteq> 1 \<or> v0 \<noteq> 1) = (1 \<noteq> (1::'a) \<or> (1::'a) \<noteq> 1)\<close>
+  using assms
+  by (ctxt_tactic "refl")
 
 (* Rule 25: eq_reflexive *)
 
