@@ -243,6 +243,8 @@ cvc5_rare "Alethe_BV_Rewrites_Elimination.rewrite_bv_uge_eliminate"
 cvc5_rare "Alethe_BV_Rewrites_Elimination.rewrite_bv_sgt_eliminate"
 cvc5_rare "Alethe_BV_Rewrites_Elimination.rewrite_bv_sge_eliminate"
 cvc5_rare "Alethe_BV_Rewrites_Elimination.rewrite_bv_slt_eliminate"
+cvc5_rare "Alethe_BV_Rewrites_Elimination.rewrite_bv_rotate_left_eliminate_1"
+cvc5_rare "Alethe_BV_Rewrites_Elimination.rewrite_bv_rotate_right_eliminate_1"
 
 cvc5_rare "Alethe_BV_Rewrites.rewrite_bv_extract_whole"
 cvc5_rare "Alethe_BV_Rewrites.rewrite_bv_extract_concat_1"

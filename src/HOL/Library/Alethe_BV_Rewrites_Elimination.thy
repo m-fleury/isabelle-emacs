@@ -164,30 +164,115 @@ lemma [rewrite_bv_comp_eliminate]:
 *)
 
 
+lemma bit_smtlib_extract_aux:
+  assumes "0 \<le> j"
+  shows "bit (smtlib_extract j i x::'b::len word) n
+    = ((n + nat i < Suc (nat j) \<and> bit x (n + nat i)) \<and> n < LENGTH('b::len))"
+  unfolding smtlib_extract_def
+  using nth_slice[of "nat i" "(take_bit (nat (j+1)) x)" n, where 'a="'b"]
+        bit_take_bit_iff[of "nat (j+1)" x "n + nat i"] assms
+  by (simp add: nat_add_distrib)
+
 named_theorems rewrite_bv_rotate_left_eliminate_1 \<open>automatically_generated\<close>
 
 lemma [rewrite_bv_rotate_left_eliminate_1]:
   fixes x::"'a::len word" and amount u1 u2 l2::"int"
-  assumes "NO_MATCH cvc_a (undefined x amount u1 u2 l2)
-    \<Longrightarrow> SMT.z3mod amount (int (size x)) \<noteq> (0::int)"
-    "size x - (1 + SMT.z3mod amount (int (size x))) \<ge> 0"
-    "size x - (1 + SMT.z3mod amount (int (size x))) < LENGTH('a)"
-    "LENGTH('b) = size x - (1 + SMT.z3mod amount (int (size x))) + 1"
-    "size x - SMT.z3mod amount (int (size x)) \<ge> 0"
-    "size x - SMT.z3mod amount (int (size x)) \<le> size x -1"
-    "size x - 1 < LENGTH('a)"
-    "LENGTH('c) = SMT.z3mod amount (int (size x))"
-    "LENGTH('a) = LENGTH('b) + LENGTH('c)"
-    "amount \<ge> 0"
-  shows "
-  (word_rotl_lift amount x::'a::len word) =
+  shows "NO_MATCH cvc_a (undefined x amount u1 u2 l2)
+    \<Longrightarrow> SMT.z3mod amount (int (size x)) \<noteq> (0::int)
+    \<Longrightarrow> u1 = int (size x) - (1 + SMT.z3mod amount (int (size x)))
+    \<Longrightarrow> u2 = int (size x) - 1
+    \<Longrightarrow> l2 = int (size x) - SMT.z3mod amount (int (size x))
+    \<Longrightarrow> LENGTH('b) = nat u1 + 1
+    \<Longrightarrow> LENGTH('c) = nat u2 - nat l2 + 1
+    \<Longrightarrow> LENGTH('a) = LENGTH('b) + LENGTH('c)
+    \<Longrightarrow> amount \<ge> 0
+    \<Longrightarrow>
+   (word_rotl_lift amount x::'a::len word) =
    word_cat
-    (smt_extract
-      (nat (int (size x) - ((1::int) + SMT.z3mod amount (int (size x)))))
-      (nat (0::int)) x::'b::len word)
-    (smt_extract (nat (int (size x) - (1::int)))
-      (nat (int (size x) - SMT.z3mod amount (int (size x)))) x::'c::len word)"
-  sorry
+    (smtlib_extract u1 0 x::'b::len word)
+    (smtlib_extract u2 l2 x::'c::len word)"
+proof -
+  assume zne: "SMT.z3mod amount (int (size x)) \<noteq> 0"
+     and u1_eq: "u1 = int (size x) - (1 + SMT.z3mod amount (int (size x)))"
+     and u2_eq: "u2 = int (size x) - 1"
+     and l2_eq: "l2 = int (size x) - SMT.z3mod amount (int (size x))"
+     and lb: "LENGTH('b) = nat u1 + 1"
+     and la: "LENGTH('a) = LENGTH('b) + LENGTH('c)"
+     and amn: "amount \<ge> 0"
+  have sz: "size x = LENGTH('a)" by (simp add: word_size)
+  have sz_int: "int (size x) = int LENGTH('a)" using sz by simp
+  have La_pos: "0 < LENGTH('a)" by (rule len_gt_0)
+  have b_pos: "0 < LENGTH('b)" by (rule len_gt_0)
+  have SucLa: "Suc (LENGTH('a) - 1) = LENGTH('a)" using La_pos by simp
+  have SucLb: "Suc (LENGTH('b) - 1) = LENGTH('b)" using b_pos by simp
+  have a_nn: "0 \<le> SMT.z3mod amount (int (size x))" by (simp add: SMT.z3mod_def)
+  have a_pos: "0 < SMT.z3mod amount (int (size x))" using a_nn zne by simp
+  have a_lt: "SMT.z3mod amount (int (size x)) < int LENGTH('a)"
+    using sz_int La_pos by (simp add: SMT.z3mod_def)
+  have u1_nn: "0 \<le> u1" using u1_eq a_lt sz_int by linarith
+  have u2_nn: "0 \<le> u2" using u2_eq sz_int La_pos by linarith
+  have lbE: "int LENGTH('b) = int (size x) - SMT.z3mod amount (int (size x))"
+    using lb u1_eq u1_nn by simp
+  have natu1: "nat u1 = LENGTH('b) - 1" using lb by simp
+  have natl2: "nat l2 = LENGTH('b)" using l2_eq lbE by (metis nat_int)
+  have natu2: "nat u2 = LENGTH('a) - 1"
+    using u2_eq sz_int La_pos by (simp add: nat_diff_distrib)
+  have lcE: "int LENGTH('c) = SMT.z3mod amount (int (size x))"
+    using la lbE sz_int by simp
+  \<comment> \<open>rotation amount, reduced modulo the width, as a nat\<close>
+  have amod: "nat amount mod LENGTH('a) = LENGTH('c)"
+  proof -
+    have "SMT.z3mod amount (int (size x)) = amount mod int LENGTH('a)"
+      using sz_int by (simp add: SMT.z3mod_def)
+    with lcE have "int LENGTH('c) = amount mod int LENGTH('a)" by simp
+    moreover have "nat (amount mod int LENGTH('a)) = nat amount mod LENGTH('a)"
+      using amn by (simp add: nat_mod_distrib)
+    ultimately show ?thesis by (metis nat_int)
+  qed
+  show "word_rotl_lift amount x =
+        word_cat (smtlib_extract u1 0 x :: 'b word) (smtlib_extract u2 l2 x :: 'c word)"
+    unfolding word_rotl_lift_def
+  proof (rule bit_word_eqI)
+    fix n :: nat assume n_lt: "n < LENGTH('a)"
+    have lhs_bit: "bit (word_rotl (nat amount) x) n = bit x ((n + LENGTH('b)) mod LENGTH('a))"
+    proof -
+      have "LENGTH('a) - nat amount mod LENGTH('a) = LENGTH('b)" using amod la by simp
+      thus ?thesis using n_lt by (simp add: bit_word_rotl_iff)
+    qed
+    show "bit (word_rotl (nat amount) x) n
+            = bit (word_cat (smtlib_extract u1 0 x :: 'b word) (smtlib_extract u2 l2 x :: 'c word) :: 'a word) n"
+    proof (cases "n < LENGTH('c)")
+      case True
+      have catbit: "bit (word_cat (smtlib_extract u1 0 x :: 'b word) (smtlib_extract u2 l2 x :: 'c word) :: 'a word) n
+                      = bit (smtlib_extract u2 l2 x :: 'c word) n"
+        using True n_lt by (simp add: bit_word_cat_iff)
+      have nb_lt: "n + LENGTH('b) < LENGTH('a)" using True la by linarith
+      have extbit: "bit (smtlib_extract u2 l2 x :: 'c word) n = bit x (n + LENGTH('b))"
+        using True nb_lt u2_nn by (simp add: bit_smtlib_extract_aux natl2 natu2 SucLa)
+      have modeq: "(n + LENGTH('b)) mod LENGTH('a) = n + LENGTH('b)" using nb_lt by simp
+      show ?thesis using lhs_bit catbit extbit modeq by simp
+    next
+      case False
+      hence n_ge: "LENGTH('c) \<le> n" by simp
+      have catbit: "bit (word_cat (smtlib_extract u1 0 x :: 'b word) (smtlib_extract u2 l2 x :: 'c word) :: 'a word) n
+                      = bit (smtlib_extract u1 0 x :: 'b word) (n - LENGTH('c))"
+        using False n_lt by (simp add: bit_word_cat_iff)
+      have klt: "n - LENGTH('c) < LENGTH('b)" using n_lt n_ge la by linarith
+      have extbit: "bit (smtlib_extract u1 0 x :: 'b word) (n - LENGTH('c)) = bit x (n - LENGTH('c))"
+        using klt u1_nn by (simp add: bit_smtlib_extract_aux natu1 SucLb)
+      have ge: "LENGTH('a) \<le> n + LENGTH('b)" using n_ge la by linarith
+      have modeq: "(n + LENGTH('b)) mod LENGTH('a) = n - LENGTH('c)"
+      proof -
+        have "(n + LENGTH('b)) mod LENGTH('a) = (n + LENGTH('b) - LENGTH('a)) mod LENGTH('a)"
+          using ge by (simp add: le_mod_geq)
+        moreover have "n + LENGTH('b) - LENGTH('a) = n - LENGTH('c)" using la by simp
+        moreover have "(n - LENGTH('c)) mod LENGTH('a) = n - LENGTH('c)" using n_lt by simp
+        ultimately show ?thesis by simp
+      qed
+      show ?thesis using lhs_bit catbit extbit modeq by simp
+    qed
+  qed
+qed
 
 (*
 (define-cond-rule bv-rotate-left-eliminate-2
@@ -226,43 +311,99 @@ lemma [rewrite_bv_rotate_left_eliminate_2]:
 named_theorems rewrite_bv_rotate_right_eliminate_1 \<open>automatically_generated\<close>
 
 lemma [rewrite_bv_rotate_right_eliminate_1]:
-  fixes x::"'a::len word" and amount::"int"
-  shows "SMT.z3mod amount (int (size x)) \<noteq> (0::int) \<longrightarrow>
-  LENGTH('a) = LENGTH('b) + LENGTH('c) \<longrightarrow>
-  amount \<ge> 0 \<longrightarrow> 
-  SMT.z3mod amount (int (size x)) - 1 \<ge> 0 \<longrightarrow>
-  SMT.z3mod amount (int (size x)) - 1 < LENGTH('a) \<longrightarrow>
-  LENGTH('b) = SMT.z3mod amount (int (size x)) \<longrightarrow>
-  SMT.z3mod amount (int (size x)) \<ge> 0 \<longrightarrow>
-  size x - 1 \<ge> SMT.z3mod amount (int (size x)) \<longrightarrow> 
-  size x - 1 \<le> LENGTH('a) \<longrightarrow>
-  LENGTH('c) = size x - SMT.z3mod amount (int (size x)) \<longrightarrow>
-  (word_rotr (nat amount) x::'a::len word) =
+  fixes x::"'a::len word" and amount u1 u2 l2::"int"
+  shows "NO_MATCH cvc_a (undefined x amount u1 u2 l2)
+    \<Longrightarrow> SMT.z3mod amount (int (size x)) \<noteq> (0::int)
+    \<Longrightarrow> u1 = SMT.z3mod amount (int (size x)) - 1
+    \<Longrightarrow> u2 = int (size x) - 1
+    \<Longrightarrow> l2 = SMT.z3mod amount (int (size x))
+    \<Longrightarrow> LENGTH('b) = nat u1 + 1
+    \<Longrightarrow> LENGTH('c) = nat u2 - nat l2 + 1
+    \<Longrightarrow> LENGTH('a) = LENGTH('b) + LENGTH('c)
+    \<Longrightarrow> amount \<ge> 0
+    \<Longrightarrow>
+   (word_rotr_lift amount x::'a::len word) =
    word_cat
-    (smt_extract (nat (SMT.z3mod amount (int (size x)) - (1::int)))
-      (nat (0::int)) x::'b::len word)
-    (smt_extract (nat (int (size x) - (1::int)))
-      (nat (SMT.z3mod amount (int (size x)))) x::'c::len word)"
-(*  apply (rule impI)+
-  apply (simp only: word_uint_eq_iff )
-    apply (simp add: uint_word_rotr_eq)
-  apply (simp add: concat_bit_eq uint_take_bit_eq)
-  apply (subst uint_word_cat[of "(smt_extract (nat (SMT.z3mod amount (int (size x)) - (1::int)))
-      0 x::'b::len word)" "(smt_extract (nat (int (size x) - (1::int)))
-      (nat (SMT.z3mod amount (int (size x)))) x::'c::len word)", where 'c="'a"])
-   apply simp
-  apply (subst uint_smt_extract[of 0 "(nat (SMT.z3mod amount (int (size x)) - (1::int)))" x, where 'b="'b"])
-     apply simp_all
-  apply (subst uint_smt_extract[of "(nat (SMT.z3mod amount (int (size x))))" "(nat (int (size x) - (1::int)))" x, where 'b="'c"])
-  apply simp_all
-    apply (simp add: push_bit_take_bit)
-  apply (simp add: drop_bit_take_bit)
-  using Suc_diff_1
-  unfolding SMT.z3mod_def
-  apply (simp add:  nat_mod_as_int)*)
- (* by (smt (verit, ccfv_SIG) Suc_nat_eq_nat_zadd1 add.right_neutral diff_add_inverse group_cancel.add2 int_nat_eq nat_int plus_1_eq_Suc size_word.rep_eq zmod_int)
-*)
-  sorry
+    (smtlib_extract u1 0 x::'b::len word)
+    (smtlib_extract u2 l2 x::'c::len word)"
+proof -
+  assume zne: "SMT.z3mod amount (int (size x)) \<noteq> 0"
+     and u1_eq: "u1 = SMT.z3mod amount (int (size x)) - 1"
+     and u2_eq: "u2 = int (size x) - 1"
+     and l2_eq: "l2 = SMT.z3mod amount (int (size x))"
+     and lb: "LENGTH('b) = nat u1 + 1"
+     and la: "LENGTH('a) = LENGTH('b) + LENGTH('c)"
+     and amn: "amount \<ge> 0"
+  have sz: "size x = LENGTH('a)" by (simp add: word_size)
+  have La_pos: "0 < LENGTH('a)" by (rule len_gt_0)
+  have b_pos: "0 < LENGTH('b)" by (rule len_gt_0)
+  have SucLa: "Suc (LENGTH('a) - 1) = LENGTH('a)" using La_pos by simp
+  have SucLb: "Suc (LENGTH('b) - 1) = LENGTH('b)" using b_pos by simp
+  have a_nn: "0 \<le> SMT.z3mod amount (int (size x))" by (simp add: SMT.z3mod_def)
+  have a_pos: "0 < SMT.z3mod amount (int (size x))" using a_nn zne by simp
+  have u1_nn: "0 \<le> u1" using u1_eq a_pos by simp
+  have u2_nn: "0 \<le> u2" using u2_eq sz La_pos by simp
+  have lbE: "int LENGTH('b) = SMT.z3mod amount (int (size x))"
+    using lb u1_eq u1_nn by simp
+  have natu1: "nat u1 = LENGTH('b) - 1" using lb by simp
+  have natl2: "nat l2 = LENGTH('b)" using l2_eq lbE by (metis nat_int)
+  have natu2: "nat u2 = LENGTH('a) - 1"
+    using u2_eq sz La_pos by (simp add: nat_diff_distrib)
+  \<comment> \<open>rotation amount, reduced modulo the width, as a nat\<close>
+  have amod: "nat amount mod LENGTH('a) = LENGTH('b)"
+  proof -
+    have "SMT.z3mod amount (int (size x)) = amount mod int LENGTH('a)"
+      using sz by (simp add: SMT.z3mod_def)
+    with lbE have "int LENGTH('b) = amount mod int LENGTH('a)" by simp
+    moreover have "nat (amount mod int LENGTH('a)) = nat amount mod LENGTH('a)"
+      using amn by (simp add: nat_mod_distrib)
+    ultimately show ?thesis by (metis nat_int)
+  qed
+  show "word_rotr_lift amount x =
+        word_cat (smtlib_extract u1 0 x :: 'b word) (smtlib_extract u2 l2 x :: 'c word)"
+    unfolding word_rotr_lift_def
+  proof (rule bit_word_eqI)
+    fix n :: nat assume n_lt: "n < LENGTH('a)"
+    have lhs_bit: "bit (word_rotr (nat amount) x) n = bit x ((n + LENGTH('b)) mod LENGTH('a))"
+    proof -
+      have "(n + nat amount) mod LENGTH('a) = (n + LENGTH('b)) mod LENGTH('a)"
+        by (metis amod mod_add_right_eq)
+      thus ?thesis using n_lt by (simp add: bit_word_rotr_iff)
+    qed
+    show "bit (word_rotr (nat amount) x) n
+            = bit (word_cat (smtlib_extract u1 0 x :: 'b word) (smtlib_extract u2 l2 x :: 'c word) :: 'a word) n"
+    proof (cases "n < LENGTH('c)")
+      case True
+      have catbit: "bit (word_cat (smtlib_extract u1 0 x :: 'b word) (smtlib_extract u2 l2 x :: 'c word) :: 'a word) n
+                      = bit (smtlib_extract u2 l2 x :: 'c word) n"
+        using True n_lt by (simp add: bit_word_cat_iff)
+      have nb_lt: "n + LENGTH('b) < LENGTH('a)" using True la by linarith
+      have extbit: "bit (smtlib_extract u2 l2 x :: 'c word) n = bit x (n + LENGTH('b))"
+        using True nb_lt u2_nn by (simp add: bit_smtlib_extract_aux natl2 natu2 SucLa)
+      have modeq: "(n + LENGTH('b)) mod LENGTH('a) = n + LENGTH('b)" using nb_lt by simp
+      show ?thesis using lhs_bit catbit extbit modeq by simp
+    next
+      case False
+      hence n_ge: "LENGTH('c) \<le> n" by simp
+      have catbit: "bit (word_cat (smtlib_extract u1 0 x :: 'b word) (smtlib_extract u2 l2 x :: 'c word) :: 'a word) n
+                      = bit (smtlib_extract u1 0 x :: 'b word) (n - LENGTH('c))"
+        using False n_lt by (simp add: bit_word_cat_iff)
+      have klt: "n - LENGTH('c) < LENGTH('b)" using n_lt n_ge la by linarith
+      have extbit: "bit (smtlib_extract u1 0 x :: 'b word) (n - LENGTH('c)) = bit x (n - LENGTH('c))"
+        using klt u1_nn by (simp add: bit_smtlib_extract_aux natu1 SucLb)
+      have ge: "LENGTH('a) \<le> n + LENGTH('b)" using n_ge la by linarith
+      have modeq: "(n + LENGTH('b)) mod LENGTH('a) = n - LENGTH('c)"
+      proof -
+        have "(n + LENGTH('b)) mod LENGTH('a) = (n + LENGTH('b) - LENGTH('a)) mod LENGTH('a)"
+          using ge by (simp add: le_mod_geq)
+        moreover have "n + LENGTH('b) - LENGTH('a) = n - LENGTH('c)" using la by simp
+        moreover have "(n - LENGTH('c)) mod LENGTH('a) = n - LENGTH('c)" using n_lt by simp
+        ultimately show ?thesis by simp
+      qed
+      show ?thesis using lhs_bit catbit extbit modeq by simp
+    qed
+  qed
+qed
 (*
 (define-cond-rule bv-rotate-right-eliminate-2
   ((x ?BitVec) (amount Int))
