@@ -532,62 +532,64 @@ fun mk_bv_from_int_base int base =
         (HOLogic.mk_number ty num)
       end
 
-
+val unprefix_bv = (unprefix "bv")
 
 fun
   (*From the FixedSizeBitVectors theory*)
   bv_term_parser (SMTLIB.BVNum (i, base), []) = SOME (HOLogic.mk_number (mk_wordT base) i)
-  | bv_term_parser (SMTLIB.Sym "bvnot", [t1]) =
-    SOME (mk_unary \<^const_name>\<open>ring_bit_operations_class.not\<close> t1)
-  | bv_term_parser (SMTLIB.Sym "bvneg", [t]) =
-    SOME (mk_unary \<^const_name>\<open>uminus_class.uminus\<close> t)
-  | bv_term_parser (SMTLIB.Sym "bvand", (t::ts)) =
-    SOME (mk_lassoc' \<^const_name>\<open>semiring_bit_operations_class.and\<close> t ts)
   | bv_term_parser (SMTLIB.Sym "bv", [int, base]) = SOME (mk_bv_from_int_base int base)
   | bv_term_parser (SMTLIB.S [SMTLIB.Sym "_", SMTLIB.Sym n, SMTLIB.Num base], []) =
-    (case try (unprefix "bv") n of
-      NONE => NONE
-    | SOME t =>
-      (case Int.fromString t of
-        NONE => NONE
-      | SOME t' =>
-        let
-          val int = HOLogic.mk_number @{typ int} t'
-        in
-          SOME (mk_bv_from_int_base int (HOLogic.mk_number @{typ int} base))
-        end))
+    try unprefix_bv n
+    |> Option.mapPartial Int.fromString
+    |> Option.map (fn t' =>
+         mk_bv_from_int_base (HOLogic.mk_number @{typ int} t') (HOLogic.mk_number @{typ int} base))
   | bv_term_parser (SMTLIB.Sym "_", [Free (n, _), base]) =
-    (case try (unprefix "bv") n of
-      NONE => NONE
-    | SOME t =>
-      (case Int.fromString t of
-        NONE => NONE
-      | SOME t' =>
+    try unprefix_bv n
+    |> Option.mapPartial Int.fromString
+    |> Option.map (fn t' => mk_bv_from_int_base (HOLogic.mk_number @{typ int} t') base)
+  | bv_term_parser (SMTLIB.Sym "concat", t1 :: t2 :: ts) =
+    let
+      fun mk_cat x (acc, accT) =
         let
-          val int = HOLogic.mk_number @{typ int} t'
+          val xT = fastype_of x
+          val resT = mk_wordT (dest_wordT xT + dest_wordT accT)
         in
-          SOME (mk_bv_from_int_base int base)
-        end))
-  | bv_term_parser (SMTLIB.S [SMTLIB.Sym "_", SMTLIB.Sym "int_to_bv", SMTLIB.Num i], [t]) =
-    mk_word_of_int i t
-  | bv_term_parser (SMTLIB.Sym "int_to_bv", [i, t]) =
-    mk_word_of_int' i t
-  | bv_term_parser (SMTLIB.Sym "ubv_to_int", [t1]) =
-    let
-      val T1 = fastype_of t1
+          (Const (\<^const_name>\<open>word_cat\<close>, xT --> accT --> resT) $ x $ acc, resT)
+        end
+      fun build [x] = (x, fastype_of x)
+        | build (x :: xs) = mk_cat x (build xs)
+        | build [] = raise Match
     in
-      SOME (Const (\<^const_name>\<open>unsigned\<close>, T1 --> @{typ int}) $ t1)
+      SOME (fst (build (t1 :: t2 :: ts)))
     end
-  | bv_term_parser (SMTLIB.Sym "sbv_to_int", [t1]) =
+  | bv_term_parser (SMTLIB.S [SMTLIB.Sym "_", SMTLIB.Sym "extract", SMTLIB.Num i, SMTLIB.Num j], [t]) =
+    SOME (mk_extract i j t)
+  | bv_term_parser (SMTLIB.Sym "extract", [i, j, t]) =
+    SOME (mk_extract_from_terms i j t)
+  | bv_term_parser (SMTLIB.Sym "bvnot", [t1]) =
+    SOME (mk_unary \<^const_name>\<open>ring_bit_operations_class.not\<close> t1)
+  | bv_term_parser (SMTLIB.Sym "bvand", (t::ts)) =
+    SOME (mk_lassoc' \<^const_name>\<open>semiring_bit_operations_class.and\<close> t ts)
+  | bv_term_parser (SMTLIB.Sym "bvor", (t::ts)) =
     let
-      val T1 = fastype_of t1
+      val T = fastype_of t
     in
-      SOME (Const (\<^const_name>\<open>signed\<close>, T1 --> @{typ int}) $ t1)
+      SOME (mk_lassoc (fn t1 => fn t2 => (Const (\<^const_name>\<open>semiring_bit_operations_class.or\<close>, T --> T --> T)) $ t1 $ t2) t ts)
     end
-  | bv_term_parser (SMTLIB.Sym "bvult", [t1, t2]) =
-    SOME (HOLogic.mk_binrel \<^const_name>\<open>Orderings.less\<close> (t1, t2))
-  | bv_term_parser (SMTLIB.Sym "bvule", [t1, t2]) =
-    SOME (HOLogic.mk_binrel \<^const_name>\<open>Orderings.less_eq\<close> (t1, t2))
+  | bv_term_parser (SMTLIB.Sym "bvneg", [t]) =
+    SOME (mk_unary \<^const_name>\<open>uminus_class.uminus\<close> t)
+  | bv_term_parser (SMTLIB.Sym "bvadd", t) =
+    let
+      val (xs, a) = split_last t
+    in
+      SOME (fold (curry (HOLogic.mk_binop \<^const_name>\<open>Groups.plus\<close>)) xs a)
+    end
+  | bv_term_parser (SMTLIB.Sym "bvmul", (t::ts)) =
+    let
+      val T = fastype_of t
+    in
+      SOME (mk_lassoc (fn t1 => fn t2 => (Const (\<^const_name>\<open>Groups.times\<close>, T --> T --> T)) $ t1 $ t2) t ts)
+    end
   | bv_term_parser (SMTLIB.Sym "bvshl", [t1, t2]) =
     let
       val T1 = fastype_of t1
@@ -600,36 +602,24 @@ fun
     in
       SOME (Const (\<^const_name>\<open>smtlib_bvlshr\<close>, T1 --> T1 --> T1) $ t1 $ t2)
     end
-  | bv_term_parser (SMTLIB.Sym "bvashr", [t1, t2]) =
+  | bv_term_parser (SMTLIB.Sym "bvult", [t1, t2]) =
+    SOME (HOLogic.mk_binrel \<^const_name>\<open>Orderings.less\<close> (t1, t2))
+  | bv_term_parser (SMTLIB.Sym "ubv_to_int", [t1]) =
     let
       val T1 = fastype_of t1
     in
-      SOME (Const (\<^const_name>\<open>smtlib_bvashr\<close>, T1 --> T1 --> T1) $ t1 $ t2)
+      SOME (Const (\<^const_name>\<open>unsigned\<close>, T1 --> @{typ int}) $ t1)
     end
-  | bv_term_parser (SMTLIB.Sym "bvadd", t) =
+  | bv_term_parser (SMTLIB.Sym "sbv_to_int", [t1]) =
     let
-      val (xs, a) = split_last t
+      val T1 = fastype_of t1
     in
-      SOME (fold (curry (HOLogic.mk_binop \<^const_name>\<open>Groups.plus\<close>)) xs a)
+      SOME (Const (\<^const_name>\<open>signed\<close>, T1 --> @{typ int}) $ t1)
     end
-  | bv_term_parser (SMTLIB.Sym "bvsub", t) =
-    let
-      val (xs, a) = split_last t
-    in
-      SOME (fold (curry (HOLogic.mk_binop \<^const_name>\<open>Groups.minus\<close>)) xs a)
-    end
-  | bv_term_parser (SMTLIB.Sym "bvmul", (t::ts)) =
-    let
-      val T = fastype_of t
-    in
-      SOME (mk_lassoc (fn t1 => fn t2 => (Const (\<^const_name>\<open>Groups.times\<close>, T --> T --> T)) $ t1 $ t2) t ts)
-    end
-  | bv_term_parser (SMTLIB.Sym "bvor", (t::ts)) =
-    let
-      val T = fastype_of t
-    in
-      SOME (mk_lassoc (fn t1 => fn t2 => (Const (\<^const_name>\<open>semiring_bit_operations_class.or\<close>, T --> T --> T)) $ t1 $ t2) t ts)
-    end
+  | bv_term_parser (SMTLIB.S [SMTLIB.Sym "_", SMTLIB.Sym "int_to_bv", SMTLIB.Num i], [t]) =
+    mk_word_of_int i t
+  | bv_term_parser (SMTLIB.Sym "int_to_bv", [i, t]) =
+    mk_word_of_int' i t
   | bv_term_parser (SMTLIB.Sym "bvxor", (t::ts)) =
     let
       val T = fastype_of t
@@ -638,35 +628,28 @@ fun
     end
   | bv_term_parser (SMTLIB.Sym "bvxnor", [t1, t2]) =
     SOME (mk_unary \<^const_name>\<open>ring_bit_operations_class.not\<close> (HOLogic.mk_binop \<^const_name>\<open>semiring_bit_operations_class.xor\<close> (t1, t2)))
+  | bv_term_parser (SMTLIB.Sym "bvsub", t) =
+    let
+      val (xs, a) = split_last t
+    in
+      SOME (fold (curry (HOLogic.mk_binop \<^const_name>\<open>Groups.minus\<close>)) xs a)
+    end
+  | bv_term_parser (SMTLIB.Sym "bvashr", [t1, t2]) =
+    let
+      val T1 = fastype_of t1
+    in
+      SOME (Const (\<^const_name>\<open>smtlib_bvashr\<close>, T1 --> T1 --> T1) $ t1 $ t2)
+    end
   | bv_term_parser (SMTLIB.S [SMTLIB.Sym "_", SMTLIB.Sym "zero_extend", SMTLIB.Num i], [t]) =
     mk_zero_extend i t
+  | bv_term_parser (SMTLIB.Sym "zero_extend", [t1, t2]) =
+      SOME (Const (\<^const_name>\<open>Word.unsigned\<close>, fastype_of t2 --> dummyT) $ t2)
   | bv_term_parser (SMTLIB.S [SMTLIB.Sym "_", SMTLIB.Sym "sign_extend", SMTLIB.Num i], [t]) =
     SOME (mk_scast i t)
   | bv_term_parser (SMTLIB.Sym "sign_extend", [t1, t2]) =
       SOME (Const (\<^const_name>\<open>Word.signed_cast\<close>, fastype_of t2 --> dummyT) $ t2)
-  | bv_term_parser (SMTLIB.Sym "zero_extend", [t1, t2]) =
-      SOME (Const (\<^const_name>\<open>Word.unsigned\<close>, fastype_of t2 --> dummyT) $ t2)
-  | bv_term_parser (SMTLIB.S [SMTLIB.Sym "_", SMTLIB.Sym "extract", SMTLIB.Num i, SMTLIB.Num j], [t]) =
-    SOME (mk_extract i j t)
-  | bv_term_parser (SMTLIB.Sym "extract", [i, j, t]) =
-    SOME (mk_extract_from_terms i j t)
-  | bv_term_parser (SMTLIB.Sym "concat", t1 :: t2 :: ts) =
-    let
-      fun cat_op I1 I2 O = (Const (\<^const_name>\<open>word_cat\<close>, I1 --> I2 --> O))
-      fun res_type I1 I2 = (dest_wordT I1 + dest_wordT I2) |> mk_wordT
-      fun bitwidthConcat [x] = (x, (fastype_of x))
-        | bitwidthConcat (x::xs) =
-          let
-            val (curr_t, currT) = bitwidthConcat xs
-            val xT = fastype_of x
-            val resT = res_type xT currT
-          in
-            (((cat_op xT currT resT) $ x $ curr_t), resT)
-          end
-      val (res, _) = bitwidthConcat (t1::t2::ts)
-    in
-      SOME (res)
-    end
+  | bv_term_parser (SMTLIB.Sym "bvule", [t1, t2]) =
+    SOME (HOLogic.mk_binrel \<^const_name>\<open>Orderings.less_eq\<close> (t1, t2))
   | bv_term_parser xs = NONE
 
 fun bv_type_parser (SMTLIB.S [SMTLIB.Sym "_", SMTLIB.Sym "BitVec", SMTLIB.Num x], []) =
