@@ -17,7 +17,7 @@ named_theorems rewrite_bv_ugt_eliminate \<open>automatically_generated\<close>
 lemma [rewrite_bv_ugt_eliminate]:
   fixes x::"'a ::len word" and y::"'a ::len word"
   shows "NO_MATCH cvc_a (undefined x y)
-    \<Longrightarrow> (x < y) = (y > x)"
+    \<Longrightarrow> (y < x) = (y < x)"
   by simp
 
 (*
@@ -63,34 +63,18 @@ lemma [rewrite_bv_sge_eliminate]:
   by auto
 
 (*
-(define-cond-rule bv-slt-eliminate
-  ((x ?BitVec) (y ?BitVec) (nm1 Int))
-  (= nm1 (- (@bvsize x) 1))
-  (bvslt x y)
-  (bvult (bvadd x (bvshl (@bv 1 (@bvsize x)) (@bv nm1 (@bvsize x))))
-         (bvadd y (bvshl (@bv 1 (@bvsize x)) (@bv nm1 (@bvsize x))))))
+(define-rule bv-sle-eliminate
+  ((x ?BitVec) (y ?BitVec))
+  (bvsle x y)
+  (not (bvslt y x)))
 *)
-named_theorems rewrite_bv_slt_eliminate \<open>automatically_generated\<close>
+named_theorems rewrite_bv_sle_eliminate \<open>automatically_generated\<close>
 
-lemma [rewrite_bv_slt_eliminate]:
+lemma [rewrite_bv_sle_eliminate]:
   fixes x::"'a ::len word" and y::"'a ::len word"
   shows "NO_MATCH cvc_a (undefined x y)
-    \<Longrightarrow> (x <s y) =
-   (x +
-    push_bit (unat (Word.Word (int (size x) - (1::int))::'a::len word))
-     (Word.Word (1::int)::'a::len word)
-    < y +
-      push_bit (unat (Word.Word (int (size x) - (1::int))::'a::len word))
-       (Word.Word (1::int)::'a::len word))"
-  apply transfer
-  apply (simp add: signed_take_bit_eq_take_bit_shift)
-  apply (cases \<open>LENGTH('a)\<close>)
-  apply simp
-  apply (simp add: iff_conv_conj_imp)
-  apply (rule conjI impI)+
-    apply (metis add.commute add_lessD1 n_less_equal_power_2 nat_int of_nat_take_bit plus_1_eq_Suc take_bit_nat_eq_self)
-  apply (metis Suc_lessD n_less_equal_power_2 nat_int take_bit_nat_eq_self take_bit_of_nat)
-  sorry
+    \<Longrightarrow> (x \<le>s y) = (\<not>(y <s x))"
+  by auto
 
 (*
 (define-cond-rule bv-redor-eliminate
@@ -492,6 +476,41 @@ lemma [rewrite_bv_xnor_eliminate]:
   (concat (@bv 0 n) x))
 *)
 
+named_theorems rewrite_bv_sdiv_eliminate \<open>automatically_generated\<close>
+
+lemma [rewrite_bv_sdiv_eliminate]:
+  fixes x::"'a::len word" and y::"'a::len word" and nm1::"int"
+  shows "NO_MATCH cvc_a (undefined x y nm1)
+    \<Longrightarrow> nm1 = int (size x) - 1
+    \<Longrightarrow> smt_sdiv x y =
+        (if (smtlib_extract nm1 nm1 x = (1::1 word)) \<noteq> (smtlib_extract nm1 nm1 y = (1::1 word))
+         then - smt_udiv (if smtlib_extract nm1 nm1 x = (1::1 word) then - x else x)
+                         (if smtlib_extract nm1 nm1 y = (1::1 word) then - y else y)
+         else smt_udiv (if smtlib_extract nm1 nm1 x = (1::1 word) then - x else x)
+                       (if smtlib_extract nm1 nm1 y = (1::1 word) then - y else y))"
+proof -
+  assume nm1: "nm1 = int (size x) - 1"
+  have nm1': "nm1 = int (size x - 1)"
+    using nm1
+    by (simp add: le_def)
+  have key: "(smtlib_extract nm1 nm1 z :: 1 word) = smt_extract (size x - 1) (size x - 1) z" for z :: "'a word"
+  proof -
+    have szlt: "size x - 1 < size (z::'a word)" by (simp add: word_size)
+    have "(smtlib_extract nm1 nm1 z :: 1 word) = (if bit z (size x - 1) then 1 else 0)"
+      unfolding nm1' using smtlib_extract_eq_iff[of "size x - 1" z] by simp
+    moreover have "(smt_extract (size x - 1) (size x - 1) z :: 1 word) = (if bit z (size x - 1) then 1 else 0)"
+      using smt_extract_bit[OF szlt] .
+    ultimately show ?thesis by simp
+  qed
+  show "smt_sdiv x y =
+        (if (smtlib_extract nm1 nm1 x = (1::1 word)) \<noteq> (smtlib_extract nm1 nm1 y = (1::1 word))
+         then - smt_udiv (if smtlib_extract nm1 nm1 x = (1::1 word) then - x else x)
+                         (if smtlib_extract nm1 nm1 y = (1::1 word) then - y else y)
+         else smt_udiv (if smtlib_extract nm1 nm1 x = (1::1 word) then - x else x)
+                       (if smtlib_extract nm1 nm1 y = (1::1 word) then - y else y))"
+    unfolding smt_sdiv_def Let_def by (simp add: key)
+qed
+
 named_theorems rewrite_bv_zero_extend_eliminate \<open>automatically_generated\<close>
 
 lemma [rewrite_bv_zero_extend_eliminate]:
@@ -588,6 +607,85 @@ proof -
 qed
 
 (*
+(define-cond-rule bv-usubo-eliminate
+  ((x ?BitVec) (y ?BitVec) (n Int))
+  (def
+    (s (bvsub (zero_extend 1 x) (zero_extend 1 y)))
+  )
+  (= n (@bvsize x))
+  (bvusubo x y)
+  (= (extract n n s) (@bv 1 1)))
+*)
+
+named_theorems rewrite_bv_usubo_eliminate \<open>automatically_generated\<close>
+
+lemma [rewrite_bv_usubo_eliminate]:
+  fixes x::"'a::len word" and y::"'a::len word" and n::"int"
+  shows "NO_MATCH cvc_a (undefined x y n)
+    \<Longrightarrow> n = int (size x)
+    \<Longrightarrow> LENGTH('c) = LENGTH('a) + 1
+    \<Longrightarrow> smt_usubo TYPE('c::len) x y =
+        (smtlib_extract n n
+          (Word.cast x - Word.cast y :: 'c::len word) = (1::1 word))"
+proof -
+  assume n: "n = int (size x)" and lc: "LENGTH('c) = LENGTH('a) + 1"
+  let ?S = "Word.cast x - Word.cast y :: 'c word"
+  have szS: "size x < size ?S" using lc by (simp add: word_size)
+  have e1: "(smtlib_extract n n ?S :: 1 word) = (if bit ?S (size x) then 1 else 0)"
+    using n smtlib_extract_eq_iff[of "size x" ?S] by simp
+  have e2: "(smt_extract (size x) (size x) ?S :: 1 word) = (if bit ?S (size x) then 1 else 0)"
+    using smt_extract_bit[OF szS] .
+  show "smt_usubo TYPE('c) x y = (smtlib_extract n n ?S = (1::1 word))"
+    unfolding smt_usubo_def using e1 e2 by simp
+qed
+
+(*
+(define-cond-rule bv-ssubo-eliminate
+  ((x ?BitVec) (y ?BitVec) (nm1 Int))
+  (def
+    (n (@bvsize x))
+    (xe (extract nm1 nm1 x))
+    (ye (extract nm1 nm1 y))
+    (s (bvsub x y))
+    (se (extract nm1 nm1 s))
+  )
+  (= nm1 (- n 1))
+  (bvssubo x y)
+  (or
+    (and (and (= xe (@bv 1 1)) (= ye (@bv 0 1))) (= se (@bv 0 1)))
+    (and (and (= xe (@bv 0 1)) (= ye (@bv 1 1))) (= se (@bv 1 1)))))
+*)
+
+named_theorems rewrite_bv_ssubo_eliminate \<open>automatically_generated\<close>
+
+lemma [rewrite_bv_ssubo_eliminate]:
+  fixes x::"'a::len word" and y::"'a::len word" and nm1::"int"
+  shows "NO_MATCH cvc_a (undefined x y nm1)
+    \<Longrightarrow> nm1 = int (size x) - 1
+    \<Longrightarrow> smt_ssubo x y =
+        (((smtlib_extract nm1 nm1 x = (1::1 word) \<and> smtlib_extract nm1 nm1 y = (0::1 word)) \<and> smtlib_extract nm1 nm1 (x - y) = (0::1 word))
+       \<or> ((smtlib_extract nm1 nm1 x = (0::1 word) \<and> smtlib_extract nm1 nm1 y = (1::1 word)) \<and> smtlib_extract nm1 nm1 (x - y) = (1::1 word)))"
+proof -
+  assume nm1: "nm1 = int (size x) - 1"
+  have nm1': "nm1 = int (size x - 1)"
+    using nm1
+    by (simp add: le_def)
+  have key: "(smtlib_extract nm1 nm1 z :: 1 word) = smt_extract (size x - 1) (size x - 1) z" for z :: "'a word"
+  proof -
+    have szlt: "size x - 1 < size (z::'a word)" by (simp add: word_size)
+    have "(smtlib_extract nm1 nm1 z :: 1 word) = (if bit z (size x - 1) then 1 else 0)"
+      unfolding nm1' using smtlib_extract_eq_iff[of "size x - 1" z] by simp
+    moreover have "(smt_extract (size x - 1) (size x - 1) z :: 1 word) = (if bit z (size x - 1) then 1 else 0)"
+      using smt_extract_bit[OF szlt] .
+    ultimately show ?thesis by simp
+  qed
+  show "smt_ssubo x y =
+        (((smtlib_extract nm1 nm1 x = (1::1 word) \<and> smtlib_extract nm1 nm1 y = (0::1 word)) \<and> smtlib_extract nm1 nm1 (x - y) = (0::1 word))
+       \<or> ((smtlib_extract nm1 nm1 x = (0::1 word) \<and> smtlib_extract nm1 nm1 y = (1::1 word)) \<and> smtlib_extract nm1 nm1 (x - y) = (1::1 word)))"
+    unfolding smt_ssubo_def Let_def by (simp add: key)
+qed
+
+(*
 (define-cond-rule bv-sdivo-eliminate
   ((x ?BitVec) (y ?BitVec) (w Int) (wm1 Int))
   (and (= wm1 (- (@bvsize x) 1)) (= w (@bvsize y)))
@@ -596,6 +694,30 @@ qed
     (= x (concat (@bv 1 1) (@bv 0 wm1)))
     (= y (bvnot (@bv 0 w)))
   ))
+*)
+
+named_theorems rewrite_bv_sdivo_eliminate \<open>automatically_generated\<close>
+
+lemma [rewrite_bv_sdivo_eliminate]:
+  fixes x::"'a::len word" and y::"'b::len word" and w::"int" and wm1::"int"
+  shows "NO_MATCH cvc_a (undefined x y w wm1)
+    \<Longrightarrow> LENGTH('c) = nat wm1
+    \<Longrightarrow> LENGTH('b) = nat w
+    \<Longrightarrow> smt_sdivo TYPE('c::len) x y =
+        (x = word_cat (1::1 word) (0::'c::len word) \<and> y = not (0::'b::len word))"
+proof -
+  have my: "(mask (size y)::'b word) = not (0::'b word)"
+  proof (rule bit_word_eqI)
+    fix k :: nat assume "k < LENGTH('b)"
+    thus "bit (mask (size y)::'b word) k = bit (not (0::'b word)) k"
+      by (simp add: bit_simps word_size)
+  qed
+  show "smt_sdivo TYPE('c) x y =
+        (x = word_cat (1::1 word) (0::'c word) \<and> y = not (0::'b word))"
+    unfolding smt_sdivo_def by (simp add: my)
+qed
+
+(*
 (define-cond-rule bv-smod-eliminate
   ((x ?BitVec) (y ?BitVec) (w Int) (wm1 Int))
   (def
@@ -618,7 +740,64 @@ qed
         (ite (and nxLt0 yLt0)
           (bvadd u y)
           (bvneg u))))))
+*)
 
+named_theorems rewrite_bv_smod_eliminate \<open>automatically_generated\<close>
+
+lemma [rewrite_bv_smod_eliminate]:
+  fixes x::"'a::len word" and y::"'a::len word" and w wm1::"int"
+  shows "NO_MATCH cvc_a (undefined x y w wm1)
+    \<Longrightarrow> wm1 = int (size x) - 1
+    \<Longrightarrow> smt_smod x y =
+        (if smt_urem (if smtlib_extract wm1 wm1 x = (0::1 word) then x else - x)
+                     (if smtlib_extract wm1 wm1 y = (0::1 word) then y else - y) = (0::'a word)
+         then smt_urem (if smtlib_extract wm1 wm1 x = (0::1 word) then x else - x)
+                       (if smtlib_extract wm1 wm1 y = (0::1 word) then y else - y)
+         else if smtlib_extract wm1 wm1 x = (0::1 word) \<and> smtlib_extract wm1 wm1 y = (0::1 word)
+         then smt_urem (if smtlib_extract wm1 wm1 x = (0::1 word) then x else - x)
+                       (if smtlib_extract wm1 wm1 y = (0::1 word) then y else - y)
+         else if smtlib_extract wm1 wm1 x = (1::1 word) \<and> smtlib_extract wm1 wm1 y = (0::1 word)
+         then - smt_urem (if smtlib_extract wm1 wm1 x = (0::1 word) then x else - x)
+                         (if smtlib_extract wm1 wm1 y = (0::1 word) then y else - y) + y
+         else if smtlib_extract wm1 wm1 x = (0::1 word) \<and> smtlib_extract wm1 wm1 y = (1::1 word)
+         then smt_urem (if smtlib_extract wm1 wm1 x = (0::1 word) then x else - x)
+                       (if smtlib_extract wm1 wm1 y = (0::1 word) then y else - y) + y
+         else - smt_urem (if smtlib_extract wm1 wm1 x = (0::1 word) then x else - x)
+                         (if smtlib_extract wm1 wm1 y = (0::1 word) then y else - y))"
+proof -
+  assume wm1: "wm1 = int (size x) - 1"
+  have wm1': "wm1 = int (size x - 1)"
+    using wm1
+    by (simp add: le_def)
+  have key: "(smtlib_extract wm1 wm1 z :: 1 word) = smt_extract (size x - 1) (size x - 1) z" for z :: "'a word"
+  proof -
+    have szlt: "size x - 1 < size (z::'a word)" by (simp add: word_size)
+    have "(smtlib_extract wm1 wm1 z :: 1 word) = (if bit z (size x - 1) then 1 else 0)"
+      unfolding wm1' using smtlib_extract_eq_iff[of "size x - 1" z] by simp
+    moreover have "(smt_extract (size x - 1) (size x - 1) z :: 1 word) = (if bit z (size x - 1) then 1 else 0)"
+      using smt_extract_bit[OF szlt] .
+    ultimately show ?thesis by simp
+  qed
+  show "smt_smod x y =
+        (if smt_urem (if smtlib_extract wm1 wm1 x = (0::1 word) then x else - x)
+                     (if smtlib_extract wm1 wm1 y = (0::1 word) then y else - y) = (0::'a word)
+         then smt_urem (if smtlib_extract wm1 wm1 x = (0::1 word) then x else - x)
+                       (if smtlib_extract wm1 wm1 y = (0::1 word) then y else - y)
+         else if smtlib_extract wm1 wm1 x = (0::1 word) \<and> smtlib_extract wm1 wm1 y = (0::1 word)
+         then smt_urem (if smtlib_extract wm1 wm1 x = (0::1 word) then x else - x)
+                       (if smtlib_extract wm1 wm1 y = (0::1 word) then y else - y)
+         else if smtlib_extract wm1 wm1 x = (1::1 word) \<and> smtlib_extract wm1 wm1 y = (0::1 word)
+         then - smt_urem (if smtlib_extract wm1 wm1 x = (0::1 word) then x else - x)
+                         (if smtlib_extract wm1 wm1 y = (0::1 word) then y else - y) + y
+         else if smtlib_extract wm1 wm1 x = (0::1 word) \<and> smtlib_extract wm1 wm1 y = (1::1 word)
+         then smt_urem (if smtlib_extract wm1 wm1 x = (0::1 word) then x else - x)
+                       (if smtlib_extract wm1 wm1 y = (0::1 word) then y else - y) + y
+         else - smt_urem (if smtlib_extract wm1 wm1 x = (0::1 word) then x else - x)
+                         (if smtlib_extract wm1 wm1 y = (0::1 word) then y else - y))"
+    unfolding smt_smod_def Let_def by (simp add: key)
+qed
+
+(*
 (define-cond-rule bv-srem-eliminate
   ((x ?BitVec) (y ?BitVec) (nm1 Int))
   (def
@@ -631,7 +810,43 @@ qed
   (= nm1 (- (@bvsize x) 1))
   (bvsrem x y)
   (ite xLt0 (bvneg u) u))
+*)
 
+named_theorems rewrite_bv_srem_eliminate \<open>automatically_generated\<close>
+
+lemma [rewrite_bv_srem_eliminate]:
+  fixes x::"'a::len word" and y::"'a::len word" and nm1::"int"
+  shows "NO_MATCH cvc_a (undefined x y nm1)
+    \<Longrightarrow> nm1 = int (size x) - 1
+    \<Longrightarrow> smt_srem x y =
+        (if smtlib_extract nm1 nm1 x = (1::1 word)
+         then - smt_urem (if smtlib_extract nm1 nm1 x = (1::1 word) then - x else x)
+                         (if smtlib_extract nm1 nm1 y = (1::1 word) then - y else y)
+         else smt_urem (if smtlib_extract nm1 nm1 x = (1::1 word) then - x else x)
+                       (if smtlib_extract nm1 nm1 y = (1::1 word) then - y else y))"
+proof -
+  assume nm1: "nm1 = int (size x) - 1"
+  have nm1': "nm1 = int (size x - 1)"
+    using nm1
+    by (simp add: le_def)
+  have e1: "(smtlib_extract nm1 nm1 z :: 1 word) = (if bit z (size x - 1) then 1 else 0)" for z :: "'a word"
+    unfolding nm1' using smtlib_extract_eq_iff[of "size x - 1" z] by simp
+  have e2: "(smt_extract (size x - 1) (size x - 1) z :: 1 word) = (if bit z (size x - 1) then 1 else 0)" for z :: "'a word"
+  proof -
+    have szlt: "size x - 1 < size (z::'a word)" by (simp add: word_size)
+    show ?thesis using smt_extract_bit[OF szlt] .
+  qed
+  show "smt_srem x y =
+        (if smtlib_extract nm1 nm1 x = (1::1 word)
+         then - smt_urem (if smtlib_extract nm1 nm1 x = (1::1 word) then - x else x)
+                         (if smtlib_extract nm1 nm1 y = (1::1 word) then - y else y)
+         else smt_urem (if smtlib_extract nm1 nm1 x = (1::1 word) then - x else x)
+                       (if smtlib_extract nm1 nm1 y = (1::1 word) then - y else y))"
+    unfolding smt_srem_def Let_def
+    by (cases "bit x (size x - 1)"; cases "bit y (size x - 1)"; simp add: e1 e2)
+qed
+
+(*
 (define-cond-rule bv-usubo-eliminate
   ((x ?BitVec) (y ?BitVec) (n Int))
   (def
@@ -640,9 +855,8 @@ qed
   (= n (@bvsize x))
   (bvusubo x y)
   (= (extract n n s) (@bv 1 1)))
-; Overflow occurs when
-; 1. (N - P) = P
-; 2. (P - N) = N
+
+
 (define-cond-rule bv-ssubo-eliminate
   ((x ?BitVec) (y ?BitVec) (nm1 Int))
   (def
