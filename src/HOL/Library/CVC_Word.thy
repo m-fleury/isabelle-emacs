@@ -671,7 +671,8 @@ definition smt_sdivo :: "'c::len itself \<Rightarrow> 'a::len word \<Rightarrow>
 "smt_sdivo TYPE('c) x y = (x = (word_cat (1::1 word) (0::'c::len word)::'a word) \<and> y = (mask (size y)::'b word))"
 
 definition smt_usubo :: "'c::len itself \<Rightarrow> 'a::len word \<Rightarrow> 'a::len word \<Rightarrow> bool" where
-"smt_usubo TYPE('c) x y = ((smt_extract ((size x)-1) ((size y)-1) ((Word.cast x::'c::len word) - Word.cast y)) = (1::1 word))"
+"smt_usubo TYPE('c) x y = (smt_extract (size x) (size x)
+ ((Word.cast x::'c::len word) - (Word.cast y::'c::len word)) = (1:: 1 word))"
 
 definition smt_ssubo :: "'a::len word \<Rightarrow> 'a::len word \<Rightarrow> bool" where
 "smt_ssubo x y = 
@@ -818,6 +819,13 @@ definition smt_udiv :: "'a::len word \<Rightarrow> 'a::len word \<Rightarrow> 'a
 "smt_udiv s t =
 (if (unat t) = 0 then (mask (size s)) else s div t)
 "
+
+definition smt_sdiv :: "'a::len word \<Rightarrow> 'a::len word \<Rightarrow> 'a::len word" where
+"smt_sdiv x y =
+(let xLt0 = (smt_extract (size x - 1) (size x - 1) x = (1::1 word)) in
+ let yLt0 = (smt_extract (size x - 1) (size x - 1) y = (1::1 word)) in
+ let rUdiv = smt_udiv (if xLt0 then - x else x) (if yLt0 then - y else y) in
+ (if xLt0 \<noteq> yLt0 then - rUdiv else rUdiv))"
 
 
 lemma uint_word_rotl_eq:
@@ -1361,8 +1369,8 @@ end
 
   | bv_term_parser (SMTLIB.Sym "smt_concat", [t]) = 
       SOME (Const (\<^const_name>\<open>concat_smt2\<close>, dummyT -->dummyT) $ t)
-  | bv_term_parser (SMTLIB.Sym "bvsdiv", [t1,t2]) = (*TODO*)
-      SOME (HOLogic.mk_binop \<^const_name>\<open>Rings.divide\<close> (mk_unary \<^const_name>\<open>unsigned\<close> t1, mk_unary \<^const_name>\<open>unsigned\<close> t2))
+  | bv_term_parser (SMTLIB.Sym "bvsdiv", [t1,t2]) =
+      SOME (HOLogic.mk_binop \<^const_name>\<open>smt_sdiv\<close> (t1, t2))
  | bv_term_parser (SMTLIB.Sym "bvudiv", [t1,t2]) =
       SOME (HOLogic.mk_binop \<^const_name>\<open>smt_udiv\<close> (t1, t2)) (*TODO: What about the case whre t2 is 0? SMTLIB semantics says it should be mask *)
 
