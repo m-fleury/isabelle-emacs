@@ -160,7 +160,9 @@ fun dsl_tac_initialize rewrite_name args ctxt t prems =
                 (fn t => (SMT_Replay_Methods.prove ctxt t (fn ctxt =>
                   TRY' (debug_msg_tac'' ctxt high "reconstruct rewrite")
                   THEN'
-                    ((CHANGED_GOAL
+                    (resolve_tac ctxt [@{thm refl}] (*degenerate rewrites whose two sides are syntactically equal*)
+                    ORELSE'
+                     (CHANGED_GOAL
                         (EqSubst.eqsubst_tac ctxt [0] [nth inst_lemmas_without_true 0] (*for bv's we will have to find the right lemma here, for now it is fine to just use the first*))
                       THEN' (TRY' (resolve_tac ctxt prems))
                       THEN' debug_msg_tac'' ctxt high "resolved premise if there was one"
