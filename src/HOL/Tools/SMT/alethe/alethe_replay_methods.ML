@@ -979,7 +979,7 @@ fun or_neg_rule ctxt _ t (SOME (Index k)) =
 
 fun and_pos ctxt _ t (SOME (Index k)) =
       SMT_Replay_Methods.prove ctxt t (fn _ =>
-      resolve_tac ctxt [@{lemma "(A \<Longrightarrow> B) \<Longrightarrow> (\<not>A \<or> B)" by blast}]
+      match_tac ctxt [@{lemma "(A \<Longrightarrow> B) \<Longrightarrow> (\<not>A \<or> B)" by blast}]
       THEN' (and_dest_prove ctxt k))
   | and_pos ctxt _ t _ = SMT_Replay_Methods.prove ctxt t (fn _ =>
       REPEAT_CHANGED (resolve_tac ctxt @{thms alethe_and_pos})
